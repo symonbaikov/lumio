@@ -56,6 +56,11 @@ const content = {
         en: 'Integrations',
         kk: 'Интеграциялар',
       }),
+      trash: t({
+        ru: 'Корзина',
+        en: 'Trash',
+        kk: 'Себет',
+      }),
       categories: t({
         ru: 'Категории',
         en: 'Categories',

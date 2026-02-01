@@ -38,6 +38,7 @@ import {
   Sun,
   Table,
   Tags,
+  Trash2,
   User,
   Users,
   Wallet,
@@ -74,6 +75,8 @@ export default function Navigation() {
     languages: languageNames,
     tour,
   } = useIntlayer("navigation");
+  const trashLabel = (userMenu as Record<string, any>).trash?.value ?? 'Trash';
+  
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
   const [languageDraft, setLanguageDraft] = useState<AppLanguage>("ru");
@@ -432,6 +435,13 @@ export default function Navigation() {
                           <span className="text-base">
                             {userMenu.integrations}
                           </span>
+                        </Link>
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem asChild>
+                        <Link href="/statements/trash">
+                          <Trash2 size={18} className="text-muted-foreground" />
+                          <span className="text-base">{trashLabel}</span>
                         </Link>
                       </DropdownMenuItem>
 

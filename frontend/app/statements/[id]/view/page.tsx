@@ -113,7 +113,7 @@ export default function ViewStatementPage({
     const toastId = toast.loading('Загрузка файла...');
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`${apiBaseUrl}/statements/${statementId}/file`, {
+      const response = await fetch(`${apiBaseUrl}/statements/edit`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

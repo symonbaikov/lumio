@@ -281,6 +281,17 @@ export default function WorkspaceSettingsPage() {
     member: t.roles.member.value,
   };
 
+  const hasAdminSections = Boolean(overview && isOwnerOrAdmin);
+
+  const compactCardSx = {
+    borderColor: 'divider',
+    boxShadow: 'none',
+  };
+
+  const compactCardContentSx = {
+    p: 2,
+  };
+
   const resolveLocale = useCallback((value: string) => {
     if (value === 'ru') return 'ru-RU';
     if (value === 'kk') return 'kk-KZ';
@@ -414,455 +425,474 @@ export default function WorkspaceSettingsPage() {
   }
 
   return (
-    <Container maxWidth={false} className="container-shared" sx={{ py: 4 }}>
-      <Stack spacing={3}>
+    <Container maxWidth={false} className="container-shared" sx={{ py: { xs: 3, md: 4 } }}>
+      <Stack spacing={2}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main', mb: 1 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 0.5 }}>
             {t.title}
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body2" color="text.secondary">
             {t.subtitle}
           </Typography>
         </Box>
 
         {fetchError && <Alert severity="error">{fetchError}</Alert>}
 
-        {/* Workspace Metadata Settings */}
-        {overview && isOwnerOrAdmin && (
-          <Card variant="outlined">
-            <CardContent>
-              <Stack spacing={2} component="form" onSubmit={handleUpdateWorkspace}>
-                <Typography variant="h6" fontWeight={600}>
-                  Workspace Settings
-                </Typography>
-                <TextField
-                  label="Workspace Name"
-                  value={workspaceName}
-                  onChange={e => setWorkspaceName(e.target.value)}
-                  fullWidth
-                  required
-                />
-                <TextField
-                  label="Description (optional)"
-                  value={workspaceDescription}
-                  onChange={e => setWorkspaceDescription(e.target.value)}
-                  fullWidth
-                  multiline
-                  rows={3}
-                />
-                <Box
-                  sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                >
-                  <Button type="submit" variant="contained" disabled={editingWorkspace}>
-                    {editingWorkspace ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                  {overview.workspace.ownerId === user?.id && (
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      onClick={() => setShowDeleteConfirm(true)}
-                    >
-                      Delete Workspace
-                    </Button>
-                  )}
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Background Image Selection */}
-        {overview && isOwnerOrAdmin && (
-          <Card variant="outlined">
-            <CardContent>
-              <Stack spacing={3}>
-                <Typography variant="h6" fontWeight={600}>
-                  Background Image
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Choose a background image for your workspace
-                </Typography>
-                <Box>
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-                      gap: 2,
-                    }}
-                  >
-                    {(allBackgrounds.length > 0 ? (showAllBackgrounds ? allBackgrounds : allBackgrounds.slice(0, 10)) : (showAllBackgrounds ? FALLBACK_BACKGROUNDS : FALLBACK_BACKGROUNDS.slice(0, 10))).map(background => (
-                      <Box
-                        key={background}
-                        onClick={() => handleBackgroundChange(background)}
-                        sx={{
-                          position: 'relative',
-                          aspectRatio: '16/9',
-                          borderRadius: 2,
-                          overflow: 'hidden',
-                          cursor: 'pointer',
-                          border: 2,
-                          borderColor:
-                            workspaceBackground === background ? 'primary.main' : 'transparent',
-                          boxShadow: workspaceBackground === background ? 4 : 1,
-                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                          '&:hover': {
-                            transform: 'translateY(-4px)',
-                            boxShadow: 6,
-                            borderColor: 'primary.light',
-                          },
-                        }}
-                      >
-                        <Box
-                          component="img"
-                          src={`/workspace-backgrounds/${background}`}
-                          alt={background}
-                          sx={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                          }}
-                        />
-                        {workspaceBackground === background && (
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              inset: 0,
-                              bgcolor: 'rgba(59, 130, 246, 0.4)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              backdropFilter: 'blur(2px)',
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                bgcolor: 'white',
-                                color: 'primary.main',
-                                borderRadius: '50%',
-                                p: 0.75,
-                                boxShadow: 2,
-                              }}
-                            >
-                              <Check size={20} strokeWidth={3} />
-                            </Box>
-                          </Box>
-                        )}
-                      </Box>
-                    ))}
-                  </Box>
-                  
-                  {allBackgrounds.length > 10 && (
-                    <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                      <Button 
-                        variant="text" 
-                        onClick={() => setShowAllBackgrounds(!showAllBackgrounds)}
-                        startIcon={showAllBackgrounds ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                        sx={{ 
-                          px: 4, 
-                          borderRadius: 10,
-                          bgcolor: 'action.hover',
-                          '&:hover': { bgcolor: 'action.selected' }
-                        }}
-                      >
-                        {showAllBackgrounds ? (t as any).backgrounds?.showLess : (t as any).backgrounds?.showMore}
-                      </Button>
-                    </Box>
-                  )}
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        )}
-
         {overview && (
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-              gap: 3,
+              gridTemplateColumns: {
+                xs: '1fr',
+                lg: hasAdminSections ? '1.1fr 1fr' : '1fr',
+              },
+              gap: 2,
+              alignItems: 'start',
             }}
           >
-            <Card variant="outlined" data-tour-id="members-card">
-              <CardContent>
-                <Stack spacing={2}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Users size={18} />
-                    <Typography variant="h6" fontWeight={600}>
-                      {t.members.title}
-                    </Typography>
-                  </Stack>
-                  <Stack spacing={1.5}>
-                    {overview.members.map(member => {
-                      const currentIsOwner = overview.workspace.ownerId === user?.id;
-                      const canRemove =
-                        isOwnerOrAdmin &&
-                        member.role !== 'owner' &&
-                        member.id !== user?.id &&
-                        (currentIsOwner || member.role === 'member');
-
-                      return (
-                        <Box
-                          key={member.id}
-                          data-tour-id="member-card"
-                          sx={{
-                            p: 1.5,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: 1.5,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            gap: 1,
-                          }}
-                        >
-                          <Box sx={{ overflow: 'hidden' }}>
-                            <Typography variant="subtitle1" fontWeight={600} noWrap>
-                              {member.name || member.email}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" noWrap>
-                              {member.email}
-                            </Typography>
-                          </Box>
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <Chip
-                              label={roleLabels[member.role] || member.role}
-                              color={
-                                member.role === 'owner'
-                                  ? 'primary'
-                                  : member.role === 'admin'
-                                    ? 'secondary'
-                                    : 'default'
-                              }
-                              size="small"
-                            />
-                            {canRemove && (
-                              <IconButton
-                                size="small"
-                                aria-label="remove"
-                                onClick={event => {
-                                  setSelectedMemberId(member.id);
-                                  setRemoveMenuAnchor(event.currentTarget);
-                                }}
-                              >
-                                <MoreVertical size={16} />
-                              </IconButton>
-                            )}
-                          </Stack>
-                        </Box>
-                      );
-                    })}
-                  </Stack>
-                </Stack>
-              </CardContent>
-            </Card>
-
-            <Card variant="outlined" data-tour-id="invite-card">
-              <CardContent>
-                <Stack spacing={2} component="form" onSubmit={handleInvite}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <MailPlus size={18} />
-                    <Typography variant="h6" fontWeight={600}>
-                      {t.invite.title}
-                    </Typography>
-                  </Stack>
-                  {!isOwnerOrAdmin && <Alert severity="info">{t.invite.onlyAdminHint}</Alert>}
-                  <TextField
-                    label="Email"
-                    type="email"
-                    value={inviteEmail}
-                    onChange={e => setInviteEmail(e.target.value)}
-                    fullWidth
-                    required
-                    disabled={!isOwnerOrAdmin}
-                    data-tour-id="invite-email-field"
-                  />
-                  <FormControl
-                    component="fieldset"
-                    disabled={!isOwnerOrAdmin}
-                    data-tour-id="role-selection"
-                  >
-                    <FormLabel component="legend">{t.roles.roleLabel}</FormLabel>
-                    <Stack spacing={1} sx={{ mt: 0.5 }}>
-                      <FormControlLabel
-                        sx={{ alignItems: 'flex-start', m: 0 }}
-                        control={
-                          <Checkbox
-                            checked={inviteRole === 'member'}
-                            onChange={(_, checked) => {
-                              if (checked) setInviteRole('member');
-                            }}
-                          />
-                        }
-                        label={
-                          <Box>
-                            <Typography variant="body2" fontWeight={600}>
-                              {t.roles.member}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {roleDescriptions.member}
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                      <FormControlLabel
-                        sx={{ alignItems: 'flex-start', m: 0 }}
-                        control={
-                          <Checkbox
-                            checked={inviteRole === 'admin'}
-                            onChange={(_, checked) => {
-                              if (checked) setInviteRole('admin');
-                            }}
-                          />
-                        }
-                        label={
-                          <Box>
-                            <Typography variant="body2" fontWeight={600}>
-                              {t.roles.admin}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {roleDescriptions.admin}
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                    </Stack>
-                  </FormControl>
-                  {inviteRole === 'member' && (
-                    <FormControl
-                      component="fieldset"
-                      disabled={!isOwnerOrAdmin}
-                      data-tour-id="permissions-section"
-                    >
-                      <FormLabel component="legend">{invitePermissionCopy.title}</FormLabel>
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25 }}>
-                        {invitePermissionCopy.hint}
-                      </Typography>
-                      <Stack spacing={0.5} sx={{ mt: 1 }}>
-                        {(
-                          [
-                            'canEditStatements',
-                            'canEditCustomTables',
-                            'canEditCategories',
-                            'canEditDataEntry',
-                            'canShareFiles',
-                          ] as Array<keyof InvitePermissions>
-                        ).map(key => (
-                          <FormControlLabel
-                            key={key}
-                            sx={{ m: 0 }}
-                            control={
-                              <Checkbox
-                                checked={invitePermissions[key]}
-                                onChange={(_, checked) => {
-                                  setInvitePermissions(prev => ({ ...prev, [key]: checked }));
-                                }}
-                              />
-                            }
-                            label={
-                              <Typography variant="body2">
-                                {invitePermissionCopy.labels[key]}
-                              </Typography>
-                            }
-                          />
-                        ))}
-                      </Stack>
-                    </FormControl>
-                  )}
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      startIcon={<Shield size={16} />}
-                      disabled={!isOwnerOrAdmin || inviteLoading}
-                      data-tour-id="send-invite-button"
-                    >
-                      {inviteLoading ? (
-                        <CircularProgress size={20} color="inherit" />
-                      ) : (
-                        t.invite.send
-                      )}
-                    </Button>
-                  </Box>
-                  {inviteLink && (
-                    <Alert
-                      severity="success"
-                      data-tour-id="invite-link-alert"
-                      action={
-                        <IconButton
-                          color="inherit"
-                          size="small"
-                          onClick={() => copyLink(inviteLink)}
-                        >
-                          <Copy size={16} />
-                        </IconButton>
-                      }
-                    >
-                      {t.invite.inviteLinkLabel}: {inviteLink}
-                    </Alert>
-                  )}
-                </Stack>
-              </CardContent>
-            </Card>
-          </Box>
-        )}
-
-        {overview && (
-          <Card variant="outlined" data-tour-id="pending-invitations-card">
-            <CardContent>
+            {hasAdminSections && (
               <Stack spacing={2}>
-                <Typography variant="h6" fontWeight={600}>
-                  {t.pending.title}
-                </Typography>
-                {overview.invitations.length === 0 && (
-                  <Typography variant="body2" color="text.secondary">
-                    {t.pending.empty}
-                  </Typography>
-                )}
-                <Stack spacing={1.5}>
-                  {overview.invitations.map(invite => {
-                    const link = invite.link || `${appBaseUrl}/invite/${invite.token}`;
-                    return (
+                {/* Workspace Metadata Settings */}
+                <Card variant="outlined" sx={compactCardSx}>
+                  <CardContent sx={compactCardContentSx}>
+                    <Stack spacing={1.5} component="form" onSubmit={handleUpdateWorkspace}>
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        Workspace Settings
+                      </Typography>
+                      <TextField
+                        label="Workspace Name"
+                        value={workspaceName}
+                        onChange={e => setWorkspaceName(e.target.value)}
+                        fullWidth
+                        required
+                        size="small"
+                      />
+                      <TextField
+                        label="Description (optional)"
+                        value={workspaceDescription}
+                        onChange={e => setWorkspaceDescription(e.target.value)}
+                        fullWidth
+                        multiline
+                        rows={2}
+                        size="small"
+                      />
                       <Box
-                        key={invite.id}
                         sx={{
-                          p: 1.5,
-                          border: '1px dashed',
-                          borderColor: 'divider',
-                          borderRadius: 1.5,
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
-                          gap: 2,
+                          gap: 1.5,
+                          flexWrap: 'wrap',
                         }}
                       >
-                        <Box>
-                          <Typography variant="subtitle1" fontWeight={600}>
-                            {invite.email}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {t.roles.roleLabel}: {roleLabels[invite.role] || invite.role}
-                          </Typography>
-                          {invite.expiresAt && (
-                            <Typography variant="caption" color="text.secondary">
-                              {t.pending.validUntil}: {formatDate(invite.expiresAt)}
-                            </Typography>
-                          )}
-                        </Box>
                         <Button
-                          variant="outlined"
+                          type="submit"
+                          variant="contained"
                           size="small"
-                          startIcon={<Copy size={14} />}
-                          onClick={() => copyLink(link)}
+                          disabled={editingWorkspace}
                         >
-                          {t.pending.copyLink}
+                          {editingWorkspace ? 'Saving...' : 'Save Changes'}
                         </Button>
+                        {overview.workspace.ownerId === user?.id && (
+                          <Button
+                            variant="text"
+                            color="error"
+                            size="small"
+                            onClick={() => setShowDeleteConfirm(true)}
+                          >
+                            Delete Workspace
+                          </Button>
+                        )}
                       </Box>
-                    );
-                  })}
-                </Stack>
+                    </Stack>
+                  </CardContent>
+                </Card>
+
+                {/* Background Image Selection */}
+                <Card variant="outlined" sx={compactCardSx}>
+                  <CardContent sx={compactCardContentSx}>
+                    <Stack spacing={1.5}>
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        Background Image
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Choose a background image for your workspace
+                      </Typography>
+                      <Box>
+                        <Box
+                          sx={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                            gap: 1.5,
+                          }}
+                        >
+                          {(allBackgrounds.length > 0
+                            ? showAllBackgrounds
+                              ? allBackgrounds
+                              : allBackgrounds.slice(0, 10)
+                            : showAllBackgrounds
+                              ? FALLBACK_BACKGROUNDS
+                              : FALLBACK_BACKGROUNDS.slice(0, 10)
+                          ).map(background => (
+                            <Box
+                              key={background}
+                              onClick={() => handleBackgroundChange(background)}
+                              sx={{
+                                position: 'relative',
+                                aspectRatio: '16/9',
+                                borderRadius: 1.5,
+                                overflow: 'hidden',
+                                cursor: 'pointer',
+                                border: '1px solid',
+                                borderColor:
+                                  workspaceBackground === background ? 'primary.main' : 'divider',
+                                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                                '&:hover': {
+                                  borderColor: 'primary.light',
+                                  boxShadow: 1,
+                                },
+                              }}
+                            >
+                              <Box
+                                component="img"
+                                src={`/workspace-backgrounds/${background}`}
+                                alt={background}
+                                sx={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                }}
+                              />
+                              {workspaceBackground === background && (
+                                <Box
+                                  sx={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                    bgcolor: 'primary.main',
+                                    color: 'primary.contrastText',
+                                    borderRadius: '999px',
+                                    p: 0.5,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: 1,
+                                  }}
+                                >
+                                  <Check size={14} strokeWidth={2.5} />
+                                </Box>
+                              )}
+                            </Box>
+                          ))}
+                        </Box>
+
+                        {allBackgrounds.length > 10 && (
+                          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                            <Button
+                              variant="text"
+                              size="small"
+                              onClick={() => setShowAllBackgrounds(!showAllBackgrounds)}
+                              startIcon={
+                                showAllBackgrounds ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                              }
+                            >
+                              {showAllBackgrounds
+                                ? (t as any).backgrounds?.showLess
+                                : (t as any).backgrounds?.showMore}
+                            </Button>
+                          </Box>
+                        )}
+                      </Box>
+                    </Stack>
+                  </CardContent>
+                </Card>
               </Stack>
-            </CardContent>
-          </Card>
+            )}
+
+            <Stack spacing={2}>
+              <Card variant="outlined" data-tour-id="members-card" sx={compactCardSx}>
+                <CardContent sx={compactCardContentSx}>
+                  <Stack spacing={1.5}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Users size={18} />
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        {t.members.title}
+                      </Typography>
+                    </Stack>
+                    <Stack spacing={1}>
+                      {overview.members.map(member => {
+                        const currentIsOwner = overview.workspace.ownerId === user?.id;
+                        const canRemove =
+                          isOwnerOrAdmin &&
+                          member.role !== 'owner' &&
+                          member.id !== user?.id &&
+                          (currentIsOwner || member.role === 'member');
+
+                        return (
+                          <Box
+                            key={member.id}
+                            data-tour-id="member-card"
+                            sx={{
+                              p: 1,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              borderRadius: 1,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
+                            <Box sx={{ overflow: 'hidden' }}>
+                              <Typography variant="body2" fontWeight={600} noWrap>
+                                {member.name || member.email}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" noWrap>
+                                {member.email}
+                              </Typography>
+                            </Box>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Chip
+                                label={roleLabels[member.role] || member.role}
+                                color={member.role === 'owner' ? 'primary' : 'default'}
+                                size="small"
+                                variant="outlined"
+                              />
+                              {canRemove && (
+                                <IconButton
+                                  size="small"
+                                  aria-label="remove"
+                                  onClick={event => {
+                                    setSelectedMemberId(member.id);
+                                    setRemoveMenuAnchor(event.currentTarget);
+                                  }}
+                                >
+                                  <MoreVertical size={16} />
+                                </IconButton>
+                              )}
+                            </Stack>
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  </Stack>
+                </CardContent>
+              </Card>
+
+              <Card variant="outlined" data-tour-id="invite-card" sx={compactCardSx}>
+                <CardContent sx={compactCardContentSx}>
+                  <Stack spacing={1.5} component="form" onSubmit={handleInvite}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <MailPlus size={18} />
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        {t.invite.title}
+                      </Typography>
+                    </Stack>
+                    {!isOwnerOrAdmin && <Alert severity="info">{t.invite.onlyAdminHint}</Alert>}
+                    <TextField
+                      label="Email"
+                      type="email"
+                      value={inviteEmail}
+                      onChange={e => setInviteEmail(e.target.value)}
+                      fullWidth
+                      required
+                      disabled={!isOwnerOrAdmin}
+                      data-tour-id="invite-email-field"
+                      size="small"
+                    />
+                    <FormControl
+                      component="fieldset"
+                      disabled={!isOwnerOrAdmin}
+                      data-tour-id="role-selection"
+                    >
+                      <FormLabel component="legend" sx={{ fontWeight: 600 }}>
+                        {t.roles.roleLabel}
+                      </FormLabel>
+                      <Stack spacing={0.75} sx={{ mt: 0.5 }}>
+                        <FormControlLabel
+                          sx={{ alignItems: 'flex-start', m: 0 }}
+                          control={
+                            <Checkbox
+                              size="small"
+                              checked={inviteRole === 'member'}
+                              onChange={(_, checked) => {
+                                if (checked) setInviteRole('member');
+                              }}
+                            />
+                          }
+                          label={
+                            <Box>
+                              <Typography variant="body2" fontWeight={600}>
+                                {t.roles.member}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {roleDescriptions.member}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                        <FormControlLabel
+                          sx={{ alignItems: 'flex-start', m: 0 }}
+                          control={
+                            <Checkbox
+                              size="small"
+                              checked={inviteRole === 'admin'}
+                              onChange={(_, checked) => {
+                                if (checked) setInviteRole('admin');
+                              }}
+                            />
+                          }
+                          label={
+                            <Box>
+                              <Typography variant="body2" fontWeight={600}>
+                                {t.roles.admin}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {roleDescriptions.admin}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                      </Stack>
+                    </FormControl>
+                    {inviteRole === 'member' && (
+                      <FormControl
+                        component="fieldset"
+                        disabled={!isOwnerOrAdmin}
+                        data-tour-id="permissions-section"
+                      >
+                        <FormLabel component="legend" sx={{ fontWeight: 600 }}>
+                          {invitePermissionCopy.title}
+                        </FormLabel>
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25 }}>
+                          {invitePermissionCopy.hint}
+                        </Typography>
+                        <Box
+                          sx={{
+                            mt: 1,
+                            display: 'grid',
+                            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                            gap: 0.5,
+                          }}
+                        >
+                          {(
+                            [
+                              'canEditStatements',
+                              'canEditCustomTables',
+                              'canEditCategories',
+                              'canEditDataEntry',
+                              'canShareFiles',
+                            ] as Array<keyof InvitePermissions>
+                          ).map(key => (
+                            <FormControlLabel
+                              key={key}
+                              sx={{ m: 0 }}
+                              control={
+                                <Checkbox
+                                  size="small"
+                                  checked={invitePermissions[key]}
+                                  onChange={(_, checked) => {
+                                    setInvitePermissions(prev => ({ ...prev, [key]: checked }));
+                                  }}
+                                />
+                              }
+                              label={<Typography variant="body2">{invitePermissionCopy.labels[key]}</Typography>}
+                            />
+                          ))}
+                        </Box>
+                      </FormControl>
+                    )}
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        size="small"
+                        startIcon={<Shield size={16} />}
+                        disabled={!isOwnerOrAdmin || inviteLoading}
+                        data-tour-id="send-invite-button"
+                      >
+                        {inviteLoading ? <CircularProgress size={18} color="inherit" /> : t.invite.send}
+                      </Button>
+                    </Box>
+                    {inviteLink && (
+                      <Alert
+                        severity="success"
+                        data-tour-id="invite-link-alert"
+                        action={
+                          <IconButton
+                            color="inherit"
+                            size="small"
+                            onClick={() => copyLink(inviteLink)}
+                          >
+                            <Copy size={16} />
+                          </IconButton>
+                        }
+                      >
+                        {t.invite.inviteLinkLabel}: {inviteLink}
+                      </Alert>
+                    )}
+                  </Stack>
+                </CardContent>
+              </Card>
+
+              <Card variant="outlined" data-tour-id="pending-invitations-card" sx={compactCardSx}>
+                <CardContent sx={compactCardContentSx}>
+                  <Stack spacing={1.5}>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      {t.pending.title}
+                    </Typography>
+                    {overview.invitations.length === 0 && (
+                      <Typography variant="body2" color="text.secondary">
+                        {t.pending.empty}
+                      </Typography>
+                    )}
+                    <Stack spacing={1}>
+                      {overview.invitations.map(invite => {
+                        const link = invite.link || `${appBaseUrl}/invite/${invite.token}`;
+                        return (
+                          <Box
+                            key={invite.id}
+                            sx={{
+                              p: 1,
+                              border: '1px dashed',
+                              borderColor: 'divider',
+                              borderRadius: 1,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              gap: 1.5,
+                            }}
+                          >
+                            <Box>
+                              <Typography variant="body2" fontWeight={600}>
+                                {invite.email}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {t.roles.roleLabel}: {roleLabels[invite.role] || invite.role}
+                              </Typography>
+                              {invite.expiresAt && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {t.pending.validUntil}: {formatDate(invite.expiresAt)}
+                                </Typography>
+                              )}
+                            </Box>
+                            <Button
+                              variant="text"
+                              size="small"
+                              startIcon={<Copy size={14} />}
+                              onClick={() => copyLink(link)}
+                            >
+                              {t.pending.copyLink}
+                            </Button>
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Stack>
+          </Box>
         )}
       </Stack>
       <Menu

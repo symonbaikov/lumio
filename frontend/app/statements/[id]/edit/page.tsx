@@ -21,9 +21,13 @@ import {
   TrendingUp,
   Warning,
   TableChart,
+  ExpandMore,
 } from '@mui/icons-material';
 import {
   Alert,
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   Button,
   Card,
@@ -597,7 +601,7 @@ export default function EditStatementPage() {
   }, 0);
 
   return (
-    <Container maxWidth={false} sx={{ py: 4 }}>
+    <Container maxWidth={false} sx={{ py: 5 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Button
@@ -606,6 +610,9 @@ export default function EditStatementPage() {
           sx={{
             mb: 3,
             color: 'text.secondary',
+            textTransform: 'none',
+            fontWeight: 500,
+            borderRadius: 2,
             '&:hover': { bgcolor: 'action.hover' },
           }}
         >
@@ -616,51 +623,89 @@ export default function EditStatementPage() {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
-            mb: 2,
+            gap: 2,
+            flexWrap: 'wrap',
           }}
         >
-          <Box>
+          <Box sx={{ minWidth: 240 }}>
             <Typography
               variant="h4"
               component="h1"
               sx={{
-                fontWeight: 700,
-                mb: 1.5,
+                fontWeight: 600,
+                mb: 1,
                 color: 'text.primary',
                 letterSpacing: '-0.02em',
               }}
             >
               {statement?.fileName}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-              <Chip
-                icon={<Receipt />}
-                label={`${statement?.totalTransactions} ${t.labels.transactionsCount.value || 'транзакций'}`}
-                size="medium"
-                sx={{
-                  bgcolor: 'primary.50',
-                  color: 'primary.700',
-                  border: 'none',
-                  fontWeight: 500,
-                  '& .MuiChip-icon': { color: 'primary.600' },
-                }}
-              />
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Chip
+                  icon={<Receipt />}
+                  label={`${statement?.totalTransactions} ${t.labels.transactionsCount.value || 'транзакций'}`}
+                  size="small"
+                  sx={{
+                    bgcolor: 'grey.50',
+                    color: 'text.secondary',
+                    border: '1px solid',
+                    borderColor: 'grey.200',
+                    fontWeight: 500,
+                    borderRadius: 1.5,
+                    '& .MuiChip-icon': { color: 'text.secondary' },
+                  }}
+                />
               {missingCategoryCount > 0 && (
                 <Chip
                   icon={<Warning />}
                   label={`${missingCategoryCount} без категории`}
-                  size="medium"
+                  size="small"
                   sx={{
                     bgcolor: 'warning.50',
                     color: 'warning.800',
-                    border: 'none',
+                    border: '1px solid',
+                    borderColor: 'warning.200',
                     fontWeight: 500,
-                    '& .MuiChip-icon': { color: 'warning.600' },
+                    '& .MuiChip-icon': { color: 'warning.700' },
                   }}
                 />
               )}
             </Box>
-          {/* small header icon removed: export available via the main Export button */}
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              startIcon={exportingToTable ? <CircularProgress size={18} /> : <TableChart />}
+              onClick={() => setExportConfirmOpen(true)}
+              disabled={exportingToTable || !transactions.length}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                borderColor: 'grey.300',
+                color: 'text.secondary',
+                borderRadius: 2,
+                '&:hover': { borderColor: 'primary.300', color: 'primary.700', bgcolor: 'primary.50' },
+              }}
+            >
+              {t.labels.exportButton.value}
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={metadataSaving ? <CircularProgress size={18} /> : <Save />}
+              onClick={handleMetadataSave}
+              disabled={metadataSaving}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: 'none',
+                '&:hover': {
+                  boxShadow: 'none',
+                },
+              }}
+            >
+              {t.labels.saveStatementData?.value || 'Сохранить'}
+            </Button>
           </Box>
         </Box>
       </Box>
@@ -678,308 +723,46 @@ export default function EditStatementPage() {
         </Alert>
       )}
 
-      {/* Statement Summary Cards */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: '1fr 1fr',
-            lg: '1fr 1fr 1fr 1fr',
-          },
-          gap: 3,
-          mb: 4,
-        }}
-      >
-        <Card
-          sx={{
-            height: '100%',
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
-            transition: 'all 0.2s',
-            '&:hover': {
-              boxShadow: '0 4px 12px 0 rgba(0, 0, 0, 0.1)',
-              borderColor: 'primary.200',
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 40,
-                  height: 40,
-                  borderRadius: 2,
-                  bgcolor: 'primary.50',
-                  mr: 2,
-                }}
-              >
-                <CalendarToday sx={{ fontSize: 20, color: 'primary.600' }} />
-              </Box>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: 'text.secondary',
-                  fontWeight: 500,
-                  fontSize: '0.875rem',
-                }}
-              >
-                Период
-              </Typography>
-            </Box>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                fontSize: '1.125rem',
-                color: 'text.primary',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {statement?.statementDateFrom && statement?.statementDateTo
-                ? `${new Date(statement.statementDateFrom).toLocaleDateString()} - ${new Date(statement.statementDateTo).toLocaleDateString()}`
-                : 'Не указан'}
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Card
-          sx={{
-            height: '100%',
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
-            transition: 'all 0.2s',
-            '&:hover': {
-              boxShadow: '0 4px 12px 0 rgba(0, 0, 0, 0.1)',
-              borderColor: 'info.200',
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 40,
-                  height: 40,
-                  borderRadius: 2,
-                  bgcolor: 'info.50',
-                  mr: 2,
-                }}
-              >
-                <AccountBalance sx={{ fontSize: 20, color: 'info.600' }} />
-              </Box>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: 'text.secondary',
-                  fontWeight: 500,
-                  fontSize: '0.875rem',
-                }}
-              >
-                Начальный баланс
-              </Typography>
-            </Box>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                fontSize: '1.125rem',
-                color: 'text.primary',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {statement?.balanceStart !== null &&
-              statement?.balanceStart !== undefined &&
-              statement?.balanceStart !== ''
-                ? formatNumber(Number(statement.balanceStart))
-                : 'Не указан'}
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Card
-          sx={{
-            height: '100%',
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
-            transition: 'all 0.2s',
-            '&:hover': {
-              boxShadow: '0 4px 12px 0 rgba(0, 0, 0, 0.1)',
-              borderColor: 'error.200',
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 40,
-                  height: 40,
-                  borderRadius: 2,
-                  bgcolor: 'error.50',
-                  mr: 2,
-                }}
-              >
-                <TrendingDown sx={{ fontSize: 20, color: 'error.600' }} />
-              </Box>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: 'text.secondary',
-                  fontWeight: 500,
-                  fontSize: '0.875rem',
-                }}
-              >
-                Расходы
-              </Typography>
-            </Box>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                fontSize: '1.125rem',
-                color: 'error.600',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {!Number.isNaN(totalExpense) && totalExpense >= 0
-                ? formatNumber(totalExpense)
-                : '0.00'}
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Card
-          sx={{
-            height: '100%',
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
-            transition: 'all 0.2s',
-            '&:hover': {
-              boxShadow: '0 4px 12px 0 rgba(0, 0, 0, 0.1)',
-              borderColor: 'success.200',
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 40,
-                  height: 40,
-                  borderRadius: 2,
-                  bgcolor: 'success.50',
-                  mr: 2,
-                }}
-              >
-                <TrendingUp sx={{ fontSize: 20, color: 'success.600' }} />
-              </Box>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: 'text.secondary',
-                  fontWeight: 500,
-                  fontSize: '0.875rem',
-                }}
-              >
-                Доходы
-              </Typography>
-            </Box>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                fontSize: '1.125rem',
-                color: 'success.600',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {!Number.isNaN(totalIncome) && totalIncome >= 0 ? formatNumber(totalIncome) : '0.00'}
-            </Typography>
-          </CardContent>
-        </Card>
-      </Box>
-
-      {/* Statement Metadata Editor */}
       <Card
         sx={{
           mb: 4,
           border: '1px solid',
           borderColor: 'divider',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+          boxShadow: 'none',
           overflow: 'visible',
           position: 'relative',
           zIndex: 10,
         }}
       >
         <CardContent sx={{ p: 3, overflow: 'visible' }}>
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              mb: 3,
-            }}
-          >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography
               variant="h6"
               sx={{
-                fontWeight: 700,
-                fontSize: '1.125rem',
+                fontWeight: 600,
+                fontSize: '1rem',
                 color: 'text.primary',
                 letterSpacing: '-0.01em',
               }}
             >
-              Данные выписки
+              {t.labels.statementInfoTitle?.value || 'Информация о выписке'}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                variant="outlined"
-                startIcon={exportingToTable ? <CircularProgress size={18} /> : <TableChart />}
-                onClick={() => setExportConfirmOpen(true)}
-                disabled={exportingToTable || !transactions.length}
+              <Chip
+                label={
+                  statement?.statementDateFrom && statement?.statementDateTo
+                    ? `${new Date(statement.statementDateFrom).toLocaleDateString()} - ${new Date(statement.statementDateTo).toLocaleDateString()}`
+                    : 'Период не указан'
+                }
+                size="small"
                 sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  borderColor: 'primary.300',
-                  color: 'primary.700',
-                  '&:hover': { bgcolor: 'primary.50' },
+                  bgcolor: 'grey.50',
+                  color: 'text.secondary',
+                  border: '1px solid',
+                  borderColor: 'grey.200',
+                  fontWeight: 500,
                 }}
-              >
-                {t.labels.exportButton.value}
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={metadataSaving ? <CircularProgress size={18} /> : <Save />}
-                onClick={handleMetadataSave}
-                disabled={metadataSaving}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                  '&:hover': {
-                    boxShadow: '0 4px 12px 0 rgba(0, 0, 0, 0.15)',
-                  },
-                }}
-              >
-                Сохранить
-              </Button>
+              />
             </Box>
           </Box>
 
@@ -1068,98 +851,139 @@ export default function EditStatementPage() {
             </div>
           </Box>
 
-          {/* Parsing Info */}
           {statement?.parsingDetails && (
-            <Box
+            <Accordion
+              elevation={0}
               sx={{
                 mt: 3,
-                p: 3,
-                bgcolor: 'grey.50',
                 borderRadius: 2,
                 border: '1px solid',
                 borderColor: 'grey.200',
-                position: 'relative',
-                zIndex: 1,
+                '&:before': { display: 'none' },
               }}
             >
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 600,
-                  mb: 2,
-                  fontSize: '0.875rem',
-                  color: 'text.primary',
-                }}
-              >
-                Информация о парсинге
-              </Typography>
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: {
-                    xs: '1fr 1fr',
-                    sm: 'repeat(3, 1fr)',
-                    md: 'repeat(6, 1fr)',
-                  },
-                  gap: 2,
-                }}
-              >
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Банк
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {statement.parsingDetails.detectedBank || '—'}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Формат
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {statement.parsingDetails.detectedFormat?.toUpperCase() || '—'}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Найдено транзакций
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {statement.parsingDetails.transactionsFound ?? '—'}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Создано
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {statement.parsingDetails.transactionsCreated ?? '—'}
-                  </Typography>
-                </Box>
-                {statement.parsingDetails.errors && statement.parsingDetails.errors.length > 0 && (
+              <AccordionSummary expandIcon={<ExpandMore />}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                  {t.labels.parsingDetails?.value || 'Детали парсинга'}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: '1fr 1fr',
+                      sm: 'repeat(3, 1fr)',
+                      md: 'repeat(6, 1fr)',
+                    },
+                    gap: 2,
+                  }}
+                >
                   <Box>
-                    <Typography variant="caption" color="error">
-                      Ошибки
+                    <Typography variant="caption" color="text.secondary">
+                      Банк
                     </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500, color: 'error.main' }}>
-                      {statement.parsingDetails.errors.length}
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {statement.parsingDetails.detectedBank || '—'}
                     </Typography>
                   </Box>
-                )}
-                {statement.parsingDetails.warnings &&
-                  statement.parsingDetails.warnings.length > 0 && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Формат
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {statement.parsingDetails.detectedFormat?.toUpperCase() || '—'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Найдено транзакций
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {statement.parsingDetails.transactionsFound ?? '—'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Создано
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {statement.parsingDetails.transactionsCreated ?? '—'}
+                    </Typography>
+                  </Box>
+                  {statement.parsingDetails.errors && statement.parsingDetails.errors.length > 0 && (
                     <Box>
-                      <Typography variant="caption" color="warning.main">
-                        Предупреждения
+                      <Typography variant="caption" color="error">
+                        Ошибки
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500, color: 'warning.main' }}>
-                        {statement.parsingDetails.warnings.length}
+                      <Typography variant="body2" sx={{ fontWeight: 500, color: 'error.main' }}>
+                        {statement.parsingDetails.errors.length}
                       </Typography>
                     </Box>
                   )}
-              </Box>
-            </Box>
+                  {statement.parsingDetails.warnings &&
+                    statement.parsingDetails.warnings.length > 0 && (
+                      <Box>
+                        <Typography variant="caption" color="warning.main">
+                          Предупреждения
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'warning.main' }}>
+                          {statement.parsingDetails.warnings.length}
+                        </Typography>
+                      </Box>
+                    )}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
           )}
+
+          <Box
+            sx={{
+              mt: 3,
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
+              gap: 2,
+            }}
+          >
+            <Box sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                Период
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                {statement?.statementDateFrom && statement?.statementDateTo
+                  ? `${new Date(statement.statementDateFrom).toLocaleDateString()} - ${new Date(statement.statementDateTo).toLocaleDateString()}`
+                  : 'Не указан'}
+              </Typography>
+            </Box>
+            <Box sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                Начальный баланс
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                {statement?.balanceStart !== null &&
+                statement?.balanceStart !== undefined &&
+                statement?.balanceStart !== ''
+                  ? formatNumber(Number(statement.balanceStart))
+                  : 'Не указан'}
+              </Typography>
+            </Box>
+            <Box sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                Расходы
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5, color: 'error.main' }}>
+                {!Number.isNaN(totalExpense) && totalExpense >= 0 ? formatNumber(totalExpense) : '0.00'}
+              </Typography>
+            </Box>
+            <Box sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                Доходы
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5, color: 'success.main' }}>
+                {!Number.isNaN(totalIncome) && totalIncome >= 0 ? formatNumber(totalIncome) : '0.00'}
+              </Typography>
+            </Box>
+          </Box>
         </CardContent>
       </Card>
 
@@ -1173,7 +997,7 @@ export default function EditStatementPage() {
             <button
               type="button"
               onClick={() => setExportConfirmOpen(false)}
-              className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:border-primary hover:text-primary"
             >
               {t.labels.cancel.value}
             </button>
@@ -1184,7 +1008,7 @@ export default function EditStatementPage() {
                 handleExportToCustomTable();
               }}
               disabled={exportingToTable || !transactions.length}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {exportingToTable ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : null}
               {t.labels.exportConfirmConfirm.value}
@@ -1239,6 +1063,7 @@ export default function EditStatementPage() {
                   fontWeight: 500,
                   borderColor: 'primary.300',
                   color: 'primary.700',
+                  borderRadius: 2,
                   '&:hover': {
                     borderColor: 'primary.400',
                     bgcolor: 'primary.100',
@@ -1256,7 +1081,8 @@ export default function EditStatementPage() {
                 sx={{
                   textTransform: 'none',
                   fontWeight: 600,
-                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                  borderRadius: 2,
+                  boxShadow: 'none',
                 }}
               >
                 Сохранить
@@ -1271,6 +1097,7 @@ export default function EditStatementPage() {
                 sx={{
                   textTransform: 'none',
                   fontWeight: 500,
+                  borderRadius: 2,
                 }}
               >
                 Удалить
@@ -1296,7 +1123,7 @@ export default function EditStatementPage() {
             <TableRow
               sx={{
                 bgcolor: 'grey.50',
-                borderBottom: '2px solid',
+                borderBottom: '1px solid',
                 borderBottomColor: 'divider',
               }}
             >
@@ -1310,10 +1137,10 @@ export default function EditStatementPage() {
               <TableCell
                 sx={{
                   fontWeight: 600,
-                  fontSize: '0.8125rem',
+                  fontSize: '0.75rem',
                   color: 'text.secondary',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
+                  letterSpacing: '0.06em',
                 }}
               >
                 Дата
@@ -1321,10 +1148,10 @@ export default function EditStatementPage() {
               <TableCell
                 sx={{
                   fontWeight: 600,
-                  fontSize: '0.8125rem',
+                  fontSize: '0.75rem',
                   color: 'text.secondary',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
+                  letterSpacing: '0.06em',
                 }}
               >
                 Контрагент
@@ -1332,10 +1159,10 @@ export default function EditStatementPage() {
               <TableCell
                 sx={{
                   fontWeight: 600,
-                  fontSize: '0.8125rem',
+                  fontSize: '0.75rem',
                   color: 'text.secondary',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
+                  letterSpacing: '0.06em',
                 }}
               >
                 Назначение платежа
@@ -1344,10 +1171,10 @@ export default function EditStatementPage() {
                 align="right"
                 sx={{
                   fontWeight: 600,
-                  fontSize: '0.8125rem',
+                  fontSize: '0.75rem',
                   color: 'text.secondary',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
+                  letterSpacing: '0.06em',
                 }}
               >
                 Расход
@@ -1356,10 +1183,10 @@ export default function EditStatementPage() {
                 align="right"
                 sx={{
                   fontWeight: 600,
-                  fontSize: '0.8125rem',
+                  fontSize: '0.75rem',
                   color: 'text.secondary',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
+                  letterSpacing: '0.06em',
                 }}
               >
                 Доход
@@ -1367,10 +1194,10 @@ export default function EditStatementPage() {
               <TableCell
                 sx={{
                   fontWeight: 600,
-                  fontSize: '0.8125rem',
+                  fontSize: '0.75rem',
                   color: 'text.secondary',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
+                  letterSpacing: '0.06em',
                 }}
               >
                 Категория
@@ -1378,10 +1205,10 @@ export default function EditStatementPage() {
               <TableCell
                 sx={{
                   fontWeight: 600,
-                  fontSize: '0.8125rem',
+                  fontSize: '0.75rem',
                   color: 'text.secondary',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
+                  letterSpacing: '0.06em',
                 }}
               >
                 Действия
@@ -1568,22 +1395,24 @@ export default function EditStatementPage() {
       </TableContainer>
 
       {/* Bulk Category Dialog */}
-      <Dialog
-        open={bulkCategoryDialogOpen}
-        onClose={() => setBulkCategoryDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          },
-        }}
-      >
+        <Dialog
+          open={bulkCategoryDialogOpen}
+          onClose={() => setBulkCategoryDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+              boxShadow: 'none',
+              border: '1px solid',
+              borderColor: 'grey.200',
+            },
+          }}
+        >
         <DialogTitle
           sx={{
-            fontWeight: 700,
-            fontSize: '1.25rem',
+            fontWeight: 600,
+            fontSize: '1rem',
             color: 'text.primary',
             letterSpacing: '-0.01em',
             pb: 1,
@@ -1634,9 +1463,10 @@ export default function EditStatementPage() {
             sx={{
               textTransform: 'none',
               fontWeight: 600,
-              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+              borderRadius: 2,
+              boxShadow: 'none',
               '&:hover': {
-                boxShadow: '0 4px 12px 0 rgba(0, 0, 0, 0.15)',
+                boxShadow: 'none',
               },
             }}
           >

@@ -89,48 +89,48 @@ export default function SummaryBar({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+    <div className="rounded-lg border border-gray-200 bg-white p-6">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Left section: File metadata and parsing status */}
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 space-y-2">
-              <div className="flex items-center gap-2 text-sm text-foreground">
-                <FileText className="h-4 w-4" />
-                <span className="font-semibold">{getBankDisplayName(statement.bankName)}</span>
-                {statement.metadata?.accountNumber && (
+            <div className="flex items-center gap-2 text-sm text-gray-900">
+              <FileText className="h-4 w-4" />
+              <span className="font-semibold">{getBankDisplayName(statement.bankName)}</span>
+              {statement.metadata?.accountNumber && (
                   <>
                     <span>•</span>
                     <span>{statement.metadata.accountNumber}</span>
                   </>
                 )}
               </div>
-              <div className="text-xs text-muted-foreground">
-                {t.uploadedAt.value}: {formatDate(statement.createdAt)}
-              </div>
+            <div className="text-xs text-gray-500">
+              {t.uploadedAt.value}: {formatDate(statement.createdAt)}
             </div>
+          </div>
           </div>
 
           {/* Parsing status */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+            <div className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
               {t.parsed.value}: {stats.totalParsed}
             </div>
             {stats.totalWarnings > 0 && (
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+              <div className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-600" />
                 {t.warnings.value}: {stats.totalWarnings}
               </div>
             )}
             {stats.totalErrors > 0 && (
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
+              <div className="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-600" />
                 {t.errors.value}: {stats.totalErrors}
               </div>
             )}
             {stats.uncategorized > 0 && (
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+              <div className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
                 {t.uncategorized.value}: {stats.uncategorized}
               </div>
@@ -142,23 +142,23 @@ export default function SummaryBar({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             {/* Debit Total */}
-            <div className="rounded-lg border border-red-100 bg-red-50/50 p-3">
-              <div className="flex items-center gap-2 text-xs font-semibold text-red-600">
+            <div className="rounded-lg border border-red-200 bg-red-50/50 p-3">
+              <div className="flex items-center gap-2 text-xs font-semibold text-red-700">
                 <TrendingDown className="h-4 w-4" />
                 {t.debitTotal.value}
               </div>
-              <div className="mt-1 text-lg font-bold text-red-700">
+              <div className="mt-1 text-lg font-semibold text-red-700">
                 {formatAmount(stats.debitTotal, stats.currency)}
               </div>
             </div>
 
             {/* Credit Total */}
-            <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
-              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
+              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700">
                 <TrendingUp className="h-4 w-4" />
                 {t.creditTotal.value}
               </div>
-              <div className="mt-1 text-lg font-bold text-emerald-700">
+              <div className="mt-1 text-lg font-semibold text-emerald-700">
                 {formatAmount(stats.creditTotal, stats.currency)}
               </div>
             </div>

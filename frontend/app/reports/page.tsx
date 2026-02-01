@@ -145,12 +145,14 @@ const InfoCard = ({
         ? "text-red-600"
         : "text-primary";
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-500">{title}</div>
+        <div className="text-xs uppercase tracking-wider text-gray-500">
+          {title}
+        </div>
         {icon}
       </div>
-      <div className={`mt-2 text-xl font-bold ${color}`}>{value}</div>
+      <div className={`mt-2 text-lg font-semibold ${color}`}>{value}</div>
     </div>
   );
 };
@@ -160,7 +162,7 @@ export default function ReportsPage() {
   const { locale } = useLocale();
   const { resolvedTheme } = useTheme();
   const echartsTheme = resolvedTheme === "dark" ? "dark" : "light";
-  const chartBlue = resolvedTheme === "dark" ? "#62b0ff" : "#2563eb";
+  const chartBlue = resolvedTheme === "dark" ? "#38BDF8" : "#0EA5E9";
   const [tab, setTab] = useState<"sheets" | "statements" | "local">("sheets");
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(false);
@@ -317,9 +319,9 @@ export default function ReportsPage() {
           type: "line",
           smooth: true,
           data: data.timeseries.map((p) => p.income),
-          areaStyle: { color: "rgba(16,185,129,0.15)" },
-          lineStyle: { color: "#10b981" },
-          itemStyle: { color: "#10b981" },
+          areaStyle: { color: "rgba(14,165,233,0.12)" },
+          lineStyle: { color: "#0EA5E9" },
+          itemStyle: { color: "#0EA5E9" },
         },
         {
           name: t.labels.expense.value,
@@ -327,8 +329,8 @@ export default function ReportsPage() {
           smooth: true,
           data: data.timeseries.map((p) => p.expense),
           areaStyle: { color: "rgba(239,68,68,0.08)" },
-          lineStyle: { color: "#ef4444" },
-          itemStyle: { color: "#ef4444" },
+          lineStyle: { color: "#DC2626" },
+          itemStyle: { color: "#DC2626" },
         },
       ],
     };
@@ -352,9 +354,9 @@ export default function ReportsPage() {
           type: "line",
           smooth: true,
           data: localSummary.timeseries.map((p) => p.income),
-          areaStyle: { color: "rgba(16,185,129,0.15)" },
-          lineStyle: { color: "#10b981" },
-          itemStyle: { color: "#10b981" },
+          areaStyle: { color: "rgba(14,165,233,0.12)" },
+          lineStyle: { color: "#0EA5E9" },
+          itemStyle: { color: "#0EA5E9" },
         },
         {
           name: t.labels.expense.value,
@@ -362,8 +364,8 @@ export default function ReportsPage() {
           smooth: true,
           data: localSummary.timeseries.map((p) => p.expense),
           areaStyle: { color: "rgba(239,68,68,0.08)" },
-          lineStyle: { color: "#ef4444" },
-          itemStyle: { color: "#ef4444" },
+          lineStyle: { color: "#DC2626" },
+          itemStyle: { color: "#DC2626" },
         },
       ],
     };
@@ -427,7 +429,7 @@ export default function ReportsPage() {
           type: "bar",
           data: data.counterparties.map((c) => Number(c.amount.toFixed(2))),
           itemStyle: {
-            color: "#3b82f6",
+            color: "#0EA5E9",
             borderRadius: [4, 4, 4, 4],
           },
         },
@@ -453,7 +455,7 @@ export default function ReportsPage() {
             Number(c.amount.toFixed(2)),
           ),
           itemStyle: {
-            color: "#3b82f6",
+            color: "#0EA5E9",
             borderRadius: [4, 4, 4, 4],
           },
         },
@@ -548,8 +550,8 @@ export default function ReportsPage() {
           areaStyle: {
             color:
               resolvedTheme === "dark"
-                ? "rgba(98,176,255,0.14)"
-                : "rgba(37,99,235,0.12)",
+                ? "rgba(56,189,248,0.14)"
+                : "rgba(14,165,233,0.12)",
           },
           lineStyle: { color: chartBlue },
           itemStyle: { color: chartBlue },
@@ -592,7 +594,7 @@ export default function ReportsPage() {
           type: "bar",
           data: parsedStatements.statuses.map((s) => s.value),
           itemStyle: {
-            color: resolvedTheme === "dark" ? "#62b0ff" : "#0f172a",
+            color: resolvedTheme === "dark" ? "#38BDF8" : "#0EA5E9",
             borderRadius: [4, 4, 4, 4],
           },
         },
@@ -601,20 +603,20 @@ export default function ReportsPage() {
   }, [parsedStatements.statuses, resolvedTheme]);
 
   return (
-    <div className="container-shared px-4 sm:px-6 lg:px-8 py-8 space-y-4">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 flex flex-col md:flex-row md:items-center justify-start gap-4">
+    <div className="container-shared px-4 sm:px-6 lg:px-8 py-12 space-y-6 bg-white">
+      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 flex flex-col md:flex-row md:items-center justify-start gap-4">
         <div />
 
         <div
-          className="flex flex-wrap items-center gap-2"
+          className="flex flex-wrap items-center gap-6"
           data-tour-id="reports-tabs"
         >
           <button
             onClick={() => setTab("sheets")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+            className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
               tab === "sheets"
-                ? "bg-primary text-white shadow-sm"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                ? "border-primary text-primary"
+                : "border-transparent text-gray-500 hover:text-primary"
             }`}
             data-tour-id="reports-tab-sheets"
           >
@@ -622,10 +624,10 @@ export default function ReportsPage() {
           </button>
           <button
             onClick={() => setTab("local")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+            className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
               tab === "local"
-                ? "bg-primary text-white shadow-sm"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                ? "border-primary text-primary"
+                : "border-transparent text-gray-500 hover:text-primary"
             }`}
             data-tour-id="reports-tab-local"
           >
@@ -633,10 +635,10 @@ export default function ReportsPage() {
           </button>
           <button
             onClick={() => setTab("statements")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+            className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
               tab === "statements"
-                ? "bg-primary text-white shadow-sm"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                ? "border-primary text-primary"
+                : "border-transparent text-gray-500 hover:text-primary"
             }`}
             data-tour-id="reports-tab-statements"
           >
@@ -646,11 +648,11 @@ export default function ReportsPage() {
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-          <AlertCircle className="h-4 w-4" />
-          <span>{error}</span>
-        </div>
-      )}
+      <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <AlertCircle className="h-4 w-4" />
+        <span>{error}</span>
+      </div>
+    )}
 
       {tab === "sheets" && (
         <>
@@ -662,10 +664,10 @@ export default function ReportsPage() {
               <button
                 key={d}
                 onClick={() => load(d)}
-                className={`rounded-full border px-3 py-1 text-sm font-semibold ${
+                className={`rounded-md border px-3 py-1 text-sm font-medium ${
                   days === d
                     ? "border-primary bg-primary/10 text-primary"
-                    : "border-gray-200 text-gray-700 hover:border-primary hover:text-primary"
+                    : "border-gray-200 text-gray-600 hover:border-primary hover:text-primary"
                 }`}
               >
                 {d} {t.labels.daysShort}
@@ -673,7 +675,7 @@ export default function ReportsPage() {
             ))}
             <button
               onClick={() => load(days)}
-              className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700 hover:border-primary"
+              className="rounded-md border border-gray-200 bg-white px-3 py-1 text-sm text-gray-600 hover:border-primary"
             >
               <RefreshCcw className="h-4 w-4" />
             </button>
@@ -710,11 +712,11 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div
-              className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5"
               data-tour-id="reports-sheets-trend"
             >
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-gray-900">
                   {t.labels.dailyTrend}
                 </h3>
                 <span className="text-xs text-gray-500">
@@ -738,11 +740,11 @@ export default function ReportsPage() {
             </div>
 
             <div
-              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+              className="rounded-lg border border-gray-200 bg-white p-5"
               data-tour-id="reports-sheets-expense-categories"
             >
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-gray-900">
                   {t.labels.expensesCategories}
                 </h3>
                 <span className="text-xs text-gray-500">{t.labels.topTen}</span>
@@ -765,11 +767,11 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div
-              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+              className="rounded-lg border border-gray-200 bg-white p-5"
               data-tour-id="reports-sheets-income-counterparty"
             >
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-gray-900">
                   {t.labels.incomeByCounterparty}
                 </h3>
                 <span className="text-xs text-gray-500">{t.labels.topTen}</span>
@@ -790,11 +792,11 @@ export default function ReportsPage() {
             </div>
 
             <div
-              className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5"
               data-tour-id="reports-sheets-last-operations"
             >
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-gray-900">
                   {t.labels.lastOperations}
                 </h3>
                 <span className="text-xs text-gray-500">
@@ -847,10 +849,10 @@ export default function ReportsPage() {
               <button
                 key={d}
                 onClick={() => setLocalDays(d)}
-                className={`rounded-full border px-3 py-1 text-sm font-semibold ${
+                className={`rounded-md border px-3 py-1 text-sm font-medium ${
                   localDays === d
                     ? "border-primary bg-primary/10 text-primary"
-                    : "border-gray-200 text-gray-700 hover:border-primary hover:text-primary"
+                    : "border-gray-200 text-gray-600 hover:border-primary hover:text-primary"
                 }`}
               >
                 {d} {t.labels.daysShort}
@@ -861,7 +863,7 @@ export default function ReportsPage() {
                 if (selectedTableIds.length)
                   loadLocalSummary(selectedTableIds, localDays);
               }}
-              className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700 hover:border-primary"
+              className="rounded-md border border-gray-200 bg-white px-3 py-1 text-sm text-gray-600 hover:border-primary"
               disabled={loadingLocalSummary}
             >
               <RefreshCcw className="h-4 w-4" />
@@ -869,7 +871,7 @@ export default function ReportsPage() {
           </div>
 
           <details
-            className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+            className="rounded-lg border border-gray-200 bg-white p-5"
             data-tour-id="reports-local-tables"
           >
             <summary className="cursor-pointer select-none font-semibold text-gray-900">
@@ -885,7 +887,7 @@ export default function ReportsPage() {
                 onClick={() =>
                   setSelectedTableIds(customTables.map((t) => t.id))
                 }
-                className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700 hover:border-primary"
+                className="rounded-md border border-gray-200 bg-white px-3 py-1 text-sm text-gray-600 hover:border-primary"
                 disabled={loadingLocalTables || customTables.length === 0}
               >
                 {t.labels.selectAll}
@@ -893,7 +895,7 @@ export default function ReportsPage() {
               <button
                 type="button"
                 onClick={() => setSelectedTableIds([])}
-                className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700 hover:border-primary"
+                className="rounded-md border border-gray-200 bg-white px-3 py-1 text-sm text-gray-600 hover:border-primary"
                 disabled={loadingLocalTables || selectedTableIds.length === 0}
               >
                 {t.labels.clear}
@@ -911,7 +913,7 @@ export default function ReportsPage() {
                 return (
                   <label
                     key={t.id}
-                    className={`flex items-start gap-2 rounded-lg border p-3 text-sm cursor-pointer ${
+                    className={`flex items-start gap-2 rounded-md border p-3 text-sm cursor-pointer ${
                       checked
                         ? "border-primary bg-primary/5"
                         : "border-gray-200 bg-white"
@@ -953,7 +955,7 @@ export default function ReportsPage() {
           </details>
 
           {selectedTableIds.length === 0 ? (
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-sm text-gray-500 text-center">
+            <div className="rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-500 text-center">
               {t.labels.selectAtLeastOneTable}
             </div>
           ) : (
@@ -997,11 +999,11 @@ export default function ReportsPage() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div
-                  className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                  className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5"
                   data-tour-id="reports-local-trend"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="text-sm font-semibold text-gray-900">
                       {t.labels.dailyTrend}
                     </h3>
                     <span className="text-xs text-gray-500">
@@ -1025,11 +1027,11 @@ export default function ReportsPage() {
                 </div>
 
                 <div
-                  className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                  className="rounded-lg border border-gray-200 bg-white p-5"
                   data-tour-id="reports-local-expense-categories"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="text-sm font-semibold text-gray-900">
                       {t.labels.expensesCategories}
                     </h3>
                     <span className="text-xs text-gray-500">
@@ -1054,11 +1056,11 @@ export default function ReportsPage() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div
-                  className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                  className="rounded-lg border border-gray-200 bg-white p-5"
                   data-tour-id="reports-local-income-counterparty"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="text-sm font-semibold text-gray-900">
                       {t.labels.incomeByCounterparty}
                     </h3>
                     <span className="text-xs text-gray-500">
@@ -1081,11 +1083,11 @@ export default function ReportsPage() {
                 </div>
 
                 <div
-                  className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                  className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5"
                   data-tour-id="reports-local-last-operations"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="text-sm font-semibold text-gray-900">
                       {t.labels.lastOperations}
                     </h3>
                     <span className="text-xs text-gray-500">
@@ -1132,9 +1134,9 @@ export default function ReportsPage() {
               </div>
 
               {(localSummary?.tables || []).length > 0 && (
-                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="rounded-lg border border-gray-200 bg-white p-5">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="text-sm font-semibold text-gray-900">
                       {t.labels.tablesSummary}
                     </h3>
                     <span className="text-xs text-gray-500">
@@ -1187,7 +1189,7 @@ export default function ReportsPage() {
                 loadStatements();
                 loadStatementSummary();
               }}
-              className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700 hover:border-primary flex items-center gap-2"
+              className="rounded-md border border-gray-200 bg-white px-3 py-1 text-sm text-gray-600 hover:border-primary flex items-center gap-2"
             >
               <RefreshCcw className="h-4 w-4" /> {t.labels.refresh}
             </button>
@@ -1261,11 +1263,11 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div
-              className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5"
               data-tour-id="reports-statements-uploads-trend"
             >
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-gray-900">
                   {t.labels.uploadsTrend}
                 </h3>
                 <span className="text-xs text-gray-500">
@@ -1288,11 +1290,11 @@ export default function ReportsPage() {
             </div>
 
             <div
-              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+              className="rounded-lg border border-gray-200 bg-white p-5"
               data-tour-id="reports-statements-banks"
             >
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-gray-900">
                   {t.labels.banks}
                 </h3>
                 <span className="text-xs text-gray-500">{t.labels.top}</span>
@@ -1315,11 +1317,11 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div
-              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+              className="rounded-lg border border-gray-200 bg-white p-5"
               data-tour-id="reports-statements-statuses"
             >
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-gray-900">
                   {t.labels.statuses}
                 </h3>
                 <span className="text-xs text-gray-500">
@@ -1342,11 +1344,11 @@ export default function ReportsPage() {
             </div>
 
             <div
-              className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5"
               data-tour-id="reports-statements-latest-uploads"
             >
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-gray-900">
                   {t.labels.latestUploads}
                 </h3>
                 <span className="text-xs text-gray-500">

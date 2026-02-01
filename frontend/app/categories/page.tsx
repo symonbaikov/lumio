@@ -283,15 +283,15 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="container-shared px-4 sm:px-6 lg:px-8 py-8">
+    <div className="container-shared px-4 sm:px-6 lg:px-8 py-12">
       {/* Header Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2 rounded-full bg-primary/10 text-primary">
-              <Tag className="h-6 w-6" />
+            <div className="p-2 rounded-md bg-primary/10 text-primary">
+              <Tag className="h-5 w-5" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">{t.title}</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">{t.title}</h1>
           </div>
           <p className="text-secondary">{t.subtitle}</p>
         </div>
@@ -305,14 +305,14 @@ export default function CategoriesPage() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={t.dialog.placeholderName.value}
-              className="w-full rounded-full border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              className="w-full rounded-md border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
             />
           </div>
 
           {/* Add Button */}
           <button
             onClick={() => handleOpenDialog()}
-            className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-full shadow-sm text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors whitespace-nowrap"
+            className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors whitespace-nowrap"
           >
             <Plus className="-ml-1 mr-2 h-5 w-5" />
             {t.add}
@@ -321,33 +321,33 @@ export default function CategoriesPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
+      <div className="flex items-center gap-6 mb-6 overflow-x-auto pb-1">
         <button
           onClick={() => setFilterType('all')}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors border ${
+          className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
             filterType === 'all'
-              ? 'bg-gray-900 text-white border-gray-900'
-              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-gray-500 hover:text-primary'
           }`}
         >
           {t.type.label}
         </button>
         <button
           onClick={() => setFilterType('income')}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors border ${
+          className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
             filterType === 'income'
-              ? 'bg-emerald-600 text-white border-emerald-600'
-              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-gray-500 hover:text-primary'
           }`}
         >
           {t.type.income}
         </button>
         <button
           onClick={() => setFilterType('expense')}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors border ${
+          className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
             filterType === 'expense'
-              ? 'bg-red-600 text-white border-red-600'
-              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-gray-500 hover:text-primary'
           }`}
         >
           {t.type.expense}
@@ -355,7 +355,7 @@ export default function CategoriesPage() {
       </div>
 
       {/* Table Content */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -371,7 +371,7 @@ export default function CategoriesPage() {
             <div className="mt-6">
               <button
                 onClick={() => handleOpenDialog()}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-full text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                className="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-md text-gray-700 bg-white hover:border-primary hover:text-primary focus:outline-none"
               >
                 <Plus className="-ml-1 mr-2 h-5 w-5 text-gray-500" />
                 {t.add}
@@ -380,8 +380,8 @@ export default function CategoriesPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50/50">
+            <table className="min-w-full divide-y divide-gray-100">
+              <thead className="bg-gray-50">
                 <tr>
                   <th
                     scope="col"
@@ -403,13 +403,13 @@ export default function CategoriesPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-100">
                 {filteredCategories.map(category => (
-                  <tr key={category.id} className="transition-colors hover:bg-gray-50/50 group">
+                  <tr key={category.id} className="transition-colors hover:bg-gray-50 group">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div
-                          className="shrink-0 h-10 w-10 rounded-lg flex items-center justify-center border border-gray-100 shadow-sm"
+                          className="shrink-0 h-10 w-10 rounded-md flex items-center justify-center border border-gray-100"
                           style={{
                             backgroundColor: alpha(category.color || '#2196F3', 0.1),
                             color: category.color || '#2196F3',
@@ -445,14 +445,14 @@ export default function CategoriesPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleOpenDialog(category)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-blue-50 transition-colors"
+                          className="p-2 rounded-md text-gray-400 hover:text-primary transition-colors"
                           title={t.actions.edit.value}
                         >
                           <Pencil size={18} />
                         </button>
                         <button
                           onClick={() => handleDelete(category.id)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          className="p-2 rounded-md text-gray-400 hover:text-red-600 transition-colors"
                           title={t.actions.delete.value}
                         >
                           <Trash2 size={18} />
@@ -475,12 +475,14 @@ export default function CategoriesPage() {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         PaperProps={{
-          elevation: 3,
+          elevation: 0,
           sx: {
             mt: 0.5,
             borderRadius: 2,
             minWidth: 160,
             overflow: 'hidden',
+            border: '1px solid',
+            borderColor: 'divider',
           },
         }}
       >
@@ -498,7 +500,7 @@ export default function CategoriesPage() {
       </Menu>
 
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold' }}>
+        <DialogTitle sx={{ fontWeight: 600 }}>
           {editingCategory ? t.dialog.editTitle : t.dialog.createTitle}
         </DialogTitle>
         <DialogContent dividers>

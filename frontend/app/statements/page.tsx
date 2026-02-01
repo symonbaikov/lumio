@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
-import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
-import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
-import LoadingAnimation from '@/app/components/LoadingAnimation';
-import { useAuth } from '@/app/hooks/useAuth';
-import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
-import apiClient from '@/app/lib/api';
+import { BankLogoAvatar } from "@/app/components/BankLogoAvatar";
+import { DocumentTypeIcon } from "@/app/components/DocumentTypeIcon";
+import { PDFPreviewModal } from "@/app/components/PDFPreviewModal";
+import LoadingAnimation from "@/app/components/LoadingAnimation";
+import { useAuth } from "@/app/hooks/useAuth";
+import { useLockBodyScroll } from "@/app/hooks/useLockBodyScroll";
+import apiClient from "@/app/lib/api";
 import {
   getStatementMerchantLabel,
   isStatementProcessingStatus,
-} from '@/app/lib/statement-status';
-import { resolveBankLogo } from '@bank-logos';
+} from "@/app/lib/statement-status";
+import { resolveBankLogo } from "@bank-logos";
 import {
   AlertCircle,
   ArrowDown,
@@ -25,11 +25,11 @@ import {
   SlidersHorizontal,
   UploadCloud,
   X,
-} from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
+} from "lucide-react";
+import { useIntlayer } from "next-intlayer";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 
 interface Statement {
   id: string;
@@ -59,13 +59,13 @@ interface Statement {
 const getBankDisplayName = (bankName: string) => {
   const resolved = resolveBankLogo(bankName);
   if (!resolved) return bankName;
-  return resolved.key !== 'other' ? resolved.displayName : bankName;
+  return resolved.key !== "other" ? resolved.displayName : bankName;
 };
 
 export default function StatementsPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const t = useIntlayer('statementsPage');
+  const t = useIntlayer("statementsPage");
   const PAGE_SIZE = 20;
   const [statements, setStatements] = useState<Statement[]>([]);
   const statementsRef = useRef<Statement[]>([]);
@@ -73,59 +73,68 @@ export default function StatementsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [total, setTotal] = useState(0);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
 
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [allowDuplicates, setAllowDuplicates] = useState(false);
-  const resolveLabel = (value: any, fallback: string) => value?.value ?? value ?? fallback;
+  const resolveLabel = (value: any, fallback: string) =>
+    value?.value ?? value ?? fallback;
   const searchPlaceholder =
-    (t.searchPlaceholder as any)?.value ?? t.searchPlaceholder ?? 'Поиск по выпискам';
+    (t.searchPlaceholder as any)?.value ??
+    t.searchPlaceholder ??
+    "Поиск по выпискам";
   const filterLabels = {
-    type: resolveLabel(t.filters?.type, 'Тип'),
-    status: resolveLabel(t.filters?.status, 'Статус'),
-    date: resolveLabel(t.filters?.date, 'Дата'),
-    from: resolveLabel(t.filters?.from, 'От'),
-    filters: resolveLabel(t.filters?.filters, 'Фильтры'),
-    columns: resolveLabel(t.filters?.columns, 'Колонки'),
+    type: resolveLabel(t.filters?.type, "Тип"),
+    status: resolveLabel(t.filters?.status, "Статус"),
+    date: resolveLabel(t.filters?.date, "Дата"),
+    from: resolveLabel(t.filters?.from, "От"),
+    filters: resolveLabel(t.filters?.filters, "Фильтры"),
+    columns: resolveLabel(t.filters?.columns, "Колонки"),
   };
   const listHeaderLabels = {
-    receipt: resolveLabel(t.listHeader?.receipt, 'Receipt'),
-    type: resolveLabel(t.listHeader?.type, 'Type'),
-    date: resolveLabel(t.listHeader?.date, 'Date'),
-    merchant: resolveLabel(t.listHeader?.merchant, 'Merchant'),
-    amount: resolveLabel(t.listHeader?.amount, 'Amount'),
-    action: resolveLabel(t.listHeader?.action, 'Action'),
-    scanning: resolveLabel(t.listHeader?.scanning, 'Scanning...'),
+    receipt: resolveLabel(t.listHeader?.receipt, "Receipt"),
+    type: resolveLabel(t.listHeader?.type, "Type"),
+    date: resolveLabel(t.listHeader?.date, "Date"),
+    merchant: resolveLabel(t.listHeader?.merchant, "Merchant"),
+    amount: resolveLabel(t.listHeader?.amount, "Amount"),
+    action: resolveLabel(t.listHeader?.action, "Action"),
+    scanning: resolveLabel(t.listHeader?.scanning, "Scanning..."),
   };
-  const viewLabel = resolveLabel(t.actions?.view, 'View');
-  const uploadLabel = resolveLabel(t.uploadStatement, 'Upload');
+  const viewLabel = resolveLabel(t.actions?.view, "View");
+  const uploadLabel = resolveLabel(t.uploadStatement, "Upload");
   const allowDuplicatesLabel = resolveLabel(
     (t.uploadModal as any)?.allowDuplicates,
-    'Разрешить загрузку дубликатов',
+    "Разрешить загрузку дубликатов",
   );
   const uploadModalLabels = {
-    title: resolveLabel(t.uploadModal?.title, 'Upload files'),
-    subtitle: resolveLabel(t.uploadModal?.subtitle, 'PDF, Excel, CSV and images are supported'),
-    dropHint1: resolveLabel(t.uploadModal?.dropHint1, 'Click to select'),
-    dropHint2: resolveLabel(t.uploadModal?.dropHint2, 'or drag and drop files'),
-    maxHint: resolveLabel(t.uploadModal?.maxHint, 'Up to 5 files, 10 MB each'),
-    mbShort: resolveLabel(t.uploadModal?.mbShort, 'MB'),
-    cancel: resolveLabel(t.uploadModal?.cancel, 'Cancel'),
-    uploadFiles: resolveLabel(t.uploadModal?.uploadFiles, 'Upload files'),
-    uploading: resolveLabel(t.uploadModal?.uploading, 'Uploading...'),
+    title: resolveLabel(t.uploadModal?.title, "Upload files"),
+    subtitle: resolveLabel(
+      t.uploadModal?.subtitle,
+      "PDF, Excel, CSV and images are supported",
+    ),
+    dropHint1: resolveLabel(t.uploadModal?.dropHint1, "Click to select"),
+    dropHint2: resolveLabel(t.uploadModal?.dropHint2, "or drag and drop files"),
+    maxHint: resolveLabel(t.uploadModal?.maxHint, "Up to 5 files, 10 MB each"),
+    mbShort: resolveLabel(t.uploadModal?.mbShort, "MB"),
+    cancel: resolveLabel(t.uploadModal?.cancel, "Cancel"),
+    uploadFiles: resolveLabel(t.uploadModal?.uploadFiles, "Upload files"),
+    uploading: resolveLabel(t.uploadModal?.uploading, "Uploading..."),
   };
   const emptyLabels = {
-    title: resolveLabel(t.empty?.title, 'No statements yet'),
-    description: resolveLabel(t.empty?.description, 'Upload your first statement to get started'),
+    title: resolveLabel(t.empty?.title, "No statements yet"),
+    description: resolveLabel(
+      t.empty?.description,
+      "Upload your first statement to get started",
+    ),
   };
   const filterChipClassName =
-    'inline-flex items-center gap-2 rounded-full bg-[#e6e1da] px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-muted';
+    "inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary";
   const filterLinkClassName =
-    'inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-muted hover:text-gray-900';
+    "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-primary";
 
   useLockBodyScroll(!!uploadModalOpen);
   const totalPagesCount = Math.max(1, Math.ceil(total / pageSize) || 1);
@@ -135,7 +144,7 @@ export default function StatementsPage() {
   // PDF Preview Modal State
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
-  const [previewFileName, setPreviewFileName] = useState<string>('');
+  const [previewFileName, setPreviewFileName] = useState<string>("");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -159,7 +168,9 @@ export default function StatementsPage() {
   const filteredStatements = useMemo(() => {
     const query = searchInput.trim().toLowerCase();
     if (!query) return statements;
-    return statements.filter(stmt => stmt.fileName.toLowerCase().includes(query));
+    return statements.filter((stmt) =>
+      stmt.fileName.toLowerCase().includes(query),
+    );
   }, [searchInput, statements]);
 
   const loadStatements = async (opts?: {
@@ -173,10 +184,12 @@ export default function StatementsPage() {
       const targetPage = opts?.page ?? page;
       const targetSearch = opts?.search ?? search;
       const prevStatements = statementsRef.current;
-      const prevStatusById = new Map(prevStatements.map(s => [s.id, s.status]));
+      const prevStatusById = new Map(
+        prevStatements.map((s) => [s.id, s.status]),
+      );
       if (!silent) setLoading(true);
 
-      const response = await apiClient.get('/statements', {
+      const response = await apiClient.get("/statements", {
         params: {
           page: targetPage,
           limit: PAGE_SIZE,
@@ -191,18 +204,25 @@ export default function StatementsPage() {
           ? payload.data
           : [];
 
-      const statementsWithFileType = rawData.map((stmt: Statement & { file_type?: string }) => ({
-        ...stmt,
-        fileType: stmt.fileType || stmt.file_type || 'pdf',
-      }));
+      const statementsWithFileType = rawData.map(
+        (stmt: Statement & { file_type?: string }) => ({
+          ...stmt,
+          fileType: stmt.fileType || stmt.file_type || "pdf",
+        }),
+      );
 
       const nextTotal =
-        !Array.isArray(payload) && typeof payload.total === 'number'
+        !Array.isArray(payload) && typeof payload.total === "number"
           ? payload.total
           : statementsWithFileType.length;
-      const nextPage = !Array.isArray(payload) && payload.page ? Number(payload.page) : targetPage;
+      const nextPage =
+        !Array.isArray(payload) && payload.page
+          ? Number(payload.page)
+          : targetPage;
       const nextLimit =
-        !Array.isArray(payload) && payload.limit ? Number(payload.limit) : PAGE_SIZE;
+        !Array.isArray(payload) && payload.limit
+          ? Number(payload.limit)
+          : PAGE_SIZE;
       const nextTotalPages = Math.max(1, Math.ceil(nextTotal / nextLimit) || 1);
 
       if (nextPage > nextTotalPages && nextTotal > 0) {
@@ -211,14 +231,16 @@ export default function StatementsPage() {
       }
 
       if (notifyOnCompletion && Array.isArray(statementsWithFileType)) {
-        const processedStatuses = new Set(['parsed', 'validated', 'completed']);
+        const processedStatuses = new Set(["parsed", "validated", "completed"]);
         const finishedList: Statement[] = [];
         for (const next of statementsWithFileType) {
           const prevStatus = prevStatusById.get(next.id);
           if (!prevStatus) continue;
 
-          const startedButNotFinished = prevStatus === 'processing' || prevStatus === 'uploaded';
-          const finished = next.status !== 'processing' && next.status !== 'uploaded';
+          const startedButNotFinished =
+            prevStatus === "processing" || prevStatus === "uploaded";
+          const finished =
+            next.status !== "processing" && next.status !== "uploaded";
           if (!startedButNotFinished || !finished) continue;
 
           // collect for toasts and auto-open decision
@@ -226,7 +248,7 @@ export default function StatementsPage() {
 
           if (processedStatuses.has(next.status)) {
             toast.success(`${t.notify.donePrefix.value}: ${next.fileName}`);
-          } else if (next.status === 'error') {
+          } else if (next.status === "error") {
             toast.error(`${t.notify.errorPrefix.value}: ${next.fileName}`);
           } else {
             toast.success(`${t.notify.donePrefix.value}: ${next.fileName}`);
@@ -236,16 +258,27 @@ export default function StatementsPage() {
         if (finishedList.length > 0) {
           // pick the earliest uploaded/created statement among finished ones
           const firstFinished = finishedList.sort((a, b) => {
-            const ta = Date.parse(a.createdAt || '');
-            const tb = Date.parse(b.createdAt || '');
-            return (isNaN(ta) ? 0 : ta) - (isNaN(tb) ? 0 : tb);
+            const ta = Date.parse(a.createdAt || "");
+            const tb = Date.parse(b.createdAt || "");
+            return (Number.isNaN(ta) ? 0 : ta) - (Number.isNaN(tb) ? 0 : tb);
           })[0];
 
-          if (firstFinished && lastAutoOpenedIdRef.current !== firstFinished.id) {
+          if (
+            firstFinished &&
+            lastAutoOpenedIdRef.current !== firstFinished.id
+          ) {
             lastAutoOpenedIdRef.current = firstFinished.id;
             // navigate to the statement view page
             try {
-              router.push(`/statements/${firstFinished.id}/view`);
+              if (
+                firstFinished.status === "completed" ||
+                firstFinished.status === "parsed" ||
+                firstFinished.status === "validated"
+              ) {
+                router.push(`/statements/${firstFinished.id}/edit`);
+              } else {
+                router.push(`/storage/${firstFinished.id}`);
+              }
             } catch (err) {
               // ignore navigation errors
             }
@@ -258,7 +291,7 @@ export default function StatementsPage() {
       setPageSize(nextLimit);
       setPage(nextPage);
     } catch (error) {
-      console.error('Failed to load statements:', error);
+      console.error("Failed to load statements:", error);
       toast.error(t.loadListError.value);
     } finally {
       const { silent = false } = opts || {};
@@ -268,7 +301,9 @@ export default function StatementsPage() {
 
   useEffect(() => {
     const hasProcessing = statements.some(
-      s => s.status === 'processing' || (s.status === 'uploaded' && !s.processedAt),
+      (s) =>
+        s.status === "processing" ||
+        (s.status === "uploaded" && !s.processedAt),
     );
     if (!hasProcessing) return;
     const interval = setInterval(() => {
@@ -277,22 +312,21 @@ export default function StatementsPage() {
     return () => clearInterval(interval);
   }, [statements, page, search]);
 
-
   const addFiles = (files: File[]) => {
     const allowed = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel',
-      'text/csv',
-      'image/jpeg',
-      'image/png',
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+      "text/csv",
+      "image/jpeg",
+      "image/png",
     ];
-    const filtered = files.filter(f => allowed.includes(f.type));
+    const filtered = files.filter((f) => allowed.includes(f.type));
     if (filtered.length === 0) {
       toast.error(t.uploadModal.unsupportedFormat.value);
       return;
     }
-    setUploadFiles(prev => [...prev, ...filtered].slice(0, 5));
+    setUploadFiles((prev) => [...prev, ...filtered].slice(0, 5));
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -307,7 +341,7 @@ export default function StatementsPage() {
   };
 
   const removeUploadFile = (index: number) => {
-    setUploadFiles(prev => prev.filter((_, i) => i !== index));
+    setUploadFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleUpload = async () => {
@@ -318,14 +352,14 @@ export default function StatementsPage() {
     setUploading(true);
     setUploadError(null);
     const formData = new FormData();
-    uploadFiles.forEach(file => formData.append('files', file));
+    uploadFiles.forEach((file) => formData.append("files", file));
     if (allowDuplicates) {
-      formData.append('allowDuplicates', 'true');
+      formData.append("allowDuplicates", "true");
     }
 
     try {
-      await apiClient.post('/statements/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      await apiClient.post("/statements/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       setUploadFiles([]);
       setUploadModalOpen(false);
@@ -346,7 +380,11 @@ export default function StatementsPage() {
     }
   };
 
-  const getFileIcon = (fileType?: string, fileName?: string, fileId?: string) => {
+  const getFileIcon = (
+    fileType?: string,
+    fileName?: string,
+    fileId?: string,
+  ) => {
     return (
       <DocumentTypeIcon
         fileType={fileType}
@@ -362,42 +400,59 @@ export default function StatementsPage() {
     (
       statement.currency ||
       statement.parsingDetails?.metadataExtracted?.currency ||
-      statement.parsingDetails?.metadataExtracted?.headerDisplay?.currencyDisplay ||
-      ''
+      statement.parsingDetails?.metadataExtracted?.headerDisplay
+        ?.currencyDisplay ||
+      ""
     ).toString();
 
   const parseAmountValue = (value?: number | string | null) => {
-    if (value === null || value === undefined || value === '') return null;
-    const parsed = typeof value === 'string' ? Number(value) : value;
+    if (value === null || value === undefined || value === "") return null;
+    const parsed = typeof value === "string" ? Number(value) : value;
     return Number.isFinite(parsed) ? parsed : null;
   };
 
   const formatStatementAmount = (statement: Statement) => {
     const debit = parseAmountValue(statement.totalDebit);
     const credit = parseAmountValue(statement.totalCredit);
-    const rawAmount = (debit && debit > 0 ? debit : credit && credit > 0 ? credit : 0) || 0;
+    const rawAmount =
+      (debit && debit > 0 ? debit : credit && credit > 0 ? credit : 0) || 0;
     const currency = resolveStatementCurrency(statement);
     const formatted =
       rawAmount === 0
-        ? '0'
+        ? "0"
         : new Intl.NumberFormat(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           }).format(rawAmount);
-    return `${formatted}${currency || ''}`;
+    return `${formatted}${currency || ""}`;
   };
 
   const formatStatementDate = (statement: Statement) => {
     const dateValue =
-      statement.statementDateTo || statement.statementDateFrom || statement.createdAt || '';
-    if (!dateValue) return '—';
+      statement.statementDateTo ||
+      statement.statementDateFrom ||
+      statement.createdAt ||
+      "";
+    if (!dateValue) return "—";
     const date = new Date(dateValue);
-    if (Number.isNaN(date.getTime())) return '—';
+    if (Number.isNaN(date.getTime())) return "—";
     return date.toLocaleDateString();
   };
 
+  const handleView = (statement: Statement) => {
+    if (
+      statement.status === "completed" ||
+      statement.status === "parsed" ||
+      statement.status === "validated"
+    ) {
+      router.push(`/statements/${statement.id}/edit`);
+    } else {
+      router.push(`/storage/${statement.id}`);
+    }
+  };
+
   return (
-    <div className="container-shared px-4 sm:px-6 lg:px-8 py-8">
+    <div className="container-shared px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-6 space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1" data-tour-id="search-bar">
@@ -405,16 +460,16 @@ export default function StatementsPage() {
             <input
               type="text"
               value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder={searchPlaceholder}
               aria-label={searchPlaceholder}
-              className="w-full rounded-lg border border-border bg-background py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-md border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
             />
           </div>
           <button
             onClick={() => setUploadModalOpen(true)}
             data-tour-id="upload-statement-button"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-sm transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-primary text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/20"
             aria-label={uploadLabel}
           >
             <UploadCloud className="h-5 w-5" />
@@ -455,15 +510,17 @@ export default function StatementsPage() {
           </div>
         ) : filteredStatements.length === 0 ? (
           <div className="text-center py-20 px-4">
-            <div className="mx-auto h-16 w-16 text-gray-300 mb-4 bg-muted rounded-full flex items-center justify-center">
+            <div className="mx-auto h-16 w-16 text-gray-300 mb-4 bg-gray-50 rounded-full flex items-center justify-center">
               <File className="h-8 w-8" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900">{emptyLabels.title}</h3>
+            <h3 className="text-lg font-medium text-gray-900">
+              {emptyLabels.title}
+            </h3>
             <p className="mt-1 text-gray-500">{emptyLabels.description}</p>
             <div className="mt-6">
               <button
                 onClick={() => setUploadModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 border border-border shadow-sm text-sm font-medium rounded-full text-gray-700 bg-white hover:bg-muted focus:outline-none"
+                className="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-md text-gray-700 bg-white hover:border-primary hover:text-primary focus:outline-none"
               >
                 <UploadCloud className="-ml-1 mr-2 h-5 w-5 text-gray-500" />
                 {uploadModalLabels.uploadFiles}
@@ -486,19 +543,23 @@ export default function StatementsPage() {
                 <div className="w-32 text-right">{listHeaderLabels.amount}</div>
                 <div className="w-28 text-right">{listHeaderLabels.action}</div>
               </div>
-              {filteredStatements.map(statement => {
-                const isProcessing = isStatementProcessingStatus(statement.status);
+              {filteredStatements.map((statement) => {
+                const isProcessing = isStatementProcessingStatus(
+                  statement.status,
+                );
                 const merchantLabel = getStatementMerchantLabel(
                   statement.status,
                   getBankDisplayName(statement.bankName),
                   listHeaderLabels.scanning,
                 );
-                const fileTypeLabel = (statement.fileType || 'pdf').toUpperCase();
+                const fileTypeLabel = (
+                  statement.fileType || "pdf"
+                ).toUpperCase();
 
                 return (
                   <div
                     key={statement.id}
-                    className="flex items-center gap-3 rounded-2xl border border-border bg-[#f8f4f0] px-4 py-3 shadow-sm transition-colors hover:bg-muted"
+                    className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 transition-colors hover:bg-gray-50"
                   >
                     <input
                       type="checkbox"
@@ -515,7 +576,11 @@ export default function StatementsPage() {
                       }}
                       title="Открыть предпросмотр"
                     >
-                      {getFileIcon(statement.fileType, statement.fileName, statement.id)}
+                      {getFileIcon(
+                        statement.fileType,
+                        statement.fileName,
+                        statement.id,
+                      )}
                     </button>
                     <div className="w-3 shrink-0" />
                     <span className="w-16 text-xs font-semibold text-gray-500 uppercase tracking-wide shrink-0">
@@ -547,8 +612,8 @@ export default function StatementsPage() {
                     </span>
                     <div className="flex items-center justify-end gap-2 w-28 shrink-0">
                       <button
-                        onClick={() => router.push(`/statements/${statement.id}/view`)}
-                        className="rounded-full bg-[#e6e1da] px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-muted"
+                        onClick={() => handleView(statement)}
+                        className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary"
                       >
                         {viewLabel}
                       </button>
@@ -570,12 +635,12 @@ export default function StatementsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                   disabled={page <= 1}
-                  className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm border transition-all ${
+                  className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm border transition-all ${
                     page <= 1
-                      ? 'border-border text-gray-300 cursor-not-allowed'
-                      : 'border-border text-gray-700 hover:bg-muted'
+                      ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                      : "border-gray-200 text-gray-600 hover:border-primary hover:text-primary"
                   }`}
                 >
                   <ChevronLeft className="h-4 w-4" /> Предыдущая
@@ -584,12 +649,14 @@ export default function StatementsPage() {
                   Страница {page} из {totalPagesCount}
                 </span>
                 <button
-                  onClick={() => setPage(prev => Math.min(totalPagesCount, prev + 1))}
+                  onClick={() =>
+                    setPage((prev) => Math.min(totalPagesCount, prev + 1))
+                  }
                   disabled={page >= totalPagesCount}
-                  className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm border transition-all ${
+                  className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm border transition-all ${
                     page >= totalPagesCount
-                      ? 'border-border text-gray-300 cursor-not-allowed'
-                      : 'border-border text-gray-700 hover:bg-muted'
+                      ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                      : "border-gray-200 text-gray-600 hover:border-primary hover:text-primary"
                   }`}
                 >
                   Следующая <ChevronRight className="h-4 w-4" />
@@ -612,8 +679,8 @@ export default function StatementsPage() {
               setUploadError(null);
               setAllowDuplicates(false);
             }}
-            onKeyDown={event => {
-              if (event.key === 'Enter' || event.key === ' ') {
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
                 setUploadModalOpen(false);
                 setUploadFiles([]);
@@ -626,8 +693,12 @@ export default function StatementsPage() {
             {/* Header */}
             <div className="px-8 pt-8 pb-4 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">{uploadModalLabels.title}</h3>
-                <p className="text-sm text-gray-500 mt-1">{uploadModalLabels.subtitle}</p>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {uploadModalLabels.title}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {uploadModalLabels.subtitle}
+                </p>
               </div>
               <button
                 onClick={() => {
@@ -653,7 +724,7 @@ export default function StatementsPage() {
 
               <div
                 onDrop={handleDrop}
-                onDragOver={e => e.preventDefault()}
+                onDragOver={(e) => e.preventDefault()}
                 className="group relative rounded-2xl border-2 border-solid border-gray-200 bg-gray-50/50 hover:border-blue-500 transition-all duration-200"
               >
                 <input
@@ -668,10 +739,14 @@ export default function StatementsPage() {
                     <UploadCloud className="h-8 w-8 text-primary" />
                   </div>
                   <p className="text-base font-medium text-gray-900">
-                    {uploadModalLabels.dropHint1}{' '}
-                    <span className="font-normal text-gray-500">{uploadModalLabels.dropHint2}</span>
+                    {uploadModalLabels.dropHint1}{" "}
+                    <span className="font-normal text-gray-500">
+                      {uploadModalLabels.dropHint2}
+                    </span>
                   </p>
-                  <p className="mt-2 text-xs text-gray-400">{uploadModalLabels.maxHint}</p>
+                  <p className="mt-2 text-xs text-gray-400">
+                    {uploadModalLabels.maxHint}
+                  </p>
                 </div>
               </div>
 
@@ -680,10 +755,13 @@ export default function StatementsPage() {
                   id="allow-duplicates"
                   type="checkbox"
                   checked={allowDuplicates}
-                  onChange={e => setAllowDuplicates(e.target.checked)}
+                  onChange={(e) => setAllowDuplicates(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
-                <label htmlFor="allow-duplicates" className="text-sm text-gray-700">
+                <label
+                  htmlFor="allow-duplicates"
+                  className="text-sm text-gray-700"
+                >
                   {allowDuplicatesLabel}
                 </label>
               </div>
@@ -705,9 +783,12 @@ export default function StatementsPage() {
                           />
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-gray-900">{file.name}</p>
+                          <p className="truncate text-sm font-medium text-gray-900">
+                            {file.name}
+                          </p>
                           <p className="text-xs text-gray-500">
-                            {(file.size / 1024 / 1024).toFixed(2)} {uploadModalLabels.mbShort}
+                            {(file.size / 1024 / 1024).toFixed(2)}{" "}
+                            {uploadModalLabels.mbShort}
                           </p>
                         </div>
                       </div>
@@ -735,7 +816,7 @@ export default function StatementsPage() {
                 className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
                 disabled={uploading}
               >
-                  {uploadModalLabels.cancel}
+                {uploadModalLabels.cancel}
               </button>
               <button
                 onClick={handleUpload}
@@ -743,7 +824,9 @@ export default function StatementsPage() {
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/30 hover:bg-primary-hover hover:shadow-primary/40 focus:ring-4 focus:ring-primary/20 disabled:opacity-50 disabled:shadow-none transition-all"
               >
                 {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {uploading ? uploadModalLabels.uploading : uploadModalLabels.uploadFiles}
+                {uploading
+                  ? uploadModalLabels.uploading
+                  : uploadModalLabels.uploadFiles}
               </button>
             </div>
           </div>
@@ -757,7 +840,7 @@ export default function StatementsPage() {
           onClose={() => {
             setPreviewModalOpen(false);
             setPreviewFileId(null);
-            setPreviewFileName('');
+            setPreviewFileName("");
           }}
           fileId={previewFileId}
           fileName={previewFileName}
