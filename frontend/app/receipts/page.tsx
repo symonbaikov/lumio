@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
+import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { CheckCircle, Clock, FileText, Loader2, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -144,7 +145,7 @@ export default function ReceiptsPage() {
   if (authLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center text-gray-500">
-        <Loader2 className="h-6 w-6 animate-spin" />
+        <LoadingAnimation size="lg" />
       </div>
     );
   }

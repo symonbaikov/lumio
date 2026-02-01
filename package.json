@@ -26,6 +26,10 @@
     "ts-loader": "^9.5.4"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.7",
+    "@mui/material": "^7.3.7",
     "@react-email/components": "^1.0.4",
     "driver.js": "^1.4.0",
     "echarts": "^6.0.0",

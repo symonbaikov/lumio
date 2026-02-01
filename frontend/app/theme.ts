@@ -60,7 +60,7 @@ const paletteByMode: Record<ThemeMode, ThemeOptions['palette']> = {
     },
     background: {
       default: '#fcfbf9',
-      paper: '#ffffff',
+      paper: '#fcfbf9',
     },
     text: {
       primary: '#191919',

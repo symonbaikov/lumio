@@ -11,6 +11,7 @@
     "cloud-infrastructure@claude-code-workflows": true,
     "security-scanning@claude-code-workflows": true,
     "code-review-ai@claude-code-workflows": true,
-    "full-stack-orchestration@claude-code-workflows": true
+    "full-stack-orchestration@claude-code-workflows": true,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true
   }
 }

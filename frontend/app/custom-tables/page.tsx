@@ -3,6 +3,7 @@
 import ConfirmModal from '@/app/components/ConfirmModal';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
+import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { Icon } from '@iconify/react';
 import { Add, FilterList, MoreVert, Search, Sort } from '@mui/icons-material';
 import {
@@ -477,7 +478,7 @@ export default function CustomTablesPage() {
 
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              <LoadingAnimation size="lg" />
             </div>
           ) : filteredItems.length === 0 ? (
             <div className="text-center py-20 px-4">

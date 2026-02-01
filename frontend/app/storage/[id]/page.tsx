@@ -17,6 +17,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import PermissionsPanel from '../../components/PermissionsPanel';
 import ShareDialog from '../../components/ShareDialog';
 import TransactionsView from '../../components/TransactionsView';
+import LoadingAnimation from '../../components/LoadingAnimation';
 import api from '../../lib/api';
 
 type FileAvailabilityStatus = 'both' | 'disk' | 'db' | 'missing';
@@ -304,8 +305,8 @@ export default function FileDetailsPage() {
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-16">
-        <div className="flex items-center gap-3 text-gray-600">
-          <Loader2 className="h-5 w-5 animate-spin" />
+        <div className="flex flex-col items-center gap-3 text-gray-600">
+          <LoadingAnimation size="lg" />
           <span>{t.loading}</span>
         </div>
       </div>

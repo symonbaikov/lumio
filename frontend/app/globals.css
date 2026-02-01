@@ -22,9 +22,9 @@
   --primary-foreground: #ffffff;
   --secondary: #666666;
   --secondary-foreground: #ffffff;
-  --muted: #f8f4f0;
+  --muted: #f2ede7;
   --muted-foreground: #666666;
-  --card-bg: #ffffff;
+  --card-bg: #fcfbf9;
   --card-foreground: #191919;
   --border-color: #e0e0e0;
   --input: #d7d7d7;
@@ -91,16 +91,36 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.hover\:bg-gray-50:hover,
-.hover\:bg-gray-100:hover,
-.hover\:bg-gray-200:hover,
-.hover\:bg-white:hover {
-  background-color: var(--muted);
+/* Global hover effects - all should be #f2ede7 in light mode */
+:not(.dark) .hover\:bg-gray-50:hover,
+:not(.dark) .hover\:bg-gray-100:hover,
+:not(.dark) .hover\:bg-gray-200:hover,
+:not(.dark) .hover\:bg-white:hover,
+:not(.dark) .hover\:bg-muted:hover,
+:not(.dark) .hover\:bg-card:hover {
+  background-color: #f2ede7 !important;
+}
+
+/* MUI hover effects in light mode */
+:not(.dark) .MuiButtonBase-root:hover,
+:not(.dark) .MuiButton-root:hover,
+:not(.dark) .MuiIconButton-root:hover,
+:not(.dark) .MuiMenuItem-root:hover,
+:not(.dark) .MuiListItem-root:hover,
+:not(.dark) .MuiTableRow-root:hover {
+  background-color: #f2ede7 !important;
 }
 
 /* Container for shared layout alignment (Full Width) */
 .container-shared {
   width: 100%;
+}
+
+/*
+  Light mode: Replace all white backgrounds with #fcfbf9
+*/
+.bg-white {
+  background-color: #fcfbf9 !important;
 }
 
 /*

@@ -7,6 +7,7 @@ import { useWorkspace } from "../contexts/WorkspaceContext";
 import { CreateWorkspaceModal } from "./components/CreateWorkspaceModal";
 import { WorkspaceCard } from "./components/WorkspaceCard";
 import { Search, Grid, List, Star, SortAsc } from "lucide-react";
+import LoadingAnimation from "../components/LoadingAnimation";
 
 type ViewMode = 'grid' | 'list';
 type SortOption = 'alphabetical' | 'recent' | 'favorites';
@@ -72,8 +73,8 @@ export default function WorkspacesPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">{content.loading}</p>
+          <LoadingAnimation size="xl" />
+          <p className="text-gray-600 dark:text-gray-400 mt-4">{content.loading}</p>
         </div>
       </div>
     );

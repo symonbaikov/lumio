@@ -17,6 +17,7 @@ import { TourMenu } from "@/app/tours/components/TourMenu";
 import { type DriveStep, driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { NotificationsNone, HelpOutline } from '@mui/icons-material';
 import {
   Bell,
   Check,
@@ -336,7 +337,7 @@ export default function Navigation() {
                     className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                     title="Notifications"
                   >
-                    <Bell size={20} />
+                    <NotificationsNone sx={{ fontSize: 20 }} />
                   </button>
                   <TourMenu
                     trigger={
@@ -344,7 +345,7 @@ export default function Navigation() {
                         className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         title="Help"
                       >
-                        <HelpCircle size={20} />
+                        <HelpOutline sx={{ fontSize: 20 }} />
                       </button>
                     }
                   />

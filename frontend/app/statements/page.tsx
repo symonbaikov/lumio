@@ -3,6 +3,7 @@
 import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
 import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
 import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
+import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import apiClient from '@/app/lib/api';
@@ -450,7 +451,7 @@ export default function StatementsPage() {
       <div data-tour-id="statements-table">
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+            <LoadingAnimation size="lg" />
           </div>
         ) : filteredStatements.length === 0 ? (
           <div className="text-center py-20 px-4">

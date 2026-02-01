@@ -3,6 +3,7 @@
 import TransactionsPageView from '@/app/components/transactions/TransactionsPageView';
 import type { Category, StatementDetails, Transaction } from '@/app/components/transactions/types';
 import api from '@/app/lib/api';
+import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import React, { use, useEffect, useState } from "react";
@@ -141,7 +142,7 @@ export default function ViewStatementPage({
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        <LoadingAnimation size="lg" />
       </div>
     );
   }
