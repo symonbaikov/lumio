@@ -10,14 +10,14 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
-import {
-  useLockBodyScroll,
-} from "@/app/hooks/useLockBodyScroll";
+import { useLockBodyScroll } from "@/app/hooks/useLockBodyScroll";
 import { TourMenu } from "@/app/tours/components/TourMenu";
 import { type DriveStep, driver } from "driver.js";
 import "driver.js/dist/driver.css";
-import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
-import { NotificationsNone, HelpOutline } from '@mui/icons-material';
+
+import { NotificationsNone} from "@mui/icons-material";
+import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
+import LanguageIcon from "@mui/icons-material/Language";
 import {
   Bell,
   Check,
@@ -25,8 +25,6 @@ import {
   Database,
   Edit3,
   FileText,
-  HelpCircle,
-  Languages,
   Laptop,
   LogOut,
   Menu,
@@ -44,6 +42,8 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import ApartmentIcon from "@mui/icons-material/Apartment";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { useIntlayer, useLocale } from "next-intlayer";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -75,8 +75,8 @@ export default function Navigation() {
     languages: languageNames,
     tour,
   } = useIntlayer("navigation");
-  const trashLabel = (userMenu as Record<string, any>).trash?.value ?? 'Trash';
-  
+  const trashLabel = (userMenu as Record<string, any>).trash?.value ?? "Trash";
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
   const [languageDraft, setLanguageDraft] = useState<AppLanguage>("ru");
@@ -249,6 +249,7 @@ export default function Navigation() {
     return null;
   }
 
+  const navLabels = nav as typeof nav & { workspaces: typeof nav.statements };
   const navItems = [
     {
       label: nav.statements,
@@ -257,9 +258,9 @@ export default function Navigation() {
       permission: "statement.view",
     },
     {
-      label: nav.storage,
-      path: "/storage",
-      icon: <Database size={20} />,
+      label: nav.receipts,
+      path: "/receipts",
+      icon: <ShoppingCartIcon sx={{ fontSize: 20 }} />,
       permission: "statement.view",
     },
     {
@@ -268,6 +269,12 @@ export default function Navigation() {
       icon: <Table size={20} />,
       permission: "statement.view",
     },
+    {
+      label: navLabels.workspaces,
+      path: "/workspaces",
+      icon: <ApartmentIcon sx={{ fontSize: 20 }} />,
+      permission: "workspaces.view",
+    },
   ];
 
   const visibleNavItems = navItems.filter((item) =>
@@ -275,44 +282,30 @@ export default function Navigation() {
   );
 
   return (
-    <header
-      className="sticky top-0 z-50 border-b border-border bg-card shadow-sm transition-all duration-300"
-    >
+    <header className="border-b border-border bg-card shadow-sm transition-all duration-300">
       <div className="container-shared px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-14">
           <div className="flex items-center">
-            {pathname === "/workspaces" && (
-              <Link
-                href="/"
-                className="shrink-0 flex items-center"
-                data-tour-id="brand"
-              >
-                <span className="text-primary ff-logo">
-                  FINFLOW
-                </span>
-              </Link>
-            )}
-
-            {/* Workspace Switcher */}
-            {pathname !== "/workspaces" && (
-              <div className={pathname === "/workspaces" ? "ml-4 md:ml-6" : ""}>
-                <WorkspaceSwitcher />
-              </div>
-            )}
+            <Link
+              href="/"
+              className="shrink-0 flex items-center"
+              data-tour-id="brand"
+            >
+              <span className="text-primary ff-logo">LUMIO</span>
+            </Link>
 
             {/* Desktop Navigation */}
-            {pathname !== "/workspaces" && (
-              <nav
-                className="hidden md:ml-2 md:flex md:space-x-2"
-                data-tour-id="primary-nav"
-              >
-                {visibleNavItems.map((item) => {
-                  const isActive = pathname === item.path;
-                  return (
-                    <Link
-                      key={item.path}
-                      href={item.path}
-                      className={`
+            <nav
+              className="hidden md:ml-2 md:flex md:space-x-2"
+              data-tour-id="primary-nav"
+            >
+              {visibleNavItems.map((item) => {
+                const isActive = pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    href={item.path}
+                    className={`
                         group inline-flex flex-col items-center justify-center px-3 pt-1 border-b-2 text-xs font-medium min-w-16 transition-colors duration-200
                         ${
                           isActive
@@ -320,186 +313,175 @@ export default function Navigation() {
                             : "border-transparent text-muted-foreground hover:text-primary hover:border-border"
                         }
                       `}
-                    >
-                      <span className="mb-1 group-hover:scale-110 transition-transform duration-200">
-                        {item.icon}
-                      </span>
-                      <span className="hidden lg:block">{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
-            )}
+                  >
+                    <span className="mb-1 group-hover:scale-110 transition-transform duration-200">
+                      {item.icon}
+                    </span>
+                    <span className="hidden lg:block">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
 
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-4">
-              {pathname !== "/workspaces" && (
-                <>
-                  <button
-                    className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    title="Notifications"
-                  >
-                    <NotificationsNone sx={{ fontSize: 20 }} />
-                  </button>
-                  <TourMenu
-                    trigger={
-                      <button
-                        className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        title="Help"
-                      >
-                        <HelpOutline sx={{ fontSize: 20 }} />
-                      </button>
-                    }
-                  />
-                </>
-              )}
+              <>
+                <button
+                  className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  title="Notifications"
+                >
+                  <NotificationsNone sx={{ fontSize: 20 }} />
+                </button>
+                <TourMenu
+                  trigger={
+                    <button
+                      className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      title="Help"
+                    >
+                      <QuestionMarkIcon sx={{ fontSize: 20 }} />
+                    </button>
+                  }
+                />
+              </>
 
               {/* User Menu */}
               <div className="relative ml-3">
-                {pathname === "/workspaces" ? (
-                  <div className="flex items-center gap-2 max-w-xs text-sm font-semibold text-foreground opacity-70">
-                    <span className="truncate max-w-[150px] hidden sm:block">
-                      {user.name}
-                    </span>
-                    <div className="h-8 w-8 rounded-full flex items-center justify-center overflow-hidden text-muted-foreground">
-                      {user?.avatarUrl && !avatarError ? (
-                        <img
-                          src={user.avatarUrl}
-                          alt={user?.name || "User avatar"}
-                          className="h-full w-full object-cover"
-                          onError={() => setAvatarError(true)}
-                        />
-                      ) : (
-                        <User size={20} />
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className="flex items-center gap-3 max-w-xs text-sm font-semibold text-foreground hover:opacity-80 transition-opacity focus:outline-none group"
-                        data-tour-id="user-menu-trigger"
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <span className="truncate max-w-[150px] hidden sm:block">
-                            {user.name}
-                          </span>
-                          <ChevronDown
-                            size={16}
-                            className="text-muted-foreground group-hover:text-foreground transition-colors"
-                          />
-                        </div>
-                        <div className="h-8 w-8 rounded-full flex items-center justify-center overflow-hidden text-muted-foreground transition-all group-hover:bg-muted">
-                          {user?.avatarUrl && !avatarError ? (
-                            <img
-                              src={user.avatarUrl}
-                              alt={user?.name || "User avatar"}
-                              className="h-full w-full object-cover"
-                              onError={() => setAvatarError(true)}
-                            />
-                          ) : (
-                            <User size={20} />
-                          )}
-                        </div>
-                      </button>
-                    </DropdownMenuTrigger>
-
-                    <DropdownMenuContent align="end" className="w-[320px] p-2">
-                      <DropdownMenuLabel className="px-3 py-3">
-                        <div className="text-base font-semibold text-foreground truncate">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="flex items-center gap-3 max-w-xs text-sm font-semibold text-foreground hover:opacity-80 transition-opacity focus:outline-none group"
+                      data-tour-id="user-menu-trigger"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate max-w-[150px] hidden sm:block">
                           {user.name}
-                        </div>
-                        <div className="text-sm font-normal text-muted-foreground truncate">
-                          {user.email}
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
+                        </span>
+                        <ChevronDown
+                          size={16}
+                          className="text-muted-foreground group-hover:text-foreground transition-colors"
+                        />
+                      </div>
+                      <div className="h-8 w-8 rounded-full flex items-center justify-center overflow-hidden text-muted-foreground transition-all group-hover:bg-muted">
+                        {user?.avatarUrl && !avatarError ? (
+                          <img
+                            src={user.avatarUrl}
+                            alt={user?.name || "User avatar"}
+                            className="h-full w-full object-cover"
+                            onError={() => setAvatarError(true)}
+                          />
+                        ) : (
+                          <User size={20} />
+                        )}
+                      </div>
+                    </button>
+                  </DropdownMenuTrigger>
 
+                  <DropdownMenuContent align="end" className="w-[320px] p-2">
+                    <DropdownMenuLabel className="px-3 py-3">
+                      <div className="text-base font-semibold text-foreground truncate">
+                        {user.name}
+                      </div>
+                      <div className="text-sm font-normal text-muted-foreground truncate">
+                        {user.email}
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuItem asChild>
+                      <Link href="/settings/profile">
+                        <Settings size={18} className="text-muted-foreground" />
+                        <span className="text-base">{userMenu.settings}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/settings/workspace">
+                        <Users size={18} className="text-muted-foreground" />
+                        <span className="text-base">{userMenu.workspace}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/integrations">
+                        <Plug size={18} className="text-muted-foreground" />
+                        <span className="text-base">
+                          {userMenu.integrations}
+                        </span>
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem asChild>
+                      <Link href="/categories">
+                        <img
+                          src="/icons/open-folder.png"
+                          alt=""
+                          aria-hidden
+                          className="h-[18px] w-[18px]"
+                        />
+                        <span className="text-base">{userMenu.categories}</span>
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem asChild>
+                      <Link href="/statements/trash">
+                        <Trash2 size={18} className="text-muted-foreground" />
+                        <span className="text-base">{trashLabel}</span>
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setLanguageDraft(normalizedLocale);
+                        setLanguageModalOpen(true);
+                        setLanguageDropdownOpen(false);
+                      }}
+                    >
+                      <LanguageIcon
+                        sx={{ fontSize: 18 }}
+                        className="text-muted-foreground"
+                      />
+                      <span className="text-base">{userMenu.language}</span>
+                      <DropdownMenuShortcut className="text-sm">
+                        {languageLabel}
+                      </DropdownMenuShortcut>
+                    </DropdownMenuItem>
+
+                    {isAdmin && (
                       <DropdownMenuItem asChild>
-                        <Link href="/settings/profile">
-                          <Settings size={18} className="text-muted-foreground" />
-                          <span className="text-base">{userMenu.settings}</span>
+                        <Link href="/admin">
+                          <Shield size={18} className="text-muted-foreground" />
+                          <span className="text-base">{userMenu.admin}</span>
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/settings/workspace">
-                          <Users size={18} className="text-muted-foreground" />
-                          <span className="text-base">{userMenu.workspace}</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/integrations">
-                          <Plug size={18} className="text-muted-foreground" />
-                          <span className="text-base">
-                            {userMenu.integrations}
-                          </span>
-                        </Link>
-                      </DropdownMenuItem>
+                    )}
 
-                      <DropdownMenuItem asChild>
-                        <Link href="/statements/trash">
-                          <Trash2 size={18} className="text-muted-foreground" />
-                          <span className="text-base">{trashLabel}</span>
-                        </Link>
-                      </DropdownMenuItem>
-
-
-                      <DropdownMenuItem
-                        onSelect={() => {
-                          setLanguageDraft(normalizedLocale);
-                          setLanguageModalOpen(true);
-                          setLanguageDropdownOpen(false);
-                        }}
-                      >
-                        <Languages size={18} className="text-muted-foreground" />
-                        <span className="text-base">{userMenu.language}</span>
-                        <DropdownMenuShortcut className="text-sm">
-                          {languageLabel}
-                        </DropdownMenuShortcut>
-                      </DropdownMenuItem>
-
-                      {isAdmin && (
-                        <DropdownMenuItem asChild>
-                          <Link href="/admin">
-                            <Shield size={18} className="text-muted-foreground" />
-                            <span className="text-base">{userMenu.admin}</span>
-                          </Link>
-                        </DropdownMenuItem>
-                      )}
-
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onSelect={() => {
-                          logout();
-                          toast.success(userMenu.logoutSuccess.value);
-                        }}
-                        className="text-red-600 dark:text-red-400 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-900/40"
-                      >
-                        <LogOut size={18} />
-                        <span className="text-base">{userMenu.logout}</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        logout();
+                        toast.success(userMenu.logoutSuccess.value);
+                      }}
+                      className="text-red-600 dark:text-red-400 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-900/40"
+                    >
+                      <LogOut size={18} />
+                      <span className="text-base">{userMenu.logout}</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 
             {/* Mobile menu button */}
-            {pathname !== "/workspaces" && (
-              <div className="flex items-center md:hidden">
-                <button
-                  onClick={() => setMobileMenuOpen((prev) => !prev)}
-                  className="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none"
-                  data-tour-id="mobile-menu-toggle"
-                  aria-label="Open menu"
-                  aria-expanded={mobileMenuOpen}
-                >
-                  {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                </button>
-              </div>
-            )}
+            <div className="flex items-center md:hidden">
+              <button
+                onClick={() => setMobileMenuOpen((prev) => !prev)}
+                className="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none"
+                data-tour-id="mobile-menu-toggle"
+                aria-label="Open menu"
+                aria-expanded={mobileMenuOpen}
+              >
+                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -622,6 +604,19 @@ export default function Navigation() {
                 <span className="flex-1">{userMenu.integrations}</span>
               </Link>
 
+              <Link
+                href="/categories"
+                className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 transition-colors bg-white"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <img
+                  src="/icons/open-folder.png"
+                  alt=""
+                  aria-hidden
+                  className="h-[18px] w-[18px]"
+                />
+                <span className="flex-1">{userMenu.categories}</span>
+              </Link>
 
               <button
                 type="button"
@@ -633,7 +628,7 @@ export default function Navigation() {
                 }}
                 className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 transition-colors bg-white"
               >
-                <Languages size={18} className="text-gray-600" />
+                <LanguageIcon sx={{ fontSize: 18 }} className="text-gray-600" />
                 <span className="flex-1 text-left">{userMenu.language}</span>
                 <span className="text-sm text-gray-600">{languageLabel}</span>
               </button>

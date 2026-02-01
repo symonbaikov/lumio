@@ -14,6 +14,11 @@ const content = {
         en: 'Statements',
         kk: 'Үзінділер',
       }),
+      receipts: t({
+        ru: 'Чеки',
+        en: 'Receipts',
+        kk: 'Чектер',
+      }),
       upload: t({
         ru: 'Загрузка',
         en: 'Upload',

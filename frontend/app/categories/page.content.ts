@@ -10,6 +10,8 @@ const content = {
       kk: 'Кіріс және шығыс санаттарын басқарыңыз',
     }),
     add: t({ ru: 'Добавить', en: 'Add', kk: 'Қосу' }),
+    enabled: t({ ru: 'Активно', en: 'Enabled', kk: 'Белсенді' }),
+    more: t({ ru: 'Еще', en: 'More', kk: 'Көбірек' }),
     loading: t({ ru: 'Загрузка...', en: 'Loading...', kk: 'Жүктелуде...' }),
     type: {
       income: t({ ru: 'Доход', en: 'Income', kk: 'Кіріс' }),

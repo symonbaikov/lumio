@@ -1,377 +1,850 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/app/hooks/useAuth';
-import apiClient from '@/app/lib/api';
-import LoadingAnimation from '@/app/components/LoadingAnimation';
-import { CheckCircle, Clock, FileText, Loader2, XCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+import { BankLogoAvatar } from "@/app/components/BankLogoAvatar";
+import { DocumentTypeIcon } from "@/app/components/DocumentTypeIcon";
+import { PDFPreviewModal } from "@/app/components/PDFPreviewModal";
+import LoadingAnimation from "@/app/components/LoadingAnimation";
+import { useAuth } from "@/app/hooks/useAuth";
+import { useLockBodyScroll } from "@/app/hooks/useLockBodyScroll";
+import apiClient from "@/app/lib/api";
+import {
+  getStatementMerchantLabel,
+  isStatementProcessingStatus,
+} from "@/app/lib/statement-status";
+import { resolveBankLogo } from "@bank-logos";
+import {
+  AlertCircle,
+  ArrowDown,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Columns2,
+  File,
+  Loader2,
+  Search,
+  SlidersHorizontal,
+  UploadCloud,
+  X,
+} from "lucide-react";
+import { useIntlayer } from "next-intlayer";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 
-type Receipt = {
+interface Statement {
   id: string;
-  gmailMessageId: string;
-  subject: string;
-  sender: string;
-  receivedAt: string;
-  status: 'draft' | 'reviewed' | 'approved' | 'rejected';
-  parsedData?: {
-    amount?: number;
-    currency?: string;
-    vendor?: string;
-    date?: string;
-    category?: string;
-    confidence?: number;
+  fileName: string;
+  status: string;
+  totalTransactions: number;
+  totalDebit?: number | string | null;
+  totalCredit?: number | string | null;
+  createdAt: string;
+  processedAt?: string;
+  statementDateFrom?: string | null;
+  statementDateTo?: string | null;
+  bankName: string;
+  fileType: string;
+  currency?: string | null;
+  parsingDetails?: {
+    logEntries?: Array<{ timestamp: string; level: string; message: string }>;
+    metadataExtracted?: {
+      currency?: string;
+      headerDisplay?: {
+        currencyDisplay?: string;
+      };
+    };
   };
-  metadata?: {
-    snippet?: string;
-    attachments?: Array<{
-      filename: string;
-      mimeType: string;
-      size: number;
-    }>;
-  };
-};
+}
 
-type ReceiptsResponse = {
-  receipts: Receipt[];
-  total: number;
-  limit: number;
-  offset: number;
-};
-
-const formatDateTime = (value: string, locale?: string) => {
-  const date = new Date(value);
-  return new Intl.DateTimeFormat(locale || 'en', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
-};
-
-const formatCurrency = (amount?: number, currency = 'KZT') => {
-  if (amount === undefined) return '—';
-  return new Intl.NumberFormat('ru-KZ', {
-    style: 'currency',
-    currency,
-  }).format(amount);
-};
-
-const StatusBadge = ({ status }: { status: Receipt['status'] }) => {
-  const config = {
-    draft: { label: 'Draft', className: 'bg-gray-100 text-gray-700', icon: FileText },
-    reviewed: { label: 'Reviewed', className: 'bg-blue-100 text-blue-700', icon: Clock },
-    approved: { label: 'Approved', className: 'bg-green-100 text-green-700', icon: CheckCircle },
-    rejected: { label: 'Rejected', className: 'bg-red-100 text-red-700', icon: XCircle },
-  };
-
-  const { label, className, icon: Icon } = config[status];
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${className}`}
-    >
-      <Icon className="h-3 w-3" />
-      {label}
-    </span>
-  );
+const getBankDisplayName = (bankName: string) => {
+  const resolved = resolveBankLogo(bankName);
+  if (!resolved) return bankName;
+  return resolved.key !== "other" ? resolved.displayName : bankName;
 };
 
 export default function ReceiptsPage() {
-  const { user, loading: authLoading } = useAuth();
-  const [receipts, setReceipts] = useState<Receipt[]>([]);
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const { user } = useAuth();
+  const t = useIntlayer("receiptsPage");
+  const PAGE_SIZE = 20;
+  const [statements, setStatements] = useState<Statement[]>([]);
+  const statementsRef = useRef<Statement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [total, setTotal] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
 
-  const loadReceipts = async () => {
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [allowDuplicates, setAllowDuplicates] = useState(false);
+  const resolveLabel = (value: any, fallback: string) =>
+    value?.value ?? value ?? fallback;
+  const searchPlaceholder =
+    (t.searchPlaceholder as any)?.value ??
+    t.searchPlaceholder ??
+    "Поиск по чекам";
+  const filterLabels = {
+    type: resolveLabel(t.filters?.type, "Тип"),
+    status: resolveLabel(t.filters?.status, "Статус"),
+    date: resolveLabel(t.filters?.date, "Дата"),
+    from: resolveLabel(t.filters?.from, "От"),
+    filters: resolveLabel(t.filters?.filters, "Фильтры"),
+    columns: resolveLabel(t.filters?.columns, "Колонки"),
+  };
+  const listHeaderLabels = {
+    receipt: resolveLabel(t.listHeader?.receipt, "Receipt"),
+    type: resolveLabel(t.listHeader?.type, "Type"),
+    date: resolveLabel(t.listHeader?.date, "Date"),
+    merchant: resolveLabel(t.listHeader?.merchant, "Merchant"),
+    amount: resolveLabel(t.listHeader?.amount, "Amount"),
+    action: resolveLabel(t.listHeader?.action, "Action"),
+    scanning: resolveLabel(t.listHeader?.scanning, "Scanning..."),
+  };
+  const viewLabel = resolveLabel(t.actions?.view, "View");
+  const uploadLabel = resolveLabel(t.uploadStatement, "Upload");
+  const allowDuplicatesLabel = resolveLabel(
+    (t.uploadModal as any)?.allowDuplicates,
+    "Разрешить загрузку дубликатов",
+  );
+  const uploadModalLabels = {
+    title: resolveLabel(t.uploadModal?.title, "Upload files"),
+    subtitle: resolveLabel(
+      t.uploadModal?.subtitle,
+      "PDF, Excel, CSV and images are supported",
+    ),
+    dropHint1: resolveLabel(t.uploadModal?.dropHint1, "Click to select"),
+    dropHint2: resolveLabel(t.uploadModal?.dropHint2, "or drag and drop files"),
+    maxHint: resolveLabel(t.uploadModal?.maxHint, "Up to 5 files, 10 MB each"),
+    mbShort: resolveLabel(t.uploadModal?.mbShort, "MB"),
+    cancel: resolveLabel(t.uploadModal?.cancel, "Cancel"),
+    uploadFiles: resolveLabel(t.uploadModal?.uploadFiles, "Upload files"),
+    uploading: resolveLabel(t.uploadModal?.uploading, "Uploading..."),
+  };
+  const emptyLabels = {
+    title: resolveLabel(t.empty?.title, "No receipts yet"),
+    description: resolveLabel(
+      t.empty?.description,
+      "Upload your first receipt to get started",
+    ),
+  };
+  const filterChipClassName =
+    "inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary";
+  const filterLinkClassName =
+    "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-primary";
+
+  useLockBodyScroll(!!uploadModalOpen);
+  const totalPagesCount = Math.max(1, Math.ceil(total / pageSize) || 1);
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = total === 0 ? 0 : Math.min(total, page * pageSize);
+
+  // PDF Preview Modal State
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewFileId, setPreviewFileId] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState<string>("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    statementsRef.current = statements;
+  }, [statements]);
+
+  const lastAutoOpenedIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    loadStatements({ page, search });
+  }, [user, page, search]);
+
+  const filteredStatements = useMemo(() => {
+    const query = searchInput.trim().toLowerCase();
+    if (!query) return statements;
+    return statements.filter((stmt) =>
+      stmt.fileName.toLowerCase().includes(query),
+    );
+  }, [searchInput, statements]);
+
+  const loadStatements = async (opts?: {
+    silent?: boolean;
+    notifyOnCompletion?: boolean;
+    page?: number;
+    search?: string;
+  }) => {
     try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (statusFilter) params.append('status', statusFilter);
-      params.append('limit', '50');
-
-      const response = await apiClient.get<ReceiptsResponse>(
-        `/integrations/gmail/receipts?${params.toString()}`,
+      const { silent = false, notifyOnCompletion = false } = opts || {};
+      const targetPage = opts?.page ?? page;
+      const targetSearch = opts?.search ?? search;
+      const prevStatements = statementsRef.current;
+      const prevStatusById = new Map(
+        prevStatements.map((s) => [s.id, s.status]),
       );
-      setReceipts(response.data.receipts);
-      setTotal(response.data.total);
+      if (!silent) setLoading(true);
+
+      const response = await apiClient.get("/statements", {
+        params: {
+          page: targetPage,
+          limit: PAGE_SIZE,
+          search: targetSearch || undefined,
+        },
+      });
+
+      const payload = response.data;
+      const rawData = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload.data)
+          ? payload.data
+          : [];
+
+      const statementsWithFileType = rawData.map(
+        (stmt: Statement & { file_type?: string }) => ({
+          ...stmt,
+          fileType: stmt.fileType || stmt.file_type || "pdf",
+        }),
+      );
+
+      const nextTotal =
+        !Array.isArray(payload) && typeof payload.total === "number"
+          ? payload.total
+          : statementsWithFileType.length;
+      const nextPage =
+        !Array.isArray(payload) && payload.page
+          ? Number(payload.page)
+          : targetPage;
+      const nextLimit =
+        !Array.isArray(payload) && payload.limit
+          ? Number(payload.limit)
+          : PAGE_SIZE;
+      const nextTotalPages = Math.max(1, Math.ceil(nextTotal / nextLimit) || 1);
+
+      if (nextPage > nextTotalPages && nextTotal > 0) {
+        setPage(nextTotalPages);
+        return;
+      }
+
+      if (notifyOnCompletion && Array.isArray(statementsWithFileType)) {
+        const processedStatuses = new Set(["parsed", "validated", "completed"]);
+        const finishedList: Statement[] = [];
+        for (const next of statementsWithFileType) {
+          const prevStatus = prevStatusById.get(next.id);
+          if (!prevStatus) continue;
+
+          const startedButNotFinished =
+            prevStatus === "processing" || prevStatus === "uploaded";
+          const finished =
+            next.status !== "processing" && next.status !== "uploaded";
+          if (!startedButNotFinished || !finished) continue;
+
+          // collect for toasts and auto-open decision
+          finishedList.push(next);
+
+          if (processedStatuses.has(next.status)) {
+            toast.success(`${t.notify.donePrefix.value}: ${next.fileName}`);
+          } else if (next.status === "error") {
+            toast.error(`${t.notify.errorPrefix.value}: ${next.fileName}`);
+          } else {
+            toast.success(`${t.notify.donePrefix.value}: ${next.fileName}`);
+          }
+        }
+
+        if (finishedList.length > 0) {
+          // pick the earliest uploaded/created statement among finished ones
+          const firstFinished = finishedList.sort((a, b) => {
+            const ta = Date.parse(a.createdAt || "");
+            const tb = Date.parse(b.createdAt || "");
+            return (Number.isNaN(ta) ? 0 : ta) - (Number.isNaN(tb) ? 0 : tb);
+          })[0];
+
+          if (
+            firstFinished &&
+            lastAutoOpenedIdRef.current !== firstFinished.id
+          ) {
+            lastAutoOpenedIdRef.current = firstFinished.id;
+            // navigate to the statement view page
+            try {
+              if (
+                firstFinished.status === "completed" ||
+                firstFinished.status === "parsed" ||
+                firstFinished.status === "validated"
+              ) {
+                router.push(`/statements/${firstFinished.id}/edit`);
+              } else {
+                router.push(`/storage/${firstFinished.id}`);
+              }
+            } catch (err) {
+              // ignore navigation errors
+            }
+          }
+        }
+      }
+
+      setStatements(statementsWithFileType);
+      setTotal(nextTotal);
+      setPageSize(nextLimit);
+      setPage(nextPage);
     } catch (error) {
-      toast.error('Failed to load receipts');
+      console.error("Failed to load statements:", error);
+      toast.error(t.loadListError.value);
     } finally {
-      setLoading(false);
+      const { silent = false } = opts || {};
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user) {
-      loadReceipts();
-    }
-  }, [user, statusFilter]);
+    const hasProcessing = statements.some(
+      (s) =>
+        s.status === "processing" ||
+        (s.status === "uploaded" && !s.processedAt),
+    );
+    if (!hasProcessing) return;
+    const interval = setInterval(() => {
+      loadStatements({ silent: true, notifyOnCompletion: true, page, search });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [statements, page, search]);
 
-  const handleStatusChange = async (receiptId: string, newStatus: Receipt['status']) => {
-    try {
-      await apiClient.patch(`/integrations/gmail/receipts/${receiptId}`, { status: newStatus });
-      toast.success('Receipt updated');
-      await loadReceipts();
-    } catch (error) {
-      toast.error('Failed to update receipt');
+  const addFiles = (files: File[]) => {
+    const allowed = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+      "text/csv",
+      "image/jpeg",
+      "image/png",
+    ];
+    const filtered = files.filter((f) => allowed.includes(f.type));
+    if (filtered.length === 0) {
+      toast.error(t.uploadModal.unsupportedFormat.value);
+      return;
+    }
+    setUploadFiles((prev) => [...prev, ...filtered].slice(0, 5));
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    addFiles(Array.from(e.dataTransfer.files));
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      addFiles(Array.from(e.target.files));
     }
   };
 
-  const handleApproveReceipt = async (receipt: Receipt) => {
+  const removeUploadFile = (index: number) => {
+    setUploadFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpload = async () => {
+    if (uploadFiles.length === 0) {
+      toast.error(t.uploadModal.pickAtLeastOne.value);
+      return;
+    }
+    setUploading(true);
+    setUploadError(null);
+    const formData = new FormData();
+    uploadFiles.forEach((file) => formData.append("files", file));
+    if (allowDuplicates) {
+      formData.append("allowDuplicates", "true");
+    }
+
     try {
-      // Validate required fields from parsedData
-      if (!receipt.parsedData?.amount || !receipt.parsedData?.date) {
-        toast.error('Receipt must have amount and date to be approved');
-        return;
-      }
-
-      const approvalData = {
-        amount: receipt.parsedData.amount,
-        currency: receipt.parsedData.currency || 'KZT',
-        date: receipt.parsedData.date,
-        description: receipt.parsedData.vendor || receipt.subject || 'Receipt transaction',
-        categoryId: undefined, // Can be enhanced later to allow category selection
-      };
-
-      await apiClient.post(`/integrations/gmail/receipts/${receipt.id}/approve`, approvalData);
-      toast.success('Receipt approved and transaction created');
-      await loadReceipts();
-    } catch (error) {
-      toast.error('Failed to approve receipt');
+      await apiClient.post("/statements/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setUploadFiles([]);
+      setUploadModalOpen(false);
+      setAllowDuplicates(false);
+      setUploadError(null);
+      setPage(1);
+      toast.success(t.uploadModal.uploadedProcessing.value);
+      await loadStatements({ page: 1, search });
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.error?.message ||
+        err?.response?.data?.message ||
+        t.uploadModal.uploadFailed.value;
+      setUploadError(message);
+      toast.error(message);
+    } finally {
+      setUploading(false);
     }
   };
 
-  if (authLoading) {
+  const getFileIcon = (
+    fileType?: string,
+    fileName?: string,
+    fileId?: string,
+  ) => {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center text-gray-500">
-        <LoadingAnimation size="lg" />
-      </div>
+      <DocumentTypeIcon
+        fileType={fileType}
+        fileName={fileName}
+        fileId={fileId}
+        size={36}
+        className="text-red-500"
+      />
     );
-  }
+  };
 
-  if (!user) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-center">
-          <p className="text-gray-800 font-semibold mb-2">Please sign in</p>
-          <p className="text-sm text-gray-600">Sign in to view your receipts</p>
-        </div>
-      </div>
-    );
-  }
+  const resolveStatementCurrency = (statement: Statement) =>
+    (
+      statement.currency ||
+      statement.parsingDetails?.metadataExtracted?.currency ||
+      statement.parsingDetails?.metadataExtracted?.headerDisplay
+        ?.currencyDisplay ||
+      ""
+    ).toString();
+
+  const parseAmountValue = (value?: number | string | null) => {
+    if (value === null || value === undefined || value === "") return null;
+    const parsed = typeof value === "string" ? Number(value) : value;
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const formatStatementAmount = (statement: Statement) => {
+    const debit = parseAmountValue(statement.totalDebit);
+    const credit = parseAmountValue(statement.totalCredit);
+    const rawAmount =
+      (debit && debit > 0 ? debit : credit && credit > 0 ? credit : 0) || 0;
+    const currency = resolveStatementCurrency(statement);
+    const formatted =
+      rawAmount === 0
+        ? "0"
+        : new Intl.NumberFormat(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }).format(rawAmount);
+    return `${formatted}${currency || ""}`;
+  };
+
+  const formatStatementDate = (statement: Statement) => {
+    const dateValue =
+      statement.statementDateTo ||
+      statement.statementDateFrom ||
+      statement.createdAt ||
+      "";
+    if (!dateValue) return "—";
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString();
+  };
+
+  const handleView = (statement: Statement) => {
+    if (
+      statement.status === "completed" ||
+      statement.status === "parsed" ||
+      statement.status === "validated"
+    ) {
+      router.push(`/statements/${statement.id}/edit`);
+    } else {
+      router.push(`/storage/${statement.id}`);
+    }
+  };
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="flex items-start justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Receipts</h1>
-          <p className="text-gray-600 mt-1">Review and manage receipts from your Gmail</p>
-        </div>
-        <div className="text-sm text-gray-500">
-          {total} receipt{total !== 1 ? 's' : ''}
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="mb-6 flex gap-2">
-        <button
-          onClick={() => setStatusFilter('')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            statusFilter === ''
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          All
-        </button>
-        <button
-          onClick={() => setStatusFilter('draft')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            statusFilter === 'draft'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          Draft
-        </button>
-        <button
-          onClick={() => setStatusFilter('reviewed')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            statusFilter === 'reviewed'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          Reviewed
-        </button>
-        <button
-          onClick={() => setStatusFilter('approved')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            statusFilter === 'approved'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          Approved
-        </button>
-      </div>
-
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-        </div>
-      )}
-
-      {/* Receipts Table */}
-      {!loading && (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Sender
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Subject
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {receipts.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                    No receipts found. Connect Gmail to start importing receipts.
-                  </td>
-                </tr>
-              ) : (
-                receipts.map(receipt => (
-                  <tr
-                    key={receipt.id}
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => setSelectedReceipt(receipt)}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDateTime(receipt.receivedAt, user.locale)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {receipt.sender}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{receipt.subject}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(receipt.parsedData?.amount, receipt.parsedData?.currency)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <StatusBadge status={receipt.status} />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {receipt.status === 'draft' && (
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            handleStatusChange(receipt.id, 'reviewed');
-                          }}
-                          className="text-blue-600 hover:text-blue-700 font-medium"
-                        >
-                          Review
-                        </button>
-                      )}
-                      {receipt.status === 'reviewed' && (
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            handleApproveReceipt(receipt);
-                          }}
-                          className="text-green-600 hover:text-green-700 font-medium"
-                        >
-                          Approve
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Detail Drawer (simplified for now) */}
-      {selectedReceipt && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-          onClick={() => setSelectedReceipt(null)}
-        >
-          <div
-            className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
-            onClick={e => e.stopPropagation()}
+    <div className="container-shared px-4 sm:px-6 lg:px-8 py-12">
+      <div className="mb-6 space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1" data-tour-id="search-bar">
+            <Search className="h-4 w-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
+              className="w-full rounded-md border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+            />
+          </div>
+          <button
+            onClick={() => setUploadModalOpen(true)}
+            data-tour-id="upload-statement-button"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-primary text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/20"
+            aria-label={uploadLabel}
           >
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Receipt Details</h2>
+            <UploadCloud className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className={filterChipClassName}>
+            {filterLabels.type}
+            <ChevronDown className="h-4 w-4 text-gray-600" />
+          </button>
+          <button type="button" className={filterChipClassName}>
+            {filterLabels.status}
+            <ChevronDown className="h-4 w-4 text-gray-600" />
+          </button>
+          <button type="button" className={filterChipClassName}>
+            {filterLabels.date}
+            <ChevronDown className="h-4 w-4 text-gray-600" />
+          </button>
+          <button type="button" className={filterChipClassName}>
+            {filterLabels.from}
+            <ChevronDown className="h-4 w-4 text-gray-600" />
+          </button>
+          <button type="button" className={filterLinkClassName}>
+            <SlidersHorizontal className="h-4 w-4" />
+            {filterLabels.filters}
+          </button>
+          <button type="button" className={filterLinkClassName}>
+            <Columns2 className="h-4 w-4" />
+            {filterLabels.columns}
+          </button>
+        </div>
+      </div>
+
+      <div data-tour-id="statements-table">
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <LoadingAnimation size="lg" />
+          </div>
+        ) : filteredStatements.length === 0 ? (
+          <div className="text-center py-20 px-4">
+            <div className="mx-auto h-16 w-16 text-gray-300 mb-4 bg-gray-50 rounded-full flex items-center justify-center">
+              <File className="h-8 w-8" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">
+              {emptyLabels.title}
+            </h3>
+            <p className="mt-1 text-gray-500">{emptyLabels.description}</p>
+            <div className="mt-6">
               <button
-                onClick={() => setSelectedReceipt(null)}
-                className="text-gray-400 hover:text-gray-600"
+                onClick={() => setUploadModalOpen(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-md text-gray-700 bg-white hover:border-primary hover:text-primary focus:outline-none"
               >
-                <XCircle className="h-6 w-6" />
+                <UploadCloud className="-ml-1 mr-2 h-5 w-5 text-gray-500" />
+                {uploadModalLabels.uploadFiles}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3">
+              <div className="hidden md:flex items-center gap-3 px-4 text-xs font-medium uppercase tracking-wide text-gray-500">
+                <div className="w-4" />
+                <div className="w-11">{listHeaderLabels.receipt}</div>
+                <div className="w-3" />
+                <div className="w-16">{listHeaderLabels.type}</div>
+                <div className="flex items-center gap-1 w-28">
+                  {listHeaderLabels.date}
+                  <ArrowDown className="h-3 w-3 text-gray-400" />
+                </div>
+                <div className="flex-1">{listHeaderLabels.merchant}</div>
+                <div className="w-32 text-right">{listHeaderLabels.amount}</div>
+                <div className="w-28 text-right">{listHeaderLabels.action}</div>
+              </div>
+              {filteredStatements.map((statement) => {
+                const isProcessing = isStatementProcessingStatus(
+                  statement.status,
+                );
+                const merchantLabel = getStatementMerchantLabel(
+                  statement.status,
+                  getBankDisplayName(statement.bankName),
+                  listHeaderLabels.scanning,
+                );
+                const fileTypeLabel = (
+                  statement.fileType || "pdf"
+                ).toUpperCase();
+
+                return (
+                  <div
+                    key={statement.id}
+                    className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 transition-colors hover:bg-gray-50"
+                  >
+                    <input
+                      type="checkbox"
+                      aria-label={statement.fileName}
+                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary shrink-0"
+                    />
+                    <button
+                      type="button"
+                      className="w-11 shrink-0 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => {
+                        setPreviewFileId(statement.id);
+                        setPreviewFileName(statement.fileName);
+                        setPreviewModalOpen(true);
+                      }}
+                      title="Открыть предпросмотр"
+                    >
+                      {getFileIcon(
+                        statement.fileType,
+                        statement.fileName,
+                        statement.id,
+                      )}
+                    </button>
+                    <div className="w-3 shrink-0" />
+                    <span className="w-16 text-xs font-semibold text-gray-500 uppercase tracking-wide shrink-0">
+                      {fileTypeLabel}
+                    </span>
+                    <span className="w-28 text-sm font-semibold text-gray-900 whitespace-nowrap shrink-0">
+                      {formatStatementDate(statement)}
+                    </span>
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      {isProcessing ? (
+                        <span className="text-sm font-semibold text-emerald-700">
+                          {merchantLabel}
+                        </span>
+                      ) : (
+                        <>
+                          <BankLogoAvatar
+                            bankName={statement.bankName}
+                            size={24}
+                            className="shrink-0"
+                          />
+                          <span className="text-sm text-gray-700 truncate">
+                            {merchantLabel}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <span className="w-32 text-sm font-semibold text-gray-900 tabular-nums text-right shrink-0">
+                      {formatStatementAmount(statement)}
+                    </span>
+                    <div className="flex items-center justify-end gap-2 w-28 shrink-0">
+                      <button
+                        onClick={() => handleView(statement)}
+                        className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary"
+                      >
+                        {viewLabel}
+                      </button>
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div
+              className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-4"
+              data-tour-id="pagination"
+            >
+              <div className="text-sm text-gray-600">
+                {total === 0
+                  ? emptyLabels.title
+                  : `Показано ${rangeStart}–${rangeEnd} из ${total}`}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  disabled={page <= 1}
+                  className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm border transition-all ${
+                    page <= 1
+                      ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                      : "border-gray-200 text-gray-600 hover:border-primary hover:text-primary"
+                  }`}
+                >
+                  <ChevronLeft className="h-4 w-4" /> Предыдущая
+                </button>
+                <span className="text-sm text-gray-600">
+                  Страница {page} из {totalPagesCount}
+                </span>
+                <button
+                  onClick={() =>
+                    setPage((prev) => Math.min(totalPagesCount, prev + 1))
+                  }
+                  disabled={page >= totalPagesCount}
+                  className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm border transition-all ${
+                    page >= totalPagesCount
+                      ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                      : "border-gray-200 text-gray-600 hover:border-primary hover:text-primary"
+                  }`}
+                >
+                  Следующая <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {uploadModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity"
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              setUploadModalOpen(false);
+              setUploadFiles([]);
+              setUploadError(null);
+              setAllowDuplicates(false);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                setUploadModalOpen(false);
+                setUploadFiles([]);
+                setUploadError(null);
+                setAllowDuplicates(false);
+              }
+            }}
+          />
+          <div className="relative w-full max-w-lg rounded-3xl bg-white shadow-2xl ring-1 ring-gray-900/5 overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="px-8 pt-8 pb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {uploadModalLabels.title}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {uploadModalLabels.subtitle}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setUploadModalOpen(false);
+                  setUploadFiles([]);
+                  setUploadError(null);
+                  setAllowDuplicates(false);
+                }}
+                className="rounded-full p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-gray-500">Subject</p>
-                <p className="font-medium">{selectedReceipt.subject}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Sender</p>
-                <p className="font-medium">{selectedReceipt.sender}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Date</p>
-                <p className="font-medium">
-                  {formatDateTime(selectedReceipt.receivedAt, user.locale)}
-                </p>
-              </div>
-              {selectedReceipt.parsedData && (
-                <>
-                  <div>
-                    <p className="text-sm text-gray-500">Amount</p>
-                    <p className="font-medium">
-                      {formatCurrency(
-                        selectedReceipt.parsedData.amount,
-                        selectedReceipt.parsedData.currency,
-                      )}
-                    </p>
-                  </div>
-                  {selectedReceipt.parsedData.vendor && (
-                    <div>
-                      <p className="text-sm text-gray-500">Vendor</p>
-                      <p className="font-medium">{selectedReceipt.parsedData.vendor}</p>
-                    </div>
-                  )}
-                </>
+            {/* Content */}
+            <div className="px-8 pb-8">
+              {uploadError && (
+                <div className="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-600 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  {uploadError}
+                </div>
               )}
-              {selectedReceipt.metadata?.snippet && (
-                <div>
-                  <p className="text-sm text-gray-500">Preview</p>
-                  <p className="text-sm text-gray-700">{selectedReceipt.metadata.snippet}</p>
+
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+                className="group relative rounded-2xl border-2 border-solid border-gray-200 bg-gray-50/50 hover:border-blue-500 transition-all duration-200"
+              >
+                <input
+                  type="file"
+                  multiple
+                  className="absolute inset-0 cursor-pointer opacity-0 z-10"
+                  accept=".pdf,.xlsx,.xls,.csv,.jpg,.jpeg,.png"
+                  onChange={handleFileInput}
+                />
+                <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                  <div className="mb-4 rounded-full bg-white p-4 shadow-sm ring-1 ring-gray-100 group-hover:scale-110 transition-transform duration-200">
+                    <UploadCloud className="h-8 w-8 text-primary" />
+                  </div>
+                  <p className="text-base font-medium text-gray-900">
+                    {uploadModalLabels.dropHint1}{" "}
+                    <span className="font-normal text-gray-500">
+                      {uploadModalLabels.dropHint2}
+                    </span>
+                  </p>
+                  <p className="mt-2 text-xs text-gray-400">
+                    {uploadModalLabels.maxHint}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center gap-2">
+                <input
+                  id="allow-duplicates"
+                  type="checkbox"
+                  checked={allowDuplicates}
+                  onChange={(e) => setAllowDuplicates(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <label
+                  htmlFor="allow-duplicates"
+                  className="text-sm text-gray-700"
+                >
+                  {allowDuplicatesLabel}
+                </label>
+              </div>
+
+              {uploadFiles.length > 0 && (
+                <div className="mt-6 flex flex-col gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                  {uploadFiles.map((file, idx) => (
+                    <div
+                      key={`${file.name}-${idx}`}
+                      className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-3 shadow-sm transition-all hover:border-gray-200 hover:shadow-md"
+                    >
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-50 text-gray-500">
+                          <DocumentTypeIcon
+                            fileType={file.type}
+                            fileName={file.name}
+                            size={20}
+                            className="text-red-500"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-gray-900">
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {(file.size / 1024 / 1024).toFixed(2)}{" "}
+                            {uploadModalLabels.mbShort}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => removeUploadFile(idx)}
+                        className="rounded-full p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
+
+            {/* Footer */}
+            <div className="px-8 pb-8 pt-2 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setUploadModalOpen(false);
+                  setUploadFiles([]);
+                  setUploadError(null);
+                  setAllowDuplicates(false);
+                }}
+                className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+                disabled={uploading}
+              >
+                {uploadModalLabels.cancel}
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={uploading || uploadFiles.length === 0}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/30 hover:bg-primary-hover hover:shadow-primary/40 focus:ring-4 focus:ring-primary/20 disabled:opacity-50 disabled:shadow-none transition-all"
+              >
+                {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {uploading
+                  ? uploadModalLabels.uploading
+                  : uploadModalLabels.uploadFiles}
+              </button>
+            </div>
           </div>
         </div>
+      )}
+
+      {/* PDF Preview Modal */}
+      {previewModalOpen && previewFileId && (
+        <PDFPreviewModal
+          isOpen={previewModalOpen}
+          onClose={() => {
+            setPreviewModalOpen(false);
+            setPreviewFileId(null);
+            setPreviewFileName("");
+          }}
+          fileId={previewFileId}
+          fileName={previewFileName}
+        />
       )}
     </div>
   );

@@ -39,8 +39,12 @@
   --ring: #0a66c2;
   --destructive: #dc2626;
   --destructive-foreground: #fef2f2;
-  --font-family-sans: "Nunitoga", "Helvetica Neue", Arial, Helvetica, sans-serif !important;
-  --font-family-mono: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace !important;
+  --font-family-sans:
+    "Nunitoga", "Helvetica Neue", Arial, Helvetica, sans-serif !important;
+  --font-family-mono:
+    ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono,
+    monospace !important;
+  --global-nav-height: 104px;
 }
 
 .dark {
@@ -366,14 +370,17 @@ body.ff-table-fullscreen {
   overflow: hidden;
 }
 
-body.ff-table-fullscreen > header,
-body.ff-table-fullscreen > [data-global-breadcrumbs] {
+body.ff-table-fullscreen > [data-global-nav] {
+  display: none;
+}
+
+body.ff-table-fullscreen > [data-global-nav-spacer] {
   display: none;
 }
 
 body.ff-table-fullscreen.ff-table-columns-scroll {
   overflow: auto;
-}
+}   
 
 body.ff-table-fullscreen.ff-table-columns-scroll > main {
   height: auto;

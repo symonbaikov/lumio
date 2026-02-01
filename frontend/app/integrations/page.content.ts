@@ -29,6 +29,12 @@ const content = {
         kk: 'Қолжетімді интеграциялар жоқ.',
       }),
     },
+    categories: {
+      storage: t({ ru: 'Файловые хранилища', en: 'Storage', kk: 'Файл қоймалары' }),
+      email: t({ ru: 'Почта', en: 'Email', kk: 'Пошта' }),
+      spreadsheets: t({ ru: 'Таблицы', en: 'Spreadsheets', kk: 'Кестелер' }),
+      messaging: t({ ru: 'Мессенджеры', en: 'Messaging', kk: 'Мессенджерлер' }),
+    },
     cards: {
       dropbox: {
         description: t({

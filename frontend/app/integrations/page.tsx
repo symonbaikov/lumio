@@ -19,6 +19,7 @@ export default function IntegrationsPage() {
         name: "Dropbox",
         description: t.cards.dropbox.description,
         badge: t.cards.dropbox.badge,
+        category: "storage",
         icon: (
           <Image
             src="/icons/dropbox-icon.png"
@@ -45,6 +46,7 @@ export default function IntegrationsPage() {
         name: "Google Drive",
         description: t.cards.googleDrive.description,
         badge: t.cards.googleDrive.badge,
+        category: "storage",
         icon: (
           <Image
             src="/icons/google-drive-icon.png"
@@ -72,6 +74,7 @@ export default function IntegrationsPage() {
         description:
           "Automatically import receipts and invoices from your Gmail inbox",
         badge: "Active",
+        category: "email",
         icon: (
           <Image
             src="/icons/gmail.png"
@@ -98,6 +101,7 @@ export default function IntegrationsPage() {
         name: "Google Sheets",
         description: t.cards.googleSheets.description,
         badge: t.cards.googleSheets.badge,
+        category: "spreadsheets",
         icon: (
           <Image
             src="/icons/icons8-google-sheets-48.png"
@@ -124,6 +128,7 @@ export default function IntegrationsPage() {
         name: "Telegram",
         description: t.cards.telegram.description,
         badge: t.cards.telegram.badge,
+        category: "messaging",
         icon: (
           <Image
             src="/icons/icons8-telegram-48.png"
@@ -212,6 +217,38 @@ export default function IntegrationsPage() {
   const active = filteredIntegrations.filter((item) => item.active);
   const available = filteredIntegrations.filter((item) => !item.active);
 
+  const categories = [
+    {
+      key: "storage",
+      label: t.categories.storage,
+    },
+    {
+      key: "email",
+      label: t.categories.email,
+    },
+    {
+      key: "spreadsheets",
+      label: t.categories.spreadsheets,
+    },
+    {
+      key: "messaging",
+      label: t.categories.messaging,
+    },
+  ] as const;
+
+  const groupByCategory = <T extends { category: string }>(items: T[]) => {
+    const grouped = new Map<string, T[]>();
+    for (const item of items) {
+      const next = grouped.get(item.category) ?? [];
+      next.push(item);
+      grouped.set(item.category, next);
+    }
+    return grouped;
+  };
+
+  const activeByCategory = groupByCategory(active);
+  const availableByCategory = groupByCategory(available);
+
   return (
     <div className="container-shared px-4 sm:px-6 lg:px-8 py-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
@@ -245,62 +282,92 @@ export default function IntegrationsPage() {
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
               {t.sections.connected}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {active.length === 0 && !searchQuery && (
-                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                  {t.empty.connected}
-                </div>
-              )}
-              {active.map((item) => (
-                <div
-                  key={item.key}
-                  className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-gray-50 border border-gray-100">
-                      {item.icon}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold text-gray-900">
-                          {item.name}
-                        </h2>
-                        <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="h-3 w-3 mr-1" /> {item.badge}
-                        </span>
+            {active.length === 0 && !searchQuery ? (
+              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                {t.empty.connected}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {categories.map((category, index) => {
+                  const items = activeByCategory.get(category.key) ?? [];
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={`active-${category.key}`}>
+                      {index !== 0 && (
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="h-px flex-1 bg-gray-200" />
+                          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 px-3 py-1 rounded-full border border-gray-200 bg-white">
+                            {category.label}
+                          </span>
+                          <div className="h-px flex-1 bg-gray-200" />
+                        </div>
+                      )}
+                      {index === 0 && (
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="h-px flex-1 bg-gray-200" />
+                          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 px-3 py-1 rounded-full border border-gray-200 bg-white">
+                            {category.label}
+                          </span>
+                          <div className="h-px flex-1 bg-gray-200" />
+                        </div>
+                      )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {items.map((item) => (
+                          <div
+                            key={item.key}
+                            className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 rounded-lg bg-gray-50 border border-gray-100">
+                                {item.icon}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h2 className="text-lg font-semibold text-gray-900">
+                                    {item.name}
+                                  </h2>
+                                  <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                    <CheckCircle2 className="h-3 w-3 mr-1" />{" "}
+                                    {item.badge}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                  {item.description}
+                                </p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {item.actions.map((action) =>
+                                    action.external ? (
+                                      <a
+                                        key={action.href}
+                                        href={action.href}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                                      >
+                                        {action.label}
+                                        <ExternalLink className="h-3 w-3 ml-1 text-gray-400" />
+                                      </a>
+                                    ) : (
+                                      <Link
+                                        key={action.href}
+                                        href={action.href}
+                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
+                                      >
+                                        {action.label}
+                                      </Link>
+                                    ),
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                        {item.description}
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {item.actions.map((action) =>
-                          action.external ? (
-                            <a
-                              key={action.href}
-                              href={action.href}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
-                            >
-                              {action.label}
-                              <ExternalLink className="h-3 w-3 ml-1 text-gray-400" />
-                            </a>
-                          ) : (
-                            <Link
-                              key={action.href}
-                              href={action.href}
-                              className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
-                            >
-                              {action.label}
-                            </Link>
-                          ),
-                        )}
-                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ) : null}
 
@@ -309,62 +376,81 @@ export default function IntegrationsPage() {
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
               {t.sections.available}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {available.length === 0 && !searchQuery && (
-                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                  {t.empty.available}
-                </div>
-              )}
-              {available.map((item) => (
-                <div
-                  key={item.key}
-                  className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-gray-50 border border-gray-100">
-                      {item.icon}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold text-gray-900">
-                          {item.name}
-                        </h2>
-                        <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="h-3 w-3 mr-1" /> {item.badge}
+            {available.length === 0 && !searchQuery ? (
+              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                {t.empty.available}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {categories.map((category) => {
+                  const items = availableByCategory.get(category.key) ?? [];
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={`available-${category.key}`}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="h-px flex-1 bg-gray-200" />
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 px-3 py-1 rounded-full border border-gray-200 bg-white">
+                          {category.label}
                         </span>
+                        <div className="h-px flex-1 bg-gray-200" />
                       </div>
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                        {item.description}
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {item.actions.map((action) =>
-                          action.external ? (
-                            <a
-                              key={action.href}
-                              href={action.href}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
-                            >
-                              {action.label}
-                              <ExternalLink className="h-3 w-3 ml-1 text-gray-400" />
-                            </a>
-                          ) : (
-                            <Link
-                              key={action.href}
-                              href={action.href}
-                              className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
-                            >
-                              {action.label}
-                            </Link>
-                          ),
-                        )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {items.map((item) => (
+                          <div
+                            key={item.key}
+                            className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 rounded-lg bg-gray-50 border border-gray-100">
+                                {item.icon}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h2 className="text-lg font-semibold text-gray-900">
+                                    {item.name}
+                                  </h2>
+                                  <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                    <CheckCircle2 className="h-3 w-3 mr-1" />{" "}
+                                    {item.badge}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                  {item.description}
+                                </p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {item.actions.map((action) =>
+                                    action.external ? (
+                                      <a
+                                        key={action.href}
+                                        href={action.href}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                                      >
+                                        {action.label}
+                                        <ExternalLink className="h-3 w-3 ml-1 text-gray-400" />
+                                      </a>
+                                    ) : (
+                                      <Link
+                                        key={action.href}
+                                        href={action.href}
+                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
+                                      >
+                                        {action.label}
+                                      </Link>
+                                    ),
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ) : null}
 

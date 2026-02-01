@@ -11,6 +11,11 @@ const content = {
         kk: 'FinFlow ішіндегі пайдаланушы кестелері (Google Sheets импортын қоса).',
       }),
     },
+    searchPlaceholder: t({
+      ru: 'Поиск таблиц...',
+      en: 'Search tables...',
+      kk: 'Кестелерді іздеу...',
+    }),
     auth: {
       loading: t({ ru: 'Загрузка...', en: 'Loading...', kk: 'Жүктелуде...' }),
       loginRequired: t({
@@ -21,6 +26,7 @@ const content = {
     },
     actions: {
       create: t({ ru: 'Создать', en: 'Create', kk: 'Құру' }),
+      open: t({ ru: 'Открыть', en: 'Open', kk: 'Ашу' }),
       importTable: t({
         ru: 'Импорт таблицы',
         en: 'Import table',
@@ -50,6 +56,12 @@ const content = {
         kk: 'Google Sheets',
       }),
       manual: t({ ru: 'Вручную', en: 'Manual', kk: 'Қолмен' }),
+    },
+    filters: {
+      all: t({ ru: 'Все', en: 'All', kk: 'Барлығы' }),
+      fromStatement: t({ ru: 'Из выписки', en: 'From statement', kk: 'Үзіндіден' }),
+      sortUpdated: t({ ru: 'Последние изменения', en: 'Recent updates', kk: 'Соңғы өзгерістер' }),
+      sortName: t({ ru: 'По названию', en: 'By name', kk: 'Атауы бойынша' }),
     },
     columns: {
       name: t({ ru: 'Название таблицы', en: 'Table name', kk: 'Кесте атауы' }),

@@ -5,14 +5,9 @@ import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { Icon } from '@iconify/react';
-import { Add, FilterList, MoreVert, Search, Sort } from '@mui/icons-material';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
-  Container,
   Dialog,
   DialogActions,
   DialogContent,
@@ -20,35 +15,30 @@ import {
   FormControl,
   Grid,
   IconButton,
-  InputAdornment,
   InputLabel,
-  Menu,
   MenuItem,
   Select,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
-  alpha,
-  useTheme,
 } from '@mui/material';
 import {
+  ArrowDown,
   ChevronLeft,
   ChevronRight,
-  Eye,
+  ChevronDown,
   FileDown,
   FileSpreadsheet,
   Loader2,
   Plus,
+  Search,
+  SlidersHorizontal,
   Table as TableIcon,
   Trash2,
 } from 'lucide-react';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer } from 'next-intlayer';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { MouseEvent } from 'react';
 import toast from 'react-hot-toast';
 
 interface Category {
@@ -92,8 +82,6 @@ export default function CustomTablesPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const t = useIntlayer('customTablesPage');
-  const theme = useTheme();
-  const { locale } = useLocale();
   const [items, setItems] = useState<CustomTableItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [statements, setStatements] = useState<StatementItem[]>([]);
@@ -129,10 +117,7 @@ export default function CustomTablesPage() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const searchParams = useSearchParams();
   const hasOpenedImportModal = useRef(false);
-  const [createMenuAnchor, setCreateMenuAnchor] = useState<null | HTMLElement>(null);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
-  const [actionsMenuAnchor, setActionsMenuAnchor] = useState<null | HTMLElement>(null);
-  const [activeTable, setActiveTable] = useState<CustomTableItem | null>(null);
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -195,10 +180,6 @@ export default function CustomTablesPage() {
   const rangeStart = filteredItems.length === 0 ? 0 : (page - 1) * ROWS_PER_PAGE + 1;
   const rangeEnd = Math.min(page * ROWS_PER_PAGE, filteredItems.length);
 
-  const handleCreateMenuOpen = (event: MouseEvent<HTMLElement>) => {
-    setCreateMenuAnchor(event.currentTarget);
-  };
-
   useEffect(() => {
     if (hasOpenedImportModal.current) return;
     if (searchParams?.get('import') === '1') {
@@ -206,33 +187,7 @@ export default function CustomTablesPage() {
       hasOpenedImportModal.current = true;
     }
   }, [searchParams]);
-  const handleCreateMenuClose = () => {
-    setCreateMenuAnchor(null);
-  };
 
-  const handleActionsMenuOpen = (event: MouseEvent<HTMLElement>, table: CustomTableItem) => {
-    event.stopPropagation();
-    setActionsMenuAnchor(event.currentTarget);
-    setActiveTable(table);
-  };
-  const handleActionsMenuClose = () => {
-    setActionsMenuAnchor(null);
-    setActiveTable(null);
-  };
-
-  const onActionOpen = () => {
-    if (activeTable) {
-      router.push(`/custom-tables/${activeTable.id}`);
-    }
-    handleActionsMenuClose();
-  };
-
-  const onActionDelete = () => {
-    if (activeTable) {
-      confirmDelete(activeTable);
-    }
-    handleActionsMenuClose();
-  };
 
   const loadCategories = async () => {
     try {
@@ -369,6 +324,28 @@ export default function CustomTablesPage() {
     }
   };
 
+  const resolveLabel = (value: any, fallback: string) => value?.value ?? value ?? fallback;
+  const searchPlaceholder = resolveLabel((t as any).searchPlaceholder, 'Search tables...');
+  const sourcesAny = (t.sources as any) ?? {};
+  const filtersAny = (t as any).filters ?? {};
+  const actionsAny = (t.actions as any) ?? {};
+  const filterLabels = {
+    all: resolveLabel(filtersAny.all, 'All'),
+    manual: resolveLabel(sourcesAny.manual, 'Manual'),
+    sheets: resolveLabel(sourcesAny.googleSheets, 'Google Sheets'),
+    statement: resolveLabel(filtersAny.fromStatement, 'From statement'),
+    sortUpdated: resolveLabel(filtersAny.sortUpdated, 'Recent updates'),
+    sortName: resolveLabel(filtersAny.sortName, 'By name'),
+  };
+  const openLabel = resolveLabel(actionsAny.open, 'Open');
+
+  const filterChipClassName =
+    'inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary';
+  const filterLinkClassName =
+    'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-primary';
+  const getFilterChipClassName = (active: boolean) =>
+    `${filterChipClassName} ${active ? 'border-primary text-primary' : ''}`;
+
   if (authLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center text-gray-500">
@@ -389,93 +366,89 @@ export default function CustomTablesPage() {
 
   return (
     <>
-      <div className="container-shared px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header card with title, search and create button */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="p-2 rounded-full bg-primary/10 text-primary">
-                <TableIcon className="h-6 w-6" />
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900">{t.header.title}</h1>
-            </div>
-            <p className="text-secondary">{t.header.subtitle}</p>
-          </div>
-          <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
-            <div className="relative w-full md:w-80">
-              <Search className="h-4 w-4 text-gray-400 absolute left-3 top-3" />
+      <div className="container-shared px-4 sm:px-6 lg:px-8 py-12">
+        <div className="mb-6 space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative flex-1" data-tour-id="search-bar">
+                <Search className="h-4 w-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder={t.toasts.loadTablesFailed.value ? 'Поиск таблиц...' : 'Поиск...'}
-                className="w-full rounded-full border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
+                className="w-full rounded-md border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
               />
             </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setImportModalOpen(true)}
+                className="inline-flex items-center justify-center rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary"
+              >
+                <FileDown className="-ml-1 mr-2 h-5 w-5 text-gray-500" />
+                {(t.actions as any).importTable?.value ?? 'Import'}
+              </button>
+              <button
+                onClick={() => setTemplateModalOpen(true)}
+                data-tour-id="custom-tables-create-button"
+                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <Plus className="-ml-1 mr-2 h-5 w-5" />
+                {t.actions.create.value}
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => setImportModalOpen(true)}
-              className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-full text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              type="button"
+              className={getFilterChipClassName(filterSource === 'all')}
+              onClick={() => setFilterSource('all')}
             >
-              <FileDown className="-ml-1 mr-2 h-5 w-5 text-gray-500" />
-              {(t.actions as any).importTable?.value ?? 'Импорт'}
+              {filterLabels.all}
+              <ChevronDown className="h-4 w-4 text-gray-600" />
             </button>
             <button
-              onClick={() => setTemplateModalOpen(true)}
-              data-tour-id="custom-tables-create-button"
-              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-full shadow-sm text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              type="button"
+              className={getFilterChipClassName(filterSource === 'manual')}
+              onClick={() => setFilterSource('manual')}
             >
-              <Plus className="-ml-1 mr-2 h-5 w-5" />
-              {t.actions.create.value}
+              {filterLabels.manual}
+              <ChevronDown className="h-4 w-4 text-gray-600" />
+            </button>
+            <button
+              type="button"
+              className={getFilterChipClassName(filterSource === 'google_sheets_import')}
+              onClick={() => setFilterSource('google_sheets_import')}
+            >
+              {filterLabels.sheets}
+              <ChevronDown className="h-4 w-4 text-gray-600" />
+            </button>
+            <button
+              type="button"
+              className={getFilterChipClassName(filterSource === 'statement')}
+              onClick={() => setFilterSource('statement')}
+            >
+              {filterLabels.statement}
+              <ChevronDown className="h-4 w-4 text-gray-600" />
+            </button>
+            <button type="button" className={filterLinkClassName}>
+              <SlidersHorizontal className="h-4 w-4" />
+              {t.sources.label.value}
+            </button>
+            <button
+              type="button"
+              className={filterLinkClassName}
+              onClick={() =>
+                setSortOrder(prev => (prev === 'updated_desc' ? 'name_asc' : 'updated_desc'))
+              }
+            >
+              <ArrowDown className="h-4 w-4" />
+              {sortOrder === 'updated_desc' ? filterLabels.sortUpdated : filterLabels.sortName}
             </button>
           </div>
         </div>
 
-        {/* Main content table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-gray-900">Все таблицы</h2>
-
-            <div className="flex items-center gap-4">
-              {/* Source filter tabs */}
-              <div className="flex p-1 bg-gray-100/80 rounded-lg">
-                <button
-                  type="button"
-                  onClick={() => setFilterSource('all')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterSource === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  Все
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterSource('manual')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterSource === 'manual' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  {t.sources.manual.value}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterSource('google_sheets_import')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterSource === 'google_sheets_import' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  Google Sheets
-                </button>
-              </div>
-
-              {/* Sort Select */}
-              <div className="relative">
-                <select
-                  value={sortOrder}
-                  onChange={e => setSortOrder(e.target.value as any)}
-                  className="appearance-none h-8 bg-white border border-gray-200 rounded-lg py-1.5 pl-3 pr-8 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer"
-                >
-                  <option value="updated_desc">Последние изменения</option>
-                  <option value="name_asc">По названию (А-Я)</option>
-                </select>
-                <Sort className="h-3 w-3 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
-          </div>
-
+        <div data-tour-id="tables-list">
           {loading ? (
             <div className="flex justify-center items-center h-64">
               <LoadingAnimation size="lg" />
@@ -490,7 +463,7 @@ export default function CustomTablesPage() {
                 <button
                   type="button"
                   onClick={() => setTemplateModalOpen(true)}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-full text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                  className="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-md text-gray-700 bg-white hover:border-primary hover:text-primary focus:outline-none"
                 >
                   <Plus className="-ml-1 mr-2 h-5 w-5 text-gray-500" />
                   {t.actions.create.value}
@@ -499,140 +472,117 @@ export default function CustomTablesPage() {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50/50">
-                    <tr>
-                      <th
-                        scope="col"
-                        className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+              <div className="space-y-3">
+                <div className="hidden md:flex items-center gap-3 px-4 text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <div className="w-4" />
+                  <div className="w-11" />
+                  <div className="w-3" />
+                  <div className="flex-1">{t.columns.name.value}</div>
+                  <div className="w-28">{t.columns.source.value}</div>
+                  <div className="w-28 text-right">{t.columns.updatedAt.value}</div>
+                  <div className="w-36 text-right">{t.columns.actions.value}</div>
+                </div>
+                {paginatedItems.map(table => (
+                  <div
+                    key={table.id}
+                    className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 transition-colors hover:bg-gray-50"
+                  >
+                    <input
+                      type="checkbox"
+                      aria-label={table.name}
+                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary shrink-0"
+                    />
+                    <button
+                      type="button"
+                      className="w-11 shrink-0 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => router.push(`/custom-tables/${table.id}`)}
+                      title={openLabel}
+                    >
+                      {table.category?.icon ? (
+                        <Icon icon={table.category.icon} className="h-5 w-5 text-gray-700" />
+                      ) : (
+                        <TableIcon className="h-5 w-5 text-gray-600" />
+                      )}
+                    </button>
+                    <div className="w-3 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-gray-900 truncate">
+                        {table.name}
+                      </div>
+                      {table.description && (
+                        <div className="text-xs text-gray-500 truncate">{table.description}</div>
+                      )}
+                    </div>
+                    <span className="w-28 text-xs font-semibold text-gray-500 uppercase tracking-wide shrink-0">
+                      {table.source === 'google_sheets_import'
+                        ? filterLabels.sheets
+                        : table.source === 'statement'
+                          ? filterLabels.statement
+                          : filterLabels.manual}
+                    </span>
+                    <span className="w-28 text-sm font-semibold text-gray-900 tabular-nums text-right shrink-0">
+                      {table.updatedAt ? new Date(table.updatedAt).toLocaleDateString() : '—'}
+                    </span>
+                    <div className="flex items-center justify-end gap-2 w-36 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => confirmDelete(table)}
+                        className="rounded-md border border-gray-200 bg-white px-2 py-2 text-sm text-gray-500 transition-colors hover:border-red-200 hover:text-red-600"
+                        aria-label={t.actions.delete.value}
                       >
-                        {t.columns.name.value}
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => router.push(`/custom-tables/${table.id}`)}
+                        className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary"
                       >
-                        {t.columns.source.value}
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
-                      >
-                        {t.columns.updatedAt.value}
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider"
-                      >
-                        {t.columns.actions.value}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {paginatedItems.map(table => (
-                      <tr key={table.id} className="transition-colors hover:bg-gray-50/50 group">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            type="button"
-                            className="flex w-full items-center cursor-pointer text-left"
-                            onClick={() => router.push(`/custom-tables/${table.id}`)}
-                          >
-                            <div className="shrink-0 h-10 w-10 rounded-lg flex items-center justify-center border border-gray-100 shadow-sm bg-gray-50">
-                              {table.category?.icon ? (
-                                <Icon
-                                  icon={table.category.icon}
-                                  className="h-5 w-5 text-gray-700"
-                                />
-                              ) : (
-                                <TableIcon className="h-5 w-5 text-gray-600" />
-                              )}
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-semibold text-gray-900 group-hover:text-primary transition-colors">
-                                {table.name}
-                              </div>
-                              {table.description && (
-                                <div className="text-xs text-gray-500 truncate max-w-xs">
-                                  {table.description}
-                                </div>
-                              )}
-                            </div>
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                            {table.source === 'google_sheets_import'
-                              ? 'Google Sheets'
-                              : t.sources.manual.value}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {table.updatedAt ? new Date(table.updatedAt).toLocaleDateString() : '—'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => router.push(`/custom-tables/${table.id}`)}
-                              className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
-                              title="Open"
-                            >
-                              <Eye size={18} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => confirmDelete(table)}
-                              className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                              title={t.actions.delete.value}
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        {openLabel}
+                      </button>
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              {/* Pagination Controls */}
-              {filteredItems.length > 0 && (
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50/50">
-                  <div className="text-sm text-gray-600">
-                    Показано {rangeStart}–{rangeEnd} из {filteredItems.length}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                      disabled={page <= 1}
-                      className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm border transition-all ${
-                        page <= 1
-                          ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                          : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-white'
-                      }`}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      {(t.actions as any).previous?.value ?? 'Предыдущая'}
-                    </button>
-                    <span className="text-sm text-gray-600">
-                      Страница {page} из {totalPages || 1}
-                    </span>
-                    <button
-                      onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={page >= totalPages}
-                      className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm border transition-all ${
-                        page >= totalPages
-                          ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                          : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-white'
-                      }`}
-                    >
-                      {(t.actions as any).next?.value ?? 'Следующая'}
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
+              <div
+                className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-4"
+                data-tour-id="pagination"
+              >
+                <div className="text-sm text-gray-600">
+                  {filteredItems.length === 0
+                    ? t.empty
+                    : `Показано ${rangeStart}–${rangeEnd} из ${filteredItems.length}`}
                 </div>
-              )}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                    disabled={page <= 1}
+                    className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm border transition-all ${
+                      page <= 1
+                        ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                        : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
+                    }`}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    {(t.actions as any).previous?.value ?? 'Previous'}
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    Страница {page} из {totalPages || 1}
+                  </span>
+                  <button
+                    onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={page >= totalPages}
+                    className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm border transition-all ${
+                      page >= totalPages
+                        ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                        : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
+                    }`}
+                  >
+                    {(t.actions as any).next?.value ?? 'Next'}
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -773,17 +723,6 @@ export default function CustomTablesPage() {
           <Button onClick={() => setTemplateModalOpen(false)}>{t.actions.cancel.value}</Button>
         </DialogActions>
       </Dialog>
-      <Menu
-        anchorEl={actionsMenuAnchor}
-        open={Boolean(actionsMenuAnchor)}
-        onClose={handleActionsMenuClose}
-      >
-        <MenuItem onClick={onActionOpen}>Open</MenuItem>
-        <MenuItem onClick={onActionDelete} sx={{ color: 'error.main' }}>
-          <Trash2 className="mr-2 h-4 w-4" />
-          {t.actions.delete.value}
-        </MenuItem>
-      </Menu>
       {createFromStatementsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-xl">

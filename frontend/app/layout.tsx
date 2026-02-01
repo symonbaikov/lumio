@@ -1,21 +1,22 @@
-import type { Metadata } from 'next';
-import './globals.css';
-import { ThemeProvider } from '@/components/theme-provider';
-import { getIntlayer } from 'next-intlayer';
-import { IntlayerServerProvider, getLocale } from 'next-intlayer/server';
-import GlobalBreadcrumbs from './components/GlobalBreadcrumbs';
-import Navigation from './components/Navigation';
-import { Providers } from './providers';
+import type { Metadata } from "next";
+import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
+import { getIntlayer } from "next-intlayer";
+import { IntlayerServerProvider, getLocale } from "next-intlayer/server";
+import GlobalBreadcrumbs from "./components/GlobalBreadcrumbs";
+import Navigation from "./components/Navigation";
+import GlobalNavHeight from "./components/GlobalNavHeight";
+import { Providers } from "./providers";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
-  const t = getIntlayer('layout', locale);
+  const t = getIntlayer("layout", locale);
 
   return {
     title: t.title.value,
     description: t.description.value,
     icons: {
-      icon: '/images/logo.png',
+      icon: "/images/logo.png",
     },
   };
 }
@@ -26,8 +27,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = await getLocale();
-  const resolvedLocale = typeof locale === 'string' ? locale : 'en';
-  const direction = resolvedLocale.startsWith('ar') ? 'rtl' : 'ltr';
+  const resolvedLocale = typeof locale === "string" ? locale : "en";
+  const direction = resolvedLocale.startsWith("ar") ? "rtl" : "ltr";
 
   return (
     <html lang={resolvedLocale} dir={direction} suppressHydrationWarning>
@@ -40,8 +41,16 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <Providers>
-              <Navigation />
-              <GlobalBreadcrumbs />
+              <GlobalNavHeight />
+              <div className="fixed top-0 inset-x-0 z-50" data-global-nav>
+                <Navigation />
+                <GlobalBreadcrumbs />
+              </div>
+              <div
+                aria-hidden="true"
+                data-global-nav-spacer
+                style={{ height: "var(--global-nav-height, 0px)" }}
+              />
               <main>{children}</main>
             </Providers>
           </ThemeProvider>

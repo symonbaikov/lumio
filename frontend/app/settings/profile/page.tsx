@@ -1,5 +1,13 @@
 'use client';
 
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import LogoutIcon from '@mui/icons-material/Logout';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined';
+import SecurityIcon from '@mui/icons-material/Security';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import CircularProgress from '@mui/material/CircularProgress';
 import { Alert } from '@/app/components/ui/alert';
 import { Button } from '@/app/components/ui/button';
 import {
@@ -16,9 +24,8 @@ import { Separator } from '@/app/components/ui/separator';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { cn } from '@/app/lib/utils';
-import type { AxiosError } from 'axios';
-import { KeyRound, Loader2, LogOut, Mail, Shield, UserRound, Sun } from 'lucide-react';
 import { ModeToggle } from '@/components/mode-toggle';
+import type { AxiosError } from 'axios';
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { useRouter } from 'next/navigation';
 import { type ComponentType, useEffect, useMemo, useState } from 'react';
@@ -45,6 +52,14 @@ const getApiErrorMessage = (error: unknown, fallback: string) => {
   return (
     axiosError?.response?.data?.message || axiosError?.response?.data?.error?.message || fallback
   );
+};
+
+const getInitials = (value: string) => {
+  if (!value) return '—';
+  const tokens = value.trim().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return '—';
+  if (tokens.length === 1) return tokens[0].slice(0, 2).toUpperCase();
+  return `${tokens[0][0]}${tokens[1][0]}`.toUpperCase();
 };
 
 export default function ProfileSettingsPage() {
@@ -186,7 +201,7 @@ export default function ProfileSettingsPage() {
   if (loading) {
     return (
       <div className="container-shared flex justify-center px-4 py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <CircularProgress size={32} color="inherit" className="text-primary" />
       </div>
     );
   }
@@ -201,271 +216,229 @@ export default function ProfileSettingsPage() {
     );
   }
 
+  const appearanceTitle = (t as any).appearanceCard?.title?.value ?? 'Appearance';
+  const appearanceDescription = (t as any).appearanceCard?.description?.value ?? '';
+
   const sectionMeta: Record<
     SectionId,
     { title: string; description?: string; icon: ComponentType<{ className?: string }> }
   > = {
-    profile: { title: t.profileCard.title.value, icon: UserRound },
+    profile: { title: t.profileCard.title.value, icon: AccountCircleIcon },
     sessions: {
       title: t.sessionsCard.title.value,
       description: t.sessionsCard.logoutAllHelp.value,
-      icon: Shield,
+      icon: SecurityIcon,
     },
-    email: { title: t.emailCard.title.value, icon: Mail },
-    password: { title: t.passwordCard.title.value, icon: KeyRound },
-    appearance: { title: (t as any).appearanceCard?.title?.value ?? 'Appearance', icon: Sun },
+    email: { title: t.emailCard.title.value, icon: MailOutlineIcon },
+    password: { title: t.passwordCard.title.value, icon: LockOutlinedIcon },
+    appearance: { title: appearanceTitle, description: appearanceDescription, icon: PaletteOutlinedIcon },
   };
 
-  const renderSection = () => {
+  const renderSectionContent = () => {
     if (activeSection === 'profile') {
       return (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserRound className="h-5 w-5 text-primary" />
-              {t.profileCard.title.value}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-5" onSubmit={handleProfileSubmit}>
-              {profileMessage && <Alert variant="success">{profileMessage}</Alert>}
-              {profileError && <Alert variant="error">{profileError}</Alert>}
+        <form className="space-y-5" onSubmit={handleProfileSubmit}>
+          {profileMessage && <Alert variant="success">{profileMessage}</Alert>}
+          {profileError && <Alert variant="error">{profileError}</Alert>}
 
-              <div className="space-y-2">
-                <Label htmlFor="profile-name">{t.profileCard.nameLabel.value}</Label>
-                <Input
-                  id="profile-name"
-                  value={profileName}
-                  onChange={e => setProfileName(e.target.value)}
-                  required
-                />
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="profile-name">{t.profileCard.nameLabel.value}</Label>
+            <Input
+              id="profile-name"
+              value={profileName}
+              onChange={e => setProfileName(e.target.value)}
+              required
+            />
+          </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="profile-locale">{t.profileCard.languageLabel.value}</Label>
-                  <Select
-                    id="profile-locale"
-                    value={profileLocale}
-                    onChange={e => setProfileLocale(normalizeLocale(e.target.value))}
-                  >
-                    <option value="ru">{t.profileCard.languages.ru.value}</option>
-                    <option value="en">{t.profileCard.languages.en.value}</option>
-                    <option value="kk">{t.profileCard.languages.kk.value}</option>
-                  </Select>
-                </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="profile-locale">{t.profileCard.languageLabel.value}</Label>
+              <Select
+                id="profile-locale"
+                value={profileLocale}
+                onChange={e => setProfileLocale(normalizeLocale(e.target.value))}
+              >
+                <option value="ru">{t.profileCard.languages.ru.value}</option>
+                <option value="en">{t.profileCard.languages.en.value}</option>
+                <option value="kk">{t.profileCard.languages.kk.value}</option>
+              </Select>
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="profile-timezone">{t.profileCard.timeZoneLabel.value}</Label>
-                  <Select
-                    id="profile-timezone"
-                    value={profileTimeZone}
-                    onChange={e => setProfileTimeZone(e.target.value)}
-                  >
-                    <option value="">{t.profileCard.timeZones.auto.value}</option>
-                    <option value="UTC">{t.profileCard.timeZones.utc.value}</option>
-                    <option value="Europe/Moscow">
-                      {t.profileCard.timeZones.europeMoscow.value}
-                    </option>
-                    <option value="Asia/Almaty">{t.profileCard.timeZones.asiaAlmaty.value}</option>
-                  </Select>
-                  <p className="text-xs text-gray-500">{t.profileCard.timeZoneHelp.value}</p>
-                </div>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="profile-timezone">{t.profileCard.timeZoneLabel.value}</Label>
+              <Select
+                id="profile-timezone"
+                value={profileTimeZone}
+                onChange={e => setProfileTimeZone(e.target.value)}
+              >
+                <option value="">{t.profileCard.timeZones.auto.value}</option>
+                <option value="UTC">{t.profileCard.timeZones.utc.value}</option>
+                <option value="Europe/Moscow">{t.profileCard.timeZones.europeMoscow.value}</option>
+                <option value="Asia/Almaty">{t.profileCard.timeZones.asiaAlmaty.value}</option>
+              </Select>
+              <p className="text-xs text-gray-500">{t.profileCard.timeZoneHelp.value}</p>
+            </div>
+          </div>
 
-              <div className="flex justify-end">
-                <Button type="submit" disabled={profileLoading}>
-                  {profileLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {t.profileCard.submit.value}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={profileLoading} className="gap-2">
+              {profileLoading && <CircularProgress size={16} color="inherit" />}
+              {t.profileCard.submit.value}
+            </Button>
+          </div>
+        </form>
       );
     }
 
     if (activeSection === 'sessions') {
       return (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
-              {t.sessionsCard.title.value}
-            </CardTitle>
-            <CardDescription>{t.sessionsCard.logoutAllHelp.value}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="text-sm text-gray-600">
-              <span className="font-medium text-gray-900">
-                {t.sessionsCard.lastLoginLabel.value}:
-              </span>{' '}
-              {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : '—'}
-            </div>
+        <div className="space-y-5">
+          <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+            <span className="font-medium text-gray-900">
+              {t.sessionsCard.lastLoginLabel.value}:
+            </span>{' '}
+            {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : '—'}
+          </div>
 
-            <div className="flex justify-end">
-              <Button variant="destructive" onClick={handleLogoutAll}>
-                <LogOut className="h-4 w-4" />
-                {t.sessionsCard.logoutAllButton.value}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          <div className="flex justify-end">
+            <Button variant="destructive" onClick={handleLogoutAll} className="gap-2">
+              <LogoutIcon className="text-[18px]" />
+              {t.sessionsCard.logoutAllButton.value}
+            </Button>
+          </div>
+        </div>
       );
     }
 
     if (activeSection === 'email') {
       return (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5 text-primary" />
-              {t.emailCard.title.value}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-5" onSubmit={handleEmailSubmit}>
-              {emailMessage && <Alert variant="success">{emailMessage}</Alert>}
-              {emailError && <Alert variant="error">{emailError}</Alert>}
+        <form className="space-y-5" onSubmit={handleEmailSubmit}>
+          {emailMessage && <Alert variant="success">{emailMessage}</Alert>}
+          {emailError && <Alert variant="error">{emailError}</Alert>}
 
-              <div className="space-y-2">
-                <Label htmlFor="email-next">{t.emailCard.newEmailLabel.value}</Label>
-                <Input
-                  id="email-next"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                />
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="email-next">{t.emailCard.newEmailLabel.value}</Label>
+            <Input
+              id="email-next"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email-password">{t.emailCard.currentPasswordLabel.value}</Label>
-                <Input
-                  id="email-password"
-                  type="password"
-                  value={emailPassword}
-                  onChange={e => setEmailPassword(e.target.value)}
-                  required
-                />
-                <p className="text-xs text-gray-500">{t.emailCard.currentPasswordHelp.value}</p>
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="email-password">{t.emailCard.currentPasswordLabel.value}</Label>
+            <Input
+              id="email-password"
+              type="password"
+              value={emailPassword}
+              onChange={e => setEmailPassword(e.target.value)}
+              required
+            />
+            <p className="text-xs text-gray-500">{t.emailCard.currentPasswordHelp.value}</p>
+          </div>
 
-              <div className="flex justify-end">
-                <Button type="submit" disabled={emailLoading}>
-                  {emailLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {t.emailCard.submit.value}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={emailLoading} className="gap-2">
+              {emailLoading && <CircularProgress size={16} color="inherit" />}
+              {t.emailCard.submit.value}
+            </Button>
+          </div>
+        </form>
       );
     }
 
     if (activeSection === 'appearance') {
       return (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sun className="h-5 w-5 text-primary" />
-              {(t as any).appearanceCard?.title?.value ?? 'Appearance'}
-            </CardTitle>
-            <CardDescription>{(t as any).appearanceCard?.description?.value ?? ''}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">{(t as any).appearanceCard?.themeLabel?.value ?? 'Theme'}</div>
-                  <div className="text-xs text-gray-500">{(t as any).appearanceCard?.themeHelp?.value ?? ''}</div>
-                </div>
-                <div>
-                  <ModeToggle />
-                </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-gray-900">
+                {(t as any).appearanceCard?.themeLabel?.value ?? 'Theme'}
+              </div>
+              <div className="text-xs text-gray-500">
+                {(t as any).appearanceCard?.themeHelp?.value ?? ''}
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <ModeToggle />
+            </div>
+          </div>
+        </div>
       );
     }
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5 text-primary" />
-            {t.passwordCard.title.value}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-5" onSubmit={handlePasswordSubmit}>
-            {passwordMessage && <Alert variant="success">{passwordMessage}</Alert>}
-            {passwordError && <Alert variant="error">{passwordError}</Alert>}
+      <form className="space-y-5" onSubmit={handlePasswordSubmit}>
+        {passwordMessage && <Alert variant="success">{passwordMessage}</Alert>}
+        {passwordError && <Alert variant="error">{passwordError}</Alert>}
 
-            <div className="space-y-2">
-              <Label htmlFor="password-current">{t.passwordCard.currentPasswordLabel.value}</Label>
-              <Input
-                id="password-current"
-                type="password"
-                value={passwords.current}
-                onChange={e => setPasswords({ ...passwords, current: e.target.value })}
-                required
-              />
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="password-current">{t.passwordCard.currentPasswordLabel.value}</Label>
+          <Input
+            id="password-current"
+            type="password"
+            value={passwords.current}
+            onChange={e => setPasswords({ ...passwords, current: e.target.value })}
+            required
+          />
+        </div>
 
-            <Separator />
+        <Separator />
 
-            <div className="space-y-2">
-              <Label htmlFor="password-next">{t.passwordCard.newPasswordLabel.value}</Label>
-              <Input
-                id="password-next"
-                type="password"
-                value={passwords.next}
-                onChange={e => setPasswords({ ...passwords, next: e.target.value })}
-                required
-              />
-              <p className="text-xs text-gray-500">{t.passwordCard.newPasswordHelp.value}</p>
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="password-next">{t.passwordCard.newPasswordLabel.value}</Label>
+          <Input
+            id="password-next"
+            type="password"
+            value={passwords.next}
+            onChange={e => setPasswords({ ...passwords, next: e.target.value })}
+            required
+          />
+          <p className="text-xs text-gray-500">{t.passwordCard.newPasswordHelp.value}</p>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password-confirm">{t.passwordCard.confirmPasswordLabel.value}</Label>
-              <Input
-                id="password-confirm"
-                type="password"
-                value={passwords.confirm}
-                onChange={e => setPasswords({ ...passwords, confirm: e.target.value })}
-                required
-              />
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="password-confirm">{t.passwordCard.confirmPasswordLabel.value}</Label>
+          <Input
+            id="password-confirm"
+            type="password"
+            value={passwords.confirm}
+            onChange={e => setPasswords({ ...passwords, confirm: e.target.value })}
+            required
+          />
+        </div>
 
-            <div className="flex justify-end">
-              <Button type="submit" variant="secondary" disabled={passwordLoading}>
-                {passwordLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {t.passwordCard.submit.value}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+        <div className="flex justify-end">
+          <Button type="submit" variant="secondary" disabled={passwordLoading} className="gap-2">
+            {passwordLoading && <CircularProgress size={16} color="inherit" />}
+            {t.passwordCard.submit.value}
+          </Button>
+        </div>
+      </form>
     );
   };
 
+  const activeMeta = sectionMeta[activeSection];
+  const displayName = profileName || user?.name || user?.email?.split('@')[0] || '—';
+  const initials = getInitials(displayName);
+
   return (
     <div className="container-shared px-4 py-8">
-      <div className="mb-6">
-        <div className="text-2xl font-semibold text-primary">{t.title.value}</div>
-        <div className="mt-1 text-sm text-gray-600">{t.subtitle.value}</div>
-      </div>
-
       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
         <aside className="hidden lg:block">
           <div className="sticky top-24">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-semibold">{t.navigation.title.value}</CardTitle>
+            <Card className="border-gray-200/80 bg-white shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex justify-center pb-3">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary text-base font-semibold">
+                    {initials}
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-1">
+              <CardContent className="space-y-2">
                 {sections.map(id => {
                   const Icon = sectionMeta[id].icon;
                   const isActive = id === activeSection;
@@ -475,11 +448,18 @@ export default function ProfileSettingsPage() {
                       type="button"
                       onClick={() => setActiveSection(id)}
                       className={cn(
-                        'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium',
-                        isActive ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-100',
+                        'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-all hover:bg-gray-100',
+                        isActive && 'font-semibold',
                       )}
                     >
-                      <Icon className="h-4 w-4" />
+                      <span
+                        className={cn(
+                          'flex h-8 w-8 items-center justify-center rounded-lg text-[18px]',
+                          isActive ? 'text-primary' : 'text-gray-400',
+                        )}
+                      >
+                        <Icon className="text-[18px]" />
+                      </span>
                       <span>{sectionMeta[id].title}</span>
                     </button>
                   );
@@ -491,23 +471,49 @@ export default function ProfileSettingsPage() {
 
         <main className="space-y-4">
           <div className="lg:hidden">
-            <div className="space-y-2">
-              <Label htmlFor="profile-section">{t.navigation.sectionLabel.value}</Label>
-              <Select
-                id="profile-section"
-                value={activeSection}
-                onChange={e => setActiveSection(normalizeSection(e.target.value))}
-              >
-                {sections.map(id => (
-                  <option key={id} value={id}>
-                    {sectionMeta[id].title}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            <Card className="border-gray-200/80 bg-white shadow-sm">
+              <CardContent className="space-y-2">
+                <div className="flex justify-center pb-2">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary text-base font-semibold">
+                    {initials}
+                  </div>
+                </div>
+                <Label htmlFor="profile-section">{t.navigation.sectionLabel.value}</Label>
+                <Select
+                  id="profile-section"
+                  value={activeSection}
+                  onChange={e => setActiveSection(normalizeSection(e.target.value))}
+                >
+                  {sections.map(id => (
+                    <option key={id} value={id}>
+                      {sectionMeta[id].title}
+                    </option>
+                  ))}
+                </Select>
+              </CardContent>
+            </Card>
           </div>
 
-          {renderSection()}
+          <Card className="border-gray-200/80 bg-white shadow-sm">
+            <CardHeader className="border-b border-gray-100 bg-gray-50/70">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <activeMeta.icon className="text-[20px]" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">
+                    {activeMeta.title}
+                  </CardTitle>
+                  {activeMeta.description && (
+                    <CardDescription className="mt-1 text-sm text-gray-600">
+                      {activeMeta.description}
+                    </CardDescription>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6 lg:p-8">{renderSectionContent()}</CardContent>
+          </Card>
         </main>
       </div>
     </div>

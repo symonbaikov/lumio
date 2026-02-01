@@ -3,8 +3,18 @@
 import { useAuth } from '@/app/hooks/useAuth';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import apiClient from '@/app/lib/api';
+import { cn } from '@/app/lib/utils';
 import { Icon } from '@iconify/react';
-import { Add, Check, Delete, Edit, MoreVert, Search as SearchIcon } from '@mui/icons-material';
+import {
+  Add,
+  Check,
+  ChevronRight,
+  Delete,
+  Edit,
+  FolderOutlined,
+  MoreVert,
+  Search as SearchIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -22,7 +32,7 @@ import {
   alpha,
   useTheme,
 } from '@mui/material';
-import { Loader2, MoreVertical, Pencil, Plus, Search, Tag, Trash2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
 import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -284,187 +294,191 @@ export default function CategoriesPage() {
 
   return (
     <div className="container-shared px-4 sm:px-6 lg:px-8 py-12">
-      {/* Header Section */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="p-2 rounded-md bg-primary/10 text-primary">
-              <Tag className="h-5 w-5" />
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <FolderOutlined className="text-[22px]" />
             </div>
-            <h1 className="text-2xl font-semibold text-gray-900">{t.title}</h1>
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">{t.title}</h1>
+              <p className="text-sm text-gray-600 mt-1 max-w-2xl">{t.subtitle}</p>
+            </div>
           </div>
-          <p className="text-secondary">{t.subtitle}</p>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => handleOpenDialog()}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <Add fontSize="small" />
+              {t.add}
+            </button>
+            <button
+              className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-primary/40 hover:text-primary"
+              type="button"
+            >
+              <MoreVert fontSize="small" />
+              {(t as any).more?.value || 'More'}
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
-          {/* Search */}
-          <div className="relative w-full md:w-64">
-            <Search className="h-4 w-4 text-gray-400 absolute left-3 top-3" />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full max-w-md">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fontSize="small" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={t.dialog.placeholderName.value}
-              className="w-full rounded-md border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
+              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
             />
           </div>
 
-          {/* Add Button */}
-          <button
-            onClick={() => handleOpenDialog()}
-            className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors whitespace-nowrap"
-          >
-            <Plus className="-ml-1 mr-2 h-5 w-5" />
-            {t.add}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setFilterType('all')}
+              className={cn(
+                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                filterType === 'all'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-gray-600 hover:text-primary hover:bg-gray-100',
+              )}
+            >
+              {t.type.label}
+            </button>
+            <button
+              onClick={() => setFilterType('income')}
+              className={cn(
+                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                filterType === 'income'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-gray-600 hover:text-primary hover:bg-gray-100',
+              )}
+            >
+              {t.type.income}
+            </button>
+            <button
+              onClick={() => setFilterType('expense')}
+              className={cn(
+                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                filterType === 'expense'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-gray-600 hover:text-primary hover:bg-gray-100',
+              )}
+            >
+              {t.type.expense}
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-6 mb-6 overflow-x-auto pb-1">
-        <button
-          onClick={() => setFilterType('all')}
-          className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
-            filterType === 'all'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-gray-500 hover:text-primary'
-          }`}
-        >
-          {t.type.label}
-        </button>
-        <button
-          onClick={() => setFilterType('income')}
-          className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
-            filterType === 'income'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-gray-500 hover:text-primary'
-          }`}
-        >
-          {t.type.income}
-        </button>
-        <button
-          onClick={() => setFilterType('expense')}
-          className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
-            filterType === 'expense'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-gray-500 hover:text-primary'
-          }`}
-        >
-          {t.type.expense}
-        </button>
-      </div>
+        <div className="rounded-3xl border border-gray-100 bg-white p-2 shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="flex items-center gap-3">
+              <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
+              <span>{(t as any).columns?.name?.value || 'Название'}</span>
+            </div>
+            <span>{(t as any).enabled?.value || 'Enabled'}</span>
+          </div>
 
-      {/* Table Content */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : filteredCategories.length === 0 ? (
-          <div className="text-center py-20 px-4">
-            <div className="mx-auto h-16 w-16 text-gray-300 mb-4 bg-gray-50 rounded-full flex items-center justify-center">
-              <Search className="h-8 w-8" />
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900">
-              {(t as any).noData?.value || 'Нет категорий'}
-            </h3>
-            <div className="mt-6">
-              <button
-                onClick={() => handleOpenDialog()}
-                className="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-md text-gray-700 bg-white hover:border-primary hover:text-primary focus:outline-none"
-              >
-                <Plus className="-ml-1 mr-2 h-5 w-5 text-gray-500" />
-                {t.add}
-              </button>
+          ) : filteredCategories.length === 0 ? (
+            <div className="text-center py-16 px-4">
+              <div className="mx-auto h-16 w-16 text-gray-300 mb-4 bg-gray-50 rounded-full flex items-center justify-center">
+                <SearchIcon className="text-[32px]" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900">
+                {(t as any).noData?.value || 'Нет категорий'}
+              </h3>
+              <div className="mt-6">
+                <button
+                  onClick={() => handleOpenDialog()}
+                  className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary"
+                >
+                  <Add fontSize="small" />
+                  {t.add}
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
-                  >
-                    {(t as any).columns?.name?.value || 'Название'}
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
-                  >
-                    {t.type.label}
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider"
-                  >
-                    {(t as any).columns?.actions?.value || 'Действия'}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
-                {filteredCategories.map(category => (
-                  <tr key={category.id} className="transition-colors hover:bg-gray-50 group">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div
-                          className="shrink-0 h-10 w-10 rounded-md flex items-center justify-center border border-gray-100"
-                          style={{
-                            backgroundColor: alpha(category.color || '#2196F3', 0.1),
-                            color: category.color || '#2196F3',
-                          }}
-                        >
-                          {resolveIconUrl(category.icon) ? (
-                            <img
-                              src={resolveIconUrl(category.icon) as string}
-                              alt=""
-                              className="h-5 w-5 object-contain"
-                            />
-                          ) : (
-                            <Icon icon={category.icon || 'mdi:tag'} width={20} height={20} />
-                          )}
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-semibold text-gray-900">{category.name}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                          category.type === 'income'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                            : 'bg-red-50 text-red-700 border-red-100'
-                        }`}
+          ) : (
+            <div className="space-y-3 px-2 pb-4">
+              {filteredCategories.map(category => (
+                <div
+                  key={category.id}
+                  className="flex flex-col gap-3 rounded-2xl bg-amber-50/40 px-4 py-4 transition-colors hover:bg-amber-50"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
+                      <div
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/80"
+                        style={{
+                          backgroundColor: alpha(category.color || '#2196F3', 0.12),
+                          color: category.color || '#2196F3',
+                        }}
                       >
-                        {category.type === 'income' ? t.type.income : t.type.expense}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleOpenDialog(category)}
-                          className="p-2 rounded-md text-gray-400 hover:text-primary transition-colors"
-                          title={t.actions.edit.value}
-                        >
-                          <Pencil size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(category.id)}
-                          className="p-2 rounded-md text-gray-400 hover:text-red-600 transition-colors"
-                          title={t.actions.delete.value}
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {resolveIconUrl(category.icon) ? (
+                          <img
+                            src={resolveIconUrl(category.icon) as string}
+                            alt=""
+                            className="h-5 w-5 object-contain"
+                          />
+                        ) : (
+                          <Icon icon={category.icon || 'mdi:tag'} width={20} height={20} />
+                        )}
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {category.name}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {category.type === 'income' ? t.type.income : t.type.expense}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-6 w-11 items-center rounded-full bg-primary/20 px-1">
+                        <div className="h-4 w-4 rounded-full bg-primary shadow-sm" />
+                      </div>
+                      <ChevronRight className="text-gray-400" fontSize="small" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => handleOpenDialog(category)}
+                      className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-primary hover:text-primary"
+                      title={t.actions.edit.value}
+                    >
+                      <Edit fontSize="inherit" />
+                      {t.actions.edit.value}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(category.id)}
+                      className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-red-200 hover:text-red-600"
+                      title={t.actions.delete.value}
+                    >
+                      <Delete fontSize="inherit" />
+                      {t.actions.delete.value}
+                    </button>
+                    <button
+                      onClick={event => handleMenuOpen(event, category)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-primary/40 hover:text-primary"
+                      title="More"
+                    >
+                      <MoreVert fontSize="small" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Menu for Edit/Delete actions */}
@@ -487,14 +501,14 @@ export default function CategoriesPage() {
         }}
       >
         <MenuItem onClick={onEditFromMenu} sx={{ py: 1.5, fontSize: '0.875rem' }}>
-          <Pencil className="mr-2 h-4 w-4 text-gray-500" />
+          <Edit fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
           {t.actions.edit}
         </MenuItem>
         <MenuItem
           onClick={onDeleteFromMenu}
           sx={{ py: 1.5, fontSize: '0.875rem', color: 'error.main' }}
         >
-          <Trash2 className="mr-2 h-4 w-4" />
+          <Delete fontSize="small" sx={{ mr: 1 }} />
           {t.actions.delete}
         </MenuItem>
       </Menu>
