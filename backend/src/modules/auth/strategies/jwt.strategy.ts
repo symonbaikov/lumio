@@ -19,6 +19,7 @@ export interface JwtPayload {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   private jwtSecret: string;
+  private readonly dicebearBaseUrl = 'https://api.dicebear.com/7.x/identicon/svg';
 
   constructor(
     private configService: ConfigService,
@@ -61,6 +62,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const tokenVersion = payload.tokenVersion ?? 0;
     if ((user.tokenVersion ?? 0) !== tokenVersion) {
       throw new UnauthorizedException('Token has been revoked');
+    }
+
+    if (!user.avatarUrl) {
+      const seed = `${user.id}-${Date.now().toString(36)}`;
+      const avatarUrl = `${this.dicebearBaseUrl}?seed=${encodeURIComponent(seed)}`;
+      await this.userRepository.update(user.id, { avatarUrl });
+      return { ...user, avatarUrl };
     }
 
     return user;

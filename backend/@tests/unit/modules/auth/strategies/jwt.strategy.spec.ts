@@ -18,6 +18,7 @@ describe('JwtStrategy', () => {
     role: UserRole.USER,
     isActive: true,
     workspaceId: 'ws-1',
+    avatarUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=existing',
   };
 
   beforeAll(async () => {
@@ -39,6 +40,7 @@ describe('JwtStrategy', () => {
           provide: getRepositoryToken(User),
           useValue: {
             findOne: jest.fn(),
+            update: jest.fn(),
           },
         },
       ],
@@ -120,6 +122,25 @@ describe('JwtStrategy', () => {
       const result = await strategy.validate(payload);
 
       expect(result.role).toBe(UserRole.USER);
+    });
+
+    it('should assign a DiceBear avatar when missing', async () => {
+      const payload = { sub: '1', email: 'test@example.com', role: UserRole.USER };
+      const userWithoutAvatar = { ...mockUser, avatarUrl: null };
+      const updateSpy = jest
+        .spyOn(userRepository, 'update')
+        .mockResolvedValue({ affected: 1, generatedMaps: [], raw: [] });
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(userWithoutAvatar as User);
+
+      const result = await strategy.validate(payload);
+
+      expect(updateSpy).toHaveBeenCalledWith(
+        '1',
+        expect.objectContaining({
+          avatarUrl: expect.stringContaining('https://api.dicebear.com/'),
+        }),
+      );
+      expect(result.avatarUrl).toContain('https://api.dicebear.com/');
     });
 
     it('should throw for malformed payload', async () => {
