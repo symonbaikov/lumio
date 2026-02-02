@@ -461,28 +461,16 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
     : 0;
 
   // Handle scroll to load more
-  const updateAddRowPosition = useCallback(() => {
-    const container = tableContainerRef.current;
-    const footer = addRowFooterRef.current;
-    if (!container || !footer) return;
-    const tableWidth = Math.max(table.getTotalSize(), container.clientWidth || 0);
-    const containerWidth = container.clientWidth || 0;
-    const scrollLeft = container.scrollLeft || 0;
-    const offset = scrollLeft + containerWidth / 2 - tableWidth / 2;
-    footer.style.transform = `translateX(${offset}px)`;
-  }, [table]);
-
   const handleScroll = useCallback(() => {
     const container = tableContainerRef.current;
     if (!container) return;
-    updateAddRowPosition();
     if (props.loadingRows || !props.hasMore) return;
 
     const { scrollTop, scrollHeight, clientHeight } = container;
     if (scrollHeight - scrollTop - clientHeight < 200) {
       props.onLoadMore();
     }
-  }, [props.loadingRows, props.hasMore, props.onLoadMore, updateAddRowPosition]);
+  }, [props.loadingRows, props.hasMore, props.onLoadMore]);
 
   useEffect(() => {
     if (!resizingColumnId) return;
@@ -502,13 +490,6 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
       window.removeEventListener('touchend', handleResizeEnd);
     };
   }, [resizingColumnId, props.onPersistColumnWidth, table]);
-
-  useEffect(() => {
-    updateAddRowPosition();
-    const handleResize = () => updateAddRowPosition();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [updateAddRowPosition, props.columnWidths, props.isFullscreen]);
 
   return (
     <div className={`custom-table-container ${isDark ? 'dark' : ''}`}>
@@ -693,27 +674,26 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
               </tr>
             )}
           </tbody>
-          {props.showAddRow !== false && (
-            <tfoot>
-              <tr className="border-t border-gray-200 bg-gray-50">
-                <td colSpan={table.getVisibleLeafColumns().length} className="py-3">
-                  <div className="flex justify-center">
-                    <div ref={addRowFooterRef} className="w-max">
-                      <button
-                        type="button"
-                        onClick={() => props.onCreateRow?.()}
-                        className="flex items-center gap-2 rounded-full border border-dashed border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:border-primary hover:text-primary shadow-sm"
-                      >
-                        <Plus className="h-4 w-4" />
-                        {(t as any).grid.addRowLabel.value}
-                      </button>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </tfoot>
-          )}
         </table>
+
+        {props.showAddRow !== false && (
+          <div
+            ref={addRowFooterRef}
+            data-testid="custom-table-add-row"
+            className="sticky left-0 z-10 w-full border-t border-gray-200 bg-gray-50 py-3"
+          >
+            <div className="flex w-full justify-center">
+              <button
+                type="button"
+                onClick={() => props.onCreateRow?.()}
+                className="flex items-center gap-2 rounded-full border border-dashed border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:border-primary hover:text-primary shadow-sm"
+              >
+                <Plus className="h-4 w-4" />
+                {(t as any).grid.addRowLabel.value}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Loading indicator */}
         {props.loadingRows && (
