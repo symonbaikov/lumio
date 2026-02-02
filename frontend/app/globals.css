@@ -416,7 +416,7 @@ body.ff-col-resizing {
   letter-spacing: 3.5px !important;
   line-height: 50px !important;
   text-transform: uppercase !important;
-  padding: 0 16px;
+  padding: 0px;
   display: flex;
   align-items: center;
 }

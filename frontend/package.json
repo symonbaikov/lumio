@@ -15,7 +15,8 @@
     "type-check": "tsc -p tsconfig.json --noEmit",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:profile": "vitest run app/settings/profile/page.test.tsx"
   },
   "dependencies": {
     "24": "^0.0.0",
