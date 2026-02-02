@@ -1,6 +1,7 @@
 "use client";
 
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import EditIcon from "@mui/icons-material/Edit";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
@@ -25,10 +26,11 @@ import { useAuth } from "@/app/hooks/useAuth";
 import apiClient from "@/app/lib/api";
 import { cn } from "@/app/lib/utils";
 import { ModeToggle } from "@/components/mode-toggle";
+import { MAX_AVATAR_SIZE_BYTES } from "@/app/lib/constants";
 import type { AxiosError } from "axios";
 import { useIntlayer, useLocale } from "next-intlayer";
 import { useRouter } from "next/navigation";
-import { type ComponentType, useEffect, useMemo, useState } from "react";
+import { type ComponentType, useEffect, useMemo, useRef, useState } from "react";
 
 type AppLocale = "ru" | "en" | "kk";
 type ApiErrorResponse = { message?: string; error?: { message?: string } };
@@ -71,9 +73,10 @@ const getInitials = (value: string) => {
   return (tokens[0][0] + tokens[1][0]).toUpperCase();
 };
 
+
 export default function ProfileSettingsPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, setUser } = useAuth();
   const { locale, setLocale } = useLocale();
   const t = useIntlayer("settingsProfilePage");
   const [activeSection, setActiveSection] = useState<SectionId>("profile");
@@ -98,6 +101,10 @@ export default function ProfileSettingsPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarMessage, setAvatarMessage] = useState<string | null>(null);
+  const [avatarErrorMessage, setAvatarErrorMessage] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user?.email) {
@@ -115,7 +122,7 @@ export default function ProfileSettingsPage() {
   }, []);
 
   useEffect(() => {
-    window.history.replaceState(null, "", "#" + activeSection);
+    window.history.replaceState(null, "", `#${activeSection}`);
   }, [activeSection]);
 
   useEffect(() => {
@@ -148,6 +155,55 @@ export default function ProfileSettingsPage() {
       );
     } finally {
       setProfileLoading(false);
+    }
+  };
+
+  const handleAvatarSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setAvatarMessage(null);
+    setAvatarErrorMessage(null);
+
+    if (file.size > MAX_AVATAR_SIZE_BYTES) {
+      setAvatarErrorMessage(
+        (t as any).profileCard?.avatarSizeError?.value ||
+          "Avatar file is too large",
+      );
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = "";
+      }
+      return;
+    }
+
+    setAvatarUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const response = await apiClient.post("/users/me/avatar", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const nextUser = response.data?.user || user;
+      if (nextUser) {
+        setUser(nextUser);
+        localStorage.setItem("user", JSON.stringify(nextUser));
+      }
+      setAvatarMessage(
+        (t as any).profileCard?.avatarUpdated?.value || "Avatar updated",
+      );
+    } catch (error: unknown) {
+      setAvatarErrorMessage(
+        getApiErrorMessage(
+          error,
+          (t as any).profileCard?.avatarError?.value || "Failed to update avatar",
+        ),
+      );
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = "";
+      }
     }
   };
 
@@ -512,19 +568,43 @@ export default function ProfileSettingsPage() {
           <div className="sticky top-24">
             <Card className="border-gray-200/80 bg-white shadow-sm">
               <CardHeader className="pb-3">
-                <div className="flex justify-center pb-3">
-                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary text-base font-semibold">
-                    {avatarUrl && !avatarError ? (
-                      <img
-                        src={avatarUrl}
-                        alt={displayName}
-                        className="h-full w-full object-cover"
-                        onError={() => setAvatarError(true)}
-                      />
-                    ) : (
-                      initials
-                    )}
+                <div className="flex flex-col items-center gap-2 pb-3">
+                  <div className="group relative">
+                    <button
+                      type="button"
+                      className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary text-base font-semibold"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={avatarUploading}
+                    >
+                      {avatarUrl && !avatarError ? (
+                        <img
+                          src={avatarUrl}
+                          alt={displayName}
+                          className="h-full w-full object-cover"
+                          onError={() => setAvatarError(true)}
+                        />
+                      ) : (
+                        initials
+                      )}
+                    </button>
+                    <div className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 rounded-md bg-slate-900 px-3 py-1 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
+                      {(t as any).profileCard?.editPhotoLabel?.value || "Edit photo"}
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow">
+                      <EditIcon className="text-gray-500" fontSize="small" />
+                    </div>
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarSelect}
+                      className="hidden"
+                    />
                   </div>
+                  {avatarMessage && <Alert variant="success">{avatarMessage}</Alert>}
+                  {avatarErrorMessage && (
+                    <Alert variant="error">{avatarErrorMessage}</Alert>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -563,17 +643,30 @@ export default function ProfileSettingsPage() {
             <Card className="border-gray-200/80 bg-white shadow-sm">
               <CardContent className="space-y-2">
                 <div className="flex justify-center pb-2">
-                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary text-base font-semibold">
-                    {avatarUrl && !avatarError ? (
-                      <img
-                        src={avatarUrl}
-                        alt={displayName}
-                        className="h-full w-full object-cover"
-                        onError={() => setAvatarError(true)}
-                      />
-                    ) : (
-                      initials
-                    )}
+                  <div className="group relative">
+                    <button
+                      type="button"
+                      className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary text-base font-semibold"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={avatarUploading}
+                    >
+                      {avatarUrl && !avatarError ? (
+                        <img
+                          src={avatarUrl}
+                          alt={displayName}
+                          className="h-full w-full object-cover"
+                          onError={() => setAvatarError(true)}
+                        />
+                      ) : (
+                        initials
+                      )}
+                    </button>
+                    <div className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-slate-900 px-3 py-1 text-[10px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
+                      {(t as any).profileCard?.editPhotoLabel?.value || "Edit photo"}
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow">
+                      <EditIcon className="text-gray-500" fontSize="small" />
+                    </div>
                   </div>
                 </div>
                 <Label htmlFor="profile-section">

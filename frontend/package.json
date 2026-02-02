@@ -37,6 +37,7 @@
     "driver.js": "^1.4.0",
     "echarts": "^5.5.0",
     "echarts-for-react": "^3.0.2",
+    "@joeattardi/emoji-button": "^4.6.4",
     "framer-motion": "^12.23.25",
     "intlayer": "^7.5.11",
     "lucide-react": "^0.561.0",
@@ -68,10 +69,10 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-loader": "^10.0.0",
+    "jsdom": "^24.0.0",
     "storybook": "^8.6.14",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^2.1.9",
-    "jsdom": "^24.0.0"
+    "vitest": "^2.1.9"
   }
 }

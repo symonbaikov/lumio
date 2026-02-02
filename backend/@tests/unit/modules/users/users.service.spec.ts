@@ -315,4 +315,24 @@ describe('UsersService', () => {
       expect(result).toEqual([]);
     });
   });
+
+  describe('updateMyAvatar', () => {
+    it('should store new avatar url for user', async () => {
+      const userWithPassword = { ...mockUser } as User;
+      jest
+        .spyOn<any, any>(service as any, 'findOneWithPassword')
+        .mockResolvedValue(userWithPassword);
+      const saveSpy = jest.spyOn(repository, 'save').mockResolvedValue({
+        ...userWithPassword,
+        avatarUrl: '/uploads/user-avatars/avatar.png',
+      } as User);
+
+      const result = await service.updateMyAvatar('1', '/uploads/user-avatars/avatar.png');
+
+      expect(saveSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ avatarUrl: '/uploads/user-avatars/avatar.png' }),
+      );
+      expect(result.avatarUrl).toBe('/uploads/user-avatars/avatar.png');
+    });
+  });
 });

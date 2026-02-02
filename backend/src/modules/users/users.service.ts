@@ -213,4 +213,10 @@ export class UsersService {
 
     return this.userRepository.save(user);
   }
+
+  async updateMyAvatar(userId: string, avatarUrl: string): Promise<User> {
+    const user = await this.findOneWithPassword(userId);
+    user.avatarUrl = avatarUrl;
+    return this.userRepository.save(user);
+  }
 }

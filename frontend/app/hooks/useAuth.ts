@@ -62,5 +62,5 @@ export function useAuth() {
     }
   };
 
-  return { user, loading, logout };
+  return { user, loading, logout, setUser };
 }

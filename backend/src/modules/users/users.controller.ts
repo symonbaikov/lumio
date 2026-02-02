@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -6,10 +7,16 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   Put,
   Query,
+  UseInterceptors,
   UseGuards,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as path from 'path';
+import { diskStorage } from 'multer';
+import * as fs from 'fs';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -27,6 +34,7 @@ import type {
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PermissionsService } from './services/permissions.service';
 import { UsersService } from './users.service';
+import { resolveUploadsDir } from '../../common/utils/uploads.util';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -166,5 +174,45 @@ export class UsersController {
     const updatedUser = await this.usersService.updateMyPreferences(currentUser.id, dto);
     const { passwordHash, ...safeUser } = updatedUser as any;
     return { user: safeUser, message: 'Profile updated successfully' };
+  }
+
+  @Post('me/avatar')
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: diskStorage({
+        destination: (_req, _file, cb) => {
+          const uploadsDir = resolveUploadsDir();
+          const targetDir = path.join(uploadsDir, 'user-avatars');
+          if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+          }
+          cb(null, targetDir);
+        },
+        filename: (_req, file, cb) => {
+          const safeName = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
+          cb(null, safeName);
+        },
+      }),
+      fileFilter: (_req, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return cb(new Error('Only images allowed'), false);
+        }
+        cb(null, true);
+      },
+      limits: { fileSize: 2_000_000 },
+    }),
+  )
+  async uploadMyAvatar(
+    @CurrentUser() currentUser: User,
+    @UploadedFile() file: { filename: string } | undefined,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Файл не загружен');
+    }
+
+    const url = `/uploads/user-avatars/${file.filename}`;
+    const updatedUser = await this.usersService.updateMyAvatar(currentUser.id, url);
+    const { passwordHash, ...safeUser } = updatedUser as any;
+    return { user: safeUser, avatarUrl: url };
   }
 }

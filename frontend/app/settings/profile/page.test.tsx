@@ -15,6 +15,7 @@ const createI18nProxy = () =>
 vi.mock('@/app/hooks/useAuth', () => ({
   useAuth: () => ({
     loading: false,
+    setUser: vi.fn(),
     user: {
       id: 'user-1',
       email: 'symon@example.com',
@@ -43,6 +44,7 @@ describe('ProfileSettingsPage', () => {
     const html = renderToStaticMarkup(<ProfileSettingsPage />);
 
     expect(html).toContain('<img');
+    expect(html).toContain('Edit photo');
     expect(html).toContain('https://api.dicebear.com/7.x/identicon/svg?seed=test');
   });
 });

@@ -92,6 +92,10 @@ const content = {
         europeMoscow: t({ ru: 'Europe/Moscow', en: 'Europe/Moscow', kk: 'Europe/Moscow' }),
         asiaAlmaty: t({ ru: 'Asia/Almaty', en: 'Asia/Almaty', kk: 'Asia/Almaty' }),
       },
+      editPhotoLabel: t({ ru: 'Изменить фото', en: 'Edit photo', kk: 'Фотоны өзгерту' }),
+      avatarUpdated: t({ ru: 'Аватар обновлен.', en: 'Avatar updated.', kk: 'Аватар жаңартылды.' }),
+      avatarError: t({ ru: 'Не удалось обновить аватар.', en: 'Failed to update avatar.', kk: 'Аватарды жаңарту мүмкін болмады.' }),
+      avatarSizeError: t({ ru: 'Слишком большой файл. Максимум 2 МБ.', en: 'File is too large. Max 2 MB.', kk: 'Файл тым үлкен. Ең көбі 2 МБ.' }),
     },
     sessionsCard: {
       title: t({ ru: 'Сеансы', en: 'Sessions', kk: 'Сеанстар' }),
