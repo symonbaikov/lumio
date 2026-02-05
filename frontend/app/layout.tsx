@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: t.title.value,
     description: t.description.value,
     icons: {
-      icon: "/images/logo.png",
+      icon: "/images/logo.svg",
     },
   };
 }

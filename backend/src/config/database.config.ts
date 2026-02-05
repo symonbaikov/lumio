@@ -11,10 +11,13 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
   const migrationsGlob = __filename.endsWith('.ts')
     ? 'src/migrations/*.ts'
     : 'dist/migrations/*.js';
+  const databaseUrl =
+    configService.get<string>('DATABASE_URL') ||
+    'postgresql://finflow:finflow@localhost:5432/finflow';
 
   return {
     type: 'postgres',
-    url: configService.get<string>('DATABASE_URL'),
+    url: databaseUrl,
     autoLoadEntities: true,
     synchronize: false,
     logging: !isProd,

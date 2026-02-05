@@ -1,0 +1,94 @@
+'use client';
+
+import type { CustomTableGridRow } from '../../utils/stylingUtils';
+import type { Column, Table } from '@tanstack/react-table';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
+
+interface EditableNumberCellProps {
+  row: any;
+  column: Column<CustomTableGridRow>;
+  table: Table<CustomTableGridRow>;
+  cellType: string;
+  onUpdateCell: (rowId: string, columnKey: string, value: any) => Promise<void>;
+  style?: CSSProperties;
+}
+
+export function EditableNumberCell({ row, column, onUpdateCell, style }: EditableNumberCellProps) {
+  const initialValue = row.original.data[column.id];
+  const [isEditing, setIsEditing] = useState(false);
+  const [value, setValue] = useState(initialValue?.toString() || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = async () => {
+    const numValue = value.trim() === '' ? null : Number(value);
+
+    if (numValue === initialValue) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await onUpdateCell(row.original.id, column.id, numValue);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to update cell:', error);
+      setValue(initialValue?.toString() || '');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setValue(initialValue?.toString() || '');
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancel();
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <input
+        ref={inputRef}
+        type="number"
+        step="any"
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={handleKeyDown}
+        disabled={isSaving}
+        className="w-full h-full px-2 py-1 border-2 border-blue-500 rounded focus:outline-none bg-blue-50 dark:bg-blue-900/20 text-right"
+        style={style}
+      />
+    );
+  }
+
+  const displayValue = initialValue != null ? Number(initialValue).toLocaleString() : '—';
+
+  return (
+    <div
+      onDoubleClick={() => setIsEditing(true)}
+      className="w-full h-full px-2 py-1 cursor-text hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded text-right truncate"
+      style={style}
+      title="Double-click to edit"
+    >
+      {displayValue}
+    </div>
+  );
+}

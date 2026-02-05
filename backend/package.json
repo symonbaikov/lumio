@@ -49,6 +49,7 @@
     "@nestjs/swagger": "^11.2.3",
     "@nestjs/throttler": "^6.4.0",
     "@nestjs/typeorm": "^11.0.0",
+    "@openrouter/sdk": "^0.5.1",
     "@react-email/components": "^1.0.4",
     "@react-email/render": "^2.0.2",
     "bcrypt": "^6.0.0",

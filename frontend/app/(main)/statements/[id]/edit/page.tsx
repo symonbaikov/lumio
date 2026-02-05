@@ -1,0 +1,1511 @@
+'use client';
+
+import { useAuth } from '@/app/hooks/useAuth';
+import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
+import apiClient from '@/app/lib/api';
+import {
+  AccountBalance,
+  ArrowBack,
+  CalendarToday,
+  Cancel,
+  Category,
+  Check,
+  CheckCircle,
+  Delete,
+  Edit,
+  Error as ErrorIcon,
+  Info,
+  Receipt,
+  Save,
+  TrendingDown,
+  TrendingUp,
+  Warning,
+  TableChart,
+  ExpandMore,
+} from '@mui/icons-material';
+import {
+  Alert,
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Checkbox,
+  Chip,
+  CircularProgress,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  IconButton,
+  MenuItem,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+
+import { useIntlayer, useLocale } from 'next-intlayer';
+import { toast } from 'react-hot-toast';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+import CustomDatePicker from '@/app/components/CustomDatePicker';
+import { ModalShell } from '@/app/components/ui/modal-shell';
+import { getStatementStage, setStatementStage, type StatementStage } from '@/app/lib/statement-workflow';
+
+interface CategoryOption {
+  id: string;
+  name: string;
+  type?: 'income' | 'expense';
+  children?: CategoryOption[];
+}
+
+interface BranchOption {
+  id: string;
+  name: string;
+}
+
+interface WalletOption {
+  id: string;
+  name: string;
+}
+
+interface Transaction {
+  id: string;
+  transactionDate: string;
+  documentNumber?: string;
+  counterpartyName: string;
+  counterpartyBin?: string;
+  counterpartyAccount?: string;
+  counterpartyBank?: string;
+  debit?: number;
+  credit?: number;
+  paymentPurpose: string;
+  currency?: string;
+  exchangeRate?: number;
+  amountForeign?: number;
+  categoryId?: string;
+  branchId?: string;
+  walletId?: string;
+  article?: string;
+  comments?: string;
+  transactionType: 'income' | 'expense';
+  category?: { id: string; name: string };
+  branch?: { id: string; name: string };
+  wallet?: { id: string; name: string };
+}
+
+interface Statement {
+  id: string;
+  fileName: string;
+  status: string;
+  totalTransactions: number;
+  statementDateFrom?: string | null;
+  statementDateTo?: string | null;
+  balanceStart?: number | string | null;
+  balanceEnd?: number | string | null;
+  parsingDetails?: {
+    detectedBank?: string;
+    detectedFormat?: string;
+    parserUsed?: string;
+    totalLinesProcessed?: number;
+    transactionsFound?: number;
+    transactionsCreated?: number;
+    errors?: string[];
+    warnings?: string[];
+    metadataExtracted?: {
+      accountNumber?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      balanceStart?: number;
+      balanceEnd?: number;
+      rawHeader?: string;
+      normalizedHeader?: string;
+      headerDisplay?: {
+        title?: string;
+        subtitle?: string;
+        periodDisplay?: string;
+        accountDisplay?: string;
+        institutionDisplay?: string;
+        currencyDisplay?: string;
+      };
+    };
+    processingTime?: number;
+    logEntries?: Array<{ timestamp: string; level: string; message: string }>;
+  } | null;
+}
+
+const flattenCategories = (items: CategoryOption[], prefix = ''): CategoryOption[] =>
+  items.flatMap(item => {
+    const currentName = prefix ? `${prefix} / ${item.name}` : item.name;
+    return [
+      { ...item, name: currentName },
+      ...(item.children ? flattenCategories(item.children, currentName) : []),
+    ];
+  });
+
+const normalizeDateInput = (value?: string | Date | null) => {
+  if (!value) return '';
+  const date = typeof value === 'string' ? new Date(value) : value;
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+};
+
+const normalizeNumberInput = (value?: number | string | null) => {
+  if (value === null || value === undefined) return '';
+  return typeof value === 'string' ? value : value.toString();
+};
+
+const resolveLocale = (locale: string) => {
+  if (locale === 'ru') return 'ru-RU';
+  if (locale === 'kk') return 'kk-KZ';
+  return 'en-US';
+};
+
+export default function EditStatementPage() {
+  const params = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
+  const t = useIntlayer('statementEditPage');
+  const { locale } = useLocale();
+  const statementId = params.id as string;
+
+  const [statement, setStatement] = useState<Statement | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [exportingToTable, setExportingToTable] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [editingRow, setEditingRow] = useState<string | null>(null);
+  const [editedData, setEditedData] = useState<Record<string, Partial<Transaction>>>({});
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [branches, setBranches] = useState<BranchOption[]>([]);
+  const [wallets, setWallets] = useState<WalletOption[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  const [bulkCategoryDialogOpen, setBulkCategoryDialogOpen] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [currentStage, setCurrentStage] = useState<StatementStage>('submit');
+
+  // useLockBodyScroll(bulkCategoryDialogOpen);
+  const [bulkCategoryId, setBulkCategoryId] = useState('');
+  const [metadataForm, setMetadataForm] = useState({
+    balanceStart: '',
+    balanceEnd: '',
+    statementDateFrom: '',
+    statementDateTo: '',
+  });
+  const [metadataSaving, setMetadataSaving] = useState(false);
+  const [exportConfirmOpen, setExportConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    if (user && statementId) {
+      setCurrentStage(getStatementStage(statementId));
+      loadData();
+    }
+  }, [user, statementId]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setOptionsLoading(true);
+      const [statementRes, transactionsRes, categoriesRes, branchesRes, walletsRes] =
+        await Promise.all([
+          apiClient.get(`/statements/${statementId}`),
+          apiClient.get(`/transactions?statement_id=${statementId}&limit=1000`),
+          apiClient.get('/categories'),
+          apiClient.get('/branches'),
+          apiClient.get('/wallets'),
+        ]);
+
+      const statementData = statementRes.data?.data || statementRes.data;
+
+      setStatement(statementData);
+
+      const transactionsData = transactionsRes.data.data || transactionsRes.data;
+
+      setTransactions(transactionsData);
+      setCategories(categoriesRes.data?.data || categoriesRes.data || []);
+      setBranches(branchesRes.data?.data || branchesRes.data || []);
+      setWallets(walletsRes.data?.data || walletsRes.data || []);
+
+      const extractedMeta = statementData?.parsingDetails?.metadataExtracted || {};
+
+      setMetadataForm({
+        balanceStart: normalizeNumberInput(
+          statementData?.balanceStart ?? extractedMeta.balanceStart,
+        ),
+        balanceEnd: normalizeNumberInput(statementData?.balanceEnd ?? extractedMeta.balanceEnd),
+        statementDateFrom: normalizeDateInput(
+          statementData?.statementDateFrom ?? extractedMeta.dateFrom,
+        ),
+        statementDateTo: normalizeDateInput(statementData?.statementDateTo ?? extractedMeta.dateTo),
+      });
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || t.errors.loadData.value);
+    } finally {
+      setLoading(false);
+      setOptionsLoading(false);
+    }
+  };
+
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return '';
+    try {
+      return new Date(dateString).toLocaleDateString('ru-RU');
+    } catch (err) {
+      return String(dateString);
+    }
+  };
+
+  const handleExportToCustomTable = async () => {
+    if (!statementId) return;
+    setExportingToTable(true);
+    const toastId = toast.loading(t.labels.exportLoading.value);
+
+    if (!statement) {
+      toast.error(t.labels.exportFailure.value, { id: toastId });
+      setExportingToTable(false);
+      return;
+    }
+
+    try {
+      const rawName = `Выписка — ${statement.fileName}`;
+      const MAX_NAME_LENGTH = 120;
+      const name = rawName.length > MAX_NAME_LENGTH ? rawName.slice(0, MAX_NAME_LENGTH) : rawName;
+
+      const payload = {
+        statementIds: [statementId],
+        name,
+        description: `Экспорт из выписки от ${formatDate(statement.statementDateFrom)} - ${formatDate(
+          statement.statementDateTo,
+        )}`,
+      };
+
+      const response = await apiClient.post('/custom-tables/from-statements', payload);
+      const tableId = response?.data?.tableId || response?.data?.id;
+
+      if (tableId) {
+        toast.success(t.labels.exportSuccess.value, { id: toastId });
+        router.push(`/custom-tables/${tableId}`);
+      } else {
+        toast.error(t.labels.exportFailure.value, { id: toastId });
+        router.push('/custom-tables');
+      }
+    } catch (err) {
+      console.error('Export to custom table failed:', err);
+      toast.error(t.labels.exportFailure.value, { id: toastId });
+    } finally {
+      setExportingToTable(false);
+    }
+  };
+
+  const handleRowSelect = (id: string) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedRows(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedRows.size === transactions.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(transactions.map(t => t.id)));
+    }
+  };
+
+  const handleEdit = (transaction: Transaction) => {
+    setEditingRow(transaction.id);
+    setEditedData({
+      [transaction.id]: { ...transaction },
+    });
+  };
+
+  const handleFieldChange = (transactionId: string, field: keyof Transaction, value: any) => {
+    setEditedData({
+      ...editedData,
+      [transactionId]: {
+        ...editedData[transactionId],
+        [field]: value,
+      },
+    });
+  };
+
+  const handleSave = async (transactionId: string) => {
+    try {
+      const updates = editedData[transactionId];
+      await apiClient.patch(`/transactions/${transactionId}`, updates);
+      setTransactions(prev => prev.map(t => (t.id === transactionId ? { ...t, ...updates } : t)));
+      setEditingRow(null);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'Не удалось сохранить транзакцию');
+    }
+  };
+
+  const handleMetadataChange = (field: string, value: string) => {
+    setMetadataForm({
+      ...metadataForm,
+      [field]: value,
+    });
+  };
+
+  const handleMetadataSave = async () => {
+    try {
+      setMetadataSaving(true);
+      const payload = {
+        balanceStart:
+          metadataForm.balanceStart !== '' ? Number.parseFloat(metadataForm.balanceStart) : null,
+        balanceEnd:
+          metadataForm.balanceEnd !== '' ? Number.parseFloat(metadataForm.balanceEnd) : null,
+        statementDateFrom: metadataForm.statementDateFrom || null,
+        statementDateTo: metadataForm.statementDateTo || null,
+      };
+      const response = await apiClient.patch(`/statements/${statementId}`, payload);
+      const updatedStatement = response.data?.data || response.data;
+      setStatement(updatedStatement);
+
+      const meta = updatedStatement?.parsingDetails?.metadataExtracted || {};
+      setMetadataForm({
+        balanceStart: normalizeNumberInput(updatedStatement?.balanceStart ?? meta.balanceStart),
+        balanceEnd: normalizeNumberInput(updatedStatement?.balanceEnd ?? meta.balanceEnd),
+        statementDateFrom: normalizeDateInput(updatedStatement?.statementDateFrom ?? meta.dateFrom),
+        statementDateTo: normalizeDateInput(updatedStatement?.statementDateTo ?? meta.dateTo),
+      });
+
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'Не удалось сохранить метаданные');
+    } finally {
+      setMetadataSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingRow(null);
+    setEditedData({});
+  };
+
+  const handleDelete = async (transactionId: string) => {
+    if (!window.confirm('Удалить транзакцию?')) return;
+    try {
+      await apiClient.delete(`/transactions/${transactionId}`);
+      setTransactions(prev => prev.filter(t => t.id !== transactionId));
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'Не удалось удалить транзакцию');
+    }
+  };
+
+  const handleBulkUpdate = async () => {
+    try {
+      setSaving(true);
+      const updates = Array.from(selectedRows)
+        .filter(id => editedData[id])
+        .map(id => ({
+          id,
+          updates: editedData[id],
+        }));
+      await apiClient.patch('/transactions/bulk', { items: updates });
+      loadData();
+      setSelectedRows(new Set());
+      setEditedData({});
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'Не удалось обновить транзакции');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Удалить ${selectedRows.size} транзакций?`)) return;
+    try {
+      setSaving(true);
+      await apiClient.post('/transactions/bulk-delete', {
+        ids: Array.from(selectedRows),
+      });
+      setTransactions(prev => prev.filter(t => !selectedRows.has(t.id)));
+      setSelectedRows(new Set());
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'Не удалось удалить транзакции');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOpenBulkCategory = () => {
+    if (selectedRows.size === 0) return;
+    setBulkCategoryDialogOpen(true);
+  };
+
+  const handleApplyBulkCategory = async () => {
+    if (!bulkCategoryId) return;
+    try {
+      setSaving(true);
+      const items = Array.from(selectedRows).map(id => ({
+        id,
+        updates: { categoryId: bulkCategoryId },
+      }));
+      await apiClient.patch('/transactions/bulk', { items });
+      loadData();
+      setSelectedRows(new Set());
+      setBulkCategoryDialogOpen(false);
+      setBulkCategoryId('');
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || t.errors.assignCategory.value);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const formatNumber = (num?: number | null) => {
+    if (num === null || num === undefined) return '—';
+    return new Intl.NumberFormat(resolveLocale(locale), {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num);
+  };
+
+  const renderEditCell = (
+    transaction: Transaction,
+    edited: Partial<Transaction>,
+    field: keyof Transaction,
+  ) => {
+    const commonTextFieldProps = {
+      size: 'small' as const,
+      fullWidth: true,
+      multiline: field === 'paymentPurpose' || field === 'comments',
+    };
+
+    if (field === 'categoryId') {
+      return (
+        <TextField
+          {...commonTextFieldProps}
+          select
+          value={edited.categoryId || transaction.categoryId || ''}
+          onChange={e => handleFieldChange(transaction.id, 'categoryId', e.target.value)}
+        >
+          <MenuItem value="">{t.labels.notSelected}</MenuItem>
+          {flattenCategories(categories).map(cat => (
+            <MenuItem key={cat.id} value={cat.id}>
+              {cat.name}
+            </MenuItem>
+          ))}
+        </TextField>
+      );
+    }
+
+    if (field === 'branchId') {
+      return (
+        <TextField
+          {...commonTextFieldProps}
+          select
+          value={edited.branchId || transaction.branchId || ''}
+          onChange={e => handleFieldChange(transaction.id, 'branchId', e.target.value)}
+        >
+          <MenuItem value="">{t.labels.notSelected}</MenuItem>
+          {branches.map(branch => (
+            <MenuItem key={branch.id} value={branch.id}>
+              {branch.name}
+            </MenuItem>
+          ))}
+        </TextField>
+      );
+    }
+
+    if (field === 'walletId') {
+      return (
+        <TextField
+          {...commonTextFieldProps}
+          select
+          value={edited.walletId || transaction.walletId || ''}
+          onChange={e => handleFieldChange(transaction.id, 'walletId', e.target.value)}
+        >
+          <MenuItem value="">{t.labels.notSelected}</MenuItem>
+          {wallets.map(wallet => (
+            <MenuItem key={wallet.id} value={wallet.id}>
+              {wallet.name}
+            </MenuItem>
+          ))}
+        </TextField>
+      );
+    }
+
+    return (
+      <TextField
+        {...commonTextFieldProps}
+        value={edited[field] ?? transaction[field] ?? ''}
+        onChange={e => handleFieldChange(transaction.id, field, e.target.value)}
+      />
+    );
+  };
+
+  const renderDisplayCell = (transaction: Transaction, field: keyof Transaction) => {
+    if (field === 'transactionDate') {
+      return new Date(transaction.transactionDate).toLocaleDateString(resolveLocale(locale));
+    }
+    if (field === 'debit' || field === 'credit') {
+      const value = transaction[field];
+      return value ? formatNumber(value) : '—';
+    }
+    if (field === 'categoryId') {
+      return transaction.category?.name || '—';
+    }
+    if (field === 'branchId') {
+      return transaction.branch?.name || '—';
+    }
+    if (field === 'walletId') {
+      return transaction.wallet?.name || '—';
+    }
+    return transaction[field] || '—';
+  };
+
+  if (loading) {
+    return (
+      <Container maxWidth="xl" sx={{ mt: 4, textAlign: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  const missingCategoryCount = transactions.filter(t => !t.categoryId && !t.category?.id).length;
+
+  const totalIncome = transactions.reduce((sum, t) => {
+    const credit = Number(t.credit);
+    return sum + (Number.isNaN(credit) ? 0 : credit);
+  }, 0);
+
+  const totalExpense = transactions.reduce((sum, t) => {
+    const debit = Number(t.debit);
+    return sum + (Number.isNaN(debit) ? 0 : debit);
+  }, 0);
+
+  return (
+    <Container maxWidth={false} sx={{ py: 5 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Button
+          startIcon={<ArrowBack />}
+          onClick={() => router.back()}
+          sx={{
+            mb: 3,
+            color: 'text.secondary',
+            textTransform: 'none',
+            fontWeight: 500,
+            borderRadius: 2,
+            '&:hover': { bgcolor: 'action.hover' },
+          }}
+        >
+          {t.labels.back}
+        </Button>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: 2,
+            flexWrap: 'wrap',
+          }}
+        >
+          <Box sx={{ minWidth: 240 }}>
+            <Typography
+              variant="h4"
+              component="h1"
+              sx={{
+                fontWeight: 600,
+                mb: 1,
+                color: 'text.primary',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {statement?.fileName}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Chip
+                  icon={<Receipt />}
+                  label={`${statement?.totalTransactions} ${t.labels.transactionsCount.value || 'транзакций'}`}
+                  size="small"
+                  sx={{
+                    bgcolor: 'grey.50',
+                    color: 'text.secondary',
+                    border: '1px solid',
+                    borderColor: 'grey.200',
+                    fontWeight: 500,
+                    borderRadius: 1.5,
+                    '& .MuiChip-icon': { color: 'text.secondary' },
+                  }}
+                />
+              {missingCategoryCount > 0 && (
+                <Chip
+                  icon={<Warning />}
+                  label={`${missingCategoryCount} без категории`}
+                  size="small"
+                  sx={{
+                    bgcolor: 'warning.50',
+                    color: 'warning.800',
+                    border: '1px solid',
+                    borderColor: 'warning.200',
+                    fontWeight: 500,
+                    '& .MuiChip-icon': { color: 'warning.700' },
+                  }}
+                />
+              )}
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              startIcon={exportingToTable ? <CircularProgress size={18} /> : <TableChart />}
+              onClick={() => setExportConfirmOpen(true)}
+              disabled={exportingToTable || !transactions.length}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                borderColor: 'grey.300',
+                color: 'text.secondary',
+                borderRadius: 2,
+                '&:hover': { borderColor: 'primary.300', color: 'primary.700', bgcolor: 'primary.50' },
+              }}
+            >
+              {t.labels.exportButton.value}
+            </Button>
+            {currentStage === 'submit' && (
+              <Button
+                variant="outlined"
+                startIcon={submitLoading ? <CircularProgress size={18} /> : <Check />}
+                onClick={() => {
+                  if (!statement?.id) return;
+                  setSubmitLoading(true);
+                  setStatementStage(statement.id, 'approve');
+                  setCurrentStage('approve');
+                  toast.success((t.labels as any)?.submitSuccess?.value || 'Statement submitted for approval');
+                  setTimeout(() => {
+                    setSubmitLoading(false);
+                    router.push('/statements/approve');
+                  }, 200);
+                }}
+                disabled={submitLoading}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderColor: 'grey.300',
+                  color: 'text.secondary',
+                  borderRadius: 2,
+                  '&:hover': { borderColor: 'primary.300', color: 'primary.700', bgcolor: 'primary.50' },
+                }}
+              >
+                {(t.labels as any)?.submitForApproval?.value || 'Submit'}
+              </Button>
+            )}
+            <Button
+              variant="contained"
+              startIcon={metadataSaving ? <CircularProgress size={18} /> : <Save />}
+              onClick={handleMetadataSave}
+              disabled={metadataSaving}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: 'none',
+                '&:hover': {
+                  boxShadow: 'none',
+                },
+              }}
+            >
+              {t.labels.saveStatementData?.value || 'Сохранить'}
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Alerts */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(false)}>
+          {t.labels.changesSaved}
+        </Alert>
+      )}
+
+      <Card
+        sx={{
+          mb: 4,
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: 'none',
+          overflow: 'visible',
+          position: 'relative',
+          zIndex: 10,
+        }}
+      >
+        <CardContent sx={{ p: 3, overflow: 'visible' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                fontSize: '1rem',
+                color: 'text.primary',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {t.labels.statementInfoTitle?.value || 'Информация о выписке'}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Chip
+                label={
+                  statement?.statementDateFrom && statement?.statementDateTo
+                    ? `${new Date(statement.statementDateFrom).toLocaleDateString()} - ${new Date(statement.statementDateTo).toLocaleDateString()}`
+                    : 'Период не указан'
+                }
+                size="small"
+                sx={{
+                  bgcolor: 'grey.50',
+                  color: 'text.secondary',
+                  border: '1px solid',
+                  borderColor: 'grey.200',
+                  fontWeight: 500,
+                }}
+              />
+            </Box>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: '1fr 1fr',
+                md: '1fr 1fr 1fr 1fr',
+              },
+              gap: 3,
+              position: 'relative',
+              zIndex: 20,
+            }}
+          >
+            <CustomDatePicker
+              label="Дата начала"
+              value={metadataForm.statementDateFrom}
+              onChange={value => handleMetadataChange('statementDateFrom', value)}
+              helperText={
+                statement?.parsingDetails?.metadataExtracted?.dateFrom
+                  ? `Из файла: ${new Date(statement.parsingDetails.metadataExtracted.dateFrom).toLocaleDateString(resolveLocale(locale))}`
+                  : undefined
+              }
+            />
+            <CustomDatePicker
+              label="Дата окончания"
+              value={metadataForm.statementDateTo}
+              onChange={value => handleMetadataChange('statementDateTo', value)}
+              helperText={
+                statement?.parsingDetails?.metadataExtracted?.dateTo
+                  ? `Из файла: ${new Date(statement.parsingDetails.metadataExtracted.dateTo).toLocaleDateString(resolveLocale(locale))}`
+                  : undefined
+              }
+            />
+            <div>
+              <span className="text-xs text-gray-500 block mb-1 font-medium ml-1">
+                Начальный баланс
+              </span>
+              <TextField
+                type="number"
+                fullWidth
+                size="small"
+                value={metadataForm.balanceStart}
+                onChange={e => handleMetadataChange('balanceStart', e.target.value)}
+                placeholder="0.00"
+                helperText={
+                  statement?.parsingDetails?.metadataExtracted?.balanceStart
+                    ? `Из файла: ${formatNumber(statement.parsingDetails.metadataExtracted.balanceStart)}`
+                    : 'Введите начальный баланс'
+                }
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  },
+                }}
+              />
+            </div>
+            <div>
+              <span className="text-xs text-gray-500 block mb-1 font-medium ml-1">
+                Конечный баланс
+              </span>
+              <TextField
+                type="number"
+                fullWidth
+                size="small"
+                value={metadataForm.balanceEnd}
+                onChange={e => handleMetadataChange('balanceEnd', e.target.value)}
+                placeholder="0.00"
+                helperText={
+                  statement?.parsingDetails?.metadataExtracted?.balanceEnd
+                    ? `Из файла: ${formatNumber(statement.parsingDetails.metadataExtracted.balanceEnd)}`
+                    : 'Введите конечный баланс'
+                }
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  },
+                }}
+              />
+            </div>
+          </Box>
+
+          {statement?.parsingDetails && (
+            <Accordion
+              elevation={0}
+              sx={{
+                mt: 3,
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'grey.200',
+                '&:before': { display: 'none' },
+              }}
+            >
+              <AccordionSummary expandIcon={<ExpandMore />}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                  {t.labels.parsingDetails?.value || 'Детали парсинга'}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: '1fr 1fr',
+                      sm: 'repeat(3, 1fr)',
+                      md: 'repeat(6, 1fr)',
+                    },
+                    gap: 2,
+                  }}
+                >
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Банк
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {statement.parsingDetails.detectedBank || '—'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Формат
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {statement.parsingDetails.detectedFormat?.toUpperCase() || '—'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Найдено транзакций
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {statement.parsingDetails.transactionsFound ?? '—'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Создано
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {statement.parsingDetails.transactionsCreated ?? '—'}
+                    </Typography>
+                  </Box>
+                  {statement.parsingDetails.errors && statement.parsingDetails.errors.length > 0 && (
+                    <Box>
+                      <Typography variant="caption" color="error">
+                        Ошибки
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500, color: 'error.main' }}>
+                        {statement.parsingDetails.errors.length}
+                      </Typography>
+                    </Box>
+                  )}
+                  {statement.parsingDetails.warnings &&
+                    statement.parsingDetails.warnings.length > 0 && (
+                      <Box>
+                        <Typography variant="caption" color="warning.main">
+                          Предупреждения
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'warning.main' }}>
+                          {statement.parsingDetails.warnings.length}
+                        </Typography>
+                      </Box>
+                    )}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+          )}
+
+          <Box
+            sx={{
+              mt: 3,
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
+              gap: 2,
+            }}
+          >
+            <Box sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                Период
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                {statement?.statementDateFrom && statement?.statementDateTo
+                  ? `${new Date(statement.statementDateFrom).toLocaleDateString()} - ${new Date(statement.statementDateTo).toLocaleDateString()}`
+                  : 'Не указан'}
+              </Typography>
+            </Box>
+            <Box sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                Начальный баланс
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                {statement?.balanceStart !== null &&
+                statement?.balanceStart !== undefined &&
+                statement?.balanceStart !== ''
+                  ? formatNumber(Number(statement.balanceStart))
+                  : 'Не указан'}
+              </Typography>
+            </Box>
+            <Box sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                Расходы
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5, color: 'error.main' }}>
+                {!Number.isNaN(totalExpense) && totalExpense >= 0 ? formatNumber(totalExpense) : '0.00'}
+              </Typography>
+            </Box>
+            <Box sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                Доходы
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5, color: 'success.main' }}>
+                {!Number.isNaN(totalIncome) && totalIncome >= 0 ? formatNumber(totalIncome) : '0.00'}
+              </Typography>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
+      <ModalShell
+        isOpen={exportConfirmOpen}
+        onClose={() => setExportConfirmOpen(false)}
+        size="sm"
+        title={t.labels.exportConfirmTitle.value}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => setExportConfirmOpen(false)}
+              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:border-primary hover:text-primary"
+            >
+              {t.labels.cancel.value}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setExportConfirmOpen(false);
+                handleExportToCustomTable();
+              }}
+              disabled={exportingToTable || !transactions.length}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exportingToTable ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : null}
+              {t.labels.exportConfirmConfirm.value}
+            </button>
+          </div>
+        }
+      >
+        <div>
+          <p className="text-sm text-gray-700">{t.labels.exportConfirmBody.value}</p>
+        </div>
+      </ModalShell>
+
+      {/* Bulk Actions */}
+      {selectedRows.size > 0 && (
+        <Paper
+          elevation={0}
+          sx={{
+            mb: 3,
+            p: 3,
+            bgcolor: 'primary.50',
+            border: '1px solid',
+            borderColor: 'primary.200',
+            borderRadius: 2,
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Typography
+              variant="body1"
+              sx={{
+                fontWeight: 600,
+                color: 'primary.700',
+                fontSize: '0.9375rem',
+              }}
+            >
+              Выбрано: {selectedRows.size} транзакций
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
+              <Button
+                variant="outlined"
+                onClick={handleOpenBulkCategory}
+                startIcon={<Category />}
+                disabled={saving}
+                size="small"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  borderColor: 'primary.300',
+                  color: 'primary.700',
+                  borderRadius: 2,
+                  '&:hover': {
+                    borderColor: 'primary.400',
+                    bgcolor: 'primary.100',
+                  },
+                }}
+              >
+                Назначить категорию
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleBulkUpdate}
+                disabled={saving}
+                startIcon={saving ? <CircularProgress size={20} /> : <Save />}
+                size="small"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  boxShadow: 'none',
+                }}
+              >
+                Сохранить
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleBulkDelete}
+                disabled={saving}
+                startIcon={<Delete />}
+                size="small"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  borderRadius: 2,
+                }}
+              >
+                Удалить
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
+      )}
+
+      {/* Transactions Table */}
+      <TableContainer
+        component={Paper}
+        elevation={0}
+        sx={{
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
+          overflow: 'hidden',
+        }}
+      >
+        <Table size="small">
+          <TableHead>
+            <TableRow
+              sx={{
+                bgcolor: 'grey.50',
+                borderBottom: '1px solid',
+                borderBottomColor: 'divider',
+              }}
+            >
+              <TableCell padding="checkbox">
+                <Checkbox
+                  checked={selectedRows.size === transactions.length && transactions.length > 0}
+                  indeterminate={selectedRows.size > 0 && selectedRows.size < transactions.length}
+                  onChange={handleSelectAll}
+                />
+              </TableCell>
+              <TableCell
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  color: 'text.secondary',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                Дата
+              </TableCell>
+              <TableCell
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  color: 'text.secondary',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                Контрагент
+              </TableCell>
+              <TableCell
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  color: 'text.secondary',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                Назначение платежа
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  color: 'text.secondary',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                Расход
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  color: 'text.secondary',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                Доход
+              </TableCell>
+              <TableCell
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  color: 'text.secondary',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                Категория
+              </TableCell>
+              <TableCell
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  color: 'text.secondary',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                Действия
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {transactions.map(transaction => {
+              const isEditing = editingRow === transaction.id;
+              const edited = editedData[transaction.id] || transaction;
+              const missingCategory = !(
+                edited.categoryId ??
+                transaction.categoryId ??
+                transaction.category?.id
+              );
+
+              return (
+                <TableRow
+                  key={transaction.id}
+                  hover
+                  sx={{
+                    bgcolor: missingCategory ? 'warning.50' : undefined,
+                    borderLeft: missingCategory ? '3px solid' : undefined,
+                    borderLeftColor: missingCategory ? 'warning.400' : undefined,
+                    transition: 'all 0.15s',
+                    '&:hover': {
+                      bgcolor: missingCategory ? 'warning.100' : 'grey.50',
+                    },
+                  }}
+                >
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selectedRows.has(transaction.id)}
+                      onChange={() => handleRowSelect(transaction.id)}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ minWidth: 100 }}>
+                    {isEditing
+                      ? renderEditCell(transaction, edited, 'transactionDate')
+                      : String(renderDisplayCell(transaction, 'transactionDate'))}
+                  </TableCell>
+                  <TableCell sx={{ minWidth: 150 }}>
+                    {isEditing
+                      ? renderEditCell(transaction, edited, 'counterpartyName')
+                      : transaction.counterpartyName}
+                  </TableCell>
+                  <TableCell sx={{ minWidth: 200, maxWidth: 300 }}>
+                    {isEditing ? (
+                      renderEditCell(transaction, edited, 'paymentPurpose')
+                    ) : (
+                      <Tooltip title={transaction.paymentPurpose}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {transaction.paymentPurpose}
+                        </Typography>
+                      </Tooltip>
+                    )}
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      color: 'error.600',
+                      fontWeight: 600,
+                      fontSize: '0.9375rem',
+                    }}
+                  >
+                    {transaction.debit ? formatNumber(transaction.debit) : '—'}
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      color: 'success.600',
+                      fontWeight: 600,
+                      fontSize: '0.9375rem',
+                    }}
+                  >
+                    {transaction.credit ? formatNumber(transaction.credit) : '—'}
+                  </TableCell>
+                  <TableCell sx={{ minWidth: 150 }}>
+                    {isEditing ? (
+                      renderEditCell(transaction, edited, 'categoryId')
+                    ) : (
+                      <Box>
+                        {transaction.category?.name ? (
+                          <Chip
+                            label={transaction.category.name}
+                            size="small"
+                            sx={{
+                              bgcolor: 'primary.50',
+                              color: 'primary.700',
+                              border: 'none',
+                              fontWeight: 500,
+                              fontSize: '0.8125rem',
+                            }}
+                          />
+                        ) : (
+                          <Chip
+                            label="Без категории"
+                            size="small"
+                            icon={<Warning sx={{ fontSize: 16 }} />}
+                            sx={{
+                              bgcolor: 'warning.50',
+                              color: 'warning.800',
+                              border: 'none',
+                              fontWeight: 500,
+                              fontSize: '0.8125rem',
+                              '& .MuiChip-icon': {
+                                color: 'warning.700',
+                              },
+                            }}
+                          />
+                        )}
+                      </Box>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {isEditing ? (
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleSave(transaction.id)}
+                          sx={{
+                            color: 'success.600',
+                            '&:hover': {
+                              bgcolor: 'success.50',
+                            },
+                          }}
+                        >
+                          <CheckCircle fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={handleCancel}
+                          sx={{
+                            color: 'text.secondary',
+                            '&:hover': {
+                              bgcolor: 'grey.100',
+                            },
+                          }}
+                        >
+                          <Cancel fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    ) : (
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEdit(transaction)}
+                          sx={{
+                            color: 'primary.600',
+                            '&:hover': {
+                              bgcolor: 'primary.50',
+                            },
+                          }}
+                        >
+                          <Edit fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDelete(transaction.id)}
+                          sx={{
+                            color: 'error.600',
+                            '&:hover': {
+                              bgcolor: 'error.50',
+                            },
+                          }}
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Bulk Category Dialog */}
+        <Dialog
+          open={bulkCategoryDialogOpen}
+          onClose={() => setBulkCategoryDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+              boxShadow: 'none',
+              border: '1px solid',
+              borderColor: 'grey.200',
+            },
+          }}
+        >
+        <DialogTitle
+          sx={{
+            fontWeight: 600,
+            fontSize: '1rem',
+            color: 'text.primary',
+            letterSpacing: '-0.01em',
+            pb: 1,
+          }}
+        >
+          Назначить категорию для {selectedRows.size} транзакций
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <TextField
+            select
+            label="Категория"
+            fullWidth
+            value={bulkCategoryId}
+            onChange={e => setBulkCategoryId(e.target.value)}
+            helperText="Выберите категорию для назначения всем выбранным транзакциям"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                '&:hover fieldset': {
+                  borderColor: 'primary.main',
+                },
+              },
+            }}
+          >
+            <MenuItem value="">Не выбрано</MenuItem>
+            {flattenCategories(categories).map(cat => (
+              <MenuItem key={cat.id} value={cat.id}>
+                {cat.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+          <Button
+            onClick={() => setBulkCategoryDialogOpen(false)}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 500,
+              color: 'text.secondary',
+            }}
+          >
+            Отмена
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={saving ? <CircularProgress size={18} /> : <CheckCircle />}
+            onClick={handleApplyBulkCategory}
+            disabled={saving || !bulkCategoryId}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              borderRadius: 2,
+              boxShadow: 'none',
+              '&:hover': {
+                boxShadow: 'none',
+              },
+            }}
+          >
+            Применить
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Container>
+  );
+}

@@ -66,7 +66,7 @@ export function AuthLanguageSwitcher() {
           setLanguageModalOpen(true);
         }}
       >
-        <Globe size={20} />
+        <Globe size={20} suppressHydrationWarning />
       </Button>
 
       {portalReady &&

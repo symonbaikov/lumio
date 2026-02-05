@@ -6,6 +6,7 @@ import { IntlayerClientProvider } from 'next-intlayer';
 import { useTheme as useNextTheme } from 'next-themes';
 import React, { useMemo } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { SidePanelProvider } from './components/side-panel';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { useHTMLLanguage } from './hooks/useHTMLLanguage';
 import { createAppTheme } from './theme';
@@ -28,7 +29,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ThemeProvider theme={muiTheme}>
         <CssBaseline />
         <WorkspaceProvider>
-          <Toaster
+          <SidePanelProvider
+            defaultWidth="md"
+            defaultPosition="left"
+            defaultCollapsed={false}
+            persistState={true}
+            storageKey="finflow-side-panel"
+          >
+            <Toaster
             position="top-center"
             toastOptions={{
               duration: 3000,
@@ -40,7 +48,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
               },
             }}
           />
-          {children}
+            {children}
+          </SidePanelProvider>
         </WorkspaceProvider>
       </ThemeProvider>
     </IntlayerClientProvider>

@@ -150,6 +150,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     if (token) {
       refreshWorkspaces();
+    } else {
+      setCurrentWorkspace(null);
+      setWorkspaces([]);
+      setError(null);
+      setLoading(false);
     }
   }, [refreshWorkspaces]);
 
