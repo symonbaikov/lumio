@@ -12,8 +12,9 @@ export class GenericPdfParser extends BaseParser {
     bankName: BankName,
     fileType: FileType,
     _filePath: string,
-    _cachedText?: string,
+    cachedText?: string,
   ): Promise<boolean> {
+    void cachedText?.length;
     return bankName === BankName.OTHER && fileType === FileType.PDF;
   }
 

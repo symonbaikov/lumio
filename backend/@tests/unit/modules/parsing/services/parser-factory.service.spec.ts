@@ -39,7 +39,6 @@ describe('ParserFactoryService', () => {
     jest.spyOn(BerekeNewParser.prototype, 'canParse').mockResolvedValue(false);
     jest.spyOn(BerekeOldParser.prototype, 'canParse').mockResolvedValue(false);
     jest.spyOn(KaspiParser.prototype, 'canParse').mockResolvedValue(false);
-    jest.spyOn(GenericPdfParser.prototype, 'canParse').mockResolvedValue(false);
     jest.spyOn(ExcelParser.prototype, 'canParse').mockResolvedValue(false);
     jest.spyOn(CsvParser.prototype, 'canParse').mockResolvedValue(false);
   });
@@ -69,6 +68,30 @@ describe('ParserFactoryService', () => {
       const parser = await service.getParser(BankName.KASPI, FileType.PDF, '/tmp/mock.pdf');
 
       expect(parser).toBeInstanceOf(KaspiParser);
+    });
+
+    it('forwards cachedText into parser canParse', async () => {
+      const cachedText = 'kaspi bank statement';
+      const canParseSpy = jest
+        .spyOn(KaspiParser.prototype, 'canParse')
+        .mockResolvedValue(true);
+
+      const parser = await service.getParser(
+        BankName.KASPI,
+        FileType.PDF,
+        '/tmp/mock.pdf',
+        cachedText,
+      );
+
+      expect(parser).toBeInstanceOf(KaspiParser);
+      expect(canParseSpy).toHaveBeenCalledWith(
+        BankName.KASPI,
+        FileType.PDF,
+        '/tmp/mock.pdf',
+        cachedText,
+      );
+
+      canParseSpy.mockRestore();
     });
   });
 
