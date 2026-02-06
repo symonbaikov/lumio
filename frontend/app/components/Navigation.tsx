@@ -492,7 +492,7 @@ export default function Navigation() {
           className={`fixed inset-0 z-70 ${mobileMenuOpen ? "" : "pointer-events-none"}`}
         >
           <div
-            className={`absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-200 ${
+            className={`absolute inset-0 bg-black/30 transition-opacity duration-200 ${
               mobileMenuOpen ? "opacity-100" : "opacity-0"
             }`}
             role="button"
@@ -730,7 +730,7 @@ export default function Navigation() {
         createPortal(
           <div className="fixed inset-0 z-80 flex items-center justify-center p-4">
             <div
-              className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/30"
               role="button"
               tabIndex={0}
               onClick={() => setLanguageModalOpen(false)}

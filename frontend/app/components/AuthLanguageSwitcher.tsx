@@ -74,7 +74,7 @@ export function AuthLanguageSwitcher() {
         createPortal(
           <div className="fixed inset-0 z-80 flex items-center justify-center p-4">
             <div
-              className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/30"
               role="button"
               tabIndex={0}
               onClick={() => setLanguageModalOpen(false)}

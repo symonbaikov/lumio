@@ -1,0 +1,217 @@
+// @vitest-environment jsdom
+import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  applyStatementsFilters,
+  type StatementFilterItem,
+  type StatementFilters,
+  DEFAULT_STATEMENT_FILTERS,
+  loadStatementFilters,
+  saveStatementFilters,
+  STATEMENT_FILTERS_STORAGE_KEY,
+} from './statement-filters';
+
+const baseStatement: StatementFilterItem = {
+  id: 'stmt-1',
+  fileName: 'Kaspi February.pdf',
+  status: 'uploaded',
+  fileType: 'pdf',
+  createdAt: '2025-02-01T12:00:00.000Z',
+  statementDateFrom: '2025-02-01',
+  statementDateTo: '2025-02-10',
+  bankName: 'kaspi',
+  totalDebit: 1200,
+  totalCredit: 0,
+  currency: 'KZT',
+  exported: false,
+  paid: null,
+  user: { id: 'user-1', name: 'Alex', email: 'alex@example.com' },
+};
+
+const defaultFilters: StatementFilters = {
+  type: null,
+  statuses: [],
+  date: null,
+  from: [],
+  to: [],
+  keywords: '',
+  amountMin: null,
+  amountMax: null,
+  limit: null,
+  approved: null,
+  billable: null,
+  groupBy: null,
+  has: [],
+  currencies: [],
+  exported: null,
+  paid: null,
+};
+
+describe('applyStatementsFilters', () => {
+  it('filters by type', () => {
+    const statements = [
+      baseStatement,
+      { ...baseStatement, id: 'stmt-2', fileType: 'csv', fileName: 'Other.csv' },
+    ];
+    const result = applyStatementsFilters(statements, { ...defaultFilters, type: 'pdf' });
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('stmt-1');
+  });
+
+  it('filters by multiple statuses', () => {
+    const statements = [
+      { ...baseStatement, id: 'stmt-1', status: 'processing' },
+      { ...baseStatement, id: 'stmt-2', status: 'error' },
+      { ...baseStatement, id: 'stmt-3', status: 'uploaded' },
+    ];
+    const result = applyStatementsFilters(statements, {
+      ...defaultFilters,
+      statuses: ['processing', 'error'],
+    });
+    expect(result.map((item) => item.id)).toEqual(['stmt-1', 'stmt-2']);
+  });
+
+  it('filters by date preset', () => {
+    const statements = [
+      {
+        ...baseStatement,
+        id: 'stmt-1',
+        statementDateFrom: '2025-02-01',
+        statementDateTo: '2025-02-10',
+        createdAt: '2025-02-10T00:00:00.000Z',
+      },
+      {
+        ...baseStatement,
+        id: 'stmt-2',
+        statementDateFrom: '2025-01-01',
+        statementDateTo: '2025-01-20',
+        createdAt: '2025-01-20T00:00:00.000Z',
+      },
+    ];
+    const result = applyStatementsFilters(
+      statements,
+      { ...defaultFilters, date: { preset: 'thisMonth' } },
+      new Date('2025-02-15T00:00:00.000Z'),
+    );
+    expect(result.map((item) => item.id)).toEqual(['stmt-1']);
+  });
+
+  it('filters by date condition', () => {
+    const statements = [
+      {
+        ...baseStatement,
+        id: 'stmt-1',
+        statementDateFrom: '2025-02-01',
+        statementDateTo: '2025-02-10',
+        createdAt: '2025-02-10T00:00:00.000Z',
+      },
+      {
+        ...baseStatement,
+        id: 'stmt-2',
+        statementDateFrom: '2025-02-01',
+        statementDateTo: '2025-02-05',
+        createdAt: '2025-02-05T00:00:00.000Z',
+      },
+    ];
+    const result = applyStatementsFilters(
+      statements,
+      { ...defaultFilters, date: { mode: 'before', date: '2025-02-08' } },
+      new Date('2025-02-15T00:00:00.000Z'),
+    );
+    expect(result.map((item) => item.id)).toEqual(['stmt-2']);
+  });
+
+  it('filters by from tokens', () => {
+    const statements = [
+      { ...baseStatement, id: 'stmt-1', user: { id: 'user-1', name: 'Alex' } },
+      { ...baseStatement, id: 'stmt-2', user: { id: 'user-2', name: 'Dana' } },
+    ];
+    const result = applyStatementsFilters(statements, {
+      ...defaultFilters,
+      from: ['user:user-2'],
+    });
+    expect(result.map((item) => item.id)).toEqual(['stmt-2']);
+  });
+
+  it('filters by keywords and amount range', () => {
+    const statements = [
+      { ...baseStatement, id: 'stmt-1', fileName: 'Kaspi February.pdf', totalDebit: 1200 },
+      { ...baseStatement, id: 'stmt-2', fileName: 'Halyk report.pdf', totalDebit: 5000 },
+    ];
+    const result = applyStatementsFilters(statements, {
+      ...defaultFilters,
+      keywords: 'kaspi',
+      amountMin: 1000,
+      amountMax: 2000,
+    });
+    expect(result.map((item) => item.id)).toEqual(['stmt-1']);
+  });
+
+  it('applies limit after filtering', () => {
+    const statements = [
+      { ...baseStatement, id: 'stmt-1' },
+      { ...baseStatement, id: 'stmt-2' },
+      { ...baseStatement, id: 'stmt-3' },
+    ];
+    const result = applyStatementsFilters(statements, {
+      ...defaultFilters,
+      limit: 2,
+    });
+    expect(result.map((item) => item.id)).toEqual(['stmt-1', 'stmt-2']);
+  });
+
+  it('filters by currency and exported flags', () => {
+    const statements = [
+      { ...baseStatement, id: 'stmt-1', currency: 'KZT', exported: true },
+      { ...baseStatement, id: 'stmt-2', currency: 'USD', exported: false },
+    ];
+    const result = applyStatementsFilters(statements, {
+      ...defaultFilters,
+      currencies: ['KZT'],
+      exported: true,
+    });
+    expect(result.map((item) => item.id)).toEqual(['stmt-1']);
+  });
+
+  it('filters by paid flag', () => {
+    const statements = [
+      { ...baseStatement, id: 'stmt-1', paid: true },
+      { ...baseStatement, id: 'stmt-2', paid: false },
+    ];
+    const result = applyStatementsFilters(statements, {
+      ...defaultFilters,
+      paid: false,
+    });
+    expect(result.map((item) => item.id)).toEqual(['stmt-2']);
+  });
+});
+
+describe('statement filters storage', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('loads defaults when storage is empty', () => {
+    const result = loadStatementFilters();
+    expect(result).toEqual(DEFAULT_STATEMENT_FILTERS);
+  });
+
+  it('loads saved filters from storage', () => {
+    const payload = {
+      ...DEFAULT_STATEMENT_FILTERS,
+      type: 'pdf',
+      statuses: ['processing'],
+      keywords: 'kaspi',
+      amountMin: 500,
+    };
+    localStorage.setItem(STATEMENT_FILTERS_STORAGE_KEY, JSON.stringify(payload));
+    const result = loadStatementFilters();
+    expect(result).toEqual(payload);
+  });
+
+  it('saves filters to storage', () => {
+    saveStatementFilters(defaultFilters);
+    expect(localStorage.getItem(STATEMENT_FILTERS_STORAGE_KEY)).toEqual(
+      JSON.stringify(defaultFilters),
+    );
+  });
+});

@@ -2099,7 +2099,7 @@ export default function DataEntryPage() {
       {deleteDialog.open && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-black/30"
             role="button"
             tabIndex={0}
             onClick={closeDeleteDialog}
@@ -2165,7 +2165,7 @@ export default function DataEntryPage() {
       {currencyModalOpen && (
         <>
           <div
-            className="fixed inset-0 z-70 bg-black/30 backdrop-blur-sm"
+            className="fixed inset-0 z-70 bg-black/30"
             role="button"
             tabIndex={0}
             onClick={() => setCurrencyModalOpen(false)}

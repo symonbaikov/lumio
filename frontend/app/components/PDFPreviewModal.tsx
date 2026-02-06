@@ -180,7 +180,7 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
     >
       <div className="h-[85vh] bg-gray-50 relative">
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/50 backdrop-blur-sm">
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/50">
             <div className="text-center">
               <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-200 border-t-black mx-auto mb-4" />
               <p className="text-sm text-gray-500 font-medium">Загрузка документа...</p>

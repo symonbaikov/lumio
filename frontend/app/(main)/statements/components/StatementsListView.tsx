@@ -4,6 +4,27 @@ import { BankLogoAvatar } from "@/app/components/BankLogoAvatar";
 import { DocumentTypeIcon } from "@/app/components/DocumentTypeIcon";
 import { PDFPreviewModal } from "@/app/components/PDFPreviewModal";
 import LoadingAnimation from "@/app/components/LoadingAnimation";
+import { ColumnsDrawer } from "@/app/(main)/statements/components/columns/ColumnsDrawer";
+import {
+  DEFAULT_STATEMENT_COLUMNS,
+  loadStatementColumns,
+  reorderStatementColumns,
+  saveStatementColumns,
+  type StatementColumn,
+  type StatementColumnId,
+} from "@/app/(main)/statements/components/columns/statement-columns";
+import { DateFilterDropdown } from "@/app/(main)/statements/components/filters/DateFilterDropdown";
+import { FiltersDrawer } from "@/app/(main)/statements/components/filters/FiltersDrawer";
+import { FromFilterDropdown } from "@/app/(main)/statements/components/filters/FromFilterDropdown";
+import { StatusFilterDropdown } from "@/app/(main)/statements/components/filters/StatusFilterDropdown";
+import {
+  DEFAULT_STATEMENT_FILTERS,
+  applyStatementsFilters,
+  loadStatementFilters,
+  saveStatementFilters,
+  type StatementFilters,
+} from "@/app/(main)/statements/components/filters/statement-filters";
+import { TypeFilterDropdown } from "@/app/(main)/statements/components/filters/TypeFilterDropdown";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useLockBodyScroll } from "@/app/hooks/useLockBodyScroll";
 import apiClient from "@/app/lib/api";
@@ -39,6 +60,8 @@ interface Statement {
   totalTransactions: number;
   totalDebit?: number | string | null;
   totalCredit?: number | string | null;
+  exported?: boolean | null;
+  paid?: boolean | null;
   createdAt: string;
   processedAt?: string;
   statementDateFrom?: string | null;
@@ -46,6 +69,13 @@ interface Statement {
   bankName: string;
   fileType: string;
   currency?: string | null;
+  user?: {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+    avatarUrl?: string | null;
+  } | null;
+  errorMessage?: string | null;
   parsingDetails?: {
     logEntries?: Array<{ timestamp: string; level: string; message: string }>;
     metadataExtracted?: {
@@ -182,6 +212,8 @@ export default function StatementsListView({ stage }: Props) {
     "inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary";
   const filterLinkClassName =
     "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-primary";
+  const filterChipActiveClassName =
+    "inline-flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-medium text-primary";
 
   useLockBodyScroll(!!uploadModalOpen);
   const totalPagesCount = Math.max(1, Math.ceil(total / pageSize) || 1);
@@ -191,6 +223,173 @@ export default function StatementsListView({ stage }: Props) {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState<string>("");
+
+  const [draftFilters, setDraftFilters] = useState<StatementFilters>(
+    DEFAULT_STATEMENT_FILTERS,
+  );
+  const [appliedFilters, setAppliedFilters] = useState<StatementFilters>(
+    DEFAULT_STATEMENT_FILTERS,
+  );
+  const [filtersDrawerScreen, setFiltersDrawerScreen] = useState("root");
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
+  const [fromDropdownOpen, setFromDropdownOpen] = useState(false);
+  const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
+  const [columnsDrawerOpen, setColumnsDrawerOpen] = useState(false);
+  const [columns, setColumns] = useState<StatementColumn[]>(DEFAULT_STATEMENT_COLUMNS);
+  const [draftColumns, setDraftColumns] = useState<StatementColumn[]>(DEFAULT_STATEMENT_COLUMNS);
+
+  const filterOptionLabels = {
+    apply: resolveLabel((t.filters as any)?.apply, "Apply"),
+    reset: resolveLabel((t.filters as any)?.reset, "Reset"),
+    resetFilters: resolveLabel((t.filters as any)?.resetFilters, "Reset filters"),
+    viewResults: resolveLabel((t.filters as any)?.viewResults, "View results"),
+    save: resolveLabel((t.filters as any)?.save, "Save"),
+    saveSearch: resolveLabel((t.filters as any)?.saveSearch, "Save search"),
+    any: resolveLabel((t.filters as any)?.any, "Any"),
+    yes: resolveLabel((t.filters as any)?.yes, "Yes"),
+    no: resolveLabel((t.filters as any)?.no, "No"),
+    typeExpense: resolveLabel((t.filters as any)?.typeExpense, "Expense"),
+    typeReport: resolveLabel((t.filters as any)?.typeReport, "Expense Report"),
+    typeChat: resolveLabel((t.filters as any)?.typeChat, "Chat"),
+    typeTrip: resolveLabel((t.filters as any)?.typeTrip, "Trip"),
+    typeTask: resolveLabel((t.filters as any)?.typeTask, "Task"),
+    statusUnreported: resolveLabel((t.filters as any)?.statusUnreported, "Unreported"),
+    statusDraft: resolveLabel((t.filters as any)?.statusDraft, "Draft"),
+    statusOutstanding: resolveLabel(
+      (t.filters as any)?.statusOutstanding,
+      "Outstanding",
+    ),
+    statusApproved: resolveLabel((t.filters as any)?.statusApproved, "Approved"),
+    statusPaid: resolveLabel((t.filters as any)?.statusPaid, "Paid"),
+    statusDone: resolveLabel((t.filters as any)?.statusDone, "Done"),
+    dateThisMonth: resolveLabel((t.filters as any)?.dateThisMonth, "This month"),
+    dateLastMonth: resolveLabel((t.filters as any)?.dateLastMonth, "Last month"),
+    dateYearToDate: resolveLabel((t.filters as any)?.dateYearToDate, "Year to date"),
+    dateOn: resolveLabel((t.filters as any)?.dateOn, "On"),
+    dateAfter: resolveLabel((t.filters as any)?.dateAfter, "After"),
+    dateBefore: resolveLabel((t.filters as any)?.dateBefore, "Before"),
+    drawerTitle: resolveLabel((t.filters as any)?.drawerTitle, "Filters"),
+    drawerGeneral: resolveLabel((t.filters as any)?.drawerGeneral, "General"),
+    drawerExpenses: resolveLabel((t.filters as any)?.drawerExpenses, "Expenses"),
+    drawerReports: resolveLabel((t.filters as any)?.drawerReports, "Reports"),
+    drawerGroupBy: resolveLabel((t.filters as any)?.drawerGroupBy, "Group by"),
+    drawerHas: resolveLabel((t.filters as any)?.drawerHas, "Has"),
+    drawerKeywords: resolveLabel((t.filters as any)?.drawerKeywords, "Keywords"),
+    drawerLimit: resolveLabel((t.filters as any)?.drawerLimit, "Limit"),
+    drawerTo: resolveLabel((t.filters as any)?.drawerTo, "To"),
+    drawerAmount: resolveLabel((t.filters as any)?.drawerAmount, "Amount"),
+    drawerApproved: resolveLabel((t.filters as any)?.drawerApproved, "Approved"),
+    drawerBillable: resolveLabel((t.filters as any)?.drawerBillable, "Billable"),
+    groupByDate: resolveLabel((t.filters as any)?.groupByDate, "Date"),
+    groupByStatus: resolveLabel((t.filters as any)?.groupByStatus, "Status"),
+    groupByType: resolveLabel((t.filters as any)?.groupByType, "Type"),
+    groupByBank: resolveLabel((t.filters as any)?.groupByBank, "Bank"),
+    groupByUser: resolveLabel((t.filters as any)?.groupByUser, "User"),
+    groupByAmount: resolveLabel((t.filters as any)?.groupByAmount, "Amount"),
+    hasErrors: resolveLabel((t.filters as any)?.hasErrors, "Errors"),
+    hasLogs: resolveLabel((t.filters as any)?.hasLogs, "Logs"),
+    hasTransactions: resolveLabel((t.filters as any)?.hasTransactions, "Transactions"),
+    hasDateRange: resolveLabel((t.filters as any)?.hasDateRange, "Date range"),
+    hasCurrency: resolveLabel((t.filters as any)?.hasCurrency, "Currency"),
+    columnReceipt: resolveLabel((t.filters as any)?.columnReceipt, "Receipt"),
+    columnDate: resolveLabel((t.filters as any)?.columnDate, "Date"),
+    columnMerchant: resolveLabel((t.filters as any)?.columnMerchant, "Merchant"),
+    columnFrom: resolveLabel((t.filters as any)?.columnFrom, "From"),
+    columnTo: resolveLabel((t.filters as any)?.columnTo, "To"),
+    columnCategory: resolveLabel((t.filters as any)?.columnCategory, "Category"),
+    columnTag: resolveLabel((t.filters as any)?.columnTag, "Tag"),
+    columnAmount: resolveLabel((t.filters as any)?.columnAmount, "Amount"),
+    columnAction: resolveLabel((t.filters as any)?.columnAction, "Action"),
+    columnApproved: resolveLabel((t.filters as any)?.columnApproved, "Approved"),
+    columnBillable: resolveLabel((t.filters as any)?.columnBillable, "Billable"),
+    columnCard: resolveLabel((t.filters as any)?.columnCard, "Card"),
+    columnDescription: resolveLabel((t.filters as any)?.columnDescription, "Description"),
+    columnExchangeRate: resolveLabel(
+      (t.filters as any)?.columnExchangeRate,
+      "Exchange rate",
+    ),
+    columnExported: resolveLabel((t.filters as any)?.columnExported, "Exported"),
+    columnExportedTo: resolveLabel((t.filters as any)?.columnExportedTo, "Exported to"),
+    columnsTitle: resolveLabel((t.filters as any)?.columnsTitle, "Columns"),
+  };
+
+  const typeOptions = [
+    { value: "expense", label: filterOptionLabels.typeExpense },
+    { value: "expense_report", label: filterOptionLabels.typeReport },
+    { value: "chat", label: filterOptionLabels.typeChat },
+    { value: "trip", label: filterOptionLabels.typeTrip },
+    { value: "task", label: filterOptionLabels.typeTask },
+    { value: "pdf", label: "PDF" },
+    { value: "xlsx", label: "Excel" },
+    { value: "csv", label: "CSV" },
+    { value: "image", label: "Image" },
+  ];
+
+  const statusOptions = [
+    { value: "unreported", label: filterOptionLabels.statusUnreported },
+    { value: "draft", label: filterOptionLabels.statusDraft },
+    { value: "outstanding", label: filterOptionLabels.statusOutstanding },
+    { value: "approved", label: filterOptionLabels.statusApproved },
+    { value: "paid", label: filterOptionLabels.statusPaid },
+    { value: "done", label: filterOptionLabels.statusDone },
+  ];
+
+  const datePresets = [
+    { value: "thisMonth" as const, label: filterOptionLabels.dateThisMonth },
+    { value: "lastMonth" as const, label: filterOptionLabels.dateLastMonth },
+    { value: "yearToDate" as const, label: filterOptionLabels.dateYearToDate },
+  ];
+
+  const dateModes = [
+    { value: "on" as const, label: filterOptionLabels.dateOn },
+    { value: "after" as const, label: filterOptionLabels.dateAfter },
+    { value: "before" as const, label: filterOptionLabels.dateBefore },
+  ];
+
+  const groupByOptions = [
+    { value: "date", label: filterOptionLabels.groupByDate },
+    { value: "status", label: filterOptionLabels.groupByStatus },
+    { value: "type", label: filterOptionLabels.groupByType },
+    { value: "bank", label: filterOptionLabels.groupByBank },
+    { value: "user", label: filterOptionLabels.groupByUser },
+    { value: "amount", label: filterOptionLabels.groupByAmount },
+  ];
+
+  const hasOptions = [
+    { value: "errors", label: filterOptionLabels.hasErrors },
+    { value: "processingDetails", label: filterOptionLabels.hasLogs },
+    { value: "transactions", label: filterOptionLabels.hasTransactions },
+    { value: "dateRange", label: filterOptionLabels.hasDateRange },
+    { value: "currency", label: filterOptionLabels.hasCurrency },
+  ];
+
+  const columnLabels = {
+    receipt: filterOptionLabels.columnReceipt,
+    date: filterOptionLabels.columnDate,
+    merchant: filterOptionLabels.columnMerchant,
+    from: filterOptionLabels.columnFrom,
+    to: filterOptionLabels.columnTo,
+    category: filterOptionLabels.columnCategory,
+    tag: filterOptionLabels.columnTag,
+    amount: filterOptionLabels.columnAmount,
+    action: filterOptionLabels.columnAction,
+    approved: filterOptionLabels.columnApproved,
+    billable: filterOptionLabels.columnBillable,
+    card: filterOptionLabels.columnCard,
+    description: filterOptionLabels.columnDescription,
+    exchangeRate: filterOptionLabels.columnExchangeRate,
+    exported: filterOptionLabels.columnExported,
+    exportedTo: filterOptionLabels.columnExportedTo,
+  };
+
+  const columnsWithLabels = useMemo(() => {
+    return draftColumns.map((column) => ({
+      ...column,
+      label: columnLabels[column.id] ?? column.label,
+    }));
+  }, [draftColumns, columnLabels]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -211,6 +410,15 @@ export default function StatementsListView({ stage }: Props) {
     loadStatements({ page, search });
   }, [user, page, search]);
 
+  useEffect(() => {
+    const storedFilters = loadStatementFilters();
+    setDraftFilters(storedFilters);
+    setAppliedFilters(storedFilters);
+    const storedColumns = loadStatementColumns();
+    setColumns(storedColumns);
+    setDraftColumns(storedColumns);
+  }, []);
+
   const filteredStatements = useMemo(() => {
     const query = searchInput.trim().toLowerCase();
     if (!query) return statements;
@@ -225,6 +433,10 @@ export default function StatementsListView({ stage }: Props) {
       return currentStage === stage;
     });
   }, [filteredStatements, stage]);
+
+  const displayStatements = useMemo(() => {
+    return applyStatementsFilters<Statement>(stagedStatements, appliedFilters);
+  }, [stagedStatements, appliedFilters]);
 
   const loadStatements = async (opts?: {
     silent?: boolean;
@@ -317,6 +529,145 @@ export default function StatementsListView({ stage }: Props) {
     }
   };
 
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (appliedFilters.type) count += 1;
+    if (appliedFilters.statuses.length > 0) count += 1;
+    if (appliedFilters.date?.preset || appliedFilters.date?.mode) count += 1;
+    if (appliedFilters.from.length > 0) count += 1;
+    if (appliedFilters.to.length > 0) count += 1;
+    if (appliedFilters.keywords.trim()) count += 1;
+    if (appliedFilters.amountMin !== null || appliedFilters.amountMax !== null) count += 1;
+    if (appliedFilters.approved !== null) count += 1;
+    if (appliedFilters.billable !== null) count += 1;
+    if (appliedFilters.groupBy) count += 1;
+    if (appliedFilters.has.length > 0) count += 1;
+    if (appliedFilters.currencies.length > 0) count += 1;
+    if (appliedFilters.exported !== null) count += 1;
+    if (appliedFilters.paid !== null) count += 1;
+    if (appliedFilters.limit !== null) count += 1;
+    return count;
+  }, [appliedFilters]);
+
+  const updateFilter = (next: Partial<StatementFilters>) => {
+    setDraftFilters((prev) => ({ ...prev, ...next }));
+  };
+
+  const applyFilterChanges = () => {
+    setAppliedFilters(draftFilters);
+    saveStatementFilters(draftFilters);
+  };
+
+  const resetFilterChanges = (key: keyof StatementFilters) => {
+    const next = { ...draftFilters, [key]: DEFAULT_STATEMENT_FILTERS[key] } as StatementFilters;
+    setDraftFilters(next);
+  };
+
+  const applyAndClose = (close: () => void) => {
+    applyFilterChanges();
+    close();
+  };
+
+  const resetAndClose = (key: keyof StatementFilters, close: () => void) => {
+    resetFilterChanges(key);
+    setTimeout(() => {
+      applyFilterChanges();
+      close();
+    }, 0);
+  };
+
+  const resetAllFilters = () => {
+    setDraftFilters(DEFAULT_STATEMENT_FILTERS);
+    setAppliedFilters(DEFAULT_STATEMENT_FILTERS);
+    saveStatementFilters(DEFAULT_STATEMENT_FILTERS);
+  };
+
+  const updateColumnsToggle = (id: StatementColumnId, visible: boolean) => {
+    setDraftColumns((prev) =>
+      prev.map((column) =>
+        column.id === id
+          ? {
+              ...column,
+              visible,
+            }
+          : column,
+      ),
+    );
+  };
+
+  const handleSaveColumns = () => {
+    const next = draftColumns.map((column, index) => ({ ...column, order: index }));
+    setColumns(next);
+    saveStatementColumns(next);
+    setColumnsDrawerOpen(false);
+  };
+
+  const handleColumnsOpen = () => {
+    setDraftColumns(columns);
+    setColumnsDrawerOpen(true);
+  };
+
+  const fromOptions = useMemo(() => {
+    const seen = new Map<
+      string,
+      {
+        id: string;
+        label: string;
+        description?: string | null;
+        avatarUrl?: string | null;
+        bankName?: string | null;
+      }
+    >();
+    const addOption = (
+      id: string,
+      option: {
+        id: string;
+        label: string;
+        description?: string | null;
+        avatarUrl?: string | null;
+        bankName?: string | null;
+      },
+    ) => {
+      if (!seen.has(id)) {
+        seen.set(id, option);
+      }
+    };
+
+    stagedStatements.forEach((statement) => {
+      if (statement.user?.id) {
+        addOption(`user:${statement.user.id}`, {
+          id: `user:${statement.user.id}`,
+          label: statement.user.name || statement.user.email || "User",
+          description: statement.user.email ? `@${statement.user.email.split("@")[0]}` : null,
+          avatarUrl: statement.user.avatarUrl || null,
+        });
+      }
+      if (statement.bankName) {
+        addOption(`bank:${statement.bankName}`, {
+          id: `bank:${statement.bankName}`,
+          label: getBankDisplayName(statement.bankName),
+          description: null,
+          bankName: statement.bankName,
+        });
+      }
+    });
+
+    return Array.from(seen.values());
+  }, [stagedStatements]);
+
+  const toOptions = fromOptions;
+
+  const currencyOptions = useMemo(() => {
+    const unique = new Set<string>();
+    stagedStatements.forEach((statement) => {
+      const currency = resolveStatementCurrency(statement);
+      if (currency) {
+        unique.add(currency);
+      }
+    });
+    return Array.from(unique.values());
+  }, [stagedStatements]);
+
   return (
     <div className="container-shared px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-6 space-y-3">
@@ -342,27 +693,128 @@ export default function StatementsListView({ stage }: Props) {
           </button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className={filterChipClassName}>
-            {filterLabels.type}
-            <ChevronDown className="h-4 w-4 text-gray-600" />
-          </button>
-          <button type="button" className={filterChipClassName}>
-            {filterLabels.status}
-            <ChevronDown className="h-4 w-4 text-gray-600" />
-          </button>
-          <button type="button" className={filterChipClassName}>
-            {filterLabels.date}
-            <ChevronDown className="h-4 w-4 text-gray-600" />
-          </button>
-          <button type="button" className={filterChipClassName}>
-            {filterLabels.from}
-            <ChevronDown className="h-4 w-4 text-gray-600" />
-          </button>
-          <button type="button" className={filterLinkClassName}>
+          <TypeFilterDropdown
+            open={typeDropdownOpen}
+            onOpenChange={setTypeDropdownOpen}
+            options={typeOptions}
+            value={draftFilters.type}
+            onChange={(value) => updateFilter({ type: value })}
+            onApply={() => applyAndClose(() => setTypeDropdownOpen(false))}
+            onReset={() => resetAndClose("type", () => setTypeDropdownOpen(false))}
+            trigger={
+              <button
+                type="button"
+                className={draftFilters.type ? filterChipActiveClassName : filterChipClassName}
+              >
+                {draftFilters.type
+                  ? typeOptions.find((option) => option.value === draftFilters.type)?.label ||
+                    filterLabels.type
+                  : filterLabels.type}
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            }
+            applyLabel={filterOptionLabels.apply}
+            resetLabel={filterOptionLabels.reset}
+          />
+
+          <StatusFilterDropdown
+            open={statusDropdownOpen}
+            onOpenChange={setStatusDropdownOpen}
+            options={statusOptions}
+            values={draftFilters.statuses}
+            onChange={(values) => updateFilter({ statuses: values })}
+            onApply={() => applyAndClose(() => setStatusDropdownOpen(false))}
+            onReset={() => resetAndClose("statuses", () => setStatusDropdownOpen(false))}
+            trigger={
+              <button
+                type="button"
+                className={
+                  draftFilters.statuses.length > 0
+                    ? filterChipActiveClassName
+                    : filterChipClassName
+                }
+              >
+                {draftFilters.statuses.length > 0
+                  ? `${filterLabels.status} (${draftFilters.statuses.length})`
+                  : filterLabels.status}
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            }
+            applyLabel={filterOptionLabels.apply}
+            resetLabel={filterOptionLabels.reset}
+          />
+
+          <DateFilterDropdown
+            open={dateDropdownOpen}
+            onOpenChange={setDateDropdownOpen}
+            presets={datePresets}
+            modes={dateModes}
+            value={draftFilters.date}
+            onChange={(value) => updateFilter({ date: value })}
+            onApply={() => applyAndClose(() => setDateDropdownOpen(false))}
+            onReset={() => resetAndClose("date", () => setDateDropdownOpen(false))}
+            trigger={
+              <button
+                type="button"
+                className={draftFilters.date ? filterChipActiveClassName : filterChipClassName}
+              >
+                {draftFilters.date?.preset
+                  ? datePresets.find((option) => option.value === draftFilters.date?.preset)?.label
+                  : draftFilters.date?.mode
+                    ? dateModes.find((option) => option.value === draftFilters.date?.mode)?.label
+                    : filterLabels.date}
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            }
+            applyLabel={filterOptionLabels.apply}
+            resetLabel={filterOptionLabels.reset}
+          />
+
+          <FromFilterDropdown
+            open={fromDropdownOpen}
+            onOpenChange={setFromDropdownOpen}
+            options={fromOptions}
+            values={draftFilters.from}
+            onChange={(values) => updateFilter({ from: values })}
+            onApply={() => applyAndClose(() => setFromDropdownOpen(false))}
+            onReset={() => resetAndClose("from", () => setFromDropdownOpen(false))}
+            trigger={
+              <button
+                type="button"
+                className={
+                  draftFilters.from.length > 0
+                    ? filterChipActiveClassName
+                    : filterChipClassName
+                }
+              >
+                {draftFilters.from.length > 0
+                  ? `${filterLabels.from} (${draftFilters.from.length})`
+                  : filterLabels.from}
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            }
+            applyLabel={filterOptionLabels.apply}
+            resetLabel={filterOptionLabels.reset}
+          />
+
+          <button
+            type="button"
+            className={filterLinkClassName}
+            onClick={() => {
+              setDraftFilters(appliedFilters);
+              setFiltersDrawerScreen("root");
+              setFiltersDrawerOpen(true);
+            }}
+          >
             <SlidersHorizontal className="h-4 w-4" />
             {filterLabels.filters}
+            {activeFilterCount > 0 ? (
+              <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                {activeFilterCount}
+              </span>
+            ) : null}
           </button>
-          <button type="button" className={filterLinkClassName}>
+          <button type="button" className={filterLinkClassName} onClick={handleColumnsOpen}>
             <Columns2 className="h-4 w-4" />
             {filterLabels.columns}
           </button>
@@ -374,7 +826,7 @@ export default function StatementsListView({ stage }: Props) {
           <div className="flex justify-center items-center h-64">
             <LoadingAnimation size="lg" />
           </div>
-        ) : stagedStatements.length === 0 ? (
+        ) : displayStatements.length === 0 ? (
           <div className="text-center py-20 px-4">
             <div className="mx-auto h-16 w-16 text-gray-300 mb-4 bg-gray-50 rounded-full flex items-center justify-center">
               <File className="h-8 w-8" />
@@ -409,7 +861,7 @@ export default function StatementsListView({ stage }: Props) {
                 <div className="w-28 text-right">{listHeaderLabels.amount}</div>
                 <div className="w-28 text-right">{listHeaderLabels.action}</div>
               </div>
-              {stagedStatements.map((statement) => {
+              {displayStatements.map((statement) => {
                 const resolvedName = getBankDisplayName(statement.bankName);
                 const merchantLabel = getStatementMerchantLabel(
                   statement.status,
@@ -518,6 +970,70 @@ export default function StatementsListView({ stage }: Props) {
           fileName={previewFileName}
         />
       )}
+
+      <FiltersDrawer
+        open={filtersDrawerOpen}
+        onClose={() => setFiltersDrawerOpen(false)}
+        filters={draftFilters}
+        screen={filtersDrawerScreen}
+        onBack={() => setFiltersDrawerScreen("root")}
+        onSelect={(field) => setFiltersDrawerScreen(field)}
+        onUpdateFilters={updateFilter}
+        onResetAll={resetAllFilters}
+        onViewResults={() => {
+          applyFilterChanges();
+          setFiltersDrawerOpen(false);
+        }}
+        typeOptions={typeOptions}
+        statusOptions={statusOptions}
+        datePresets={datePresets}
+        dateModes={dateModes}
+        fromOptions={fromOptions}
+        toOptions={toOptions}
+        groupByOptions={groupByOptions}
+        hasOptions={hasOptions}
+        currencyOptions={currencyOptions}
+        labels={{
+          title: filterOptionLabels.drawerTitle,
+          viewResults: filterOptionLabels.viewResults,
+          saveSearch: filterOptionLabels.saveSearch,
+          resetFilters: filterOptionLabels.resetFilters,
+          general: filterOptionLabels.drawerGeneral,
+          expenses: filterOptionLabels.drawerExpenses,
+          reports: filterOptionLabels.drawerReports,
+          type: filterLabels.type,
+          from: filterLabels.from,
+          groupBy: filterOptionLabels.drawerGroupBy,
+          has: filterOptionLabels.drawerHas,
+          keywords: filterOptionLabels.drawerKeywords,
+          limit: filterOptionLabels.drawerLimit,
+          status: filterLabels.status,
+          to: filterOptionLabels.drawerTo,
+          amount: filterOptionLabels.drawerAmount,
+          approved: filterOptionLabels.drawerApproved,
+          billable: filterOptionLabels.drawerBillable,
+          currency: filterOptionLabels.hasCurrency,
+          date: filterLabels.date,
+          exported: filterOptionLabels.columnExported,
+          paid: filterOptionLabels.statusPaid,
+          any: filterOptionLabels.any,
+          yes: filterOptionLabels.yes,
+          no: filterOptionLabels.no,
+        }}
+        activeCount={activeFilterCount}
+      />
+
+      <ColumnsDrawer
+        open={columnsDrawerOpen}
+        onClose={() => setColumnsDrawerOpen(false)}
+        columns={columnsWithLabels}
+        onToggle={updateColumnsToggle}
+        onSave={handleSaveColumns}
+        labels={{
+          title: filterOptionLabels.columnsTitle,
+          save: filterOptionLabels.save,
+        }}
+      />
 
       {uploadModalOpen && (
         <dialog

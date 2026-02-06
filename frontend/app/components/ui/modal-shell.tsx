@@ -46,7 +46,7 @@ const sizeClasses: Record<ModalSize, string> = {
  * ModalShell - Unified modal wrapper component
  *
  * Provides consistent styling, animations, and behavior for all modals:
- * - Backdrop blur effect
+ * - Backdrop overlay
  * - Fade-in/zoom-in animations
  * - Body scroll lock
  * - Keyboard (ESC) support
@@ -107,7 +107,7 @@ export function ModalShell({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200"
+        className="absolute inset-0 bg-black/30 animate-in fade-in duration-200"
         onClick={handleBackdropClick}
         onKeyDown={e => {
           if (e.key === 'Enter' || e.key === ' ') {

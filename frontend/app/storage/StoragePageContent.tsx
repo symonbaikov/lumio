@@ -2451,7 +2451,7 @@ export function StoragePageContent({
         {activeModal === "folders" && (
           <>
             <div
-              className="fixed inset-0 z-70 bg-black/30 backdrop-blur-sm"
+              className="fixed inset-0 z-70 bg-black/30"
               role="button"
               tabIndex={0}
               onClick={closeModal}
@@ -3082,7 +3082,7 @@ export function StoragePageContent({
         {filterOpen && (
           <>
             <div
-              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
+              className="fixed inset-0 z-50 bg-black/40 transition-opacity duration-300"
               role="button"
               tabIndex={0}
               onClick={() => setFilterOpen(false)}

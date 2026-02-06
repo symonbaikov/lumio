@@ -684,7 +684,7 @@ export default function ReceiptsPage() {
       {uploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity"
+            className="absolute inset-0 bg-black/30 transition-opacity"
             role="button"
             tabIndex={0}
             onClick={() => {

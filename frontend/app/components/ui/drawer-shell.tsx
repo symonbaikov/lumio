@@ -61,7 +61,7 @@ const positionClasses: Record<DrawerPosition, { container: string; open: string;
  *
  * Provides consistent styling and behavior for all drawers:
  * - Slide-in animation from left or right
- * - Backdrop with blur effect
+ * - Backdrop overlay
  * - Body scroll lock
  * - Keyboard (ESC) support
  */
@@ -79,12 +79,32 @@ export function DrawerShell({
   lockScroll = true,
 }: DrawerShellProps) {
   const [mounted, setMounted] = React.useState(false);
+  const [isRendered, setIsRendered] = React.useState(false);
+  const [isVisible, setIsVisible] = React.useState(false);
 
   useLockBodyScroll(isOpen && lockScroll);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsRendered(true);
+      const frame = requestAnimationFrame(() => {
+        setIsVisible(true);
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+
+    if (!isOpen && isRendered) {
+      setIsVisible(false);
+      const timer = window.setTimeout(() => {
+        setIsRendered(false);
+      }, 300);
+      return () => window.clearTimeout(timer);
+    }
+  }, [isOpen, isRendered]);
 
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
@@ -108,22 +128,26 @@ export function DrawerShell({
     }
   }, [closeOnBackdropClick, onClose]);
 
-  if (!mounted) return null;
+  if (!mounted || !isRendered) return null;
 
   const positionConfig = positionClasses[position];
 
   const drawer = (
     <dialog
-      className={cn('fixed inset-0 z-[2000]', isOpen ? '' : 'pointer-events-none')}
-      open={isOpen}
-      aria-modal="true"
+      className={cn(
+        'fixed inset-0 z-[2000] m-0 h-screen w-screen max-h-none max-w-none border-0 bg-transparent p-0',
+        isVisible ? '' : 'pointer-events-none',
+      )}
+      open={isRendered}
+      aria-modal={isOpen}
+      aria-hidden={!isOpen}
       aria-labelledby={title ? 'drawer-title' : undefined}
     >
       {/* Backdrop */}
       <div
         className={cn(
-          'absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-200',
-          isOpen ? 'opacity-100' : 'opacity-0',
+          'absolute inset-0 bg-black/40 transition-opacity duration-200',
+          isVisible ? 'opacity-100' : 'opacity-0',
         )}
         onClick={handleBackdropClick}
         onKeyDown={e => {
@@ -138,11 +162,11 @@ export function DrawerShell({
       {/* Drawer container */}
       <div
         className={cn(
-          'fixed w-full overflow-y-auto bg-white shadow-2xl',
+          'fixed w-full h-full overflow-hidden bg-white shadow-2xl flex flex-col',
           'transition-transform duration-300 ease-out',
           'border-gray-200',
           positionConfig.container,
-          isOpen ? positionConfig.open : positionConfig.closed,
+          isVisible ? positionConfig.open : positionConfig.closed,
           widthClasses[width],
           className,
         )}
@@ -177,7 +201,7 @@ export function DrawerShell({
         )}
 
         {/* Content */}
-        <div className="p-6">{children}</div>
+        <div className="p-6 flex h-full flex-col">{children}</div>
       </div>
     </dialog>
   );

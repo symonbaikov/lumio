@@ -25,6 +25,11 @@ const content = {
       from: t({ ru: 'От', en: 'From', kk: 'Бастап' }),
       filters: t({ ru: 'Фильтры', en: 'Filters', kk: 'Сүзгілер' }),
       columns: t({ ru: 'Колонки', en: 'Columns', kk: 'Бағандар' }),
+      resetFilters: t({ ru: 'Сбросить фильтры', en: 'Reset filters', kk: 'Сүзгілерді тазалау' }),
+      saveSearch: t({ ru: 'Сохранить поиск', en: 'Save search', kk: 'Іздеуді сақтау' }),
+      yes: t({ ru: 'Да', en: 'Yes', kk: 'Иә' }),
+      no: t({ ru: 'Нет', en: 'No', kk: 'Жоқ' }),
+      drawerReports: t({ ru: 'Отчеты', en: 'Reports', kk: 'Есептер' }),
     },
     listHeader: {
       receipt: t({ ru: 'Чек', en: 'Receipt', kk: 'Чек' }),
