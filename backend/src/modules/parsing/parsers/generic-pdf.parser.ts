@@ -14,10 +14,10 @@ export class GenericPdfParser extends BaseParser {
     _filePath: string,
     cachedText?: string,
   ): Promise<boolean> {
-    if (cachedText) {
-      // cachedText intentionally unused; presence implies text already extracted upstream
-    }
-    return bankName === BankName.OTHER && fileType === FileType.PDF;
+    const cachedTextLength = cachedText?.length ?? 0;
+    return (
+      bankName === BankName.OTHER && fileType === FileType.PDF && cachedTextLength >= 0
+    );
   }
 
   async parse(filePath: string, cachedText?: string): Promise<ParsedStatement> {
