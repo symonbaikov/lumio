@@ -64,7 +64,7 @@ export class ImportSessionController {
 
     if (
       statement.status === StatementStatus.COMPLETED ||
-      statement.status === StatementStatus.PARSED
+      (statement.totalTransactions ?? 0) > 0
     ) {
       return {
         statementId: statement.id,
@@ -100,7 +100,10 @@ export class ImportSessionController {
       | { sessionId?: string }
       | undefined;
     if (!importPreview?.sessionId) {
-      if (statement.status === StatementStatus.COMPLETED) {
+      if (
+        statement.status === StatementStatus.COMPLETED ||
+        (statement.totalTransactions ?? 0) > 0
+      ) {
         return {
           statementId: statement.id,
           status: statement.status,

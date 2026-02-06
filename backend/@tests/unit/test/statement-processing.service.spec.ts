@@ -220,4 +220,13 @@ describe('StatementProcessingService', () => {
     await expect(service.commitImport(statement.id)).resolves.toBe(statement);
     expect(importSessionService.processImport).not.toHaveBeenCalled();
   });
+
+  it('returns statement when parsed but transactions already exist', async () => {
+    statement.status = StatementStatus.PARSED;
+    statement.totalTransactions = 2;
+    statement.parsingDetails = null;
+
+    await expect(service.commitImport(statement.id)).resolves.toBe(statement);
+    expect(importSessionService.processImport).not.toHaveBeenCalled();
+  });
 });
