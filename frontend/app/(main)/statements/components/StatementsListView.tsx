@@ -508,7 +508,7 @@ export default function StatementsListView({ stage }: Props) {
       toast.success(resolveLabel(t.uploadModal?.uploadedProcessing, "Files uploaded"));
       setUploadModalOpen(false);
       setUploadFiles([]);
-      loadStatements({ page: 1, search, notifyOnCompletion: true });
+      await loadStatements({ page: 1, search, notifyOnCompletion: false });
     } catch (error) {
       console.error("Failed to upload statements:", error);
       setUploadError(resolveLabel(t.uploadModal?.uploadFailed, "Failed to upload files"));
