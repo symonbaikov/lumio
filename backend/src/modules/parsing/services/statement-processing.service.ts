@@ -16,7 +16,6 @@ import { CrossStatementDeduplicationService } from '../../transactions/services/
 import { TransactionFingerprintService } from '../../transactions/services/transaction-fingerprint.service';
 import { extractTextFromPdf } from '../../../common/utils/pdf-parser.util';
 import { AiParseValidator } from '../helpers/ai-parse-validator.helper';
-import { isAiEnabled } from '../helpers/ai-runtime.util';
 import type { ParsedTransaction } from '../interfaces/parsed-statement.interface';
 import type { ParsedStatement } from '../interfaces/parsed-statement.interface';
 import { MetadataExtractionService } from './metadata-extraction.service';
@@ -579,13 +578,7 @@ export class StatementProcessingService {
         if (!aiEnabled) {
           addLog('info', 'AI reconciliation disabled (set AI_PARSING_ENABLED=1 to enable)');
         } else {
-          const aiFlag = isAiEnabled();
-          addLog(
-            'info',
-            aiFlag
-              ? 'AI reconciliation skipped (no GEMINI_API_KEY set)'
-              : 'AI reconciliation skipped (AI_PARSING_ENABLED=0)',
-          );
+          addLog('info', 'AI reconciliation skipped (no GEMINI_API_KEY set)');
         }
         this.reportAi('validate', 'skipped');
       }
