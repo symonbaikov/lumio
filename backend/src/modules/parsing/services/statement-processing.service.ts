@@ -616,62 +616,31 @@ export class StatementProcessingService {
         statement.userId,
       );
 
-      addLog('info', 'Preparing preview import session...');
+      addLog('info', 'Creating transactions...');
       if (!statement.workspaceId) {
         throw new Error('Statement workspaceId is missing');
       }
 
-      const fingerprintStartTime = Date.now();
-      const fingerprintMap = this.transactionFingerprintService.bulkGenerateFingerprints(
-        parsedStatement.transactions.map((tx, index) => ({
-          id: `${index}`,
-          workspaceId: statement.workspaceId,
-          transactionDate: tx.transactionDate,
-          amount: tx.debit ?? tx.credit ?? null,
-          debit: tx.debit,
-          credit: tx.credit,
-          currency: tx.currency || statement.currency || 'KZT',
-          counterpartyName: tx.counterpartyName,
-          transactionType:
-            tx.debit && tx.debit > 0 ? TransactionType.EXPENSE : TransactionType.INCOME,
-        })),
-        statement.accountNumber || '',
-      );
-      addLog(
-        'info',
-        `Generated ${fingerprintMap.size} fingerprints in ${Date.now() - fingerprintStartTime}ms`,
-      );
-
-      const session = await this.importSessionService.createSession(
-        statement.workspaceId,
-        statement.userId,
-        statement.id,
-        ImportSessionMode.PREVIEW,
-        statement.fileHash,
-        statement.fileName,
-        statement.fileSize,
-      );
-
-      const previewResult = await this.importSessionService.processImport(
-        session.id,
+      const creationResult = await this.createTransactions(
+        statement,
         parsedStatement.transactions,
-        ImportSessionMode.PREVIEW,
+        statement.userId,
+        majorityCategory.categoryId,
+        addLog,
       );
-      const previewSession = await this.importSessionService.getSession(session.id);
-      const previewMetadata = previewSession.sessionMetadata || previewResult.summary;
 
-      parsingDetails.importPreview = {
-        sessionId: previewSession.id,
-        ...(previewMetadata as Record<string, any>),
-        transactions: this.serializePreviewTransactions(parsedStatement.transactions),
-      };
+      parsingDetails.transactionsCreated = creationResult.transactions.length;
+      parsingDetails.transactionsDeduplicated = creationResult.duplicatesSkipped;
 
-      parsingDetails.transactionsCreated = 0;
-      parsingDetails.transactionsDeduplicated = 0;
-
-      statement.totalTransactions = parsedStatement.transactions.length;
-      statement.totalDebit = parsedStatement.transactions.reduce((sum, t) => sum + (t.debit ?? 0), 0);
-      statement.totalCredit = parsedStatement.transactions.reduce((sum, t) => sum + (t.credit ?? 0), 0);
+      statement.totalTransactions = creationResult.transactions.length;
+      statement.totalDebit = creationResult.transactions.reduce(
+        (sum, t) => sum + (t.debit ?? 0),
+        0,
+      );
+      statement.totalCredit = creationResult.transactions.reduce(
+        (sum, t) => sum + (t.credit ?? 0),
+        0,
+      );
       if (majorityCategory.categoryId) {
         statement.categoryId = majorityCategory.categoryId;
       }
@@ -692,7 +661,7 @@ export class StatementProcessingService {
         });
       }
 
-      const finalStatus = StatementStatus.PARSED;
+      const finalStatus = StatementStatus.COMPLETED;
 
       // Update status
       const totalTime = Date.now() - startTime;

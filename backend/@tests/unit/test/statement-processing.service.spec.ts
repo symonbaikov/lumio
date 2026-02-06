@@ -1,3 +1,7 @@
+jest.mock('franc', () => ({
+  franc: () => 'und',
+}));
+
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -12,6 +16,7 @@ describe('StatementProcessingService', () => {
     id: 'stmt-1',
     userId: 'user-1',
     user: null as any,
+    workspaceId: 'ws-1',
     fileName: 'sample.pdf',
     filePath: tempFilePath,
     fileType: FileType.PDF,
@@ -63,6 +68,29 @@ describe('StatementProcessingService', () => {
       categoryId: 'cat-1',
       type: 'expense' as any,
     })),
+  };
+
+  const metadataExtractionService = {
+    extractMetadata: jest.fn(async () => null),
+    createDisplayInfo: jest.fn(() => ({
+      title: 'Statement',
+      subtitle: '',
+      periodDisplay: '',
+      accountDisplay: '',
+      institutionDisplay: '',
+      currencyDisplay: '',
+    })),
+    convertToParsedStatementMetadata: jest.fn(() => ({})),
+  };
+
+  const importSessionService = {
+    createSession: jest.fn(async () => ({ id: 'session-1' })),
+    processImport: jest.fn(async () => ({ summary: {} })),
+    getSession: jest.fn(async () => ({ id: 'session-1', sessionMetadata: {} })),
+  };
+
+  const transactionFingerprintService = {
+    bulkGenerateFingerprints: jest.fn(() => new Map()),
   };
 
   const parsedStatement: ParsedStatement = {
@@ -130,7 +158,9 @@ describe('StatementProcessingService', () => {
       transactionRepository as any,
       parserFactory as any,
       classificationService as any,
-      undefined,
+      metadataExtractionService as any,
+      importSessionService as any,
+      transactionFingerprintService as any,
     );
 
     // Disable AI reconciliation for deterministic tests
@@ -147,20 +177,23 @@ describe('StatementProcessingService', () => {
     }
   });
 
-  it('fills statement metadata and transactions with parsed details', async () => {
+  it('persists parsed transactions and marks statement completed', async () => {
     await service.processStatement(statement.id);
 
     expect(statement.accountNumber).toBe('KZACC123');
     expect(statement.statementDateFrom?.toISOString()).toContain('2024-01-05');
     expect(statement.statementDateTo?.toISOString()).toContain('2024-01-10');
     expect(statement.currency).toBe('USD');
-    expect(statement.status).toBe(StatementStatus.PARSED);
+    expect(statement.status).toBe(StatementStatus.COMPLETED);
 
     expect(statement.parsingDetails?.metadataExtracted).toMatchObject({
       accountNumber: 'KZACC123',
       currency: 'USD',
     });
     expect(statement.parsingDetails?.transactionsFound).toBe(2);
+    expect(statement.parsingDetails?.transactionsCreated).toBe(2);
+    expect(statement.parsingDetails?.transactionsDeduplicated).toBe(0);
+    expect(statement.parsingDetails?.importPreview).toBeUndefined();
 
     expect(savedTransactions).toHaveLength(2);
     expect(savedTransactions[0]).toMatchObject({
@@ -175,5 +208,6 @@ describe('StatementProcessingService', () => {
     });
     expect(statement.totalDebit).toBe(100);
     expect(statement.totalCredit).toBe(200);
+    expect(statement.totalTransactions).toBe(2);
   });
 });
