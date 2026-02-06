@@ -34,7 +34,7 @@ export class StatementProcessingService {
   private aiValidator = new AiParseValidator();
   private static readonly inFlight = new Map<string, Promise<Statement>>();
   private static readonly parsingSemaphore = new Semaphore(
-    parsePositiveInt(process.env.STATEMENT_PARSING_CONCURRENCY, 2),
+    parsePositiveInt(process.env.STATEMENT_PARSING_CONCURRENCY, 5),
   );
   private static readonly BALANCE_EPS = (() => {
     const parsed = Number.parseFloat(process.env.BALANCE_EPS || '0.01');
