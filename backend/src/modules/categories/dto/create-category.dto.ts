@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import { CategoryType } from '../../../entities/category.entity';
 
 export class CreateCategoryDto {
@@ -19,4 +19,8 @@ export class CreateCategoryDto {
   @IsString()
   @IsOptional()
   icon?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isEnabled?: boolean;
 }

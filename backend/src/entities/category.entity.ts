@@ -63,6 +63,9 @@ export class Category {
   @Column({ name: 'is_system', default: false })
   isSystem: boolean;
 
+  @Column({ name: 'is_enabled', default: true })
+  isEnabled: boolean;
+
   @Column({ nullable: true })
   color: string;
 

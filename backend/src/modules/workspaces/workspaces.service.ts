@@ -28,6 +28,7 @@ import type { InviteMemberDto } from './dto/invite-member.dto';
 import type { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import type { WorkspaceResponseDto, WorkspaceStatsDto } from './dto/workspace-response.dto';
 import { AuditService } from '../audit/audit.service';
+import { CategoriesService } from '../categories/categories.service';
 
 const INVITATION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
@@ -45,6 +46,7 @@ export class WorkspacesService {
     @InjectRepository(Integration)
     private readonly integrationRepository: Repository<Integration>,
     private readonly auditService: AuditService,
+    private readonly categoriesService: CategoriesService,
   ) {}
 
   async ensureUserWorkspace(user: User): Promise<Workspace> {
@@ -71,6 +73,7 @@ export class WorkspacesService {
     });
 
     await this.userRepository.update(user.id, { workspaceId: savedWorkspace.id });
+    await this.categoriesService.createSystemCategories(savedWorkspace.id, user.id);
 
     return savedWorkspace;
   }
@@ -597,6 +600,7 @@ export class WorkspacesService {
     });
 
     await this.userRepository.update(userId, { lastWorkspaceId: savedWorkspace.id });
+    await this.categoriesService.createSystemCategories(savedWorkspace.id, userId);
 
     const stats = await this.getWorkspaceStats(savedWorkspace.id);
 

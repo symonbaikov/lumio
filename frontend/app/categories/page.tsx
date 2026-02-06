@@ -1,7 +1,6 @@
 'use client';
 
 import { useAuth } from '@/app/hooks/useAuth';
-import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import apiClient from '@/app/lib/api';
 import { cn } from '@/app/lib/utils';
 import { Icon } from '@iconify/react';
@@ -9,8 +8,6 @@ import {
   Add,
   Check,
   ChevronRight,
-  Delete,
-  Edit,
   FolderOutlined,
   MoreVert,
   Search as SearchIcon,
@@ -24,7 +21,6 @@ import {
   DialogTitle,
   FormControl,
   InputLabel,
-  Menu,
   MenuItem,
   Select,
   TextField,
@@ -41,6 +37,8 @@ interface Category {
   id: string;
   name: string;
   type: 'income' | 'expense';
+  isSystem?: boolean;
+  isEnabled?: boolean;
   color?: string;
   icon?: string;
   parentId?: string;
@@ -122,15 +120,9 @@ export default function CategoriesPage() {
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const iconInputRef = useRef<HTMLInputElement | null>(null);
 
-  // useLockBodyScroll(dialogOpen);
-
-  // Search & Filter state
+  // Search state
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
-
-  // Menu state for "..." actions
-  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const [menuTargetCategory, setMenuTargetCategory] = useState<Category | null>(null);
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
 
   // Form state
   const [formData, setFormData] = useState({
@@ -142,36 +134,8 @@ export default function CategoriesPage() {
   });
 
   const filteredCategories = categories.filter(cat => {
-    const matchesSearch = cat.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filterType === 'all' || cat.type === filterType;
-    return matchesSearch && matchesType;
+    return cat.name.toLowerCase().includes(searchQuery.toLowerCase());
   });
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, category: Category) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setMenuAnchorEl(event.currentTarget);
-    setMenuTargetCategory(category);
-  };
-
-  const handleMenuClose = () => {
-    setMenuAnchorEl(null);
-    setMenuTargetCategory(null);
-  };
-
-  const onEditFromMenu = () => {
-    if (menuTargetCategory) {
-      handleOpenDialog(menuTargetCategory);
-    }
-    handleMenuClose();
-  };
-
-  const onDeleteFromMenu = () => {
-    if (menuTargetCategory) {
-      handleDelete(menuTargetCategory.id);
-    }
-    handleMenuClose();
-  };
 
   useEffect(() => {
     if (user) {
@@ -246,18 +210,28 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(t.confirmDelete.value)) {
+  const handleToggleEnabled = async (category: Category) => {
+    if (togglingIds.has(category.id)) {
       return;
     }
 
+    setTogglingIds(prev => new Set(prev).add(category.id));
+
     try {
-      await apiClient.delete(`/categories/${id}`);
-      await loadCategories();
-      toast.success(t.toasts.deleted.value);
+      const nextEnabled = category.isEnabled === false;
+      await apiClient.put(`/categories/${category.id}`, { isEnabled: nextEnabled });
+      setCategories(prev =>
+        prev.map(item => (item.id === category.id ? { ...item, isEnabled: nextEnabled } : item)),
+      );
     } catch (error) {
-      console.error('Failed to delete category:', error);
-      toast.error(t.toasts.deleteFailed.value);
+      console.error('Failed to toggle category state:', error);
+      toast.error(t.toasts.saveFailed.value);
+    } finally {
+      setTogglingIds(prev => {
+        const next = new Set(prev);
+        next.delete(category.id);
+        return next;
+      });
     }
   };
 
@@ -331,45 +305,9 @@ export default function CategoriesPage() {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder={t.dialog.placeholderName.value}
+              placeholder={(t as any).searchPlaceholder?.value || 'Find category'}
               className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
             />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setFilterType('all')}
-              className={cn(
-                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                filterType === 'all'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-gray-600 hover:text-primary hover:bg-gray-100',
-              )}
-            >
-              {t.type.label}
-            </button>
-            <button
-              onClick={() => setFilterType('income')}
-              className={cn(
-                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                filterType === 'income'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-gray-600 hover:text-primary hover:bg-gray-100',
-              )}
-            >
-              {t.type.income}
-            </button>
-            <button
-              onClick={() => setFilterType('expense')}
-              className={cn(
-                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                filterType === 'expense'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-gray-600 hover:text-primary hover:bg-gray-100',
-              )}
-            >
-              {t.type.expense}
-            </button>
           </div>
         </div>
 
@@ -406,72 +344,50 @@ export default function CategoriesPage() {
             </div>
           ) : (
             <div className="space-y-3 px-2 pb-4">
-              {filteredCategories.map(category => (
+              {filteredCategories.map((category, index) => (
                 <div
                   key={category.id}
-                  className="flex flex-col gap-3 rounded-2xl bg-amber-50/40 px-4 py-4 transition-colors hover:bg-amber-50"
+                  className={cn(
+                    'flex items-center justify-between rounded-2xl px-4 py-4 transition-colors',
+                    index % 2 === 0 ? 'bg-white' : 'bg-slate-50/80',
+                  )}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
-                      <div
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/80"
-                        style={{
-                          backgroundColor: alpha(category.color || '#2196F3', 0.12),
-                          color: category.color || '#2196F3',
-                        }}
-                      >
-                        {resolveIconUrl(category.icon) ? (
-                          <img
-                            src={resolveIconUrl(category.icon) as string}
-                            alt=""
-                            className="h-5 w-5 object-contain"
-                          />
-                        ) : (
-                          <Icon icon={category.icon || 'mdi:tag'} width={20} height={20} />
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {category.name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {category.type === 'income' ? t.type.income : t.type.expense}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-6 w-11 items-center rounded-full bg-primary/20 px-1">
-                        <div className="h-4 w-4 rounded-full bg-primary shadow-sm" />
-                      </div>
-                      <ChevronRight className="text-gray-400" fontSize="small" />
-                    </div>
+                  <div className="flex items-center gap-3">
+                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
+                    <div className="text-lg font-semibold text-slate-900">{category.name}</div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center gap-3">
                     <button
-                      onClick={() => handleOpenDialog(category)}
-                      className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-primary hover:text-primary"
-                      title={t.actions.edit.value}
-                    >
-                      <Edit fontSize="inherit" />
-                      {t.actions.edit.value}
+                      type="button"
+                      onClick={event => {
+                        event.stopPropagation();
+                        handleToggleEnabled(category);
+                      }}
+                      disabled={togglingIds.has(category.id)}
+                      className={cn(
+                        'relative inline-flex h-8 w-[54px] items-center rounded-full transition-colors',
+                        category.isEnabled === false ? 'bg-gray-300' : 'bg-primary',
+                        togglingIds.has(category.id) ? 'opacity-60' : 'opacity-100',
+                      )}
+                      >
+                        <span
+                          className={cn(
+                            'inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform',
+                            category.isEnabled === false ? 'translate-x-1' : 'translate-x-7',
+                          )}
+                        />
                     </button>
                     <button
-                      onClick={() => handleDelete(category.id)}
-                      className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-red-200 hover:text-red-600"
-                      title={t.actions.delete.value}
+                      type="button"
+                      onClick={() => {
+                        if (!category.isSystem) {
+                          handleOpenDialog(category);
+                        }
+                      }}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-500"
                     >
-                      <Delete fontSize="inherit" />
-                      {t.actions.delete.value}
-                    </button>
-                    <button
-                      onClick={event => handleMenuOpen(event, category)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-primary/40 hover:text-primary"
-                      title="More"
-                    >
-                      <MoreVert fontSize="small" />
+                      <ChevronRight fontSize="small" />
                     </button>
                   </div>
                 </div>
@@ -480,38 +396,6 @@ export default function CategoriesPage() {
           )}
         </div>
       </div>
-
-      {/* Menu for Edit/Delete actions */}
-      <Menu
-        anchorEl={menuAnchorEl}
-        open={Boolean(menuAnchorEl)}
-        onClose={handleMenuClose}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        PaperProps={{
-          elevation: 0,
-          sx: {
-            mt: 0.5,
-            borderRadius: 2,
-            minWidth: 160,
-            overflow: 'hidden',
-            border: '1px solid',
-            borderColor: 'divider',
-          },
-        }}
-      >
-        <MenuItem onClick={onEditFromMenu} sx={{ py: 1.5, fontSize: '0.875rem' }}>
-          <Edit fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-          {t.actions.edit}
-        </MenuItem>
-        <MenuItem
-          onClick={onDeleteFromMenu}
-          sx={{ py: 1.5, fontSize: '0.875rem', color: 'error.main' }}
-        >
-          <Delete fontSize="small" sx={{ mr: 1 }} />
-          {t.actions.delete}
-        </MenuItem>
-      </Menu>
 
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 600 }}>

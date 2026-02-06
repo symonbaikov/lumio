@@ -24,5 +24,5 @@ export class UpdateCategoryDto {
 
   @IsBoolean()
   @IsOptional()
-  isSystem?: boolean;
+  isEnabled?: boolean;
 }

@@ -16,6 +16,35 @@ import { AuditService } from '../audit/audit.service';
 import type { CreateCategoryDto } from './dto/create-category.dto';
 import type { UpdateCategoryDto } from './dto/update-category.dto';
 
+const DEFAULT_SYSTEM_CATEGORIES: ReadonlyArray<{
+  name: string;
+  type: CategoryType;
+}> = [
+  { name: 'Sales', type: CategoryType.INCOME },
+  { name: 'Services', type: CategoryType.INCOME },
+  { name: 'Interest Income', type: CategoryType.INCOME },
+  { name: 'Other Income', type: CategoryType.INCOME },
+  { name: 'Advertising', type: CategoryType.EXPENSE },
+  { name: 'Benefits', type: CategoryType.EXPENSE },
+  { name: 'Car', type: CategoryType.EXPENSE },
+  { name: 'Equipment', type: CategoryType.EXPENSE },
+  { name: 'Fees', type: CategoryType.EXPENSE },
+  { name: 'Home Office', type: CategoryType.EXPENSE },
+  { name: 'Insurance', type: CategoryType.EXPENSE },
+  { name: 'Interest', type: CategoryType.EXPENSE },
+  { name: 'Labor', type: CategoryType.EXPENSE },
+  { name: 'Maintenance', type: CategoryType.EXPENSE },
+  { name: 'Materials', type: CategoryType.EXPENSE },
+  { name: 'Meals and Entertainment', type: CategoryType.EXPENSE },
+  { name: 'Office Supplies', type: CategoryType.EXPENSE },
+  { name: 'Other', type: CategoryType.EXPENSE },
+  { name: 'Professional Services', type: CategoryType.EXPENSE },
+  { name: 'Rent', type: CategoryType.EXPENSE },
+  { name: 'Taxes', type: CategoryType.EXPENSE },
+  { name: 'Travel', type: CategoryType.EXPENSE },
+  { name: 'Utilities', type: CategoryType.EXPENSE },
+];
+
 @Injectable()
 export class CategoriesService {
   constructor(
@@ -64,6 +93,7 @@ export class CategoriesService {
       userId,
       ...createDto,
       isSystem: false,
+      isEnabled: createDto.isEnabled ?? true,
     });
 
     const saved = await this.categoryRepository.save(category);
@@ -131,7 +161,13 @@ export class CategoriesService {
     const before = { ...category };
 
     if (category.isSystem) {
-      throw new ForbiddenException('Cannot modify system category');
+      const nonToggleUpdates = Object.entries(updateDto).filter(
+        ([key, value]) => key !== 'isEnabled' && value !== undefined,
+      );
+
+      if (nonToggleUpdates.length > 0) {
+        throw new ForbiddenException('Cannot modify system category');
+      }
     }
 
     // Check for duplicate name if name is being changed
@@ -195,29 +231,7 @@ export class CategoriesService {
   }
 
   async createSystemCategories(workspaceId: string, userId?: string): Promise<void> {
-    const systemCategories = [
-      // Income categories
-      { name: 'Приход', type: CategoryType.INCOME, isSystem: true },
-      { name: 'Продажи Kaspi', type: CategoryType.INCOME, isSystem: true },
-      // Expense categories
-      { name: 'Расход', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'Зарплаты сотрудникам', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'Платежи Kaspi Red', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'Аренда', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'Коммунальные услуги', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'Налоги', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'Маркетинг и реклама', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'Логистика и доставка', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'IT услуги', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'Комиссии банка', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'Комиссии Kaspi', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'Внутренние переводы', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'Кредиты и займы', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'Оплата услуг', type: CategoryType.EXPENSE, isSystem: true },
-      { name: 'Закупки товаров', type: CategoryType.EXPENSE, isSystem: true },
-    ];
-
-    for (const catData of systemCategories) {
+    for (const catData of DEFAULT_SYSTEM_CATEGORIES) {
       const existing = await this.categoryRepository.findOne({
         where: { workspaceId, name: catData.name },
       });
@@ -226,6 +240,8 @@ export class CategoriesService {
         const category = this.categoryRepository.create({
           workspaceId,
           userId,
+          isSystem: true,
+          isEnabled: true,
           ...catData,
         });
         await this.categoryRepository.save(category);

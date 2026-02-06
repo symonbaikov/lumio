@@ -5,13 +5,17 @@ const content = {
   content: {
     title: t({ ru: 'Категории', en: 'Categories', kk: 'Санаттар' }),
     subtitle: t({
-      ru: 'Управляйте категориями расходов и доходов',
-      en: 'Manage income and expense categories',
-      kk: 'Кіріс және шығыс санаттарын басқарыңыз',
+      ru: 'Следите за расходами и доходами с помощью категорий по умолчанию или добавляйте свои',
+      en: 'Get a better overview of where money is spent. Use default categories or add your own.',
+      kk: 'Шығындар мен кірістерді әдепкі санаттармен бақылаңыз немесе өзіңіздікін қосыңыз',
     }),
     add: t({ ru: 'Добавить', en: 'Add', kk: 'Қосу' }),
     enabled: t({ ru: 'Активно', en: 'Enabled', kk: 'Белсенді' }),
     more: t({ ru: 'Еще', en: 'More', kk: 'Көбірек' }),
+    searchPlaceholder: t({ ru: 'Найти категорию', en: 'Find category', kk: 'Санатты табу' }),
+    columns: {
+      name: t({ ru: 'Название', en: 'Name', kk: 'Атауы' }),
+    },
     loading: t({ ru: 'Загрузка...', en: 'Loading...', kk: 'Жүктелуде...' }),
     type: {
       income: t({ ru: 'Доход', en: 'Income', kk: 'Кіріс' }),

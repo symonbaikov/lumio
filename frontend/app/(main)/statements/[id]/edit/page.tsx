@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/app/hooks/useAuth';
-import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
+import { useAutoSave } from '@/app/hooks/useAutoSave';
 import apiClient from '@/app/lib/api';
 import {
   AccountBalance,
@@ -58,7 +58,7 @@ import {
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { toast } from 'react-hot-toast';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { ModalShell } from '@/app/components/ui/modal-shell';
@@ -169,6 +169,12 @@ const normalizeNumberInput = (value?: number | string | null) => {
   return typeof value === 'string' ? value : value.toString();
 };
 
+const parseNullableNumber = (value: string) => {
+  if (value.trim() === '') return null;
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const resolveLocale = (locale: string) => {
   if (locale === 'ru') return 'ru-RU';
   if (locale === 'kk') return 'kk-KZ';
@@ -202,7 +208,6 @@ export default function EditStatementPage() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [currentStage, setCurrentStage] = useState<StatementStage>('submit');
 
-  // useLockBodyScroll(bulkCategoryDialogOpen);
   const [bulkCategoryId, setBulkCategoryId] = useState('');
   const [metadataForm, setMetadataForm] = useState({
     balanceStart: '',
@@ -210,7 +215,6 @@ export default function EditStatementPage() {
     statementDateFrom: '',
     statementDateTo: '',
   });
-  const [metadataSaving, setMetadataSaving] = useState(false);
   const [exportConfirmOpen, setExportConfirmOpen] = useState(false);
 
   useEffect(() => {
@@ -370,37 +374,31 @@ export default function EditStatementPage() {
     });
   };
 
-  const handleMetadataSave = async () => {
-    try {
-      setMetadataSaving(true);
-      const payload = {
-        balanceStart:
-          metadataForm.balanceStart !== '' ? Number.parseFloat(metadataForm.balanceStart) : null,
-        balanceEnd:
-          metadataForm.balanceEnd !== '' ? Number.parseFloat(metadataForm.balanceEnd) : null,
-        statementDateFrom: metadataForm.statementDateFrom || null,
-        statementDateTo: metadataForm.statementDateTo || null,
-      };
-      const response = await apiClient.patch(`/statements/${statementId}`, payload);
-      const updatedStatement = response.data?.data || response.data;
-      setStatement(updatedStatement);
+  const handleMetadataAutoSave = useCallback(
+    async (formData: typeof metadataForm) => {
+      try {
+        const payload = {
+          balanceStart: parseNullableNumber(formData.balanceStart),
+          balanceEnd: parseNullableNumber(formData.balanceEnd),
+          statementDateFrom: formData.statementDateFrom || null,
+          statementDateTo: formData.statementDateTo || null,
+        };
+        const response = await apiClient.patch(`/statements/${statementId}`, payload);
+        const updatedStatement = response.data?.data || response.data;
+        setStatement(updatedStatement);
+      } catch (err) {
+        console.error('Metadata autosave failed:', err);
+      }
+    },
+    [statementId],
+  );
 
-      const meta = updatedStatement?.parsingDetails?.metadataExtracted || {};
-      setMetadataForm({
-        balanceStart: normalizeNumberInput(updatedStatement?.balanceStart ?? meta.balanceStart),
-        balanceEnd: normalizeNumberInput(updatedStatement?.balanceEnd ?? meta.balanceEnd),
-        statementDateFrom: normalizeDateInput(updatedStatement?.statementDateFrom ?? meta.dateFrom),
-        statementDateTo: normalizeDateInput(updatedStatement?.statementDateTo ?? meta.dateTo),
-      });
-
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Не удалось сохранить метаданные');
-    } finally {
-      setMetadataSaving(false);
-    }
-  };
+  useAutoSave({
+    data: metadataForm,
+    onSave: handleMetadataAutoSave,
+    debounceMs: 500,
+    enabled: Boolean(statementId && statement && !loading),
+  });
 
   const handleCancel = () => {
     setEditingRow(null);
@@ -725,23 +723,6 @@ export default function EditStatementPage() {
                 {(t.labels as any)?.submitForApproval?.value || 'Submit'}
               </Button>
             )}
-            <Button
-              variant="contained"
-              startIcon={metadataSaving ? <CircularProgress size={18} /> : <Save />}
-              onClick={handleMetadataSave}
-              disabled={metadataSaving}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                borderRadius: 2,
-                boxShadow: 'none',
-                '&:hover': {
-                  boxShadow: 'none',
-                },
-              }}
-            >
-              {t.labels.saveStatementData?.value || 'Сохранить'}
-            </Button>
           </Box>
         </Box>
       </Box>

@@ -10,14 +10,13 @@ import { AuditService } from '@/modules/audit/audit.service';
 import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 
-function createRepoMock<T>() {
+function createRepoMock<T extends object>() {
   return {
     findOne: jest.fn(),
     find: jest.fn(),
     create: jest.fn((data: Partial<T>) => data as T),
     save: jest.fn(async (data: Partial<T>) => data as T),
     remove: jest.fn(async () => undefined),
-    createQueryBuilder: jest.fn(),
   } as unknown as Repository<T> & Record<string, any>;
 }
 
@@ -41,41 +40,20 @@ describe('CategoriesService', () => {
     );
   });
 
-  it('create throws ConflictException for duplicate name', async () => {
-    userRepository.findOne = jest.fn(async () => ({
-      id: 'u1',
-      workspaceId: null,
-    }));
+  it('create throws ConflictException for duplicate name in workspace', async () => {
     categoryRepository.findOne = jest.fn(async () => ({ id: 'c1' }) as any);
 
     await expect(
-      service.create('u1', { name: 'Food', type: CategoryType.EXPENSE } as any),
+      service.create('w1', 'u1', { name: 'Food', type: CategoryType.EXPENSE } as any),
     ).rejects.toThrow(ConflictException);
   });
 
-  it('update forbids changes to system categories', async () => {
-    userRepository.findOne = jest.fn(async () => ({
-      id: 'u1',
-      workspaceId: null,
-    }));
-    categoryRepository.findOne = jest.fn(
-      async () => ({ id: 'c1', userId: 'u1', isSystem: true }) as any,
-    );
-
-    await expect(service.update('c1', 'u1', { name: 'X' } as any)).rejects.toThrow(
-      ForbiddenException,
-    );
-  });
-
   it('update throws ConflictException when changing name to existing one', async () => {
-    userRepository.findOne = jest.fn(async () => ({
-      id: 'u1',
-      workspaceId: null,
-    }));
     categoryRepository.findOne = jest
       .fn()
       .mockResolvedValueOnce({
         id: 'c1',
+        workspaceId: 'w1',
         userId: 'u1',
         name: 'Old',
         type: CategoryType.EXPENSE,
@@ -83,51 +61,86 @@ describe('CategoriesService', () => {
       } as any)
       .mockResolvedValueOnce({
         id: 'c2',
+        workspaceId: 'w1',
         userId: 'u1',
         name: 'New',
         type: CategoryType.EXPENSE,
       } as any);
 
-    await expect(service.update('c1', 'u1', { name: 'New' } as any)).rejects.toThrow(
+    await expect(service.update('c1', 'w1', 'u1', { name: 'New' } as any)).rejects.toThrow(
       ConflictException,
     );
   });
 
   it('remove throws NotFoundException when category does not exist', async () => {
-    userRepository.findOne = jest.fn(async () => ({
-      id: 'u1',
-      workspaceId: null,
-    }));
     categoryRepository.findOne = jest.fn(async () => null);
 
-    await expect(service.remove('missing', 'u1')).rejects.toThrow(NotFoundException);
+    await expect(service.remove('missing', 'w1', 'u1')).rejects.toThrow(NotFoundException);
   });
 
-  it('createSystemCategories skips existing entries', async () => {
+  it('createSystemCategories skips existing entries from new defaults', async () => {
     categoryRepository.findOne = jest.fn(async ({ where }: any) =>
-      where?.name === 'Приход' ? ({ id: 'exists' } as any) : null,
+      where?.name === 'Sales' ? ({ id: 'exists' } as any) : null,
     );
 
-    await service.createSystemCategories('u1');
+    await service.createSystemCategories('w1');
 
+    expect(categoryRepository.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { workspaceId: 'w1', name: 'Sales' } }),
+    );
+    expect(categoryRepository.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { workspaceId: 'w1', name: 'Utilities' } }),
+    );
     expect(categoryRepository.save).toHaveBeenCalled();
     expect(categoryRepository.save).not.toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Приход' }),
+      expect.objectContaining({ name: 'Sales' }),
+    );
+  });
+
+  it('allows toggling isEnabled for system categories', async () => {
+    categoryRepository.findOne = jest.fn(async () => ({
+      id: 'c1',
+      workspaceId: 'w1',
+      userId: 'u1',
+      name: 'Advertising',
+      type: CategoryType.EXPENSE,
+      isSystem: true,
+      isEnabled: true,
+    }));
+    categoryRepository.save = jest.fn(async (category: any) => category);
+
+    const result = await service.update('c1', 'w1', 'u1', { isEnabled: false } as any);
+
+    expect(result.isEnabled).toBe(false);
+    expect(categoryRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ isEnabled: false }),
+    );
+  });
+
+  it('denies non-toggle updates for system categories', async () => {
+    categoryRepository.findOne = jest.fn(async () => ({
+      id: 'c1',
+      workspaceId: 'w1',
+      userId: 'u1',
+      name: 'Advertising',
+      type: CategoryType.EXPENSE,
+      isSystem: true,
+      isEnabled: true,
+    }));
+
+    await expect(service.update('c1', 'w1', 'u1', { name: 'Changed' } as any)).rejects.toThrow(
+      ForbiddenException,
     );
   });
 
   it('denies create when member has canEditCategories=false', async () => {
-    userRepository.findOne = jest.fn(async () => ({
-      id: 'u1',
-      workspaceId: 'w1',
-    }));
     workspaceMemberRepository.findOne = jest.fn(async () => ({
       role: WorkspaceRole.MEMBER,
       permissions: { canEditCategories: false },
     }));
 
     await expect(
-      service.create('u1', { name: 'Food', type: CategoryType.EXPENSE } as any),
+      service.create('w1', 'u1', { name: 'Food', type: CategoryType.EXPENSE } as any),
     ).rejects.toThrow(ForbiddenException);
   });
 });

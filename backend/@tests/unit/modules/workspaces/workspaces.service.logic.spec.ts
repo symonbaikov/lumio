@@ -34,6 +34,7 @@ describe('WorkspacesService', () => {
   const userRepository = createRepoMock<User>();
   const integrationRepository = createRepoMock<Integration>();
   const auditService = { createEvent: jest.fn() };
+  const categoriesService = { createSystemCategories: jest.fn(async () => undefined) };
 
   let service: WorkspacesService;
 
@@ -46,6 +47,7 @@ describe('WorkspacesService', () => {
       userRepository as any,
       integrationRepository as any,
       auditService as any,
+      categoriesService as any,
     );
     (service as any).sendInvitationEmail = jest.fn(async () => undefined);
   });
@@ -66,6 +68,7 @@ describe('WorkspacesService', () => {
       expect(workspaceRepository.create).not.toHaveBeenCalled();
       expect(workspaceMemberRepository.save).not.toHaveBeenCalled();
       expect(userRepository.update).not.toHaveBeenCalled();
+      expect(categoriesService.createSystemCategories).not.toHaveBeenCalled();
     });
 
     it('creates workspace + membership when user has no workspace', async () => {
@@ -96,6 +99,7 @@ describe('WorkspacesService', () => {
       expect(userRepository.update).toHaveBeenCalledWith('u1', {
         workspaceId: 'w-new',
       });
+      expect(categoriesService.createSystemCategories).toHaveBeenCalledWith('w-new', 'u1');
     });
   });
 
@@ -138,6 +142,7 @@ describe('WorkspacesService', () => {
 
       await expect(
         service.inviteMember(
+          'w1',
           currentUser,
           { email: 'member@example.com', role: WorkspaceRole.MEMBER } as any,
           'https://app.example.com',
@@ -180,6 +185,7 @@ describe('WorkspacesService', () => {
       invitationRepository.save = jest.fn(async (inv: any) => inv);
 
       const result = await service.inviteMember(
+        'w1',
         currentUser,
         { email: 'Invited@Example.com', role: WorkspaceRole.MEMBER } as any,
         'https://app.example.com',
