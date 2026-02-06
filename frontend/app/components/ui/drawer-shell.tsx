@@ -4,7 +4,7 @@ import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import { cn } from '@/app/lib/utils';
 import { X } from 'lucide-react';
 import * as React from 'react';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 export type DrawerPosition = 'left' | 'right';
@@ -81,6 +81,7 @@ export function DrawerShell({
   const [mounted, setMounted] = React.useState(false);
   const [isRendered, setIsRendered] = React.useState(false);
   const [isVisible, setIsVisible] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   useLockBodyScroll(isOpen && lockScroll);
 
@@ -88,11 +89,14 @@ export function DrawerShell({
     setMounted(true);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isOpen) {
       setIsRendered(true);
       setIsVisible(false);
       const frame = requestAnimationFrame(() => {
+        if (containerRef.current) {
+          containerRef.current.getBoundingClientRect();
+        }
         setIsVisible(true);
       });
       return () => cancelAnimationFrame(frame);
@@ -146,6 +150,7 @@ export function DrawerShell({
     >
       {/* Backdrop */}
       <div
+        ref={containerRef}
         className={cn(
           'absolute inset-0 bg-black/40 transition-opacity duration-300',
           isVisible ? 'opacity-100' : 'opacity-0',

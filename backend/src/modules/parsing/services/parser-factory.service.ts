@@ -24,6 +24,109 @@ export class ParserFactoryService {
     ];
   }
 
+  private extractHeaderText(text: string): string {
+    const lines = text
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+    const headerLines: string[] = [];
+
+    for (let i = 0; i < Math.min(lines.length, 20); i++) {
+      const line = lines[i];
+      if (this.looksLikeTransaction(line)) {
+        break;
+      }
+      headerLines.push(line);
+    }
+
+    if (!headerLines.length) {
+      return lines.slice(0, Math.min(lines.length, 10)).join('\n');
+    }
+
+    return headerLines.join('\n');
+  }
+
+  private looksLikeTransaction(line: string): boolean {
+    const hasDate = /\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}/.test(line);
+    const hasAmount = /\d[\d\s.,]*\d/.test(line);
+    return Boolean(hasDate && hasAmount);
+  }
+
+  private detectBankByName(text: string): { bank: 'kaspi' | 'bereke' | null; evidence: string[] } {
+    const evidence: string[] = [];
+    let bank: 'kaspi' | 'bereke' | null = null;
+
+    const kaspiRegex = /\b(kaspi\s+bank|kaspi\.kz|каспи\s+банк|каспи)(?!\s+business)\b/i;
+    const berekeRegex = /\b(bereke\s+bank|bereke\s+business|береке\s+банк|береке)\b/i;
+
+    const kaspiIndex = text.search(kaspiRegex);
+    const berekeIndex = text.search(berekeRegex);
+
+    const kaspiFound = kaspiIndex >= 0;
+    const berekeFound = berekeIndex >= 0;
+
+    if (kaspiFound) {
+      evidence.push('name:kaspi');
+    }
+    if (berekeFound) {
+      evidence.push('name:bereke');
+    }
+
+    if (kaspiFound && berekeFound) {
+      bank = kaspiIndex <= berekeIndex ? 'kaspi' : 'bereke';
+      evidence.push('ambiguous:header-both');
+    } else if (kaspiFound) {
+      bank = 'kaspi';
+    } else if (berekeFound) {
+      bank = 'bereke';
+    }
+
+    return { bank, evidence };
+  }
+
+  private detectBankByBic(text: string): { bank: 'kaspi' | 'bereke' | null; evidence: string[] } {
+    const evidence: string[] = [];
+    let bank: 'kaspi' | 'bereke' | null = null;
+
+    const kaspiRegex = /\bcaspkzka\b/i;
+    const berekeRegex = /\bbrkekzka\b/i;
+
+    const kaspiIndex = text.search(kaspiRegex);
+    const berekeIndex = text.search(berekeRegex);
+
+    const kaspiFound = kaspiIndex >= 0;
+    const berekeFound = berekeIndex >= 0;
+
+    if (kaspiFound) {
+      evidence.push('bic:caspkzka');
+    }
+    if (berekeFound) {
+      evidence.push('bic:brkekzka');
+    }
+
+    if (kaspiFound && berekeFound) {
+      bank = kaspiIndex <= berekeIndex ? 'kaspi' : 'bereke';
+      evidence.push('ambiguous:header-bic-both');
+    } else if (kaspiFound) {
+      bank = 'kaspi';
+    } else if (berekeFound) {
+      bank = 'bereke';
+    }
+
+    return { bank, evidence };
+  }
+
+  private collectBankMentions(text: string): string[] {
+    const mentions: string[] = [];
+    if (/\b(kaspi\s+bank|kaspi\.kz|каспи\s+банк|каспи)(?!\s+business)\b/i.test(text)) {
+      mentions.push('Kaspi Bank');
+    }
+    if (/\b(bereke\s+bank|bereke\s+business|береке\s+банк|береке)\b/i.test(text)) {
+      mentions.push('Bereke Bank');
+    }
+    return mentions;
+  }
+
   async getParser(
     bankName: BankName,
     fileType: FileType,
@@ -55,6 +158,9 @@ export class ParserFactoryService {
   ): Promise<{
     bankName: BankName;
     formatVersion?: string;
+    detectedBy?: string;
+    detectedEvidence?: string[];
+    otherBankMentions?: string[];
   }> {
     console.log(
       `[ParserFactory] Detecting bank and format for file: ${filePath}, type: ${fileType}`,
@@ -63,51 +169,117 @@ export class ParserFactoryService {
     // First, try to detect by file content for PDF files
     if (fileType === FileType.PDF) {
       try {
-        const text = (cachedText ?? (await extractTextFromPdf(filePath))).toLowerCase();
-        console.log(`[ParserFactory] Extracted text sample: ${text.substring(0, 200)}...`);
+        const text = cachedText ?? (await extractTextFromPdf(filePath));
+        const textLower = text.toLowerCase();
+        const headerText = this.extractHeaderText(textLower);
+        console.log(`[ParserFactory] Extracted header sample: ${headerText.substring(0, 200)}...`);
 
-        // Check for Kaspi Bank indicators (check first as it's more specific)
-        if (
-          text.includes('kaspi') ||
-          text.includes('каспи') ||
-          text.includes('caspkzka') ||
-          text.includes('kaspi bank') ||
-          text.includes('kaspi.kz') ||
-          text.includes('kaspi бизнес')
-        ) {
-          console.log(`[ParserFactory] Detected: Kaspi Bank`);
-          return { bankName: BankName.KASPI };
+        const headerNameDetection = this.detectBankByName(headerText);
+        const headerBicDetection = this.detectBankByBic(headerText);
+        const fullNameDetection = this.detectBankByName(textLower);
+
+        let detectedBy: string | undefined;
+        let detectedEvidence: string[] = [];
+        let detectedBase: 'kaspi' | 'bereke' | null = null;
+
+        if (headerNameDetection.bank) {
+          detectedBase = headerNameDetection.bank;
+          detectedBy = 'header-name';
+          detectedEvidence = headerNameDetection.evidence;
+        } else if (headerBicDetection.bank) {
+          detectedBase = headerBicDetection.bank;
+          detectedBy = 'header-bic';
+          detectedEvidence = headerBicDetection.evidence;
+        } else if (fullNameDetection.bank) {
+          detectedBase = fullNameDetection.bank;
+          detectedBy = 'full-text-name';
+          detectedEvidence = fullNameDetection.evidence;
         }
 
-        // Check for Bereke Bank indicators
-        if (
-          text.includes('bereke') ||
-          text.includes('береке') ||
-          text.includes('kz47914042204kz039ly')
-        ) {
-          // Try to determine if it's new or old format
+        if (detectedBase === 'kaspi' && detectedBy === 'full-text-name') {
+          const berekeByBic = this.detectBankByBic(textLower);
+          if (berekeByBic.bank === 'bereke') {
+            detectedBase = 'bereke';
+            detectedBy = 'full-text-bic';
+            detectedEvidence = berekeByBic.evidence;
+          }
+        }
+
+        const headerMentions = this.collectBankMentions(headerText);
+        const fullMentions = this.collectBankMentions(textLower);
+        const detectedBankLabel =
+          detectedBase === 'kaspi'
+            ? 'Kaspi Bank'
+            : detectedBase === 'bereke'
+              ? 'Bereke Bank'
+              : null;
+
+        const headerSet = new Set(headerMentions);
+        const bodyMentions = fullMentions.filter(mention => !headerSet.has(mention));
+        const otherBankMentions = bodyMentions.filter(mention =>
+          detectedBankLabel ? mention !== detectedBankLabel : true,
+        );
+
+        if (headerMentions.length > 1 && detectedBankLabel) {
+          headerMentions.forEach(mention => {
+            if (mention !== detectedBankLabel && !otherBankMentions.includes(mention)) {
+              otherBankMentions.push(mention);
+            }
+          });
+        }
+
+        if (detectedBase === 'kaspi') {
+          console.log(`[ParserFactory] Detected: Kaspi Bank (${detectedBy || 'unknown'})`);
+          return {
+            bankName: BankName.KASPI,
+            detectedBy,
+            detectedEvidence,
+            otherBankMentions: otherBankMentions.length ? otherBankMentions : undefined,
+          };
+        }
+
+        if (detectedBase === 'bereke') {
           if (
             await new BerekeNewParser().canParse(
               BankName.BEREKE_NEW,
               fileType,
               filePath,
-              text,
+              textLower,
             )
           ) {
             console.log(`[ParserFactory] Detected: Bereke Bank (new format)`);
-            return { bankName: BankName.BEREKE_NEW, formatVersion: 'new' };
+            return {
+              bankName: BankName.BEREKE_NEW,
+              formatVersion: 'new',
+              detectedBy,
+              detectedEvidence,
+              otherBankMentions: otherBankMentions.length ? otherBankMentions : undefined,
+            };
           }
           if (
             await new BerekeOldParser().canParse(
               BankName.BEREKE_OLD,
               fileType,
               filePath,
-              text,
+              textLower,
             )
           ) {
             console.log(`[ParserFactory] Detected: Bereke Bank (old format)`);
-            return { bankName: BankName.BEREKE_OLD, formatVersion: 'old' };
+            return {
+              bankName: BankName.BEREKE_OLD,
+              formatVersion: 'old',
+              detectedBy,
+              detectedEvidence,
+              otherBankMentions: otherBankMentions.length ? otherBankMentions : undefined,
+            };
           }
+          console.log(`[ParserFactory] Detected: Bereke Bank (format unknown)`);
+          return {
+            bankName: BankName.BEREKE_NEW,
+            detectedBy,
+            detectedEvidence,
+            otherBankMentions: otherBankMentions.length ? otherBankMentions : undefined,
+          };
         }
       } catch (error) {
         console.error(`[ParserFactory] Error reading file content:`, error);

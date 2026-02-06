@@ -125,6 +125,21 @@ const content = {
       }),
       generalInfo: t({ ru: 'Общая информация', en: 'General information', kk: 'Жалпы ақпарат' }),
       bank: t({ ru: 'Банк', en: 'Bank', kk: 'Банк' }),
+      bankDetectedBy: t({
+        ru: 'Определено по',
+        en: 'Detected by',
+        kk: 'Қалай анықталды',
+      }),
+      bankEvidence: t({
+        ru: 'Основание',
+        en: 'Evidence',
+        kk: 'Негіздеме',
+      }),
+      otherBankMentions: t({
+        ru: 'Упоминания других банков',
+        en: 'Other bank mentions',
+        kk: 'Басқа банктердің аталуы',
+      }),
       format: t({ ru: 'Формат', en: 'Format', kk: 'Формат' }),
       parser: t({ ru: 'Парсер', en: 'Parser', kk: 'Парсер' }),
       processingTime: t({ ru: 'Время обработки', en: 'Processing time', kk: 'Өңдеу уақыты' }),

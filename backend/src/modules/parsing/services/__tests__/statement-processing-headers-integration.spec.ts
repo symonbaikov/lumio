@@ -160,6 +160,9 @@ describe('StatementProcessingService - Headers Integration', () => {
         detectBankAndFormat: jest.fn().mockResolvedValue({
           bankName: BankName.KASPI,
           formatVersion: 'v1',
+          detectedBy: 'header-name',
+          detectedEvidence: ['name:kaspi'],
+          otherBankMentions: ['Bereke Bank'],
         }),
       };
 
@@ -256,6 +259,9 @@ describe('StatementProcessingService - Headers Integration', () => {
         detectBankAndFormat: jest.fn().mockResolvedValue({
           bankName: BankName.KASPI,
           formatVersion: 'v1',
+          detectedBy: 'header-name',
+          detectedEvidence: ['name:kaspi'],
+          otherBankMentions: [],
         }),
       };
 

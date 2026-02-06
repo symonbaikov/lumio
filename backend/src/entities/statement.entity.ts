@@ -200,6 +200,9 @@ export class Statement {
   parsingDetails: {
     detectedBank?: string;
     detectedFormat?: string;
+    detectedBy?: string;
+    detectedEvidence?: string[];
+    otherBankMentions?: string[];
     parserUsed?: string;
     parserVersion?: string;
     totalLinesProcessed?: number;

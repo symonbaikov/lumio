@@ -1,11 +1,11 @@
 {
   "metadata": {
-    "accountNumber": "KZ38722S000007069973",
+    "accountNumber": "",
     "currency": "KZT",
     "dateFrom": "2025-11-26T22:00:00.000Z",
     "dateTo": "2025-11-26T22:00:00.000Z",
-    "balanceStart": null,
-    "balanceEnd": null
+    "balanceStart": 687323.23,
+    "balanceEnd": 201418.111
   },
   "transactions": [
     {

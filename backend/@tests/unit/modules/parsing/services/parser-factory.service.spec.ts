@@ -116,6 +116,59 @@ describe('ParserFactoryService', () => {
       const result = await service.detectBankAndFormat('/tmp/mock.xlsx', FileType.XLSX);
       expect(result.bankName).toBeDefined();
     });
+
+    it('detects Bereke by header name even when body mentions Kaspi', async () => {
+      (extractTextFromPdf as jest.Mock).mockResolvedValueOnce(
+        [
+          'Statement for account',
+          'Bereke Bank',
+          'Some header info',
+          '01.01.2024 1000',
+          'Payment to KASPI BANK for services',
+        ].join('\n'),
+      );
+
+      const result = await service.detectBankAndFormat('/tmp/mock.pdf', FileType.PDF);
+
+      expect(result.bankName).toBe(BankName.BEREKE_NEW);
+      expect(result.detectedBy).toBe('header-name');
+      expect(result.otherBankMentions).toContain('Kaspi Bank');
+    });
+
+    it('prefers first header match and records ambiguity when both banks appear', async () => {
+      (extractTextFromPdf as jest.Mock).mockResolvedValueOnce(
+        [
+          'Kaspi Bank and Bereke Bank',
+          'Header line continues',
+          '01.01.2024 2000',
+        ].join('\n'),
+      );
+
+      const result = await service.detectBankAndFormat('/tmp/mock.pdf', FileType.PDF);
+
+      expect(result.bankName).toBe(BankName.KASPI);
+      expect(result.detectedBy).toBe('header-name');
+      expect(result.detectedEvidence).toEqual(
+        expect.arrayContaining(['name:kaspi', 'name:bereke', 'ambiguous:header-both']),
+      );
+      expect(result.otherBankMentions).toContain('Bereke Bank');
+    });
+
+    it('falls back to header BIC when header lacks bank names', async () => {
+      (extractTextFromPdf as jest.Mock).mockResolvedValueOnce(
+        [
+          'Statement header without bank name',
+          'BIC: BRKEKZKA',
+          '01.01.2024 1000',
+        ].join('\n'),
+      );
+
+      const result = await service.detectBankAndFormat('/tmp/mock.pdf', FileType.PDF);
+
+      expect(result.bankName).toBe(BankName.BEREKE_NEW);
+      expect(result.detectedBy).toBe('header-bic');
+      expect(result.detectedEvidence).toEqual(expect.arrayContaining(['bic:brkekzka']));
+    });
   });
 
   it('initializes all required parsers', () => {

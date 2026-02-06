@@ -139,6 +139,9 @@ describe('StatementProcessingService', () => {
     detectBankAndFormat: jest.fn(async () => ({
       bankName: BankName.BEREKE_NEW,
       formatVersion: 'v1',
+      detectedBy: 'header-name',
+      detectedEvidence: ['name:bereke'],
+      otherBankMentions: ['Kaspi Bank'],
     })),
     getParser: jest.fn(async () => ({
       parse: jest.fn().mockResolvedValue(parsedStatement),

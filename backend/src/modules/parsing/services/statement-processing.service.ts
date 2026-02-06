@@ -441,19 +441,32 @@ export class StatementProcessingService {
           );
         }
       }
-      const { bankName, formatVersion } = await this.parserFactory.detectBankAndFormat(
-        processingFilePath,
-        statement.fileType,
-        cachedText,
-      );
+      const { bankName, formatVersion, detectedBy, detectedEvidence, otherBankMentions } =
+        await this.parserFactory.detectBankAndFormat(
+          processingFilePath,
+          statement.fileType,
+          cachedText,
+        );
       const detectTime = Date.now() - detectStartTime;
 
       parsingDetails.detectedBank = bankName;
       parsingDetails.detectedFormat = formatVersion;
+      parsingDetails.detectedBy = detectedBy;
+      parsingDetails.detectedEvidence = detectedEvidence;
+      parsingDetails.otherBankMentions = otherBankMentions;
       addLog(
         'info',
         `Detected bank: ${bankName}, format: ${formatVersion || 'unknown'} (${detectTime}ms)`,
       );
+      if (detectedBy) {
+        addLog('info', `Detected by: ${detectedBy}`);
+      }
+      if (detectedEvidence?.length) {
+        addLog('info', `Detection evidence: ${detectedEvidence.join(', ')}`);
+      }
+      if (otherBankMentions?.length) {
+        addLog('info', `Other bank mentions: ${otherBankMentions.join(', ')}`);
+      }
       this.observeDuration('detect', detectStartTime, bankName, statement.fileType, 'ok');
 
       statement.bankName = bankName;

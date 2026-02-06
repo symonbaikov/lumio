@@ -22,6 +22,7 @@ import { GmailReceiptCategoryService } from './services/gmail-receipt-category.s
 import { GmailReceiptDuplicateService } from './services/gmail-receipt-duplicate.service';
 import { GmailReceiptExportService } from './services/gmail-receipt-export.service';
 import { GmailReceiptParserService } from './services/gmail-receipt-parser.service';
+import { GmailSyncService } from './services/gmail-sync.service';
 import { GmailWatchService } from './services/gmail-watch.service';
 import { GmailWebhookService } from './services/gmail-webhook.service';
 import { GmailService } from './services/gmail.service';
@@ -49,6 +50,7 @@ import { GmailService } from './services/gmail.service';
     GmailService,
     GmailWatchService,
     GmailWebhookService,
+    GmailSyncService,
     GmailReceiptParserService,
     GmailReceiptDuplicateService,
     GmailReceiptCategoryService,
@@ -56,6 +58,6 @@ import { GmailService } from './services/gmail.service';
     GmailReceiptProcessor,
     GmailScheduler,
   ],
-  exports: [GmailOAuthService, GmailService, GmailWatchService],
+  exports: [GmailOAuthService, GmailService, GmailWatchService, GmailSyncService],
 })
 export class GmailModule {}

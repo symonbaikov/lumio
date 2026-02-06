@@ -115,13 +115,16 @@ interface Statement {
   statementDateTo?: string | null;
   balanceStart?: number | string | null;
   balanceEnd?: number | string | null;
-  parsingDetails?: {
-    detectedBank?: string;
-    detectedFormat?: string;
-    parserUsed?: string;
-    totalLinesProcessed?: number;
-    transactionsFound?: number;
-    transactionsCreated?: number;
+    parsingDetails?: {
+      detectedBank?: string;
+      detectedFormat?: string;
+      detectedBy?: string;
+      detectedEvidence?: string[];
+      otherBankMentions?: string[];
+      parserUsed?: string;
+      totalLinesProcessed?: number;
+      transactionsFound?: number;
+      transactionsCreated?: number;
     errors?: string[];
     warnings?: string[];
     metadataExtracted?: {
@@ -177,6 +180,7 @@ export default function EditStatementPage() {
   const router = useRouter();
   const { user } = useAuth();
   const t = useIntlayer('statementEditPage');
+  const labels = t.labels as Record<string, { value?: string }>;
   const { locale } = useLocale();
   const statementId = params.id as string;
 
@@ -921,6 +925,14 @@ export default function EditStatementPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" color="text.secondary">
+                      {labels.bankDetectedBy?.value || 'Определено по'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {statement.parsingDetails.detectedBy || '—'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
                       Формат
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -961,6 +973,17 @@ export default function EditStatementPage() {
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: 500, color: 'warning.main' }}>
                           {statement.parsingDetails.warnings.length}
+                        </Typography>
+                      </Box>
+                    )}
+                  {statement.parsingDetails.otherBankMentions &&
+                    statement.parsingDetails.otherBankMentions.length > 0 && (
+                      <Box sx={{ gridColumn: { xs: '1 / -1', md: 'span 2' } }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {labels.otherBankMentions?.value || 'Упоминания других банков'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {statement.parsingDetails.otherBankMentions.join(', ')}
                         </Typography>
                       </Box>
                     )}

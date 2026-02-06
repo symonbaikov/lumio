@@ -92,6 +92,9 @@ export class BerekeNewParser extends BaseParser {
       defaultCurrency: 'KZT',
       stopWords: ['итого', 'оборот', 'остаток'],
     });
+    const inferredDateRange = this.inferDateRangeFromTransactions(tableTransactions);
+    const resolvedFrom = dateRange.from || inferredDateRange.from || new Date();
+    const resolvedTo = dateRange.to || inferredDateRange.to || resolvedFrom;
     const tableTime = Date.now() - tableStart;
     console.log(
       `[BerekeNewParser] pdf2table extracted ${tableTransactions.length} transactions in ${tableTime}ms`,
@@ -142,14 +145,32 @@ export class BerekeNewParser extends BaseParser {
     return {
       metadata: {
         accountNumber,
-        dateFrom: dateRange.from || new Date(),
-        dateTo: dateRange.to || new Date(),
+        dateFrom: resolvedFrom,
+        dateTo: resolvedTo,
         balanceStart: balanceStart || undefined,
         balanceEnd: balanceEnd || undefined,
         currency: 'KZT',
       },
       transactions,
     };
+  }
+
+  private inferDateRangeFromTransactions(transactions: ParsedTransaction[]): {
+    from: Date | null;
+    to: Date | null;
+  } {
+    const dates = transactions
+      .map(tx => tx.transactionDate)
+      .filter((date): date is Date => date instanceof Date && !Number.isNaN(date.getTime()));
+
+    if (!dates.length) {
+      return { from: null, to: null };
+    }
+
+    const timestamps = dates.map(date => date.getTime());
+    const min = new Date(Math.min(...timestamps));
+    const max = new Date(Math.max(...timestamps));
+    return { from: min, to: max };
   }
 
   private extractTransactions(

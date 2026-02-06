@@ -36,6 +36,7 @@ import { GmailOAuthService } from './services/gmail-oauth.service';
 import { GmailReceiptCategoryService } from './services/gmail-receipt-category.service';
 import { GmailReceiptDuplicateService } from './services/gmail-receipt-duplicate.service';
 import { GmailReceiptExportService } from './services/gmail-receipt-export.service';
+import { GmailSyncService } from './services/gmail-sync.service';
 import { GmailWatchService } from './services/gmail-watch.service';
 import { GmailService } from './services/gmail.service';
 
@@ -58,6 +59,7 @@ export class GmailController {
     private readonly gmailOAuthService: GmailOAuthService,
     private readonly gmailService: GmailService,
     private readonly gmailWatchService: GmailWatchService,
+    private readonly gmailSyncService: GmailSyncService,
     private readonly duplicateService: GmailReceiptDuplicateService,
     private readonly categoryService: GmailReceiptCategoryService,
     private readonly exportService: GmailReceiptExportService,
@@ -138,6 +140,26 @@ export class GmailController {
     await this.gmailOAuthService.disconnect(user.id);
 
     return { success: true, message: 'Gmail integration disconnected' };
+  }
+
+  @Post('sync')
+  @ApiOperation({ summary: 'Trigger manual Gmail sync' })
+  async triggerSync(@CurrentUser() user: User) {
+    try {
+      const result = await this.gmailSyncService.syncForUser(user.id);
+
+      return {
+        success: true,
+        messagesFound: result.messagesFound,
+        jobsCreated: result.jobsCreated,
+        skipped: result.skipped,
+      };
+    } catch (error) {
+      this.logger.error('Manual sync failed', error);
+      throw new BadRequestException(
+        `Sync failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   @Post('settings')

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
 import {
@@ -8,6 +8,7 @@ import {
   IntegrationStatus,
   WatchSubscriptionStatus,
 } from '../../entities';
+import { GmailSyncService } from './services/gmail-sync.service';
 import { GmailWatchService } from './services/gmail-watch.service';
 
 @Injectable()
@@ -20,7 +21,28 @@ export class GmailScheduler {
     @InjectRepository(Integration)
     private readonly integrationRepository: Repository<Integration>,
     private readonly gmailWatchService: GmailWatchService,
+    private readonly gmailSyncService: GmailSyncService,
   ) {}
+
+  @Cron('0 3 * * *')
+  async runDailySync(): Promise<void> {
+    try {
+      this.logger.log('Starting daily Gmail receipts sync...');
+
+      const result = await this.gmailSyncService.syncAllIntegrations();
+
+      this.logger.log(
+        `Daily sync completed: ${result.synced} integrations, ` +
+          `${result.messagesFound} messages found, ${result.jobsCreated} jobs created`,
+      );
+
+      if (result.errors.length > 0) {
+        this.logger.warn(`Daily sync had ${result.errors.length} errors`, JSON.stringify(result.errors));
+      }
+    } catch (error) {
+      this.logger.error('Error in daily sync cron job', error);
+    }
+  }
 
   @Cron('0 */6 * * *') // Every 6 hours
   async renewExpiringWatches(): Promise<void> {
