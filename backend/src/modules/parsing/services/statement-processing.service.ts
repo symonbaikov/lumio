@@ -553,7 +553,9 @@ export class StatementProcessingService {
       }
 
       // AI reconciliation with PDF text to correct/match results
-      if (this.aiValidator.isAvailable()) {
+      const aiEnabled =
+        process.env.AI_PARSING_ENABLED === '1' || process.env.AI_PARSING_ENABLED === 'true';
+      if (aiEnabled && this.aiValidator.isAvailable()) {
         addLog('info', 'Running AI reconciliation between PDF and parsed result...');
         try {
           const aiResult = await this.aiValidator.reconcileFromPdf(
@@ -574,13 +576,17 @@ export class StatementProcessingService {
           addLog('warn', `AI reconciliation failed: ${(aiError as Error)?.message}`);
         }
       } else {
-        const aiFlag = isAiEnabled();
-        addLog(
-          'info',
-          aiFlag
-            ? 'AI reconciliation skipped (no GEMINI_API_KEY set)'
-            : 'AI reconciliation skipped (AI_PARSING_ENABLED=0)',
-        );
+        if (!aiEnabled) {
+          addLog('info', 'AI reconciliation disabled (set AI_PARSING_ENABLED=1 to enable)');
+        } else {
+          const aiFlag = isAiEnabled();
+          addLog(
+            'info',
+            aiFlag
+              ? 'AI reconciliation skipped (no GEMINI_API_KEY set)'
+              : 'AI reconciliation skipped (AI_PARSING_ENABLED=0)',
+          );
+        }
         this.reportAi('validate', 'skipped');
       }
 
