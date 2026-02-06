@@ -97,13 +97,13 @@ export class KaspiParser extends BaseParser {
     let end: number | null = null;
 
     // Look for "Входящий остаток" followed by amount
-    const startMatch = text.match(/Входящий\s+остаток\s*([\d\s]+[,.][\d]+)/i);
+    const startMatch = text.match(/Входящий\s+остаток\s*:?\s*([\d\s]+[,.][\d]+)/i);
     if (startMatch) {
       start = this.normalizeNumberValue(startMatch[1]);
     }
 
     // Look for "Исходящий остаток" followed by amount
-    const endMatch = text.match(/Исходящий\s+остаток\s*([\d\s]+[,.][\d]+)/i);
+    const endMatch = text.match(/Исходящий\s+остаток\s*:?\s*([\d\s]+[,.][\d]+)/i);
     if (endMatch) {
       end = this.normalizeNumberValue(endMatch[1]);
     }
@@ -114,11 +114,20 @@ export class KaspiParser extends BaseParser {
   private extractPeriodFromText(text: string): { from: Date | null; to: Date | null } {
     // Look for "Период: DD.MM.YYYY - DD.MM.YYYY" or single date
     const periodMatch = text.match(
-      /Период:\s*(\d{2}\.\d{2}\.\d{4})(?:\s*[-–—]\s*(\d{2}\.\d{2}\.\d{4}))?/i,
+      /Период\s*:?\s*(\d{2}\.\d{2}\.\d{4})(?:\s*[-–—]\s*(\d{2}\.\d{2}\.\d{4}))?/i,
     );
     if (periodMatch) {
       const fromDate = this.normalizeDate(periodMatch[1]);
       const toDate = periodMatch[2] ? this.normalizeDate(periodMatch[2]) : fromDate;
+      return { from: fromDate, to: toDate };
+    }
+
+    const periodRangeMatch = text.match(
+      /за\s+период\s+с\s*(\d{2}\.\d{2}\.\d{4})\s+по\s*(\d{2}\.\d{2}\.\d{4})/i,
+    );
+    if (periodRangeMatch) {
+      const fromDate = this.normalizeDate(periodRangeMatch[1]);
+      const toDate = this.normalizeDate(periodRangeMatch[2]);
       return { from: fromDate, to: toDate };
     }
 

@@ -89,6 +89,15 @@ describe('KaspiParser', () => {
       expect(balances).toEqual({ start: 1234567.89, end: 9876543.21 });
     });
 
+    it('extracts balances with colon', () => {
+      const parser = new KaspiParser();
+      const text = 'Входящий остаток: 1 234,50 Исходящий остаток: 9 876,25';
+
+      const balances = (parser as any).extractBalancesFromText(text);
+
+      expect(balances).toEqual({ start: 1234.5, end: 9876.25 });
+    });
+
     it('returns nulls when balances are missing', () => {
       const parser = new KaspiParser();
       const text = 'Входящий остаток Исходящий остаток';
@@ -118,6 +127,16 @@ describe('KaspiParser', () => {
 
       expectDateParts(period.from, '2024-02-15');
       expectDateParts(period.to, '2024-02-15');
+    });
+
+    it('extracts period range using phrasing', () => {
+      const parser = new KaspiParser();
+      const text = 'Отчет за период с 05.03.2024 по 20.03.2024';
+
+      const period = (parser as any).extractPeriodFromText(text);
+
+      expectDateParts(period.from, '2024-03-05');
+      expectDateParts(period.to, '2024-03-20');
     });
   });
 
