@@ -517,7 +517,7 @@ export function FiltersDrawer({
     >
       <div className="flex h-full flex-col">
         {isRoot ? (
-          <div className="flex-1 overflow-y-auto space-y-6">
+          <div className="flex-1 overflow-y-auto space-y-6 pb-28">
           <FilterSection title={labels.general}>
             <FilterRow
               label={labels.type}
@@ -626,24 +626,20 @@ export function FiltersDrawer({
             />
           </FilterSection>
         </div>
-      ) : (
-          <div className="space-y-5">
+        ) : (
+          <div className="flex-1 overflow-y-auto space-y-5 pb-20">
             <div className="rounded-2xl bg-transparent p-0">
               {renderScreenContent()}
             </div>
           </div>
-      )}
+        )}
 
         {isRoot ? (
           <div className="sticky bottom-0 pt-4 pb-2 space-y-3 bg-[#fbfaf8]">
             <Button variant="secondary" className="w-full rounded-full" size="lg" disabled>
               {labels.saveSearch}
             </Button>
-            <Button
-              className="w-full rounded-full bg-emerald-500 hover:bg-emerald-600"
-              size="lg"
-              onClick={onViewResults}
-            >
+            <Button className="w-full rounded-full" size="lg" onClick={onViewResults}>
               {labels.viewResults}
               {activeCount > 0 ? (
                 <span
@@ -658,11 +654,7 @@ export function FiltersDrawer({
           </div>
         ) : (
           <div className="sticky bottom-0 pt-4 pb-2 bg-[#fbfaf8]">
-            <Button
-              className="w-full rounded-full bg-emerald-500 hover:bg-emerald-600"
-              size="lg"
-              onClick={onViewResults}
-            >
+            <Button className="w-full rounded-full" size="lg" onClick={onViewResults}>
               {labels.viewResults}
               {activeCount > 0 ? (
                 <span

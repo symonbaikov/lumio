@@ -91,6 +91,7 @@ export function DrawerShell({
   useEffect(() => {
     if (isOpen) {
       setIsRendered(true);
+      setIsVisible(false);
       const frame = requestAnimationFrame(() => {
         setIsVisible(true);
       });
@@ -101,7 +102,7 @@ export function DrawerShell({
       setIsVisible(false);
       const timer = window.setTimeout(() => {
         setIsRendered(false);
-      }, 300);
+      }, 500);
       return () => window.clearTimeout(timer);
     }
   }, [isOpen, isRendered]);
@@ -146,7 +147,7 @@ export function DrawerShell({
       {/* Backdrop */}
       <div
         className={cn(
-          'absolute inset-0 bg-black/40 transition-opacity duration-200',
+          'absolute inset-0 bg-black/40 transition-opacity duration-300',
           isVisible ? 'opacity-100' : 'opacity-0',
         )}
         onClick={handleBackdropClick}
@@ -163,7 +164,7 @@ export function DrawerShell({
       <div
         className={cn(
           'fixed w-full h-full overflow-hidden bg-white shadow-2xl flex flex-col',
-          'transition-transform duration-300 ease-out',
+          'transition-transform duration-500 ease-out',
           'border-gray-200',
           positionConfig.container,
           isVisible ? positionConfig.open : positionConfig.closed,
