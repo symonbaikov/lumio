@@ -210,4 +210,14 @@ describe('StatementProcessingService', () => {
     expect(statement.totalCredit).toBe(200);
     expect(statement.totalTransactions).toBe(2);
   });
+
+  it('returns completed statement when import preview missing', async () => {
+    statement.status = StatementStatus.COMPLETED;
+    statement.parsingDetails = {
+      importCommit: { committed: 2 },
+    } as Statement['parsingDetails'];
+
+    await expect(service.commitImport(statement.id)).resolves.toBe(statement);
+    expect(importSessionService.processImport).not.toHaveBeenCalled();
+  });
 });

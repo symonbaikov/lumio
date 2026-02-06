@@ -18,7 +18,7 @@ import { Permission } from '../../common/enums/permissions.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
-import { Statement } from '../../entities/statement.entity';
+import { Statement, StatementStatus } from '../../entities/statement.entity';
 import { StatementProcessingService } from '../parsing/services/statement-processing.service';
 import { ConflictResolutionMap, ImportSessionService } from './services/import-session.service';
 
@@ -62,6 +62,17 @@ export class ImportSessionController {
       };
     }
 
+    if (
+      statement.status === StatementStatus.COMPLETED ||
+      statement.status === StatementStatus.PARSED
+    ) {
+      return {
+        statementId: statement.id,
+        status: statement.status,
+        importPreview: null,
+      };
+    }
+
     const processed = await this.statementProcessingService.processStatement(statement.id);
     return {
       statementId: processed.id,
@@ -89,6 +100,13 @@ export class ImportSessionController {
       | { sessionId?: string }
       | undefined;
     if (!importPreview?.sessionId) {
+      if (statement.status === StatementStatus.COMPLETED) {
+        return {
+          statementId: statement.id,
+          status: statement.status,
+          importCommit: statement.parsingDetails?.importCommit ?? null,
+        };
+      }
       throw new BadRequestException('Import preview session not found');
     }
 
