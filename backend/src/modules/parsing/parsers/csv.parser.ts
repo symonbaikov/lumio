@@ -5,11 +5,16 @@ import type { ParsedStatement, ParsedTransaction } from '../interfaces/parsed-st
 import { BaseParser } from './base.parser';
 
 export class CsvParser extends BaseParser {
-  async canParse(bankName: BankName, fileType: FileType, filePath: string): Promise<boolean> {
+  async canParse(
+    bankName: BankName,
+    fileType: FileType,
+    filePath: string,
+    cachedText?: string,
+  ): Promise<boolean> {
     return fileType === FileType.CSV;
   }
 
-  async parse(filePath: string): Promise<ParsedStatement> {
+  async parse(filePath: string, cachedText?: string): Promise<ParsedStatement> {
     return new Promise((resolve, reject) => {
       const transactions: ParsedTransaction[] = [];
       let headers: string[] = [];

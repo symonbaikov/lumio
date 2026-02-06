@@ -8,16 +8,21 @@ import { BaseParser } from './base.parser';
 export class GenericPdfParser extends BaseParser {
   private aiExtractor = new AiTransactionExtractor();
 
-  async canParse(bankName: BankName, fileType: FileType): Promise<boolean> {
+  async canParse(
+    bankName: BankName,
+    fileType: FileType,
+    _filePath: string,
+    _cachedText?: string,
+  ): Promise<boolean> {
     return bankName === BankName.OTHER && fileType === FileType.PDF;
   }
 
-  async parse(filePath: string): Promise<ParsedStatement> {
+  async parse(filePath: string, cachedText?: string): Promise<ParsedStatement> {
     let text = '';
     let tableRows: string[][] = [];
 
     try {
-      text = await extractTextFromPdf(filePath);
+      text = cachedText ?? (await extractTextFromPdf(filePath));
     } catch (error) {
       console.warn('[GenericPdfParser] Failed to extract PDF text:', (error as Error)?.message);
     }

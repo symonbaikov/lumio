@@ -6,7 +6,19 @@ import { ExcelParser } from '@/modules/parsing/parsers/excel.parser';
 import { GenericPdfParser } from '@/modules/parsing/parsers/generic-pdf.parser';
 import { KaspiParser } from '@/modules/parsing/parsers/kaspi.parser';
 import { ParserFactoryService } from '@/modules/parsing/services/parser-factory.service';
+import { extractTextFromPdf } from '@/common/utils/pdf-parser.util';
 import { Test, type TestingModule } from '@nestjs/testing';
+
+jest.mock('@/common/utils/advanced-language-detector.util', () => ({
+  advancedLanguageDetector: {
+    detectLanguage: jest.fn().mockResolvedValue({
+      locale: 'unknown',
+      confidence: 0,
+      method: 'legacy',
+      reason: 'mock',
+    }),
+  },
+}));
 
 jest.mock('@/common/utils/pdf-parser.util', () => ({
   extractTextFromPdf: jest.fn().mockResolvedValue('kaspi bank statement'),
@@ -63,6 +75,17 @@ describe('ParserFactoryService', () => {
   describe('detectBankAndFormat', () => {
     it('detects Kaspi bank from PDF content', async () => {
       const result = await service.detectBankAndFormat('/tmp/mock.pdf', FileType.PDF);
+      expect(result.bankName).toBe(BankName.KASPI);
+    });
+
+    it('uses cached text for PDF detection', async () => {
+      const result = await service.detectBankAndFormat(
+        '/tmp/mock.pdf',
+        FileType.PDF,
+        'kaspi bank statement',
+      );
+
+      expect(extractTextFromPdf).not.toHaveBeenCalled();
       expect(result.bankName).toBe(BankName.KASPI);
     });
 

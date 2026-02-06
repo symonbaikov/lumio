@@ -14,6 +14,7 @@ import { ImportSessionService } from '../../import/services/import-session.servi
 import { MetricsService } from '../../observability/metrics.service';
 import { CrossStatementDeduplicationService } from '../../transactions/services/cross-statement-deduplication.service';
 import { TransactionFingerprintService } from '../../transactions/services/transaction-fingerprint.service';
+import { extractTextFromPdf } from '../../../common/utils/pdf-parser.util';
 import { AiParseValidator } from '../helpers/ai-parse-validator.helper';
 import { isAiEnabled } from '../helpers/ai-runtime.util';
 import type { ParsedTransaction } from '../interfaces/parsed-statement.interface';
@@ -430,9 +431,21 @@ export class StatementProcessingService {
       // Detect bank and format
       addLog('info', `Detecting bank and format for file type: ${statement.fileType}`);
       const detectStartTime = Date.now();
+      let cachedText: string | undefined;
+      if (statement.fileType === FileType.PDF) {
+        try {
+          cachedText = await extractTextFromPdf(processingFilePath);
+        } catch (error) {
+          addLog(
+            'warn',
+            `PDF text extraction failed before detection: ${(error as Error)?.message}`,
+          );
+        }
+      }
       const { bankName, formatVersion } = await this.parserFactory.detectBankAndFormat(
         processingFilePath,
         statement.fileType,
+        cachedText,
       );
       const detectTime = Date.now() - detectStartTime;
 
@@ -453,6 +466,7 @@ export class StatementProcessingService {
         bankName,
         statement.fileType,
         processingFilePath,
+        cachedText,
       );
 
       if (!parser) {
@@ -473,7 +487,7 @@ export class StatementProcessingService {
       // Parse statement
       addLog('info', 'Starting PDF text extraction...');
       const parseStartTime = Date.now();
-      let parsedStatement = await parser.parse(processingFilePath);
+      let parsedStatement = await parser.parse(processingFilePath, cachedText);
       const parseTime = Date.now() - parseStartTime;
 
       addLog('info', `Parsing completed in ${parseTime}ms`);

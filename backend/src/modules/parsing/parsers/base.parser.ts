@@ -31,9 +31,14 @@ export abstract class BaseParser implements IParser {
     protected bankProfileService: BankProfileService = new BankProfileService(),
   ) {}
 
-  abstract canParse(bankName: BankName, fileType: FileType, filePath: string): Promise<boolean>;
+  abstract canParse(
+    bankName: BankName,
+    fileType: FileType,
+    filePath: string,
+    cachedText?: string,
+  ): Promise<boolean>;
 
-  abstract parse(filePath: string): Promise<ParsedStatement>;
+  abstract parse(filePath: string, cachedText?: string): Promise<ParsedStatement>;
 
   getVersion(): string {
     return '2.0.0';

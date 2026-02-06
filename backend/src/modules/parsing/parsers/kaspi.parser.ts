@@ -9,7 +9,12 @@ import { BaseParser } from './base.parser';
 export class KaspiParser extends BaseParser {
   private aiExtractor = new AiTransactionExtractor();
 
-  async canParse(bankName: BankName, fileType: FileType, filePath: string): Promise<boolean> {
+  async canParse(
+    bankName: BankName,
+    fileType: FileType,
+    filePath: string,
+    cachedText?: string,
+  ): Promise<boolean> {
     if (bankName !== BankName.KASPI && bankName !== BankName.OTHER) {
       return false;
     }
@@ -19,7 +24,7 @@ export class KaspiParser extends BaseParser {
     }
 
     try {
-      const text = (await extractTextFromPdf(filePath)).toLowerCase();
+      const text = (cachedText ?? (await extractTextFromPdf(filePath))).toLowerCase();
       return text.includes('kaspi') || text.includes('каспи') || text.includes('caspkzka');
     } catch (error) {
       console.error('[KaspiParser] Error in canParse:', error);
@@ -27,10 +32,10 @@ export class KaspiParser extends BaseParser {
     }
   }
 
-  async parse(filePath: string): Promise<ParsedStatement> {
+  async parse(filePath: string, cachedText?: string): Promise<ParsedStatement> {
     console.log('[KaspiParser] Starting to parse file:', filePath);
 
-    const text = await extractTextFromPdf(filePath);
+    const text = cachedText ?? (await extractTextFromPdf(filePath));
     const { rows: tableRows } = await extractTablesFromPdf(filePath);
     console.log(`[KaspiParser] PDF text length: ${text.length}`);
 

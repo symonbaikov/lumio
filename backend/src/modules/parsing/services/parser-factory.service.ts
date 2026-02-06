@@ -28,12 +28,13 @@ export class ParserFactoryService {
     bankName: BankName,
     fileType: FileType,
     filePath: string,
+    cachedText?: string,
   ): Promise<IParser | null> {
     console.log(`[ParserFactory] Looking for parser for bank: ${bankName}, fileType: ${fileType}`);
     for (const parser of this.parsers) {
       const parserName = parser.constructor.name;
       console.log(`[ParserFactory] Trying parser: ${parserName}`);
-      if (await parser.canParse(bankName, fileType, filePath)) {
+      if (await parser.canParse(bankName, fileType, filePath, cachedText)) {
         console.log(`[ParserFactory] Parser ${parserName} can parse this file`);
         return parser;
       }
@@ -50,6 +51,7 @@ export class ParserFactoryService {
   async detectBankAndFormat(
     filePath: string,
     fileType: FileType,
+    cachedText?: string,
   ): Promise<{
     bankName: BankName;
     formatVersion?: string;
@@ -61,7 +63,7 @@ export class ParserFactoryService {
     // First, try to detect by file content for PDF files
     if (fileType === FileType.PDF) {
       try {
-        const text = (await extractTextFromPdf(filePath)).toLowerCase();
+        const text = (cachedText ?? (await extractTextFromPdf(filePath))).toLowerCase();
         console.log(`[ParserFactory] Extracted text sample: ${text.substring(0, 200)}...`);
 
         // Check for Kaspi Bank indicators (check first as it's more specific)
@@ -84,11 +86,25 @@ export class ParserFactoryService {
           text.includes('kz47914042204kz039ly')
         ) {
           // Try to determine if it's new or old format
-          if (await new BerekeNewParser().canParse(BankName.BEREKE_NEW, fileType, filePath)) {
+          if (
+            await new BerekeNewParser().canParse(
+              BankName.BEREKE_NEW,
+              fileType,
+              filePath,
+              text,
+            )
+          ) {
             console.log(`[ParserFactory] Detected: Bereke Bank (new format)`);
             return { bankName: BankName.BEREKE_NEW, formatVersion: 'new' };
           }
-          if (await new BerekeOldParser().canParse(BankName.BEREKE_OLD, fileType, filePath)) {
+          if (
+            await new BerekeOldParser().canParse(
+              BankName.BEREKE_OLD,
+              fileType,
+              filePath,
+              text,
+            )
+          ) {
             console.log(`[ParserFactory] Detected: Bereke Bank (old format)`);
             return { bankName: BankName.BEREKE_OLD, formatVersion: 'old' };
           }
@@ -106,17 +122,17 @@ export class ParserFactoryService {
       // Check Kaspi first
       if (
         parser instanceof KaspiParser &&
-        (await parser.canParse(BankName.KASPI, fileType, filePath))
+        (await parser.canParse(BankName.KASPI, fileType, filePath, cachedText))
       ) {
         console.log(`[ParserFactory] Detected: Kaspi Bank`);
         return { bankName: BankName.KASPI };
       }
 
-      if (await parser.canParse(BankName.BEREKE_NEW, fileType, filePath)) {
+      if (await parser.canParse(BankName.BEREKE_NEW, fileType, filePath, cachedText)) {
         console.log(`[ParserFactory] Detected: Bereke Bank (new format)`);
         return { bankName: BankName.BEREKE_NEW, formatVersion: 'new' };
       }
-      if (await parser.canParse(BankName.BEREKE_OLD, fileType, filePath)) {
+      if (await parser.canParse(BankName.BEREKE_OLD, fileType, filePath, cachedText)) {
         console.log(`[ParserFactory] Detected: Bereke Bank (old format)`);
         return { bankName: BankName.BEREKE_OLD, formatVersion: 'old' };
       }

@@ -24,14 +24,19 @@ interface ColumnBoundary {
 export class BerekeNewParser extends BaseParser {
   private aiExtractor = new AiTransactionExtractor();
 
-  async canParse(bankName: BankName, fileType: FileType, filePath: string): Promise<boolean> {
+  async canParse(
+    bankName: BankName,
+    fileType: FileType,
+    filePath: string,
+    cachedText?: string,
+  ): Promise<boolean> {
     if (bankName !== BankName.BEREKE_NEW || fileType !== FileType.PDF) {
       return false;
     }
 
     try {
       // Check if file contains Bereke Bank indicators
-      const text = (await extractTextFromPdf(filePath)).toLowerCase();
+      const text = (cachedText ?? (await extractTextFromPdf(filePath))).toLowerCase();
 
       // Look for Bereke Bank indicators
       return (
@@ -43,27 +48,28 @@ export class BerekeNewParser extends BaseParser {
     }
   }
 
-  async parse(filePath: string): Promise<ParsedStatement> {
+  async parse(filePath: string, cachedText?: string): Promise<ParsedStatement> {
     console.log(`[BerekeNewParser] Starting to parse file: ${filePath}`);
     const extractStartTime = Date.now();
 
     const { text, rows } = await extractTextAndLayoutFromPdf(filePath);
+    const normalizedText = cachedText ?? text;
     const { rows: tableRows } = await extractTablesFromPdf(filePath);
     const extractTime = Date.now() - extractStartTime;
     console.log(
-      `[BerekeNewParser] PDF text extracted in ${extractTime}ms, length: ${text.length} characters, rows: ${rows.length}`,
+      `[BerekeNewParser] PDF text extracted in ${extractTime}ms, length: ${normalizedText.length} characters, rows: ${rows.length}`,
     );
 
     // Extract metadata
     console.log(`[BerekeNewParser] Extracting metadata...`);
-    const accountNumber = this.extractAccountNumber(text) || '';
-    const dateRange = this.extractDateRange(text);
+    const accountNumber = this.extractAccountNumber(normalizedText) || '';
+    const dateRange = this.extractDateRange(normalizedText);
     const balanceStart =
-      this.extractBalance(text, 'Остаток на начало') ||
-      this.extractBalance(text, 'Остаток на начало периода');
+      this.extractBalance(normalizedText, 'Остаток на начало') ||
+      this.extractBalance(normalizedText, 'Остаток на начало периода');
     const balanceEnd =
-      this.extractBalance(text, 'Остаток на конец') ||
-      this.extractBalance(text, 'Остаток на конец периода');
+      this.extractBalance(normalizedText, 'Остаток на конец') ||
+      this.extractBalance(normalizedText, 'Остаток на конец периода');
 
     console.log(
       `[BerekeNewParser] Metadata extracted - Account: ${
@@ -95,7 +101,7 @@ export class BerekeNewParser extends BaseParser {
     console.log(`[BerekeNewParser] Extracting transactions from structured text...`);
     const structuredStart = Date.now();
     const { transactions: structuredTransactions, groupsDetected } = this.extractTransactions(
-      text,
+      normalizedText,
       rows,
     );
     const structuredTime = Date.now() - structuredStart;
@@ -114,7 +120,7 @@ export class BerekeNewParser extends BaseParser {
       console.log(
         `[BerekeNewParser] Structured parsing incomplete (${transactions.length}/${detectedGroups}), trying AI extraction...`,
       );
-      const aiTransactions = await this.aiExtractor.extractTransactions(text);
+      const aiTransactions = await this.aiExtractor.extractTransactions(normalizedText);
       if (aiTransactions.length) {
         transactions =
           transactions.length > 0

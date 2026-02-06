@@ -4,11 +4,16 @@ import type { ParsedStatement, ParsedTransaction } from '../interfaces/parsed-st
 import { BaseParser } from './base.parser';
 
 export class ExcelParser extends BaseParser {
-  async canParse(bankName: BankName, fileType: FileType, filePath: string): Promise<boolean> {
+  async canParse(
+    bankName: BankName,
+    fileType: FileType,
+    filePath: string,
+    cachedText?: string,
+  ): Promise<boolean> {
     return fileType === FileType.XLSX || fileType === FileType.CSV;
   }
 
-  async parse(filePath: string): Promise<ParsedStatement> {
+  async parse(filePath: string, cachedText?: string): Promise<ParsedStatement> {
     const workbook = XLSX.readFile(filePath);
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
