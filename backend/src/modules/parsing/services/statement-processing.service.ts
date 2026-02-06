@@ -311,10 +311,15 @@ export class StatementProcessingService {
 
     const importPreview = (statement.parsingDetails as any)?.importPreview;
     if (!importPreview?.sessionId) {
-      if (
-        statement.status === StatementStatus.COMPLETED ||
-        (statement.totalTransactions ?? 0) > 0
-      ) {
+      if (statement.status === StatementStatus.COMPLETED) {
+        return statement;
+      }
+
+      const transactionCount = await this.transactionRepository.count({
+        where: { statementId: statement.id },
+      });
+
+      if (transactionCount > 0) {
         return statement;
       }
       throw new Error(`Import preview session missing for statement ${statementId}`);

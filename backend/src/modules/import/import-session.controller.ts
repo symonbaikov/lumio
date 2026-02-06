@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
 import { Statement, StatementStatus } from '../../entities/statement.entity';
+import { Transaction } from '../../entities/transaction.entity';
 import { StatementProcessingService } from '../parsing/services/statement-processing.service';
 import { ConflictResolutionMap, ImportSessionService } from './services/import-session.service';
 
@@ -31,6 +32,8 @@ export class ImportSessionController {
     private readonly statementProcessingService: StatementProcessingService,
     @InjectRepository(Statement)
     private readonly statementRepository: Repository<Statement>,
+    @InjectRepository(Transaction)
+    private readonly transactionRepository: Repository<Transaction>,
   ) {}
 
   @Get('import-sessions/:id')
@@ -62,10 +65,19 @@ export class ImportSessionController {
       };
     }
 
-    if (
-      statement.status === StatementStatus.COMPLETED ||
-      (statement.totalTransactions ?? 0) > 0
-    ) {
+    if (statement.status === StatementStatus.COMPLETED) {
+      return {
+        statementId: statement.id,
+        status: statement.status,
+        importPreview: null,
+      };
+    }
+
+    const transactionCount = await this.transactionRepository.count({
+      where: { statementId: statement.id },
+    });
+
+    if (transactionCount > 0) {
       return {
         statementId: statement.id,
         status: statement.status,
@@ -100,10 +112,19 @@ export class ImportSessionController {
       | { sessionId?: string }
       | undefined;
     if (!importPreview?.sessionId) {
-      if (
-        statement.status === StatementStatus.COMPLETED ||
-        (statement.totalTransactions ?? 0) > 0
-      ) {
+      if (statement.status === StatementStatus.COMPLETED) {
+        return {
+          statementId: statement.id,
+          status: statement.status,
+          importCommit: statement.parsingDetails?.importCommit ?? null,
+        };
+      }
+
+      const transactionCount = await this.transactionRepository.count({
+        where: { statementId: statement.id },
+      });
+
+      if (transactionCount > 0) {
         return {
           statementId: statement.id,
           status: statement.status,

@@ -60,6 +60,7 @@ describe('StatementProcessingService', () => {
       savedTransactions.push(saved);
       return saved;
     }),
+    count: jest.fn(async () => 0),
   };
 
   const classificationService = {
@@ -223,8 +224,9 @@ describe('StatementProcessingService', () => {
 
   it('returns statement when parsed but transactions already exist', async () => {
     statement.status = StatementStatus.PARSED;
-    statement.totalTransactions = 2;
+    statement.totalTransactions = 0;
     statement.parsingDetails = null;
+    transactionRepository.count.mockResolvedValueOnce(2);
 
     await expect(service.commitImport(statement.id)).resolves.toBe(statement);
     expect(importSessionService.processImport).not.toHaveBeenCalled();
