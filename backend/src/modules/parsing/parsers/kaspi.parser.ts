@@ -112,11 +112,14 @@ export class KaspiParser extends BaseParser {
   }
 
   private extractPeriodFromText(text: string): { from: Date | null; to: Date | null } {
-    // Look for "Период: DD.MM.YYYY"
-    const periodMatch = text.match(/Период:\s*(\d{2}\.\d{2}\.\d{4})/i);
+    // Look for "Период: DD.MM.YYYY - DD.MM.YYYY" or single date
+    const periodMatch = text.match(
+      /Период:\s*(\d{2}\.\d{2}\.\d{4})(?:\s*[-–—]\s*(\d{2}\.\d{2}\.\d{4}))?/i,
+    );
     if (periodMatch) {
-      const date = this.normalizeDate(periodMatch[1]);
-      return { from: date, to: date };
+      const fromDate = this.normalizeDate(periodMatch[1]);
+      const toDate = periodMatch[2] ? this.normalizeDate(periodMatch[2]) : fromDate;
+      return { from: fromDate, to: toDate };
     }
 
     return { from: null, to: null };
