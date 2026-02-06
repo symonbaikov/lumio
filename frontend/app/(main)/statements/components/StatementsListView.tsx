@@ -1057,7 +1057,7 @@ export default function StatementsListView({ stage }: Props) {
 
       {uploadModalOpen && (
         <dialog
-          className="fixed inset-0 z-[2000] m-0 flex h-screen w-screen max-h-none max-w-none items-center justify-center border-0 bg-black/40 p-0"
+          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 px-4"
           open
           aria-modal="true"
         >
