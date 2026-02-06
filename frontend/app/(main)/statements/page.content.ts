@@ -152,6 +152,11 @@ const content = {
       en: 'Failed to load statements',
       kk: 'Үзінділер тізімін жүктеу мүмкін болмады',
     }),
+    refreshFailed: t({
+      ru: 'Не удалось обновить список выписок',
+      en: 'Failed to refresh statements',
+      kk: 'Үзінділер тізімін жаңарту мүмкін болмады',
+    }),
     reprocessStart: t({
       ru: 'Запуск обработки...',
       en: 'Starting processing...',

@@ -443,12 +443,14 @@ export default function StatementsListView({ stage }: Props) {
     notifyOnCompletion?: boolean;
     page?: number;
     search?: string;
+    showErrorToast?: boolean;
   }) => {
-    const { silent, notifyOnCompletion, page, search } = opts || {};
+    const { silent, notifyOnCompletion, page, search, showErrorToast } = opts || {};
     if (!silent) {
       setLoading(true);
     }
 
+    let didLoad = true;
     try {
       const response = await apiClient.get("/statements", {
         params: {
@@ -476,13 +478,18 @@ export default function StatementsListView({ stage }: Props) {
         }
       }
     } catch (error) {
+      didLoad = false;
       console.error("Failed to load statements:", error);
-      toast.error(resolveLabel(t.loadListError, "Failed to load statements"));
+      if (showErrorToast !== false) {
+        toast.error(resolveLabel(t.loadListError, "Failed to load statements"));
+      }
     } finally {
       if (!silent) {
         setLoading(false);
       }
     }
+
+    return didLoad;
   };
 
   const handleUpload = async () => {
@@ -508,7 +515,20 @@ export default function StatementsListView({ stage }: Props) {
       toast.success(resolveLabel(t.uploadModal?.uploadedProcessing, "Files uploaded"));
       setUploadModalOpen(false);
       setUploadFiles([]);
-      await loadStatements({ page: 1, search, notifyOnCompletion: false });
+      try {
+        const didLoad = await loadStatements({
+          page: 1,
+          search,
+          notifyOnCompletion: false,
+          showErrorToast: false,
+        });
+        if (!didLoad) {
+          throw new Error("refresh-failed");
+        }
+      } catch (error) {
+        console.error("Failed to refresh statements:", error);
+        toast.error(resolveLabel(t.refreshFailed, "Failed to refresh statements"));
+      }
     } catch (error) {
       console.error("Failed to upload statements:", error);
       setUploadError(resolveLabel(t.uploadModal?.uploadFailed, "Failed to upload files"));
@@ -1037,7 +1057,7 @@ export default function StatementsListView({ stage }: Props) {
 
       {uploadModalOpen && (
         <dialog
-          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 px-4"
+          className="fixed inset-0 z-[2000] m-0 flex h-screen w-screen max-h-none max-w-none items-center justify-center border-0 bg-black/40 p-0"
           open
           aria-modal="true"
         >
