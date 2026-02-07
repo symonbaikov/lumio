@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Res,
   UploadedFile,
   Put,
   Query,
@@ -23,6 +24,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { type User, UserRole } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateMyPreferencesDto } from './dto/update-my-preferences.dto';
@@ -34,7 +36,9 @@ import type {
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PermissionsService } from './services/permissions.service';
 import { UsersService } from './users.service';
+import { sanitizeAvatarFilename } from '../../common/utils/avatar-filename.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
+import type { Response } from 'express';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -57,6 +61,24 @@ export class UsersController {
   @Get('me')
   async getProfile(@CurrentUser() user: User): Promise<User> {
     return this.usersService.getProfile(user.id);
+  }
+
+  @Public()
+  @Get('avatars/:fileName')
+  getAvatar(@Param('fileName') fileName: string, @Res() res: Response) {
+    const uploadsDir = resolveUploadsDir();
+    const safeFileName = path.basename(fileName);
+    const filePath = path.join(uploadsDir, 'user-avatars', safeFileName);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send('Avatar not found');
+    }
+
+    return res.sendFile(filePath, {
+      headers: {
+        'Cache-Control': 'public, max-age=86400',
+      },
+    });
   }
 
   @Get(':id')
@@ -189,7 +211,7 @@ export class UsersController {
           cb(null, targetDir);
         },
         filename: (_req, file, cb) => {
-          const safeName = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
+          const safeName = sanitizeAvatarFilename(file.originalname);
           cb(null, safeName);
         },
       }),
@@ -210,7 +232,7 @@ export class UsersController {
       throw new BadRequestException('Файл не загружен');
     }
 
-    const url = `/uploads/user-avatars/${file.filename}`;
+    const url = `/api/v1/users/avatars/${encodeURIComponent(file.filename)}`;
     const updatedUser = await this.usersService.updateMyAvatar(currentUser.id, url);
     const { passwordHash, ...safeUser } = updatedUser as any;
     return { user: safeUser, avatarUrl: url };

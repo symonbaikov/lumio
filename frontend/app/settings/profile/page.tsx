@@ -1,101 +1,92 @@
-"use client";
+'use client';
 
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import EditIcon from "@mui/icons-material/Edit";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import LogoutIcon from "@mui/icons-material/Logout";
-import MailOutlineIcon from "@mui/icons-material/MailOutline";
-import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
-import SecurityIcon from "@mui/icons-material/Security";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import CircularProgress from "@mui/material/CircularProgress";
-import { Alert } from "@/app/components/ui/alert";
-import { Button } from "@/app/components/ui/button";
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import EditIcon from '@mui/icons-material/Edit';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import LogoutIcon from '@mui/icons-material/Logout';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined';
+import SecurityIcon from '@mui/icons-material/Security';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import CircularProgress from '@mui/material/CircularProgress';
+import { Alert } from '@/app/components/ui/alert';
+import { Button } from '@/app/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/app/components/ui/card";
-import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
-import { Select } from "@/app/components/ui/select";
-import { Separator } from "@/app/components/ui/separator";
-import { useAuth } from "@/app/hooks/useAuth";
-import apiClient from "@/app/lib/api";
-import { cn } from "@/app/lib/utils";
-import { ModeToggle } from "@/components/mode-toggle";
-import { MAX_AVATAR_SIZE_BYTES } from "@/app/lib/constants";
-import type { AxiosError } from "axios";
-import { useIntlayer, useLocale } from "next-intlayer";
-import { useRouter } from "next/navigation";
-import { type ComponentType, useEffect, useMemo, useRef, useState } from "react";
+} from '@/app/components/ui/card';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { Select } from '@/app/components/ui/select';
+import { Separator } from '@/app/components/ui/separator';
+import { useAuth } from '@/app/hooks/useAuth';
+import apiClient from '@/app/lib/api';
+import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
+import { cn } from '@/app/lib/utils';
+import { ModeToggle } from '@/components/mode-toggle';
+import { MAX_AVATAR_SIZE_BYTES } from '@/app/lib/constants';
+import type { AxiosError } from 'axios';
+import { useIntlayer, useLocale } from 'next-intlayer';
+import { useRouter } from 'next/navigation';
+import { type ComponentType, useEffect, useMemo, useRef, useState } from 'react';
 
-type AppLocale = "ru" | "en" | "kk";
+type AppLocale = 'ru' | 'en' | 'kk';
 type ApiErrorResponse = { message?: string; error?: { message?: string } };
 
-const sections = [
-  "profile",
-  "sessions",
-  "email",
-  "password",
-  "appearance",
-] as const;
+const sections = ['profile', 'sessions', 'email', 'password', 'appearance'] as const;
 type SectionId = (typeof sections)[number];
 
 const normalizeLocale = (value: unknown): AppLocale => {
-  if (value === "ru" || value === "en" || value === "kk") return value;
-  return "ru";
+  if (value === 'ru' || value === 'en' || value === 'kk') return value;
+  return 'ru';
 };
 
 const normalizeSection = (value: string | null | undefined): SectionId => {
-  if (!value) return "profile";
-  if ((sections as readonly string[]).includes(value))
-    return value as SectionId;
-  return "profile";
+  if (!value) return 'profile';
+  if ((sections as readonly string[]).includes(value)) return value as SectionId;
+  return 'profile';
 };
 
 const getApiErrorMessage = (error: unknown, fallback: string) => {
   const axiosError = error as AxiosError<ApiErrorResponse>;
   return (
-    axiosError?.response?.data?.message ||
-    axiosError?.response?.data?.error?.message ||
-    fallback
+    axiosError?.response?.data?.message || axiosError?.response?.data?.error?.message || fallback
   );
 };
 
 const getInitials = (value: string) => {
-  if (!value) return "—";
+  if (!value) return '—';
   const tokens = value.trim().split(/\s+/).filter(Boolean);
-  if (!tokens.length) return "—";
+  if (!tokens.length) return '—';
   if (tokens.length === 1) return tokens[0].slice(0, 2).toUpperCase();
   return (tokens[0][0] + tokens[1][0]).toUpperCase();
 };
-
 
 export default function ProfileSettingsPage() {
   const router = useRouter();
   const { user, loading, setUser } = useAuth();
   const { locale, setLocale } = useLocale();
-  const t = useIntlayer("settingsProfilePage");
-  const [activeSection, setActiveSection] = useState<SectionId>("profile");
-  const [profileName, setProfileName] = useState("");
-  const [profileLocale, setProfileLocale] = useState<AppLocale>("ru");
-  const [profileTimeZone, setProfileTimeZone] = useState<string>("");
+  const t = useIntlayer('settingsProfilePage');
+  const [activeSection, setActiveSection] = useState<SectionId>('profile');
+  const [profileName, setProfileName] = useState('');
+  const [profileLocale, setProfileLocale] = useState<AppLocale>('ru');
+  const [profileTimeZone, setProfileTimeZone] = useState<string>('');
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
-  const [email, setEmail] = useState("");
-  const [emailPassword, setEmailPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
   const [emailMessage, setEmailMessage] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailLoading, setEmailLoading] = useState(false);
 
   const [passwords, setPasswords] = useState({
-    current: "",
-    next: "",
-    confirm: "",
+    current: '',
+    next: '',
+    confirm: '',
   });
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -114,15 +105,15 @@ export default function ProfileSettingsPage() {
       setProfileName(user.name);
     }
     setProfileLocale(normalizeLocale(user?.locale ?? locale));
-    setProfileTimeZone(user?.timeZone || "");
+    setProfileTimeZone(user?.timeZone || '');
   }, [locale, user]);
 
   useEffect(() => {
-    setActiveSection(normalizeSection(window.location.hash?.replace("#", "")));
+    setActiveSection(normalizeSection(window.location.hash?.replace('#', '')));
   }, []);
 
   useEffect(() => {
-    window.history.replaceState(null, "", `#${activeSection}`);
+    window.history.replaceState(null, '', `#${activeSection}`);
   }, [activeSection]);
 
   useEffect(() => {
@@ -137,22 +128,18 @@ export default function ProfileSettingsPage() {
     setProfileError(null);
     try {
       setProfileLoading(true);
-      const response = await apiClient.patch("/users/me/preferences", {
+      const response = await apiClient.patch('/users/me/preferences', {
         name: profileName,
         locale: profileLocale,
         timeZone: profileTimeZone ? profileTimeZone : null,
       });
-      setProfileMessage(
-        response.data?.message || t.profileCard.successFallback.value,
-      );
+      setProfileMessage(response.data?.message || t.profileCard.successFallback.value);
 
       if (normalizeLocale(locale) !== profileLocale) {
         setLocale(profileLocale);
       }
     } catch (error: unknown) {
-      setProfileError(
-        getApiErrorMessage(error, t.profileCard.errorFallback.value),
-      );
+      setProfileError(getApiErrorMessage(error, t.profileCard.errorFallback.value));
     } finally {
       setProfileLoading(false);
     }
@@ -167,11 +154,10 @@ export default function ProfileSettingsPage() {
 
     if (file.size > MAX_AVATAR_SIZE_BYTES) {
       setAvatarErrorMessage(
-        (t as any).profileCard?.avatarSizeError?.value ||
-          "Avatar file is too large",
+        (t as any).profileCard?.avatarSizeError?.value || 'Avatar file is too large',
       );
       if (avatarInputRef.current) {
-        avatarInputRef.current.value = "";
+        avatarInputRef.current.value = '';
       }
       return;
     }
@@ -180,43 +166,41 @@ export default function ProfileSettingsPage() {
 
     try {
       const formData = new FormData();
-      formData.append("avatar", file);
-      const response = await apiClient.post("/users/me/avatar", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      formData.append('avatar', file);
+      const response = await apiClient.post('/users/me/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       const nextUser = response.data?.user || user;
       if (nextUser) {
         setUser(nextUser);
-        localStorage.setItem("user", JSON.stringify(nextUser));
+        localStorage.setItem('user', JSON.stringify(nextUser));
       }
-      setAvatarMessage(
-        (t as any).profileCard?.avatarUpdated?.value || "Avatar updated",
-      );
+      setAvatarMessage((t as any).profileCard?.avatarUpdated?.value || 'Avatar updated');
     } catch (error: unknown) {
       setAvatarErrorMessage(
         getApiErrorMessage(
           error,
-          (t as any).profileCard?.avatarError?.value || "Failed to update avatar",
+          (t as any).profileCard?.avatarError?.value || 'Failed to update avatar',
         ),
       );
     } finally {
       setAvatarUploading(false);
       if (avatarInputRef.current) {
-        avatarInputRef.current.value = "";
+        avatarInputRef.current.value = '';
       }
     }
   };
 
   const handleLogoutAll = async () => {
     try {
-      await apiClient.post("/auth/logout-all");
+      await apiClient.post('/auth/logout-all');
     } catch (error) {
-      console.error("Logout-all error:", error);
+      console.error('Logout-all error:', error);
     } finally {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("user");
-      router.push("/login");
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      router.push('/login');
     }
   };
 
@@ -232,15 +216,13 @@ export default function ProfileSettingsPage() {
 
     try {
       setEmailLoading(true);
-      const response = await apiClient.patch("/users/me/email", {
+      const response = await apiClient.patch('/users/me/email', {
         email,
         currentPassword: emailPassword,
       });
 
-      setEmailMessage(
-        response.data?.message || t.emailCard.successFallback.value,
-      );
-      setEmailPassword("");
+      setEmailMessage(response.data?.message || t.emailCard.successFallback.value);
+      setEmailPassword('');
     } catch (error: unknown) {
       setEmailError(getApiErrorMessage(error, t.emailCard.errorFallback.value));
     } finally {
@@ -260,19 +242,15 @@ export default function ProfileSettingsPage() {
 
     try {
       setPasswordLoading(true);
-      const response = await apiClient.patch("/users/me/password", {
+      const response = await apiClient.patch('/users/me/password', {
         currentPassword: passwords.current,
         newPassword: passwords.next,
       });
 
-      setPasswordMessage(
-        response.data?.message || t.passwordCard.successFallback.value,
-      );
-      setPasswords({ current: "", next: "", confirm: "" });
+      setPasswordMessage(response.data?.message || t.passwordCard.successFallback.value);
+      setPasswords({ current: '', next: '', confirm: '' });
     } catch (error: unknown) {
-      setPasswordError(
-        getApiErrorMessage(error, t.passwordCard.errorFallback.value),
-      );
+      setPasswordError(getApiErrorMessage(error, t.passwordCard.errorFallback.value));
     } finally {
       setPasswordLoading(false);
     }
@@ -296,10 +274,8 @@ export default function ProfileSettingsPage() {
     );
   }
 
-  const appearanceTitle =
-    (t as any).appearanceCard?.title?.value ?? "Appearance";
-  const appearanceDescription =
-    (t as any).appearanceCard?.description?.value ?? "";
+  const appearanceTitle = (t as any).appearanceCard?.title?.value ?? 'Appearance';
+  const appearanceDescription = (t as any).appearanceCard?.description?.value ?? '';
 
   const sectionMeta: Record<
     SectionId,
@@ -325,35 +301,29 @@ export default function ProfileSettingsPage() {
   };
 
   const renderSectionContent = () => {
-    if (activeSection === "profile") {
+    if (activeSection === 'profile') {
       return (
         <form className="space-y-5" onSubmit={handleProfileSubmit}>
           {profileMessage && <Alert variant="success">{profileMessage}</Alert>}
           {profileError && <Alert variant="error">{profileError}</Alert>}
 
           <div className="space-y-2">
-            <Label htmlFor="profile-name">
-              {t.profileCard.nameLabel.value}
-            </Label>
+            <Label htmlFor="profile-name">{t.profileCard.nameLabel.value}</Label>
             <Input
               id="profile-name"
               value={profileName}
-              onChange={(e) => setProfileName(e.target.value)}
+              onChange={e => setProfileName(e.target.value)}
               required
             />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="profile-locale">
-                {t.profileCard.languageLabel.value}
-              </Label>
+              <Label htmlFor="profile-locale">{t.profileCard.languageLabel.value}</Label>
               <Select
                 id="profile-locale"
                 value={profileLocale}
-                onChange={(e) =>
-                  setProfileLocale(normalizeLocale(e.target.value))
-                }
+                onChange={e => setProfileLocale(normalizeLocale(e.target.value))}
               >
                 <option value="ru">{t.profileCard.languages.ru.value}</option>
                 <option value="en">{t.profileCard.languages.en.value}</option>
@@ -362,26 +332,18 @@ export default function ProfileSettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="profile-timezone">
-                {t.profileCard.timeZoneLabel.value}
-              </Label>
+              <Label htmlFor="profile-timezone">{t.profileCard.timeZoneLabel.value}</Label>
               <Select
                 id="profile-timezone"
                 value={profileTimeZone}
-                onChange={(e) => setProfileTimeZone(e.target.value)}
+                onChange={e => setProfileTimeZone(e.target.value)}
               >
                 <option value="">{t.profileCard.timeZones.auto.value}</option>
                 <option value="UTC">{t.profileCard.timeZones.utc.value}</option>
-                <option value="Europe/Moscow">
-                  {t.profileCard.timeZones.europeMoscow.value}
-                </option>
-                <option value="Asia/Almaty">
-                  {t.profileCard.timeZones.asiaAlmaty.value}
-                </option>
+                <option value="Europe/Moscow">{t.profileCard.timeZones.europeMoscow.value}</option>
+                <option value="Asia/Almaty">{t.profileCard.timeZones.asiaAlmaty.value}</option>
               </Select>
-              <p className="text-xs text-gray-500">
-                {t.profileCard.timeZoneHelp.value}
-              </p>
+              <p className="text-xs text-gray-500">{t.profileCard.timeZoneHelp.value}</p>
             </div>
           </div>
 
@@ -395,22 +357,18 @@ export default function ProfileSettingsPage() {
       );
     }
 
-    if (activeSection === "sessions") {
+    if (activeSection === 'sessions') {
       return (
         <div className="space-y-5">
           <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
             <span className="font-medium text-gray-900">
               {t.sessionsCard.lastLoginLabel.value}:
-            </span>{" "}
-            {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : "—"}
+            </span>{' '}
+            {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : '—'}
           </div>
 
           <div className="flex justify-end">
-            <Button
-              variant="destructive"
-              onClick={handleLogoutAll}
-              className="gap-2"
-            >
+            <Button variant="destructive" onClick={handleLogoutAll} className="gap-2">
               <LogoutIcon className="text-[18px]" />
               {t.sessionsCard.logoutAllButton.value}
             </Button>
@@ -419,39 +377,33 @@ export default function ProfileSettingsPage() {
       );
     }
 
-    if (activeSection === "email") {
+    if (activeSection === 'email') {
       return (
         <form className="space-y-5" onSubmit={handleEmailSubmit}>
           {emailMessage && <Alert variant="success">{emailMessage}</Alert>}
           {emailError && <Alert variant="error">{emailError}</Alert>}
 
           <div className="space-y-2">
-            <Label htmlFor="email-next">
-              {t.emailCard.newEmailLabel.value}
-            </Label>
+            <Label htmlFor="email-next">{t.emailCard.newEmailLabel.value}</Label>
             <Input
               id="email-next"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email-password">
-              {t.emailCard.currentPasswordLabel.value}
-            </Label>
+            <Label htmlFor="email-password">{t.emailCard.currentPasswordLabel.value}</Label>
             <Input
               id="email-password"
               type="password"
               value={emailPassword}
-              onChange={(e) => setEmailPassword(e.target.value)}
+              onChange={e => setEmailPassword(e.target.value)}
               required
             />
-            <p className="text-xs text-gray-500">
-              {t.emailCard.currentPasswordHelp.value}
-            </p>
+            <p className="text-xs text-gray-500">{t.emailCard.currentPasswordHelp.value}</p>
           </div>
 
           <div className="flex justify-end">
@@ -464,16 +416,16 @@ export default function ProfileSettingsPage() {
       );
     }
 
-    if (activeSection === "appearance") {
+    if (activeSection === 'appearance') {
       return (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm font-medium text-gray-900">
-                {(t as any).appearanceCard?.themeLabel?.value ?? "Theme"}
+                {(t as any).appearanceCard?.themeLabel?.value ?? 'Theme'}
               </div>
               <div className="text-xs text-gray-500">
-                {(t as any).appearanceCard?.themeHelp?.value ?? ""}
+                {(t as any).appearanceCard?.themeHelp?.value ?? ''}
               </div>
             </div>
             <div>
@@ -490,16 +442,12 @@ export default function ProfileSettingsPage() {
         {passwordError && <Alert variant="error">{passwordError}</Alert>}
 
         <div className="space-y-2">
-          <Label htmlFor="password-current">
-            {t.passwordCard.currentPasswordLabel.value}
-          </Label>
+          <Label htmlFor="password-current">{t.passwordCard.currentPasswordLabel.value}</Label>
           <Input
             id="password-current"
             type="password"
             value={passwords.current}
-            onChange={(e) =>
-              setPasswords({ ...passwords, current: e.target.value })
-            }
+            onChange={e => setPasswords({ ...passwords, current: e.target.value })}
             required
           />
         </div>
@@ -507,45 +455,30 @@ export default function ProfileSettingsPage() {
         <Separator />
 
         <div className="space-y-2">
-          <Label htmlFor="password-next">
-            {t.passwordCard.newPasswordLabel.value}
-          </Label>
+          <Label htmlFor="password-next">{t.passwordCard.newPasswordLabel.value}</Label>
           <Input
             id="password-next"
             type="password"
             value={passwords.next}
-            onChange={(e) =>
-              setPasswords({ ...passwords, next: e.target.value })
-            }
+            onChange={e => setPasswords({ ...passwords, next: e.target.value })}
             required
           />
-          <p className="text-xs text-gray-500">
-            {t.passwordCard.newPasswordHelp.value}
-          </p>
+          <p className="text-xs text-gray-500">{t.passwordCard.newPasswordHelp.value}</p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password-confirm">
-            {t.passwordCard.confirmPasswordLabel.value}
-          </Label>
+          <Label htmlFor="password-confirm">{t.passwordCard.confirmPasswordLabel.value}</Label>
           <Input
             id="password-confirm"
             type="password"
             value={passwords.confirm}
-            onChange={(e) =>
-              setPasswords({ ...passwords, confirm: e.target.value })
-            }
+            onChange={e => setPasswords({ ...passwords, confirm: e.target.value })}
             required
           />
         </div>
 
         <div className="flex justify-end">
-          <Button
-            type="submit"
-            variant="secondary"
-            disabled={passwordLoading}
-            className="gap-2"
-          >
+          <Button type="submit" variant="secondary" disabled={passwordLoading} className="gap-2">
             {passwordLoading && <CircularProgress size={16} color="inherit" />}
             {t.passwordCard.submit.value}
           </Button>
@@ -556,10 +489,9 @@ export default function ProfileSettingsPage() {
 
   const activeMeta = sectionMeta[activeSection];
   const ActiveIcon = activeMeta.icon;
-  const displayName =
-    profileName || user?.name || user?.email?.split("@")[0] || "—";
+  const displayName = profileName || user?.name || user?.email?.split('@')[0] || '—';
   const initials = getInitials(displayName);
-  const avatarUrl = user?.avatarUrl || null;
+  const avatarUrl = normalizeAvatarUrl(user?.avatarUrl);
 
   return (
     <div className="container-shared px-4 py-8">
@@ -588,7 +520,7 @@ export default function ProfileSettingsPage() {
                       )}
                     </button>
                     <div className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 rounded-md bg-slate-900 px-3 py-1 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
-                      {(t as any).profileCard?.editPhotoLabel?.value || "Edit photo"}
+                      {(t as any).profileCard?.editPhotoLabel?.value || 'Edit photo'}
                     </div>
                     <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow">
                       <EditIcon className="text-gray-500" fontSize="small" />
@@ -602,13 +534,11 @@ export default function ProfileSettingsPage() {
                     />
                   </div>
                   {avatarMessage && <Alert variant="success">{avatarMessage}</Alert>}
-                  {avatarErrorMessage && (
-                    <Alert variant="error">{avatarErrorMessage}</Alert>
-                  )}
+                  {avatarErrorMessage && <Alert variant="error">{avatarErrorMessage}</Alert>}
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
-                {sections.map((id) => {
+                {sections.map(id => {
                   const Icon = sectionMeta[id].icon;
                   const isActive = id === activeSection;
                   return (
@@ -617,14 +547,14 @@ export default function ProfileSettingsPage() {
                       type="button"
                       onClick={() => setActiveSection(id)}
                       className={cn(
-                        "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-all hover:bg-gray-100",
-                        isActive && "font-semibold",
+                        'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-all hover:bg-gray-100',
+                        isActive && 'font-semibold',
                       )}
                     >
                       <span
                         className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-lg text-[18px]",
-                          isActive ? "text-primary" : "text-gray-400",
+                          'flex h-8 w-8 items-center justify-center rounded-lg text-[18px]',
+                          isActive ? 'text-primary' : 'text-gray-400',
                         )}
                       >
                         <Icon className="text-[18px]" />
@@ -662,24 +592,20 @@ export default function ProfileSettingsPage() {
                       )}
                     </button>
                     <div className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-slate-900 px-3 py-1 text-[10px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
-                      {(t as any).profileCard?.editPhotoLabel?.value || "Edit photo"}
+                      {(t as any).profileCard?.editPhotoLabel?.value || 'Edit photo'}
                     </div>
                     <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow">
                       <EditIcon className="text-gray-500" fontSize="small" />
                     </div>
                   </div>
                 </div>
-                <Label htmlFor="profile-section">
-                  {t.navigation.sectionLabel.value}
-                </Label>
+                <Label htmlFor="profile-section">{t.navigation.sectionLabel.value}</Label>
                 <Select
                   id="profile-section"
                   value={activeSection}
-                  onChange={(e) =>
-                    setActiveSection(normalizeSection(e.target.value))
-                  }
+                  onChange={e => setActiveSection(normalizeSection(e.target.value))}
                 >
-                  {sections.map((id) => (
+                  {sections.map(id => (
                     <option key={id} value={id}>
                       {sectionMeta[id].title}
                     </option>
@@ -707,9 +633,7 @@ export default function ProfileSettingsPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6 lg:p-8">
-              {renderSectionContent()}
-            </CardContent>
+            <CardContent className="p-6 lg:p-8">{renderSectionContent()}</CardContent>
           </Card>
         </main>
       </div>
