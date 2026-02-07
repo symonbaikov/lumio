@@ -2,8 +2,11 @@
 
 import { Download, MoreVertical, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { Document, Page, pdfjs } from 'react-pdf';
 import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { ModalShell } from './ui/modal-shell';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface PDFPreviewModalProps {
   isOpen: boolean;
@@ -15,26 +18,30 @@ interface PDFPreviewModalProps {
 const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? '/api/v1').replace(/\/$/, '');
 
 export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPreviewModalProps) {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfObjectUrl, setPdfObjectUrl] = useState<string | null>(null);
+  const [numPages, setNumPages] = useState(0);
+  const [pageWidth, setPageWidth] = useState(920);
   const [menuOpen, setMenuOpen] = useState(false);
+
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
-      // Clean up when modal closes
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-        setPdfUrl(null);
-      }
-      setLoading(true);
+      setPdfObjectUrl(null);
+      setNumPages(0);
+      setLoading(false);
       setError(null);
       setMenuOpen(false);
       return;
     }
 
-    const fetchPDF = async () => {
+    let cancelled = false;
+    let localObjectUrl: string | null = null;
+
+    const fetchPdf = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -46,45 +53,69 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
           return;
         }
 
-        const response = await fetch(`${apiBaseUrl}/statements/${fileId}/view`, {
+        const response = await fetch(`${apiBaseUrl}/statements/${fileId}/file`, {
           method: 'GET',
           headers,
           credentials: 'include',
         });
 
         if (!response.ok) {
-          throw new Error(`Ошибка загрузки файла: ${response.status} ${response.statusText}`);
+          throw new Error(`Ошибка загрузки файла: ${response.status}`);
         }
 
         const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        setPdfUrl(url);
-        setLoading(false);
+        localObjectUrl = URL.createObjectURL(blob);
+
+        if (!cancelled) {
+          setPdfObjectUrl(localObjectUrl);
+          setLoading(false);
+        }
       } catch (err) {
         console.error('Error loading PDF:', err);
-        setError(err instanceof Error ? err.message : 'Не удалось загрузить файл');
-        setLoading(false);
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Не удалось загрузить файл');
+          setLoading(false);
+        }
       }
     };
 
-    fetchPDF();
+    fetchPdf();
 
     return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
+      cancelled = true;
+      if (localObjectUrl) {
+        URL.revokeObjectURL(localObjectUrl);
       }
     };
   }, [isOpen, fileId]);
 
   useEffect(() => {
-    if (!menuOpen) {
+    if (!isOpen || !viewportRef.current) {
       return;
     }
 
+    const node = viewportRef.current;
+
+    const updatePageWidth = () => {
+      const width = Math.floor(node.clientWidth - 120);
+      setPageWidth(Math.max(520, Math.min(1080, width)));
+    };
+
+    updatePageWidth();
+
+    const observer = new ResizeObserver(updatePageWidth);
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
     const handleOutsideClick = (event: MouseEvent) => {
-      if (!menuRef.current) {
-        return;
-      }
+      if (!menuRef.current) return;
       if (!menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
       }
@@ -116,12 +147,12 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Error downloading PDF:', err);
@@ -134,98 +165,112 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
     void handleDownload();
   };
 
-  const headerContent = (
-    <div className="flex w-full items-center justify-between">
-      <div className="truncate pr-3 text-[30px] font-semibold leading-none text-[#0f3428] sm:text-[32px]">
-        Receipt
-      </div>
-      <div className="flex items-center gap-1" ref={menuRef}>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setMenuOpen(prev => !prev)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#22b36a] transition-colors hover:bg-[#eaf5ee]"
-            aria-label="Open file menu"
-          >
-            <MoreVertical size={24} strokeWidth={2.4} />
-          </button>
-
-          {menuOpen && (
-            <div className="absolute right-0 top-12 z-20 min-w-[250px] rounded-[24px] border border-[#d8ddd8] bg-white p-2 shadow-[0_18px_40px_rgba(17,24,39,0.16)]">
-              <button
-                type="button"
-                onClick={handleDownloadFromMenu}
-                className="flex w-full items-center gap-5 rounded-[18px] px-5 py-6 text-left transition-colors hover:bg-[#f5f8f5]"
-              >
-                <Download className="h-9 w-9 text-[#99a39d]" strokeWidth={2.4} />
-                <span className="text-[40px] font-semibold leading-none text-[#0f3428]">Download</span>
-              </button>
-            </div>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#9aa39e] transition-colors hover:bg-[#eef2ee] hover:text-[#6f7773]"
-          aria-label="Close preview"
-        >
-          <X size={33} strokeWidth={2.4} />
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      title={headerContent}
       size="full"
       showCloseButton={false}
-      className="overflow-visible rounded-[22px] border border-[#d4e3d6] shadow-[0_24px_80px_rgba(16,24,40,0.16)]"
-      contentClassName="!p-0"
+      className="h-[calc(100vh-32px)] w-[calc(100vw-32px)] max-w-none overflow-hidden rounded-[22px] border border-[#d4e3d6] shadow-[0_24px_80px_rgba(16,24,40,0.16)]"
+      contentClassName="!h-full !p-0"
     >
-      <div className="relative h-[calc(90vh-78px)] bg-[#f3f4f2]">
-        {loading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-200 border-t-black mx-auto mb-4" />
-              <p className="text-sm text-gray-500 font-medium">Загрузка документа...</p>
-            </div>
-          </div>
-        )}
+      <div className="flex h-full flex-col bg-white">
+        <div
+          className="relative flex items-center justify-between border-b border-[#e4e6e3] px-5 py-4"
+          ref={menuRef}
+        >
+          <h2 className="text-[36px] font-semibold leading-none text-[#0f3428]">Receipt</h2>
 
-        {error && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
-            <div className="text-center max-w-md p-6">
-              <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100">
-                <X size={24} className="text-red-500" strokeWidth={1.5} />
-              </div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-2">Ошибка загрузки</h3>
-              <p className="text-sm text-gray-500 mb-4">{error}</p>
+          <div className="absolute right-5 top-1/2 flex -translate-y-1/2 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(prev => !prev)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#22b36a] transition-colors hover:bg-[#eaf5ee]"
+              aria-label="Open file menu"
+            >
+              <MoreVertical size={24} strokeWidth={2.4} />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#9aa39e] transition-colors hover:bg-[#eef2ee] hover:text-[#6f7773]"
+              aria-label="Close preview"
+            >
+              <X size={33} strokeWidth={2.4} />
+            </button>
+          </div>
+
+          {menuOpen && (
+            <div className="absolute right-5 top-[calc(100%+14px)] z-40 w-[680px] max-w-[calc(100vw-90px)] rounded-[30px] border border-[#d8ddd8] bg-white p-3 shadow-[0_20px_45px_rgba(17,24,39,0.18)]">
               <button
                 type="button"
-                onClick={onClose}
-                className="px-5 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
+                onClick={handleDownloadFromMenu}
+                className="flex w-full items-center gap-6 rounded-[22px] px-8 py-8 text-left transition-colors hover:bg-[#f5f8f5]"
               >
-                Закрыть
+                <Download className="h-11 w-11 text-[#99a39d]" strokeWidth={2.4} />
+                <span className="text-[44px] font-semibold leading-none text-[#0f3428]">
+                  Download
+                </span>
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {!error && pdfUrl && (
-          <div className="h-full overflow-auto p-4 sm:p-6">
-            <div className="mx-auto h-full w-full max-w-[1320px] overflow-hidden rounded-[6px] bg-white shadow-[0_4px_20px_rgba(15,23,42,0.08)]">
-              <iframe
-                src={pdfUrl}
-                className="block h-full w-full"
-                title={fileName}
-                style={{ border: 'none' }}
-              />
+        <div className="relative flex-1 bg-[#f3f4f2]">
+          {loading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
+              <div className="text-center">
+                <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-gray-200 border-t-black" />
+                <p className="text-sm font-medium text-gray-500">Загрузка документа...</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {error && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
+              <div className="max-w-md p-6 text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-red-100 bg-red-50">
+                  <X size={24} className="text-red-500" strokeWidth={1.5} />
+                </div>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">Ошибка загрузки</h3>
+                <p className="mb-4 text-sm text-gray-500">{error}</p>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800"
+                >
+                  Закрыть
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!error && pdfObjectUrl && (
+            <div ref={viewportRef} className="h-full overflow-y-auto px-5 py-7">
+              <div className="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6">
+                <Document
+                  file={pdfObjectUrl}
+                  loading={null}
+                  onLoadSuccess={({ numPages: loadedPages }) => setNumPages(loadedPages)}
+                  onLoadError={() => setError('Не удалось отобразить документ')}
+                  className="w-full"
+                >
+                  {Array.from({ length: numPages }, (_, index) => (
+                    <div key={`page_${index + 1}`} className="flex w-full justify-center">
+                      <Page
+                        pageNumber={index + 1}
+                        width={pageWidth}
+                        renderTextLayer={false}
+                        renderAnnotationLayer={false}
+                        className="overflow-hidden rounded-[2px] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.08)]"
+                      />
+                    </div>
+                  ))}
+                </Document>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </ModalShell>
   );
