@@ -10,15 +10,29 @@ import { CategoryLearning } from '../../../entities/category-learning.entity';
 import { Category, CategoryType } from '../../../entities/category.entity';
 import { type Transaction, TransactionType } from '../../../entities/transaction.entity';
 import { Wallet } from '../../../entities/wallet.entity';
+import { AuditService } from '../../audit/audit.service';
+import { CategoriesService } from '../../categories/categories.service';
+import {
+  AiCategoryClassifier,
+  type AiCategoryMatch,
+} from '../helpers/ai-category-classifier.helper';
 import {
   type ClassificationCondition,
   ClassificationResult,
   type ClassificationRule,
 } from '../interfaces/classification-rule.interface';
-import { AuditService } from '../../audit/audit.service';
+
+type BatchTransactionClassificationInput = {
+  index: number;
+  counterpartyName: string;
+  paymentPurpose: string;
+  transactionType: TransactionType;
+};
 
 @Injectable()
 export class ClassificationService {
+  private readonly aiCategoryClassifier = new AiCategoryClassifier();
+
   constructor(
     @InjectRepository(Category)
     private categoryRepository: Repository<Category>,
@@ -32,6 +46,7 @@ export class ClassificationService {
     private categorizationRuleRepository: Repository<CategorizationRule>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly auditService: AuditService,
+    private readonly categoriesService: CategoriesService,
   ) {}
 
   async classifyTransaction(
@@ -261,7 +276,12 @@ export class ClassificationService {
     }
 
     // Try ML-based learned patterns
-    const learnedMatch = await this.matchByLearnedPatterns(transaction, userId, transactionType);
+    const learnedMatch = await this.matchByLearnedPatterns(
+      transaction,
+      userId,
+      transactionType,
+      transaction.workspaceId || null,
+    );
     if (learnedMatch) {
       return learnedMatch;
     }
@@ -542,6 +562,80 @@ export class ClassificationService {
     // This would process multiple transactions at once
   }
 
+  async classifyTransactionsBatch(
+    transactions: BatchTransactionClassificationInput[],
+    workspaceId: string,
+    userId: string,
+  ): Promise<Map<number, string>> {
+    const categoryByIndex = new Map<number, string>();
+
+    if (!transactions.length || !workspaceId || !this.aiCategoryClassifier.isAvailable()) {
+      return categoryByIndex;
+    }
+
+    const incomeTransactions = transactions.filter(
+      tx => tx.transactionType === TransactionType.INCOME,
+    );
+    const expenseTransactions = transactions.filter(
+      tx => tx.transactionType === TransactionType.EXPENSE,
+    );
+
+    const [incomeCategories, expenseCategories] = await Promise.all([
+      this.getAiCategoryOptions(workspaceId, CategoryType.INCOME),
+      this.getAiCategoryOptions(workspaceId, CategoryType.EXPENSE),
+    ]);
+
+    const [incomeResult, expenseResult] = await Promise.all([
+      this.classifyTransactionGroupWithAi(incomeTransactions, incomeCategories),
+      this.classifyTransactionGroupWithAi(expenseTransactions, expenseCategories),
+    ]);
+
+    const matches = [...incomeResult, ...expenseResult];
+    const transactionByIndex = new Map(transactions.map(tx => [tx.index, tx]));
+
+    for (const match of matches) {
+      categoryByIndex.set(match.index, match.categoryId);
+      const tx = transactionByIndex.get(match.index);
+      if (!tx) {
+        continue;
+      }
+      await this.learnFromAiClassification(workspaceId, userId, tx, match);
+    }
+
+    return categoryByIndex;
+  }
+
+  private async classifyTransactionGroupWithAi(
+    transactions: BatchTransactionClassificationInput[],
+    categories: Array<{ id: string; name: string }>,
+  ): Promise<AiCategoryMatch[]> {
+    if (!transactions.length || !categories.length) {
+      return [];
+    }
+
+    const result = await this.aiCategoryClassifier.classifyBatch(
+      transactions.map(tx => ({
+        index: tx.index,
+        counterpartyName: tx.counterpartyName,
+        paymentPurpose: tx.paymentPurpose,
+      })),
+      categories,
+    );
+
+    return result.matches;
+  }
+
+  private async getAiCategoryOptions(
+    workspaceId: string,
+    type: CategoryType,
+  ): Promise<Array<{ id: string; name: string }>> {
+    const categories = await this.categoriesService.findAll(workspaceId, type);
+    return categories
+      .filter(category => category.isEnabled !== false)
+      .filter(category => category.name.trim().toLowerCase() !== 'без категории')
+      .map(category => ({ id: category.id, name: category.name }));
+  }
+
   private async ensureCategory(
     userId: string,
     categoryName: string,
@@ -679,13 +773,23 @@ export class ClassificationService {
     newCategoryId: string,
     userId: string,
   ): Promise<void> {
+    const workspaceId = transaction.workspaceId || null;
+
+    const lookupWhere = workspaceId
+      ? {
+          workspaceId,
+          categoryId: newCategoryId,
+          paymentPurpose: transaction.paymentPurpose || '',
+        }
+      : {
+          userId,
+          categoryId: newCategoryId,
+          paymentPurpose: transaction.paymentPurpose || '',
+        };
+
     // Check if similar pattern already exists
     const existing = await this.categoryLearningRepository.findOne({
-      where: {
-        userId,
-        categoryId: newCategoryId,
-        paymentPurpose: transaction.paymentPurpose || '',
-      },
+      where: lookupWhere,
     });
 
     if (existing) {
@@ -697,6 +801,7 @@ export class ClassificationService {
       // Create new learning entry
       await this.categoryLearningRepository.save({
         userId,
+        workspaceId,
         categoryId: newCategoryId,
         paymentPurpose: transaction.paymentPurpose || '',
         counterpartyName: transaction.counterpartyName || null,
@@ -707,7 +812,7 @@ export class ClassificationService {
     }
 
     // Invalidate learned patterns cache for this user
-    await this.cacheManager.del(`learned-patterns:${userId}`);
+    await this.cacheManager.del(this.getLearnedPatternsCacheKey(userId, workspaceId));
   }
 
   /**
@@ -717,8 +822,9 @@ export class ClassificationService {
     transaction: Transaction,
     userId: string,
     transactionType: TransactionType,
+    workspaceId: string | null = null,
   ): Promise<string | undefined> {
-    const cacheKey = `learned-patterns:${userId}`;
+    const cacheKey = this.getLearnedPatternsCacheKey(userId, workspaceId);
 
     // Try to get from cache
     let learnedPatterns = await this.cacheManager.get<CategoryLearning[]>(cacheKey);
@@ -726,7 +832,7 @@ export class ClassificationService {
     if (!learnedPatterns) {
       // Get learned patterns for this user from DB
       learnedPatterns = await this.categoryLearningRepository.find({
-        where: { userId },
+        where: workspaceId ? { workspaceId } : { userId },
         order: { confidence: 'DESC', createdAt: 'DESC' },
         take: 100, // Limit for performance
       });
@@ -759,6 +865,59 @@ export class ClassificationService {
     }
 
     return bestMatch?.categoryId;
+  }
+
+  private async learnFromAiClassification(
+    workspaceId: string,
+    userId: string,
+    transaction: BatchTransactionClassificationInput,
+    match: AiCategoryMatch,
+  ): Promise<void> {
+    try {
+      const paymentPurpose = transaction.paymentPurpose || '';
+      const counterpartyName = transaction.counterpartyName || null;
+
+      const existing = await this.categoryLearningRepository.findOne({
+        where: {
+          workspaceId,
+          categoryId: match.categoryId,
+          paymentPurpose,
+          counterpartyName,
+        },
+      });
+
+      if (existing) {
+        existing.occurrences += 1;
+        existing.confidence = Math.min(
+          1,
+          (Number(existing.confidence) + Number(match.confidence)) / 2,
+        );
+        existing.learnedFrom = 'ai_classification';
+        await this.categoryLearningRepository.save(existing);
+      } else {
+        await this.categoryLearningRepository.save({
+          userId,
+          workspaceId,
+          categoryId: match.categoryId,
+          paymentPurpose,
+          counterpartyName,
+          learnedFrom: 'ai_classification',
+          confidence: Number(match.confidence),
+          occurrences: 1,
+        } as CategoryLearning);
+      }
+
+      await this.cacheManager.del(this.getLearnedPatternsCacheKey(userId, workspaceId));
+    } catch (error) {
+      console.error('[ClassificationService] Failed to persist AI learning:', error);
+    }
+  }
+
+  private getLearnedPatternsCacheKey(userId: string, workspaceId: string | null): string {
+    if (workspaceId) {
+      return `learned-patterns:workspace:${workspaceId}`;
+    }
+    return `learned-patterns:user:${userId}`;
   }
 
   /**

@@ -3,6 +3,10 @@ export const isStatementProcessingStatus = (status?: string | null): boolean => 
   return normalized === 'processing' || normalized === 'uploaded';
 };
 
+export const hasProcessingStatements = (statements: Array<{ status?: string | null }>): boolean => {
+  return statements.some(statement => isStatementProcessingStatus(statement.status));
+};
+
 export const getStatementMerchantLabel = (
   status: string | null | undefined,
   merchant: string,

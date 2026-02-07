@@ -130,7 +130,7 @@ export function SidePanel({
     <aside
       className={cn(
         'relative flex flex-col bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out',
-        'shadow-sm overflow-hidden',
+        'shadow-sm overflow-visible',
         positionClasses,
         className
       )}
@@ -272,7 +272,7 @@ export function SidePanel({
 
           {/* Footer */}
           {config?.footer && (
-            <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 shrink-0">
+              <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 shrink-0 overflow-visible">
               {config.footer.content}
               {config.footer.actions && config.footer.actions.length > 0 && (
                 <div className="flex items-center gap-2 mt-2">

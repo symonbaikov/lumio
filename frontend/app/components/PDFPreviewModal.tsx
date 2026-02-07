@@ -1,7 +1,7 @@
 'use client';
 
-import { Download, ExternalLink, FileText, Printer, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Download, MoreVertical, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { ModalShell } from './ui/modal-shell';
 
@@ -18,6 +18,8 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -28,6 +30,7 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
       }
       setLoading(true);
       setError(null);
+      setMenuOpen(false);
       return;
     }
 
@@ -73,6 +76,26 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
     };
   }, [isOpen, fileId]);
 
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!menuRef.current) {
+        return;
+      }
+      if (!menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [menuOpen]);
+
   const handleDownload = async () => {
     try {
       const headers = getWorkspaceHeaders();
@@ -106,63 +129,47 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
     }
   };
 
-  const handlePrint = () => {
-    if (pdfUrl) {
-      const printWindow = window.open(pdfUrl, '_blank');
-      if (printWindow) {
-        printWindow.addEventListener('load', () => {
-          printWindow.print();
-        });
-      }
-    }
+  const handleDownloadFromMenu = () => {
+    setMenuOpen(false);
+    void handleDownload();
   };
 
-  const handleOpenInNewTab = () => {
-    if (pdfUrl) {
-      window.open(pdfUrl, '_blank');
-    }
-  };
-
-  // Custom header with action buttons
   const headerContent = (
-    <div className="flex items-center justify-between w-full">
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 text-gray-500">
-          <FileText className="h-5 w-5" strokeWidth={1.5} />
-        </div>
-        <div className="flex flex-col min-w-0">
-          <span className="font-medium text-gray-900 truncate text-sm leading-tight">
-            {fileName}
-          </span>
-          <span className="text-xs text-gray-400 mt-0.5 font-normal">PDF Document</span>
-        </div>
+    <div className="flex w-full items-center justify-between">
+      <div className="truncate pr-3 text-[30px] font-semibold leading-none text-[#0f3428] sm:text-[32px]">
+        Receipt
       </div>
-      <div className="flex items-center gap-1 ml-4 border-l border-gray-100 pl-4">
+      <div className="flex items-center gap-1" ref={menuRef}>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuOpen(prev => !prev)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#22b36a] transition-colors hover:bg-[#eaf5ee]"
+            aria-label="Open file menu"
+          >
+            <MoreVertical size={24} strokeWidth={2.4} />
+          </button>
+
+          {menuOpen && (
+            <div className="absolute right-0 top-12 z-20 min-w-[250px] rounded-[24px] border border-[#d8ddd8] bg-white p-2 shadow-[0_18px_40px_rgba(17,24,39,0.16)]">
+              <button
+                type="button"
+                onClick={handleDownloadFromMenu}
+                className="flex w-full items-center gap-5 rounded-[18px] px-5 py-6 text-left transition-colors hover:bg-[#f5f8f5]"
+              >
+                <Download className="h-9 w-9 text-[#99a39d]" strokeWidth={2.4} />
+                <span className="text-[40px] font-semibold leading-none text-[#0f3428]">Download</span>
+              </button>
+            </div>
+          )}
+        </div>
         <button
           type="button"
-          onClick={handleDownload}
-          className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200"
-          title="Скачать"
+          onClick={onClose}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#9aa39e] transition-colors hover:bg-[#eef2ee] hover:text-[#6f7773]"
+          aria-label="Close preview"
         >
-          <Download size={18} strokeWidth={1.5} />
-        </button>
-        <button
-          type="button"
-          onClick={handlePrint}
-          className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-          title="Печать"
-          disabled={!pdfUrl}
-        >
-          <Printer size={18} strokeWidth={1.5} />
-        </button>
-        <button
-          type="button"
-          onClick={handleOpenInNewTab}
-          className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-          title="Открыть в новой вкладке"
-          disabled={!pdfUrl}
-        >
-          <ExternalLink size={18} strokeWidth={1.5} />
+          <X size={33} strokeWidth={2.4} />
         </button>
       </div>
     </div>
@@ -173,14 +180,14 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
       isOpen={isOpen}
       onClose={onClose}
       title={headerContent}
-      size="xl"
-      showCloseButton={true}
-      className="rounded-2xl overflow-hidden border border-gray-100 shadow-2xl"
+      size="full"
+      showCloseButton={false}
+      className="overflow-visible rounded-[22px] border border-[#d4e3d6] shadow-[0_24px_80px_rgba(16,24,40,0.16)]"
       contentClassName="!p-0"
     >
-      <div className="h-[85vh] bg-gray-50 relative">
+      <div className="relative h-[calc(90vh-78px)] bg-[#f3f4f2]">
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/50">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
             <div className="text-center">
               <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-200 border-t-black mx-auto mb-4" />
               <p className="text-sm text-gray-500 font-medium">Загрузка документа...</p>
@@ -189,7 +196,7 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
         )}
 
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-white">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
             <div className="text-center max-w-md p-6">
               <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100">
                 <X size={24} className="text-red-500" strokeWidth={1.5} />
@@ -208,12 +215,16 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
         )}
 
         {!error && pdfUrl && (
-          <iframe
-            src={pdfUrl}
-            className="w-full h-full block"
-            title={fileName}
-            style={{ border: 'none' }}
-          />
+          <div className="h-full overflow-auto p-4 sm:p-6">
+            <div className="mx-auto h-full w-full max-w-[1320px] overflow-hidden rounded-[6px] bg-white shadow-[0_4px_20px_rgba(15,23,42,0.08)]">
+              <iframe
+                src={pdfUrl}
+                className="block h-full w-full"
+                title={fileName}
+                style={{ border: 'none' }}
+              />
+            </div>
+          </div>
         )}
       </div>
     </ModalShell>

@@ -7,6 +7,8 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 
 @Entity('category_learning')
 @Index(['userId', 'categoryId'])
 @Index(['userId', 'createdAt'])
+@Index(['workspaceId', 'categoryId'])
+@Index(['workspaceId', 'createdAt'])
 export class CategoryLearning {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -14,6 +16,10 @@ export class CategoryLearning {
   @Column({ type: 'uuid' })
   @Index()
   userId: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  @Index()
+  workspaceId: string | null;
 
   @Column({ type: 'uuid' })
   @Index()
@@ -36,7 +42,7 @@ export class CategoryLearning {
    */
   @Column({
     type: 'enum',
-    enum: ['manual_correction', 'bulk_assignment', 'auto_confirmed'],
+    enum: ['manual_correction', 'bulk_assignment', 'auto_confirmed', 'ai_classification'],
     default: 'manual_correction',
   })
   learnedFrom: string;

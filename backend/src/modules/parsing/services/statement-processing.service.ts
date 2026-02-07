@@ -4,6 +4,7 @@ import * as path from 'path';
 import { Inject, Injectable, Logger, Optional, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { extractTextFromPdf } from '../../../common/utils/pdf-parser.util';
 import { Semaphore } from '../../../common/utils/semaphore.util';
 import { ImportSessionMode } from '../../../entities/import-session.entity';
 import { BankName, FileType, Statement, StatementStatus } from '../../../entities/statement.entity';
@@ -14,7 +15,6 @@ import { ImportSessionService } from '../../import/services/import-session.servi
 import { MetricsService } from '../../observability/metrics.service';
 import { CrossStatementDeduplicationService } from '../../transactions/services/cross-statement-deduplication.service';
 import { TransactionFingerprintService } from '../../transactions/services/transaction-fingerprint.service';
-import { extractTextFromPdf } from '../../../common/utils/pdf-parser.util';
 import { AiParseValidator } from '../helpers/ai-parse-validator.helper';
 import type { ParsedTransaction } from '../interfaces/parsed-statement.interface';
 import type { ParsedStatement } from '../interfaces/parsed-statement.interface';
@@ -684,7 +684,10 @@ export class StatementProcessingService {
 
       addLog('info', `Totals - Debit: ${statement.totalDebit}, Credit: ${statement.totalCredit}`);
 
-      const validationResult = this.validateStatement(enrichedMetadata, parsedStatement.transactions);
+      const validationResult = this.validateStatement(
+        enrichedMetadata,
+        parsedStatement.transactions,
+      );
       parsingDetails.validation = {
         passed: validationResult.passed,
         warnings: validationResult.warnings,
@@ -796,6 +799,41 @@ export class StatementProcessingService {
       `Processing ${deduped.length}/${parsedTransactions.length} parsed transactions after dedup (statement currency: ${statement.currency || 'N/A'})`,
     );
 
+    let aiCategoryByIndex = new Map<number, string>();
+    if (statement.workspaceId && deduped.length > 0) {
+      try {
+        aiCategoryByIndex = await this.classificationService.classifyTransactionsBatch(
+          deduped.map((parsed, index) => {
+            const transactionType =
+              parsed.debit && parsed.debit > 0
+                ? TransactionType.EXPENSE
+                : parsed.credit && parsed.credit > 0
+                  ? TransactionType.INCOME
+                  : TransactionType.INCOME;
+
+            return {
+              index,
+              counterpartyName: (parsed.counterpartyName || '').trim() || 'Неизвестный контрагент',
+              paymentPurpose: (parsed.paymentPurpose || '').trim() || 'Не указано',
+              transactionType,
+            };
+          }),
+          statement.workspaceId,
+          userId,
+        );
+
+        log(
+          'info',
+          `AI category matches: ${aiCategoryByIndex.size}/${deduped.length} transactions`,
+        );
+      } catch (error) {
+        log(
+          'warn',
+          `AI batch categorization failed, fallback to default classification: ${error.message}`,
+        );
+      }
+    }
+
     for (let i = 0; i < deduped.length; i++) {
       const parsed = deduped[i];
 
@@ -828,12 +866,18 @@ export class StatementProcessingService {
           currency: parsed.currency || statement.currency || 'KZT',
           paymentPurpose,
           transactionType,
+          workspaceId: statement.workspaceId,
         } as Transaction;
 
         const classification = await this.classificationService.classifyTransaction(
           tempTransaction,
           userId,
         );
+
+        if (!classification.categoryId && aiCategoryByIndex.has(i)) {
+          classification.categoryId = aiCategoryByIndex.get(i);
+        }
+
         if (!classification.categoryId && defaultCategoryId) {
           classification.categoryId = defaultCategoryId;
         }
@@ -970,7 +1014,9 @@ export class StatementProcessingService {
         ...tx,
         transactionDate: tx.transactionDate ? new Date(tx.transactionDate) : new Date('invalid'),
       }))
-      .filter(tx => tx.transactionDate instanceof Date && !Number.isNaN(tx.transactionDate.getTime()));
+      .filter(
+        tx => tx.transactionDate instanceof Date && !Number.isNaN(tx.transactionDate.getTime()),
+      );
   }
 
   private buildCompleteMetadata(

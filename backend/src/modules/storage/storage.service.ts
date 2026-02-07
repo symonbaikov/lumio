@@ -40,6 +40,7 @@ import type { UpdateFolderDto } from './dto/update-folder.dto';
 import type { UpdatePermissionDto } from './dto/update-permission.dto';
 import type { UpdateSharedLinkDto } from './dto/update-shared-link.dto';
 import type { UpdateTagDto } from './dto/update-tag.dto';
+import { buildStorageCategoryWhere } from './storage-category-scope.util';
 
 /**
  * Storage service for managing file storage, sharing, and permissions
@@ -363,10 +364,7 @@ export class StorageService {
     let category: Category | null = null;
     if (categoryId) {
       category = await this.categoryRepository.findOne({
-        where: {
-          id: categoryId,
-          userId: statement.userId,
-        },
+        where: buildStorageCategoryWhere(categoryId, statement.userId, statement.workspaceId),
       });
 
       if (!category) {

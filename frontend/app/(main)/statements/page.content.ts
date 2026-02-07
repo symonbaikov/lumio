@@ -49,6 +49,7 @@ const content = {
       unapprovedCash: t({ ru: 'Неутвержденные наличные', en: 'Unapproved cash', kk: 'Бекітілмеген қолма-қол' }),
       insightsTitle: t({ ru: 'Инсайты', en: 'Insights', kk: 'Инсайттар' }),
       topSpenders: t({ ru: 'Главные расходы', en: 'Top spenders', kk: 'Ең көп жұмсайтындар' }),
+      topSpendersEmpty: t({ ru: 'Нет данных', en: 'No data', kk: 'Дерек жоқ' }),
       topCategories: t({ ru: 'Топ категории', en: 'Top categories', kk: 'Топ санаттар' }),
     },
     workflow: {

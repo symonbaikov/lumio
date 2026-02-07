@@ -395,7 +395,7 @@ export default function Navigation() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/settings/workspace">
+                      <Link href="/workspaces/overview">
                         <Users size={18} className="text-muted-foreground" />
                         <span className="text-base">{userMenu.workspace}</span>
                       </Link>
@@ -406,18 +406,6 @@ export default function Navigation() {
                         <span className="text-base">
                           {userMenu.integrations}
                         </span>
-                      </Link>
-                    </DropdownMenuItem>
-
-                    <DropdownMenuItem asChild>
-                      <Link href="/categories">
-                        <img
-                          src="/icons/open-folder.png"
-                          alt=""
-                          aria-hidden
-                          className="h-[18px] w-[18px]"
-                        />
-                        <span className="text-base">{userMenu.categories}</span>
                       </Link>
                     </DropdownMenuItem>
 
@@ -587,7 +575,7 @@ export default function Navigation() {
               </Link>
 
               <Link
-                href="/settings/workspace"
+                href="/workspaces/overview"
                 className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 transition-colors bg-white"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -602,20 +590,6 @@ export default function Navigation() {
               >
                 <Plug size={18} className="text-gray-600" />
                 <span className="flex-1">{userMenu.integrations}</span>
-              </Link>
-
-              <Link
-                href="/categories"
-                className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 transition-colors bg-white"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <img
-                  src="/icons/open-folder.png"
-                  alt=""
-                  aria-hidden
-                  className="h-[18px] w-[18px]"
-                />
-                <span className="flex-1">{userMenu.categories}</span>
               </Link>
 
               <button

@@ -65,6 +65,7 @@ describe('StatementProcessingService', () => {
 
   const classificationService = {
     classifyTransaction: jest.fn(async () => ({ categoryId: 'cat-1' })),
+    classifyTransactionsBatch: jest.fn(async () => new Map<number, string>()),
     determineMajorityCategory: jest.fn(async () => ({
       categoryId: 'cat-1',
       type: 'expense' as any,
@@ -184,6 +185,18 @@ describe('StatementProcessingService', () => {
   it('persists parsed transactions and marks statement completed', async () => {
     await service.processStatement(statement.id);
 
+    expect(classificationService.classifyTransactionsBatch).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          index: 0,
+          counterpartyName: 'Supplier LLC',
+          paymentPurpose: 'Invoice payment',
+        }),
+      ]),
+      'ws-1',
+      'user-1',
+    );
+
     expect(statement.accountNumber).toBe('KZACC123');
     expect(statement.statementDateFrom?.toISOString()).toContain('2024-01-05');
     expect(statement.statementDateTo?.toISOString()).toContain('2024-01-10');
@@ -213,6 +226,22 @@ describe('StatementProcessingService', () => {
     expect(statement.totalDebit).toBe(100);
     expect(statement.totalCredit).toBe(200);
     expect(statement.totalTransactions).toBe(2);
+  });
+
+  it('uses AI batch category when transaction classification is missing', async () => {
+    classificationService.classifyTransaction
+      .mockResolvedValueOnce({} as any)
+      .mockResolvedValueOnce({ categoryId: 'cat-1' });
+    classificationService.classifyTransactionsBatch.mockResolvedValueOnce(
+      new Map<number, string>([[0, 'cat-ai']]),
+    );
+
+    await service.processStatement(statement.id);
+
+    expect(savedTransactions[0]).toMatchObject({
+      documentNumber: 'DOC-1',
+      categoryId: 'cat-ai',
+    });
   });
 
   it('returns completed statement when import preview missing', async () => {

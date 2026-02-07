@@ -3,6 +3,7 @@
 import { useAuth } from '@/app/hooks/useAuth';
 import { useAutoSave } from '@/app/hooks/useAutoSave';
 import apiClient from '@/app/lib/api';
+import { flattenStatementCategories } from '@/app/lib/statement-categories';
 import {
   AccountBalance,
   ArrowBack,
@@ -62,7 +63,16 @@ import { useCallback, useEffect, useState } from 'react';
 
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { ModalShell } from '@/app/components/ui/modal-shell';
-import { getStatementStage, setStatementStage, type StatementStage } from '@/app/lib/statement-workflow';
+import StatementCategoryDrawer from './StatementCategoryDrawer';
+import {
+  getStatementStage,
+  getStatementStageActions,
+  isStageActionBlocked,
+  setStatementStage,
+  type StatementStage,
+  type StatementStageAction,
+  type StatementStageActionId,
+} from '@/app/lib/statement-workflow';
 
 interface CategoryOption {
   id: string;
@@ -111,6 +121,8 @@ interface Statement {
   fileName: string;
   status: string;
   totalTransactions: number;
+  categoryId?: string | null;
+  category?: { id: string; name: string } | null;
   statementDateFrom?: string | null;
   statementDateTo?: string | null;
   balanceStart?: number | string | null;
@@ -148,15 +160,6 @@ interface Statement {
     logEntries?: Array<{ timestamp: string; level: string; message: string }>;
   } | null;
 }
-
-const flattenCategories = (items: CategoryOption[], prefix = ''): CategoryOption[] =>
-  items.flatMap(item => {
-    const currentName = prefix ? `${prefix} / ${item.name}` : item.name;
-    return [
-      { ...item, name: currentName },
-      ...(item.children ? flattenCategories(item.children, currentName) : []),
-    ];
-  });
 
 const normalizeDateInput = (value?: string | Date | null) => {
   if (!value) return '';
@@ -205,7 +208,9 @@ export default function EditStatementPage() {
   const [wallets, setWallets] = useState<WalletOption[]>([]);
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [bulkCategoryDialogOpen, setBulkCategoryDialogOpen] = useState(false);
-  const [submitLoading, setSubmitLoading] = useState(false);
+  const [statementCategoryDrawerOpen, setStatementCategoryDrawerOpen] = useState(false);
+  const [statementCategorySaving, setStatementCategorySaving] = useState(false);
+  const [stageActionLoadingId, setStageActionLoadingId] = useState<StatementStageActionId | null>(null);
   const [currentStage, setCurrentStage] = useState<StatementStage>('submit');
 
   const [bulkCategoryId, setBulkCategoryId] = useState('');
@@ -512,7 +517,7 @@ export default function EditStatementPage() {
           onChange={e => handleFieldChange(transaction.id, 'categoryId', e.target.value)}
         >
           <MenuItem value="">{t.labels.notSelected}</MenuItem>
-          {flattenCategories(categories).map(cat => (
+          {flattenStatementCategories(categories).map(cat => (
             <MenuItem key={cat.id} value={cat.id}>
               {cat.name}
             </MenuItem>
@@ -584,6 +589,74 @@ export default function EditStatementPage() {
       return transaction.wallet?.name || '—';
     }
     return transaction[field] || '—';
+  };
+
+  const stageActionLabels: Record<StatementStageActionId, string> = {
+    submitForApproval: labels.submitForApproval?.value || 'Submit',
+    unapprove: labels.unapprove?.value || 'Unapprove',
+    pay: labels.pay?.value || 'Pay',
+    rollbackToApprove: labels.rollbackToApprove?.value || 'Return to approve',
+  };
+
+  const stageActionToasts: Record<StatementStageActionId, string> = {
+    submitForApproval: labels.submitSuccess?.value || 'Statement submitted for approval',
+    unapprove: labels.unapproveSuccess?.value || 'Statement moved back to submit',
+    pay: labels.paySuccess?.value || 'Statement moved to pay',
+    rollbackToApprove:
+      labels.rollbackToApproveSuccess?.value || 'Statement moved back to approve',
+  };
+
+  const flattenedStatementCategories = flattenStatementCategories(categories);
+
+  const stageActions = getStatementStageActions(currentStage);
+
+  const handleStageAction = (action: StatementStageAction) => {
+    if (!statement?.id) return;
+    if (isStageActionBlocked(action.id, missingCategoryCount)) {
+      return;
+    }
+
+    setStageActionLoadingId(action.id);
+    setStatementStage(statement.id, action.nextStage);
+    setCurrentStage(action.nextStage);
+    toast.success(stageActionToasts[action.id]);
+
+    setTimeout(() => {
+      setStageActionLoadingId(null);
+      router.push(action.redirectPath);
+    }, 200);
+  };
+
+  const handleStatementCategorySelect = async (categoryId: string) => {
+    if (!statement?.id || statementCategorySaving) return;
+
+    try {
+      setStatementCategorySaving(true);
+      const response = await apiClient.patch(`/storage/files/${statement.id}/category`, {
+        categoryId: categoryId || null,
+      });
+
+      const selectedCategory =
+        response.data?.category ||
+        flattenedStatementCategories.find(category => category.id === categoryId) ||
+        null;
+
+      setStatement(prev =>
+        prev
+          ? {
+              ...prev,
+              categoryId: response.data?.categoryId ?? (categoryId || null),
+              category: selectedCategory,
+            }
+          : prev,
+      );
+
+      toast.success(labels.categoryUpdated?.value || 'Category updated');
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || labels.categoryUpdateFailed?.value || 'Failed to update category');
+    } finally {
+      setStatementCategorySaving(false);
+    }
   };
 
   if (loading) {
@@ -681,6 +754,22 @@ export default function EditStatementPage() {
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
             <Button
               variant="outlined"
+              startIcon={statementCategorySaving ? <CircularProgress size={18} /> : <Category />}
+              onClick={() => setStatementCategoryDrawerOpen(true)}
+              disabled={statementCategorySaving || optionsLoading}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                borderColor: 'grey.300',
+                color: 'text.secondary',
+                borderRadius: 2,
+                '&:hover': { borderColor: 'primary.300', color: 'primary.700', bgcolor: 'primary.50' },
+              }}
+            >
+              {labels.categoryButton?.value || 'Category'}
+            </Button>
+            <Button
+              variant="outlined"
               startIcon={exportingToTable ? <CircularProgress size={18} /> : <TableChart />}
               onClick={() => setExportConfirmOpen(true)}
               disabled={exportingToTable || !transactions.length}
@@ -695,34 +784,54 @@ export default function EditStatementPage() {
             >
               {t.labels.exportButton.value}
             </Button>
-            {currentStage === 'submit' && (
-              <Button
-                variant="outlined"
-                startIcon={submitLoading ? <CircularProgress size={18} /> : <Check />}
-                onClick={() => {
-                  if (!statement?.id) return;
-                  setSubmitLoading(true);
-                  setStatementStage(statement.id, 'approve');
-                  setCurrentStage('approve');
-                  toast.success((t.labels as any)?.submitSuccess?.value || 'Statement submitted for approval');
-                  setTimeout(() => {
-                    setSubmitLoading(false);
-                    router.push('/statements/approve');
-                  }, 200);
-                }}
-                disabled={submitLoading}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  borderColor: 'grey.300',
-                  color: 'text.secondary',
-                  borderRadius: 2,
-                  '&:hover': { borderColor: 'primary.300', color: 'primary.700', bgcolor: 'primary.50' },
-                }}
-              >
-                {(t.labels as any)?.submitForApproval?.value || 'Submit'}
-              </Button>
-            )}
+            {stageActions.map(action => {
+              const isLoading = stageActionLoadingId === action.id;
+              const isPrimary = action.id === 'pay';
+              const isSubmitBlocked = isStageActionBlocked(action.id, missingCategoryCount);
+              const isDisabled = stageActionLoadingId !== null || isSubmitBlocked;
+              const tooltipTitle = isSubmitBlocked
+                ? labels.submitBlockedTooltip?.value ||
+                  'Assign categories to all transactions before submitting'
+                : '';
+
+              return (
+                <Tooltip key={action.id} title={tooltipTitle} placement="top">
+                  <span style={{ display: 'inline-flex' }}>
+                    <Button
+                      variant={isPrimary ? 'contained' : 'outlined'}
+                      startIcon={
+                        isLoading ? (
+                          <CircularProgress size={18} />
+                        ) : action.id === 'unapprove' || action.id === 'rollbackToApprove' ? (
+                          <ArrowBack />
+                        ) : (
+                          <Check />
+                        )
+                      }
+                      onClick={() => handleStageAction(action)}
+                      disabled={isDisabled}
+                      sx={{
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        borderRadius: 2,
+                        boxShadow: isPrimary ? 'none' : undefined,
+                        borderColor: isPrimary ? undefined : 'grey.300',
+                        color: isPrimary ? undefined : 'text.secondary',
+                        '&:hover': isPrimary
+                          ? { boxShadow: 'none' }
+                          : {
+                              borderColor: 'primary.300',
+                              color: 'primary.700',
+                              bgcolor: 'primary.50',
+                            },
+                      }}
+                    >
+                      {stageActionLabels[action.id]}
+                    </Button>
+                  </span>
+                </Tooltip>
+              );
+            })}
           </Box>
         </Box>
       </Box>
@@ -1056,6 +1165,21 @@ export default function EditStatementPage() {
           <p className="text-sm text-gray-700">{t.labels.exportConfirmBody.value}</p>
         </div>
       </ModalShell>
+
+      <StatementCategoryDrawer
+        open={statementCategoryDrawerOpen}
+        onClose={() => setStatementCategoryDrawerOpen(false)}
+        categories={categories}
+        selectedCategoryId={statement?.categoryId || ''}
+        selecting={statementCategorySaving}
+        onSelect={handleStatementCategorySelect}
+        labels={{
+          title: labels.categoryDrawerTitle?.value || 'Category',
+          searchPlaceholder: labels.categorySearchPlaceholder?.value || 'Search',
+          allOption: labels.categoryAllOption?.value || 'All',
+          noResults: labels.categoryNoResults?.value || 'No categories found',
+        }}
+      />
 
       {/* Bulk Actions */}
       {selectedRows.size > 0 && (
@@ -1473,7 +1597,7 @@ export default function EditStatementPage() {
             }}
           >
             <MenuItem value="">Не выбрано</MenuItem>
-            {flattenCategories(categories).map(cat => (
+            {flattenStatementCategories(categories).map(cat => (
               <MenuItem key={cat.id} value={cat.id}>
                 {cat.name}
               </MenuItem>

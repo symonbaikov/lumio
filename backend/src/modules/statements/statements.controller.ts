@@ -29,12 +29,11 @@ import { buildContentDisposition } from '../../common/utils/http-file.util';
 import { multerConfig } from '../../config/multer.config';
 import { EntityType } from '../../entities/audit-event.entity';
 import type { User } from '../../entities/user.entity';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Audit } from '../audit/decorators/audit.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UpdateStatementDto } from './dto/update-statement.dto';
 import { UploadStatementDto } from './dto/upload-statement.dto';
 import { StatementsService } from './statements.service';
-import { StatementProcessingService } from '../parsing/services/statement-processing.service';
 
 @Controller('statements')
 @UseGuards(JwtAuthGuard)
@@ -42,7 +41,6 @@ export class StatementsController {
   constructor(
     private readonly statementsService: StatementsService,
     private readonly idempotencyService: IdempotencyService,
-    private readonly statementProcessingService: StatementProcessingService,
   ) {}
 
   // Legacy POST /statements endpoint (backward compatibility for single 'file' field)
@@ -123,11 +121,7 @@ export class StatementsController {
       ),
     );
 
-    const processed = await Promise.all(
-      results.map(statement => this.statementProcessingService.processStatement(statement.id)),
-    );
-
-    const responseData = processed.map(statement => ({
+    const responseData = results.map(statement => ({
       ...statement,
       importPreview: statement.parsingDetails?.importPreview ?? null,
     }));

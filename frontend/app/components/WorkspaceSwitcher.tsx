@@ -226,7 +226,7 @@ export function WorkspaceSwitcher() {
           {/* Settings Section */}
           <button
             onClick={() => {
-              router.push('/settings/workspace');
+              router.push('/workspaces/overview');
               setIsOpen(false);
             }}
             className="w-full flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-100 dark:border-gray-700"
