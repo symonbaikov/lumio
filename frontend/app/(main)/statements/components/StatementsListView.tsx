@@ -39,10 +39,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Columns2,
+  Download,
   File,
   Loader2,
   Search,
   SlidersHorizontal,
+  Trash2,
   UploadCloud,
   X,
 } from 'lucide-react';
@@ -50,6 +52,11 @@ import { useIntlayer } from 'next-intlayer';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import {
+  areAllVisibleSelected,
+  toggleSelectAllVisible,
+  toggleStatementSelection,
+} from '@/app/lib/statement-selection';
 
 interface Statement {
   id: string;
@@ -195,7 +202,7 @@ export default function StatementsListView({ stage }: Props) {
   const filterChipClassName =
     'inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[13px] font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary';
   const filterLinkClassName =
-    'inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-gray-500 transition-colors hover:text-primary';
+    'inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-primary';
   const filterChipActiveClassName =
     'inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[13px] font-medium text-primary';
 
@@ -207,6 +214,10 @@ export default function StatementsListView({ stage }: Props) {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState<string>('');
+  const [selectedStatementIds, setSelectedStatementIds] = useState<string[]>([]);
+  const [selectedActionsOpen, setSelectedActionsOpen] = useState(false);
+  const selectedActionsRef = useRef<HTMLDivElement | null>(null);
+  const selectAllRef = useRef<HTMLInputElement | null>(null);
 
   const [draftFilters, setDraftFilters] = useState<StatementFilters>(DEFAULT_STATEMENT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<StatementFilters>(DEFAULT_STATEMENT_FILTERS);
@@ -411,6 +422,18 @@ export default function StatementsListView({ stage }: Props) {
     return applyStatementsFilters<Statement>(stagedStatements, appliedFilters);
   }, [stagedStatements, appliedFilters]);
 
+  const visibleStatementIds = useMemo(
+    () => displayStatements.map(statement => statement.id),
+    [displayStatements],
+  );
+
+  const allVisibleSelected = useMemo(
+    () => areAllVisibleSelected(selectedStatementIds, visibleStatementIds),
+    [selectedStatementIds, visibleStatementIds],
+  );
+
+  const selectedCount = selectedStatementIds.length;
+
   const loadStatements = async (opts?: {
     silent?: boolean;
     notifyOnCompletion?: boolean;
@@ -496,6 +519,38 @@ export default function StatementsListView({ stage }: Props) {
     };
   }, []);
 
+  useEffect(() => {
+    const visibleSet = new Set(visibleStatementIds);
+    setSelectedStatementIds(prev => prev.filter(id => visibleSet.has(id)));
+  }, [visibleStatementIds]);
+
+  useEffect(() => {
+    if (!selectAllRef.current) return;
+    selectAllRef.current.indeterminate = selectedCount > 0 && !allVisibleSelected;
+  }, [selectedCount, allVisibleSelected]);
+
+  useEffect(() => {
+    if (!selectedActionsOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!selectedActionsRef.current) return;
+      if (!selectedActionsRef.current.contains(event.target as Node)) {
+        setSelectedActionsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [selectedActionsOpen]);
+
+  useEffect(() => {
+    if (selectedCount === 0) {
+      setSelectedActionsOpen(false);
+    }
+  }, [selectedCount]);
+
   const handleUpload = async () => {
     if (uploadFiles.length === 0) {
       setUploadError(resolveLabel(t.uploadModal?.pickAtLeastOne, 'Select at least one file'));
@@ -551,6 +606,65 @@ export default function StatementsListView({ stage }: Props) {
       router.push(`/statements/${statement.id}/edit`);
     } else {
       router.push(`/storage/${statement.id}`);
+    }
+  };
+
+  const handleToggleStatement = (statementId: string) => {
+    setSelectedStatementIds(prev => toggleStatementSelection(prev, statementId));
+  };
+
+  const handleToggleSelectAll = (checked: boolean) => {
+    setSelectedStatementIds(prev => toggleSelectAllVisible(prev, visibleStatementIds, checked));
+  };
+
+  const handleExportSelected = async () => {
+    if (selectedStatementIds.length === 0) return;
+
+    try {
+      const selectedStatements = displayStatements.filter(statement =>
+        selectedStatementIds.includes(statement.id),
+      );
+
+      for (const statement of selectedStatements) {
+        const response = await apiClient.get(`/statements/${statement.id}/file`, {
+          responseType: 'blob',
+        });
+        const blob = response.data as Blob;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = statement.fileName || `${statement.id}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
+      toast.success(`Exported ${selectedStatementIds.length} statement(s)`);
+      setSelectedActionsOpen(false);
+    } catch (error) {
+      console.error('Failed to export selected statements:', error);
+      toast.error('Failed to export selected statements');
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedStatementIds.length === 0) return;
+
+    const confirmed = window.confirm(
+      `Move ${selectedStatementIds.length} selected statement(s) to trash?`,
+    );
+    if (!confirmed) return;
+
+    try {
+      await Promise.all(selectedStatementIds.map(id => apiClient.delete(`/statements/${id}`)));
+      setSelectedStatementIds([]);
+      setSelectedActionsOpen(false);
+      await loadStatements({ page, search, showErrorToast: false });
+      toast.success('Selected statements moved to trash');
+    } catch (error) {
+      console.error('Failed to delete selected statements:', error);
+      toast.error('Failed to delete selected statements');
     }
   };
 
@@ -709,129 +823,176 @@ export default function StatementsListView({ stage }: Props) {
             />
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <TypeFilterDropdown
-            open={typeDropdownOpen}
-            onOpenChange={setTypeDropdownOpen}
-            options={typeOptions}
-            value={draftFilters.type}
-            onChange={value => updateFilter({ type: value })}
-            onApply={() => applyAndClose(() => setTypeDropdownOpen(false))}
-            onReset={() => resetAndClose('type', () => setTypeDropdownOpen(false))}
-            trigger={
-              <button
-                type="button"
-                className={draftFilters.type ? filterChipActiveClassName : filterChipClassName}
-              >
-                {draftFilters.type
-                  ? typeOptions.find(option => option.value === draftFilters.type)?.label ||
-                    filterLabels.type
-                  : filterLabels.type}
-                <ChevronDown className="h-3.5 w-3.5" />
-              </button>
-            }
-            applyLabel={filterOptionLabels.apply}
-            resetLabel={filterOptionLabels.reset}
-          />
+        {selectedCount > 0 ? (
+          <div className="relative" ref={selectedActionsRef}>
+            <button
+              type="button"
+              onClick={() => setSelectedActionsOpen(prev => !prev)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover"
+            >
+              {selectedCount} selected
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
 
-          <StatusFilterDropdown
-            open={statusDropdownOpen}
-            onOpenChange={setStatusDropdownOpen}
-            options={statusOptions}
-            values={draftFilters.statuses}
-            onChange={values => updateFilter({ statuses: values })}
-            onApply={() => applyAndClose(() => setStatusDropdownOpen(false))}
-            onReset={() => resetAndClose('statuses', () => setStatusDropdownOpen(false))}
-            trigger={
-              <button
-                type="button"
-                className={
-                  draftFilters.statuses.length > 0 ? filterChipActiveClassName : filterChipClassName
-                }
-              >
-                {draftFilters.statuses.length > 0
-                  ? `${filterLabels.status} (${draftFilters.statuses.length})`
-                  : filterLabels.status}
-                <ChevronDown className="h-3.5 w-3.5" />
-              </button>
-            }
-            applyLabel={filterOptionLabels.apply}
-            resetLabel={filterOptionLabels.reset}
-          />
+            {selectedActionsOpen && (
+              <div className="absolute left-0 top-[calc(100%+8px)] z-20 w-[280px] max-w-[calc(100vw-64px)] rounded-xl border border-[#dedad2] bg-white p-1.5 shadow-[0_10px_20px_rgba(17,24,39,0.1)]">
+                <button
+                  type="button"
+                  onClick={handleExportSelected}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[#f7f7f4]"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <Download className="h-4 w-4 text-[#99a39d]" />
+                    <span className="text-[16px] font-semibold leading-none text-[#0f3428]">
+                      Export
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-[#c4cac4]" />
+                </button>
 
-          <DateFilterDropdown
-            open={dateDropdownOpen}
-            onOpenChange={setDateDropdownOpen}
-            presets={datePresets}
-            modes={dateModes}
-            value={draftFilters.date}
-            onChange={value => updateFilter({ date: value })}
-            onApply={() => applyAndClose(() => setDateDropdownOpen(false))}
-            onReset={() => resetAndClose('date', () => setDateDropdownOpen(false))}
-            trigger={
-              <button
-                type="button"
-                className={draftFilters.date ? filterChipActiveClassName : filterChipClassName}
-              >
-                {draftFilters.date?.preset
-                  ? datePresets.find(option => option.value === draftFilters.date?.preset)?.label
-                  : draftFilters.date?.mode
-                    ? dateModes.find(option => option.value === draftFilters.date?.mode)?.label
-                    : filterLabels.date}
-                <ChevronDown className="h-3.5 w-3.5" />
-              </button>
-            }
-            applyLabel={filterOptionLabels.apply}
-            resetLabel={filterOptionLabels.reset}
-          />
+                <button
+                  type="button"
+                  onClick={handleDeleteSelected}
+                  className="mt-1 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[#fff5f4]"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <Trash2 className="h-4 w-4 text-[#dc2626]" />
+                    <span className="text-[16px] font-semibold leading-none text-[#991b1b]">
+                      Delete
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-[#f0b5b5]" />
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <TypeFilterDropdown
+              open={typeDropdownOpen}
+              onOpenChange={setTypeDropdownOpen}
+              options={typeOptions}
+              value={draftFilters.type}
+              onChange={value => updateFilter({ type: value })}
+              onApply={() => applyAndClose(() => setTypeDropdownOpen(false))}
+              onReset={() => resetAndClose('type', () => setTypeDropdownOpen(false))}
+              trigger={
+                <button
+                  type="button"
+                  className={draftFilters.type ? filterChipActiveClassName : filterChipClassName}
+                >
+                  {draftFilters.type
+                    ? typeOptions.find(option => option.value === draftFilters.type)?.label ||
+                      filterLabels.type
+                    : filterLabels.type}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+              }
+              applyLabel={filterOptionLabels.apply}
+              resetLabel={filterOptionLabels.reset}
+            />
 
-          <FromFilterDropdown
-            open={fromDropdownOpen}
-            onOpenChange={setFromDropdownOpen}
-            options={fromOptions}
-            values={draftFilters.from}
-            onChange={values => updateFilter({ from: values })}
-            onApply={() => applyAndClose(() => setFromDropdownOpen(false))}
-            onReset={() => resetAndClose('from', () => setFromDropdownOpen(false))}
-            trigger={
-              <button
-                type="button"
-                className={
-                  draftFilters.from.length > 0 ? filterChipActiveClassName : filterChipClassName
-                }
-              >
-                {draftFilters.from.length > 0
-                  ? `${filterLabels.from} (${draftFilters.from.length})`
-                  : filterLabels.from}
-                <ChevronDown className="h-3.5 w-3.5" />
-              </button>
-            }
-            applyLabel={filterOptionLabels.apply}
-            resetLabel={filterOptionLabels.reset}
-          />
+            <StatusFilterDropdown
+              open={statusDropdownOpen}
+              onOpenChange={setStatusDropdownOpen}
+              options={statusOptions}
+              values={draftFilters.statuses}
+              onChange={values => updateFilter({ statuses: values })}
+              onApply={() => applyAndClose(() => setStatusDropdownOpen(false))}
+              onReset={() => resetAndClose('statuses', () => setStatusDropdownOpen(false))}
+              trigger={
+                <button
+                  type="button"
+                  className={
+                    draftFilters.statuses.length > 0
+                      ? filterChipActiveClassName
+                      : filterChipClassName
+                  }
+                >
+                  {draftFilters.statuses.length > 0
+                    ? `${filterLabels.status} (${draftFilters.statuses.length})`
+                    : filterLabels.status}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+              }
+              applyLabel={filterOptionLabels.apply}
+              resetLabel={filterOptionLabels.reset}
+            />
 
-          <button
-            type="button"
-            className={filterLinkClassName}
-            onClick={() => {
-              setDraftFilters(appliedFilters);
-              setFiltersDrawerScreen('root');
-              setFiltersDrawerOpen(true);
-            }}
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            {filterLabels.filters}
-            {activeFilterCount > 0 ? (
-              <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                {activeFilterCount}
-              </span>
-            ) : null}
-          </button>
-          <button type="button" className={filterLinkClassName} onClick={handleColumnsOpen}>
-            <Columns2 className="h-3.5 w-3.5" />
-            {filterLabels.columns}
-          </button>
-        </div>
+            <DateFilterDropdown
+              open={dateDropdownOpen}
+              onOpenChange={setDateDropdownOpen}
+              presets={datePresets}
+              modes={dateModes}
+              value={draftFilters.date}
+              onChange={value => updateFilter({ date: value })}
+              onApply={() => applyAndClose(() => setDateDropdownOpen(false))}
+              onReset={() => resetAndClose('date', () => setDateDropdownOpen(false))}
+              trigger={
+                <button
+                  type="button"
+                  className={draftFilters.date ? filterChipActiveClassName : filterChipClassName}
+                >
+                  {draftFilters.date?.preset
+                    ? datePresets.find(option => option.value === draftFilters.date?.preset)?.label
+                    : draftFilters.date?.mode
+                      ? dateModes.find(option => option.value === draftFilters.date?.mode)?.label
+                      : filterLabels.date}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+              }
+              applyLabel={filterOptionLabels.apply}
+              resetLabel={filterOptionLabels.reset}
+            />
+
+            <FromFilterDropdown
+              open={fromDropdownOpen}
+              onOpenChange={setFromDropdownOpen}
+              options={fromOptions}
+              values={draftFilters.from}
+              onChange={values => updateFilter({ from: values })}
+              onApply={() => applyAndClose(() => setFromDropdownOpen(false))}
+              onReset={() => resetAndClose('from', () => setFromDropdownOpen(false))}
+              trigger={
+                <button
+                  type="button"
+                  className={
+                    draftFilters.from.length > 0 ? filterChipActiveClassName : filterChipClassName
+                  }
+                >
+                  {draftFilters.from.length > 0
+                    ? `${filterLabels.from} (${draftFilters.from.length})`
+                    : filterLabels.from}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+              }
+              applyLabel={filterOptionLabels.apply}
+              resetLabel={filterOptionLabels.reset}
+            />
+
+            <button
+              type="button"
+              className={filterLinkClassName}
+              onClick={() => {
+                setDraftFilters(appliedFilters);
+                setFiltersDrawerScreen('root');
+                setFiltersDrawerOpen(true);
+              }}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              {filterLabels.filters}
+              {activeFilterCount > 0 ? (
+                <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  {activeFilterCount}
+                </span>
+              ) : null}
+            </button>
+            <button type="button" className={filterLinkClassName} onClick={handleColumnsOpen}>
+              <Columns2 className="h-3.5 w-3.5" />
+              {filterLabels.columns}
+            </button>
+          </div>
+        )}
       </div>
 
       <div data-tour-id="statements-table">
@@ -850,8 +1011,27 @@ export default function StatementsListView({ stage }: Props) {
         ) : (
           <>
             <div className="space-y-3">
+              <div className="flex items-center gap-2 px-4 md:hidden">
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  onChange={event => handleToggleSelectAll(event.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  aria-label="Select all statements"
+                />
+                <span className="text-sm font-medium text-gray-600">Select all</span>
+              </div>
               <div className="hidden md:flex items-center gap-3 px-4 text-xs font-medium uppercase tracking-wide text-gray-500">
-                <div className="w-4" />
+                <div className="w-4">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={event => handleToggleSelectAll(event.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    aria-label="Select all statements"
+                  />
+                </div>
                 <div className="w-11">{listHeaderLabels.receipt}</div>
                 <div className="w-3" />
                 <div className="w-20">{listHeaderLabels.type}</div>
@@ -885,6 +1065,9 @@ export default function StatementsListView({ stage }: Props) {
                       <div className="w-4">
                         <input
                           type="checkbox"
+                          checked={selectedStatementIds.includes(statement.id)}
+                          onChange={() => handleToggleStatement(statement.id)}
+                          onClick={event => event.stopPropagation()}
                           className="pointer-events-auto h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                         />
                       </div>
