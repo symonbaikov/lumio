@@ -174,18 +174,18 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
       className="h-[calc(100vh-32px)] w-[calc(100vw-32px)] max-w-none overflow-hidden rounded-[22px] border border-[#d4e3d6] shadow-[0_24px_80px_rgba(16,24,40,0.16)]"
       contentClassName="!h-full !p-0"
     >
-      <div className="flex h-full flex-col bg-white">
+      <div className="flex h-full min-h-0 flex-col bg-white">
         <div
           className="relative flex items-center justify-between border-b border-[#e4e6e3] px-5 py-4"
           ref={menuRef}
         >
-          <h2 className="text-[36px] font-semibold leading-none text-[#0f3428]">Receipt</h2>
+          <h2 className="text-[22px] font-semibold leading-none text-[#0f3428]">Receipt</h2>
 
           <div className="absolute right-5 top-1/2 flex -translate-y-1/2 items-center gap-1">
             <button
               type="button"
               onClick={() => setMenuOpen(prev => !prev)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#22b36a] transition-colors hover:bg-[#eaf5ee]"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-primary transition-colors hover:bg-[#eaf5ee]"
               aria-label="Open file menu"
             >
               <MoreVertical size={24} strokeWidth={2.4} />
@@ -201,22 +201,20 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
           </div>
 
           {menuOpen && (
-            <div className="absolute right-5 top-[calc(100%+14px)] z-40 w-[680px] max-w-[calc(100vw-90px)] rounded-[30px] border border-[#d8ddd8] bg-white p-3 shadow-[0_20px_45px_rgba(17,24,39,0.18)]">
+            <div className="absolute right-5 top-[calc(100%+12px)] z-40 w-[360px] max-w-[calc(100vw-90px)] rounded-[24px] border border-[#d8ddd8] bg-white p-2 shadow-[0_14px_28px_rgba(17,24,39,0.14)]">
               <button
                 type="button"
                 onClick={handleDownloadFromMenu}
-                className="flex w-full items-center gap-6 rounded-[22px] px-8 py-8 text-left transition-colors hover:bg-[#f5f8f5]"
+                className="flex w-full items-center gap-4 rounded-[18px] px-5 py-4 text-left transition-colors hover:bg-[#f5f8f5]"
               >
-                <Download className="h-11 w-11 text-[#99a39d]" strokeWidth={2.4} />
-                <span className="text-[44px] font-semibold leading-none text-[#0f3428]">
-                  Download
-                </span>
+                <Download className="h-7 w-7 text-[#99a39d]" strokeWidth={2.3} />
+                <span className="text-[22px] font-semibold leading-none text-[#0f3428]">Download</span>
               </button>
             </div>
           )}
         </div>
 
-        <div className="relative flex-1 bg-[#f3f4f2]">
+        <div className="relative min-h-0 flex-1 bg-[#f3f4f2]">
           {loading && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
               <div className="text-center">
@@ -246,7 +244,7 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
           )}
 
           {!error && pdfObjectUrl && (
-            <div ref={viewportRef} className="h-full overflow-y-auto px-5 py-7">
+            <div ref={viewportRef} className="h-full min-h-0 overflow-y-auto px-5 py-7">
               <div className="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6">
                 <Document
                   file={pdfObjectUrl}
