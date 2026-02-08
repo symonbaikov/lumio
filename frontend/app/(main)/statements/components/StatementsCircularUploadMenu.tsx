@@ -1,14 +1,14 @@
 'use client';
 
-import Image from 'next/image';
-import { Cloud, Plus, ScanLine, UploadCloud } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { cn } from '@/app/lib/utils';
 import {
-  buildStatementUploadMenuModel,
   type CloudImportProvider,
   type ConnectedCloudProviders,
+  buildStatementUploadMenuModel,
 } from '@/app/lib/statement-upload-actions';
+import { cn } from '@/app/lib/utils';
+import { Cloud, Plus, Receipt, ScanLine, UploadCloud } from 'lucide-react';
+import Image from 'next/image';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type Props = {
   providers: ConnectedCloudProviders;
@@ -87,7 +87,11 @@ export default function StatementsCircularUploadMenu({
       return <Cloud size={18} className="text-[#0E58A8]" />;
     }
 
-    return <UploadCloud size={18} className="text-[#0E58A8]" />;
+    return item.id === 'local-upload' ? (
+      <Receipt size={18} className="text-[#9ea6a0]" />
+    ) : (
+      <UploadCloud size={18} className="text-[#0E58A8]" />
+    );
   };
 
   return (
@@ -130,7 +134,12 @@ export default function StatementsCircularUploadMenu({
               {renderActionIcon(item)}
               <span className="sr-only">{item.label}</span>
             </button>
-            <span className="absolute left-[48px] top-1/2 z-40 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-[#0E58A8]">
+            <span
+              className={cn(
+                'absolute left-[48px] top-1/2 z-40 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold',
+                item.id === 'local-upload' ? 'text-[#0f3428]' : 'text-[#0E58A8]',
+              )}
+            >
               {item.label}
             </span>
           </div>

@@ -34,13 +34,18 @@ export function buildStatementUploadMenuModel(
     },
     {
       id: 'cloud-import',
-      label: provider === 'dropbox' ? 'Import from Dropbox' : 'Import from Google Drive',
-      disabled: provider === null,
+      label:
+        provider === 'dropbox'
+          ? 'Import from Dropbox'
+          : provider === 'google-drive'
+            ? 'Import from Google Drive'
+            : 'Cloud',
+      disabled: false,
       provider: provider ?? undefined,
     },
     {
       id: 'local-upload',
-      label: 'Upload from computer',
+      label: 'Create expense',
     },
   ];
 }

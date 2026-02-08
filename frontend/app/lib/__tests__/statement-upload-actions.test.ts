@@ -33,6 +33,28 @@ describe('statement upload actions', () => {
     ).toEqual(['scan', 'cloud-import', 'local-upload']);
   });
 
+  it('uses create expense label for local action', () => {
+    const model = buildStatementUploadMenuModel({
+      googleDriveConnected: true,
+      dropboxConnected: false,
+    });
+
+    expect(model.find(item => item.id === 'local-upload')?.label).toBe('Create expense');
+  });
+
+  it('uses cloud label and keeps cloud action enabled when not connected', () => {
+    const model = buildStatementUploadMenuModel({
+      googleDriveConnected: false,
+      dropboxConnected: false,
+    });
+
+    expect(model.find(item => item.id === 'cloud-import')).toMatchObject({
+      label: 'Cloud',
+      disabled: false,
+      provider: undefined,
+    });
+  });
+
   it('uses local upload event name as a stable constant', () => {
     expect(STATEMENTS_OPEN_UPLOAD_MODAL_EVENT).toBe('statements:open-upload-modal');
   });

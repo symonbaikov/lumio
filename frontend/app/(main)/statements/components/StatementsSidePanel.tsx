@@ -1,19 +1,25 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useIntlayer } from 'next-intlayer';
-import { Banknote, Folder, Pencil, ThumbsUp, User } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { type SidePanelPageConfig, useSidePanelConfig } from '@/app/components/side-panel';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
-import { getTopBankSenders, type TopBankSender } from '@/app/lib/statement-insights';
 import {
-  STATEMENTS_OPEN_UPLOAD_MODAL_EVENT,
+  type OpenExpenseDrawerEventDetail,
+  STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT,
+  type StatementExpenseMode,
+  resolveExpenseDrawerMode,
+} from '@/app/lib/statement-expense-drawer';
+import { type TopBankSender, getTopBankSenders } from '@/app/lib/statement-insights';
+import {
   type CloudImportProvider,
   type ConnectedCloudProviders,
 } from '@/app/lib/statement-upload-actions';
 import { countStatementStages, getStatementStageMap } from '@/app/lib/statement-workflow';
-import { useSidePanelConfig, type SidePanelPageConfig } from '@/app/components/side-panel';
+import { Banknote, Folder, Pencil, ThumbsUp, User } from 'lucide-react';
+import { useIntlayer } from 'next-intlayer';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import StatementsCircularUploadMenu from './StatementsCircularUploadMenu';
 
 type ActiveItem = 'submit' | 'approve' | 'pay';
@@ -36,6 +42,7 @@ const formatMoney = (value: number) =>
   }).format(value);
 
 export default function StatementsSidePanel({ activeItem }: Props) {
+  const router = useRouter();
   const t = useIntlayer('statementsPage');
   const { user } = useAuth();
   const [counts, setCounts] = useState({ submit: 0, approve: 0, pay: 0 });
@@ -136,37 +143,43 @@ export default function StatementsSidePanel({ activeItem }: Props) {
     };
   }, [user]);
 
-  const openLocalUploadModal = useCallback(() => {
+  const openExpenseDrawer = useCallback((mode: StatementExpenseMode) => {
     if (typeof window === 'undefined') return;
-    window.dispatchEvent(new Event(STATEMENTS_OPEN_UPLOAD_MODAL_EVENT));
+    const detail: OpenExpenseDrawerEventDetail = {
+      mode: resolveExpenseDrawerMode(mode),
+    };
+    window.dispatchEvent(new CustomEvent(STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT, { detail }));
   }, []);
 
   const handleScanClick = useCallback(() => {
-    toast('Scan is coming soon');
-  }, []);
+    openExpenseDrawer('scan');
+  }, [openExpenseDrawer]);
 
-  const handleCloudImport = useCallback(async (provider: CloudImportProvider | null) => {
-    if (!provider) {
-      toast.error('Connect Dropbox or Google Drive first');
-      return;
-    }
+  const handleCloudImport = useCallback(
+    async (provider: CloudImportProvider | null) => {
+      if (!provider) {
+        router.push('/integrations');
+        return;
+      }
 
-    const endpoint =
-      provider === 'dropbox' ? '/integrations/dropbox/sync' : '/integrations/google-drive/sync';
+      const endpoint =
+        provider === 'dropbox' ? '/integrations/dropbox/sync' : '/integrations/google-drive/sync';
 
-    try {
-      await apiClient.post(endpoint);
-      toast.success(
-        provider === 'dropbox' ? 'Dropbox import started' : 'Google Drive import started',
-      );
-    } catch {
-      toast.error(
-        provider === 'dropbox'
-          ? 'Failed to import from Dropbox'
-          : 'Failed to import from Google Drive',
-      );
-    }
-  }, []);
+      try {
+        await apiClient.post(endpoint);
+        toast.success(
+          provider === 'dropbox' ? 'Dropbox import started' : 'Google Drive import started',
+        );
+      } catch {
+        toast.error(
+          provider === 'dropbox'
+            ? 'Failed to import from Dropbox'
+            : 'Failed to import from Google Drive',
+        );
+      }
+    },
+    [router],
+  );
 
   const sidePanelConfig = useMemo<SidePanelPageConfig>(
     () => ({
@@ -263,7 +276,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             providers={connectedCloudProviders}
             onScan={handleScanClick}
             onCloudImport={handleCloudImport}
-            onLocalUpload={openLocalUploadModal}
+            onLocalUpload={() => openExpenseDrawer('manual')}
           />
         ),
       },
@@ -276,7 +289,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
       connectedCloudProviders,
       handleCloudImport,
       handleScanClick,
-      openLocalUploadModal,
+      openExpenseDrawer,
     ],
   );
 

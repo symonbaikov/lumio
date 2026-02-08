@@ -1,39 +1,50 @@
 'use client';
 
-import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
-import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
-import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
-import LoadingAnimation from '@/app/components/LoadingAnimation';
+import CreateExpenseDrawer from '@/app/(main)/statements/components/CreateExpenseDrawer';
 import { ColumnsDrawer } from '@/app/(main)/statements/components/columns/ColumnsDrawer';
 import {
   DEFAULT_STATEMENT_COLUMNS,
+  type StatementColumn,
+  type StatementColumnId,
   loadStatementColumns,
   reorderStatementColumns,
   saveStatementColumns,
-  type StatementColumn,
-  type StatementColumnId,
 } from '@/app/(main)/statements/components/columns/statement-columns';
 import { DateFilterDropdown } from '@/app/(main)/statements/components/filters/DateFilterDropdown';
 import { FiltersDrawer } from '@/app/(main)/statements/components/filters/FiltersDrawer';
 import { FromFilterDropdown } from '@/app/(main)/statements/components/filters/FromFilterDropdown';
 import { StatusFilterDropdown } from '@/app/(main)/statements/components/filters/StatusFilterDropdown';
+import { TypeFilterDropdown } from '@/app/(main)/statements/components/filters/TypeFilterDropdown';
 import {
   DEFAULT_STATEMENT_FILTERS,
+  type StatementFilters,
   applyStatementsFilters,
   loadStatementFilters,
   saveStatementFilters,
-  type StatementFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
-import { TypeFilterDropdown } from '@/app/(main)/statements/components/filters/TypeFilterDropdown';
+import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
+import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
+import LoadingAnimation from '@/app/components/LoadingAnimation';
+import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import apiClient from '@/app/lib/api';
+import {
+  type ManualExpenseDraft,
+  type OpenExpenseDrawerEventDetail,
+  STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT,
+  type StatementExpenseMode,
+  resolveExpenseDrawerMode,
+} from '@/app/lib/statement-expense-drawer';
+import {
+  areAllVisibleSelected,
+  toggleSelectAllVisible,
+  toggleStatementSelection,
+} from '@/app/lib/statement-selection';
 import { getStatementMerchantLabel, hasProcessingStatements } from '@/app/lib/statement-status';
-import { STATEMENTS_OPEN_UPLOAD_MODAL_EVENT } from '@/app/lib/statement-upload-actions';
-import { getStatementStage, type StatementStage } from '@/app/lib/statement-workflow';
+import { type StatementStage, getStatementStage } from '@/app/lib/statement-workflow';
 import { resolveBankLogo } from '@bank-logos';
 import {
-  AlertCircle,
   ArrowDown,
   ChevronDown,
   ChevronLeft,
@@ -41,22 +52,14 @@ import {
   Columns2,
   Download,
   File,
-  Loader2,
   Search,
   SlidersHorizontal,
   Trash2,
-  UploadCloud,
-  X,
 } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import {
-  areAllVisibleSelected,
-  toggleSelectAllVisible,
-  toggleStatementSelection,
-} from '@/app/lib/statement-selection';
 
 interface Statement {
   id: string;
@@ -154,11 +157,8 @@ export default function StatementsListView({ stage }: Props) {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
 
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [allowDuplicates, setAllowDuplicates] = useState(false);
+  const [expenseDrawerOpen, setExpenseDrawerOpen] = useState(false);
+  const [expenseDrawerMode, setExpenseDrawerMode] = useState<StatementExpenseMode>('scan');
   const resolveLabel = (value: any, fallback: string) => value?.value ?? value ?? fallback;
   const searchPlaceholder =
     (t.searchPlaceholder as any)?.value ?? t.searchPlaceholder ?? 'Поиск по выпискам';
@@ -180,21 +180,6 @@ export default function StatementsListView({ stage }: Props) {
     scanning: resolveLabel(t.listHeader?.scanning, 'Scanning...'),
   };
   const viewLabel = resolveLabel(t.actions?.view, 'View');
-  const allowDuplicatesLabel = resolveLabel(
-    (t.uploadModal as any)?.allowDuplicates,
-    'Разрешить загрузку дубликатов',
-  );
-  const uploadModalLabels = {
-    title: resolveLabel(t.uploadModal?.title, 'Upload files'),
-    subtitle: resolveLabel(t.uploadModal?.subtitle, 'PDF, Excel, CSV and images are supported'),
-    dropHint1: resolveLabel(t.uploadModal?.dropHint1, 'Click to select'),
-    dropHint2: resolveLabel(t.uploadModal?.dropHint2, 'or drag and drop files'),
-    maxHint: resolveLabel(t.uploadModal?.maxHint, 'Up to 5 files, 10 MB each'),
-    mbShort: resolveLabel(t.uploadModal?.mbShort, 'MB'),
-    cancel: resolveLabel(t.uploadModal?.cancel, 'Cancel'),
-    uploadFiles: resolveLabel(t.uploadModal?.uploadFiles, 'Upload files'),
-    uploading: resolveLabel(t.uploadModal?.uploading, 'Uploading...'),
-  };
   const emptyLabels = {
     title: resolveLabel(t.empty?.title, 'No statements yet'),
     description: resolveLabel(t.empty?.description, 'Upload your first statement to get started'),
@@ -206,7 +191,7 @@ export default function StatementsListView({ stage }: Props) {
   const filterChipActiveClassName =
     'inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[13px] font-medium text-primary';
 
-  useLockBodyScroll(!!uploadModalOpen);
+  useLockBodyScroll(expenseDrawerOpen);
   const totalPagesCount = Math.max(1, Math.ceil(total / pageSize) || 1);
   const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const rangeEnd = total === 0 ? 0 : Math.min(total, page * pageSize);
@@ -508,14 +493,16 @@ export default function StatementsListView({ stage }: Props) {
   }, [user, shouldPollStatements, page, search]);
 
   useEffect(() => {
-    const handleOpenUploadModal = () => {
-      setUploadModalOpen(true);
+    const handleOpenExpenseDrawer = (event: Event) => {
+      const customEvent = event as CustomEvent<OpenExpenseDrawerEventDetail>;
+      setExpenseDrawerMode(resolveExpenseDrawerMode(customEvent.detail?.mode));
+      setExpenseDrawerOpen(true);
     };
 
-    window.addEventListener(STATEMENTS_OPEN_UPLOAD_MODAL_EVENT, handleOpenUploadModal);
+    window.addEventListener(STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT, handleOpenExpenseDrawer);
 
     return () => {
-      window.removeEventListener(STATEMENTS_OPEN_UPLOAD_MODAL_EVENT, handleOpenUploadModal);
+      window.removeEventListener(STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT, handleOpenExpenseDrawer);
     };
   }, []);
 
@@ -551,17 +538,31 @@ export default function StatementsListView({ stage }: Props) {
     }
   }, [selectedCount]);
 
-  const handleUpload = async () => {
-    if (uploadFiles.length === 0) {
-      setUploadError(resolveLabel(t.uploadModal?.pickAtLeastOne, 'Select at least one file'));
-      return;
+  const refreshStatementsAfterCreate = async () => {
+    setPage(1);
+    try {
+      const didLoad = await loadStatements({
+        page: 1,
+        search,
+        notifyOnCompletion: false,
+        showErrorToast: false,
+      });
+      if (!didLoad) {
+        throw new Error('refresh-failed');
+      }
+    } catch (error) {
+      console.error('Failed to refresh statements:', error);
+      toast.error(resolveLabel(t.refreshFailed, 'Failed to refresh statements'));
+    }
+  };
+
+  const uploadStatementFiles = async (files: File[], allowDuplicates: boolean) => {
+    if (files.length === 0) {
+      throw new Error(resolveLabel(t.uploadModal?.pickAtLeastOne, 'Select at least one file'));
     }
 
-    setUploading(true);
-    setUploadError(null);
-
     const formData = new FormData();
-    uploadFiles.forEach(file => {
+    files.forEach(file => {
       formData.append('files', file);
     });
     formData.append('allowDuplicates', allowDuplicates ? 'true' : 'false');
@@ -572,29 +573,55 @@ export default function StatementsListView({ stage }: Props) {
       });
 
       toast.success(resolveLabel(t.uploadModal?.uploadedProcessing, 'Files uploaded'));
-      setUploadModalOpen(false);
-      setUploadFiles([]);
-      setPage(1);
-      try {
-        const didLoad = await loadStatements({
-          page: 1,
-          search,
-          notifyOnCompletion: false,
-          showErrorToast: false,
-        });
-        if (!didLoad) {
-          throw new Error('refresh-failed');
-        }
-      } catch (error) {
-        console.error('Failed to refresh statements:', error);
-        toast.error(resolveLabel(t.refreshFailed, 'Failed to refresh statements'));
-      }
+      await refreshStatementsAfterCreate();
     } catch (error) {
       console.error('Failed to upload statements:', error);
-      setUploadError(resolveLabel(t.uploadModal?.uploadFailed, 'Failed to upload files'));
-    } finally {
-      setUploading(false);
+      throw new Error(resolveLabel(t.uploadModal?.uploadFailed, 'Failed to upload files'));
     }
+  };
+
+  const handleCreateManualExpense = async (payload: {
+    draft: ManualExpenseDraft;
+    date: string;
+    files: File[];
+    allowDuplicates: boolean;
+  }) => {
+    const buildPayload = () => {
+      const formData = new FormData();
+      formData.append('amount', payload.draft.amount.trim());
+      formData.append('currency', payload.draft.currency.trim());
+      formData.append('merchant', payload.draft.merchant.trim());
+      formData.append('description', payload.draft.description.trim());
+      formData.append('date', payload.date);
+      formData.append('allowDuplicates', payload.allowDuplicates ? 'true' : 'false');
+      payload.files.forEach(file => {
+        formData.append('files', file);
+      });
+      return formData;
+    };
+
+    const candidateEndpoints = ['/expenses/manual', '/expenses'];
+
+    for (const endpoint of candidateEndpoints) {
+      try {
+        await apiClient.post(endpoint, buildPayload(), {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        toast.success('Manual expense created');
+        await refreshStatementsAfterCreate();
+        return;
+      } catch (error: any) {
+        const status = error?.response?.status;
+        if (status === 404 || status === 405) {
+          continue;
+        }
+
+        console.error('Failed to create manual expense:', error);
+        throw new Error('Failed to create manual expense');
+      }
+    }
+
+    throw new Error('Manual expense creation is not available yet');
   };
 
   const handleView = (statement: Statement) => {
@@ -1230,101 +1257,13 @@ export default function StatementsListView({ stage }: Props) {
         }}
       />
 
-      {uploadModalOpen && (
-        <dialog
-          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 px-4"
-          open
-          aria-modal="true"
-        >
-          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">{uploadModalLabels.title}</h2>
-                <p className="text-sm text-gray-500">{uploadModalLabels.subtitle}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setUploadModalOpen(false)}
-                className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="px-6 py-5">
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-6 py-10 text-center">
-                <UploadCloud className="h-8 w-8 text-gray-400" />
-                <p className="mt-2 text-sm font-medium text-gray-700">
-                  {uploadModalLabels.dropHint1}
-                </p>
-                <p className="text-xs text-gray-500">{uploadModalLabels.dropHint2}</p>
-                <p className="mt-2 text-xs text-gray-400">{uploadModalLabels.maxHint}</p>
-                <input
-                  type="file"
-                  className="hidden"
-                  multiple
-                  onChange={e => {
-                    if (!e.target.files) return;
-                    setUploadFiles(Array.from(e.target.files));
-                  }}
-                />
-              </label>
-
-              {uploadFiles.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {uploadFiles.map(file => (
-                    <div
-                      key={file.name}
-                      className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-2 text-sm"
-                    >
-                      <span className="truncate">{file.name}</span>
-                      <span className="text-xs text-gray-500">
-                        {(file.size / 1024 / 1024).toFixed(2)} {uploadModalLabels.mbShort}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-4 flex items-center gap-2">
-                <input
-                  id="allow-duplicates"
-                  type="checkbox"
-                  checked={allowDuplicates}
-                  onChange={e => setAllowDuplicates(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <label htmlFor="allow-duplicates" className="text-sm text-gray-600">
-                  {allowDuplicatesLabel}
-                </label>
-              </div>
-
-              {uploadError && (
-                <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  <AlertCircle className="h-4 w-4" />
-                  {uploadError}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-6 py-4">
-              <button
-                type="button"
-                onClick={() => setUploadModalOpen(false)}
-                className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:border-gray-300"
-              >
-                {uploadModalLabels.cancel}
-              </button>
-              <button
-                type="button"
-                onClick={handleUpload}
-                disabled={uploading}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
-              >
-                {uploading ? uploadModalLabels.uploading : uploadModalLabels.uploadFiles}
-              </button>
-            </div>
-          </div>
-        </dialog>
-      )}
+      <CreateExpenseDrawer
+        open={expenseDrawerOpen}
+        initialMode={expenseDrawerMode}
+        onClose={() => setExpenseDrawerOpen(false)}
+        onSubmitScan={payload => uploadStatementFiles(payload.files, payload.allowDuplicates)}
+        onSubmitManual={handleCreateManualExpense}
+      />
     </div>
   );
 }
