@@ -11,6 +11,7 @@ type FilterAvatarRowProps = {
   selected: boolean;
   onClick: () => void;
   avatarUrl?: string | null;
+  iconUrl?: string | null;
   bankName?: string | null;
   className?: string;
 };
@@ -21,6 +22,7 @@ export function FilterAvatarRow({
   selected,
   onClick,
   avatarUrl,
+  iconUrl,
   bankName,
   className,
 }: FilterAvatarRowProps) {
@@ -38,7 +40,9 @@ export function FilterAvatarRow({
       )}
     >
       <div className="flex items-center gap-3">
-        {bankName ? (
+        {iconUrl ? (
+          <img src={iconUrl} alt={label} className="h-8 w-8 rounded-full object-contain" />
+        ) : bankName ? (
           <BankLogoAvatar bankName={bankName} size={32} />
         ) : resolvedAvatarUrl ? (
           <img src={resolvedAvatarUrl} alt={label} className="h-8 w-8 rounded-full object-cover" />

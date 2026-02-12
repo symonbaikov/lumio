@@ -1,7 +1,7 @@
 import type { TourConfig } from './types';
 
 /**
- * Тур по кастомным таблицам - расширенный гайд
+ * Custom Tables Tour - advanced guide
  */
 export function createCustomTablesTour(texts: {
   name?: string;
@@ -21,8 +21,8 @@ export function createCustomTablesTour(texts: {
 }): TourConfig {
   return {
     id: 'custom-tables-tour',
-    name: texts.name ?? 'Тур по кастомным таблицам',
-    description: texts.description ?? 'Создание гибких структур данных',
+    name: texts.name ?? 'Custom Tables Tour',
+    description: texts.description ?? 'Creating flexible data structures',
     page: '/custom-tables',
     autoStart: false,
     steps: [
@@ -67,7 +67,7 @@ export function createCustomTablesTour(texts: {
         selector: '[data-tour-id="custom-tables-create-button"]',
         side: 'bottom',
         align: 'end',
-        // Обязательно: пользователь должен сам нажать кнопку "Создать"
+        // Important: user must click "Create" button manually
         showButtons: ['close', 'previous'],
         advanceOn: {
           selector: '[data-tour-id="custom-tables-create-button"]',

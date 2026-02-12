@@ -1,80 +1,80 @@
 # Tours System
 
-Система интерактивных туров для FinFlow на основе Driver.js с поддержкой трех языков через Intlayer.
+Interactive tours system for Financify based on Driver.js with three-language support via Intlayer.
 
-## Структура
+## Structure
 
 ```
 frontend/app/tours/
-├── types.ts                      # TypeScript типы и интерфейсы
-├── TourManager.ts               # Менеджер туров с навигацией и сохранением
-├── tour-theme.css               # Кастомные стили для Driver.js
-├── index.ts                     # Экспорт всех туров
-├── statements-tour.ts           # Тур по странице выписок
-├── statements-tour.content.ts   # Переводы для тура выписок
-├── upload-tour.ts               # Тур загрузки файлов
-├── upload-tour.content.ts       # Переводы для тура загрузки
-├── storage-tour.ts              # Тур хранилища файлов
-├── storage-tour.content.ts      # Переводы для тура хранилища
-├── custom-tables-tour.ts        # Тур кастомных таблиц
-├── custom-tables-tour.content.ts # Переводы для тура таблиц
-├── reports-tour.ts              # Тур отчётов
-├── reports-tour.content.ts      # Переводы для тура отчётов
-├── categories-tour.ts           # Тур категорий
-├── categories-tour.content.ts   # Переводы для тура категорий
-├── data-entry-tour.ts           # Тур ввода данных
-├── data-entry-tour.content.ts   # Переводы для тура ввода
-├── integrations-tour.ts         # Тур интеграций
-├── integrations-tour.content.ts # Переводы для тура интеграций
-├── settings-tour.ts             # Тур настроек
-├── settings-tour.content.ts     # Переводы для тура настроек
+├── types.ts                      # TypeScript types and interfaces
+├── TourManager.ts               # Tour manager with navigation and state persistence
+├── tour-theme.css               # Custom styles for Driver.js
+├── index.ts                     # Export all tours
+├── statements-tour.ts           # Statements page tour
+├── statements-tour.content.ts   # Translations for statements tour
+├── upload-tour.ts               # File upload tour
+├── upload-tour.content.ts       # Translations for upload tour
+├── storage-tour.ts              # File storage tour
+├── storage-tour.content.ts      # Translations for storage tour
+├── custom-tables-tour.ts        # Custom tables tour
+├── custom-tables-tour.content.ts # Translations for tables tour
+├── reports-tour.ts              # Reports tour
+├── reports-tour.content.ts      # Translations for reports tour
+├── categories-tour.ts           # Categories tour
+├── categories-tour.content.ts   # Translations for categories tour
+├── data-entry-tour.ts           # Data entry tour
+├── data-entry-tour.content.ts   # Translations for data entry tour
+├── integrations-tour.ts         # Integrations tour
+├── integrations-tour.content.ts # Translations for integrations tour
+├── settings-tour.ts             # Settings tour
+├── settings-tour.content.ts     # Translations for settings tour
 └── components/
-    ├── TourButton.tsx           # Кнопка запуска тура
-    ├── TourProgress.tsx         # Индикатор прогресса
-    └── TourMenu.tsx             # Меню выбора туров
+    ├── TourButton.tsx           # Button to start the tour
+    ├── TourProgress.tsx         # Progress indicator
+    └── TourMenu.tsx             # Tour selection menu
 ```
 
-## Реализованные туры
+## Implemented Tours
 
 ### ✅ Statements Tour
-- Страница: `/statements`
-- Шаги: приветствие, кнопка загрузки, поиск, фильтры, таблица, статусы, действия, пагинация
+- Page: `/statements`
+- Steps: welcome, upload button, search, filters, table, statuses, actions, pagination
 
 ### ✅ Upload Tour
-- Страница: `/upload`
-- Шаги: приветствие, drag-drop зона, список файлов, дубликаты, кнопка загрузки, Google Sheets
+- Page: `/upload`
+- Steps: welcome, drag-drop zone, file list, duplicates, upload button, Google Sheets
 
 ### ✅ Storage Tour
-- Страница: `/storage`
-- Шаги: приветствие, поиск, фильтры, таблица файлов, действия, категории, права доступа
+- Page: `/storage`
+- Steps: welcome, search, filters, file table, actions, categories, access rights
 
 ### ✅ Custom Tables Tour
-- Страница: `/custom-tables`
-- Шаги: приветствие, создание таблицы, список таблиц, поиск
+- Page: `/custom-tables`
+- Steps: welcome, table creation, table list, search
 
 ### ✅ Reports Tour
-- Страница: `/reports`
-- Шаги: приветствие, выбор периода, график доходов/расходов, разбивка по категориям, сравнение банков, экспорт, фильтры
+- Page: `/reports`
+- Steps: welcome, period selection, income/expense chart, category breakdown, bank comparison, export, filters
 
 ### ✅ Categories Tour
-- Страница: `/categories`
-- Шаги: приветствие, создание категории, список, выбор цвета, выбор иконки
+- Page: `/categories`
+- Steps: welcome, category creation, list, color selection, icon selection
 
 ### ✅ Data Entry Tour
-- Страница: `/data-entry`
-- Шаги: приветствие, фильтр выписок, таблица транзакций, редактирование, категории, массовые действия
+- Page: `/data-entry`
+- Steps: welcome, statements filter, transactions table, editing, categories, bulk actions
 
 ### ✅ Integrations Tour
-- Страница: `/integrations`
-- Шаги: приветствие, Google Sheets, API ключи, вебхуки, статус подключений
+- Page: `/integrations`
+- Steps: welcome, Google Sheets, API keys, webhooks, connection status
 
 ### ✅ Settings Tour
-- Страница: `/settings`
-- Шаги: приветствие, профиль, воркспейс, команда, безопасность, уведомления
+- Page: `/settings`
+- Steps: welcome, profile, workspace, team, security, notifications
 
-## Использование
+## Usage
 
-### 1. Регистрация тура
+### 1. Registering a Tour
 
 ```typescript
 import { useRegisterTours } from '@/app/hooks/useTour';
@@ -89,7 +89,7 @@ function App() {
 }
 ```
 
-### 2. Запуск тура
+### 2. Starting a Tour
 
 ```typescript
 import { useTour } from '@/app/hooks/useTour';
@@ -99,13 +99,13 @@ function MyPage() {
   
   return (
     <button onClick={() => startTour()}>
-      {isCompleted ? 'Повторить тур' : 'Начать тур'}
+      {isCompleted ? 'Repeat tour' : 'Start tour'}
     </button>
   );
 }
 ```
 
-### 3. Использование готовых компонентов
+### 3. Using Pre-built Components
 
 ```typescript
 import { TourButton, TourMenu } from '@/app/tours';
@@ -120,13 +120,13 @@ function Header() {
 }
 ```
 
-### 4. Маркировка элементов
+### 4. Marking Elements
 
-Добавьте `data-tour-id` атрибут к элементам, которые должны быть частью тура:
+Add the `data-tour-id` attribute to elements that should be part of the tour:
 
 ```tsx
 <button data-tour-id="upload-button">
-  Загрузить выписку
+  Upload statement
 </button>
 
 <div data-tour-id="statements-table">
@@ -136,11 +136,11 @@ function Header() {
 <input data-tour-id="search-bar" />
 ```
 
-## Создание нового тура
+## Creating a New Tour
 
-### Шаг 1: Content файл
+### Step 1: Content File
 
-Создайте файл с переводами (например, `my-tour.content.ts`):
+Create a file with translations (e.g., `my-tour.content.ts`):
 
 ```typescript
 import { t, type Dictionary } from 'intlayer';
@@ -171,7 +171,7 @@ const content = {
           kk: 'Қадам сипаттамасы',
         }),
       },
-      // Другие шаги...
+      // Other steps...
     },
   },
 } satisfies Dictionary;
@@ -179,9 +179,9 @@ const content = {
 export default content;
 ```
 
-### Шаг 2: Тур
+### Step 2: Tour
 
-Создайте файл с конфигурацией тура (например, `my-tour.ts`):
+Create a file with the tour configuration (e.g., `my-tour.ts`):
 
 ```typescript
 import { useIntlayer } from 'next-intlayer';
@@ -192,8 +192,8 @@ export function getMyTour(): TourConfig {
 
   return {
     id: 'my-tour',
-    name: 'Мой тур',
-    description: 'Описание тура',
+    name: 'My Tour',
+    description: 'Tour description',
     page: '/my-page',
     steps: [
       {
@@ -209,21 +209,21 @@ export function getMyTour(): TourConfig {
         side: 'bottom',
         align: 'start',
       },
-      // Другие шаги...
+      // Other steps...
     ],
   };
 }
 ```
 
-### Шаг 3: Экспорт
+### Step 3: Export
 
-Добавьте экспорт в `index.ts`:
+Add the export to `index.ts`:
 
 ```typescript
 export * from './my-tour';
 ```
 
-### Шаг 4: Использование
+### Step 4: Usage
 
 ```typescript
 import { getMyTour } from '@/app/tours';
@@ -243,25 +243,25 @@ const tourManager = getTourManager({
   },
 });
 
-// Регистрация туров
+// Register tours
 tourManager.registerTour(tour);
 tourManager.registerTours([tour1, tour2]);
 
-// Запуск
+// Launch
 tourManager.startTour('tour-id');
 tourManager.resumeTour();
 tourManager.stopTour();
 
-// Управление
+// Control
 tourManager.nextStep();
 tourManager.previousStep();
 
-// Проверки
+// Checks
 tourManager.isActive();
 tourManager.isTourCompleted('tour-id');
 tourManager.getActiveStepIndex();
 
-// Сброс
+// Reset
 tourManager.resetTour('tour-id');
 tourManager.clearAllData();
 ```
@@ -285,7 +285,7 @@ const {
 
 ### useAutoTour Hook
 
-Автоматический запуск тура для новых пользователей:
+Automatic tour start for new users:
 
 ```typescript
 useAutoTour('welcome-tour', {
@@ -294,13 +294,13 @@ useAutoTour('welcome-tour', {
 });
 ```
 
-## Конфигурация шагов
+## Step Configuration
 
 ```typescript
 interface TourStep {
-  selector: string;           // CSS селектор
-  title: string;             // Заголовок
-  description: string;       // Описание
+  selector: string;           // CSS selector
+  title: string;             // Title
+  description: string;       // Description
   side?: 'top' | 'right' | 'bottom' | 'left';
   align?: 'start' | 'center' | 'end';
   highlight?: boolean;
@@ -313,11 +313,11 @@ interface TourStep {
 }
 ```
 
-## Стилизация
+## Styling
 
-Стили находятся в `tour-theme.css` и автоматически подключаются в `globals.css`.
+Styles are located in `tour-theme.css` and automatically connected in `globals.css`.
 
-Кастомизация через CSS переменные:
+Customization via CSS variables:
 
 ```css
 :root {
@@ -325,44 +325,44 @@ interface TourStep {
   --card: #ffffff;
   --card-foreground: #191919;
   --border: #e0e0e0;
-  /* и т.д. */
+  /* etc. */
 }
 ```
 
-## Примеры туров
+## Tour Examples
 
-### Простой тур
+### Simple Tour
 
 ```typescript
 {
   id: 'simple-tour',
-  name: 'Простой тур',
-  description: 'Базовый тур по странице',
+  name: 'Simple Tour',
+  description: 'Basic page tour',
   page: '/page',
   steps: [
     {
       selector: '[data-tour-id="button"]',
-      title: 'Это кнопка',
-      description: 'Нажмите её для действия',
+      title: 'This is a button',
+      description: 'Click it for action',
       side: 'bottom',
     },
   ],
 }
 ```
 
-### Тур с навигацией
+### Tour with Navigation
 
 ```typescript
 {
   id: 'multi-page-tour',
-  name: 'Тур по нескольким страницам',
-  description: 'Тур переходит между страницами',
+  name: 'Multi-page Tour',
+  description: 'Tour transitions between pages',
   canNavigate: true,
   steps: [
     {
       selector: '[data-tour-id="link"]',
-      title: 'Переход',
-      description: 'Сейчас перейдем на другую страницу',
+      title: 'Transition',
+      description: 'Now we will transition to another page',
       onNext: async () => {
         await navigateTo('/another-page');
       },
@@ -371,49 +371,49 @@ interface TourStep {
 }
 ```
 
-### Условный тур
+### Conditional Tour
 
 ```typescript
 {
   id: 'conditional-tour',
-  name: 'Условный тур',
-  description: 'Показывается только админам',
+  name: 'Conditional Tour',
+  description: 'Shown only to admins',
   requiredRole: 'admin',
   autoStart: true,
   steps: [...],
 }
 ```
 
-## Лучшие практики
+## Best Practices
 
-### 1. Длина туров
-- **Страничный тур**: 8-15 шагов
-- **Полный тур**: Разбивать на части
+### 1. Tour length
+- **Page tour**: 8-15 steps
+- **Full tour**: Split into parts
 
-### 2. Тексты
-- Заголовок: 3-7 слов
-- Описание: 1-3 предложения
-- Избегать жаргона
+### 2. Texts
+- Title: 3-7 words
+- Description: 1-3 sentences
+- Avoid jargon
 
-### 3. Селекторы
-- Использовать `data-tour-id` вместо классов
-- Убедиться в уникальности селекторов
-- Проверять видимость элементов
+### 3. Selectors
+- Use `data-tour-id` instead of classes
+- Ensure unique selectors
+- Check element visibility
 
-### 4. Производительность
-- Lazy loading туров
-- Проверка видимости элементов
-- Дебаунс для интерактивных элементов
+### 4. Performance
+- Lazy loading tours
+- Check element visibility
+- Debounce for interactive elements
 
-### 5. Доступность
-- Поддержка клавиатуры (Enter, Esc, стрелки)
-- ARIA атрибуты
+### 5. Accessibility
+- Keyboard support (Enter, Esc, arrows)
+- ARIA attributes
 - Screen reader friendly
 
-## Тестирование
+## Testing
 
 ```typescript
-// Unit тест
+// Unit test
 describe('TourManager', () => {
   it('should start tour', () => {
     const manager = getTourManager();
@@ -423,53 +423,53 @@ describe('TourManager', () => {
   });
 });
 
-// E2E тест
+// E2E test
 describe('Statements Tour', () => {
   it('should complete tour', () => {
     cy.visit('/statements');
     cy.get('[data-tour-id="upload-button"]').should('be.visible');
-    // ... проход по шагам
+    // ... step-through
   });
 });
 ```
 
-## Аналитика
+## Analytics
 
-Система автоматически отправляет события:
+The system automatically sends events:
 
-- `tour_started` - Тур запущен
-- `tour_step_viewed` - Просмотрен шаг
-- `tour_step_skipped` - Шаг пропущен
-- `tour_completed` - Тур завершен
-- `tour_abandoned` - Тур прерван
-- `tour_resumed` - Тур продолжен
+- `tour_started` - Tour started
+- `tour_step_viewed` - Step viewed
+- `tour_step_skipped` - Step skipped
+- `tour_completed` - Tour completed
+- `tour_abandoned` - Tour interrupted
+- `tour_resumed` - Tour resumed
 
 ## Troubleshooting
 
-### Элемент не находится
+### Element not found
 
 ```typescript
-// Проверьте селектор
+// Check selector
 document.querySelector('[data-tour-id="my-element"]')
 
-// Убедитесь что элемент видим
+// Ensure element is visible
 getComputedStyle(element).display !== 'none'
 ```
 
-### Тур не сохраняется
+### Tour not saved
 
 ```typescript
-// Проверьте localStorage
+// Check localStorage
 localStorage.getItem('finflow_tour_state')
 
-// Очистите данные
+// Clear data
 tourManager.clearAllData()
 ```
 
-### Навигация не работает
+### Navigation not working
 
 ```typescript
-// Убедитесь что onNavigate передан
+// Ensure onNavigate is passed
 const tourManager = getTourManager({
   onNavigate: async (url) => {
     await router.push(url);
@@ -479,16 +479,16 @@ const tourManager = getTourManager({
 
 ## TODO
 
-- [ ] Реализовать туры для остальных страниц
-- [ ] Добавить полный тур по всему приложению
-- [ ] Реализовать контекстные туры
-- [ ] Добавить A/B тестирование
-- [ ] Интегрировать с системой аналитики
-- [ ] Добавить видео-инструкции
-- [ ] Создать админ-панель для управления турами
+- [ ] Implement tours for other pages
+- [ ] Add a full tour of the entire application
+- [ ] Implement contextual tours
+- [ ] Add A/B testing
+- [ ] Integrate with analytics system
+- [ ] Add video instructions
+- [ ] Create an admin panel for tour management
 
-## Полезные ссылки
+## Useful Links
 
 - [Driver.js Documentation](https://driverjs.com/)
 - [Intlayer Documentation](https://intlayer.org/)
-- [Plan документ](../../docs/comprehensive-tour-plan.md)
+- [Plan document](../../docs/comprehensive-tour-plan.md)

@@ -174,12 +174,23 @@ export class GmailReceiptProcessor {
 
       if (attachmentPaths.length > 0) {
         try {
-          parsedData = await this.parserService.parseReceipt(attachmentPaths[0]);
+          parsedData = await this.parserService.parseReceipt(attachmentPaths[0], sender);
           job.progress = 60;
           await this.jobRepository.save(job);
 
           if (parsedData) {
-            initialStatus = ReceiptStatus.PARSED;
+            if (this.hasParsedAmount(parsedData.amount)) {
+              initialStatus = ReceiptStatus.PARSED;
+            } else {
+              initialStatus = ReceiptStatus.NEEDS_REVIEW;
+              parsedData = {
+                ...parsedData,
+                validationIssues: this.withValidationIssue(
+                  parsedData.validationIssues,
+                  'missing_amount',
+                ),
+              };
+            }
           }
         } catch (error) {
           this.logger.error('Failed to parse receipt', error);
@@ -299,5 +310,34 @@ export class GmailReceiptProcessor {
       job.error = error instanceof Error ? error.message : String(error);
       await this.jobRepository.save(job);
     }
+  }
+
+  private hasParsedAmount(amount: unknown): boolean {
+    if (typeof amount === 'number') {
+      return Number.isFinite(amount);
+    }
+
+    if (typeof amount === 'string') {
+      const normalized = amount.trim();
+      if (!normalized) {
+        return false;
+      }
+      return Number.isFinite(Number(normalized));
+    }
+
+    return false;
+  }
+
+  private withValidationIssue(existing: unknown, issue: string): string[] {
+    if (!Array.isArray(existing)) {
+      return [issue];
+    }
+
+    const issues = existing.filter(value => typeof value === 'string');
+    if (issues.includes(issue)) {
+      return issues;
+    }
+
+    return [...issues, issue];
   }
 }

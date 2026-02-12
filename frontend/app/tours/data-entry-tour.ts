@@ -1,7 +1,7 @@
 import type { TourConfig } from './types';
 
 /**
- * Розширений тур по вводу даних
+ * Advanced Data Entry Tour
  */
 export function createDataEntryTour(texts: {
   name?: string;
@@ -30,8 +30,8 @@ export function createDataEntryTour(texts: {
 }): TourConfig {
   return {
     id: 'data-entry-tour',
-    name: texts.name ?? 'Тур по вводу данных',
-    description: texts.description ?? 'Проверка и редактирование транзакций',
+    name: texts.name ?? 'Data Entry Tour',
+    description: texts.description ?? 'Review and edit transactions',
     page: '/data-entry',
     autoStart: false,
     steps: [

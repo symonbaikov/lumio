@@ -1,5 +1,5 @@
 /**
- * Компонент меню туров
+ * Tour menu component
  */
 
 'use client';
@@ -59,7 +59,7 @@ function extractText(node: any): string {
   return String(unwrapped ?? '');
 }
 
-// Вспомогательная функция для преобразования IntlayerNode в строки
+// Helper function for converting IntlayerNode to strings
 function extractStepsValues(steps: any) {
   const result: any = {};
   const resolvedSteps = unwrapIntlayerNode(steps);
@@ -87,7 +87,7 @@ export function TourMenu({ trigger, className = '' }: TourMenuProps) {
   const open = Boolean(anchorEl);
   const router = useRouter();
 
-  // Получаем переводы для всех туров
+  // Get translations for all tours
   const navigationTexts = useIntlayer('navigation') as any;
   const statementsTexts = useIntlayer('statements-tour');
   const uploadTexts = useIntlayer('upload-tour');
@@ -114,11 +114,11 @@ export function TourMenu({ trigger, className = '' }: TourMenuProps) {
     };
   };
 
-  // Регистрация туров при монтировании
+  // Register tours on mount
   useEffect(() => {
     const tourManager = getTourManager();
 
-    // Создаем и регистрируем все туры
+    // Create and register all tours
     const allTours = [
       createStatementsTour(statementsTexts),
       createUploadTour(uploadTexts),
@@ -198,7 +198,7 @@ export function TourMenu({ trigger, className = '' }: TourMenuProps) {
     const registeredTours = tourManager.getAllTours();
     setTours(registeredTours);
 
-    // Функция для обновления списка завершенных туров
+    // Function for updating list of completed tours
     const updateCompletedTours = () => {
       const completed = new Set<string>();
       registeredTours.forEach(tour => {
@@ -211,7 +211,7 @@ export function TourMenu({ trigger, className = '' }: TourMenuProps) {
 
     updateCompletedTours();
 
-    // Обновляем список при изменении localStorage (когда тур завершается)
+    // Update list on localStorage change (when tour is completed)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'finflow_tour_state') {
         updateCompletedTours();
@@ -220,7 +220,7 @@ export function TourMenu({ trigger, className = '' }: TourMenuProps) {
 
     window.addEventListener('storage', handleStorageChange);
 
-    // Также проверяем каждые 500мс если меню открыто (для обновления в той же вкладке)
+    // Also check every 500ms if menu is open (for update in same tab)
     let interval: NodeJS.Timeout | null = null;
     if (open) {
       interval = setInterval(updateCompletedTours, 500);
@@ -230,7 +230,7 @@ export function TourMenu({ trigger, className = '' }: TourMenuProps) {
       window.removeEventListener('storage', handleStorageChange);
       if (interval) clearInterval(interval);
     };
-  }, [open]); // Обновляем при открытии меню
+  }, [open]); // Update on menu open
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -246,15 +246,15 @@ export function TourMenu({ trigger, className = '' }: TourMenuProps) {
 
     handleClose();
 
-    // Если тур уже завершен, сбрасываем его чтобы можно было пройти снова
+    // If tour is already completed, reset it so it can be taken again
     if (tourManager.isTourCompleted(tourId)) {
       tourManager.resetTour(tourId);
     }
 
-    // Если у тура есть страница и мы не на ней - переходим
+    // If tour has a page and we are not on it - navigate there
     if (tour?.page && !window.location.pathname.startsWith(tour.page)) {
       router.push(tour.page);
-      // Ждем загрузки страницы перед запуском тура
+      // Wait for page load before starting tour
       await new Promise(resolve => setTimeout(resolve, 800));
     }
 
@@ -270,7 +270,7 @@ export function TourMenu({ trigger, className = '' }: TourMenuProps) {
     <button
       type="button"
       onClick={handleClick}
-      aria-label={navigationTexts.tour.menuLabel?.value ?? 'Туры'}
+      aria-label={navigationTexts.tour.menuLabel?.value ?? 'Tours'}
       className={`h-9 w-9 rounded-full flex items-center justify-center shadow-sm ${className} bg-primary text-white`}
     >
       <HelpCircle size={16} />
@@ -316,7 +316,7 @@ export function TourMenu({ trigger, className = '' }: TourMenuProps) {
       >
         {tours.length === 0 && (
           <MenuItem disabled>
-            <ListItemText primary="Туры не найдены" />
+            <ListItemText primary="Tours not found" />
           </MenuItem>
         )}
         {tours.map((tour, index) => {

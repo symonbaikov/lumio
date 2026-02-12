@@ -244,6 +244,25 @@ describe('StatementProcessingService', () => {
     });
   });
 
+  it('skips automatic category assignment when manual category selection is required', async () => {
+    statement.parsingDetails = {
+      manualCategorySelectionRequired: true,
+    } as Statement['parsingDetails'];
+    statement.categoryId = null;
+    classificationService.classifyTransaction.mockResolvedValue({ categoryId: 'cat-1' });
+    classificationService.classifyTransactionsBatch.mockResolvedValue(new Map<number, string>([[0, 'cat-ai']]));
+    classificationService.determineMajorityCategory.mockResolvedValue({
+      categoryId: 'cat-majority',
+      type: 'expense' as any,
+    });
+
+    await service.processStatement(statement.id);
+
+    expect(savedTransactions[0].categoryId).toBeUndefined();
+    expect(savedTransactions[1].categoryId).toBeUndefined();
+    expect(statement.categoryId).toBeNull();
+  });
+
   it('returns completed statement when import preview missing', async () => {
     statement.status = StatementStatus.COMPLETED;
     statement.parsingDetails = {

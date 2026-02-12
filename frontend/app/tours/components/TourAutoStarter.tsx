@@ -1,5 +1,5 @@
 /**
- * Компонент для автоматического запуска туров при первом посещении страницы
+ * Component for automatic tour start on first page visit
  */
 
 'use client';
@@ -34,7 +34,7 @@ export function TourAutoStarter() {
   };
 
   useEffect(() => {
-    // Предотвращаем повторный запуск для этой страницы
+    // Prevent repeated launch for this page
     if (hasTriggeredRef.current.has(pathname)) return;
 
     const tourManager = getTourManager();
@@ -46,7 +46,7 @@ export function TourAutoStarter() {
 
       const allTours = tourManager.getAllTours();
 
-      // Если туры еще не зарегистрированы, быстро ретраим на следующих кадрах.
+      // If tours are not registered yet, quickly retry on next frames.
       if (allTours.length === 0) {
         if (attemptsLeft > 0) {
           window.requestAnimationFrame(() => tryStart(attemptsLeft - 1));
@@ -60,7 +60,7 @@ export function TourAutoStarter() {
       });
 
       if (!tourForCurrentPage) {
-        // Нет тура для текущей страницы.
+        // No tour for the current page.
         hasTriggeredRef.current.add(pathname);
         return;
       }
@@ -77,7 +77,7 @@ export function TourAutoStarter() {
         return;
       }
 
-      // Стартуем без искусственных задержек (на ближайшем кадре — чтобы DOM успел отрисоваться).
+      // Start without artificial delays (on the next frame — so DOM has time to render).
       hasTriggeredRef.current.add(pathname);
       window.requestAnimationFrame(() => {
         if (cancelled) return;
@@ -88,7 +88,7 @@ export function TourAutoStarter() {
       });
     };
 
-    // ~1 сек ретраев (60 кадров) на случай, если TourMenu еще не успел зарегистрировать туры.
+    // ~1 sec of retries (60 frames) in case TourMenu hasn't registered tours yet.
     tryStart(60);
 
     return () => {

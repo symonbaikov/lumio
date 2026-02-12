@@ -67,4 +67,30 @@ describe('ReportsController', () => {
     stream.emit('end');
     expect(fs.unlinkSync as any).toHaveBeenCalledWith('/tmp/report.csv');
   });
+
+  it('getTopCategories delegates to reports service', async () => {
+    const reportsService = {
+      getStatementsSummary: jest.fn(),
+      getCustomTablesSummary: jest.fn(),
+      getLatestTransactionDate: jest.fn(),
+      generateDailyReport: jest.fn(),
+      getLatestTransactionPeriod: jest.fn(),
+      generateMonthlyReport: jest.fn(),
+      generateCustomReport: jest.fn(),
+      exportReport: jest.fn(),
+      getTopCategoriesReport: jest.fn(async () => ({ categories: [] })),
+    };
+    const controller = new ReportsController(reportsService as any);
+
+    const result = await controller.getTopCategories({ id: 'u-1' } as any, {
+      limit: 5,
+      type: 'expense',
+    } as any);
+
+    expect(result).toEqual({ categories: [] });
+    expect(reportsService.getTopCategoriesReport).toHaveBeenCalledWith('u-1', {
+      limit: 5,
+      type: 'expense',
+    });
+  });
 });

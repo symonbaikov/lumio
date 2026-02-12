@@ -22,9 +22,11 @@ import { AuditService } from '../audit/audit.service';
 import { type CustomReportDto, ReportGroupBy } from './dto/custom-report.dto';
 import type { CustomTablesSummaryDto } from './dto/custom-tables-summary.dto';
 import { ExportFormat, type ExportReportDto } from './dto/export-report.dto';
+import type { TopCategoriesQueryDto } from './dto/top-categories-query.dto';
 import type { CustomReport, CustomReportGroup } from './interfaces/custom-report.interface';
 import type { DailyReport } from './interfaces/daily-report.interface';
 import type { MonthlyReport } from './interfaces/monthly-report.interface';
+import type { TopCategoriesReport } from './interfaces/top-categories-report.interface';
 
 export interface StatementsSummaryResponse {
   totals: {
@@ -1112,5 +1114,249 @@ export class ReportsService {
       .slice(0, 10);
 
     return { totals, timeseries, categories, counterparties, recent };
+  }
+
+  async getTopCategoriesReport(
+    userId: string,
+    query: TopCategoriesQueryDto,
+  ): Promise<TopCategoriesReport> {
+    const safeLimit = Number.isFinite(query.limit) ? Math.min(Math.max(query.limit || 20, 1), 100) : 20;
+    const now = new Date();
+    const to = query.dateTo ? new Date(query.dateTo) : now;
+    const from = query.dateFrom
+      ? new Date(query.dateFrom)
+      : new Date(new Date(to).setDate(to.getDate() - 30));
+
+    const qb = this.transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.category', 'category')
+      .leftJoinAndSelect('transaction.statement', 'statement')
+      .where('statement.userId = :userId', { userId })
+      .andWhere('transaction.transactionDate >= :from', { from })
+      .andWhere('transaction.transactionDate <= :to', { to });
+
+    if (query.type === 'income') {
+      qb.andWhere('transaction.transactionType = :transactionType', {
+        transactionType: TransactionType.INCOME,
+      });
+    } else if (query.type === 'expense') {
+      qb.andWhere('transaction.transactionType = :transactionType', {
+        transactionType: TransactionType.EXPENSE,
+      });
+    }
+
+    if (query.bankName) {
+      qb.andWhere('statement.bankName = :bankName', { bankName: query.bankName });
+    }
+
+    if (query.counterparties) {
+      const counterparties = query.counterparties
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
+      if (counterparties.length > 0) {
+        qb.andWhere('transaction.counterpartyName IN (:...counterparties)', { counterparties });
+      }
+    }
+
+    if (query.statuses) {
+      const statuses = query.statuses
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
+      if (statuses.length > 0) {
+        qb.andWhere('statement.status IN (:...statuses)', { statuses });
+      }
+    }
+
+    if (query.keywords) {
+      const keyword = `%${query.keywords.trim().toLowerCase()}%`;
+      qb.andWhere(
+        '(LOWER(transaction.counterpartyName) LIKE :keyword OR LOWER(transaction.paymentPurpose) LIKE :keyword OR LOWER(statement.fileName) LIKE :keyword OR LOWER(statement.bankName) LIKE :keyword)',
+        { keyword },
+      );
+    }
+
+    if (Number.isFinite(query.amountMin)) {
+      qb.andWhere('ABS(COALESCE(transaction.amount, 0)) >= :amountMin', {
+        amountMin: query.amountMin,
+      });
+    }
+
+    if (Number.isFinite(query.amountMax)) {
+      qb.andWhere('ABS(COALESCE(transaction.amount, 0)) <= :amountMax', {
+        amountMax: query.amountMax,
+      });
+    }
+
+    if (query.currencies) {
+      const currencies = query.currencies
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
+      if (currencies.length > 0) {
+        qb.andWhere('transaction.currency IN (:...currencies)', { currencies });
+      }
+    }
+
+    if (typeof query.billable === 'boolean') {
+      if (query.billable) {
+        qb.andWhere('ABS(COALESCE(transaction.amount, 0)) > 0');
+      } else {
+        qb.andWhere('ABS(COALESCE(transaction.amount, 0)) <= 0');
+      }
+    }
+
+    if (typeof query.approved === 'boolean') {
+      if (query.approved) {
+        qb.andWhere('statement.status IN (:...approvedStatuses)', {
+          approvedStatuses: ['validated', 'completed', 'parsed'],
+        });
+      } else {
+        qb.andWhere('statement.status IN (:...notApprovedStatuses)', {
+          notApprovedStatuses: ['uploaded', 'processing', 'error'],
+        });
+      }
+    }
+
+    if (query.has) {
+      const hasTokens = query.has
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
+      if (hasTokens.includes('errors')) {
+        qb.andWhere('(statement.status = :errorStatus OR statement.errorMessage IS NOT NULL)', {
+          errorStatus: 'error',
+        });
+      }
+      if (hasTokens.includes('transactions')) {
+        qb.andWhere('COALESCE(statement.totalTransactions, 0) > 0');
+      }
+      if (hasTokens.includes('dateRange')) {
+        qb.andWhere('(statement.statementDateFrom IS NOT NULL OR statement.statementDateTo IS NOT NULL)');
+      }
+      if (hasTokens.includes('currency')) {
+        qb.andWhere('statement.currency IS NOT NULL');
+      }
+    }
+
+    const transactions = await qb.orderBy('transaction.updatedAt', 'DESC').take(5000).getMany();
+
+    const totals = {
+      income: 0,
+      expense: 0,
+      net: 0,
+      transactions: transactions.length,
+    };
+
+    const categoryMap = new Map<
+      string,
+      {
+        id: string | null;
+        name: string;
+        amount: number;
+        transactions: number;
+        type: TransactionType;
+        color?: string | null;
+        icon?: string | null;
+      }
+    >();
+    const bankMap = new Map<string, { bankName: string; amount: number; statements: number }>();
+    const counterpartyMap = new Map<
+      string,
+      {
+        name: string;
+        amount: number;
+        transactions: number;
+        type: TransactionType;
+      }
+    >();
+
+    transactions.forEach(transaction => {
+      const amount = Math.abs(Number(transaction.amount || 0));
+      if (!amount) {
+        return;
+      }
+
+      if (transaction.transactionType === TransactionType.INCOME) {
+        totals.income += amount;
+      } else {
+        totals.expense += amount;
+      }
+
+      const categoryKey = transaction.category?.id || 'without-category';
+      const categoryName = (transaction.category?.name || 'Без категории').trim() || 'Без категории';
+      const categoryCurrent = categoryMap.get(categoryKey) || {
+        id: transaction.category?.id || null,
+        name: categoryName,
+        amount: 0,
+        transactions: 0,
+        type: transaction.transactionType,
+        color: transaction.category?.color,
+        icon: transaction.category?.icon,
+      };
+      categoryCurrent.amount += amount;
+      categoryCurrent.transactions += 1;
+      categoryMap.set(categoryKey, categoryCurrent);
+
+      const bankName = (transaction.statement?.bankName || 'Unknown').trim() || 'Unknown';
+      const bankCurrent = bankMap.get(bankName) || {
+        bankName,
+        amount: 0,
+        statements: 0,
+      };
+      bankCurrent.amount += amount;
+      bankCurrent.statements += 1;
+      bankMap.set(bankName, bankCurrent);
+
+      const counterpartyName = (transaction.counterpartyName || 'Без названия').trim() || 'Без названия';
+      const counterpartyCurrent = counterpartyMap.get(counterpartyName) || {
+        name: counterpartyName,
+        amount: 0,
+        transactions: 0,
+        type: transaction.transactionType,
+      };
+      counterpartyCurrent.amount += amount;
+      counterpartyCurrent.transactions += 1;
+      counterpartyMap.set(counterpartyName, counterpartyCurrent);
+    });
+
+    totals.net = totals.income - totals.expense;
+
+    const totalFlow = totals.income + totals.expense;
+    const categories = Array.from(categoryMap.values())
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, safeLimit)
+      .map(item => ({
+        ...item,
+        percentage: totalFlow > 0 ? Number(((item.amount / totalFlow) * 100).toFixed(2)) : 0,
+      }));
+
+    const banks = Array.from(bankMap.values())
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, safeLimit)
+      .map(item => ({
+        ...item,
+        percentage: totalFlow > 0 ? Number(((item.amount / totalFlow) * 100).toFixed(2)) : 0,
+      }));
+
+    const counterparties = Array.from(counterpartyMap.values())
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, safeLimit)
+      .map(item => ({
+        ...item,
+        percentage: totalFlow > 0 ? Number(((item.amount / totalFlow) * 100).toFixed(2)) : 0,
+      }));
+
+    return {
+      period: {
+        from: from.toISOString().split('T')[0],
+        to: to.toISOString().split('T')[0],
+      },
+      totals,
+      categories,
+      banks,
+      counterparties,
+    };
   }
 }

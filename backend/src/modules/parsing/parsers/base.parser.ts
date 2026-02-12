@@ -87,7 +87,7 @@ export abstract class BaseParser implements IParser {
   }
 
   protected extractBalance(text: string, label: string): number | null {
-    // Look for balance values after labels like "Остаток на начало:" or "Остаток на конец:"
+    // Look for balance values after labels like "Opening balance:" or "Closing balance:"
     const regex = new RegExp(`${label}[\\s:]*([\\d\\s,.-]+)`, 'gi');
     const match = text.match(regex);
     if (match) {

@@ -1,7 +1,7 @@
 import type { TourConfig } from './types';
 
 /**
- * Тур по админ-панели
+ * Admin Panel Tour
  */
 export function createAdminTour(texts: {
   name?: string;
@@ -18,8 +18,8 @@ export function createAdminTour(texts: {
 }): TourConfig {
   return {
     id: 'admin-tour',
-    name: texts.name ?? 'Тур по админ-панели',
-    description: texts.description ?? 'Управление системой и мониторинг',
+    name: texts.name ?? 'Admin Panel Tour',
+    description: texts.description ?? 'System management and monitoring',
     page: '/admin',
     autoStart: false,
     steps: [

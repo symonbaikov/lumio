@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, {
   createContext,
@@ -7,26 +7,28 @@ import React, {
   useEffect,
   useMemo,
   useState,
-} from 'react';
+} from "react";
 import type {
   SidePanelContextState,
   SidePanelPageConfig,
   SidePanelPosition,
   SidePanelProviderProps,
   SidePanelWidth,
-} from './types';
+} from "./types";
 
 // ============================================================================
 // Context
 // ============================================================================
 
-const SidePanelContext = createContext<SidePanelContextState | undefined>(undefined);
+const SidePanelContext = createContext<SidePanelContextState | undefined>(
+  undefined,
+);
 
 // ============================================================================
 // Storage Keys
 // ============================================================================
 
-const DEFAULT_STORAGE_KEY = 'side-panel-state';
+const DEFAULT_STORAGE_KEY = "side-panel-state";
 
 interface PersistedState {
   isCollapsed: boolean;
@@ -41,75 +43,50 @@ interface PersistedState {
 
 export function SidePanelProvider({
   children,
-  defaultWidth = 'md',
-  defaultPosition = 'right',
+  defaultWidth = "md",
+  defaultPosition = "right",
   defaultCollapsed = false,
   checkPermission,
   persistState = true,
   storageKey = DEFAULT_STORAGE_KEY,
 }: SidePanelProviderProps) {
-  // Initialize state from localStorage or defaults
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
-    if (typeof window === 'undefined' || !persistState) return defaultCollapsed;
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed: PersistedState = JSON.parse(stored);
-        return parsed.isCollapsed ?? defaultCollapsed;
-      }
-    } catch {
-      // Ignore parse errors
-    }
-    return defaultCollapsed;
-  });
-
-  const [width, setWidth] = useState<SidePanelWidth>(() => {
-    if (typeof window === 'undefined' || !persistState) return defaultWidth;
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed: PersistedState = JSON.parse(stored);
-        return parsed.width ?? defaultWidth;
-      }
-    } catch {
-      // Ignore parse errors
-    }
-    return defaultWidth;
-  });
-
-  const [position, setPosition] = useState<SidePanelPosition>(() => {
-    if (typeof window === 'undefined' || !persistState) return defaultPosition;
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed: PersistedState = JSON.parse(stored);
-        return parsed.position ?? defaultPosition;
-      }
-    } catch {
-      // Ignore parse errors
-    }
-    return defaultPosition;
-  });
-
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
-    if (typeof window === 'undefined' || !persistState) return new Set();
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed: PersistedState = JSON.parse(stored);
-        return new Set(parsed.collapsedSections ?? []);
-      }
-    } catch {
-      // Ignore parse errors
-    }
-    return new Set();
-  });
+  // Keep server and initial client render identical to avoid hydration mismatch.
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(defaultCollapsed);
+  const [width, setWidth] = useState<SidePanelWidth>(defaultWidth);
+  const [position, setPosition] = useState<SidePanelPosition>(defaultPosition);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
+    new Set(),
+  );
 
   const [config, setConfig] = useState<SidePanelPageConfig | null>(null);
 
+  // Restore persisted state on client after mount.
+  useEffect(() => {
+    if (typeof window === "undefined" || !persistState) return;
+
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (!stored) return;
+
+      const parsed: PersistedState = JSON.parse(stored);
+      setIsCollapsed(parsed.isCollapsed ?? defaultCollapsed);
+      setWidth(parsed.width ?? defaultWidth);
+      setPosition(parsed.position ?? defaultPosition);
+      setCollapsedSections(new Set(parsed.collapsedSections ?? []));
+    } catch {
+      // Ignore parse errors
+    }
+  }, [
+    defaultCollapsed,
+    defaultPosition,
+    defaultWidth,
+    persistState,
+    storageKey,
+  ]);
+
   // Persist state to localStorage
   useEffect(() => {
-    if (typeof window === 'undefined' || !persistState) return;
+    if (typeof window === "undefined" || !persistState) return;
 
     const state: PersistedState = {
       isCollapsed,
@@ -123,11 +100,18 @@ export function SidePanelProvider({
     } catch {
       // Ignore storage errors (e.g., quota exceeded)
     }
-  }, [isCollapsed, width, position, collapsedSections, persistState, storageKey]);
+  }, [
+    isCollapsed,
+    width,
+    position,
+    collapsedSections,
+    persistState,
+    storageKey,
+  ]);
 
   // Toggle collapsed state
   const toggleCollapsed = useCallback(() => {
-    setIsCollapsed(prev => !prev);
+    setIsCollapsed((prev) => !prev);
   }, []);
 
   // Set collapsed state
@@ -137,7 +121,7 @@ export function SidePanelProvider({
 
   // Toggle section collapsed state
   const toggleSection = useCallback((sectionId: string) => {
-    setCollapsedSections(prev => {
+    setCollapsedSections((prev) => {
       const next = new Set(prev);
       if (next.has(sectionId)) {
         next.delete(sectionId);
@@ -154,7 +138,7 @@ export function SidePanelProvider({
       if (!checkPermission) return true;
       return checkPermission(permission);
     },
-    [checkPermission]
+    [checkPermission],
   );
 
   // Memoize context value
@@ -185,7 +169,7 @@ export function SidePanelProvider({
       collapsedSections,
       toggleSection,
       hasPermission,
-    ]
+    ],
   );
 
   return (
@@ -202,7 +186,7 @@ export function SidePanelProvider({
 export function useSidePanel(): SidePanelContextState {
   const context = useContext(SidePanelContext);
   if (context === undefined) {
-    throw new Error('useSidePanel must be used within a SidePanelProvider');
+    throw new Error("useSidePanel must be used within a SidePanelProvider");
   }
   return context;
 }

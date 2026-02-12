@@ -1,7 +1,7 @@
 import type { TourConfig } from './types';
 
 /**
- * Тур по категориям
+ * Categories Tour
  */
 export function createCategoriesTour(texts: {
   name?: string;
@@ -17,8 +17,8 @@ export function createCategoriesTour(texts: {
 }): TourConfig {
   return {
     id: 'categories-tour',
-    name: texts.name ?? 'Тур по категориям',
-    description: texts.description ?? 'Организация транзакций и файлов',
+    name: texts.name ?? 'Categories Tour',
+    description: texts.description ?? 'Organizing transactions and files',
     page: '/categories',
     autoStart: false,
     steps: [

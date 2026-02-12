@@ -9,7 +9,12 @@ import {
   type StatementExpenseMode,
   resolveExpenseDrawerMode,
 } from '@/app/lib/statement-expense-drawer';
-import { type TopBankSender, getTopBankSenders } from '@/app/lib/statement-insights';
+import {
+  type TopBankSender,
+  type TopCategoryPreviewItem,
+  getTopBankSenders,
+  getTopCategoriesPreview,
+} from '@/app/lib/statement-insights';
 import {
   type CloudImportProvider,
   type ConnectedCloudProviders,
@@ -22,7 +27,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import StatementsCircularUploadMenu from './StatementsCircularUploadMenu';
 
-type ActiveItem = 'submit' | 'approve' | 'pay';
+type ActiveItem = 'submit' | 'approve' | 'pay' | 'top-spenders' | 'top-categories';
 
 type Props = {
   activeItem: ActiveItem;
@@ -47,9 +52,11 @@ export default function StatementsSidePanel({ activeItem }: Props) {
   const { user } = useAuth();
   const [counts, setCounts] = useState({ submit: 0, approve: 0, pay: 0 });
   const [topSenders, setTopSenders] = useState<TopBankSender[]>([]);
+  const [topCategories, setTopCategories] = useState<TopCategoryPreviewItem[]>([]);
   const [connectedCloudProviders, setConnectedCloudProviders] = useState<ConnectedCloudProviders>({
     googleDriveConnected: false,
     dropboxConnected: false,
+    gmailConnected: false,
   });
 
   useEffect(() => {
@@ -90,15 +97,24 @@ export default function StatementsSidePanel({ activeItem }: Props) {
 
         const stageCounts = countStatementStages(statementIds, getStatementStageMap());
         const topBankSenders = getTopBankSenders(allStatements, 5);
+        const summaryResponse = await apiClient.get('/reports/statements/summary', {
+          params: { days: 90 },
+        });
+        const summaryCategories = Array.isArray(summaryResponse.data?.categories)
+          ? summaryResponse.data.categories
+          : [];
+        const categoriesPreview = getTopCategoriesPreview(summaryCategories, 5);
 
         if (isMounted) {
           setCounts(stageCounts);
           setTopSenders(topBankSenders);
+          setTopCategories(categoriesPreview);
         }
       } catch {
         if (isMounted) {
           setCounts({ submit: 0, approve: 0, pay: 0 });
           setTopSenders([]);
+          setTopCategories([]);
         }
       }
     };
@@ -116,9 +132,10 @@ export default function StatementsSidePanel({ activeItem }: Props) {
     const loadCloudProviders = async () => {
       if (!user) return;
 
-      const [dropboxStatus, googleDriveStatus] = await Promise.allSettled([
+      const [dropboxStatus, googleDriveStatus, gmailStatus] = await Promise.allSettled([
         apiClient.get('/integrations/dropbox/status'),
         apiClient.get('/integrations/google-drive/status'),
+        apiClient.get('/integrations/gmail/status'),
       ]);
 
       const isDropboxConnected =
@@ -127,11 +144,15 @@ export default function StatementsSidePanel({ activeItem }: Props) {
       const isGoogleDriveConnected =
         googleDriveStatus.status === 'fulfilled' &&
         Boolean(googleDriveStatus.value?.data?.connected ?? googleDriveStatus.value?.data?.active);
+      const isGmailConnected =
+        gmailStatus.status === 'fulfilled' &&
+        Boolean(gmailStatus.value?.data?.connected ?? gmailStatus.value?.data?.active);
 
       if (isMounted) {
         setConnectedCloudProviders({
           dropboxConnected: isDropboxConnected,
           googleDriveConnected: isGoogleDriveConnected,
+          gmailConnected: isGmailConnected,
         });
       }
     };
@@ -180,6 +201,25 @@ export default function StatementsSidePanel({ activeItem }: Props) {
     },
     [router],
   );
+
+  const handleGmailClick = useCallback(() => {
+    if (connectedCloudProviders.gmailConnected) {
+      apiClient
+        .post('/integrations/gmail/sync')
+        .then(response => {
+          const jobsCreated = response.data?.jobsCreated ?? 0;
+          toast.success(
+            jobsCreated > 0 ? `Gmail sync started (${jobsCreated} receipts)` : 'Gmail sync started',
+          );
+        })
+        .catch(() => {
+          toast.error('Failed to sync Gmail');
+        });
+      return;
+    }
+
+    router.push('/integrations/gmail');
+  }, [connectedCloudProviders.gmailConnected, router]);
 
   const sidePanelConfig = useMemo<SidePanelPageConfig>(
     () => ({
@@ -245,27 +285,32 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               label: (t as any)?.sidePanel?.topSpenders?.value ?? 'Top spenders',
               icon: User,
               badge: topSenders.length,
-              children:
-                topSenders.length > 0
-                  ? topSenders.map((sender, index) => ({
-                      id: `top-spender-${sender.bankName}-${index}`,
-                      label: `${index + 1}. ${sender.bankName} (${sender.statementsCount})`,
-                      badge: formatMoney(sender.totalAmount),
-                      badgeVariant: 'primary' as const,
-                      disabled: true,
-                    }))
-                  : [
-                      {
-                        id: 'top-spenders-empty',
-                        label: (t as any)?.sidePanel?.topSpendersEmpty?.value ?? 'No data',
-                        disabled: true,
-                      },
-                    ],
+              href: '/statements/top-spenders',
+              active: activeItem === 'top-spenders',
             },
             {
               id: 'top-categories',
               label: (t as any)?.sidePanel?.topCategories?.value ?? 'Top categories',
               icon: Folder,
+              badge: topCategories.length,
+              href: '/statements/top-categories',
+              active: activeItem === 'top-categories',
+              children:
+                topCategories.length > 0
+                  ? topCategories.map((category, index) => ({
+                      id: `top-category-${category.name}-${index}`,
+                      label: `${index + 1}. ${category.name} (${category.rows})`,
+                      badge: formatMoney(category.amount),
+                      badgeVariant: 'primary' as const,
+                      disabled: true,
+                    }))
+                  : [
+                      {
+                        id: 'top-categories-empty',
+                        label: (t as any)?.sidePanel?.topSpendersEmpty?.value ?? 'No data',
+                        disabled: true,
+                      },
+                    ],
             },
           ],
         },
@@ -276,6 +321,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             providers={connectedCloudProviders}
             onScan={handleScanClick}
             onCloudImport={handleCloudImport}
+            onGmail={handleGmailClick}
             onLocalUpload={() => openExpenseDrawer('manual')}
           />
         ),
@@ -286,8 +332,10 @@ export default function StatementsSidePanel({ activeItem }: Props) {
       activeItem,
       counts,
       topSenders,
+      topCategories,
       connectedCloudProviders,
       handleCloudImport,
+      handleGmailClick,
       handleScanClick,
       openExpenseDrawer,
     ],

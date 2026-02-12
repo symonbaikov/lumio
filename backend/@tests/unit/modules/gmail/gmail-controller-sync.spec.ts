@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Category, GmailSettings, Receipt, Transaction, User } from '../../../../src/entities';
 import { GmailController } from '../../../../src/modules/gmail/gmail.controller';
@@ -45,6 +46,13 @@ describe('GmailController - Sync Endpoint', () => {
         { provide: GmailReceiptDuplicateService, useValue: {} },
         { provide: GmailReceiptCategoryService, useValue: {} },
         { provide: GmailReceiptExportService, useValue: {} },
+        {
+          provide: CACHE_MANAGER,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 

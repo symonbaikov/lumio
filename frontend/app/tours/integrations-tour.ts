@@ -1,7 +1,7 @@
 import type { TourConfig } from './types';
 
 /**
- * Тур по интеграциям
+ * Integrations Tour
  */
 export function createIntegrationsTour(texts: {
   name?: string;
@@ -17,8 +17,8 @@ export function createIntegrationsTour(texts: {
 }): TourConfig {
   return {
     id: 'integrations-tour',
-    name: texts.name ?? 'Тур по интеграциям',
-    description: texts.description ?? 'Подключение внешних сервисов',
+    name: texts.name ?? 'Integrations Tour',
+    description: texts.description ?? 'Connecting external services',
     page: '/integrations',
     autoStart: false,
     steps: [

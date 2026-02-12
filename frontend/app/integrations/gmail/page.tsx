@@ -47,6 +47,7 @@ export default function GmailIntegrationPage() {
   const [status, setStatus] = useState<GmailStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const loadStatus = async () => {
     try {
@@ -118,6 +119,24 @@ export default function GmailIntegrationPage() {
     }
   };
 
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      const response = await apiClient.post('/integrations/gmail/sync');
+      const jobsCreated = response.data?.jobsCreated ?? 0;
+      if (jobsCreated > 0) {
+        toast.success(`Gmail sync started (${jobsCreated} receipts)`);
+      } else {
+        toast.success('Gmail sync started');
+      }
+      await loadStatus();
+    } catch (error) {
+      toast.error('Failed to sync Gmail');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const statusLabel = useMemo(() => {
     if (!status) return '';
     if (status.status === 'needs_reauth') return 'Needs Re-authentication';
@@ -183,19 +202,34 @@ export default function GmailIntegrationPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {status?.connected ? (
-                  <button
-                    type="button"
-                    onClick={handleDisconnect}
-                    disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    {saving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Link2Off className="h-4 w-4" />
-                    )}
-                    Disconnect
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleSync}
+                      disabled={saving || syncing}
+                      className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      {syncing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCcw className="h-4 w-4" />
+                      )}
+                      Sync Gmail
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDisconnect}
+                      disabled={saving}
+                      className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      {saving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Link2Off className="h-4 w-4" />
+                      )}
+                      Disconnect
+                    </button>
+                  </>
                 ) : (
                   <button
                     type="button"
@@ -270,8 +304,11 @@ export default function GmailIntegrationPage() {
 
                 {/* Keywords */}
                 <div className="space-y-2">
-                  <label className="text-sm text-gray-500">Filter Keywords</label>
+                  <label htmlFor="gmail-filter-keywords" className="text-sm text-gray-500">
+                    Filter Keywords
+                  </label>
                   <input
+                    id="gmail-filter-keywords"
                     type="text"
                     value={status.settings?.filterConfig?.keywords?.join(', ') || ''}
                     onChange={e =>

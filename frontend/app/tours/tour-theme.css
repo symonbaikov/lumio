@@ -1,9 +1,9 @@
 /**
- * Кастомные стили для Driver.js туров
- * Интеграция с дизайн-системой FinFlow
+ * Custom styles for Driver.js tours
+ * Integration with FinFlow design system
  */
 
-/* Базовый контейнер попапа */
+/* Base popover container */
 .driver-popover {
   background-color: var(--card-bg);
   color: var(--foreground);
@@ -16,7 +16,7 @@
   z-index: 10001;
 }
 
-/* Заголовок */
+/* Title */
 .driver-popover-title {
   font-size: 18px;
   font-weight: 600;
@@ -25,7 +25,7 @@
   line-height: 1.4;
 }
 
-/* Описание */
+/* Description */
 .driver-popover-description {
   font-size: 14px;
   line-height: 1.6;
@@ -42,7 +42,7 @@
   font-weight: 600;
 }
 
-/* Футер с кнопками и прогрессом */
+/* Footer with buttons and progress */
 .driver-popover-footer {
   display: flex;
   justify-content: space-between;
@@ -51,20 +51,20 @@
   gap: 12px;
 }
 
-/* Текст прогресса */
+/* Progress text */
 .driver-popover-progress-text {
   font-size: 12px;
   color: var(--muted-foreground);
   font-weight: 500;
 }
 
-/* Контейнер кнопок */
+/* Buttons container */
 .driver-popover-navigation-btns {
   display: flex;
   gap: 8px;
 }
 
-/* Кнопки */
+/* Buttons */
 .driver-popover-next-btn,
 .driver-popover-prev-btn,
 .driver-popover-close-btn {
@@ -78,7 +78,7 @@
   outline: none;
 }
 
-/* Кнопка "Далее" */
+/* "Next" button */
 .driver-popover-next-btn {
   background-color: var(--primary);
   color: var(--primary-foreground);
@@ -94,7 +94,7 @@
   transform: translateY(0);
 }
 
-/* Кнопка "Назад" */
+/* "Back" button */
 .driver-popover-prev-btn {
   background-color: transparent;
   color: var(--muted-foreground);
@@ -107,7 +107,7 @@
   border-color: color-mix(in srgb, var(--border-color) 60%, transparent);
 }
 
-/* Кнопка закрытия */
+/* Close button */
 .driver-popover-close-btn {
   position: absolute;
   top: 12px;
@@ -128,7 +128,7 @@
   color: var(--foreground);
 }
 
-/* Стрелка попапа */
+/* Popover arrow */
 .driver-popover-arrow {
   border-color: var(--card-bg);
 }
@@ -149,7 +149,7 @@
   border-right-color: var(--card-bg);
 }
 
-/* Подсвеченный элемент */
+/* Highlighted element */
 .driver-active-element {
   position: relative;
   z-index: 10000 !important;
@@ -158,18 +158,18 @@
   filter: none !important;
 }
 
-/* Оверлей */
+/* Overlay */
 .driver-overlay {
   background-color: transparent !important;
   backdrop-filter: none;
 }
 
-/* Активная зона (где находится подсвеченный элемент) */
+/* Active zone (where highlighted element is located) */
 .driver-no-interaction {
   pointer-events: none;
 }
 
-/* Анимации */
+/* Animations */
 @keyframes driver-fade-in {
   from {
     opacity: 0;
@@ -185,7 +185,7 @@
   animation: driver-fade-in 0.2s ease-out;
 }
 
-/* Адаптив для мобильных */
+/* Adaptive for mobile */
 @media (max-width: 640px) {
   .driver-popover {
     max-width: calc(100vw - 32px);
@@ -216,7 +216,7 @@
   }
 }
 
-/* Темная тема */
+/* Dark theme */
 [data-theme="dark"] .driver-popover,
 .dark .driver-popover {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
@@ -227,7 +227,7 @@
   background-color: rgba(0, 0, 0, 0.7);
 }
 
-/* Специальные стили для центрированных попапов */
+/* Special styles for centered popovers */
 .driver-popover.driver-popover-side-center {
   max-width: 500px;
   text-align: center;
@@ -243,7 +243,7 @@
   margin-bottom: 24px;
 }
 
-/* Индикатор прогресса */
+/* Progress indicator */
 .driver-popover-progress-bar {
   position: absolute;
   top: 0;
@@ -263,9 +263,9 @@
   transition: width 0.3s ease;
 }
 
-/* Кастомный класс для тура - для будущих настроек */
+/* Custom class for tour - for future settings */
 
-/* Состояния кнопок - disabled */
+/* Button states - disabled */
 .driver-popover-next-btn:disabled,
 .driver-popover-prev-btn:disabled {
   opacity: 0.5;
@@ -279,7 +279,7 @@
   box-shadow: none;
 }
 
-/* Focus visible для доступности */
+/* Focus visible for accessibility */
 .driver-popover-next-btn:focus-visible,
 .driver-popover-prev-btn:focus-visible,
 .driver-popover-close-btn:focus-visible {
@@ -287,7 +287,7 @@
   outline-offset: 2px;
 }
 
-/* Скрытие стандартных элементов при необходимости */
+/* Hiding default elements when needed */
 .driver-popover-footer.driver-popover-footer-no-btns {
   display: none;
 }

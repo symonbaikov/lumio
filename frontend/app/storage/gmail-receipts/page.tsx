@@ -1,21 +1,28 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useIntlayer } from 'next-intlayer';
 import toast from 'react-hot-toast';
 import { gmailReceiptsApi } from '@/app/lib/api';
-import { Check, X, Eye, RefreshCw, Download, Filter, Search } from 'lucide-react';
+import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
+import {
+  hasGmailReceiptAmount,
+  type GmailReceipt as GmailReceiptValidation,
+} from '@/app/(main)/statements/components/gmail-receipt-mapping';
+import { Filter, RefreshCw, Search } from 'lucide-react';
+import { StatementsListItem } from '@/app/(main)/statements/components/StatementsListItem';
+import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { ReceiptDetailDrawer } from './components/ReceiptDetailDrawer';
 import { BulkActionsBar } from './components/BulkActionsBar';
 
-interface Receipt {
+interface Receipt extends GmailReceiptValidation {
   id: string;
   subject: string;
   sender: string;
   receivedAt: string;
   status: string;
   parsedData?: {
-    amount?: number;
+    amount?: number | string | null;
     currency?: string;
     vendor?: string;
     date?: string;
@@ -29,6 +36,15 @@ interface Receipt {
   };
 }
 
+const parseAmountValue = (value?: number | string | null) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = typeof value === 'string' ? Number(value) : value;
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 export default function GmailReceiptsPage() {
   const content = useIntlayer('gmail-receipts-page');
 
@@ -40,6 +56,8 @@ export default function GmailReceiptsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReceipts, setSelectedReceipts] = useState<Set<string>>(new Set());
   const [selectedReceiptId, setSelectedReceiptId] = useState<string | null>(null);
+  const [previewReceiptId, setPreviewReceiptId] = useState<string | null>(null);
+  const [previewReceiptFileName, setPreviewReceiptFileName] = useState<string>('receipt.pdf');
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -49,14 +67,23 @@ export default function GmailReceiptsPage() {
 
   const [pagination, setPagination] = useState({
     offset: 0,
-    limit: 50,
+    limit: 30,
     total: 0,
   });
 
+  const receiptsById = useMemo(() => {
+    const map = new Map<string, Receipt>();
+    receipts.forEach(receipt => map.set(receipt.id, receipt));
+    return map;
+  }, [receipts]);
+
   useEffect(() => {
     loadStatus();
-    loadReceipts();
   }, []);
+
+  useEffect(() => {
+    loadReceipts();
+  }, [pagination.offset, pagination.limit, selectedStatus]);
 
   useEffect(() => {
     filterReceipts();
@@ -74,12 +101,21 @@ export default function GmailReceiptsPage() {
   const loadReceipts = async () => {
     try {
       setLoading(true);
+      const includeInvalid = selectedStatus === 'needs_review' || selectedStatus === 'failed';
+      const statusFilter = selectedStatus !== 'all' ? selectedStatus : undefined;
       const response = await gmailReceiptsApi.listReceipts({
         limit: pagination.limit,
         offset: pagination.offset,
+        status: statusFilter,
+        includeInvalid,
       });
 
-      setReceipts(response.data.receipts);
+      const fetchedReceipts = Array.isArray(response.data.receipts) ? response.data.receipts : [];
+      const visibleReceipts = includeInvalid
+        ? fetchedReceipts
+        : fetchedReceipts.filter((receipt: Receipt) => hasGmailReceiptAmount(receipt));
+
+      setReceipts(visibleReceipts);
       setPagination(prev => ({ ...prev, total: response.data.total }));
 
       // Calculate stats
@@ -87,23 +123,23 @@ export default function GmailReceiptsPage() {
       const thisMonth = now.getMonth();
       const thisYear = now.getFullYear();
 
-      const pending = response.data.receipts.filter(
+      const pending = visibleReceipts.filter(
         (r: Receipt) => ['new', 'parsed', 'needs_review', 'draft'].includes(r.status)
       ).length;
 
-      const approvedThisMonth = response.data.receipts.filter((r: Receipt) => {
+      const approvedThisMonth = visibleReceipts.filter((r: Receipt) => {
         if (r.status !== 'approved') return false;
         const date = new Date(r.receivedAt);
         return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
       }).length;
 
-      const totalAmount = response.data.receipts.reduce(
-        (sum: number, r: Receipt) => sum + (r.parsedData?.amount || 0),
+      const totalAmount = visibleReceipts.reduce(
+        (sum: number, r: Receipt) => sum + (parseAmountValue(r.parsedData?.amount) || 0),
         0
       );
 
       setStats({
-        total: response.data.total,
+        total: visibleReceipts.length,
         pending,
         approvedThisMonth,
         totalAmount,
@@ -207,6 +243,18 @@ export default function GmailReceiptsPage() {
     }
   };
 
+  const handleApproveById = async (id: string) => {
+    const receipt = receiptsById.get(id);
+    if (!receipt) return;
+    await handleApprove(receipt);
+  };
+
+  const handleRejectById = async (id: string) => {
+    const receipt = receiptsById.get(id);
+    if (!receipt) return;
+    await handleReject(receipt);
+  };
+
   const getStatusBadgeColor = (status: string) => {
     const colors: Record<string, string> = {
       new: 'bg-blue-100 text-blue-800',
@@ -218,6 +266,11 @@ export default function GmailReceiptsPage() {
       failed: 'bg-red-100 text-red-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const isReceiptProcessing = (status: string) => {
+    const normalized = (status || '').toLowerCase();
+    return normalized === 'new' || normalized === 'processing';
   };
 
   const getStatusLabel = (status: string) => {
@@ -233,8 +286,11 @@ export default function GmailReceiptsPage() {
     return labels[status] || status;
   };
 
+  const currentPage = Math.floor(pagination.offset / pagination.limit) + 1;
+  const totalPages = Math.max(1, Math.ceil((pagination.total || 0) / pagination.limit));
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="flex h-[calc(100vh-var(--global-nav-height,0px))] min-h-0 flex-col overflow-hidden bg-gray-50 p-6">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
@@ -323,107 +379,138 @@ export default function GmailReceiptsPage() {
         />
       )}
 
-      {/* Receipts Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="px-4 py-3 text-left">
+      {/* Receipts List */}
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-lg bg-white shadow">
+        {loading ? (
+          <div className="px-4 py-8 text-center text-gray-500">Loading...</div>
+        ) : filteredReceipts.length === 0 ? (
+          <div className="px-4 py-8 text-center text-gray-500">
+            {content.table.emptyState.value}
+          </div>
+        ) : (
+          <div className="space-y-3 p-4">
+            <div className="hidden md:flex items-center gap-3 px-1 text-xs font-medium uppercase tracking-wide text-gray-500">
+              <div className="w-4">
                 <input
                   type="checkbox"
                   checked={selectedReceipts.size === filteredReceipts.length && filteredReceipts.length > 0}
                   onChange={handleSelectAll}
-                  className="rounded border-gray-300"
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">{content.table.date.value}</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">{content.table.merchant.value}</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">{content.table.amount.value}</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">{content.table.tax.value}</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">{content.table.category.value}</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">{content.table.status.value}</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">{content.table.actions.value}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {loading ? (
-              <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
-                  Loading...
-                </td>
-              </tr>
-            ) : filteredReceipts.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
-                  {content.table.emptyState.value}
-                </td>
-              </tr>
-            ) : (
-              filteredReceipts.map((receipt) => (
-                <tr key={receipt.id} className="hover:bg-gray-50 cursor-pointer">
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedReceipts.has(receipt.id)}
-                      onChange={() => handleSelectReceipt(receipt.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="rounded border-gray-300"
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {new Date(receipt.parsedData?.date || receipt.receivedAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {receipt.parsedData?.vendor || receipt.sender}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 font-medium">
-                    {receipt.parsedData?.amount?.toLocaleString() || '-'} {receipt.parsedData?.currency || 'KZT'}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {receipt.parsedData?.tax?.toLocaleString() || '-'}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {receipt.parsedData?.category || '-'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(receipt.status)}`}>
-                      {getStatusLabel(receipt.status)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setSelectedReceiptId(receipt.id)}
-                        className="p-1 hover:bg-gray-100 rounded"
-                        title={content.actions.viewDetails.value}
+              </div>
+              <div className="w-11">Receipt</div>
+              <div className="w-3" />
+              <div className="w-20">Type</div>
+              <div className="w-24">{content.table.date.value}</div>
+              <div className="flex-1">{content.table.merchant.value}</div>
+              <div className="w-28 text-right">{content.table.amount.value}</div>
+              <div className="w-28 text-right">{content.table.actions.value}</div>
+            </div>
+            {filteredReceipts.map(receipt => {
+              const merchantLabel = resolveGmailMerchantLabel({
+                vendor: receipt.parsedData?.vendor,
+                sender: receipt.sender,
+                subject: receipt.subject,
+                fallback: 'Gmail',
+              });
+              const normalizedAmount = parseAmountValue(receipt.parsedData?.amount);
+              const statement = {
+                id: receipt.id,
+                source: 'gmail' as const,
+                fileName: merchantLabel,
+                subject: receipt.subject,
+                sender: receipt.sender,
+                status: receipt.status,
+                totalDebit: normalizedAmount,
+                totalCredit: null,
+                createdAt: receipt.receivedAt,
+                statementDateFrom: receipt.parsedData?.date || receipt.receivedAt,
+                statementDateTo: null,
+                bankName: 'gmail',
+                fileType: 'pdf',
+                currency: receipt.parsedData?.currency || 'KZT',
+                receivedAt: receipt.receivedAt,
+                parsedData: {
+                  amount: normalizedAmount ?? undefined,
+                  currency: receipt.parsedData?.currency,
+                  vendor: receipt.parsedData?.vendor,
+                  date: receipt.parsedData?.date,
+                },
+              };
+              const dateValue = receipt.parsedData?.date || receipt.receivedAt;
+              const dateLabel = dateValue ? new Date(dateValue).toLocaleDateString() : '—';
+              const hasAmount = hasGmailReceiptAmount(receipt);
+              const amountLabel = hasAmount
+                ? `${(normalizedAmount || 0).toLocaleString()}${receipt.parsedData?.currency || 'KZT'}`
+                : '-';
+
+              return (
+                <div key={receipt.id} className="relative">
+                  <StatementsListItem
+                    statement={statement}
+                    viewLabel={content.actions.viewDetails.value}
+                    isGmail
+                    isProcessing={isReceiptProcessing(receipt.status)}
+                    merchantLabel={merchantLabel}
+                    amountLabel={amountLabel}
+                    dateLabel={dateLabel}
+                    typeLabel="PDF"
+                    onView={() => setSelectedReceiptId(receipt.id)}
+                    onIconClick={() => {
+                      setPreviewReceiptId(receipt.id);
+                      setPreviewReceiptFileName(`${merchantLabel}.pdf`);
+                    }}
+                    onToggleSelect={() => handleSelectReceipt(receipt.id)}
+                    selected={selectedReceipts.has(receipt.id)}
+                  />
+                  <div className="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2">
+                    <div className="flex flex-col items-end gap-1">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusBadgeColor(receipt.status)}`}
                       >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      {!['approved', 'rejected'].includes(receipt.status) && (
-                        <>
-                          <button
-                            onClick={() => handleApprove(receipt)}
-                            className="p-1 hover:bg-green-100 rounded text-green-600"
-                            title={content.actions.approve.value}
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleReject(receipt)}
-                            className="p-1 hover:bg-red-100 rounded text-red-600"
-                            title={content.actions.reject.value}
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
+                        {getStatusLabel(receipt.status)}
+                      </span>
+                      {!hasAmount && receipt.status === 'needs_review' ? (
+                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                          Missing amount
+                        </span>
+                      ) : null}
                     </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() =>
+            setPagination(prev => ({ ...prev, offset: Math.max(0, prev.offset - prev.limit) }))
+          }
+          disabled={currentPage <= 1}
+          className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <span className="text-sm text-gray-600">
+          Page {currentPage} of {totalPages}
+        </span>
+        <button
+          type="button"
+          onClick={() =>
+            setPagination(prev => ({
+              ...prev,
+              offset: Math.min((totalPages - 1) * prev.limit, prev.offset + prev.limit),
+            }))
+          }
+          disabled={currentPage >= totalPages}
+          className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Next
+        </button>
       </div>
 
       {/* Receipt Detail Drawer */}
@@ -432,6 +519,16 @@ export default function GmailReceiptsPage() {
           receiptId={selectedReceiptId}
           onClose={() => setSelectedReceiptId(null)}
           onUpdate={loadReceipts}
+        />
+      )}
+
+      {previewReceiptId && (
+        <PDFPreviewModal
+          isOpen={Boolean(previewReceiptId)}
+          onClose={() => setPreviewReceiptId(null)}
+          fileId={previewReceiptId}
+          fileName={previewReceiptFileName}
+          source="gmail"
         />
       )}
     </div>

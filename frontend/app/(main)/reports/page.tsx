@@ -16,7 +16,7 @@ import { useIntlayer, useLocale } from "next-intlayer";
 import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
-import apiClient from "../lib/api";
+import apiClient from "../../lib/api";
 
 const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
 

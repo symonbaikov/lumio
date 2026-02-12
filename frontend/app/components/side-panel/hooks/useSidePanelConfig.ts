@@ -39,24 +39,31 @@ export function useSidePanelConfig({
   autoRegister = true,
   dependencies = [],
 }: UseSidePanelConfigOptions): UseSidePanelConfigReturn {
-  const context = useSidePanel();
-  const [localConfig, setLocalConfig] = useState<SidePanelPageConfig>(initialConfig);
+  const { setConfig } = useSidePanel();
+  const [localConfig, setLocalConfig] = useState<SidePanelPageConfig | null>(null);
+  const resolvedConfig = localConfig ?? initialConfig;
 
   useEffect(() => {
-    setLocalConfig(prev => (prev === initialConfig ? prev : initialConfig));
-  }, [initialConfig, ...dependencies]);
+    if (localConfig && localConfig.pageId !== initialConfig.pageId) {
+      setLocalConfig(null);
+    }
+  }, [initialConfig.pageId, localConfig]);
 
-  // Sync with context on mount and when config changes
+  // Sync with context when config changes.
   useEffect(() => {
     if (autoRegister) {
-      context.setConfig(localConfig);
+      setConfig(resolvedConfig);
     }
+  }, [autoRegister, resolvedConfig, setConfig, ...dependencies]);
+
+  // Clear config only when the registrar unmounts.
+  useEffect(() => {
     return () => {
       if (autoRegister) {
-        context.setConfig(null);
+        setConfig(null);
       }
     };
-  }, [autoRegister, context, localConfig]);
+  }, [autoRegister, setConfig]);
 
   // Update the entire configuration
   const updateConfig = useCallback((newConfig: SidePanelPageConfig) => {
@@ -67,61 +74,74 @@ export function useSidePanelConfig({
   const updateSection = useCallback(
     (sectionId: string, updates: Partial<SidePanelSection>) => {
       setLocalConfig(prev => ({
-        ...prev,
-        sections: prev.sections.map(section =>
-          section.id === sectionId ? { ...section, ...updates } : section
+        ...(prev ?? initialConfig),
+        sections: (prev ?? initialConfig).sections.map(section =>
+          section.id === sectionId ? { ...section, ...updates } : section,
         ) as SidePanelSection[],
       }));
     },
-    []
+    [initialConfig],
   );
 
   // Add a new section
-  const addSection = useCallback((section: SidePanelSection, index?: number) => {
-    setLocalConfig(prev => {
-      const newSections = [...prev.sections];
-      if (index !== undefined && index >= 0 && index <= newSections.length) {
-        newSections.splice(index, 0, section);
-      } else {
-        newSections.push(section);
-      }
-      return { ...prev, sections: newSections };
-    });
-  }, []);
+  const addSection = useCallback(
+    (section: SidePanelSection, index?: number) => {
+      setLocalConfig(prev => {
+        const baseConfig = prev ?? initialConfig;
+        const newSections = [...baseConfig.sections];
+        if (index !== undefined && index >= 0 && index <= newSections.length) {
+          newSections.splice(index, 0, section);
+        } else {
+          newSections.push(section);
+        }
+        return { ...baseConfig, sections: newSections };
+      });
+    },
+    [initialConfig],
+  );
 
   // Remove a section
-  const removeSection = useCallback((sectionId: string) => {
-    setLocalConfig(prev => ({
-      ...prev,
-      sections: prev.sections.filter(section => section.id !== sectionId),
-    }));
-  }, []);
+  const removeSection = useCallback(
+    (sectionId: string) => {
+      setLocalConfig(prev => ({
+        ...(prev ?? initialConfig),
+        sections: (prev ?? initialConfig).sections.filter(section => section.id !== sectionId),
+      }));
+    },
+    [initialConfig],
+  );
 
   // Toggle section visibility
-  const toggleSectionVisibility = useCallback((sectionId: string) => {
-    setLocalConfig(prev => ({
-      ...prev,
-      sections: prev.sections.map(section =>
-        section.id === sectionId ? { ...section, hidden: !section.hidden } : section
-      ) as SidePanelSection[],
-    }));
-  }, []);
+  const toggleSectionVisibility = useCallback(
+    (sectionId: string) => {
+      setLocalConfig(prev => ({
+        ...(prev ?? initialConfig),
+        sections: (prev ?? initialConfig).sections.map(section =>
+          section.id === sectionId ? { ...section, hidden: !section.hidden } : section,
+        ) as SidePanelSection[],
+      }));
+    },
+    [initialConfig],
+  );
 
   // Set section loading state
-  const setSectionLoading = useCallback((sectionId: string, loading: boolean) => {
-    setLocalConfig(prev => ({
-      ...prev,
-      sections: prev.sections.map(section =>
-        section.id === sectionId
-          ? { ...section, className: loading ? 'opacity-50 pointer-events-none' : '' }
-          : section
-      ) as SidePanelSection[],
-    }));
-  }, []);
+  const setSectionLoading = useCallback(
+    (sectionId: string, loading: boolean) => {
+      setLocalConfig(prev => ({
+        ...(prev ?? initialConfig),
+        sections: (prev ?? initialConfig).sections.map(section =>
+          section.id === sectionId
+            ? { ...section, className: loading ? 'opacity-50 pointer-events-none' : '' }
+            : section,
+        ) as SidePanelSection[],
+      }));
+    },
+    [initialConfig],
+  );
 
   return useMemo(
     () => ({
-      config: localConfig,
+      config: resolvedConfig,
       updateConfig,
       updateSection,
       addSection,
@@ -130,14 +150,14 @@ export function useSidePanelConfig({
       setSectionLoading,
     }),
     [
-      localConfig,
+      resolvedConfig,
       updateConfig,
       updateSection,
       addSection,
       removeSection,
       toggleSectionVisibility,
       setSectionLoading,
-    ]
+    ],
   );
 }
 

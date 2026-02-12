@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ColumnsDrawer } from '../../(main)/statements/components/columns/ColumnsDrawer';
 import {
   DEFAULT_STATEMENT_COLUMNS,
+  reorderStatementColumns,
   type StatementColumn,
 } from '../../(main)/statements/components/columns/statement-columns';
 import { Button } from '../../components/ui/button';
@@ -58,6 +59,9 @@ export const Default: Story = {
                     : column,
                 ),
               )
+            }
+            onReorder={(activeId, overId) =>
+              setColumns((prev) => reorderStatementColumns(prev, activeId, overId))
             }
             onSave={onClose}
             labels={{

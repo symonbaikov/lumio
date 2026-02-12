@@ -1,12 +1,12 @@
 /**
- * Тур по загрузке файлов через модалку
+ * File upload tour via modal
  */
 
 import type { TourConfig } from './types';
 
 /**
- * Создает конфигурацию тура для модалки загрузки
- * @param texts - Объект с переводами из useIntlayer
+ * Creates tour configuration for the upload modal
+ * @param texts - Object with translations from useIntlayer
  */
 export function createUploadTour(texts: {
   name: { value: string };
@@ -25,8 +25,8 @@ export function createUploadTour(texts: {
 
   return {
     id: 'upload-tour',
-    name: texts.name?.value ?? 'Тур по загрузке',
-    description: texts.description?.value ?? 'Узнайте как загружать банковские выписки',
+    name: texts.name?.value ?? 'Upload Tour',
+    description: texts.description?.value ?? 'Learn how to upload bank statements',
     page: '/statements',
     steps: [
       {

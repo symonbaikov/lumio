@@ -30,7 +30,8 @@
     "parse:tables": "ts-node -r tsconfig-paths/register scripts/pdf-table-dump.ts",
     "parse:diff": "ts-node -r tsconfig-paths/register scripts/parse-diff.ts",
     "storage:verify": "ts-node -r tsconfig-paths/register scripts/storage-verify.ts",
-    "storage:repair": "ts-node -r tsconfig-paths/register scripts/storage-verify.ts --repair"
+    "storage:repair": "ts-node -r tsconfig-paths/register scripts/storage-verify.ts --repair",
+    "cleanup:gmail-receipts": "ts-node -r tsconfig-paths/register scripts/cleanup-gmail-receipts.ts"
   },
   "keywords": [],
   "author": "",

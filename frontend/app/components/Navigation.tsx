@@ -15,9 +15,13 @@ import { TourMenu } from '@/app/tours/components/TourMenu';
 import { type DriveStep, driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
+import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
 import { NotificationsNone } from '@mui/icons-material';
-import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
+import ApartmentIcon from '@mui/icons-material/Apartment';
 import LanguageIcon from '@mui/icons-material/Language';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
+import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import {
   Bell,
   Check,
@@ -41,8 +45,6 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import ApartmentIcon from '@mui/icons-material/Apartment';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
@@ -52,7 +54,6 @@ import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
-import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
 
 type AppLanguage = 'ru' | 'en' | 'kk';
 
@@ -235,18 +236,11 @@ export default function Navigation() {
     return null;
   }
 
-  const navLabels = nav as typeof nav & { workspaces: typeof nav.statements };
   const navItems = [
     {
       label: nav.statements,
       path: '/statements',
       icon: <FileText size={20} />,
-      permission: 'statement.view',
-    },
-    {
-      label: nav.receipts,
-      path: '/receipts',
-      icon: <ShoppingCartIcon sx={{ fontSize: 20 }} />,
       permission: 'statement.view',
     },
     {
@@ -256,14 +250,22 @@ export default function Navigation() {
       permission: 'statement.view',
     },
     {
-      label: navLabels.workspaces,
+      label: nav.workspaces,
       path: '/workspaces',
       icon: <ApartmentIcon sx={{ fontSize: 20 }} />,
       permission: 'workspaces.view',
     },
+    {
+      label: nav.reports,
+      path: '/reports',
+      icon: <QueryStatsIcon sx={{ fontSize: 20 }} />,
+      permission: 'statement.view',
+    },
   ];
 
   const visibleNavItems = navItems.filter(item => hasPermission(item.permission));
+  const isNavItemActive = (itemPath: string) =>
+    pathname === itemPath || pathname.startsWith(`${itemPath}/`);
 
   return (
     <header className="border-b border-border bg-card shadow-sm transition-all duration-300">
@@ -277,7 +279,7 @@ export default function Navigation() {
             {/* Desktop Navigation */}
             <nav className="hidden md:ml-2 md:flex md:space-x-2" data-tour-id="primary-nav">
               {visibleNavItems.map(item => {
-                const isActive = pathname === item.path;
+                const isActive = isNavItemActive(item.path);
                 return (
                   <Link
                     key={item.path}
@@ -492,23 +494,25 @@ export default function Navigation() {
 
             <div className="px-2 py-2 overflow-y-auto h-[calc(100vh-64px)] bg-white">
               <div className="pt-1 pb-2">
-                {visibleNavItems.map(item => (
-                  <Link
-                    key={item.path}
-                    href={item.path}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium transition-colors bg-white ${
-                      pathname === item.path
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'text-gray-900 hover:bg-gray-100'
-                    }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <span className={pathname === item.path ? 'text-blue-600' : 'text-gray-600'}>
-                      {item.icon}
-                    </span>
-                    <span className="flex-1">{item.label}</span>
-                  </Link>
-                ))}
+                {visibleNavItems.map(item => {
+                  const isActive = isNavItemActive(item.path);
+
+                  return (
+                    <Link
+                      key={item.path}
+                      href={item.path}
+                      className={`flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium transition-colors bg-white ${
+                        isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-900 hover:bg-gray-100'
+                      }`}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <span className={isActive ? 'text-blue-600' : 'text-gray-600'}>
+                        {item.icon}
+                      </span>
+                      <span className="flex-1">{item.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
 
               <div className="my-2 h-px bg-gray-200" />

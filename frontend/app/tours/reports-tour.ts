@@ -1,7 +1,7 @@
 import type { TourConfig } from './types';
 
 /**
- * Тур по отчётам
+ * Reports Tour
  */
 export function createReportsTour(texts: {
   name?: string;
@@ -41,8 +41,8 @@ export function createReportsTour(texts: {
 }): TourConfig {
   return {
     id: 'reports-tour',
-    name: texts.name ?? 'Тур по отчетам',
-    description: texts.description ?? 'Анализ финансов и визуализация данных',
+    name: texts.name ?? 'Reports Tour',
+    description: texts.description ?? 'Financial analysis and data visualization',
     page: '/reports',
     autoStart: false,
     steps: [

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getTopBankSenders } from '../statement-insights';
+import { getTopBankSenders, getTopCategoriesPreview } from '../statement-insights';
 
 describe('statement insights', () => {
   it('builds bank ranking by number of statements', () => {
@@ -51,5 +51,23 @@ describe('statement insights', () => {
         2,
       ),
     ).toHaveLength(2);
+  });
+
+  it('builds top categories preview from report categories', () => {
+    expect(
+      getTopCategoriesPreview(
+        [
+          { name: 'Software', amount: 1200, rows: 3 },
+          { name: 'Travel', amount: 600, rows: 2 },
+        ],
+        1,
+      ),
+    ).toEqual([
+      {
+        name: 'Software',
+        amount: 1200,
+        rows: 3,
+      },
+    ]);
   });
 });

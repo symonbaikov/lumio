@@ -8,10 +8,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(rootDir),
+      '@bank-logos': path.resolve(rootDir, 'app/bank-logos'),
     },
   },
   test: {
     environment: 'jsdom',
     globals: true,
+    setupFiles: ['app/test/setup.ts'],
   },
 });

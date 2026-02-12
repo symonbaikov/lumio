@@ -133,10 +133,8 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
         {item.icon && (
           <span
             className={cn(
-              'flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
-              item.active
-                ? 'bg-white text-gray-700'
-                : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+              'flex h-9 w-9 items-center justify-center transition-colors',
+              item.active ? 'text-primary' : 'text-gray-500 dark:text-gray-400'
             )}
           >
             <RenderIcon icon={item.icon} size={20} className="shrink-0" />
@@ -170,7 +168,7 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
     'focus:outline-none focus-visible:ring-0',
     item.disabled && 'opacity-50 cursor-not-allowed',
     item.active
-      ? 'bg-[#ede8e1] text-gray-900 font-semibold'
+      ? 'text-gray-900 font-semibold'
       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
     depth > 0 && 'ml-6'
   );

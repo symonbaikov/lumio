@@ -63,6 +63,25 @@ const content = {
       sortUpdated: t({ ru: 'Последние изменения', en: 'Recent updates', kk: 'Соңғы өзгерістер' }),
       sortName: t({ ru: 'По названию', en: 'By name', kk: 'Атауы бойынша' }),
     },
+    sidePanel: {
+      subtitle: t({ ru: 'Обзор', en: 'Overview', kk: 'Шолу' }),
+      todoTitle: t({ ru: 'К выполнению', en: 'To-do', kk: 'Аяқтау керек' }),
+      accountingTitle: t({ ru: 'Бухгалтерия', en: 'Accounting', kk: 'Бухгалтерия' }),
+      insightsTitle: t({ ru: 'Инсайты', en: 'Insights', kk: 'Инсайттар' }),
+      allTables: t({ ru: 'Все таблицы', en: 'All tables', kk: 'Барлық кестелер' }),
+      sourceOverview: t({
+        ru: 'Обзор источников',
+        en: 'Sources overview',
+        kk: 'Дереккөздер шолуы',
+      }),
+      noData: t({ ru: 'Нет данных', en: 'No data', kk: 'Дерек жоқ' }),
+      createTable: t({ ru: 'Создать таблицу', en: 'Create table', kk: 'Кесте құру' }),
+      openMenu: t({
+        ru: 'Открыть действия таблиц',
+        en: 'Open table actions',
+        kk: 'Кесте әрекеттерін ашу',
+      }),
+    },
     columns: {
       name: t({ ru: 'Название таблицы', en: 'Table name', kk: 'Кесте атауы' }),
       source: t({ ru: 'Источник', en: 'Source', kk: 'Дереккөз' }),

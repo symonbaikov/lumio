@@ -13,6 +13,7 @@ import {
   Workspace,
 } from '../../entities';
 import { AuditModule } from '../audit/audit.module';
+import { UniversalAmountParser } from '../parsing/services/universal-amount-parser.service';
 import { GmailReceiptProcessor } from './gmail-receipt-processor';
 import { GmailWebhookController } from './gmail-webhook.controller';
 import { GmailController } from './gmail.controller';
@@ -51,6 +52,7 @@ import { GmailService } from './services/gmail.service';
     GmailWatchService,
     GmailWebhookService,
     GmailSyncService,
+    UniversalAmountParser,
     GmailReceiptParserService,
     GmailReceiptDuplicateService,
     GmailReceiptCategoryService,

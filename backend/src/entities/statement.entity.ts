@@ -246,6 +246,7 @@ export class Statement {
     importCommit?: Record<string, any>;
     processingTime?: number; // milliseconds
     logEntries?: Array<{ timestamp: string; level: string; message: string }>;
+    manualCategorySelectionRequired?: boolean;
   } | null;
 
   // Relations

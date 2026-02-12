@@ -679,6 +679,12 @@ export default function EditStatementPage() {
     return sum + (Number.isNaN(debit) ? 0 : debit);
   }, 0);
 
+  const selectedStatementCategoryName =
+    statement?.category?.name?.trim() ||
+    flattenedStatementCategories.find(category => category.id === statement?.categoryId)?.name ||
+    labels.categoryButton?.value ||
+    'Category';
+
   return (
     <Container maxWidth={false} sx={{ py: 5 }}>
       {/* Header */}
@@ -750,6 +756,11 @@ export default function EditStatementPage() {
                 />
               )}
             </Box>
+            {missingCategoryCount > 0 ? (
+              <Typography sx={{ mt: 1, color: 'error.main', fontSize: '0.75rem', fontWeight: 500 }}>
+                Выберите категорию для каждой транзакции перед отправкой
+              </Typography>
+            ) : null}
           </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
             <Button
@@ -757,16 +768,32 @@ export default function EditStatementPage() {
               startIcon={statementCategorySaving ? <CircularProgress size={18} /> : <Category />}
               onClick={() => setStatementCategoryDrawerOpen(true)}
               disabled={statementCategorySaving || optionsLoading}
+              title={selectedStatementCategoryName}
               sx={{
                 textTransform: 'none',
                 fontWeight: 600,
                 borderColor: 'grey.300',
                 color: 'text.secondary',
                 borderRadius: 2,
+                minWidth: 0,
+                maxWidth: { xs: '100%', md: 280 },
+                overflow: 'hidden',
+                '& .MuiButton-startIcon': {
+                  flexShrink: 0,
+                },
                 '&:hover': { borderColor: 'primary.300', color: 'primary.700', bgcolor: 'primary.50' },
               }}
             >
-              {labels.categoryButton?.value || 'Category'}
+              <Box
+                component="span"
+                sx={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {selectedStatementCategoryName}
+              </Box>
             </Button>
             <Button
               variant="outlined"

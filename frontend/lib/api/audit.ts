@@ -112,10 +112,17 @@ export const fetchEntityHistory = async (
   entityType: EntityType,
   entityId: string,
 ): Promise<AuditEvent[]> => {
-  const response = await apiClient.get<AuditEvent[]>(
-    `/audit-events/entity/${entityType}/${entityId}`,
-  );
-  return response.data;
+  try {
+    const response = await apiClient.get<AuditEvent[]>(
+      `/audit-events/entity/${entityType}/${entityId}`,
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error?.response?.status === 403) {
+      return [];
+    }
+    throw error;
+  }
 };
 
 export const fetchBatchEvents = async (batchId: string): Promise<AuditEvent[]> => {

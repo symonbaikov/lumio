@@ -8,6 +8,7 @@ import pdfIcon from '../../public/images/pdf.png';
 interface PDFThumbnailProps {
   fileId: string;
   fileName?: string;
+  source?: 'statement' | 'gmail';
   size?: number;
   className?: string;
 }
@@ -16,18 +17,25 @@ const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? '/api/v1').replace(/\/$/,
 
 const thumbnailCache = new Map<string, string>();
 
-export function PDFThumbnail({ fileId, fileName, size = 40, className = '' }: PDFThumbnailProps) {
+export function PDFThumbnail({
+  fileId,
+  fileName,
+  source = 'statement',
+  size = 40,
+  className = '',
+}: PDFThumbnailProps) {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [thumbnailDataUrl, setThumbnailDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
+    const cacheKey = `${source}:${fileId}`;
 
     const fetchThumbnail = async () => {
       // Check in-memory cache first
-      if (thumbnailCache.has(fileId)) {
-        const cached = thumbnailCache.get(fileId);
+      if (thumbnailCache.has(cacheKey)) {
+        const cached = thumbnailCache.get(cacheKey);
         if (isMounted) {
           if (cached) {
             setThumbnailDataUrl(cached);
@@ -48,7 +56,10 @@ export function PDFThumbnail({ fileId, fileName, size = 40, className = '' }: PD
           return;
         }
 
-        const thumbnailUrl = `${apiBaseUrl}/statements/${fileId}/thumbnail`;
+        const thumbnailUrl =
+          source === 'gmail'
+            ? `${apiBaseUrl}/integrations/gmail/receipts/${fileId}/thumbnail`
+            : `${apiBaseUrl}/statements/${fileId}/thumbnail`;
 
         const response = await fetch(thumbnailUrl, {
           method: 'GET',
@@ -71,7 +82,7 @@ export function PDFThumbnail({ fileId, fileName, size = 40, className = '' }: PD
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64data = reader.result as string;
-          thumbnailCache.set(fileId, base64data);
+          thumbnailCache.set(cacheKey, base64data);
           if (isMounted) {
             setThumbnailDataUrl(base64data);
             setLoading(false);
@@ -91,7 +102,7 @@ export function PDFThumbnail({ fileId, fileName, size = 40, className = '' }: PD
     return () => {
       isMounted = false;
     };
-  }, [fileId]);
+  }, [fileId, source]);
 
   // If error occurred, show default PDF icon
   if (error) {

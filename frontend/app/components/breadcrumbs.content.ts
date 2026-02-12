@@ -14,6 +14,11 @@ const content = {
         en: 'Statements',
         kk: 'Үзінділер',
       }),
+      'statements/top-spenders': t({
+        ru: 'Главные расходы',
+        en: 'Top spenders',
+        kk: 'Ең үлкен шығындар',
+      }),
       receipts: t({
         ru: 'Чеки',
         en: 'Receipts',

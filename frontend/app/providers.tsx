@@ -1,10 +1,9 @@
 'use client';
 
-import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material/styles';
 import { IntlayerClientProvider } from 'next-intlayer';
 import { useTheme as useNextTheme } from 'next-themes';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { SidePanelProvider } from './components/side-panel';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
@@ -12,22 +11,42 @@ import { useHTMLLanguage } from './hooks/useHTMLLanguage';
 import { createAppTheme } from './theme';
 import { TourAutoStarter } from './tours/components/TourAutoStarter';
 
+type AppLocale = 'en' | 'ru' | 'kk';
+
 function HTMLLanguageSync() {
   useHTMLLanguage();
   return null;
 }
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode;
+  initialLocale: AppLocale;
+}) {
   const { resolvedTheme } = useNextTheme();
-  const paletteMode = resolvedTheme === 'dark' ? 'dark' : 'light';
+  const [mounted, setMounted] = useState(false);
+  const [locale, setLocale] = useState<AppLocale>(initialLocale);
+  const paletteMode = mounted && resolvedTheme === 'dark' ? 'dark' : 'light';
   const muiTheme = useMemo(() => createAppTheme(paletteMode), [paletteMode]);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    setLocale(initialLocale);
+  }, [initialLocale]);
+
   return (
-    <IntlayerClientProvider>
+    <IntlayerClientProvider
+      locale={locale}
+      setLocale={nextLocale => setLocale(nextLocale as AppLocale)}
+    >
       <HTMLLanguageSync />
       <TourAutoStarter />
       <ThemeProvider theme={muiTheme}>
-        <CssBaseline />
         <WorkspaceProvider>
           <SidePanelProvider
             defaultWidth="md"
@@ -36,18 +55,20 @@ export function Providers({ children }: { children: React.ReactNode }) {
             persistState={true}
             storageKey="finflow-side-panel"
           >
-            <Toaster
-            position="top-center"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                fontSize: '14px',
-                background: 'var(--card-bg)',
-                color: 'var(--foreground)',
-                border: '1px solid var(--border-color)',
-              },
-            }}
-          />
+            {mounted ? (
+              <Toaster
+                position="top-center"
+                toastOptions={{
+                  duration: 3000,
+                  style: {
+                    fontSize: '14px',
+                    background: 'var(--card-bg)',
+                    color: 'var(--foreground)',
+                    border: '1px solid var(--border-color)',
+                  },
+                }}
+              />
+            ) : null}
             {children}
           </SidePanelProvider>
         </WorkspaceProvider>

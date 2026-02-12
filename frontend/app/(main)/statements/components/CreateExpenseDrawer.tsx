@@ -34,7 +34,11 @@ type Props = {
   open: boolean;
   initialMode: StatementExpenseMode;
   onClose: () => void;
-  onSubmitScan: (payload: { files: File[]; allowDuplicates: boolean }) => Promise<void>;
+  onSubmitScan: (payload: {
+    files: File[];
+    allowDuplicates: boolean;
+    requireManualCategorySelection: boolean;
+  }) => Promise<void>;
   onSubmitManual: (payload: {
     draft: ManualExpenseDraft;
     date: string;
@@ -220,7 +224,11 @@ export default function CreateExpenseDrawer({
     setError(null);
 
     try {
-      await onSubmitScan({ files, allowDuplicates: ALWAYS_ALLOW_STATEMENT_DUPLICATES });
+      await onSubmitScan({
+        files,
+        allowDuplicates: ALWAYS_ALLOW_STATEMENT_DUPLICATES,
+        requireManualCategorySelection: true,
+      });
       handleClose();
     } catch (submitError: any) {
       setError(submitError?.message || 'Failed to upload files');

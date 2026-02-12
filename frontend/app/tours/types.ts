@@ -1,126 +1,126 @@
 /**
- * Типы для системы туров
+ * Types for the tours system
  */
 
 import { type DriveStep, type PopoverDOM } from 'driver.js';
 
 /**
- * Шаг тура
+ * Tour step
  */
 export interface TourStep {
-  /** CSS селектор элемента */
+  /** CSS element selector */
   selector: string;
-  /** Если true, шаг будет пропущен, если элемент не найден в DOM */
+  /** If true, the step will be skipped if the element is not found in the DOM */
   optional?: boolean;
-  /** Заголовок шага */
+  /** Step title */
   title: string;
-  /** Описание шага */
+  /** Step description */
   description: string;
-  /** Сторона размещения попапа относительно элемента */
+  /** Side of popover placement relative to the element */
   side?: 'top' | 'right' | 'bottom' | 'left';
-  /** Выравнивание попапа */
+  /** Popover alignment */
   align?: 'start' | 'center' | 'end';
-  /** Подсветить элемент */
+  /** Highlight the element */
   highlight?: boolean;
-  /** Текст кнопки "Далее" */
+  /** "Next" button text */
   nextButton?: string;
-  /** Текст кнопки "Назад" */
+  /** "Back" button text */
   prevButton?: string;
-  /** Показывать кнопки навигации */
+  /** Show navigation buttons */
   showButtons?: boolean | string[];
-  /** Callback при переходе к следующему шагу */
+  /** Callback when navigating to the next step */
   onNext?: () => void | Promise<void>;
-  /** Callback при возврате к предыдущему шагу */
+  /** Callback when returning to the previous step */
   onPrev?: () => void | Promise<void>;
-  /** Callback при уничтожении шага */
+  /** Callback when destroying the step */
   onDestroy?: () => void;
 
   /**
-   * Требовать действие пользователя для перехода к следующему шагу.
-   * Например: пользователь должен кликнуть по кнопке, чтобы открыть меню.
+   * Require user action to advance to the next step.
+   * For example: user must click a button to open a menu.
    */
   advanceOn?: {
-    /** CSS селектор элемента, по которому нужно совершить действие */
+    /** CSS selector of the element to perform action on */
     selector: string;
-    /** Событие, по которому происходит переход (по умолчанию: 'click') */
+    /** Event that triggers the transition (default: 'click') */
     event?: 'click';
-    /** Задержка перед переходом на следующий шаг (мс) */
+    /** Delay before moving to the next step (ms) */
     delayMs?: number;
   };
 }
 
 /**
- * Конфигурация тура
+ * Tour configuration
  */
 export interface TourConfig {
-  /** Уникальный идентификатор тура */
+  /** Unique tour identifier */
   id: string;
-  /** Название тура */
+  /** Tour name */
   name: string;
-  /** Описание тура */
+  /** Tour description */
   description: string;
-  /** Шаги тура */
+  /** Tour steps */
   steps: TourStep[];
-  /** URL страницы, для которой предназначен тур */
+  /** URL of the page the tour is intended for */
   page?: string;
-  /** Может ли тур переключаться между страницами */
+  /** Whether the tour can switch between pages */
   canNavigate?: boolean;
-  /** Автоматический старт для новых пользователей */
+  /** Automatic start for new users */
   autoStart?: boolean;
-  /** Необходимая роль пользователя для показа тура */
+  /** Required user role to show the tour */
   requiredRole?: 'admin' | 'member' | 'viewer';
 }
 
 /**
- * Прогресс прохождения тура
+ * Tour progress
  */
 export interface TourProgress {
-  /** ID тура */
+  /** Tour ID */
   tourId: string;
-  /** Текущий шаг (индекс) */
+  /** Current step (index) */
   currentStep: number;
-  /** Общее количество шагов */
+  /** Total number of steps */
   totalSteps: number;
-  /** Тур завершен */
+  /** Tour completed */
   completed: boolean;
-  /** Дата начала (ISO string) */
+  /** Start date (ISO string) */
   startedAt: string | Date;
-  /** Дата завершения (ISO string) */
+  /** Completion date (ISO string) */
   completedAt?: string | Date;
-  /** Пропущенные шаги */
+  /** Skipped steps */
   skippedSteps: number[];
 }
 
 /**
- * Состояние тура в localStorage
+ * Tour state in localStorage
  */
 export interface TourState {
-  /** Просмотренные туры */
+  /** Completed tours */
   completedTours: string[];
-  /** Прогресс текущего тура */
+  /** Current tour progress */
   currentProgress?: TourProgress;
-  /** Дата последнего взаимодействия */
+  /** Last interaction date */
   lastInteraction: string;
-  /** Версия схемы данных */
+  /** Data schema version */
   version: string;
 }
 
 /**
- * Версия тура
+ * Tour version
  */
 export interface TourVersion {
-  /** Версия в формате semver */
+  /** Version in semver format */
   version: string;
-  /** Дата релиза */
+  /** Release date */
   released: Date;
-  /** Список изменений */
+  /** List of changes */
   changes: string[];
-  /** Тур устарел */
+  /** Tour deprecated */
   deprecated?: boolean;
 }
 
 /**
- * События тура для аналитики
+ * Tour events for analytics
  */
 export type TourEvent =
   | 'tour_started'
@@ -131,7 +131,7 @@ export type TourEvent =
   | 'tour_resumed';
 
 /**
- * Данные события тура
+ * Tour event data
  */
 export interface TourEventData {
   tourId: string;
@@ -143,7 +143,7 @@ export interface TourEventData {
 }
 
 /**
- * Настройки Driver.js
+ * Driver.js settings
  */
 export interface TourDriverConfig {
   showProgress?: boolean;
@@ -159,7 +159,7 @@ export interface TourDriverConfig {
 }
 
 /**
- * Расширенный шаг для Driver.js
+ * Extended step for Driver.js
  */
 export interface ExtendedDriveStep extends Partial<DriveStep> {
   element: string | Element;

@@ -34,7 +34,10 @@ export type StatementFilterUser = {
 
 export type StatementFilterItem = {
   id: string;
+  source?: 'statement' | 'gmail';
   fileName: string;
+  subject?: string | null;
+  sender?: string | null;
   status?: string | null;
   fileType?: string | null;
   createdAt?: string | null;
@@ -58,6 +61,11 @@ export type StatementFilterItem = {
   user?: StatementFilterUser | null;
   errorMessage?: string | null;
   totalTransactions?: number | null;
+  receivedAt?: string | null;
+  parsedData?: {
+    vendor?: string | null;
+    date?: string | null;
+  } | null;
 };
 
 const APPROVED_STATUSES = new Set(['validated', 'completed', 'parsed']);
@@ -77,6 +85,10 @@ const resolveStatementAmount = (statement: StatementFilterItem) => {
 };
 
 const resolveStatementDateValue = (statement: StatementFilterItem) => {
+  if (statement.source === 'gmail') {
+    return statement.parsedData?.date || statement.receivedAt || statement.createdAt || '';
+  }
+
   return (
     statement.statementDateTo ||
     statement.statementDateFrom ||
@@ -124,6 +136,9 @@ const matchesKeywords = (statement: StatementFilterItem, rawQuery: string) => {
   if (!query) return true;
   const candidates = [
     statement.fileName,
+    statement.subject,
+    statement.sender,
+    statement.parsedData?.vendor,
     statement.bankName,
     statement.status,
     statement.user?.name,
@@ -216,6 +231,28 @@ export const DEFAULT_STATEMENT_FILTERS: StatementFilters = {
   currencies: [],
   exported: null,
   paid: null,
+};
+
+const cloneFilterValue = <K extends keyof StatementFilters>(
+  value: StatementFilters[K],
+): StatementFilters[K] => {
+  if (Array.isArray(value)) {
+    return [...value] as StatementFilters[K];
+  }
+  if (value && typeof value === 'object') {
+    return { ...value } as StatementFilters[K];
+  }
+  return value;
+};
+
+export const resetSingleStatementFilter = <K extends keyof StatementFilters>(
+  filters: StatementFilters,
+  key: K,
+): StatementFilters => {
+  return {
+    ...filters,
+    [key]: cloneFilterValue(DEFAULT_STATEMENT_FILTERS[key]),
+  };
 };
 
 export const STATEMENT_FILTERS_STORAGE_KEY = 'finflow-statement-filters';

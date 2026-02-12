@@ -57,4 +57,26 @@ describe('statement column storage', () => {
     ]);
     expect(result.map((column: StatementColumn) => column.order)).toEqual([0, 1, 2]);
   });
+
+  it('returns original array when drag target is the same column', () => {
+    const columns = [
+      { id: 'receipt', label: 'Receipt', visible: true, order: 0 },
+      { id: 'date', label: 'Date', visible: true, order: 1 },
+    ] as StatementColumn[];
+
+    const result = reorderStatementColumns(columns, 'date', 'date');
+
+    expect(result).toBe(columns);
+  });
+
+  it('returns original array when drop target is missing', () => {
+    const columns = [
+      { id: 'receipt', label: 'Receipt', visible: true, order: 0 },
+      { id: 'date', label: 'Date', visible: true, order: 1 },
+    ] as StatementColumn[];
+
+    const result = reorderStatementColumns(columns, 'date', 'amount');
+
+    expect(result).toBe(columns);
+  });
 });

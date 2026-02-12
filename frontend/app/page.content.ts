@@ -3,25 +3,45 @@ import { type Dictionary, t } from 'intlayer';
 const content = {
   key: 'homePage',
   content: {
-    tagline: t({
-      ru: 'Профессиональная система обработки банковских выписок',
-      en: 'A professional bank statement processing system',
-      kk: 'Банк үзінділерін өңдеуге арналған кәсіби жүйе',
+    badge: t({
+      ru: 'Обновления продукта',
+      en: 'Product updates',
+      kk: 'Өнім жаңартулары',
+    }),
+    title: t({
+      ru: 'Что нового',
+      en: "What's new",
+      kk: 'Не жаңалық',
     }),
     description: t({
-      ru: 'Автоматизируйте финансовые процессы с точностью и скоростью.',
-      en: 'Automate financial workflows with speed and accuracy.',
-      kk: 'Қаржылық үдерістерді жылдам әрі дәл автоматтандырыңыз.',
+      ru: 'Краткая лента изменений. Нажмите на запись, чтобы открыть подробный changelog.',
+      en: 'A compact stream of updates. Open any entry to view the full changelog.',
+      kk: 'Өзгерістердің қысқаша таспасы. Толық changelog көру үшін жазбаны ашыңыз.',
     }),
-    login: t({
-      ru: 'Войти',
-      en: 'Log in',
-      kk: 'Кіру',
+    loading: t({
+      ru: 'Загружаем changelog...',
+      en: 'Loading changelog...',
+      kk: 'Changelog жүктелуде...',
     }),
-    register: t({
-      ru: 'Зарегистрироваться',
-      en: 'Sign up',
-      kk: 'Тіркелу',
+    empty: t({
+      ru: 'Пока нет опубликованных обновлений.',
+      en: 'No published updates yet.',
+      kk: 'Жарияланған жаңартулар әлі жоқ.',
+    }),
+    openDetails: t({
+      ru: 'Открыть детали',
+      en: 'Open details',
+      kk: 'Толығырақ ашу',
+    }),
+    releaseLabel: t({
+      ru: 'Релиз',
+      en: 'Release',
+      kk: 'Релиз',
+    }),
+    closeLabel: t({
+      ru: 'Закрыть changelog',
+      en: 'Close changelog',
+      kk: 'Changelog жабу',
     }),
   },
 } satisfies Dictionary;

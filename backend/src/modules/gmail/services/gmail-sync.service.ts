@@ -122,7 +122,21 @@ export class GmailSyncService {
       throw new Error('Integration has no connected user');
     }
 
-    const query = this.buildSearchQuery(integration.gmailSettings);
+    let effectiveSettings = integration.gmailSettings;
+    if (integration.gmailSettings?.lastSyncAt) {
+      const existingReceipts = await this.receiptRepository.count({
+        where: { userId },
+      });
+      if (existingReceipts === 0) {
+        effectiveSettings = {
+          ...integration.gmailSettings,
+          lastSyncAt: null,
+        } as GmailSettings;
+      }
+    }
+
+    const query = this.buildSearchQuery(effectiveSettings);
+    this.logger.log(`Gmail sync query for ${userId}: ${query || '(empty)'}`);
     const messages = await this.gmailService.listMessages(userId, query);
     result.messagesFound = messages.length;
 
@@ -153,6 +167,10 @@ export class GmailSyncService {
       }
     }
 
+    this.logger.log(
+      `Gmail sync summary for ${userId}: ${result.messagesFound} messages, ${result.jobsCreated} jobs, ${result.skipped} skipped`,
+    );
+
     if (integration.gmailSettings) {
       integration.gmailSettings.lastSyncAt = new Date();
       await this.gmailSettingsRepository.save(integration.gmailSettings);
@@ -164,7 +182,7 @@ export class GmailSyncService {
   private buildSearchQuery(settings: GmailSettings | null): string {
     const parts: string[] = [];
 
-    if (settings?.labelId) {
+    if (settings?.filterEnabled !== false && settings?.labelId && settings.lastSyncAt) {
       parts.push(`label:${settings.labelId}`);
     }
 
@@ -172,8 +190,9 @@ export class GmailSyncService {
       parts.push('has:attachment');
     }
 
-    const sinceDate = settings?.lastSyncAt ?? new Date(Date.now() - 24 * 60 * 60 * 1000);
-    parts.push(`after:${this.formatDateForGmail(sinceDate)}`);
+    if (settings?.filterEnabled !== false && settings?.lastSyncAt) {
+      parts.push(`after:${this.formatDateForGmail(settings.lastSyncAt)}`);
+    }
 
     const keywords = settings?.filterConfig?.keywords;
     if (keywords && keywords.length > 0) {

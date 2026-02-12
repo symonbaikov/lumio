@@ -10,6 +10,12 @@ export interface TopBankSender {
   totalAmount: number;
 }
 
+export interface TopCategoryPreviewItem {
+  name: string;
+  amount: number;
+  rows: number;
+}
+
 const parseAmount = (value?: number | string | null): number => {
   if (value === null || value === undefined || value === '') return 0;
   const parsed = typeof value === 'string' ? Number(value) : value;
@@ -58,4 +64,26 @@ export function getTopBankSenders(
       return a.bankName.localeCompare(b.bankName);
     })
     .slice(0, Math.max(0, limit));
+}
+
+export function getTopCategoriesPreview(
+  categories: Array<{ name: string; amount: number; rows: number }>,
+  limit = 5,
+): TopCategoryPreviewItem[] {
+  return [...categories]
+    .sort((a, b) => {
+      if (b.amount !== a.amount) {
+        return b.amount - a.amount;
+      }
+      if (b.rows !== a.rows) {
+        return b.rows - a.rows;
+      }
+      return a.name.localeCompare(b.name);
+    })
+    .slice(0, Math.max(0, limit))
+    .map(item => ({
+      name: item.name,
+      amount: item.amount,
+      rows: item.rows,
+    }));
 }

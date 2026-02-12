@@ -22,9 +22,9 @@ export function createGoogleSheetsIntegrationTour(texts: {
 }): TourConfig {
   return {
     id: 'google-sheets-integration-tour',
-    name: texts.name ?? 'Тур по подключению Google Sheets',
+    name: texts.name ?? 'Google Sheets Integration Tour',
     description:
-      texts.description ?? 'Пошаговый гайд по подключению таблицы и настройке синхронизации.',
+      texts.description ?? 'Step-by-step guide to connecting a table and setting up synchronization.',
     page: '/integrations/google-sheets',
     autoStart: false,
     steps: [

@@ -1,5 +1,5 @@
 /**
- * Менеджер туров - управляет запуском, навигацией и состоянием туров
+ * Tour Manager - manages launching, navigation and state of tours
  */
 
 import { type DriveStep, type Driver, driver } from 'driver.js';
@@ -71,7 +71,7 @@ export class TourManager {
   constructor(options?: { onNavigate?: (url: string) => Promise<void> }) {
     this.onNavigate = options?.onNavigate;
 
-    // Инициализация Driver.js с базовыми настройками
+    // Initialize Driver.js with base settings
     this.resetDriver();
   }
 
@@ -86,12 +86,12 @@ export class TourManager {
       allowClose: overrides?.allowClose ?? true,
       showButtons: overrides?.showButtons as any,
       popoverClass: 'tour-popover',
-      progressText: overrides?.progressText ?? '{{current}} из {{total}}',
-      nextBtnText: overrides?.nextBtnText ?? 'Далее',
-      prevBtnText: overrides?.prevBtnText ?? 'Назад',
-      doneBtnText: overrides?.doneBtnText ?? 'Готово',
+      progressText: overrides?.progressText ?? '{{current}} of {{total}}',
+      nextBtnText: overrides?.nextBtnText ?? 'Next',
+      prevBtnText: overrides?.prevBtnText ?? 'Back',
+      doneBtnText: overrides?.doneBtnText ?? 'Done',
       onHighlighted: () => {
-        // Сохраняем текущий индекс при каждом шаге
+        // Save current index on each step
         this.lastStepIndex = this.driverInstance.getActiveIndex() ?? -1;
       },
       onDestroyed: () => {
@@ -101,42 +101,42 @@ export class TourManager {
   }
 
   /**
-   * Регистрация тура
+   * Register a tour
    */
   registerTour(tour: TourConfig): void {
     this.registeredTours.set(tour.id, tour);
   }
 
   /**
-   * Регистрация нескольких туров
+   * Register multiple tours
    */
   registerTours(tours: TourConfig[]): void {
     tours.forEach(tour => this.registerTour(tour));
   }
 
   /**
-   * Получить зарегистрированный тур
+   * Get registered tour
    */
   getTour(tourId: string): TourConfig | undefined {
     return this.registeredTours.get(tourId);
   }
 
   /**
-   * Получить все зарегистрированные туры
+   * Get all registered tours
    */
   getAllTours(): TourConfig[] {
     return Array.from(this.registeredTours.values());
   }
 
   /**
-   * Запустить тур
+   * Start tour
    */
   async startTour(
     tourId: string,
     startFromStep = 0,
     driverConfig?: TourDriverConfig,
   ): Promise<void> {
-    // Проверяем, не запущен ли уже другой тур
+    // Check if another tour is already running
     if (this.driverInstance.isActive()) {
       console.warn('Another tour is already active');
       return;
@@ -149,7 +149,7 @@ export class TourManager {
       return;
     }
 
-    // Сбрасываем флаги перед новым туром
+    // Reset flags before a new tour
     this.isDestroying = false;
     this.lastStepIndex = -1;
     this.currentTour = tour;
@@ -158,7 +158,7 @@ export class TourManager {
       this.resetDriver(driverConfig);
     }
 
-    // Преобразование шагов в формат Driver.js с фильтрацией
+    // Transform steps to Driver.js format with filtering
     const driveSteps = this.convertToDriverSteps(tour.steps);
 
     if (driveSteps.length === 0) {
@@ -167,10 +167,10 @@ export class TourManager {
       return;
     }
 
-    // Сохраняем реальное количество шагов
+    // Save actual steps count
     this.actualStepsCount = driveSteps.length;
 
-    // Сохранение начального прогресса
+    // Save initial progress
     this.saveProgress({
       tourId: tour.id,
       currentStep: startFromStep,
@@ -181,12 +181,12 @@ export class TourManager {
     });
 
     try {
-      // Запуск тура
+      // Start tour
       this.driverInstance.setSteps(driveSteps);
       this.driverInstance.drive(startFromStep);
       this.attachDismissListeners();
 
-      // Аналитика
+      // Analytics
       this.trackEvent('tour_started', { tourId: tour.id });
     } catch (error) {
       console.error('Failed to start tour:', error);
@@ -195,7 +195,7 @@ export class TourManager {
   }
 
   /**
-   * Продолжить тур с сохраненного места
+   * Resume tour from saved position
    */
   resumeTour(): boolean {
     const state = this.loadState();
@@ -212,7 +212,7 @@ export class TourManager {
   }
 
   /**
-   * Остановить текущий тур
+   * Stop current tour
    */
   stopTour(): void {
     if (this.currentTour) {
@@ -238,28 +238,28 @@ export class TourManager {
   }
 
   /**
-   * Следующий шаг
+   * Next step
    */
   nextStep(): void {
     this.driverInstance.moveNext();
   }
 
   /**
-   * Предыдущий шаг
+   * Previous step
    */
   previousStep(): void {
     this.driverInstance.movePrevious();
   }
 
   /**
-   * Проверка, активен ли тур
+   * Check if tour is active
    */
   isActive(): boolean {
     return this.driverInstance.isActive();
   }
 
   /**
-   * Получить активный индекс шага
+   * Get active step index
    */
   getActiveStepIndex(): number | null {
     const index = this.driverInstance.getActiveIndex();
@@ -267,7 +267,7 @@ export class TourManager {
   }
 
   /**
-   * Проверить, завершен ли тур
+   * Check if tour is completed
    */
   isTourCompleted(tourId: string): boolean {
     const state = this.loadState();
@@ -275,7 +275,7 @@ export class TourManager {
   }
 
   /**
-   * Сбросить прогресс тура
+   * Reset tour progress
    */
   resetTour(tourId: string): void {
     const state = this.loadState();
@@ -289,17 +289,17 @@ export class TourManager {
   }
 
   /**
-   * Преобразование шагов тура в формат Driver.js
+   * Transform tour steps to Driver.js format
    */
   private convertToDriverSteps(steps: TourStep[]): DriveStep[] {
     return steps.map((step, index) => {
       let detachAdvanceListener: (() => void) | null = null;
 
       const advance = () => {
-        // Сохранение прогресса
+        // Save progress
         this.updateProgress(index + 1);
 
-        // Трекинг
+        // Tracking
         this.trackEvent('tour_step_viewed', {
           tourId: this.currentTour?.id ?? '',
           stepIndex: index + 1,
@@ -309,12 +309,12 @@ export class TourManager {
       };
 
       return {
-        // Важно: передаем selector строкой, чтобы шаги могли подсвечивать динамические элементы
-        // (например, элементы выпадающего меню, которые появляются после клика).
+        // Important: pass selector as string so steps can highlight dynamic elements
+        // (e.g. dropdown menu elements that appear after click).
         element: step.selector,
         onHighlighted: () => {
-          // Надежнее, чем driver.getActiveIndex(): иногда индекс не успевает обновиться
-          // до вызова onHighlighted, из-за чего тур не засчитывается.
+          // More reliable than driver.getActiveIndex(): sometimes index doesn't update
+          // before onHighlighted is called, causing the tour not to count.
           this.lastStepIndex = index;
 
           if (step.optional) {
@@ -327,7 +327,7 @@ export class TourManager {
 
           if (!step.advanceOn) return;
 
-          // Поддерживаем только 'click' сейчас
+          // Only 'click' supported for now
           const eventName = step.advanceOn.event ?? 'click';
           if (eventName !== 'click') return;
 
@@ -396,7 +396,7 @@ export class TourManager {
   }
 
   /**
-   * Проверка видимости элемента
+   * Check element visibility
    */
   private isElementVisible(element: Element): boolean {
     if (!(element instanceof HTMLElement)) {
@@ -413,7 +413,7 @@ export class TourManager {
   }
 
   /**
-   * Обработчик завершения/закрытия тура
+   * Tour destruction/close handler
    */
   private handleTourDestroyed(): void {
     if (!this.currentTour || this.isDestroying) return;
@@ -437,8 +437,8 @@ export class TourManager {
       progressIndex,
     });
 
-    // Если были на последнем шаге - тур завершен
-    // Сравниваем с actualStepsCount, а не с оригинальным количеством шагов
+    // If we were on the last step - tour is completed
+    // Compare with actualStepsCount, not the original number of steps
     if (
       (this.lastStepIndex >= this.actualStepsCount - 1 || completedByProgress) &&
       this.actualStepsCount > 0
@@ -482,7 +482,7 @@ export class TourManager {
   }
 
   /**
-   * Отметить тур как завершенный
+   * Mark tour as completed
    */
   private markTourCompleted(tourId: string): void {
     const state = this.loadState() ?? this.getDefaultState();
@@ -498,13 +498,13 @@ export class TourManager {
 
     this.saveState(state);
 
-    // Логируем для отладки
+    // Log for debugging
     console.log('[TourManager] Tour completed:', tourId);
     console.log('[TourManager] Completed tours:', state.completedTours);
   }
 
   /**
-   * Обновить прогресс тура
+   * Update tour progress
    */
   private updateProgress(stepIndex: number): void {
     const state = this.loadState();
@@ -516,11 +516,11 @@ export class TourManager {
   }
 
   /**
-   * Сохранить прогресс тура
+   * Save tour progress
    */
   private saveProgress(progress: TourProgress): void {
     const state = this.loadState() ?? this.getDefaultState();
-    // Преобразуем Date в ISO string для правильной сериализации
+    // Transform Date to ISO string for correct serialization
     const serializedProgress = {
       ...progress,
       startedAt:
@@ -535,7 +535,7 @@ export class TourManager {
   }
 
   /**
-   * Загрузить состояние из localStorage
+   * Load state from localStorage
    */
   private loadState(): TourState | null {
     try {
@@ -544,7 +544,7 @@ export class TourManager {
 
       const state = JSON.parse(stored) as TourState;
 
-      // Проверка версии
+      // Version check
       if (state.version !== TOUR_STATE_VERSION) {
         console.warn('Tour state version mismatch, resetting');
         return null;
@@ -558,7 +558,7 @@ export class TourManager {
   }
 
   /**
-   * Сохранить состояние в localStorage
+   * Save state to localStorage
    */
   private saveState(state: TourState): void {
     try {
@@ -570,7 +570,7 @@ export class TourManager {
   }
 
   /**
-   * Получить состояние по умолчанию
+   * Get default state
    */
   private getDefaultState(): TourState {
     return {
@@ -581,10 +581,10 @@ export class TourManager {
   }
 
   /**
-   * Отправка события аналитики
+   * Send analytics event
    */
   private trackEvent(event: string, data: Partial<{ tourId: string; stepIndex?: number }>): void {
-    // Интеграция с системой аналитики
+    // Integration with analytics system
     if (typeof window !== 'undefined' && (window as any).analytics) {
       (window as any).analytics.track(event, {
         ...data,
@@ -592,25 +592,25 @@ export class TourManager {
       });
     }
 
-    // Можно добавить console.log для разработки
+    // Can add console.log for development
     if (process.env.NODE_ENV === 'development') {
       console.log(`[Tour Analytics] ${event}:`, data);
     }
   }
 
   /**
-   * Очистить все данные туров
+   * Clear all tour data
    */
   clearAllData(): void {
     localStorage.removeItem(TOUR_STORAGE_KEY);
   }
 }
 
-// Singleton экземпляр
+// Singleton instance
 let tourManagerInstance: TourManager | null = null;
 
 /**
- * Получить глобальный экземпляр TourManager
+ * Get global TourManager instance
  */
 export function getTourManager(options?: {
   onNavigate?: (url: string) => Promise<void>;

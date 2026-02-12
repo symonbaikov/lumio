@@ -26,8 +26,8 @@ export function createGoogleSheetsImportTour(texts: {
 }): TourConfig {
   return {
     id: 'google-sheets-import-tour',
-    name: texts.name ?? 'Тур по импорту из Google Sheets',
-    description: texts.description ?? 'Пошаговый обзор настроек импорта и создания таблицы.',
+    name: texts.name ?? 'Google Sheets Import Tour',
+    description: texts.description ?? 'Step-by-step overview of import settings and table creation.',
     page: '/custom-tables/import/google-sheets',
     autoStart: false,
     steps: [

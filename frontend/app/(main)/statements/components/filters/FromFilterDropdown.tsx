@@ -9,6 +9,7 @@ type FromOption = {
   label: string;
   description?: string | null;
   avatarUrl?: string | null;
+  iconUrl?: string | null;
   bankName?: string | null;
 };
 
@@ -49,6 +50,7 @@ export function FromFilterDropdown({
               label={option.label}
               description={option.description}
               avatarUrl={option.avatarUrl}
+              iconUrl={option.iconUrl}
               bankName={option.bankName}
               selected={isSelected}
               onClick={() => {

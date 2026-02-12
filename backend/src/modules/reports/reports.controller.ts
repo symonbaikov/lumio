@@ -23,6 +23,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { type CustomReportDto, ReportFormat } from './dto/custom-report.dto';
 import { CustomTablesSummaryDto } from './dto/custom-tables-summary.dto';
 import { ExportFormat, type ExportReportDto } from './dto/export-report.dto';
+import { TopCategoriesQueryDto } from './dto/top-categories-query.dto';
 import { ReportsService } from './reports.service';
 
 @Controller('reports')
@@ -38,6 +39,13 @@ export class ReportsController {
     @Query('days', new DefaultValuePipe(30), ParseIntPipe) days?: number,
   ) {
     return this.reportsService.getStatementsSummary(user.id, days);
+  }
+
+  @Get('top-categories')
+  @UseGuards(PermissionsGuard)
+  @RequirePermission(Permission.REPORT_VIEW)
+  async getTopCategories(@CurrentUser() user: User, @Query() query: TopCategoriesQueryDto) {
+    return this.reportsService.getTopCategoriesReport(user.id, query);
   }
 
   @Post('custom-tables/summary')

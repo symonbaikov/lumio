@@ -6,45 +6,70 @@ import {
   buildStatementUploadMenuModel,
 } from '@/app/lib/statement-upload-actions';
 import { cn } from '@/app/lib/utils';
-import { Cloud, Plus, Receipt, ScanLine, UploadCloud } from 'lucide-react';
+import { Cloud, Plus, Receipt, ScanLine } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type Props = {
   providers: ConnectedCloudProviders;
   onScan: () => void;
   onCloudImport: (provider: CloudImportProvider | null) => void;
+  onGmail: () => void;
   onLocalUpload: () => void;
 };
 
 const ACTION_OFFSETS = [
-  { x: 34, y: -102 },
-  { x: 88, y: -60 },
-  { x: 116, y: -8 },
+  { x: 28, y: -164 },
+  { x: 74, y: -114 },
+  { x: 122, y: -64 },
+  { x: 170, y: -14 },
 ] as const;
+
+const ARC_SIZES = {
+  panel: {
+    height: 'h-[232px]',
+    width: 'w-[272px]',
+    radius: 'rounded-tr-[232px]',
+    buttonLeft: 'left-4',
+    bottom: 'bottom-3',
+    closedOffset: 'translate(16px, -6px)',
+    container: '-mx-4 -mb-3 h-56',
+  },
+} as const;
 
 export default function StatementsCircularUploadMenu({
   providers,
   onScan,
   onCloudImport,
+  onGmail,
   onLocalUpload,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const menuItems = useMemo(() => buildStatementUploadMenuModel(providers), [providers]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current?.contains(event.target as Node)) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest('[data-statements-fab-interactive="true"]')) {
+        return;
+      }
       setIsOpen(false);
     };
 
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('pointerdown', handlePointerDown);
+      document.addEventListener('keydown', handleEscape);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
     };
   }, [isOpen]);
 
@@ -60,6 +85,12 @@ export default function StatementsCircularUploadMenu({
 
     if (itemId === 'cloud-import') {
       onCloudImport(provider ?? null);
+      setIsOpen(false);
+      return;
+    }
+
+    if (itemId === 'gmail') {
+      onGmail();
       setIsOpen(false);
       return;
     }
@@ -87,41 +118,44 @@ export default function StatementsCircularUploadMenu({
       return <Cloud size={18} className="text-[#0E58A8]" />;
     }
 
-    return item.id === 'local-upload' ? (
-      <Receipt size={18} className="text-[#9ea6a0]" />
-    ) : (
-      <UploadCloud size={18} className="text-[#0E58A8]" />
-    );
+    if (item.id === 'gmail') {
+      return <Image src="/icons/gmail.png" alt="Gmail" width={18} height={18} />;
+    }
+
+    return <Receipt size={18} className="text-[#9ea6a0]" />;
   };
 
+  const styles = ARC_SIZES.panel;
+
   return (
-    <div ref={menuRef} className="relative -mx-4 -mb-3 h-44 overflow-visible">
+    <div className={cn('relative overflow-visible', styles.container)}>
       <div
         className={cn(
           'pointer-events-none absolute bottom-0 left-0 bg-[#0E58A8] transition-all duration-300 ease-out',
           isOpen
-            ? 'h-[176px] w-[218px] rounded-tr-[176px] opacity-100'
-            : 'h-0 w-0 rounded-tr-[0px] opacity-0',
+            ? `${styles.height} ${styles.width} ${styles.radius} opacity-100`
+            : 'h-0 w-0 rounded-tr-none opacity-0',
         )}
       />
 
       {menuItems.map((item, index) => {
-        const offset = ACTION_OFFSETS[index];
+        const fallbackOffset = ACTION_OFFSETS[ACTION_OFFSETS.length - 1];
+        const offset = ACTION_OFFSETS[index] ?? fallbackOffset;
 
         return (
           <div
             key={item.id}
             className={cn(
-              'absolute left-0 bottom-3 z-20 transition-all duration-300 ease-out',
+              'absolute left-0 z-20 transition-all duration-300 ease-out',
+              styles.bottom,
               isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
             )}
             style={{
-              transform: isOpen
-                ? `translate(${offset.x}px, ${offset.y}px)`
-                : 'translate(18px, -8px)',
+              transform: isOpen ? `translate(${offset.x}px, ${offset.y}px)` : styles.closedOffset,
             }}
           >
             <button
+              data-statements-fab-interactive="true"
               type="button"
               disabled={item.disabled}
               onClick={() => handleActionClick(item.id, item.provider)}
@@ -147,9 +181,14 @@ export default function StatementsCircularUploadMenu({
       })}
 
       <button
+        data-statements-fab-interactive="true"
         type="button"
         onClick={() => setIsOpen(prev => !prev)}
-        className="absolute bottom-3 left-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-[#0E58A8] text-white transition hover:bg-[#0B4A8D]"
+        className={cn(
+          'absolute z-30 flex h-14 w-14 items-center justify-center rounded-full bg-[#0E58A8] text-white transition hover:bg-[#0B4A8D]',
+          styles.buttonLeft,
+          styles.bottom,
+        )}
         aria-label="Open upload actions"
       >
         <Plus

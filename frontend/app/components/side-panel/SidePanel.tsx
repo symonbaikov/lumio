@@ -10,9 +10,9 @@ import {
   PanelLeftOpen,
   RefreshCw,
 } from 'lucide-react';
-import React, { isValidElement, useCallback, useEffect, useMemo, useState } from 'react';
-import { SectionRenderer } from './sections';
+import React, { isValidElement, useCallback, useMemo, useState } from 'react';
 import { useSidePanel } from './SidePanelContext';
+import { SectionRenderer } from './sections';
 import type { ActionItem, SidePanelProps } from './types';
 import { getWidthValue } from './types';
 
@@ -81,14 +81,6 @@ export function SidePanel({
     }
   }, [isControlled, controlledCollapsed, onCollapsedChange]);
 
-  // Update context config when config prop changes
-  useEffect(() => {
-    if (config) {
-      context.setConfig(config);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config]);
-
   // Calculate width value
   const widthValue = useMemo(() => getWidthValue(width), [width]);
   const collapsedWidth = 48; // Width when collapsed (just shows toggle)
@@ -132,7 +124,7 @@ export function SidePanel({
         'relative flex flex-col bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out',
         'shadow-sm overflow-visible',
         positionClasses,
-        className
+        className,
       )}
       style={{
         width: isCollapsed ? collapsedWidth : widthValue,
@@ -152,7 +144,7 @@ export function SidePanel({
               className={cn(
                 'p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100',
                 'dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800',
-                'transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20'
+                'transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20',
               )}
               aria-label="Expand panel"
             >
@@ -200,7 +192,7 @@ export function SidePanel({
                       'p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100',
                       'dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800',
                       'transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20',
-                      'disabled:opacity-50 disabled:cursor-not-allowed'
+                      'disabled:opacity-50 disabled:cursor-not-allowed',
                     )}
                   >
                     {action.loading ? (
@@ -219,11 +211,15 @@ export function SidePanel({
                     className={cn(
                       'p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100',
                       'dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800',
-                      'transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20'
+                      'transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20',
                     )}
                     aria-label="Collapse panel"
                   >
-                    {position === 'left' ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
+                    {position === 'left' ? (
+                      <PanelLeftClose size={16} />
+                    ) : (
+                      <PanelLeftOpen size={16} />
+                    )}
                   </button>
                 )}
               </div>
@@ -251,7 +247,7 @@ export function SidePanel({
                     className={cn(
                       'inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg',
                       'text-primary bg-primary/10 hover:bg-primary/20 transition-colors',
-                      'focus:outline-none focus:ring-2 focus:ring-primary/20'
+                      'focus:outline-none focus:ring-2 focus:ring-primary/20',
                     )}
                   >
                     <RefreshCw size={14} />
@@ -266,13 +262,15 @@ export function SidePanel({
                 </p>
               </div>
             ) : (
-              filteredSections.map(section => <SectionRenderer key={section.id} section={section} />)
+              filteredSections.map(section => (
+                <SectionRenderer key={section.id} section={section} />
+              ))
             )}
           </div>
 
           {/* Footer */}
           {config?.footer && (
-              <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 shrink-0 overflow-visible">
+            <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 shrink-0 overflow-visible">
               {config.footer.content}
               {config.footer.actions && config.footer.actions.length > 0 && (
                 <div className="flex items-center gap-2 mt-2">
@@ -288,7 +286,7 @@ export function SidePanel({
                         'disabled:opacity-50 disabled:cursor-not-allowed',
                         action.variant === 'primary'
                           ? 'bg-primary text-white hover:bg-primary-hover'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
                       )}
                     >
                       {action.loading ? (
@@ -315,7 +313,7 @@ export function SidePanel({
                 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
                 'shadow-sm hover:shadow transition-all',
                 'focus:outline-none focus:ring-2 focus:ring-primary/20',
-                position === 'left' ? '-right-3' : '-left-3'
+                position === 'left' ? '-right-3' : '-left-3',
               )}
               aria-label="Collapse panel"
             >

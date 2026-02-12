@@ -8,24 +8,24 @@ import type { Transaction } from '../../../entities/transaction.entity';
 import type { Wallet } from '../../../entities/wallet.entity';
 
 interface SheetRow {
-  monthText: string; // Месяц (текстовое представление)
-  year: number; // Год
-  monthNumber: number; // Месяц (числовое представление)
-  transactionDate: string; // Дата операции
-  amountKZT: number; // Сумма в тенге
-  amountForeign: number | null; // Сумма в альтернативной валюте
-  currencyCode: string; // Код валюты
-  exchangeRate: number | null; // Обменный курс
-  wallet: string | null; // Кошелёк
-  branch: string | null; // Филиал
-  article: string | null; // Статья учёта
-  counterparty: string; // Контрагент
-  paymentPurpose: string; // Назначение платежа
-  comments: string | null; // Комментарии
-  activityType: string | null; // Вид деятельности
-  transactionType: string; // Тип операции (income/expense)
-  usdRate: number | null; // Курс USD
-  rubRate: number | null; // Курс RUB
+  monthText: string; // Month (text representation)
+  year: number; // Year
+  monthNumber: number; // Month (numeric representation)
+  transactionDate: string; // Transaction date
+  amountKZT: number; // Amount in KZT
+  amountForeign: number | null; // Amount in foreign currency
+  currencyCode: string; // Currency code
+  exchangeRate: number | null; // Exchange rate
+  wallet: string | null; // Wallet
+  branch: string | null; // Branch
+  article: string | null; // Article/Category
+  counterparty: string; // Counterparty
+  paymentPurpose: string; // Payment purpose
+  comments: string | null; // Comments
+  activityType: string | null; // Activity type
+  transactionType: string; // Transaction type (income/expense)
+  usdRate: number | null; // USD Rate
+  rubRate: number | null; // RUB Rate
 }
 
 @Injectable()

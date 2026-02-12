@@ -1,5 +1,5 @@
 /**
- * React хук для работы с турами
+ * React hook for working with tours
  */
 
 'use client';
@@ -15,23 +15,23 @@ export function useTour(tourId?: string) {
   const [currentStep, setCurrentStep] = useState<number | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
 
-  // Инициализация TourManager с навигацией
+  // Initialize TourManager with navigation
   const tourManager = getTourManager({
     onNavigate: async (url: string) => {
       router.push(url);
-      // Даем время на переход
+      // Allow time for transition
       await new Promise(resolve => setTimeout(resolve, 300));
     },
   });
 
-  // Проверка статуса при монтировании
+  // Check status on mount
   useEffect(() => {
     if (tourId) {
       setIsCompleted(tourManager.isTourCompleted(tourId));
     }
   }, [tourId, tourManager]);
 
-  // Запуск тура
+  // Start tour
   const startTour = useCallback(
     (customTourId?: string) => {
       const id = customTourId || tourId;
@@ -46,7 +46,7 @@ export function useTour(tourId?: string) {
     [tourId, tourManager],
   );
 
-  // Продолжение тура
+  // Resume tour
   const resumeTour = useCallback(() => {
     const resumed = tourManager.resumeTour();
     if (resumed) {
@@ -55,24 +55,24 @@ export function useTour(tourId?: string) {
     return resumed;
   }, [tourManager]);
 
-  // Остановка тура
+  // Stop tour
   const stopTour = useCallback(() => {
     tourManager.stopTour();
     setIsActive(false);
     setCurrentStep(null);
   }, [tourManager]);
 
-  // Следующий шаг
+  // Next step
   const nextStep = useCallback(() => {
     tourManager.nextStep();
   }, [tourManager]);
 
-  // Предыдущий шаг
+  // Previous step
   const previousStep = useCallback(() => {
     tourManager.previousStep();
   }, [tourManager]);
 
-  // Сброс прогресса тура
+  // Reset tour progress
   const resetTour = useCallback(
     (customTourId?: string) => {
       const id = customTourId || tourId;
@@ -84,7 +84,7 @@ export function useTour(tourId?: string) {
     [tourId, tourManager],
   );
 
-  // Обновление состояния активности
+  // Update activity state
   useEffect(() => {
     const interval = setInterval(() => {
       const active = tourManager.isActive();
@@ -94,7 +94,7 @@ export function useTour(tourId?: string) {
       setCurrentStep(step);
 
       if (!active && isActive) {
-        // Тур только что завершился
+        // Tour just finished
         if (tourId) {
           setIsCompleted(tourManager.isTourCompleted(tourId));
         }
@@ -119,14 +119,14 @@ export function useTour(tourId?: string) {
 }
 
 /**
- * Хук для автоматического запуска тура для новых пользователей
+ * Hook for automatic tour start for new users
  */
 export function useAutoTour(
   tourId: string,
   options?: {
-    /** Условие для запуска тура */
+    /** Condition for starting the tour */
     condition?: boolean;
-    /** Задержка перед запуском (мс) */
+    /** Delay before starting (ms) */
     delay?: number;
   },
 ) {
@@ -145,7 +145,7 @@ export function useAutoTour(
 }
 
 /**
- * Хук для регистрации туров
+ * Hook for registering tours
  */
 export function useRegisterTours(tours: TourConfig[]) {
   const tourManager = getTourManager();
@@ -156,7 +156,7 @@ export function useRegisterTours(tours: TourConfig[]) {
 }
 
 /**
- * Хук для получения списка всех туров
+ * Hook for getting list of all tours
  */
 export function useAvailableTours() {
   const tourManager = getTourManager();

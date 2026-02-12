@@ -1,7 +1,7 @@
 import type { TourConfig } from './types';
 
 /**
- * Тур по странице хранилища файлов
+ * Files Storage page tour
  */
 export function createStorageTour(texts: {
   name?: string;
@@ -19,8 +19,8 @@ export function createStorageTour(texts: {
 }): TourConfig {
   return {
     id: 'storage-tour',
-    name: texts.name ?? 'Тур по хранилищу',
-    description: texts.description ?? 'Управление файлами и правами доступа',
+    name: texts.name ?? 'Storage Tour',
+    description: texts.description ?? 'Managing files and access rights',
     page: '/storage',
     autoStart: false,
     steps: [

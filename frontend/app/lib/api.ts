@@ -103,7 +103,13 @@ export const gmailReceiptsApi = {
   getReceiptPreview: (id: string) =>
     apiClient.get(`/integrations/gmail/receipts/${id}/preview`),
 
-  listReceipts: (params?: { status?: string; limit?: number; offset?: number }) =>
+  listReceipts: (params?: {
+    status?: string;
+    limit?: number;
+    offset?: number;
+    includeInvalid?: boolean;
+    hasAmount?: boolean;
+  }) =>
     apiClient.get('/integrations/gmail/receipts', { params }),
 
   approveReceipt: (id: string, data: any) =>

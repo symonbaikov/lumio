@@ -9,16 +9,15 @@ import {
   Button,
   CircularProgress,
   Divider,
-  Grid,
   Link,
   TextField,
   Typography,
-  useTheme,
 } from '@mui/material';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
+import AuthLayout from '../AuthLayout';
 
 function safeInternalPath(nextPath: string | null) {
   if (!nextPath) return null;
@@ -32,7 +31,6 @@ function RegisterPageContent() {
   const nextPath = safeInternalPath(searchParams.get('next'));
   const inviteToken = searchParams.get('invite');
   const presetEmail = searchParams.get('email');
-  const theme = useTheme();
   const { locale } = useLocale();
   const t = useIntlayer('registerPage');
   const [formData, setFormData] = useState({
@@ -103,257 +101,213 @@ function RegisterPageContent() {
     }
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0, x: -50 },
-    visible: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        duration: 0.6,
-        ease: 'easeOut' as const,
-      },
-    },
-  };
-
-  return (
-    <Grid key={locale} container sx={{ minHeight: '100vh' }}>
-      {/* Left Side - Form */}
-      <Grid
-        size={{ xs: 12, md: 6 }}
+  const sideContent = (
+    <Box sx={{ color: 'white' }}>
+      <Typography
+        variant="h2"
+        fontWeight="bold"
+        gutterBottom
         sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          bgcolor: 'background.paper',
-          p: 4,
-          position: 'relative',
-          zIndex: 1,
+          fontFamily: '"Nunitoga", sans-serif',
+          textShadow: '0 4px 20px rgba(0,0,0,0.3)',
         }}
       >
-        <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
-          <AuthLanguageSwitcher />
-        </Box>
-
+        {t.rightTitle}
+      </Typography>
+      <Typography variant="h5" sx={{ opacity: 0.9, lineHeight: 1.6 }}>
+        {t.rightTagline}
+      </Typography>
+      <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'center' }}>
         <Box
-          component={motion.div}
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
           sx={{
-            width: '100%',
-            maxWidth: 400,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
+            p: 2,
+            bgcolor: 'rgba(255,255,255,0.1)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: 2,
+            border: '1px solid rgba(255,255,255,0.2)',
           }}
         >
-          <Box
-            sx={{
-              width: 60,
-              height: 60,
-              borderRadius: '50%',
-              bgcolor: 'secondary.main',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mb: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-            }}
-          >
-            <Typography variant="h4" color="white" fontWeight="bold">
-              📝
-            </Typography>
-          </Box>
-
-          <Typography
-            component="h1"
-            variant="h4"
-            gutterBottom
-            fontWeight="bold"
-            color="text.primary"
-          >
-            {t.title}
+          <Typography variant="subtitle2" fontWeight="bold">
+            Secure & Safe
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            {t.subtitle}
-          </Typography>
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 3, width: '100%', borderRadius: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          {googleEnabled && (
-            <>
-              <GoogleAuthButton
-                inviteToken={inviteToken}
-                nextPath={nextPath}
-                onError={setError}
-                errorFallback={t.googleRegisterFailed.value}
-              />
-              <Divider sx={{ my: 2, width: '100%' }}>{t.orLabel}</Divider>
-            </>
-          )}
-
-          <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="name"
-              label={t.fullNameLabel.value}
-              name="name"
-              autoComplete="name"
-              autoFocus
-              value={formData.name}
-              onChange={handleChange}
-              InputProps={{
-                sx: { borderRadius: 2, bgcolor: 'background.default' },
-              }}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email"
-              name="email"
-              autoComplete="email"
-              value={formData.email}
-              onChange={handleChange}
-              disabled={emailLocked || inviteLoading}
-              InputProps={{
-                sx: { borderRadius: 2, bgcolor: 'background.default' },
-              }}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label={t.passwordLabel.value}
-              type="password"
-              id="password"
-              autoComplete="new-password"
-              value={formData.password}
-              onChange={handleChange}
-              helperText={t.passwordHelper.value}
-              InputProps={{
-                sx: { borderRadius: 2, bgcolor: 'background.default' },
-              }}
-            />
-            <TextField
-              margin="normal"
-              fullWidth
-              id="company"
-              label={t.companyLabel.value}
-              name="company"
-              value={formData.company}
-              onChange={handleChange}
-              InputProps={{
-                sx: { borderRadius: 2, bgcolor: 'background.default' },
-              }}
-              sx={{ mb: 3 }}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              size="large"
-              sx={{
-                py: 1.5,
-                borderRadius: 2,
-                fontSize: '1rem',
-                textTransform: 'none',
-                boxShadow: 'none',
-              }}
-              disabled={loading || inviteLoading}
-            >
-              {loading ? <CircularProgress size={24} color="inherit" /> : t.submit}
-            </Button>
-            <Box textAlign="center" sx={{ mt: 3 }}>
-              <Link
-                href={nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : '/login'}
-                variant="body2"
-                sx={{ textDecoration: 'none', fontWeight: 500 }}
-              >
-                {t.haveAccount}
-              </Link>
-            </Box>
-          </Box>
         </Box>
-      </Grid>
+        <Box
+          sx={{
+            p: 2,
+            bgcolor: 'rgba(255,255,255,0.1)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: 2,
+            border: '1px solid rgba(255,255,255,0.2)',
+          }}
+        >
+          <Typography variant="subtitle2" fontWeight="bold">
+            Trusted by Millions
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
 
-      {/* Right Side - Visual */}
-      <Grid
-        size={{ xs: 12, md: 6 }}
+  return (
+    <AuthLayout sideContent={sideContent}>
+      <Box sx={{ position: 'absolute', top: 0, right: 0, p: 2 }}>
+        <AuthLanguageSwitcher />
+      </Box>
+
+      <Box
         sx={{
-          display: { xs: 'none', md: 'flex' },
-          flexDirection: 'column',
-          justifyContent: 'center',
+          width: 60,
+          height: 60,
+          borderRadius: '50%',
+          bgcolor: 'secondary.main',
+          display: 'flex',
           alignItems: 'center',
-          background: `linear-gradient(135deg, ${theme.palette.secondary.dark} 0%, ${theme.palette.primary.dark} 100%)`,
-          color: 'white',
-          position: 'relative',
-          overflow: 'hidden',
+          justifyContent: 'center',
+          mb: 3,
+          mx: 'auto',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
         }}
       >
-        {/* Abstract Shapes */}
-        <motion.div
-          animate={{
-            scale: [1, 1.1, 1],
-            rotate: [0, -5, 5, 0],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: 'easeInOut' as const,
-          }}
-          style={{
-            position: 'absolute',
-            top: '15%',
-            left: '15%',
-            width: 350,
-            height: 350,
-            borderRadius: '40%',
-            background: 'rgba(255, 255, 255, 0.05)',
-            filter: 'blur(40px)',
-          }}
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            x: [0, 30, 0],
-          }}
-          transition={{
-            duration: 18,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: 'easeInOut' as const,
-          }}
-          style={{
-            position: 'absolute',
-            bottom: '20%',
-            right: '10%',
-            width: 250,
-            height: 250,
-            borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.05)',
-            filter: 'blur(40px)',
-          }}
-        />
+        <Typography variant="h4" color="white" fontWeight="bold">
+          📝
+        </Typography>
+      </Box>
 
-        <Box sx={{ position: 'relative', zIndex: 1, textAlign: 'center', p: 4 }}>
-          <Typography variant="h2" fontWeight="bold" gutterBottom>
-            {t.rightTitle}
-          </Typography>
-          <Typography variant="h5" sx={{ opacity: 0.8, maxWidth: 500 }}>
-            {t.rightTagline}
-          </Typography>
+      <Typography
+        component="h1"
+        variant="h4"
+        gutterBottom
+        fontWeight="800"
+        color="text.primary"
+        align="center"
+      >
+        {t.title}
+      </Typography>
+      <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4 }}>
+        {t.subtitle}
+      </Typography>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {googleEnabled && (
+        <>
+          <GoogleAuthButton
+            inviteToken={inviteToken}
+            nextPath={nextPath}
+            onError={setError}
+            errorFallback={t.googleRegisterFailed.value}
+          />
+          <Divider sx={{ my: 3, width: '100%', color: 'text.secondary' }}>{t.orLabel}</Divider>
+        </>
+      )}
+
+      <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+        <TextField
+          margin="normal"
+          required
+          fullWidth
+          id="name"
+          label={t.fullNameLabel.value}
+          name="name"
+          autoComplete="name"
+          autoFocus
+          value={formData.name}
+          onChange={handleChange}
+          InputProps={{
+            sx: { borderRadius: 1.5 },
+          }}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          margin="normal"
+          required
+          fullWidth
+          id="email"
+          label="Email"
+          name="email"
+          autoComplete="email"
+          value={formData.email}
+          onChange={handleChange}
+          disabled={emailLocked || inviteLoading}
+          InputProps={{
+            sx: { borderRadius: 1.5 },
+          }}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          margin="normal"
+          required
+          fullWidth
+          name="password"
+          label={t.passwordLabel.value}
+          type="password"
+          id="password"
+          autoComplete="new-password"
+          value={formData.password}
+          onChange={handleChange}
+          helperText={t.passwordHelper.value}
+          InputProps={{
+            sx: { borderRadius: 1.5 },
+          }}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          margin="normal"
+          fullWidth
+          id="company"
+          label={t.companyLabel.value}
+          name="company"
+          value={formData.company}
+          onChange={handleChange}
+          InputProps={{
+            sx: { borderRadius: 1.5 },
+          }}
+          sx={{ mb: 3 }}
+        />
+        <Button
+          type="submit"
+          fullWidth
+          variant="contained"
+          size="large"
+          sx={{
+            py: 1.5,
+            borderRadius: 50,
+            fontSize: '1rem',
+            fontWeight: 'bold',
+            textTransform: 'none',
+            boxShadow: '0 4px 14px 0 rgba(102,102,102,0.39)', // Secondary/Gray shadow
+            bgcolor: 'secondary.main',
+            transition: 'transform 0.2s',
+            '&:hover': {
+              bgcolor: 'secondary.dark',
+              transform: 'scale(1.02)',
+              boxShadow: '0 6px 20px rgba(102,102,102,0.23)',
+            },
+          }}
+          disabled={loading || inviteLoading}
+        >
+          {loading ? <CircularProgress size={24} color="inherit" /> : t.submit}
+        </Button>
+        <Box textAlign="center" sx={{ mt: 3 }}>
+          <Link
+            href={nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : '/login'}
+            variant="body2"
+            sx={{
+              textDecoration: 'none',
+              fontWeight: 600,
+              color: 'primary.main',
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            {t.haveAccount}
+          </Link>
         </Box>
-      </Grid>
-    </Grid>
+      </Box>
+    </AuthLayout>
   );
 }
 

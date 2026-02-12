@@ -20,6 +20,7 @@ export function DocumentTypeIcon(props: {
   fileType?: string;
   fileName?: string;
   fileId?: string;
+  source?: 'statement' | 'gmail';
   size?: number;
   className?: string;
 }) {
@@ -35,6 +36,7 @@ export function DocumentTypeIcon(props: {
         <PDFThumbnail
           fileId={props.fileId}
           fileName={props.fileName}
+          source={props.source}
           size={size}
           className={props.className}
         />

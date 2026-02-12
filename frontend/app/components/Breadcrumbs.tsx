@@ -23,7 +23,7 @@ export default function Breadcrumbs({ items }: BreadcrumbsProps) {
         const isLast = idx === items.length - 1;
         const isSamePageLink = !!item.href && item.href === pathname;
         return (
-          <div key={item.label} className="flex items-center">
+          <div key={`${item.href ?? 'crumb'}-${idx}`} className="flex items-center">
             {item.href && !isLast && !isSamePageLink ? (
               <Link href={item.href} className="text-primary hover:underline">
                 {item.label}

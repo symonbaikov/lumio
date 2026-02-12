@@ -69,6 +69,7 @@ describe('GmailSyncService', () => {
           provide: getRepositoryToken(Receipt),
           useValue: {
             findOne: jest.fn(),
+            count: jest.fn(),
           },
         },
         {
@@ -95,6 +96,8 @@ describe('GmailSyncService', () => {
     receiptRepo = module.get(getRepositoryToken(Receipt));
     jobRepo = module.get(getRepositoryToken(ReceiptProcessingJob));
     gmailService = module.get(GmailService);
+
+    receiptRepo.count.mockResolvedValue(1);
   });
 
   describe('syncAllIntegrations', () => {
@@ -166,6 +169,56 @@ describe('GmailSyncService', () => {
         'user-123',
         expect.stringContaining('has:attachment'),
       );
+    });
+
+    it('should not force label or after filters on first sync', async () => {
+      const firstSyncIntegration = {
+        ...mockIntegration,
+        gmailSettings: {
+          ...mockIntegration.gmailSettings,
+          lastSyncAt: null,
+        } as GmailSettings,
+      } as Integration;
+
+      integrationRepo.findOne.mockResolvedValue(firstSyncIntegration);
+      gmailService.listMessages.mockResolvedValue([]);
+
+      await service.syncForUser('user-123');
+
+      const [, query] = gmailService.listMessages.mock.calls[0];
+      expect(query).not.toContain('label:');
+      expect(query).not.toContain('after:');
+    });
+
+    it('should include label and after filters when lastSyncAt exists', async () => {
+      integrationRepo.findOne.mockResolvedValue(mockIntegration as Integration);
+      receiptRepo.count.mockResolvedValue(2);
+      gmailService.listMessages.mockResolvedValue([]);
+
+      await service.syncForUser('user-123');
+
+      const [, query] = gmailService.listMessages.mock.calls[0];
+      expect(query).toContain('label:Label_123');
+      expect(query).toContain('after:');
+    });
+
+    it('should ignore lastSyncAt when no receipts exist', async () => {
+      const noReceiptsIntegration = {
+        ...(mockIntegration as Integration),
+        gmailSettings: {
+          ...(mockIntegration.gmailSettings as GmailSettings),
+          lastSyncAt: new Date('2026-02-05T00:00:00Z'),
+        } as GmailSettings,
+      } as Integration;
+
+      integrationRepo.findOne.mockResolvedValue(noReceiptsIntegration);
+      receiptRepo.count.mockResolvedValue(0);
+      gmailService.listMessages.mockResolvedValue([]);
+
+      await service.syncForUser('user-123');
+
+      const [, query] = gmailService.listMessages.mock.calls[0];
+      expect(query).not.toContain('after:');
     });
   });
 });

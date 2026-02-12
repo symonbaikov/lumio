@@ -24,23 +24,23 @@ export class GmailScheduler {
     private readonly gmailSyncService: GmailSyncService,
   ) {}
 
-  @Cron('0 3 * * *')
+  @Cron('0 */3 * * *')
   async runDailySync(): Promise<void> {
     try {
-      this.logger.log('Starting daily Gmail receipts sync...');
+      this.logger.log('Starting Gmail receipts sync (every 3 hours)...');
 
       const result = await this.gmailSyncService.syncAllIntegrations();
 
       this.logger.log(
-        `Daily sync completed: ${result.synced} integrations, ` +
+        `Periodic sync completed: ${result.synced} integrations, ` +
           `${result.messagesFound} messages found, ${result.jobsCreated} jobs created`,
       );
 
       if (result.errors.length > 0) {
-        this.logger.warn(`Daily sync had ${result.errors.length} errors`, JSON.stringify(result.errors));
+        this.logger.warn(`Periodic sync had ${result.errors.length} errors`, JSON.stringify(result.errors));
       }
     } catch (error) {
-      this.logger.error('Error in daily sync cron job', error);
+      this.logger.error('Error in periodic sync cron job', error);
     }
   }
 

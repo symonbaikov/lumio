@@ -1,5 +1,5 @@
 /**
- * Экспорт всех туров
+ * Export all tours
  */
 
 export * from './types';

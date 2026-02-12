@@ -18,4 +18,9 @@ export class UploadStatementDto {
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   allowDuplicates?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  requireManualCategorySelection?: boolean;
 }

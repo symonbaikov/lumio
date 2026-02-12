@@ -1,7 +1,7 @@
 import type { TourConfig } from './types';
 
 /**
- * Розширений тур по налаштуваннях робочого простору
+ * Advanced Workspace Settings Tour
  */
 export function createSettingsTour(texts: {
   name?: string;
@@ -22,8 +22,8 @@ export function createSettingsTour(texts: {
 }): TourConfig {
   return {
     id: 'settings-tour',
-    name: texts.name ?? 'Тур по рабочему пространству',
-    description: texts.description ?? 'Управление командой и доступом',
+    name: texts.name ?? 'Workspace Settings Tour',
+    description: texts.description ?? 'Team and access management',
     page: '/settings/workspace',
     autoStart: true,
     steps: [

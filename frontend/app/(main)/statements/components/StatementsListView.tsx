@@ -20,15 +20,16 @@ import {
   type StatementFilters,
   applyStatementsFilters,
   loadStatementFilters,
+  resetSingleStatementFilter,
   saveStatementFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
-import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
 import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
-import apiClient from '@/app/lib/api';
+import apiClient, { gmailReceiptsApi } from '@/app/lib/api';
+import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
 import {
   type ManualExpenseDraft,
   type OpenExpenseDrawerEventDetail,
@@ -43,6 +44,7 @@ import {
 } from '@/app/lib/statement-selection';
 import { getStatementMerchantLabel, hasProcessingStatements } from '@/app/lib/statement-status';
 import { type StatementStage, getStatementStage } from '@/app/lib/statement-workflow';
+import { ReceiptDetailDrawer } from '@/app/storage/gmail-receipts/components/ReceiptDetailDrawer';
 import { resolveBankLogo } from '@bank-logos';
 import {
   ArrowDown,
@@ -60,10 +62,19 @@ import { useIntlayer } from 'next-intlayer';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { StatementsListItem } from './StatementsListItem';
+import {
+  type GmailReceipt,
+  hasGmailReceiptAmount,
+  mapGmailReceiptsToStatements,
+} from './gmail-receipt-mapping';
 
 interface Statement {
   id: string;
+  source?: 'statement' | 'gmail';
   fileName: string;
+  subject?: string;
+  sender?: string;
   status: string;
   totalTransactions: number;
   totalDebit?: number | string | null;
@@ -93,7 +104,17 @@ interface Statement {
       };
     };
   };
+  gmailMessageId?: string;
+  receivedAt?: string;
+  parsedData?: {
+    amount?: number;
+    currency?: string;
+    vendor?: string;
+    date?: string;
+  };
 }
+
+type UnifiedStatement = Statement;
 
 const getBankDisplayName = (bankName: string) => {
   const resolved = resolveBankLogo(bankName);
@@ -103,6 +124,7 @@ const getBankDisplayName = (bankName: string) => {
 
 const resolveStatementCurrency = (statement: Statement) =>
   (
+    statement.parsedData?.currency ||
     statement.currency ||
     statement.parsingDetails?.metadataExtracted?.currency ||
     statement.parsingDetails?.metadataExtracted?.headerDisplay?.currencyDisplay ||
@@ -116,6 +138,19 @@ const parseAmountValue = (value?: number | string | null) => {
 };
 
 const formatStatementAmount = (statement: Statement) => {
+  if (statement.source === 'gmail') {
+    const amount = parseAmountValue(statement.parsedData?.amount ?? null);
+    if (amount === null) {
+      return '-';
+    }
+    const currency = resolveStatementCurrency(statement);
+    const formatted = new Intl.NumberFormat(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+    return `${formatted}${currency || ''}`;
+  }
+
   const debit = parseAmountValue(statement.totalDebit);
   const credit = parseAmountValue(statement.totalCredit);
   const rawAmount = (debit && debit > 0 ? debit : credit && credit > 0 ? credit : 0) || 0;
@@ -132,11 +167,29 @@ const formatStatementAmount = (statement: Statement) => {
 
 const formatStatementDate = (statement: Statement) => {
   const dateValue =
-    statement.statementDateTo || statement.statementDateFrom || statement.createdAt || '';
+    statement.source === 'gmail'
+      ? statement.parsedData?.date || statement.receivedAt || statement.createdAt
+      : statement.statementDateTo || statement.statementDateFrom || statement.createdAt || '';
   if (!dateValue) return '—';
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) return '—';
   return date.toLocaleDateString();
+};
+
+const resolveStatementSortDate = (statement: Statement) => {
+  const dateValue =
+    statement.source === 'gmail'
+      ? statement.parsedData?.date || statement.receivedAt || statement.createdAt
+      : statement.statementDateTo || statement.statementDateFrom || statement.createdAt || '';
+  const date = dateValue ? new Date(dateValue) : null;
+  if (!date || Number.isNaN(date.getTime())) return 0;
+  return date.getTime();
+};
+
+const isGmailReceiptProcessing = (statement: Statement) => {
+  if (statement.source !== 'gmail') return false;
+  const status = (statement.status || '').toLowerCase();
+  return status === 'new' || status === 'processing';
 };
 
 type Props = {
@@ -147,12 +200,14 @@ export default function StatementsListView({ stage }: Props) {
   const router = useRouter();
   const { user } = useAuth();
   const t = useIntlayer('statementsPage');
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 30;
   const [statements, setStatements] = useState<Statement[]>([]);
+  const [gmailReceipts, setGmailReceipts] = useState<GmailReceipt[]>([]);
+  const [gmailLoading, setGmailLoading] = useState(false);
   const statementsRef = useRef<Statement[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const pageSize = PAGE_SIZE;
   const [total, setTotal] = useState(0);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -160,8 +215,7 @@ export default function StatementsListView({ stage }: Props) {
   const [expenseDrawerOpen, setExpenseDrawerOpen] = useState(false);
   const [expenseDrawerMode, setExpenseDrawerMode] = useState<StatementExpenseMode>('scan');
   const resolveLabel = (value: any, fallback: string) => value?.value ?? value ?? fallback;
-  const searchPlaceholder =
-    (t.searchPlaceholder as any)?.value ?? t.searchPlaceholder ?? 'Поиск по выпискам';
+  const searchPlaceholder = resolveLabel(t.searchPlaceholder, 'Поиск по выпискам');
   const filterLabels = {
     type: resolveLabel(t.filters?.type, 'Тип'),
     status: resolveLabel(t.filters?.status, 'Статус'),
@@ -199,6 +253,8 @@ export default function StatementsListView({ stage }: Props) {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState<string>('');
+  const [previewSource, setPreviewSource] = useState<'statement' | 'gmail'>('statement');
+  const [receiptDetailId, setReceiptDetailId] = useState<string | null>(null);
   const [selectedStatementIds, setSelectedStatementIds] = useState<string[]>([]);
   const [selectedActionsOpen, setSelectedActionsOpen] = useState(false);
   const selectedActionsRef = useRef<HTMLDivElement | null>(null);
@@ -216,6 +272,7 @@ export default function StatementsListView({ stage }: Props) {
   const [columns, setColumns] = useState<StatementColumn[]>(DEFAULT_STATEMENT_COLUMNS);
   const [draftColumns, setDraftColumns] = useState<StatementColumn[]>(DEFAULT_STATEMENT_COLUMNS);
   const shouldPollStatements = useMemo(() => hasProcessingStatements(statements), [statements]);
+  const hasGmailReceipts = useMemo(() => gmailReceipts.length > 0, [gmailReceipts]);
 
   const filterOptionLabels = {
     apply: resolveLabel((t.filters as any)?.apply, 'Apply'),
@@ -292,6 +349,7 @@ export default function StatementsListView({ stage }: Props) {
     { value: 'chat', label: filterOptionLabels.typeChat },
     { value: 'trip', label: filterOptionLabels.typeTrip },
     { value: 'task', label: filterOptionLabels.typeTask },
+    { value: 'gmail', label: 'Gmail' },
     { value: 'pdf', label: 'PDF' },
     { value: 'xlsx', label: 'Excel' },
     { value: 'csv', label: 'CSV' },
@@ -379,6 +437,9 @@ export default function StatementsListView({ stage }: Props) {
   useEffect(() => {
     if (!user) return;
     loadStatements({ page, search });
+    if (stage === 'submit') {
+      loadGmailReceipts({ silent: true, showErrorToast: false });
+    }
   }, [user, page, search]);
 
   useEffect(() => {
@@ -396,20 +457,47 @@ export default function StatementsListView({ stage }: Props) {
     return statements.filter(stmt => stmt.fileName.toLowerCase().includes(query));
   }, [searchInput, statements]);
 
+  const gmailStatements = useMemo<UnifiedStatement[]>(() => {
+    if (stage !== 'submit') return [];
+    return mapGmailReceiptsToStatements(gmailReceipts);
+  }, [gmailReceipts, stage]);
+
   const stagedStatements = useMemo(() => {
-    return filteredStatements.filter(statement => {
+    const baseStatements = filteredStatements.filter(statement => {
       const currentStage = getStatementStage(statement.id);
       return currentStage === stage;
     });
-  }, [filteredStatements, stage]);
+
+    if (stage !== 'submit') {
+      return baseStatements;
+    }
+
+    const gmailFiltered = searchInput.trim()
+      ? gmailStatements.filter(statement => {
+          const query = searchInput.trim().toLowerCase();
+          return (
+            statement.fileName.toLowerCase().includes(query) ||
+            (statement.subject || '').toLowerCase().includes(query) ||
+            (statement.sender || '').toLowerCase().includes(query) ||
+            (statement.parsedData?.vendor || '').toLowerCase().includes(query)
+          );
+        })
+      : gmailStatements;
+
+    return [...gmailFiltered, ...baseStatements].sort(
+      (a, b) => resolveStatementSortDate(b) - resolveStatementSortDate(a),
+    );
+  }, [filteredStatements, stage, searchInput, gmailStatements]);
 
   const displayStatements = useMemo(() => {
     return applyStatementsFilters<Statement>(stagedStatements, appliedFilters);
   }, [stagedStatements, appliedFilters]);
 
+  const selectableStatements = useMemo(() => displayStatements, [displayStatements]);
+
   const visibleStatementIds = useMemo(
-    () => displayStatements.map(statement => statement.id),
-    [displayStatements],
+    () => selectableStatements.map(statement => statement.id),
+    [selectableStatements],
   );
 
   const allVisibleSelected = useMemo(
@@ -473,6 +561,32 @@ export default function StatementsListView({ stage }: Props) {
     return didLoad;
   };
 
+  const loadGmailReceipts = async (opts?: { silent?: boolean; showErrorToast?: boolean }) => {
+    const { silent, showErrorToast } = opts || {};
+    if (!silent) {
+      setGmailLoading(true);
+    }
+
+    try {
+      const response = await gmailReceiptsApi.listReceipts({
+        limit: pageSize,
+        offset: Math.max(0, (page - 1) * pageSize),
+        includeInvalid: false,
+      });
+      const receipts = Array.isArray(response.data?.receipts) ? response.data.receipts : [];
+      setGmailReceipts(receipts.filter(hasGmailReceiptAmount));
+    } catch (error) {
+      console.error('Failed to load Gmail receipts:', error);
+      if (showErrorToast !== false) {
+        toast.error(resolveLabel(t.loadListError, 'Failed to load receipts'));
+      }
+    } finally {
+      if (!silent) {
+        setGmailLoading(false);
+      }
+    }
+  };
+
   useEffect(() => {
     if (!user || !shouldPollStatements) return;
 
@@ -491,6 +605,19 @@ export default function StatementsListView({ stage }: Props) {
       window.clearInterval(intervalId);
     };
   }, [user, shouldPollStatements, page, search]);
+
+  useEffect(() => {
+    if (!user || stage !== 'submit') return;
+    const intervalId = window.setInterval(() => {
+      loadGmailReceipts({ silent: true, showErrorToast: false }).catch(error => {
+        console.error('Failed to poll Gmail receipts:', error);
+      });
+    }, 6000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [user, stage]);
 
   useEffect(() => {
     const handleOpenExpenseDrawer = (event: Event) => {
@@ -556,7 +683,11 @@ export default function StatementsListView({ stage }: Props) {
     }
   };
 
-  const uploadStatementFiles = async (files: File[], allowDuplicates: boolean) => {
+  const uploadStatementFiles = async (
+    files: File[],
+    allowDuplicates: boolean,
+    requireManualCategorySelection = false,
+  ) => {
     if (files.length === 0) {
       throw new Error(resolveLabel(t.uploadModal?.pickAtLeastOne, 'Select at least one file'));
     }
@@ -566,6 +697,10 @@ export default function StatementsListView({ stage }: Props) {
       formData.append('files', file);
     });
     formData.append('allowDuplicates', allowDuplicates ? 'true' : 'false');
+    formData.append(
+      'requireManualCategorySelection',
+      requireManualCategorySelection ? 'true' : 'false',
+    );
 
     try {
       await apiClient.post('/statements/upload', formData, {
@@ -625,6 +760,11 @@ export default function StatementsListView({ stage }: Props) {
   };
 
   const handleView = (statement: Statement) => {
+    if (statement.source === 'gmail') {
+      setReceiptDetailId(statement.id);
+      return;
+    }
+
     if (
       statement.status === 'completed' ||
       statement.status === 'parsed' ||
@@ -651,8 +791,16 @@ export default function StatementsListView({ stage }: Props) {
       const selectedStatements = displayStatements.filter(statement =>
         selectedStatementIds.includes(statement.id),
       );
+      const exportableStatements = selectedStatements.filter(
+        statement => statement.source !== 'gmail',
+      );
 
-      for (const statement of selectedStatements) {
+      if (exportableStatements.length === 0) {
+        toast.error('Selected receipts cannot be exported from this menu');
+        return;
+      }
+
+      for (const statement of exportableStatements) {
         const response = await apiClient.get(`/statements/${statement.id}/file`, {
           responseType: 'blob',
         });
@@ -667,7 +815,7 @@ export default function StatementsListView({ stage }: Props) {
         URL.revokeObjectURL(url);
       }
 
-      toast.success(`Exported ${selectedStatementIds.length} statement(s)`);
+      toast.success(`Exported ${exportableStatements.length} statement(s)`);
       setSelectedActionsOpen(false);
     } catch (error) {
       console.error('Failed to export selected statements:', error);
@@ -678,14 +826,30 @@ export default function StatementsListView({ stage }: Props) {
   const handleDeleteSelected = async () => {
     if (selectedStatementIds.length === 0) return;
 
+    const selectedStatements = displayStatements.filter(statement =>
+      selectedStatementIds.includes(statement.id),
+    );
+    const deletableStatements = selectedStatements.filter(
+      statement => statement.source !== 'gmail',
+    );
+
+    if (deletableStatements.length === 0) {
+      toast.error('Selected receipts cannot be deleted from this menu');
+      return;
+    }
+
     const confirmed = window.confirm(
-      `Move ${selectedStatementIds.length} selected statement(s) to trash?`,
+      `Move ${deletableStatements.length} selected statement(s) to trash?`,
     );
     if (!confirmed) return;
 
     try {
-      await Promise.all(selectedStatementIds.map(id => apiClient.delete(`/statements/${id}`)));
-      setSelectedStatementIds([]);
+      await Promise.all(
+        deletableStatements.map(statement => apiClient.delete(`/statements/${statement.id}`)),
+      );
+      setSelectedStatementIds(prev =>
+        prev.filter(id => !deletableStatements.some(statement => statement.id === id)),
+      );
       setSelectedActionsOpen(false);
       await loadStatements({ page, search, showErrorToast: false });
       toast.success('Selected statements moved to trash');
@@ -724,22 +888,17 @@ export default function StatementsListView({ stage }: Props) {
     saveStatementFilters(draftFilters);
   };
 
-  const resetFilterChanges = (key: keyof StatementFilters) => {
-    const next = { ...draftFilters, [key]: DEFAULT_STATEMENT_FILTERS[key] } as StatementFilters;
-    setDraftFilters(next);
-  };
-
   const applyAndClose = (close: () => void) => {
     applyFilterChanges();
     close();
   };
 
   const resetAndClose = (key: keyof StatementFilters, close: () => void) => {
-    resetFilterChanges(key);
-    setTimeout(() => {
-      applyFilterChanges();
-      close();
-    }, 0);
+    const next = resetSingleStatementFilter(draftFilters, key);
+    setDraftFilters(next);
+    setAppliedFilters(next);
+    saveStatementFilters(next);
+    close();
   };
 
   const resetAllFilters = () => {
@@ -759,6 +918,10 @@ export default function StatementsListView({ stage }: Props) {
           : column,
       ),
     );
+  };
+
+  const handleReorderColumns = (activeId: StatementColumnId, overId: StatementColumnId) => {
+    setDraftColumns(prev => reorderStatementColumns(prev, activeId, overId));
   };
 
   const handleSaveColumns = () => {
@@ -781,6 +944,7 @@ export default function StatementsListView({ stage }: Props) {
         label: string;
         description?: string | null;
         avatarUrl?: string | null;
+        iconUrl?: string | null;
         bankName?: string | null;
       }
     >();
@@ -791,6 +955,7 @@ export default function StatementsListView({ stage }: Props) {
         label: string;
         description?: string | null;
         avatarUrl?: string | null;
+        iconUrl?: string | null;
         bankName?: string | null;
       },
     ) => {
@@ -811,8 +976,9 @@ export default function StatementsListView({ stage }: Props) {
       if (statement.bankName) {
         addOption(`bank:${statement.bankName}`, {
           id: `bank:${statement.bankName}`,
-          label: getBankDisplayName(statement.bankName),
+          label: statement.bankName === 'gmail' ? 'Gmail' : getBankDisplayName(statement.bankName),
           description: null,
+          iconUrl: statement.bankName === 'gmail' ? '/icons/gmail.png' : null,
           bankName: statement.bankName,
         });
       }
@@ -835,8 +1001,8 @@ export default function StatementsListView({ stage }: Props) {
   }, [stagedStatements]);
 
   return (
-    <div className="container-shared px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-6 space-y-3">
+    <div className="container-shared flex h-[calc(100vh-var(--global-nav-height,0px))] min-h-0 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mb-6 shrink-0 space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1" data-tour-id="search-bar">
             <Search className="h-4 w-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -1022,7 +1188,7 @@ export default function StatementsListView({ stage }: Props) {
         )}
       </div>
 
-      <div data-tour-id="statements-table">
+      <div data-tour-id="statements-table" className="min-h-0 flex-1 overflow-y-auto pr-1">
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <LoadingAnimation size="lg" />
@@ -1034,6 +1200,9 @@ export default function StatementsListView({ stage }: Props) {
             </div>
             <h3 className="text-lg font-medium text-gray-900">{emptyLabels.title}</h3>
             <p className="mt-1 text-gray-500">{emptyLabels.description}</p>
+            {stage === 'submit' && hasGmailReceipts ? (
+              <p className="mt-2 text-sm text-gray-500">Gmail receipts are loaded</p>
+            ) : null}
           </div>
         ) : (
           <>
@@ -1071,84 +1240,54 @@ export default function StatementsListView({ stage }: Props) {
                 <div className="w-28 text-right">{listHeaderLabels.action}</div>
               </div>
               {displayStatements.map(statement => {
-                const resolvedName = getBankDisplayName(statement.bankName);
-                const merchantLabel = getStatementMerchantLabel(
-                  statement.status,
-                  resolvedName,
-                  listHeaderLabels.scanning,
-                );
+                const isGmail = statement.source === 'gmail';
+                const resolvedName = isGmail
+                  ? resolveGmailMerchantLabel({
+                      vendor: statement.parsedData?.vendor,
+                      sender: statement.sender,
+                      subject: statement.subject,
+                      fallback: statement.fileName,
+                    })
+                  : getBankDisplayName(statement.bankName);
+                const merchantLabel = isGmail
+                  ? resolvedName
+                  : getStatementMerchantLabel(
+                      statement.status,
+                      resolvedName,
+                      listHeaderLabels.scanning,
+                    );
+                const isProcessingGmail = isGmailReceiptProcessing(statement);
+                const amountLabel = formatStatementAmount(statement);
+                const dateLabel = formatStatementDate(statement);
+
                 return (
-                  <div
+                  <StatementsListItem
                     key={statement.id}
-                    className="relative rounded-lg border border-gray-200 bg-white p-4 transition hover:border-primary/30"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleView(statement)}
-                      className="absolute inset-0 rounded-lg"
-                      aria-label={viewLabel}
-                    />
-                    <div className="pointer-events-none relative z-10 flex items-center gap-3">
-                      <div className="w-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedStatementIds.includes(statement.id)}
-                          onChange={() => handleToggleStatement(statement.id)}
-                          onClick={event => event.stopPropagation()}
-                          className="pointer-events-auto h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        className="pointer-events-auto w-11 flex items-center justify-center transition hover:opacity-80"
-                        onClick={() => {
-                          setPreviewFileId(statement.id);
-                          setPreviewFileName(statement.fileName);
-                          setPreviewModalOpen(true);
-                        }}
-                        aria-label={statement.fileName}
-                      >
-                        <DocumentTypeIcon
-                          fileType={statement.fileType}
-                          fileName={statement.fileName}
-                          fileId={statement.id}
-                          size={36}
-                          className="text-red-500"
-                        />
-                      </button>
-                      <div className="w-3" />
-                      <div className="w-20 flex items-center gap-2 text-sm font-medium text-gray-700">
-                        <span className="uppercase">{statement.fileType}</span>
-                      </div>
-                      <div className="w-24 text-sm font-medium text-gray-900">
-                        {formatStatementDate(statement)}
-                      </div>
-                      <div className="flex-1 flex items-center gap-2 text-sm text-gray-900">
-                        <BankLogoAvatar bankName={statement.bankName} size={20} />
-                        <span className="font-medium">{merchantLabel}</span>
-                      </div>
-                      <div className="w-28 text-right text-sm font-semibold text-gray-900">
-                        {formatStatementAmount(statement)}
-                      </div>
-                      <div className="w-28 flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleView(statement)}
-                          className="pointer-events-auto inline-flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:border-primary hover:text-primary"
-                        >
-                          {viewLabel}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleView(statement)}
-                          className="pointer-events-auto inline-flex items-center justify-center rounded-md border border-gray-200 p-1.5 text-gray-400 transition hover:border-primary hover:text-primary"
-                          aria-label={viewLabel}
-                        >
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                    statement={statement}
+                    viewLabel={viewLabel}
+                    isGmail={isGmail}
+                    isProcessing={isProcessingGmail}
+                    merchantLabel={merchantLabel}
+                    amountLabel={amountLabel}
+                    dateLabel={dateLabel}
+                    typeLabel={isGmail ? 'PDF' : statement.fileType}
+                    onView={() => handleView(statement)}
+                    onIconClick={() => {
+                      if (isGmail) {
+                        setPreviewSource('gmail');
+                        setPreviewFileId(statement.id);
+                        setPreviewFileName(statement.fileName || 'receipt.pdf');
+                        setPreviewModalOpen(true);
+                        return;
+                      }
+                      setPreviewSource('statement');
+                      setPreviewFileId(statement.id);
+                      setPreviewFileName(statement.fileName);
+                      setPreviewModalOpen(true);
+                    }}
+                    onToggleSelect={() => handleToggleStatement(statement.id)}
+                    selected={selectedStatementIds.includes(statement.id)}
+                  />
                 );
               })}
             </div>
@@ -1190,6 +1329,17 @@ export default function StatementsListView({ stage }: Props) {
           onClose={() => setPreviewModalOpen(false)}
           fileId={previewFileId}
           fileName={previewFileName}
+          source={previewSource}
+        />
+      )}
+
+      {receiptDetailId && (
+        <ReceiptDetailDrawer
+          receiptId={receiptDetailId}
+          onClose={() => setReceiptDetailId(null)}
+          onUpdate={() => {
+            void loadGmailReceipts({ silent: true, showErrorToast: false });
+          }}
         />
       )}
 
@@ -1250,6 +1400,7 @@ export default function StatementsListView({ stage }: Props) {
         onClose={() => setColumnsDrawerOpen(false)}
         columns={columnsWithLabels}
         onToggle={updateColumnsToggle}
+        onReorder={handleReorderColumns}
         onSave={handleSaveColumns}
         labels={{
           title: filterOptionLabels.columnsTitle,
@@ -1261,7 +1412,13 @@ export default function StatementsListView({ stage }: Props) {
         open={expenseDrawerOpen}
         initialMode={expenseDrawerMode}
         onClose={() => setExpenseDrawerOpen(false)}
-        onSubmitScan={payload => uploadStatementFiles(payload.files, payload.allowDuplicates)}
+        onSubmitScan={payload =>
+          uploadStatementFiles(
+            payload.files,
+            payload.allowDuplicates,
+            payload.requireManualCategorySelection,
+          )
+        }
         onSubmitManual={handleCreateManualExpense}
       />
     </div>

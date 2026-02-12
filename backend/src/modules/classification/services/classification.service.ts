@@ -292,7 +292,7 @@ export class ClassificationService {
       return historicalCategory.id;
     }
 
-    // FALLBACK: Create "Без категории" to ensure transaction is categorized
+    // FALLBACK: Create "Uncategorized" to ensure transaction is categorized
     return await this.ensureCategory(
       userId,
       'Без категории',

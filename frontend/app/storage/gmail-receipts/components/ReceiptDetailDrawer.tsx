@@ -45,6 +45,22 @@ interface Receipt {
   duplicateOfId?: string;
 }
 
+const hasReceiptAmount = (value: unknown): boolean => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value);
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    if (!normalized) {
+      return false;
+    }
+    return Number.isFinite(Number(normalized));
+  }
+
+  return false;
+};
+
 export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDetailDrawerProps) {
   const content = useIntlayer('gmail-receipts-page');
   const [activeTab, setActiveTab] = useState<'overview' | 'parsed' | 'duplicates' | 'history'>(
@@ -140,8 +156,10 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
 
   if (loading) {
     return (
-      <div className="fixed inset-y-0 right-0 w-full md:w-2/3 lg:w-1/2 bg-white shadow-2xl z-50 flex items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="flex h-full w-full items-center justify-center bg-white md:h-[calc(100vh-24px)] md:w-[calc(100vw-24px)] md:rounded-2xl md:shadow-2xl">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </div>
     );
   }
@@ -151,24 +169,38 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
   }
 
   const gmailUrl = `https://mail.google.com/mail/u/0/#all/${receipt.gmailMessageId}`;
+  const isMissingAmount = !hasReceiptAmount(editedData.amount ?? receipt.parsedData?.amount);
+  const showMissingAmountBanner = receipt.status === 'needs_review' && isMissingAmount;
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-full md:w-2/3 lg:w-1/2 bg-white shadow-2xl z-50 flex flex-col">
+      <div
+        className="fixed inset-0 z-40 bg-black/50"
+        onClick={onClose}
+        onKeyDown={event => {
+          if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+            onClose();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Close receipt details"
+      />
+      <div className="fixed inset-0 z-50 p-0 md:p-3">
+        <div className="flex h-full w-full flex-col bg-white md:rounded-2xl md:border md:border-[#dbe1dc] md:shadow-[0_24px_64px_rgba(17,24,39,0.24)]">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-bold text-gray-900">{receipt.subject}</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+        <div className="flex items-start justify-between border-b px-4 py-4 sm:px-6">
+          <h2 className="pr-4 text-lg font-bold text-gray-900 sm:text-xl">{receipt.subject}</h2>
+          <button onClick={onClose} className="rounded-lg p-2 transition hover:bg-gray-100">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b">
+        <div className="flex overflow-x-auto border-b px-1 sm:px-3">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-6 py-3 font-medium ${
+            className={`shrink-0 px-4 py-3 text-sm font-medium sm:px-6 sm:text-base ${
               activeTab === 'overview'
                 ? 'border-b-2 border-blue-600 text-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
@@ -178,7 +210,7 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
           </button>
           <button
             onClick={() => setActiveTab('parsed')}
-            className={`px-6 py-3 font-medium ${
+            className={`shrink-0 px-4 py-3 text-sm font-medium sm:px-6 sm:text-base ${
               activeTab === 'parsed'
                 ? 'border-b-2 border-blue-600 text-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
@@ -188,7 +220,7 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`px-6 py-3 font-medium ${
+            className={`shrink-0 px-4 py-3 text-sm font-medium sm:px-6 sm:text-base ${
               activeTab === 'history'
                 ? 'border-b-2 border-blue-600 text-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
@@ -199,7 +231,7 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
           {potentialDuplicates.length > 0 && (
             <button
               onClick={() => setActiveTab('duplicates')}
-              className={`px-6 py-3 font-medium relative ${
+              className={`relative shrink-0 px-4 py-3 text-sm font-medium sm:px-6 sm:text-base ${
                 activeTab === 'duplicates'
                   ? 'border-b-2 border-blue-600 text-blue-600'
                   : 'text-gray-600 hover:text-gray-900'
@@ -214,16 +246,17 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto bg-[#f8faf8] p-4 sm:p-6">
+          <div className="mx-auto w-full max-w-5xl rounded-xl border border-[#e2e8e3] bg-white p-4 shadow-sm sm:p-6">
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-medium mb-4">{content.drawer.emailPreview.value}</h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                <div className="space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-4">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">From:</span>
-                    <span className="text-sm font-medium">{receipt.sender}</span>
+                    <span className="max-w-[70%] break-words text-right text-sm font-medium">{receipt.sender}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Date:</span>
@@ -233,7 +266,7 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Subject:</span>
-                    <span className="text-sm font-medium">{receipt.subject}</span>
+                    <span className="max-w-[70%] break-words text-right text-sm font-medium">{receipt.subject}</span>
                   </div>
                   {receipt.metadata?.snippet && (
                     <div className="pt-2 border-t">
@@ -280,6 +313,12 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
           {/* Parsed Data Tab */}
           {activeTab === 'parsed' && (
             <div className="space-y-4">
+              {showMissingAmountBanner ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                  This receipt is missing required data. Add Amount and save to move it back to draft.
+                </div>
+              ) : null}
+
               {receipt.parsedData?.confidence !== undefined && (
                 <div className="bg-blue-50 p-4 rounded-lg flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-blue-600" />
@@ -302,18 +341,33 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {content.drawer.fields.amount.value}
+                    {showMissingAmountBanner ? (
+                      <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-amber-700">
+                        Required
+                      </span>
+                    ) : null}
                   </label>
                   <input
                     type="number"
                     value={editedData.amount || ''}
                     onChange={e =>
-                      setEditedData({ ...editedData, amount: Number.parseFloat(e.target.value) })
+                      setEditedData({
+                        ...editedData,
+                        amount:
+                          e.target.value.trim() === ''
+                            ? undefined
+                            : Number.parseFloat(e.target.value),
+                      })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 ${
+                      showMissingAmountBanner
+                        ? 'border border-amber-300 focus:ring-amber-500'
+                        : 'border border-gray-300 focus:ring-blue-500'
+                    }`}
                   />
                 </div>
                 <div>
@@ -329,7 +383,7 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {content.drawer.fields.tax.value}
@@ -338,7 +392,10 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
                     type="number"
                     value={editedData.tax || ''}
                     onChange={e =>
-                      setEditedData({ ...editedData, tax: Number.parseFloat(e.target.value) })
+                      setEditedData({
+                        ...editedData,
+                        tax: e.target.value.trim() === '' ? undefined : Number.parseFloat(e.target.value),
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
@@ -507,6 +564,8 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
               )}
             </div>
           )}
+          </div>
+        </div>
         </div>
       </div>
 

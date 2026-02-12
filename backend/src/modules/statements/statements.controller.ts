@@ -117,6 +117,7 @@ export class StatementsController {
           uploadDto.walletId || undefined,
           uploadDto.branchId || undefined,
           uploadDto.allowDuplicates ?? false,
+          uploadDto.requireManualCategorySelection ?? false,
         ),
       ),
     );

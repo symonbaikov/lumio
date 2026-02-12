@@ -96,6 +96,7 @@ export class StatementsService {
     walletId?: string,
     branchId?: string,
     allowDuplicates = false,
+    requireManualCategorySelection = false,
   ): Promise<Statement> {
     await this.ensureCanEditStatements(user.id, workspaceId);
     const normalizedName = normalizeFilename(file.originalname);
@@ -151,6 +152,11 @@ export class StatementsService {
       fileHash,
       bankName: BankName.OTHER, // Will be determined during parsing
       status: StatementStatus.UPLOADED,
+      parsingDetails: requireManualCategorySelection
+        ? {
+            manualCategorySelectionRequired: true,
+          }
+        : null,
     });
 
     const savedStatement = (await this.statementRepository.save(statement)) as unknown as Statement;

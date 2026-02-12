@@ -6,6 +6,7 @@ import {
   type StatementFilters,
   DEFAULT_STATEMENT_FILTERS,
   loadStatementFilters,
+  resetSingleStatementFilter,
   saveStatementFilters,
   STATEMENT_FILTERS_STORAGE_KEY,
 } from './statement-filters';
@@ -183,6 +184,75 @@ describe('applyStatementsFilters', () => {
     });
     expect(result.map((item) => item.id)).toEqual(['stmt-2']);
   });
+
+  it('matches gmail receipts by sender and vendor keywords', () => {
+    const statements: StatementFilterItem[] = [
+      {
+        ...baseStatement,
+        id: 'gmail-1',
+        source: 'gmail',
+        fileType: 'gmail',
+        bankName: 'gmail',
+        sender: 'GitHub <noreply@github.com>',
+        subject: '[GitHub] Payment Receipt',
+        parsedData: {
+          vendor: 'GitHub',
+          date: '2025-02-11',
+        },
+      },
+      {
+        ...baseStatement,
+        id: 'gmail-2',
+        source: 'gmail',
+        fileType: 'gmail',
+        bankName: 'gmail',
+        sender: 'Acme <billing@acme.com>',
+        subject: 'Acme invoice',
+      },
+    ];
+
+    const result = applyStatementsFilters(statements, {
+      ...defaultFilters,
+      keywords: 'github',
+      type: 'gmail',
+      from: ['bank:gmail'],
+    });
+
+    expect(result.map((item) => item.id)).toEqual(['gmail-1']);
+  });
+
+  it('uses receivedAt as fallback date for gmail receipts', () => {
+    const statements: StatementFilterItem[] = [
+      {
+        ...baseStatement,
+        id: 'gmail-1',
+        source: 'gmail',
+        fileType: 'gmail',
+        bankName: 'gmail',
+        receivedAt: '2025-02-13T00:00:00.000Z',
+        statementDateFrom: null,
+        statementDateTo: null,
+      },
+      {
+        ...baseStatement,
+        id: 'gmail-2',
+        source: 'gmail',
+        fileType: 'gmail',
+        bankName: 'gmail',
+        receivedAt: '2025-01-15T00:00:00.000Z',
+        statementDateFrom: null,
+        statementDateTo: null,
+      },
+    ];
+
+    const result = applyStatementsFilters(
+      statements,
+      { ...defaultFilters, date: { preset: 'thisMonth' } },
+      new Date('2025-02-20T00:00:00.000Z'),
+    );
+
+    expect(result.map((item) => item.id)).toEqual(['gmail-1']);
+  });
 });
 
 describe('statement filters storage', () => {
@@ -213,5 +283,35 @@ describe('statement filters storage', () => {
     expect(localStorage.getItem(STATEMENT_FILTERS_STORAGE_KEY)).toEqual(
       JSON.stringify(defaultFilters),
     );
+  });
+});
+
+describe('resetSingleStatementFilter', () => {
+  it('resets selected field and keeps other draft values', () => {
+    const draft: StatementFilters = {
+      ...DEFAULT_STATEMENT_FILTERS,
+      type: 'gmail',
+      statuses: ['processing'],
+      from: ['bank:gmail'],
+      keywords: 'invoice',
+    };
+
+    const next = resetSingleStatementFilter(draft, 'type');
+
+    expect(next.type).toBeNull();
+    expect(next.statuses).toEqual(['processing']);
+    expect(next.from).toEqual(['bank:gmail']);
+    expect(next.keywords).toBe('invoice');
+  });
+
+  it('resets array fields to defaults', () => {
+    const draft: StatementFilters = {
+      ...DEFAULT_STATEMENT_FILTERS,
+      statuses: ['processing', 'error'],
+    };
+
+    const next = resetSingleStatementFilter(draft, 'statuses');
+
+    expect(next.statuses).toEqual([]);
   });
 });

@@ -404,6 +404,12 @@ export class StatementProcessingService {
       throw new Error(`Statement ${statementId} not found`);
     }
 
+    const manualCategorySelectionRequired =
+      statement.parsingDetails?.manualCategorySelectionRequired === true;
+    if (manualCategorySelectionRequired) {
+      parsingDetails.manualCategorySelectionRequired = true;
+    }
+
     if (statement.status === StatementStatus.PROCESSING) {
       return statement;
     }
@@ -663,6 +669,7 @@ export class StatementProcessingService {
         parsedStatement.transactions,
         statement.userId,
         majorityCategory.categoryId,
+        manualCategorySelectionRequired,
         addLog,
       );
 
@@ -678,7 +685,7 @@ export class StatementProcessingService {
         (sum, t) => sum + (t.credit ?? 0),
         0,
       );
-      if (majorityCategory.categoryId) {
+      if (!manualCategorySelectionRequired && majorityCategory.categoryId) {
         statement.categoryId = majorityCategory.categoryId;
       }
 
@@ -765,6 +772,7 @@ export class StatementProcessingService {
     parsedTransactions: ParsedTransaction[],
     userId: string,
     defaultCategoryId: string | undefined,
+    manualCategorySelectionRequired: boolean,
     addLog?: (level: string, message: string) => void,
   ): Promise<{ transactions: Transaction[]; duplicatesSkipped: number }> {
     const transactions: Transaction[] = [];
@@ -800,7 +808,7 @@ export class StatementProcessingService {
     );
 
     let aiCategoryByIndex = new Map<number, string>();
-    if (statement.workspaceId && deduped.length > 0) {
+    if (!manualCategorySelectionRequired && statement.workspaceId && deduped.length > 0) {
       try {
         aiCategoryByIndex = await this.classificationService.classifyTransactionsBatch(
           deduped.map((parsed, index) => {
@@ -874,11 +882,15 @@ export class StatementProcessingService {
           userId,
         );
 
-        if (!classification.categoryId && aiCategoryByIndex.has(i)) {
+        if (manualCategorySelectionRequired) {
+          classification.categoryId = undefined;
+        }
+
+        if (!manualCategorySelectionRequired && !classification.categoryId && aiCategoryByIndex.has(i)) {
           classification.categoryId = aiCategoryByIndex.get(i);
         }
 
-        if (!classification.categoryId && defaultCategoryId) {
+        if (!manualCategorySelectionRequired && !classification.categoryId && defaultCategoryId) {
           classification.categoryId = defaultCategoryId;
         }
 

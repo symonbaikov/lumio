@@ -1,12 +1,12 @@
 /**
- * Тур по странице выписок
+ * Statements page tour
  */
 
 import type { TourConfig, TourStep } from './types';
 
 /**
- * Создает конфигурацию тура для страницы выписок
- * @param texts - Объект с переводами из useIntlayer
+ * Creates tour configuration for the statements page
+ * @param texts - Object with translations from useIntlayer
  */
 export function createStatementsTour(texts: {
   name: { value: string };
@@ -27,9 +27,9 @@ export function createStatementsTour(texts: {
 
   return {
     id: 'statements-tour',
-    name: texts.name?.value ?? 'Тур по выпискам',
+    name: texts.name?.value ?? 'Statements Tour',
     description:
-      texts.description?.value ?? 'Узнайте как загружать и управлять банковскими выписками',
+      texts.description?.value ?? 'Learn how to upload and manage bank statements',
     page: '/statements',
     steps: [
       {

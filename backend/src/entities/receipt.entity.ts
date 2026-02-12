@@ -99,6 +99,7 @@ export class Receipt {
       amount: number;
     }>;
     confidence?: number;
+    validationIssues?: string[];
   };
 
   @Column({ type: 'text', array: true, nullable: true, name: 'attachment_paths' })

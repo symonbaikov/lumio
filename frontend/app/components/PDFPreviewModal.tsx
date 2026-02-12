@@ -2,31 +2,40 @@
 
 import { Download, MoreVertical, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
+type ReactPdfModule = typeof import('react-pdf');
 import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { ModalShell } from './ui/modal-shell';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface PDFPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   fileId: string;
   fileName: string;
+  source?: 'statement' | 'gmail';
 }
 
 const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? '/api/v1').replace(/\/$/, '');
 
-export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPreviewModalProps) {
+export function PDFPreviewModal({
+  isOpen,
+  onClose,
+  fileId,
+  fileName,
+  source = 'statement',
+}: PDFPreviewModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pdfObjectUrl, setPdfObjectUrl] = useState<string | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [pageWidth, setPageWidth] = useState(920);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pdfModule, setPdfModule] = useState<ReactPdfModule | null>(null);
 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
+
+  const DocumentComponent = pdfModule?.Document;
+  const PageComponent = pdfModule?.Page;
 
   useEffect(() => {
     if (!isOpen) {
@@ -53,7 +62,12 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
           return;
         }
 
-        const response = await fetch(`${apiBaseUrl}/statements/${fileId}/file`, {
+        const fileEndpoint =
+          source === 'gmail'
+            ? `${apiBaseUrl}/integrations/gmail/receipts/${fileId}/file`
+            : `${apiBaseUrl}/statements/${fileId}/file`;
+
+        const response = await fetch(fileEndpoint, {
           method: 'GET',
           headers,
           credentials: 'include',
@@ -87,7 +101,34 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
         URL.revokeObjectURL(localObjectUrl);
       }
     };
-  }, [isOpen, fileId]);
+  }, [isOpen, fileId, source]);
+
+  useEffect(() => {
+    if (!isOpen || pdfModule) return;
+
+    let active = true;
+
+    const loadPdfRenderer = async () => {
+      try {
+        const module = await import('react-pdf');
+        module.pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${module.pdfjs.version}/build/pdf.worker.min.mjs`;
+        if (active) {
+          setPdfModule(module);
+        }
+      } catch (err) {
+        console.error('Error loading PDF renderer:', err);
+        if (active) {
+          setError('Не удалось загрузить просмотрщик PDF');
+        }
+      }
+    };
+
+    loadPdfRenderer();
+
+    return () => {
+      active = false;
+    };
+  }, [isOpen, pdfModule]);
 
   useEffect(() => {
     if (!isOpen || !viewportRef.current) {
@@ -135,7 +176,12 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
         return;
       }
 
-      const response = await fetch(`${apiBaseUrl}/statements/${fileId}/file`, {
+      const fileEndpoint =
+        source === 'gmail'
+          ? `${apiBaseUrl}/integrations/gmail/receipts/${fileId}/file`
+          : `${apiBaseUrl}/statements/${fileId}/file`;
+
+      const response = await fetch(fileEndpoint, {
         method: 'GET',
         headers,
         credentials: 'include',
@@ -243,10 +289,10 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
             </div>
           )}
 
-          {!error && pdfObjectUrl && (
+          {!error && pdfObjectUrl && DocumentComponent && PageComponent && (
             <div ref={viewportRef} className="h-full min-h-0 overflow-y-auto px-5 py-7">
               <div className="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6">
-                <Document
+                <DocumentComponent
                   file={pdfObjectUrl}
                   loading={null}
                   onLoadSuccess={({ numPages: loadedPages }) => setNumPages(loadedPages)}
@@ -255,7 +301,7 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
                 >
                   {Array.from({ length: numPages }, (_, index) => (
                     <div key={`page_${index + 1}`} className="flex w-full justify-center">
-                      <Page
+                      <PageComponent
                         pageNumber={index + 1}
                         width={pageWidth}
                         renderTextLayer={false}
@@ -264,7 +310,7 @@ export function PDFPreviewModal({ isOpen, onClose, fileId, fileName }: PDFPrevie
                       />
                     </div>
                   ))}
-                </Document>
+                </DocumentComponent>
               </div>
             </div>
           )}
