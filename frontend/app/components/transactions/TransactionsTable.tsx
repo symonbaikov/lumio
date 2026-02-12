@@ -325,7 +325,7 @@ export default function TransactionsTable({
                   <button
                     type="button"
                     onClick={() => toggleSort('date')}
-                    className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-700 hover:text-gray-900"
+                    className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-700"
                   >
                     {t.columnDate.value}
                     {sort.by === 'date' ? (
@@ -341,12 +341,12 @@ export default function TransactionsTable({
                 </th>
 
                 {/* Counterparty */}
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-700">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                   {t.columnCounterparty.value}
                 </th>
 
                 {/* Purpose */}
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-700">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                   {t.columnPurpose.value}
                 </th>
 
@@ -355,7 +355,7 @@ export default function TransactionsTable({
                   <button
                     type="button"
                     onClick={() => toggleSort('amount')}
-                    className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-700 hover:text-gray-900"
+                    className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-700"
                   >
                     {t.columnDebit.value}
                     {sort.by === 'amount' ? (
@@ -371,12 +371,12 @@ export default function TransactionsTable({
                 </th>
 
                 {/* Credit */}
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-700">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
                   {t.columnCredit.value}
                 </th>
 
                 {/* Category */}
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-700">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                   {t.columnCategory.value}
                 </th>
               </tr>
@@ -403,15 +403,21 @@ export default function TransactionsTable({
                         }}
                         tabIndex={0}
                         aria-label={`Transaction from ${tx.counterpartyName}`}
-                        className={`cursor-pointer transition hover:bg-gray-50 ${
-                          selectedIds.includes(tx.id) ? 'bg-primary/5' : ''
+                        className={`cursor-pointer transition hover:bg-muted/50 border-l-4 ${
+                          selectedIds.includes(tx.id)
+                            ? 'bg-primary/5 border-primary'
+                            : 'border-transparent'
                         } ${
-                          tx.hasErrors ? 'bg-red-50/50' : tx.hasWarnings ? 'bg-amber-50/30' : ''
+                          tx.hasErrors
+                            ? 'bg-red-50/50'
+                            : tx.hasWarnings
+                            ? 'bg-amber-50/30'
+                            : ''
                         }`}
                       >
                         {/* Toggle Expansion */}
                         <td
-                          className="px-2 py-2 text-center"
+                          className="px-2 py-4 text-center"
                           onClick={e => toggleExpansion(tx.id, e)}
                           onKeyDown={e => {
                             if (e.key === 'Enter' || e.key === ' ') {
@@ -433,7 +439,7 @@ export default function TransactionsTable({
 
                         {/* Checkbox */}
                         <td
-                          className="px-4 py-2"
+                          className="px-4 py-4"
                           onClick={e => e.stopPropagation()}
                           onKeyDown={e => e.stopPropagation()}
                         >
@@ -446,39 +452,49 @@ export default function TransactionsTable({
                         </td>
 
                         {/* Date */}
-                        <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-900">
+                        <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-500 tabular-nums">
                           {formatDate(tx.transactionDate)}
                         </td>
 
                         {/* Counterparty */}
-                        <td className="px-4 py-2 text-sm text-gray-900">
+                        <td className="px-4 py-4 text-sm font-semibold text-gray-900">
                           <div className="max-w-[200px]" title={tx.counterpartyName}>
                             {truncateText(tx.counterpartyName, 30)}
                           </div>
                         </td>
 
                         {/* Purpose */}
-                        <td className="px-4 py-2 text-sm text-gray-700">
+                        <td className="px-4 py-4 text-sm text-gray-500">
                           <div className="line-clamp-2 max-w-[300px]" title={tx.paymentPurpose}>
                             {tx.paymentPurpose || '—'}
                           </div>
                         </td>
 
                         {/* Debit */}
-                        <td className="whitespace-nowrap px-4 py-2 text-right text-sm font-semibold text-red-600">
-                          {Number(tx.debit) > 0 ? formatAmount(Number(tx.debit), tx.currency) : '—'}
+                        <td className="whitespace-nowrap px-4 py-4 text-right text-sm">
+                          {Number(tx.debit) > 0 ? (
+                            <span className="font-bold text-gray-900">
+                              {formatAmount(Number(tx.debit), tx.currency)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
                         </td>
 
                         {/* Credit */}
-                        <td className="whitespace-nowrap px-4 py-2 text-right text-sm font-semibold text-emerald-600">
-                          {Number(tx.credit) > 0
-                            ? formatAmount(Number(tx.credit), tx.currency)
-                            : '—'}
+                        <td className="whitespace-nowrap px-4 py-4 text-right text-sm">
+                          {Number(tx.credit) > 0 ? (
+                            <span className="font-bold text-emerald-600">
+                              {formatAmount(Number(tx.credit), tx.currency)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
                         </td>
 
                         {/* Category */}
                         <td
-                          className="px-4 py-2"
+                          className="px-4 py-4"
                           onClick={e => e.stopPropagation()}
                           onKeyDown={e => e.stopPropagation()}
                         >

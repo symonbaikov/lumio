@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Manrope, Nunito } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { getIntlayer } from 'next-intlayer';
@@ -7,6 +8,16 @@ import GlobalBreadcrumbs from './components/GlobalBreadcrumbs';
 import GlobalNavHeight from './components/GlobalNavHeight';
 import Navigation from './components/Navigation';
 import { Providers } from './providers';
+
+const manrope = Manrope({
+  subsets: ['latin', 'cyrillic'],
+  variable: '--font-manrope',
+});
+
+const nunito = Nunito({
+  subsets: ['latin', 'cyrillic'],
+  variable: '--font-nunito',
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
@@ -32,7 +43,9 @@ export default async function RootLayout({
 
   return (
     <html lang={resolvedLocale} dir={direction} suppressHydrationWarning>
-      <body className="bg-background text-foreground antialiased">
+      <body
+        className={`${manrope.variable} ${nunito.variable} bg-background text-foreground antialiased font-sans`}
+      >
         <IntlayerServerProvider>
           <ThemeProvider
             attribute="class"

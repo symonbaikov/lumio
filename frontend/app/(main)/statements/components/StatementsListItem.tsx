@@ -108,10 +108,10 @@ export function StatementsListItem({
           />
         </button>
         <div className="w-3" />
-        <div className="w-20 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <div className="w-20 flex items-center gap-2 text-sm font-medium text-gray-500">
           <span className="uppercase">{typeLabel || statement.fileType}</span>
         </div>
-        <div className="w-24 text-sm font-medium text-gray-900">{dateLabel}</div>
+        <div className="w-24 text-sm font-medium text-gray-500 tabular-nums">{dateLabel}</div>
         <div className="flex-1 flex items-center gap-2 text-sm text-gray-900">
           {isGmail ? (
             <>
@@ -129,11 +129,11 @@ export function StatementsListItem({
           ) : (
             <>
               <BankLogoAvatar bankName={statement.bankName} size={20} />
-              <span className="font-medium">{merchantLabel}</span>
+              <span className="font-semibold text-gray-900">{merchantLabel}</span>
             </>
           )}
         </div>
-        <div className="w-28 text-right text-sm font-semibold text-gray-900">{amountLabel}</div>
+        <div className="w-28 text-right text-sm font-bold text-gray-900 tabular-nums">{amountLabel}</div>
         <div className="w-28 flex items-center justify-end gap-2">
           <button
             type="button"

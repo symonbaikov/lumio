@@ -39,8 +39,8 @@
   --ring: #0a66c2;
   --destructive: #dc2626;
   --destructive-foreground: #fef2f2;
-  --font-family-sans:
-    "Nunitoga", "Helvetica Neue", Arial, Helvetica, sans-serif !important;
+  --font-family-sans: var(--font-manrope), "Manrope", "Nunitoga",
+    "Helvetica Neue", Arial, Helvetica, sans-serif !important;
   --font-family-mono:
     ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono,
     monospace !important;
@@ -93,18 +93,18 @@
   --color-ring: var(--ring);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-manrope);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family:
-    -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", "Fira Sans", Ubuntu, Oxygen, "Oxygen Sans", Cantarell,
-    "Droid Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-    "Lucida Grande", Helvetica, Arial, sans-serif;
+  font-family: var(--font-manrope), "Manrope", -apple-system, system-ui,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Fira Sans",
+    Ubuntu, Oxygen, "Oxygen Sans", Cantarell, "Droid Sans",
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Lucida Grande",
+    Helvetica, Arial, sans-serif;
   margin: 0;
   padding: 0;
   min-height: 100vh;
@@ -410,7 +410,7 @@ body.ff-col-resizing {
 
 /* Custom logo styling based on user parameters */
 .ff-logo {
-  font-family: var(--font-family-sans);
+  font-family: var(--font-nunito), "Nunito", sans-serif;
   font-size: 20px !important;
   font-weight: 700 !important;
   letter-spacing: 3.5px !important;

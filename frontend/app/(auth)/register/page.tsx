@@ -108,7 +108,7 @@ function RegisterPageContent() {
         fontWeight="bold"
         gutterBottom
         sx={{
-          fontFamily: '"Nunitoga", sans-serif',
+          fontFamily: 'var(--font-nunito), "Nunito", sans-serif',
           textShadow: '0 4px 20px rgba(0,0,0,0.3)',
         }}
       >
