@@ -1,27 +1,27 @@
-"use client";
+'use client';
 
+import { Button } from '@/app/components/ui/button';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { cn } from '@/app/lib/utils';
 import {
   DndContext,
+  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   closestCenter,
-  type DragEndEvent,
   useSensor,
   useSensors,
-} from "@dnd-kit/core";
+} from '@dnd-kit/core';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { DrawerShell } from "@/app/components/ui/drawer-shell";
-import { Button } from "@/app/components/ui/button";
-import { Checkbox } from "@/app/components/ui/checkbox";
-import { cn } from "@/app/lib/utils";
-import { ChevronLeft, GripVertical } from "lucide-react";
-import type { StatementColumn, StatementColumnId } from "./statement-columns";
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { ChevronLeft, GripVertical } from 'lucide-react';
+import type { StatementColumn, StatementColumnId } from './statement-columns';
 
 type ColumnsDrawerLabels = {
   title: string;
@@ -32,7 +32,7 @@ type ColumnsDrawerProps = {
   open: boolean;
   onClose: () => void;
   columns: StatementColumn[];
-  onToggle: (id: StatementColumn["id"], value: boolean) => void;
+  onToggle: (id: StatementColumn['id'], value: boolean) => void;
   onReorder: (activeId: StatementColumnId, overId: StatementColumnId) => void;
   onSave: () => void;
   labels: ColumnsDrawerLabels;
@@ -40,12 +40,19 @@ type ColumnsDrawerProps = {
 
 type SortableColumnItemProps = {
   column: StatementColumn;
-  onToggle: (id: StatementColumn["id"], value: boolean) => void;
+  onToggle: (id: StatementColumn['id'], value: boolean) => void;
 };
 
 function SortableColumnItem({ column, onToggle }: SortableColumnItemProps) {
-  const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: column.id });
+  const {
+    attributes,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: column.id });
 
   return (
     <div
@@ -55,8 +62,8 @@ function SortableColumnItem({ column, onToggle }: SortableColumnItemProps) {
         transition,
       }}
       className={cn(
-        "flex items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-gray-50/70 border-b border-gray-100/70 last:border-b-0",
-        isDragging && "z-10 bg-white/95 shadow-sm",
+        'flex items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-gray-50/70 border-b border-gray-100/70 last:border-b-0',
+        isDragging && 'z-10 bg-white/95 shadow-sm',
       )}
     >
       <div className="flex items-center gap-3">
@@ -72,14 +79,14 @@ function SortableColumnItem({ column, onToggle }: SortableColumnItemProps) {
         </button>
         <span
           className={cn(
-            "text-base font-semibold",
-            column.visible ? "text-gray-900" : "text-gray-400",
+            'text-base font-semibold',
+            column.visible ? 'text-gray-900' : 'text-gray-400',
           )}
         >
           {column.label}
         </span>
       </div>
-      <Checkbox checked={column.visible} onCheckedChange={(value) => onToggle(column.id, value)} />
+      <Checkbox checked={column.visible} onCheckedChange={value => onToggle(column.id, value)} />
     </div>
   );
 }
@@ -133,10 +140,17 @@ export function ColumnsDrawer({
     >
       <div className="flex h-full flex-col">
         <div className="flex-1 overflow-y-auto">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={columns.map((column) => column.id)} strategy={verticalListSortingStrategy}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={columns.map(column => column.id)}
+              strategy={verticalListSortingStrategy}
+            >
               <div className="flex flex-col">
-                {columns.map((column) => (
+                {columns.map(column => (
                   <SortableColumnItem key={column.id} column={column} onToggle={onToggle} />
                 ))}
               </div>

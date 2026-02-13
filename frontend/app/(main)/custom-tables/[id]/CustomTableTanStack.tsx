@@ -1,13 +1,5 @@
 'use client';
 
-import { EditableBooleanCell } from './components/cells/EditableBooleanCell';
-import { EditableDateCell } from './components/cells/EditableDateCell';
-import { EditableNumberCell } from './components/cells/EditableNumberCell';
-import { EditableSelectCell } from './components/cells/EditableSelectCell';
-import { EditableTextCell } from './components/cells/EditableTextCell';
-import { EditableHeader } from './components/headers/EditableHeader';
-import type { CustomTableColumn, CustomTableGridRow } from './utils/stylingUtils';
-import { getCellStyle, getRowStyle } from './utils/stylingUtils';
 import { Popover } from '@mui/material';
 import {
   type ColumnDef,
@@ -23,6 +15,14 @@ import { useIntlayer } from 'next-intlayer';
 import { useTheme } from 'next-themes';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
+import { EditableBooleanCell } from './components/cells/EditableBooleanCell';
+import { EditableDateCell } from './components/cells/EditableDateCell';
+import { EditableNumberCell } from './components/cells/EditableNumberCell';
+import { EditableSelectCell } from './components/cells/EditableSelectCell';
+import { EditableTextCell } from './components/cells/EditableTextCell';
+import { EditableHeader } from './components/headers/EditableHeader';
+import type { CustomTableColumn, CustomTableGridRow } from './utils/stylingUtils';
+import { getCellStyle, getRowStyle } from './utils/stylingUtils';
 
 interface CustomTableTanStackProps {
   tableId: string;

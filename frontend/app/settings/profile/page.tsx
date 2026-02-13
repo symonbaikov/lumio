@@ -1,14 +1,5 @@
 'use client';
 
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import EditIcon from '@mui/icons-material/Edit';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import LogoutIcon from '@mui/icons-material/Logout';
-import MailOutlineIcon from '@mui/icons-material/MailOutline';
-import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined';
-import SecurityIcon from '@mui/icons-material/Security';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import CircularProgress from '@mui/material/CircularProgress';
 import { Alert } from '@/app/components/ui/alert';
 import { Button } from '@/app/components/ui/button';
 import {
@@ -25,9 +16,18 @@ import { Separator } from '@/app/components/ui/separator';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
+import { MAX_AVATAR_SIZE_BYTES } from '@/app/lib/constants';
 import { cn } from '@/app/lib/utils';
 import { ModeToggle } from '@/components/mode-toggle';
-import { MAX_AVATAR_SIZE_BYTES } from '@/app/lib/constants';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import EditIcon from '@mui/icons-material/Edit';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import LogoutIcon from '@mui/icons-material/Logout';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined';
+import SecurityIcon from '@mui/icons-material/Security';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import CircularProgress from '@mui/material/CircularProgress';
 import type { AxiosError } from 'axios';
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { useRouter } from 'next/navigation';

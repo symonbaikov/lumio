@@ -2,8 +2,8 @@
 
 import { cn } from '@/app/lib/utils';
 import React, { useMemo, useState } from 'react';
-import { SidePanel, SidePanelProvider } from '../index';
 import { createBasicSidePanelConfig } from '../configs';
+import { SidePanel, SidePanelProvider } from '../index';
 import type { SidePanelPageConfig, SidePanelPosition, SidePanelWidth } from '../types';
 
 // ============================================================================
@@ -52,13 +52,11 @@ export function PageWithSidePanel({
       className={cn(
         'flex min-h-[calc(100vh-var(--global-nav-height,0px))]',
         sidePanelPosition === 'left' && 'flex-row-reverse',
-        className
+        className,
       )}
     >
       {/* Main Content */}
-      <main className={cn('flex-1 min-w-0 overflow-auto', contentClassName)}>
-        {children}
-      </main>
+      <main className={cn('flex-1 min-w-0 overflow-auto', contentClassName)}>{children}</main>
 
       {/* Side Panel */}
       {showSidePanel && (
@@ -93,16 +91,14 @@ export function StatementsPageExample() {
         title: 'Statements',
         subtitle: 'Overview',
       }),
-    []
+    [],
   );
 
   return (
     <PageWithSidePanel sidePanelConfig={sidePanelConfig} sidePanelWidth="md">
       <div className="container-shared px-4 sm:px-6 lg:px-8 py-12">
         <h1 className="text-2xl font-bold mb-6">Statements</h1>
-        <p className="text-gray-600">
-          Current filter: {statusFilter || 'All'}
-        </p>
+        <p className="text-gray-600">Current filter: {statusFilter || 'All'}</p>
         {/* Rest of page content */}
       </div>
     </PageWithSidePanel>
@@ -123,7 +119,7 @@ export function ReportsPageExample() {
         title: 'Reports',
         subtitle: `Overview - ${activeTab}`,
       }),
-    [activeTab]
+    [activeTab],
   );
 
   return (
@@ -154,7 +150,7 @@ export function StoragePageExample() {
         title: 'Storage',
         subtitle: activeFolderId ? `Folder ${activeFolderId}` : 'Overview',
       }),
-    [activeFolderId]
+    [activeFolderId],
   );
 
   return (
@@ -165,9 +161,7 @@ export function StoragePageExample() {
     >
       <div className="container-shared px-4 sm:px-6 lg:px-8 py-12">
         <h1 className="text-2xl font-bold mb-6">Storage</h1>
-        <p className="text-gray-600">
-          Active folder: {activeFolderId || 'All Files'}
-        </p>
+        <p className="text-gray-600">Active folder: {activeFolderId || 'All Files'}</p>
         {/* Rest of page content */}
       </div>
     </PageWithSidePanel>
@@ -195,7 +189,7 @@ export function SettingsPageExample() {
         title: 'Settings',
         subtitle: activeSection,
       }),
-    [activeSection]
+    [activeSection],
   );
 
   return (

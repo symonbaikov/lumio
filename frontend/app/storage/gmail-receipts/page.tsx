@@ -1,19 +1,19 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { useIntlayer } from 'next-intlayer';
-import toast from 'react-hot-toast';
+import { StatementsListItem } from '@/app/(main)/statements/components/StatementsListItem';
+import {
+  type GmailReceipt as GmailReceiptValidation,
+  hasGmailReceiptAmount,
+} from '@/app/(main)/statements/components/gmail-receipt-mapping';
+import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { gmailReceiptsApi } from '@/app/lib/api';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
-import {
-  hasGmailReceiptAmount,
-  type GmailReceipt as GmailReceiptValidation,
-} from '@/app/(main)/statements/components/gmail-receipt-mapping';
 import { Filter, RefreshCw, Search } from 'lucide-react';
-import { StatementsListItem } from '@/app/(main)/statements/components/StatementsListItem';
-import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
-import { ReceiptDetailDrawer } from './components/ReceiptDetailDrawer';
+import { useIntlayer } from 'next-intlayer';
+import React, { useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { BulkActionsBar } from './components/BulkActionsBar';
+import { ReceiptDetailDrawer } from './components/ReceiptDetailDrawer';
 
 interface Receipt extends GmailReceiptValidation {
   id: string;
@@ -123,8 +123,8 @@ export default function GmailReceiptsPage() {
       const thisMonth = now.getMonth();
       const thisYear = now.getFullYear();
 
-      const pending = visibleReceipts.filter(
-        (r: Receipt) => ['new', 'parsed', 'needs_review', 'draft'].includes(r.status)
+      const pending = visibleReceipts.filter((r: Receipt) =>
+        ['new', 'parsed', 'needs_review', 'draft'].includes(r.status),
       ).length;
 
       const approvedThisMonth = visibleReceipts.filter((r: Receipt) => {
@@ -135,7 +135,7 @@ export default function GmailReceiptsPage() {
 
       const totalAmount = visibleReceipts.reduce(
         (sum: number, r: Receipt) => sum + (parseAmountValue(r.parsedData?.amount) || 0),
-        0
+        0,
       );
 
       setStats({
@@ -163,10 +163,11 @@ export default function GmailReceiptsPage() {
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(r =>
-        r.parsedData?.vendor?.toLowerCase().includes(query) ||
-        r.parsedData?.amount?.toString().includes(query) ||
-        r.sender.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        r =>
+          r.parsedData?.vendor?.toLowerCase().includes(query) ||
+          r.parsedData?.amount?.toString().includes(query) ||
+          r.sender.toLowerCase().includes(query),
       );
     }
 
@@ -295,10 +296,14 @@ export default function GmailReceiptsPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-3xl font-bold text-gray-900">{content.title.value}</h1>
-          <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-            connected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}>
-            {connected ? content.connectionStatus.connected.value : content.connectionStatus.disconnected.value}
+          <div
+            className={`px-3 py-1 rounded-full text-sm font-medium ${
+              connected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }`}
+          >
+            {connected
+              ? content.connectionStatus.connected.value
+              : content.connectionStatus.disconnected.value}
           </div>
         </div>
         <p className="text-gray-600">{content.subtitle.value}</p>
@@ -332,7 +337,7 @@ export default function GmailReceiptsPage() {
             <Filter className="w-4 h-4 text-gray-500" />
             <select
               value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
+              onChange={e => setSelectedStatus(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">{content.filters.all.value}</option>
@@ -352,7 +357,7 @@ export default function GmailReceiptsPage() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder={content.filters.searchPlaceholder.value}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -393,7 +398,9 @@ export default function GmailReceiptsPage() {
               <div className="w-4">
                 <input
                   type="checkbox"
-                  checked={selectedReceipts.size === filteredReceipts.length && filteredReceipts.length > 0}
+                  checked={
+                    selectedReceipts.size === filteredReceipts.length && filteredReceipts.length > 0
+                  }
                   onChange={handleSelectAll}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
@@ -403,8 +410,8 @@ export default function GmailReceiptsPage() {
               <div className="w-20">Type</div>
               <div className="w-24">{content.table.date.value}</div>
               <div className="flex-1">{content.table.merchant.value}</div>
-              <div className="w-28 text-right">{content.table.amount.value}</div>
-              <div className="w-28 text-right">{content.table.actions.value}</div>
+              <div className="w-36 text-right">{content.table.amount.value}</div>
+              <div className="w-36 text-right">{content.table.actions.value}</div>
             </div>
             {filteredReceipts.map(receipt => {
               const merchantLabel = resolveGmailMerchantLabel({

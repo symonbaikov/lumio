@@ -59,9 +59,9 @@ const content = {
         kk: 'Google Sheets-тен импорт',
       }),
       subtitle: t({
-        ru: 'Превью → настройка колонок → импорт в автономную таблицу FinFlow.',
-        en: 'Preview → configure columns → import into a standalone FinFlow table.',
-        kk: 'Превью → бағандарды баптау → FinFlow автономды кестесіне импорттау.',
+        ru: 'Превью → настройка колонок → импорт в автономную таблицу Lumio.',
+        en: 'Preview → configure columns → import into a standalone Lumio table.',
+        kk: 'Превью → бағандарды баптау → Lumio автономды кестесіне импорттау.',
       }),
       back: t({ ru: 'Назад', en: 'Back', kk: 'Артқа' }),
     },

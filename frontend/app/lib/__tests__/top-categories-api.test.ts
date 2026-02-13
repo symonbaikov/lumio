@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { DEFAULT_STATEMENT_FILTERS } from '@/app/(main)/statements/components/filters/statement-filters';
+import { describe, expect, it } from 'vitest';
 import { buildTopCategoriesQuery } from '../top-categories-api';
 
 describe('top categories api query builder', () => {

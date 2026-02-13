@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { FilterActions } from "@/app/(main)/statements/components/filters/FilterActions";
-import { FilterDropdown } from "@/app/(main)/statements/components/filters/FilterDropdown";
-import { FilterOptionRow } from "@/app/(main)/statements/components/filters/FilterOptionRow";
+import { FilterActions } from '@/app/(main)/statements/components/filters/FilterActions';
+import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
+import { FilterOptionRow } from '@/app/(main)/statements/components/filters/FilterOptionRow';
 
 type TypeFilterOption = {
   value: string;
@@ -37,7 +37,7 @@ export function TypeFilterDropdown({
   return (
     <FilterDropdown open={open} onOpenChange={onOpenChange} trigger={trigger}>
       <div className="max-h-[320px] space-y-1 overflow-y-auto pr-1">
-        {options.map((option) => (
+        {options.map(option => (
           <FilterOptionRow
             key={option.value}
             label={option.label}

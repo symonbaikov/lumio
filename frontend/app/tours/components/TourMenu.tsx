@@ -213,7 +213,7 @@ export function TourMenu({ trigger, className = '' }: TourMenuProps) {
 
     // Update list on localStorage change (when tour is completed)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'finflow_tour_state') {
+      if (e.key === 'lumio_tour_state') {
         updateCompletedTours();
       }
     };

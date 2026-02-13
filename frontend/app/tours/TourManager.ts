@@ -11,7 +11,7 @@ import {
   type TourStep,
 } from './types';
 
-const TOUR_STORAGE_KEY = 'finflow_tour_state';
+const TOUR_STORAGE_KEY = 'lumio_tour_state';
 const TOUR_STATE_VERSION = '1.0.0';
 
 function getPreferredLang(): string {

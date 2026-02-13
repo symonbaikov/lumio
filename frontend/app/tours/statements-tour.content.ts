@@ -133,9 +133,9 @@ const content = {
           kk: 'Керемет! 🎉',
         }),
         description: t({
-          ru: 'Теперь вы знаете, как работать с банковскими выписками в FinFlow. Попробуйте загрузить свою первую выписку!',
-          en: 'Now you know how to work with bank statements in FinFlow. Try uploading your first statement!',
-          kk: 'Енді сіз FinFlow-да банк үзінділерімен қалай жұмыс істейтінін білесіз. Бірінші үзіндіңізді жүктеп көріңіз!',
+          ru: 'Теперь вы знаете, как работать с банковскими выписками в Lumio. Попробуйте загрузить свою первую выписку!',
+          en: 'Now you know how to work with bank statements in Lumio. Try uploading your first statement!',
+          kk: 'Енді сіз Lumio-да банк үзінділерімен қалай жұмыс істейтінін білесіз. Бірінші үзіндіңізді жүктеп көріңіз!',
         }),
       },
     },

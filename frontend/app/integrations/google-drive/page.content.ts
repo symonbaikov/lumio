@@ -38,9 +38,9 @@ const content = {
       timeZone: t({ ru: 'Часовой пояс', en: 'Time zone', kk: 'Уақыт белдеуі' }),
       folder: t({ ru: 'Папка в Drive', en: 'Drive folder', kk: 'Drive қалтасы' }),
       folderPlaceholder: t({
-        ru: 'Не выбрана (будет создана FinFlow)',
-        en: 'Not selected (FinFlow will create one)',
-        kk: 'Таңдалмаған (FinFlow құрады)',
+        ru: 'Не выбрана (будет создана Lumio)',
+        en: 'Not selected (Lumio will create one)',
+        kk: 'Таңдалмаған (Lumio құрады)',
       }),
       lastSync: t({ ru: 'Последняя синхронизация', en: 'Last sync', kk: 'Соңғы синхрондау' }),
     },

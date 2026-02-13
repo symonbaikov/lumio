@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
+import LoadingAnimation from '@/app/components/LoadingAnimation';
 import TransactionsPageView from '@/app/components/transactions/TransactionsPageView';
 import type { Category, StatementDetails, Transaction } from '@/app/components/transactions/types';
 import api from '@/app/lib/api';
-import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { useRouter } from "next/navigation";
-import React, { use, useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
+import { useRouter } from 'next/navigation';
+import React, { use, useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? '/api/v1').replace(/\/$/, '');
 
@@ -49,9 +49,10 @@ export default function ViewStatementPage({
         createdAt: rawStatement.createdAt,
         metadata: {
           accountNumber: rawStatement.parsingDetails?.metadataExtracted?.accountNumber,
-          period: rawStatement.statementDateFrom && rawStatement.statementDateTo
-            ? `${new Date(rawStatement.statementDateFrom).toLocaleDateString()} - ${new Date(rawStatement.statementDateTo).toLocaleDateString()}`
-            : undefined,
+          period:
+            rawStatement.statementDateFrom && rawStatement.statementDateTo
+              ? `${new Date(rawStatement.statementDateFrom).toLocaleDateString()} - ${new Date(rawStatement.statementDateTo).toLocaleDateString()}`
+              : undefined,
         },
         category: rawStatement.category,
         categoryId: rawStatement.categoryId,
@@ -82,9 +83,9 @@ export default function ViewStatementPage({
       setTransactions(transformedTransactions);
       setCategories(categoriesResponse.data || []);
     } catch (err) {
-      console.error("Error fetching data:", err);
-      setError("Не удалось загрузить данные выписки");
-      toast.error("Не удалось загрузить данные выписки");
+      console.error('Error fetching data:', err);
+      setError('Не удалось загрузить данные выписки');
+      toast.error('Не удалось загрузить данные выписки');
     } finally {
       setLoading(false);
     }
@@ -151,7 +152,7 @@ export default function ViewStatementPage({
     return (
       <div className="container-shared px-4 sm:px-6 lg:px-8 py-8">
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-600 mb-4">
-          {error || "Выписка не найдена"}
+          {error || 'Выписка не найдена'}
         </div>
         <button
           onClick={() => router.back()}

@@ -1,8 +1,8 @@
 'use client';
 
+import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import pdfIcon from '../../public/images/pdf.png';
 
 interface PDFThumbnailProps {

@@ -1,11 +1,21 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Hash,
+  Loader2,
+  LogOut,
+  Plus,
+  Settings,
+  Tags,
+  Trash2,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useWorkspace } from '../contexts/WorkspaceContext';
-import { LogOut, Settings, Tags, Plus, Trash2, Loader2, ChevronRight, ChevronDown, Hash } from 'lucide-react';
-import apiClient from '../lib/api';
+import React, { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useWorkspace } from '../contexts/WorkspaceContext';
+import apiClient from '../lib/api';
 
 interface Category {
   id: string;
@@ -123,9 +133,9 @@ export function WorkspaceSwitcher() {
             {currentWorkspace.name}
           </div>
         </div>
-        <ChevronDown 
-          size={16} 
-          className={`text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+        <ChevronDown
+          size={16}
+          className={`text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -145,7 +155,7 @@ export function WorkspaceSwitcher() {
 
           {/* Categories Section */}
           <div className="border-b border-gray-100 dark:border-gray-700 flex flex-col min-h-0">
-            <button 
+            <button
               onClick={() => setShowCategories(!showCategories)}
               className="w-full flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
             >
@@ -153,32 +163,41 @@ export function WorkspaceSwitcher() {
                 <Tags size={10} />
                 Categories
               </div>
-              <ChevronRight size={14} className={`text-gray-400 transition-transform duration-200 ${showCategories ? 'rotate-90' : ''}`} />
+              <ChevronRight
+                size={14}
+                className={`text-gray-400 transition-transform duration-200 ${showCategories ? 'rotate-90' : ''}`}
+              />
             </button>
 
             {showCategories && (
               <div className="px-3 pb-3 flex flex-col min-h-0">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-[10px] text-gray-400">Manage tags</div>
-                  <button 
-                    onClick={(e) => {
+                  <button
+                    onClick={e => {
                       e.stopPropagation();
                       setShowAddForm(!showAddForm);
                     }}
                     className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 transition-colors"
                   >
-                    <Plus size={14} className={`transition-transform duration-200 ${showAddForm ? 'rotate-45' : ''}`} />
+                    <Plus
+                      size={14}
+                      className={`transition-transform duration-200 ${showAddForm ? 'rotate-45' : ''}`}
+                    />
                   </button>
                 </div>
 
                 {showAddForm && (
-                  <form onSubmit={handleCreateCategory} className="mb-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <form
+                    onSubmit={handleCreateCategory}
+                    className="mb-3 animate-in fade-in slide-in-from-top-1 duration-200"
+                  >
                     <div className="relative">
                       <input
                         autoFocus
                         type="text"
                         value={newCatName}
-                        onChange={(e) => setNewCatName(e.target.value)}
+                        onChange={e => setNewCatName(e.target.value)}
                         placeholder="New category name..."
                         className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
                       />
@@ -198,19 +217,19 @@ export function WorkspaceSwitcher() {
                     </div>
                   ) : (
                     categories.slice(0, 100).map(category => (
-                      <div 
-                        key={category.id} 
+                      <div
+                        key={category.id}
                         className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 group transition-colors cursor-default"
                       >
-                        <div 
-                          className="w-1.5 h-1.5 rounded-full" 
+                        <div
+                          className="w-1.5 h-1.5 rounded-full"
                           style={{ backgroundColor: category.color || '#cbd5e1' }}
                         />
                         <div className="flex-1 text-xs text-gray-600 dark:text-gray-400 truncate font-medium">
                           {category.name}
                         </div>
                         <button
-                          onClick={(e) => handleDeleteCategory(category.id, e)}
+                          onClick={e => handleDeleteCategory(category.id, e)}
                           className="opacity-0 group-hover:opacity-100 p-0.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 transition-all"
                         >
                           <Trash2 size={12} />

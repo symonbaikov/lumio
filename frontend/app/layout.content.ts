@@ -4,9 +4,9 @@ const content = {
   key: 'layout',
   content: {
     title: t({
-      ru: 'FinFlow — Обработка банковских выписок',
-      en: 'FinFlow — Bank statement processing',
-      kk: 'FinFlow — Банктік үзінділерді өңдеу',
+      ru: 'Lumio — Обработка банковских выписок',
+      en: 'Lumio — Bank statement processing',
+      kk: 'Lumio — Банктік үзінділерді өңдеу',
     }),
     description: t({
       ru: 'Система автоматической обработки банковских выписок',

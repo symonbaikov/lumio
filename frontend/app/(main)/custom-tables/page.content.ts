@@ -6,9 +6,9 @@ const content = {
     header: {
       title: t({ ru: 'Таблицы', en: 'Tables', kk: 'Кестелер' }),
       subtitle: t({
-        ru: 'Пользовательские таблицы внутри FinFlow (в т.ч. импорт из Google Sheets).',
-        en: 'Custom tables inside FinFlow (including Google Sheets import).',
-        kk: 'FinFlow ішіндегі пайдаланушы кестелері (Google Sheets импортын қоса).',
+        ru: 'Пользовательские таблицы внутри Lumio (в т.ч. импорт из Google Sheets).',
+        en: 'Custom tables inside Lumio (including Google Sheets import).',
+        kk: 'Lumio ішіндегі пайдаланушы кестелері (Google Sheets импортын қоса).',
       }),
     },
     searchPlaceholder: t({

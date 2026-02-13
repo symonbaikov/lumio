@@ -16,11 +16,13 @@ import { Button } from '@/app/components/ui/button';
 import apiClient from '@/app/lib/api';
 import { type TopCategoriesReport, fetchTopCategoriesReport } from '@/app/lib/top-categories-api';
 import { cn } from '@/app/lib/utils';
-import { Download, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { ChevronDown, Download, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import TopCategoriesChart from './TopCategoriesChart';
-import TopCategoriesPeriodFilter, { type TopCategoriesPeriodPreset } from './TopCategoriesPeriodFilter';
+import TopCategoriesPeriodFilter, {
+  type TopCategoriesPeriodPreset,
+} from './TopCategoriesPeriodFilter';
 import TopCategoriesTable from './TopCategoriesTable';
 
 const formatDateOnly = (date: Date) => {
@@ -475,7 +477,9 @@ export default function TopCategoriesView() {
             Loading top categories...
           </div>
         ) : error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
         ) : (
           <>
             <div className="grid gap-4 xl:grid-cols-2">

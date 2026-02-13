@@ -24,9 +24,9 @@ export const integrationsTourContent = {
           kk: 'Интеграцияларға қош келдіңіз',
         }),
         description: t({
-          ru: 'Интеграции позволяют подключить FinFlow к внешним сервисам: Google Sheets для синхронизации данных, API для автоматизации и другие инструменты. Давайте настроим подключения!',
-          en: "Integrations allow you to connect FinFlow to external services: Google Sheets for data sync, API for automation and other tools. Let's set up connections!",
-          kk: 'Интеграциялар FinFlow-ды сыртқы қызметтерге қосуға мүмкіндік береді: деректерді синхрондау үшін Google Sheets, автоматтандыру үшін API және басқа құралдар. Қосылымдарды орнатайық!',
+          ru: 'Интеграции позволяют подключить Lumio к внешним сервисам: Google Sheets для синхронизации данных, API для автоматизации и другие инструменты. Давайте настроим подключения!',
+          en: "Integrations allow you to connect Lumio to external services: Google Sheets for data sync, API for automation and other tools. Let's set up connections!",
+          kk: 'Интеграциялар Lumio-ды сыртқы қызметтерге қосуға мүмкіндік береді: деректерді синхрондау үшін Google Sheets, автоматтандыру үшін API және басқа құралдар. Қосылымдарды орнатайық!',
         }),
       },
       googleSheets: {

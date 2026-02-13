@@ -772,7 +772,7 @@ export default function TransactionDocumentViewer({
           }}
         >
           <Typography variant="caption" color="text.secondary" textAlign="center" display="block">
-            Документ сформирован автоматически • FinFlow Parse Ledger
+            Документ сформирован автоматически • Lumio Parse Ledger
           </Typography>
           <Typography
             variant="caption"

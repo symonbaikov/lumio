@@ -1,11 +1,11 @@
 'use client';
 
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import apiClient from '@/app/lib/api';
 import { Building2, Save, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { useWorkspace } from '@/app/contexts/WorkspaceContext';
-import apiClient from '@/app/lib/api';
 
 const CURRENCIES = ['KZT', 'USD', 'EUR', 'RUB', 'GBP'];
 

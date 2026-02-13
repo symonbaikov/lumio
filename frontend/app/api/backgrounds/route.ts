@@ -1,17 +1,17 @@
-import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   const backgroundsDirectory = path.join(process.cwd(), 'public/workspace-backgrounds');
-  
+
   try {
     if (!fs.existsSync(backgroundsDirectory)) {
       return NextResponse.json([]);
     }
 
     const fileNames = fs.readdirSync(backgroundsDirectory);
-    
+
     // Filter for image files
     const backgrounds = fileNames.filter(file => {
       const ext = path.extname(file).toLowerCase();

@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  applyStatementsFilters,
+  DEFAULT_STATEMENT_FILTERS,
+  STATEMENT_FILTERS_STORAGE_KEY,
   type StatementFilterItem,
   type StatementFilters,
-  DEFAULT_STATEMENT_FILTERS,
+  applyStatementsFilters,
   loadStatementFilters,
   resetSingleStatementFilter,
   saveStatementFilters,
-  STATEMENT_FILTERS_STORAGE_KEY,
 } from './statement-filters';
 
 const baseStatement: StatementFilterItem = {
@@ -68,7 +68,7 @@ describe('applyStatementsFilters', () => {
       ...defaultFilters,
       statuses: ['processing', 'error'],
     });
-    expect(result.map((item) => item.id)).toEqual(['stmt-1', 'stmt-2']);
+    expect(result.map(item => item.id)).toEqual(['stmt-1', 'stmt-2']);
   });
 
   it('filters by date preset', () => {
@@ -93,7 +93,7 @@ describe('applyStatementsFilters', () => {
       { ...defaultFilters, date: { preset: 'thisMonth' } },
       new Date('2025-02-15T00:00:00.000Z'),
     );
-    expect(result.map((item) => item.id)).toEqual(['stmt-1']);
+    expect(result.map(item => item.id)).toEqual(['stmt-1']);
   });
 
   it('filters by date condition', () => {
@@ -118,7 +118,7 @@ describe('applyStatementsFilters', () => {
       { ...defaultFilters, date: { mode: 'before', date: '2025-02-08' } },
       new Date('2025-02-15T00:00:00.000Z'),
     );
-    expect(result.map((item) => item.id)).toEqual(['stmt-2']);
+    expect(result.map(item => item.id)).toEqual(['stmt-2']);
   });
 
   it('filters by from tokens', () => {
@@ -130,7 +130,7 @@ describe('applyStatementsFilters', () => {
       ...defaultFilters,
       from: ['user:user-2'],
     });
-    expect(result.map((item) => item.id)).toEqual(['stmt-2']);
+    expect(result.map(item => item.id)).toEqual(['stmt-2']);
   });
 
   it('filters by keywords and amount range', () => {
@@ -144,7 +144,7 @@ describe('applyStatementsFilters', () => {
       amountMin: 1000,
       amountMax: 2000,
     });
-    expect(result.map((item) => item.id)).toEqual(['stmt-1']);
+    expect(result.map(item => item.id)).toEqual(['stmt-1']);
   });
 
   it('applies limit after filtering', () => {
@@ -157,7 +157,7 @@ describe('applyStatementsFilters', () => {
       ...defaultFilters,
       limit: 2,
     });
-    expect(result.map((item) => item.id)).toEqual(['stmt-1', 'stmt-2']);
+    expect(result.map(item => item.id)).toEqual(['stmt-1', 'stmt-2']);
   });
 
   it('filters by currency and exported flags', () => {
@@ -170,7 +170,7 @@ describe('applyStatementsFilters', () => {
       currencies: ['KZT'],
       exported: true,
     });
-    expect(result.map((item) => item.id)).toEqual(['stmt-1']);
+    expect(result.map(item => item.id)).toEqual(['stmt-1']);
   });
 
   it('filters by paid flag', () => {
@@ -182,7 +182,7 @@ describe('applyStatementsFilters', () => {
       ...defaultFilters,
       paid: false,
     });
-    expect(result.map((item) => item.id)).toEqual(['stmt-2']);
+    expect(result.map(item => item.id)).toEqual(['stmt-2']);
   });
 
   it('matches gmail receipts by sender and vendor keywords', () => {
@@ -218,7 +218,7 @@ describe('applyStatementsFilters', () => {
       from: ['bank:gmail'],
     });
 
-    expect(result.map((item) => item.id)).toEqual(['gmail-1']);
+    expect(result.map(item => item.id)).toEqual(['gmail-1']);
   });
 
   it('uses receivedAt as fallback date for gmail receipts', () => {
@@ -251,7 +251,7 @@ describe('applyStatementsFilters', () => {
       new Date('2025-02-20T00:00:00.000Z'),
     );
 
-    expect(result.map((item) => item.id)).toEqual(['gmail-1']);
+    expect(result.map(item => item.id)).toEqual(['gmail-1']);
   });
 });
 

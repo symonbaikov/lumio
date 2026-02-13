@@ -254,7 +254,9 @@ export function PDFPreviewModal({
                 className="flex w-full items-center gap-4 rounded-[18px] px-5 py-4 text-left transition-colors hover:bg-[#f5f8f5]"
               >
                 <Download className="h-7 w-7 text-[#99a39d]" strokeWidth={2.3} />
-                <span className="text-[22px] font-semibold leading-none text-[#0f3428]">Download</span>
+                <span className="text-[22px] font-semibold leading-none text-[#0f3428]">
+                  Download
+                </span>
               </button>
             </div>
           )}

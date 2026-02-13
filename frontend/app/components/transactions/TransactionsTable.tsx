@@ -408,11 +408,7 @@ export default function TransactionsTable({
                             ? 'bg-primary/5 border-primary'
                             : 'border-transparent'
                         } ${
-                          tx.hasErrors
-                            ? 'bg-red-50/50'
-                            : tx.hasWarnings
-                            ? 'bg-amber-50/30'
-                            : ''
+                          tx.hasErrors ? 'bg-red-50/50' : tx.hasWarnings ? 'bg-amber-50/30' : ''
                         }`}
                       >
                         {/* Toggle Expansion */}

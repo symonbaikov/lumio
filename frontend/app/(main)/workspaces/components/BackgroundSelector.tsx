@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
 import { Check } from 'lucide-react';
+import React from 'react';
 
 interface BackgroundSelectorProps {
   selectedBackground: string | null;
@@ -16,7 +16,7 @@ export function BackgroundSelector({
 }: BackgroundSelectorProps) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-      {backgrounds.map((background) => (
+      {backgrounds.map(background => (
         <button
           key={background}
           type="button"

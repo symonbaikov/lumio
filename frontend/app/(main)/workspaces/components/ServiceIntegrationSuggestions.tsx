@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import React from 'react';
 
 interface ServiceIntegrationSuggestionsProps {
   onSkip: () => void;
@@ -55,7 +55,7 @@ export function ServiceIntegrationSuggestions({
       </div>
 
       <div className="grid grid-cols-1 gap-3">
-        {INTEGRATIONS.map((integration) => (
+        {INTEGRATIONS.map(integration => (
           <div
             key={integration.id}
             className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"

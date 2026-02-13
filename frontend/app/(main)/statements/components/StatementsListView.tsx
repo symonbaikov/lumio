@@ -1236,8 +1236,12 @@ export default function StatementsListView({ stage }: Props) {
                   <ArrowDown className="h-3 w-3" />
                 </div>
                 <div className="flex-1">{listHeaderLabels.merchant}</div>
-                <div className="w-28 text-right">{listHeaderLabels.amount}</div>
-                <div className="w-28 text-right">{listHeaderLabels.action}</div>
+                <div className="w-36 text-right uppercase tracking-wide">
+                  {listHeaderLabels.amount}
+                </div>
+                <div className="w-36 text-right uppercase tracking-wide">
+                  {listHeaderLabels.action}
+                </div>
               </div>
               {displayStatements.map(statement => {
                 const isGmail = statement.source === 'gmail';

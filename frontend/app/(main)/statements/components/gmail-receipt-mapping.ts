@@ -61,9 +61,7 @@ export const hasGmailReceiptAmount = (receipt: GmailReceipt): boolean => {
   return parseAmountValue(receipt.parsedData?.amount ?? null) !== null;
 };
 
-export const mapGmailReceiptToStatement = (
-  receipt: GmailReceipt,
-): GmailMappedStatement | null => {
+export const mapGmailReceiptToStatement = (receipt: GmailReceipt): GmailMappedStatement | null => {
   const amount = parseAmountValue(receipt.parsedData?.amount ?? null);
   if (amount === null) {
     return null;
@@ -106,9 +104,7 @@ export const mapGmailReceiptToStatement = (
   };
 };
 
-export const mapGmailReceiptsToStatements = (
-  receipts: GmailReceipt[],
-): GmailMappedStatement[] => {
+export const mapGmailReceiptsToStatements = (receipts: GmailReceipt[]): GmailMappedStatement[] => {
   return receipts.flatMap(receipt => {
     const mapped = mapGmailReceiptToStatement(receipt);
     return mapped ? [mapped] : [];

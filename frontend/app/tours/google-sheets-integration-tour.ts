@@ -24,7 +24,8 @@ export function createGoogleSheetsIntegrationTour(texts: {
     id: 'google-sheets-integration-tour',
     name: texts.name ?? 'Google Sheets Integration Tour',
     description:
-      texts.description ?? 'Step-by-step guide to connecting a table and setting up synchronization.',
+      texts.description ??
+      'Step-by-step guide to connecting a table and setting up synchronization.',
     page: '/integrations/google-sheets',
     autoStart: false,
     steps: [

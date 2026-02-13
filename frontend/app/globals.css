@@ -39,10 +39,9 @@
   --ring: #0a66c2;
   --destructive: #dc2626;
   --destructive-foreground: #fef2f2;
-  --font-family-sans: var(--font-manrope), "Manrope", "Nunitoga",
-    "Helvetica Neue", Arial, Helvetica, sans-serif !important;
-  --font-family-mono:
-    ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono,
+  --font-family-sans: var(--font-manrope), "Manrope", "Nunitoga", "Helvetica Neue", Arial, Helvetica,
+    sans-serif !important;
+  --font-family-mono: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono,
     monospace !important;
   --global-nav-height: 104px;
 }
@@ -100,7 +99,8 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-manrope), "Manrope", -apple-system, system-ui,
+  font-family:
+    var(--font-manrope), "Manrope", -apple-system, system-ui,
     BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Fira Sans",
     Ubuntu, Oxygen, "Oxygen Sans", Cantarell, "Droid Sans",
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Lucida Grande",
@@ -237,14 +237,8 @@ body {
   border-color: var(--border-color);
 }
 
-.dark
-  .divide-gray-100:not([class*="dark:divide-"])
-  > :not([hidden])
-  ~ :not([hidden]),
-.dark
-  .divide-gray-200:not([class*="dark:divide-"])
-  > :not([hidden])
-  ~ :not([hidden]) {
+.dark .divide-gray-100:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-200:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]) {
   border-color: var(--border-color);
 }
 
@@ -358,11 +352,7 @@ body {
 /* React Day Picker: align default variables with dark theme tokens. */
 .dark .rdp-root {
   --rdp-accent-color: var(--primary);
-  --rdp-accent-background-color: color-mix(
-    in srgb,
-    var(--primary) 18%,
-    transparent
-  );
+  --rdp-accent-background-color: color-mix(in srgb, var(--primary) 18%, transparent);
 }
 
 /* Custom Tables: in-app fullscreen mode (hides global navigation/breadcrumbs). */
@@ -380,7 +370,7 @@ body.ff-table-fullscreen > [data-global-nav-spacer] {
 
 body.ff-table-fullscreen.ff-table-columns-scroll {
   overflow: auto;
-}   
+}
 
 body.ff-table-fullscreen.ff-table-columns-scroll > main {
   height: auto;

@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import type { AuditEvent } from '@/lib/api/audit';
+import React from 'react';
 import { DiffViewer } from './DiffViewer';
 
 interface AuditEventDrawerProps {
@@ -61,9 +61,7 @@ export function AuditEventDrawer({ event, open, onClose, onRollback }: AuditEven
         </div>
 
         <details className="rounded-lg border border-gray-200 bg-white p-3">
-          <summary className="cursor-pointer text-sm font-semibold text-gray-900">
-            Metadata
-          </summary>
+          <summary className="cursor-pointer text-sm font-semibold text-gray-900">Metadata</summary>
           <div className="mt-2 text-xs text-gray-700">
             <pre className="whitespace-pre-wrap">
               {event.meta ? JSON.stringify(event.meta, null, 2) : 'No metadata'}

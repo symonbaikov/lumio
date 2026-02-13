@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
 import type { AuditEvent } from '@/lib/api/audit';
+import React from 'react';
 
 interface RollbackConfirmModalProps {
   open: boolean;

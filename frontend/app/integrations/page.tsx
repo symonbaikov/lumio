@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import { CheckCircle2, ExternalLink, Plug, Search } from "lucide-react";
-import { useIntlayer } from "next-intlayer";
-import Image from "next/image";
-import Link from "next/link";
-import apiClient from "@/app/lib/api";
-import { useMemo, useState, useEffect } from "react";
+import apiClient from '@/app/lib/api';
+import { CheckCircle2, ExternalLink, Plug, Search } from 'lucide-react';
+import { useIntlayer } from 'next-intlayer';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
 export default function IntegrationsPage() {
-  const t = useIntlayer("integrationsPage");
-  const [searchQuery, setSearchQuery] = useState("");
+  const t = useIntlayer('integrationsPage');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Static integration metadata (labels, icons, actions). Active/connect status is fetched from backend.
   const integrationMeta = useMemo(
     () => [
       {
-        key: "dropbox",
-        name: "Dropbox",
+        key: 'dropbox',
+        name: 'Dropbox',
         description: t.cards.dropbox.description,
         badge: t.cards.dropbox.badge,
-        category: "storage",
+        category: 'storage',
         icon: (
           <Image
             src="/icons/dropbox-icon.png"
@@ -32,21 +32,21 @@ export default function IntegrationsPage() {
         actions: [
           {
             label: t.cards.dropbox.actions.connect,
-            href: "/integrations/dropbox",
+            href: '/integrations/dropbox',
           },
           {
             label: t.cards.dropbox.actions.docs,
-            href: "https://www.dropbox.com/developers/documentation",
+            href: 'https://www.dropbox.com/developers/documentation',
             external: true,
           },
         ],
       },
       {
-        key: "google-drive",
-        name: "Google Drive",
+        key: 'google-drive',
+        name: 'Google Drive',
         description: t.cards.googleDrive.description,
         badge: t.cards.googleDrive.badge,
-        category: "storage",
+        category: 'storage',
         icon: (
           <Image
             src="/icons/google-drive-icon.png"
@@ -59,49 +59,42 @@ export default function IntegrationsPage() {
         actions: [
           {
             label: t.cards.googleDrive.actions.connect,
-            href: "/integrations/google-drive",
+            href: '/integrations/google-drive',
           },
           {
             label: t.cards.googleDrive.actions.docs,
-            href: "https://developers.google.com/drive/api/guides/about-sdk",
+            href: 'https://developers.google.com/drive/api/guides/about-sdk',
             external: true,
           },
         ],
       },
       {
-        key: "gmail",
-        name: "Gmail",
-        description:
-          "Automatically import receipts and invoices from your Gmail inbox",
-        badge: "Active",
-        category: "email",
+        key: 'gmail',
+        name: 'Gmail',
+        description: 'Automatically import receipts and invoices from your Gmail inbox',
+        badge: 'Active',
+        category: 'email',
         icon: (
-          <Image
-            src="/icons/gmail.png"
-            alt="Gmail"
-            width={32}
-            height={32}
-            className="rounded"
-          />
+          <Image src="/icons/gmail.png" alt="Gmail" width={32} height={32} className="rounded" />
         ),
         actions: [
           {
-            label: "Connect",
-            href: "/integrations/gmail",
+            label: 'Connect',
+            href: '/integrations/gmail',
           },
           {
-            label: "Docs",
-            href: "https://developers.google.com/gmail/api",
+            label: 'Docs',
+            href: 'https://developers.google.com/gmail/api',
             external: true,
           },
         ],
       },
       {
-        key: "google-sheets",
-        name: "Google Sheets",
+        key: 'google-sheets',
+        name: 'Google Sheets',
         description: t.cards.googleSheets.description,
         badge: t.cards.googleSheets.badge,
-        category: "spreadsheets",
+        category: 'spreadsheets',
         icon: (
           <Image
             src="/icons/icons8-google-sheets-48.png"
@@ -114,21 +107,21 @@ export default function IntegrationsPage() {
         actions: [
           {
             label: t.cards.googleSheets.actions.connect,
-            href: "/integrations/google-sheets",
+            href: '/integrations/google-sheets',
           },
           {
             label: t.cards.googleSheets.actions.docs,
-            href: "https://support.google.com/docs",
+            href: 'https://support.google.com/docs',
             external: true,
           },
         ],
       },
       {
-        key: "telegram",
-        name: "Telegram",
+        key: 'telegram',
+        name: 'Telegram',
         description: t.cards.telegram.description,
         badge: t.cards.telegram.badge,
-        category: "messaging",
+        category: 'messaging',
         icon: (
           <Image
             src="/icons/icons8-telegram-48.png"
@@ -139,10 +132,10 @@ export default function IntegrationsPage() {
           />
         ),
         actions: [
-          { label: t.cards.telegram.actions.setup, href: "/settings/telegram" },
+          { label: t.cards.telegram.actions.setup, href: '/settings/telegram' },
           {
             label: t.cards.telegram.actions.guide,
-            href: "https://core.telegram.org/bots",
+            href: 'https://core.telegram.org/bots',
             external: true,
           },
         ],
@@ -152,9 +145,7 @@ export default function IntegrationsPage() {
   );
 
   // Integration statuses fetched from backend per-integration
-  const [integrationStatuses, setIntegrationStatuses] = useState<
-    Record<string, boolean>
-  >({});
+  const [integrationStatuses, setIntegrationStatuses] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -163,7 +154,7 @@ export default function IntegrationsPage() {
       const map: Record<string, boolean> = {};
 
       await Promise.all(
-        integrationMeta.map(async (m) => {
+        integrationMeta.map(async m => {
           try {
             // Try to call per-integration status endpoint. Backend endpoints used elsewhere:
             // e.g. /integrations/dropbox/status, /integrations/google-drive/status, /integrations/gmail/status
@@ -171,8 +162,7 @@ export default function IntegrationsPage() {
             const data = resp.data || {};
             // Support different shapes: { connected: boolean } or { status: 'connected' | ... }
             const connected =
-              Boolean(data?.connected) ||
-              String(data?.status)?.toLowerCase() === "connected";
+              Boolean(data?.connected) || String(data?.status)?.toLowerCase() === 'connected';
             map[m.key] = connected;
           } catch (err) {
             // If endpoint missing or error, treat as not connected
@@ -182,7 +172,7 @@ export default function IntegrationsPage() {
       );
 
       if (mounted) {
-        setIntegrationStatuses((prev) => ({ ...prev, ...map }));
+        setIntegrationStatuses(prev => ({ ...prev, ...map }));
       }
     };
 
@@ -196,7 +186,7 @@ export default function IntegrationsPage() {
   // Merge metadata with fetched statuses to produce final integrations list used for filtering/display.
   const integrations = useMemo(
     () =>
-      integrationMeta.map((m) => ({
+      integrationMeta.map(m => ({
         ...m,
         active: integrationStatuses[m.key] ?? false,
       })),
@@ -208,30 +198,30 @@ export default function IntegrationsPage() {
     if (!query) return integrations;
 
     return integrations.filter(
-      (item) =>
+      item =>
         item.name.toLowerCase().includes(query) ||
         String(item.description).toLowerCase().includes(query),
     );
   }, [integrations, searchQuery]);
 
-  const active = filteredIntegrations.filter((item) => item.active);
-  const available = filteredIntegrations.filter((item) => !item.active);
+  const active = filteredIntegrations.filter(item => item.active);
+  const available = filteredIntegrations.filter(item => !item.active);
 
   const categories = [
     {
-      key: "storage",
+      key: 'storage',
       label: t.categories.storage,
     },
     {
-      key: "email",
+      key: 'email',
       label: t.categories.email,
     },
     {
-      key: "spreadsheets",
+      key: 'spreadsheets',
       label: t.categories.spreadsheets,
     },
     {
-      key: "messaging",
+      key: 'messaging',
       label: t.categories.messaging,
     },
   ] as const;
@@ -271,7 +261,7 @@ export default function IntegrationsPage() {
             className="block w-full rounded-full border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm placeholder-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
             placeholder="Поиск интеграций..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
@@ -279,9 +269,7 @@ export default function IntegrationsPage() {
       <div className="space-y-8">
         {active.length > 0 || !searchQuery ? (
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              {t.sections.connected}
-            </h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">{t.sections.connected}</h3>
             {active.length === 0 && !searchQuery ? (
               <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
                 {t.empty.connected}
@@ -312,7 +300,7 @@ export default function IntegrationsPage() {
                         </div>
                       )}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {items.map((item) => (
+                        {items.map(item => (
                           <div
                             key={item.key}
                             className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
@@ -327,15 +315,14 @@ export default function IntegrationsPage() {
                                     {item.name}
                                   </h2>
                                   <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                    <CheckCircle2 className="h-3 w-3 mr-1" />{" "}
-                                    {item.badge}
+                                    <CheckCircle2 className="h-3 w-3 mr-1" /> {item.badge}
                                   </span>
                                 </div>
                                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                                   {item.description}
                                 </p>
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                  {item.actions.map((action) =>
+                                  {item.actions.map(action =>
                                     action.external ? (
                                       <a
                                         key={action.href}
@@ -373,16 +360,14 @@ export default function IntegrationsPage() {
 
         {available.length > 0 || !searchQuery ? (
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              {t.sections.available}
-            </h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">{t.sections.available}</h3>
             {available.length === 0 && !searchQuery ? (
               <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
                 {t.empty.available}
               </div>
             ) : (
               <div className="space-y-6">
-                {categories.map((category) => {
+                {categories.map(category => {
                   const items = availableByCategory.get(category.key) ?? [];
                   if (items.length === 0) return null;
                   return (
@@ -395,7 +380,7 @@ export default function IntegrationsPage() {
                         <div className="h-px flex-1 bg-gray-200" />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {items.map((item) => (
+                        {items.map(item => (
                           <div
                             key={item.key}
                             className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
@@ -410,15 +395,14 @@ export default function IntegrationsPage() {
                                     {item.name}
                                   </h2>
                                   <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                    <CheckCircle2 className="h-3 w-3 mr-1" />{" "}
-                                    {item.badge}
+                                    <CheckCircle2 className="h-3 w-3 mr-1" /> {item.badge}
                                   </span>
                                 </div>
                                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                                   {item.description}
                                 </p>
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                  {item.actions.map((action) =>
+                                  {item.actions.map(action =>
                                     action.external ? (
                                       <a
                                         key={action.href}
@@ -459,14 +443,12 @@ export default function IntegrationsPage() {
             <div className="mb-4 rounded-full bg-gray-100 p-4">
               <Search className="h-8 w-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900">
-              Ничего не найдено
-            </h3>
+            <h3 className="text-lg font-medium text-gray-900">Ничего не найдено</h3>
             <p className="text-gray-500 mt-1">
               По запросу «{searchQuery}» нет подходящих интеграций.
             </p>
             <button
-              onClick={() => setSearchQuery("")}
+              onClick={() => setSearchQuery('')}
               className="mt-4 text-sm font-semibold text-primary hover:underline"
             >
               Сбросить поиск

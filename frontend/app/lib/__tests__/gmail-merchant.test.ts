@@ -15,7 +15,8 @@ describe('resolveGmailMerchantLabel', () => {
 
   it('prefers sender brand when vendor is long descriptive sentence', () => {
     const label = resolveGmailMerchantLabel({
-      vendor: 'We received payment for your sponsorship. Thanks for your support of Open Source Software!',
+      vendor:
+        'We received payment for your sponsorship. Thanks for your support of Open Source Software!',
       sender: 'GitHub <noreply@github.com>',
       subject: '[GitHub] Payment receipt',
     });

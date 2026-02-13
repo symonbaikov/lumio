@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
 import type { AuditEventDiff } from '@/lib/api/audit';
+import React from 'react';
 
 const formatValue = (value: any) => {
   if (value === null || value === undefined) return '—';
@@ -57,18 +57,16 @@ export function DiffViewer({ diff }: { diff: AuditEventDiff | null }) {
           const hadBefore = Object.prototype.hasOwnProperty.call(before, key);
           const hadAfter = Object.prototype.hasOwnProperty.call(after, key);
           const changed = JSON.stringify(beforeValue) !== JSON.stringify(afterValue);
-          const rowClass = hadBefore && !hadAfter
-            ? 'bg-red-50'
-            : !hadBefore && hadAfter
-              ? 'bg-green-50'
-              : changed
-                ? 'bg-yellow-50'
-                : '';
+          const rowClass =
+            hadBefore && !hadAfter
+              ? 'bg-red-50'
+              : !hadBefore && hadAfter
+                ? 'bg-green-50'
+                : changed
+                  ? 'bg-yellow-50'
+                  : '';
           return (
-            <div
-              key={key}
-              className={`grid grid-cols-3 gap-0 text-sm ${rowClass}`}
-            >
+            <div key={key} className={`grid grid-cols-3 gap-0 text-sm ${rowClass}`}>
               <div className="px-3 py-2 font-medium text-gray-700">{key}</div>
               <div className="px-3 py-2 text-gray-600">
                 <pre className="whitespace-pre-wrap text-xs">{formatValue(beforeValue)}</pre>

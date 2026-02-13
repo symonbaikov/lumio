@@ -19,10 +19,9 @@ import React, { isValidElement, useMemo } from 'react';
 import { useSidePanel } from '../SidePanelContext';
 import {
   ACTION_VARIANTS,
-  BADGE_VARIANTS,
-  STATUS_COLORS,
   type ActionItem,
   type ActionsSection,
+  BADGE_VARIANTS,
   type ChartItem,
   type ChartSection,
   type CustomSection,
@@ -31,6 +30,7 @@ import {
   type MetricsSection,
   type NavigationItem,
   type NavigationSection,
+  STATUS_COLORS,
   type SettingsSection,
   type SettingsSelectItem,
   type SettingsToggleItem,
@@ -77,13 +77,18 @@ function SectionWrapper({
 }) {
   const { collapsedSections, toggleSection } = useSidePanel();
   const isCollapsed = section.collapsible
-    ? (collapsedSections.has(section.id) || (section.defaultCollapsed ?? false))
+    ? collapsedSections.has(section.id) || (section.defaultCollapsed ?? false)
     : false;
 
   if (section.hidden) return null;
 
   return (
-    <div className={cn('border-b border-gray-100 dark:border-gray-800 last:border-b-0', section.className)}>
+    <div
+      className={cn(
+        'border-b border-gray-100 dark:border-gray-800 last:border-b-0',
+        section.className,
+      )}
+    >
       {section.title && (
         <button
           type="button"
@@ -92,7 +97,7 @@ function SectionWrapper({
           className={cn(
             'w-full flex items-center justify-between px-4 py-3',
             'text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400',
-            section.collapsible && 'hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer'
+            section.collapsible && 'hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer',
           )}
         >
           <div className="flex items-center gap-2">
@@ -110,7 +115,7 @@ function SectionWrapper({
       <div
         className={cn(
           'transition-all duration-200 overflow-hidden',
-          isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'
+          isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100',
         )}
       >
         <div className={cn('px-4 pb-4', !section.title && 'pt-4')}>{children}</div>
@@ -134,7 +139,7 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
           <span
             className={cn(
               'flex h-9 w-9 items-center justify-center transition-colors',
-              item.active ? 'text-primary' : 'text-gray-500 dark:text-gray-400'
+              item.active ? 'text-primary' : 'text-gray-500 dark:text-gray-400',
             )}
           >
             <RenderIcon icon={item.icon} size={20} className="shrink-0" />
@@ -147,7 +152,7 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
           <span
             className={cn(
               'inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-[10px] font-semibold rounded-full',
-              BADGE_VARIANTS[item.badgeVariant || 'default']
+              BADGE_VARIANTS[item.badgeVariant || 'default'],
             )}
           >
             {item.badge}
@@ -170,7 +175,7 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
     item.active
       ? 'text-gray-900 font-semibold'
       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
-    depth > 0 && 'ml-6'
+    depth > 0 && 'ml-6',
   );
 
   const handleClick = () => {
@@ -189,7 +194,12 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
           {content}
         </Link>
       ) : (
-        <button type="button" onClick={handleClick} disabled={item.disabled} className={baseClasses}>
+        <button
+          type="button"
+          onClick={handleClick}
+          disabled={item.disabled}
+          className={baseClasses}
+        >
           {content}
         </button>
       )}
@@ -243,9 +253,7 @@ function StatusItemComponent({ item }: { item: StatusItem }) {
           </p>
         )}
       </div>
-      {formattedTime && (
-        <span className="text-xs text-gray-400 shrink-0">{formattedTime}</span>
-      )}
+      {formattedTime && <span className="text-xs text-gray-400 shrink-0">{formattedTime}</span>}
     </div>
   );
 }
@@ -302,21 +310,15 @@ function SummaryItemComponent({ item }: { item: SummaryItem }) {
           </p>
           {item.change && (
             <div className="flex items-center gap-1 mt-1">
-              {item.change.type === 'increase' && (
-                <ArrowUp size={12} className="text-green-500" />
-              )}
-              {item.change.type === 'decrease' && (
-                <ArrowDown size={12} className="text-red-500" />
-              )}
-              {item.change.type === 'neutral' && (
-                <Minus size={12} className="text-gray-400" />
-              )}
+              {item.change.type === 'increase' && <ArrowUp size={12} className="text-green-500" />}
+              {item.change.type === 'decrease' && <ArrowDown size={12} className="text-red-500" />}
+              {item.change.type === 'neutral' && <Minus size={12} className="text-gray-400" />}
               <span
                 className={cn(
                   'text-xs font-medium',
                   item.change.type === 'increase' && 'text-green-600',
                   item.change.type === 'decrease' && 'text-red-600',
-                  item.change.type === 'neutral' && 'text-gray-500'
+                  item.change.type === 'neutral' && 'text-gray-500',
                 )}
               >
                 {item.change.value > 0 ? '+' : ''}
@@ -346,7 +348,7 @@ export function SummarySectionRenderer({ section }: { section: SummarySection })
       'grid gap-2',
       cols === 1 && 'grid-cols-1',
       cols === 2 && 'grid-cols-2',
-      cols === 3 && 'grid-cols-3'
+      cols === 3 && 'grid-cols-3',
     );
   }, [section.layout, section.columns]);
 
@@ -399,7 +401,13 @@ function ChartItemComponent({ item }: { item: ChartItem }) {
     return (
       <div className="space-y-2">
         <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.title}</span>
-        <svg width="100%" height={height} className="overflow-visible" aria-label={item.title} role="img">
+        <svg
+          width="100%"
+          height={height}
+          className="overflow-visible"
+          aria-label={item.title}
+          role="img"
+        >
           <polyline
             fill="none"
             stroke={item.color || 'var(--primary)'}
@@ -445,7 +453,7 @@ export function MetricsSectionRenderer({ section }: { section: MetricsSection })
             <ChartItemComponent key={item.id} item={item} />
           ) : (
             <SummaryItemComponent key={item.id} item={item} />
-          )
+          ),
         )}
       </div>
     </SectionWrapper>
@@ -474,7 +482,7 @@ function ActionItemComponent({ item }: { item: ActionItem }) {
         'focus:outline-none focus:ring-2 focus:ring-primary/20',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         ACTION_VARIANTS[item.variant || 'secondary'],
-        sizeClasses[item.size || 'md']
+        sizeClasses[item.size || 'md'],
       )}
     >
       {item.loading ? (
@@ -544,14 +552,14 @@ function SettingsToggleComponent({ item }: { item: SettingsToggleItem }) {
           'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors',
           'focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2',
           'disabled:opacity-50 disabled:cursor-not-allowed',
-          item.checked ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'
+          item.checked ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700',
         )}
       >
         <span
           className={cn(
             'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
             'translate-y-0.5',
-            item.checked ? 'translate-x-4' : 'translate-x-0.5'
+            item.checked ? 'translate-x-4' : 'translate-x-0.5',
           )}
         />
       </button>
@@ -577,7 +585,7 @@ function SettingsSelectComponent({ item }: { item: SettingsSelectItem }) {
           'w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700',
           'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
           'focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary',
-          'disabled:opacity-50 disabled:cursor-not-allowed'
+          'disabled:opacity-50 disabled:cursor-not-allowed',
         )}
       >
         {item.options.map(option => (
@@ -599,7 +607,7 @@ export function SettingsSectionRenderer({ section }: { section: SettingsSection 
             <SettingsToggleComponent key={item.id} item={item} />
           ) : (
             <SettingsSelectComponent key={item.id} item={item} />
-          )
+          ),
         )}
       </div>
     </SectionWrapper>
@@ -637,7 +645,10 @@ function ErrorItemComponent({ item }: { item: ErrorItem }) {
   return (
     <div className={cn('p-3 rounded-lg border', ERROR_COLORS[item.severity])}>
       <div className="flex items-start gap-3">
-        <IconComponent size={18} className={cn('shrink-0 mt-0.5', ERROR_ICON_COLORS[item.severity])} />
+        <IconComponent
+          size={18}
+          className={cn('shrink-0 mt-0.5', ERROR_ICON_COLORS[item.severity])}
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.title}</p>

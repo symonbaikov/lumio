@@ -112,7 +112,7 @@ function LoginPageContent() {
           textShadow: '0 4px 20px rgba(0,0,0,0.3)',
         }}
       >
-        FinFlow
+        Lumio
       </Typography>
       <Typography variant="h5" sx={{ opacity: 0.9, lineHeight: 1.6 }}>
         {t.rightTagline}

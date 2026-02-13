@@ -1,11 +1,11 @@
 'use client';
 
+import { ArrowRight, Calendar, DollarSign, User } from 'lucide-react';
+import React, { useState } from 'react';
 import { Badge, type BadgeVariant } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Card } from '../../../components/ui/card';
 import { Checkbox } from '../../../components/ui/checkbox';
-import { ArrowRight, Calendar, DollarSign, User } from 'lucide-react';
-import React, { useState } from 'react';
 
 interface DuplicateTransaction {
   id: string;

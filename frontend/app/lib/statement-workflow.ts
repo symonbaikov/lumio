@@ -46,7 +46,7 @@ const STAGE_ACTIONS: Record<StatementStage, StatementStageAction[]> = {
   ],
 };
 
-const STORAGE_KEY = 'finflow-statement-stage';
+const STORAGE_KEY = 'lumio-statement-stage';
 
 const EMPTY_STAGE_COUNTS: StatementStageCounts = {
   submit: 0,
@@ -92,9 +92,12 @@ export function countStatementStages(
   statementIds: string[],
   stageMap: Record<string, StatementStage>,
 ): StatementStageCounts {
-  return statementIds.reduce<StatementStageCounts>((acc, statementId) => {
-    const stage = stageMap[statementId] ?? 'submit';
-    acc[stage] += 1;
-    return acc;
-  }, { ...EMPTY_STAGE_COUNTS });
+  return statementIds.reduce<StatementStageCounts>(
+    (acc, statementId) => {
+      const stage = stageMap[statementId] ?? 'submit';
+      acc[stage] += 1;
+      return acc;
+    },
+    { ...EMPTY_STAGE_COUNTS },
+  );
 }

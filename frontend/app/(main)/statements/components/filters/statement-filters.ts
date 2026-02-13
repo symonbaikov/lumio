@@ -89,12 +89,7 @@ const resolveStatementDateValue = (statement: StatementFilterItem) => {
     return statement.parsedData?.date || statement.receivedAt || statement.createdAt || '';
   }
 
-  return (
-    statement.statementDateTo ||
-    statement.statementDateFrom ||
-    statement.createdAt ||
-    ''
-  );
+  return statement.statementDateTo || statement.statementDateFrom || statement.createdAt || '';
 };
 
 const toDateOnlyString = (value?: string | null) => {
@@ -145,8 +140,8 @@ const matchesKeywords = (statement: StatementFilterItem, rawQuery: string) => {
     statement.user?.email,
   ]
     .filter(Boolean)
-    .map((value) => value?.toString().toLowerCase() || '');
-  return candidates.some((value) => value.includes(query));
+    .map(value => value?.toString().toLowerCase() || '');
+  return candidates.some(value => value.includes(query));
 };
 
 const matchesToken = (token: string, statement: StatementFilterItem) => {
@@ -286,18 +281,18 @@ export const applyStatementsFilters = <T extends StatementFilterItem>(
 
   if (filters.type) {
     const typeValue = filters.type.toLowerCase();
-    result = result.filter((statement) => (statement.fileType || '').toLowerCase() === typeValue);
+    result = result.filter(statement => (statement.fileType || '').toLowerCase() === typeValue);
   }
 
   if (filters.statuses.length > 0) {
-    const normalized = filters.statuses.map((value) => value.toLowerCase());
-    result = result.filter((statement) =>
+    const normalized = filters.statuses.map(value => value.toLowerCase());
+    result = result.filter(statement =>
       normalized.includes((statement.status || '').toLowerCase()),
     );
   }
 
   if (filters.approved !== null) {
-    result = result.filter((statement) => {
+    result = result.filter(statement => {
       const status = (statement.status || '').toLowerCase();
       if (!status) return false;
       if (filters.approved) return APPROVED_STATUSES.has(status);
@@ -306,7 +301,7 @@ export const applyStatementsFilters = <T extends StatementFilterItem>(
   }
 
   if (filters.billable !== null) {
-    result = result.filter((statement) => {
+    result = result.filter(statement => {
       const amount = resolveStatementAmount(statement);
       return filters.billable ? amount > 0 : amount <= 0;
     });
@@ -318,7 +313,7 @@ export const applyStatementsFilters = <T extends StatementFilterItem>(
 
     if (filters.date.preset) {
       const { start, end } = getPresetRange(filters.date.preset, now);
-      result = result.filter((statement) => {
+      result = result.filter(statement => {
         const dateValue = statementDateGetter(statement);
         if (!dateValue) return false;
         return dateValue >= start && dateValue <= end;
@@ -326,7 +321,7 @@ export const applyStatementsFilters = <T extends StatementFilterItem>(
     } else if (filters.date.mode && filters.date.date) {
       const filterDate = toDateOnly(filters.date.date);
       if (filterDate) {
-        result = result.filter((statement) => {
+        result = result.filter(statement => {
           const dateValue = statementDateGetter(statement);
           if (!dateValue) return false;
           if (filters.date?.mode === 'on') {
@@ -342,44 +337,40 @@ export const applyStatementsFilters = <T extends StatementFilterItem>(
   }
 
   if (filters.from.length > 0) {
-    result = result.filter((statement) => filters.from.some((token) => matchesToken(token, statement)));
+    result = result.filter(statement => filters.from.some(token => matchesToken(token, statement)));
   }
 
   if (filters.to.length > 0) {
-    result = result.filter((statement) => filters.to.some((token) => matchesToken(token, statement)));
+    result = result.filter(statement => filters.to.some(token => matchesToken(token, statement)));
   }
 
   if (filters.currencies.length > 0) {
-    const normalized = filters.currencies.map((value) => value.toLowerCase());
-    result = result.filter((statement) =>
+    const normalized = filters.currencies.map(value => value.toLowerCase());
+    result = result.filter(statement =>
       normalized.includes(resolveStatementCurrency(statement).toLowerCase()),
     );
   }
 
   if (filters.exported !== null) {
-    result = result.filter((statement) =>
+    result = result.filter(statement =>
       filters.exported ? Boolean(statement.exported) : !statement.exported,
     );
   }
 
   if (filters.paid !== null) {
-    result = result.filter((statement) =>
-      filters.paid ? Boolean(statement.paid) : !statement.paid,
-    );
+    result = result.filter(statement => (filters.paid ? Boolean(statement.paid) : !statement.paid));
   }
 
   if (filters.has.length > 0) {
-    result = result.filter((statement) =>
-      filters.has.every((token) => matchesHas(token, statement)),
-    );
+    result = result.filter(statement => filters.has.every(token => matchesHas(token, statement)));
   }
 
   if (filters.keywords.trim()) {
-    result = result.filter((statement) => matchesKeywords(statement, filters.keywords));
+    result = result.filter(statement => matchesKeywords(statement, filters.keywords));
   }
 
   if (filters.amountMin !== null || filters.amountMax !== null) {
-    result = result.filter((statement) => {
+    result = result.filter(statement => {
       const amount = resolveStatementAmount(statement);
       if (filters.amountMin !== null && amount < filters.amountMin) return false;
       if (filters.amountMax !== null && amount > filters.amountMax) return false;

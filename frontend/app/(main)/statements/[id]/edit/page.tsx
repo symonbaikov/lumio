@@ -15,20 +15,20 @@ import {
   Delete,
   Edit,
   Error as ErrorIcon,
+  ExpandMore,
   Info,
   Receipt,
   Save,
+  TableChart,
   TrendingDown,
   TrendingUp,
   Warning,
-  TableChart,
-  ExpandMore,
 } from '@mui/icons-material';
 import {
-  Alert,
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Alert,
   Box,
   Button,
   Card,
@@ -57,22 +57,22 @@ import {
 } from '@mui/material';
 
 import { useIntlayer, useLocale } from 'next-intlayer';
-import { toast } from 'react-hot-toast';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { ModalShell } from '@/app/components/ui/modal-shell';
-import StatementCategoryDrawer from './StatementCategoryDrawer';
 import {
+  type StatementStage,
+  type StatementStageAction,
+  type StatementStageActionId,
   getStatementStage,
   getStatementStageActions,
   isStageActionBlocked,
   setStatementStage,
-  type StatementStage,
-  type StatementStageAction,
-  type StatementStageActionId,
 } from '@/app/lib/statement-workflow';
+import StatementCategoryDrawer from './StatementCategoryDrawer';
 
 interface CategoryOption {
   id: string;
@@ -127,16 +127,16 @@ interface Statement {
   statementDateTo?: string | null;
   balanceStart?: number | string | null;
   balanceEnd?: number | string | null;
-    parsingDetails?: {
-      detectedBank?: string;
-      detectedFormat?: string;
-      detectedBy?: string;
-      detectedEvidence?: string[];
-      otherBankMentions?: string[];
-      parserUsed?: string;
-      totalLinesProcessed?: number;
-      transactionsFound?: number;
-      transactionsCreated?: number;
+  parsingDetails?: {
+    detectedBank?: string;
+    detectedFormat?: string;
+    detectedBy?: string;
+    detectedEvidence?: string[];
+    otherBankMentions?: string[];
+    parserUsed?: string;
+    totalLinesProcessed?: number;
+    transactionsFound?: number;
+    transactionsCreated?: number;
     errors?: string[];
     warnings?: string[];
     metadataExtracted?: {
@@ -184,6 +184,9 @@ const resolveLocale = (locale: string) => {
   return 'en-US';
 };
 
+const isIdEmpty = (id?: string | null) =>
+  !id || id === 'null' || id === 'undefined' || id === '0' || id === '';
+
 export default function EditStatementPage() {
   const params = useParams();
   const router = useRouter();
@@ -210,7 +213,9 @@ export default function EditStatementPage() {
   const [bulkCategoryDialogOpen, setBulkCategoryDialogOpen] = useState(false);
   const [statementCategoryDrawerOpen, setStatementCategoryDrawerOpen] = useState(false);
   const [statementCategorySaving, setStatementCategorySaving] = useState(false);
-  const [stageActionLoadingId, setStageActionLoadingId] = useState<StatementStageActionId | null>(null);
+  const [stageActionLoadingId, setStageActionLoadingId] = useState<StatementStageActionId | null>(
+    null,
+  );
   const [currentStage, setCurrentStage] = useState<StatementStage>('submit');
 
   const [bulkCategoryId, setBulkCategoryId] = useState('');
@@ -602,8 +607,7 @@ export default function EditStatementPage() {
     submitForApproval: labels.submitSuccess?.value || 'Statement submitted for approval',
     unapprove: labels.unapproveSuccess?.value || 'Statement moved back to submit',
     pay: labels.paySuccess?.value || 'Statement moved to pay',
-    rollbackToApprove:
-      labels.rollbackToApproveSuccess?.value || 'Statement moved back to approve',
+    rollbackToApprove: labels.rollbackToApproveSuccess?.value || 'Statement moved back to approve',
   };
 
   const flattenedStatementCategories = flattenStatementCategories(categories);
@@ -653,7 +657,11 @@ export default function EditStatementPage() {
 
       toast.success(labels.categoryUpdated?.value || 'Category updated');
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || labels.categoryUpdateFailed?.value || 'Failed to update category');
+      setError(
+        err.response?.data?.error?.message ||
+          labels.categoryUpdateFailed?.value ||
+          'Failed to update category',
+      );
     } finally {
       setStatementCategorySaving(false);
     }
@@ -667,7 +675,9 @@ export default function EditStatementPage() {
     );
   }
 
-  const missingCategoryCount = transactions.filter(t => !t.categoryId && !t.category?.id).length;
+  const missingCategoryCount = transactions.filter(
+    t => isIdEmpty(t.categoryId) && isIdEmpty(t.category?.id),
+  ).length;
 
   const totalIncome = transactions.reduce((sum, t) => {
     const credit = Number(t.credit);
@@ -726,32 +736,32 @@ export default function EditStatementPage() {
               {statement?.fileName}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                <Chip
-                  icon={<Receipt />}
-                  label={`${statement?.totalTransactions} ${t.labels.transactionsCount.value || 'транзакций'}`}
-                  size="small"
-                  sx={{
-                    bgcolor: 'grey.50',
-                    color: 'text.secondary',
-                    border: '1px solid',
-                    borderColor: 'grey.200',
-                    fontWeight: 500,
-                    borderRadius: 1.5,
-                    '& .MuiChip-icon': { color: 'text.secondary' },
-                  }}
-                />
+              <Chip
+                icon={<Receipt />}
+                label={`${statement?.totalTransactions} ${t.labels.transactionsCount.value || 'транзакций'}`}
+                size="small"
+                sx={{
+                  bgcolor: 'grey.50',
+                  color: 'text.secondary',
+                  border: '1px solid',
+                  borderColor: 'grey.200',
+                  fontWeight: 500,
+                  borderRadius: 1.5,
+                  '& .MuiChip-icon': { color: 'text.secondary' },
+                }}
+              />
               {missingCategoryCount > 0 && (
                 <Chip
                   icon={<Warning />}
                   label={`${missingCategoryCount} без категории`}
                   size="small"
                   sx={{
-                    bgcolor: 'warning.50',
-                    color: 'warning.800',
+                    bgcolor: 'error.50',
+                    color: 'error.800',
                     border: '1px solid',
-                    borderColor: 'warning.200',
-                    fontWeight: 500,
-                    '& .MuiChip-icon': { color: 'warning.700' },
+                    borderColor: 'error.200',
+                    fontWeight: 600,
+                    '& .MuiChip-icon': { color: 'error.700' },
                   }}
                 />
               )}
@@ -771,17 +781,33 @@ export default function EditStatementPage() {
               title={selectedStatementCategoryName}
               sx={{
                 textTransform: 'none',
-                fontWeight: 600,
-                borderColor: 'grey.300',
-                color: 'text.secondary',
+                fontWeight: 700,
                 borderRadius: 2,
                 minWidth: 0,
                 maxWidth: { xs: '100%', md: 280 },
                 overflow: 'hidden',
-                '& .MuiButton-startIcon': {
-                  flexShrink: 0,
-                },
-                '&:hover': { borderColor: 'primary.300', color: 'primary.700', bgcolor: 'primary.50' },
+                ...(isIdEmpty(statement?.categoryId) && isIdEmpty(statement?.category?.id)
+                  ? {
+                      borderColor: '#ef4444 !important',
+                      color: '#b91c1c !important',
+                      bgcolor: '#fef2f2 !important',
+                      borderWidth: '2px !important',
+                      '& .MuiButton-startIcon': {
+                        color: '#dc2626 !important',
+                      },
+                      '&:hover': {
+                        bgcolor: '#fee2e2 !important',
+                        borderColor: '#dc2626 !important',
+                      },
+                    }
+                  : {
+                      borderColor: '#e5e7eb',
+                      color: '#4b5563',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        bgcolor: 'rgba(25, 118, 210, 0.04)',
+                      },
+                    }),
               }}
             >
               <Box
@@ -806,7 +832,11 @@ export default function EditStatementPage() {
                 borderColor: 'grey.300',
                 color: 'text.secondary',
                 borderRadius: 2,
-                '&:hover': { borderColor: 'primary.300', color: 'primary.700', bgcolor: 'primary.50' },
+                '&:hover': {
+                  borderColor: 'primary.300',
+                  color: 'primary.700',
+                  bgcolor: 'primary.50',
+                },
               }}
             >
               {t.labels.exportButton.value}
@@ -888,7 +918,9 @@ export default function EditStatementPage() {
         }}
       >
         <CardContent sx={{ p: 3, overflow: 'visible' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box
+            sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}
+          >
             <Typography
               variant="h6"
               sx={{
@@ -1072,16 +1104,17 @@ export default function EditStatementPage() {
                       {statement.parsingDetails.transactionsCreated ?? '—'}
                     </Typography>
                   </Box>
-                  {statement.parsingDetails.errors && statement.parsingDetails.errors.length > 0 && (
-                    <Box>
-                      <Typography variant="caption" color="error">
-                        Ошибки
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500, color: 'error.main' }}>
-                        {statement.parsingDetails.errors.length}
-                      </Typography>
-                    </Box>
-                  )}
+                  {statement.parsingDetails.errors &&
+                    statement.parsingDetails.errors.length > 0 && (
+                      <Box>
+                        <Typography variant="caption" color="error">
+                          Ошибки
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'error.main' }}>
+                          {statement.parsingDetails.errors.length}
+                        </Typography>
+                      </Box>
+                    )}
                   {statement.parsingDetails.warnings &&
                     statement.parsingDetails.warnings.length > 0 && (
                       <Box>
@@ -1144,7 +1177,9 @@ export default function EditStatementPage() {
                 Расходы
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5, color: 'error.main' }}>
-                {!Number.isNaN(totalExpense) && totalExpense >= 0 ? formatNumber(totalExpense) : '0.00'}
+                {!Number.isNaN(totalExpense) && totalExpense >= 0
+                  ? formatNumber(totalExpense)
+                  : '0.00'}
               </Typography>
             </Box>
             <Box sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}>
@@ -1152,7 +1187,9 @@ export default function EditStatementPage() {
                 Доходы
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5, color: 'success.main' }}>
-                {!Number.isNaN(totalIncome) && totalIncome >= 0 ? formatNumber(totalIncome) : '0.00'}
+                {!Number.isNaN(totalIncome) && totalIncome >= 0
+                  ? formatNumber(totalIncome)
+                  : '0.00'}
               </Typography>
             </Box>
           </Box>
@@ -1182,7 +1219,9 @@ export default function EditStatementPage() {
               disabled={exportingToTable || !transactions.length}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {exportingToTable ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : null}
+              {exportingToTable ? (
+                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+              ) : null}
               {t.labels.exportConfirmConfirm.value}
             </button>
           </div>
@@ -1406,23 +1445,22 @@ export default function EditStatementPage() {
             {transactions.map(transaction => {
               const isEditing = editingRow === transaction.id;
               const edited = editedData[transaction.id] || transaction;
-              const missingCategory = !(
-                edited.categoryId ??
-                transaction.categoryId ??
-                transaction.category?.id
-              );
+              const missingCategory =
+                isIdEmpty(edited.categoryId) &&
+                isIdEmpty(transaction.categoryId) &&
+                isIdEmpty(transaction.category?.id);
 
               return (
                 <TableRow
                   key={transaction.id}
                   hover
                   sx={{
-                    bgcolor: missingCategory ? 'warning.50' : undefined,
+                    bgcolor: missingCategory ? 'error.50' : undefined,
                     borderLeft: missingCategory ? '3px solid' : undefined,
-                    borderLeftColor: missingCategory ? 'warning.400' : undefined,
+                    borderLeftColor: missingCategory ? 'error.400' : undefined,
                     transition: 'all 0.15s',
                     '&:hover': {
-                      bgcolor: missingCategory ? 'warning.100' : 'grey.50',
+                      bgcolor: missingCategory ? 'error.100' : 'grey.50',
                     },
                   }}
                 >
@@ -1503,13 +1541,14 @@ export default function EditStatementPage() {
                             size="small"
                             icon={<Warning sx={{ fontSize: 16 }} />}
                             sx={{
-                              bgcolor: 'warning.50',
-                              color: 'warning.800',
-                              border: 'none',
-                              fontWeight: 500,
+                              bgcolor: 'error.50',
+                              color: 'error.700',
+                              border: '1px solid',
+                              borderColor: 'error.100',
+                              fontWeight: 600,
                               fontSize: '0.8125rem',
                               '& .MuiChip-icon': {
-                                color: 'warning.700',
+                                color: 'error.600',
                               },
                             }}
                           />
@@ -1582,20 +1621,20 @@ export default function EditStatementPage() {
       </TableContainer>
 
       {/* Bulk Category Dialog */}
-        <Dialog
-          open={bulkCategoryDialogOpen}
-          onClose={() => setBulkCategoryDialogOpen(false)}
-          maxWidth="sm"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 2,
-              boxShadow: 'none',
-              border: '1px solid',
-              borderColor: 'grey.200',
-            },
-          }}
-        >
+      <Dialog
+        open={bulkCategoryDialogOpen}
+        onClose={() => setBulkCategoryDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: 'none',
+            border: '1px solid',
+            borderColor: 'grey.200',
+          },
+        }}
+      >
         <DialogTitle
           sx={{
             fontWeight: 600,

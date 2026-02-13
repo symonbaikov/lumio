@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function StatementsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/statements/submit");
+    router.replace('/statements/submit');
   }, [router]);
 
   return null;

@@ -1,11 +1,11 @@
 'use client';
 
+import { Button } from '@/app/components/ui/button';
 import { resolveBankLogo } from '@bank-logos';
 import { Download, FileText, FileUp, TrendingDown, TrendingUp } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useIntlayer, useLocale } from 'next-intlayer';
 import React, { useMemo } from 'react';
-import { Button } from '@/app/components/ui/button';
-import { Loader2 } from 'lucide-react';
 import type { StatementDetails, Transaction } from './types';
 
 interface SummaryBarProps {
@@ -95,20 +95,20 @@ export default function SummaryBar({
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2 text-sm text-gray-900">
-              <FileText className="h-4 w-4" />
-              <span className="font-semibold">{getBankDisplayName(statement.bankName)}</span>
-              {statement.metadata?.accountNumber && (
+              <div className="flex items-center gap-2 text-sm text-gray-900">
+                <FileText className="h-4 w-4" />
+                <span className="font-semibold">{getBankDisplayName(statement.bankName)}</span>
+                {statement.metadata?.accountNumber && (
                   <>
                     <span>•</span>
                     <span>{statement.metadata.accountNumber}</span>
                   </>
                 )}
               </div>
-            <div className="text-xs text-gray-500">
-              {t.uploadedAt.value}: {formatDate(statement.createdAt)}
+              <div className="text-xs text-gray-500">
+                {t.uploadedAt.value}: {formatDate(statement.createdAt)}
+              </div>
             </div>
-          </div>
           </div>
 
           {/* Parsing status */}
@@ -168,11 +168,11 @@ export default function SummaryBar({
           <div className="flex flex-wrap items-center gap-2">
             {(stats.totalErrors > 0 || stats.uncategorized > 0) && (
               <Button
-                variant={stats.totalErrors > 0 ? "destructive" : "secondary"}
+                variant={stats.totalErrors > 0 ? 'destructive' : 'secondary'}
                 size="sm"
                 onClick={onFixIssues}
                 disabled={fixing}
-                className={fixing ? "opacity-70 cursor-not-allowed" : ""}
+                className={fixing ? 'opacity-70 cursor-not-allowed' : ''}
               >
                 {fixing ? (
                   <>
@@ -187,20 +187,12 @@ export default function SummaryBar({
               </Button>
             )}
             {onDownload && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onDownload}
-              >
+              <Button variant="outline" size="sm" onClick={onDownload}>
                 <Download className="mr-2 h-4 w-4" />
                 {t.download?.value || 'Download'}
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onExport}
-            >
+            <Button variant="outline" size="sm" onClick={onExport}>
               <FileUp className="mr-2 h-4 w-4" />
               {t.export.value}
             </Button>

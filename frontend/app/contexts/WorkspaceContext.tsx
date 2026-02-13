@@ -85,7 +85,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         setError(null);
         await api.post(`/workspaces/${workspaceId}/switch`);
 
-        const workspace = workspaces.find((w) => w.id === workspaceId);
+        const workspace = workspaces.find(w => w.id === workspaceId);
         if (workspace) {
           setCurrentWorkspace(workspace);
           localStorage.setItem('currentWorkspaceId', workspaceId);
@@ -112,8 +112,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     async (workspaceId: string) => {
       try {
         const response = await api.patch(`/workspaces/${workspaceId}/favorite`);
-        const updatedWorkspaces = workspaces.map((w) =>
-          w.id === workspaceId ? { ...w, isFavorite: response.data.isFavorite } : w
+        const updatedWorkspaces = workspaces.map(w =>
+          w.id === workspaceId ? { ...w, isFavorite: response.data.isFavorite } : w,
         );
         setWorkspaces(updatedWorkspaces);
         if (currentWorkspace?.id === workspaceId) {
@@ -124,15 +124,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         throw err;
       }
     },
-    [workspaces, currentWorkspace]
+    [workspaces, currentWorkspace],
   );
 
   const updateWorkspaceBackground = useCallback(
     async (workspaceId: string, backgroundImage: string) => {
       try {
         await api.patch(`/workspaces/${workspaceId}`, { backgroundImage });
-        const updatedWorkspaces = workspaces.map((w) =>
-          w.id === workspaceId ? { ...w, backgroundImage } : w
+        const updatedWorkspaces = workspaces.map(w =>
+          w.id === workspaceId ? { ...w, backgroundImage } : w,
         );
         setWorkspaces(updatedWorkspaces);
         if (currentWorkspace?.id === workspaceId) {
@@ -143,7 +143,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         throw err;
       }
     },
-    [workspaces, currentWorkspace]
+    [workspaces, currentWorkspace],
   );
 
   useEffect(() => {

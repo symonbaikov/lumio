@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  filterStatementCategories,
-  flattenStatementCategories,
-} from '../statement-categories';
+import { filterStatementCategories, flattenStatementCategories } from '../statement-categories';
 
 describe('statement categories helpers', () => {
   const categories = [

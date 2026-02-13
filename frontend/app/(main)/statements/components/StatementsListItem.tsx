@@ -133,8 +133,10 @@ export function StatementsListItem({
             </>
           )}
         </div>
-        <div className="w-28 text-right text-sm font-bold text-gray-900 tabular-nums">{amountLabel}</div>
-        <div className="w-28 flex items-center justify-end gap-2">
+        <div className="w-36 text-right text-sm font-bold text-gray-900 tabular-nums break-keep shrink-0">
+          {amountLabel}
+        </div>
+        <div className="w-36 flex items-center justify-end gap-2 shrink-0">
           <button
             type="button"
             onClick={event => {

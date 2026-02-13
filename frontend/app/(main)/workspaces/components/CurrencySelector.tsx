@@ -26,11 +26,11 @@ export function CurrencySelector({ selectedCurrency, onSelect }: CurrencySelecto
       </label>
       <select
         value={selectedCurrency || ''}
-        onChange={(e) => onSelect(e.target.value)}
+        onChange={e => onSelect(e.target.value)}
         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
       >
         <option value="">Select a currency</option>
-        {CURRENCIES.map((currency) => (
+        {CURRENCIES.map(currency => (
           <option key={currency.code} value={currency.code}>
             {currency.symbol} {currency.code} - {currency.name}
           </option>

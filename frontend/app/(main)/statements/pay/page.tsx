@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import StatementsListView from "../components/StatementsListView";
-import StatementsSidePanel from "../components/StatementsSidePanel";
+import StatementsListView from '../components/StatementsListView';
+import StatementsSidePanel from '../components/StatementsSidePanel';
 
 export default function StatementsPayPage() {
   return (

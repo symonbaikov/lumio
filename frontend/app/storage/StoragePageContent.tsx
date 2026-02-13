@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { resolveBankLogo } from "@bank-logos";
+import { resolveBankLogo } from '@bank-logos';
 import {
   DndContext,
   type DragEndEvent,
@@ -13,8 +13,8 @@ import {
   useDroppable,
   useSensor,
   useSensors,
-} from "@dnd-kit/core";
-import { Popover } from "@mui/material";
+} from '@dnd-kit/core';
+import { Popover } from '@mui/material';
 import {
   Bookmark,
   Check,
@@ -38,29 +38,23 @@ import {
   Tag,
   Trash2,
   X,
-} from "lucide-react";
-import { useIntlayer, useLocale } from "next-intlayer";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useCallback,
-} from "react";
-import { HexColorPicker } from "react-colorful";
-import toast from "react-hot-toast";
-import { BankLogoAvatar } from "../components/BankLogoAvatar";
-import ConfirmModal from "../components/ConfirmModal";
-import { DocumentTypeIcon } from "../components/DocumentTypeIcon";
-import { GoogleDriveStorageWidget } from "../components/GoogleDriveStorageWidget";
-import { DropboxStorageWidget } from "../components/DropboxStorageWidget";
-import { PDFPreviewModal } from "../components/PDFPreviewModal";
-import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
-import api from "../lib/api";
+} from 'lucide-react';
+import { useIntlayer, useLocale } from 'next-intlayer';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { HexColorPicker } from 'react-colorful';
+import toast from 'react-hot-toast';
+import { BankLogoAvatar } from '../components/BankLogoAvatar';
+import ConfirmModal from '../components/ConfirmModal';
+import { DocumentTypeIcon } from '../components/DocumentTypeIcon';
+import { DropboxStorageWidget } from '../components/DropboxStorageWidget';
+import { GoogleDriveStorageWidget } from '../components/GoogleDriveStorageWidget';
+import { PDFPreviewModal } from '../components/PDFPreviewModal';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
+import api from '../lib/api';
 
-type FileAvailabilityStatus = "both" | "disk" | "db" | "missing";
+type FileAvailabilityStatus = 'both' | 'disk' | 'db' | 'missing';
 
 type FileAvailability = {
   onDisk: boolean;
@@ -128,57 +122,57 @@ interface CategoryOption {
   icon?: string;
 }
 
-type SortField = "createdAt" | "fileName" | "bankName";
-type SortDirection = "asc" | "desc";
+type SortField = 'createdAt' | 'fileName' | 'bankName';
+type SortDirection = 'asc' | 'desc';
 
-const NO_FOLDER = "__none__";
+const NO_FOLDER = '__none__';
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const DEFAULT_TRASH_TTL_DAYS = 30;
 const FOLDER_NAME_MAX = 40;
 const DEFAULT_FILTERS = {
-  status: "",
-  bank: "",
-  categoryId: "",
-  ownership: "",
-  folderId: "",
+  status: '',
+  bank: '',
+  categoryId: '',
+  ownership: '',
+  folderId: '',
 };
 const DEFAULT_SORT: { field: SortField; direction: SortDirection } = {
-  field: "createdAt",
-  direction: "desc",
+  field: 'createdAt',
+  direction: 'desc',
 };
 
 const getBankDisplayName = (bankName: string) => {
   const resolved = resolveBankLogo(bankName);
   if (!resolved) return bankName;
-  return resolved.key !== "other" ? resolved.displayName : bankName;
+  return resolved.key !== 'other' ? resolved.displayName : bankName;
 };
 
 const getAvailabilityColor = (status: FileAvailabilityStatus) => {
   switch (status) {
-    case "both":
-      return "bg-green-100 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-100 dark:border-green-500/30";
-    case "missing":
-      return "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-100 dark:border-red-500/30";
+    case 'both':
+      return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-100 dark:border-green-500/30';
+    case 'missing':
+      return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-100 dark:border-red-500/30';
     default:
-      return "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/60";
+      return 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/60';
   }
 };
 
 const getAvailabilityDot = (status: FileAvailabilityStatus) => {
   switch (status) {
-    case "both":
-      return "bg-green-500";
-    case "missing":
-      return "bg-red-500";
+    case 'both':
+      return 'bg-green-500';
+    case 'missing':
+      return 'bg-red-500';
     default:
-      return "bg-slate-400";
+      return 'bg-slate-400';
   }
 };
 
 const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return "0 B";
+  if (bytes === 0) return '0 B';
   const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 };
@@ -192,7 +186,7 @@ const getTagChipStyle = (tag: TagOption) => {
 };
 
 const truncateFileNameForDisplay = (name: string, maxLength = 15) => {
-  if (!name) return "";
+  if (!name) return '';
   if (name.length <= maxLength) return name;
   const truncated = name.slice(0, Math.max(0, maxLength - 1));
   return `${truncated}…`;
@@ -201,8 +195,8 @@ const truncateFileNameForDisplay = (name: string, maxLength = 15) => {
 const tagChipClass = (isActive: boolean) =>
   `inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
     isActive
-      ? "bg-primary/10 text-primary border-primary/30"
-      : "bg-gray-50 text-gray-700 border-gray-200 dark:bg-slate-800/60 dark:text-gray-200 dark:border-slate-700/60"
+      ? 'bg-primary/10 text-primary border-primary/30'
+      : 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-slate-800/60 dark:text-gray-200 dark:border-slate-700/60'
   }`;
 
 interface DraggableModalFileItemProps {
@@ -223,7 +217,7 @@ const DraggableModalFileItem = React.memo(
     return (
       <div className="px-3 py-2">
         <div
-          className={`flex items-center gap-1 ${canEditFile(file) ? "cursor-grab active:cursor-grabbing" : ""}`}
+          className={`flex items-center gap-1 ${canEditFile(file) ? 'cursor-grab active:cursor-grabbing' : ''}`}
           {...(canEditFile(file) ? { ...attributes, ...listeners } : {})}
         >
           {canEditFile(file) && (
@@ -237,8 +231,8 @@ const DraggableModalFileItem = React.memo(
             onClick={() => router.push(`/statements/${file.id}/view`)}
             title={canEditFile(file) ? t.dragDrop.rowHint.value : undefined}
             className={`flex min-w-0 flex-1 items-center gap-3 text-left hover:text-primary ${
-              isDragging ? "opacity-50" : ""
-            } ${canEditFile(file) ? "cursor-grab active:cursor-grabbing" : ""}`}
+              isDragging ? 'opacity-50' : ''
+            } ${canEditFile(file) ? 'cursor-grab active:cursor-grabbing' : ''}`}
           >
             <div className="flex items-center justify-center">
               <DocumentTypeIcon
@@ -337,7 +331,7 @@ const DraggableFileRow = React.memo(
       <tr
         ref={setNodeRef}
         style={style}
-        className={`transition-all duration-150 hover:bg-gray-50 dark:hover:bg-slate-700/40 ${isDragging ? "bg-blue-50 dark:bg-blue-900/20" : ""}`}
+        className={`transition-all duration-150 hover:bg-gray-50 dark:hover:bg-slate-700/40 ${isDragging ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
       >
         {isTrashView && (
           <td className="px-6 py-5">
@@ -352,7 +346,7 @@ const DraggableFileRow = React.memo(
         )}
         <td className="px-6 py-5">
           <div
-            className={`flex items-center gap-1 ${canEditFile(file) ? "cursor-grab active:cursor-grabbing" : ""}`}
+            className={`flex items-center gap-1 ${canEditFile(file) ? 'cursor-grab active:cursor-grabbing' : ''}`}
             {...(canEditFile(file) ? { ...attributes, ...listeners } : {})}
             title={canEditFile(file) ? t.dragDrop.rowHint.value : undefined}
           >
@@ -408,12 +402,8 @@ const DraggableFileRow = React.memo(
               </div>
               {file.tags && file.tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {file.tags.map((tag) => (
-                    <span
-                      key={tag.id}
-                      className={tagChipClass(false)}
-                      style={getTagChipStyle(tag)}
-                    >
+                  {file.tags.map(tag => (
+                    <span key={tag.id} className={tagChipClass(false)} style={getTagChipStyle(tag)}>
                       {tag.name}
                     </span>
                   ))}
@@ -434,9 +424,7 @@ const DraggableFileRow = React.memo(
 
         <td className="px-6 py-5 whitespace-nowrap">
           <span className="text-sm font-mono text-gray-600 dark:text-gray-300">
-            {file.metadata?.accountNumber
-              ? `••••${file.metadata.accountNumber.slice(-4)}`
-              : "—"}
+            {file.metadata?.accountNumber ? `••••${file.metadata.accountNumber.slice(-4)}` : '—'}
           </span>
         </td>
 
@@ -450,17 +438,17 @@ const DraggableFileRow = React.memo(
 
         <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-700 dark:text-gray-200">
           <select
-            value={file.categoryId || ""}
-            onChange={(e) => handleCategoryChange(file.id, e.target.value)}
+            value={file.categoryId || ''}
+            onChange={e => handleCategoryChange(file.id, e.target.value)}
             disabled={
               isTrashView ||
               categoriesLoading ||
-              (!file.isOwner && file.permissionType !== "editor")
+              (!file.isOwner && file.permissionType !== 'editor')
             }
             className="min-w-40 rounded-lg border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-gray-500"
           >
             <option value="">{t.categoryCell.none}</option>
-            {categories.map((cat) => (
+            {categories.map(cat => (
               <option key={cat.id} value={cat.id}>
                 {cat.name}
               </option>
@@ -472,22 +460,18 @@ const DraggableFileRow = React.memo(
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
               file.isOwner
-                ? "bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-slate-600"
-                : "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-100 border border-indigo-100 dark:border-indigo-500/30"
+                ? 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-slate-600'
+                : 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-100 border border-indigo-100 dark:border-indigo-500/30'
             }`}
           >
-            {file.isOwner
-              ? t.permission.owner.value
-              : getPermissionLabel(file.permissionType)}
+            {file.isOwner ? t.permission.owner.value : getPermissionLabel(file.permissionType)}
           </span>
         </td>
 
         <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-700 dark:text-gray-200">
           <div className="flex flex-col leading-tight">
             <span>
-              {formatDate(
-                isTrashView && file.deletedAt ? file.deletedAt : file.createdAt,
-              )}
+              {formatDate(isTrashView && file.deletedAt ? file.deletedAt : file.createdAt)}
             </span>
           </div>
         </td>
@@ -564,31 +548,25 @@ const DroppableFolderButton = React.memo(
     onContextMenu?: (e: React.MouseEvent) => void;
   }) => {
     const { isOver, setNodeRef } = useDroppable({
-      id: isNoFolder ? "folder-none" : `folder-${folderId}`,
+      id: isNoFolder ? 'folder-none' : `folder-${folderId}`,
       data: { folderId, isNoFolder },
     });
 
     // Additional highlight style if dragged over
-    const highlightClass = isOver
-      ? "ring-2 ring-inset ring-primary bg-primary/10"
-      : "";
+    const highlightClass = isOver ? 'ring-2 ring-inset ring-primary bg-primary/10' : '';
 
     return (
-      <div
-        ref={setNodeRef}
-        className={`relative rounded-lg ${highlightClass}`}
-        role="presentation"
-      >
+      <div ref={setNodeRef} className={`relative rounded-lg ${highlightClass}`} role="presentation">
         <div
           onClick={onClick}
           onContextMenu={onContextMenu}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
               onClick?.(e as any);
             }
           }}
           tabIndex={onClick ? 0 : -1}
-          role={onClick ? "button" : "presentation"}
+          role={onClick ? 'button' : 'presentation'}
           className={className}
         >
           {children}
@@ -606,7 +584,7 @@ const DroppableHeaderTrigger = ({
   onDragOver: () => void;
 }) => {
   const { setNodeRef, isOver } = useDroppable({
-    id: "header-folders-trigger",
+    id: 'header-folders-trigger',
   });
 
   useEffect(() => {
@@ -622,7 +600,7 @@ const DroppableHeaderTrigger = ({
     <div
       ref={setNodeRef}
       className={`relative z-10 transition-all ${
-        isOver ? "ring-2 ring-primary bg-primary/20 scale-105 rounded-full" : ""
+        isOver ? 'ring-2 ring-primary bg-primary/20 scale-105 rounded-full' : ''
       }`}
     >
       {children}
@@ -632,30 +610,26 @@ const DroppableHeaderTrigger = ({
 
 const getStatusTone = (status: string) => {
   const normalized = status.toLowerCase();
-  if (normalized === "completed" || normalized === "parsed") return "success";
-  if (normalized === "processing" || normalized === "uploaded")
-    return "warning";
-  if (normalized === "error") return "error";
-  return "default";
+  if (normalized === 'completed' || normalized === 'parsed') return 'success';
+  if (normalized === 'processing' || normalized === 'uploaded') return 'warning';
+  if (normalized === 'error') return 'error';
+  return 'default';
 };
 
 /**
  * Storage page - displays all files with sharing and permissions
  */
 export function StoragePageContent({
-  initialList = "active",
+  initialList = 'active',
 }: {
-  initialList?: "active" | "trash";
+  initialList?: 'active' | 'trash';
 }) {
   const router = useRouter();
-  const t = useIntlayer("storagePage");
+  const t = useIntlayer('storagePage');
   const { locale } = useLocale();
   const PAGE_SIZE = 20;
   const trashTtlDays = useMemo(() => {
-    const parsed = Number.parseInt(
-      process.env.NEXT_PUBLIC_STORAGE_TRASH_TTL_DAYS || "",
-      10,
-    );
+    const parsed = Number.parseInt(process.env.NEXT_PUBLIC_STORAGE_TRASH_TTL_DAYS || '', 10);
     if (Number.isFinite(parsed) && parsed > 0) {
       return parsed;
     }
@@ -663,33 +637,29 @@ export function StoragePageContent({
   }, []);
   const [files, setFiles] = useState<StorageFile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeList, setActiveList] = useState<"active" | "trash">(
-    initialList as "active" | "trash",
+  const [activeList, setActiveList] = useState<'active' | 'trash'>(
+    initialList as 'active' | 'trash',
   );
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [tags, setTags] = useState<TagOption[]>([]);
   const [folders, setFolders] = useState<FolderOption[]>([]);
-  const [newTagName, setNewTagName] = useState("");
-  const [newTagColor, setNewTagColor] = useState("#4f46e5");
-  const [newFolderName, setNewFolderName] = useState("");
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState('#4f46e5');
+  const [newFolderName, setNewFolderName] = useState('');
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
-  const [editingTagName, setEditingTagName] = useState("");
+  const [editingTagName, setEditingTagName] = useState('');
   const [editingTagColor, setEditingTagColor] = useState<string | null>(null);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
-  const [editingFolderName, setEditingFolderName] = useState("");
+  const [editingFolderName, setEditingFolderName] = useState('');
   const [newTagPickerOpen, setNewTagPickerOpen] = useState(false);
-  const [newTagAnchorEl, setNewTagAnchorEl] =
-    useState<HTMLButtonElement | null>(null);
-  const [editingTagPickerId, setEditingTagPickerId] = useState<string | null>(
-    null,
-  );
-  const [editingTagAnchorEl, setEditingTagAnchorEl] =
-    useState<HTMLButtonElement | null>(null);
+  const [newTagAnchorEl, setNewTagAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [editingTagPickerId, setEditingTagPickerId] = useState<string | null>(null);
+  const [editingTagAnchorEl, setEditingTagAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [views, setViews] = useState<StorageView[]>([]);
   const [viewsLoading, setViewsLoading] = useState(false);
-  const [viewName, setViewName] = useState("");
+  const [viewName, setViewName] = useState('');
   const [viewSaving, setViewSaving] = useState(false);
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
@@ -698,36 +668,27 @@ export function StoragePageContent({
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = PAGE_SIZE;
-  const [activeModal, setActiveModal] = useState<"folders" | null>(null);
+  const [activeModal, setActiveModal] = useState<'folders' | null>(null);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
-  const [folderFileQuery, setFolderFileQuery] = useState("");
+  const [folderFileQuery, setFolderFileQuery] = useState('');
   const [draggingFile, setDraggingFile] = useState<StorageFile | null>(null);
-  const [folderDropTargetId, setFolderDropTargetId] = useState<string | null>(
-    null,
-  );
+  const [folderDropTargetId, setFolderDropTargetId] = useState<string | null>(null);
   const [folderModalFromDrag, setFolderModalFromDrag] = useState(false);
   const [folderMoveFeedback, setFolderMoveFeedback] = useState<{
-    tone: "success" | "error";
+    tone: 'success' | 'error';
     message: string;
   } | null>(null);
-  const [folderTagPickerId, setFolderTagPickerId] = useState<string | null>(
-    null,
-  );
+  const [folderTagPickerId, setFolderTagPickerId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<StorageFile | null>(null);
-  const [permanentDeleteModalOpen, setPermanentDeleteModalOpen] =
-    useState(false);
-  const [fileToDeletePermanently, setFileToDeletePermanently] =
-    useState<StorageFile | null>(null);
+  const [permanentDeleteModalOpen, setPermanentDeleteModalOpen] = useState(false);
+  const [fileToDeletePermanently, setFileToDeletePermanently] = useState<StorageFile | null>(null);
   const [selectedTrashIds, setSelectedTrashIds] = useState<string[]>([]);
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
   const [emptyTrashModalOpen, setEmptyTrashModalOpen] = useState(false);
   const [deleteFolderModalOpen, setDeleteFolderModalOpen] = useState(false);
-  const [folderToDelete, setFolderToDelete] = useState<FolderOption | null>(
-    null,
-  );
-  const [deleteFolderWithContents, setDeleteFolderWithContents] =
-    useState(false);
+  const [folderToDelete, setFolderToDelete] = useState<FolderOption | null>(null);
+  const [deleteFolderWithContents, setDeleteFolderWithContents] = useState(false);
   const [deleteTagModalOpen, setDeleteTagModalOpen] = useState(false);
   const [tagToDelete, setTagToDelete] = useState<TagOption | null>(null);
   const [folderContextMenu, setFolderContextMenu] = useState<{
@@ -741,7 +702,7 @@ export function StoragePageContent({
   // PDF Preview Modal State
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
-  const [previewFileName, setPreviewFileName] = useState<string>("");
+  const [previewFileName, setPreviewFileName] = useState<string>('');
   const [gmailStatus, setGmailStatus] = useState<{
     connected?: boolean;
   } | null>(null);
@@ -751,7 +712,7 @@ export function StoragePageContent({
     const load = async () => {
       try {
         setGmailLoading(true);
-        const resp = await api.get("/integrations/gmail/status");
+        const resp = await api.get('/integrations/gmail/status');
         if (!mounted) return;
         setGmailStatus(resp.data || null);
       } catch (err) {
@@ -765,28 +726,26 @@ export function StoragePageContent({
       mounted = false;
     };
   }, []);
-  const [selectedStorageProvider, setSelectedStorageProvider] = useState<
-    "google" | "dropbox"
-  >("google");
+  const [selectedStorageProvider, setSelectedStorageProvider] = useState<'google' | 'dropbox'>(
+    'google',
+  );
 
   const selectAllTrashRef = useRef<HTMLInputElement | null>(null);
 
-  const folderMoveFeedbackTimeout = useRef<ReturnType<
-    typeof setTimeout
-  > | null>(null);
+  const folderMoveFeedbackTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isTrashView = activeList === "trash";
-  const isFolderActive = activeModal === "folders";
+  const isTrashView = activeList === 'trash';
+  const isFolderActive = activeModal === 'folders';
 
   useEffect(() => {
-    if (!pickedFolderId || activeModal !== "folders") return;
+    if (!pickedFolderId || activeModal !== 'folders') return;
 
     const handleWheel = (e: WheelEvent) => {
       // Find the folder list container or check if the event target is inside the modal
       const now = Date.now();
       if (now - lastWheelTime.current < 80) return; // Throttle faster for smoothness
 
-      const idx = folders.findIndex((f) => f.id === pickedFolderId);
+      const idx = folders.findIndex(f => f.id === pickedFolderId);
       if (idx === -1) return;
 
       if (Math.abs(e.deltaY) < 10) return; // Ignore small movements
@@ -807,14 +766,11 @@ export function StoragePageContent({
     };
 
     // We use capture to override normal scroll if folder is picked
-    window.addEventListener("wheel", handleWheel, { passive: false });
-    return () => window.removeEventListener("wheel", handleWheel);
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
   }, [pickedFolderId, folders, activeModal, t]);
 
-  const handleFolderContextMenu = (
-    event: React.MouseEvent,
-    folder: FolderOption,
-  ) => {
+  const handleFolderContextMenu = (event: React.MouseEvent, folder: FolderOption) => {
     event.preventDefault();
     setFolderContextMenu({
       x: event.clientX,
@@ -826,12 +782,12 @@ export function StoragePageContent({
   useEffect(() => {
     const handleClickOutside = () => setFolderContextMenu(null);
     if (folderContextMenu) {
-      window.addEventListener("click", handleClickOutside);
-      window.addEventListener("scroll", handleClickOutside, true);
+      window.addEventListener('click', handleClickOutside);
+      window.addEventListener('scroll', handleClickOutside, true);
     }
     return () => {
-      window.removeEventListener("click", handleClickOutside);
-      window.removeEventListener("scroll", handleClickOutside, true);
+      window.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('scroll', handleClickOutside, true);
     };
   }, [folderContextMenu]);
 
@@ -856,20 +812,18 @@ export function StoragePageContent({
 
   useEffect(() => {
     if (!isTrashView) return;
-    setSelectedTrashIds((prev) =>
-      prev.filter((id) => files.some((file) => file.id === id)),
-    );
+    setSelectedTrashIds(prev => prev.filter(id => files.some(file => file.id === id)));
   }, [files, isTrashView]);
 
   useLockBodyScroll(activeModal !== null || filterOpen);
 
-  const openModal = (modal: "folders") => {
+  const openModal = (modal: 'folders') => {
     setFilterOpen(false);
     setActiveModal(modal);
     clearFolderMoveFeedback();
-    if (modal === "folders") {
+    if (modal === 'folders') {
       setActiveFolderId(null);
-      setFolderFileQuery("");
+      setFolderFileQuery('');
       setFolderDropTargetId(null);
     }
   };
@@ -877,13 +831,13 @@ export function StoragePageContent({
   const closeModal = () => {
     setActiveModal(null);
     setFolderModalFromDrag(false);
-    setFolderFileQuery("");
+    setFolderFileQuery('');
     setActiveFolderId(null);
     setFolderDropTargetId(null);
     setEditingFolderId(null);
-    setEditingFolderName("");
+    setEditingFolderName('');
     setEditingTagId(null);
-    setEditingTagName("");
+    setEditingTagName('');
     setEditingTagColor(null);
     setNewTagPickerOpen(false);
     setEditingTagPickerId(null);
@@ -892,15 +846,15 @@ export function StoragePageContent({
     clearFolderMoveFeedback();
   };
 
-  const loadFiles = async (listMode: "active" | "trash" = activeList) => {
+  const loadFiles = async (listMode: 'active' | 'trash' = activeList) => {
     try {
       setLoading(true);
-      const response = await api.get("/storage/files", {
-        params: listMode === "trash" ? { deleted: "only" } : undefined,
+      const response = await api.get('/storage/files', {
+        params: listMode === 'trash' ? { deleted: 'only' } : undefined,
       });
       setFiles(response.data);
     } catch (error) {
-      console.error("Failed to load files:", error);
+      console.error('Failed to load files:', error);
       toast.error(t.toasts.loadFilesFailed.value);
     } finally {
       setLoading(false);
@@ -910,10 +864,10 @@ export function StoragePageContent({
   const loadCategories = async () => {
     try {
       setCategoriesLoading(true);
-      const response = await api.get("/categories");
+      const response = await api.get('/categories');
       setCategories(response.data || []);
     } catch (error) {
-      console.error("Failed to load categories:", error);
+      console.error('Failed to load categories:', error);
       toast.error(t.toasts.loadCategoriesFailed.value);
     } finally {
       setCategoriesLoading(false);
@@ -922,20 +876,20 @@ export function StoragePageContent({
 
   const loadTags = async () => {
     try {
-      const response = await api.get("/storage/tags");
+      const response = await api.get('/storage/tags');
       setTags(response.data || []);
     } catch (error) {
-      console.error("Failed to load tags:", error);
+      console.error('Failed to load tags:', error);
       toast.error(t.toasts.loadTagsFailed.value);
     }
   };
 
   const loadFolders = async () => {
     try {
-      const response = await api.get("/storage/folders");
+      const response = await api.get('/storage/folders');
       setFolders(response.data || []);
     } catch (error) {
-      console.error("Failed to load folders:", error);
+      console.error('Failed to load folders:', error);
       toast.error(t.toasts.loadFoldersFailed.value);
     }
   };
@@ -943,10 +897,10 @@ export function StoragePageContent({
   const loadViews = async () => {
     try {
       setViewsLoading(true);
-      const response = await api.get("/storage/views");
+      const response = await api.get('/storage/views');
       setViews(response.data || []);
     } catch (error) {
-      console.error("Failed to load views:", error);
+      console.error('Failed to load views:', error);
       toast.error(t.toasts.loadViewsFailed.value);
     } finally {
       setViewsLoading(false);
@@ -954,12 +908,10 @@ export function StoragePageContent({
   };
 
   const handleView = (fileId: string) => {
-    const file = files.find((f) => f.id === fileId);
+    const file = files.find(f => f.id === fileId);
     if (
       file &&
-      (file.status === "completed" ||
-        file.status === "parsed" ||
-        file.status === "validated")
+      (file.status === 'completed' || file.status === 'parsed' || file.status === 'validated')
     ) {
       router.push(`/statements/${fileId}/edit`);
     } else {
@@ -970,19 +922,19 @@ export function StoragePageContent({
   const handleDownload = async (fileId: string, fileName: string) => {
     try {
       const response = await api.get(`/storage/files/${fileId}/download`, {
-        responseType: "blob",
+        responseType: 'blob',
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = url;
-      link.setAttribute("download", fileName);
+      link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
       toast.success(t.toasts.downloaded.value);
     } catch (error) {
-      console.error("Failed to download file:", error);
+      console.error('Failed to download file:', error);
       toast.error(t.toasts.downloadFailed.value);
     }
   };
@@ -993,8 +945,8 @@ export function StoragePageContent({
         categoryId: categoryId || null,
       });
 
-      setFiles((prev) =>
-        prev.map((file) =>
+      setFiles(prev =>
+        prev.map(file =>
           file.id === fileId
             ? {
                 ...file,
@@ -1006,14 +958,13 @@ export function StoragePageContent({
       );
       toast.success(t.toasts.categoryUpdated.value);
     } catch (error) {
-      console.error("Failed to update file category:", error);
+      console.error('Failed to update file category:', error);
       toast.error(t.toasts.categoryUpdateFailed.value);
     }
   };
 
   const canEditFile = useCallback(
-    (file: StorageFile) =>
-      !file.deletedAt && (file.isOwner || file.permissionType === "editor"),
+    (file: StorageFile) => !file.deletedAt && (file.isOwner || file.permissionType === 'editor'),
     [],
   );
   const canEditFolder = (folder: FolderOption) => folder.userId !== null;
@@ -1034,7 +985,7 @@ export function StoragePageContent({
     setFolderMoveFeedback(null);
   };
 
-  const setFolderMoveMessage = (tone: "success" | "error", message: string) => {
+  const setFolderMoveMessage = (tone: 'success' | 'error', message: string) => {
     clearFolderMoveFeedback();
     setFolderMoveFeedback({ tone, message });
     folderMoveFeedbackTimeout.current = setTimeout(() => {
@@ -1094,40 +1045,33 @@ export function StoragePageContent({
     }
   };
 
-  const handleMoveToFolder = async (
-    fileId: string,
-    folderId: string | null,
-  ) => {
+  const handleMoveToFolder = async (fileId: string, folderId: string | null) => {
     try {
       await api.patch(`/storage/files/${fileId}/folder`, {
         folderId,
       });
-      setFiles((prev) =>
-        prev.map((file) =>
+      setFiles(prev =>
+        prev.map(file =>
           file.id === fileId
             ? {
                 ...file,
                 folderId,
-                folder: folderId
-                  ? (folders.find((folder) => folder.id === folderId) ?? null)
-                  : null,
+                folder: folderId ? (folders.find(folder => folder.id === folderId) ?? null) : null,
               }
             : file,
         ),
       );
-      const folderName = folderId
-        ? folders.find((f) => f.id === folderId)?.name
-        : null;
+      const folderName = folderId ? folders.find(f => f.id === folderId)?.name : null;
       const message = folderName
         ? `${(t.toasts as any).fileMovedTo.value} "${folderName}"`
         : t.toasts.folderUpdated.value;
 
       toast.success(message);
-      setFolderMoveMessage("success", message);
+      setFolderMoveMessage('success', message);
     } catch (error) {
-      console.error("Failed to move file to folder:", error);
+      console.error('Failed to move file to folder:', error);
       toast.error(t.toasts.folderUpdateFailed.value);
-      setFolderMoveMessage("error", t.toasts.folderUpdateFailed.value);
+      setFolderMoveMessage('error', t.toasts.folderUpdateFailed.value);
     }
   };
 
@@ -1142,14 +1086,12 @@ export function StoragePageContent({
       return;
     }
     try {
-      const response = await api.post("/storage/folders", { name });
-      setFolders((prev) =>
-        [...prev, response.data].sort((a, b) => a.name.localeCompare(b.name)),
-      );
-      setNewFolderName("");
+      const response = await api.post('/storage/folders', { name });
+      setFolders(prev => [...prev, response.data].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewFolderName('');
       toast.success(t.toasts.folderCreated.value);
     } catch (error) {
-      console.error("Failed to create folder:", error);
+      console.error('Failed to create folder:', error);
       toast.error(t.toasts.folderCreateFailed.value);
     }
   };
@@ -1174,13 +1116,11 @@ export function StoragePageContent({
       const response = await api.patch(`/storage/folders/${folderId}`, {
         name,
       });
-      setFolders((prev) =>
-        prev.map((folder) =>
-          folder.id === folderId ? { ...folder, ...response.data } : folder,
-        ),
+      setFolders(prev =>
+        prev.map(folder => (folder.id === folderId ? { ...folder, ...response.data } : folder)),
       );
-      setFiles((prev) =>
-        prev.map((file) =>
+      setFiles(prev =>
+        prev.map(file =>
           file.folderId === folderId
             ? {
                 ...file,
@@ -1192,35 +1132,30 @@ export function StoragePageContent({
         ),
       );
       setEditingFolderId(null);
-      setEditingFolderName("");
+      setEditingFolderName('');
       toast.success(t.toasts.folderRenamed.value);
     } catch (error) {
-      console.error("Failed to rename folder:", error);
+      console.error('Failed to rename folder:', error);
       toast.error(t.toasts.folderRenameFailed.value);
     }
   };
 
   const handleCancelEditFolder = () => {
     setEditingFolderId(null);
-    setEditingFolderName("");
+    setEditingFolderName('');
   };
 
-  const handleUpdateFolderTag = async (
-    folderId: string,
-    tagId: string | null,
-  ) => {
+  const handleUpdateFolderTag = async (folderId: string, tagId: string | null) => {
     try {
       const response = await api.patch(`/storage/folders/${folderId}`, {
         tagId,
       });
-      setFolders((prev) =>
-        prev.map((folder) =>
-          folder.id === folderId ? { ...folder, ...response.data } : folder,
-        ),
+      setFolders(prev =>
+        prev.map(folder => (folder.id === folderId ? { ...folder, ...response.data } : folder)),
       );
       setFolderTagPickerId(null);
     } catch (error) {
-      console.error("Failed to update folder tag:", error);
+      console.error('Failed to update folder tag:', error);
       toast.error(t.toasts.folderTagUpdateFailed.value);
     }
   };
@@ -1233,14 +1168,12 @@ export function StoragePageContent({
     }
     try {
       const payload = { name, color: newTagColor || undefined };
-      const response = await api.post("/storage/tags", payload);
-      setTags((prev) =>
-        [...prev, response.data].sort((a, b) => a.name.localeCompare(b.name)),
-      );
-      setNewTagName("");
+      const response = await api.post('/storage/tags', payload);
+      setTags(prev => [...prev, response.data].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewTagName('');
       toast.success(t.toasts.tagCreated.value);
     } catch (error) {
-      console.error("Failed to create tag:", error);
+      console.error('Failed to create tag:', error);
       toast.error(t.toasts.tagCreateFailed.value);
     }
   };
@@ -1248,7 +1181,7 @@ export function StoragePageContent({
   const handleStartEditTag = (tag: TagOption) => {
     setEditingTagId(tag.id);
     setEditingTagName(tag.name);
-    setEditingTagColor(tag.color ?? "#4f46e5");
+    setEditingTagColor(tag.color ?? '#4f46e5');
     setEditingTagPickerId(null);
   };
 
@@ -1263,13 +1196,9 @@ export function StoragePageContent({
         name,
         color: editingTagColor,
       });
-      setTags((prev) =>
-        prev.map((tag) =>
-          tag.id === tagId ? { ...tag, ...response.data } : tag,
-        ),
-      );
-      setFolders((prev) =>
-        prev.map((folder) =>
+      setTags(prev => prev.map(tag => (tag.id === tagId ? { ...tag, ...response.data } : tag)));
+      setFolders(prev =>
+        prev.map(folder =>
           folder.tagId === tagId || folder.tag?.id === tagId
             ? {
                 ...folder,
@@ -1280,10 +1209,10 @@ export function StoragePageContent({
             : folder,
         ),
       );
-      setFiles((prev) =>
-        prev.map((file) => ({
+      setFiles(prev =>
+        prev.map(file => ({
           ...file,
-          tags: (file.tags || []).map((tag) =>
+          tags: (file.tags || []).map(tag =>
             tag.id === tagId
               ? {
                   ...tag,
@@ -1295,18 +1224,18 @@ export function StoragePageContent({
         })),
       );
       setEditingTagId(null);
-      setEditingTagName("");
+      setEditingTagName('');
       setEditingTagColor(null);
       toast.success(t.toasts.tagRenamed.value);
     } catch (error) {
-      console.error("Failed to rename tag:", error);
+      console.error('Failed to rename tag:', error);
       toast.error(t.toasts.tagRenameFailed.value);
     }
   };
 
   const handleCancelEditTag = () => {
     setEditingTagId(null);
-    setEditingTagName("");
+    setEditingTagName('');
     setEditingTagColor(null);
     setEditingTagPickerId(null);
   };
@@ -1321,25 +1250,23 @@ export function StoragePageContent({
     const toastId = toast.loading(t.toasts.tagDeleteLoading.value);
     try {
       await api.delete(`/storage/tags/${tagToDelete.id}`);
-      setTags((prev) => prev.filter((tag) => tag.id !== tagToDelete.id));
+      setTags(prev => prev.filter(tag => tag.id !== tagToDelete.id));
       // Remove tag from folders
-      setFolders((prev) =>
-        prev.map((folder) =>
-          folder.tagId === tagToDelete.id
-            ? { ...folder, tagId: null, tag: null }
-            : folder,
+      setFolders(prev =>
+        prev.map(folder =>
+          folder.tagId === tagToDelete.id ? { ...folder, tagId: null, tag: null } : folder,
         ),
       );
       // Remove tag from files
-      setFiles((prev) =>
-        prev.map((file) => ({
+      setFiles(prev =>
+        prev.map(file => ({
           ...file,
-          tags: (file.tags || []).filter((tag) => tag.id !== tagToDelete.id),
+          tags: (file.tags || []).filter(tag => tag.id !== tagToDelete.id),
         })),
       );
       toast.success(t.toasts.tagDeleted.value, { id: toastId });
     } catch (error) {
-      console.error("Failed to delete tag:", error);
+      console.error('Failed to delete tag:', error);
       toast.error(t.toasts.tagDeleteFailed.value, { id: toastId });
     } finally {
       setTagToDelete(null);
@@ -1379,35 +1306,29 @@ export function StoragePageContent({
       await api.delete(`/storage/folders/${targetFolder.id}`, {
         params: { deleteFiles: removeContents },
       });
-      setFolders((prev) =>
-        prev.filter((folder) => folder.id !== targetFolder.id),
-      );
+      setFolders(prev => prev.filter(folder => folder.id !== targetFolder.id));
       if (removeContents) {
-        setFiles((prev) =>
-          prev.filter((file) => file.folderId !== targetFolder.id),
-        );
+        setFiles(prev => prev.filter(file => file.folderId !== targetFolder.id));
       } else {
-        setFiles((prev) =>
-          prev.map((file) =>
-            file.folderId === targetFolder.id
-              ? { ...file, folderId: null, folder: null }
-              : file,
+        setFiles(prev =>
+          prev.map(file =>
+            file.folderId === targetFolder.id ? { ...file, folderId: null, folder: null } : file,
           ),
         );
       }
       if (activeFolderId === targetFolder.id) {
-        setActiveFolderId("");
+        setActiveFolderId('');
       }
       if (editingFolderId === targetFolder.id) {
         setEditingFolderId(null);
-        setEditingFolderName("");
+        setEditingFolderName('');
       }
       if (folderTagPickerId === targetFolder.id) {
         setFolderTagPickerId(null);
       }
       toast.success(t.toasts.folderDeleted.value, { id: toastId });
     } catch (error) {
-      console.error("Failed to delete folder:", error);
+      console.error('Failed to delete folder:', error);
       toast.error(t.toasts.folderDeleteFailed.value, { id: toastId });
     }
   };
@@ -1417,10 +1338,10 @@ export function StoragePageContent({
     const toastId = toast.loading(t.delete.loading.value);
     try {
       await api.post(`/storage/files/${fileToDelete.id}/trash`);
-      setFiles((prev) => prev.filter((file) => file.id !== fileToDelete.id));
+      setFiles(prev => prev.filter(file => file.id !== fileToDelete.id));
       toast.success(t.delete.success.value, { id: toastId });
     } catch (error) {
-      console.error("Failed to move file to trash:", error);
+      console.error('Failed to move file to trash:', error);
       toast.error(t.delete.error.value, { id: toastId });
     }
     setFileToDelete(null);
@@ -1430,20 +1351,16 @@ export function StoragePageContent({
     const toastId = toast.loading(t.trash.restoreLoading.value);
     try {
       await api.post(`/storage/files/${file.id}/trash/restore`);
-      setFiles((prev) => prev.filter((item) => item.id !== file.id));
+      setFiles(prev => prev.filter(item => item.id !== file.id));
       toast.success(t.trash.restoreSuccess.value, { id: toastId });
     } catch (error) {
-      console.error("Failed to restore file from trash:", error);
+      console.error('Failed to restore file from trash:', error);
       toast.error(t.trash.restoreFailed.value, { id: toastId });
     }
   };
 
-  const handleMoveFolderIdx = (
-    fromId: string,
-    toIdx: number,
-    finalize = true,
-  ) => {
-    const fromIdx = folders.findIndex((f) => f.id === fromId);
+  const handleMoveFolderIdx = (fromId: string, toIdx: number, finalize = true) => {
+    const fromIdx = folders.findIndex(f => f.id === fromId);
     if (fromIdx === -1) return;
     const newFolders = [...folders];
     const [movedFolder] = newFolders.splice(fromIdx, 1);
@@ -1460,12 +1377,10 @@ export function StoragePageContent({
     const toastId = toast.loading(t.trash.deleteLoading.value);
     try {
       await api.delete(`/storage/files/${fileToDeletePermanently.id}/trash`);
-      setFiles((prev) =>
-        prev.filter((file) => file.id !== fileToDeletePermanently.id),
-      );
+      setFiles(prev => prev.filter(file => file.id !== fileToDeletePermanently.id));
       toast.success(t.trash.deleteSuccess.value, { id: toastId });
     } catch (error) {
-      console.error("Failed to permanently delete file:", error);
+      console.error('Failed to permanently delete file:', error);
       toast.error(t.trash.deleteFailed.value, { id: toastId });
     }
     setFileToDeletePermanently(null);
@@ -1475,14 +1390,14 @@ export function StoragePageContent({
     if (!ids.length) return;
     const toastId = toast.loading(t.trash.restoreLoading.value);
     try {
-      await api.post("/storage/files/trash/bulk/restore", {
+      await api.post('/storage/files/trash/bulk/restore', {
         statementIds: ids,
       });
-      setFiles((prev) => prev.filter((file) => !ids.includes(file.id)));
+      setFiles(prev => prev.filter(file => !ids.includes(file.id)));
       setSelectedTrashIds([]);
       toast.success(t.trash.restoreSuccess.value, { id: toastId });
     } catch (error) {
-      console.error("Failed to restore files from trash:", error);
+      console.error('Failed to restore files from trash:', error);
       toast.error(t.trash.restoreFailed.value, { id: toastId });
     }
   };
@@ -1491,25 +1406,25 @@ export function StoragePageContent({
     if (!ids.length) return;
     const toastId = toast.loading(t.trash.deleteLoading.value);
     try {
-      await api.post("/storage/files/bulk/trash/delete", {
+      await api.post('/storage/files/bulk/trash/delete', {
         statementIds: ids,
       });
-      setFiles((prev) => prev.filter((file) => !ids.includes(file.id)));
+      setFiles(prev => prev.filter(file => !ids.includes(file.id)));
       setSelectedTrashIds([]);
       toast.success(t.trash.deleteSuccess.value, { id: toastId });
     } catch (error) {
-      console.error("Failed to delete files from trash:", error);
+      console.error('Failed to delete files from trash:', error);
       toast.error(t.trash.deleteFailed.value, { id: toastId });
     }
   };
 
   const handleEmptyTrash = async () => {
-    const ids = files.map((file) => file.id);
+    const ids = files.map(file => file.id);
     await handleBulkDeleteFromTrash(ids);
   };
 
   const handleSortChange = (value: string) => {
-    const [field, direction] = value.split(":") as [SortField, SortDirection];
+    const [field, direction] = value.split(':') as [SortField, SortDirection];
     if (!field || !direction) return;
     setSort({ field, direction });
     setActiveViewId(null);
@@ -1520,7 +1435,7 @@ export function StoragePageContent({
     setActiveViewId(null);
   };
 
-  const handleListChange = (next: "active" | "trash") => {
+  const handleListChange = (next: 'active' | 'trash') => {
     setActiveList(next);
     setFilterOpen(false);
   };
@@ -1535,7 +1450,7 @@ export function StoragePageContent({
     };
     setFilters(nextFilters);
     setStagedFilters(nextFilters);
-    setSearchQuery(storedFilters.searchQuery ?? storedFilters.search ?? "");
+    setSearchQuery(storedFilters.searchQuery ?? storedFilters.search ?? '');
     setSort({
       field: storedFilters.sort?.field ?? DEFAULT_SORT.field,
       direction: storedFilters.sort?.direction ?? DEFAULT_SORT.direction,
@@ -1551,7 +1466,7 @@ export function StoragePageContent({
     }
     try {
       setViewSaving(true);
-      const response = await api.post("/storage/views", {
+      const response = await api.post('/storage/views', {
         name,
         filters: {
           searchQuery,
@@ -1559,12 +1474,12 @@ export function StoragePageContent({
           sort,
         },
       });
-      setViews((prev) => [response.data, ...prev]);
-      setViewName("");
+      setViews(prev => [response.data, ...prev]);
+      setViewName('');
       setActiveViewId(response.data?.id ?? null);
       toast.success(t.toasts.viewSaved.value);
     } catch (error) {
-      console.error("Failed to save view:", error);
+      console.error('Failed to save view:', error);
       toast.error(t.toasts.viewSaveFailed.value);
     } finally {
       setViewSaving(false);
@@ -1574,13 +1489,13 @@ export function StoragePageContent({
   const handleDeleteView = async (viewId: string) => {
     try {
       await api.delete(`/storage/views/${viewId}`);
-      setViews((prev) => prev.filter((view) => view.id !== viewId));
+      setViews(prev => prev.filter(view => view.id !== viewId));
       if (activeViewId === viewId) {
         setActiveViewId(null);
       }
       toast.success(t.toasts.viewDeleted.value);
     } catch (error) {
-      console.error("Failed to delete view:", error);
+      console.error('Failed to delete view:', error);
       toast.error(t.toasts.viewDeleteFailed.value);
     }
   };
@@ -1589,13 +1504,13 @@ export function StoragePageContent({
       const date = new Date(dateString);
       if (Number.isNaN(date.getTime())) return dateString;
       return date.toLocaleDateString(
-        locale === "kk" ? "kk-KZ" : locale === "ru" ? "ru-RU" : "en-US",
+        locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US',
         {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
         },
       );
     },
@@ -1607,12 +1522,8 @@ export function StoragePageContent({
       if (!deletedAt) return null;
       const deletedDate = new Date(deletedAt);
       if (Number.isNaN(deletedDate.getTime())) return null;
-      const expiresAt = new Date(
-        deletedDate.getTime() + trashTtlDays * MS_PER_DAY,
-      );
-      const daysLeft = Math.ceil(
-        (expiresAt.getTime() - Date.now()) / MS_PER_DAY,
-      );
+      const expiresAt = new Date(deletedDate.getTime() + trashTtlDays * MS_PER_DAY);
+      const daysLeft = Math.ceil((expiresAt.getTime() - Date.now()) / MS_PER_DAY);
       return { expiresAt, daysLeft };
     },
     [trashTtlDays],
@@ -1627,17 +1538,17 @@ export function StoragePageContent({
       const isSoon = daysLeft <= 3;
       const label = isExpired
         ? t.trash.expiresToday.value
-        : t.trash.expiresIn.value.replace("{days}", String(daysLeft));
+        : t.trash.expiresIn.value.replace('{days}', String(daysLeft));
       const toneClass = isExpired
-        ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-100 dark:border-red-500/30"
+        ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-100 dark:border-red-500/30'
         : isSoon
-          ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-100 dark:border-amber-500/30"
-          : "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/60";
+          ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-100 dark:border-amber-500/30'
+          : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/60';
       return (
         <span
           className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${toneClass}`}
           title={info.expiresAt.toLocaleDateString(
-            locale === "kk" ? "kk-KZ" : locale === "ru" ? "ru-RU" : "en-US",
+            locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US',
           )}
         >
           {label}
@@ -1650,15 +1561,15 @@ export function StoragePageContent({
   const getStatusLabel = useCallback(
     (status: string) => {
       switch (status.toLowerCase()) {
-        case "completed":
+        case 'completed':
           return t.statusLabels.completed.value;
-        case "processing":
+        case 'processing':
           return t.statusLabels.processing.value;
-        case "error":
+        case 'error':
           return t.statusLabels.error.value;
-        case "uploaded":
+        case 'uploaded':
           return t.statusLabels.uploaded.value;
-        case "parsed":
+        case 'parsed':
           return t.statusLabels.parsed.value;
         default:
           return status;
@@ -1669,14 +1580,14 @@ export function StoragePageContent({
 
   const getPermissionLabel = useCallback(
     (permission?: string | null) => {
-      switch ((permission || "").toLowerCase()) {
-        case "owner":
+      switch ((permission || '').toLowerCase()) {
+        case 'owner':
           return t.permission.owner.value;
-        case "editor":
+        case 'editor':
           return t.permission.editor.value;
-        case "viewer":
+        case 'viewer':
           return t.permission.viewer.value;
-        case "downloader":
+        case 'downloader':
           return t.permission.downloader.value;
         default:
           return t.permission.access.value;
@@ -1686,11 +1597,11 @@ export function StoragePageContent({
   );
 
   const bankOptions = useMemo(
-    () => Array.from(new Set(files.map((f) => f.bankName).filter(Boolean))),
+    () => Array.from(new Set(files.map(f => f.bankName).filter(Boolean))),
     [files],
   );
   const statusOptions = useMemo(
-    () => Array.from(new Set(files.map((f) => f.status).filter(Boolean))),
+    () => Array.from(new Set(files.map(f => f.status).filter(Boolean))),
     [files],
   );
   const folderCounts = useMemo(() => {
@@ -1718,13 +1629,13 @@ export function StoragePageContent({
   const getAvailabilityLabel = useCallback(
     (status: FileAvailabilityStatus) => {
       switch (status) {
-        case "both":
+        case 'both':
           return t.availability.labels.both;
-        case "disk":
+        case 'disk':
           return t.availability.labels.disk;
-        case "db":
+        case 'db':
           return t.availability.labels.db;
-        case "missing":
+        case 'missing':
           return t.availability.labels.missing;
         default:
           return status;
@@ -1736,13 +1647,13 @@ export function StoragePageContent({
   const getAvailabilityTooltip = useCallback(
     (status: FileAvailabilityStatus) => {
       switch (status) {
-        case "both":
+        case 'both':
           return t.availability.tooltips.both.value;
-        case "disk":
+        case 'disk':
           return t.availability.tooltips.disk.value;
-        case "db":
+        case 'db':
           return t.availability.tooltips.db.value;
-        case "missing":
+        case 'missing':
           return t.availability.tooltips.missing.value;
         default:
           return status;
@@ -1760,9 +1671,7 @@ export function StoragePageContent({
           className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getAvailabilityColor(status)}`}
           title={getAvailabilityTooltip(status)}
         >
-          <span
-            className={`h-2 w-2 rounded-full ${getAvailabilityDot(status)}`}
-          />
+          <span className={`h-2 w-2 rounded-full ${getAvailabilityDot(status)}`} />
           {getAvailabilityLabel(status)}
         </span>
       );
@@ -1771,19 +1680,15 @@ export function StoragePageContent({
   );
 
   const filteredFiles = useMemo(() => {
-    return files.filter((file) => {
+    return files.filter(file => {
       const isDeleted = !!file.deletedAt;
       if (isTrashView ? !isDeleted : isDeleted) {
         return false;
       }
-      const normalizedBank = (file.bankName || "").toLowerCase();
-      const normalizedCategoryName = (file.category?.name || "").toLowerCase();
-      const normalizedAccount = (
-        file.metadata?.accountNumber || ""
-      ).toLowerCase();
-      const normalizedTags = (file.tags || [])
-        .map((tag) => tag.name.toLowerCase())
-        .join(" ");
+      const normalizedBank = (file.bankName || '').toLowerCase();
+      const normalizedCategoryName = (file.category?.name || '').toLowerCase();
+      const normalizedAccount = (file.metadata?.accountNumber || '').toLowerCase();
+      const normalizedTags = (file.tags || []).map(tag => tag.name.toLowerCase()).join(' ');
 
       const matchesSearch =
         file.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1794,11 +1699,9 @@ export function StoragePageContent({
 
       const matchesStatus = !filters.status || file.status === filters.status;
       const matchesBank = !filters.bank || file.bankName === filters.bank;
-      const matchesCategory =
-        !filters.categoryId || file.categoryId === filters.categoryId;
+      const matchesCategory = !filters.categoryId || file.categoryId === filters.categoryId;
       const matchesOwnership =
-        !filters.ownership ||
-        (filters.ownership === "owned" ? file.isOwner : !file.isOwner);
+        !filters.ownership || (filters.ownership === 'owned' ? file.isOwner : !file.isOwner);
       const matchesFolder = filters.folderId
         ? filters.folderId === NO_FOLDER
           ? !file.folderId
@@ -1817,18 +1720,14 @@ export function StoragePageContent({
 
   const sortedFiles = useMemo(() => {
     return [...filteredFiles].sort((a, b) => {
-      const multiplier = sort.direction === "asc" ? 1 : -1;
+      const multiplier = sort.direction === 'asc' ? 1 : -1;
       switch (sort.field) {
-        case "fileName":
+        case 'fileName':
           return a.fileName.localeCompare(b.fileName, locale) * multiplier;
-        case "bankName":
+        case 'bankName':
           return a.bankName.localeCompare(b.bankName, locale) * multiplier;
         default:
-          return (
-            (new Date(a.createdAt).getTime() -
-              new Date(b.createdAt).getTime()) *
-            multiplier
-          );
+          return (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * multiplier;
       }
     });
   }, [filteredFiles, sort, locale]);
@@ -1849,27 +1748,25 @@ export function StoragePageContent({
   );
 
   const paginatedFiles = useMemo(
-    () =>
-      sortedFiles.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    () => sortedFiles.slice((currentPage - 1) * pageSize, currentPage * pageSize),
     [sortedFiles, currentPage, pageSize],
   );
   const selectableTrashIds = useMemo(
-    () => (isTrashView ? filteredFiles.map((file) => file.id) : []),
+    () => (isTrashView ? filteredFiles.map(file => file.id) : []),
     [filteredFiles, isTrashView],
   );
   const selectedTrashIdsInView = useMemo(
-    () => selectedTrashIds.filter((id) => selectableTrashIds.includes(id)),
+    () => selectedTrashIds.filter(id => selectableTrashIds.includes(id)),
     [selectedTrashIds, selectableTrashIds],
   );
   const allTrashSelected =
-    selectableTrashIds.length > 0 &&
-    selectedTrashIdsInView.length === selectableTrashIds.length;
+    selectableTrashIds.length > 0 && selectedTrashIdsInView.length === selectableTrashIds.length;
   const selectedTrashCount = selectedTrashIds.length;
   const folderModalFiles = useMemo(() => {
     const query = folderFileQuery.trim().toLowerCase();
-    return files.filter((file) => {
+    return files.filter(file => {
       const matchesFolder =
-        activeFolderId === ""
+        activeFolderId === ''
           ? true
           : activeFolderId === NO_FOLDER
             ? !file.folderId
@@ -1880,10 +1777,8 @@ export function StoragePageContent({
 
       const fileName = file.fileName.toLowerCase();
       const bankName = file.bankName.toLowerCase();
-      const folderName = (file.folder?.name || "").toLowerCase();
-      const tagNames = (file.tags || [])
-        .map((tag) => tag.name.toLowerCase())
-        .join(" ");
+      const folderName = (file.folder?.name || '').toLowerCase();
+      const tagNames = (file.tags || []).map(tag => tag.name.toLowerCase()).join(' ');
 
       return (
         fileName.includes(query) ||
@@ -1894,12 +1789,9 @@ export function StoragePageContent({
     });
   }, [files, folderFileQuery, activeFolderId]);
   const activeFolderLabel = useMemo(() => {
-    if (activeFolderId === "") return t.folders.all;
+    if (activeFolderId === '') return t.folders.all;
     if (activeFolderId === NO_FOLDER) return t.folders.none;
-    return (
-      folders.find((folder) => folder.id === activeFolderId)?.name ??
-      t.folders.all
-    );
+    return folders.find(folder => folder.id === activeFolderId)?.name ?? t.folders.all;
   }, [activeFolderId, folders, t]);
 
   useEffect(() => {
@@ -1910,10 +1802,8 @@ export function StoragePageContent({
   }, [selectedTrashIdsInView.length, selectableTrashIds.length]);
 
   const toggleTrashSelection = (fileId: string) => {
-    setSelectedTrashIds((prev) =>
-      prev.includes(fileId)
-        ? prev.filter((id) => id !== fileId)
-        : [...prev, fileId],
+    setSelectedTrashIds(prev =>
+      prev.includes(fileId) ? prev.filter(id => id !== fileId) : [...prev, fileId],
     );
   };
 
@@ -1937,11 +1827,8 @@ export function StoragePageContent({
     }
   }, [filterOpen, filters]);
 
-  const handleFilterChange = (
-    field: keyof typeof DEFAULT_FILTERS,
-    value: string,
-  ) => {
-    setStagedFilters((prev) => ({ ...prev, [field]: value }));
+  const handleFilterChange = (field: keyof typeof DEFAULT_FILTERS, value: string) => {
+    setStagedFilters(prev => ({ ...prev, [field]: value }));
     setActiveViewId(null);
   };
 
@@ -1964,32 +1851,30 @@ export function StoragePageContent({
     !!filters.folderId;
   const sortKey = `${sort.field}:${sort.direction}`;
   const emptyStateTitle = isTrashView ? t.trash.empty.title : t.empty.title;
-  const emptyStateSubtitle = isTrashView
-    ? t.trash.empty.subtitle
-    : t.empty.subtitle;
+  const emptyStateSubtitle = isTrashView ? t.trash.empty.subtitle : t.empty.subtitle;
   const tagChipClass = (isActive: boolean) =>
     `inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
       isActive
-        ? "bg-primary/10 text-primary border-primary/30"
-        : "bg-gray-50 text-gray-700 border-gray-200 dark:bg-slate-800/60 dark:text-gray-200 dark:border-slate-700/60"
+        ? 'bg-primary/10 text-primary border-primary/30'
+        : 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-slate-800/60 dark:text-gray-200 dark:border-slate-700/60'
     }`;
   const listToggleClass = (isActive: boolean) =>
     `inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
       isActive
-        ? "bg-primary/10 text-primary border-primary/30"
-        : "bg-white dark:bg-slate-900 text-gray-600 dark:text-gray-200 border-gray-200 dark:border-slate-700/60 hover:bg-gray-50 dark:hover:bg-slate-800"
+        ? 'bg-primary/10 text-primary border-primary/30'
+        : 'bg-white dark:bg-slate-900 text-gray-600 dark:text-gray-200 border-gray-200 dark:border-slate-700/60 hover:bg-gray-50 dark:hover:bg-slate-800'
     }`;
   const renderStatusBadge = useCallback(
     (status: string) => {
       const tone = getStatusTone(status);
       const toneClass =
-        tone === "success"
-          ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-500/10 dark:text-green-100 dark:border-green-500/30"
-          : tone === "warning"
-            ? "bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-amber-500/10 dark:text-amber-100 dark:border-amber-500/30"
-            : tone === "error"
-              ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-500/10 dark:text-red-100 dark:border-red-500/30"
-              : "bg-gray-100 text-gray-700 border-gray-200 dark:bg-slate-800/70 dark:text-gray-100 dark:border-slate-700/60";
+        tone === 'success'
+          ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-500/10 dark:text-green-100 dark:border-green-500/30'
+          : tone === 'warning'
+            ? 'bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-amber-500/10 dark:text-amber-100 dark:border-amber-500/30'
+            : tone === 'error'
+              ? 'bg-red-100 text-red-800 border-red-200 dark:bg-red-500/10 dark:text-red-100 dark:border-red-500/30'
+              : 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-slate-800/70 dark:text-gray-100 dark:border-slate-700/60';
 
       return (
         <span
@@ -1997,13 +1882,13 @@ export function StoragePageContent({
         >
           <span
             className={`h-2 w-2 rounded-full ${
-              tone === "success"
-                ? "bg-green-500"
-                : tone === "warning"
-                  ? "bg-yellow-500"
-                  : tone === "error"
-                    ? "bg-red-500"
-                    : "bg-gray-400"
+              tone === 'success'
+                ? 'bg-green-500'
+                : tone === 'warning'
+                  ? 'bg-yellow-500'
+                  : tone === 'error'
+                    ? 'bg-red-500'
+                    : 'bg-gray-400'
             }`}
           />
           {getStatusLabel(status)}
@@ -2028,9 +1913,7 @@ export function StoragePageContent({
                 <div className="p-2 rounded-full bg-primary/10 text-primary">
                   <Folder className="h-6 w-6" />
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {t.title}
-                </h1>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t.title}</h1>
               </div>
               <p className="text-gray-500 dark:text-gray-300">{t.subtitle}</p>
             </div>
@@ -2041,9 +1924,9 @@ export function StoragePageContent({
                     <div className="relative">
                       <DroppableHeaderTrigger
                         onDragOver={() => {
-                          if (activeModal !== "folders") {
+                          if (activeModal !== 'folders') {
                             setFolderModalFromDrag(true);
-                            openModal("folders");
+                            openModal('folders');
                           }
                         }}
                       >
@@ -2051,13 +1934,13 @@ export function StoragePageContent({
                           type="button"
                           onClick={() => {
                             setFolderModalFromDrag(false);
-                            openModal("folders");
+                            openModal('folders');
                           }}
                           disabled={isTrashView}
                           className={`${listToggleClass(isFolderActive)} ${
                             draggingFile
-                              ? "ring-2 ring-primary/30 ring-offset-2 ring-offset-white dark:ring-offset-slate-900"
-                              : ""
+                              ? 'ring-2 ring-primary/30 ring-offset-2 ring-offset-white dark:ring-offset-slate-900'
+                              : ''
                           }`}
                           title={t.folders.title.value}
                         >
@@ -2068,7 +1951,7 @@ export function StoragePageContent({
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleListChange("active")}
+                      onClick={() => handleListChange('active')}
                       className={listToggleClass(!isTrashView)}
                     >
                       <FileText className="h-4 w-4" />
@@ -2076,7 +1959,7 @@ export function StoragePageContent({
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleListChange("trash")}
+                      onClick={() => handleListChange('trash')}
                       className={listToggleClass(isTrashView)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -2084,15 +1967,12 @@ export function StoragePageContent({
                     </button>
                   </div>
                 </div>
-                <div
-                  className="relative w-full md:w-80"
-                  data-tour-id="file-search"
-                >
+                <div className="relative w-full md:w-80" data-tour-id="file-search">
                   <Search className="h-4 w-4 text-gray-400 dark:text-gray-500 absolute left-3 top-3" />
                   <input
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => handleSearchChange(e.target.value)}
+                    onChange={e => handleSearchChange(e.target.value)}
                     placeholder={t.searchPlaceholder.value}
                     aria-label="Поиск по файлам"
                     className="w-full rounded-full border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-800 py-2.5 pl-10 pr-4 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -2101,7 +1981,7 @@ export function StoragePageContent({
                 <div className="relative w-full md:w-56">
                   <select
                     value={sortKey}
-                    onChange={(e) => handleSortChange(e.target.value)}
+                    onChange={e => handleSortChange(e.target.value)}
                     className="w-full rounded-full border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-800 py-2.5 pl-4 pr-10 text-sm text-gray-900 dark:text-gray-100 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   >
                     <option value="createdAt:desc">{t.sort.newest}</option>
@@ -2120,9 +2000,7 @@ export function StoragePageContent({
                   >
                     <Filter className="-ml-1 mr-2 h-5 w-5" />
                     {t.filters.button}
-                    {filtersApplied && (
-                      <span className="ml-2 h-2 w-2 rounded-full bg-white" />
-                    )}
+                    {filtersApplied && <span className="ml-2 h-2 w-2 rounded-full bg-white" />}
                   </button>
                 </div>
               </div>
@@ -2134,11 +2012,11 @@ export function StoragePageContent({
             <div className="inline-flex rounded-full bg-gray-100 dark:bg-slate-800 p-1">
               <button
                 type="button"
-                onClick={() => setSelectedStorageProvider("google")}
+                onClick={() => setSelectedStorageProvider('google')}
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  selectedStorageProvider === "google"
-                    ? "bg-white dark:bg-slate-700 shadow-sm"
-                    : "bg-transparent"
+                  selectedStorageProvider === 'google'
+                    ? 'bg-white dark:bg-slate-700 shadow-sm'
+                    : 'bg-transparent'
                 }`}
               >
                 <Image
@@ -2151,25 +2029,20 @@ export function StoragePageContent({
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedStorageProvider("dropbox")}
+                onClick={() => setSelectedStorageProvider('dropbox')}
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  selectedStorageProvider === "dropbox"
-                    ? "bg-white dark:bg-slate-700 shadow-sm"
-                    : "bg-transparent"
+                  selectedStorageProvider === 'dropbox'
+                    ? 'bg-white dark:bg-slate-700 shadow-sm'
+                    : 'bg-transparent'
                 }`}
               >
-                <Image
-                  src="/icons/dropbox-icon.png"
-                  alt="Dropbox"
-                  width={18}
-                  height={18}
-                />
+                <Image src="/icons/dropbox-icon.png" alt="Dropbox" width={18} height={18} />
                 <span className="whitespace-nowrap">Dropbox</span>
               </button>
             </div>
           </div>
 
-          {selectedStorageProvider === "google" ? (
+          {selectedStorageProvider === 'google' ? (
             <GoogleDriveStorageWidget locale={locale} />
           ) : (
             <DropboxStorageWidget locale={locale} />
@@ -2181,17 +2054,10 @@ export function StoragePageContent({
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-red-100 dark:bg-red-900/20 text-red-600 rounded-lg flex items-center justify-center">
-                  <Image
-                    src="/icons/gmail.png"
-                    alt="Gmail"
-                    width={20}
-                    height={20}
-                  />
+                  <Image src="/icons/gmail.png" alt="Gmail" width={20} height={20} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-300">
-                    Gmail Receipts
-                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-300">Gmail Receipts</p>
                   <p className="font-semibold text-gray-900 dark:text-white">
                     Auto-imported receipts from Gmail
                   </p>
@@ -2201,27 +2067,25 @@ export function StoragePageContent({
               <div className="flex flex-wrap gap-2">
                 {/** View button disabled when Gmail not connected */}
                 <button
-                  onClick={() => router.push("/storage/gmail-receipts")}
+                  onClick={() => router.push('/storage/gmail-receipts')}
                   disabled={!(gmailStatus?.connected === true) || gmailLoading}
-                  aria-disabled={
-                    !(gmailStatus?.connected === true) || gmailLoading
-                  }
+                  aria-disabled={!(gmailStatus?.connected === true) || gmailLoading}
                   className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
                     gmailStatus?.connected === true && !gmailLoading
-                      ? "bg-blue-600 text-white hover:bg-blue-700"
-                      : "bg-blue-600 text-white opacity-50 cursor-not-allowed"
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-blue-600 text-white opacity-50 cursor-not-allowed'
                   }`}
                 >
-                  {(t as any).gmail?.viewReceipts ?? "View Receipts"}
+                  {(t as any).gmail?.viewReceipts ?? 'View Receipts'}
                 </button>
 
                 <button
-                  onClick={() => router.push("/integrations/gmail")}
+                  onClick={() => router.push('/integrations/gmail')}
                   className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-slate-600 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   {gmailStatus?.connected === true
-                    ? ((t as any).gmail?.settings ?? "Settings")
-                    : ((t as any).gmail?.connect ?? "Connect")}
+                    ? ((t as any).gmail?.settings ?? 'Settings')
+                    : ((t as any).gmail?.connect ?? 'Connect')}
                 </button>
               </div>
             </div>
@@ -2237,10 +2101,7 @@ export function StoragePageContent({
                 {isTrashView && (
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                      {t.trash.selectedLabel.value.replace(
-                        "{count}",
-                        String(selectedTrashCount),
-                      )}
+                      {t.trash.selectedLabel.value.replace('{count}', String(selectedTrashCount))}
                     </span>
                     <button
                       type="button"
@@ -2286,18 +2147,12 @@ export function StoragePageContent({
             ) : filteredFiles.length === 0 ? (
               <div className="text-center py-16 px-6">
                 <div className="mx-auto h-16 w-16 text-gray-400 dark:text-gray-500 mb-4 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
-                  {isTrashView ? (
-                    <Trash2 className="h-8 w-8" />
-                  ) : (
-                    <Search className="h-8 w-8" />
-                  )}
+                  {isTrashView ? <Trash2 className="h-8 w-8" /> : <Search className="h-8 w-8" />}
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                   {emptyStateTitle}
                 </h3>
-                <p className="mt-1 text-gray-600 dark:text-gray-300">
-                  {emptyStateSubtitle}
-                </p>
+                <p className="mt-1 text-gray-600 dark:text-gray-300">{emptyStateSubtitle}</p>
               </div>
             ) : (
               <div className="overflow-x-auto overflow-y-visible">
@@ -2346,7 +2201,7 @@ export function StoragePageContent({
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700/60">
-                    {paginatedFiles.map((file) => (
+                    {paginatedFiles.map(file => (
                       <DraggableFileRow
                         key={file.id}
                         file={file}
@@ -2394,12 +2249,12 @@ export function StoragePageContent({
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  onClick={() => setPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage <= 1}
                   className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm border transition-all ${
                     currentPage <= 1
-                      ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                      : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                      ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                      : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   <ChevronLeft className="h-4 w-4" /> Предыдущая
@@ -2408,14 +2263,12 @@ export function StoragePageContent({
                   Страница {currentPage} из {totalPagesCount}
                 </span>
                 <button
-                  onClick={() =>
-                    setPage((prev) => Math.min(totalPagesCount, prev + 1))
-                  }
+                  onClick={() => setPage(prev => Math.min(totalPagesCount, prev + 1))}
                   disabled={currentPage >= totalPagesCount}
                   className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm border transition-all ${
                     currentPage >= totalPagesCount
-                      ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                      : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                      ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                      : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   Следующая <ChevronRight className="h-4 w-4" />
@@ -2437,9 +2290,7 @@ export function StoragePageContent({
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-sm truncate">
-                    {draggingFile.fileName}
-                  </div>
+                  <div className="font-semibold text-sm truncate">{draggingFile.fileName}</div>
                   <div className="text-xs text-gray-500">
                     {formatFileSize(draggingFile.fileSize)}
                   </div>
@@ -2448,15 +2299,15 @@ export function StoragePageContent({
             </div>
           ) : null}
         </DragOverlay>
-        {activeModal === "folders" && (
+        {activeModal === 'folders' && (
           <>
             <div
               className="fixed inset-0 z-70 bg-black/30"
               role="button"
               tabIndex={0}
               onClick={closeModal}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
                   closeModal();
                 }
@@ -2484,13 +2335,11 @@ export function StoragePageContent({
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
                   {folderMoveFeedback && (
                     <div
-                      role={
-                        folderMoveFeedback.tone === "error" ? "alert" : "status"
-                      }
+                      role={folderMoveFeedback.tone === 'error' ? 'alert' : 'status'}
                       className={`rounded-lg border px-3 py-2 text-sm ${
-                        folderMoveFeedback.tone === "success"
-                          ? "border-green-200 bg-green-50 text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-100"
-                          : "border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-100"
+                        folderMoveFeedback.tone === 'success'
+                          ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-100'
+                          : 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-100'
                       }`}
                     >
                       {folderMoveFeedback.message}
@@ -2501,10 +2350,8 @@ export function StoragePageContent({
                       <input
                         type="text"
                         value={newFolderName}
-                        onChange={(event) =>
-                          setNewFolderName(
-                            clampFolderName(event.target.value, newFolderName),
-                          )
+                        onChange={event =>
+                          setNewFolderName(clampFolderName(event.target.value, newFolderName))
                         }
                         placeholder={t.folders.createPlaceholder.value}
                         className="flex-1 rounded-lg border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -2520,9 +2367,7 @@ export function StoragePageContent({
                       </button>
                     </div>
                     {draggingFile && (
-                      <div className="text-xs text-primary">
-                        {t.dragDrop.subtitle}
-                      </div>
+                      <div className="text-xs text-primary">{t.dragDrop.subtitle}</div>
                     )}
                   </div>
 
@@ -2547,11 +2392,11 @@ export function StoragePageContent({
                         <div className="mt-3 px-1 space-y-3 max-h-[45vh] overflow-y-auto">
                           <button
                             type="button"
-                            onClick={() => setActiveFolderId("")}
+                            onClick={() => setActiveFolderId('')}
                             className={`flex w-full items-center justify-between rounded-lg border px-4 py-3 text-sm font-medium ${
-                              activeFolderId === ""
-                                ? "border-primary/40 bg-primary/10 text-primary"
-                                : "border-gray-100 dark:border-slate-800 text-gray-700 dark:text-gray-200"
+                              activeFolderId === ''
+                                ? 'border-primary/40 bg-primary/10 text-primary'
+                                : 'border-gray-100 dark:border-slate-800 text-gray-700 dark:text-gray-200'
                             }`}
                           >
                             <span>{t.folders.all}</span>
@@ -2565,8 +2410,8 @@ export function StoragePageContent({
                             onClick={() => setActiveFolderId(NO_FOLDER)}
                             className={`flex w-full items-center justify-between px-4 py-3 text-sm font-medium ${
                               activeFolderId === NO_FOLDER
-                                ? "bg-primary/5 text-primary" // Highlight handled by wrapper
-                                : "text-gray-700 dark:text-gray-200"
+                                ? 'bg-primary/5 text-primary' // Highlight handled by wrapper
+                                : 'text-gray-700 dark:text-gray-200'
                             }`}
                           >
                             <div className="flex w-full items-center justify-between">
@@ -2588,15 +2433,13 @@ export function StoragePageContent({
                                   folderId={folder.id}
                                   active={activeFolderId === folder.id}
                                   onClick={() => setActiveFolderId(folder.id)}
-                                  onContextMenu={(e) =>
-                                    handleFolderContextMenu(e, folder)
-                                  }
+                                  onContextMenu={e => handleFolderContextMenu(e, folder)}
                                   className={`group relative flex items-center gap-2 rounded-lg border px-4 py-3 ${
                                     pickedFolderId === folder.id
-                                      ? "border-primary ring-2 ring-primary/20 bg-primary/5 cursor-ns-resize shadow-md z-10"
+                                      ? 'border-primary ring-2 ring-primary/20 bg-primary/5 cursor-ns-resize shadow-md z-10'
                                       : activeFolderId === folder.id
-                                        ? "border-primary/30 bg-primary/5"
-                                        : "border-gray-100 dark:border-slate-800"
+                                        ? 'border-primary/30 bg-primary/5'
+                                        : 'border-gray-100 dark:border-slate-800'
                                   }`}
                                 >
                                   {editingFolderId === folder.id ? (
@@ -2604,22 +2447,17 @@ export function StoragePageContent({
                                       <input
                                         type="text"
                                         value={editingFolderName}
-                                        onChange={(event) =>
+                                        onChange={event =>
                                           setEditingFolderName(
-                                            clampFolderName(
-                                              event.target.value,
-                                              editingFolderName,
-                                            ),
+                                            clampFolderName(event.target.value, editingFolderName),
                                           )
                                         }
-                                        onClick={(event) =>
-                                          event.stopPropagation()
-                                        }
+                                        onClick={event => event.stopPropagation()}
                                         className="flex-1 rounded-lg border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100"
                                       />
                                       <button
                                         type="button"
-                                        onClick={(event) => {
+                                        onClick={event => {
                                           event.stopPropagation();
                                           handleRenameFolder(folder.id);
                                         }}
@@ -2629,7 +2467,7 @@ export function StoragePageContent({
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={(event) => {
+                                        onClick={event => {
                                           event.stopPropagation();
                                           handleCancelEditFolder();
                                         }}
@@ -2645,8 +2483,7 @@ export function StoragePageContent({
                                           <Folder
                                             className="h-4 w-4 text-gray-400"
                                             style={{
-                                              color:
-                                                folder.tag?.color ?? undefined,
+                                              color: folder.tag?.color ?? undefined,
                                             }}
                                           />
                                           <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
@@ -2658,23 +2495,19 @@ export function StoragePageContent({
                                         {pickedFolderId === null ? (
                                           <button
                                             type="button"
-                                            onClick={(e) => {
+                                            onClick={e => {
                                               e.stopPropagation();
                                               setPickedFolderId(folder.id);
                                             }}
                                             className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-400 hover:text-primary hover:bg-primary/5 transition-all opacity-0 group-hover:opacity-100"
                                           >
-                                            {(
-                                              t.dragDrop as Record<
-                                                string,
-                                                { value?: string }
-                                              >
-                                            ).pick?.value || "Перетащить"}
+                                            {(t.dragDrop as Record<string, { value?: string }>).pick
+                                              ?.value || 'Перетащить'}
                                           </button>
                                         ) : pickedFolderId === folder.id ? (
                                           <button
                                             type="button"
-                                            onClick={(e) => {
+                                            onClick={e => {
                                               e.stopPropagation();
                                               setPickedFolderId(null);
                                               toast.success(
@@ -2690,12 +2523,9 @@ export function StoragePageContent({
                                           <div className="flex items-center">
                                             <button
                                               type="button"
-                                              onClick={(e) => {
+                                              onClick={e => {
                                                 e.stopPropagation();
-                                                handleFolderContextMenu(
-                                                  e,
-                                                  folder,
-                                                );
+                                                handleFolderContextMenu(e, folder);
                                               }}
                                               className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800"
                                             >
@@ -2707,53 +2537,37 @@ export function StoragePageContent({
                                     </>
                                   )}
                                 </DroppableFolderButton>
-                                {folderTagPickerId === folder.id &&
-                                  canEditFolder(folder) && (
-                                    <div
-                                      className="rounded-lg border border-gray-100 dark:border-slate-800 p-2"
-                                      onClick={(event) =>
-                                        event.stopPropagation()
-                                      }
-                                      onKeyDown={(event) =>
-                                        event.stopPropagation()
-                                      }
-                                    >
-                                      <div className="flex flex-wrap gap-2">
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleUpdateFolderTag(
-                                              folder.id,
-                                              null,
-                                            )
-                                          }
-                                          className="text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-                                        >
-                                          {t.tags.clear}
-                                        </button>
-                                        {tags.map((tag) => {
-                                          const isActive =
-                                            folder.tag?.id === tag.id;
-                                          return (
-                                            <button
-                                              key={tag.id}
-                                              type="button"
-                                              onClick={() =>
-                                                handleUpdateFolderTag(
-                                                  folder.id,
-                                                  tag.id,
-                                                )
-                                              }
-                                              className={tagChipClass(isActive)}
-                                              style={getTagChipStyle(tag)}
-                                            >
-                                              {tag.name}
-                                            </button>
-                                          );
-                                        })}
-                                      </div>
+                                {folderTagPickerId === folder.id && canEditFolder(folder) && (
+                                  <div
+                                    className="rounded-lg border border-gray-100 dark:border-slate-800 p-2"
+                                    onClick={event => event.stopPropagation()}
+                                    onKeyDown={event => event.stopPropagation()}
+                                  >
+                                    <div className="flex flex-wrap gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleUpdateFolderTag(folder.id, null)}
+                                        className="text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                                      >
+                                        {t.tags.clear}
+                                      </button>
+                                      {tags.map(tag => {
+                                        const isActive = folder.tag?.id === tag.id;
+                                        return (
+                                          <button
+                                            key={tag.id}
+                                            type="button"
+                                            onClick={() => handleUpdateFolderTag(folder.id, tag.id)}
+                                            className={tagChipClass(isActive)}
+                                            style={getTagChipStyle(tag)}
+                                          >
+                                            {tag.name}
+                                          </button>
+                                        );
+                                      })}
                                     </div>
-                                  )}
+                                  </div>
+                                )}
                               </div>
                             ))
                           )}
@@ -2773,18 +2587,16 @@ export function StoragePageContent({
                           <input
                             type="text"
                             value={newTagName}
-                            onChange={(event) =>
-                              setNewTagName(event.target.value)
-                            }
+                            onChange={event => setNewTagName(event.target.value)}
                             placeholder={t.tags.createPlaceholder.value}
                             className="flex-1 min-w-40 rounded-lg border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20"
                           />
                           <div className="relative">
                             <button
                               type="button"
-                              onClick={(event) => {
+                              onClick={event => {
                                 setNewTagAnchorEl(event.currentTarget);
-                                setNewTagPickerOpen((prev) => !prev);
+                                setNewTagPickerOpen(prev => !prev);
                               }}
                               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 p-1"
                               aria-label="Цвет тега"
@@ -2802,12 +2614,12 @@ export function StoragePageContent({
                                 setNewTagAnchorEl(null);
                               }}
                               anchorOrigin={{
-                                vertical: "bottom",
-                                horizontal: "right",
+                                vertical: 'bottom',
+                                horizontal: 'right',
                               }}
                               transformOrigin={{
-                                vertical: "top",
-                                horizontal: "right",
+                                vertical: 'top',
+                                horizontal: 'right',
                               }}
                               slotProps={
                                 {
@@ -2815,37 +2627,33 @@ export function StoragePageContent({
                                     sx: {
                                       p: 1.5,
                                       mt: 1,
-                                      borderRadius: "16px",
-                                      border: "1px solid",
-                                      borderColor: "divider",
+                                      borderRadius: '16px',
+                                      border: '1px solid',
+                                      borderColor: 'divider',
                                       boxShadow:
-                                        "0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
-                                      overflow: "visible",
-                                      "&::before": {
+                                        '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                                      overflow: 'visible',
+                                      '&::before': {
                                         content: '""',
-                                        display: "block",
-                                        position: "absolute",
+                                        display: 'block',
+                                        position: 'absolute',
                                         top: 0,
                                         right: 14,
                                         width: 10,
                                         height: 10,
-                                        bgcolor: "background.paper",
-                                        transform:
-                                          "translateY(-50%) rotate(45deg)",
+                                        bgcolor: 'background.paper',
+                                        transform: 'translateY(-50%) rotate(45deg)',
                                         zIndex: 0,
-                                        borderLeft: "1px solid",
-                                        borderTop: "1px solid",
-                                        borderColor: "divider",
+                                        borderLeft: '1px solid',
+                                        borderTop: '1px solid',
+                                        borderColor: 'divider',
                                       },
                                     },
                                   },
                                 } as any
                               }
                             >
-                              <HexColorPicker
-                                color={newTagColor}
-                                onChange={setNewTagColor}
-                              />
+                              <HexColorPicker color={newTagColor} onChange={setNewTagColor} />
                             </Popover>
                           </div>
                           <button
@@ -2863,7 +2671,7 @@ export function StoragePageContent({
                               {t.tags.empty}
                             </p>
                           ) : (
-                            tags.map((tag) => (
+                            tags.map(tag => (
                               <div
                                 key={tag.id}
                                 className="flex items-center justify-between gap-2 rounded-lg border border-gray-100 dark:border-slate-800 px-3 py-2"
@@ -2874,19 +2682,15 @@ export function StoragePageContent({
                                       <input
                                         type="text"
                                         value={editingTagName}
-                                        onChange={(event) =>
-                                          setEditingTagName(event.target.value)
-                                        }
+                                        onChange={event => setEditingTagName(event.target.value)}
                                         className="flex-1 rounded-lg border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100"
                                       />
                                       <div className="relative">
                                         <button
                                           type="button"
-                                          onClick={(event) => {
-                                            setEditingTagAnchorEl(
-                                              event.currentTarget,
-                                            );
-                                            setEditingTagPickerId((prev) =>
+                                          onClick={event => {
+                                            setEditingTagAnchorEl(event.currentTarget);
+                                            setEditingTagPickerId(prev =>
                                               prev === tag.id ? null : tag.id,
                                             );
                                           }}
@@ -2896,8 +2700,7 @@ export function StoragePageContent({
                                           <span
                                             className="h-4 w-4 rounded-full"
                                             style={{
-                                              backgroundColor:
-                                                editingTagColor || "#4f46e5",
+                                              backgroundColor: editingTagColor || '#4f46e5',
                                             }}
                                           />
                                         </button>
@@ -2909,12 +2712,12 @@ export function StoragePageContent({
                                             setEditingTagAnchorEl(null);
                                           }}
                                           anchorOrigin={{
-                                            vertical: "bottom",
-                                            horizontal: "right",
+                                            vertical: 'bottom',
+                                            horizontal: 'right',
                                           }}
                                           transformOrigin={{
-                                            vertical: "top",
-                                            horizontal: "right",
+                                            vertical: 'top',
+                                            horizontal: 'right',
                                           }}
                                           slotProps={
                                             {
@@ -2922,27 +2725,26 @@ export function StoragePageContent({
                                                 sx: {
                                                   p: 1.5,
                                                   mt: 1,
-                                                  borderRadius: "16px",
-                                                  border: "1px solid",
-                                                  borderColor: "divider",
+                                                  borderRadius: '16px',
+                                                  border: '1px solid',
+                                                  borderColor: 'divider',
                                                   boxShadow:
-                                                    "0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
-                                                  overflow: "visible",
-                                                  "&::before": {
+                                                    '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                                                  overflow: 'visible',
+                                                  '&::before': {
                                                     content: '""',
-                                                    display: "block",
-                                                    position: "absolute",
+                                                    display: 'block',
+                                                    position: 'absolute',
                                                     top: 0,
                                                     right: 14,
                                                     width: 10,
                                                     height: 10,
-                                                    bgcolor: "background.paper",
-                                                    transform:
-                                                      "translateY(-50%) rotate(45deg)",
+                                                    bgcolor: 'background.paper',
+                                                    transform: 'translateY(-50%) rotate(45deg)',
                                                     zIndex: 0,
-                                                    borderLeft: "1px solid",
-                                                    borderTop: "1px solid",
-                                                    borderColor: "divider",
+                                                    borderLeft: '1px solid',
+                                                    borderTop: '1px solid',
+                                                    borderColor: 'divider',
                                                   },
                                                 },
                                               },
@@ -2950,7 +2752,7 @@ export function StoragePageContent({
                                           }
                                         >
                                           <HexColorPicker
-                                            color={editingTagColor || "#4f46e5"}
+                                            color={editingTagColor || '#4f46e5'}
                                             onChange={setEditingTagColor}
                                           />
                                         </Popover>
@@ -2977,8 +2779,7 @@ export function StoragePageContent({
                                       <span
                                         className="h-2.5 w-2.5 rounded-full"
                                         style={{
-                                          backgroundColor:
-                                            tag.color || "#cbd5f5",
+                                          backgroundColor: tag.color || '#cbd5f5',
                                         }}
                                       />
                                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
@@ -2993,9 +2794,7 @@ export function StoragePageContent({
                                         <>
                                           <button
                                             type="button"
-                                            onClick={() =>
-                                              handleStartEditTag(tag)
-                                            }
+                                            onClick={() => handleStartEditTag(tag)}
                                             className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 dark:border-slate-700/60 text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-800"
                                             title={t.tags.renameTooltip.value}
                                           >
@@ -3003,9 +2802,7 @@ export function StoragePageContent({
                                           </button>
                                           <button
                                             type="button"
-                                            onClick={() =>
-                                              confirmDeleteTag(tag)
-                                            }
+                                            onClick={() => confirmDeleteTag(tag)}
                                             className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 dark:border-slate-700/60 text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
                                             title={t.tags.deleteTooltip.value}
                                           >
@@ -3034,9 +2831,7 @@ export function StoragePageContent({
                           </p>
                         </div>
                         {draggingFile && (
-                          <span className="text-xs text-primary">
-                            {t.dragDrop.title}
-                          </span>
+                          <span className="text-xs text-primary">{t.dragDrop.title}</span>
                         )}
                       </div>
                       <div className="relative mt-3">
@@ -3044,9 +2839,7 @@ export function StoragePageContent({
                         <input
                           type="text"
                           value={folderFileQuery}
-                          onChange={(event) =>
-                            setFolderFileQuery(event.target.value)
-                          }
+                          onChange={event => setFolderFileQuery(event.target.value)}
                           placeholder={t.modals.fileSearchPlaceholder.value}
                           className="w-full rounded-lg border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 py-2.5 pl-10 pr-3 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                         />
@@ -3062,7 +2855,7 @@ export function StoragePageContent({
                             </p>
                           </div>
                         ) : (
-                          folderModalFiles.map((file) => (
+                          folderModalFiles.map(file => (
                             <DraggableModalFileItem
                               key={file.id}
                               file={file}
@@ -3086,8 +2879,8 @@ export function StoragePageContent({
               role="button"
               tabIndex={0}
               onClick={() => setFilterOpen(false)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
                   setFilterOpen(false);
                 }
@@ -3123,13 +2916,11 @@ export function StoragePageContent({
                         <select
                           id="storage-filter-status"
                           value={stagedFilters.status}
-                          onChange={(e) =>
-                            handleFilterChange("status", e.target.value)
-                          }
+                          onChange={e => handleFilterChange('status', e.target.value)}
                           className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all hover:bg-gray-100 dark:hover:bg-slate-800"
                         >
                           <option value="">{t.filters.all}</option>
-                          {statusOptions.map((status) => (
+                          {statusOptions.map(status => (
                             <option key={status} value={status}>
                               {getStatusLabel(status)}
                             </option>
@@ -3147,13 +2938,11 @@ export function StoragePageContent({
                         <select
                           id="storage-filter-bank"
                           value={stagedFilters.bank}
-                          onChange={(e) =>
-                            handleFilterChange("bank", e.target.value)
-                          }
+                          onChange={e => handleFilterChange('bank', e.target.value)}
                           className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all hover:bg-gray-100 dark:hover:bg-slate-800"
                         >
                           <option value="">{t.filters.all}</option>
-                          {bankOptions.map((bank) => (
+                          {bankOptions.map(bank => (
                             <option key={bank} value={bank}>
                               {bank}
                             </option>
@@ -3171,13 +2960,11 @@ export function StoragePageContent({
                         <select
                           id="storage-filter-category"
                           value={stagedFilters.categoryId}
-                          onChange={(e) =>
-                            handleFilterChange("categoryId", e.target.value)
-                          }
+                          onChange={e => handleFilterChange('categoryId', e.target.value)}
                           className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all hover:bg-gray-100 dark:hover:bg-slate-800"
                         >
                           <option value="">{t.filters.all}</option>
-                          {categories.map((cat) => (
+                          {categories.map(cat => (
                             <option key={cat.id} value={cat.id}>
                               {cat.name}
                             </option>
@@ -3195,9 +2982,7 @@ export function StoragePageContent({
                         <select
                           id="storage-filter-ownership"
                           value={stagedFilters.ownership}
-                          onChange={(e) =>
-                            handleFilterChange("ownership", e.target.value)
-                          }
+                          onChange={e => handleFilterChange('ownership', e.target.value)}
                           className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all hover:bg-gray-100 dark:hover:bg-slate-800"
                         >
                           <option value="">{t.filters.all}</option>
@@ -3216,14 +3001,12 @@ export function StoragePageContent({
                         <select
                           id="storage-filter-folder"
                           value={stagedFilters.folderId}
-                          onChange={(e) =>
-                            handleFilterChange("folderId", e.target.value)
-                          }
+                          onChange={e => handleFilterChange('folderId', e.target.value)}
                           className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all hover:bg-gray-100 dark:hover:bg-slate-800"
                         >
                           <option value="">{t.filters.all}</option>
                           <option value={NO_FOLDER}>{t.folders.none}</option>
-                          {folders.map((folder) => (
+                          {folders.map(folder => (
                             <option key={folder.id} value={folder.id}>
                               {folder.name}
                             </option>
@@ -3253,7 +3036,7 @@ export function StoragePageContent({
                     <div className="p-6 flex-1 overflow-y-auto">
                       <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                         <Bookmark className="h-4 w-4 text-primary" />
-                        {t.modals.viewCreateTitle.value.replace(":", "")}
+                        {t.modals.viewCreateTitle.value.replace(':', '')}
                       </h4>
 
                       {/* Save View Input */}
@@ -3262,9 +3045,7 @@ export function StoragePageContent({
                           <input
                             type="text"
                             value={viewName}
-                            onChange={(event) =>
-                              setViewName(event.target.value)
-                            }
+                            onChange={event => setViewName(event.target.value)}
                             placeholder={t.views.namePlaceholder.value}
                             className="flex-1 min-w-0 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                           />
@@ -3295,13 +3076,13 @@ export function StoragePageContent({
                             {t.views.empty}
                           </p>
                         ) : (
-                          views.map((view) => (
+                          views.map(view => (
                             <div
                               key={view.id}
                               className={`group flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 transition-all ${
                                 activeViewId === view.id
-                                  ? "border-primary/30 bg-primary/5 shadow-sm"
-                                  : "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-primary/30 hover:shadow-sm"
+                                  ? 'border-primary/30 bg-primary/5 shadow-sm'
+                                  : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-primary/30 hover:shadow-sm'
                               }`}
                             >
                               <button
@@ -3355,18 +3136,14 @@ export function StoragePageContent({
                   <input
                     type="checkbox"
                     checked={deleteFolderWithContents}
-                    onChange={(event) =>
-                      setDeleteFolderWithContents(event.target.checked)
-                    }
+                    onChange={event => setDeleteFolderWithContents(event.target.checked)}
                     className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
                   />
                   {t.folders.deleteWithContents}
                 </label>
               </div>
             ) : (
-              <p className="text-gray-600 leading-relaxed">
-                {t.folders.deleteMessageFallback}
-              </p>
+              <p className="text-gray-600 leading-relaxed">{t.folders.deleteMessageFallback}</p>
             )
           }
           confirmText={t.folders.deleteConfirm.value}
@@ -3412,10 +3189,7 @@ export function StoragePageContent({
           onClose={() => setBulkDeleteModalOpen(false)}
           onConfirm={() => handleBulkDeleteFromTrash()}
           title={t.trash.bulkDeleteTitle.value}
-          message={t.trash.bulkDeleteMessage.value.replace(
-            "{count}",
-            String(selectedTrashCount),
-          )}
+          message={t.trash.bulkDeleteMessage.value.replace('{count}', String(selectedTrashCount))}
           confirmText={t.trash.bulkDeleteConfirm.value}
           cancelText={t.trash.bulkDeleteCancel.value}
           isDestructive
@@ -3454,7 +3228,7 @@ export function StoragePageContent({
             onClose={() => {
               setPreviewModalOpen(false);
               setPreviewFileId(null);
-              setPreviewFileName("");
+              setPreviewFileName('');
             }}
             fileId={previewFileId}
             fileName={previewFileName}
@@ -3466,18 +3240,16 @@ export function StoragePageContent({
             className="fixed z-100 min-w-[200px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-slate-700/60 dark:bg-slate-900"
             style={{
               top:
-                typeof window !== "undefined" &&
-                folderContextMenu.y + 160 > window.innerHeight
+                typeof window !== 'undefined' && folderContextMenu.y + 160 > window.innerHeight
                   ? folderContextMenu.y - 160
                   : folderContextMenu.y,
               left:
-                typeof window !== "undefined" &&
-                folderContextMenu.x + 200 > window.innerWidth
+                typeof window !== 'undefined' && folderContextMenu.x + 200 > window.innerWidth
                   ? folderContextMenu.x - 200
                   : folderContextMenu.x,
             }}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
+            onKeyDown={e => e.stopPropagation()}
             role="presentation"
           >
             <div className="p-1.5 flex flex-col">

@@ -39,12 +39,12 @@ describe('SidePanel navigation styles', () => {
       root.render(
         <SidePanelProvider>
           <SidePanel config={config} showCollapseToggle={false} />
-        </SidePanelProvider>
+        </SidePanelProvider>,
       );
     });
 
-    const activeButton = Array.from(container.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('Approve')
+    const activeButton = Array.from(container.querySelectorAll('button')).find(button =>
+      button.textContent?.includes('Approve'),
     );
 
     expect(activeButton).toBeTruthy();

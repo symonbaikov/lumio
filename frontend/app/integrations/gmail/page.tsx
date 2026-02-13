@@ -167,7 +167,13 @@ export default function GmailIntegrationPage() {
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="flex items-start gap-3 mb-6">
         <div className="p-2 rounded-full bg-blue-50 text-blue-600 overflow-hidden">
-          <Image src="/icons/gmail.png" alt="Gmail" width={24} height={24} className="h-6 w-6 object-contain" />
+          <Image
+            src="/icons/gmail.png"
+            alt="Gmail"
+            width={24}
+            height={24}
+            className="h-6 w-6 object-contain"
+          />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gmail Integration</h1>
@@ -260,7 +266,7 @@ export default function GmailIntegrationPage() {
                   <div className="space-y-1">
                     <p className="text-sm text-gray-500">Label Name</p>
                     <p className="font-medium text-gray-900">
-                      {status.settings?.labelName || 'FinFlow/Receipts'}
+                      {status.settings?.labelName || 'Lumio/Receipts'}
                     </p>
                   </div>
                   <div className="space-y-1">
@@ -323,9 +329,7 @@ export default function GmailIntegrationPage() {
                     placeholder="receipt, invoice, order confirmation"
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
-                  <p className="text-xs text-gray-500">
-                    Comma-separated keywords to filter emails
-                  </p>
+                  <p className="text-xs text-gray-500">Comma-separated keywords to filter emails</p>
                 </div>
 
                 {/* Has Attachment Filter */}
@@ -357,18 +361,10 @@ export default function GmailIntegrationPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm h-fit">
           <h3 className="font-semibold text-gray-900 mb-2">How it works</h3>
           <div className="space-y-2 text-sm text-gray-600">
-            <p>
-              1. Connect your Gmail account with read-only access
-            </p>
-            <p>
-              2. We automatically create a "FinFlow/Receipts" label
-            </p>
-            <p>
-              3. Emails matching your filters are automatically imported
-            </p>
-            <p>
-              4. Review and approve receipts in the Receipts page
-            </p>
+            <p>1. Connect your Gmail account with read-only access</p>
+            <p>2. We automatically create a "Lumio/Receipts" label</p>
+            <p>3. Emails matching your filters are automatically imported</p>
+            <p>4. Review and approve receipts in the Receipts page</p>
           </div>
         </div>
       </div>

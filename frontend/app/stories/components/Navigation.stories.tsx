@@ -59,7 +59,7 @@ function NavigationContent({
               <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">FF</span>
               </div>
-              <span className="text-lg font-bold text-gray-900">FinFlow</span>
+              <span className="text-lg font-bold text-gray-900">Lumio</span>
             </div>
 
             {/* Desktop Nav */}

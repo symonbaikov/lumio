@@ -1,4 +1,4 @@
-import { t, type DeclarationContent } from 'intlayer';
+import { type DeclarationContent, t } from 'intlayer';
 
 export default {
   key: 'workspaces-selector',

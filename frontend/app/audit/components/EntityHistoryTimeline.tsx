@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import type { AuditEvent } from '@/lib/api/audit';
 import {
   CheckCircle2,
   Edit3,
@@ -12,7 +12,7 @@ import {
   Trash2,
   Unlink2,
 } from 'lucide-react';
-import type { AuditEvent } from '@/lib/api/audit';
+import React from 'react';
 
 interface EntityHistoryTimelineProps {
   events: AuditEvent[];

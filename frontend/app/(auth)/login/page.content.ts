@@ -9,9 +9,9 @@ const content = {
       kk: 'Қайта келдіңіз',
     }),
     subtitle: t({
-      ru: 'Войдите, чтобы продолжить работу в FinFlow',
-      en: 'Log in to continue using FinFlow',
-      kk: 'FinFlow қолдануды жалғастыру үшін кіріңіз',
+      ru: 'Войдите, чтобы продолжить работу в Lumio',
+      en: 'Log in to continue using Lumio',
+      kk: 'Lumio қолдануды жалғастыру үшін кіріңіз',
     }),
     passwordLabel: t({
       ru: 'Пароль',

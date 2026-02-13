@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
 import { CircularProgress } from '@mui/material';
+import React from 'react';
 
 interface LoadingAnimationProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -9,10 +9,10 @@ interface LoadingAnimationProps {
 }
 
 const sizeMap = {
-  sm: 40,   // Small spinner
-  md: 60,   // Medium spinner
-  lg: 80,   // Large spinner
-  xl: 100,  // Extra large spinner
+  sm: 40, // Small spinner
+  md: 60, // Medium spinner
+  lg: 80, // Large spinner
+  xl: 100, // Extra large spinner
 };
 
 /**
@@ -20,7 +20,7 @@ const sizeMap = {
  */
 export default function LoadingAnimation({ size = 'md', className = '' }: LoadingAnimationProps) {
   const spinnerSize = sizeMap[size];
-  
+
   return (
     <div className={`flex items-center justify-center ${className}`}>
       <CircularProgress size={spinnerSize} />

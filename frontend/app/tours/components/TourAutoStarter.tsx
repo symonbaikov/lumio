@@ -15,7 +15,7 @@ export function TourAutoStarter() {
 
   const isOnCooldown = (tourId: string) => {
     try {
-      const raw = localStorage.getItem(`finflow_tour_last_shown:${tourId}`);
+      const raw = localStorage.getItem(`lumio_tour_last_shown:${tourId}`);
       if (!raw) return false;
       const timestamp = Number(raw);
       if (Number.isNaN(timestamp)) return false;
@@ -27,7 +27,7 @@ export function TourAutoStarter() {
 
   const markShown = (tourId: string) => {
     try {
-      localStorage.setItem(`finflow_tour_last_shown:${tourId}`, Date.now().toString());
+      localStorage.setItem(`lumio_tour_last_shown:${tourId}`, Date.now().toString());
     } catch {
       // ignore
     }

@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { DrawerShell } from "@/app/components/ui/drawer-shell";
-import { Button } from "@/app/components/ui/button";
-import { cn } from "@/app/lib/utils";
-import { ChevronLeft } from "lucide-react";
+import { Button } from '@/app/components/ui/button';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { cn } from '@/app/lib/utils';
+import { ChevronLeft } from 'lucide-react';
+import { FilterAvatarRow } from './FilterAvatarRow';
+import { FilterOptionRow } from './FilterOptionRow';
+import { FilterRow } from './FilterRow';
+import { FilterSection } from './FilterSection';
 import type {
   StatementFilterDateMode,
   StatementFilterDatePreset,
   StatementFilters,
-} from "./statement-filters";
-import { FilterSection } from "./FilterSection";
-import { FilterRow } from "./FilterRow";
-import { FilterOptionRow } from "./FilterOptionRow";
-import { FilterAvatarRow } from "./FilterAvatarRow";
+} from './statement-filters';
 
 type FiltersDrawerLabels = {
   title: string;
@@ -113,7 +113,7 @@ export function FiltersDrawer({
   const summaryValue = (value?: string | null, fallback?: string) =>
     value && value.length > 0 ? value : fallback || labels.any;
 
-  const isRoot = screen === "root";
+  const isRoot = screen === 'root';
   const screenTitle = isRoot
     ? labels.title
     : {
@@ -135,7 +135,7 @@ export function FiltersDrawer({
       }[screen] || labels.title;
 
   const toggleValue = (values: string[], value: string) =>
-    values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+    values.includes(value) ? values.filter(item => item !== value) : [...values, value];
 
   const parseNumberInput = (value: string) => {
     if (!value.trim()) return null;
@@ -144,7 +144,7 @@ export function FiltersDrawer({
   };
 
   const renderScreenContent = () => {
-    if (screen === "type") {
+    if (screen === 'type') {
       return (
         <div className="space-y-1">
           <FilterOptionRow
@@ -153,7 +153,7 @@ export function FiltersDrawer({
             onClick={() => onUpdateFilters({ type: null })}
             variant="radio"
           />
-          {typeOptions.map((option) => (
+          {typeOptions.map(option => (
             <FilterOptionRow
               key={option.value}
               label={option.label}
@@ -166,7 +166,7 @@ export function FiltersDrawer({
       );
     }
 
-    if (screen === "status") {
+    if (screen === 'status') {
       return (
         <div className="space-y-1">
           <FilterOptionRow
@@ -175,7 +175,7 @@ export function FiltersDrawer({
             onClick={() => onUpdateFilters({ statuses: [] })}
             variant="checkbox"
           />
-          {statusOptions.map((option) => (
+          {statusOptions.map(option => (
             <FilterOptionRow
               key={option.value}
               label={option.label}
@@ -192,7 +192,7 @@ export function FiltersDrawer({
       );
     }
 
-    if (screen === "date") {
+    if (screen === 'date') {
       return (
         <div className="space-y-4">
           <div className="space-y-1">
@@ -202,7 +202,7 @@ export function FiltersDrawer({
               onClick={() => onUpdateFilters({ date: null })}
               variant="radio"
             />
-            {datePresets.map((option) => (
+            {datePresets.map(option => (
               <FilterOptionRow
                 key={option.value}
                 label={option.label}
@@ -214,7 +214,7 @@ export function FiltersDrawer({
           </div>
 
           <div className="border-t border-gray-200 pt-4 space-y-1">
-            {dateModes.map((option) => (
+            {dateModes.map(option => (
               <FilterOptionRow
                 key={option.value}
                 label={option.label}
@@ -223,8 +223,7 @@ export function FiltersDrawer({
                   onUpdateFilters({
                     date: {
                       mode: option.value,
-                      date:
-                        filters.date?.date || new Date().toISOString().slice(0, 10),
+                      date: filters.date?.date || new Date().toISOString().slice(0, 10),
                     },
                   })
                 }
@@ -235,8 +234,8 @@ export function FiltersDrawer({
               <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-3">
                 <input
                   type="date"
-                  value={filters.date?.date || ""}
-                  onChange={(event) =>
+                  value={filters.date?.date || ''}
+                  onChange={event =>
                     onUpdateFilters({
                       date: {
                         mode: filters.date?.mode,
@@ -253,9 +252,9 @@ export function FiltersDrawer({
       );
     }
 
-    if (screen === "from" || screen === "to") {
-      const values = screen === "from" ? filters.from : filters.to;
-      const options = screen === "from" ? fromOptions : toOptions;
+    if (screen === 'from' || screen === 'to') {
+      const values = screen === 'from' ? filters.from : filters.to;
+      const options = screen === 'from' ? fromOptions : toOptions;
       if (options.length === 0) {
         return (
           <div className="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-500">
@@ -265,7 +264,7 @@ export function FiltersDrawer({
       }
       return (
         <div className="space-y-1">
-          {options.map((option) => (
+          {options.map(option => (
             <FilterAvatarRow
               key={option.id}
               label={option.label}
@@ -274,7 +273,7 @@ export function FiltersDrawer({
               bankName={option.bankName}
               selected={values.includes(option.id)}
               onClick={() =>
-                screen === "from"
+                screen === 'from'
                   ? onUpdateFilters({
                       from: toggleValue(values, option.id),
                     })
@@ -288,13 +287,13 @@ export function FiltersDrawer({
       );
     }
 
-    if (screen === "keywords") {
+    if (screen === 'keywords') {
       return (
         <div className="space-y-3">
           <div className="text-sm font-medium text-gray-500">{labels.keywords}</div>
           <input
             value={filters.keywords}
-            onChange={(event) => onUpdateFilters({ keywords: event.target.value })}
+            onChange={event => onUpdateFilters({ keywords: event.target.value })}
             placeholder={labels.keywords}
             className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
           />
@@ -302,15 +301,15 @@ export function FiltersDrawer({
       );
     }
 
-    if (screen === "amount") {
+    if (screen === 'amount') {
       return (
         <div className="space-y-4">
           <div>
             <div className="text-sm font-medium text-gray-500">Min</div>
             <input
               inputMode="decimal"
-              value={filters.amountMin !== null ? String(filters.amountMin) : ""}
-              onChange={(event) =>
+              value={filters.amountMin !== null ? String(filters.amountMin) : ''}
+              onChange={event =>
                 onUpdateFilters({ amountMin: parseNumberInput(event.target.value) })
               }
               placeholder="0"
@@ -321,8 +320,8 @@ export function FiltersDrawer({
             <div className="text-sm font-medium text-gray-500">Max</div>
             <input
               inputMode="decimal"
-              value={filters.amountMax !== null ? String(filters.amountMax) : ""}
-              onChange={(event) =>
+              value={filters.amountMax !== null ? String(filters.amountMax) : ''}
+              onChange={event =>
                 onUpdateFilters({ amountMax: parseNumberInput(event.target.value) })
               }
               placeholder="0"
@@ -333,25 +332,30 @@ export function FiltersDrawer({
       );
     }
 
-    if (screen === "approved" || screen === "billable" || screen === "exported" || screen === "paid") {
+    if (
+      screen === 'approved' ||
+      screen === 'billable' ||
+      screen === 'exported' ||
+      screen === 'paid'
+    ) {
       const currentValue =
-        screen === "approved"
+        screen === 'approved'
           ? filters.approved
-          : screen === "billable"
+          : screen === 'billable'
             ? filters.billable
-            : screen === "exported"
+            : screen === 'exported'
               ? filters.exported
               : filters.paid;
       const updateBooleanFilter = (value: boolean | null) => {
-        if (screen === "approved") {
+        if (screen === 'approved') {
           onUpdateFilters({ approved: value });
           return;
         }
-        if (screen === "billable") {
+        if (screen === 'billable') {
           onUpdateFilters({ billable: value });
           return;
         }
-        if (screen === "exported") {
+        if (screen === 'exported') {
           onUpdateFilters({ exported: value });
           return;
         }
@@ -381,7 +385,7 @@ export function FiltersDrawer({
       );
     }
 
-    if (screen === "groupBy") {
+    if (screen === 'groupBy') {
       return (
         <div className="space-y-1">
           <FilterOptionRow
@@ -390,7 +394,7 @@ export function FiltersDrawer({
             onClick={() => onUpdateFilters({ groupBy: null })}
             variant="radio"
           />
-          {groupByOptions.map((option) => (
+          {groupByOptions.map(option => (
             <FilterOptionRow
               key={option.value}
               label={option.label}
@@ -403,7 +407,7 @@ export function FiltersDrawer({
       );
     }
 
-    if (screen === "has") {
+    if (screen === 'has') {
       return (
         <div className="space-y-1">
           <FilterOptionRow
@@ -412,7 +416,7 @@ export function FiltersDrawer({
             onClick={() => onUpdateFilters({ has: [] })}
             variant="checkbox"
           />
-          {hasOptions.map((option) => (
+          {hasOptions.map(option => (
             <FilterOptionRow
               key={option.value}
               label={option.label}
@@ -429,16 +433,14 @@ export function FiltersDrawer({
       );
     }
 
-    if (screen === "limit") {
+    if (screen === 'limit') {
       return (
         <div className="space-y-3">
           <div className="text-sm font-medium text-gray-500">{labels.limit}</div>
           <input
             inputMode="numeric"
-            value={filters.limit !== null ? String(filters.limit) : ""}
-            onChange={(event) =>
-              onUpdateFilters({ limit: parseNumberInput(event.target.value) })
-            }
+            value={filters.limit !== null ? String(filters.limit) : ''}
+            onChange={event => onUpdateFilters({ limit: parseNumberInput(event.target.value) })}
             placeholder="0"
             className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
           />
@@ -446,7 +448,7 @@ export function FiltersDrawer({
       );
     }
 
-    if (screen === "currency") {
+    if (screen === 'currency') {
       if (currencyOptions.length === 0) {
         return (
           <div className="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-500">
@@ -462,7 +464,7 @@ export function FiltersDrawer({
             onClick={() => onUpdateFilters({ currencies: [] })}
             variant="checkbox"
           />
-          {currencyOptions.map((currency) => (
+          {currencyOptions.map(currency => (
             <FilterOptionRow
               key={currency}
               label={currency}
@@ -518,119 +520,101 @@ export function FiltersDrawer({
       <div className="flex h-full flex-col">
         {isRoot ? (
           <div className="flex-1 overflow-y-auto space-y-6 pb-28">
-          <FilterSection title={labels.general}>
-            <FilterRow
-              label={labels.type}
-              value={summaryValue(filters.type)}
-              onClick={() => onSelect("type")}
-            />
-            <FilterRow
-              label={labels.from}
-              value={summaryValue(filters.from.length ? `${filters.from.length}` : "")}
-              onClick={() => onSelect("from")}
-            />
-            <FilterRow
-              label={labels.keywords}
-              value={summaryValue(filters.keywords)}
-              onClick={() => onSelect("keywords")}
-            />
-            <FilterRow
-              label={labels.status}
-              value={summaryValue(filters.statuses.length ? `${filters.statuses.length}` : "")}
-              onClick={() => onSelect("status")}
-            />
-            <FilterRow
-              label={labels.to}
-              value={summaryValue(filters.to.length ? `${filters.to.length}` : "")}
-              onClick={() => onSelect("to")}
-            />
-            <FilterRow
-              label={labels.groupBy}
-              value={summaryValue(filters.groupBy)}
-              onClick={() => onSelect("groupBy")}
-            />
-            <FilterRow
-              label={labels.has}
-              value={summaryValue(filters.has.length ? `${filters.has.length}` : "")}
-              onClick={() => onSelect("has")}
-            />
-            <FilterRow
-              label={labels.limit}
-              value={summaryValue(filters.limit ? `${filters.limit}` : "")}
-              onClick={() => onSelect("limit")}
-            />
-          </FilterSection>
+            <FilterSection title={labels.general}>
+              <FilterRow
+                label={labels.type}
+                value={summaryValue(filters.type)}
+                onClick={() => onSelect('type')}
+              />
+              <FilterRow
+                label={labels.from}
+                value={summaryValue(filters.from.length ? `${filters.from.length}` : '')}
+                onClick={() => onSelect('from')}
+              />
+              <FilterRow
+                label={labels.keywords}
+                value={summaryValue(filters.keywords)}
+                onClick={() => onSelect('keywords')}
+              />
+              <FilterRow
+                label={labels.status}
+                value={summaryValue(filters.statuses.length ? `${filters.statuses.length}` : '')}
+                onClick={() => onSelect('status')}
+              />
+              <FilterRow
+                label={labels.to}
+                value={summaryValue(filters.to.length ? `${filters.to.length}` : '')}
+                onClick={() => onSelect('to')}
+              />
+              <FilterRow
+                label={labels.groupBy}
+                value={summaryValue(filters.groupBy)}
+                onClick={() => onSelect('groupBy')}
+              />
+              <FilterRow
+                label={labels.has}
+                value={summaryValue(filters.has.length ? `${filters.has.length}` : '')}
+                onClick={() => onSelect('has')}
+              />
+              <FilterRow
+                label={labels.limit}
+                value={summaryValue(filters.limit ? `${filters.limit}` : '')}
+                onClick={() => onSelect('limit')}
+              />
+            </FilterSection>
 
-          <FilterSection title={labels.expenses}>
-            <FilterRow
-              label={labels.amount}
-              value={summaryValue(filters.amountMin || filters.amountMax ? "set" : "")}
-              onClick={() => onSelect("amount")}
-            />
-            <FilterRow
-              label={labels.billable}
-              value={
-                filters.billable === null
-                  ? labels.any
-                  : filters.billable
-                    ? labels.yes
-                    : labels.no
-              }
-              onClick={() => onSelect("billable")}
-            />
-          </FilterSection>
+            <FilterSection title={labels.expenses}>
+              <FilterRow
+                label={labels.amount}
+                value={summaryValue(filters.amountMin || filters.amountMax ? 'set' : '')}
+                onClick={() => onSelect('amount')}
+              />
+              <FilterRow
+                label={labels.billable}
+                value={
+                  filters.billable === null ? labels.any : filters.billable ? labels.yes : labels.no
+                }
+                onClick={() => onSelect('billable')}
+              />
+            </FilterSection>
 
-          <FilterSection title={labels.reports}>
-            <FilterRow
-              label={labels.approved}
-              value={
-                filters.approved === null
-                  ? labels.any
-                  : filters.approved
-                    ? labels.yes
-                    : labels.no
-              }
-              onClick={() => onSelect("approved")}
-            />
-            <FilterRow
-              label={labels.currency}
-              value={summaryValue(filters.currencies.length > 0 ? `${filters.currencies.length}` : "")}
-              onClick={() => onSelect("currency")}
-            />
-            <FilterRow
-              label={labels.date}
-              value={summaryValue(filters.date ? "set" : "")}
-              onClick={() => onSelect("date")}
-            />
-            <FilterRow
-              label={labels.exported}
-              value={
-                filters.exported === null
-                  ? labels.any
-                  : filters.exported
-                    ? labels.yes
-                    : labels.no
-              }
-              onClick={() => onSelect("exported")}
-            />
-            <FilterRow
-              label={labels.paid}
-              value={
-                filters.paid === null
-                  ? labels.any
-                  : filters.paid
-                    ? labels.yes
-                    : labels.no
-              }
-              onClick={() => onSelect("paid")}
-            />
-          </FilterSection>
-        </div>
+            <FilterSection title={labels.reports}>
+              <FilterRow
+                label={labels.approved}
+                value={
+                  filters.approved === null ? labels.any : filters.approved ? labels.yes : labels.no
+                }
+                onClick={() => onSelect('approved')}
+              />
+              <FilterRow
+                label={labels.currency}
+                value={summaryValue(
+                  filters.currencies.length > 0 ? `${filters.currencies.length}` : '',
+                )}
+                onClick={() => onSelect('currency')}
+              />
+              <FilterRow
+                label={labels.date}
+                value={summaryValue(filters.date ? 'set' : '')}
+                onClick={() => onSelect('date')}
+              />
+              <FilterRow
+                label={labels.exported}
+                value={
+                  filters.exported === null ? labels.any : filters.exported ? labels.yes : labels.no
+                }
+                onClick={() => onSelect('exported')}
+              />
+              <FilterRow
+                label={labels.paid}
+                value={filters.paid === null ? labels.any : filters.paid ? labels.yes : labels.no}
+                onClick={() => onSelect('paid')}
+              />
+            </FilterSection>
+          </div>
         ) : (
           <div className="flex-1 overflow-y-auto space-y-5 pb-20">
-            <div className="rounded-2xl bg-transparent p-0">
-              {renderScreenContent()}
-            </div>
+            <div className="rounded-2xl bg-transparent p-0">{renderScreenContent()}</div>
           </div>
         )}
 
@@ -644,7 +628,7 @@ export function FiltersDrawer({
               {activeCount > 0 ? (
                 <span
                   className={cn(
-                    "ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-xs font-semibold",
+                    'ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-xs font-semibold',
                   )}
                 >
                   {activeCount}
@@ -659,7 +643,7 @@ export function FiltersDrawer({
               {activeCount > 0 ? (
                 <span
                   className={cn(
-                    "ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-xs font-semibold",
+                    'ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-xs font-semibold',
                   )}
                 >
                   {activeCount}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import type { AuditEvent } from '@/lib/api/audit';
 import {
   type ColumnDef,
   type SortingState,
@@ -9,8 +9,8 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import type { AuditEvent } from '@/lib/api/audit';
 import { ChevronDown, ChevronRight, Cpu, Plug, User } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 
 interface AuditEventTableProps {
   events: AuditEvent[];
@@ -52,9 +52,7 @@ export function AuditEventTable({
   onPageChange,
 }: AuditEventTableProps) {
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: 'timestamp', desc: true },
-  ]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'timestamp', desc: true }]);
 
   const groupedData = useMemo<AuditTableRow[]>(() => {
     const rows: AuditTableRow[] = [];
@@ -100,9 +98,7 @@ export function AuditEventTable({
       }
     });
 
-    return rows.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+    return rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [events, expandedBatches]);
 
   const toggleBatch = (batchId: string) => {
@@ -122,9 +118,7 @@ export function AuditEventTable({
         cell: ({ row }) => {
           const data = row.original;
           return (
-            <div className="text-sm text-gray-700">
-              {new Date(data.createdAt).toLocaleString()}
-            </div>
+            <div className="text-sm text-gray-700">{new Date(data.createdAt).toLocaleString()}</div>
           );
         },
       },
@@ -211,9 +205,7 @@ export function AuditEventTable({
         cell: ({ row }) => {
           const data = row.original;
           if (data.type === 'group') {
-            return (
-              <span className="text-xs font-mono text-gray-600">{data.batchId}</span>
-            );
+            return <span className="text-xs font-mono text-gray-600">{data.batchId}</span>;
           }
           if (!data.batchId) return <span className="text-sm text-gray-500">—</span>;
           return <span className="text-xs font-mono text-gray-600">{data.batchId}</span>;
@@ -242,7 +234,10 @@ export function AuditEventTable({
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map(header => (
-                  <th key={header.id} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
+                  <th
+                    key={header.id}
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-500"
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -257,7 +252,9 @@ export function AuditEventTable({
               return (
                 <tr
                   key={row.id}
-                  className={data.type === 'event' ? 'cursor-pointer hover:bg-gray-50' : 'bg-gray-50'}
+                  className={
+                    data.type === 'event' ? 'cursor-pointer hover:bg-gray-50' : 'bg-gray-50'
+                  }
                   onClick={() => {
                     if (data.type === 'event') onSelect(data.event);
                   }}
@@ -272,7 +269,10 @@ export function AuditEventTable({
             })}
             {table.getRowModel().rows.length === 0 && (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-6 text-center text-sm text-gray-500">
+                <td
+                  colSpan={columns.length}
+                  className="px-4 py-6 text-center text-sm text-gray-500"
+                >
                   No events found.
                 </td>
               </tr>

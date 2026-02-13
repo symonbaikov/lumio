@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it, vi } from 'vitest';
 import { CustomTableTanStack } from './CustomTableTanStack';
 
 const createI18nProxy = () =>

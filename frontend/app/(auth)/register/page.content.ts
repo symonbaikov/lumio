@@ -9,9 +9,9 @@ const content = {
       kk: 'Аккаунт жасаңыз',
     }),
     subtitle: t({
-      ru: 'Присоединяйтесь к FinFlow',
-      en: 'Join FinFlow',
-      kk: 'FinFlow-қа қосылыңыз',
+      ru: 'Присоединяйтесь к Lumio',
+      en: 'Join Lumio',
+      kk: 'Lumio-қа қосылыңыз',
     }),
     fullNameLabel: t({
       ru: 'Полное имя',
@@ -44,9 +44,9 @@ const content = {
       kk: 'Аккаунтыңыз бар ма? Кіру',
     }),
     rightTitle: t({
-      ru: 'Присоединяйтесь к FinFlow',
-      en: 'Join FinFlow',
-      kk: 'FinFlow-қа қосылыңыз',
+      ru: 'Присоединяйтесь к Lumio',
+      en: 'Join Lumio',
+      kk: 'Lumio-қа қосылыңыз',
     }),
     rightTagline: t({
       ru: 'Автоматизируйте финансы уже сегодня',

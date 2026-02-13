@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import StoragePageContent from "./StoragePageContent";
+import StoragePageContent from './StoragePageContent';
 
 export default function StoragePage() {
   return <StoragePageContent />;

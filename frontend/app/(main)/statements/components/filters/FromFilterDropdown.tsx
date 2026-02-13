@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { FilterActions } from "@/app/(main)/statements/components/filters/FilterActions";
-import { FilterAvatarRow } from "@/app/(main)/statements/components/filters/FilterAvatarRow";
-import { FilterDropdown } from "@/app/(main)/statements/components/filters/FilterDropdown";
+import { FilterActions } from '@/app/(main)/statements/components/filters/FilterActions';
+import { FilterAvatarRow } from '@/app/(main)/statements/components/filters/FilterAvatarRow';
+import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
 
 type FromOption = {
   id: string;
@@ -42,7 +42,7 @@ export function FromFilterDropdown({
   return (
     <FilterDropdown open={open} onOpenChange={onOpenChange} trigger={trigger}>
       <div className="max-h-[260px] space-y-1 overflow-y-auto pr-1">
-        {options.map((option) => {
+        {options.map(option => {
           const isSelected = selected.has(option.id);
           return (
             <FilterAvatarRow
@@ -55,7 +55,7 @@ export function FromFilterDropdown({
               selected={isSelected}
               onClick={() => {
                 if (isSelected) {
-                  onChange(values.filter((item) => item !== option.id));
+                  onChange(values.filter(item => item !== option.id));
                 } else {
                   onChange([...values, option.id]);
                 }

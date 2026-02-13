@@ -53,8 +53,8 @@ const content = {
       sheetName: {
         title: t({
           ru: 'Название в системе',
-          en: 'Name in FinFlow',
-          kk: 'FinFlow атауы',
+          en: 'Name in Lumio',
+          kk: 'Lumio атауы',
         }),
         description: t({
           ru: 'Это имя будет отображаться в списке подключений.',

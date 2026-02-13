@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { cn } from "@/app/lib/utils";
-import { ChevronRight } from "lucide-react";
+import { cn } from '@/app/lib/utils';
+import { ChevronRight } from 'lucide-react';
 
 type FilterRowProps = {
   label: string;
@@ -16,7 +16,7 @@ export function FilterRow({ label, value, onClick, className }: FilterRowProps) 
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center justify-between gap-4 rounded-xl px-4 py-4 text-left transition hover:bg-gray-50",
+        'flex w-full items-center justify-between gap-4 rounded-xl px-4 py-4 text-left transition hover:bg-gray-50',
         className,
       )}
     >

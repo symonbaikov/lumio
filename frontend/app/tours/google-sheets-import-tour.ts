@@ -27,7 +27,8 @@ export function createGoogleSheetsImportTour(texts: {
   return {
     id: 'google-sheets-import-tour',
     name: texts.name ?? 'Google Sheets Import Tour',
-    description: texts.description ?? 'Step-by-step overview of import settings and table creation.',
+    description:
+      texts.description ?? 'Step-by-step overview of import settings and table creation.',
     page: '/custom-tables/import/google-sheets',
     autoStart: false,
     steps: [

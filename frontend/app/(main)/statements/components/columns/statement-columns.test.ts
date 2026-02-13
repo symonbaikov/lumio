@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_STATEMENT_COLUMNS,
   STATEMENT_COLUMNS_STORAGE_KEY,
+  type StatementColumn,
   loadStatementColumns,
   reorderStatementColumns,
   saveStatementColumns,
-  type StatementColumn,
 } from './statement-columns';
 
 describe('statement column storage', () => {

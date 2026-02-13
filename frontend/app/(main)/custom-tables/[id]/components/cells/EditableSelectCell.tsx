@@ -1,9 +1,9 @@
 'use client';
 
-import type { CustomTableGridRow } from '../../utils/stylingUtils';
 import type { Column, Table } from '@tanstack/react-table';
 import { ChevronDown } from 'lucide-react';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import type { CustomTableGridRow } from '../../utils/stylingUtils';
 
 interface EditableSelectCellProps {
   row: any;

@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import ConfirmModal from "@/app/components/ConfirmModal";
-import LoadingAnimation from "@/app/components/LoadingAnimation";
-import { useAuth } from "@/app/hooks/useAuth";
-import apiClient from "@/app/lib/api";
+import ConfirmModal from '@/app/components/ConfirmModal';
+import LoadingAnimation from '@/app/components/LoadingAnimation';
+import { useAuth } from '@/app/hooks/useAuth';
+import apiClient from '@/app/lib/api';
 import {
   CUSTOM_TABLES_OPEN_ACTION_EVENT,
   CUSTOM_TABLES_VIEW_EVENT,
@@ -12,8 +12,8 @@ import {
   type CustomTableSortOrder,
   type CustomTableSourceFilter,
   type CustomTableViewEventDetail,
-} from "@/app/lib/custom-table-actions";
-import { Icon } from "@iconify/react";
+} from '@/app/lib/custom-table-actions';
+import { Icon } from '@iconify/react';
 import {
   Box,
   Button,
@@ -29,7 +29,7 @@ import {
   Select,
   TextField,
   Typography,
-} from "@mui/material";
+} from '@mui/material';
 import {
   ArrowDown,
   ChevronDown,
@@ -39,13 +39,13 @@ import {
   SlidersHorizontal,
   Table as TableIcon,
   Trash2,
-} from "lucide-react";
-import { useIntlayer } from "next-intlayer";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
-import CustomTablesCircularMenu from "./components/CustomTablesCircularMenu";
-import CustomTablesSidePanel from "./components/CustomTablesSidePanel";
+} from 'lucide-react';
+import { useIntlayer } from 'next-intlayer';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+import CustomTablesCircularMenu from './components/CustomTablesCircularMenu';
+import CustomTablesSidePanel from './components/CustomTablesSidePanel';
 
 interface Category {
   id: string;
@@ -79,19 +79,19 @@ const extractErrorMessage = (error: any): string | null => {
   return (
     error?.response?.data?.error?.message ||
     error?.response?.data?.message ||
-    (typeof error?.response?.data === "string" ? error.response.data : null) ||
+    (typeof error?.response?.data === 'string' ? error.response.data : null) ||
     null
   );
 };
 
 const formatUpdatedDate = (value?: string | null): string => {
-  if (!value) return "—";
+  if (!value) return '—';
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return '—';
 
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const year = date.getUTCFullYear();
 
   return `${day}.${month}.${year}`;
@@ -100,7 +100,7 @@ const formatUpdatedDate = (value?: string | null): string => {
 export default function CustomTablesPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const t = useIntlayer("customTablesPage");
+  const t = useIntlayer('customTablesPage');
   const [items, setItems] = useState<CustomTableItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [statements, setStatements] = useState<StatementItem[]>([]);
@@ -109,34 +109,27 @@ export default function CustomTablesPage() {
   const [creating, setCreating] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({
-    name: "",
-    description: "",
-    categoryId: "",
+    name: '',
+    description: '',
+    categoryId: '',
   });
-  const [createFromStatementsOpen, setCreateFromStatementsOpen] =
-    useState(false);
+  const [createFromStatementsOpen, setCreateFromStatementsOpen] = useState(false);
   const [createFromStatementsForm, setCreateFromStatementsForm] = useState<{
     name: string;
     description: string;
   }>({
-    name: "",
-    description: "",
+    name: '',
+    description: '',
   });
-  const [selectedStatementIds, setSelectedStatementIds] = useState<string[]>(
-    [],
-  );
+  const [selectedStatementIds, setSelectedStatementIds] = useState<string[]>([]);
   const [creatingFromStatements, setCreatingFromStatements] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<CustomTableItem | null>(
-    null,
-  );
+  const [deleteTarget, setDeleteTarget] = useState<CustomTableItem | null>(null);
 
   // New State for Redesign
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterSource, setFilterSource] =
-    useState<CustomTableSourceFilter>("all");
-  const [sortOrder, setSortOrder] =
-    useState<CustomTableSortOrder>("updated_desc");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterSource, setFilterSource] = useState<CustomTableSourceFilter>('all');
+  const [sortOrder, setSortOrder] = useState<CustomTableSortOrder>('updated_desc');
   const hasHandledImportParam = useRef(false);
 
   // Pagination State
@@ -150,24 +143,21 @@ export default function CustomTablesPage() {
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter((item) => item.name.toLowerCase().includes(q));
+      result = result.filter(item => item.name.toLowerCase().includes(q));
     }
 
-    if (filterSource !== "all") {
-      if (filterSource === "statement") {
-        result = result.filter((item) => item.source === "statement");
+    if (filterSource !== 'all') {
+      if (filterSource === 'statement') {
+        result = result.filter(item => item.source === 'statement');
       } else {
-        result = result.filter((item) => item.source === filterSource);
+        result = result.filter(item => item.source === filterSource);
       }
     }
 
-    if (sortOrder === "name_asc") {
+    if (sortOrder === 'name_asc') {
       result.sort((a, b) => a.name.localeCompare(b.name));
     } else {
-      result.sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-      );
+      result.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     }
 
     return result;
@@ -185,47 +175,39 @@ export default function CustomTablesPage() {
   }, [filteredItems, page]);
 
   const totalPages = Math.ceil(filteredItems.length / ROWS_PER_PAGE);
-  const rangeStart =
-    filteredItems.length === 0 ? 0 : (page - 1) * ROWS_PER_PAGE + 1;
+  const rangeStart = filteredItems.length === 0 ? 0 : (page - 1) * ROWS_PER_PAGE + 1;
   const rangeEnd = Math.min(page * ROWS_PER_PAGE, filteredItems.length);
 
   const sourceCounts = useMemo<Record<CustomTableSourceFilter, number>>(
     () => ({
       all: items.length,
-      manual: items.filter((item) => item.source === "manual").length,
-      google_sheets_import: items.filter(
-        (item) => item.source === "google_sheets_import",
-      ).length,
-      statement: items.filter((item) => item.source === "statement").length,
+      manual: items.filter(item => item.source === 'manual').length,
+      google_sheets_import: items.filter(item => item.source === 'google_sheets_import').length,
+      statement: items.filter(item => item.source === 'statement').length,
     }),
     [items],
   );
 
   const loadCategories = useCallback(async () => {
     try {
-      const response = await apiClient.get("/categories");
+      const response = await apiClient.get('/categories');
       const payload = response.data?.data || response.data || [];
       setCategories(Array.isArray(payload) ? payload : []);
     } catch (error) {
-      console.error("Failed to load categories:", error);
+      console.error('Failed to load categories:', error);
     }
   }, []);
 
   const loadTables = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/custom-tables");
+      const response = await apiClient.get('/custom-tables');
       const payload =
-        response.data?.items ||
-        response.data?.data?.items ||
-        response.data?.data ||
-        [];
+        response.data?.items || response.data?.data?.items || response.data?.data || [];
       setItems(Array.isArray(payload) ? payload : []);
     } catch (error) {
-      console.error("Failed to load custom tables:", error);
-      toast.error(
-        extractErrorMessage(error) || t.toasts.loadTablesFailed.value,
-      );
+      console.error('Failed to load custom tables:', error);
+      toast.error(extractErrorMessage(error) || t.toasts.loadTablesFailed.value);
     } finally {
       setLoading(false);
     }
@@ -234,16 +216,14 @@ export default function CustomTablesPage() {
   const loadStatements = useCallback(async () => {
     setStatementsLoading(true);
     try {
-      const response = await apiClient.get("/statements", {
+      const response = await apiClient.get('/statements', {
         params: { page: 1, limit: 50 },
       });
       const payload = response.data?.data || response.data?.items || [];
       setStatements(Array.isArray(payload) ? payload : []);
     } catch (error) {
-      console.error("Failed to load statements:", error);
-      toast.error(
-        extractErrorMessage(error) || t.toasts.loadStatementsFailed.value,
-      );
+      console.error('Failed to load statements:', error);
+      toast.error(extractErrorMessage(error) || t.toasts.loadStatementsFailed.value);
     } finally {
       setStatementsLoading(false);
     }
@@ -260,24 +240,22 @@ export default function CustomTablesPage() {
     if (!canCreate) return;
     setCreating(true);
     try {
-      const response = await apiClient.post("/custom-tables", {
+      const response = await apiClient.post('/custom-tables', {
         name: form.name.trim(),
-        description: form.description.trim()
-          ? form.description.trim()
-          : undefined,
+        description: form.description.trim() ? form.description.trim() : undefined,
         categoryId: form.categoryId ? form.categoryId : undefined,
       });
       const created = response.data?.data || response.data;
       toast.success(t.toasts.created.value);
       setCreateOpen(false);
-      setForm({ name: "", description: "", categoryId: "" });
+      setForm({ name: '', description: '', categoryId: '' });
       if (created?.id) {
         router.push(`/custom-tables/${created.id}`);
         return;
       }
       await loadTables();
     } catch (error) {
-      console.error("Failed to create custom table:", error);
+      console.error('Failed to create custom table:', error);
       toast.error(extractErrorMessage(error) || t.toasts.createFailed.value);
     } finally {
       setCreating(false);
@@ -287,59 +265,55 @@ export default function CustomTablesPage() {
   const openCreateFromStatements = useCallback(async () => {
     setCreateFromStatementsOpen(true);
     setSelectedStatementIds([]);
-    setCreateFromStatementsForm({ name: "", description: "" });
+    setCreateFromStatementsForm({ name: '', description: '' });
     await loadStatements();
   }, [loadStatements]);
 
   const handleTableAction = useCallback(
     (action: CustomTableAction) => {
-      if (action === "create-empty") {
+      if (action === 'create-empty') {
         setCreateOpen(true);
         return;
       }
 
-      if (action === "import-statement") {
+      if (action === 'import-statement') {
         void openCreateFromStatements();
         return;
       }
 
-      router.push("/custom-tables/import/google-sheets");
+      router.push('/custom-tables/import/google-sheets');
     },
     [openCreateFromStatements, router],
   );
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
 
     const handleActionEvent = (event: Event) => {
-      const detail = (event as CustomEvent<CustomTableActionEventDetail>)
-        .detail;
+      const detail = (event as CustomEvent<CustomTableActionEventDetail>).detail;
       if (!detail?.action) return;
       handleTableAction(detail.action);
     };
 
     window.addEventListener(CUSTOM_TABLES_OPEN_ACTION_EVENT, handleActionEvent);
     return () => {
-      window.removeEventListener(
-        CUSTOM_TABLES_OPEN_ACTION_EVENT,
-        handleActionEvent,
-      );
+      window.removeEventListener(CUSTOM_TABLES_OPEN_ACTION_EVENT, handleActionEvent);
     };
   }, [handleTableAction]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
 
     const handleViewEvent = (event: Event) => {
       const detail = (event as CustomEvent<CustomTableViewEventDetail>).detail;
       if (!detail) return;
 
-      if (detail.type === "filter-source") {
+      if (detail.type === 'filter-source') {
         setFilterSource(detail.value);
         return;
       }
 
-      if (detail.type === "sort-order") {
+      if (detail.type === 'sort-order') {
         setSortOrder(detail.value);
       }
     };
@@ -351,14 +325,14 @@ export default function CustomTablesPage() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
     if (hasHandledImportParam.current) return;
 
     const params = new URLSearchParams(window.location.search);
     hasHandledImportParam.current = true;
 
-    if (params.get("import") === "1") {
-      handleTableAction("import-statement");
+    if (params.get('import') === '1') {
+      handleTableAction('import-statement');
     }
   }, [handleTableAction]);
 
@@ -369,7 +343,7 @@ export default function CustomTablesPage() {
     }
     setCreatingFromStatements(true);
     try {
-      const response = await apiClient.post("/custom-tables/from-statements", {
+      const response = await apiClient.post('/custom-tables/from-statements', {
         statementIds: selectedStatementIds,
         name: createFromStatementsForm.name.trim()
           ? createFromStatementsForm.name.trim()
@@ -389,10 +363,8 @@ export default function CustomTablesPage() {
       }
       await loadTables();
     } catch (error) {
-      console.error("Failed to create from statements:", error);
-      toast.error(
-        extractErrorMessage(error) || t.toasts.createFromStatementFailed.value,
-      );
+      console.error('Failed to create from statements:', error);
+      toast.error(extractErrorMessage(error) || t.toasts.createFromStatementFailed.value);
     } finally {
       setCreatingFromStatements(false);
     }
@@ -411,44 +383,37 @@ export default function CustomTablesPage() {
       toast.success(t.toasts.deleted.value, { id: toastId });
       await loadTables();
     } catch (error) {
-      console.error("Failed to delete custom table:", error);
+      console.error('Failed to delete custom table:', error);
       toast.error(t.toasts.deleteFailed.value, { id: toastId });
     } finally {
       setDeleteTarget(null);
     }
   };
 
-  const resolveLabel = (value: any, fallback: string) =>
-    value?.value ?? value ?? fallback;
-  const searchPlaceholder = resolveLabel(
-    (t as any).searchPlaceholder,
-    "Search tables...",
-  );
+  const resolveLabel = (value: any, fallback: string) => value?.value ?? value ?? fallback;
+  const searchPlaceholder = resolveLabel((t as any).searchPlaceholder, 'Search tables...');
   const sourcesAny = (t.sources as any) ?? {};
   const filtersAny = (t as any).filters ?? {};
   const sidePanelAny = (t as any).sidePanel ?? {};
   const actionsAny = (t.actions as any) ?? {};
   const filterLabels = {
-    all: resolveLabel(filtersAny.all, "All"),
-    manual: resolveLabel(sourcesAny.manual, "Manual"),
-    sheets: resolveLabel(sourcesAny.googleSheets, "Google Sheets"),
-    statement: resolveLabel(filtersAny.fromStatement, "From statement"),
-    sortUpdated: resolveLabel(filtersAny.sortUpdated, "Recent updates"),
-    sortName: resolveLabel(filtersAny.sortName, "By name"),
+    all: resolveLabel(filtersAny.all, 'All'),
+    manual: resolveLabel(sourcesAny.manual, 'Manual'),
+    sheets: resolveLabel(sourcesAny.googleSheets, 'Google Sheets'),
+    statement: resolveLabel(filtersAny.fromStatement, 'From statement'),
+    sortUpdated: resolveLabel(filtersAny.sortUpdated, 'Recent updates'),
+    sortName: resolveLabel(filtersAny.sortName, 'By name'),
   };
-  const openLabel = resolveLabel(actionsAny.open, "Open");
-  const createLabel = resolveLabel(actionsAny.create, "Create");
-  const openMenuLabel = resolveLabel(
-    sidePanelAny.openMenu,
-    "Open table actions",
-  );
+  const openLabel = resolveLabel(actionsAny.open, 'Open');
+  const createLabel = resolveLabel(actionsAny.create, 'Create');
+  const openMenuLabel = resolveLabel(sidePanelAny.openMenu, 'Open table actions');
 
   const filterChipClassName =
-    "inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary";
+    'inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary';
   const filterLinkClassName =
-    "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-primary";
+    'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-primary';
   const getFilterChipClassName = (active: boolean) =>
-    `${filterChipClassName} ${active ? "border-primary text-primary" : ""}`;
+    `${filterChipClassName} ${active ? 'border-primary text-primary' : ''}`;
 
   if (authLoading) {
     return (
@@ -482,7 +447,7 @@ export default function CustomTablesPage() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder={searchPlaceholder}
               aria-label={searchPlaceholder}
               className="w-full rounded-md border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
@@ -491,34 +456,32 @@ export default function CustomTablesPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className={getFilterChipClassName(filterSource === "all")}
-              onClick={() => setFilterSource("all")}
+              className={getFilterChipClassName(filterSource === 'all')}
+              onClick={() => setFilterSource('all')}
             >
               {filterLabels.all}
               <ChevronDown className="h-4 w-4 text-gray-600" />
             </button>
             <button
               type="button"
-              className={getFilterChipClassName(filterSource === "manual")}
-              onClick={() => setFilterSource("manual")}
+              className={getFilterChipClassName(filterSource === 'manual')}
+              onClick={() => setFilterSource('manual')}
             >
               {filterLabels.manual}
               <ChevronDown className="h-4 w-4 text-gray-600" />
             </button>
             <button
               type="button"
-              className={getFilterChipClassName(
-                filterSource === "google_sheets_import",
-              )}
-              onClick={() => setFilterSource("google_sheets_import")}
+              className={getFilterChipClassName(filterSource === 'google_sheets_import')}
+              onClick={() => setFilterSource('google_sheets_import')}
             >
               {filterLabels.sheets}
               <ChevronDown className="h-4 w-4 text-gray-600" />
             </button>
             <button
               type="button"
-              className={getFilterChipClassName(filterSource === "statement")}
-              onClick={() => setFilterSource("statement")}
+              className={getFilterChipClassName(filterSource === 'statement')}
+              onClick={() => setFilterSource('statement')}
             >
               {filterLabels.statement}
               <ChevronDown className="h-4 w-4 text-gray-600" />
@@ -531,15 +494,11 @@ export default function CustomTablesPage() {
               type="button"
               className={filterLinkClassName}
               onClick={() =>
-                setSortOrder((prev) =>
-                  prev === "updated_desc" ? "name_asc" : "updated_desc",
-                )
+                setSortOrder(prev => (prev === 'updated_desc' ? 'name_asc' : 'updated_desc'))
               }
             >
               <ArrowDown className="h-4 w-4" />
-              {sortOrder === "updated_desc"
-                ? filterLabels.sortUpdated
-                : filterLabels.sortName}
+              {sortOrder === 'updated_desc' ? filterLabels.sortUpdated : filterLabels.sortName}
             </button>
           </div>
         </div>
@@ -566,14 +525,10 @@ export default function CustomTablesPage() {
                   <div className="w-3" />
                   <div className="flex-1">{t.columns.name.value}</div>
                   <div className="w-28">{t.columns.source.value}</div>
-                  <div className="w-28 text-right">
-                    {t.columns.updatedAt.value}
-                  </div>
-                  <div className="w-36 text-right">
-                    {t.columns.actions.value}
-                  </div>
+                  <div className="w-28 text-right">{t.columns.updatedAt.value}</div>
+                  <div className="w-36 text-right">{t.columns.actions.value}</div>
                 </div>
-                {paginatedItems.map((table) => (
+                {paginatedItems.map(table => (
                   <div
                     key={table.id}
                     className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 transition-colors hover:bg-gray-50"
@@ -590,10 +545,7 @@ export default function CustomTablesPage() {
                       title={openLabel}
                     >
                       {table.category?.icon ? (
-                        <Icon
-                          icon={table.category.icon}
-                          className="h-5 w-5 text-gray-700"
-                        />
+                        <Icon icon={table.category.icon} className="h-5 w-5 text-gray-700" />
                       ) : (
                         <TableIcon className="h-5 w-5 text-gray-600" />
                       )}
@@ -604,15 +556,13 @@ export default function CustomTablesPage() {
                         {table.name}
                       </div>
                       {table.description && (
-                        <div className="text-xs text-gray-500 truncate">
-                          {table.description}
-                        </div>
+                        <div className="text-xs text-gray-500 truncate">{table.description}</div>
                       )}
                     </div>
                     <span className="hidden w-28 shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:inline-block">
-                      {table.source === "google_sheets_import"
+                      {table.source === 'google_sheets_import'
                         ? filterLabels.sheets
-                        : table.source === "statement"
+                        : table.source === 'statement'
                           ? filterLabels.statement
                           : filterLabels.manual}
                     </span>
@@ -630,9 +580,7 @@ export default function CustomTablesPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() =>
-                          router.push(`/custom-tables/${table.id}`)
-                        }
+                        onClick={() => router.push(`/custom-tables/${table.id}`)}
                         className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary"
                       >
                         {openLabel}
@@ -654,32 +602,30 @@ export default function CustomTablesPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                    onClick={() => setPage(prev => Math.max(1, prev - 1))}
                     disabled={page <= 1}
                     className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm border transition-all ${
                       page <= 1
-                        ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                        : "border-gray-200 text-gray-600 hover:border-primary hover:text-primary"
+                        ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                        : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
                     }`}
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    {(t.actions as any).previous?.value ?? "Previous"}
+                    {(t.actions as any).previous?.value ?? 'Previous'}
                   </button>
                   <span className="text-sm text-gray-600">
                     Страница {page} из {totalPages || 1}
                   </span>
                   <button
-                    onClick={() =>
-                      setPage((prev) => Math.min(totalPages, prev + 1))
-                    }
+                    onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={page >= totalPages}
                     className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm border transition-all ${
                       page >= totalPages
-                        ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                        : "border-gray-200 text-gray-600 hover:border-primary hover:text-primary"
+                        ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                        : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
                     }`}
                   >
-                    {(t.actions as any).next?.value ?? "Next"}
+                    {(t.actions as any).next?.value ?? 'Next'}
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -691,9 +637,9 @@ export default function CustomTablesPage() {
       <div className="fixed bottom-6 left-6 z-40 lg:hidden">
         <CustomTablesCircularMenu
           placement="floating"
-          onCreateEmpty={() => handleTableAction("create-empty")}
-          onImportFromStatement={() => handleTableAction("import-statement")}
-          onImportGoogleSheets={() => handleTableAction("import-google-sheets")}
+          onCreateEmpty={() => handleTableAction('create-empty')}
+          onImportFromStatement={() => handleTableAction('import-statement')}
+          onImportGoogleSheets={() => handleTableAction('import-google-sheets')}
           labels={{
             createTable: createLabel,
             fromStatement: filterLabels.statement,
@@ -705,12 +651,8 @@ export default function CustomTablesPage() {
       {createFromStatementsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
-            >
-              <Typography variant="h6">
-                {t.createFromStatements.title}
-              </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6">{t.createFromStatements.title}</Typography>
               <IconButton
                 onClick={() => setCreateFromStatementsOpen(false)}
                 size="small"
@@ -728,8 +670,8 @@ export default function CustomTablesPage() {
                   fullWidth
                   size="small"
                   value={createFromStatementsForm.name}
-                  onChange={(e) =>
-                    setCreateFromStatementsForm((prev) => ({
+                  onChange={e =>
+                    setCreateFromStatementsForm(prev => ({
                       ...prev,
                       name: e.target.value,
                     }))
@@ -739,14 +681,12 @@ export default function CustomTablesPage() {
               <Grid size={{ xs: 12, md: 8 }}>
                 <TextField
                   label={t.createFromStatements.descriptionOptional}
-                  placeholder={
-                    t.createFromStatements.descriptionPlaceholder.value
-                  }
+                  placeholder={t.createFromStatements.descriptionPlaceholder.value}
                   fullWidth
                   size="small"
                   value={createFromStatementsForm.description}
-                  onChange={(e) =>
-                    setCreateFromStatementsForm((prev) => ({
+                  onChange={e =>
+                    setCreateFromStatementsForm(prev => ({
                       ...prev,
                       description: e.target.value,
                     }))
@@ -760,9 +700,9 @@ export default function CustomTablesPage() {
                 <Box
                   sx={{
                     maxHeight: 200,
-                    overflow: "auto",
+                    overflow: 'auto',
                     border: 1,
-                    borderColor: "divider",
+                    borderColor: 'divider',
                     borderRadius: 1,
                     p: 1,
                   }}
@@ -776,19 +716,19 @@ export default function CustomTablesPage() {
                       {t.createFromStatements.statementsEmpty}
                     </Typography>
                   ) : (
-                    statements.map((s) => {
+                    statements.map(s => {
                       const disabled =
                         !s.totalTransactions ||
-                        s.status === "error" ||
-                        s.status === "uploaded" ||
-                        s.status === "processing";
+                        s.status === 'error' ||
+                        s.status === 'uploaded' ||
+                        s.status === 'processing';
                       const checked = selectedStatementIds.includes(s.id);
                       return (
                         <Box
                           key={s.id}
                           sx={{
-                            display: "flex",
-                            alignItems: "center",
+                            display: 'flex',
+                            alignItems: 'center',
                             opacity: disabled ? 0.5 : 1,
                           }}
                         >
@@ -796,10 +736,8 @@ export default function CustomTablesPage() {
                             size="small"
                             disabled={disabled}
                             onClick={() => {
-                              setSelectedStatementIds((prev) =>
-                                checked
-                                  ? prev.filter((id) => id !== s.id)
-                                  : [...prev, s.id],
+                              setSelectedStatementIds(prev =>
+                                checked ? prev.filter(id => id !== s.id) : [...prev, s.id],
                               );
                             }}
                             type="button"
@@ -813,10 +751,8 @@ export default function CustomTablesPage() {
                           <Typography variant="body2" noWrap title={s.fileName}>
                             {s.fileName || s.id}
                           </Typography>
-                          <Box sx={{ ml: "auto" }}>
-                            <Typography variant="caption">
-                              {s.totalTransactions ?? 0}
-                            </Typography>
+                          <Box sx={{ ml: 'auto' }}>
+                            <Typography variant="caption">{s.totalTransactions ?? 0}</Typography>
                           </Box>
                         </Box>
                       );
@@ -828,22 +764,17 @@ export default function CustomTablesPage() {
             <Box
               sx={{
                 mt: 3,
-                display: "flex",
-                justifyContent: "flex-end",
+                display: 'flex',
+                justifyContent: 'flex-end',
                 gap: 1,
               }}
             >
-              <Button
-                onClick={() => setCreateFromStatementsOpen(false)}
-                type="button"
-              >
+              <Button onClick={() => setCreateFromStatementsOpen(false)} type="button">
                 {t.actions.cancel.value}
               </Button>
               <Button
                 variant="contained"
-                disabled={
-                  !selectedStatementIds.length || creatingFromStatements
-                }
+                disabled={!selectedStatementIds.length || creatingFromStatements}
                 onClick={handleCreateFromStatements}
                 type="button"
               >
@@ -856,12 +787,7 @@ export default function CustomTablesPage() {
         </div>
       )}
       {createOpen && (
-        <Dialog
-          open={createOpen}
-          onClose={() => setCreateOpen(false)}
-          fullWidth
-          maxWidth="md"
-        >
+        <Dialog open={createOpen} onClose={() => setCreateOpen(false)} fullWidth maxWidth="md">
           <DialogTitle>{t.create.title}</DialogTitle>
           <DialogContent dividers>
             <Grid container spacing={2}>
@@ -871,9 +797,7 @@ export default function CustomTablesPage() {
                   placeholder={t.create.namePlaceholder.value}
                   fullWidth
                   value={form.name}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, name: e.target.value }))
-                  }
+                  onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 8 }}>
@@ -882,8 +806,8 @@ export default function CustomTablesPage() {
                   placeholder={t.create.descriptionPlaceholder.value}
                   fullWidth
                   value={form.description}
-                  onChange={(e) =>
-                    setForm((prev) => ({
+                  onChange={e =>
+                    setForm(prev => ({
                       ...prev,
                       description: e.target.value,
                     }))
@@ -896,8 +820,8 @@ export default function CustomTablesPage() {
                   <Select
                     value={form.categoryId}
                     label={t.create.category}
-                    onChange={(e) =>
-                      setForm((prev) => ({
+                    onChange={e =>
+                      setForm(prev => ({
                         ...prev,
                         categoryId: e.target.value,
                       }))
@@ -906,11 +830,9 @@ export default function CustomTablesPage() {
                     <MenuItem value="">
                       <em>{t.create.noCategory}</em>
                     </MenuItem>
-                    {categories.map((c) => (
+                    {categories.map(c => (
                       <MenuItem key={c.id} value={c.id}>
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Box
                             sx={{
                               width: 16,

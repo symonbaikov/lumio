@@ -81,9 +81,9 @@ const content = {
         kk: 'Профильді жаңарту мүмкін болмады.',
       }),
       languages: {
-        ru: t({ ru: 'Русский', en: 'Russian', kk: 'Орысша' }),
-        en: t({ ru: 'Английский', en: 'English', kk: 'Ағылшынша' }),
-        kk: t({ ru: 'Казахский', en: 'Kazakh', kk: 'Қазақша' }),
+        ru: t({ ru: 'Русский', en: 'Русский', kk: 'Русский' }),
+        en: t({ ru: 'English', en: 'English', kk: 'English' }),
+        kk: t({ ru: 'Қазақша', en: 'Қазақша', kk: 'Қазақша' }),
         auto: t({ ru: 'Авто', en: 'Auto', kk: 'Авто' }),
       },
       timeZones: {
@@ -94,8 +94,16 @@ const content = {
       },
       editPhotoLabel: t({ ru: 'Изменить фото', en: 'Edit photo', kk: 'Фотоны өзгерту' }),
       avatarUpdated: t({ ru: 'Аватар обновлен.', en: 'Avatar updated.', kk: 'Аватар жаңартылды.' }),
-      avatarError: t({ ru: 'Не удалось обновить аватар.', en: 'Failed to update avatar.', kk: 'Аватарды жаңарту мүмкін болмады.' }),
-      avatarSizeError: t({ ru: 'Слишком большой файл. Максимум 2 МБ.', en: 'File is too large. Max 2 MB.', kk: 'Файл тым үлкен. Ең көбі 2 МБ.' }),
+      avatarError: t({
+        ru: 'Не удалось обновить аватар.',
+        en: 'Failed to update avatar.',
+        kk: 'Аватарды жаңарту мүмкін болмады.',
+      }),
+      avatarSizeError: t({
+        ru: 'Слишком большой файл. Максимум 2 МБ.',
+        en: 'File is too large. Max 2 MB.',
+        kk: 'Файл тым үлкен. Ең көбі 2 МБ.',
+      }),
     },
     sessionsCard: {
       title: t({ ru: 'Сеансы', en: 'Sessions', kk: 'Сеанстар' }),
@@ -143,9 +151,17 @@ const content = {
     },
     appearanceCard: {
       title: t({ ru: 'Внешний вид', en: 'Appearance', kk: 'Көрініс' }),
-      description: t({ ru: 'Настройте тему приложения', en: 'Configure application theme', kk: 'Қолданба тақырыбын баптаңыз' }),
+      description: t({
+        ru: 'Настройте тему приложения',
+        en: 'Configure application theme',
+        kk: 'Қолданба тақырыбын баптаңыз',
+      }),
       themeLabel: t({ ru: 'Тема', en: 'Theme', kk: 'Тақырып' }),
-      themeHelp: t({ ru: 'Выберите светлую или тёмную тему.', en: 'Choose light or dark theme.', kk: 'Ашық немесе қараңғы тақырыпты таңдаңыз.' }),
+      themeHelp: t({
+        ru: 'Выберите светлую или тёмную тему.',
+        en: 'Choose light or dark theme.',
+        kk: 'Ашық немесе қараңғы тақырыпты таңдаңыз.',
+      }),
     },
   },
 } satisfies Dictionary;

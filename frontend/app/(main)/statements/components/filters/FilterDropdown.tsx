@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu";
-import { cn } from "@/app/lib/utils";
-import type { ReactNode } from "react";
+} from '@/app/components/ui/dropdown-menu';
+import { cn } from '@/app/lib/utils';
+import type { ReactNode } from 'react';
 
 type FilterDropdownProps = {
   open: boolean;
@@ -14,7 +14,7 @@ type FilterDropdownProps = {
   trigger: ReactNode;
   children: ReactNode;
   contentClassName?: string;
-  align?: "start" | "center" | "end";
+  align?: 'start' | 'center' | 'end';
 };
 
 export function FilterDropdown({
@@ -23,7 +23,7 @@ export function FilterDropdown({
   trigger,
   children,
   contentClassName,
-  align = "start",
+  align = 'start',
 }: FilterDropdownProps) {
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
@@ -32,7 +32,7 @@ export function FilterDropdown({
         align={align}
         sideOffset={8}
         className={cn(
-          "w-[320px] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl",
+          'w-[320px] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl',
           contentClassName,
         )}
       >

@@ -1,8 +1,8 @@
 'use client';
 
-import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { AuditEventDrawer } from '@/app/audit/components/AuditEventDrawer';
 import { EntityHistoryTimeline } from '@/app/audit/components/EntityHistoryTimeline';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import type { AuditEvent } from '@/lib/api/audit';
 import { fetchEntityHistory } from '@/lib/api/audit';
 import { useEffect, useMemo, useState } from 'react';
@@ -93,10 +93,7 @@ export function RowDrawer({
   useEffect(() => {
     if (!open || !row) return;
     setHistoryLoading(true);
-    Promise.all([
-      fetchEntityHistory('table_row', row.id),
-      fetchEntityHistory('table_cell', row.id),
-    ])
+    Promise.all([fetchEntityHistory('table_row', row.id), fetchEntityHistory('table_cell', row.id)])
       .then(([rowEvents, cellEvents]) => {
         const combined = [...(rowEvents || []), ...(cellEvents || [])].sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -186,198 +183,198 @@ export function RowDrawer({
         </div>
 
         <div className={activeTab === 'details' ? 'space-y-6' : 'hidden'}>
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Meta</div>
-          <div className="mt-2 grid grid-cols-1 gap-2 text-sm">
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-gray-600">Row number</span>
-              <span className="font-semibold text-gray-900">{row.rowNumber}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-gray-600">Row id</span>
-              <span className="font-mono text-xs text-gray-800">{row.id}</span>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Meta</div>
+            <div className="mt-2 grid grid-cols-1 gap-2 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-gray-600">Row number</span>
+                <span className="font-semibold text-gray-900">{row.rowNumber}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-gray-600">Row id</span>
+                <span className="font-mono text-xs text-gray-800">{row.id}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sm font-semibold text-gray-900">
-            {mode === 'edit' ? 'Edit fields' : 'Fields'}
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-semibold text-gray-900">
+              {mode === 'edit' ? 'Edit fields' : 'Fields'}
+            </div>
+            {mode === 'view' ? (
+              <button
+                type="button"
+                onClick={() => onModeChange?.('edit')}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Edit
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(baseData);
+                  onModeChange?.('view');
+                }}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            )}
           </div>
-          {mode === 'view' ? (
-            <button
-              type="button"
-              onClick={() => onModeChange?.('edit')}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              Edit
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setDraft(baseData);
-                onModeChange?.('view');
-              }}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
 
-        <div className="space-y-3">
-          {orderedColumns.map(col => {
-            const value = mode === 'edit' ? draft[col.key] : row.data?.[col.key];
-            const options = Array.isArray((col.config as any)?.options)
-              ? ((col.config as any).options as unknown[]).map(v => String(v))
-              : [];
+          <div className="space-y-3">
+            {orderedColumns.map(col => {
+              const value = mode === 'edit' ? draft[col.key] : row.data?.[col.key];
+              const options = Array.isArray((col.config as any)?.options)
+                ? ((col.config as any).options as unknown[]).map(v => String(v))
+                : [];
 
-            return (
-              <div key={col.key} className="rounded-lg border border-gray-200 bg-white p-4">
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {col.title || col.key}
-                </div>
-
-                {mode === 'view' ? (
-                  <div className="mt-2 text-sm font-semibold text-gray-900">
-                    {formatValue(col.type, value)}
+              return (
+                <div key={col.key} className="rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    {col.title || col.key}
                   </div>
-                ) : col.type === 'boolean' ? (
-                  <label className="mt-3 inline-flex items-center gap-2 text-sm text-gray-800">
+
+                  {mode === 'view' ? (
+                    <div className="mt-2 text-sm font-semibold text-gray-900">
+                      {formatValue(col.type, value)}
+                    </div>
+                  ) : col.type === 'boolean' ? (
+                    <label className="mt-3 inline-flex items-center gap-2 text-sm text-gray-800">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(value)}
+                        onChange={e =>
+                          setDraft(prev => ({
+                            ...prev,
+                            [col.key]: e.target.checked,
+                          }))
+                        }
+                        className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20"
+                      />
+                      <span>{value ? 'Yes' : 'No'}</span>
+                    </label>
+                  ) : col.type === 'number' ? (
                     <input
-                      type="checkbox"
-                      checked={Boolean(value)}
+                      type="number"
+                      step="any"
+                      value={value === null || value === undefined ? '' : String(value)}
                       onChange={e =>
                         setDraft(prev => ({
                           ...prev,
-                          [col.key]: e.target.checked,
+                          [col.key]: e.target.value.trim() === '' ? null : Number(e.target.value),
                         }))
                       }
-                      className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20"
+                      className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
-                    <span>{value ? 'Yes' : 'No'}</span>
-                  </label>
-                ) : col.type === 'number' ? (
-                  <input
-                    type="number"
-                    step="any"
-                    value={value === null || value === undefined ? '' : String(value)}
-                    onChange={e =>
-                      setDraft(prev => ({
-                        ...prev,
-                        [col.key]: e.target.value.trim() === '' ? null : Number(e.target.value),
-                      }))
-                    }
-                    className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                ) : col.type === 'date' ? (
-                  <input
-                    type="date"
-                    value={value ? String(value) : ''}
-                    onChange={e =>
-                      setDraft(prev => ({
-                        ...prev,
-                        [col.key]: e.target.value.trim() ? e.target.value.trim() : null,
-                      }))
-                    }
-                    className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                ) : col.type === 'select' && options.length ? (
-                  <select
-                    value={String(value ?? '')}
-                    onChange={e =>
-                      setDraft(prev => ({
-                        ...prev,
-                        [col.key]: e.target.value,
-                      }))
-                    }
-                    className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  >
-                    <option value="">—</option>
-                    {options.map(opt => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
-                ) : col.type === 'multi_select' && options.length ? (
-                  <div className="mt-3 grid grid-cols-1 gap-2">
-                    {options.map(opt => {
-                      const selected = Array.isArray(value) && value.includes(opt);
-                      return (
-                        <label
-                          key={opt}
-                          className="inline-flex items-center gap-2 text-sm text-gray-800"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            onChange={e => {
-                              const next = Array.isArray(value) ? [...value] : [];
-                              const updated = e.target.checked
-                                ? Array.from(new Set([...next, opt]))
-                                : next.filter(v => v !== opt);
-                              setDraft(prev => ({
-                                ...prev,
-                                [col.key]: updated,
-                              }));
-                            }}
-                            className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20"
-                          />
-                          <span>{opt}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <input
-                    type="text"
-                    value={value === null || value === undefined ? '' : String(value)}
-                    onChange={e =>
-                      setDraft(prev => ({
-                        ...prev,
-                        [col.key]: e.target.value,
-                      }))
-                    }
-                    className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {mode === 'edit' && (
-          <div className="sticky bottom-0 -mx-6 -mb-6 border-t border-gray-200 bg-white px-6 py-4">
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => applySave('save')}
-                disabled={saving || !isDirty}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-              <button
-                type="button"
-                onClick={() => applySave('close')}
-                disabled={saving}
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Save & close
-              </button>
-              <button
-                type="button"
-                onClick={() => applySave('next')}
-                disabled={saving}
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Apply & next
-              </button>
-            </div>
+                  ) : col.type === 'date' ? (
+                    <input
+                      type="date"
+                      value={value ? String(value) : ''}
+                      onChange={e =>
+                        setDraft(prev => ({
+                          ...prev,
+                          [col.key]: e.target.value.trim() ? e.target.value.trim() : null,
+                        }))
+                      }
+                      className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  ) : col.type === 'select' && options.length ? (
+                    <select
+                      value={String(value ?? '')}
+                      onChange={e =>
+                        setDraft(prev => ({
+                          ...prev,
+                          [col.key]: e.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    >
+                      <option value="">—</option>
+                      {options.map(opt => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  ) : col.type === 'multi_select' && options.length ? (
+                    <div className="mt-3 grid grid-cols-1 gap-2">
+                      {options.map(opt => {
+                        const selected = Array.isArray(value) && value.includes(opt);
+                        return (
+                          <label
+                            key={opt}
+                            className="inline-flex items-center gap-2 text-sm text-gray-800"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={e => {
+                                const next = Array.isArray(value) ? [...value] : [];
+                                const updated = e.target.checked
+                                  ? Array.from(new Set([...next, opt]))
+                                  : next.filter(v => v !== opt);
+                                setDraft(prev => ({
+                                  ...prev,
+                                  [col.key]: updated,
+                                }));
+                              }}
+                              className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20"
+                            />
+                            <span>{opt}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={value === null || value === undefined ? '' : String(value)}
+                      onChange={e =>
+                        setDraft(prev => ({
+                          ...prev,
+                          [col.key]: e.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
-        )}
+
+          {mode === 'edit' && (
+            <div className="sticky bottom-0 -mx-6 -mb-6 border-t border-gray-200 bg-white px-6 py-4">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => applySave('save')}
+                  disabled={saving || !isDirty}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applySave('close')}
+                  disabled={saving}
+                  className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Save & close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applySave('next')}
+                  disabled={saving}
+                  className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Apply & next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {activeTab === 'history' && (

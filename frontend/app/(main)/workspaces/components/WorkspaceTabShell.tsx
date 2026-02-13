@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import type { WorkspaceTabId } from '@/app/lib/workspace-tabs';
+import { useRouter } from 'next/navigation';
+import { type ReactNode, useEffect } from 'react';
+import { useState } from 'react';
 import WorkspaceSidePanel from './WorkspaceSidePanel';
 import WorkspacesListContent from './WorkspacesListContent';
 

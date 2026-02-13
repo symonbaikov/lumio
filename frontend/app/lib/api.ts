@@ -89,7 +89,9 @@ export const gmailReceiptsApi = {
     apiClient.patch(`/integrations/gmail/receipts/${id}/parsed-data`, data),
 
   markDuplicate: (id: string, originalId: string) =>
-    apiClient.post(`/integrations/gmail/receipts/${id}/mark-duplicate`, { originalReceiptId: originalId }),
+    apiClient.post(`/integrations/gmail/receipts/${id}/mark-duplicate`, {
+      originalReceiptId: originalId,
+    }),
 
   unmarkDuplicate: (id: string) =>
     apiClient.post(`/integrations/gmail/receipts/${id}/unmark-duplicate`),
@@ -100,8 +102,7 @@ export const gmailReceiptsApi = {
   exportReceiptsToSheets: (receiptIds: string[], spreadsheetId?: string) =>
     apiClient.post('/integrations/gmail/receipts/export-sheets', { receiptIds, spreadsheetId }),
 
-  getReceiptPreview: (id: string) =>
-    apiClient.get(`/integrations/gmail/receipts/${id}/preview`),
+  getReceiptPreview: (id: string) => apiClient.get(`/integrations/gmail/receipts/${id}/preview`),
 
   listReceipts: (params?: {
     status?: string;
@@ -109,8 +110,7 @@ export const gmailReceiptsApi = {
     offset?: number;
     includeInvalid?: boolean;
     hasAmount?: boolean;
-  }) =>
-    apiClient.get('/integrations/gmail/receipts', { params }),
+  }) => apiClient.get('/integrations/gmail/receipts', { params }),
 
   approveReceipt: (id: string, data: any) =>
     apiClient.post(`/integrations/gmail/receipts/${id}/approve`, data),

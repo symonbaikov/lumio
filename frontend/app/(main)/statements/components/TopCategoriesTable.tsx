@@ -25,7 +25,9 @@ const formatAmount = (value: number) =>
 export default function TopCategoriesTable({ title, rows }: Props) {
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-      <div className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-800">{title}</div>
+      <div className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-800">
+        {title}
+      </div>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
@@ -46,14 +48,19 @@ export default function TopCategoriesTable({ title, rows }: Props) {
                     {row.bankName ? (
                       <BankLogoAvatar bankName={row.bankName} size={18} rounded={false} />
                     ) : row.color ? (
-                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: row.color }} />
+                      <span
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: row.color }}
+                      />
                     ) : (
                       <span className="h-3 w-3 rounded-full bg-gray-300" />
                     )}
                     <span className="font-medium text-gray-900">{row.name}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-right font-medium text-gray-900">{formatAmount(row.amount)}</td>
+                <td className="px-4 py-3 text-right font-medium text-gray-900">
+                  {formatAmount(row.amount)}
+                </td>
                 <td className="px-4 py-3 text-right text-gray-600">{row.percentage.toFixed(2)}%</td>
                 <td className="px-4 py-3 text-right text-gray-600">{row.count}</td>
               </tr>

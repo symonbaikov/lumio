@@ -300,7 +300,10 @@ export default function WorkspaceCategoriesView() {
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full max-w-md">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fontSize="small" />
+            <SearchIcon
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              fontSize="small"
+            />
             <input
               type="text"
               value={searchQuery}
@@ -370,13 +373,13 @@ export default function WorkspaceCategoriesView() {
                         category.isEnabled === false ? 'bg-gray-300' : 'bg-primary',
                         togglingIds.has(category.id) ? 'opacity-60' : 'opacity-100',
                       )}
-                      >
-                        <span
-                          className={cn(
-                            'inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform',
-                            category.isEnabled === false ? 'translate-x-1' : 'translate-x-7',
-                          )}
-                        />
+                    >
+                      <span
+                        className={cn(
+                          'inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform',
+                          category.isEnabled === false ? 'translate-x-1' : 'translate-x-7',
+                        )}
+                      />
                     </button>
                     <button
                       type="button"

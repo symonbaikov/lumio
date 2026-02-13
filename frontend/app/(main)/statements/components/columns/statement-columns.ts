@@ -44,8 +44,7 @@ export const DEFAULT_STATEMENT_COLUMNS: StatementColumn[] = [
   { id: 'exportedTo', label: 'Exported to', visible: false, order: 15 },
 ];
 
-const sortColumns = (columns: StatementColumn[]) =>
-  [...columns].sort((a, b) => a.order - b.order);
+const sortColumns = (columns: StatementColumn[]) => [...columns].sort((a, b) => a.order - b.order);
 
 export const loadStatementColumns = (): StatementColumn[] => {
   if (typeof window === 'undefined') return DEFAULT_STATEMENT_COLUMNS;
@@ -53,8 +52,8 @@ export const loadStatementColumns = (): StatementColumn[] => {
   if (!raw) return DEFAULT_STATEMENT_COLUMNS;
   try {
     const parsed = JSON.parse(raw) as Array<Partial<StatementColumn>>;
-    const merged = DEFAULT_STATEMENT_COLUMNS.map((column) => {
-      const override = parsed.find((item) => item.id === column.id);
+    const merged = DEFAULT_STATEMENT_COLUMNS.map(column => {
+      const override = parsed.find(item => item.id === column.id);
       return {
         ...column,
         visible: override?.visible ?? column.visible,
@@ -78,8 +77,8 @@ export const reorderStatementColumns = (
   overId: StatementColumnId,
 ) => {
   if (activeId === overId) return columns;
-  const activeIndex = columns.findIndex((column) => column.id === activeId);
-  const overIndex = columns.findIndex((column) => column.id === overId);
+  const activeIndex = columns.findIndex(column => column.id === activeId);
+  const overIndex = columns.findIndex(column => column.id === overId);
   if (activeIndex === -1 || overIndex === -1) return columns;
 
   const next = [...columns];

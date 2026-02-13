@@ -53,7 +53,7 @@ export function Providers({
             defaultPosition="left"
             defaultCollapsed={false}
             persistState={true}
-            storageKey="finflow-side-panel"
+            storageKey="lumio-side-panel"
           >
             {mounted ? (
               <Toaster

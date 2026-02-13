@@ -32,7 +32,7 @@ export function MainSidePanelLayout({ children }: { children: React.ReactNode })
       defaultPosition="left"
       defaultCollapsed={false}
       persistState={true}
-      storageKey="finflow-side-panel"
+      storageKey="lumio-side-panel"
     >
       <MainSidePanelLayoutInner>{children}</MainSidePanelLayoutInner>
     </SidePanelProvider>

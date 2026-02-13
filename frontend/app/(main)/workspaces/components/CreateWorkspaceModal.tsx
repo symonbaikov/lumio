@@ -1,11 +1,11 @@
 'use client';
 
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { api } from '@/app/lib/api';
 import { EmojiButton } from '@joeattardi/emoji-button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { useWorkspace } from '@/app/contexts/WorkspaceContext';
-import { api } from '@/app/lib/api';
 import { BackgroundSelector } from './BackgroundSelector';
 import { CurrencySelector } from './CurrencySelector';
 import { ServiceIntegrationSuggestions } from './ServiceIntegrationSuggestions';
@@ -321,9 +321,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
                       />
 
                       <div>
-                        <p className="mb-3 text-sm font-medium text-gray-700">
-                          Background Image
-                        </p>
+                        <p className="mb-3 text-sm font-medium text-gray-700">Background Image</p>
                         <BackgroundSelector
                           selectedBackground={selectedBackground}
                           onSelect={setSelectedBackground}

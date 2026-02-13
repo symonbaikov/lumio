@@ -17,9 +17,7 @@ export const flattenStatementCategories = (
     const currentName = prefix ? `${prefix} / ${category.name}` : category.name;
     return [
       { id: category.id, name: currentName },
-      ...(category.children
-        ? flattenStatementCategories(category.children, currentName)
-        : []),
+      ...(category.children ? flattenStatementCategories(category.children, currentName) : []),
     ];
   });
 };
@@ -35,7 +33,5 @@ export const filterStatementCategories = (
     return flattened;
   }
 
-  return flattened.filter(category =>
-    category.name.toLowerCase().includes(normalizedQuery),
-  );
+  return flattened.filter(category => category.name.toLowerCase().includes(normalizedQuery));
 };

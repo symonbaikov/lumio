@@ -1,8 +1,8 @@
 'use client';
 
-import type { CustomTableGridRow } from '../../utils/stylingUtils';
 import type { Column, Table } from '@tanstack/react-table';
 import { type CSSProperties } from 'react';
+import type { CustomTableGridRow } from '../../utils/stylingUtils';
 
 interface EditableBooleanCellProps {
   row: any;

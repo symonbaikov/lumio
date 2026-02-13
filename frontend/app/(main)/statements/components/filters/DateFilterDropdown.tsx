@@ -1,10 +1,14 @@
-"use client";
+'use client';
 
-import { FilterActions } from "@/app/(main)/statements/components/filters/FilterActions";
-import { FilterDropdown } from "@/app/(main)/statements/components/filters/FilterDropdown";
-import { FilterOptionRow } from "@/app/(main)/statements/components/filters/FilterOptionRow";
-import type { StatementFilterDate, StatementFilterDateMode, StatementFilterDatePreset } from "./statement-filters";
-import { ChevronRight } from "lucide-react";
+import { FilterActions } from '@/app/(main)/statements/components/filters/FilterActions';
+import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
+import { FilterOptionRow } from '@/app/(main)/statements/components/filters/FilterOptionRow';
+import { ChevronRight } from 'lucide-react';
+import type {
+  StatementFilterDate,
+  StatementFilterDateMode,
+  StatementFilterDatePreset,
+} from './statement-filters';
 
 type DatePresetOption = {
   value: StatementFilterDatePreset;
@@ -55,7 +59,7 @@ export function DateFilterDropdown({
     <FilterDropdown open={open} onOpenChange={onOpenChange} trigger={trigger}>
       <div className="space-y-2">
         <div className="space-y-1">
-          {presets.map((option) => (
+          {presets.map(option => (
             <FilterOptionRow
               key={option.value}
               label={option.label}
@@ -68,7 +72,7 @@ export function DateFilterDropdown({
 
         <div className="border-t border-gray-200 pt-2">
           <div className="space-y-1">
-            {modes.map((option) => {
+            {modes.map(option => {
               const isSelected = current.mode === option.value;
               return (
                 <button
@@ -94,8 +98,8 @@ export function DateFilterDropdown({
             <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-3">
               <input
                 type="date"
-                value={current.date ?? ""}
-                onChange={(event) =>
+                value={current.date ?? ''}
+                onChange={event =>
                   onChange({
                     mode: current.mode,
                     date: event.target.value,

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { DrawerShell } from "@/app/components/ui/drawer-shell";
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import {
-  filterStatementCategories,
   type StatementCategoryNode,
-} from "@/app/lib/statement-categories";
-import { Check, ChevronLeft, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+  filterStatementCategories,
+} from '@/app/lib/statement-categories';
+import { Check, ChevronLeft, Search } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 type StatementCategoryDrawerLabels = {
   title: string;
@@ -34,11 +34,11 @@ export default function StatementCategoryDrawer({
   onSelect,
   labels,
 }: StatementCategoryDrawerProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (!open) {
-      setSearchQuery("");
+      setSearchQuery('');
     }
   }, [open]);
 
@@ -88,15 +88,15 @@ export default function StatementCategoryDrawer({
             <button
               type="button"
               disabled={selecting}
-              onClick={() => onSelect("")}
+              onClick={() => onSelect('')}
               className={`flex w-full items-center justify-between px-4 py-5 text-left text-base font-semibold transition-colors ${
-                selectedCategoryId === ""
-                  ? "bg-[#ede8e1] text-[#073b32]"
-                  : "text-[#073b32] hover:bg-gray-50"
+                selectedCategoryId === ''
+                  ? 'bg-[#ede8e1] text-[#073b32]'
+                  : 'text-[#073b32] hover:bg-gray-50'
               }`}
             >
               <span>{labels.allOption}</span>
-              {selectedCategoryId === "" ? <Check className="h-6 w-6 text-emerald-500" /> : null}
+              {selectedCategoryId === '' ? <Check className="h-6 w-6 text-emerald-500" /> : null}
             </button>
 
             {filteredCategories.length === 0 ? (
@@ -111,9 +111,7 @@ export default function StatementCategoryDrawer({
                     disabled={selecting}
                     onClick={() => onSelect(category.id)}
                     className={`flex w-full items-center justify-between px-4 py-5 text-left text-base font-semibold transition-colors ${
-                      isSelected
-                        ? "bg-[#ede8e1] text-[#073b32]"
-                        : "text-[#073b32] hover:bg-gray-50"
+                      isSelected ? 'bg-[#ede8e1] text-[#073b32]' : 'text-[#073b32] hover:bg-gray-50'
                     }`}
                   >
                     <span>{category.name}</span>

@@ -14,10 +14,10 @@ import {
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
+import LoadingAnimation from '../../components/LoadingAnimation';
 import PermissionsPanel from '../../components/PermissionsPanel';
 import ShareDialog from '../../components/ShareDialog';
 import TransactionsView from '../../components/TransactionsView';
-import LoadingAnimation from '../../components/LoadingAnimation';
 import api from '../../lib/api';
 
 type FileAvailabilityStatus = 'both' | 'disk' | 'db' | 'missing';

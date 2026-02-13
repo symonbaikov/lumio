@@ -96,9 +96,9 @@ export const adminTourContent = {
           kk: 'Тамаша!',
         }),
         description: t({
-          ru: 'Теперь вы знаете, как управлять системой через админ-панель. Используйте эти инструменты ответственно для поддержания стабильной работы FinFlow!',
-          en: 'Now you know how to manage the system through the admin panel. Use these tools responsibly to maintain stable FinFlow operation!',
-          kk: 'Енді сіз әкімші панелі арқылы жүйені қалай басқаруды білесіз. FinFlow тұрақты жұмыс істеуін қолдау үшін бұл құралдарды жауапкершілікпен пайдаланыңыз!',
+          ru: 'Теперь вы знаете, как управлять системой через админ-панель. Используйте эти инструменты ответственно для поддержания стабильной работы Lumio!',
+          en: 'Now you know how to manage the system through the admin panel. Use these tools responsibly to maintain stable Lumio operation!',
+          kk: 'Енді сіз әкімші панелі арқылы жүйені қалай басқаруды білесіз. Lumio тұрақты жұмыс істеуін қолдау үшін бұл құралдарды жауапкершілікпен пайдаланыңыз!',
         }),
       },
     },

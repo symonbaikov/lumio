@@ -8,7 +8,7 @@ type UseAutoSaveOptions<T> = {
   isEqual?: (a: T, b: T) => boolean;
 };
 
-const defaultIsEqual = <T,>(a: T, b: T) => JSON.stringify(a) === JSON.stringify(b);
+const defaultIsEqual = <T>(a: T, b: T) => JSON.stringify(a) === JSON.stringify(b);
 
 export function useAutoSave<T>({
   data,

@@ -295,7 +295,7 @@ export default function AdminPage() {
                     </TableHead>
                     <TableBody>
                       {auditLogs.map(log => (
-                      <TableRow key={log.id}>
+                        <TableRow key={log.id}>
                           <TableCell>{log.action}</TableCell>
                           <TableCell>
                             {log.entityType} • {log.entityId}

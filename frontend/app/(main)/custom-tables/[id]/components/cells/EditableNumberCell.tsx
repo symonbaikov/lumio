@@ -1,8 +1,8 @@
 'use client';
 
-import type { CustomTableGridRow } from '../../utils/stylingUtils';
 import type { Column, Table } from '@tanstack/react-table';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import type { CustomTableGridRow } from '../../utils/stylingUtils';
 
 interface EditableNumberCellProps {
   row: any;

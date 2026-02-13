@@ -213,9 +213,9 @@ const content = {
           kk: 'Импортты бастау',
         }),
         description: t({
-          ru: 'Запускает импорт и создание таблицы FinFlow.',
-          en: 'Starts the import and creates a FinFlow table.',
-          kk: 'Импортты іске қосып, FinFlow кестесін жасайды.',
+          ru: 'Запускает импорт и создание таблицы Lumio.',
+          en: 'Starts the import and creates a Lumio table.',
+          kk: 'Импортты іске қосып, Lumio кестесін жасайды.',
         }),
       },
       completed: {

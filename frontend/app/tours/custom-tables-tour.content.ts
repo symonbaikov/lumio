@@ -60,9 +60,9 @@ export const customTablesTourContent = {
           kk: '«Қолмен» қойындысы',
         }),
         description: t({
-          ru: 'Фильтрует таблицы, созданные вручную (с нуля) внутри FinFlow.',
-          en: 'Filters tables created manually (from scratch) inside FinFlow.',
-          kk: 'FinFlow ішінде қолмен (нөлден) жасалған кестелерді сүзеді.',
+          ru: 'Фильтрует таблицы, созданные вручную (с нуля) внутри Lumio.',
+          en: 'Filters tables created manually (from scratch) inside Lumio.',
+          kk: 'Lumio ішінде қолмен (нөлден) жасалған кестелерді сүзеді.',
         }),
       },
       tabsGoogleSheets: {
@@ -144,9 +144,9 @@ export const customTablesTourContent = {
           kk: 'Google Sheets-тен импорттау',
         }),
         description: t({
-          ru: 'Подключите таблицу из Google Sheets для двустороннего обмена данными. Изменения, сделанные в FinFlow, будут синхронизироваться с Google Sheets и наоборот. Идеально для совместной работы и интеграции с другими инструментами Google!',
-          en: 'Connect a table from Google Sheets for two-way data exchange. Changes made in FinFlow will sync with Google Sheets and vice versa. Perfect for collaboration and integration with other Google tools!',
-          kk: 'Екі жақты деректер алмасуы үшін Google Sheets-тен кестені қосыңыз. FinFlow-да жасалған өзгерістер Google Sheets-пен синхрондалады және керісінше. Бірлескен жұмыс пен басқа Google құралдарымен интеграциялау үшін өте жақсы!',
+          ru: 'Подключите таблицу из Google Sheets для двустороннего обмена данными. Изменения, сделанные в Lumio, будут синхронизироваться с Google Sheets и наоборот. Идеально для совместной работы и интеграции с другими инструментами Google!',
+          en: 'Connect a table from Google Sheets for two-way data exchange. Changes made in Lumio will sync with Google Sheets and vice versa. Perfect for collaboration and integration with other Google tools!',
+          kk: 'Екі жақты деректер алмасуы үшін Google Sheets-тен кестені қосыңыз. Lumio-да жасалған өзгерістер Google Sheets-пен синхрондалады және керісінше. Бірлескен жұмыс пен басқа Google құралдарымен интеграциялау үшін өте жақсы!',
         }),
       },
       createButton: {

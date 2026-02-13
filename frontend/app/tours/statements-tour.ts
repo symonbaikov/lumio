@@ -28,8 +28,7 @@ export function createStatementsTour(texts: {
   return {
     id: 'statements-tour',
     name: texts.name?.value ?? 'Statements Tour',
-    description:
-      texts.description?.value ?? 'Learn how to upload and manage bank statements',
+    description: texts.description?.value ?? 'Learn how to upload and manage bank statements',
     page: '/statements',
     steps: [
       {

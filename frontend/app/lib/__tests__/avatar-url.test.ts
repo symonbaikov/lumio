@@ -10,9 +10,9 @@ describe('normalizeAvatarUrl', () => {
   });
 
   it('maps absolute legacy uploads URL to api avatars endpoint', () => {
-    expect(
-      normalizeAvatarUrl('http://localhost:3000/uploads/user-avatars/170-photo.jpg'),
-    ).toMatch(/\/api\/v1\/users\/avatars\/170-photo\.jpg$/);
+    expect(normalizeAvatarUrl('http://localhost:3000/uploads/user-avatars/170-photo.jpg')).toMatch(
+      /\/api\/v1\/users\/avatars\/170-photo\.jpg$/,
+    );
   });
 
   it('keeps non-legacy URLs unchanged', () => {
