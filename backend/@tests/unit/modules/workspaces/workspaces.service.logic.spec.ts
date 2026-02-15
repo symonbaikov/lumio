@@ -34,6 +34,7 @@ describe('WorkspacesService', () => {
   const userRepository = createRepoMock<User>();
   const integrationRepository = createRepoMock<Integration>();
   const auditService = { createEvent: jest.fn() };
+  const balanceService = { seedDefaultAccounts: jest.fn(async () => undefined) };
   const categoriesService = { createSystemCategories: jest.fn(async () => undefined) };
 
   let service: WorkspacesService;
@@ -47,6 +48,7 @@ describe('WorkspacesService', () => {
       userRepository as any,
       integrationRepository as any,
       auditService as any,
+      balanceService as any,
       categoriesService as any,
     );
     (service as any).sendInvitationEmail = jest.fn(async () => undefined);

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import {
@@ -26,6 +27,7 @@ import {
   classifyError,
 } from '../errors/import-errors';
 import { ImportRetryService } from './import-retry.service';
+import type { ImportCommittedEvent, ImportFailedEvent } from '../../notifications/events/notification-events';
 
 /**
  * Result returned from processImport operation
@@ -103,7 +105,21 @@ export class ImportSessionService {
     private readonly deduplicationService: IntelligentDeduplicationService,
     private readonly importConfigService: ImportConfigService,
     private readonly retryService: ImportRetryService,
+    private readonly eventEmitter?: EventEmitter2,
   ) {}
+
+  private async resolveActorName(userId: string | null | undefined): Promise<string> {
+    if (!userId) {
+      return 'System';
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['name', 'email'],
+    });
+
+    return user?.name || user?.email || 'User';
+  }
 
   /**
    * Create a new import session.
@@ -289,6 +305,16 @@ export class ImportSessionService {
           sessionMetadata: metadata,
         },
       );
+
+      if (session.userId) {
+        this.eventEmitter?.emit('import.failed', {
+          workspaceId: session.workspaceId,
+          userId: session.userId,
+          statementId: session.statementId,
+          statementName: session.statement?.fileName,
+          errorMessage: classified.message,
+        } satisfies ImportFailedEvent);
+      }
 
       // Handle retryable errors
       if (this.retryService.shouldRetry(classified)) {
@@ -691,6 +717,16 @@ export class ImportSessionService {
           completedAt: new Date(),
         },
       );
+
+      if (session.userId) {
+        this.eventEmitter?.emit('import.committed', {
+          workspaceId: session.workspaceId,
+          actorId: session.userId,
+          actorName: await this.resolveActorName(session.userId),
+          statementId: session.statementId || undefined,
+          transactionCount: summary.newCount + summary.matchedCount,
+        } satisfies ImportCommittedEvent);
+      }
 
       return {
         sessionId: session.id,

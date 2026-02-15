@@ -184,6 +184,8 @@ export class GmailController {
         messagesFound: result.messagesFound,
         jobsCreated: result.jobsCreated,
         skipped: result.skipped,
+        errors: result.errors,
+        warnings: result.warnings,
       };
     } catch (error) {
       this.logger.error("Manual sync failed", error);
@@ -242,6 +244,7 @@ export class GmailController {
     @Query("offset") offset?: string,
     @Query("includeInvalid") includeInvalid?: string,
     @Query("hasAmount") hasAmount?: string,
+    @Query("categoryId") categoryId?: string,
   ) {
     const includeInvalidReceipts = this.parseBooleanQuery(includeInvalid, false);
     const hasAmountFilter = this.parseOptionalBooleanQuery(hasAmount);
@@ -267,6 +270,21 @@ export class GmailController {
 
     if (status) {
       queryBuilder.andWhere("receipt.status = :status", { status });
+    }
+
+    if (categoryId) {
+      queryBuilder.leftJoin("receipt.transaction", "transaction");
+
+      if (categoryId === "uncategorized") {
+        queryBuilder.andWhere(
+          "COALESCE(NULLIF(receipt.parsed_data ->> 'categoryId', ''), transaction.category_id) IS NULL",
+        );
+      } else {
+        queryBuilder.andWhere(
+          "(transaction.category_id = :categoryId OR receipt.parsed_data ->> 'categoryId' = :categoryId)",
+          { categoryId },
+        );
+      }
     }
 
     const take = Math.min(Number.parseInt(limit || "50"), 100);

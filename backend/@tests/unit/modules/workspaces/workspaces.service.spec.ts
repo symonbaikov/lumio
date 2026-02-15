@@ -9,14 +9,17 @@ import {
 } from '@/entities';
 import { AuditAction, EntityType } from '@/entities/audit-event.entity';
 import { Integration } from '@/entities/integration.entity';
-import { WorkspacesService } from '@/modules/workspaces/workspaces.service';
 import { AuditService } from '@/modules/audit/audit.service';
+import { BalanceService } from '@/modules/balance/balance.service';
+import { CategoriesService } from '@/modules/categories/categories.service';
+import { WorkspacesService } from '@/modules/workspaces/workspaces.service';
 import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
@@ -97,6 +100,24 @@ describe('WorkspacesService', () => {
           provide: AuditService,
           useValue: {
             createEvent: jest.fn(),
+          },
+        },
+        {
+          provide: BalanceService,
+          useValue: {
+            seedDefaultAccounts: jest.fn(),
+          },
+        },
+        {
+          provide: CategoriesService,
+          useValue: {
+            createSystemCategories: jest.fn(),
+          },
+        },
+        {
+          provide: EventEmitter2,
+          useValue: {
+            emit: jest.fn(),
           },
         },
       ],
@@ -191,9 +212,12 @@ describe('WorkspacesService', () => {
       jest.spyOn(userRepository, 'update').mockResolvedValue({} as any);
       jest.spyOn(service as any, 'getWorkspaceStats').mockResolvedValue({});
 
-      const result = await service.createWorkspace(mockUser.id as string, {
-        name: 'New Workspace',
-      } as any);
+      const result = await service.createWorkspace(
+        mockUser.id as string,
+        {
+          name: 'New Workspace',
+        } as any,
+      );
 
       expect(result.id).toBe(mockWorkspace.id);
       expect(auditService.createEvent).toHaveBeenCalledWith(
@@ -280,7 +304,7 @@ describe('WorkspacesService', () => {
         .mockReturnValue({} as WorkspaceInvitation);
       jest.spyOn(invitationRepository, 'save').mockResolvedValue({} as WorkspaceInvitation);
 
-      await service.inviteMember(mockUser as User, inviteDto);
+      await service.inviteMember(mockWorkspace.id as string, mockUser as User, inviteDto);
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -295,9 +319,9 @@ describe('WorkspacesService', () => {
         role: WorkspaceRole.MEMBER,
       } as WorkspaceMember);
 
-      await expect(service.inviteMember(mockUser as User, inviteDto)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.inviteMember(mockWorkspace.id as string, mockUser as User, inviteDto),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should reject duplicate invitation', async () => {
@@ -311,7 +335,7 @@ describe('WorkspacesService', () => {
         .spyOn(invitationRepository, 'save')
         .mockResolvedValue(existingInvitation);
 
-      await service.inviteMember(mockUser as User, inviteDto);
+      await service.inviteMember(mockWorkspace.id as string, mockUser as User, inviteDto);
 
       expect(saveSpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -326,9 +350,9 @@ describe('WorkspacesService', () => {
         workspaceId: mockWorkspace.id,
       } as User);
 
-      await expect(service.inviteMember(mockUser as User, inviteDto)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.inviteMember(mockWorkspace.id as string, mockUser as User, inviteDto),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('should send invitation email', async () => {
@@ -338,7 +362,7 @@ describe('WorkspacesService', () => {
       jest.spyOn(invitationRepository, 'save').mockResolvedValue({} as WorkspaceInvitation);
 
       // Mock email sending would be tested here
-      await service.inviteMember(mockUser as User, inviteDto);
+      await service.inviteMember(mockWorkspace.id as string, mockUser as User, inviteDto);
 
       expect(invitationRepository.save).toHaveBeenCalled();
     });
@@ -356,7 +380,7 @@ describe('WorkspacesService', () => {
         .mockReturnValue({} as WorkspaceInvitation);
       jest.spyOn(invitationRepository, 'save').mockResolvedValue({} as WorkspaceInvitation);
 
-      await service.inviteMember(mockUser as User, upperCaseInvite);
+      await service.inviteMember(mockWorkspace.id as string, mockUser as User, upperCaseInvite);
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -380,6 +404,7 @@ describe('WorkspacesService', () => {
           .mockResolvedValue({ token: 'tok-1' } as WorkspaceInvitation);
 
         const result = await service.inviteMember(
+          mockWorkspace.id as string,
           mockUser as User,
           inviteDto,
           'https://app.megarich.kz',

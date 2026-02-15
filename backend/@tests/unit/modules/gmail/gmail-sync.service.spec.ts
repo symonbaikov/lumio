@@ -85,6 +85,7 @@ describe('GmailSyncService', () => {
           provide: GmailService,
           useValue: {
             listMessages: jest.fn(),
+            setupGmailEnvironment: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],
@@ -165,9 +166,11 @@ describe('GmailSyncService', () => {
 
       await service.syncForUser('user-123');
 
-      expect(gmailService.listMessages).toHaveBeenCalledWith(
+      expect(gmailService.listMessages).toHaveBeenNthCalledWith(
+        1,
         'user-123',
         expect.stringContaining('has:attachment'),
+        { includeLabelFilter: true },
       );
     });
 
@@ -197,8 +200,9 @@ describe('GmailSyncService', () => {
 
       await service.syncForUser('user-123');
 
-      const [, query] = gmailService.listMessages.mock.calls[0];
-      expect(query).toContain('label:Label_123');
+      const [, query, options] = gmailService.listMessages.mock.calls[0];
+      expect(options).toEqual({ includeLabelFilter: true });
+      expect(query).not.toContain('label:Label_123');
       expect(query).toContain('after:');
     });
 

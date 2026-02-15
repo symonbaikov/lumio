@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { Inject, Injectable, Logger, Optional, forwardRef } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { extractTextFromPdf } from '../../../common/utils/pdf-parser.util';
@@ -9,9 +10,15 @@ import { Semaphore } from '../../../common/utils/semaphore.util';
 import { ImportSessionMode } from '../../../entities/import-session.entity';
 import { BankName, FileType, Statement, StatementStatus } from '../../../entities/statement.entity';
 import { Transaction, TransactionType } from '../../../entities/transaction.entity';
+import { User } from '../../../entities/user.entity';
 import { ClassificationService } from '../../classification/services/classification.service';
 import { GoogleSheetsService } from '../../google-sheets/google-sheets.service';
 import { ImportSessionService } from '../../import/services/import-session.service';
+import type {
+  ImportCommittedEvent,
+  ParsingErrorEvent,
+  TransactionsUncategorizedEvent,
+} from '../../notifications/events/notification-events';
 import { MetricsService } from '../../observability/metrics.service';
 import { CrossStatementDeduplicationService } from '../../transactions/services/cross-statement-deduplication.service';
 import { TransactionFingerprintService } from '../../transactions/services/transaction-fingerprint.service';
@@ -48,6 +55,8 @@ export class StatementProcessingService {
     private statementRepository: Repository<Statement>,
     @InjectRepository(Transaction)
     private transactionRepository: Repository<Transaction>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private parserFactory: ParserFactoryService,
     private classificationService: ClassificationService,
     private metadataExtractionService: MetadataExtractionService,
@@ -59,7 +68,16 @@ export class StatementProcessingService {
     private metricsService?: MetricsService,
     @Optional()
     private crossStatementDeduplicationService?: CrossStatementDeduplicationService,
+    private readonly eventEmitter?: EventEmitter2,
   ) {}
+
+  private async resolveActorName(userId: string): Promise<string> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['name', 'email'],
+    });
+    return user?.name || user?.email || 'User';
+  }
 
   private getFileExtension(statement: Statement): string {
     switch (statement.fileType) {
@@ -717,6 +735,30 @@ export class StatementProcessingService {
       statement.processedAt = new Date();
       statement.parsingDetails = parsingDetails;
       await this.statementRepository.save(statement);
+
+      if (this.eventEmitter && statement.workspaceId) {
+        const actorName = await this.resolveActorName(statement.userId);
+        this.eventEmitter.emit('import.committed', {
+          workspaceId: statement.workspaceId,
+          actorId: statement.userId,
+          actorName,
+          statementId: statement.id,
+          transactionCount: creationResult.transactions.length,
+        } satisfies ImportCommittedEvent);
+
+        const uncategorizedCount = creationResult.transactions.filter(
+          transaction => !transaction.categoryId,
+        ).length;
+        if (uncategorizedCount > 0) {
+          this.eventEmitter.emit('transactions.uncategorized', {
+            workspaceId: statement.workspaceId,
+            userId: statement.userId,
+            statementId: statement.id,
+            count: uncategorizedCount,
+          } satisfies TransactionsUncategorizedEvent);
+        }
+      }
+
       this.observeDuration(
         'total',
         startTime,
@@ -757,6 +799,16 @@ export class StatementProcessingService {
       statement.errorMessage = error.message;
       statement.parsingDetails = parsingDetails;
       await this.statementRepository.save(statement);
+
+      if (this.eventEmitter && statement.workspaceId) {
+        this.eventEmitter.emit('parsing.error', {
+          workspaceId: statement.workspaceId,
+          userId: statement.userId,
+          statementId: statement.id,
+          statementName: statement.fileName,
+          errorMessage: error.message,
+        } satisfies ParsingErrorEvent);
+      }
 
       this.logger.error(`Error processing statement ${statementId}:`, error);
       throw error;

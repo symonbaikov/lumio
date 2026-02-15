@@ -163,12 +163,14 @@ export class StatementsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
+    @Query('categoryId') categoryId?: string,
   ) {
     const result = await this.statementsService.findAll(
       workspaceId,
       page ? Number.parseInt(page) : 1,
       limit ? Number.parseInt(limit) : 20,
       search,
+      categoryId,
     );
 
     // Include 'items' field for backward compatibility

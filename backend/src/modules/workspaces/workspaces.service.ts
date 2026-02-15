@@ -5,13 +5,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { render } from '@react-email/render';
 import * as React from 'react';
 import { Resend } from 'resend';
 import type { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { TimeoutError, retry, withTimeout } from '../../common/utils/async.util';
 import {
   User,
@@ -23,12 +23,19 @@ import {
   WorkspaceRole,
 } from '../../entities';
 import { Integration, IntegrationToken } from '../../entities';
+import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
+import { AuditService } from '../audit/audit.service';
+import { BalanceService } from '../balance/balance.service';
+import { CategoriesService } from '../categories/categories.service';
+import type {
+  MemberInvitedEvent,
+  MemberJoinedEvent,
+  WorkspaceUpdatedEvent,
+} from '../notifications/events/notification-events';
 import type { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import type { InviteMemberDto } from './dto/invite-member.dto';
 import type { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import type { WorkspaceResponseDto, WorkspaceStatsDto } from './dto/workspace-response.dto';
-import { AuditService } from '../audit/audit.service';
-import { CategoriesService } from '../categories/categories.service';
 
 const INVITATION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
@@ -46,8 +53,19 @@ export class WorkspacesService {
     @InjectRepository(Integration)
     private readonly integrationRepository: Repository<Integration>,
     private readonly auditService: AuditService,
+    private readonly balanceService: BalanceService,
     private readonly categoriesService: CategoriesService,
+    private readonly eventEmitter?: EventEmitter2,
   ) {}
+
+  private async resolveActorName(userId: string): Promise<string> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['name', 'email'],
+    });
+
+    return user?.name || user?.email || 'User';
+  }
 
   async ensureUserWorkspace(user: User): Promise<Workspace> {
     if (user.workspaceId) {
@@ -74,6 +92,7 @@ export class WorkspacesService {
 
     await this.userRepository.update(user.id, { workspaceId: savedWorkspace.id });
     await this.categoriesService.createSystemCategories(savedWorkspace.id, user.id);
+    await this.balanceService.seedDefaultAccounts(savedWorkspace.id);
 
     return savedWorkspace;
   }
@@ -298,6 +317,15 @@ export class WorkspacesService {
         invitedBy: currentUser.name || currentUser.email,
         role,
       });
+
+      this.eventEmitter?.emit('member.invited', {
+        workspaceId,
+        actorId: currentUser.id,
+        actorName: currentUser.name || currentUser.email,
+        invitedEmail: email,
+        role,
+      } satisfies MemberInvitedEvent);
+
       return { invitation: updated, invitationLink };
     }
 
@@ -321,6 +349,14 @@ export class WorkspacesService {
       invitedBy: currentUser.name || currentUser.email,
       role,
     });
+
+    this.eventEmitter?.emit('member.invited', {
+      workspaceId,
+      actorId: currentUser.id,
+      actorName: currentUser.name || currentUser.email,
+      invitedEmail: email,
+      role,
+    } satisfies MemberInvitedEvent);
 
     return { invitation: savedInvitation, invitationLink };
   }
@@ -499,6 +535,12 @@ export class WorkspacesService {
           role: invitation.role,
         },
       });
+
+      this.eventEmitter?.emit('member.joined', {
+        workspaceId: workspace.id,
+        memberId: currentUser.id,
+        memberName: currentUser.name || currentUser.email,
+      } satisfies MemberJoinedEvent);
     }
 
     return {
@@ -601,6 +643,7 @@ export class WorkspacesService {
 
     await this.userRepository.update(userId, { lastWorkspaceId: savedWorkspace.id });
     await this.categoriesService.createSystemCategories(savedWorkspace.id, userId);
+    await this.balanceService.seedDefaultAccounts(savedWorkspace.id);
 
     const stats = await this.getWorkspaceStats(savedWorkspace.id);
 
@@ -660,6 +703,9 @@ export class WorkspacesService {
     }
 
     const before = { ...workspace };
+    const changedFields = Object.keys(dto).filter(
+      key => (dto as Record<string, unknown>)[key] !== undefined,
+    );
     Object.assign(workspace, {
       ...(dto.name !== undefined && { name: dto.name }),
       ...(dto.description !== undefined && { description: dto.description }),
@@ -684,6 +730,13 @@ export class WorkspacesService {
       diff: { before, after: updated },
       isUndoable: true,
     });
+
+    this.eventEmitter?.emit('workspace.updated', {
+      workspaceId: updated.id,
+      actorId: userId,
+      actorName: await this.resolveActorName(userId),
+      changedFields,
+    } satisfies WorkspaceUpdatedEvent);
 
     return {
       id: updated.id,

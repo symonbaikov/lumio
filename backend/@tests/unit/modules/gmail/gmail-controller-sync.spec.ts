@@ -33,6 +33,7 @@ describe('GmailController - Sync Endpoint', () => {
               jobsCreated: 3,
               skipped: 2,
               errors: [],
+              warnings: [],
             }),
           },
         },
@@ -70,6 +71,8 @@ describe('GmailController - Sync Endpoint', () => {
         messagesFound: 5,
         jobsCreated: 3,
         skipped: 2,
+        errors: [],
+        warnings: [],
       });
     });
 

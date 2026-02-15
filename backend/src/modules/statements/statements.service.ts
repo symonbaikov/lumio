@@ -11,6 +11,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
@@ -29,6 +30,10 @@ import {
 import { Transaction } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { AuditService } from '../audit/audit.service';
+import type {
+  DataDeletedEvent,
+  StatementUploadedEvent,
+} from '../notifications/events/notification-events';
 import { StatementProcessingService } from '../parsing/services/statement-processing.service';
 import type { UpdateStatementDto } from './dto/update-statement.dto';
 
@@ -49,6 +54,7 @@ export class StatementsService {
     private statementProcessingService: StatementProcessingService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly auditService: AuditService,
+    private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   private async ensureCanEditStatements(userId: string, workspaceId: string): Promise<void> {
@@ -192,6 +198,15 @@ export class StatementsService {
       isUndoable: false,
     });
 
+    this.eventEmitter?.emit('statement.uploaded', {
+      workspaceId,
+      actorId: user.id,
+      actorName: user.name || user.email || 'User',
+      statementId: savedStatement.id,
+      statementName: savedStatement.fileName,
+      bankName: savedStatement.bankName,
+    } satisfies StatementUploadedEvent);
+
     // Start processing asynchronously
     Promise.resolve(this.statementProcessingService.processStatement(savedStatement.id)).catch(
       error => {
@@ -207,6 +222,7 @@ export class StatementsService {
     page = 1,
     limit = 20,
     search?: string,
+    categoryId?: string,
   ): Promise<{
     data: Statement[];
     total: number;
@@ -226,6 +242,24 @@ export class StatementsService {
       qb.andWhere('statement.fileName ILIKE :search', {
         search: `%${search}%`,
       });
+    }
+
+    if (categoryId) {
+      const categorySubQuery = this.transactionRepository
+        .createQueryBuilder('transaction')
+        .select('DISTINCT transaction.statementId')
+        .where('transaction.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('transaction.statementId IS NOT NULL');
+
+      if (categoryId === 'uncategorized') {
+        categorySubQuery.andWhere('transaction.categoryId IS NULL');
+      } else {
+        categorySubQuery.andWhere('transaction.categoryId = :categoryId', { categoryId });
+      }
+
+      qb.andWhere(`statement.id IN (${categorySubQuery.getQuery()})`).setParameters(
+        categorySubQuery.getParameters(),
+      );
     }
 
     const [dataRaw, total] = await qb.getManyAndCount();
@@ -358,6 +392,15 @@ export class StatementsService {
       isUndoable: true,
     });
 
+    this.eventEmitter?.emit('data.deleted', {
+      workspaceId,
+      actorId: userId,
+      actorName: statement.user?.name || statement.user?.email || 'User',
+      entityType: 'statement',
+      entityLabel: statement.fileName,
+      count: 1,
+    } satisfies DataDeletedEvent);
+
     return statement;
   }
 
@@ -388,6 +431,15 @@ export class StatementsService {
       },
       isUndoable: true,
     });
+
+    this.eventEmitter?.emit('data.deleted', {
+      workspaceId,
+      actorId: userId,
+      actorName: statement.user?.name || statement.user?.email || 'User',
+      entityType: 'statement',
+      entityLabel: statement.fileName,
+      count: 1,
+    } satisfies DataDeletedEvent);
 
     // Delete all related transactions first
     await this.transactionRepository.delete({ statementId: id });

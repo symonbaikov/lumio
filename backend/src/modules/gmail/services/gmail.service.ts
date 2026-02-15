@@ -11,6 +11,7 @@ import { GmailOAuthService } from './gmail-oauth.service';
 @Injectable()
 export class GmailService {
   private readonly logger = new Logger(GmailService.name);
+  private static readonly MAX_SYNC_MESSAGES = 500;
 
   constructor(
     @InjectRepository(GmailSettings)
@@ -30,8 +31,8 @@ export class GmailService {
       );
 
       let labelId: string;
-      if (existingLabel) {
-        labelId = existingLabel.id!;
+      if (existingLabel?.id) {
+        labelId = existingLabel.id;
       } else {
         const createLabelResponse = await gmail.users.labels.create({
           userId: 'me',
@@ -41,7 +42,11 @@ export class GmailService {
             messageListVisibility: 'show',
           },
         });
-        labelId = createLabelResponse.data.id!;
+        const createdLabelId = createLabelResponse.data.id;
+        if (!createdLabelId) {
+          throw new BadRequestException('Failed to create Gmail label');
+        }
+        labelId = createdLabelId;
       }
 
       // Create Gmail filter
@@ -85,7 +90,14 @@ export class GmailService {
     }
   }
 
-  async listMessages(userId: string, query?: string): Promise<any[]> {
+  async listMessages(
+    userId: string,
+    query?: string,
+    options?: {
+      includeLabelFilter?: boolean;
+      maxMessages?: number;
+    },
+  ): Promise<any[]> {
     const { client, integration } = await this.gmailOAuthService.getGmailClient(userId);
     const gmail = google.gmail({ version: 'v1', auth: client });
 
@@ -93,18 +105,39 @@ export class GmailService {
       where: { integrationId: integration.id },
     });
 
+    const includeLabelFilter = options?.includeLabelFilter !== false;
+    const maxMessages = Math.max(
+      1,
+      Math.min(options?.maxMessages ?? GmailService.MAX_SYNC_MESSAGES, GmailService.MAX_SYNC_MESSAGES),
+    );
+
     let searchQuery = query || '';
-    if (settings?.labelId && !searchQuery.includes('label:')) {
+    if (includeLabelFilter && settings?.labelId && !searchQuery.includes('label:')) {
       searchQuery = `label:${settings.labelId} ${searchQuery}`.trim();
     }
 
-    const response = await gmail.users.messages.list({
-      userId: 'me',
-      q: searchQuery,
-      maxResults: 100,
-    });
+    const messages: any[] = [];
+    let pageToken: string | undefined;
 
-    return response.data.messages || [];
+    while (messages.length < maxMessages) {
+      const remaining = maxMessages - messages.length;
+      const response = await gmail.users.messages.list({
+        userId: 'me',
+        q: searchQuery || undefined,
+        maxResults: Math.min(100, remaining),
+        pageToken,
+      });
+
+      const batch = response.data.messages || [];
+      messages.push(...batch);
+
+      pageToken = response.data.nextPageToken || undefined;
+      if (!pageToken || batch.length === 0) {
+        break;
+      }
+    }
+
+    return messages;
   }
 
   async getMessage(userId: string, messageId: string): Promise<any> {

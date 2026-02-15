@@ -30,6 +30,7 @@ export interface UserSyncResult {
   jobsCreated: number;
   skipped: number;
   errors: string[];
+  warnings: string[];
 }
 
 @Injectable()
@@ -115,6 +116,7 @@ export class GmailSyncService {
       jobsCreated: 0,
       skipped: 0,
       errors: [],
+      warnings: [],
     };
 
     const userId = integration.connectedByUserId;
@@ -136,8 +138,35 @@ export class GmailSyncService {
     }
 
     const query = this.buildSearchQuery(effectiveSettings);
+    const useLabelFilter =
+      effectiveSettings?.filterEnabled !== false && Boolean(effectiveSettings?.labelId);
+
     this.logger.log(`Gmail sync query for ${userId}: ${query || '(empty)'}`);
-    const messages = await this.gmailService.listMessages(userId, query);
+    let messages = await this.gmailService.listMessages(userId, query, {
+      includeLabelFilter: useLabelFilter,
+    });
+
+    if (messages.length === 0 && useLabelFilter) {
+      const fallbackWarning =
+        'Gmail label filter returned no emails. Retrying sync without label filter.';
+      this.logger.warn(`Gmail sync fallback for ${userId}: ${fallbackWarning}`);
+      result.warnings.push(fallbackWarning);
+
+      try {
+        await this.gmailService.setupGmailEnvironment(integration, userId);
+      } catch (error) {
+        result.errors.push(
+          `Failed to refresh Gmail label/filter setup: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+
+      messages = await this.gmailService.listMessages(userId, query, {
+        includeLabelFilter: false,
+      });
+    }
+
     result.messagesFound = messages.length;
 
     for (const message of messages) {
@@ -171,7 +200,7 @@ export class GmailSyncService {
       `Gmail sync summary for ${userId}: ${result.messagesFound} messages, ${result.jobsCreated} jobs, ${result.skipped} skipped`,
     );
 
-    if (integration.gmailSettings) {
+    if (integration.gmailSettings && result.messagesFound > 0) {
       integration.gmailSettings.lastSyncAt = new Date();
       await this.gmailSettingsRepository.save(integration.gmailSettings);
     }
@@ -181,10 +210,6 @@ export class GmailSyncService {
 
   private buildSearchQuery(settings: GmailSettings | null): string {
     const parts: string[] = [];
-
-    if (settings?.filterEnabled !== false && settings?.labelId && settings.lastSyncAt) {
-      parts.push(`label:${settings.labelId}`);
-    }
 
     if (settings?.filterConfig?.hasAttachment !== false) {
       parts.push('has:attachment');

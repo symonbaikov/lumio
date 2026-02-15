@@ -4,6 +4,7 @@ import { DataQualityFramework } from '../../common/utils/data-quality-framework.
 import { ParsingRule } from '../../entities/parsing-rule.entity';
 import { Statement } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
+import { User } from '../../entities/user.entity';
 import { ClassificationModule } from '../classification/classification.module';
 import { GoogleSheetsModule } from '../google-sheets/google-sheets.module';
 import { ImportModule } from '../import/import.module';
@@ -31,7 +32,7 @@ import { UniversalDateParser } from './services/universal-date-parser.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Statement, Transaction, ParsingRule]),
+    TypeOrmModule.forFeature([Statement, Transaction, ParsingRule, User]),
     ClassificationModule,
     forwardRef(() => GoogleSheetsModule),
     forwardRef(() => ImportModule),

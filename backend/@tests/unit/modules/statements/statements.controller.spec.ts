@@ -8,6 +8,7 @@ import { StatementsController } from '@/modules/statements/statements.controller
 describe('StatementsController', () => {
   const statementsService = {
     create: jest.fn(),
+    findAll: jest.fn(),
   };
 
   const idempotencyService = {
@@ -68,6 +69,33 @@ describe('StatementsController', () => {
           status: StatementStatus.UPLOADED,
         },
       ],
+    });
+  });
+
+  it('passes categoryId to findAll and keeps items alias', async () => {
+    statementsService.findAll.mockResolvedValue({
+      data: [{ id: 'stmt-1' }],
+      total: 1,
+      page: 2,
+      limit: 10,
+    });
+
+    const result = await controller.findAll(
+      { id: 'user-1' } as any,
+      'ws-1',
+      '2',
+      '10',
+      'abc',
+      'cat-1',
+    );
+
+    expect(statementsService.findAll).toHaveBeenCalledWith('ws-1', 2, 10, 'abc', 'cat-1');
+    expect(result).toEqual({
+      data: [{ id: 'stmt-1' }],
+      items: [{ id: 'stmt-1' }],
+      total: 1,
+      page: 2,
+      limit: 10,
     });
   });
 });

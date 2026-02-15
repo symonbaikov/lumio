@@ -8,8 +8,8 @@ import { WorkspaceContextGuard } from '../../common/guards/workspace-context.gua
 import { EntityType } from '../../entities/audit-event.entity';
 import type { CategoryType } from '../../entities/category.entity';
 import type { User } from '../../entities/user.entity';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Audit } from '../audit/decorators/audit.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -40,6 +40,13 @@ export class CategoriesController {
     @Query('type') type?: CategoryType,
   ) {
     return this.categoriesService.findAll(workspaceId, type);
+  }
+
+  @Get(':id/usage-count')
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard, PermissionsGuard)
+  @RequirePermission(Permission.CATEGORY_VIEW)
+  async getUsageCount(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
+    return this.categoriesService.getCategoryUsageCount(id, workspaceId);
   }
 
   @Get(':id')

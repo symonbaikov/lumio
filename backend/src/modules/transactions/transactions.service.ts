@@ -1,5 +1,6 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
@@ -10,6 +11,7 @@ import { Transaction } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { WorkspaceMember, WorkspaceRole } from '../../entities/workspace-member.entity';
 import { AuditService } from '../audit/audit.service';
+import type { DataDeletedEvent } from '../notifications/events/notification-events';
 import type { BulkUpdateItemDto } from './dto/bulk-update-transaction.dto';
 import type { UpdateTransactionDto } from './dto/update-transaction.dto';
 
@@ -26,7 +28,16 @@ export class TransactionsService {
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly auditService: AuditService,
+    private readonly eventEmitter?: EventEmitter2,
   ) {}
+
+  private async resolveActorName(userId: string): Promise<string> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['name', 'email'],
+    });
+    return user?.name || user?.email || 'User';
+  }
 
   private async invalidateReports(userId: string): Promise<void> {
     const key = `reports:version:${userId}`;
@@ -233,5 +244,14 @@ export class TransactionsService {
       },
       isUndoable: true,
     });
+
+    this.eventEmitter?.emit('data.deleted', {
+      workspaceId,
+      actorId: userId,
+      actorName: await this.resolveActorName(userId),
+      entityType: 'transaction',
+      entityLabel: transaction.documentNumber || transaction.counterpartyName,
+      count: 1,
+    } satisfies DataDeletedEvent);
   }
 }

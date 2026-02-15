@@ -4,15 +4,18 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
+import { Statement, Transaction, User, WorkspaceMember, WorkspaceRole } from '../../entities';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
-import { User, WorkspaceMember, WorkspaceRole } from '../../entities';
 import { Category, CategoryType } from '../../entities/category.entity';
 import { AuditService } from '../audit/audit.service';
+import type { CategoryChangedEvent } from '../notifications/events/notification-events';
 import type { CreateCategoryDto } from './dto/create-category.dto';
 import type { UpdateCategoryDto } from './dto/update-category.dto';
 
@@ -47,6 +50,8 @@ const DEFAULT_SYSTEM_CATEGORIES: ReadonlyArray<{
 
 @Injectable()
 export class CategoriesService {
+  private readonly logger = new Logger(CategoriesService.name);
+
   constructor(
     @InjectRepository(Category)
     private categoryRepository: Repository<Category>,
@@ -54,9 +59,39 @@ export class CategoriesService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
+    @InjectRepository(Transaction)
+    private readonly transactionRepository: Repository<Transaction>,
+    @InjectRepository(Statement)
+    private readonly statementRepository: Repository<Statement>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly auditService: AuditService,
+    private readonly eventEmitter?: EventEmitter2,
   ) {}
+
+  private snapshotCategory(category: Category) {
+    return {
+      id: category.id,
+      name: category.name,
+      type: category.type,
+      workspaceId: category.workspaceId,
+      userId: category.userId,
+      parentId: category.parentId,
+      isSystem: category.isSystem,
+      isEnabled: category.isEnabled,
+      color: category.color,
+      icon: category.icon,
+      createdAt: category.createdAt,
+      updatedAt: category.updatedAt,
+    };
+  }
+
+  private async resolveActorName(userId: string): Promise<string> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['name', 'email'],
+    });
+    return user?.name || user?.email || 'User';
+  }
 
   private async ensureCanEditCategories(workspaceId: string, userId: string): Promise<void> {
     if (!workspaceId) return;
@@ -112,6 +147,16 @@ export class CategoriesService {
         parentId: saved.parentId ?? null,
       },
     });
+
+    this.eventEmitter?.emit('category.changed', {
+      workspaceId,
+      actorId: userId,
+      actorName: await this.resolveActorName(userId),
+      action: 'created',
+      categoryId: saved.id,
+      categoryName: saved.name,
+    } satisfies CategoryChangedEvent);
+
     return saved;
   }
 
@@ -150,6 +195,31 @@ export class CategoriesService {
     return category;
   }
 
+  async getCategoryUsageCount(
+    categoryId: string,
+    workspaceId: string,
+  ): Promise<{ transactions: number; statements: number; total: number }> {
+    await this.findOne(categoryId, workspaceId);
+
+    const [transactions, statements] = await Promise.all([
+      this.transactionRepository
+        .createQueryBuilder('transaction')
+        .innerJoin('transaction.statement', 'statement')
+        .where('transaction.categoryId = :categoryId', { categoryId })
+        .andWhere('statement.workspaceId = :workspaceId', { workspaceId })
+        .getCount(),
+      this.statementRepository.count({
+        where: { categoryId, workspaceId },
+      }),
+    ]);
+
+    return {
+      transactions,
+      statements,
+      total: transactions + statements,
+    };
+  }
+
   async update(
     id: string,
     workspaceId: string,
@@ -158,7 +228,7 @@ export class CategoriesService {
   ): Promise<Category> {
     await this.ensureCanEditCategories(workspaceId, userId);
     const category = await this.findOne(id, workspaceId);
-    const before = { ...category };
+    const before = this.snapshotCategory(category);
 
     if (category.isSystem) {
       const nonToggleUpdates = Object.entries(updateDto).filter(
@@ -184,22 +254,38 @@ export class CategoriesService {
     Object.assign(category, updateDto);
     const saved = await this.categoryRepository.save(category);
     await this.invalidateCache(workspaceId);
+    const after = this.snapshotCategory(saved);
 
     const parentChanged = before.parentId !== saved.parentId;
     // Audit: track category updates with before/after diff.
-    await this.auditService.createEvent({
+    try {
+      await this.auditService.createEvent({
+        workspaceId,
+        actorType: ActorType.USER,
+        actorId: userId,
+        entityType: EntityType.CATEGORY,
+        entityId: saved.id,
+        action: AuditAction.UPDATE,
+        diff: { before, after },
+        meta: parentChanged
+          ? { parentChange: { from: before.parentId ?? null, to: saved.parentId ?? null } }
+          : undefined,
+        isUndoable: true,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Audit event failed for category ${saved.id}: ${message}`);
+    }
+
+    this.eventEmitter?.emit('category.changed', {
       workspaceId,
-      actorType: ActorType.USER,
       actorId: userId,
-      entityType: EntityType.CATEGORY,
-      entityId: saved.id,
-      action: AuditAction.UPDATE,
-      diff: { before, after: saved },
-      meta: parentChanged
-        ? { parentChange: { from: before.parentId ?? null, to: saved.parentId ?? null } }
-        : undefined,
-      isUndoable: true,
-    });
+      actorName: await this.resolveActorName(userId),
+      action: 'updated',
+      categoryId: saved.id,
+      categoryName: saved.name,
+    } satisfies CategoryChangedEvent);
+
     return saved;
   }
 
@@ -228,6 +314,15 @@ export class CategoriesService {
       },
       isUndoable: true,
     });
+
+    this.eventEmitter?.emit('category.changed', {
+      workspaceId,
+      actorId: userId,
+      actorName: await this.resolveActorName(userId),
+      action: 'deleted',
+      categoryId: category.id,
+      categoryName: category.name,
+    } satisfies CategoryChangedEvent);
   }
 
   async createSystemCategories(workspaceId: string, userId?: string): Promise<void> {

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Interval } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
@@ -14,6 +15,7 @@ import {
   Workspace,
 } from '../../entities';
 import { AuditService } from '../audit/audit.service';
+import type { ReceiptUncategorizedEvent } from '../notifications/events/notification-events';
 import { GmailReceiptCategoryService } from './services/gmail-receipt-category.service';
 import { GmailReceiptDuplicateService } from './services/gmail-receipt-duplicate.service';
 import { GmailReceiptParserService } from './services/gmail-receipt-parser.service';
@@ -39,6 +41,7 @@ export class GmailReceiptProcessor {
     private readonly duplicateService: GmailReceiptDuplicateService,
     private readonly categoryService: GmailReceiptCategoryService,
     private readonly auditService: AuditService,
+    private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   @Interval(3000)
@@ -288,6 +291,15 @@ export class GmailReceiptProcessor {
         } catch (error) {
           this.logger.error('Failed to suggest category', error);
         }
+      }
+
+      if (!savedReceipt.parsedData?.categoryId) {
+        this.eventEmitter?.emit('receipt.uncategorized', {
+          workspaceId,
+          userId: integration.connectedByUserId || job.userId,
+          receiptId: savedReceipt.id,
+          receiptName: savedReceipt.subject,
+        } satisfies ReceiptUncategorizedEvent);
       }
 
       // Save final receipt state
