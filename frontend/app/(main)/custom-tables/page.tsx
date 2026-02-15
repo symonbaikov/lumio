@@ -4,6 +4,9 @@ import ConfirmModal from '@/app/components/ConfirmModal';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
+import { FilterActions } from '@/app/(main)/statements/components/filters/FilterActions';
+import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
+import { FilterOptionRow } from '@/app/(main)/statements/components/filters/FilterOptionRow';
 import {
   CUSTOM_TABLES_OPEN_ACTION_EVENT,
   CUSTOM_TABLES_VIEW_EVENT,
@@ -31,7 +34,6 @@ import {
   Typography,
 } from '@mui/material';
 import {
-  ArrowDown,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -45,7 +47,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import CustomTablesCircularMenu from './components/CustomTablesCircularMenu';
-import CustomTablesSidePanel from './components/CustomTablesSidePanel';
+import { CustomTablesFiltersDrawer } from './components/CustomTablesFiltersDrawer';
 
 interface Category {
   id: string;
@@ -130,6 +132,12 @@ export default function CustomTablesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSource, setFilterSource] = useState<CustomTableSourceFilter>('all');
   const [sortOrder, setSortOrder] = useState<CustomTableSortOrder>('updated_desc');
+  const [draftFilterSource, setDraftFilterSource] = useState<CustomTableSourceFilter>('all');
+  const [draftSortOrder, setDraftSortOrder] = useState<CustomTableSortOrder>('updated_desc');
+  const [sourceDropdownOpen, setSourceDropdownOpen] = useState(false);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
+  const [filtersDrawerScreen, setFiltersDrawerScreen] = useState('root');
   const hasHandledImportParam = useRef(false);
 
   // Pagination State
@@ -174,19 +182,11 @@ export default function CustomTablesPage() {
     return filteredItems.slice(start, end);
   }, [filteredItems, page]);
 
+
   const totalPages = Math.ceil(filteredItems.length / ROWS_PER_PAGE);
   const rangeStart = filteredItems.length === 0 ? 0 : (page - 1) * ROWS_PER_PAGE + 1;
   const rangeEnd = Math.min(page * ROWS_PER_PAGE, filteredItems.length);
 
-  const sourceCounts = useMemo<Record<CustomTableSourceFilter, number>>(
-    () => ({
-      all: items.length,
-      manual: items.filter(item => item.source === 'manual').length,
-      google_sheets_import: items.filter(item => item.source === 'google_sheets_import').length,
-      statement: items.filter(item => item.source === 'statement').length,
-    }),
-    [items],
-  );
 
   const loadCategories = useCallback(async () => {
     try {
@@ -310,11 +310,13 @@ export default function CustomTablesPage() {
 
       if (detail.type === 'filter-source') {
         setFilterSource(detail.value);
+        setDraftFilterSource(detail.value);
         return;
       }
 
       if (detail.type === 'sort-order') {
         setSortOrder(detail.value);
+        setDraftSortOrder(detail.value);
       }
     };
 
@@ -323,6 +325,14 @@ export default function CustomTablesPage() {
       window.removeEventListener(CUSTOM_TABLES_VIEW_EVENT, handleViewEvent);
     };
   }, []);
+
+  useEffect(() => {
+    setDraftFilterSource(filterSource);
+  }, [filterSource]);
+
+  useEffect(() => {
+    setDraftSortOrder(sortOrder);
+  }, [sortOrder]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -396,6 +406,7 @@ export default function CustomTablesPage() {
   const filtersAny = (t as any).filters ?? {};
   const sidePanelAny = (t as any).sidePanel ?? {};
   const actionsAny = (t.actions as any) ?? {};
+  const sourceLabel = resolveLabel(sourcesAny.label, 'Source');
   const filterLabels = {
     all: resolveLabel(filtersAny.all, 'All'),
     manual: resolveLabel(sourcesAny.manual, 'Manual'),
@@ -403,17 +414,95 @@ export default function CustomTablesPage() {
     statement: resolveLabel(filtersAny.fromStatement, 'From statement'),
     sortUpdated: resolveLabel(filtersAny.sortUpdated, 'Recent updates'),
     sortName: resolveLabel(filtersAny.sortName, 'By name'),
+    filters: resolveLabel(filtersAny.filters, 'Filters'),
+    sort: resolveLabel(filtersAny.sort, 'Sort'),
+  };
+  const filterOptionLabels = {
+    apply: resolveLabel(filtersAny.apply, 'Apply'),
+    reset: resolveLabel(filtersAny.reset, 'Reset'),
+    resetFilters: resolveLabel(filtersAny.resetFilters, 'Reset filters'),
+    viewResults: resolveLabel(filtersAny.viewResults, 'View results'),
+    saveSearch: resolveLabel(filtersAny.saveSearch, 'Save search'),
+    any: resolveLabel(filtersAny.any, 'Any'),
+    drawerTitle: resolveLabel(filtersAny.drawerTitle, 'Filters'),
+    drawerGeneral: resolveLabel(filtersAny.drawerGeneral, 'General'),
+  };
+  const paginationLabels = {
+    shown: resolveLabel((t as any)?.pagination?.shown, 'Showing {from}–{to} of {count}'),
+    previous: resolveLabel((t as any)?.pagination?.previous, 'Previous'),
+    next: resolveLabel((t as any)?.pagination?.next, 'Next'),
+    pageOf: resolveLabel((t as any)?.pagination?.pageOf, 'Page {page} of {count}'),
   };
   const openLabel = resolveLabel(actionsAny.open, 'Open');
   const createLabel = resolveLabel(actionsAny.create, 'Create');
   const openMenuLabel = resolveLabel(sidePanelAny.openMenu, 'Open table actions');
 
   const filterChipClassName =
-    'inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary';
+    'inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[13px] font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary';
   const filterLinkClassName =
-    'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-primary';
-  const getFilterChipClassName = (active: boolean) =>
-    `${filterChipClassName} ${active ? 'border-primary text-primary' : ''}`;
+    'inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-primary';
+  const filterChipActiveClassName =
+    'inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[13px] font-medium text-primary';
+  const formatPaginationLabel = (template: string, values: Record<string, string | number>) =>
+    Object.entries(values).reduce(
+      (result, [key, value]) => result.replace(`{${key}}`, String(value)),
+      template,
+    );
+
+  const sourceOptions = [
+    { value: 'all' as const, label: filterLabels.all },
+    { value: 'manual' as const, label: filterLabels.manual },
+    { value: 'google_sheets_import' as const, label: filterLabels.sheets },
+    { value: 'statement' as const, label: filterLabels.statement },
+  ];
+  const sortOptions = [
+    { value: 'updated_desc' as const, label: filterLabels.sortUpdated },
+    { value: 'name_asc' as const, label: filterLabels.sortName },
+  ];
+
+  const applySourceFilters = () => {
+    setFilterSource(draftFilterSource);
+    setSourceDropdownOpen(false);
+  };
+
+  const resetSourceFilters = () => {
+    setDraftFilterSource('all');
+    setFilterSource('all');
+    setSourceDropdownOpen(false);
+  };
+
+  const applySortFilters = () => {
+    setSortOrder(draftSortOrder);
+    setSortDropdownOpen(false);
+  };
+
+  const resetSortFilters = () => {
+    setDraftSortOrder('updated_desc');
+    setSortOrder('updated_desc');
+    setSortDropdownOpen(false);
+  };
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filterSource !== 'all') count += 1;
+    if (sortOrder !== 'updated_desc') count += 1;
+    return count;
+  }, [filterSource, sortOrder]);
+
+  const handleOpenFiltersDrawer = () => {
+    setDraftFilterSource(filterSource);
+    setDraftSortOrder(sortOrder);
+    setFiltersDrawerScreen('root');
+    setFiltersDrawerOpen(true);
+  };
+
+  const resetAllFilters = () => {
+    setDraftFilterSource('all');
+    setDraftSortOrder('updated_desc');
+    setFilterSource('all');
+    setSortOrder('updated_desc');
+    setFiltersDrawerScreen('root');
+  };
 
   if (authLoading) {
     return (
@@ -435,10 +524,52 @@ export default function CustomTablesPage() {
 
   return (
     <>
-      <CustomTablesSidePanel
-        activeSource={filterSource}
-        sortOrder={sortOrder}
-        sourceCounts={sourceCounts}
+      <CustomTablesFiltersDrawer
+        open={filtersDrawerOpen}
+        onClose={() => setFiltersDrawerOpen(false)}
+        filters={{ source: draftFilterSource, sortOrder: draftSortOrder }}
+        screen={filtersDrawerScreen}
+        onBack={() => setFiltersDrawerScreen('root')}
+        onSelect={field => setFiltersDrawerScreen(field)}
+        onUpdateFilters={next => {
+          if (typeof next.source !== 'undefined') {
+            setDraftFilterSource(next.source);
+          }
+          if (typeof next.sortOrder !== 'undefined') {
+            setDraftSortOrder(next.sortOrder);
+          }
+        }}
+        onResetAll={resetAllFilters}
+        onViewResults={() => {
+          setFilterSource(draftFilterSource);
+          setSortOrder(draftSortOrder);
+          setFiltersDrawerOpen(false);
+        }}
+        sourceOptions={sourceOptions}
+        sortOptions={sortOptions}
+        labels={{
+          title: filterOptionLabels.drawerTitle,
+          resetFilters: filterOptionLabels.resetFilters,
+          viewResults: filterOptionLabels.viewResults,
+          saveSearch: filterOptionLabels.saveSearch,
+          general: filterOptionLabels.drawerGeneral,
+          source: sourceLabel,
+          sort: filterLabels.sort,
+          any: filterOptionLabels.any,
+        }}
+        activeCount={activeFilterCount}
+      />
+      <CustomTablesCircularMenu
+        placement="floating"
+        onCreateEmpty={() => handleTableAction('create-empty')}
+        onImportFromStatement={() => handleTableAction('import-statement')}
+        onImportGoogleSheets={() => handleTableAction('import-google-sheets')}
+        labels={{
+          createTable: createLabel,
+          fromStatement: filterLabels.statement,
+          importGoogleSheets: filterLabels.sheets,
+          openMenu: openMenuLabel,
+        }}
       />
       <div className="container-shared px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-6 space-y-3">
@@ -454,51 +585,87 @@ export default function CustomTablesPage() {
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className={getFilterChipClassName(filterSource === 'all')}
-              onClick={() => setFilterSource('all')}
-            >
-              {filterLabels.all}
-              <ChevronDown className="h-4 w-4 text-gray-600" />
-            </button>
-            <button
-              type="button"
-              className={getFilterChipClassName(filterSource === 'manual')}
-              onClick={() => setFilterSource('manual')}
-            >
-              {filterLabels.manual}
-              <ChevronDown className="h-4 w-4 text-gray-600" />
-            </button>
-            <button
-              type="button"
-              className={getFilterChipClassName(filterSource === 'google_sheets_import')}
-              onClick={() => setFilterSource('google_sheets_import')}
-            >
-              {filterLabels.sheets}
-              <ChevronDown className="h-4 w-4 text-gray-600" />
-            </button>
-            <button
-              type="button"
-              className={getFilterChipClassName(filterSource === 'statement')}
-              onClick={() => setFilterSource('statement')}
-            >
-              {filterLabels.statement}
-              <ChevronDown className="h-4 w-4 text-gray-600" />
-            </button>
-            <button type="button" className={filterLinkClassName}>
-              <SlidersHorizontal className="h-4 w-4" />
-              {t.sources.label.value}
-            </button>
-            <button
-              type="button"
-              className={filterLinkClassName}
-              onClick={() =>
-                setSortOrder(prev => (prev === 'updated_desc' ? 'name_asc' : 'updated_desc'))
+            <FilterDropdown
+              open={sourceDropdownOpen}
+              onOpenChange={setSourceDropdownOpen}
+              trigger={
+                <button
+                  type="button"
+                  className={
+                    filterSource !== 'all' ? filterChipActiveClassName : filterChipClassName
+                  }
+                >
+                  {filterSource !== 'all'
+                    ? sourceOptions.find(option => option.value === filterSource)?.label ||
+                      filterLabels.all
+                    : filterLabels.all}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
               }
             >
-              <ArrowDown className="h-4 w-4" />
-              {sortOrder === 'updated_desc' ? filterLabels.sortUpdated : filterLabels.sortName}
+              <div className="max-h-[320px] space-y-1 overflow-y-auto pr-1">
+                {sourceOptions.map(option => (
+                  <FilterOptionRow
+                    key={option.value}
+                    label={option.label}
+                    selected={draftFilterSource === option.value}
+                    onClick={() => setDraftFilterSource(option.value)}
+                    variant="radio"
+                  />
+                ))}
+              </div>
+              <FilterActions
+                onReset={resetSourceFilters}
+                onApply={applySourceFilters}
+                applyLabel={filterOptionLabels.apply}
+                resetLabel={filterOptionLabels.reset}
+              />
+            </FilterDropdown>
+
+            <FilterDropdown
+              open={sortDropdownOpen}
+              onOpenChange={setSortDropdownOpen}
+              trigger={
+                <button
+                  type="button"
+                  className={
+                    sortOrder !== 'updated_desc' ? filterChipActiveClassName : filterChipClassName
+                  }
+                >
+                  {sortOrder === 'updated_desc'
+                    ? filterLabels.sortUpdated
+                    : filterLabels.sortName}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+              }
+            >
+              <div className="max-h-[320px] space-y-1 overflow-y-auto pr-1">
+                {sortOptions.map(option => (
+                  <FilterOptionRow
+                    key={option.value}
+                    label={option.label}
+                    selected={draftSortOrder === option.value}
+                    onClick={() => setDraftSortOrder(option.value)}
+                    variant="radio"
+                  />
+                ))}
+              </div>
+              <FilterActions
+                onReset={resetSortFilters}
+                onApply={applySortFilters}
+                applyLabel={filterOptionLabels.apply}
+                resetLabel={filterOptionLabels.reset}
+              />
+            </FilterDropdown>
+
+            <button type="button" className={filterLinkClassName} onClick={handleOpenFiltersDrawer}>
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              {filterLabels.filters}
+              {activeFilterCount > 0 ? (
+                <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  {activeFilterCount}
+                </span>
+              ) : null}
             </button>
           </div>
         </div>
@@ -531,17 +698,32 @@ export default function CustomTablesPage() {
                 {paginatedItems.map(table => (
                   <div
                     key={table.id}
-                    className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 transition-colors hover:bg-gray-50"
+                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 transition-colors hover:bg-gray-50"
+                    onClick={() => router.push(`/custom-tables/${table.id}`)}
+                    onKeyDown={event => {
+                      if (event.target !== event.currentTarget) {
+                        return;
+                      }
+
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        router.push(`/custom-tables/${table.id}`);
+                      }
+                    }}
                   >
                     <input
                       type="checkbox"
                       aria-label={table.name}
+                      onClick={event => event.stopPropagation()}
                       className="h-4 w-4 rounded border-border text-primary focus:ring-primary shrink-0"
                     />
                     <button
                       type="button"
                       className="w-11 shrink-0 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => router.push(`/custom-tables/${table.id}`)}
+                      onClick={event => {
+                        event.stopPropagation();
+                        router.push(`/custom-tables/${table.id}`);
+                      }}
                       title={openLabel}
                     >
                       {table.category?.icon ? (
@@ -572,7 +754,10 @@ export default function CustomTablesPage() {
                     <div className="flex items-center justify-end gap-2 sm:w-36 sm:shrink-0">
                       <button
                         type="button"
-                        onClick={() => confirmDelete(table)}
+                        onClick={event => {
+                          event.stopPropagation();
+                          confirmDelete(table);
+                        }}
                         className="rounded-md border border-gray-200 bg-white px-2 py-2 text-sm text-gray-500 transition-colors hover:border-red-200 hover:text-red-600"
                         aria-label={t.actions.delete.value}
                       >
@@ -580,7 +765,10 @@ export default function CustomTablesPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => router.push(`/custom-tables/${table.id}`)}
+                        onClick={event => {
+                          event.stopPropagation();
+                          router.push(`/custom-tables/${table.id}`);
+                        }}
                         className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary"
                       >
                         {openLabel}
@@ -598,7 +786,11 @@ export default function CustomTablesPage() {
                 <div className="text-sm text-gray-600">
                   {filteredItems.length === 0
                     ? t.empty
-                    : `Показано ${rangeStart}–${rangeEnd} из ${filteredItems.length}`}
+                    : formatPaginationLabel(paginationLabels.shown, {
+                        from: rangeStart,
+                        to: rangeEnd,
+                        count: filteredItems.length,
+                      })}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -611,10 +803,13 @@ export default function CustomTablesPage() {
                     }`}
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    {(t.actions as any).previous?.value ?? 'Previous'}
+                    {paginationLabels.previous}
                   </button>
                   <span className="text-sm text-gray-600">
-                    Страница {page} из {totalPages || 1}
+                    {formatPaginationLabel(paginationLabels.pageOf, {
+                      page,
+                      count: totalPages || 1,
+                    })}
                   </span>
                   <button
                     onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
@@ -625,7 +820,7 @@ export default function CustomTablesPage() {
                         : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
                     }`}
                   >
-                    {(t.actions as any).next?.value ?? 'Next'}
+                    {paginationLabels.next}
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -633,20 +828,6 @@ export default function CustomTablesPage() {
             </>
           )}
         </div>
-      </div>
-      <div className="fixed bottom-6 left-6 z-40 lg:hidden">
-        <CustomTablesCircularMenu
-          placement="floating"
-          onCreateEmpty={() => handleTableAction('create-empty')}
-          onImportFromStatement={() => handleTableAction('import-statement')}
-          onImportGoogleSheets={() => handleTableAction('import-google-sheets')}
-          labels={{
-            createTable: createLabel,
-            fromStatement: filterLabels.statement,
-            importGoogleSheets: filterLabels.sheets,
-            openMenu: openMenuLabel,
-          }}
-        />
       </div>
       {createFromStatementsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

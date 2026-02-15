@@ -17,6 +17,7 @@ import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import apiClient from '../../lib/api';
+import BalanceSheet from './components/BalanceSheet';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
@@ -157,7 +158,7 @@ export default function ReportsPage() {
   const { resolvedTheme } = useTheme();
   const echartsTheme = resolvedTheme === 'dark' ? 'dark' : 'light';
   const chartBlue = resolvedTheme === 'dark' ? '#38BDF8' : '#0EA5E9';
-  const [tab, setTab] = useState<'sheets' | 'statements' | 'local'>('sheets');
+  const [tab, setTab] = useState<'sheets' | 'statements' | 'local' | 'balance'>('sheets');
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -615,6 +616,17 @@ export default function ReportsPage() {
             data-tour-id="reports-tab-statements"
           >
             {t.labels.tabStatements}
+          </button>
+          <button
+            onClick={() => setTab('balance')}
+            className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
+              tab === 'balance'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-primary'
+            }`}
+            data-tour-id="reports-tab-balance"
+          >
+            {(t.labels as any).tabBalance?.value ?? 'Баланс'}
           </button>
         </div>
       </div>
@@ -1264,6 +1276,8 @@ export default function ReportsPage() {
           </div>
         </>
       )}
+
+      {tab === 'balance' && <BalanceSheet />}
     </div>
   );
 }

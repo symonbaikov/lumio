@@ -62,6 +62,16 @@ const content = {
       fromStatement: t({ ru: 'Из выписки', en: 'From statement', kk: 'Үзіндіден' }),
       sortUpdated: t({ ru: 'Последние изменения', en: 'Recent updates', kk: 'Соңғы өзгерістер' }),
       sortName: t({ ru: 'По названию', en: 'By name', kk: 'Атауы бойынша' }),
+      sort: t({ ru: 'Сортировка', en: 'Sort', kk: 'Сұрыптау' }),
+      filters: t({ ru: 'Фильтры', en: 'Filters', kk: 'Сүзгілер' }),
+      apply: t({ ru: 'Применить', en: 'Apply', kk: 'Қолдану' }),
+      reset: t({ ru: 'Сбросить', en: 'Reset', kk: 'Қалпына келтіру' }),
+      resetFilters: t({ ru: 'Сбросить фильтры', en: 'Reset filters', kk: 'Сүзгілерді қалпына келтіру' }),
+      viewResults: t({ ru: 'Показать', en: 'View results', kk: 'Нәтижені көру' }),
+      saveSearch: t({ ru: 'Сохранить поиск', en: 'Save search', kk: 'Іздеуді сақтау' }),
+      any: t({ ru: 'Любой', en: 'Any', kk: 'Кез келген' }),
+      drawerTitle: t({ ru: 'Фильтры', en: 'Filters', kk: 'Сүзгілер' }),
+      drawerGeneral: t({ ru: 'Основное', en: 'General', kk: 'Негізгі' }),
     },
     sidePanel: {
       subtitle: t({ ru: 'Обзор', en: 'Overview', kk: 'Шолу' }),
@@ -87,6 +97,20 @@ const content = {
       source: t({ ru: 'Источник', en: 'Source', kk: 'Дереккөз' }),
       updatedAt: t({ ru: 'Обновлено', en: 'Updated', kk: 'Жаңартылды' }),
       actions: t({ ru: 'Действия', en: 'Actions', kk: 'Әрекеттер' }),
+    },
+    pagination: {
+      shown: t({
+        ru: 'Показано {from}–{to} из {count}',
+        en: 'Showing {from}–{to} of {count}',
+        kk: '{from}–{to} / {count} көрсетілді',
+      }),
+      previous: t({ ru: 'Предыдущая', en: 'Previous', kk: 'Алдыңғы' }),
+      next: t({ ru: 'Следующая', en: 'Next', kk: 'Келесі' }),
+      pageOf: t({
+        ru: 'Страница {page} из {count}',
+        en: 'Page {page} of {count}',
+        kk: '{page} / {count} бет',
+      }),
     },
     empty: t({
       ru: 'Таблиц пока нет. Создайте первую таблицу или импортируйте из Google Sheets.',

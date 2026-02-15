@@ -3,6 +3,7 @@
 import { cn } from '@/app/lib/utils';
 import { FileSpreadsheet, Plus, Table as TableIcon } from 'lucide-react';
 import Image from 'next/image';
+import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 
 type Props = {
@@ -19,29 +20,29 @@ type Props = {
 };
 
 const ACTION_OFFSETS = [
-  { x: 32, y: -118 },
-  { x: 82, y: -68 },
-  { x: 132, y: -18 },
+  { x: 28, y: -164 },
+  { x: 98, y: -94 },
+  { x: 170, y: -14 },
 ] as const;
 
 const ARC_SIZES = {
   panel: {
-    height: 'h-[184px]',
-    width: 'w-[220px]',
-    radius: 'rounded-tr-[184px]',
+    height: 'h-[232px]',
+    width: 'w-[272px]',
+    radius: 'rounded-tr-[232px]',
     buttonLeft: 'left-4',
-    bottom: 'bottom-3',
+    bottom: 'bottom-5',
     closedOffset: 'translate(16px, -6px)',
-    container: '-mx-4 -mb-3 h-48',
+    container: '-mx-4 -mb-3 h-52',
   },
   floating: {
-    height: 'h-[184px]',
-    width: 'w-[220px]',
-    radius: 'rounded-tr-[184px]',
-    buttonLeft: 'left-0',
-    bottom: 'bottom-0',
-    closedOffset: 'translate(2px, -6px)',
-    container: 'h-48 w-[220px]',
+    height: 'h-60',
+    width: 'w-[320px]',
+    radius: 'rounded-tr-[240px]',
+    buttonLeft: 'left-6',
+    bottom: 'bottom-6',
+    closedOffset: 'translate(8px, -6px)',
+    container: 'h-60 w-[320px]',
   },
 } as const;
 
@@ -53,6 +54,11 @@ export default function CustomTablesCircularMenu({
   labels,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -88,11 +94,17 @@ export default function CustomTablesCircularMenu({
     openMenu: labels?.openMenu ?? 'Open table actions',
   };
 
-  return (
-    <div className={cn('relative overflow-visible', styles.container)}>
+  const menu = (
+    <div
+      className={cn(
+        'relative overflow-visible',
+        styles.container,
+        placement === 'floating' && 'fixed bottom-0 left-0 z-[90] pointer-events-auto',
+      )}
+    >
       <div
         className={cn(
-          'pointer-events-none absolute bottom-0 left-0 bg-[#0E58A8] transition-all duration-300 ease-out',
+          'pointer-events-none absolute bottom-0 left-0 bg-primary transition-all duration-300 ease-out',
           isOpen
             ? `${styles.height} ${styles.width} ${styles.radius} opacity-100`
             : 'h-0 w-0 rounded-tr-none opacity-0',
@@ -129,7 +141,7 @@ export default function CustomTablesCircularMenu({
           />
           <span className="sr-only">{text.importGoogleSheets}</span>
         </button>
-        <span className="absolute left-[48px] top-1/2 z-40 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-[#0E58A8]">
+        <span className="absolute left-[48px] top-1/2 z-40 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-primary">
           {text.importGoogleSheets}
         </span>
       </div>
@@ -156,10 +168,10 @@ export default function CustomTablesCircularMenu({
           title={text.fromStatement}
           className="flex h-11 w-11 items-center justify-center rounded-full border border-white/80 bg-white transition-all duration-300 ease-out hover:scale-105 active:scale-95"
         >
-          <FileSpreadsheet size={18} className="text-[#0E58A8]" />
+          <FileSpreadsheet size={18} className="text-primary" />
           <span className="sr-only">{text.fromStatement}</span>
         </button>
-        <span className="absolute left-[48px] top-1/2 z-40 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-[#0E58A8]">
+        <span className="absolute left-[48px] top-1/2 z-40 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-primary">
           {text.fromStatement}
         </span>
       </div>
@@ -186,23 +198,23 @@ export default function CustomTablesCircularMenu({
           title={text.createTable}
           className="flex h-11 w-11 items-center justify-center rounded-full border border-white/80 bg-white transition-all duration-300 ease-out hover:scale-105 active:scale-95"
         >
-          <TableIcon size={18} className="text-[#0E58A8]" />
+          <TableIcon size={18} className="text-primary" />
           <span className="sr-only">{text.createTable}</span>
         </button>
-        <span className="absolute left-[48px] top-1/2 z-40 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-[#0E58A8]">
+        <span className="absolute left-[48px] top-1/2 z-40 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-primary">
           {text.createTable}
         </span>
       </div>
 
-      <button
-        data-custom-tables-fab-interactive="true"
-        type="button"
-        onClick={() => setIsOpen(prev => !prev)}
-        className={cn(
-          'absolute z-30 flex h-14 w-14 items-center justify-center rounded-full bg-[#0E58A8] text-white transition hover:bg-[#0B4A8D]',
-          styles.buttonLeft,
-          styles.bottom,
-        )}
+        <button
+          data-custom-tables-fab-interactive="true"
+          type="button"
+          onClick={() => setIsOpen(prev => !prev)}
+          className={cn(
+            'absolute z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white transition hover:bg-primary-hover',
+            styles.buttonLeft,
+            styles.bottom,
+          )}
         aria-label={text.openMenu}
       >
         <Plus
@@ -212,4 +224,11 @@ export default function CustomTablesCircularMenu({
       </button>
     </div>
   );
+
+  if (placement === 'floating' && portalReady) {
+    const portalTarget = document.getElementById('fab-portal') ?? document.body;
+    return createPortal(menu, portalTarget);
+  }
+
+  return menu;
 }
