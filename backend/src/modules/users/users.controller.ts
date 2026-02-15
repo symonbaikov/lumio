@@ -38,6 +38,7 @@ import { PermissionsService } from './services/permissions.service';
 import { UsersService } from './users.service';
 import { sanitizeAvatarFilename } from '../../common/utils/avatar-filename.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
+import { TimezonesService } from '../../common/services/timezones.service';
 import type { Response } from 'express';
 
 @Controller('users')
@@ -46,6 +47,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly permissionsService: PermissionsService,
+    private readonly timezonesService: TimezonesService,
   ) {}
 
   @Get()
@@ -61,6 +63,11 @@ export class UsersController {
   @Get('me')
   async getProfile(@CurrentUser() user: User): Promise<User> {
     return this.usersService.getProfile(user.id);
+  }
+
+  @Get('timezones')
+  async getTimeZones() {
+    return { timeZones: this.timezonesService.listTimeZones() };
   }
 
   @Public()

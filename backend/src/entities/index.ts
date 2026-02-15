@@ -34,3 +34,7 @@ export * from './receipt-processing-job.entity';
 export * from './idempotency-key.entity';
 export * from './categorization-rule.entity';
 export * from './import-session.entity';
+export * from './notification.entity';
+export * from './notification-preference.entity';
+export * from './balance-account.entity';
+export * from './balance-snapshot.entity';

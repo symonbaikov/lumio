@@ -1,0 +1,96 @@
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { User } from './user.entity';
+import { Workspace } from './workspace.entity';
+
+export enum NotificationType {
+  STATEMENT_UPLOADED = 'statement.uploaded',
+  IMPORT_COMMITTED = 'import.committed',
+  CATEGORY_CREATED = 'category.created',
+  CATEGORY_UPDATED = 'category.updated',
+  CATEGORY_DELETED = 'category.deleted',
+  MEMBER_INVITED = 'member.invited',
+  MEMBER_JOINED = 'member.joined',
+  DATA_DELETED = 'data.deleted',
+  WORKSPACE_UPDATED = 'workspace.updated',
+  PARSING_ERROR = 'parsing.error',
+  IMPORT_FAILED = 'import.failed',
+  TRANSACTION_UNCATEGORIZED = 'transaction.uncategorized',
+  RECEIPT_UNCATEGORIZED = 'receipt.uncategorized',
+}
+
+export enum NotificationCategory {
+  WORKSPACE_ACTIVITY = 'workspace_activity',
+  SYSTEM = 'system',
+}
+
+export enum NotificationSeverity {
+  INFO = 'info',
+  WARN = 'warn',
+  ERROR = 'error',
+}
+
+@Entity('notifications')
+@Index('IDX_notifications_recipient_read', ['recipientId', 'isRead', 'createdAt'])
+@Index('IDX_notifications_workspace_created', ['workspaceId', 'createdAt'])
+export class Notification {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'recipient_id' })
+  recipient: User;
+
+  @Column({ name: 'recipient_id', type: 'uuid' })
+  recipientId: string;
+
+  @ManyToOne(() => Workspace, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'workspace_id' })
+  workspace: Workspace | null;
+
+  @Column({ name: 'workspace_id', type: 'uuid', nullable: true })
+  workspaceId: string | null;
+
+  @Column({ type: 'varchar', length: 64 })
+  type: NotificationType;
+
+  @Column({ type: 'varchar', length: 32 })
+  category: NotificationCategory;
+
+  @Column({ type: 'varchar', length: 16, default: NotificationSeverity.INFO })
+  severity: NotificationSeverity;
+
+  @Column({ type: 'varchar', length: 255 })
+  title: string;
+
+  @Column({ type: 'text' })
+  message: string;
+
+  @Column({ name: 'is_read', type: 'boolean', default: false })
+  isRead: boolean;
+
+  @Column({ name: 'actor_id', type: 'uuid', nullable: true })
+  actorId: string | null;
+
+  @Column({ name: 'actor_name', type: 'varchar', length: 255, nullable: true })
+  actorName: string | null;
+
+  @Column({ name: 'entity_type', type: 'varchar', length: 64, nullable: true })
+  entityType: string | null;
+
+  @Column({ name: 'entity_id', type: 'uuid', nullable: true })
+  entityId: string | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  meta: Record<string, unknown> | null;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  createdAt: Date;
+}

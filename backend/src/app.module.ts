@@ -1,11 +1,12 @@
+import * as path from 'node:path';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import * as path from 'node:path';
 import * as redisStore from 'cache-manager-redis-store';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -16,6 +17,8 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { getDatabaseConfig } from './config/database.config';
 import {
   AuditEvent,
+  BalanceAccount,
+  BalanceSnapshot,
   Branch,
   Category,
   CategoryLearning,
@@ -32,6 +35,8 @@ import {
   GoogleSheetRow,
   Integration,
   IntegrationToken,
+  Notification,
+  NotificationPreference,
   ParsingRule,
   Receipt,
   ReceiptProcessingJob,
@@ -45,9 +50,10 @@ import {
   WorkspaceInvitation,
   WorkspaceMember,
 } from './entities';
-import { AuthModule } from './modules/auth/auth.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor';
+import { AuthModule } from './modules/auth/auth.module';
+import { BalanceModule } from './modules/balance/balance.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ClassificationModule } from './modules/classification/classification.module';
@@ -57,6 +63,7 @@ import { DropboxModule } from './modules/dropbox/dropbox.module';
 import { GmailModule } from './modules/gmail/gmail.module';
 import { GoogleDriveModule } from './modules/google-drive/google-drive.module';
 import { GoogleSheetsModule } from './modules/google-sheets/google-sheets.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { HttpMetricsInterceptor } from './modules/observability/http-metrics.interceptor';
 import { ObservabilityModule } from './modules/observability/observability.module';
 import { ParsingModule } from './modules/parsing/parsing.module';
@@ -73,11 +80,9 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [
-        path.resolve(process.cwd(), '.env'),
-        path.resolve(process.cwd(), '../.env'),
-      ],
+      envFilePath: [path.resolve(process.cwd(), '.env'), path.resolve(process.cwd(), '../.env')],
     }),
+    EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       {
@@ -112,7 +117,11 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
       GoogleSheetRow,
       TelegramReport,
       ParsingRule,
+      Notification,
+      NotificationPreference,
       AuditEvent,
+      BalanceAccount,
+      BalanceSnapshot,
       SharedLink,
       FilePermission,
       DataEntry,
@@ -134,6 +143,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     CommonModule,
     AuthModule,
     AuditModule,
+    BalanceModule,
     UsersModule,
     StatementsModule,
     GoogleSheetsModule,
@@ -152,6 +162,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     DataEntryModule,
     CustomTablesModule,
     WorkspacesModule,
+    NotificationsModule,
     ObservabilityModule,
   ],
   controllers: [AppController],

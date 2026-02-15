@@ -1,0 +1,176 @@
+import {
+  BalanceAccountSubType,
+  BalanceAccountType,
+  BalanceAutoSource,
+} from '../../entities/balance-account.entity';
+
+type DefaultBalanceAccountDefinition = {
+  code: string;
+  name: string;
+  nameEn: string;
+  nameKk: string;
+  accountType: BalanceAccountType;
+  subType: BalanceAccountSubType;
+  parentCode: string | null;
+  position: number;
+  isEditable?: boolean;
+  isAutoComputed?: boolean;
+  autoSource?: BalanceAutoSource | null;
+  isExpandable?: boolean;
+};
+
+export const DEFAULT_BALANCE_ACCOUNTS: DefaultBalanceAccountDefinition[] = [
+  {
+    code: 'ASSET_NON_CURRENT',
+    name: 'I. Внеоборотные активы',
+    nameEn: 'I. Non-current assets',
+    nameKk: 'I. Айналымнан тыс активтер',
+    accountType: BalanceAccountType.ASSET,
+    subType: BalanceAccountSubType.NON_CURRENT_ASSET,
+    parentCode: null,
+    position: 0,
+    isEditable: false,
+  },
+  {
+    code: 'ASSET_FIXED',
+    name: 'Основные средства',
+    nameEn: 'Fixed assets',
+    nameKk: 'Негізгі құралдар',
+    accountType: BalanceAccountType.ASSET,
+    subType: BalanceAccountSubType.NON_CURRENT_ASSET,
+    parentCode: 'ASSET_NON_CURRENT',
+    position: 0,
+    isEditable: true,
+  },
+  {
+    code: 'ASSET_INTANGIBLE',
+    name: 'Нематериальные активы',
+    nameEn: 'Intangible assets',
+    nameKk: 'Материалдық емес активтер',
+    accountType: BalanceAccountType.ASSET,
+    subType: BalanceAccountSubType.NON_CURRENT_ASSET,
+    parentCode: 'ASSET_NON_CURRENT',
+    position: 1,
+    isEditable: true,
+  },
+  {
+    code: 'ASSET_INVESTMENTS',
+    name: 'Инвестиции',
+    nameEn: 'Investments',
+    nameKk: 'Инвестициялар',
+    accountType: BalanceAccountType.ASSET,
+    subType: BalanceAccountSubType.NON_CURRENT_ASSET,
+    parentCode: 'ASSET_NON_CURRENT',
+    position: 2,
+    isEditable: false,
+    isExpandable: true,
+  },
+  {
+    code: 'ASSET_CURRENT',
+    name: 'II. Оборотные активы',
+    nameEn: 'II. Current assets',
+    nameKk: 'II. Айналым активтері',
+    accountType: BalanceAccountType.ASSET,
+    subType: BalanceAccountSubType.CURRENT_ASSET,
+    parentCode: null,
+    position: 1,
+    isEditable: false,
+  },
+  {
+    code: 'ASSET_INVENTORY',
+    name: 'Запасы',
+    nameEn: 'Inventory',
+    nameKk: 'Қорлар',
+    accountType: BalanceAccountType.ASSET,
+    subType: BalanceAccountSubType.CURRENT_ASSET,
+    parentCode: 'ASSET_CURRENT',
+    position: 0,
+    isEditable: true,
+  },
+  {
+    code: 'ASSET_RECEIVABLES',
+    name: 'Дебиторская задолженность',
+    nameEn: 'Accounts receivable',
+    nameKk: 'Дебиторлық берешек',
+    accountType: BalanceAccountType.ASSET,
+    subType: BalanceAccountSubType.CURRENT_ASSET,
+    parentCode: 'ASSET_CURRENT',
+    position: 1,
+    isEditable: false,
+    isExpandable: true,
+  },
+  {
+    code: 'ASSET_CASH',
+    name: 'III. Деньги',
+    nameEn: 'III. Cash',
+    nameKk: 'III. Ақша',
+    accountType: BalanceAccountType.ASSET,
+    subType: BalanceAccountSubType.CASH,
+    parentCode: null,
+    position: 2,
+    isEditable: false,
+    isExpandable: true,
+    isAutoComputed: true,
+    autoSource: BalanceAutoSource.WALLETS_AND_STATEMENTS,
+  },
+  {
+    code: 'EQUITY_SECTION',
+    name: 'I. Собственный капитал',
+    nameEn: 'I. Equity',
+    nameKk: 'I. Меншікті капитал',
+    accountType: BalanceAccountType.EQUITY,
+    subType: BalanceAccountSubType.EQUITY,
+    parentCode: null,
+    position: 0,
+    isEditable: false,
+  },
+  {
+    code: 'EQUITY_AUTHORIZED',
+    name: 'Уставный капитал',
+    nameEn: 'Authorized capital',
+    nameKk: 'Жарғылық капитал',
+    accountType: BalanceAccountType.EQUITY,
+    subType: BalanceAccountSubType.EQUITY,
+    parentCode: 'EQUITY_SECTION',
+    position: 0,
+    isEditable: true,
+  },
+  {
+    code: 'EQUITY_ADDITIONAL',
+    name: 'Дополнительный капитал',
+    nameEn: 'Additional capital',
+    nameKk: 'Қосымша капитал',
+    accountType: BalanceAccountType.EQUITY,
+    subType: BalanceAccountSubType.EQUITY,
+    parentCode: 'EQUITY_SECTION',
+    position: 1,
+    isEditable: true,
+  },
+  {
+    code: 'EQUITY_RETAINED_EARNINGS',
+    name: 'Нераспределённая прибыль (непокрытый убыток)',
+    nameEn: 'Retained earnings (uncovered loss)',
+    nameKk: 'Бөлінбеген пайда (жабылмаған залал)',
+    accountType: BalanceAccountType.EQUITY,
+    subType: BalanceAccountSubType.EQUITY,
+    parentCode: 'EQUITY_SECTION',
+    position: 2,
+    isEditable: false,
+    isAutoComputed: true,
+    autoSource: BalanceAutoSource.TRANSACTIONS,
+  },
+  {
+    code: 'LIABILITY_BORROWED',
+    name: 'II. Ссудный капитал',
+    nameEn: 'II. Borrowed capital',
+    nameKk: 'II. Қарыз капиталы',
+    accountType: BalanceAccountType.LIABILITY,
+    subType: BalanceAccountSubType.BORROWED_CAPITAL,
+    parentCode: null,
+    position: 1,
+    isEditable: false,
+    isExpandable: true,
+  },
+];
+
+export type { DefaultBalanceAccountDefinition };
