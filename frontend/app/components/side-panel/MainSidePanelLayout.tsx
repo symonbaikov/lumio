@@ -1,11 +1,14 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { SidePanel, SidePanelProvider, useCurrentSidePanelConfig, useSidePanel } from './index';
 
 function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
   const config = useCurrentSidePanelConfig();
   const sidePanel = useSidePanel();
+  const pathname = usePathname();
+  const isStatementsPage = pathname?.startsWith('/statements');
 
   React.useEffect(() => {
     if (sidePanel.position !== 'left') {
@@ -13,14 +16,24 @@ function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
     }
   }, [sidePanel]);
 
+  const containerClassName = isStatementsPage
+    ? 'flex min-h-[calc(100vh-var(--global-nav-height,0px))] h-[calc(100vh-var(--global-nav-height,0px))] overflow-hidden'
+    : 'flex min-h-[calc(100vh-var(--global-nav-height,0px))]';
+
+  const sidePanelWrapperClassName = isStatementsPage
+    ? 'hidden lg:flex shrink-0 h-full'
+    : 'hidden lg:flex shrink-0';
+
+  const contentClassName = isStatementsPage ? 'flex-1 h-full overflow-hidden' : 'flex-1';
+
   return (
-    <div className="flex min-h-[calc(100vh-var(--global-nav-height,0px))]">
+    <div className={containerClassName}>
       {config ? (
-        <div className="hidden lg:flex shrink-0">
-          <SidePanel config={config} />
+        <div className={sidePanelWrapperClassName}>
+          <SidePanel config={config} className={isStatementsPage ? 'h-full' : undefined} />
         </div>
       ) : null}
-      <div className="flex-1">{children}</div>
+      <div className={contentClassName}>{children}</div>
     </div>
   );
 }

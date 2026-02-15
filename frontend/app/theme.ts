@@ -1,28 +1,26 @@
-import { type ThemeOptions, createTheme } from '@mui/material/styles';
+import { alpha, type ThemeOptions, createTheme } from '@mui/material/styles';
+import { getAppSurfaceTokens } from './mantine-theme';
 
 export type ThemeMode = 'light' | 'dark';
 
 const sharedOptions: Pick<ThemeOptions, 'typography' | 'components'> = {
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h1: { fontWeight: 600, fontSize: '2.5rem' },
-    h2: { fontWeight: 600, fontSize: '2rem' },
-    h3: { fontWeight: 600, fontSize: '1.75rem' },
-    h4: { fontWeight: 600, fontSize: '1.5rem' },
-    h5: { fontWeight: 500, fontSize: '1.25rem' },
-    h6: { fontWeight: 500, fontSize: '1rem' },
+    fontFamily:
+      'var(--font-manrope), "Manrope", "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+    h1: { fontWeight: 650, fontSize: '2.5rem' },
+    h2: { fontWeight: 650, fontSize: '2rem' },
+    h3: { fontWeight: 620, fontSize: '1.75rem' },
+    h4: { fontWeight: 620, fontSize: '1.5rem' },
+    h5: { fontWeight: 600, fontSize: '1.25rem' },
+    h6: { fontWeight: 600, fontSize: '1rem' },
     button: { textTransform: 'none', fontWeight: 600 },
   },
   components: {
     MuiButton: {
       styleOverrides: {
-        root: { borderRadius: 8, padding: '8px 16px' },
+        root: { borderRadius: 999, padding: '8px 18px' },
         contained: {
           boxShadow: 'none',
-          '&:hover': {
-            boxShadow:
-              '0px 2px 4px -1px rgba(0,0,0,0.2), 0px 4px 5px 0px rgba(0,0,0,0.14), 0px 1px 10px 0px rgba(0,0,0,0.12)',
-          },
         },
       },
     },
@@ -30,7 +28,8 @@ const sharedOptions: Pick<ThemeOptions, 'typography' | 'components'> = {
       styleOverrides: {
         root: {
           borderRadius: 12,
-          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
+          boxShadow: 'none',
+          backgroundImage: 'none',
         },
       },
     },
@@ -46,61 +45,68 @@ const sharedOptions: Pick<ThemeOptions, 'typography' | 'components'> = {
 
 const paletteByMode: Record<ThemeMode, ThemeOptions['palette']> = {
   light: {
+    mode: 'light',
     primary: {
-      main: '#0a66c2',
-      light: '#4c93e6',
-      dark: '#004182',
+      main: '#0284c7',
+      light: '#38bdf8',
+      dark: '#0369a1',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#666666',
-      light: '#8c8c8c',
-      dark: '#404040',
+      main: '#475569',
+      light: '#64748b',
+      dark: '#334155',
       contrastText: '#ffffff',
     },
     background: {
-      default: '#fcfbf9',
-      paper: '#fcfbf9',
+      default: '#f6f9fd',
+      paper: '#ffffff',
     },
     text: {
-      primary: '#191919',
-      secondary: '#555555',
+      primary: '#0f172a',
+      secondary: '#4b5563',
     },
-    divider: '#e0e0e0',
+    divider: '#d7e2ef',
   },
   dark: {
+    mode: 'dark',
     primary: {
-      main: '#62b0ff',
-      light: '#8cc8ff',
-      dark: '#3c82d6',
-      contrastText: '#0b1220',
+      main: '#38bdf8',
+      light: '#7dd3fc',
+      dark: '#0ea5e9',
+      contrastText: '#041019',
     },
     secondary: {
-      main: '#9aa6b2',
-      light: '#c4ced8',
-      dark: '#667487',
-      contrastText: '#0b1220',
+      main: '#93a4bf',
+      light: '#c2cfdf',
+      dark: '#6b7f9b',
+      contrastText: '#081221',
     },
     background: {
-      default: '#0b1220',
-      paper: '#0f172a',
+      default: '#020617',
+      paper: '#0b1220',
     },
     text: {
-      primary: '#e5e7eb',
-      secondary: '#cbd5e1',
+      primary: '#e2e8f0',
+      secondary: '#94a3b8',
     },
-    divider: '#1f2937',
+    divider: '#1d2b43',
   },
 };
 
-export const createAppTheme = (mode: ThemeMode) =>
-  createTheme({
+export const createAppTheme = (mode: ThemeMode) => {
+  const surfaces = getAppSurfaceTokens(mode);
+
+  return createTheme({
     ...sharedOptions,
     palette: {
-      mode,
       ...paletteByMode[mode],
+      action: {
+        hover: alpha(surfaces.primary, mode === 'dark' ? 0.12 : 0.08),
+      },
     },
   });
+};
 
 export const lightTheme = createAppTheme('light');
 export const darkTheme = createAppTheme('dark');

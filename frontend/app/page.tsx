@@ -120,15 +120,15 @@ export default function Home() {
 
   if (isRedirecting) {
     return (
-      <div className="flex min-h-[calc(100vh-var(--global-nav-height,0px))] items-center justify-center bg-[#f7faf7]">
+      <div className="flex min-h-[calc(100vh-var(--global-nav-height,0px))] items-center justify-center bg-background">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#d8e3d8] border-t-[#0f3428]" />
       </div>
     );
   }
 
   return (
-    <main className="min-h-[calc(100vh-var(--global-nav-height,0px))] bg-[radial-gradient(circle_at_top,#edf6ee_0%,#f6faf7_40%,#fbfcfb_100%)]">
-      <div className="mx-auto w-full max-w-3xl px-4 pb-10 pt-8 sm:px-6 lg:pt-12">
+    <main className="min-h-[calc(100vh-var(--global-nav-height,0px))] bg-background">
+      <div className="container-shared px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pt-12">
         <header className="mb-6 rounded-2xl border border-[#d8e4d9] bg-white/85 px-5 py-6 backdrop-blur-sm sm:px-7">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5e7468]">
             {t.badge}
