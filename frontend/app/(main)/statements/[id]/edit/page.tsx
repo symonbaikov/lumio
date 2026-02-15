@@ -78,6 +78,7 @@ interface CategoryOption {
   id: string;
   name: string;
   type?: 'income' | 'expense';
+  isEnabled?: boolean;
   children?: CategoryOption[];
 }
 
@@ -111,7 +112,7 @@ interface Transaction {
   article?: string;
   comments?: string;
   transactionType: 'income' | 'expense';
-  category?: { id: string; name: string };
+  category?: { id: string; name: string; isEnabled?: boolean };
   branch?: { id: string; name: string };
   wallet?: { id: string; name: string };
 }
@@ -122,7 +123,7 @@ interface Statement {
   status: string;
   totalTransactions: number;
   categoryId?: string | null;
-  category?: { id: string; name: string } | null;
+  category?: { id: string; name: string; isEnabled?: boolean } | null;
   statementDateFrom?: string | null;
   statementDateTo?: string | null;
   balanceStart?: number | string | null;
@@ -186,6 +187,15 @@ const resolveLocale = (locale: string) => {
 
 const isIdEmpty = (id?: string | null) =>
   !id || id === 'null' || id === 'undefined' || id === '0' || id === '';
+
+const filterEnabledCategories = (items: CategoryOption[]): CategoryOption[] => {
+  return items
+    .filter(item => item.isEnabled !== false)
+    .map(item => ({
+      ...item,
+      children: item.children ? filterEnabledCategories(item.children) : undefined,
+    }));
+};
 
 export default function EditStatementPage() {
   const params = useParams();
@@ -522,7 +532,7 @@ export default function EditStatementPage() {
           onChange={e => handleFieldChange(transaction.id, 'categoryId', e.target.value)}
         >
           <MenuItem value="">{t.labels.notSelected}</MenuItem>
-          {flattenStatementCategories(categories).map(cat => (
+          {flattenedEnabledStatementCategories.map(cat => (
             <MenuItem key={cat.id} value={cat.id}>
               {cat.name}
             </MenuItem>
@@ -610,7 +620,11 @@ export default function EditStatementPage() {
     rollbackToApprove: labels.rollbackToApproveSuccess?.value || 'Statement moved back to approve',
   };
 
+  const enabledStatementCategories = filterEnabledCategories(categories);
   const flattenedStatementCategories = flattenStatementCategories(categories);
+  const flattenedEnabledStatementCategories = flattenStatementCategories(
+    enabledStatementCategories,
+  );
 
   const stageActions = getStatementStageActions(currentStage);
 
@@ -675,9 +689,10 @@ export default function EditStatementPage() {
     );
   }
 
-  const missingCategoryCount = transactions.filter(
-    t => isIdEmpty(t.categoryId) && isIdEmpty(t.category?.id),
-  ).length;
+  const missingCategoryCount = transactions.filter(transaction => {
+    const noCategory = isIdEmpty(transaction.categoryId) && isIdEmpty(transaction.category?.id);
+    return noCategory || transaction.category?.isEnabled === false;
+  }).length;
 
   const totalIncome = transactions.reduce((sum, t) => {
     const credit = Number(t.credit);
@@ -694,6 +709,7 @@ export default function EditStatementPage() {
     flattenedStatementCategories.find(category => category.id === statement?.categoryId)?.name ||
     labels.categoryButton?.value ||
     'Category';
+  const hasDisabledStatementCategory = statement?.category?.isEnabled === false;
 
   return (
     <Container maxWidth={false} sx={{ py: 5 }}>
@@ -753,7 +769,7 @@ export default function EditStatementPage() {
               {missingCategoryCount > 0 && (
                 <Chip
                   icon={<Warning />}
-                  label={`${missingCategoryCount} без категории`}
+                  label={`${missingCategoryCount} требуют категории`}
                   size="small"
                   sx={{
                     bgcolor: 'error.50',
@@ -768,7 +784,7 @@ export default function EditStatementPage() {
             </Box>
             {missingCategoryCount > 0 ? (
               <Typography sx={{ mt: 1, color: 'error.main', fontSize: '0.75rem', fontWeight: 500 }}>
-                Выберите категорию для каждой транзакции перед отправкой
+                Выберите категорию для каждой транзакции с пустой или отключенной категорией
               </Typography>
             ) : null}
           </Box>
@@ -786,7 +802,8 @@ export default function EditStatementPage() {
                 minWidth: 0,
                 maxWidth: { xs: '100%', md: 280 },
                 overflow: 'hidden',
-                ...(isIdEmpty(statement?.categoryId) && isIdEmpty(statement?.category?.id)
+                ...(hasDisabledStatementCategory ||
+                (isIdEmpty(statement?.categoryId) && isIdEmpty(statement?.category?.id))
                   ? {
                       borderColor: '#ef4444 !important',
                       color: '#b91c1c !important',
@@ -818,7 +835,9 @@ export default function EditStatementPage() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {selectedStatementCategoryName}
+                {hasDisabledStatementCategory
+                  ? `${selectedStatementCategoryName} — отключена`
+                  : selectedStatementCategoryName}
               </Box>
             </Button>
             <Button
@@ -1235,7 +1254,7 @@ export default function EditStatementPage() {
       <StatementCategoryDrawer
         open={statementCategoryDrawerOpen}
         onClose={() => setStatementCategoryDrawerOpen(false)}
-        categories={categories}
+        categories={enabledStatementCategories}
         selectedCategoryId={statement?.categoryId || ''}
         selecting={statementCategorySaving}
         onSelect={handleStatementCategorySelect}
@@ -1525,12 +1544,27 @@ export default function EditStatementPage() {
                       <Box>
                         {transaction.category?.name ? (
                           <Chip
-                            label={transaction.category.name}
+                            label={
+                              transaction.category.isEnabled === false
+                                ? `${transaction.category.name} — выберите категорию`
+                                : transaction.category.name
+                            }
                             size="small"
                             sx={{
-                              bgcolor: 'primary.50',
-                              color: 'primary.700',
-                              border: 'none',
+                              bgcolor:
+                                transaction.category.isEnabled === false
+                                  ? 'error.50'
+                                  : 'primary.50',
+                              color:
+                                transaction.category.isEnabled === false
+                                  ? 'error.700'
+                                  : 'primary.700',
+                              border:
+                                transaction.category.isEnabled === false ? '1px solid' : 'none',
+                              borderColor:
+                                transaction.category.isEnabled === false
+                                  ? 'error.200'
+                                  : 'transparent',
                               fontWeight: 500,
                               fontSize: '0.8125rem',
                             }}
@@ -1663,7 +1697,7 @@ export default function EditStatementPage() {
             }}
           >
             <MenuItem value="">Не выбрано</MenuItem>
-            {flattenStatementCategories(categories).map(cat => (
+            {flattenedEnabledStatementCategories.map(cat => (
               <MenuItem key={cat.id} value={cat.id}>
                 {cat.name}
               </MenuItem>

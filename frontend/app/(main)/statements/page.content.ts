@@ -47,6 +47,20 @@ const content = {
       action: t({ ru: 'Действие', en: 'Action', kk: 'Әрекет' }),
       scanning: t({ ru: 'Сканирование...', en: 'Scanning...', kk: 'Сканерлеу...' }),
     },
+    pagination: {
+      shown: t({
+        ru: 'Показано {from}–{to} из {count}',
+        en: 'Showing {from}–{to} of {count}',
+        kk: '{from}–{to} / {count} көрсетілді',
+      }),
+      previous: t({ ru: 'Предыдущая', en: 'Previous', kk: 'Алдыңғы' }),
+      next: t({ ru: 'Следующая', en: 'Next', kk: 'Келесі' }),
+      pageOf: t({
+        ru: 'Страница {page} из {count}',
+        en: 'Page {page} of {count}',
+        kk: '{page} / {count} бет',
+      }),
+    },
     sidePanel: {
       todoTitle: t({ ru: 'К выполнению', en: 'To-do', kk: 'Аяқтау керек' }),
       submit: t({ ru: 'Отправить', en: 'Submit', kk: 'Жіберу' }),

@@ -45,6 +45,12 @@ interface Receipt {
   duplicateOfId?: string;
 }
 
+interface CategoryOption {
+  id: string;
+  name: string;
+  isEnabled?: boolean;
+}
+
 const hasReceiptAmount = (value: unknown): boolean => {
   if (typeof value === 'number') {
     return Number.isFinite(value);
@@ -71,7 +77,7 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
   const [loading, setLoading] = useState(true);
   const [editedData, setEditedData] = useState<any>({});
   const [showPreview, setShowPreview] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [historyEvents, setHistoryEvents] = useState<AuditEvent[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedHistoryEvent, setSelectedHistoryEvent] = useState<AuditEvent | null>(null);
@@ -171,6 +177,9 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
   const gmailUrl = `https://mail.google.com/mail/u/0/#all/${receipt.gmailMessageId}`;
   const isMissingAmount = !hasReceiptAmount(editedData.amount ?? receipt.parsedData?.amount);
   const showMissingAmountBanner = receipt.status === 'needs_review' && isMissingAmount;
+  const selectedCategoryId = editedData.categoryId || receipt.parsedData?.categoryId || '';
+  const selectedCategory = categories.find(category => category.id === selectedCategoryId);
+  const hasDisabledCategory = selectedCategory?.isEnabled === false;
 
   return (
     <>
@@ -286,9 +295,9 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
                     <div>
                       <h3 className="text-lg font-medium mb-4">Attachments</h3>
                       <div className="space-y-2">
-                        {receipt.metadata.attachments.map((attachment, idx) => (
+                        {receipt.metadata.attachments.map(attachment => (
                           <div
-                            key={idx}
+                            key={`${attachment.filename}-${attachment.size}`}
                             className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                           >
                             <span className="text-sm">{attachment.filename}</span>
@@ -337,10 +346,14 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="receipt-merchant"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       {content.drawer.fields.merchant.value}
                     </label>
                     <input
+                      id="receipt-merchant"
                       type="text"
                       value={editedData.vendor || ''}
                       onChange={e => setEditedData({ ...editedData, vendor: e.target.value })}
@@ -350,7 +363,10 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="receipt-amount"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         {content.drawer.fields.amount.value}
                         {showMissingAmountBanner ? (
                           <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-amber-700">
@@ -359,6 +375,7 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
                         ) : null}
                       </label>
                       <input
+                        id="receipt-amount"
                         type="number"
                         value={editedData.amount || ''}
                         onChange={e =>
@@ -378,10 +395,14 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="receipt-currency"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         {content.drawer.fields.currency.value}
                       </label>
                       <input
+                        id="receipt-currency"
                         type="text"
                         value={editedData.currency || ''}
                         onChange={e => setEditedData({ ...editedData, currency: e.target.value })}
@@ -392,10 +413,14 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="receipt-tax"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         {content.drawer.fields.tax.value}
                       </label>
                       <input
+                        id="receipt-tax"
                         type="number"
                         value={editedData.tax || ''}
                         onChange={e =>
@@ -411,10 +436,14 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="receipt-date"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         {content.drawer.fields.date.value}
                       </label>
                       <input
+                        id="receipt-date"
                         type="date"
                         value={editedData.date || ''}
                         onChange={e => setEditedData({ ...editedData, date: e.target.value })}
@@ -424,10 +453,19 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="receipt-category"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       {content.drawer.fields.category.value}
                     </label>
+                    {hasDisabledCategory ? (
+                      <p className="mb-2 text-sm font-medium text-red-600">
+                        {selectedCategory?.name} - category disabled, choose another
+                      </p>
+                    ) : null}
                     <select
+                      id="receipt-category"
                       value={editedData.categoryId || ''}
                       onChange={e => {
                         const selectedCategory = categories.find(c => c.id === e.target.value);
@@ -440,11 +478,13 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select category</option>
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
+                      {categories
+                        .filter(cat => cat.isEnabled !== false)
+                        .map(cat => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
                     </select>
                   </div>
 
@@ -460,8 +500,8 @@ export function ReceiptDetailDrawer({ receiptId, onClose, onUpdate }: ReceiptDet
                             </tr>
                           </thead>
                           <tbody className="divide-y">
-                            {receipt.parsedData.lineItems.map((item, idx) => (
-                              <tr key={idx}>
+                            {receipt.parsedData.lineItems.map(item => (
+                              <tr key={`${item.description}-${item.amount}`}>
                                 <td className="px-4 py-2">{item.description}</td>
                                 <td className="px-4 py-2 text-right">
                                   {item.amount.toLocaleString()}

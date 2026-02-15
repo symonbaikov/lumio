@@ -130,10 +130,21 @@ export default function ReceiptsPage() {
     title: resolveLabel(t.empty?.title, 'No receipts yet'),
     description: resolveLabel(t.empty?.description, 'Upload your first receipt to get started'),
   };
+  const paginationLabels = {
+    shown: resolveLabel((t as any)?.pagination?.shown, 'Showing {from}–{to} of {count}'),
+    previous: resolveLabel((t as any)?.pagination?.previous, 'Previous'),
+    next: resolveLabel((t as any)?.pagination?.next, 'Next'),
+    pageOf: resolveLabel((t as any)?.pagination?.pageOf, 'Page {page} of {count}'),
+  };
   const filterChipClassName =
     'inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary';
   const filterLinkClassName =
     'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-primary';
+  const formatPaginationLabel = (template: string, values: Record<string, string | number>) =>
+    Object.entries(values).reduce(
+      (result, [key, value]) => result.replace(`{${key}}`, String(value)),
+      template,
+    );
 
   useLockBodyScroll(!!uploadModalOpen);
   const totalPagesCount = Math.max(1, Math.ceil(total / pageSize) || 1);
@@ -593,7 +604,13 @@ export default function ReceiptsPage() {
               data-tour-id="pagination"
             >
               <div className="text-sm text-gray-600">
-                {total === 0 ? emptyLabels.title : `Показано ${rangeStart}–${rangeEnd} из ${total}`}
+                {total === 0
+                  ? emptyLabels.title
+                  : formatPaginationLabel(paginationLabels.shown, {
+                      from: rangeStart,
+                      to: rangeEnd,
+                      count: total,
+                    })}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -605,10 +622,13 @@ export default function ReceiptsPage() {
                       : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
                   }`}
                 >
-                  <ChevronLeft className="h-4 w-4" /> Предыдущая
+                  <ChevronLeft className="h-4 w-4" /> {paginationLabels.previous}
                 </button>
                 <span className="text-sm text-gray-600">
-                  Страница {page} из {totalPagesCount}
+                  {formatPaginationLabel(paginationLabels.pageOf, {
+                    page,
+                    count: totalPagesCount,
+                  })}
                 </span>
                 <button
                   onClick={() => setPage(prev => Math.min(totalPagesCount, prev + 1))}
@@ -619,7 +639,7 @@ export default function ReceiptsPage() {
                       : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
                   }`}
                 >
-                  Следующая <ChevronRight className="h-4 w-4" />
+                  {paginationLabels.next} <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             </div>

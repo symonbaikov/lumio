@@ -5,10 +5,12 @@ import { CheckCircle2, ExternalLink, Plug, Search } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 export default function IntegrationsPage() {
   const t = useIntlayer('integrationsPage');
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Static integration metadata (labels, icons, actions). Active/connect status is fetched from backend.
@@ -33,6 +35,7 @@ export default function IntegrationsPage() {
           {
             label: t.cards.dropbox.actions.connect,
             href: '/integrations/dropbox',
+            primary: true,
           },
           {
             label: t.cards.dropbox.actions.docs,
@@ -60,6 +63,7 @@ export default function IntegrationsPage() {
           {
             label: t.cards.googleDrive.actions.connect,
             href: '/integrations/google-drive',
+            primary: true,
           },
           {
             label: t.cards.googleDrive.actions.docs,
@@ -81,6 +85,7 @@ export default function IntegrationsPage() {
           {
             label: 'Connect',
             href: '/integrations/gmail',
+            primary: true,
           },
           {
             label: 'Docs',
@@ -108,6 +113,7 @@ export default function IntegrationsPage() {
           {
             label: t.cards.googleSheets.actions.connect,
             href: '/integrations/google-sheets',
+            primary: true,
           },
           {
             label: t.cards.googleSheets.actions.docs,
@@ -132,7 +138,7 @@ export default function IntegrationsPage() {
           />
         ),
         actions: [
-          { label: t.cards.telegram.actions.setup, href: '/settings/telegram' },
+          { label: t.cards.telegram.actions.setup, href: '/settings/telegram', primary: true },
           {
             label: t.cards.telegram.actions.guide,
             href: 'https://core.telegram.org/bots',
@@ -189,6 +195,7 @@ export default function IntegrationsPage() {
       integrationMeta.map(m => ({
         ...m,
         active: integrationStatuses[m.key] ?? false,
+        primaryAction: m.actions.find(action => action.primary) ?? m.actions[0],
       })),
     [integrationMeta, integrationStatuses],
   );
@@ -203,6 +210,11 @@ export default function IntegrationsPage() {
         String(item.description).toLowerCase().includes(query),
     );
   }, [integrations, searchQuery]);
+
+  const handleCardClick = (item: (typeof integrations)[number]) => {
+    if (!item.primaryAction?.href || item.primaryAction.external) return;
+    router.push(item.primaryAction.href);
+  };
 
   const active = filteredIntegrations.filter(item => item.active);
   const available = filteredIntegrations.filter(item => !item.active);
@@ -303,7 +315,16 @@ export default function IntegrationsPage() {
                         {items.map(item => (
                           <div
                             key={item.key}
-                            className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
+                            data-integration-card={item.key}
+                            role={item.primaryAction?.href && !item.primaryAction.external ? 'button' : undefined}
+                            tabIndex={item.primaryAction?.href && !item.primaryAction.external ? 0 : undefined}
+                            className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                            onClick={() => handleCardClick(item)}
+                            onKeyDown={event => {
+                              if (event.key !== 'Enter' && event.key !== ' ') return;
+                              event.preventDefault();
+                              handleCardClick(item);
+                            }}
                           >
                             <div className="flex items-start gap-3">
                               <div className="p-2 rounded-lg bg-gray-50 border border-gray-100">
@@ -329,19 +350,33 @@ export default function IntegrationsPage() {
                                         href={action.href}
                                         target="_blank"
                                         rel="noreferrer"
+                                        onClick={event => event.stopPropagation()}
                                         className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
                                       >
                                         {action.label}
                                         <ExternalLink className="h-3 w-3 ml-1 text-gray-400" />
                                       </a>
                                     ) : (
-                                      <Link
-                                        key={action.href}
-                                        href={action.href}
-                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
-                                      >
-                                        {action.label}
-                                      </Link>
+                                      action.primary && item.active ? (
+                                        <button
+                                          key={action.href}
+                                          type="button"
+                                          disabled
+                                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-400 cursor-not-allowed"
+                                          onClick={event => event.stopPropagation()}
+                                        >
+                                          {action.label}
+                                        </button>
+                                      ) : (
+                                        <Link
+                                          key={action.href}
+                                          href={action.href}
+                                          onClick={event => event.stopPropagation()}
+                                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
+                                        >
+                                          {action.label}
+                                        </Link>
+                                      )
                                     ),
                                   )}
                                 </div>
@@ -383,7 +418,16 @@ export default function IntegrationsPage() {
                         {items.map(item => (
                           <div
                             key={item.key}
-                            className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
+                            data-integration-card={item.key}
+                            role={item.primaryAction?.href && !item.primaryAction.external ? 'button' : undefined}
+                            tabIndex={item.primaryAction?.href && !item.primaryAction.external ? 0 : undefined}
+                            className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                            onClick={() => handleCardClick(item)}
+                            onKeyDown={event => {
+                              if (event.key !== 'Enter' && event.key !== ' ') return;
+                              event.preventDefault();
+                              handleCardClick(item);
+                            }}
                           >
                             <div className="flex items-start gap-3">
                               <div className="p-2 rounded-lg bg-gray-50 border border-gray-100">
@@ -409,19 +453,33 @@ export default function IntegrationsPage() {
                                         href={action.href}
                                         target="_blank"
                                         rel="noreferrer"
+                                        onClick={event => event.stopPropagation()}
                                         className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
                                       >
                                         {action.label}
                                         <ExternalLink className="h-3 w-3 ml-1 text-gray-400" />
                                       </a>
                                     ) : (
-                                      <Link
-                                        key={action.href}
-                                        href={action.href}
-                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
-                                      >
-                                        {action.label}
-                                      </Link>
+                                      action.primary && item.active ? (
+                                        <button
+                                          key={action.href}
+                                          type="button"
+                                          disabled
+                                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-400 cursor-not-allowed"
+                                          onClick={event => event.stopPropagation()}
+                                        >
+                                          {action.label}
+                                        </button>
+                                      ) : (
+                                        <Link
+                                          key={action.href}
+                                          href={action.href}
+                                          onClick={event => event.stopPropagation()}
+                                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
+                                        >
+                                          {action.label}
+                                        </Link>
+                                      )
                                     ),
                                   )}
                                 </div>

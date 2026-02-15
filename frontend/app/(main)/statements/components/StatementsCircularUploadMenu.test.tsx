@@ -76,7 +76,7 @@ describe('StatementsCircularUploadMenu', () => {
     const blueArc = Array.from(container.querySelectorAll('div')).find(
       div =>
         div.className.includes('pointer-events-none') &&
-        div.className.includes('bg-[#0E58A8]') &&
+        div.className.includes('bg-primary') &&
         div.className.includes('rounded-tr-'),
     );
     expect(blueArc).toBeTruthy();

@@ -171,6 +171,20 @@ const content = {
       all: t({ ru: 'Файлы', en: 'Files', kk: 'Файлдар' }),
       trash: t({ ru: 'Корзина', en: 'Trash', kk: 'Қоқыс' }),
     },
+    pagination: {
+      shown: t({
+        ru: 'Показано {from}–{to} из {count}',
+        en: 'Showing {from}–{to} of {count}',
+        kk: '{from}–{to} / {count} көрсетілді',
+      }),
+      previous: t({ ru: 'Предыдущая', en: 'Previous', kk: 'Алдыңғы' }),
+      next: t({ ru: 'Следующая', en: 'Next', kk: 'Келесі' }),
+      pageOf: t({
+        ru: 'Страница {page} из {count}',
+        en: 'Page {page} of {count}',
+        kk: '{page} / {count} бет',
+      }),
+    },
     trash: {
       title: t({ ru: 'Корзина', en: 'Trash', kk: 'Қоқыс' }),
       selectedLabel: t({

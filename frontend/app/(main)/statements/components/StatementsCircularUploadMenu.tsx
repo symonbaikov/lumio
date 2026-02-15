@@ -31,9 +31,9 @@ const ARC_SIZES = {
     width: 'w-[272px]',
     radius: 'rounded-tr-[232px]',
     buttonLeft: 'left-4',
-    bottom: 'bottom-3',
+     bottom: 'bottom-5',
     closedOffset: 'translate(16px, -6px)',
-    container: '-mx-4 -mb-3 h-56',
+    container: '-mx-4 -mb-3 h-52',
   },
 } as const;
 
@@ -101,7 +101,7 @@ export default function StatementsCircularUploadMenu({
 
   const renderActionIcon = (item: (typeof menuItems)[number]) => {
     if (item.id === 'scan') {
-      return <ScanLine size={18} className="text-[#0E58A8]" />;
+      return <ScanLine size={18} className="text-primary" />;
     }
 
     if (item.id === 'cloud-import') {
@@ -115,7 +115,7 @@ export default function StatementsCircularUploadMenu({
         );
       }
 
-      return <Cloud size={18} className="text-[#0E58A8]" />;
+      return <Cloud size={18} className="text-primary" />;
     }
 
     if (item.id === 'gmail') {
@@ -126,14 +126,15 @@ export default function StatementsCircularUploadMenu({
   };
 
   const styles = ARC_SIZES.panel;
+  const arcWidthClass = 'w-[320px]';
 
   return (
     <div className={cn('relative overflow-visible', styles.container)}>
       <div
         className={cn(
-          'pointer-events-none absolute bottom-0 left-0 bg-[#0E58A8] transition-all duration-300 ease-out',
+          'pointer-events-none absolute bottom-0 left-0 bg-primary transition-all duration-300 ease-out',
           isOpen
-            ? `${styles.height} ${styles.width} ${styles.radius} opacity-100`
+            ? `${styles.height} ${arcWidthClass} ${styles.radius} opacity-100`
             : 'h-0 w-0 rounded-tr-none opacity-0',
         )}
       />
@@ -171,7 +172,7 @@ export default function StatementsCircularUploadMenu({
             <span
               className={cn(
                 'absolute left-[48px] top-1/2 z-40 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold',
-                item.id === 'local-upload' ? 'text-[#0f3428]' : 'text-[#0E58A8]',
+                item.id === 'local-upload' ? 'text-[#0f3428]' : 'text-primary',
               )}
             >
               {item.label}
@@ -185,7 +186,7 @@ export default function StatementsCircularUploadMenu({
         type="button"
         onClick={() => setIsOpen(prev => !prev)}
         className={cn(
-          'absolute z-30 flex h-14 w-14 items-center justify-center rounded-full bg-[#0E58A8] text-white transition hover:bg-[#0B4A8D]',
+          'absolute z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white transition hover:bg-primary-hover',
           styles.buttonLeft,
           styles.bottom,
         )}

@@ -103,6 +103,7 @@ interface StorageFile {
     name: string;
     color?: string;
     icon?: string;
+    isEnabled?: boolean;
   } | null;
   folderId?: string | null;
   folder?: FolderOption | null;
@@ -120,6 +121,7 @@ interface CategoryOption {
   name: string;
   color?: string;
   icon?: string;
+  isEnabled?: boolean;
 }
 
 type SortField = 'createdAt' | 'fileName' | 'bankName';
@@ -437,23 +439,32 @@ const DraggableFileRow = React.memo(
         </td>
 
         <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-700 dark:text-gray-200">
-          <select
-            value={file.categoryId || ''}
-            onChange={e => handleCategoryChange(file.id, e.target.value)}
-            disabled={
-              isTrashView ||
-              categoriesLoading ||
-              (!file.isOwner && file.permissionType !== 'editor')
-            }
-            className="min-w-40 rounded-lg border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-gray-500"
-          >
-            <option value="">{t.categoryCell.none}</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
+          <div className="space-y-1">
+            <select
+              value={file.categoryId || ''}
+              onChange={e => handleCategoryChange(file.id, e.target.value)}
+              disabled={
+                isTrashView ||
+                categoriesLoading ||
+                (!file.isOwner && file.permissionType !== 'editor')
+              }
+              className="min-w-40 rounded-lg border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-gray-500"
+            >
+              <option value="">{t.categoryCell.none}</option>
+              {categories
+                .filter(cat => cat.isEnabled !== false)
+                .map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+            </select>
+            {file.category?.isEnabled === false ? (
+              <p className="text-xs font-medium text-red-600">
+                {file.category.name} - choose category
+              </p>
+            ) : null}
+          </div>
         </td>
 
         <td className="px-6 py-5 whitespace-nowrap text-sm">
@@ -624,6 +635,8 @@ export function StoragePageContent({
 }: {
   initialList?: 'active' | 'trash';
 }) {
+  const resolveLabel = (value: unknown, fallback: string): string =>
+    (value as { value?: string })?.value ?? (value as string) ?? fallback;
   const router = useRouter();
   const t = useIntlayer('storagePage');
   const { locale } = useLocale();
@@ -1852,6 +1865,17 @@ export function StoragePageContent({
   const sortKey = `${sort.field}:${sort.direction}`;
   const emptyStateTitle = isTrashView ? t.trash.empty.title : t.empty.title;
   const emptyStateSubtitle = isTrashView ? t.trash.empty.subtitle : t.empty.subtitle;
+  const paginationLabels = {
+    shown: resolveLabel((t as any)?.pagination?.shown, 'Showing {from}–{to} of {count}'),
+    previous: resolveLabel((t as any)?.pagination?.previous, 'Previous'),
+    next: resolveLabel((t as any)?.pagination?.next, 'Next'),
+    pageOf: resolveLabel((t as any)?.pagination?.pageOf, 'Page {page} of {count}'),
+  };
+  const formatPaginationLabel = (template: string, values: Record<string, string | number>) =>
+    Object.entries(values).reduce(
+      (result, [key, value]) => result.replace(`{${key}}`, String(value)),
+      template,
+    );
   const tagChipClass = (isActive: boolean) =>
     `inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
       isActive
@@ -2245,7 +2269,11 @@ export function StoragePageContent({
               <div className="text-sm text-gray-600">
                 {totalItems === 0
                   ? emptyStateTitle
-                  : `Показано ${rangeStart}–${rangeEnd} из ${totalItems}`}
+                  : formatPaginationLabel(paginationLabels.shown, {
+                      from: rangeStart,
+                      to: rangeEnd,
+                      count: totalItems,
+                    })}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -2257,10 +2285,13 @@ export function StoragePageContent({
                       : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  <ChevronLeft className="h-4 w-4" /> Предыдущая
+                  <ChevronLeft className="h-4 w-4" /> {paginationLabels.previous}
                 </button>
                 <span className="text-sm text-gray-600">
-                  Страница {currentPage} из {totalPagesCount}
+                  {formatPaginationLabel(paginationLabels.pageOf, {
+                    page: currentPage,
+                    count: totalPagesCount,
+                  })}
                 </span>
                 <button
                   onClick={() => setPage(prev => Math.min(totalPagesCount, prev + 1))}
@@ -2271,7 +2302,7 @@ export function StoragePageContent({
                       : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  Следующая <ChevronRight className="h-4 w-4" />
+                  {paginationLabels.next} <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             </div>

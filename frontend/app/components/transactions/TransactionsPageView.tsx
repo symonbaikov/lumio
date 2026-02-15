@@ -181,11 +181,13 @@ export default function TransactionsPageView({
               className="flex-1 max-w-xs rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="">{t.selectCategory.value}</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
+              {categories
+                .filter(cat => cat.isEnabled !== false)
+                .map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
             </select>
 
             <button

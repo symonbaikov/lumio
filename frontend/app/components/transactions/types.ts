@@ -17,7 +17,7 @@ export interface Transaction {
   exchangeRate?: number;
   article?: string;
   amountForeign?: number;
-  category?: { id: string; name: string; color?: string };
+  category?: { id: string; name: string; color?: string; isEnabled?: boolean };
   branch?: { name: string };
   wallet?: { name: string };
   // Parsing metadata (optional, might not exist yet)
@@ -33,6 +33,7 @@ export interface Category {
   type: 'income' | 'expense';
   color?: string;
   icon?: string;
+  isEnabled?: boolean;
 }
 
 export interface FilterState {
@@ -57,6 +58,6 @@ export interface StatementDetails {
     accountNumber?: string;
     period?: string;
   };
-  category?: { name: string; color?: string } | null;
+  category?: { name: string; color?: string; isEnabled?: boolean } | null;
   categoryId?: string | null;
 }

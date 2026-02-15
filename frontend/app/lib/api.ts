@@ -110,6 +110,7 @@ export const gmailReceiptsApi = {
     offset?: number;
     includeInvalid?: boolean;
     hasAmount?: boolean;
+    categoryId?: string;
   }) => apiClient.get('/integrations/gmail/receipts', { params }),
 
   approveReceipt: (id: string, data: any) =>

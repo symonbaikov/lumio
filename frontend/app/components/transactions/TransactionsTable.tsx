@@ -391,6 +391,7 @@ export default function TransactionsTable({
               ) : (
                 paginatedTransactions.map(tx => {
                   const isExpanded = expandedIds.has(tx.id);
+                  const hasDisabledCategory = tx.category?.isEnabled === false;
                   return (
                     <React.Fragment key={tx.id}>
                       <tr
@@ -500,13 +501,19 @@ export default function TransactionsTable({
                                 type="button"
                                 className="inline-flex items-center gap-1 rounded-md px-2.5 py-0.5 text-xs font-semibold transition hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/20"
                                 style={{
-                                  backgroundColor: tx.category?.color
-                                    ? `${tx.category.color}15`
-                                    : '#e5e7eb',
-                                  color: tx.category?.color || '#374151',
+                                  backgroundColor: hasDisabledCategory
+                                    ? '#fee2e2'
+                                    : tx.category?.color
+                                      ? `${tx.category.color}15`
+                                      : '#e5e7eb',
+                                  color: hasDisabledCategory
+                                    ? '#b91c1c'
+                                    : tx.category?.color || '#374151',
                                 }}
                               >
-                                {tx.category?.name || t.statusUncategorized.value}
+                                {hasDisabledCategory
+                                  ? `${tx.category?.name} — select category`
+                                  : tx.category?.name || t.statusUncategorized.value}
                                 <ChevronDown className="h-3 w-3 opacity-50" />
                               </button>
                             </DropdownMenuTrigger>
@@ -514,22 +521,24 @@ export default function TransactionsTable({
                               <DropdownMenuLabel>{t.categoryFilter.value}</DropdownMenuLabel>
                               <DropdownMenuSeparator />
                               <div className="max-h-[300px] overflow-y-auto">
-                                {categories.map(cat => (
-                                  <DropdownMenuItem
-                                    key={cat.id}
-                                    onClick={() => onUpdateCategory?.(tx.id, cat.id)}
-                                    className="gap-2"
-                                  >
-                                    <span
-                                      className="h-2 w-2 rounded-full"
-                                      style={{ backgroundColor: cat.color }}
-                                    />
-                                    {cat.name}
-                                    {tx.category?.id === cat.id && (
-                                      <Check className="ml-auto h-3 w-3" />
-                                    )}
-                                  </DropdownMenuItem>
-                                ))}
+                                {categories
+                                  .filter(cat => cat.isEnabled !== false)
+                                  .map(cat => (
+                                    <DropdownMenuItem
+                                      key={cat.id}
+                                      onClick={() => onUpdateCategory?.(tx.id, cat.id)}
+                                      className="gap-2"
+                                    >
+                                      <span
+                                        className="h-2 w-2 rounded-full"
+                                        style={{ backgroundColor: cat.color }}
+                                      />
+                                      {cat.name}
+                                      {tx.category?.id === cat.id && (
+                                        <Check className="ml-auto h-3 w-3" />
+                                      )}
+                                    </DropdownMenuItem>
+                                  ))}
                               </div>
                             </DropdownMenuContent>
                           </DropdownMenu>

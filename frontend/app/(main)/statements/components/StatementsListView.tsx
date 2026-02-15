@@ -238,12 +238,23 @@ export default function StatementsListView({ stage }: Props) {
     title: resolveLabel(t.empty?.title, 'No statements yet'),
     description: resolveLabel(t.empty?.description, 'Upload your first statement to get started'),
   };
+  const paginationLabels = {
+    shown: resolveLabel((t as any)?.pagination?.shown, 'Showing {from}–{to} of {count}'),
+    previous: resolveLabel((t as any)?.pagination?.previous, 'Previous'),
+    next: resolveLabel((t as any)?.pagination?.next, 'Next'),
+    pageOf: resolveLabel((t as any)?.pagination?.pageOf, 'Page {page} of {count}'),
+  };
   const filterChipClassName =
     'inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[13px] font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary';
   const filterLinkClassName =
     'inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-primary';
   const filterChipActiveClassName =
     'inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[13px] font-medium text-primary';
+  const formatPaginationLabel = (template: string, values: Record<string, string | number>) =>
+    Object.entries(values).reduce(
+      (result, [key, value]) => result.replace(`{${key}}`, String(value)),
+      template,
+    );
 
   useLockBodyScroll(expenseDrawerOpen);
   const totalPagesCount = Math.max(1, Math.ceil(total / pageSize) || 1);
@@ -1297,7 +1308,11 @@ export default function StatementsListView({ stage }: Props) {
             </div>
             <div className="mt-6 flex flex-col items-center justify-between gap-4 md:flex-row">
               <div className="text-sm text-gray-500">
-                Показано {rangeStart}–{rangeEnd} из {total}
+                {formatPaginationLabel(paginationLabels.shown, {
+                  from: rangeStart,
+                  to: rangeEnd,
+                  count: total,
+                })}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -1307,10 +1322,13 @@ export default function StatementsListView({ stage }: Props) {
                   disabled={page === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Предыдущая
+                  {paginationLabels.previous}
                 </button>
                 <span className="text-sm text-gray-600">
-                  Страница {page} из {totalPagesCount}
+                  {formatPaginationLabel(paginationLabels.pageOf, {
+                    page,
+                    count: totalPagesCount,
+                  })}
                 </span>
                 <button
                   type="button"
@@ -1318,7 +1336,7 @@ export default function StatementsListView({ stage }: Props) {
                   className="inline-flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-500 disabled:opacity-50"
                   disabled={page === totalPagesCount}
                 >
-                  Следующая
+                  {paginationLabels.next}
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </div>

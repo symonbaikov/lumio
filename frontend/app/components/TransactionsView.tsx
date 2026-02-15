@@ -33,7 +33,7 @@ export interface Transaction {
   exchangeRate?: number;
   article?: string;
   amountForeign?: number;
-  category?: { name: string };
+  category?: { name: string; isEnabled?: boolean };
   branch?: { name: string };
   wallet?: { name: string };
 }
@@ -174,7 +174,16 @@ export default function TransactionsView({ transactions }: TransactionsViewProps
       ),
       category: tx =>
         tx.category?.name ? (
-          <Chip label={tx.category.name} size="small" variant="outlined" />
+          <Chip
+            label={
+              tx.category.isEnabled === false
+                ? `${tx.category.name} — select category`
+                : tx.category.name
+            }
+            size="small"
+            variant="outlined"
+            color={tx.category.isEnabled === false ? 'error' : 'default'}
+          />
         ) : (
           t.dash
         ),

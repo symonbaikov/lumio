@@ -123,12 +123,20 @@ export default function GmailIntegrationPage() {
     try {
       setSyncing(true);
       const response = await apiClient.post('/integrations/gmail/sync');
-      const jobsCreated = response.data?.jobsCreated ?? 0;
+      const messagesFound = Number(response.data?.messagesFound ?? 0);
+      const jobsCreated = Number(response.data?.jobsCreated ?? 0);
+      const skipped = Number(response.data?.skipped ?? 0);
+
       if (jobsCreated > 0) {
         toast.success(`Gmail sync started (${jobsCreated} receipts)`);
+      } else if (messagesFound === 0) {
+        toast.error('No matching emails found in Gmail');
+      } else if (messagesFound > 0 && skipped >= messagesFound) {
+        toast.error('All receipts available in Gmail are already synced');
       } else {
-        toast.success('Gmail sync started');
+        toast.error('Gmail sync finished with no new receipts');
       }
+
       await loadStatus();
     } catch (error) {
       toast.error('Failed to sync Gmail');

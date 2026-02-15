@@ -12,6 +12,12 @@ interface BulkActionsBarProps {
   onExportToSheets: () => void;
 }
 
+interface CategoryOption {
+  id: string;
+  name: string;
+  isEnabled?: boolean;
+}
+
 export function BulkActionsBar({
   selectedCount,
   onClear,
@@ -20,7 +26,7 @@ export function BulkActionsBar({
 }: BulkActionsBarProps) {
   const content = useIntlayer('gmail-receipts-page');
   const [showCategorySelect, setShowCategorySelect] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
 
   useEffect(() => {
     loadCategories();
@@ -61,11 +67,13 @@ export function BulkActionsBar({
               }}
             >
               <option value="">No category</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
+              {categories
+                .filter(cat => cat.isEnabled !== false)
+                .map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
             </select>
             <button
               onClick={() => setShowCategorySelect(false)}

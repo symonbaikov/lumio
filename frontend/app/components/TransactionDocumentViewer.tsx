@@ -44,7 +44,7 @@ export interface Transaction {
   article?: string;
   comments?: string;
   transactionType: 'income' | 'expense';
-  category?: { id: string; name: string };
+  category?: { id: string; name: string; isEnabled?: boolean };
   branch?: { id: string; name: string };
   wallet?: { id: string; name: string };
 }
@@ -670,14 +670,22 @@ export default function TransactionDocumentViewer({
                       </Typography>
                       {transaction.category && (
                         <Chip
-                          label={transaction.category.name}
+                          label={
+                            transaction.category.isEnabled === false
+                              ? `${transaction.category.name} - disabled`
+                              : transaction.category.name
+                          }
                           size="small"
                           sx={{
                             mt: 1,
                             height: 20,
                             fontSize: '0.7rem',
-                            bgcolor: 'primary.50',
-                            color: 'primary.main',
+                            bgcolor:
+                              transaction.category.isEnabled === false ? 'error.50' : 'primary.50',
+                            color:
+                              transaction.category.isEnabled === false
+                                ? 'error.main'
+                                : 'primary.main',
                             fontWeight: 600,
                           }}
                         />

@@ -305,13 +305,21 @@ export default function DetailsDrawer({
                   <span
                     className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold"
                     style={{
-                      backgroundColor: transaction.category.color
-                        ? `${transaction.category.color}15`
-                        : '#e5e7eb',
-                      color: transaction.category.color || '#374151',
+                      backgroundColor:
+                        transaction.category.isEnabled === false
+                          ? '#fee2e2'
+                          : transaction.category.color
+                            ? `${transaction.category.color}15`
+                            : '#e5e7eb',
+                      color:
+                        transaction.category.isEnabled === false
+                          ? '#b91c1c'
+                          : transaction.category.color || '#374151',
                     }}
                   >
-                    {transaction.category.name}
+                    {transaction.category.isEnabled === false
+                      ? `${transaction.category.name} — select category`
+                      : transaction.category.name}
                   </span>
                 ) : (
                   <span className="text-sm text-gray-500">{t.noCategory.value}</span>
@@ -340,11 +348,13 @@ export default function DetailsDrawer({
                       className="flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
                     >
                       <option value="">{t.selectCategory.value}</option>
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
+                      {categories
+                        .filter(cat => cat.isEnabled !== false)
+                        .map(cat => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
                     </select>
                     <button
                       type="button"
