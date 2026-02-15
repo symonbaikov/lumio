@@ -89,7 +89,7 @@ export default function WorkspacesListContent({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-primary/5 via-white to-primary/5 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="text-center">
           <LoadingAnimation size="xl" />
           <p className="text-gray-600 dark:text-gray-400 mt-4">{content.loading}</p>
@@ -99,7 +99,7 @@ export default function WorkspacesListContent({
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] bg-background dark:bg-background overflow-hidden">
+    <div className="h-[calc(100vh-var(--global-nav-height,0px))] bg-background dark:bg-background overflow-hidden">
       <div className="container max-w-full px-6 py-8">
         {workspaces.length > 0 && (
           <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center justify-between">
@@ -124,7 +124,7 @@ export default function WorkspacesListContent({
                   onClick={() => setShowSortMenu(!showSortMenu)}
                   className={`p-2 rounded-lg transition-colors ${
                     showSortMenu
-                      ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400'
+                      ? 'bg-primary/10 dark:bg-primary/20 text-primary'
                       : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                   } border border-gray-300 dark:border-gray-600`}
                   title="Sort options"
@@ -141,7 +141,7 @@ export default function WorkspacesListContent({
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
                         sortOption === 'favorites'
-                          ? 'font-semibold text-indigo-600 dark:text-indigo-400'
+                          ? 'font-semibold text-primary'
                           : 'text-gray-700 dark:text-gray-300'
                       }`}
                     >
@@ -155,7 +155,7 @@ export default function WorkspacesListContent({
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
                         sortOption === 'alphabetical'
-                          ? 'font-semibold text-indigo-600 dark:text-indigo-400'
+                          ? 'font-semibold text-primary'
                           : 'text-gray-700 dark:text-gray-300'
                       }`}
                     >
@@ -169,7 +169,7 @@ export default function WorkspacesListContent({
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
                         sortOption === 'recent'
-                          ? 'font-semibold text-indigo-600 dark:text-indigo-400'
+                          ? 'font-semibold text-primary'
                           : 'text-gray-700 dark:text-gray-300'
                       }`}
                     >
@@ -184,7 +184,7 @@ export default function WorkspacesListContent({
                 onClick={() => setViewMode('grid')}
                 className={`p-2 rounded-lg transition-colors ${
                   viewMode === 'grid'
-                    ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400'
+                    ? 'bg-primary/10 dark:bg-primary/20 text-primary'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 } border border-gray-300 dark:border-gray-600`}
                 title="Grid view"
@@ -196,7 +196,7 @@ export default function WorkspacesListContent({
                 onClick={() => setViewMode('list')}
                 className={`p-2 rounded-lg transition-colors ${
                   viewMode === 'list'
-                    ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400'
+                    ? 'bg-primary/10 dark:bg-primary/20 text-primary'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 } border border-gray-300 dark:border-gray-600`}
                 title="List view"
@@ -219,7 +219,7 @@ export default function WorkspacesListContent({
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors"
+              className="px-6 py-3 bg-primary hover:bg-primary-hover text-white font-medium rounded-lg transition-colors"
             >
               {content.createWorkspace}
             </button>
@@ -247,7 +247,7 @@ export default function WorkspacesListContent({
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="cursor-pointer rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-6 hover:border-indigo-500 dark:hover:border-indigo-400 hover:shadow-lg transition-all duration-200 flex flex-col items-center justify-center aspect-video"
+                  className="cursor-pointer rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-6 hover:border-primary hover:shadow-lg transition-all duration-200 flex flex-col items-center justify-center aspect-video"
                 >
                   <div className="text-5xl mb-4">➕</div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center">
@@ -311,7 +311,7 @@ export default function WorkspacesListContent({
                   <button
                     type="button"
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+                    className="px-6 py-3 bg-primary hover:bg-primary-hover text-white font-medium rounded-lg transition-colors flex items-center gap-2"
                   >
                     <span>➕</span>
                     {content.createWorkspace}

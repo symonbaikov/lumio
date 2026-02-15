@@ -2,10 +2,12 @@
 
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import apiClient from '@/app/lib/api';
-import { Building2, Save, Trash2 } from 'lucide-react';
+import { Building2, ChevronDown, ImageIcon, Save, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { AVAILABLE_BACKGROUNDS } from '../constants';
+import { BackgroundSelector } from './BackgroundSelector';
 
 const CURRENCIES = ['KZT', 'USD', 'EUR', 'RUB', 'GBP'];
 
@@ -19,13 +21,16 @@ const getInitials = (value: string) =>
 
 export default function WorkspaceOverviewView() {
   const router = useRouter();
-  const { currentWorkspace, refreshWorkspaces, clearWorkspace } = useWorkspace();
+  const { currentWorkspace, refreshWorkspaces, clearWorkspace, updateWorkspaceBackground } =
+    useWorkspace();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [currency, setCurrency] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showBackgroundPicker, setShowBackgroundPicker] = useState(false);
+  const [savingBackground, setSavingBackground] = useState(false);
 
   useEffect(() => {
     if (!currentWorkspace) return;
@@ -91,10 +96,24 @@ export default function WorkspaceOverviewView() {
     }
   };
 
+  const handleBackgroundChange = async (background: string) => {
+    if (!currentWorkspace) return;
+    setSavingBackground(true);
+    try {
+      await updateWorkspaceBackground(currentWorkspace.id, background);
+      toast.success('Background updated');
+      setShowBackgroundPicker(false);
+    } catch {
+      toast.error('Failed to update background');
+    } finally {
+      setSavingBackground(false);
+    }
+  };
+
   if (!currentWorkspace) return null;
 
   return (
-    <div className="h-[calc(100vh-56px)] overflow-y-auto bg-background">
+    <div className="h-[calc(100vh-var(--global-nav-height,0px))] overflow-y-auto bg-background">
       <div className="container max-w-4xl px-6 py-8 space-y-6">
         <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-start gap-4">
@@ -110,6 +129,57 @@ export default function WorkspaceOverviewView() {
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h2 className="text-sm font-medium text-foreground flex items-center gap-2">
+                <ImageIcon size={16} className="text-muted-foreground" />
+                Workspace background
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Choose a background image for your workspace card
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowBackgroundPicker(!showBackgroundPicker)}
+              disabled={savingBackground}
+              className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-60"
+            >
+              Change
+              <ChevronDown
+                size={14}
+                className={`transition-transform ${showBackgroundPicker ? 'rotate-180' : ''}`}
+              />
+            </button>
+          </div>
+
+          <div className="relative aspect-video max-w-xs rounded-lg overflow-hidden border border-border">
+            {currentWorkspace.backgroundImage ? (
+              <img
+                src={`/workspace-backgrounds/${currentWorkspace.backgroundImage}`}
+                alt="Current workspace background"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-muted flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">No background selected</p>
+              </div>
+            )}
+          </div>
+
+          {showBackgroundPicker && (
+            <div className="pt-2">
+              {savingBackground && <p className="text-xs text-muted-foreground mb-2">Saving...</p>}
+              <BackgroundSelector
+                selectedBackground={currentWorkspace.backgroundImage}
+                onSelect={handleBackgroundChange}
+                backgrounds={AVAILABLE_BACKGROUNDS}
+              />
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-6 space-y-5">

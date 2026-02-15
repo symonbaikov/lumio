@@ -27,7 +27,7 @@ export default function WorkspaceTabShell({ activeItem, children }: Props) {
 
   if (loading || !currentWorkspace) {
     return (
-      <div className="min-h-[calc(100vh-56px)] flex items-center justify-center">
+      <div className="min-h-[calc(100vh-var(--global-nav-height,0px))] flex items-center justify-center">
         <LoadingAnimation size="lg" />
       </div>
     );

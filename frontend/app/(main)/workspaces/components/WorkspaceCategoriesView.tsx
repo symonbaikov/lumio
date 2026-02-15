@@ -44,6 +44,12 @@ interface Category {
   parentId?: string;
 }
 
+interface CategoryUsageCount {
+  transactions: number;
+  statements: number;
+  total: number;
+}
+
 const resolveIconUrl = (iconValue?: string) => {
   if (!iconValue) return null;
   if (iconValue.startsWith('http')) return iconValue;
@@ -123,6 +129,10 @@ export default function WorkspaceCategoriesView() {
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+  const [disableConfirm, setDisableConfirm] = useState<{
+    category: Category;
+    usage: CategoryUsageCount;
+  } | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -210,15 +220,11 @@ export default function WorkspaceCategoriesView() {
     }
   };
 
-  const handleToggleEnabled = async (category: Category) => {
-    if (togglingIds.has(category.id)) {
-      return;
-    }
-
+  const performToggle = async (category: Category, nextEnabled: boolean) => {
+    setDisableConfirm(null);
     setTogglingIds(prev => new Set(prev).add(category.id));
 
     try {
-      const nextEnabled = category.isEnabled === false;
       await apiClient.put(`/categories/${category.id}`, { isEnabled: nextEnabled });
       setCategories(prev =>
         prev.map(item => (item.id === category.id ? { ...item, isEnabled: nextEnabled } : item)),
@@ -233,6 +239,30 @@ export default function WorkspaceCategoriesView() {
         return next;
       });
     }
+  };
+
+  const handleToggleEnabled = async (category: Category) => {
+    if (togglingIds.has(category.id)) {
+      return;
+    }
+
+    const nextEnabled = category.isEnabled === false;
+
+    if (!nextEnabled) {
+      try {
+        const response = await apiClient.get(`/categories/${category.id}/usage-count`);
+        const usage = response.data as CategoryUsageCount;
+
+        if (usage.total > 0) {
+          setDisableConfirm({ category, usage });
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to get category usage count:', error);
+      }
+    }
+
+    await performToggle(category, nextEnabled);
   };
 
   const triggerIconUpload = () => {
@@ -610,6 +640,51 @@ export default function WorkspaceCategoriesView() {
           </Button>
           <Button onClick={handleSave} variant="contained" disabled={!formData.name}>
             {t.dialog.save}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(disableConfirm)}
+        onClose={() => setDisableConfirm(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 600 }}>Disable category?</DialogTitle>
+        <DialogContent dividers>
+          {disableConfirm ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Typography variant="body2" color="text.secondary">
+                Category <strong>{disableConfirm.category.name}</strong> is already used in:
+              </Typography>
+              <Typography variant="body2" color="text.primary">
+                {disableConfirm.usage.transactions} transaction
+                {disableConfirm.usage.transactions === 1 ? '' : 's'}
+              </Typography>
+              <Typography variant="body2" color="text.primary">
+                {disableConfirm.usage.statements} statement
+                {disableConfirm.usage.statements === 1 ? '' : 's'}
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 500, mt: 1 }}>
+                Existing items will show a warning until a new category is selected.
+              </Typography>
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDisableConfirm(null)} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => {
+              if (disableConfirm) {
+                void performToggle(disableConfirm.category, false);
+              }
+            }}
+          >
+            Disable
           </Button>
         </DialogActions>
       </Dialog>

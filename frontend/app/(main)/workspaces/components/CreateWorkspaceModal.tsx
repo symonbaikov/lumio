@@ -6,6 +6,7 @@ import { EmojiButton } from '@joeattardi/emoji-button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { AVAILABLE_BACKGROUNDS } from '../constants';
 import { BackgroundSelector } from './BackgroundSelector';
 import { CurrencySelector } from './CurrencySelector';
 import { ServiceIntegrationSuggestions } from './ServiceIntegrationSuggestions';
@@ -17,19 +18,6 @@ interface CreateWorkspaceModalProps {
 }
 
 const PREDEFINED_ICONS = ['🏢', '💼', '🚀', '⭐', '💰', '📊', '🎯', '🏆', '💡', '🔧'];
-
-const AVAILABLE_BACKGROUNDS = [
-  'ferdinand-stohr-W1FIkdPAB7E-unsplash.jpg',
-  'johny-goerend-McSOHojERSI-unsplash.jpg',
-  'lightscape-LtnPejWDSAY-unsplash.jpg',
-  'michael-fousert-0962p7mcux4-unsplash.jpg',
-  'michael-fousert-lE5-z4nTCTQ-unsplash.jpg',
-  'mikita-karasiou--67uQbVmZ-A-unsplash.jpg',
-  'pascal-debrunner-LKOuYT5_dyw-unsplash.jpg',
-  'valdemaras-d-khbjgGAerPU-unsplash.jpg',
-  'vidar-nordli-mathisen-641pLhGEEyg-unsplash.jpg',
-  'vidar-nordli-mathisen-Oeatf3IQp7w-unsplash.jpg',
-];
 
 export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorkspaceModalProps) {
   const { switchWorkspace, refreshWorkspaces } = useWorkspace();

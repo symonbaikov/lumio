@@ -58,7 +58,7 @@ const PERMISSION_LABELS: Record<keyof InvitePermissions, string> = {
 };
 
 const ROLE_STYLES: Record<string, string> = {
-  owner: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  owner: 'bg-primary/10 text-primary border-primary/20',
   admin: 'bg-sky-50 text-sky-700 border-sky-200',
   member: 'bg-gray-50 text-gray-700 border-gray-200',
   viewer: 'bg-gray-50 text-gray-700 border-gray-200',
@@ -171,7 +171,7 @@ export default function WorkspaceMembersView() {
 
   if (loading) {
     return (
-      <div className="h-[calc(100vh-56px)] overflow-y-auto bg-background">
+      <div className="h-[calc(100vh-var(--global-nav-height,0px))] overflow-y-auto bg-background">
         <div className="container max-w-5xl px-6 py-8">
           <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
             Loading members...
@@ -183,7 +183,7 @@ export default function WorkspaceMembersView() {
 
   if (!overview) {
     return (
-      <div className="h-[calc(100vh-56px)] overflow-y-auto bg-background">
+      <div className="h-[calc(100vh-var(--global-nav-height,0px))] overflow-y-auto bg-background">
         <div className="container max-w-5xl px-6 py-8">
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
             {fetchError || 'Failed to load workspace members'}
@@ -194,7 +194,7 @@ export default function WorkspaceMembersView() {
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] overflow-y-auto bg-background">
+    <div className="h-[calc(100vh-var(--global-nav-height,0px))] overflow-y-auto bg-background">
       <div className="container max-w-5xl px-6 py-8 space-y-6">
         <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
