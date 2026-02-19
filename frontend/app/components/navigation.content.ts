@@ -66,6 +66,11 @@ const content = {
         en: 'Integrations',
         kk: 'Интеграциялар',
       }),
+      supportedBanks: t({
+        ru: 'Поддерживаемые банки',
+        en: 'Supported banks',
+        kk: 'Қолдау көрсетілетін банктер',
+      }),
       trash: t({
         ru: 'Корзина',
         en: 'Trash',
@@ -78,7 +83,7 @@ const content = {
       }),
       admin: t({
         ru: 'Админка',
-        en: 'Admin',
+        en: 'Activity',
         kk: 'Админка',
       }),
       logout: t({

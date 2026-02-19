@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: t.title.value,
     description: t.description.value,
     icons: {
-      icon: "/images/logo.svg",
+      icon: "/images/favicon-new.png",
     },
   };
 }
@@ -66,7 +66,10 @@ export default async function RootLayout({
                 style={{ height: "var(--global-nav-height, 0px)" }}
               />
               <main>{children}</main>
-              <div id="fab-portal" className="fixed inset-0 z-[80] pointer-events-none">
+              <div
+                id="fab-portal"
+                className="fixed inset-0 z-[80] pointer-events-none"
+              >
                 <div className="relative h-full w-full" />
               </div>
             </Providers>

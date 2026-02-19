@@ -1,5 +1,6 @@
 'use client';
 
+import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { Popover } from '@mui/material';
 import {
   type ColumnDef,
@@ -57,6 +58,7 @@ interface CustomTableTanStackProps {
 export function CustomTableTanStack(props: CustomTableTanStackProps) {
   const t = useIntlayer('customTableDetailPage');
   const { resolvedTheme } = useTheme();
+  const isMobile = useIsMobile();
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const rowSelection = useMemo<RowSelectionState>(() => {
     const next: RowSelectionState = {};
@@ -116,6 +118,20 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
     const a = Math.max(0, Math.min(1, alpha));
     return `rgba(${r}, ${g}, ${b}, ${a})`;
   };
+
+  const openColorPickerForRow = useCallback(
+    (rowId: string, event: { clientX: number; clientY: number }) => {
+      const row = props.rows.find(candidate => candidate.id === rowId);
+      const currentFill = parseHexFromColor(row?.styles?.manualFill);
+      setColorPickerValue(currentFill || '#ff8a00');
+      setColorPickerRowId(rowId);
+      setColorPickerAnchorPosition({
+        top: event.clientY,
+        left: event.clientX,
+      });
+    },
+    [props.rows],
+  );
 
   const orderedColumns = useMemo(() => {
     return [...props.columns].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -257,15 +273,7 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
         <div className="flex items-center justify-center gap-3">
           <button
             type="button"
-            onClick={event => {
-              const currentFill = parseHexFromColor(row.original.styles?.manualFill);
-              setColorPickerValue(currentFill || '#ff8a00');
-              setColorPickerRowId(row.original.id);
-              setColorPickerAnchorPosition({
-                top: event.clientY,
-                left: event.clientX,
-              });
-            }}
+            onClick={event => openColorPickerForRow(row.original.id, event)}
             className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-700"
             title={t.fill.colorTooltip.value}
           >
@@ -310,6 +318,7 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
     props.onDeleteColumn,
     props.onUpdateCell,
     props.onAddColumnClick,
+    openColorPickerForRow,
   ]);
 
   const table = useReactTable({
@@ -365,6 +374,60 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
   }, [table, stickyLeftSet, stickyRightSet, props.columnWidths, columnResizing]);
 
   const isDark = resolvedTheme === 'dark';
+  const selectedRowsSet = useMemo(() => new Set(props.selectedRowIds), [props.selectedRowIds]);
+
+  const allRowsSelectedMobile =
+    props.rows.length > 0 && props.rows.every(row => selectedRowsSet.has(row.id));
+  const someRowsSelectedMobile = props.rows.some(row => selectedRowsSet.has(row.id));
+  const mobileSelectAllRef = useRef<HTMLInputElement | null>(null);
+
+  const formatMobileCellValue = useCallback(
+    (column: CustomTableColumn, row: CustomTableGridRow) => {
+      const raw = row.data?.[column.key];
+
+      if (raw === null || raw === undefined || raw === '') {
+        return '—';
+      }
+
+      if (column.type === 'boolean') {
+        return raw ? 'Yes' : 'No';
+      }
+
+      if (column.type === 'date') {
+        const date = new Date(raw);
+        if (Number.isNaN(date.getTime())) {
+          return String(raw);
+        }
+        return date.toLocaleDateString();
+      }
+
+      if (column.type === 'multi_select' && Array.isArray(raw)) {
+        return raw.join(', ');
+      }
+
+      return String(raw);
+    },
+    [],
+  );
+
+  const handleMobileSelectAll = useCallback(
+    (checked: boolean) => {
+      props.onSelectedRowIdsChange(checked ? props.rows.map(row => row.id) : []);
+    },
+    [props.onSelectedRowIdsChange, props.rows],
+  );
+
+  const handleMobileSelectRow = useCallback(
+    (rowId: string, checked: boolean) => {
+      if (checked) {
+        props.onSelectedRowIdsChange(Array.from(new Set([...props.selectedRowIds, rowId])));
+        return;
+      }
+
+      props.onSelectedRowIdsChange(props.selectedRowIds.filter(id => id !== rowId));
+    },
+    [props.onSelectedRowIdsChange, props.selectedRowIds],
+  );
 
   const parseColor = (value: string) => {
     const trimmed = value.trim();
@@ -487,6 +550,162 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
       window.removeEventListener('touchend', handleResizeEnd);
     };
   }, [resizingColumnId, props.onPersistColumnWidth, table]);
+
+  useEffect(() => {
+    if (!mobileSelectAllRef.current) return;
+    mobileSelectAllRef.current.indeterminate = someRowsSelectedMobile && !allRowsSelectedMobile;
+  }, [someRowsSelectedMobile, allRowsSelectedMobile]);
+
+  if (isMobile) {
+    const viewLabel = (t as any).actions.view?.value || 'View';
+    const editLabel = (t as any).actions.edit?.value || 'Edit';
+    const deleteLabel = (t as any).actions.delete?.value || 'Delete';
+
+    return (
+      <div className={`custom-table-container ${isDark ? 'dark' : ''}`}>
+        <div
+          ref={tableContainerRef}
+          onScroll={handleScroll}
+          className="relative overflow-y-auto rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
+          style={{
+            height: props.isFullscreen ? 'calc(100vh - 150px)' : '600px',
+          }}
+        >
+          <div className="sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
+            <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+              <input
+                ref={mobileSelectAllRef}
+                type="checkbox"
+                checked={allRowsSelectedMobile}
+                onChange={event => handleMobileSelectAll(event.target.checked)}
+                className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary/30"
+                aria-label="Select all rows"
+              />
+              <span>
+                {props.selectedRowIds.length}/{props.rows.length}
+              </span>
+            </label>
+
+            {props.onCreateRow ? (
+              <button
+                type="button"
+                onClick={() => props.onCreateRow?.()}
+                className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-primary hover:text-primary"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {(t as any).grid.addRowLabel.value}
+              </button>
+            ) : null}
+          </div>
+
+          {props.rows.length > 0 ? (
+            <div className="space-y-3 p-3">
+              {props.rows.map(row => {
+                const rowStyle = getRowStyle(row);
+
+                return (
+                  <article
+                    key={row.id}
+                    data-testid={`custom-table-mobile-card-${row.id}`}
+                    className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900"
+                    style={rowStyle}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                        <input
+                          type="checkbox"
+                          checked={selectedRowsSet.has(row.id)}
+                          onChange={event => handleMobileSelectRow(row.id, event.target.checked)}
+                          className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary/30"
+                          aria-label={`Select row ${row.rowNumber}`}
+                        />
+                        <span>#{row.rowNumber}</span>
+                      </label>
+
+                      <div className="flex items-center gap-1">
+                        {props.onViewRow ? (
+                          <button
+                            type="button"
+                            onClick={() => props.onViewRow?.(row.id)}
+                            className="rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 transition hover:border-primary hover:text-primary"
+                          >
+                            {viewLabel}
+                          </button>
+                        ) : null}
+
+                        {props.onEditRow ? (
+                          <button
+                            type="button"
+                            onClick={() => props.onEditRow?.(row.id)}
+                            className="rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 transition hover:border-primary hover:text-primary"
+                          >
+                            {editLabel}
+                          </button>
+                        ) : null}
+
+                        <button
+                          type="button"
+                          onClick={() => props.onDeleteRow(row.id)}
+                          className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 transition hover:border-red-400 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          {deleteLabel}
+                        </button>
+                      </div>
+                    </div>
+
+                    <dl className="mt-3 space-y-2">
+                      {orderedColumns.map(column => (
+                        <div
+                          key={`${row.id}-${column.id}`}
+                          className="grid grid-cols-[112px_1fr] gap-2 text-sm"
+                        >
+                          <dt className="truncate text-gray-500 dark:text-gray-400">
+                            {column.title}
+                          </dt>
+                          <dd className="text-gray-900 dark:text-gray-100">
+                            {formatMobileCellValue(column, row)}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {!props.loadingRows && props.rows.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+              <GripVertical className="mb-4 h-12 w-12 opacity-20" />
+              <p className="text-lg font-medium">{(t as any).grid.emptyTitle.value}</p>
+              <p className="text-sm">{(t as any).grid.emptySubtitle.value}</p>
+            </div>
+          )}
+
+          {props.showAddRow !== false && props.rows.length > 0 && (
+            <div className="border-t border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-800">
+              <button
+                type="button"
+                onClick={() => props.onCreateRow?.()}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition hover:border-primary hover:text-primary"
+              >
+                <Plus className="h-4 w-4" />
+                {(t as any).grid.addRowLabel.value}
+              </button>
+            </div>
+          )}
+
+          {props.loadingRows && (
+            <div className="flex items-center justify-center py-8 text-gray-500">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <span>{t.grid.loadingMore.value}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`custom-table-container ${isDark ? 'dark' : ''}`}>

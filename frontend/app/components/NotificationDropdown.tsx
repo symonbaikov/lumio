@@ -10,6 +10,7 @@ import { useNotifications } from '@/app/hooks/useNotifications';
 import { NotificationsNone } from '@mui/icons-material';
 import { AlertTriangle, CircleAlert, Info } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 type NotificationDropdownProps = {
@@ -45,7 +46,59 @@ export function NotificationDropdown({
 }: NotificationDropdownProps) {
   const { notifications, unreadCount, loading, refresh, markAsRead, markAllAsRead } =
     useNotifications();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+
+  const getNotificationHref = (notification: {
+    type: string;
+    entityType: string | null;
+    entityId: string | null;
+    meta: Record<string, unknown> | null;
+  }): string | null => {
+    if (notification.type === 'receipt.uncategorized' && notification.entityId) {
+      return `/storage/gmail-receipts?receiptId=${notification.entityId}`;
+    }
+
+    if (
+      [
+        'transaction.uncategorized',
+        'parsing.error',
+        'import.failed',
+        'statement.uploaded',
+        'import.committed',
+      ].includes(notification.type) &&
+      notification.entityId
+    ) {
+      return `/statements/${notification.entityId}/edit`;
+    }
+
+    if (notification.entityType === 'statement' && notification.entityId) {
+      return `/statements/${notification.entityId}/edit`;
+    }
+
+    if (notification.entityType === 'receipt' && notification.entityId) {
+      return `/storage/gmail-receipts?receiptId=${notification.entityId}`;
+    }
+
+    if (notification.entityType === 'category') {
+      return '/workspaces/categories';
+    }
+
+    if (notification.entityType === 'workspace') {
+      return '/workspaces/overview';
+    }
+
+    if (notification.entityType === 'transaction') {
+      const statementId =
+        typeof notification.meta?.statementId === 'string' ? notification.meta.statementId : null;
+      if (statementId) {
+        return `/statements/${statementId}/edit`;
+      }
+      return '/statements';
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     if (open) {
@@ -103,6 +156,7 @@ export function NotificationDropdown({
           ) : null}
 
           {notifications.map(notification => {
+            const href = getNotificationHref(notification);
             const severityIcon =
               notification.severity === 'error' ? (
                 <CircleAlert size={14} className="text-red-500" />
@@ -120,10 +174,16 @@ export function NotificationDropdown({
                   if (!notification.isRead) {
                     void markAsRead([notification.id]);
                   }
+
+                  if (href) {
+                    setOpen(false);
+                    router.push(href);
+                  }
                 }}
                 className={cn(
                   'w-full text-left px-4 py-3 border-b border-border/70 hover:bg-muted/70 transition-colors',
                   !notification.isRead && 'bg-primary/5',
+                  href && 'cursor-pointer',
                 )}
               >
                 <div className="flex items-start gap-3">

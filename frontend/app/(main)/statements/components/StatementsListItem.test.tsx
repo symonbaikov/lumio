@@ -93,4 +93,107 @@ describe('StatementsListItem', () => {
     expect(container.textContent).toContain('View');
     expect(container.querySelector('img[alt="Gmail"]')).not.toBeNull();
   });
+
+  it('renders dedicated mobile and desktop layout containers', () => {
+    const root = createRoot(container);
+
+    const statement: Statement = {
+      id: 'statement-1',
+      source: 'statement',
+      fileName: 'Report.pdf',
+      status: 'parsed',
+      totalDebit: 1200,
+      totalCredit: 0,
+      createdAt: '2026-02-01T00:00:00Z',
+      statementDateFrom: '2026-01-01',
+      statementDateTo: '2026-01-31',
+      bankName: 'kaspi',
+      fileType: 'pdf',
+      currency: 'KZT',
+    };
+
+    act(() => {
+      root.render(
+        <StatementsListItem
+          statement={statement}
+          viewLabel="View"
+          isGmail={false}
+          isProcessing={false}
+          merchantLabel="Kaspi"
+          amountLabel="1,200 KZT"
+          dateLabel="01/31/2026"
+          onView={() => undefined}
+          onIconClick={() => undefined}
+          onToggleSelect={() => undefined}
+          typeLabel="PDF"
+        />,
+      );
+    });
+
+    expect(
+      container.querySelector('[data-testid="statement-item-mobile-statement-1"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('[data-testid="statement-item-desktop-statement-1"]'),
+    ).toBeTruthy();
+  });
+
+  it('renders compact mobile card without type label and view button', () => {
+    const root = createRoot(container);
+    const onView = vi.fn();
+
+    const statement: Statement = {
+      id: 'statement-compact',
+      source: 'statement',
+      fileName: 'Receipt.pdf',
+      status: 'parsed',
+      totalDebit: 1200,
+      totalCredit: 0,
+      createdAt: '2026-02-01T00:00:00Z',
+      statementDateFrom: '2026-01-01',
+      statementDateTo: '2026-01-31',
+      bankName: 'kaspi',
+      fileType: 'pdf',
+      currency: 'KZT',
+    };
+
+    act(() => {
+      root.render(
+        <StatementsListItem
+          statement={statement}
+          viewLabel="View"
+          isGmail={false}
+          isProcessing={false}
+          merchantLabel="Kaspi"
+          amountLabel="1,200 KZT"
+          dateLabel="01/31/2026"
+          onView={onView}
+          onIconClick={() => undefined}
+          onToggleSelect={() => undefined}
+          typeLabel="PDF"
+        />,
+      );
+    });
+
+    const mobileContainer = container.querySelector(
+      '[data-testid="statement-item-mobile-statement-compact"]',
+    ) as HTMLDivElement | null;
+    expect(mobileContainer).toBeTruthy();
+    expect(mobileContainer?.textContent).toContain('Kaspi');
+    expect(mobileContainer?.textContent).toContain('1,200 KZT');
+    expect(mobileContainer?.textContent).toContain('01/31/2026');
+    expect(mobileContainer?.textContent).not.toContain('View');
+    expect(mobileContainer?.textContent).not.toContain('PDF');
+
+    const mobileCardButton = container.querySelector(
+      '[data-testid="statement-item-mobile-card-statement-compact"]',
+    ) as HTMLButtonElement | null;
+    expect(mobileCardButton).toBeTruthy();
+
+    act(() => {
+      mobileCardButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onView).toHaveBeenCalledTimes(1);
+  });
 });

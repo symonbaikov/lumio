@@ -1,6 +1,7 @@
 import * as fs from 'fs';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import * as pdfParse from 'pdf-parse';
+import { AiMerchantExtractor } from '../helpers/ai-merchant-extractor.helper';
 import { UniversalAmountParser } from '../../parsing/services/universal-amount-parser.service';
 
 type AmountExtractionResult = {
@@ -16,6 +17,27 @@ type AmountCandidate = {
   lineIndex: number;
   score: number;
 };
+
+type ReceiptParseContext = {
+  sender?: string;
+  subject?: string;
+  dateHeader?: string;
+  emailBody?: string | null;
+};
+
+const GENERIC_VENDOR_PATTERN =
+  /^(page\s+\d+(\s+of\s+\d+)?|receipt|invoice|order\s+confirmation|payment\s+receipt|tax\s+invoice|credit\s+note)$/i;
+
+const DATE_LIKE_VENDOR_PATTERN =
+  /^(date\s*)?\d{4}[-/.]\d{2}[-/.]\d{2}|^\d{2}[-/.]\d{2}[-/.]\d{4}|\d{1,2}:\d{2}\s*(am|pm)(\s*(pst|est|utc|gmt|cst|mst))?$/i;
+
+const NUMERIC_ONLY_VENDOR_PATTERN = /^\d+$/;
+
+const AMOUNT_LIKE_VENDOR_PATTERN = /^[$€£¥₽₸]\s*[\d,.]+$|^[\d,.]+\s*[$€£¥₸₽]$/;
+
+const EMAIL_LIKE_VENDOR_PATTERN = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+
+const ID_LIKE_VENDOR_PATTERN = /^[A-Z0-9]{6,}-\d+$/;
 
 const TOTAL_KEYWORD_REGEX =
   /\b(grand\s*total|total\s*amount|amount\s*(due|charged|paid|to\s*pay)|total|итого|сумма|всего|к\s*оплате|оплата|celkem)\b/i;
@@ -51,15 +73,22 @@ const SYMBOL_TO_CURRENCY: Record<string, string> = {
 export class GmailReceiptParserService {
   private readonly logger = new Logger(GmailReceiptParserService.name);
 
-  constructor(private readonly amountParser: UniversalAmountParser) {}
+  constructor(
+    private readonly amountParser: UniversalAmountParser,
+    @Optional() @Inject(AiMerchantExtractor)
+    private readonly aiMerchantExtractor?: AiMerchantExtractor,
+  ) {}
 
-  async parseReceipt(filePath: string, senderInfo?: string): Promise<any> {
+  async parseReceipt(filePath: string, context?: ReceiptParseContext | string): Promise<any> {
+    const parseContext: ReceiptParseContext =
+      typeof context === 'string' ? { sender: context } : context || {};
+
     try {
       const fileBuffer = fs.readFileSync(filePath);
       const mimeType = this.getMimeType(filePath);
 
       if (mimeType === 'application/pdf') {
-        return await this.parsePdfReceipt(fileBuffer, senderInfo);
+        return await this.parsePdfReceipt(fileBuffer, parseContext);
       }
 
       // For now, return basic metadata for non-PDF files
@@ -73,6 +102,42 @@ export class GmailReceiptParserService {
     }
   }
 
+  async parseFromEmailOnly(context: ReceiptParseContext): Promise<any> {
+    let vendor: string | undefined;
+
+    if (this.aiMerchantExtractor?.isAvailable()) {
+      try {
+        const aiResult = await this.aiMerchantExtractor.extractMerchant({
+          emailBody: context.emailBody,
+          sender: context.sender,
+          subject: context.subject,
+          dateHeader: context.dateHeader,
+        });
+
+        if (aiResult && aiResult.confidence >= 0.5) {
+          vendor = aiResult.merchant;
+        }
+      } catch (error) {
+        this.logger.warn('AI extraction from email body failed', error);
+      }
+    }
+
+    if (!vendor) {
+      vendor = this.extractBrandFromSender(context.sender);
+    }
+
+    const bodyText = context.emailBody ? this.stripHtmlBasic(context.emailBody) : '';
+    const amountWithCurrency = bodyText ? await this.extractAmountWithCurrency(bodyText) : undefined;
+
+    return {
+      amount: amountWithCurrency?.amount,
+      currency: amountWithCurrency?.currency || 'KZT',
+      date: context.dateHeader,
+      vendor,
+      confidence: vendor ? 0.6 : 0.3,
+    };
+  }
+
   private getMimeType(filePath: string): string {
     const ext = filePath.split('.').pop()?.toLowerCase();
     const mimeTypes: Record<string, string> = {
@@ -84,7 +149,7 @@ export class GmailReceiptParserService {
     return mimeTypes[ext || ''] || 'application/octet-stream';
   }
 
-  private async parsePdfReceipt(buffer: Buffer, senderInfo?: string): Promise<any> {
+  private async parsePdfReceipt(buffer: Buffer, context: ReceiptParseContext): Promise<any> {
     try {
       const data = await pdfParse(buffer);
       const text = data.text;
@@ -94,7 +159,7 @@ export class GmailReceiptParserService {
       const amount = amountWithCurrency?.amount;
       const currency = amountWithCurrency?.currency || this.extractCurrency(text) || 'KZT';
       const date = this.extractDate(text);
-      const vendor = this.extractVendor(text, senderInfo);
+      const vendor = await this.extractVendorWithAi(text, context);
       const tax = this.extractTax(text);
       const lineItems = await this.extractLineItems(text);
 
@@ -210,21 +275,67 @@ export class GmailReceiptParserService {
     return undefined;
   }
 
+  private async extractVendorWithAi(
+    pdfText: string,
+    context: ReceiptParseContext,
+  ): Promise<string | undefined> {
+    if (this.aiMerchantExtractor?.isAvailable()) {
+      try {
+        const aiResult = await this.aiMerchantExtractor.extractMerchant({
+          pdfText,
+          emailBody: context.emailBody,
+          sender: context.sender,
+          subject: context.subject,
+          dateHeader: context.dateHeader,
+        });
+
+        if (aiResult && aiResult.confidence >= 0.5) {
+          this.logger.debug(
+            `AI merchant resolved to "${aiResult.merchant}" with confidence ${aiResult.confidence.toFixed(2)}`,
+          );
+          return aiResult.merchant;
+        }
+      } catch (error) {
+        this.logger.warn('AI merchant extraction failed, falling back to heuristics', error);
+      }
+    }
+
+    return this.extractVendor(pdfText, context.sender);
+  }
+
   private extractVendor(text: string, senderName?: string): string | undefined {
     const senderBrand = this.extractBrandFromSender(senderName);
     const lines = text
       .split('\n')
       .map(line => line.trim())
       .filter(line => line.length > 0);
-    const skipPattern =
-      /^(page\s+\d+\s+of\s+\d+|receipt|invoice|order\s+confirmation|payment\s+receipt)$/i;
 
     for (const line of lines) {
       if (line.length <= 2 || line.length > 40) {
         continue;
       }
 
-      if (skipPattern.test(line)) {
+      if (GENERIC_VENDOR_PATTERN.test(line)) {
+        continue;
+      }
+
+      if (DATE_LIKE_VENDOR_PATTERN.test(line)) {
+        continue;
+      }
+
+      if (NUMERIC_ONLY_VENDOR_PATTERN.test(line)) {
+        continue;
+      }
+
+      if (AMOUNT_LIKE_VENDOR_PATTERN.test(line)) {
+        continue;
+      }
+
+      if (EMAIL_LIKE_VENDOR_PATTERN.test(line)) {
+        continue;
+      }
+
+      if (ID_LIKE_VENDOR_PATTERN.test(line)) {
         continue;
       }
 
@@ -240,6 +351,19 @@ export class GmailReceiptParserService {
     }
 
     return undefined;
+  }
+
+  private stripHtmlBasic(html: string): string {
+    return html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private extractBrandFromSender(sender?: string): string | undefined {

@@ -39,9 +39,11 @@ import { Public } from "../auth/decorators/public.decorator";
 import { BulkApproveDto } from "./dto/bulk-approve.dto";
 import { ExportSheetsDto } from "./dto/export-sheets.dto";
 import { MarkDuplicateDto } from "./dto/mark-duplicate.dto";
+import { ReparseMerchantsDto } from "./dto/reparse-merchants.dto";
 import { UpdateGmailSettingsDto } from "./dto/update-gmail-settings.dto";
 import { UpdateParsedDataDto } from "./dto/update-parsed-data.dto";
 import { ApproveReceiptDto, UpdateReceiptDto } from "./dto/update-receipt.dto";
+import { GmailMerchantReparseService } from "./services/gmail-merchant-reparse.service";
 import { GmailOAuthService } from "./services/gmail-oauth.service";
 import { GmailReceiptCategoryService } from "./services/gmail-receipt-category.service";
 import { GmailReceiptDuplicateService } from "./services/gmail-receipt-duplicate.service";
@@ -79,6 +81,7 @@ export class GmailController {
     private readonly duplicateService: GmailReceiptDuplicateService,
     private readonly categoryService: GmailReceiptCategoryService,
     private readonly exportService: GmailReceiptExportService,
+    private readonly merchantReparseService: GmailMerchantReparseService,
   ) {}
 
   @Get("status")
@@ -583,6 +586,18 @@ export class GmailController {
         `Failed to export to sheets: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  }
+
+  @Post("receipts/reparse-merchants")
+  @ApiOperation({ summary: "Reparse merchant names for existing receipts" })
+  async reparseMerchants(
+    @CurrentUser() user: User,
+    @Body() dto: ReparseMerchantsDto,
+  ) {
+    return this.merchantReparseService.reparseAll(user.id, {
+      dryRun: dto.dryRun,
+      limit: dto.limit,
+    });
   }
 
   @Get("receipts/:id/thumbnail")

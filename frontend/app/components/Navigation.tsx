@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@/app/components/ui/button';
 import { NotificationDropdown } from '@/app/components/NotificationDropdown';
+import { Button } from '@/app/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +11,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu';
+import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import { TourMenu } from '@/app/tours/components/TourMenu';
 import { type DriveStep, driver } from 'driver.js';
@@ -18,7 +19,9 @@ import 'driver.js/dist/driver.css';
 
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
 import ApartmentIcon from '@mui/icons-material/Apartment';
+import EngineeringIcon from '@mui/icons-material/Engineering';
 import LanguageIcon from '@mui/icons-material/Language';
+import PinIcon from '@mui/icons-material/Pin';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
@@ -35,7 +38,6 @@ import {
   PlayCircle,
   Plug,
   Settings,
-  Shield,
   Sun,
   Table,
   Tags,
@@ -54,6 +56,8 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
 
+const MOBILE_MENU_VISIBILITY_EVENT = 'lumio-mobile-menu-visibility';
+
 type AppLanguage = 'ru' | 'en' | 'kk';
 
 export default function Navigation() {
@@ -71,14 +75,19 @@ export default function Navigation() {
     tour,
   } = useIntlayer('navigation');
   const trashLabel = (userMenu as Record<string, any>).trash?.value ?? 'Trash';
+  const supportedBanksLabel =
+    (userMenu as Record<string, any>).supportedBanks?.value ?? 'Supported banks';
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMenuMounted, setMobileMenuMounted] = useState(false);
+  const [mobileMenuVisible, setMobileMenuVisible] = useState(false);
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
   const [languageDraft, setLanguageDraft] = useState<AppLanguage>('ru');
   const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const languageDropdownRef = useRef<HTMLDivElement | null>(null);
+  const isMobile = useIsMobile();
 
   useLockBodyScroll(languageModalOpen || mobileMenuOpen);
 
@@ -104,8 +113,6 @@ export default function Navigation() {
       const style = window.getComputedStyle(element as HTMLElement);
       return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
     };
-
-    const isMobile = window.matchMedia('(max-width: 767px)').matches;
 
     type TourCandidate = {
       selector: string;
@@ -177,6 +184,32 @@ export default function Navigation() {
   }, [pathname]);
 
   useEffect(() => {
+    if (mobileMenuOpen) {
+      setMobileMenuMounted(true);
+      const frame = window.requestAnimationFrame(() => {
+        setMobileMenuVisible(true);
+      });
+
+      return () => {
+        window.cancelAnimationFrame(frame);
+      };
+    }
+
+    if (!mobileMenuMounted) {
+      return;
+    }
+
+    setMobileMenuVisible(false);
+    const timer = window.setTimeout(() => {
+      setMobileMenuMounted(false);
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [mobileMenuOpen, mobileMenuMounted]);
+
+  useEffect(() => {
     if (!mobileMenuOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setMobileMenuOpen(false);
@@ -187,6 +220,22 @@ export default function Navigation() {
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = prevOverflow;
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(MOBILE_MENU_VISIBILITY_EVENT, {
+        detail: { open: mobileMenuOpen },
+      }),
+    );
+
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent(MOBILE_MENU_VISIBILITY_EVENT, {
+          detail: { open: false },
+        }),
+      );
     };
   }, [mobileMenuOpen]);
 
@@ -373,6 +422,13 @@ export default function Navigation() {
                     </DropdownMenuItem>
 
                     <DropdownMenuItem asChild>
+                      <Link href="/supported-banks">
+                        <EngineeringIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
+                        <span className="text-base">{supportedBanksLabel}</span>
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem asChild>
                       <Link href="/statements/trash">
                         <Trash2 size={18} className="text-muted-foreground" />
                         <span className="text-base">{trashLabel}</span>
@@ -396,7 +452,7 @@ export default function Navigation() {
                     {isAdmin && (
                       <DropdownMenuItem asChild>
                         <Link href="/admin">
-                          <Shield size={18} className="text-muted-foreground" />
+                          <PinIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
                           <span className="text-base">{userMenu.admin}</span>
                         </Link>
                       </DropdownMenuItem>
@@ -436,214 +492,225 @@ export default function Navigation() {
 
       {/* Mobile Drawer (slides from right) */}
       <div className="md:hidden">
-        <div className={`fixed inset-0 z-70 ${mobileMenuOpen ? '' : 'pointer-events-none'}`}>
-          <div
-            className={`absolute inset-0 bg-black/30 transition-opacity duration-200 ${
-              mobileMenuOpen ? 'opacity-100' : 'opacity-0'
-            }`}
-            role="button"
-            tabIndex={0}
-            aria-label="Close menu"
-            onClick={() => setMobileMenuOpen(false)}
-            onKeyDown={event => {
-              if (event.key === 'Enter' || event.key === ' ') {
+        {mobileMenuMounted ? (
+          <div className={`fixed inset-0 z-[70] ${mobileMenuVisible ? '' : 'pointer-events-none'}`}>
+            <div
+              className={`absolute inset-0 bg-black/30 transition-opacity duration-200 ${
+                mobileMenuVisible ? 'opacity-100' : 'opacity-0'
+              }`}
+              role="button"
+              tabIndex={0}
+              aria-label="Close menu"
+              onClick={() => setMobileMenuOpen(false)}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  setMobileMenuOpen(false);
+                }
+              }}
+            />
+
+            <dialog
+              className={`fixed inset-y-0 right-0 left-auto w-[88vw] max-w-sm border-l border-border bg-card text-card-foreground shadow-2xl transform-gpu will-change-transform transition-transform duration-300 ease-out ${
+                mobileMenuVisible ? 'translate-x-0' : 'translate-x-full'
+              }`}
+              style={{
+                padding: 0,
+                margin: 0,
+                left: 'auto',
+              }}
+              aria-modal="true"
+              open
+              onCancel={event => {
                 event.preventDefault();
                 setMobileMenuOpen(false);
-              }
-            }}
-          />
-
-          <dialog
-            className={`absolute inset-y-0 right-0 w-[88vw] max-w-sm border-l border-gray-200 shadow-2xl transition-transform duration-300 ease-out bg-white ${
-              mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
-            }`}
-            style={{
-              backgroundColor: 'white',
-              color: 'black',
-              border: 'none',
-              padding: 0,
-              margin: 0,
-            }}
-            aria-modal="true"
-            open
-            onCancel={event => {
-              event.preventDefault();
-              setMobileMenuOpen(false);
-            }}
-          >
-            <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 bg-white">
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-gray-900 truncate">{user.name}</div>
-                <div className="text-xs text-gray-600 truncate">{user.email}</div>
+              }}
+            >
+              <div className="flex items-center justify-between border-b border-border bg-card px-4 py-4">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-foreground">{user.name}</div>
+                  <div className="truncate text-xs text-muted-foreground">{user.email}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <NotificationDropdown
+                    triggerClassName="h-9 w-9 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    iconSize={22}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label="Close menu"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <NotificationDropdown
-                  triggerClassName="h-9 w-9 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                  iconSize={22}
-                />
+
+              <div className="h-[calc(100vh-64px)] overflow-y-auto bg-card px-2 py-2">
+                <div className="pt-1 pb-2">
+                  {visibleNavItems.map(item => {
+                    const isActive = isNavItemActive(item.path);
+
+                    return (
+                      <Link
+                        key={item.path}
+                        href={item.path}
+                        className={`flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium transition-colors ${
+                          isActive ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <span className={isActive ? 'text-primary' : 'text-muted-foreground'}>
+                          {item.icon}
+                        </span>
+                        <span className="flex-1">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                <div className="my-2 h-px bg-border" />
+
+                <div className="bg-card px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {userMenu.profile}
+                </div>
+
+                <Link
+                  href="/settings/profile"
+                  className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Settings size={18} className="text-muted-foreground" />
+                  <span className="flex-1">{userMenu.settings}</span>
+                </Link>
+
+                <Link
+                  href="/integrations"
+                  className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Plug size={18} className="text-muted-foreground" />
+                  <span className="flex-1">{userMenu.integrations}</span>
+                </Link>
+
+                <Link
+                  href="/supported-banks"
+                  className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <EngineeringIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
+                  <span className="flex-1">{supportedBanksLabel}</span>
+                </Link>
+
                 <button
                   type="button"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                  aria-label="Close menu"
+                  onClick={() => {
+                    setLanguageDraft(normalizedLocale);
+                    setLanguageModalOpen(true);
+                    setLanguageDropdownOpen(false);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
                 >
-                  <X size={20} />
+                  <LanguageIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
+                  <span className="flex-1 text-left">{userMenu.language}</span>
+                  <span className="text-sm text-muted-foreground">{languageLabel}</span>
                 </button>
-              </div>
-            </div>
 
-            <div className="px-2 py-2 overflow-y-auto h-[calc(100vh-64px)] bg-white">
-              <div className="pt-1 pb-2">
-                {visibleNavItems.map(item => {
-                  const isActive = isNavItemActive(item.path);
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <PinIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
+                    <span className="flex-1">{userMenu.admin}</span>
+                  </Link>
+                )}
 
+                <div className="my-2 h-px bg-border" />
+
+                <div className="bg-card px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Theme
+                </div>
+
+                {(
+                  [
+                    {
+                      key: 'light' as const,
+                      label: 'Light',
+                      icon: <Sun size={18} />,
+                    },
+                    {
+                      key: 'dark' as const,
+                      label: 'Dark',
+                      icon: <Moon size={18} />,
+                    },
+                    {
+                      key: 'system' as const,
+                      label: 'System',
+                      icon: <Laptop size={18} />,
+                    },
+                  ] as const
+                ).map(opt => {
+                  const active = (selectedTheme || 'system') === opt.key;
                   return (
-                    <Link
-                      key={item.path}
-                      href={item.path}
-                      className={`flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium transition-colors bg-white ${
-                        isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-900 hover:bg-gray-100'
+                    <button
+                      key={opt.key}
+                      type="button"
+                      className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium transition-colors ${
+                        active ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'
                       }`}
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => setTheme(opt.key)}
                     >
-                      <span className={isActive ? 'text-blue-600' : 'text-gray-600'}>
-                        {item.icon}
+                      <span className={active ? 'text-primary' : 'text-muted-foreground'}>
+                        {opt.icon}
                       </span>
-                      <span className="flex-1">{item.label}</span>
-                    </Link>
+                      <span className="flex-1 text-left">{opt.label}</span>
+                      {active && <Check size={18} />}
+                    </button>
                   );
                 })}
-              </div>
 
-              <div className="my-2 h-px bg-gray-200" />
+                <div className="my-2 h-px bg-border" />
 
-              <div className="px-3 pt-2 pb-1 text-xs font-semibold text-gray-600 uppercase tracking-wider bg-white">
-                {userMenu.profile}
-              </div>
+                <TourMenu
+                  trigger={
+                    <button
+                      type="button"
+                      className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
+                    >
+                      <PlayCircle size={18} className="text-muted-foreground" />
+                      <span className="flex-1 text-left">
+                        {((nav as any)?.tours?.value as string) ?? 'Туры'}
+                      </span>
+                    </button>
+                  }
+                />
 
-              <Link
-                href="/settings/profile"
-                className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 transition-colors bg-white"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Settings size={18} className="text-gray-600" />
-                <span className="flex-1">{userMenu.settings}</span>
-              </Link>
-
-              <Link
-                href="/integrations"
-                className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 transition-colors bg-white"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Plug size={18} className="text-gray-600" />
-                <span className="flex-1">{userMenu.integrations}</span>
-              </Link>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setLanguageDraft(normalizedLocale);
-                  setLanguageModalOpen(true);
-                  setLanguageDropdownOpen(false);
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 transition-colors bg-white"
-              >
-                <LanguageIcon sx={{ fontSize: 18 }} className="text-gray-600" />
-                <span className="flex-1 text-left">{userMenu.language}</span>
-                <span className="text-sm text-gray-600">{languageLabel}</span>
-              </button>
-
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 transition-colors bg-white"
-                  onClick={() => setMobileMenuOpen(false)}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    logout();
+                    toast.success(userMenu.logoutSuccess.value);
+                  }}
+                  className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-red-600 dark:text-red-400 hover:bg-muted transition-colors"
                 >
-                  <Shield size={18} className="text-gray-600" />
-                  <span className="flex-1">{userMenu.admin}</span>
-                </Link>
-              )}
-
-              <div className="my-2 h-px bg-gray-200" />
-
-              <div className="px-3 pt-2 pb-1 text-xs font-semibold text-gray-600 uppercase tracking-wider bg-white">
-                Theme
+                  <LogOut size={18} />
+                  <span className="flex-1 text-left">{userMenu.logout}</span>
+                </button>
               </div>
-
-              {(
-                [
-                  {
-                    key: 'light' as const,
-                    label: 'Light',
-                    icon: <Sun size={18} />,
-                  },
-                  {
-                    key: 'dark' as const,
-                    label: 'Dark',
-                    icon: <Moon size={18} />,
-                  },
-                  {
-                    key: 'system' as const,
-                    label: 'System',
-                    icon: <Laptop size={18} />,
-                  },
-                ] as const
-              ).map(opt => {
-                const active = (selectedTheme || 'system') === opt.key;
-                return (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium transition-colors bg-white ${
-                      active ? 'bg-blue-50 text-blue-600' : 'text-gray-900 hover:bg-gray-100'
-                    }`}
-                    onClick={() => setTheme(opt.key)}
-                  >
-                    <span className={active ? 'text-blue-600' : 'text-gray-600'}>{opt.icon}</span>
-                    <span className="flex-1 text-left">{opt.label}</span>
-                    {active && <Check size={18} />}
-                  </button>
-                );
-              })}
-
-              <div className="my-2 h-px bg-gray-200" />
-
-              <TourMenu
-                trigger={
-                  <button
-                    type="button"
-                    className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 transition-colors bg-white"
-                  >
-                    <PlayCircle size={18} className="text-gray-600" />
-                    <span className="flex-1 text-left">
-                      {((nav as any)?.tours?.value as string) ?? 'Туры'}
-                    </span>
-                  </button>
-                }
-              />
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  logout();
-                  toast.success(userMenu.logoutSuccess.value);
-                }}
-                className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-red-600 dark:text-red-400 hover:bg-muted transition-colors"
-              >
-                <LogOut size={18} />
-                <span className="flex-1 text-left">{userMenu.logout}</span>
-              </button>
-            </div>
-          </dialog>
-        </div>
+            </dialog>
+          </div>
+        ) : null}
       </div>
 
       {portalReady &&
         languageModalOpen &&
         createPortal(
-          <div className="fixed inset-0 z-80 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
             <div
               className="absolute inset-0 bg-black/30"
               role="button"

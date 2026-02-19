@@ -45,6 +45,7 @@ describe('ReportsService (helpers)', () => {
     expect(toDateKey(new Date('2025-01-02T00:00:00.000Z'))).toBe('2025-01-02');
   });
 
+
   it('pickBestColumnKey chooses best match based on scorer', () => {
     const pickBestColumnKey = (service as any).pickBestColumnKey.bind(service) as (
       cols: CustomTableColumn[],
@@ -61,5 +62,59 @@ describe('ReportsService (helpers)', () => {
     ] as CustomTableColumn[];
 
     expect(pickBestColumnKey(columns, scoreAmount)).toBe('b');
+  });
+
+  it('getSpendOverTimeReport fills empty periods', async () => {
+    const qb = {
+      innerJoin: jest.fn().mockReturnThis(),
+      leftJoin: jest.fn().mockReturnThis(),
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn(async () => [
+        { period: '2025-01-01', income: '100', expense: '0', count: '1' },
+        { period: '2025-01-03', income: '0', expense: '20', count: '1' },
+      ]),
+    };
+    const transactionRepository = {
+      createQueryBuilder: jest.fn(() => qb),
+    };
+    const localService = new ReportsService(
+      transactionRepository as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      { get: jest.fn(), set: jest.fn() } as any,
+      { createEvent: jest.fn() } as AuditService,
+    );
+
+    const result = await (localService as any).getSpendOverTimeReport('u1', {
+      groupBy: 'day',
+      dateFrom: '2025-01-01',
+      dateTo: '2025-01-03',
+    });
+
+    expect(result.points).toHaveLength(3);
+    expect(result.points[1]).toEqual({
+      period: '2025-01-02',
+      label: '2025-01-02',
+      income: 0,
+      expense: 0,
+      net: 0,
+      count: 0,
+    });
+    expect(result.totals.income).toBe(100);
+    expect(result.totals.expense).toBe(20);
+    expect(result.totals.net).toBe(80);
+    expect(result.totals.count).toBe(2);
+    expect(result.totals.avgPerPeriod).toBeCloseTo(80 / 3, 5);
   });
 });

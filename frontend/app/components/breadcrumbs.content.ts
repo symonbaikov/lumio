@@ -54,6 +54,11 @@ const content = {
         en: 'Integrations',
         kk: 'Интеграциялар',
       }),
+      'supported-banks': t({
+        ru: 'Поддерживаемые банки',
+        en: 'Supported banks',
+        kk: 'Қолдау көрсетілетін банктер',
+      }),
       'integrations/google-sheets': t({
         ru: 'Google Sheets',
         en: 'Google Sheets',

@@ -18,10 +18,12 @@ import { GmailReceiptProcessor } from './gmail-receipt-processor';
 import { GmailWebhookController } from './gmail-webhook.controller';
 import { GmailController } from './gmail.controller';
 import { GmailScheduler } from './gmail.scheduler';
+import { AiMerchantExtractor } from './helpers/ai-merchant-extractor.helper';
 import { GmailOAuthService } from './services/gmail-oauth.service';
 import { GmailReceiptCategoryService } from './services/gmail-receipt-category.service';
 import { GmailReceiptDuplicateService } from './services/gmail-receipt-duplicate.service';
 import { GmailReceiptExportService } from './services/gmail-receipt-export.service';
+import { GmailMerchantReparseService } from './services/gmail-merchant-reparse.service';
 import { GmailReceiptParserService } from './services/gmail-receipt-parser.service';
 import { GmailSyncService } from './services/gmail-sync.service';
 import { GmailWatchService } from './services/gmail-watch.service';
@@ -53,10 +55,15 @@ import { GmailService } from './services/gmail.service';
     GmailWebhookService,
     GmailSyncService,
     UniversalAmountParser,
+    {
+      provide: AiMerchantExtractor,
+      useFactory: () => new AiMerchantExtractor(process.env.GEMINI_API_KEY),
+    },
     GmailReceiptParserService,
     GmailReceiptDuplicateService,
     GmailReceiptCategoryService,
     GmailReceiptExportService,
+    GmailMerchantReparseService,
     GmailReceiptProcessor,
     GmailScheduler,
   ],

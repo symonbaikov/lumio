@@ -137,6 +137,7 @@ export class GmailReceiptProcessor {
       const sender = getHeader('From');
       const dateHeader = getHeader('Date');
       const receivedAt = dateHeader ? new Date(dateHeader) : new Date();
+      const emailBody = this.extractEmailBody(message.payload);
 
       // Find attachments
       const attachments: any[] = [];
@@ -177,7 +178,12 @@ export class GmailReceiptProcessor {
 
       if (attachmentPaths.length > 0) {
         try {
-          parsedData = await this.parserService.parseReceipt(attachmentPaths[0], sender);
+          parsedData = await this.parserService.parseReceipt(attachmentPaths[0], {
+            sender,
+            subject,
+            dateHeader,
+            emailBody,
+          });
           job.progress = 60;
           await this.jobRepository.save(job);
 
@@ -198,6 +204,26 @@ export class GmailReceiptProcessor {
         } catch (error) {
           this.logger.error('Failed to parse receipt', error);
           initialStatus = ReceiptStatus.FAILED;
+        }
+      } else if (emailBody) {
+        try {
+          parsedData = await this.parserService.parseFromEmailOnly({
+            sender,
+            subject,
+            dateHeader,
+            emailBody,
+          });
+
+          if (parsedData) {
+            if (this.hasParsedAmount(parsedData.amount)) {
+              initialStatus = ReceiptStatus.PARSED;
+            } else {
+              initialStatus = ReceiptStatus.NEEDS_REVIEW;
+            }
+          }
+        } catch (error) {
+          this.logger.error('Failed to parse receipt from email body', error);
+          initialStatus = ReceiptStatus.NEEDS_REVIEW;
         }
       }
 
@@ -321,6 +347,41 @@ export class GmailReceiptProcessor {
       job.status = ReceiptJobStatus.FAILED;
       job.error = error instanceof Error ? error.message : String(error);
       await this.jobRepository.save(job);
+    }
+  }
+
+  private extractEmailBody(payload: any): string | null {
+    const bodies: { mimeType: string; data: string }[] = [];
+
+    const walk = (part: any) => {
+      if (part?.body?.data && (part.mimeType === 'text/plain' || part.mimeType === 'text/html')) {
+        bodies.push({
+          mimeType: part.mimeType,
+          data: part.body.data,
+        });
+      }
+
+      if (Array.isArray(part?.parts)) {
+        for (const child of part.parts) {
+          walk(child);
+        }
+      }
+    };
+
+    walk(payload);
+
+    const htmlPart = bodies.find(body => body.mimeType === 'text/html');
+    const textPart = bodies.find(body => body.mimeType === 'text/plain');
+    const selected = htmlPart || textPart;
+
+    if (!selected) {
+      return null;
+    }
+
+    try {
+      return Buffer.from(selected.data, 'base64url').toString('utf8');
+    } catch {
+      return null;
     }
   }
 

@@ -11,9 +11,14 @@ export interface JwtPayload {
   email: string;
   role: string;
   tokenVersion?: number;
+  sessionId?: string;
   iat?: number;
   exp?: number;
   jti?: string;
+}
+
+export interface AuthenticatedUser extends User {
+  currentSessionId?: string | null;
 }
 
 @Injectable()
@@ -42,7 +47,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     this.jwtSecret = jwtSecret;
   }
 
-  async validate(payload: JwtPayload): Promise<User> {
+  async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
     if (!payload || !payload.sub || !payload.email) {
       throw new UnauthorizedException('Invalid token payload');
     }
@@ -64,13 +69,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Token has been revoked');
     }
 
+    const authenticatedUser = {
+      ...user,
+      currentSessionId: payload.sessionId || null,
+    } as AuthenticatedUser;
+
     if (!user.avatarUrl) {
       const seed = `${user.id}-${Date.now().toString(36)}`;
       const avatarUrl = `${this.dicebearBaseUrl}?seed=${encodeURIComponent(seed)}`;
       await this.userRepository.update(user.id, { avatarUrl });
-      return { ...user, avatarUrl };
+      return { ...authenticatedUser, avatarUrl };
     }
 
-    return user;
+    return authenticatedUser;
   }
 }

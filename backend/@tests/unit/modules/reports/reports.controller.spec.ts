@@ -93,4 +93,34 @@ describe('ReportsController', () => {
       type: 'expense',
     });
   });
+
+  it('getSpendOverTime delegates to reports service', async () => {
+    const reportsService = {
+      getStatementsSummary: jest.fn(),
+      getCustomTablesSummary: jest.fn(),
+      getLatestTransactionDate: jest.fn(),
+      generateDailyReport: jest.fn(),
+      getLatestTransactionPeriod: jest.fn(),
+      generateMonthlyReport: jest.fn(),
+      generateCustomReport: jest.fn(),
+      exportReport: jest.fn(),
+      getTopCategoriesReport: jest.fn(),
+      getSpendOverTimeReport: jest.fn(async () => ({ points: [] })),
+    };
+    const controller = new ReportsController(reportsService as any);
+
+    const result = await (controller as any).getSpendOverTimeReport({ id: 'u-9' } as any, {
+      groupBy: 'day',
+      dateFrom: '2025-01-01',
+      dateTo: '2025-01-03',
+    });
+
+    expect(result).toEqual({ points: [] });
+    expect(reportsService.getSpendOverTimeReport).toHaveBeenCalledWith('u-9', {
+      groupBy: 'day',
+      dateFrom: '2025-01-01',
+      dateTo: '2025-01-03',
+    });
+  });
+
 });

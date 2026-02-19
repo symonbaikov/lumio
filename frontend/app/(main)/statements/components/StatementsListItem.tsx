@@ -67,15 +67,74 @@ export function StatementsListItem({
   selectionDisabled = false,
   typeLabel,
 }: Props) {
+  const resolvedTypeLabel = typeLabel || statement.fileType;
+
   return (
-    <div className="relative rounded-lg border border-gray-200 bg-white p-4 transition hover:border-primary/30">
+    <div
+      className={`relative rounded-lg border bg-white p-3 transition hover:border-primary/30 md:p-4 ${
+        selected ? 'border-primary/60 bg-primary/5' : 'border-gray-200'
+      }`}
+    >
+      <div data-testid={`statement-item-mobile-${statement.id}`} className="md:hidden">
+        <div className="flex items-center gap-3">
+          <div className="shrink-0">
+            {selectionDisabled ? (
+              <span className="inline-flex h-4 w-4" />
+            ) : (
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={onToggleSelect}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+            )}
+          </div>
+
+          <button
+            type="button"
+            data-testid={`statement-item-mobile-card-${statement.id}`}
+            onClick={onView}
+            className="w-full rounded-md text-left focus:outline-none focus:ring-2 focus:ring-primary/20"
+            aria-label={viewLabel}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 shrink-0">
+                <DocumentTypeIcon
+                  fileType={isGmail ? 'pdf' : statement.fileType}
+                  fileName={statement.fileName}
+                  fileId={statement.id}
+                  source={isGmail ? 'gmail' : 'statement'}
+                  size={34}
+                  className="text-red-500"
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="truncate text-sm font-semibold text-gray-900">
+                    {isProcessing ? 'Processing...' : merchantLabel}
+                  </p>
+                  <p className="shrink-0 text-right text-sm font-bold text-gray-900 tabular-nums">
+                    {amountLabel}
+                  </p>
+                </div>
+                <p className="mt-0.5 text-xs text-gray-500">{dateLabel}</p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
       <button
         type="button"
         onClick={onView}
-        className="absolute inset-0 rounded-lg"
+        className="absolute inset-0 hidden rounded-lg md:block"
         aria-label={viewLabel}
       />
-      <div className="pointer-events-none relative z-10 flex items-center gap-3">
+      <div
+        data-testid={`statement-item-desktop-${statement.id}`}
+        className="pointer-events-none relative z-10 hidden items-center gap-3 md:flex"
+      >
         <div className="w-4">
           {selectionDisabled ? (
             <span className="inline-flex h-4 w-4" />
@@ -109,7 +168,7 @@ export function StatementsListItem({
         </button>
         <div className="w-3" />
         <div className="w-20 flex items-center gap-2 text-sm font-medium text-gray-500">
-          <span className="uppercase">{typeLabel || statement.fileType}</span>
+          <span className="uppercase">{resolvedTypeLabel}</span>
         </div>
         <div className="w-24 text-sm font-medium text-gray-500 tabular-nums">{dateLabel}</div>
         <div className="flex-1 flex items-center gap-2 text-sm text-gray-900">

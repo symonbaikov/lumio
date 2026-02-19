@@ -1,5 +1,6 @@
 'use client';
 
+import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import { cn } from '@/app/lib/utils';
 import { X } from 'lucide-react';
@@ -78,10 +79,15 @@ export function DrawerShell({
   className,
   lockScroll = true,
 }: DrawerShellProps) {
+  const isMobile = useIsMobile();
   const [mounted, setMounted] = React.useState(false);
   const [isRendered, setIsRendered] = React.useState(false);
   const [isVisible, setIsVisible] = React.useState(false);
+  const [dragOffset, setDragOffset] = React.useState(0);
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const touchStartXRef = React.useRef<number | null>(null);
+  const touchStartYRef = React.useRef<number | null>(null);
+  const dragActiveRef = React.useRef(false);
 
   useLockBodyScroll(isOpen && lockScroll);
 
@@ -127,11 +133,75 @@ export function DrawerShell({
     }
   }, [isOpen, handleEscape]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setDragOffset(0);
+      dragActiveRef.current = false;
+      touchStartXRef.current = null;
+      touchStartYRef.current = null;
+    }
+  }, [isOpen]);
+
   const handleBackdropClick = useCallback(() => {
     if (closeOnBackdropClick) {
       onClose();
     }
   }, [closeOnBackdropClick, onClose]);
+
+  const handleTouchStart = useCallback(
+    (event: React.TouchEvent<HTMLDivElement>) => {
+      if (!isMobile || !isOpen || event.touches.length !== 1) return;
+
+      touchStartXRef.current = event.touches[0]?.clientX ?? null;
+      touchStartYRef.current = event.touches[0]?.clientY ?? null;
+      dragActiveRef.current = true;
+    },
+    [isMobile, isOpen],
+  );
+
+  const handleTouchMove = useCallback(
+    (event: React.TouchEvent<HTMLDivElement>) => {
+      if (!isMobile || !dragActiveRef.current) return;
+      if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+
+      const currentTouch = event.touches[0];
+      if (!currentTouch) return;
+
+      const deltaX = currentTouch.clientX - touchStartXRef.current;
+      const deltaY = currentTouch.clientY - touchStartYRef.current;
+
+      if (Math.abs(deltaX) <= Math.abs(deltaY)) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (position === 'right') {
+        setDragOffset(Math.max(0, Math.min(240, deltaX)));
+        return;
+      }
+
+      setDragOffset(Math.min(0, Math.max(-240, deltaX)));
+    },
+    [isMobile, position],
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isMobile || !dragActiveRef.current) {
+      return;
+    }
+
+    const shouldClose = position === 'right' ? dragOffset > 72 : dragOffset < -72;
+
+    dragActiveRef.current = false;
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    setDragOffset(0);
+
+    if (shouldClose) {
+      onClose();
+    }
+  }, [dragOffset, isMobile, onClose, position]);
 
   if (!mounted || !isRendered) return null;
 
@@ -169,15 +239,26 @@ export function DrawerShell({
       <div
         className={cn(
           'fixed w-full h-full overflow-hidden bg-white shadow-2xl flex flex-col',
-          'transition-transform duration-500 ease-out',
+          dragOffset !== 0 ? 'transition-none' : 'transition-transform duration-500 ease-out',
           'border-gray-200',
           positionConfig.container,
           isVisible ? positionConfig.open : positionConfig.closed,
           widthClasses[width],
           className,
         )}
+        style={
+          dragOffset !== 0
+            ? {
+                transform: `translateX(${dragOffset}px)`,
+              }
+            : undefined
+        }
         onClick={e => e.stopPropagation()}
         onKeyDown={e => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         role="presentation"
       >
         {/* Header */}

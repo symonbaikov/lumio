@@ -1,7 +1,16 @@
 'use client';
 
-import StoragePageContent from '@/app/storage/StoragePageContent';
+import { useState } from 'react';
+import TrashListView from '../components/TrashListView';
+import TrashSidePanel from '../components/TrashSidePanel';
 
 export default function StatementsTrashPage() {
-  return <StoragePageContent initialList="trash" />;
+  const [trashCount, setTrashCount] = useState(0);
+
+  return (
+    <>
+      <TrashSidePanel trashCount={trashCount} />
+      <TrashListView onCountChange={setTrashCount} />
+    </>
+  );
 }

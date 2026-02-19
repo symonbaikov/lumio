@@ -64,12 +64,22 @@ describe('JwtStrategy', () => {
 
   describe('validate', () => {
     it('should return user when valid payload', async () => {
-      const payload = { sub: '1', email: 'test@example.com', role: UserRole.USER };
+      const payload = {
+        sub: '1',
+        email: 'test@example.com',
+        role: UserRole.USER,
+        sessionId: 'session-1',
+      };
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
 
       const result = await strategy.validate(payload);
 
-      expect(result).toEqual(mockUser);
+      expect(result).toEqual(
+        expect.objectContaining({
+          ...mockUser,
+          currentSessionId: 'session-1',
+        }),
+      );
       expect(userRepository.findOne).toHaveBeenCalledWith({
         where: { id: '1' },
       });

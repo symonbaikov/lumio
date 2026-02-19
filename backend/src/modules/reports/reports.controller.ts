@@ -23,6 +23,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { type CustomReportDto, ReportFormat } from './dto/custom-report.dto';
 import { CustomTablesSummaryDto } from './dto/custom-tables-summary.dto';
 import { ExportFormat, type ExportReportDto } from './dto/export-report.dto';
+import { SpendOverTimeQueryDto } from './dto/spend-over-time-query.dto';
 import { TopCategoriesQueryDto } from './dto/top-categories-query.dto';
 import { ReportsService } from './reports.service';
 
@@ -46,6 +47,13 @@ export class ReportsController {
   @RequirePermission(Permission.REPORT_VIEW)
   async getTopCategories(@CurrentUser() user: User, @Query() query: TopCategoriesQueryDto) {
     return this.reportsService.getTopCategoriesReport(user.id, query);
+  }
+
+  @Get('spend-over-time')
+  @UseGuards(PermissionsGuard)
+  @RequirePermission(Permission.REPORT_VIEW)
+  async getSpendOverTimeReport(@CurrentUser() user: User, @Query() query: SpendOverTimeQueryDto) {
+    return this.reportsService.getSpendOverTimeReport(user.id, query);
   }
 
   @Post('custom-tables/summary')

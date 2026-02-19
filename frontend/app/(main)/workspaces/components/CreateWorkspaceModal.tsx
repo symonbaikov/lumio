@@ -1,15 +1,14 @@
-'use client';
+"use client";
 
-import { useWorkspace } from '@/app/contexts/WorkspaceContext';
-import { api } from '@/app/lib/api';
-import { EmojiButton } from '@joeattardi/emoji-button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import React, { useEffect, useId, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
-import { AVAILABLE_BACKGROUNDS } from '../constants';
-import { BackgroundSelector } from './BackgroundSelector';
-import { CurrencySelector } from './CurrencySelector';
-import { ServiceIntegrationSuggestions } from './ServiceIntegrationSuggestions';
+import { useWorkspace } from "@/app/contexts/WorkspaceContext";
+import { api } from "@/app/lib/api";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useEffect, useId, useRef, useState } from "react";
+import toast from "react-hot-toast";
+import { AVAILABLE_BACKGROUNDS } from "../constants";
+import { BackgroundSelector } from "./BackgroundSelector";
+import { CurrencySelector } from "./CurrencySelector";
+import { ServiceIntegrationSuggestions } from "./ServiceIntegrationSuggestions";
 
 interface CreateWorkspaceModalProps {
   isOpen: boolean;
@@ -17,27 +16,29 @@ interface CreateWorkspaceModalProps {
   onSuccess: () => void;
 }
 
-const PREDEFINED_ICONS = ['🏢', '💼', '🚀', '⭐', '💰', '📊', '🎯', '🏆', '💡', '🔧'];
-
-export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorkspaceModalProps) {
+export function CreateWorkspaceModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: CreateWorkspaceModalProps) {
   const { switchWorkspace, refreshWorkspaces } = useWorkspace();
   const dialogTitleId = useId();
   const [step, setStep] = useState(1);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [selectedIcon, setSelectedIcon] = useState('🏢');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
   const [selectedBackground, setSelectedBackground] = useState<string | null>(
     AVAILABLE_BACKGROUNDS[0],
   );
   const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [createdWorkspaceId, setCreatedWorkspaceId] = useState<string | null>(null);
-  const emojiButtonRef = useRef<EmojiButton | null>(null);
-  const emojiTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const [createdWorkspaceId, setCreatedWorkspaceId] = useState<string | null>(
+    null,
+  );
 
   const handleNext = () => {
     if (step === 1 && !name.trim()) {
-      toast.error('Workspace name is required');
+      toast.error("Workspace name is required");
       return;
     }
     setStep(step + 1);
@@ -49,25 +50,28 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 
   const handleCreateWorkspace = async () => {
     if (!name.trim()) {
-      toast.error('Workspace name is required');
+      toast.error("Workspace name is required");
       return;
     }
 
     try {
       setLoading(true);
-      const response = await api.post('/workspaces', {
+      const payload: any = {
         name: name.trim(),
         description: description.trim() || undefined,
-        icon: selectedIcon,
         backgroundImage: selectedBackground,
         currency: selectedCurrency,
-      });
+      };
+      // Do not send icon — icons/emoji feature removed
+      const response = await api.post("/workspaces", payload);
 
       setCreatedWorkspaceId(response.data.id);
-      toast.success('Workspace created successfully');
+      toast.success("Workspace created successfully");
       return response.data.id;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Failed to create workspace');
+      toast.error(
+        error?.response?.data?.message || "Failed to create workspace",
+      );
       throw error;
     } finally {
       setLoading(false);
@@ -110,9 +114,9 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 
   const resetForm = () => {
     setStep(1);
-    setName('');
-    setDescription('');
-    setSelectedIcon('🏢');
+    setName("");
+    setDescription("");
+    setSelectedIcon(null);
     setSelectedBackground(AVAILABLE_BACKGROUNDS[0]);
     setSelectedCurrency(null);
     setCreatedWorkspaceId(null);
@@ -126,25 +130,16 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
   useEffect(() => {
     if (!isOpen) return;
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
 
     return () => {
       document.body.style.overflow = previousOverflow;
     };
   }, [isOpen]);
 
+  // Emoji picker removed — no-op effect kept intentionally for compatibility
   useEffect(() => {
-    if (!isOpen) return;
-    const picker = new EmojiButton({ theme: 'light' });
-    const handleEmojiSelect = (selection: { emoji: string }) => {
-      setSelectedIcon(selection.emoji);
-    };
-    picker.on('emoji', handleEmojiSelect);
-    emojiButtonRef.current = picker;
-    return () => {
-      picker.off('emoji', handleEmojiSelect);
-      emojiButtonRef.current = null;
-    };
+    // feature removed: icons/emoji selection is disabled
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -169,34 +164,52 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                     Workspace setup
                   </p>
-                  <h2 id={dialogTitleId} className="text-2xl font-semibold text-gray-900">
+                  <h2
+                    id={dialogTitleId}
+                    className="text-2xl font-semibold text-gray-900"
+                  >
                     Create New Workspace
                   </h2>
                   <p className="text-sm text-gray-500">
-                    Create a dedicated space for your documents, receipts, and reports.
+                    Create a dedicated space for your documents, receipts, and
+                    reports.
                   </p>
                 </div>
                 <nav aria-label="Workspace setup steps">
                   <ol className="space-y-4">
                     {[
-                      { id: 1, label: 'Basic Info', detail: 'Name, description, icon' },
-                      { id: 2, label: 'Customization', detail: 'Currency and background' },
-                      { id: 3, label: 'Integrations', detail: 'Connect services' },
-                    ].map(item => (
+                      {
+                        id: 1,
+                        label: "Basic Info",
+                        detail: "Name, description, icon",
+                      },
+                      {
+                        id: 2,
+                        label: "Customization",
+                        detail: "Currency and background",
+                      },
+                      {
+                        id: 3,
+                        label: "Integrations",
+                        detail: "Connect services",
+                      },
+                    ].map((item) => (
                       <li
                         key={item.id}
                         className="flex items-start gap-3 rounded-2xl border border-transparent px-3 py-3 transition"
-                        aria-current={item.id === step ? 'step' : undefined}
+                        aria-current={item.id === step ? "step" : undefined}
                       >
                         <div
                           className={`mt-1 h-2.5 w-2.5 rounded-full ${
-                            item.id <= step ? 'bg-primary' : 'bg-gray-200'
+                            item.id <= step ? "bg-primary" : "bg-gray-200"
                           }`}
                         />
                         <div>
                           <p
                             className={`text-sm font-semibold ${
-                              item.id === step ? 'text-gray-900' : 'text-gray-600'
+                              item.id === step
+                                ? "text-gray-900"
+                                : "text-gray-600"
                             }`}
                           >
                             {item.label}
@@ -209,7 +222,8 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
                 </nav>
               </div>
               <div className="rounded-2xl border border-primary/10 bg-white/80 p-4 text-xs text-gray-500">
-                Tip: You can always edit workspace settings later in the workspace settings page.
+                Tip: You can always edit workspace settings later in the
+                workspace settings page.
               </div>
             </aside>
             <div className="flex-1 overflow-y-auto bg-white">
@@ -240,7 +254,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
                           id="workspace-name"
                           type="text"
                           value={name}
-                          onChange={e => setName(e.target.value)}
+                          onChange={(e) => setName(e.target.value)}
                           className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                           placeholder="My Workspace"
                           maxLength={255}
@@ -257,7 +271,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
                         <textarea
                           id="workspace-description"
                           value={description}
-                          onChange={e => setDescription(e.target.value)}
+                          onChange={(e) => setDescription(e.target.value)}
                           className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                           placeholder="What is this workspace for?"
                           maxLength={500}
@@ -265,39 +279,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
                         />
                       </div>
 
-                      <div>
-                        <p className="mb-3 text-sm font-medium text-gray-700">Icon</p>
-                        <div className="flex flex-wrap gap-3">
-                          <button
-                            type="button"
-                            ref={emojiTriggerRef}
-                            data-testid="emoji-trigger"
-                            onClick={() => {
-                              if (emojiButtonRef.current && emojiTriggerRef.current) {
-                                emojiButtonRef.current.togglePicker(emojiTriggerRef.current);
-                              }
-                            }}
-                            className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-gray-300 text-2xl transition hover:border-primary"
-                            aria-label="Open emoji picker"
-                          >
-                            {selectedIcon}
-                          </button>
-                          {PREDEFINED_ICONS.map(icon => (
-                            <button
-                              key={icon}
-                              type="button"
-                              onClick={() => setSelectedIcon(icon)}
-                              className={`flex h-12 w-12 items-center justify-center rounded-xl border text-2xl transition ${
-                                selectedIcon === icon
-                                  ? 'border-primary bg-primary/10'
-                                  : 'border-gray-200 hover:border-primary/60'
-                              }`}
-                            >
-                              {icon}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                      {/* Icon selection removed — feature not used. */}
                     </div>
                   )}
 
@@ -309,7 +291,9 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
                       />
 
                       <div>
-                        <p className="mb-3 text-sm font-medium text-gray-700">Background Image</p>
+                        <p className="mb-3 text-sm font-medium text-gray-700">
+                          Background Image
+                        </p>
                         <BackgroundSelector
                           selectedBackground={selectedBackground}
                           onSelect={setSelectedBackground}
@@ -360,7 +344,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
                         disabled={loading}
                         className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 transition hover:border-gray-300 hover:text-gray-800"
                       >
-                        {loading ? 'Creating...' : 'Skip Integrations'}
+                        {loading ? "Creating..." : "Skip Integrations"}
                       </button>
                       <button
                         type="button"
@@ -368,7 +352,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
                         disabled={loading}
                         className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary/90"
                       >
-                        {loading ? 'Creating...' : 'Next'}
+                        {loading ? "Creating..." : "Next"}
                         {!loading && <ChevronRight size={16} />}
                       </button>
                     </div>

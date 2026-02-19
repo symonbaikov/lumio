@@ -1,6 +1,7 @@
 "use client";
 
 import { Alert } from "@/app/components/ui/alert";
+import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -26,13 +27,17 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
 import SecurityIcon from "@mui/icons-material/Security";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
+import TabletMacOutlinedIcon from "@mui/icons-material/TabletMacOutlined";
+import DesktopWindowsOutlinedIcon from "@mui/icons-material/DesktopWindowsOutlined";
+import SmartphoneOutlinedIcon from "@mui/icons-material/SmartphoneOutlined";
 import CircularProgress from "@mui/material/CircularProgress";
 import type { AxiosError } from "axios";
 import { useIntlayer, useLocale } from "next-intlayer";
 import { useRouter } from "next/navigation";
 import {
   type ComponentType,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -41,6 +46,16 @@ import {
 
 type AppLocale = "ru" | "en" | "kk";
 type ApiErrorResponse = { message?: string; error?: { message?: string } };
+type UserSession = {
+  id: string;
+  device: string;
+  browser: string;
+  os: string;
+  ipAddress: string | null;
+  createdAt: string;
+  lastUsedAt: string;
+  isCurrent: boolean;
+};
 
 const sections = [
   "profile",
@@ -80,6 +95,20 @@ const getInitials = (value: string) => {
   return (tokens[0][0] + tokens[1][0]).toUpperCase();
 };
 
+const getSessionIcon = (device: string) => {
+  const normalized = device.toLowerCase();
+  if (normalized.includes("mobile")) {
+    return SmartphoneOutlinedIcon;
+  }
+  if (normalized.includes("tablet")) {
+    return TabletMacOutlinedIcon;
+  }
+  if (normalized.includes("bot")) {
+    return SmartToyOutlinedIcon;
+  }
+  return DesktopWindowsOutlinedIcon;
+};
+
 export default function ProfileSettingsPage() {
   const router = useRouter();
   const { user, loading, setUser } = useAuth();
@@ -97,6 +126,11 @@ export default function ProfileSettingsPage() {
   const [emailMessage, setEmailMessage] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailLoading, setEmailLoading] = useState(false);
+  const [sessions, setSessions] = useState<UserSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
+  const [sessionsMessage, setSessionsMessage] = useState<string | null>(null);
+  const [logoutSessionLoadingId, setLogoutSessionLoadingId] = useState<string | null>(null);
 
   const [passwords, setPasswords] = useState({
     current: "",
@@ -228,6 +262,66 @@ export default function ProfileSettingsPage() {
       localStorage.removeItem("refresh_token");
       localStorage.removeItem("user");
       router.push("/login");
+    }
+  };
+
+  const loadSessions = useCallback(async () => {
+    try {
+      setSessionsLoading(true);
+      setSessionsError(null);
+      const response = await apiClient.get<UserSession[]>("/auth/sessions");
+      setSessions(Array.isArray(response.data) ? response.data : []);
+    } catch (error: unknown) {
+      setSessionsError(
+        getApiErrorMessage(
+          error,
+          (t as any).sessionsCard?.sessionsLoadError?.value ||
+            "Failed to load sessions",
+        ),
+      );
+    } finally {
+      setSessionsLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    if (!isAuthenticated || activeSection !== "sessions") {
+      return;
+    }
+
+    loadSessions();
+  }, [activeSection, isAuthenticated, loadSessions]);
+
+  const handleLogoutSession = async (session: UserSession) => {
+    try {
+      setLogoutSessionLoadingId(session.id);
+      setSessionsError(null);
+      setSessionsMessage(null);
+      await apiClient.post(`/auth/sessions/${session.id}/logout`);
+
+      if (session.isCurrent) {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("user");
+        router.push("/login");
+        return;
+      }
+
+      setSessions(prev => prev.filter(current => current.id !== session.id));
+      setSessionsMessage(
+        (t as any).sessionsCard?.sessionLogoutSuccess?.value ||
+          "Session logged out",
+      );
+    } catch (error: unknown) {
+      setSessionsError(
+        getApiErrorMessage(
+          error,
+          (t as any).sessionsCard?.sessionLogoutError?.value ||
+            "Failed to log out session",
+        ),
+      );
+    } finally {
+      setLogoutSessionLoadingId(null);
     }
   };
 
@@ -409,11 +503,93 @@ export default function ProfileSettingsPage() {
     if (activeSection === "sessions") {
       return (
         <div className="space-y-5">
+          {sessionsMessage && <Alert variant="success">{sessionsMessage}</Alert>}
+          {sessionsError && <Alert variant="error">{sessionsError}</Alert>}
+
           <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
             <span className="font-medium text-gray-900">
               {t.sessionsCard.lastLoginLabel.value}:
             </span>{" "}
             {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : "—"}
+          </div>
+
+          <div className="space-y-3">
+            <div className="text-sm font-semibold text-gray-900">
+              {(t as any).sessionsCard?.activeSessionsLabel?.value ||
+                "Active devices"}
+            </div>
+
+            {sessionsLoading ? (
+              <div className="flex items-center gap-2 rounded-xl border border-gray-100 px-4 py-5 text-sm text-gray-600">
+                <CircularProgress size={18} color="inherit" />
+                {(t as any).sessionsCard?.loadingLabel?.value ||
+                  "Loading sessions..."}
+              </div>
+            ) : sessions.length ? (
+              <div className="space-y-2">
+                {sessions.map((session) => {
+                  const SessionIcon = getSessionIcon(session.device);
+                  const isLogoutLoading = logoutSessionLoadingId === session.id;
+
+                  return (
+                    <div
+                      key={session.id}
+                      className="flex flex-col gap-4 rounded-xl border border-gray-200/80 px-4 py-4 md:flex-row md:items-start md:justify-between"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          <SessionIcon className="text-[20px]" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-gray-900">
+                            <span>{`${session.device} · ${session.browser}`}</span>
+                            {session.isCurrent && (
+                              <Badge variant="info">
+                                {(t as any).sessionsCard?.currentSessionBadge?.value ||
+                                  "This device"}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {session.os}
+                            {session.ipAddress
+                              ? ` · ${(t as any).sessionsCard?.ipLabel?.value || "IP"}: ${session.ipAddress}`
+                              : ""}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {(t as any).sessionsCard?.lastActiveLabel?.value ||
+                              "Last active"}
+                            : {" "}
+                            {new Date(session.lastUsedAt).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button
+                          variant={session.isCurrent ? "destructive" : "outline"}
+                          onClick={() => handleLogoutSession(session)}
+                          disabled={isLogoutLoading}
+                          className="gap-2"
+                        >
+                          {isLogoutLoading && (
+                            <CircularProgress size={14} color="inherit" />
+                          )}
+                          <LogoutIcon className="text-[18px]" />
+                          {(t as any).sessionsCard?.logoutSessionButton?.value ||
+                            "Log out"}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/70 px-4 py-6 text-sm text-gray-600">
+                {(t as any).sessionsCard?.emptySessionsLabel?.value ||
+                  "No active sessions found."}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end">

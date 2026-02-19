@@ -1,5 +1,6 @@
 'use client';
 
+import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
 import {
   AlertCircle,
   AlertTriangle,
@@ -15,9 +16,11 @@ import {
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import apiClient from '../../lib/api';
 import BalanceSheet from './components/BalanceSheet';
+import { buildResponsiveReportChartLayout } from './reportChartLayout';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
@@ -156,8 +159,10 @@ export default function ReportsPage() {
   const t = useIntlayer('reportsPage');
   const { locale } = useLocale();
   const { resolvedTheme } = useTheme();
+  const isMobile = useIsMobile();
   const echartsTheme = resolvedTheme === 'dark' ? 'dark' : 'light';
   const chartBlue = resolvedTheme === 'dark' ? '#38BDF8' : '#0EA5E9';
+  const chartLayout = useMemo(() => buildResponsiveReportChartLayout(isMobile), [isMobile]);
   const [tab, setTab] = useState<'sheets' | 'statements' | 'local' | 'balance'>('sheets');
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(false);
@@ -285,13 +290,55 @@ export default function ReportsPage() {
     loadLocalSummary(selectedTableIds, localDays);
   }, [tab, localTablesLoaded, selectedTableIds, localDays]);
 
+  const refreshActiveTab = useCallback(async () => {
+    if (tab === 'sheets') {
+      await load(days);
+      return;
+    }
+
+    if (tab === 'statements') {
+      await Promise.all([loadStatements(), loadStatementSummary()]);
+      return;
+    }
+
+    if (tab === 'local') {
+      if (!localTablesLoaded) {
+        await loadCustomTables();
+      }
+      if (selectedTableIds.length > 0) {
+        await loadLocalSummary(selectedTableIds, localDays);
+      }
+    }
+  }, [
+    tab,
+    days,
+    localDays,
+    localTablesLoaded,
+    selectedTableIds,
+    load,
+    loadStatements,
+    loadStatementSummary,
+    loadCustomTables,
+    loadLocalSummary,
+  ]);
+
+  const {
+    handlers: pullToRefreshHandlers,
+    pullDistance,
+    isRefreshing: pullRefreshing,
+    isReadyToRefresh,
+  } = usePullToRefresh({
+    enabled: isMobile,
+    onRefresh: refreshActiveTab,
+  });
+
   const cashflowOption = useMemo(() => {
     if (!data) return undefined;
     return {
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
-      legend: { data: [t.labels.income.value, t.labels.expense.value] },
-      grid: { left: 30, right: 30, bottom: 30, top: 30 },
+      legend: { top: chartLayout.legendTop, data: [t.labels.income.value, t.labels.expense.value] },
+      grid: chartLayout.lineGrid,
       xAxis: { type: 'category', data: data.timeseries.map(p => p.date) },
       yAxis: { type: 'value' },
       series: [
@@ -315,15 +362,15 @@ export default function ReportsPage() {
         },
       ],
     };
-  }, [data, t]);
+  }, [data, t, chartLayout]);
 
   const localCashflowOption = useMemo(() => {
     if (!localSummary) return undefined;
     return {
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
-      legend: { data: [t.labels.income.value, t.labels.expense.value] },
-      grid: { left: 30, right: 30, bottom: 30, top: 30 },
+      legend: { top: chartLayout.legendTop, data: [t.labels.income.value, t.labels.expense.value] },
+      grid: chartLayout.lineGrid,
       xAxis: {
         type: 'category',
         data: localSummary.timeseries.map(p => p.date),
@@ -350,19 +397,19 @@ export default function ReportsPage() {
         },
       ],
     };
-  }, [localSummary, t]);
+  }, [localSummary, t, chartLayout]);
 
   const expensePieOption = useMemo(() => {
     if (!data) return undefined;
     return {
       backgroundColor: 'transparent',
       tooltip: { trigger: 'item' },
-      legend: { top: 'bottom' },
+      legend: { top: chartLayout.legendTop },
       series: [
         {
           name: t.labels.expense.value,
           type: 'pie',
-          radius: ['30%', '70%'],
+          radius: chartLayout.pieRadius,
           roseType: 'radius',
           data: data.categories.map(c => ({
             name: c.name,
@@ -371,19 +418,19 @@ export default function ReportsPage() {
         },
       ],
     };
-  }, [data, t]);
+  }, [data, t, chartLayout]);
 
   const localExpensePieOption = useMemo(() => {
     if (!localSummary) return undefined;
     return {
       backgroundColor: 'transparent',
       tooltip: { trigger: 'item' },
-      legend: { top: 'bottom' },
+      legend: { top: chartLayout.legendTop },
       series: [
         {
           name: t.labels.expense.value,
           type: 'pie',
-          radius: ['30%', '70%'],
+          radius: chartLayout.pieRadius,
           roseType: 'radius',
           data: localSummary.categories.map(c => ({
             name: c.name,
@@ -392,14 +439,14 @@ export default function ReportsPage() {
         },
       ],
     };
-  }, [localSummary, t]);
+  }, [localSummary, t, chartLayout]);
 
   const incomeBarOption = useMemo(() => {
     if (!data) return undefined;
     return {
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
-      grid: { left: 80, right: 20, top: 20, bottom: 30 },
+      grid: chartLayout.barGrid,
       xAxis: { type: 'value' },
       yAxis: {
         type: 'category',
@@ -416,14 +463,14 @@ export default function ReportsPage() {
         },
       ],
     };
-  }, [data]);
+  }, [data, chartLayout]);
 
   const localIncomeBarOption = useMemo(() => {
     if (!localSummary) return undefined;
     return {
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
-      grid: { left: 80, right: 20, top: 20, bottom: 30 },
+      grid: chartLayout.barGrid,
       xAxis: { type: 'value' },
       yAxis: {
         type: 'category',
@@ -440,7 +487,7 @@ export default function ReportsPage() {
         },
       ],
     };
-  }, [localSummary]);
+  }, [localSummary, chartLayout]);
 
   const parsedStatements = useMemo(() => {
     if (!statements || statements.length === 0) {
@@ -517,7 +564,7 @@ export default function ReportsPage() {
     return {
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
-      grid: { left: 30, right: 30, bottom: 30, top: 30 },
+      grid: chartLayout.lineGrid,
       xAxis: { type: 'category', data: ts.map(p => p.date) },
       yAxis: { type: 'value' },
       series: [
@@ -534,18 +581,18 @@ export default function ReportsPage() {
         },
       ],
     };
-  }, [chartBlue, parsedStatements.timeseries, resolvedTheme, t]);
+  }, [chartBlue, parsedStatements.timeseries, resolvedTheme, t, chartLayout]);
 
   const statementsPieOption = useMemo(() => {
     return {
       backgroundColor: 'transparent',
       tooltip: { trigger: 'item' },
-      legend: { top: 'bottom' },
+      legend: { top: chartLayout.legendTop },
       series: [
         {
           name: t.labels.banks.value,
           type: 'pie',
-          radius: ['30%', '70%'],
+          radius: chartLayout.pieRadius,
           data: parsedStatements.banks.map(b => ({
             name: b.name,
             value: b.value,
@@ -553,13 +600,13 @@ export default function ReportsPage() {
         },
       ],
     };
-  }, [parsedStatements.banks, t]);
+  }, [parsedStatements.banks, t, chartLayout]);
 
   const statementsBarOption = useMemo(() => {
     return {
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
-      grid: { left: 60, right: 20, top: 20, bottom: 30 },
+      grid: chartLayout.barGrid,
       xAxis: { type: 'value' },
       yAxis: {
         type: 'category',
@@ -576,14 +623,41 @@ export default function ReportsPage() {
         },
       ],
     };
-  }, [parsedStatements.statuses, resolvedTheme]);
+  }, [parsedStatements.statuses, resolvedTheme, chartLayout]);
 
   return (
-    <div className="container-shared px-4 sm:px-6 lg:px-8 py-12 space-y-6 bg-white">
+    <div
+      className="container-shared bg-white px-4 py-12 space-y-6 sm:px-6 lg:px-8"
+      {...pullToRefreshHandlers}
+    >
+      {isMobile && (pullDistance > 0 || pullRefreshing) ? (
+        <div className="pointer-events-none flex justify-center">
+          <div
+            className={`inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm transition-colors ${
+              isReadyToRefresh || pullRefreshing
+                ? 'border-primary/40 text-primary'
+                : 'border-gray-200'
+            }`}
+          >
+            <RefreshCcw className={`h-3.5 w-3.5 ${pullRefreshing ? 'animate-spin' : ''}`} />
+            <span>
+              {pullRefreshing
+                ? 'Refreshing...'
+                : isReadyToRefresh
+                  ? 'Release to refresh'
+                  : 'Pull to refresh'}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 flex flex-col md:flex-row md:items-center justify-start gap-4">
         <div />
 
-        <div className="flex flex-wrap items-center gap-6" data-tour-id="reports-tabs">
+        <div
+          className="-mx-1 flex items-center gap-6 overflow-x-auto px-1 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
+          data-tour-id="reports-tabs"
+        >
           <button
             onClick={() => setTab('sheets')}
             className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
@@ -663,7 +737,7 @@ export default function ReportsPage() {
           </div>
 
           <div
-            className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-3"
+            className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4"
             data-tour-id="reports-sheets-totals"
           >
             <InfoCard
@@ -708,7 +782,7 @@ export default function ReportsPage() {
                 </div>
               ) : (
                 <ReactECharts
-                  style={{ height: 320 }}
+                  style={{ height: chartLayout.primaryChartHeight }}
                   option={cashflowOption}
                   notMerge
                   lazyUpdate
@@ -733,7 +807,7 @@ export default function ReportsPage() {
                 </div>
               ) : (
                 <ReactECharts
-                  style={{ height: 280 }}
+                  style={{ height: chartLayout.secondaryChartHeight }}
                   option={expensePieOption}
                   notMerge
                   lazyUpdate
@@ -760,7 +834,7 @@ export default function ReportsPage() {
                 </div>
               ) : (
                 <ReactECharts
-                  style={{ height: 280 }}
+                  style={{ height: chartLayout.secondaryChartHeight }}
                   option={incomeBarOption}
                   notMerge
                   lazyUpdate
@@ -779,7 +853,10 @@ export default function ReportsPage() {
               </div>
               <div className="divide-y divide-gray-100">
                 {(data?.recent || []).map(row => (
-                  <div key={row.id} className="py-3 flex items-center justify-between">
+                  <div
+                    key={row.id}
+                    className="flex flex-col justify-between gap-1 py-3 sm:flex-row sm:items-center"
+                  >
                     <div>
                       <p className="text-sm font-semibold text-gray-900">
                         {row.counterparty || t.labels.withoutName.value} · #{row.rowNumber}
@@ -909,7 +986,7 @@ export default function ReportsPage() {
           ) : (
             <>
               <div
-                className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-3"
+                className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4"
                 data-tour-id="reports-local-totals"
               >
                 <InfoCard
@@ -954,7 +1031,7 @@ export default function ReportsPage() {
                     </div>
                   ) : (
                     <ReactECharts
-                      style={{ height: 320 }}
+                      style={{ height: chartLayout.primaryChartHeight }}
                       option={localCashflowOption}
                       notMerge
                       lazyUpdate
@@ -979,7 +1056,7 @@ export default function ReportsPage() {
                     </div>
                   ) : (
                     <ReactECharts
-                      style={{ height: 280 }}
+                      style={{ height: chartLayout.secondaryChartHeight }}
                       option={localExpensePieOption}
                       notMerge
                       lazyUpdate
@@ -1006,7 +1083,7 @@ export default function ReportsPage() {
                     </div>
                   ) : (
                     <ReactECharts
-                      style={{ height: 280 }}
+                      style={{ height: chartLayout.secondaryChartHeight }}
                       option={localIncomeBarOption}
                       notMerge
                       lazyUpdate
@@ -1027,7 +1104,10 @@ export default function ReportsPage() {
                   </div>
                   <div className="divide-y divide-gray-100">
                     {(localSummary?.recent || []).map(row => (
-                      <div key={row.id} className="py-3 flex items-center justify-between">
+                      <div
+                        key={row.id}
+                        className="flex flex-col justify-between gap-1 py-3 sm:flex-row sm:items-center"
+                      >
                         <div>
                           <p className="text-sm font-semibold text-gray-900">
                             {row.counterparty || t.labels.withoutName.value} · #{row.rowNumber}
@@ -1108,7 +1188,7 @@ export default function ReportsPage() {
           </div>
 
           <div
-            className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-3"
+            className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4"
             data-tour-id="reports-statements-pipeline"
           >
             <InfoCard
@@ -1137,7 +1217,7 @@ export default function ReportsPage() {
           </div>
 
           <div
-            className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-3"
+            className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4"
             data-tour-id="reports-statements-totals"
           >
             <InfoCard
@@ -1180,7 +1260,7 @@ export default function ReportsPage() {
                 </div>
               ) : (
                 <ReactECharts
-                  style={{ height: 320 }}
+                  style={{ height: chartLayout.primaryChartHeight }}
                   option={statementsLineOption}
                   notMerge
                   lazyUpdate
@@ -1203,7 +1283,7 @@ export default function ReportsPage() {
                 </div>
               ) : (
                 <ReactECharts
-                  style={{ height: 280 }}
+                  style={{ height: chartLayout.secondaryChartHeight }}
                   option={statementsPieOption}
                   notMerge
                   lazyUpdate
@@ -1228,7 +1308,7 @@ export default function ReportsPage() {
                 </div>
               ) : (
                 <ReactECharts
-                  style={{ height: 280 }}
+                  style={{ height: chartLayout.secondaryChartHeight }}
                   option={statementsBarOption}
                   notMerge
                   lazyUpdate
@@ -1254,7 +1334,10 @@ export default function ReportsPage() {
               ) : (
                 <div className="divide-y divide-gray-100">
                   {statements.slice(0, 10).map(s => (
-                    <div key={s.id} className="py-3 flex items-center justify-between">
+                    <div
+                      key={s.id}
+                      className="flex flex-col justify-between gap-1 py-3 sm:flex-row sm:items-center"
+                    >
                       <div>
                         <p className="text-sm font-semibold text-gray-900">{s.fileName}</p>
                         <p className="text-xs text-gray-500">

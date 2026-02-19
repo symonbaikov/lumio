@@ -10,6 +10,7 @@ export interface JwtRefreshPayload {
   sub: string;
   type: 'refresh';
   tokenVersion?: number;
+  sessionId?: string;
   iat?: number;
   exp?: number;
   jti?: string;

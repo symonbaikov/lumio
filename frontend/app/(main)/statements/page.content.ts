@@ -61,6 +61,114 @@ const content = {
         kk: '{page} / {count} бет',
       }),
     },
+    trash: {
+      title: t({ ru: 'Корзина', en: 'Trash', kk: 'Қоқыс' }),
+      searchPlaceholder: t({
+        ru: 'Поиск в корзине...',
+        en: 'Search in trash...',
+        kk: 'Қоқыстан іздеу...',
+      }),
+      selectedCount: t({
+        ru: 'Выбрано: {count}',
+        en: 'Selected: {count}',
+        kk: 'Таңдалды: {count}',
+      }),
+      restore: t({ ru: 'Восстановить', en: 'Restore', kk: 'Қалпына келтіру' }),
+      delete: t({ ru: 'Удалить', en: 'Delete', kk: 'Жою' }),
+      emptyTrash: t({ ru: 'Очистить корзину', en: 'Empty trash', kk: 'Қоқысты тазарту' }),
+      selectAll: t({
+        ru: 'Выбрать все в корзине',
+        en: 'Select all in trash',
+        kk: 'Қоқыстағының бәрін таңдау',
+      }),
+      expiresIn: t({
+        ru: 'Удалится через {days} дн.',
+        en: 'Deletes in {days}d',
+        kk: '{days} күннен кейін жойылады',
+      }),
+      expiresToday: t({
+        ru: 'Удалится сегодня',
+        en: 'Deletes today',
+        kk: 'Бүгін жойылады',
+      }),
+      empty: {
+        title: t({
+          ru: 'Корзина пуста',
+          en: 'Trash is empty',
+          kk: 'Қоқыс бос',
+        }),
+        subtitle: t({
+          ru: 'Удаленные файлы появятся здесь',
+          en: 'Deleted files will appear here',
+          kk: 'Жойылған файлдар осында пайда болады',
+        }),
+      },
+      listHeader: {
+        receipt: t({ ru: 'Чек', en: 'Receipt', kk: 'Чек' }),
+        type: t({ ru: 'Тип', en: 'Type', kk: 'Түрі' }),
+        deleted: t({ ru: 'Удалено', en: 'Deleted', kk: 'Жойылған' }),
+        name: t({ ru: 'Название', en: 'Name', kk: 'Атауы' }),
+        actions: t({ ru: 'Действия', en: 'Actions', kk: 'Әрекеттер' }),
+      },
+      restoreLoading: t({
+        ru: 'Восстанавливаем...',
+        en: 'Restoring...',
+        kk: 'Қалпына келтіру...',
+      }),
+      restoreSuccess: t({
+        ru: 'Файл восстановлен',
+        en: 'File restored',
+        kk: 'Файл қалпына келтірілді',
+      }),
+      restoreFailed: t({
+        ru: 'Не удалось восстановить файл',
+        en: 'Failed to restore file',
+        kk: 'Файлды қалпына келтіру мүмкін болмады',
+      }),
+      deleteLoading: t({
+        ru: 'Удаляем навсегда...',
+        en: 'Deleting forever...',
+        kk: 'Мүлде жою...',
+      }),
+      deleteSuccess: t({
+        ru: 'Файл удалён навсегда',
+        en: 'File deleted permanently',
+        kk: 'Файл мүлде жойылды',
+      }),
+      deleteFailed: t({
+        ru: 'Не удалось удалить файл навсегда',
+        en: 'Failed to delete file permanently',
+        kk: 'Файлды мүлде жою мүмкін болмады',
+      }),
+      confirmDeleteTitle: t({
+        ru: 'Удалить навсегда?',
+        en: 'Delete permanently?',
+        kk: 'Мүлде жою керек пе?',
+      }),
+      confirmDeleteMessage: t({
+        ru: 'Выбранные файлы ({count}) будут удалены без возможности восстановления.',
+        en: 'Selected files ({count}) will be deleted permanently.',
+        kk: 'Таңдалған файлдар ({count}) қайтарусыз жойылады.',
+      }),
+      confirmDelete: t({ ru: 'Удалить', en: 'Delete', kk: 'Жою' }),
+      confirmCancel: t({ ru: 'Отмена', en: 'Cancel', kk: 'Болдырмау' }),
+      confirmEmptyTitle: t({
+        ru: 'Очистить корзину?',
+        en: 'Empty trash?',
+        kk: 'Қоқысты тазарту керек пе?',
+      }),
+      confirmEmptyMessage: t({
+        ru: 'Все файлы из корзины будут удалены без возможности восстановления.',
+        en: 'All files in trash will be deleted permanently.',
+        kk: 'Қоқыстағы барлық файлдар қайтарусыз жойылады.',
+      }),
+      confirmEmpty: t({ ru: 'Очистить', en: 'Empty', kk: 'Тазарту' }),
+      loadError: t({
+        ru: 'Не удалось загрузить корзину',
+        en: 'Failed to load trash',
+        kk: 'Қоқысты жүктеу мүмкін болмады',
+      }),
+    },
     sidePanel: {
       todoTitle: t({ ru: 'К выполнению', en: 'To-do', kk: 'Аяқтау керек' }),
       submit: t({ ru: 'Отправить', en: 'Submit', kk: 'Жіберу' }),

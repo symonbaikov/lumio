@@ -268,7 +268,7 @@ export default function CreateExpenseDrawer({
       position="right"
       width="lg"
       showCloseButton={false}
-      className="bg-[#fbfaf8] border-l-0"
+      className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
       title={
         <div className="flex items-center gap-3">
           <button
@@ -409,6 +409,8 @@ export default function CreateExpenseDrawer({
                 <input
                   ref={fileInputRef}
                   type="file"
+                  accept="image/*,.pdf,.csv,.xlsx,.xls"
+                  capture="environment"
                   className="hidden"
                   multiple
                   onChange={event => handleFilesSelected(event.target.files)}
@@ -466,6 +468,8 @@ export default function CreateExpenseDrawer({
                 </span>
                 <input
                   type="file"
+                  accept="image/*,.pdf,.csv,.xlsx,.xls"
+                  capture="environment"
                   className="hidden"
                   multiple
                   onChange={event => handleFilesSelected(event.target.files)}

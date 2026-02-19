@@ -1,4 +1,5 @@
 import {
+  AuthSession,
   User,
   UserRole,
   Workspace,
@@ -8,9 +9,11 @@ import {
 } from '@/entities';
 import { AuthService } from '@/modules/auth/auth.service';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { createHmac } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import type { Repository } from 'typeorm';
 
@@ -26,6 +29,7 @@ describe('AuthService', () => {
   let workspaceRepository: Repository<Workspace>;
   let workspaceInvitationRepository: Repository<WorkspaceInvitation>;
   let workspaceMemberRepository: Repository<WorkspaceMember>;
+  let authSessionRepository: Repository<AuthSession>;
   let jwtService: JwtService;
 
   const mockUser: Partial<User> = {
@@ -79,10 +83,30 @@ describe('AuthService', () => {
           },
         },
         {
+          provide: getRepositoryToken(AuthSession),
+          useValue: {
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn(payload => payload),
+            save: jest.fn(),
+            update: jest.fn(),
+          },
+        },
+        {
           provide: JwtService,
           useValue: {
             sign: jest.fn(),
             verify: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) => {
+              if (key === 'SESSION_TOKEN_SALT') return 'session-salt';
+              if (key === 'JWT_REFRESH_SECRET') return 'refresh-secret';
+              return null;
+            }),
           },
         },
       ],
@@ -97,6 +121,7 @@ describe('AuthService', () => {
     workspaceMemberRepository = testingModule.get<Repository<WorkspaceMember>>(
       getRepositoryToken(WorkspaceMember),
     );
+    authSessionRepository = testingModule.get<Repository<AuthSession>>(getRepositoryToken(AuthSession));
     jwtService = testingModule.get<JwtService>(JwtService);
   });
 
@@ -294,6 +319,27 @@ describe('AuthService', () => {
         expect.objectContaining({ lastLogin: expect.any(Date) }),
       );
     });
+
+    it('includes sessionId in access and refresh token payloads', async () => {
+      const loginDto = {
+        email: 'test@example.com',
+        password: 'password123',
+      };
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue({
+        ...mockUser,
+        passwordHash: await bcrypt.hash('password123', 10),
+      } as User);
+
+      await service.login(loginDto);
+
+      expect(jwtService.sign).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: expect.any(String),
+        }),
+        expect.any(Object),
+      );
+    });
   });
 
   describe('logout', () => {
@@ -314,6 +360,103 @@ describe('AuthService', () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
 
       await expect(service.logout(userId)).resolves.not.toThrow();
+    });
+  });
+
+  describe('sessions', () => {
+    it('returns active sessions and marks current one', async () => {
+      jest.spyOn(authSessionRepository, 'find').mockResolvedValue([
+        {
+          id: 'session-2',
+          userId: '1',
+          device: 'Desktop',
+          browser: 'Chrome',
+          os: 'macOS',
+          ipAddress: '10.0.0.1',
+          createdAt: new Date('2026-02-15T10:00:00.000Z'),
+          lastUsedAt: new Date('2026-02-15T12:00:00.000Z'),
+          revokedAt: null,
+        },
+      ] as AuthSession[]);
+
+      const result = await service.getSessions('1', 'session-2');
+
+      expect(result).toEqual([
+        expect.objectContaining({
+          id: 'session-2',
+          isCurrent: true,
+          browser: 'Chrome',
+        }),
+      ]);
+    });
+
+    it('revokes specific session by id', async () => {
+      jest.spyOn(authSessionRepository, 'update').mockResolvedValue({
+        affected: 1,
+        generatedMaps: [],
+        raw: [],
+      });
+
+      const result = await service.logoutSession('1', 'session-2');
+
+      expect(result).toEqual({ message: 'Session logged out successfully' });
+      expect(authSessionRepository.update).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'session-2', userId: '1' }),
+        expect.objectContaining({ revokedAt: expect.any(Date) }),
+      );
+    });
+  });
+
+  describe('refreshToken', () => {
+    it('issues access token when refresh token belongs to active session', async () => {
+      const refreshToken = 'refresh-token';
+      const refreshTokenHash = createHmac('sha256', 'session-salt').update(refreshToken).digest('hex');
+
+      jest.spyOn(jwtService, 'verify').mockReturnValue({
+        sub: '1',
+        type: 'refresh',
+        tokenVersion: 0,
+        sessionId: 'session-1',
+      } as any);
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
+      jest.spyOn(authSessionRepository, 'findOne').mockResolvedValue({
+        id: 'session-1',
+        userId: '1',
+        refreshTokenHash,
+        userAgent: 'Mozilla/5.0',
+        ipAddress: '10.0.0.1',
+        revokedAt: null,
+      } as AuthSession);
+      jest.spyOn(authSessionRepository, 'update').mockResolvedValue({
+        affected: 1,
+        generatedMaps: [],
+        raw: [],
+      });
+      jest.spyOn(jwtService, 'sign').mockReturnValue('new-access-token');
+
+      const result = await service.refreshToken(refreshToken, {
+        userAgent: 'Mozilla/5.0 (Macintosh)',
+        ipAddress: '10.0.0.2',
+      });
+
+      expect(result).toEqual({ access_token: 'new-access-token' });
+      expect(authSessionRepository.update).toHaveBeenCalledWith(
+        { id: 'session-1' },
+        expect.objectContaining({ lastUsedAt: expect.any(Date) }),
+      );
+    });
+
+    it('throws when session is missing', async () => {
+      jest.spyOn(jwtService, 'verify').mockReturnValue({
+        sub: '1',
+        type: 'refresh',
+        tokenVersion: 0,
+        sessionId: 'missing-session',
+      } as any);
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
+      jest.spyOn(authSessionRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(service.refreshToken('refresh-token')).rejects.toThrow(UnauthorizedException);
     });
   });
 });

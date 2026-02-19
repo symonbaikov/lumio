@@ -49,4 +49,41 @@ describe('resolveGmailMerchantLabel', () => {
 
     expect(label).toBe('GitHub');
   });
+
+  it('rejects date-like vendor values and falls back to sender', () => {
+    const label = resolveGmailMerchantLabel({
+      vendor: 'Date2026-02-16 10:57AM PST',
+      sender: 'GitHub <noreply@github.com>',
+      subject: 'Payment receipt',
+    });
+
+    expect(label).toBe('GitHub');
+  });
+
+  it('rejects timestamp vendor values', () => {
+    const label = resolveGmailMerchantLabel({
+      vendor: '2026-02-16 10:57',
+      sender: 'Spotify <no-reply@spotify.com>',
+    });
+
+    expect(label).toBe('Spotify');
+  });
+
+  it('rejects amount-like vendor values', () => {
+    const label = resolveGmailMerchantLabel({
+      vendor: '$49.99',
+      sender: 'Adobe <mail@adobe.com>',
+    });
+
+    expect(label).toBe('Adobe');
+  });
+
+  it('rejects email-like vendor values', () => {
+    const label = resolveGmailMerchantLabel({
+      vendor: 'noreply@github.com',
+      sender: 'GitHub <noreply@github.com>',
+    });
+
+    expect(label).toBe('GitHub');
+  });
 });

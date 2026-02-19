@@ -15,14 +15,20 @@ import {
   type ConnectedCloudProviders,
 } from '@/app/lib/statement-upload-actions';
 import { countStatementStages, getStatementStageMap } from '@/app/lib/statement-workflow';
-import { Banknote, Folder, Pencil, ThumbsUp, User } from 'lucide-react';
+import { Banknote, CalendarRange, Folder, Pencil, Send, ThumbsUp, User } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import StatementsCircularUploadMenu from './StatementsCircularUploadMenu';
 
-type ActiveItem = 'submit' | 'approve' | 'pay' | 'top-spenders' | 'top-categories';
+type ActiveItem =
+  | 'submit'
+  | 'approve'
+  | 'pay'
+  | 'spend-over-time'
+  | 'top-spenders'
+  | 'top-categories';
 
 type Props = {
   activeItem: ActiveItem;
@@ -244,7 +250,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             {
               id: 'submit',
               label: (t as any)?.sidePanel?.submit?.value ?? 'Submit',
-              icon: Pencil,
+              icon: Send,
               badge: counts.submit,
               badgeVariant: 'default',
               active: activeItem === 'submit',
@@ -287,6 +293,13 @@ export default function StatementsSidePanel({ activeItem }: Props) {
           type: 'navigation',
           title: (t as any)?.sidePanel?.insightsTitle?.value ?? 'Insights',
           items: [
+            {
+              id: 'spend-over-time',
+              label: (t as any)?.sidePanel?.spendOverTime?.value ?? 'Spend over time',
+              icon: CalendarRange,
+              href: '/statements/spend-over-time',
+              active: activeItem === 'spend-over-time',
+            },
             {
               id: 'top-spenders',
               label: (t as any)?.sidePanel?.topSpenders?.value ?? 'Top spenders',

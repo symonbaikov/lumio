@@ -1,8 +1,9 @@
-import { randomBytes } from 'crypto';
+import { createHmac, randomBytes, randomUUID } from 'crypto';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -10,9 +11,9 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { OAuth2Client } from 'google-auth-library';
-import type { Repository } from 'typeorm';
-import { ROLE_PERMISSIONS } from '../../common/enums/permissions.enum';
+import { IsNull, type Repository } from 'typeorm';
 import {
+  AuthSession,
   User,
   UserRole,
   Workspace,
@@ -28,6 +29,22 @@ import type { RegisterDto } from './dto/register.dto';
 import type { JwtRefreshPayload } from './strategies/jwt-refresh.strategy';
 import type { JwtPayload } from './strategies/jwt.strategy';
 
+export interface SessionContext {
+  userAgent?: string | null;
+  ipAddress?: string | null;
+}
+
+export interface UserSessionDto {
+  id: string;
+  device: string;
+  browser: string;
+  os: string;
+  ipAddress: string | null;
+  createdAt: Date;
+  lastUsedAt: Date;
+  isCurrent: boolean;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -39,11 +56,13 @@ export class AuthService {
     private workspaceInvitationRepository: Repository<WorkspaceInvitation>,
     @InjectRepository(WorkspaceMember)
     private workspaceMemberRepository: Repository<WorkspaceMember>,
+    @InjectRepository(AuthSession)
+    private authSessionRepository: Repository<AuthSession>,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
+  async register(registerDto: RegisterDto, sessionContext?: SessionContext): Promise<AuthResponseDto> {
     const normalizedEmail = registerDto.email.trim().toLowerCase();
     const invitationToken = registerDto.invitationToken?.trim() || null;
 
@@ -95,7 +114,7 @@ export class AuthService {
     const savedUser = await this.userRepository.save(user);
 
     if (invitationToken) {
-      return this.generateTokens(savedUser);
+      return this.generateTokens(savedUser, sessionContext);
     }
 
     const workspaceName = registerDto.company?.trim()
@@ -119,10 +138,10 @@ export class AuthService {
       invitedById: savedUser.id,
     });
 
-    return this.generateTokens(savedUser);
+    return this.generateTokens(savedUser, sessionContext);
   }
 
-  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
+  async login(loginDto: LoginDto, sessionContext?: SessionContext): Promise<AuthResponseDto> {
     const normalizedEmail = loginDto.email.trim().toLowerCase();
     const user = await this.userRepository.findOne({
       where: { email: normalizedEmail },
@@ -158,10 +177,13 @@ export class AuthService {
     // Update last login
     await this.userRepository.update(user.id, { lastLogin: new Date() });
 
-    return this.generateTokens(user);
+    return this.generateTokens(user, sessionContext);
   }
 
-  async loginWithGoogle(dto: GoogleLoginDto): Promise<AuthResponseDto> {
+  async loginWithGoogle(
+    dto: GoogleLoginDto,
+    sessionContext?: SessionContext,
+  ): Promise<AuthResponseDto> {
     const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
     if (!clientId) {
       throw new BadRequestException('Google login is not configured');
@@ -242,7 +264,7 @@ export class AuthService {
       const savedUser = await this.userRepository.save(user);
 
       if (invitationToken) {
-        return this.generateTokens(savedUser);
+        return this.generateTokens(savedUser, sessionContext);
       }
 
       const workspaceName = `${displayName || email} workspace`;
@@ -280,10 +302,13 @@ export class AuthService {
       user = { ...user, ...updates };
     }
 
-    return this.generateTokens(user);
+    return this.generateTokens(user, sessionContext);
   }
 
-  async refreshToken(refreshToken: string): Promise<{ access_token: string }> {
+  async refreshToken(
+    refreshToken: string,
+    sessionContext?: SessionContext,
+  ): Promise<{ access_token: string }> {
     try {
       const payload = this.jwtService.verify<JwtRefreshPayload>(refreshToken, {
         secret: process.env.JWT_REFRESH_SECRET,
@@ -306,11 +331,47 @@ export class AuthService {
         throw new UnauthorizedException('Token has been revoked');
       }
 
+      if (!payload.sessionId) {
+        throw new UnauthorizedException('Session is missing');
+      }
+
+      const session = await this.authSessionRepository.findOne({
+        where: {
+          id: payload.sessionId,
+          userId: payload.sub,
+          revokedAt: IsNull(),
+        },
+      });
+
+      if (!session) {
+        throw new UnauthorizedException('Session is not active');
+      }
+
+      const refreshTokenHash = this.hashRefreshToken(refreshToken);
+      if (session.refreshTokenHash !== refreshTokenHash) {
+        throw new UnauthorizedException('Refresh token does not match session');
+      }
+
+      const parsedDevice = this.parseUserAgent(sessionContext?.userAgent || session.userAgent || null);
+
+      await this.authSessionRepository.update(
+        { id: session.id },
+        {
+          lastUsedAt: new Date(),
+          userAgent: sessionContext?.userAgent || session.userAgent,
+          ipAddress: this.resolveIpAddress(sessionContext?.ipAddress) || session.ipAddress,
+          device: parsedDevice.device,
+          browser: parsedDevice.browser,
+          os: parsedDevice.os,
+        },
+      );
+
       const accessTokenPayload: JwtPayload = {
         sub: user.id,
         email: user.email,
         role: user.role,
         tokenVersion: user.tokenVersion ?? 0,
+        sessionId: payload.sessionId,
       };
 
       const access_token = this.jwtService.sign(accessTokenPayload, {
@@ -324,30 +385,96 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string): Promise<{ message: string }> {
-    // In a more advanced implementation, you would store refresh tokens
-    // in a database and revoke them here
-    // For now, we'll just return success
+  async logout(userId: string, sessionId?: string | null): Promise<{ message: string }> {
+    if (sessionId) {
+      await this.authSessionRepository.update(
+        {
+          id: sessionId,
+          userId,
+          revokedAt: IsNull(),
+        },
+        {
+          revokedAt: new Date(),
+        },
+      );
+    }
+
     return { message: 'Logged out successfully' };
   }
 
   async logoutAll(userId: string): Promise<{ message: string }> {
+    await this.authSessionRepository.update(
+      {
+        userId,
+        revokedAt: IsNull(),
+      },
+      {
+        revokedAt: new Date(),
+      },
+    );
+
     await this.userRepository.increment({ id: userId }, 'tokenVersion', 1);
     return { message: 'Logged out from all devices successfully' };
   }
 
-  private generateTokens(user: User): AuthResponseDto {
+  async getSessions(userId: string, currentSessionId?: string | null): Promise<UserSessionDto[]> {
+    const sessions = await this.authSessionRepository.find({
+      where: {
+        userId,
+        revokedAt: IsNull(),
+      },
+      order: {
+        lastUsedAt: 'DESC',
+      },
+    });
+
+    return sessions.map(session => ({
+      id: session.id,
+      device: session.device,
+      browser: session.browser,
+      os: session.os,
+      ipAddress: session.ipAddress,
+      createdAt: session.createdAt,
+      lastUsedAt: session.lastUsedAt,
+      isCurrent: currentSessionId ? session.id === currentSessionId : false,
+    }));
+  }
+
+  async logoutSession(userId: string, sessionId: string): Promise<{ message: string }> {
+    const result = await this.authSessionRepository.update(
+      {
+        id: sessionId,
+        userId,
+        revokedAt: IsNull(),
+      },
+      {
+        revokedAt: new Date(),
+      },
+    );
+
+    if (!result.affected) {
+      throw new NotFoundException('Session not found');
+    }
+
+    return { message: 'Session logged out successfully' };
+  }
+
+  private async generateTokens(user: User, sessionContext?: SessionContext): Promise<AuthResponseDto> {
+    const sessionId = randomUUID();
+
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,
       tokenVersion: user.tokenVersion ?? 0,
+      sessionId,
     };
 
     const refreshPayload: JwtRefreshPayload = {
       sub: user.id,
       type: 'refresh',
       tokenVersion: user.tokenVersion ?? 0,
+      sessionId,
     };
 
     const access_token = this.jwtService.sign(payload, {
@@ -359,6 +486,21 @@ export class AuthService {
       secret: process.env.JWT_REFRESH_SECRET,
       expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
     } as any);
+
+    const parsedDevice = this.parseUserAgent(sessionContext?.userAgent);
+    await this.authSessionRepository.save(
+      this.authSessionRepository.create({
+        id: sessionId,
+        userId: user.id,
+        refreshTokenHash: this.hashRefreshToken(refresh_token),
+        userAgent: sessionContext?.userAgent || null,
+        ipAddress: this.resolveIpAddress(sessionContext?.ipAddress),
+        device: parsedDevice.device,
+        browser: parsedDevice.browser,
+        os: parsedDevice.os,
+        lastUsedAt: new Date(),
+      }),
+    );
 
     return {
       user: {
@@ -374,5 +516,80 @@ export class AuthService {
       access_token,
       refresh_token,
     };
+  }
+
+  private hashRefreshToken(refreshToken: string): string {
+    const secret =
+      this.configService.get<string>('SESSION_TOKEN_SALT') ||
+      this.configService.get<string>('JWT_REFRESH_SECRET') ||
+      'session-default-secret';
+
+    return createHmac('sha256', secret).update(refreshToken).digest('hex');
+  }
+
+  private resolveIpAddress(ipAddress?: string | null): string | null {
+    if (!ipAddress) {
+      return null;
+    }
+
+    const normalized = ipAddress
+      .split(',')
+      .map(part => part.trim())
+      .find(Boolean);
+
+    return normalized || null;
+  }
+
+  private parseUserAgent(userAgent?: string | null): {
+    device: string;
+    browser: string;
+    os: string;
+  } {
+    if (!userAgent) {
+      return {
+        device: 'Unknown device',
+        browser: 'Unknown browser',
+        os: 'Unknown OS',
+      };
+    }
+
+    const browser = this.detectBrowser(userAgent);
+    const os = this.detectOs(userAgent);
+    const lowerUa = userAgent.toLowerCase();
+    const isTablet = /(ipad|tablet)/i.test(userAgent);
+    const isMobile = /(iphone|ipod|android.*mobile|mobile)/i.test(userAgent);
+
+    let device = 'Desktop';
+    if (isTablet) {
+      device = 'Tablet';
+    } else if (isMobile) {
+      device = 'Mobile';
+    } else if (lowerUa.includes('bot') || lowerUa.includes('spider') || lowerUa.includes('crawl')) {
+      device = 'Bot';
+    }
+
+    return {
+      device,
+      browser,
+      os,
+    };
+  }
+
+  private detectBrowser(userAgent: string): string {
+    if (/Edg\//i.test(userAgent)) return 'Edge';
+    if (/OPR\//i.test(userAgent)) return 'Opera';
+    if (/Firefox\//i.test(userAgent)) return 'Firefox';
+    if (/Chrome\//i.test(userAgent)) return 'Chrome';
+    if (/Safari\//i.test(userAgent) && !/Chrome\//i.test(userAgent)) return 'Safari';
+    return 'Unknown browser';
+  }
+
+  private detectOs(userAgent: string): string {
+    if (/Windows NT/i.test(userAgent)) return 'Windows';
+    if (/Mac OS X/i.test(userAgent) && !/(iphone|ipad|ipod)/i.test(userAgent)) return 'macOS';
+    if (/(iphone|ipad|ipod)/i.test(userAgent)) return 'iOS';
+    if (/Android/i.test(userAgent)) return 'Android';
+    if (/Linux/i.test(userAgent)) return 'Linux';
+    return 'Unknown OS';
   }
 }

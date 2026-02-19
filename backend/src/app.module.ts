@@ -17,6 +17,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { getDatabaseConfig } from './config/database.config';
 import {
   AuditEvent,
+  AuthSession,
   BalanceAccount,
   BalanceSnapshot,
   Branch,
@@ -119,6 +120,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
       ParsingRule,
       Notification,
       NotificationPreference,
+      AuthSession,
       AuditEvent,
       BalanceAccount,
       BalanceSnapshot,

@@ -10,6 +10,7 @@ import { gmailReceiptsApi } from '@/app/lib/api';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
 import { Filter, RefreshCw, Search } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { BulkActionsBar } from './components/BulkActionsBar';
@@ -47,6 +48,8 @@ const parseAmountValue = (value?: number | string | null) => {
 
 export default function GmailReceiptsPage() {
   const content = useIntlayer('gmail-receipts-page');
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [filteredReceipts, setFilteredReceipts] = useState<Receipt[]>([]);
@@ -80,6 +83,13 @@ export default function GmailReceiptsPage() {
   useEffect(() => {
     loadStatus();
   }, []);
+
+  useEffect(() => {
+    const receiptId = searchParams.get('receiptId');
+    if (receiptId) {
+      setSelectedReceiptId(receiptId);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     loadReceipts();
@@ -182,6 +192,22 @@ export default function GmailReceiptsPage() {
       newSelected.add(id);
     }
     setSelectedReceipts(newSelected);
+  };
+
+  const openReceiptDrawer = (id: string) => {
+    setSelectedReceiptId(id);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('receiptId', id);
+    const query = params.toString();
+    router.replace(`/storage/gmail-receipts${query ? `?${query}` : ''}`, { scroll: false });
+  };
+
+  const closeReceiptDrawer = () => {
+    setSelectedReceiptId(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('receiptId');
+    const query = params.toString();
+    router.replace(`/storage/gmail-receipts${query ? `?${query}` : ''}`, { scroll: false });
   };
 
   const handleSelectAll = () => {
@@ -462,7 +488,7 @@ export default function GmailReceiptsPage() {
                     amountLabel={amountLabel}
                     dateLabel={dateLabel}
                     typeLabel="PDF"
-                    onView={() => setSelectedReceiptId(receipt.id)}
+                    onView={() => openReceiptDrawer(receipt.id)}
                     onIconClick={() => {
                       setPreviewReceiptId(receipt.id);
                       setPreviewReceiptFileName(`${merchantLabel}.pdf`);
@@ -524,7 +550,7 @@ export default function GmailReceiptsPage() {
       {selectedReceiptId && (
         <ReceiptDetailDrawer
           receiptId={selectedReceiptId}
-          onClose={() => setSelectedReceiptId(null)}
+          onClose={closeReceiptDrawer}
           onUpdate={loadReceipts}
         />
       )}

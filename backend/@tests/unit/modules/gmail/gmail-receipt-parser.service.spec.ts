@@ -44,6 +44,146 @@ describe('GmailReceiptParserService', () => {
     expect(vendor).toBe('Lidl');
   });
 
+  it('skips date-like lines when extracting vendor', () => {
+    const vendor = (service as any).extractVendor(
+      'Date2026-02-16 10:57AM PST\nGitHub\nTotal: $10.00',
+    );
+
+    expect(vendor).toBe('GitHub');
+  });
+
+  it('skips lines that look like timestamps', () => {
+    const vendor = (service as any).extractVendor('2026-02-16\n10:57 AM PST\nSpotify');
+
+    expect(vendor).toBe('Spotify');
+  });
+
+  it('skips numeric-only lines', () => {
+    const vendor = (service as any).extractVendor('12345\nNetflix');
+
+    expect(vendor).toBe('Netflix');
+  });
+
+  it('skips amount-like lines', () => {
+    const vendor = (service as any).extractVendor('$49.99\nAdobe Creative Cloud');
+
+    expect(vendor).toBe('Adobe Creative Cloud');
+  });
+
+  it('skips email address lines', () => {
+    const vendor = (service as any).extractVendor(
+      'noreply@github.com\nGitHub',
+      'GitHub <noreply@github.com>',
+    );
+
+    expect(vendor).toBe('GitHub');
+  });
+
+  it('falls back to sender brand when candidate lines are id-like', () => {
+    const vendor = (service as any).extractVendor(
+      'ABCDEF-12345\n12345',
+      'Notion <team@makenotion.com>',
+    );
+
+    expect(vendor).toBe('Notion');
+  });
+
+  describe('AI-powered merchant extraction', () => {
+    it('uses AI result when available and confidence is high', async () => {
+      const aiMock = {
+        isAvailable: jest.fn().mockReturnValue(true),
+        extractMerchant: jest
+          .fn()
+          .mockResolvedValue({ merchant: 'GitHub', confidence: 0.95 }),
+      };
+
+      const aiService = new GmailReceiptParserService(
+        new UniversalAmountParser(),
+        aiMock as any,
+      );
+
+      const vendor = await (aiService as any).extractVendorWithAi(
+        'Date2026-02-16 10:57AM PST\nGitHub',
+        {
+          sender: 'GitHub <noreply@github.com>',
+          subject: '[GitHub] Receipt',
+          emailBody: '<p>Thanks for your payment</p>',
+        },
+      );
+
+      expect(vendor).toBe('GitHub');
+      expect(aiMock.extractMerchant).toHaveBeenCalled();
+    });
+
+    it('falls back to heuristics when AI returns null', async () => {
+      const aiMock = {
+        isAvailable: jest.fn().mockReturnValue(true),
+        extractMerchant: jest.fn().mockResolvedValue(null),
+      };
+
+      const aiService = new GmailReceiptParserService(
+        new UniversalAmountParser(),
+        aiMock as any,
+      );
+
+      const vendor = await (aiService as any).extractVendorWithAi(
+        'Spotify\nReceipt for your subscription',
+        {
+          sender: 'no-reply@spotify.com',
+          subject: 'Receipt',
+        },
+      );
+
+      expect(vendor).toBe('Spotify');
+    });
+
+    it('falls back to heuristics when AI is unavailable', async () => {
+      const aiMock = {
+        isAvailable: jest.fn().mockReturnValue(false),
+        extractMerchant: jest.fn(),
+      };
+
+      const aiService = new GmailReceiptParserService(
+        new UniversalAmountParser(),
+        aiMock as any,
+      );
+
+      const vendor = await (aiService as any).extractVendorWithAi(
+        'Netflix\nMonthly subscription',
+        {
+          sender: 'info@netflix.com',
+        },
+      );
+
+      expect(vendor).toBe('Netflix');
+      expect(aiMock.extractMerchant).not.toHaveBeenCalled();
+    });
+
+    it('extracts merchant from email-only parsing flow', async () => {
+      const aiMock = {
+        isAvailable: jest.fn().mockReturnValue(true),
+        extractMerchant: jest
+          .fn()
+          .mockResolvedValue({ merchant: 'Notion', confidence: 0.8 }),
+      };
+
+      const aiService = new GmailReceiptParserService(
+        new UniversalAmountParser(),
+        aiMock as any,
+      );
+
+      const parsed = await aiService.parseFromEmailOnly({
+        sender: 'Notion <billing@makenotion.com>',
+        subject: 'Your invoice',
+        dateHeader: '2026-02-16',
+        emailBody: '<p>Amount paid: $12.00</p>',
+      });
+
+      expect(parsed.vendor).toBe('Notion');
+      expect(parsed.currency).toBe('USD');
+    });
+  });
+
   it('extracts USD amount and currency from amount due line', async () => {
     const parsed = await (service as any).extractAmountWithCurrency('Amount Due: $1,234.56');
 

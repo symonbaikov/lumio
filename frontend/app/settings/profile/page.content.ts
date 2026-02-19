@@ -140,6 +140,56 @@ const content = {
         en: "Last login",
         kk: "Соңғы кіру",
       }),
+      activeSessionsLabel: t({
+        ru: "Активные устройства",
+        en: "Active devices",
+        kk: "Белсенді құрылғылар",
+      }),
+      currentSessionBadge: t({
+        ru: "Это устройство",
+        en: "This device",
+        kk: "Бұл құрылғы",
+      }),
+      loadingLabel: t({
+        ru: "Загрузка сеансов...",
+        en: "Loading sessions...",
+        kk: "Сеанстар жүктелуде...",
+      }),
+      emptySessionsLabel: t({
+        ru: "Активные сеансы не найдены.",
+        en: "No active sessions found.",
+        kk: "Белсенді сеанстар табылмады.",
+      }),
+      ipLabel: t({
+        ru: "IP",
+        en: "IP",
+        kk: "IP",
+      }),
+      lastActiveLabel: t({
+        ru: "Последняя активность",
+        en: "Last active",
+        kk: "Соңғы белсенділік",
+      }),
+      logoutSessionButton: t({
+        ru: "Выйти",
+        en: "Log out",
+        kk: "Шығу",
+      }),
+      sessionLogoutSuccess: t({
+        ru: "Сеанс завершен.",
+        en: "Session logged out.",
+        kk: "Сеанс аяқталды.",
+      }),
+      sessionLogoutError: t({
+        ru: "Не удалось завершить сеанс.",
+        en: "Failed to log out session.",
+        kk: "Сеансты аяқтау мүмкін болмады.",
+      }),
+      sessionsLoadError: t({
+        ru: "Не удалось загрузить список сеансов.",
+        en: "Failed to load sessions list.",
+        kk: "Сеанстар тізімін жүктеу мүмкін болмады.",
+      }),
       logoutAllHelp: t({
         ru: "Завершает все активные сессии на других устройствах и в других браузерах.",
         en: "Ends all active sessions on other devices and browsers.",

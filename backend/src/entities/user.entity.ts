@@ -12,6 +12,7 @@ import { Branch } from './branch.entity';
 import { Category } from './category.entity';
 import type { DataEntryType } from './data-entry.entity';
 import { GoogleSheet } from './google-sheet.entity';
+import { AuthSession } from './auth-session.entity';
 import { Statement } from './statement.entity';
 import { TelegramReport } from './telegram-report.entity';
 import { Wallet } from './wallet.entity';
@@ -148,4 +149,10 @@ export class User {
     membership => membership.user,
   )
   workspaceMemberships: WorkspaceMember[];
+
+  @OneToMany(
+    () => AuthSession,
+    authSession => authSession.user,
+  )
+  authSessions: AuthSession[];
 }

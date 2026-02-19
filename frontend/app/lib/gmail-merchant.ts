@@ -8,6 +8,13 @@ type GmailMerchantInput = {
 const GENERIC_VENDOR_PATTERN =
   /^(page\s+\d+\s+of\s+\d+|receipt|invoice|payment\s+receipt|order\s+confirmation)$/i;
 
+const DATE_LIKE_PATTERN =
+  /^(date\s*)?\d{4}[-/.]\d{2}[-/.]\d{2}|^\d{2}[-/.]\d{2}[-/.]\d{4}|\d{1,2}:\d{2}\s*(am|pm)(\s*(pst|est|utc|gmt|cst|mst))?$/i;
+
+const AMOUNT_LIKE_PATTERN = /^[$€£¥₽₸]\s*[\d,.]+$|^[\d,.]+\s*[$€£¥₸₽]$/;
+
+const EMAIL_LIKE_PATTERN = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+
 const SENTENCE_START_PATTERN = /^(we|your|thanks?|dear|hello|hi|please|this)\b/i;
 
 const EMAIL_PATTERN = /[A-Z0-9._%+-]+@([A-Z0-9.-]+\.[A-Z]{2,})/i;
@@ -42,13 +49,39 @@ const isLikelySentence = (value: string) => {
   return false;
 };
 
+const isLikelyJunkVendor = (value: string) => {
+  const normalized = normalizeWhitespace(value);
+
+  if (!normalized) {
+    return true;
+  }
+
+  if (GENERIC_VENDOR_PATTERN.test(normalized)) {
+    return true;
+  }
+
+  if (DATE_LIKE_PATTERN.test(normalized)) {
+    return true;
+  }
+
+  if (AMOUNT_LIKE_PATTERN.test(normalized)) {
+    return true;
+  }
+
+  if (EMAIL_LIKE_PATTERN.test(normalized)) {
+    return true;
+  }
+
+  return false;
+};
+
 const isBrandLikeVendor = (value: string) => {
   const normalized = normalizeWhitespace(value);
   if (!normalized || normalized.length > 40) {
     return false;
   }
 
-  if (GENERIC_VENDOR_PATTERN.test(normalized)) {
+  if (isLikelyJunkVendor(normalized)) {
     return false;
   }
 
@@ -129,7 +162,7 @@ export const resolveGmailMerchantLabel = ({
     return subjectBrand;
   }
 
-  if (normalizedVendor && !GENERIC_VENDOR_PATTERN.test(normalizedVendor)) {
+  if (normalizedVendor && !isLikelyJunkVendor(normalizedVendor)) {
     return normalizedVendor.slice(0, 28);
   }
 

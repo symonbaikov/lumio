@@ -7,6 +7,7 @@ import { GmailOAuthService } from '../../../../src/modules/gmail/services/gmail-
 import { GmailReceiptCategoryService } from '../../../../src/modules/gmail/services/gmail-receipt-category.service';
 import { GmailReceiptDuplicateService } from '../../../../src/modules/gmail/services/gmail-receipt-duplicate.service';
 import { GmailReceiptExportService } from '../../../../src/modules/gmail/services/gmail-receipt-export.service';
+import { GmailMerchantReparseService } from '../../../../src/modules/gmail/services/gmail-merchant-reparse.service';
 import { GmailSyncService } from '../../../../src/modules/gmail/services/gmail-sync.service';
 import { GmailWatchService } from '../../../../src/modules/gmail/services/gmail-watch.service';
 import { GmailService } from '../../../../src/modules/gmail/services/gmail.service';
@@ -55,6 +56,7 @@ describe('GmailController - Receipts List Endpoint', () => {
         { provide: GmailReceiptDuplicateService, useValue: {} },
         { provide: GmailReceiptCategoryService, useValue: {} },
         { provide: GmailReceiptExportService, useValue: {} },
+        { provide: GmailMerchantReparseService, useValue: {} },
         {
           provide: CACHE_MANAGER,
           useValue: {
