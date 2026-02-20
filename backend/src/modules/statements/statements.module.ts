@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FileStorageService } from '../../common/services/file-storage.service';
 import { IdempotencyService } from '../../common/services/idempotency.service';
-import { User, WorkspaceMember } from '../../entities';
+import { Category, TaxRate, User, WorkspaceMember } from '../../entities';
 import { IdempotencyKey } from '../../entities/idempotency-key.entity';
 import { Statement } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
@@ -19,6 +19,8 @@ import { StatementsService } from './statements.service';
       User,
       WorkspaceMember,
       IdempotencyKey,
+      Category,
+      TaxRate,
     ]),
     AuditModule,
     ParsingModule,

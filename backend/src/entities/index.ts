@@ -39,3 +39,4 @@ export * from './notification-preference.entity';
 export * from './balance-account.entity';
 export * from './balance-snapshot.entity';
 export * from './auth-session.entity';
+export * from './tax-rate.entity';

@@ -1,12 +1,18 @@
 'use client';
 
+import StatementCategoryDrawer from '@/app/(main)/statements/[id]/edit/StatementCategoryDrawer';
 import { Button } from '@/app/components/ui/button';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import {
+  type StatementCategoryNode,
+  flattenStatementCategories,
+} from '@/app/lib/statement-categories';
 import {
   ALWAYS_ALLOW_STATEMENT_DUPLICATES,
   type CurrencySearchItem,
   type ManualExpenseDraft,
   type StatementExpenseMode,
+  type TaxRateOption,
   buildCurrencySearchIndex,
   computeManualAmountFontSize,
   hasPositiveManualAmount,
@@ -33,6 +39,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 type Props = {
   open: boolean;
   initialMode: StatementExpenseMode;
+  categories: StatementCategoryNode[];
+  taxRates: TaxRateOption[];
   onClose: () => void;
   onSubmitScan: (payload: {
     files: File[];
@@ -52,6 +60,8 @@ const createDefaultManualDraft = (): ManualExpenseDraft => ({
   currency: 'KZT',
   description: '',
   merchant: '',
+  categoryId: '',
+  taxRateId: '',
 });
 
 const DEFAULT_RECENT_CURRENCIES = ['KZT', 'USD', 'EUR', 'RUB'] as const;
@@ -61,6 +71,8 @@ type ManualStep = 'amount' | 'details';
 export default function CreateExpenseDrawer({
   open,
   initialMode,
+  categories,
+  taxRates,
   onClose,
   onSubmitScan,
   onSubmitManual,
@@ -68,6 +80,8 @@ export default function CreateExpenseDrawer({
   const [mode, setMode] = useState<StatementExpenseMode>('scan');
   const [manualStep, setManualStep] = useState<ManualStep>('amount');
   const [currencyPickerOpen, setCurrencyPickerOpen] = useState(false);
+  const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false);
+  const [taxRateDrawerOpen, setTaxRateDrawerOpen] = useState(false);
   const [currencySearch, setCurrencySearch] = useState('');
   const [manualRecentCurrencies, setManualRecentCurrencies] = useState<string[]>([
     ...DEFAULT_RECENT_CURRENCIES,
@@ -94,6 +108,26 @@ export default function CreateExpenseDrawer({
     () => computeManualAmountFontSize(manualDraft.amount),
     [manualDraft.amount],
   );
+  const flatCategories = useMemo(() => flattenStatementCategories(categories), [categories]);
+  const selectedCategoryName = useMemo(
+    () => flatCategories.find(category => category.id === manualDraft.categoryId)?.name ?? '',
+    [flatCategories, manualDraft.categoryId],
+  );
+  const defaultTaxRate = useMemo(
+    () =>
+      taxRates.find(taxRate => taxRate.isEnabled && taxRate.isDefault) ||
+      taxRates.find(taxRate => taxRate.isEnabled) ||
+      null,
+    [taxRates],
+  );
+  const selectedTaxRate = useMemo(() => {
+    if (!manualDraft.taxRateId) {
+      return defaultTaxRate;
+    }
+
+    return taxRates.find(taxRate => taxRate.id === manualDraft.taxRateId) || null;
+  }, [manualDraft.taxRateId, taxRates, defaultTaxRate]);
+  const enabledTaxRates = useMemo(() => taxRates.filter(taxRate => taxRate.isEnabled), [taxRates]);
 
   const currencyQuery = currencySearch.trim().toLowerCase();
 
@@ -137,6 +171,8 @@ export default function CreateExpenseDrawer({
     setMode(resolvedMode);
     setManualStep('amount');
     setCurrencyPickerOpen(false);
+    setCategoryDrawerOpen(false);
+    setTaxRateDrawerOpen(false);
     setCurrencySearch('');
   }, [open, initialMode]);
 
@@ -174,6 +210,8 @@ export default function CreateExpenseDrawer({
     setMode('scan');
     setManualStep('amount');
     setCurrencyPickerOpen(false);
+    setCategoryDrawerOpen(false);
+    setTaxRateDrawerOpen(false);
     setCurrencySearch('');
     setFiles([]);
     setManualDraft(createDefaultManualDraft());
@@ -184,6 +222,16 @@ export default function CreateExpenseDrawer({
   };
 
   const handleBackClick = () => {
+    if (categoryDrawerOpen) {
+      setCategoryDrawerOpen(false);
+      return;
+    }
+
+    if (taxRateDrawerOpen) {
+      setTaxRateDrawerOpen(false);
+      return;
+    }
+
     if (mode === 'manual' && currencyPickerOpen) {
       setCurrencyPickerOpen(false);
       setCurrencySearch('');
@@ -238,8 +286,8 @@ export default function CreateExpenseDrawer({
   };
 
   const handleSubmitManual = async () => {
-    if (!manualValidation.amount || !manualValidation.merchant) {
-      setError('Amount and merchant are required');
+    if (!manualValidation.amount || !manualValidation.merchant || !manualValidation.category) {
+      setError('Amount, merchant, and category are required');
       return;
     }
 
@@ -262,365 +310,498 @@ export default function CreateExpenseDrawer({
   };
 
   return (
-    <DrawerShell
-      isOpen={open}
-      onClose={handleClose}
-      position="right"
-      width="lg"
-      showCloseButton={false}
-      className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
-      title={
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleBackClick}
-            className="rounded-full p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
-            aria-label="Close create expense drawer"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <span className="text-lg font-semibold text-[#0f3428]">
-            {currencyPickerOpen
-              ? 'Select a currency'
-              : mode === 'manual' && manualStep === 'details'
-                ? 'Confirm details'
-                : 'Create expense'}
-          </span>
-        </div>
-      }
-    >
-      <div className="flex h-full flex-col">
-        {!currencyPickerOpen ? (
-          <div className="mb-5 grid grid-cols-2 gap-3 rounded-full bg-white p-1.5">
+    <>
+      <DrawerShell
+        isOpen={open}
+        onClose={handleClose}
+        position="right"
+        width="lg"
+        showCloseButton={false}
+        className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
+        title={
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => {
-                setMode('manual');
-                setManualStep('amount');
-                setCurrencyPickerOpen(false);
-              }}
-              className={cn(
-                'inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition-colors',
-                mode === 'manual'
-                  ? 'bg-[#ebe8e2] text-[#0f3428]'
-                  : 'text-gray-500 hover:bg-gray-100 hover:text-[#0f3428]',
-              )}
+              onClick={handleBackClick}
+              className="rounded-full p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+              aria-label="Close create expense drawer"
             >
-              <PencilLine className="h-4 w-4" />
-              Manual
+              <ChevronLeft className="h-5 w-5" />
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('scan');
-                setCurrencyPickerOpen(false);
-              }}
-              className={cn(
-                'inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition-colors',
-                mode === 'scan'
-                  ? 'bg-[#ebe8e2] text-[#0f3428]'
-                  : 'text-gray-500 hover:bg-gray-100 hover:text-[#0f3428]',
-              )}
-            >
-              <ScanLine className="h-4 w-4" />
-              Scan
-            </button>
+            <span className="text-lg font-semibold text-[#0f3428]">
+              {currencyPickerOpen
+                ? 'Select a currency'
+                : mode === 'manual' && manualStep === 'details'
+                  ? 'Confirm details'
+                  : 'Create expense'}
+            </span>
           </div>
-        ) : null}
+        }
+      >
+        <div className="flex h-full flex-col">
+          {!currencyPickerOpen ? (
+            <div className="mb-5 grid grid-cols-2 gap-3 rounded-full bg-white p-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('manual');
+                  setManualStep('amount');
+                  setCurrencyPickerOpen(false);
+                }}
+                className={cn(
+                  'inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition-colors',
+                  mode === 'manual'
+                    ? 'bg-[#ebe8e2] text-[#0f3428]'
+                    : 'text-gray-500 hover:bg-gray-100 hover:text-[#0f3428]',
+                )}
+              >
+                <PencilLine className="h-4 w-4" />
+                Manual
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('scan');
+                  setCurrencyPickerOpen(false);
+                }}
+                className={cn(
+                  'inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition-colors',
+                  mode === 'scan'
+                    ? 'bg-[#ebe8e2] text-[#0f3428]'
+                    : 'text-gray-500 hover:bg-gray-100 hover:text-[#0f3428]',
+                )}
+              >
+                <ScanLine className="h-4 w-4" />
+                Scan
+              </button>
+            </div>
+          ) : null}
 
-        <div className="flex-1 overflow-y-auto space-y-4 pb-6">
-          {currencyPickerOpen ? (
-            <>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  value={currencySearch}
-                  onChange={event => setCurrencySearch(event.target.value)}
-                  placeholder="Search"
-                  className="w-full rounded-2xl border border-primary bg-white py-3 pl-10 pr-4 text-sm text-gray-900 outline-none"
-                />
-              </div>
+          <div className="flex-1 overflow-y-auto space-y-3 pb-4">
+            {currencyPickerOpen ? (
+              <>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={currencySearch}
+                    onChange={event => setCurrencySearch(event.target.value)}
+                    placeholder="Search"
+                    className="w-full rounded-2xl border border-primary bg-white py-3 pl-10 pr-4 text-sm text-gray-900 outline-none"
+                  />
+                </div>
 
-              {selectedCurrencyItem && selectedMatchesSearch ? (
-                <button
-                  type="button"
-                  onClick={() => handleSelectCurrency(selectedCurrencyItem.code)}
-                  className="flex w-full items-center justify-between rounded-2xl bg-[#ebe8e2] px-4 py-4 text-left"
-                >
-                  <span className="text-base font-semibold text-[#0f3428]">
-                    {selectedCurrencyItem.label}
-                  </span>
-                  <Check className="h-5 w-5 text-primary" />
-                </button>
-              ) : null}
+                {selectedCurrencyItem && selectedMatchesSearch ? (
+                  <button
+                    type="button"
+                    onClick={() => handleSelectCurrency(selectedCurrencyItem.code)}
+                    className="flex w-full items-center justify-between rounded-2xl bg-[#ebe8e2] px-4 py-4 text-left"
+                  >
+                    <span className="text-base font-semibold text-[#0f3428]">
+                      {selectedCurrencyItem.label}
+                    </span>
+                    <Check className="h-5 w-5 text-primary" />
+                  </button>
+                ) : null}
 
-              {currencyQuery.length === 0 && recentCurrencyItems.length > 0 ? (
+                {currencyQuery.length === 0 && recentCurrencyItems.length > 0 ? (
+                  <div>
+                    <p className="px-1 text-sm text-gray-500">Recents</p>
+                    <div className="mt-2 space-y-2">
+                      {recentCurrencyItems.map(item => (
+                        <button
+                          key={`recent-${item.code}`}
+                          type="button"
+                          onClick={() => handleSelectCurrency(item.code)}
+                          className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition-colors hover:bg-[#f1efea]"
+                        >
+                          <span className="text-base font-semibold text-[#0f3428]">
+                            {item.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
                 <div>
-                  <p className="px-1 text-sm text-gray-500">Recents</p>
-                  <div className="mt-2 space-y-2">
-                    {recentCurrencyItems.map(item => (
-                      <button
-                        key={`recent-${item.code}`}
-                        type="button"
-                        onClick={() => handleSelectCurrency(item.code)}
-                        className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition-colors hover:bg-[#f1efea]"
-                      >
-                        <span className="text-base font-semibold text-[#0f3428]">{item.label}</span>
-                      </button>
-                    ))}
+                  <p className="px-1 text-sm text-gray-500">All</p>
+                  <div className="mt-2 space-y-1">
+                    {allCurrencyItems.length > 0 ? (
+                      allCurrencyItems.map(item => (
+                        <button
+                          key={item.code}
+                          type="button"
+                          onClick={() => handleSelectCurrency(item.code)}
+                          className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition-colors hover:bg-[#f1efea]"
+                        >
+                          <span className="text-base font-semibold text-[#0f3428]">
+                            {item.label}
+                          </span>
+                        </button>
+                      ))
+                    ) : (
+                      <p className="rounded-xl bg-white px-3 py-3 text-sm text-gray-500">
+                        No currencies found
+                      </p>
+                    )}
                   </div>
                 </div>
-              ) : null}
-
-              <div>
-                <p className="px-1 text-sm text-gray-500">All</p>
-                <div className="mt-2 space-y-1">
-                  {allCurrencyItems.length > 0 ? (
-                    allCurrencyItems.map(item => (
-                      <button
-                        key={item.code}
-                        type="button"
-                        onClick={() => handleSelectCurrency(item.code)}
-                        className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition-colors hover:bg-[#f1efea]"
+              </>
+            ) : mode === 'scan' ? (
+              <>
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary bg-[#f8f7f4] px-6 py-12 text-center">
+                  <FileText className="h-14 w-14 text-[#9ea6a0]" />
+                  <p className="mt-6 text-[30px] font-semibold leading-none text-[#0f3428]">
+                    Upload receipts
+                  </p>
+                  <p className="mt-2 text-sm text-gray-500">or drag and drop them here</p>
+                  <span className="mt-6 inline-flex rounded-full bg-primary px-7 py-2.5 text-sm font-semibold text-white">
+                    Choose files
+                  </span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf,.csv,.xlsx,.xls"
+                    capture="environment"
+                    className="hidden"
+                    multiple
+                    onChange={event => handleFilesSelected(event.target.files)}
+                  />
+                </label>
+              </>
+            ) : manualStep === 'amount' ? (
+              <div className="flex min-h-full flex-col justify-between">
+                <div className="flex flex-1 flex-col items-center justify-center">
+                  <label htmlFor="expense-manual-amount" className="sr-only">
+                    Amount
+                  </label>
+                  <div className="mx-auto w-[290px] max-w-full">
+                    <div className="flex h-24 w-full items-end justify-center gap-2">
+                      <span
+                        className="shrink-0 leading-none font-semibold text-[#0f3428]"
+                        style={{ fontSize: manualAmountFontSize }}
                       >
-                        <span className="text-base font-semibold text-[#0f3428]">{item.label}</span>
-                      </button>
-                    ))
-                  ) : (
-                    <p className="rounded-xl bg-white px-3 py-3 text-sm text-gray-500">
-                      No currencies found
-                    </p>
-                  )}
+                        {selectedCurrencySymbol}
+                      </span>
+                      <input
+                        ref={manualAmountInputRef}
+                        id="expense-manual-amount"
+                        inputMode="decimal"
+                        value={manualDraft.amount}
+                        onChange={event =>
+                          setManualDraft(prev => ({
+                            ...prev,
+                            amount: sanitizeManualAmountInput(event.target.value),
+                          }))
+                        }
+                        placeholder="0"
+                        className="min-w-0 flex-1 border-0 bg-transparent p-0 leading-none font-semibold text-[#0f3428] placeholder:text-[#9ea6a0] focus:outline-none"
+                        style={{ fontSize: manualAmountFontSize }}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrencyPickerOpen(true)}
+                      className="mt-12 inline-flex h-16 w-full items-center justify-center gap-2 rounded-full bg-[#ebe8e2] px-6 text-lg font-semibold text-[#0f3428]"
+                    >
+                      {manualDraft.currency}
+                      <ChevronDown className="h-5 w-5 text-gray-500" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </>
-          ) : mode === 'scan' ? (
-            <>
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary bg-[#f8f7f4] px-6 py-12 text-center">
-                <FileText className="h-14 w-14 text-[#9ea6a0]" />
-                <p className="mt-6 text-[30px] font-semibold leading-none text-[#0f3428]">
-                  Upload receipts
-                </p>
-                <p className="mt-2 text-sm text-gray-500">or drag and drop them here</p>
-                <span className="mt-6 inline-flex rounded-full bg-primary px-7 py-2.5 text-sm font-semibold text-white">
-                  Choose files
-                </span>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,.pdf,.csv,.xlsx,.xls"
-                  capture="environment"
-                  className="hidden"
-                  multiple
-                  onChange={event => handleFilesSelected(event.target.files)}
-                />
-              </label>
-            </>
-          ) : manualStep === 'amount' ? (
-            <div className="flex min-h-full flex-col justify-between">
-              <div className="flex flex-1 flex-col items-center justify-center">
-                <label htmlFor="expense-manual-amount" className="sr-only">
-                  Amount
+            ) : (
+              <>
+                <label className="relative flex cursor-pointer items-center justify-center rounded-3xl border border-gray-200 bg-[#f8f7f4] px-6 py-8 text-center">
+                  <FileText className="h-14 w-14 text-[#d8d4ce]" />
+                  <span className="absolute left-1/2 top-1/2 flex h-10 w-10 translate-x-2 translate-y-1 items-center justify-center rounded-full bg-primary text-white">
+                    <Plus className="h-5 w-5" />
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,.csv,.xlsx,.xls"
+                    capture="environment"
+                    className="hidden"
+                    multiple
+                    onChange={event => handleFilesSelected(event.target.files)}
+                  />
                 </label>
-                <div className="mx-auto w-[290px] max-w-full">
-                  <div className="flex h-24 w-full items-end justify-center gap-2">
-                    <span
-                      className="shrink-0 leading-none font-semibold text-[#0f3428]"
-                      style={{ fontSize: manualAmountFontSize }}
-                    >
-                      {selectedCurrencySymbol}
-                    </span>
+
+                <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white">
+                  <button
+                    type="button"
+                    onClick={() => setManualStep('amount')}
+                    className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-[#f8f7f4]"
+                  >
+                    <div>
+                      <p className="text-sm text-[#70817b]">Amount</p>
+                      <p className="mt-1 text-[30px] leading-none font-semibold text-[#0f3428]">
+                        {selectedCurrencySymbol}
+                        {manualDraft.amount || '0.00'}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-6 w-6 text-[#9ea6a0]" />
+                  </button>
+
+                  <div className="h-px bg-gray-100" />
+
+                  <div className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <label
+                        htmlFor="expense-manual-description"
+                        className="text-sm text-[#70817b]"
+                      >
+                        Description
+                      </label>
+                      <ChevronRight className="h-6 w-6 text-[#9ea6a0]" />
+                    </div>
                     <input
-                      ref={manualAmountInputRef}
-                      id="expense-manual-amount"
-                      inputMode="decimal"
-                      value={manualDraft.amount}
+                      id="expense-manual-description"
+                      value={manualDraft.description}
                       onChange={event =>
                         setManualDraft(prev => ({
                           ...prev,
-                          amount: sanitizeManualAmountInput(event.target.value),
+                          description: event.target.value,
                         }))
                       }
-                      placeholder="0"
-                      className="min-w-0 flex-1 border-0 bg-transparent p-0 leading-none font-semibold text-[#0f3428] placeholder:text-[#9ea6a0] focus:outline-none"
-                      style={{ fontSize: manualAmountFontSize }}
+                      placeholder="Optional"
+                      className="mt-1.5 w-full border-0 bg-transparent p-0 text-[24px] leading-none text-[#0f3428] placeholder:text-[#9ea6a0] focus:outline-none"
                     />
                   </div>
+
+                  <div className="h-px bg-gray-100" />
+
+                  <div className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="expense-manual-merchant" className="text-sm text-[#70817b]">
+                        Merchant
+                      </label>
+                      <ChevronRight className="h-6 w-6 text-[#9ea6a0]" />
+                    </div>
+                    <input
+                      id="expense-manual-merchant"
+                      value={manualDraft.merchant}
+                      onChange={event =>
+                        setManualDraft(prev => ({
+                          ...prev,
+                          merchant: event.target.value,
+                        }))
+                      }
+                      placeholder="Required"
+                      className="mt-1.5 w-full border-0 bg-transparent p-0 text-[24px] leading-none text-[#0f3428] placeholder:text-[#9ea6a0] focus:outline-none"
+                    />
+                    {!manualValidation.merchant ? (
+                      <p className="mt-1 text-xs text-red-500">This field is required</p>
+                    ) : null}
+                  </div>
+
+                  <div className="h-px bg-gray-100" />
 
                   <button
                     type="button"
-                    onClick={() => setCurrencyPickerOpen(true)}
-                    className="mt-12 inline-flex h-16 w-full items-center justify-center gap-2 rounded-full bg-[#ebe8e2] px-6 text-lg font-semibold text-[#0f3428]"
+                    onClick={() => setCategoryDrawerOpen(true)}
+                    className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-[#f8f7f4]"
                   >
-                    {manualDraft.currency}
-                    <ChevronDown className="h-5 w-5 text-gray-500" />
+                    <div className="min-w-0">
+                      <p className="text-sm text-[#70817b]">Category</p>
+                      <p className="mt-1.5 truncate text-[24px] leading-none text-[#0f3428]">
+                        {selectedCategoryName || 'Required'}
+                      </p>
+                      {!manualValidation.category ? (
+                        <p className="mt-1 text-xs text-red-500">This field is required</p>
+                      ) : null}
+                    </div>
+                    <ChevronRight className="h-6 w-6 text-[#9ea6a0]" />
+                  </button>
+
+                  <div className="h-px bg-gray-100" />
+
+                  <div className="px-4 py-3">
+                    <label htmlFor="expense-manual-date" className="text-sm text-[#70817b]">
+                      Date
+                    </label>
+                    <div className="mt-1.5 flex items-center justify-between">
+                      <input
+                        id="expense-manual-date"
+                        type="date"
+                        value={manualDate}
+                        onChange={event => setManualDate(event.target.value)}
+                        className="border-0 bg-transparent p-0 text-[24px] leading-none text-[#0f3428] focus:outline-none"
+                      />
+                      <Calendar className="h-5 w-5 text-[#9ea6a0]" />
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-gray-100" />
+
+                  <button
+                    type="button"
+                    onClick={() => setTaxRateDrawerOpen(true)}
+                    className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-[#f8f7f4]"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm text-[#70817b]">Tax</p>
+                      <p className="mt-1.5 truncate text-[24px] leading-none text-[#0f3428]">
+                        {selectedTaxRate
+                          ? `${selectedTaxRate.name} (${Number(selectedTaxRate.rate || 0).toFixed(0)}%)${selectedTaxRate.isDefault ? ' - Default' : ''}`
+                          : 'Optional'}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-6 w-6 text-[#9ea6a0]" />
                   </button>
                 </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              <label className="relative flex cursor-pointer items-center justify-center rounded-3xl border border-gray-200 bg-[#f8f7f4] px-6 py-12 text-center">
-                <FileText className="h-20 w-20 text-[#d8d4ce]" />
-                <span className="absolute left-1/2 top-1/2 flex h-12 w-12 translate-x-2.5 translate-y-1 items-center justify-center rounded-full bg-primary text-white">
-                  <Plus className="h-6 w-6" />
-                </span>
-                <input
-                  type="file"
-                  accept="image/*,.pdf,.csv,.xlsx,.xls"
-                  capture="environment"
-                  className="hidden"
-                  multiple
-                  onChange={event => handleFilesSelected(event.target.files)}
-                />
-              </label>
-
-              <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white">
-                <button
-                  type="button"
-                  onClick={() => setManualStep('amount')}
-                  className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-[#f8f7f4]"
-                >
-                  <div>
-                    <p className="text-sm text-[#70817b]">Amount</p>
-                    <p className="mt-1 text-[42px] leading-none font-semibold text-[#0f3428]">
-                      {selectedCurrencySymbol}
-                      {manualDraft.amount || '0.00'}
-                    </p>
-                  </div>
-                  <ChevronRight className="h-8 w-8 text-[#9ea6a0]" />
-                </button>
-
-                <div className="h-px bg-gray-100" />
-
-                <div className="px-5 py-4">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="expense-manual-description" className="text-sm text-[#70817b]">
-                      Description
-                    </label>
-                    <ChevronRight className="h-8 w-8 text-[#9ea6a0]" />
-                  </div>
-                  <input
-                    id="expense-manual-description"
-                    value={manualDraft.description}
-                    onChange={event =>
-                      setManualDraft(prev => ({
-                        ...prev,
-                        description: event.target.value,
-                      }))
-                    }
-                    placeholder="Optional"
-                    className="mt-2 w-full border-0 bg-transparent p-0 text-[32px] leading-none text-[#0f3428] placeholder:text-[#9ea6a0] focus:outline-none"
-                  />
-                </div>
-
-                <div className="h-px bg-gray-100" />
-
-                <div className="px-5 py-4">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="expense-manual-merchant" className="text-sm text-[#70817b]">
-                      Merchant
-                    </label>
-                    <ChevronRight className="h-8 w-8 text-[#9ea6a0]" />
-                  </div>
-                  <input
-                    id="expense-manual-merchant"
-                    value={manualDraft.merchant}
-                    onChange={event =>
-                      setManualDraft(prev => ({
-                        ...prev,
-                        merchant: event.target.value,
-                      }))
-                    }
-                    placeholder="Required"
-                    className="mt-2 w-full border-0 bg-transparent p-0 text-[32px] leading-none text-[#0f3428] placeholder:text-[#9ea6a0] focus:outline-none"
-                  />
-                  {!manualValidation.merchant ? (
-                    <p className="mt-3 text-sm text-red-500">This field is required</p>
-                  ) : null}
-                </div>
-
-                <div className="h-px bg-gray-100" />
-
-                <div className="px-5 py-4">
-                  <label htmlFor="expense-manual-date" className="text-sm text-[#70817b]">
-                    Date
-                  </label>
-                  <div className="mt-2 flex items-center justify-between">
-                    <input
-                      id="expense-manual-date"
-                      type="date"
-                      value={manualDate}
-                      onChange={event => setManualDate(event.target.value)}
-                      className="border-0 bg-transparent p-0 text-[32px] leading-none text-[#0f3428] focus:outline-none"
-                    />
-                    <Calendar className="h-6 w-6 text-[#9ea6a0]" />
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {files.length > 0 && !currencyPickerOpen ? (
-            <div className="rounded-2xl border border-gray-200 bg-white px-3 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Selected files
-              </p>
-              <div className="mt-2 space-y-2">
-                {files.map(file => (
-                  <div
-                    key={`${file.name}-${file.size}`}
-                    className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  >
-                    <span className="truncate text-gray-800">{file.name}</span>
-                    <span className="text-xs text-gray-500">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {error ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="pt-4">
-          <Button
-            type="button"
-            size="lg"
-            className={cn(
-              'w-full rounded-full',
-              mode === 'manual' ? 'bg-primary hover:bg-primary-hover' : '',
+              </>
             )}
-            disabled={
-              submitting ||
-              currencyPickerOpen ||
-              (mode === 'manual' && manualStep === 'amount' && !hasManualAmount)
-            }
-            onClick={
-              mode === 'scan'
-                ? handleSubmitScan
-                : manualStep === 'amount'
-                  ? handleManualNext
-                  : handleSubmitManual
-            }
-          >
-            {submitting
-              ? 'Saving...'
-              : mode === 'scan'
-                ? 'Upload receipt'
-                : manualStep === 'amount'
-                  ? 'Next'
-                  : `Create ${selectedCurrencySymbol}${manualDraft.amount || '0.00'} expense`}
-          </Button>
+
+            {files.length > 0 && !currencyPickerOpen ? (
+              <div className="rounded-2xl border border-gray-200 bg-white px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Selected files
+                </p>
+                <div className="mt-2 space-y-2">
+                  {files.map(file => (
+                    <div
+                      key={`${file.name}-${file.size}`}
+                      className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                    >
+                      <span className="truncate text-gray-800">{file.name}</span>
+                      <span className="text-xs text-gray-500">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {error ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {error}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="pt-4">
+            <Button
+              type="button"
+              size="lg"
+              className={cn(
+                'w-full rounded-full',
+                mode === 'manual' ? 'bg-primary hover:bg-primary-hover' : '',
+              )}
+              disabled={
+                submitting ||
+                currencyPickerOpen ||
+                categoryDrawerOpen ||
+                taxRateDrawerOpen ||
+                (mode === 'manual' && manualStep === 'amount' && !hasManualAmount)
+              }
+              onClick={
+                mode === 'scan'
+                  ? handleSubmitScan
+                  : manualStep === 'amount'
+                    ? handleManualNext
+                    : handleSubmitManual
+              }
+            >
+              {submitting
+                ? 'Saving...'
+                : mode === 'scan'
+                  ? 'Upload receipt'
+                  : manualStep === 'amount'
+                    ? 'Next'
+                    : `Create ${selectedCurrencySymbol}${manualDraft.amount || '0.00'} expense`}
+            </Button>
+          </div>
         </div>
-      </div>
-    </DrawerShell>
+      </DrawerShell>
+
+      <StatementCategoryDrawer
+        open={open && mode === 'manual' && manualStep === 'details' && categoryDrawerOpen}
+        onClose={() => setCategoryDrawerOpen(false)}
+        categories={categories}
+        selectedCategoryId={manualDraft.categoryId}
+        selecting={false}
+        onSelect={categoryId => {
+          setManualDraft(prev => ({
+            ...prev,
+            categoryId,
+          }));
+          setCategoryDrawerOpen(false);
+          setError(null);
+        }}
+        labels={{
+          title: 'Category',
+          searchPlaceholder: 'Search categories',
+          allOption: 'No category',
+          noResults: 'No categories found',
+        }}
+        width="lg"
+        className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
+        showAllOption={false}
+      />
+
+      <DrawerShell
+        isOpen={open && mode === 'manual' && manualStep === 'details' && taxRateDrawerOpen}
+        onClose={() => setTaxRateDrawerOpen(false)}
+        position="right"
+        width="lg"
+        showCloseButton={false}
+        className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
+        title={
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setTaxRateDrawerOpen(false)}
+              className="rounded-full p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+              aria-label="Close tax rate drawer"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="text-lg font-semibold text-[#0f3428]">Tax rate</span>
+          </div>
+        }
+      >
+        <div className="flex h-full flex-col">
+          <div className="flex-1 overflow-y-auto">
+            <div className="divide-y divide-transparent">
+              {enabledTaxRates.map(taxRate => {
+                const isSelected = manualDraft.taxRateId
+                  ? manualDraft.taxRateId === taxRate.id
+                  : defaultTaxRate?.id === taxRate.id;
+
+                return (
+                  <button
+                    key={taxRate.id}
+                    type="button"
+                    onClick={() => {
+                      setManualDraft(prev => ({
+                        ...prev,
+                        taxRateId: taxRate.id,
+                      }));
+                      setTaxRateDrawerOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between px-4 py-5 text-left text-base font-semibold transition-colors ${
+                      isSelected ? 'bg-[#ede8e1] text-[#073b32]' : 'text-[#073b32] hover:bg-gray-50'
+                    }`}
+                  >
+                    <span>
+                      {taxRate.name} ({Number(taxRate.rate || 0).toFixed(0)}%)
+                      {taxRate.isDefault ? ' - Default' : ''}
+                    </span>
+                    {isSelected ? <Check className="h-6 w-6 text-emerald-500" /> : null}
+                  </button>
+                );
+              })}
+              {enabledTaxRates.length === 0 ? (
+                <div className="px-4 py-8 text-base text-gray-500">No tax rates found</div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </DrawerShell>
+    </>
   );
 }

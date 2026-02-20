@@ -12,6 +12,7 @@ import { Branch } from './branch.entity';
 import { Category } from './category.entity';
 import { ImportSession } from './import-session.entity';
 import { Statement } from './statement.entity';
+import { TaxRate } from './tax-rate.entity';
 import { Wallet } from './wallet.entity';
 import { Workspace } from './workspace.entity';
 
@@ -89,6 +90,13 @@ export class Transaction {
 
   @Column({ name: 'category_id', nullable: true })
   categoryId: string | null;
+
+  @ManyToOne(() => TaxRate, { nullable: true })
+  @JoinColumn({ name: 'tax_rate_id' })
+  taxRate: TaxRate | null;
+
+  @Column({ name: 'tax_rate_id', nullable: true })
+  taxRateId: string | null;
 
   @ManyToOne(() => Branch, { nullable: true })
   @JoinColumn({ name: 'branch_id' })

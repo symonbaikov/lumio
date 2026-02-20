@@ -1,4 +1,5 @@
 import { exec } from 'child_process';
+import { createHash } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
@@ -15,19 +16,18 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 import { FileStorageService } from '../../common/services/file-storage.service';
 import { calculateFileHash } from '../../common/utils/file-hash.util';
-import { getFileTypeFromMime } from '../../common/utils/file-validator.util';
+import { getFileTypeFromMime, validateFile } from '../../common/utils/file-validator.util';
 import { normalizeFilename } from '../../common/utils/filename.util';
-import { WorkspaceMember, WorkspaceRole } from '../../entities';
+import { resolveUploadsDir } from '../../common/utils/uploads.util';
+import { Category, WorkspaceMember, WorkspaceRole } from '../../entities';
 import { ActorType, AuditAction, EntityType, Severity } from '../../entities/audit-event.entity';
-import {
-  BankName,
-  type FileType,
-  Statement,
-  StatementStatus,
-} from '../../entities/statement.entity';
-import { Transaction } from '../../entities/transaction.entity';
+import { CategoryType } from '../../entities/category.entity';
+import { BankName, FileType, Statement, StatementStatus } from '../../entities/statement.entity';
+import { TaxRate } from '../../entities/tax-rate.entity';
+import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { AuditService } from '../audit/audit.service';
 import type {
@@ -35,6 +35,7 @@ import type {
   StatementUploadedEvent,
 } from '../notifications/events/notification-events';
 import { StatementProcessingService } from '../parsing/services/statement-processing.service';
+import type { CreateManualExpenseDto } from './dto/create-manual-expense.dto';
 import type { UpdateStatementDto } from './dto/update-statement.dto';
 
 const execAsync = promisify(exec);
@@ -48,6 +49,10 @@ export class StatementsService {
     private transactionRepository: Repository<Transaction>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(TaxRate)
+    private readonly taxRateRepository: Repository<TaxRate>,
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly fileStorageService: FileStorageService,
@@ -92,6 +97,247 @@ export class StatementsService {
       }
     }
     throw new ForbiddenException('Недостаточно прав для изменения выписки');
+  }
+
+  private escapeCsvValue(value: string): string {
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replaceAll('"', '""')}"`;
+    }
+    return value;
+  }
+
+  async createManualExpense(params: {
+    user: User;
+    workspaceId: string;
+    payload: CreateManualExpenseDto;
+    files: Express.Multer.File[];
+  }): Promise<Statement> {
+    const { user, workspaceId, payload, files } = params;
+    await this.ensureCanEditStatements(user.id, workspaceId);
+
+    const amountValue = Number(
+      String(payload.amount || '')
+        .replace(',', '.')
+        .trim(),
+    );
+    if (!Number.isFinite(amountValue) || amountValue <= 0) {
+      throw new BadRequestException('Amount must be a positive number');
+    }
+
+    const merchant = payload.merchant?.trim();
+    if (!merchant) {
+      throw new BadRequestException('Merchant is required');
+    }
+
+    const currency = (payload.currency || 'KZT').trim().toUpperCase();
+    if (!currency) {
+      throw new BadRequestException('Currency is required');
+    }
+
+    const parsedDate = new Date(payload.date);
+    if (Number.isNaN(parsedDate.getTime())) {
+      throw new BadRequestException('Date is invalid');
+    }
+
+    const allowDuplicates = payload.allowDuplicates ?? false;
+    const description = payload.description?.trim() || '';
+    const categoryId = payload.categoryId?.trim();
+    if (!categoryId) {
+      throw new BadRequestException('Category is required');
+    }
+
+    const category = await this.categoryRepository.findOne({
+      where: { id: categoryId, workspaceId },
+    });
+
+    if (!category) {
+      throw new BadRequestException('Category not found');
+    }
+
+    if (category.isEnabled === false) {
+      throw new BadRequestException('Category is disabled');
+    }
+
+    if (category.type !== CategoryType.EXPENSE) {
+      throw new BadRequestException('Category must be an expense category');
+    }
+
+    const taxRateId = payload.taxRateId?.trim();
+    let taxRate: TaxRate | null = null;
+
+    if (taxRateId) {
+      taxRate = await this.taxRateRepository.findOne({
+        where: {
+          id: taxRateId,
+          workspaceId,
+          isEnabled: true,
+        },
+      });
+
+      if (!taxRate) {
+        throw new BadRequestException('Tax rate not found');
+      }
+    } else {
+      taxRate = await this.taxRateRepository.findOne({
+        where: {
+          workspaceId,
+          isDefault: true,
+          isEnabled: true,
+        },
+      });
+    }
+
+    const transactionDate = new Date(parsedDate.toISOString().slice(0, 10));
+
+    if (!allowDuplicates) {
+      const existingDuplicate = await this.transactionRepository.findOne({
+        where: {
+          workspaceId,
+          transactionType: TransactionType.EXPENSE,
+          transactionDate,
+          currency,
+          counterpartyName: merchant,
+          debit: amountValue,
+        },
+      });
+
+      if (existingDuplicate) {
+        throw new ConflictException('Аналогичный расход уже существует');
+      }
+    }
+
+    const normalizedFiles = files || [];
+    normalizedFiles.forEach(validateFile);
+
+    let fileName: string;
+    let filePath: string;
+    let fileType: FileType;
+    let fileHash: string;
+    let fileSize: number;
+    let fileData: Buffer;
+
+    const primaryFile = normalizedFiles[0];
+    if (primaryFile) {
+      fileName = normalizeFilename(primaryFile.originalname);
+      filePath = primaryFile.path;
+      fileType = getFileTypeFromMime(primaryFile.mimetype) as FileType;
+      fileHash = await calculateFileHash(primaryFile.path);
+      fileSize = primaryFile.size;
+      fileData = await fs.promises.readFile(primaryFile.path);
+    } else {
+      fileName = `manual-expense-${Date.now()}.csv`;
+      filePath = path.join(resolveUploadsDir(), `${uuidv4()}.csv`);
+      const csv = [
+        'date,merchant,description,amount,currency',
+        [
+          payload.date,
+          this.escapeCsvValue(merchant),
+          this.escapeCsvValue(description),
+          amountValue.toFixed(2),
+          currency,
+        ].join(','),
+      ].join('\n');
+
+      fileData = Buffer.from(csv, 'utf8');
+      await fs.promises.writeFile(filePath, fileData);
+      fileType = FileType.CSV;
+      fileHash = createHash('sha256').update(fileData).digest('hex');
+      fileSize = fileData.length;
+    }
+
+    const statement = this.statementRepository.create({
+      userId: user.id,
+      workspaceId,
+      fileName,
+      filePath,
+      fileType,
+      fileSize,
+      fileHash,
+      bankName: BankName.OTHER,
+      status: StatementStatus.COMPLETED,
+      processedAt: new Date(),
+      statementDateFrom: transactionDate,
+      statementDateTo: transactionDate,
+      totalTransactions: 1,
+      totalDebit: amountValue,
+      totalCredit: 0,
+      currency,
+      categoryId: category.id,
+      parsingDetails: {
+        detectedBy: 'manual-expense',
+        parserUsed: 'manual-expense',
+        parserVersion: '1',
+        transactionsFound: 1,
+        transactionsCreated: 1,
+        metadataExtracted: {
+          dateFrom: payload.date,
+          dateTo: payload.date,
+          currency,
+        },
+        importPreview: {
+          source: 'manual-expense',
+          merchant,
+          description,
+          attachments: normalizedFiles.length,
+          categoryId: category.id,
+          taxRateId: taxRate?.id || null,
+          taxRateLabel: taxRate
+            ? `${taxRate.name} (${Number(taxRate.rate || 0).toFixed(0)}%)`
+            : null,
+        },
+      },
+    });
+
+    const savedStatement = (await this.statementRepository.save(statement)) as Statement;
+
+    try {
+      await this.statementRepository.update(savedStatement.id, { fileData });
+    } catch (error) {
+      console.warn(
+        `[Statements] Failed to persist manual expense file in DB: ${(error as Error)?.message}`,
+      );
+    }
+
+    const transaction = this.transactionRepository.create({
+      workspaceId,
+      statementId: savedStatement.id,
+      transactionDate,
+      counterpartyName: merchant,
+      paymentPurpose: description || merchant,
+      debit: amountValue,
+      credit: null,
+      amount: amountValue,
+      currency,
+      transactionType: TransactionType.EXPENSE,
+      categoryId: category.id,
+      taxRateId: taxRate?.id || null,
+      isVerified: true,
+    });
+
+    await this.transactionRepository.save(transaction);
+
+    await this.auditService.createEvent({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: user.id,
+      actorLabel: user.email || user.name || 'User',
+      entityType: EntityType.STATEMENT,
+      entityId: savedStatement.id,
+      action: AuditAction.IMPORT,
+      diff: { before: null, after: savedStatement },
+      meta: {
+        source: 'manual-expense',
+        amount: amountValue,
+        currency,
+        merchant,
+        categoryId: category.id,
+        taxRateId: taxRate?.id || null,
+      },
+      severity: Severity.INFO,
+      isUndoable: false,
+    });
+
+    return savedStatement;
   }
 
   async create(
@@ -365,6 +611,70 @@ export class StatementsService {
     }
 
     return this.statementRepository.save(statement);
+  }
+
+  async attachFile(
+    id: string,
+    userId: string,
+    workspaceId: string,
+    file: Express.Multer.File,
+  ): Promise<Statement> {
+    validateFile(file);
+
+    const statement = await this.findOne(id, workspaceId);
+    await this.ensureCanModify(statement, userId, workspaceId);
+
+    const previousFilePath = statement.filePath;
+    statement.fileName = normalizeFilename(file.originalname);
+    statement.filePath = file.path;
+    statement.fileType = getFileTypeFromMime(file.mimetype) as FileType;
+    statement.fileSize = file.size;
+    statement.fileHash = await calculateFileHash(file.path);
+
+    if (statement.parsingDetails?.importPreview?.source === 'manual-expense') {
+      const previousAttachmentCount = Number(
+        statement.parsingDetails.importPreview.attachments || 0,
+      );
+      statement.parsingDetails = {
+        ...statement.parsingDetails,
+        importPreview: {
+          ...(statement.parsingDetails.importPreview || {}),
+          attachments: Math.max(previousAttachmentCount, 1),
+        },
+      };
+    }
+
+    const updatedStatement = await this.statementRepository.save(statement);
+
+    try {
+      const fileData = await fs.promises.readFile(file.path);
+      await this.statementRepository.update(updatedStatement.id, { fileData });
+    } catch (error) {
+      console.warn(
+        `[Statements] Failed to persist attached file in DB: ${(error as Error).message}`,
+      );
+    }
+
+    if (previousFilePath && previousFilePath !== file.path && fs.existsSync(previousFilePath)) {
+      try {
+        const sharedReferenceCount = await this.statementRepository
+          .createQueryBuilder('statement')
+          .where('statement.filePath = :filePath', { filePath: previousFilePath })
+          .andWhere('statement.id != :id', { id: updatedStatement.id })
+          .getCount();
+
+        if (sharedReferenceCount === 0) {
+          await fs.promises.unlink(previousFilePath);
+        }
+      } catch (error) {
+        console.warn(
+          `[Statements] Failed to clean up previous file ${previousFilePath}: ${(error as Error).message}`,
+        );
+      }
+    }
+
+    await this.cacheManager.del(`statements:thumbnail:${id}`);
+    return updatedStatement;
   }
 
   async moveToTrash(id: string, userId: string, workspaceId: string): Promise<Statement> {

@@ -196,4 +196,45 @@ describe('StatementsListItem', () => {
 
     expect(onView).toHaveBeenCalledTimes(1);
   });
+
+  it('renders payments icon for manual expense type', () => {
+    const root = createRoot(container);
+
+    const statement: Statement = {
+      id: 'manual-1',
+      source: 'statement',
+      fileName: 'manual-expense.csv',
+      status: 'completed',
+      totalDebit: 222,
+      totalCredit: 0,
+      createdAt: '2026-02-20T00:00:00Z',
+      statementDateFrom: '2026-02-20',
+      statementDateTo: '2026-02-20',
+      bankName: 'other',
+      fileType: 'file',
+      currency: 'KZT',
+    };
+
+    act(() => {
+      root.render(
+        <StatementsListItem
+          statement={statement}
+          viewLabel="View"
+          isGmail={false}
+          isProcessing={false}
+          isManualExpense
+          merchantLabel="adad"
+          amountLabel="222KZT"
+          dateLabel="02/20/2026"
+          onView={() => undefined}
+          onIconClick={() => undefined}
+          onToggleSelect={() => undefined}
+          typeLabel="FILE"
+        />,
+      );
+    });
+
+    expect(container.querySelector('[data-testid="manual-expense-type-icon"]')).toBeTruthy();
+    expect(container.textContent).not.toContain('FILE');
+  });
 });

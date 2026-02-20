@@ -29,8 +29,15 @@ describe('statement expense drawer helpers', () => {
 
   it('validates manual form required fields', () => {
     expect(
-      validateManualExpenseDraft({ amount: '', currency: 'KZT', description: '', merchant: '' }),
-    ).toEqual({ amount: false, merchant: false });
+      validateManualExpenseDraft({
+        amount: '',
+        currency: 'KZT',
+        description: '',
+        merchant: '',
+        categoryId: '',
+        taxRateId: '',
+      }),
+    ).toEqual({ amount: false, merchant: false, category: false });
 
     expect(
       validateManualExpenseDraft({
@@ -38,8 +45,10 @@ describe('statement expense drawer helpers', () => {
         currency: 'KZT',
         description: '',
         merchant: 'Coffee place',
+        categoryId: 'category-1',
+        taxRateId: '',
       }),
-    ).toEqual({ amount: true, merchant: true });
+    ).toEqual({ amount: true, merchant: true, category: true });
   });
 
   it('keeps only numeric input and one decimal separator for amount', () => {

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -11,11 +12,12 @@ import {
   Post,
   Query,
   Res,
+  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
@@ -31,6 +33,7 @@ import { EntityType } from '../../entities/audit-event.entity';
 import type { User } from '../../entities/user.entity';
 import { Audit } from '../audit/decorators/audit.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CreateManualExpenseDto } from './dto/create-manual-expense.dto';
 import { UpdateStatementDto } from './dto/update-statement.dto';
 import { UploadStatementDto } from './dto/upload-statement.dto';
 import { StatementsService } from './statements.service';
@@ -74,6 +77,48 @@ export class StatementsController {
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
     return this.handleUpload(files, uploadDto, user, workspaceId, idempotencyKey, false);
+  }
+
+  @Post('manual-expense')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard, PermissionsGuard)
+  @RequirePermission(Permission.STATEMENT_UPLOAD)
+  @Audit({ entityType: EntityType.STATEMENT, includeDiff: true, isUndoable: true })
+  @UseInterceptors(FilesInterceptor('files', 5, multerConfig))
+  async createManualExpense(
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() payload: CreateManualExpenseDto,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.statementsService.createManualExpense({
+      user,
+      workspaceId,
+      files: files || [],
+      payload,
+    });
+  }
+
+  @Post(':id/attach-file')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard, PermissionsGuard)
+  @RequirePermission(Permission.STATEMENT_EDIT)
+  @Audit({ entityType: EntityType.STATEMENT, includeDiff: true, isUndoable: true })
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  async attachFile(
+    @Param('id') id: string,
+    @UploadedFile() file: any,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    const uploadedFile = file as Express.Multer.File | undefined;
+
+    if (!uploadedFile) {
+      throw new BadRequestException('No file provided');
+    }
+
+    validateFile(uploadedFile);
+    return this.statementsService.attachFile(id, user.id, workspaceId, uploadedFile);
   }
 
   private async handleUpload(

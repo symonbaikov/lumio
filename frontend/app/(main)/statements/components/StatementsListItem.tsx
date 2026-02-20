@@ -2,6 +2,7 @@
 
 import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
 import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
+import PaymentsIcon from '@mui/icons-material/Payments';
 import { ChevronRight } from 'lucide-react';
 import React from 'react';
 
@@ -50,6 +51,7 @@ type Props = {
   selected?: boolean;
   selectionDisabled?: boolean;
   typeLabel?: string;
+  isManualExpense?: boolean;
 };
 
 export function StatementsListItem({
@@ -66,6 +68,7 @@ export function StatementsListItem({
   selected = false,
   selectionDisabled = false,
   typeLabel,
+  isManualExpense = false,
 }: Props) {
   const resolvedTypeLabel = typeLabel || statement.fileType;
 
@@ -168,7 +171,15 @@ export function StatementsListItem({
         </button>
         <div className="w-3" />
         <div className="w-20 flex items-center gap-2 text-sm font-medium text-gray-500">
-          <span className="uppercase">{resolvedTypeLabel}</span>
+          {isManualExpense ? (
+            <PaymentsIcon
+              data-testid="manual-expense-type-icon"
+              className="text-primary"
+              fontSize="small"
+            />
+          ) : (
+            <span className="uppercase">{resolvedTypeLabel}</span>
+          )}
         </div>
         <div className="w-24 text-sm font-medium text-gray-500 tabular-nums">{dateLabel}</div>
         <div className="flex-1 flex items-center gap-2 text-sm text-gray-900">

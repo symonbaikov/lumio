@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  getStatementDisplayMerchant,
   getStatementMerchantLabel,
   hasProcessingStatements,
+  isManualExpenseStatement,
   isStatementProcessingStatus,
 } from '../statement-status';
 
@@ -34,5 +36,40 @@ describe('statement status helpers', () => {
 
   it('returns merchant label after processing is completed', () => {
     expect(getStatementMerchantLabel('completed', 'Kaspi', 'Scanning...')).toBe('Kaspi');
+  });
+
+  it('detects manual expense statements by parsing metadata', () => {
+    expect(
+      isManualExpenseStatement({
+        parsingDetails: {
+          detectedBy: 'manual-expense',
+        },
+      }),
+    ).toBe(true);
+    expect(
+      isManualExpenseStatement({
+        parsingDetails: {
+          importPreview: { source: 'manual-expense' },
+        },
+      }),
+    ).toBe(true);
+    expect(isManualExpenseStatement({ parsingDetails: null })).toBe(false);
+  });
+
+  it('prefers manual merchant from parsing metadata', () => {
+    expect(
+      getStatementDisplayMerchant(
+        {
+          parsingDetails: {
+            importPreview: { merchant: 'Coffee point' },
+          },
+        },
+        'Other',
+      ),
+    ).toBe('Coffee point');
+  });
+
+  it('falls back to bank label when manual merchant is missing', () => {
+    expect(getStatementDisplayMerchant({ parsingDetails: null }, 'Kaspi')).toBe('Kaspi');
   });
 });

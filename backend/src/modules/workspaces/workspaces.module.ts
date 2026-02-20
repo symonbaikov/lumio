@@ -4,6 +4,7 @@ import { Integration, User, Workspace, WorkspaceInvitation, WorkspaceMember } fr
 import { AuditModule } from '../audit/audit.module';
 import { BalanceModule } from '../balance/balance.module';
 import { CategoriesModule } from '../categories/categories.module';
+import { TaxRatesModule } from '../tax-rates/tax-rates.module';
 import { WorkspacesController } from './workspaces.controller';
 import { WorkspacesService } from './workspaces.service';
 
@@ -13,6 +14,7 @@ import { WorkspacesService } from './workspaces.service';
     AuditModule,
     BalanceModule,
     CategoriesModule,
+    TaxRatesModule,
   ],
   providers: [WorkspacesService],
   controllers: [WorkspacesController],

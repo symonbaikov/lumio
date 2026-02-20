@@ -1,7 +1,7 @@
 'use client';
 
 import { Download, MoreVertical, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 type ReactPdfModule = typeof import('react-pdf');
 import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { ModalShell } from './ui/modal-shell';
@@ -12,6 +12,9 @@ interface PDFPreviewModalProps {
   fileId: string;
   fileName: string;
   source?: 'statement' | 'gmail';
+  allowAttachFile?: boolean;
+  onFileAttached?: () => void;
+  onParsingStarted?: () => void;
 }
 
 const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? '/api/v1').replace(/\/$/, '');
@@ -22,6 +25,9 @@ export function PDFPreviewModal({
   fileId,
   fileName,
   source = 'statement',
+  allowAttachFile = false,
+  onFileAttached,
+  onParsingStarted,
 }: PDFPreviewModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,9 +36,14 @@ export function PDFPreviewModal({
   const [pageWidth, setPageWidth] = useState(920);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pdfModule, setPdfModule] = useState<ReactPdfModule | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const [attachingFile, setAttachingFile] = useState(false);
+  const [showParsePrompt, setShowParsePrompt] = useState(false);
+  const [startingParsing, setStartingParsing] = useState(false);
 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const attachInputRef = useRef<HTMLInputElement | null>(null);
 
   const DocumentComponent = pdfModule?.Document;
   const PageComponent = pdfModule?.Page;
@@ -44,6 +55,9 @@ export function PDFPreviewModal({
       setLoading(false);
       setError(null);
       setMenuOpen(false);
+      setShowParsePrompt(false);
+      setAttachingFile(false);
+      setStartingParsing(false);
       return;
     }
 
@@ -101,7 +115,7 @@ export function PDFPreviewModal({
         URL.revokeObjectURL(localObjectUrl);
       }
     };
-  }, [isOpen, fileId, source]);
+  }, [isOpen, fileId, source, reloadToken]);
 
   useEffect(() => {
     if (!isOpen || pdfModule) return;
@@ -211,6 +225,80 @@ export function PDFPreviewModal({
     void handleDownload();
   };
 
+  const handleAttachClick = () => {
+    attachInputRef.current?.click();
+  };
+
+  const handleAttachFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    event.target.value = '';
+    if (!selectedFile) {
+      return;
+    }
+
+    try {
+      const headers = getWorkspaceHeaders();
+      if (!headers.Authorization) {
+        setError('Необходима авторизация');
+        return;
+      }
+
+      setAttachingFile(true);
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const response = await fetch(`${apiBaseUrl}/statements/${fileId}/attach-file`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Не удалось загрузить файл');
+      }
+
+      setError(null);
+      onFileAttached?.();
+      setShowParsePrompt(true);
+      setReloadToken(prev => prev + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось загрузить файл');
+    } finally {
+      setAttachingFile(false);
+    }
+  };
+
+  const handleStartReplaceParsing = async () => {
+    try {
+      const headers = getWorkspaceHeaders();
+      if (!headers.Authorization) {
+        setError('Необходима авторизация');
+        return;
+      }
+
+      setStartingParsing(true);
+      const response = await fetch(`${apiBaseUrl}/statements/${fileId}/reprocess?mode=replace`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Не удалось запустить парсинг');
+      }
+
+      setShowParsePrompt(false);
+      onParsingStarted?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось запустить парсинг');
+    } finally {
+      setStartingParsing(false);
+    }
+  };
+
+  const showAttachFallback = allowAttachFile && source === 'statement';
+
   return (
     <ModalShell
       isOpen={isOpen}
@@ -278,15 +366,76 @@ export function PDFPreviewModal({
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-red-100 bg-red-50">
                   <X size={24} className="text-red-500" strokeWidth={1.5} />
                 </div>
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">Ошибка загрузки</h3>
-                <p className="mb-4 text-sm text-gray-500">{error}</p>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800"
-                >
-                  Закрыть
-                </button>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">
+                  {showAttachFallback ? 'Файл не прикреплен' : 'Ошибка загрузки'}
+                </h3>
+                <p className="mb-4 text-sm text-gray-500">
+                  {showAttachFallback ? 'Загрузите файл, чтобы открыть превью документа' : error}
+                </p>
+
+                {showAttachFallback ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <input
+                      ref={attachInputRef}
+                      type="file"
+                      accept="application/pdf,image/*,.csv,.xlsx,.xls,.docx"
+                      onChange={handleAttachFile}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAttachClick}
+                      disabled={attachingFile}
+                      className="rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {attachingFile ? 'Загрузка...' : 'Загрузить файл'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="rounded-lg border border-gray-200 bg-white px-5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                    >
+                      Закрыть
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800"
+                  >
+                    Закрыть
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {showParsePrompt && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/25 px-4">
+              <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-[0_20px_36px_rgba(15,23,42,0.2)]">
+                <h3 className="text-base font-semibold text-[#0f3428]">Запустить парсинг?</h3>
+                <p className="mt-2 text-sm text-gray-600">
+                  Хотите извлечь данные из загруженной выписки и заменить текущие ручные значения?
+                </p>
+                <div className="mt-5 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowParsePrompt(false)}
+                    disabled={startingParsing}
+                    className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Отказаться
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleStartReplaceParsing}
+                    disabled={startingParsing}
+                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
+                  >
+                    {startingParsing ? 'Запуск...' : 'Запустить парсинг'}
+                  </button>
+                </div>
               </div>
             </div>
           )}

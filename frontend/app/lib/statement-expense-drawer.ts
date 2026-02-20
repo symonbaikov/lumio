@@ -12,6 +12,16 @@ export type ManualExpenseDraft = {
   currency: string;
   description: string;
   merchant: string;
+  categoryId: string;
+  taxRateId: string;
+};
+
+export type TaxRateOption = {
+  id: string;
+  name: string;
+  rate: number;
+  isDefault: boolean;
+  isEnabled: boolean;
 };
 
 export type CurrencySearchItem = {
@@ -148,11 +158,13 @@ export function resolveExpenseDrawerMode(mode: string | null | undefined): State
 export function validateManualExpenseDraft(draft: ManualExpenseDraft): {
   amount: boolean;
   merchant: boolean;
+  category: boolean;
 } {
   const parsedAmount = Number(draft.amount);
 
   return {
     amount: Number.isFinite(parsedAmount) && parsedAmount > 0,
     merchant: draft.merchant.trim().length > 0,
+    category: draft.categoryId.trim().length > 0,
   };
 }

@@ -32,6 +32,7 @@ import type {
   MemberJoinedEvent,
   WorkspaceUpdatedEvent,
 } from '../notifications/events/notification-events';
+import { TaxRatesService } from '../tax-rates/tax-rates.service';
 import type { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import type { InviteMemberDto } from './dto/invite-member.dto';
 import type { UpdateWorkspaceDto } from './dto/update-workspace.dto';
@@ -55,6 +56,7 @@ export class WorkspacesService {
     private readonly auditService: AuditService,
     private readonly balanceService: BalanceService,
     private readonly categoriesService: CategoriesService,
+    private readonly taxRatesService: TaxRatesService,
     private readonly eventEmitter?: EventEmitter2,
   ) {}
 
@@ -92,6 +94,7 @@ export class WorkspacesService {
 
     await this.userRepository.update(user.id, { workspaceId: savedWorkspace.id });
     await this.categoriesService.createSystemCategories(savedWorkspace.id, user.id);
+    await this.taxRatesService.createDefaultTaxRates(savedWorkspace.id);
     await this.balanceService.seedDefaultAccounts(savedWorkspace.id);
 
     return savedWorkspace;
@@ -643,6 +646,7 @@ export class WorkspacesService {
 
     await this.userRepository.update(userId, { lastWorkspaceId: savedWorkspace.id });
     await this.categoriesService.createSystemCategories(savedWorkspace.id, userId);
+    await this.taxRatesService.createDefaultTaxRates(savedWorkspace.id);
     await this.balanceService.seedDefaultAccounts(savedWorkspace.id);
 
     const stats = await this.getWorkspaceStats(savedWorkspace.id);

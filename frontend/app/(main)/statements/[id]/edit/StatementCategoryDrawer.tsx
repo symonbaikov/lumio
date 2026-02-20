@@ -1,6 +1,6 @@
 'use client';
 
-import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { DrawerShell, type DrawerWidth } from '@/app/components/ui/drawer-shell';
 import {
   type StatementCategoryNode,
   filterStatementCategories,
@@ -23,6 +23,9 @@ type StatementCategoryDrawerProps = {
   selecting: boolean;
   onSelect: (categoryId: string) => void;
   labels: StatementCategoryDrawerLabels;
+  width?: DrawerWidth;
+  className?: string;
+  showAllOption?: boolean;
 };
 
 export default function StatementCategoryDrawer({
@@ -33,6 +36,9 @@ export default function StatementCategoryDrawer({
   selecting,
   onSelect,
   labels,
+  width = 'sm',
+  className = 'bg-[#fbfaf8] border-l-0',
+  showAllOption = true,
 }: StatementCategoryDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -52,9 +58,9 @@ export default function StatementCategoryDrawer({
       isOpen={open}
       onClose={onClose}
       position="right"
-      width="sm"
+      width={width}
       showCloseButton={false}
-      className="bg-[#fbfaf8] border-l-0"
+      className={className}
       title={
         <div className="flex items-center gap-3">
           <button
@@ -85,19 +91,21 @@ export default function StatementCategoryDrawer({
 
         <div className="flex-1 overflow-y-auto">
           <div className="divide-y divide-transparent">
-            <button
-              type="button"
-              disabled={selecting}
-              onClick={() => onSelect('')}
-              className={`flex w-full items-center justify-between px-4 py-5 text-left text-base font-semibold transition-colors ${
-                selectedCategoryId === ''
-                  ? 'bg-[#ede8e1] text-[#073b32]'
-                  : 'text-[#073b32] hover:bg-gray-50'
-              }`}
-            >
-              <span>{labels.allOption}</span>
-              {selectedCategoryId === '' ? <Check className="h-6 w-6 text-emerald-500" /> : null}
-            </button>
+            {showAllOption ? (
+              <button
+                type="button"
+                disabled={selecting}
+                onClick={() => onSelect('')}
+                className={`flex w-full items-center justify-between px-4 py-5 text-left text-base font-semibold transition-colors ${
+                  selectedCategoryId === ''
+                    ? 'bg-[#ede8e1] text-[#073b32]'
+                    : 'text-[#073b32] hover:bg-gray-50'
+                }`}
+              >
+                <span>{labels.allOption}</span>
+                {selectedCategoryId === '' ? <Check className="h-6 w-6 text-emerald-500" /> : null}
+              </button>
+            ) : null}
 
             {filteredCategories.length === 0 ? (
               <div className="px-4 py-8 text-base text-gray-500">{labels.noResults}</div>

@@ -15,6 +15,7 @@ import {
   type ConnectedCloudProviders,
 } from '@/app/lib/statement-upload-actions';
 import { countStatementStages, getStatementStageMap } from '@/app/lib/statement-workflow';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 import { Banknote, CalendarRange, Folder, Pencil, Send, ThumbsUp, User } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
 import { useRouter } from 'next/navigation';
@@ -28,6 +29,7 @@ type ActiveItem =
   | 'pay'
   | 'spend-over-time'
   | 'top-spenders'
+  | 'top-merchants'
   | 'top-categories';
 
 type Props = {
@@ -47,6 +49,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
   const { user } = useAuth();
   const [counts, setCounts] = useState({ submit: 0, approve: 0, pay: 0 });
   const [topSenders, setTopSenders] = useState<TopBankSender[]>([]);
+  const [topMerchantsCount, setTopMerchantsCount] = useState(0);
   const [topCategoriesCount, setTopCategoriesCount] = useState(0);
   const [connectedCloudProviders, setConnectedCloudProviders] = useState<ConnectedCloudProviders>({
     googleDriveConnected: false,
@@ -92,6 +95,40 @@ export default function StatementsSidePanel({ activeItem }: Props) {
 
         const stageCounts = countStatementStages(statementIds, getStatementStageMap());
         const topBankSenders = getTopBankSenders(allStatements, 5);
+
+        const topMerchantsItems: Array<{ counterpartyName?: string | null }> = [];
+        const topMerchantsPageSize = 500;
+        let topMerchantsPage = 1;
+        let topMerchantsTotal = Number.POSITIVE_INFINITY;
+
+        while (topMerchantsItems.length < topMerchantsTotal) {
+          const topMerchantsResponse = await apiClient.get('/transactions', {
+            params: {
+              page: topMerchantsPage,
+              limit: topMerchantsPageSize,
+            },
+          });
+          const items = Array.isArray(topMerchantsResponse.data?.data)
+            ? topMerchantsResponse.data.data
+            : [];
+          topMerchantsItems.push(...items);
+          topMerchantsTotal = Number(topMerchantsResponse.data?.total ?? topMerchantsItems.length);
+
+          if (items.length < topMerchantsPageSize) {
+            break;
+          }
+
+          topMerchantsPage += 1;
+        }
+
+        const uniqueMerchants = new Set(
+          topMerchantsItems
+            .map((item: { counterpartyName?: string | null }) =>
+              (item.counterpartyName || '').trim().toLowerCase(),
+            )
+            .filter(Boolean),
+        );
+
         const topCategoriesResponse = await apiClient.get('/reports/top-categories', {
           params: {
             type: 'expense',
@@ -105,12 +142,14 @@ export default function StatementsSidePanel({ activeItem }: Props) {
         if (isMounted) {
           setCounts(stageCounts);
           setTopSenders(topBankSenders);
+          setTopMerchantsCount(uniqueMerchants.size);
           setTopCategoriesCount(topCategories.length);
         }
       } catch {
         if (isMounted) {
           setCounts({ submit: 0, approve: 0, pay: 0 });
           setTopSenders([]);
+          setTopMerchantsCount(0);
           setTopCategoriesCount(0);
         }
       }
@@ -169,9 +208,24 @@ export default function StatementsSidePanel({ activeItem }: Props) {
     window.dispatchEvent(new CustomEvent(STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT, { detail }));
   }, []);
 
+  const navigateToSubmit = useCallback(
+    (mode?: StatementExpenseMode) => {
+      if (activeItem === 'submit') {
+        if (mode) {
+          openExpenseDrawer(mode);
+        }
+        return;
+      }
+
+      const query = mode ? `?openExpenseDrawer=${mode}` : '';
+      router.push(`/statements/submit${query}`);
+    },
+    [activeItem, openExpenseDrawer, router],
+  );
+
   const handleScanClick = useCallback(() => {
-    openExpenseDrawer('scan');
-  }, [openExpenseDrawer]);
+    navigateToSubmit('scan');
+  }, [navigateToSubmit]);
 
   const handleCloudImport = useCallback(
     async (provider: CloudImportProvider | null) => {
@@ -188,6 +242,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
         toast.success(
           provider === 'dropbox' ? 'Dropbox import started' : 'Google Drive import started',
         );
+        navigateToSubmit();
       } catch {
         toast.error(
           provider === 'dropbox'
@@ -196,7 +251,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
         );
       }
     },
-    [router],
+    [navigateToSubmit, router],
   );
 
   const handleGmailClick = useCallback(() => {
@@ -210,6 +265,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
 
           if (jobsCreated > 0) {
             toast.success(`Gmail sync started (${jobsCreated} receipts)`);
+            navigateToSubmit();
             return;
           }
 
@@ -224,6 +280,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
           }
 
           toast.error('Gmail sync finished with no new receipts');
+          navigateToSubmit();
         })
         .catch(() => {
           toast.error('Failed to sync Gmail');
@@ -232,7 +289,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
     }
 
     router.push('/integrations/gmail');
-  }, [connectedCloudProviders.gmailConnected, router]);
+  }, [connectedCloudProviders.gmailConnected, navigateToSubmit, router]);
 
   const sidePanelConfig = useMemo<SidePanelPageConfig>(
     () => ({
@@ -309,6 +366,14 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               active: activeItem === 'top-spenders',
             },
             {
+              id: 'top-merchants',
+              label: (t as any)?.sidePanel?.topMerchants?.value ?? 'Top merchants',
+              icon: <StorefrontIcon sx={{ fontSize: 16 }} />,
+              badge: topMerchantsCount,
+              href: '/statements/top-merchants',
+              active: activeItem === 'top-merchants',
+            },
+            {
               id: 'top-categories',
               label: (t as any)?.sidePanel?.topCategories?.value ?? 'Top categories',
               icon: Folder,
@@ -326,7 +391,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             onScan={handleScanClick}
             onCloudImport={handleCloudImport}
             onGmail={handleGmailClick}
-            onLocalUpload={() => openExpenseDrawer('manual')}
+            onLocalUpload={() => navigateToSubmit('manual')}
           />
         ),
       },
@@ -336,12 +401,13 @@ export default function StatementsSidePanel({ activeItem }: Props) {
       activeItem,
       counts,
       topSenders,
+      topMerchantsCount,
       topCategoriesCount,
       connectedCloudProviders,
       handleCloudImport,
       handleGmailClick,
       handleScanClick,
-      openExpenseDrawer,
+      navigateToSubmit,
     ],
   );
 

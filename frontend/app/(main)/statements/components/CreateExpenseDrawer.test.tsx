@@ -19,6 +19,8 @@ describe('CreateExpenseDrawer mobile uploads', () => {
         <CreateExpenseDrawer
           open
           initialMode="scan"
+          categories={[]}
+          taxRates={[]}
           onClose={() => undefined}
           onSubmitScan={async () => undefined}
           onSubmitManual={async () => undefined}

@@ -1,9 +1,8 @@
 'use client';
 
 import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
-import Image from 'next/image';
+import { FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import pdfIcon from '../../public/images/pdf.png';
 
 interface PDFThumbnailProps {
   fileId: string;
@@ -108,14 +107,7 @@ export function PDFThumbnail({
   if (error) {
     return (
       <div className="flex items-center justify-center" style={{ width: size, height: size }}>
-        <Image
-          src={pdfIcon}
-          alt="PDF"
-          width={size * 0.6}
-          height={size * 0.6}
-          className={className}
-          unoptimized
-        />
+        <FileText data-testid="pdf-thumbnail-fallback-icon" size={size} className={className} />
       </div>
     );
   }

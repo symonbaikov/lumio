@@ -32,11 +32,13 @@ import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
 import apiClient, { gmailReceiptsApi } from '@/app/lib/api';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
+import { type StatementCategoryNode } from '@/app/lib/statement-categories';
 import {
   type ManualExpenseDraft,
   type OpenExpenseDrawerEventDetail,
   STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT,
   type StatementExpenseMode,
+  type TaxRateOption,
   resolveExpenseDrawerMode,
 } from '@/app/lib/statement-expense-drawer';
 import {
@@ -44,7 +46,12 @@ import {
   toggleSelectAllVisible,
   toggleStatementSelection,
 } from '@/app/lib/statement-selection';
-import { getStatementMerchantLabel, hasProcessingStatements } from '@/app/lib/statement-status';
+import {
+  getStatementDisplayMerchant,
+  getStatementMerchantLabel,
+  hasProcessingStatements,
+  isManualExpenseStatement,
+} from '@/app/lib/statement-status';
 import { type StatementStage, getStatementStage } from '@/app/lib/statement-workflow';
 import { ReceiptDetailDrawer } from '@/app/storage/gmail-receipts/components/ReceiptDetailDrawer';
 import { resolveBankLogo } from '@bank-logos';
@@ -62,7 +69,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { StatementsListItem } from './StatementsListItem';
@@ -100,6 +107,13 @@ interface Statement {
   errorMessage?: string | null;
   parsingDetails?: {
     logEntries?: Array<{ timestamp: string; level: string; message: string }>;
+    detectedBy?: string;
+    parserUsed?: string;
+    importPreview?: {
+      source?: string;
+      merchant?: string;
+      attachments?: number;
+    };
     metadataExtracted?: {
       currency?: string;
       headerDisplay?: {
@@ -118,6 +132,23 @@ interface Statement {
 }
 
 type UnifiedStatement = Statement;
+
+type StatementCategoryWithEnabled = StatementCategoryNode & {
+  isEnabled?: boolean;
+  children?: StatementCategoryWithEnabled[];
+};
+
+const filterEnabledCategories = (
+  categories: StatementCategoryWithEnabled[],
+): StatementCategoryNode[] => {
+  return categories
+    .filter(category => category.isEnabled !== false)
+    .map(category => ({
+      id: category.id,
+      name: category.name,
+      children: category.children ? filterEnabledCategories(category.children) : undefined,
+    }));
+};
 
 const getBankDisplayName = (bankName: string) => {
   const resolved = resolveBankLogo(bankName);
@@ -201,6 +232,7 @@ type Props = {
 
 export default function StatementsListView({ stage }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const t = useIntlayer('statementsPage');
@@ -218,6 +250,10 @@ export default function StatementsListView({ stage }: Props) {
 
   const [expenseDrawerOpen, setExpenseDrawerOpen] = useState(false);
   const [expenseDrawerMode, setExpenseDrawerMode] = useState<StatementExpenseMode>('scan');
+  const [manualExpenseCategories, setManualExpenseCategories] = useState<StatementCategoryNode[]>(
+    [],
+  );
+  const [manualExpenseTaxRates, setManualExpenseTaxRates] = useState<TaxRateOption[]>([]);
   const resolveLabel = (value: any, fallback: string) => value?.value ?? value ?? fallback;
   const searchPlaceholder = resolveLabel(t.searchPlaceholder, 'Поиск по выпискам');
   const filterLabels = {
@@ -269,6 +305,7 @@ export default function StatementsListView({ stage }: Props) {
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState<string>('');
   const [previewSource, setPreviewSource] = useState<'statement' | 'gmail'>('statement');
+  const [previewAllowAttachFile, setPreviewAllowAttachFile] = useState(false);
   const [receiptDetailId, setReceiptDetailId] = useState<string | null>(null);
   const [selectedStatementIds, setSelectedStatementIds] = useState<string[]>([]);
   const [selectedActionsOpen, setSelectedActionsOpen] = useState(false);
@@ -459,6 +496,11 @@ export default function StatementsListView({ stage }: Props) {
   }, [user, page, search]);
 
   useEffect(() => {
+    if (!user) return;
+    loadManualExpenseOptions();
+  }, [user]);
+
+  useEffect(() => {
     const storedFilters = loadStatementFilters();
     setDraftFilters(storedFilters);
     setAppliedFilters(storedFilters);
@@ -577,6 +619,36 @@ export default function StatementsListView({ stage }: Props) {
     return didLoad;
   };
 
+  const loadManualExpenseOptions = async () => {
+    try {
+      const [categoriesResponse, taxRatesResponse] = await Promise.all([
+        apiClient.get('/categories', { params: { type: 'expense' } }),
+        apiClient.get('/tax-rates'),
+      ]);
+
+      const rawCategories = (categoriesResponse.data?.data ||
+        categoriesResponse.data ||
+        []) as StatementCategoryWithEnabled[];
+      setManualExpenseCategories(filterEnabledCategories(rawCategories));
+
+      const rawTaxRates = (taxRatesResponse.data?.data || taxRatesResponse.data || []) as Array<
+        TaxRateOption & { rate: number | string }
+      >;
+
+      setManualExpenseTaxRates(
+        rawTaxRates.map(taxRate => ({
+          ...taxRate,
+          rate: Number(taxRate.rate || 0),
+          isEnabled: taxRate.isEnabled !== false,
+        })),
+      );
+    } catch (error) {
+      console.error('Failed to load manual expense options:', error);
+      setManualExpenseCategories([]);
+      setManualExpenseTaxRates([]);
+    }
+  };
+
   const loadGmailReceipts = async (opts?: { silent?: boolean; showErrorToast?: boolean }) => {
     const { silent, showErrorToast } = opts || {};
     if (!silent) {
@@ -681,6 +753,22 @@ export default function StatementsListView({ stage }: Props) {
   }, []);
 
   useEffect(() => {
+    if (stage !== 'submit') return;
+
+    const requestedMode = searchParams.get('openExpenseDrawer');
+    if (!requestedMode) return;
+
+    setExpenseDrawerMode(resolveExpenseDrawerMode(requestedMode));
+    setExpenseDrawerOpen(true);
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete('openExpenseDrawer');
+
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `/statements/submit?${nextQuery}` : '/statements/submit');
+  }, [stage, searchParams, router]);
+
+  useEffect(() => {
     const visibleSet = new Set(visibleStatementIds);
     setSelectedStatementIds(prev => prev.filter(id => visibleSet.has(id)));
   }, [visibleStatementIds]);
@@ -730,6 +818,15 @@ export default function StatementsListView({ stage }: Props) {
     }
   };
 
+  const refreshStatementsAfterAttach = () => {
+    void loadStatements({
+      silent: true,
+      page,
+      search,
+      showErrorToast: false,
+    });
+  };
+
   const uploadStatementFiles = async (
     files: File[],
     allowDuplicates: boolean,
@@ -768,12 +865,20 @@ export default function StatementsListView({ stage }: Props) {
     files: File[];
     allowDuplicates: boolean;
   }) => {
+    const fallbackDefaultTaxRateId =
+      manualExpenseTaxRates.find(taxRate => taxRate.isEnabled && taxRate.isDefault)?.id || '';
+    const resolvedTaxRateId = payload.draft.taxRateId || fallbackDefaultTaxRateId;
+
     const buildPayload = () => {
       const formData = new FormData();
       formData.append('amount', payload.draft.amount.trim());
       formData.append('currency', payload.draft.currency.trim());
       formData.append('merchant', payload.draft.merchant.trim());
       formData.append('description', payload.draft.description.trim());
+      formData.append('categoryId', payload.draft.categoryId);
+      if (resolvedTaxRateId) {
+        formData.append('taxRateId', resolvedTaxRateId);
+      }
       formData.append('date', payload.date);
       formData.append('allowDuplicates', payload.allowDuplicates ? 'true' : 'false');
       payload.files.forEach(file => {
@@ -782,7 +887,7 @@ export default function StatementsListView({ stage }: Props) {
       return formData;
     };
 
-    const candidateEndpoints = ['/expenses/manual', '/expenses'];
+    const candidateEndpoints = ['/statements/manual-expense', '/expenses/manual', '/expenses'];
 
     for (const endpoint of candidateEndpoints) {
       try {
@@ -1351,7 +1456,7 @@ export default function StatementsListView({ stage }: Props) {
                       subject: statement.subject,
                       fallback: statement.fileName,
                     })
-                  : getBankDisplayName(statement.bankName);
+                  : getStatementDisplayMerchant(statement, getBankDisplayName(statement.bankName));
                 const merchantLabel = isGmail
                   ? resolvedName
                   : getStatementMerchantLabel(
@@ -1359,6 +1464,15 @@ export default function StatementsListView({ stage }: Props) {
                       resolvedName,
                       listHeaderLabels.scanning,
                     );
+                const isManualExpense = !isGmail && isManualExpenseStatement(statement);
+                const manualAttachmentCount = Number(
+                  statement.parsingDetails?.importPreview?.attachments ?? 0,
+                );
+                const allowAttachFallback =
+                  isManualExpense &&
+                  !isGmail &&
+                  (manualAttachmentCount === 0 ||
+                    statement.fileName.toLowerCase().startsWith('manual-expense-'));
                 const isProcessingGmail = isGmailReceiptProcessing(statement);
                 const amountLabel = formatStatementAmount(statement);
                 const dateLabel = formatStatementDate(statement);
@@ -1374,15 +1488,18 @@ export default function StatementsListView({ stage }: Props) {
                     amountLabel={amountLabel}
                     dateLabel={dateLabel}
                     typeLabel={isGmail ? 'PDF' : statement.fileType}
+                    isManualExpense={isManualExpense}
                     onView={() => handleView(statement)}
                     onIconClick={() => {
                       if (isGmail) {
+                        setPreviewAllowAttachFile(false);
                         setPreviewSource('gmail');
                         setPreviewFileId(statement.id);
                         setPreviewFileName(statement.fileName || 'receipt.pdf');
                         setPreviewModalOpen(true);
                         return;
                       }
+                      setPreviewAllowAttachFile(allowAttachFallback);
                       setPreviewSource('statement');
                       setPreviewFileId(statement.id);
                       setPreviewFileName(statement.fileName);
@@ -1436,10 +1553,16 @@ export default function StatementsListView({ stage }: Props) {
       {previewFileId && (
         <PDFPreviewModal
           isOpen={previewModalOpen}
-          onClose={() => setPreviewModalOpen(false)}
+          onClose={() => {
+            setPreviewModalOpen(false);
+            setPreviewAllowAttachFile(false);
+          }}
           fileId={previewFileId}
           fileName={previewFileName}
           source={previewSource}
+          allowAttachFile={previewAllowAttachFile}
+          onFileAttached={refreshStatementsAfterAttach}
+          onParsingStarted={refreshStatementsAfterAttach}
         />
       )}
 
@@ -1521,6 +1644,8 @@ export default function StatementsListView({ stage }: Props) {
       <CreateExpenseDrawer
         open={expenseDrawerOpen}
         initialMode={expenseDrawerMode}
+        categories={manualExpenseCategories}
+        taxRates={manualExpenseTaxRates}
         onClose={() => setExpenseDrawerOpen(false)}
         onSubmitScan={payload =>
           uploadStatementFiles(
