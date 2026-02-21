@@ -1,50 +1,42 @@
-"use client";
+'use client';
 
-import { Alert } from "@/app/components/ui/alert";
-import { Badge } from "@/app/components/ui/badge";
-import { Button } from "@/app/components/ui/button";
+import { Alert } from '@/app/components/ui/alert';
+import { Badge } from '@/app/components/ui/badge';
+import { Button } from '@/app/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/app/components/ui/card";
-import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
-import { Select } from "@/app/components/ui/select";
-import { Separator } from "@/app/components/ui/separator";
-import { useAuth } from "@/app/hooks/useAuth";
-import apiClient from "@/app/lib/api";
-import { normalizeAvatarUrl } from "@/app/lib/avatar-url";
-import { MAX_AVATAR_SIZE_BYTES } from "@/app/lib/constants";
-import { cn } from "@/app/lib/utils";
-import { ModeToggle } from "@/components/mode-toggle";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import EditIcon from "@mui/icons-material/Edit";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import LogoutIcon from "@mui/icons-material/Logout";
-import MailOutlineIcon from "@mui/icons-material/MailOutline";
-import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
-import SecurityIcon from "@mui/icons-material/Security";
-import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
-import TabletMacOutlinedIcon from "@mui/icons-material/TabletMacOutlined";
-import DesktopWindowsOutlinedIcon from "@mui/icons-material/DesktopWindowsOutlined";
-import SmartphoneOutlinedIcon from "@mui/icons-material/SmartphoneOutlined";
-import CircularProgress from "@mui/material/CircularProgress";
-import type { AxiosError } from "axios";
-import { useIntlayer, useLocale } from "next-intlayer";
-import { useRouter } from "next/navigation";
-import {
-  type ComponentType,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+} from '@/app/components/ui/card';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { Select } from '@/app/components/ui/select';
+import { Separator } from '@/app/components/ui/separator';
+import { useAuth } from '@/app/hooks/useAuth';
+import apiClient from '@/app/lib/api';
+import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
+import { MAX_AVATAR_SIZE_BYTES } from '@/app/lib/constants';
+import { cn } from '@/app/lib/utils';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import DesktopWindowsOutlinedIcon from '@mui/icons-material/DesktopWindowsOutlined';
+import EditIcon from '@mui/icons-material/Edit';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import LogoutIcon from '@mui/icons-material/Logout';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+import SecurityIcon from '@mui/icons-material/Security';
+import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
+import SmartphoneOutlinedIcon from '@mui/icons-material/SmartphoneOutlined';
+import TabletMacOutlinedIcon from '@mui/icons-material/TabletMacOutlined';
+import CircularProgress from '@mui/material/CircularProgress';
+import type { AxiosError } from 'axios';
+import { useIntlayer } from 'next-intlayer';
+import { useRouter } from 'next/navigation';
+import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-type AppLocale = "ru" | "en" | "kk";
 type ApiErrorResponse = { message?: string; error?: { message?: string } };
 type UserSession = {
   id: string;
@@ -57,53 +49,122 @@ type UserSession = {
   isCurrent: boolean;
 };
 
-const sections = [
-  "profile",
-  "sessions",
-  "email",
-  "password",
-  "appearance",
-] as const;
-type SectionId = (typeof sections)[number];
-
-const normalizeLocale = (value: unknown): AppLocale => {
-  if (value === "ru" || value === "en" || value === "kk") return value;
-  return "ru";
+type NotificationPreferences = {
+  statementUploaded: boolean;
+  importCommitted: boolean;
+  categoryChanges: boolean;
+  memberActivity: boolean;
+  dataDeleted: boolean;
+  workspaceUpdated: boolean;
+  parsingErrors: boolean;
+  importFailures: boolean;
+  uncategorizedItems: boolean;
 };
 
+const defaultNotificationPreferences: NotificationPreferences = {
+  statementUploaded: true,
+  importCommitted: true,
+  categoryChanges: true,
+  memberActivity: true,
+  dataDeleted: true,
+  workspaceUpdated: true,
+  parsingErrors: true,
+  importFailures: true,
+  uncategorizedItems: true,
+};
+
+const workspaceNotificationSettings: Array<{
+  key: keyof NotificationPreferences;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: 'statementUploaded',
+    label: 'Загрузка выписок',
+    description: 'Когда участники загружают новые выписки',
+  },
+  {
+    key: 'importCommitted',
+    label: 'Импорт транзакций',
+    description: 'Когда участники подтверждают импорт транзакций',
+  },
+  {
+    key: 'categoryChanges',
+    label: 'Изменение категорий',
+    description: 'Создание, изменение и удаление категорий',
+  },
+  {
+    key: 'memberActivity',
+    label: 'Активность участников',
+    description: 'Приглашения и вступление новых участников',
+  },
+  {
+    key: 'dataDeleted',
+    label: 'Удаление данных',
+    description: 'Удаление транзакций, выписок и других данных',
+  },
+  {
+    key: 'workspaceUpdated',
+    label: 'Настройки workspace',
+    description: 'Изменение названия, валюты и других параметров',
+  },
+];
+
+const systemNotificationSettings: Array<{
+  key: keyof NotificationPreferences;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: 'parsingErrors',
+    label: 'Ошибки парсинга',
+    description: 'Проблемы при обработке выписок',
+  },
+  {
+    key: 'importFailures',
+    label: 'Ошибки импорта',
+    description: 'Импорт завершился с ошибкой',
+  },
+  {
+    key: 'uncategorizedItems',
+    label: 'Операции без категории',
+    description: 'Транзакции и чеки, требующие категоризации',
+  },
+];
+
+const sections = ['profile', 'sessions', 'email', 'password', 'notifications'] as const;
+type SectionId = (typeof sections)[number];
+
 const normalizeSection = (value: string | null | undefined): SectionId => {
-  if (!value) return "profile";
-  if ((sections as readonly string[]).includes(value))
-    return value as SectionId;
-  return "profile";
+  if (!value) return 'profile';
+  if ((sections as readonly string[]).includes(value)) return value as SectionId;
+  return 'profile';
 };
 
 const getApiErrorMessage = (error: unknown, fallback: string) => {
   const axiosError = error as AxiosError<ApiErrorResponse>;
   return (
-    axiosError?.response?.data?.message ||
-    axiosError?.response?.data?.error?.message ||
-    fallback
+    axiosError?.response?.data?.message || axiosError?.response?.data?.error?.message || fallback
   );
 };
 
 const getInitials = (value: string) => {
-  if (!value) return "—";
+  if (!value) return '—';
   const tokens = value.trim().split(/\s+/).filter(Boolean);
-  if (!tokens.length) return "—";
+  if (!tokens.length) return '—';
   if (tokens.length === 1) return tokens[0].slice(0, 2).toUpperCase();
   return (tokens[0][0] + tokens[1][0]).toUpperCase();
 };
 
 const getSessionIcon = (device: string) => {
   const normalized = device.toLowerCase();
-  if (normalized.includes("mobile")) {
+  if (normalized.includes('mobile')) {
     return SmartphoneOutlinedIcon;
   }
-  if (normalized.includes("tablet")) {
+  if (normalized.includes('tablet')) {
     return TabletMacOutlinedIcon;
   }
-  if (normalized.includes("bot")) {
+  if (normalized.includes('bot')) {
     return SmartToyOutlinedIcon;
   }
   return DesktopWindowsOutlinedIcon;
@@ -112,17 +173,15 @@ const getSessionIcon = (device: string) => {
 export default function ProfileSettingsPage() {
   const router = useRouter();
   const { user, loading, setUser } = useAuth();
-  const { locale, setLocale } = useLocale();
-  const t = useIntlayer("settingsProfilePage");
-  const [activeSection, setActiveSection] = useState<SectionId>("profile");
-  const [profileName, setProfileName] = useState("");
-  const [profileLocale, setProfileLocale] = useState<AppLocale>("ru");
-  const [profileTimeZone, setProfileTimeZone] = useState<string>("");
+  const t = useIntlayer('settingsProfilePage');
+  const [activeSection, setActiveSection] = useState<SectionId>('profile');
+  const [profileName, setProfileName] = useState('');
+  const [profileTimeZone, setProfileTimeZone] = useState<string>('');
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
-  const [email, setEmail] = useState("");
-  const [emailPassword, setEmailPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
   const [emailMessage, setEmailMessage] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailLoading, setEmailLoading] = useState(false);
@@ -131,11 +190,20 @@ export default function ProfileSettingsPage() {
   const [sessionsError, setSessionsError] = useState<string | null>(null);
   const [sessionsMessage, setSessionsMessage] = useState<string | null>(null);
   const [logoutSessionLoadingId, setLogoutSessionLoadingId] = useState<string | null>(null);
+  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(
+    defaultNotificationPreferences,
+  );
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationSavingKey, setNotificationSavingKey] = useState<
+    keyof NotificationPreferences | null
+  >(null);
+  const [notificationError, setNotificationError] = useState<string | null>(null);
+  const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
 
   const [passwords, setPasswords] = useState({
-    current: "",
-    next: "",
-    confirm: "",
+    current: '',
+    next: '',
+    confirm: '',
   });
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -143,9 +211,7 @@ export default function ProfileSettingsPage() {
   const [avatarError, setAvatarError] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarMessage, setAvatarMessage] = useState<string | null>(null);
-  const [avatarErrorMessage, setAvatarErrorMessage] = useState<string | null>(
-    null,
-  );
+  const [avatarErrorMessage, setAvatarErrorMessage] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -155,16 +221,15 @@ export default function ProfileSettingsPage() {
     if (user?.name) {
       setProfileName(user.name);
     }
-    setProfileLocale(normalizeLocale(user?.locale ?? locale));
-    setProfileTimeZone(user?.timeZone || "");
-  }, [locale, user]);
+    setProfileTimeZone(user?.timeZone || '');
+  }, [user]);
 
   useEffect(() => {
-    setActiveSection(normalizeSection(window.location.hash?.replace("#", "")));
+    setActiveSection(normalizeSection(window.location.hash?.replace('#', '')));
   }, []);
 
   useEffect(() => {
-    window.history.replaceState(null, "", `#${activeSection}`);
+    window.history.replaceState(null, '', `#${activeSection}`);
   }, [activeSection]);
 
   useEffect(() => {
@@ -179,30 +244,19 @@ export default function ProfileSettingsPage() {
     setProfileError(null);
     try {
       setProfileLoading(true);
-      const response = await apiClient.patch("/users/me/preferences", {
+      const response = await apiClient.patch('/users/me/preferences', {
         name: profileName,
-        locale: profileLocale,
         timeZone: profileTimeZone ? profileTimeZone : null,
       });
-      setProfileMessage(
-        response.data?.message || t.profileCard.successFallback.value,
-      );
-
-      if (normalizeLocale(locale) !== profileLocale) {
-        setLocale(profileLocale);
-      }
+      setProfileMessage(response.data?.message || t.profileCard.successFallback.value);
     } catch (error: unknown) {
-      setProfileError(
-        getApiErrorMessage(error, t.profileCard.errorFallback.value),
-      );
+      setProfileError(getApiErrorMessage(error, t.profileCard.errorFallback.value));
     } finally {
       setProfileLoading(false);
     }
   };
 
-  const handleAvatarSelect = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleAvatarSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -211,11 +265,10 @@ export default function ProfileSettingsPage() {
 
     if (file.size > MAX_AVATAR_SIZE_BYTES) {
       setAvatarErrorMessage(
-        (t as any).profileCard?.avatarSizeError?.value ||
-          "Avatar file is too large",
+        (t as any).profileCard?.avatarSizeError?.value || 'Avatar file is too large',
       );
       if (avatarInputRef.current) {
-        avatarInputRef.current.value = "";
+        avatarInputRef.current.value = '';
       }
       return;
     }
@@ -224,44 +277,41 @@ export default function ProfileSettingsPage() {
 
     try {
       const formData = new FormData();
-      formData.append("avatar", file);
-      const response = await apiClient.post("/users/me/avatar", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      formData.append('avatar', file);
+      const response = await apiClient.post('/users/me/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       const nextUser = response.data?.user || user;
       if (nextUser) {
         setUser(nextUser);
-        localStorage.setItem("user", JSON.stringify(nextUser));
+        localStorage.setItem('user', JSON.stringify(nextUser));
       }
-      setAvatarMessage(
-        (t as any).profileCard?.avatarUpdated?.value || "Avatar updated",
-      );
+      setAvatarMessage((t as any).profileCard?.avatarUpdated?.value || 'Avatar updated');
     } catch (error: unknown) {
       setAvatarErrorMessage(
         getApiErrorMessage(
           error,
-          (t as any).profileCard?.avatarError?.value ||
-            "Failed to update avatar",
+          (t as any).profileCard?.avatarError?.value || 'Failed to update avatar',
         ),
       );
     } finally {
       setAvatarUploading(false);
       if (avatarInputRef.current) {
-        avatarInputRef.current.value = "";
+        avatarInputRef.current.value = '';
       }
     }
   };
 
   const handleLogoutAll = async () => {
     try {
-      await apiClient.post("/auth/logout-all");
+      await apiClient.post('/auth/logout-all');
     } catch (error) {
-      console.error("Logout-all error:", error);
+      console.error('Logout-all error:', error);
     } finally {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("user");
-      router.push("/login");
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      router.push('/login');
     }
   };
 
@@ -269,14 +319,13 @@ export default function ProfileSettingsPage() {
     try {
       setSessionsLoading(true);
       setSessionsError(null);
-      const response = await apiClient.get<UserSession[]>("/auth/sessions");
+      const response = await apiClient.get<UserSession[]>('/auth/sessions');
       setSessions(Array.isArray(response.data) ? response.data : []);
     } catch (error: unknown) {
       setSessionsError(
         getApiErrorMessage(
           error,
-          (t as any).sessionsCard?.sessionsLoadError?.value ||
-            "Failed to load sessions",
+          (t as any).sessionsCard?.sessionsLoadError?.value || 'Failed to load sessions',
         ),
       );
     } finally {
@@ -285,12 +334,66 @@ export default function ProfileSettingsPage() {
   }, [t]);
 
   useEffect(() => {
-    if (!isAuthenticated || activeSection !== "sessions") {
+    if (!isAuthenticated || activeSection !== 'sessions') {
       return;
     }
 
     loadSessions();
   }, [activeSection, isAuthenticated, loadSessions]);
+
+  useEffect(() => {
+    if (!isAuthenticated || activeSection !== 'notifications') {
+      return;
+    }
+
+    let active = true;
+    const loadNotificationPreferences = async () => {
+      setNotificationsLoading(true);
+      setNotificationError(null);
+      try {
+        const response = await apiClient.get('/notifications/preferences');
+        if (!active) return;
+        setNotificationPreferences({
+          ...defaultNotificationPreferences,
+          ...(response.data || {}),
+        });
+      } catch {
+        if (!active) return;
+        setNotificationError('Не удалось загрузить настройки уведомлений');
+      } finally {
+        if (active) {
+          setNotificationsLoading(false);
+        }
+      }
+    };
+
+    void loadNotificationPreferences();
+    return () => {
+      active = false;
+    };
+  }, [activeSection, isAuthenticated]);
+
+  const toggleNotificationPreference = async (
+    key: keyof NotificationPreferences,
+    value: boolean,
+  ) => {
+    setNotificationSavingKey(key);
+    setNotificationError(null);
+    setNotificationMessage(null);
+
+    const previous = notificationPreferences;
+    setNotificationPreferences(current => ({ ...current, [key]: value }));
+
+    try {
+      await apiClient.patch('/notifications/preferences', { [key]: value });
+      setNotificationMessage('Настройки сохранены');
+    } catch {
+      setNotificationPreferences(previous);
+      setNotificationError('Не удалось сохранить настройки уведомлений');
+    } finally {
+      setNotificationSavingKey(null);
+    }
+  };
 
   const handleLogoutSession = async (session: UserSession) => {
     try {
@@ -300,24 +403,22 @@ export default function ProfileSettingsPage() {
       await apiClient.post(`/auth/sessions/${session.id}/logout`);
 
       if (session.isCurrent) {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        localStorage.removeItem("user");
-        router.push("/login");
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        router.push('/login');
         return;
       }
 
       setSessions(prev => prev.filter(current => current.id !== session.id));
       setSessionsMessage(
-        (t as any).sessionsCard?.sessionLogoutSuccess?.value ||
-          "Session logged out",
+        (t as any).sessionsCard?.sessionLogoutSuccess?.value || 'Session logged out',
       );
     } catch (error: unknown) {
       setSessionsError(
         getApiErrorMessage(
           error,
-          (t as any).sessionsCard?.sessionLogoutError?.value ||
-            "Failed to log out session",
+          (t as any).sessionsCard?.sessionLogoutError?.value || 'Failed to log out session',
         ),
       );
     } finally {
@@ -337,15 +438,13 @@ export default function ProfileSettingsPage() {
 
     try {
       setEmailLoading(true);
-      const response = await apiClient.patch("/users/me/email", {
+      const response = await apiClient.patch('/users/me/email', {
         email,
         currentPassword: emailPassword,
       });
 
-      setEmailMessage(
-        response.data?.message || t.emailCard.successFallback.value,
-      );
-      setEmailPassword("");
+      setEmailMessage(response.data?.message || t.emailCard.successFallback.value);
+      setEmailPassword('');
     } catch (error: unknown) {
       setEmailError(getApiErrorMessage(error, t.emailCard.errorFallback.value));
     } finally {
@@ -365,19 +464,15 @@ export default function ProfileSettingsPage() {
 
     try {
       setPasswordLoading(true);
-      const response = await apiClient.patch("/users/me/password", {
+      const response = await apiClient.patch('/users/me/password', {
         currentPassword: passwords.current,
         newPassword: passwords.next,
       });
 
-      setPasswordMessage(
-        response.data?.message || t.passwordCard.successFallback.value,
-      );
-      setPasswords({ current: "", next: "", confirm: "" });
+      setPasswordMessage(response.data?.message || t.passwordCard.successFallback.value);
+      setPasswords({ current: '', next: '', confirm: '' });
     } catch (error: unknown) {
-      setPasswordError(
-        getApiErrorMessage(error, t.passwordCard.errorFallback.value),
-      );
+      setPasswordError(getApiErrorMessage(error, t.passwordCard.errorFallback.value));
     } finally {
       setPasswordLoading(false);
     }
@@ -401,11 +496,6 @@ export default function ProfileSettingsPage() {
     );
   }
 
-  const appearanceTitle =
-    (t as any).appearanceCard?.title?.value ?? "Appearance";
-  const appearanceDescription =
-    (t as any).appearanceCard?.description?.value ?? "";
-
   const sectionMeta: Record<
     SectionId,
     {
@@ -422,72 +512,43 @@ export default function ProfileSettingsPage() {
     },
     email: { title: t.emailCard.title.value, icon: MailOutlineIcon },
     password: { title: t.passwordCard.title.value, icon: LockOutlinedIcon },
-    appearance: {
-      title: appearanceTitle,
-      description: appearanceDescription,
-      icon: PaletteOutlinedIcon,
+    notifications: {
+      title: (t as any).notificationsCard?.title?.value || 'Notifications',
+      description: 'Выберите, какие уведомления хотите получать в колокольчике.',
+      icon: NotificationsNoneOutlinedIcon,
     },
   };
 
   const renderSectionContent = () => {
-    if (activeSection === "profile") {
+    if (activeSection === 'profile') {
       return (
         <form className="space-y-5" onSubmit={handleProfileSubmit}>
           {profileMessage && <Alert variant="success">{profileMessage}</Alert>}
           {profileError && <Alert variant="error">{profileError}</Alert>}
 
           <div className="space-y-2">
-            <Label htmlFor="profile-name">
-              {t.profileCard.nameLabel.value}
-            </Label>
+            <Label htmlFor="profile-name">{t.profileCard.nameLabel.value}</Label>
             <Input
               id="profile-name"
               value={profileName}
-              onChange={(e) => setProfileName(e.target.value)}
+              onChange={e => setProfileName(e.target.value)}
               required
             />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="profile-locale">
-                {t.profileCard.languageLabel.value}
-              </Label>
-              <Select
-                id="profile-locale"
-                value={profileLocale}
-                onChange={(e) =>
-                  setProfileLocale(normalizeLocale(e.target.value))
-                }
-              >
-                <option value="ru">{t.profileCard.languages.ru.value}</option>
-                <option value="en">{t.profileCard.languages.en.value}</option>
-                <option value="kk">{t.profileCard.languages.kk.value}</option>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="profile-timezone">
-                {t.profileCard.timeZoneLabel.value}
-              </Label>
-              <Select
-                id="profile-timezone"
-                value={profileTimeZone}
-                onChange={(e) => setProfileTimeZone(e.target.value)}
-              >
-                <option value="">{t.profileCard.timeZones.auto.value}</option>
-                <option value="UTC">{t.profileCard.timeZones.utc.value}</option>
-                <option value="Europe/Moscow">
-                  {t.profileCard.timeZones.europeMoscow.value}
-                </option>
-                <option value="Asia/Almaty">
-                  {t.profileCard.timeZones.asiaAlmaty.value}
-                </option>
-              </Select>
-              <p className="text-xs text-gray-500">
-                {t.profileCard.timeZoneHelp.value}
-              </p>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="profile-timezone">{t.profileCard.timeZoneLabel.value}</Label>
+            <Select
+              id="profile-timezone"
+              value={profileTimeZone}
+              onChange={e => setProfileTimeZone(e.target.value)}
+            >
+              <option value="">{t.profileCard.timeZones.auto.value}</option>
+              <option value="UTC">{t.profileCard.timeZones.utc.value}</option>
+              <option value="Europe/Moscow">{t.profileCard.timeZones.europeMoscow.value}</option>
+              <option value="Asia/Almaty">{t.profileCard.timeZones.asiaAlmaty.value}</option>
+            </Select>
+            <p className="text-xs text-gray-500">{t.profileCard.timeZoneHelp.value}</p>
           </div>
 
           <div className="flex justify-end">
@@ -500,7 +561,7 @@ export default function ProfileSettingsPage() {
       );
     }
 
-    if (activeSection === "sessions") {
+    if (activeSection === 'sessions') {
       return (
         <div className="space-y-5">
           {sessionsMessage && <Alert variant="success">{sessionsMessage}</Alert>}
@@ -509,25 +570,23 @@ export default function ProfileSettingsPage() {
           <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
             <span className="font-medium text-gray-900">
               {t.sessionsCard.lastLoginLabel.value}:
-            </span>{" "}
-            {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : "—"}
+            </span>{' '}
+            {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : '—'}
           </div>
 
           <div className="space-y-3">
             <div className="text-sm font-semibold text-gray-900">
-              {(t as any).sessionsCard?.activeSessionsLabel?.value ||
-                "Active devices"}
+              {(t as any).sessionsCard?.activeSessionsLabel?.value || 'Active devices'}
             </div>
 
             {sessionsLoading ? (
               <div className="flex items-center gap-2 rounded-xl border border-gray-100 px-4 py-5 text-sm text-gray-600">
                 <CircularProgress size={18} color="inherit" />
-                {(t as any).sessionsCard?.loadingLabel?.value ||
-                  "Loading sessions..."}
+                {(t as any).sessionsCard?.loadingLabel?.value || 'Loading sessions...'}
               </div>
             ) : sessions.length ? (
               <div className="space-y-2">
-                {sessions.map((session) => {
+                {sessions.map(session => {
                   const SessionIcon = getSessionIcon(session.device);
                   const isLogoutLoading = logoutSessionLoadingId === session.id;
 
@@ -546,20 +605,18 @@ export default function ProfileSettingsPage() {
                             {session.isCurrent && (
                               <Badge variant="info">
                                 {(t as any).sessionsCard?.currentSessionBadge?.value ||
-                                  "This device"}
+                                  'This device'}
                               </Badge>
                             )}
                           </div>
                           <div className="text-sm text-gray-600">
                             {session.os}
                             {session.ipAddress
-                              ? ` · ${(t as any).sessionsCard?.ipLabel?.value || "IP"}: ${session.ipAddress}`
-                              : ""}
+                              ? ` · ${(t as any).sessionsCard?.ipLabel?.value || 'IP'}: ${session.ipAddress}`
+                              : ''}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {(t as any).sessionsCard?.lastActiveLabel?.value ||
-                              "Last active"}
-                            : {" "}
+                            {(t as any).sessionsCard?.lastActiveLabel?.value || 'Last active'}:{' '}
                             {new Date(session.lastUsedAt).toLocaleString()}
                           </div>
                         </div>
@@ -567,17 +624,14 @@ export default function ProfileSettingsPage() {
 
                       <div className="flex justify-end">
                         <Button
-                          variant={session.isCurrent ? "destructive" : "outline"}
+                          variant={session.isCurrent ? 'destructive' : 'outline'}
                           onClick={() => handleLogoutSession(session)}
                           disabled={isLogoutLoading}
                           className="gap-2"
                         >
-                          {isLogoutLoading && (
-                            <CircularProgress size={14} color="inherit" />
-                          )}
+                          {isLogoutLoading && <CircularProgress size={14} color="inherit" />}
                           <LogoutIcon className="text-[18px]" />
-                          {(t as any).sessionsCard?.logoutSessionButton?.value ||
-                            "Log out"}
+                          {(t as any).sessionsCard?.logoutSessionButton?.value || 'Log out'}
                         </Button>
                       </div>
                     </div>
@@ -586,18 +640,13 @@ export default function ProfileSettingsPage() {
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/70 px-4 py-6 text-sm text-gray-600">
-                {(t as any).sessionsCard?.emptySessionsLabel?.value ||
-                  "No active sessions found."}
+                {(t as any).sessionsCard?.emptySessionsLabel?.value || 'No active sessions found.'}
               </div>
             )}
           </div>
 
           <div className="flex justify-end">
-            <Button
-              variant="destructive"
-              onClick={handleLogoutAll}
-              className="gap-2"
-            >
+            <Button variant="destructive" onClick={handleLogoutAll} className="gap-2">
               <LogoutIcon className="text-[18px]" />
               {t.sessionsCard.logoutAllButton.value}
             </Button>
@@ -606,39 +655,33 @@ export default function ProfileSettingsPage() {
       );
     }
 
-    if (activeSection === "email") {
+    if (activeSection === 'email') {
       return (
         <form className="space-y-5" onSubmit={handleEmailSubmit}>
           {emailMessage && <Alert variant="success">{emailMessage}</Alert>}
           {emailError && <Alert variant="error">{emailError}</Alert>}
 
           <div className="space-y-2">
-            <Label htmlFor="email-next">
-              {t.emailCard.newEmailLabel.value}
-            </Label>
+            <Label htmlFor="email-next">{t.emailCard.newEmailLabel.value}</Label>
             <Input
               id="email-next"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email-password">
-              {t.emailCard.currentPasswordLabel.value}
-            </Label>
+            <Label htmlFor="email-password">{t.emailCard.currentPasswordLabel.value}</Label>
             <Input
               id="email-password"
               type="password"
               value={emailPassword}
-              onChange={(e) => setEmailPassword(e.target.value)}
+              onChange={e => setEmailPassword(e.target.value)}
               required
             />
-            <p className="text-xs text-gray-500">
-              {t.emailCard.currentPasswordHelp.value}
-            </p>
+            <p className="text-xs text-gray-500">{t.emailCard.currentPasswordHelp.value}</p>
           </div>
 
           <div className="flex justify-end">
@@ -651,29 +694,87 @@ export default function ProfileSettingsPage() {
       );
     }
 
-    if (activeSection === "appearance") {
+    if (activeSection === 'notifications') {
       return (
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-border bg-muted/40 p-4">
-            <div className="mb-1 text-sm font-semibold text-gray-900">
-              {(t as any).appearanceCard?.themeLabel?.value ?? "Theme"}
+        <div className="space-y-4">
+          {notificationError ? <Alert variant="error">{notificationError}</Alert> : null}
+          {notificationMessage ? <Alert variant="success">{notificationMessage}</Alert> : null}
+
+          {notificationsLoading ? (
+            <div className="rounded-xl border border-gray-200 px-4 py-5 text-sm text-gray-600">
+              Загрузка...
             </div>
-            <div className="text-xs text-gray-500">
-              {(t as any).appearanceCard?.themeHelp?.value ?? ""}
-            </div>
-          </div>
-          <ModeToggle
-            labels={{
-              light: (t as any).appearanceCard?.light?.value ?? "Light",
-              dark: (t as any).appearanceCard?.dark?.value ?? "Dark",
-              system: (t as any).appearanceCard?.system?.value ?? "System",
-              active:
-                (t as any).appearanceCard?.active?.value ?? "Active theme",
-              followsSystem:
-                (t as any).appearanceCard?.followsSystem?.value ??
-                "Follows your system settings.",
-            }}
-          />
+          ) : (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Активность workspace</CardTitle>
+                  <CardDescription>Уведомления о действиях других участников</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {workspaceNotificationSettings.map(setting => {
+                    const inputId = `workspace-pref-${setting.key}`;
+                    return (
+                      <div
+                        key={setting.key}
+                        className="flex items-start justify-between gap-4 rounded-xl border border-border p-3"
+                      >
+                        <div className="space-y-1">
+                          <label htmlFor={inputId} className="text-sm font-medium text-foreground">
+                            {setting.label}
+                          </label>
+                          <p className="text-xs text-muted-foreground">{setting.description}</p>
+                        </div>
+                        <Checkbox
+                          id={inputId}
+                          checked={notificationPreferences[setting.key]}
+                          onCheckedChange={checked =>
+                            void toggleNotificationPreference(setting.key, checked)
+                          }
+                          disabled={notificationSavingKey === setting.key}
+                          aria-label={setting.label}
+                        />
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Системные уведомления</CardTitle>
+                  <CardDescription>Критичные события и ошибки обработки данных</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {systemNotificationSettings.map(setting => {
+                    const inputId = `system-pref-${setting.key}`;
+                    return (
+                      <div
+                        key={setting.key}
+                        className="flex items-start justify-between gap-4 rounded-xl border border-border p-3"
+                      >
+                        <div className="space-y-1">
+                          <label htmlFor={inputId} className="text-sm font-medium text-foreground">
+                            {setting.label}
+                          </label>
+                          <p className="text-xs text-muted-foreground">{setting.description}</p>
+                        </div>
+                        <Checkbox
+                          id={inputId}
+                          checked={notificationPreferences[setting.key]}
+                          onCheckedChange={checked =>
+                            void toggleNotificationPreference(setting.key, checked)
+                          }
+                          disabled={notificationSavingKey === setting.key}
+                          aria-label={setting.label}
+                        />
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       );
     }
@@ -684,16 +785,12 @@ export default function ProfileSettingsPage() {
         {passwordError && <Alert variant="error">{passwordError}</Alert>}
 
         <div className="space-y-2">
-          <Label htmlFor="password-current">
-            {t.passwordCard.currentPasswordLabel.value}
-          </Label>
+          <Label htmlFor="password-current">{t.passwordCard.currentPasswordLabel.value}</Label>
           <Input
             id="password-current"
             type="password"
             value={passwords.current}
-            onChange={(e) =>
-              setPasswords({ ...passwords, current: e.target.value })
-            }
+            onChange={e => setPasswords({ ...passwords, current: e.target.value })}
             required
           />
         </div>
@@ -701,45 +798,30 @@ export default function ProfileSettingsPage() {
         <Separator />
 
         <div className="space-y-2">
-          <Label htmlFor="password-next">
-            {t.passwordCard.newPasswordLabel.value}
-          </Label>
+          <Label htmlFor="password-next">{t.passwordCard.newPasswordLabel.value}</Label>
           <Input
             id="password-next"
             type="password"
             value={passwords.next}
-            onChange={(e) =>
-              setPasswords({ ...passwords, next: e.target.value })
-            }
+            onChange={e => setPasswords({ ...passwords, next: e.target.value })}
             required
           />
-          <p className="text-xs text-gray-500">
-            {t.passwordCard.newPasswordHelp.value}
-          </p>
+          <p className="text-xs text-gray-500">{t.passwordCard.newPasswordHelp.value}</p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password-confirm">
-            {t.passwordCard.confirmPasswordLabel.value}
-          </Label>
+          <Label htmlFor="password-confirm">{t.passwordCard.confirmPasswordLabel.value}</Label>
           <Input
             id="password-confirm"
             type="password"
             value={passwords.confirm}
-            onChange={(e) =>
-              setPasswords({ ...passwords, confirm: e.target.value })
-            }
+            onChange={e => setPasswords({ ...passwords, confirm: e.target.value })}
             required
           />
         </div>
 
         <div className="flex justify-end">
-          <Button
-            type="submit"
-            variant="secondary"
-            disabled={passwordLoading}
-            className="gap-2"
-          >
+          <Button type="submit" variant="secondary" disabled={passwordLoading} className="gap-2">
             {passwordLoading && <CircularProgress size={16} color="inherit" />}
             {t.passwordCard.submit.value}
           </Button>
@@ -750,8 +832,7 @@ export default function ProfileSettingsPage() {
 
   const activeMeta = sectionMeta[activeSection];
   const ActiveIcon = activeMeta.icon;
-  const displayName =
-    profileName || user?.name || user?.email?.split("@")[0] || "—";
+  const displayName = profileName || user?.name || user?.email?.split('@')[0] || '—';
   const initials = getInitials(displayName);
   const avatarUrl = normalizeAvatarUrl(user?.avatarUrl);
 
@@ -782,8 +863,7 @@ export default function ProfileSettingsPage() {
                       )}
                     </button>
                     <div className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 rounded-md bg-slate-900 px-3 py-1 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
-                      {(t as any).profileCard?.editPhotoLabel?.value ||
-                        "Edit photo"}
+                      {(t as any).profileCard?.editPhotoLabel?.value || 'Edit photo'}
                     </div>
                     <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow">
                       <EditIcon className="text-gray-500" fontSize="small" />
@@ -796,16 +876,12 @@ export default function ProfileSettingsPage() {
                       className="hidden"
                     />
                   </div>
-                  {avatarMessage && (
-                    <Alert variant="success">{avatarMessage}</Alert>
-                  )}
-                  {avatarErrorMessage && (
-                    <Alert variant="error">{avatarErrorMessage}</Alert>
-                  )}
+                  {avatarMessage && <Alert variant="success">{avatarMessage}</Alert>}
+                  {avatarErrorMessage && <Alert variant="error">{avatarErrorMessage}</Alert>}
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
-                {sections.map((id) => {
+                {sections.map(id => {
                   const Icon = sectionMeta[id].icon;
                   const isActive = id === activeSection;
                   return (
@@ -814,14 +890,14 @@ export default function ProfileSettingsPage() {
                       type="button"
                       onClick={() => setActiveSection(id)}
                       className={cn(
-                        "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-all hover:bg-gray-100",
-                        isActive && "font-semibold",
+                        'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-all hover:bg-gray-100',
+                        isActive && 'font-semibold',
                       )}
                     >
                       <span
                         className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-lg text-[18px]",
-                          isActive ? "text-primary" : "text-gray-400",
+                          'flex h-8 w-8 items-center justify-center rounded-lg text-[18px]',
+                          isActive ? 'text-primary' : 'text-gray-400',
                         )}
                       >
                         <Icon className="text-[18px]" />
@@ -859,25 +935,20 @@ export default function ProfileSettingsPage() {
                       )}
                     </button>
                     <div className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-slate-900 px-3 py-1 text-[10px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
-                      {(t as any).profileCard?.editPhotoLabel?.value ||
-                        "Edit photo"}
+                      {(t as any).profileCard?.editPhotoLabel?.value || 'Edit photo'}
                     </div>
                     <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow">
                       <EditIcon className="text-gray-500" fontSize="small" />
                     </div>
                   </div>
                 </div>
-                <Label htmlFor="profile-section">
-                  {t.navigation.sectionLabel.value}
-                </Label>
+                <Label htmlFor="profile-section">{t.navigation.sectionLabel.value}</Label>
                 <Select
                   id="profile-section"
                   value={activeSection}
-                  onChange={(e) =>
-                    setActiveSection(normalizeSection(e.target.value))
-                  }
+                  onChange={e => setActiveSection(normalizeSection(e.target.value))}
                 >
-                  {sections.map((id) => (
+                  {sections.map(id => (
                     <option key={id} value={id}>
                       {sectionMeta[id].title}
                     </option>
@@ -905,9 +976,7 @@ export default function ProfileSettingsPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6 lg:p-8">
-              {renderSectionContent()}
-            </CardContent>
+            <CardContent className="p-6 lg:p-8">{renderSectionContent()}</CardContent>
           </Card>
         </main>
       </div>

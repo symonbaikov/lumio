@@ -2,6 +2,7 @@
 
 import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
 import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
+import { PDFThumbnail } from '@/app/components/PDFThumbnail';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import { ChevronRight } from 'lucide-react';
 import React from 'react';
@@ -71,6 +72,14 @@ export function StatementsListItem({
   isManualExpense = false,
 }: Props) {
   const resolvedTypeLabel = typeLabel || statement.fileType;
+  const normalizedPreviewType = (isGmail ? 'pdf' : statement.fileType || statement.fileName || '')
+    .trim()
+    .toLowerCase();
+  const hasHoverPreview =
+    normalizedPreviewType === 'pdf' ||
+    normalizedPreviewType.includes('pdf') ||
+    normalizedPreviewType.endsWith('/pdf') ||
+    normalizedPreviewType === 'application/pdf';
 
   return (
     <div
@@ -151,24 +160,37 @@ export function StatementsListItem({
             />
           )}
         </div>
-        <button
-          type="button"
-          className="pointer-events-auto w-11 flex items-center justify-center transition hover:opacity-80"
-          onClick={event => {
-            event.stopPropagation();
-            onIconClick();
-          }}
-          aria-label={statement.fileName}
-        >
-          <DocumentTypeIcon
-            fileType={isGmail ? 'pdf' : statement.fileType}
-            fileName={statement.fileName}
-            fileId={statement.id}
-            source={isGmail ? 'gmail' : 'statement'}
-            size={36}
-            className="text-red-500"
-          />
-        </button>
+        <div className="group/thumbnail relative pointer-events-auto">
+          <button
+            type="button"
+            className="w-11 flex items-center justify-center transition hover:opacity-80"
+            onClick={event => {
+              event.stopPropagation();
+              onIconClick();
+            }}
+            aria-label={statement.fileName}
+          >
+            <DocumentTypeIcon
+              fileType={isGmail ? 'pdf' : statement.fileType}
+              fileName={statement.fileName}
+              fileId={statement.id}
+              source={isGmail ? 'gmail' : 'statement'}
+              size={36}
+              className="text-red-500"
+            />
+          </button>
+
+          {hasHoverPreview ? (
+            <div className="pointer-events-none absolute left-full top-1/2 z-30 ml-3 hidden w-56 -translate-y-1/2 rounded-xl border border-gray-200 bg-white p-2 shadow-xl transition group-hover/thumbnail:block">
+              <PDFThumbnail
+                fileId={statement.id}
+                fileName={statement.fileName}
+                source={isGmail ? 'gmail' : 'statement'}
+                size={208}
+              />
+            </div>
+          ) : null}
+        </div>
         <div className="w-3" />
         <div className="w-20 flex items-center gap-2 text-sm font-medium text-gray-500">
           {isManualExpense ? (

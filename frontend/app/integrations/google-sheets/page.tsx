@@ -194,7 +194,7 @@ export default function GoogleSheetsIntegrationPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="container-shared px-4 sm:px-6 lg:px-8 py-10">
       <div className="flex items-start gap-3 mb-6" data-tour-id="gs-integration-header">
         <div className="p-2 rounded-full bg-primary/10 text-primary">
           <Plug className="h-6 w-6" />
@@ -229,8 +229,8 @@ export default function GoogleSheetsIntegrationPage() {
             data-tour-id="gs-integration-step1"
           >
             <div className="flex items-center gap-2 mb-3">
-              <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-100">
-                <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
+              <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                <FileSpreadsheet className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">{t.step1.label}</p>
@@ -243,7 +243,7 @@ export default function GoogleSheetsIntegrationPage() {
                 <span className="text-sm font-medium text-gray-700">{t.step1.sheetUrlLabel}</span>
                 <input
                   type="text"
-                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder={t.step1.sheetUrlPlaceholder.value}
                   value={sheetUrl}
                   onChange={e => setSheetUrl(e.target.value)}
@@ -255,7 +255,7 @@ export default function GoogleSheetsIntegrationPage() {
                 <span className="text-sm font-medium text-gray-700">{t.step1.nameLabel}</span>
                 <input
                   type="text"
-                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder={t.step1.namePlaceholder.value}
                   value={sheetName}
                   onChange={e => setSheetName(e.target.value)}
@@ -268,7 +268,7 @@ export default function GoogleSheetsIntegrationPage() {
                 <span className="text-sm font-medium text-gray-700">{t.step1.worksheetLabel}</span>
                 <input
                   type="text"
-                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder={t.step1.worksheetPlaceholder.value}
                   value={worksheetName}
                   onChange={e => setWorksheetName(e.target.value)}
@@ -281,7 +281,7 @@ export default function GoogleSheetsIntegrationPage() {
                 onClick={handleConnect}
                 disabled={submitting}
                 data-tour-id="gs-integration-connect"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 {t.step1.connectButton}
@@ -294,8 +294,8 @@ export default function GoogleSheetsIntegrationPage() {
             data-tour-id="gs-integration-step2"
           >
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-100">
-                <Plug className="h-5 w-5 text-indigo-600" />
+              <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                <Plug className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">{t.step2.label}</p>
@@ -309,7 +309,7 @@ export default function GoogleSheetsIntegrationPage() {
                 target="_blank"
                 rel="noreferrer"
                 data-tour-id="gs-integration-apps-script"
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 {t.step2.appsScriptDoc}
                 <ExternalLink className="h-4 w-4" />
@@ -318,7 +318,7 @@ export default function GoogleSheetsIntegrationPage() {
                 href="https://docs.google.com/spreadsheets/u/0/"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 {t.step2.openSheets}
                 <ExternalLink className="h-4 w-4" />
@@ -363,7 +363,7 @@ export default function GoogleSheetsIntegrationPage() {
                 {connections.map((item, index) => (
                   <div
                     key={item.id}
-                    className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
+                    className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm"
                     data-tour-id={index === 0 ? 'gs-integration-connection-card' : undefined}
                   >
                     <div className="flex flex-col gap-3">
@@ -409,7 +409,7 @@ export default function GoogleSheetsIntegrationPage() {
                               })
                             }
                             data-tour-id={index === 0 ? 'gs-integration-authorize' : undefined}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+                            className="inline-flex items-center justify-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100"
                           >
                             <Plug className="h-4 w-4" />
                             {t.list.actions.authorize}
@@ -420,7 +420,7 @@ export default function GoogleSheetsIntegrationPage() {
                           onClick={() => handleSync(item.id)}
                           disabled={syncingId === item.id || item.oauthConnected === false}
                           data-tour-id={index === 0 ? 'gs-integration-sync' : undefined}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-60"
+                          className="inline-flex items-center justify-center gap-2 rounded-full border border-primary px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-60"
                         >
                           {syncingId === item.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -434,7 +434,7 @@ export default function GoogleSheetsIntegrationPage() {
                           onClick={() => handleRemove(item.id)}
                           disabled={removingId === item.id}
                           data-tour-id={index === 0 ? 'gs-integration-disconnect' : undefined}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                          className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
                         >
                           {removingId === item.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />

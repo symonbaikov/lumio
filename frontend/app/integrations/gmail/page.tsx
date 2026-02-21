@@ -172,9 +172,9 @@ export default function GmailIntegrationPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="container-shared px-4 sm:px-6 lg:px-8 py-10">
       <div className="flex items-start gap-3 mb-6">
-        <div className="p-2 rounded-full bg-blue-50 text-blue-600 overflow-hidden">
+        <div className="p-2 rounded-full bg-primary/10 text-primary overflow-hidden">
           <Image
             src="/icons/gmail.png"
             alt="Gmail"
@@ -200,7 +200,6 @@ export default function GmailIntegrationPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
-          {/* Connection Status Card */}
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
@@ -221,7 +220,7 @@ export default function GmailIntegrationPage() {
                       type="button"
                       onClick={handleSync}
                       disabled={saving || syncing}
-                      className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="inline-flex items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
                     >
                       {syncing ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -249,7 +248,7 @@ export default function GmailIntegrationPage() {
                     type="button"
                     onClick={handleConnect}
                     disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+                    className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
                   >
                     {saving ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -263,7 +262,6 @@ export default function GmailIntegrationPage() {
             </div>
           </div>
 
-          {/* Settings Card */}
           {status?.connected && (
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Settings</h2>
@@ -293,7 +291,7 @@ export default function GmailIntegrationPage() {
                       checked={status.settings?.filterEnabled ?? true}
                       onChange={e => updateSettings({ filterEnabled: e.target.checked })}
                       disabled={saving}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
                     <span className="text-sm text-gray-700">Enable automatic filtering</span>
                   </label>
@@ -335,7 +333,7 @@ export default function GmailIntegrationPage() {
                     }
                     disabled={saving}
                     placeholder="receipt, invoice, order confirmation"
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                   <p className="text-xs text-gray-500">Comma-separated keywords to filter emails</p>
                 </div>
@@ -355,7 +353,7 @@ export default function GmailIntegrationPage() {
                         })
                       }
                       disabled={saving}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
                     <span className="text-sm text-gray-700">Only emails with attachments</span>
                   </label>
@@ -365,14 +363,20 @@ export default function GmailIntegrationPage() {
           )}
         </div>
 
-        {/* Info Card */}
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm h-fit">
-          <h3 className="font-semibold text-gray-900 mb-2">How it works</h3>
-          <div className="space-y-2 text-sm text-gray-600">
-            <p>1. Connect your Gmail account with read-only access</p>
-            <p>2. We automatically create a "Lumio/Receipts" label</p>
-            <p>3. Emails matching your filters are automatically imported</p>
-            <p>4. Review and approve receipts in the Receipts page</p>
+          <div className="flex items-start gap-2">
+            <div className="mt-1 text-primary">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">How it works</h3>
+              <div className="space-y-2 text-sm text-gray-600">
+                <p>1. Connect your Gmail account with read-only access</p>
+                <p>2. We automatically create a "Lumio/Receipts" label</p>
+                <p>3. Emails matching your filters are automatically imported</p>
+                <p>4. Review and approve receipts in the Receipts page</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
