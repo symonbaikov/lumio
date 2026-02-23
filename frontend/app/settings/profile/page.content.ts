@@ -241,6 +241,137 @@ const content = {
     },
     notificationsCard: {
       title: t({ ru: 'Уведомления', en: 'Notifications', kk: 'Хабарландырулар' }),
+      description: t({
+        ru: 'Выберите, какие уведомления хотите получать в колокольчике.',
+        en: 'Choose which notifications you want to receive in the bell.',
+        kk: 'Қоңырауда қандай хабарландырулар алғыңыз келетінін таңдаңыз.',
+      }),
+      loading: t({ ru: 'Загрузка...', en: 'Loading...', kk: 'Жүктелуде...' }),
+      workspace: {
+        title: t({
+          ru: 'Активность workspace',
+          en: 'Workspace activity',
+          kk: 'Workspace белсенділігі',
+        }),
+        description: t({
+          ru: 'Уведомления о действиях других участников',
+          en: 'Notifications about actions of other members',
+          kk: 'Басқа қатысушылар әрекеттері туралы хабарландырулар',
+        }),
+      },
+      system: {
+        title: t({
+          ru: 'Системные уведомления',
+          en: 'System notifications',
+          kk: 'Жүйелік хабарландырулар',
+        }),
+        description: t({
+          ru: 'Критичные события и ошибки обработки данных',
+          en: 'Critical events and data processing errors',
+          kk: 'Маңызды оқиғалар мен деректерді өңдеу қателері',
+        }),
+      },
+      items: {
+        statementUploaded: {
+          label: t({ ru: 'Загрузка выписок', en: 'Statement uploads', kk: 'Үзінді жүктеу' }),
+          description: t({
+            ru: 'Когда участники загружают новые выписки',
+            en: 'When members upload new statements',
+            kk: 'Қатысушылар жаңа үзінді жүктеген кезде',
+          }),
+        },
+        importCommitted: {
+          label: t({ ru: 'Импорт транзакций', en: 'Transaction import', kk: 'Транзакция импорты' }),
+          description: t({
+            ru: 'Когда участники подтверждают импорт транзакций',
+            en: 'When members confirm transaction import',
+            kk: 'Қатысушылар транзакция импортын растаған кезде',
+          }),
+        },
+        categoryChanges: {
+          label: t({ ru: 'Изменение категорий', en: 'Category changes', kk: 'Санат өзгерістері' }),
+          description: t({
+            ru: 'Создание, изменение и удаление категорий',
+            en: 'Category creation, updates, and deletion',
+            kk: 'Санатты құру, өзгерту және жою',
+          }),
+        },
+        memberActivity: {
+          label: t({
+            ru: 'Активность участников',
+            en: 'Member activity',
+            kk: 'Қатысушылар белсенділігі',
+          }),
+          description: t({
+            ru: 'Приглашения и вступление новых участников',
+            en: 'Invites and new member joins',
+            kk: 'Жаңа қатысушыларды шақыру және қосылу',
+          }),
+        },
+        dataDeleted: {
+          label: t({ ru: 'Удаление данных', en: 'Data deletion', kk: 'Деректерді жою' }),
+          description: t({
+            ru: 'Удаление транзакций, выписок и других данных',
+            en: 'Deletion of transactions, statements, and other data',
+            kk: 'Транзакция, үзінді және басқа деректерді жою',
+          }),
+        },
+        workspaceUpdated: {
+          label: t({
+            ru: 'Настройки workspace',
+            en: 'Workspace settings',
+            kk: 'Workspace баптаулары',
+          }),
+          description: t({
+            ru: 'Изменение названия, валюты и других параметров',
+            en: 'Changes in name, currency, and other settings',
+            kk: 'Атау, валюта және басқа параметрлер өзгерісі',
+          }),
+        },
+        parsingErrors: {
+          label: t({ ru: 'Ошибки парсинга', en: 'Parsing errors', kk: 'Талдау қателері' }),
+          description: t({
+            ru: 'Проблемы при обработке выписок',
+            en: 'Issues while processing statements',
+            kk: 'Үзіндіні өңдеу кезіндегі мәселелер',
+          }),
+        },
+        importFailures: {
+          label: t({ ru: 'Ошибки импорта', en: 'Import failures', kk: 'Импорт қателері' }),
+          description: t({
+            ru: 'Импорт завершился с ошибкой',
+            en: 'Import finished with an error',
+            kk: 'Импорт қателікпен аяқталды',
+          }),
+        },
+        uncategorizedItems: {
+          label: t({
+            ru: 'Операции без категории',
+            en: 'Uncategorized items',
+            kk: 'Санатсыз операциялар',
+          }),
+          description: t({
+            ru: 'Транзакции и чеки, требующие категоризации',
+            en: 'Transactions and receipts that require categorization',
+            kk: 'Санаттауды қажет ететін транзакциялар мен чектер',
+          }),
+        },
+      },
+      messages: {
+        saved: t({ ru: 'Настройки сохранены', en: 'Settings saved', kk: 'Баптаулар сақталды' }),
+      },
+      errors: {
+        load: t({
+          ru: 'Не удалось загрузить настройки уведомлений',
+          en: 'Failed to load notification settings',
+          kk: 'Хабарландыру баптауларын жүктеу мүмкін болмады',
+        }),
+        save: t({
+          ru: 'Не удалось сохранить настройки уведомлений',
+          en: 'Failed to save notification settings',
+          kk: 'Хабарландыру баптауларын сақтау мүмкін болмады',
+        }),
+      },
     },
     appearanceCard: {
       title: t({ ru: 'Внешний вид', en: 'Appearance', kk: 'Көрініс' }),

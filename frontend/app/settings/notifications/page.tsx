@@ -10,5 +10,5 @@ export default function NotificationSettingsRedirectPage() {
     router.replace('/settings/profile#notifications');
   }, [router]);
 
-  return <div className="container-shared py-6 text-sm text-muted-foreground">Загрузка...</div>;
+  return <div className="container-shared py-6" />;
 }

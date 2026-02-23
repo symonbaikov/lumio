@@ -3,6 +3,7 @@
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { CheckCircle2, Link2Off, Loader2, RefreshCcw, XCircle } from 'lucide-react';
+import { useIntlayer } from 'next-intlayer';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -43,6 +44,7 @@ const formatDateTime = (value?: string | null, locale?: string) => {
 
 export default function GmailIntegrationPage() {
   const { user, loading: authLoading } = useAuth();
+  const t = useIntlayer('gmailIntegrationPage' as any) as any;
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<GmailStatus | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,7 +57,7 @@ export default function GmailIntegrationPage() {
       const response = await apiClient.get('/integrations/gmail/status');
       setStatus(response.data);
     } catch (error) {
-      toast.error('Failed to load Gmail integration status');
+      toast.error(t.errors.loadStatus.value);
     } finally {
       setLoading(false);
     }
@@ -70,26 +72,26 @@ export default function GmailIntegrationPage() {
   useEffect(() => {
     const statusParam = searchParams.get('status');
     if (statusParam === 'success') {
-      toast.success('Gmail connected successfully!');
+      toast.success(t.toasts.connected.value);
     }
     if (statusParam === 'error') {
       const reason = searchParams.get('reason');
-      toast.error(`Failed to connect Gmail${reason ? `: ${reason}` : ''}`);
+      toast.error(reason ? `${t.errors.authFailed.value}: ${reason}` : t.errors.authFailed.value);
     }
-  }, [searchParams]);
+  }, [searchParams, t]);
 
   const handleConnect = async () => {
     try {
-      toast.success('Connecting to Gmail...');
+      toast.success(t.toasts.connecting.value);
       const response = await apiClient.get('/integrations/gmail/connect');
       const url = response.data?.url;
       if (!url) {
-        toast.error('Failed to get Gmail OAuth URL');
+        toast.error(t.errors.missingOauthUrl.value);
         return;
       }
       window.location.href = url;
     } catch (error) {
-      toast.error('Failed to connect Gmail');
+      toast.error(t.errors.connectFailed.value);
     }
   };
 
@@ -97,10 +99,10 @@ export default function GmailIntegrationPage() {
     try {
       setSaving(true);
       await apiClient.post('/integrations/gmail/disconnect');
-      toast.success('Gmail disconnected');
+      toast.success(t.toasts.disconnected.value);
       await loadStatus();
     } catch (error) {
-      toast.error('Failed to disconnect Gmail');
+      toast.error(t.errors.disconnectFailed.value);
     } finally {
       setSaving(false);
     }
@@ -110,10 +112,10 @@ export default function GmailIntegrationPage() {
     try {
       setSaving(true);
       await apiClient.post('/integrations/gmail/settings', payload);
-      toast.success('Settings saved');
+      toast.success(t.toasts.settingsSaved.value);
       await loadStatus();
     } catch (error) {
-      toast.error('Failed to save settings');
+      toast.error(t.errors.saveFailed.value);
     } finally {
       setSaving(false);
     }
@@ -128,18 +130,18 @@ export default function GmailIntegrationPage() {
       const skipped = Number(response.data?.skipped ?? 0);
 
       if (jobsCreated > 0) {
-        toast.success(`Gmail sync started (${jobsCreated} receipts)`);
+        toast.success(`${t.toasts.syncStarted.value} (${jobsCreated})`);
       } else if (messagesFound === 0) {
-        toast.error('No matching emails found in Gmail');
+        toast.error(t.errors.noMatches.value);
       } else if (messagesFound > 0 && skipped >= messagesFound) {
-        toast.error('All receipts available in Gmail are already synced');
+        toast.error(t.errors.allSynced.value);
       } else {
-        toast.error('Gmail sync finished with no new receipts');
+        toast.error(t.errors.syncNoNew.value);
       }
 
       await loadStatus();
     } catch (error) {
-      toast.error('Failed to sync Gmail');
+      toast.error(t.errors.syncFailed.value);
     } finally {
       setSyncing(false);
     }
@@ -147,10 +149,10 @@ export default function GmailIntegrationPage() {
 
   const statusLabel = useMemo(() => {
     if (!status) return '';
-    if (status.status === 'needs_reauth') return 'Needs Re-authentication';
-    if (status.connected) return 'Connected';
-    return 'Disconnected';
-  }, [status]);
+    if (status.status === 'needs_reauth') return t.status.needsReauth.value;
+    if (status.connected) return t.status.connected.value;
+    return t.status.disconnected.value;
+  }, [status, t]);
 
   if (authLoading) {
     return (
@@ -164,8 +166,8 @@ export default function GmailIntegrationPage() {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-center">
-          <p className="text-gray-800 font-semibold mb-2">Not Connected</p>
-          <p className="text-sm text-gray-600">Please sign in to connect Gmail</p>
+          <p className="text-gray-800 font-semibold mb-2">{t.common.notConnected.value}</p>
+          <p className="text-sm text-gray-600">{t.errors.loginRequired.value}</p>
         </div>
       </div>
     );
@@ -184,17 +186,15 @@ export default function GmailIntegrationPage() {
           />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gmail Integration</h1>
-          <p className="text-gray-600 mt-1">
-            Connect Gmail to automatically import receipts and invoices
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">{t.header.title.value}</h1>
+          <p className="text-gray-600 mt-1">{t.header.subtitle.value}</p>
         </div>
       </div>
 
       {loading && (
         <div className="mb-4 flex items-center gap-2 text-sm text-gray-500">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Loading...
+          {t.common.loading.value}
         </div>
       )}
 
@@ -209,7 +209,7 @@ export default function GmailIntegrationPage() {
                   <XCircle className="h-5 w-5 text-red-500" />
                 )}
                 <div>
-                  <p className="text-sm text-gray-500">Status</p>
+                  <p className="text-sm text-gray-500">{t.status.disconnected.value}</p>
                   <p className="font-semibold text-gray-900">{statusLabel}</p>
                 </div>
               </div>
@@ -227,7 +227,7 @@ export default function GmailIntegrationPage() {
                       ) : (
                         <RefreshCcw className="h-4 w-4" />
                       )}
-                      Sync Gmail
+                      {t.actions.sync.value}
                     </button>
                     <button
                       type="button"
@@ -240,7 +240,7 @@ export default function GmailIntegrationPage() {
                       ) : (
                         <Link2Off className="h-4 w-4" />
                       )}
-                      Disconnect
+                      {t.actions.disconnect.value}
                     </button>
                   </>
                 ) : (
@@ -255,7 +255,9 @@ export default function GmailIntegrationPage() {
                     ) : (
                       <RefreshCcw className="h-4 w-4" />
                     )}
-                    {status?.status === 'needs_reauth' ? 'Reconnect' : 'Connect Gmail'}
+                    {status?.status === 'needs_reauth'
+                      ? t.actions.reconnect.value
+                      : t.actions.connect.value}
                   </button>
                 )}
               </div>
@@ -264,21 +266,22 @@ export default function GmailIntegrationPage() {
 
           {status?.connected && (
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Settings</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.settings.title.value}</h2>
 
               <div className="space-y-4">
                 {/* Label Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <p className="text-sm text-gray-500">Label Name</p>
+                    <p className="text-sm text-gray-500">{t.settings.labelName.value}</p>
                     <p className="font-medium text-gray-900">
                       {status.settings?.labelName || 'Lumio/Receipts'}
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm text-gray-500">Last Sync</p>
+                    <p className="text-sm text-gray-500">{t.settings.lastSync.value}</p>
                     <p className="font-medium text-gray-900">
-                      {formatDateTime(status.settings?.lastSyncAt, user?.locale) || '—'}
+                      {formatDateTime(status.settings?.lastSyncAt, user?.locale) ||
+                        t.common.unknownDate.value}
                     </p>
                   </div>
                 </div>
@@ -293,23 +296,24 @@ export default function GmailIntegrationPage() {
                       disabled={saving}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
-                    <span className="text-sm text-gray-700">Enable automatic filtering</span>
+                    <span className="text-sm text-gray-700">{t.settings.filterEnabled.value}</span>
                   </label>
                 </div>
 
                 {/* Watch Status */}
                 <div className="space-y-1">
-                  <p className="text-sm text-gray-500">Watch Status</p>
+                  <p className="text-sm text-gray-500">{t.settings.watchStatus.value}</p>
                   <p className="font-medium text-gray-900">
                     {status.settings?.watchEnabled ? (
-                      <span className="text-emerald-600">Active</span>
+                      <span className="text-emerald-600">{t.status.active.value}</span>
                     ) : (
-                      <span className="text-gray-400">Inactive</span>
+                      <span className="text-gray-400">{t.status.inactive.value}</span>
                     )}
                   </p>
                   {status.settings?.watchExpiration && (
                     <p className="text-xs text-gray-500">
-                      Expires: {formatDateTime(status.settings.watchExpiration, user?.locale)}
+                      {t.settings.expires.value}:{' '}
+                      {formatDateTime(status.settings.watchExpiration, user?.locale)}
                     </p>
                   )}
                 </div>
@@ -317,7 +321,7 @@ export default function GmailIntegrationPage() {
                 {/* Keywords */}
                 <div className="space-y-2">
                   <label htmlFor="gmail-filter-keywords" className="text-sm text-gray-500">
-                    Filter Keywords
+                    {t.settings.keywords.value}
                   </label>
                   <input
                     id="gmail-filter-keywords"
@@ -332,10 +336,10 @@ export default function GmailIntegrationPage() {
                       })
                     }
                     disabled={saving}
-                    placeholder="receipt, invoice, order confirmation"
+                    placeholder={t.settings.keywordsPlaceholder.value}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
-                  <p className="text-xs text-gray-500">Comma-separated keywords to filter emails</p>
+                  <p className="text-xs text-gray-500">{t.settings.keywordsHelp.value}</p>
                 </div>
 
                 {/* Has Attachment Filter */}
@@ -355,7 +359,7 @@ export default function GmailIntegrationPage() {
                       disabled={saving}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
-                    <span className="text-sm text-gray-700">Only emails with attachments</span>
+                    <span className="text-sm text-gray-700">{t.settings.hasAttachment.value}</span>
                   </label>
                 </div>
               </div>
@@ -369,12 +373,12 @@ export default function GmailIntegrationPage() {
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">How it works</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">{t.info.title.value}</h3>
               <div className="space-y-2 text-sm text-gray-600">
-                <p>1. Connect your Gmail account with read-only access</p>
-                <p>2. We automatically create a "Lumio/Receipts" label</p>
-                <p>3. Emails matching your filters are automatically imported</p>
-                <p>4. Review and approve receipts in the Receipts page</p>
+                <p>{t.info.step1.value}</p>
+                <p>{t.info.step2.value}</p>
+                <p>{t.info.step3.value}</p>
+                <p>{t.info.step4.value}</p>
               </div>
             </div>
           </div>

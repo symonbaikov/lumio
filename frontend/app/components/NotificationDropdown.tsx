@@ -5,10 +5,11 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu';
-import { cn } from '@/app/lib/utils';
 import { useNotifications } from '@/app/hooks/useNotifications';
+import { cn } from '@/app/lib/utils';
 import { NotificationsNone } from '@mui/icons-material';
 import { AlertTriangle, CircleAlert, Info } from 'lucide-react';
+import { useIntlayer, useLocale } from 'next-intlayer';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -19,7 +20,7 @@ type NotificationDropdownProps = {
   align?: 'start' | 'end';
 };
 
-function formatRelativeTime(value: string): string {
+function formatRelativeTime(value: string, locale: string, justNowLabel: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return '';
@@ -27,16 +28,21 @@ function formatRelativeTime(value: string): string {
 
   const diffMs = Date.now() - date.getTime();
   const minutes = Math.floor(diffMs / (1000 * 60));
-  if (minutes < 1) return 'только что';
-  if (minutes < 60) return `${minutes} мин назад`;
+  if (minutes < 1) return justNowLabel;
+
+  const relativeTime = new Intl.RelativeTimeFormat(locale === 'kk' ? 'kk-KZ' : locale, {
+    numeric: 'auto',
+  });
+
+  if (minutes < 60) return relativeTime.format(-minutes, 'minute');
 
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} ч назад`;
+  if (hours < 24) return relativeTime.format(-hours, 'hour');
 
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} дн назад`;
+  if (days < 7) return relativeTime.format(-days, 'day');
 
-  return date.toLocaleDateString('ru-RU');
+  return date.toLocaleDateString(locale === 'kk' ? 'kk-KZ' : locale);
 }
 
 export function NotificationDropdown({
@@ -44,6 +50,8 @@ export function NotificationDropdown({
   iconSize = 20,
   align = 'end',
 }: NotificationDropdownProps) {
+  const t = useIntlayer('notificationDropdown');
+  const { locale } = useLocale();
   const { notifications, unreadCount, loading, refresh, markAsRead, markAllAsRead } =
     useNotifications();
   const router = useRouter();
@@ -119,8 +127,8 @@ export function NotificationDropdown({
             'relative h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors',
             triggerClassName,
           )}
-          title="Notifications"
-          aria-label="Notifications"
+          title={t.aria.notifications.value}
+          aria-label={t.aria.notifications.value}
         >
           <NotificationsNone sx={{ fontSize: iconSize }} />
           {unreadCount > 0 ? (
@@ -133,25 +141,27 @@ export function NotificationDropdown({
 
       <DropdownMenuContent align={align} className="w-[360px] p-0">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="text-sm font-semibold text-foreground">Уведомления</div>
+          <div className="text-sm font-semibold text-foreground">{t.title.value}</div>
           <button
             type="button"
             className="text-xs text-primary hover:opacity-80 disabled:text-muted-foreground"
             onClick={() => void markAllAsRead()}
             disabled={unreadCount === 0}
           >
-            Прочитать все
+            {t.markAllRead.value}
           </button>
         </div>
 
         <div className="max-h-[420px] overflow-y-auto">
           {loading && notifications.length === 0 ? (
-            <div className="px-4 py-8 text-sm text-muted-foreground text-center">Загрузка...</div>
+            <div className="px-4 py-8 text-sm text-muted-foreground text-center">
+              {t.loading.value}
+            </div>
           ) : null}
 
           {!loading && notifications.length === 0 ? (
             <div className="px-4 py-8 text-sm text-muted-foreground text-center">
-              Нет новых уведомлений
+              {t.empty.value}
             </div>
           ) : null}
 
@@ -190,7 +200,9 @@ export function NotificationDropdown({
                   <div className="mt-0.5">{severityIcon}</div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium text-foreground truncate">{notification.title}</p>
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {notification.title}
+                      </p>
                       {!notification.isRead ? (
                         <span className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0" />
                       ) : null}
@@ -199,7 +211,7 @@ export function NotificationDropdown({
                       {notification.message}
                     </p>
                     <p className="mt-1 text-[11px] text-muted-foreground">
-                      {formatRelativeTime(notification.createdAt)}
+                      {formatRelativeTime(notification.createdAt, locale, t.justNow.value)}
                     </p>
                   </div>
                 </div>
@@ -214,7 +226,7 @@ export function NotificationDropdown({
             className="text-xs text-primary hover:opacity-80"
             onClick={() => setOpen(false)}
           >
-            Настройки уведомлений
+            {t.settingsLink.value}
           </Link>
         </div>
       </DropdownMenuContent>

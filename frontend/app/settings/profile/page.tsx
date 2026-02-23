@@ -75,62 +75,18 @@ const defaultNotificationPreferences: NotificationPreferences = {
 
 const workspaceNotificationSettings: Array<{
   key: keyof NotificationPreferences;
-  label: string;
-  description: string;
 }> = [
-  {
-    key: 'statementUploaded',
-    label: 'Загрузка выписок',
-    description: 'Когда участники загружают новые выписки',
-  },
-  {
-    key: 'importCommitted',
-    label: 'Импорт транзакций',
-    description: 'Когда участники подтверждают импорт транзакций',
-  },
-  {
-    key: 'categoryChanges',
-    label: 'Изменение категорий',
-    description: 'Создание, изменение и удаление категорий',
-  },
-  {
-    key: 'memberActivity',
-    label: 'Активность участников',
-    description: 'Приглашения и вступление новых участников',
-  },
-  {
-    key: 'dataDeleted',
-    label: 'Удаление данных',
-    description: 'Удаление транзакций, выписок и других данных',
-  },
-  {
-    key: 'workspaceUpdated',
-    label: 'Настройки workspace',
-    description: 'Изменение названия, валюты и других параметров',
-  },
+  { key: 'statementUploaded' },
+  { key: 'importCommitted' },
+  { key: 'categoryChanges' },
+  { key: 'memberActivity' },
+  { key: 'dataDeleted' },
+  { key: 'workspaceUpdated' },
 ];
 
 const systemNotificationSettings: Array<{
   key: keyof NotificationPreferences;
-  label: string;
-  description: string;
-}> = [
-  {
-    key: 'parsingErrors',
-    label: 'Ошибки парсинга',
-    description: 'Проблемы при обработке выписок',
-  },
-  {
-    key: 'importFailures',
-    label: 'Ошибки импорта',
-    description: 'Импорт завершился с ошибкой',
-  },
-  {
-    key: 'uncategorizedItems',
-    label: 'Операции без категории',
-    description: 'Транзакции и чеки, требующие категоризации',
-  },
-];
+}> = [{ key: 'parsingErrors' }, { key: 'importFailures' }, { key: 'uncategorizedItems' }];
 
 const sections = ['profile', 'sessions', 'email', 'password', 'notifications'] as const;
 type SectionId = (typeof sections)[number];
@@ -359,7 +315,7 @@ export default function ProfileSettingsPage() {
         });
       } catch {
         if (!active) return;
-        setNotificationError('Не удалось загрузить настройки уведомлений');
+        setNotificationError((t as any).notificationsCard?.errors?.load?.value || '');
       } finally {
         if (active) {
           setNotificationsLoading(false);
@@ -386,10 +342,10 @@ export default function ProfileSettingsPage() {
 
     try {
       await apiClient.patch('/notifications/preferences', { [key]: value });
-      setNotificationMessage('Настройки сохранены');
+      setNotificationMessage((t as any).notificationsCard?.messages?.saved?.value || '');
     } catch {
       setNotificationPreferences(previous);
-      setNotificationError('Не удалось сохранить настройки уведомлений');
+      setNotificationError((t as any).notificationsCard?.errors?.save?.value || '');
     } finally {
       setNotificationSavingKey(null);
     }
@@ -514,8 +470,57 @@ export default function ProfileSettingsPage() {
     password: { title: t.passwordCard.title.value, icon: LockOutlinedIcon },
     notifications: {
       title: (t as any).notificationsCard?.title?.value || 'Notifications',
-      description: 'Выберите, какие уведомления хотите получать в колокольчике.',
+      description: (t as any).notificationsCard?.description?.value || '',
       icon: NotificationsNoneOutlinedIcon,
+    },
+  };
+
+  const notificationLabels = {
+    loading: (t as any).notificationsCard?.loading?.value || '',
+    workspaceTitle: (t as any).notificationsCard?.workspace?.title?.value || '',
+    workspaceDescription: (t as any).notificationsCard?.workspace?.description?.value || '',
+    systemTitle: (t as any).notificationsCard?.system?.title?.value || '',
+    systemDescription: (t as any).notificationsCard?.system?.description?.value || '',
+    items: {
+      statementUploaded: {
+        label: (t as any).notificationsCard?.items?.statementUploaded?.label?.value || '',
+        description:
+          (t as any).notificationsCard?.items?.statementUploaded?.description?.value || '',
+      },
+      importCommitted: {
+        label: (t as any).notificationsCard?.items?.importCommitted?.label?.value || '',
+        description: (t as any).notificationsCard?.items?.importCommitted?.description?.value || '',
+      },
+      categoryChanges: {
+        label: (t as any).notificationsCard?.items?.categoryChanges?.label?.value || '',
+        description: (t as any).notificationsCard?.items?.categoryChanges?.description?.value || '',
+      },
+      memberActivity: {
+        label: (t as any).notificationsCard?.items?.memberActivity?.label?.value || '',
+        description: (t as any).notificationsCard?.items?.memberActivity?.description?.value || '',
+      },
+      dataDeleted: {
+        label: (t as any).notificationsCard?.items?.dataDeleted?.label?.value || '',
+        description: (t as any).notificationsCard?.items?.dataDeleted?.description?.value || '',
+      },
+      workspaceUpdated: {
+        label: (t as any).notificationsCard?.items?.workspaceUpdated?.label?.value || '',
+        description:
+          (t as any).notificationsCard?.items?.workspaceUpdated?.description?.value || '',
+      },
+      parsingErrors: {
+        label: (t as any).notificationsCard?.items?.parsingErrors?.label?.value || '',
+        description: (t as any).notificationsCard?.items?.parsingErrors?.description?.value || '',
+      },
+      importFailures: {
+        label: (t as any).notificationsCard?.items?.importFailures?.label?.value || '',
+        description: (t as any).notificationsCard?.items?.importFailures?.description?.value || '',
+      },
+      uncategorizedItems: {
+        label: (t as any).notificationsCard?.items?.uncategorizedItems?.label?.value || '',
+        description:
+          (t as any).notificationsCard?.items?.uncategorizedItems?.description?.value || '',
+      },
     },
   };
 
@@ -702,18 +707,22 @@ export default function ProfileSettingsPage() {
 
           {notificationsLoading ? (
             <div className="rounded-xl border border-gray-200 px-4 py-5 text-sm text-gray-600">
-              Загрузка...
+              {notificationLabels.loading}
             </div>
           ) : (
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle>Активность workspace</CardTitle>
-                  <CardDescription>Уведомления о действиях других участников</CardDescription>
+                  <CardTitle>{notificationLabels.workspaceTitle}</CardTitle>
+                  <CardDescription>{notificationLabels.workspaceDescription}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {workspaceNotificationSettings.map(setting => {
                     const inputId = `workspace-pref-${setting.key}`;
+                    const item =
+                      notificationLabels.items[
+                        setting.key as keyof typeof notificationLabels.items
+                      ];
                     return (
                       <div
                         key={setting.key}
@@ -721,9 +730,9 @@ export default function ProfileSettingsPage() {
                       >
                         <div className="space-y-1">
                           <label htmlFor={inputId} className="text-sm font-medium text-foreground">
-                            {setting.label}
+                            {item.label}
                           </label>
-                          <p className="text-xs text-muted-foreground">{setting.description}</p>
+                          <p className="text-xs text-muted-foreground">{item.description}</p>
                         </div>
                         <Checkbox
                           id={inputId}
@@ -732,7 +741,7 @@ export default function ProfileSettingsPage() {
                             void toggleNotificationPreference(setting.key, checked)
                           }
                           disabled={notificationSavingKey === setting.key}
-                          aria-label={setting.label}
+                          aria-label={item.label}
                         />
                       </div>
                     );
@@ -742,12 +751,16 @@ export default function ProfileSettingsPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Системные уведомления</CardTitle>
-                  <CardDescription>Критичные события и ошибки обработки данных</CardDescription>
+                  <CardTitle>{notificationLabels.systemTitle}</CardTitle>
+                  <CardDescription>{notificationLabels.systemDescription}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {systemNotificationSettings.map(setting => {
                     const inputId = `system-pref-${setting.key}`;
+                    const item =
+                      notificationLabels.items[
+                        setting.key as keyof typeof notificationLabels.items
+                      ];
                     return (
                       <div
                         key={setting.key}
@@ -755,9 +768,9 @@ export default function ProfileSettingsPage() {
                       >
                         <div className="space-y-1">
                           <label htmlFor={inputId} className="text-sm font-medium text-foreground">
-                            {setting.label}
+                            {item.label}
                           </label>
-                          <p className="text-xs text-muted-foreground">{setting.description}</p>
+                          <p className="text-xs text-muted-foreground">{item.description}</p>
                         </div>
                         <Checkbox
                           id={inputId}
@@ -766,7 +779,7 @@ export default function ProfileSettingsPage() {
                             void toggleNotificationPreference(setting.key, checked)
                           }
                           disabled={notificationSavingKey === setting.key}
-                          aria-label={setting.label}
+                          aria-label={item.label}
                         />
                       </div>
                     );
