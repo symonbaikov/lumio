@@ -1,4 +1,5 @@
 import { User, UserRole } from '@/entities/user.entity';
+import { Workspace } from '@/entities/workspace.entity';
 import { UsersService } from '@/modules/users/users.service';
 import {
   ConflictException,
@@ -20,6 +21,7 @@ describe('UsersService', () => {
   let testingModule: TestingModule;
   let service: UsersService;
   let repository: Repository<User>;
+  let workspaceRepository: Repository<Workspace>;
 
   const mockUser: Partial<User> = {
     id: '1',
@@ -52,11 +54,19 @@ describe('UsersService', () => {
             softDelete: jest.fn(),
           },
         },
+        {
+          provide: getRepositoryToken(Workspace),
+          useValue: {
+            findOne: jest.fn(),
+            save: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = testingModule.get<UsersService>(UsersService);
     repository = testingModule.get<Repository<User>>(getRepositoryToken(User));
+    workspaceRepository = testingModule.get<Repository<Workspace>>(getRepositoryToken(Workspace));
   });
 
   beforeEach(() => {
@@ -333,6 +343,85 @@ describe('UsersService', () => {
         expect.objectContaining({ avatarUrl: '/uploads/user-avatars/avatar.png' }),
       );
       expect(result.avatarUrl).toBe('/uploads/user-avatars/avatar.png');
+    });
+  });
+
+  describe('completeOnboarding', () => {
+    it('updates user preferences, workspace setup and completion timestamp', async () => {
+      const userWithPassword = {
+        ...mockUser,
+        onboardingCompletedAt: null,
+      } as User;
+      const workspace = {
+        id: 'workspace-1',
+        name: 'Old workspace',
+        currency: null,
+        backgroundImage: null,
+      } as Workspace;
+
+      jest
+        .spyOn<any, any>(service as any, 'findOneWithPassword')
+        .mockResolvedValue(userWithPassword);
+      jest.spyOn(workspaceRepository, 'findOne').mockResolvedValue(workspace);
+      const workspaceSaveSpy = jest.spyOn(workspaceRepository, 'save').mockResolvedValue({
+        ...workspace,
+        name: 'My workspace',
+        currency: 'USD',
+        backgroundImage: 'hero.jpg',
+      } as Workspace);
+      const userSaveSpy = jest.spyOn(repository, 'save').mockResolvedValue({
+        ...userWithPassword,
+        locale: 'en',
+        timeZone: 'Asia/Almaty',
+        onboardingCompletedAt: new Date(),
+      } as User);
+
+      const result = await service.completeOnboarding('1', {
+        locale: 'en',
+        timeZone: 'Asia/Almaty',
+        workspaceName: 'My workspace',
+        workspaceCurrency: 'USD',
+        workspaceBackgroundImage: 'hero.jpg',
+      });
+
+      expect(workspaceSaveSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'My workspace',
+          currency: 'USD',
+          backgroundImage: 'hero.jpg',
+        }),
+      );
+      expect(userSaveSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          locale: 'en',
+          timeZone: 'Asia/Almaty',
+          onboardingCompletedAt: expect.any(Date),
+        }),
+      );
+      expect(result.onboardingCompletedAt).toBeTruthy();
+    });
+
+    it('is idempotent and does not fail without workspace', async () => {
+      const alreadyCompleted = {
+        ...mockUser,
+        workspaceId: null,
+        onboardingCompletedAt: new Date('2026-01-01T00:00:00.000Z'),
+      } as User;
+
+      jest
+        .spyOn<any, any>(service as any, 'findOneWithPassword')
+        .mockResolvedValue(alreadyCompleted);
+      const workspaceFindSpy = jest.spyOn(workspaceRepository, 'findOne').mockResolvedValue(null);
+      const workspaceSaveSpy = jest.spyOn(workspaceRepository, 'save');
+      const userSaveSpy = jest.spyOn(repository, 'save').mockResolvedValue(alreadyCompleted);
+
+      await service.completeOnboarding('1', {});
+
+      expect(workspaceFindSpy).not.toHaveBeenCalled();
+      expect(workspaceSaveSpy).not.toHaveBeenCalled();
+      expect(userSaveSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ onboardingCompletedAt: alreadyCompleted.onboardingCompletedAt }),
+      );
     });
   });
 });

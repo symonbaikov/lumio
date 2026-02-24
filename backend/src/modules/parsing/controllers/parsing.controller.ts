@@ -1,0 +1,123 @@
+import { promises as fs } from 'fs';
+import * as path from 'path';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import * as XLSX from 'xlsx';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { validateFile } from '../../../common/utils/file-validator.util';
+import { multerConfig } from '../../../config/multer.config';
+import { ParseDocumentDto } from '../dto/parse-document.dto';
+import { UniversalExtractorService } from '../services/universal-extractor.service';
+
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.webp']);
+
+@ApiTags('Documents')
+@ApiBearerAuth()
+@Controller('documents')
+@UseGuards(JwtAuthGuard)
+export class ParsingController {
+  constructor(private readonly universalExtractor: UniversalExtractorService) {}
+
+  @Post('parse')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Parse uploaded document and extract structured financial fields' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  async parseDocument(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() payload: ParseDocumentDto,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+
+    validateFile(file);
+
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const buffer = await fs.readFile(file.path);
+    const context = {
+      sender: payload.sender,
+      subject: payload.subject,
+      emailBody: payload.emailBody,
+      fileNameHint: file.originalname,
+    };
+
+    try {
+      if (IMAGE_EXTENSIONS.has(ext)) {
+        const parsed = await this.universalExtractor.extractFromImage(
+          buffer,
+          file.mimetype || this.mimeFromExtension(ext),
+          context,
+        );
+
+        return {
+          source: payload.source || 'upload',
+          ...parsed,
+        };
+      }
+
+      if (ext === '.pdf') {
+        const parsed = await this.universalExtractor.extractFromPdf(buffer, context);
+        return {
+          source: payload.source || 'upload',
+          ...parsed,
+        };
+      }
+
+      if (ext === '.csv') {
+        const text = buffer.toString('utf-8');
+        const parsed = await this.universalExtractor.extractFromText(text, context);
+        return {
+          source: payload.source || 'upload',
+          ...parsed,
+        };
+      }
+
+      if (ext === '.xlsx' || ext === '.xls') {
+        const workbook = XLSX.read(buffer, { type: 'buffer' });
+        const firstSheet = workbook.SheetNames[0];
+
+        if (!firstSheet) {
+          throw new BadRequestException('Spreadsheet has no sheets to parse');
+        }
+
+        const csvText = XLSX.utils.sheet_to_csv(workbook.Sheets[firstSheet]);
+        const parsed = await this.universalExtractor.extractFromText(csvText, context);
+
+        return {
+          source: payload.source || 'upload',
+          ...parsed,
+        };
+      }
+
+      throw new BadRequestException(
+        `Unsupported file extension: ${ext || 'unknown'}. Supported: PDF, CSV, XLSX/XLS, JPG, PNG`,
+      );
+    } finally {
+      await fs.unlink(file.path).catch(() => undefined);
+    }
+  }
+
+  private mimeFromExtension(ext: string): string {
+    if (ext === '.jpg' || ext === '.jpeg') {
+      return 'image/jpeg';
+    }
+
+    if (ext === '.png') {
+      return 'image/png';
+    }
+
+    return 'application/octet-stream';
+  }
+}

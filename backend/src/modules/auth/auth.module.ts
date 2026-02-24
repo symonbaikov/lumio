@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { devDefault } from '../../common/utils/dev-defaults';
 import { AuthSession, User, Workspace, WorkspaceInvitation, WorkspaceMember } from '../../entities';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -16,10 +17,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService): any => {
-        const secret = configService.get<string>('JWT_SECRET');
-        if (!secret) {
-          throw new Error('JWT_SECRET environment variable is required but not set');
-        }
+        const secret = devDefault(configService.get<string>('JWT_SECRET'), 'JWT_SECRET');
         return {
           secret,
           signOptions: {

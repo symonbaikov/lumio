@@ -1,8 +1,9 @@
 import * as fs from 'fs';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import * as pdfParse from 'pdf-parse';
-import { AiMerchantExtractor } from '../helpers/ai-merchant-extractor.helper';
 import { UniversalAmountParser } from '../../parsing/services/universal-amount-parser.service';
+import { UniversalExtractorService } from '../../parsing/services/universal-extractor.service';
+import { AiMerchantExtractor } from '../helpers/ai-merchant-extractor.helper';
 
 type AmountExtractionResult = {
   amount: number;
@@ -75,8 +76,12 @@ export class GmailReceiptParserService {
 
   constructor(
     private readonly amountParser: UniversalAmountParser,
-    @Optional() @Inject(AiMerchantExtractor)
+    @Optional()
+    @Inject(AiMerchantExtractor)
     private readonly aiMerchantExtractor?: AiMerchantExtractor,
+    @Optional()
+    @Inject(UniversalExtractorService)
+    private readonly universalExtractor?: UniversalExtractorService,
   ) {}
 
   async parseReceipt(filePath: string, context?: ReceiptParseContext | string): Promise<any> {
@@ -127,7 +132,10 @@ export class GmailReceiptParserService {
     }
 
     const bodyText = context.emailBody ? this.stripHtmlBasic(context.emailBody) : '';
-    const amountWithCurrency = bodyText ? await this.extractAmountWithCurrency(bodyText) : undefined;
+    const amountWithCurrency = bodyText
+      ? await this.extractAmountWithCurrency(bodyText)
+      : undefined;
+    const transactionType = bodyText ? this.detectTransactionType(bodyText) : 'unknown';
 
     return {
       amount: amountWithCurrency?.amount,
@@ -135,6 +143,7 @@ export class GmailReceiptParserService {
       date: context.dateHeader,
       vendor,
       confidence: vendor ? 0.6 : 0.3,
+      transactionType,
     };
   }
 
@@ -153,6 +162,39 @@ export class GmailReceiptParserService {
     try {
       const data = await pdfParse(buffer);
       const text = data.text;
+
+      if (this.universalExtractor) {
+        try {
+          const universal = await this.universalExtractor.extractFromText(text, {
+            sender: context.sender,
+            subject: context.subject,
+            emailBody: context.emailBody || undefined,
+            fileNameHint: context.subject,
+          });
+
+          if (
+            universal.totalAmount !== undefined ||
+            universal.vendor ||
+            universal.date ||
+            universal.lineItems.length > 0
+          ) {
+            return {
+              amount: universal.totalAmount,
+              currency: universal.currency || 'KZT',
+              date: universal.date ? universal.date.toISOString().split('T')[0] : undefined,
+              vendor: universal.vendor,
+              tax: universal.tax,
+              taxRate: universal.taxRate,
+              subtotal: universal.subtotal,
+              lineItems: universal.lineItems,
+              confidence: universal.confidence,
+              transactionType: universal.transactionType,
+            };
+          }
+        } catch (error) {
+          this.logger.warn('Universal extractor failed, falling back to legacy parser', error);
+        }
+      }
 
       // Enhanced extraction logic
       const amountWithCurrency = await this.extractAmountWithCurrency(text);
@@ -190,6 +232,7 @@ export class GmailReceiptParserService {
         subtotal,
         lineItems,
         confidence,
+        transactionType: this.detectTransactionType(text),
       };
     } catch (error) {
       this.logger.error('Failed to parse PDF receipt', error);
@@ -647,5 +690,29 @@ export class GmailReceiptParserService {
 
   private escapeRegex(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private detectTransactionType(text: string): 'income' | 'expense' | 'transfer' | 'unknown' {
+    const lower = text.toLowerCase();
+
+    if (
+      /\b(refund|credited|deposit|incoming|возврат|зачислен|поступлен|доход|приход)\b/i.test(lower)
+    ) {
+      return 'income';
+    }
+
+    if (/\b(transfer|перевод между|внутренний перевод)\b/i.test(lower)) {
+      return 'transfer';
+    }
+
+    if (
+      /\b(payment|purchase|charge|debit|amount due|оплата|покупка|списание|расход|дебет)\b/i.test(
+        lower,
+      )
+    ) {
+      return 'expense';
+    }
+
+    return 'unknown';
   }
 }

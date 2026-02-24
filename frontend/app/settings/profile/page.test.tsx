@@ -47,4 +47,11 @@ describe('ProfileSettingsPage', () => {
     expect(html).toContain('Edit photo');
     expect(html).toContain('https://api.dicebear.com/7.x/identicon/svg?seed=test');
   });
+
+  it('renders timezone trigger for modal picker', async () => {
+    const { default: ProfileSettingsPage } = await import('./page');
+    const html = renderToStaticMarkup(<ProfileSettingsPage />);
+
+    expect(html).toContain('data-testid="profile-timezone-trigger"');
+  });
 });

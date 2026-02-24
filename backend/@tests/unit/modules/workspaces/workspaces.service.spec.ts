@@ -279,6 +279,31 @@ describe('WorkspacesService', () => {
       expect(result.members[0]).toHaveProperty('role');
       expect(result.members[0]).toHaveProperty('permissions');
     });
+
+    it('should include member avatar and timezone', async () => {
+      jest.spyOn(workspaceRepository, 'findOne').mockResolvedValue(mockWorkspace as Workspace);
+      jest.spyOn(workspaceMemberRepository, 'find').mockResolvedValue([
+        {
+          userId: '1',
+          role: WorkspaceRole.MEMBER,
+          user: {
+            id: '1',
+            email: 'denis@gmail.com',
+            name: 'Denis',
+            avatarUrl: '/users/avatars/denis.png',
+            timeZone: 'Asia/Almaty',
+          } as User,
+        } as WorkspaceMember,
+      ]);
+      jest.spyOn(invitationRepository, 'find').mockResolvedValue([]);
+
+      const result = await service.getWorkspaceOverview(mockUser as User);
+
+      expect(result.members[0]).toMatchObject({
+        avatarUrl: '/users/avatars/denis.png',
+        timeZone: 'Asia/Almaty',
+      });
+    });
   });
 
   describe('inviteMember', () => {

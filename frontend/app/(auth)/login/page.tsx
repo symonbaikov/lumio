@@ -85,6 +85,14 @@ function LoginPageContent() {
       localStorage.setItem('access_token', access_token);
       localStorage.setItem('refresh_token', refresh_token);
       localStorage.setItem('user', JSON.stringify(user));
+      if (user.workspaceId) {
+        localStorage.setItem('currentWorkspaceId', user.workspaceId);
+      }
+
+      if (!inviteToken && user.onboardingCompletedAt == null) {
+        window.location.href = '/onboarding';
+        return;
+      }
 
       if (user.lastWorkspaceId) {
         localStorage.setItem('currentWorkspaceId', user.lastWorkspaceId);

@@ -53,6 +53,7 @@ interface CustomTableTanStackProps {
   onDeleteColumn?: (columnKey: string) => void;
   onSelectedRowIdsChange: (rowIds: string[]) => void;
   onAddColumnClick?: () => void;
+  isPrintMode?: boolean;
 }
 
 export function CustomTableTanStack(props: CustomTableTanStackProps) {
@@ -714,7 +715,8 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
         onScroll={handleScroll}
         className="relative overflow-y-auto overflow-x-auto border-x border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pt-1"
         style={{
-          height: props.isFullscreen ? 'calc(100vh - 150px)' : '600px',
+          height: props.isPrintMode ? 'auto' : props.isFullscreen ? 'calc(100vh - 150px)' : '600px',
+          overflow: props.isPrintMode ? 'visible' : undefined,
         }}
       >
         <Popover
@@ -780,8 +782,13 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
             }}
           />
         </Popover>
-        <table className="w-full border-collapse" style={{ minWidth: table.getTotalSize() }}>
-          <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800">
+        <table
+          className="w-full border-collapse"
+          style={{ minWidth: props.isPrintMode ? undefined : table.getTotalSize() }}
+        >
+          <thead
+            className={`${props.isPrintMode ? '' : 'sticky top-0 z-10'} bg-gray-50 dark:bg-gray-800`}
+          >
             {table.getHeaderGroups().map(headerGroup => (
               <tr
                 key={headerGroup.id}
@@ -830,7 +837,7 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
             ))}
           </thead>
           <tbody>
-            {paddingTop > 0 && (
+            {!props.isPrintMode && paddingTop > 0 && (
               <tr>
                 <td
                   colSpan={table.getVisibleLeafColumns().length}
@@ -838,46 +845,79 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
                 />
               </tr>
             )}
-            {virtualItems.map(virtualRow => {
-              const row = table.getRowModel().rows[virtualRow.index];
-              if (!row) return null;
+            {props.isPrintMode
+              ? table.getRowModel().rows.map(row => {
+                  const rowStyle = getRowStyle(row.original);
+                  const rowBackground = (rowStyle as any).backgroundColor as string | undefined;
+                  const hasRowFill = Boolean(rowBackground);
 
-              const rowStyle = getRowStyle(row.original);
-              const rowBackground = (rowStyle as any).backgroundColor as string | undefined;
-              const hasRowFill = Boolean(rowBackground);
+                  return (
+                    <tr
+                      key={row.id}
+                      className={`group border-b border-gray-200 dark:border-gray-800 ${
+                        hasRowFill ? 'row-fill' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                      }`}
+                      style={rowStyle}
+                    >
+                      {row.getVisibleCells().map(cell => (
+                        <td
+                          key={cell.id}
+                          className={`px-4 py-3 text-sm text-gray-900 dark:text-gray-100 ${
+                            hasRowFill
+                              ? ''
+                              : 'bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-800/50'
+                          }`}
+                          style={{
+                            ...(rowBackground ? { backgroundColor: rowBackground } : {}),
+                            ...getStickyStyle(cell.column.id, false, rowBackground),
+                          }}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })
+              : virtualItems.map(virtualRow => {
+                  const row = table.getRowModel().rows[virtualRow.index];
+                  if (!row) return null;
 
-              return (
-                <tr
-                  key={row.id}
-                  className={`group border-b border-gray-200 dark:border-gray-800 ${
-                    hasRowFill ? 'row-fill' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                  }`}
-                  style={{
-                    height: `${virtualRow.size}px`,
-                    ...rowStyle,
-                  }}
-                >
-                  {row.getVisibleCells().map(cell => (
-                    <td
-                      key={cell.id}
-                      className={`px-4 py-3 text-sm text-gray-900 dark:text-gray-100 ${
-                        hasRowFill
-                          ? ''
-                          : 'bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-800/50'
+                  const rowStyle = getRowStyle(row.original);
+                  const rowBackground = (rowStyle as any).backgroundColor as string | undefined;
+                  const hasRowFill = Boolean(rowBackground);
+
+                  return (
+                    <tr
+                      key={row.id}
+                      className={`group border-b border-gray-200 dark:border-gray-800 ${
+                        hasRowFill ? 'row-fill' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
                       }`}
                       style={{
-                        width: cell.column.getSize(),
-                        ...(rowBackground ? { backgroundColor: rowBackground } : {}),
-                        ...getStickyStyle(cell.column.id, false, rowBackground),
+                        height: `${virtualRow.size}px`,
+                        ...rowStyle,
                       }}
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
-            {paddingBottom > 0 && (
+                      {row.getVisibleCells().map(cell => (
+                        <td
+                          key={cell.id}
+                          className={`px-4 py-3 text-sm text-gray-900 dark:text-gray-100 ${
+                            hasRowFill
+                              ? ''
+                              : 'bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-800/50'
+                          }`}
+                          style={{
+                            width: cell.column.getSize(),
+                            ...(rowBackground ? { backgroundColor: rowBackground } : {}),
+                            ...getStickyStyle(cell.column.id, false, rowBackground),
+                          }}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+            {!props.isPrintMode && paddingBottom > 0 && (
               <tr>
                 <td
                   colSpan={table.getVisibleLeafColumns().length}
@@ -892,7 +932,7 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
           </tbody>
         </table>
 
-        {props.showAddRow !== false && (
+        {props.showAddRow !== false && !props.isPrintMode && (
           <div
             ref={addRowFooterRef}
             data-testid="custom-table-add-row"
@@ -912,7 +952,7 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
         )}
 
         {/* Loading indicator */}
-        {props.loadingRows && (
+        {props.loadingRows && !props.isPrintMode && (
           <div className="flex items-center justify-center py-8 text-gray-500">
             <Loader2 className="h-5 w-5 animate-spin mr-2" />
             <span>{t.grid.loadingMore.value}</span>

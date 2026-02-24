@@ -1,5 +1,6 @@
 'use client';
 
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
 import {
   AlertCircle,
@@ -124,10 +125,22 @@ const resolveLocale = (locale: string) => {
   return 'en-US';
 };
 
-const formatCurrency = (value: number, locale: string) =>
+const resolveCurrencyCode = (currency: string | null | undefined) => {
+  const normalized = String(currency || '')
+    .trim()
+    .toUpperCase();
+
+  if (/^[A-Z]{3}$/.test(normalized)) {
+    return normalized;
+  }
+
+  return 'KZT';
+};
+
+const formatCurrency = (value: number, locale: string, currency: string) =>
   new Intl.NumberFormat(resolveLocale(locale), {
     style: 'currency',
-    currency: 'KZT',
+    currency,
     minimumFractionDigits: 2,
   }).format(value);
 
@@ -158,8 +171,14 @@ const InfoCard = ({
 export default function ReportsPage() {
   const t = useIntlayer('reportsPage');
   const { locale } = useLocale();
+  const { currentWorkspace } = useWorkspace();
   const { resolvedTheme } = useTheme();
   const isMobile = useIsMobile();
+  const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
+  const formatAmount = useCallback(
+    (value: number) => formatCurrency(value, locale, workspaceCurrency),
+    [locale, workspaceCurrency],
+  );
   const echartsTheme = resolvedTheme === 'dark' ? 'dark' : 'light';
   const chartBlue = resolvedTheme === 'dark' ? '#38BDF8' : '#0EA5E9';
   const chartLayout = useMemo(() => buildResponsiveReportChartLayout(isMobile), [isMobile]);
@@ -742,19 +761,19 @@ export default function ReportsPage() {
           >
             <InfoCard
               title={t.labels.income.value}
-              value={formatCurrency(data?.totals.income || 0, locale)}
+              value={formatAmount(data?.totals.income || 0)}
               accent="green"
               icon={<ArrowUp className="h-4 w-4 text-emerald-500" />}
             />
             <InfoCard
               title={t.labels.expense.value}
-              value={formatCurrency(data?.totals.expense || 0, locale)}
+              value={formatAmount(data?.totals.expense || 0)}
               accent="red"
               icon={<ArrowDown className="h-4 w-4 text-red-500" />}
             />
             <InfoCard
               title={t.labels.net.value}
-              value={formatCurrency(data?.totals.net || 0, locale)}
+              value={formatAmount(data?.totals.net || 0)}
               accent={(data?.totals.net || 0) >= 0 ? 'green' : 'red'}
               icon={<TrendingUp className="h-4 w-4 text-primary" />}
             />
@@ -869,7 +888,7 @@ export default function ReportsPage() {
                     <div
                       className={`text-sm font-semibold ${row.amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}
                     >
-                      {formatCurrency(row.amount, locale)}
+                      {formatAmount(row.amount)}
                     </div>
                   </div>
                 ))}
@@ -991,19 +1010,19 @@ export default function ReportsPage() {
               >
                 <InfoCard
                   title={t.labels.income.value}
-                  value={formatCurrency(localSummary?.totals.income || 0, locale)}
+                  value={formatAmount(localSummary?.totals.income || 0)}
                   accent="green"
                   icon={<ArrowUp className="h-4 w-4 text-emerald-500" />}
                 />
                 <InfoCard
                   title={t.labels.expense.value}
-                  value={formatCurrency(localSummary?.totals.expense || 0, locale)}
+                  value={formatAmount(localSummary?.totals.expense || 0)}
                   accent="red"
                   icon={<ArrowDown className="h-4 w-4 text-red-500" />}
                 />
                 <InfoCard
                   title={t.labels.net.value}
-                  value={formatCurrency(localSummary?.totals.net || 0, locale)}
+                  value={formatAmount(localSummary?.totals.net || 0)}
                   accent={(localSummary?.totals.net || 0) >= 0 ? 'green' : 'red'}
                   icon={<TrendingUp className="h-4 w-4 text-primary" />}
                 />
@@ -1122,7 +1141,7 @@ export default function ReportsPage() {
                             row.amount >= 0 ? 'text-emerald-600' : 'text-red-600'
                           }`}
                         >
-                          {formatCurrency(row.amount, locale)}
+                          {formatAmount(row.amount)}
                         </div>
                       </div>
                     ))}
@@ -1152,8 +1171,8 @@ export default function ReportsPage() {
                           <p className="text-sm font-semibold text-gray-900">{table.name}</p>
                           <p className="text-xs text-gray-500">
                             {t.labels.rows.value}: {table.rows} · {t.labels.income.value}:{' '}
-                            {formatCurrency(table.income, locale)} · {t.labels.expense.value}:{' '}
-                            {formatCurrency(table.expense, locale)}
+                            {formatAmount(table.income)} · {t.labels.expense.value}:{' '}
+                            {formatAmount(table.expense)}
                           </p>
                         </div>
                         <div
@@ -1161,7 +1180,7 @@ export default function ReportsPage() {
                             table.net >= 0 ? 'text-emerald-600' : 'text-red-600'
                           }`}
                         >
-                          {formatCurrency(table.net, locale)}
+                          {formatAmount(table.net)}
                         </div>
                       </div>
                     ))}
@@ -1222,19 +1241,19 @@ export default function ReportsPage() {
           >
             <InfoCard
               title={t.labels.income.value}
-              value={formatCurrency(statementSummary?.totals.income || 0, locale)}
+              value={formatAmount(statementSummary?.totals.income || 0)}
               accent="green"
               icon={<ArrowDown className="h-4 w-4 text-emerald-500" />}
             />
             <InfoCard
               title={t.labels.expense.value}
-              value={formatCurrency(statementSummary?.totals.expense || 0, locale)}
+              value={formatAmount(statementSummary?.totals.expense || 0)}
               accent="red"
               icon={<ArrowUp className="h-4 w-4 text-red-500" />}
             />
             <InfoCard
               title={t.labels.net.value}
-              value={formatCurrency(statementSummary?.totals.net || 0, locale)}
+              value={formatAmount(statementSummary?.totals.net || 0)}
               accent={(statementSummary?.totals.net || 0) >= 0 ? 'green' : 'red'}
               icon={<TrendingUp className="h-4 w-4 text-primary" />}
             />

@@ -1,10 +1,10 @@
 'use client';
 
 import { Button } from '@/app/components/ui/button';
-import { Check, ChevronDown, Globe } from 'lucide-react';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { Check, ChevronLeft, Globe, Search } from 'lucide-react';
 import { useIntlayer, useLocale } from 'next-intlayer';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
@@ -14,26 +14,9 @@ export function AuthLanguageSwitcher() {
   const { locale, setLocale, availableLocales } = useLocale();
   const { languages: languageNames, languageModal } = useIntlayer('navigation');
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
-  const [languageDraft, setLanguageDraft] = useState<AppLanguage>((locale as AppLanguage) || 'ru');
-  const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
-  const [portalReady, setPortalReady] = useState(false);
-  const languageDropdownRef = useRef<HTMLDivElement>(null);
+  const [languageSearch, setLanguageSearch] = useState('');
 
   useLockBodyScroll(languageModalOpen);
-
-  useEffect(() => setPortalReady(true), []);
-
-  useEffect(() => {
-    if (!languageDropdownOpen) return;
-    const onClickOutside = (event: MouseEvent) => {
-      if (!languageDropdownRef.current) return;
-      if (!languageDropdownRef.current.contains(event.target as Node)) {
-        setLanguageDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, [languageDropdownOpen]);
 
   const languages = useMemo(
     () =>
@@ -54,6 +37,26 @@ export function AuthLanguageSwitcher() {
     return languages.find(l => l.code === currentCode)?.label ?? languageNames.ru.value;
   }, [locale, languages, languageNames.ru.value]);
 
+  const filteredLanguages = useMemo(() => {
+    const query = languageSearch.trim().toLowerCase();
+    if (!query) {
+      return languages;
+    }
+
+    return languages.filter(lang => lang.label.toLowerCase().includes(query));
+  }, [languageSearch, languages]);
+
+  const handleLanguageSelect = (code: AppLanguage) => {
+    setLocale(code);
+    setLanguageModalOpen(false);
+    setLanguageSearch('');
+    const selectedLabel = languages.find(l => l.code === code)?.label ?? languageNames.ru.value;
+    toast.success(`${languageModal.savedToastPrefix.value}: ${selectedLabel}`);
+    setTimeout(() => {
+      window.location.reload();
+    }, 50);
+  };
+
   return (
     <>
       <Button
@@ -62,122 +65,82 @@ export function AuthLanguageSwitcher() {
         className="text-muted-foreground hover:text-foreground rounded-full"
         aria-label={currentLanguageLabel}
         onClick={() => {
-          setLanguageDraft((locale as AppLanguage) || 'ru');
+          setLanguageSearch('');
           setLanguageModalOpen(true);
         }}
       >
         <Globe size={20} suppressHydrationWarning />
       </Button>
 
-      {portalReady &&
-        languageModalOpen &&
-        createPortal(
-          <div className="fixed inset-0 z-80 flex items-center justify-center p-4">
-            <div
-              className="absolute inset-0 bg-black/30"
-              role="button"
-              tabIndex={0}
-              onClick={() => setLanguageModalOpen(false)}
-              onKeyDown={event => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  setLanguageModalOpen(false);
-                }
+      <DrawerShell
+        isOpen={languageModalOpen}
+        onClose={() => {
+          setLanguageModalOpen(false);
+          setLanguageSearch('');
+        }}
+        title={
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setLanguageModalOpen(false);
+                setLanguageSearch('');
               }}
-            />
-
-            <div className="relative w-full max-w-lg rounded-2xl bg-card text-card-foreground shadow-xl ring-1 ring-border overflow-hidden">
-              <div className="px-5 py-4 border-b border-border">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                  {languageModal.sectionLabel}
-                </div>
-                <div className="mt-1 text-lg font-semibold text-foreground">
-                  {languageModal.title}
-                </div>
-                <div className="mt-1 text-sm text-muted-foreground flex items-center gap-2">
-                  {languageModal.availableLanguagesLabel}
-                </div>
-              </div>
-
-              <div className="px-5 py-4">
-                <div ref={languageDropdownRef} className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setLanguageDropdownOpen(prev => !prev)}
-                    className="w-full flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-base hover:border-primary/50 hover:bg-primary/5 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">
-                        {languages.find(l => l.code === languageDraft)?.label ??
-                          languageNames.ru.value}
-                      </span>
-                    </div>
-                    <ChevronDown size={16} className="text-muted-foreground" />
-                  </button>
-
-                  {languageDropdownOpen && (
-                    <div className="transition-[max-height] duration-200 ease-out max-h-64 mt-3">
-                      <div className="rounded-xl border border-border bg-card shadow-lg max-h-64 overflow-y-auto">
-                        {languages.map(lang => {
-                          const selected = languageDraft === lang.code;
-                          return (
-                            <button
-                              key={lang.code}
-                              type="button"
-                              onClick={() => {
-                                setLanguageDraft(lang.code);
-                                setLanguageDropdownOpen(false);
-                              }}
-                              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                                selected
-                                  ? 'bg-primary/10 text-foreground'
-                                  : 'hover:bg-muted text-foreground'
-                              }`}
-                            >
-                              <span className="flex-1 font-medium">{lang.label}</span>
-                              {selected && (
-                                <span className="flex items-center gap-1 text-xs text-primary">
-                                  <Check size={14} />
-                                  {languageModal.savedToastPrefix.value}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="px-5 py-4 border-t border-border flex justify-end gap-2 bg-muted/50">
-                <button
-                  onClick={() => setLanguageModalOpen(false)}
-                  className="px-4 py-2 rounded-full border border-border text-foreground hover:bg-muted transition-colors text-sm"
-                >
-                  {languageModal.cancel}
-                </button>
-                <button
-                  onClick={() => {
-                    setLocale(languageDraft);
-                    setLanguageModalOpen(false);
-                    const selectedLabel =
-                      languages.find(l => l.code === languageDraft)?.label ??
-                      languageNames.ru.value;
-                    toast.success(`${languageModal.savedToastPrefix.value}: ${selectedLabel}`);
-                    setTimeout(() => {
-                      window.location.reload();
-                    }, 50);
-                  }}
-                  className="px-4 py-2 rounded-full bg-primary text-primary-foreground hover:bg-primary-hover transition-colors text-sm"
-                >
-                  {languageModal.save}
-                </button>
-              </div>
+              className="rounded-full p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+              aria-label="Close language drawer"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span>{languageModal.title}</span>
+          </div>
+        }
+        position="right"
+        width="lg"
+        showCloseButton={false}
+        className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
+      >
+        <div className="flex h-full flex-col">
+          <div className="flex-1 space-y-4 overflow-y-auto pb-4">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={languageSearch}
+                onChange={event => setLanguageSearch(event.target.value)}
+                placeholder="Search"
+                className="w-full rounded-2xl border border-primary bg-white py-3 pl-11 pr-4 text-base text-gray-900 outline-none"
+              />
             </div>
-          </div>,
-          document.body,
-        )}
+
+            <div className="space-y-2">
+              {filteredLanguages.length > 0 ? (
+                filteredLanguages.map(lang => {
+                  const selected = ((locale || 'ru') as AppLanguage) === lang.code;
+                  return (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      onClick={() => handleLanguageSelect(lang.code)}
+                      className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition-colors ${
+                        selected
+                          ? 'bg-[#ebe8e2] text-foreground'
+                          : 'text-foreground hover:bg-[#f1efea]'
+                      }`}
+                    >
+                      <span className="font-medium">{lang.label}</span>
+                      {selected ? <Check className="h-5 w-5 text-primary" /> : null}
+                    </button>
+                  );
+                })
+              ) : (
+                <p className="rounded-xl bg-white px-4 py-3 text-sm text-gray-500">
+                  No languages found
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </DrawerShell>
     </>
   );
 }

@@ -13,6 +13,7 @@ import {
   resetSingleStatementFilter,
 } from '@/app/(main)/statements/components/filters/statement-filters';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
@@ -111,10 +112,22 @@ const VIEW_OPTIONS = [
   { value: 'bar', label: 'Bar' },
 ];
 
-const formatMoney = (value: number) =>
+const resolveCurrencyCode = (currency: string | null | undefined, fallback = 'KZT') => {
+  const normalized = String(currency || '')
+    .trim()
+    .toUpperCase();
+
+  if (/^[A-Z]{3}$/.test(normalized)) {
+    return normalized;
+  }
+
+  return fallback;
+};
+
+const formatMoney = (value: number, currency: string) =>
   new Intl.NumberFormat('ru', {
     style: 'currency',
-    currency: 'KZT',
+    currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
@@ -164,8 +177,10 @@ const saveStoredState = (state: StoredState) => {
 
 export default function SpendOverTimeView() {
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const isMobile = useIsMobile();
   const { resolvedTheme } = useTheme();
+  const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
 
   const initial = useMemo(() => loadStoredState(), []);
 
@@ -604,13 +619,13 @@ export default function SpendOverTimeView() {
               <div className="rounded-lg border border-gray-200 bg-white p-4">
                 <div className="text-xs uppercase tracking-wider text-gray-500">Total spend</div>
                 <div className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
-                  {formatMoney(report.totals.expense)}
+                  {formatMoney(report.totals.expense, workspaceCurrency)}
                 </div>
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-4">
                 <div className="text-xs uppercase tracking-wider text-gray-500">Avg per period</div>
                 <div className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
-                  {formatMoney(report.totals.avgPerPeriod)}
+                  {formatMoney(report.totals.avgPerPeriod, workspaceCurrency)}
                 </div>
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -622,7 +637,7 @@ export default function SpendOverTimeView() {
               <div className="rounded-lg border border-gray-200 bg-white p-4">
                 <div className="text-xs uppercase tracking-wider text-gray-500">Net</div>
                 <div className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
-                  {formatMoney(report.totals.net)}
+                  {formatMoney(report.totals.net, workspaceCurrency)}
                 </div>
               </div>
             </div>
@@ -652,18 +667,20 @@ export default function SpendOverTimeView() {
                           <div>
                             <dt className="text-gray-500">Income</dt>
                             <dd className="font-medium text-gray-900">
-                              {formatMoney(point.income)}
+                              {formatMoney(point.income, workspaceCurrency)}
                             </dd>
                           </div>
                           <div>
                             <dt className="text-gray-500">Expense</dt>
                             <dd className="font-medium text-gray-900">
-                              {formatMoney(point.expense)}
+                              {formatMoney(point.expense, workspaceCurrency)}
                             </dd>
                           </div>
                           <div className="col-span-2">
                             <dt className="text-gray-500">Net</dt>
-                            <dd className="font-medium text-gray-900">{formatMoney(point.net)}</dd>
+                            <dd className="font-medium text-gray-900">
+                              {formatMoney(point.net, workspaceCurrency)}
+                            </dd>
                           </div>
                         </dl>
                       </article>
@@ -688,11 +705,15 @@ export default function SpendOverTimeView() {
                             className="border-b border-gray-100 last:border-b-0"
                           >
                             <td className="px-4 py-3 font-medium text-gray-900">{point.label}</td>
-                            <td className="px-4 py-3 text-gray-700">{formatMoney(point.income)}</td>
                             <td className="px-4 py-3 text-gray-700">
-                              {formatMoney(point.expense)}
+                              {formatMoney(point.income, workspaceCurrency)}
                             </td>
-                            <td className="px-4 py-3 text-gray-700">{formatMoney(point.net)}</td>
+                            <td className="px-4 py-3 text-gray-700">
+                              {formatMoney(point.expense, workspaceCurrency)}
+                            </td>
+                            <td className="px-4 py-3 text-gray-700">
+                              {formatMoney(point.net, workspaceCurrency)}
+                            </td>
                             <td className="px-4 py-3 text-gray-700">{point.count}</td>
                           </tr>
                         ))}

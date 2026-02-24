@@ -26,6 +26,7 @@ import {
 import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
@@ -234,6 +235,7 @@ export default function StatementsListView({ stage }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const isMobile = useIsMobile();
   const t = useIntlayer('statementsPage');
   const PAGE_SIZE = 30;
@@ -1644,6 +1646,7 @@ export default function StatementsListView({ stage }: Props) {
       <CreateExpenseDrawer
         open={expenseDrawerOpen}
         initialMode={expenseDrawerMode}
+        defaultCurrency={currentWorkspace?.currency ?? null}
         categories={manualExpenseCategories}
         taxRates={manualExpenseTaxRates}
         onClose={() => setExpenseDrawerOpen(false)}

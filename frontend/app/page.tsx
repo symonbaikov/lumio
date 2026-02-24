@@ -22,6 +22,7 @@ export default function Home() {
   const [entries, setEntries] = useState<ChangelogEntry[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<ChangelogEntry | null>(null);
+  const needsOnboarding = user?.onboardingCompletedAt == null;
 
   useEffect(() => {
     if (authLoading || workspaceLoading) {
@@ -33,10 +34,15 @@ export default function Home() {
       return;
     }
 
+    if (needsOnboarding) {
+      router.replace('/onboarding');
+      return;
+    }
+
     if (!currentWorkspace) {
       router.replace('/workspaces');
     }
-  }, [authLoading, currentWorkspace, router, user, workspaceLoading]);
+  }, [authLoading, currentWorkspace, needsOnboarding, router, user, workspaceLoading]);
 
   useEffect(() => {
     if (!user || !currentWorkspace) {
@@ -80,7 +86,8 @@ export default function Home() {
     };
   }, [currentWorkspace, user]);
 
-  const isRedirecting = authLoading || workspaceLoading || !user || !currentWorkspace;
+  const isRedirecting =
+    authLoading || workspaceLoading || !user || needsOnboarding || !currentWorkspace;
 
   const formattedEntries = useMemo(() => {
     return entries.map(entry => {

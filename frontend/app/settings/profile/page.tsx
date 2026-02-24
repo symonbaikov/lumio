@@ -11,9 +11,10 @@ import {
   CardTitle,
 } from '@/app/components/ui/card';
 import { Checkbox } from '@/app/components/ui/checkbox';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
-import { Select } from '@/app/components/ui/select';
+import { Select as UiSelect } from '@/app/components/ui/select';
 import { Separator } from '@/app/components/ui/separator';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
@@ -33,6 +34,7 @@ import SmartphoneOutlinedIcon from '@mui/icons-material/SmartphoneOutlined';
 import TabletMacOutlinedIcon from '@mui/icons-material/TabletMacOutlined';
 import CircularProgress from '@mui/material/CircularProgress';
 import type { AxiosError } from 'axios';
+import { Check, Search } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
 import { useRouter } from 'next/navigation';
 import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -47,6 +49,11 @@ type UserSession = {
   createdAt: string;
   lastUsedAt: string;
   isCurrent: boolean;
+};
+
+type TimeZoneOption = {
+  value: string;
+  label: string;
 };
 
 type NotificationPreferences = {
@@ -126,6 +133,31 @@ const getSessionIcon = (device: string) => {
   return DesktopWindowsOutlinedIcon;
 };
 
+const COMMON_TIMEZONES = [
+  'UTC',
+  'Europe/Moscow',
+  'Asia/Almaty',
+  'Asia/Astana',
+  'Asia/Tashkent',
+  'Europe/Berlin',
+  'America/New_York',
+];
+
+const resolveTimeZoneOptions = () => {
+  if (typeof Intl !== 'undefined' && typeof (Intl as any).supportedValuesOf === 'function') {
+    try {
+      const zones = (Intl as any).supportedValuesOf('timeZone') as string[];
+      if (Array.isArray(zones) && zones.length > 0) {
+        return zones;
+      }
+    } catch {
+      // Fallback below
+    }
+  }
+
+  return COMMON_TIMEZONES;
+};
+
 export default function ProfileSettingsPage() {
   const router = useRouter();
   const { user, loading, setUser } = useAuth();
@@ -168,7 +200,50 @@ export default function ProfileSettingsPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarMessage, setAvatarMessage] = useState<string | null>(null);
   const [avatarErrorMessage, setAvatarErrorMessage] = useState<string | null>(null);
+  const [isTimeZoneModalOpen, setIsTimeZoneModalOpen] = useState(false);
+  const [timeZoneSearch, setTimeZoneSearch] = useState('');
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const timeZoneOptions = useMemo(resolveTimeZoneOptions, []);
+
+  const timeZoneSelectOptions = useMemo<TimeZoneOption[]>(() => {
+    const autoLabel = t.profileCard.timeZones.auto.value;
+    const utcLabel = t.profileCard.timeZones.utc.value;
+
+    return [
+      { value: '', label: autoLabel },
+      ...timeZoneOptions.map(zone => ({
+        value: zone,
+        label: zone === 'UTC' ? utcLabel : zone,
+      })),
+    ];
+  }, [t, timeZoneOptions]);
+
+  const selectedTimeZoneOption = useMemo<TimeZoneOption>(() => {
+    const matched = timeZoneSelectOptions.find(option => option.value === profileTimeZone);
+    if (matched) {
+      return matched;
+    }
+
+    if (profileTimeZone) {
+      return { value: profileTimeZone, label: profileTimeZone };
+    }
+
+    return timeZoneSelectOptions[0] || { value: '', label: t.profileCard.timeZones.auto.value };
+  }, [profileTimeZone, t, timeZoneSelectOptions]);
+
+  const handleTimeZoneChange = useCallback((value: string) => {
+    setProfileTimeZone(value);
+    setIsTimeZoneModalOpen(false);
+  }, []);
+
+  const filteredTimeZoneSelectOptions = useMemo(() => {
+    const query = timeZoneSearch.trim().toLowerCase();
+    if (!query) {
+      return timeZoneSelectOptions;
+    }
+
+    return timeZoneSelectOptions.filter(option => option.label.toLowerCase().includes(query));
+  }, [timeZoneSearch, timeZoneSelectOptions]);
 
   useEffect(() => {
     if (user?.email) {
@@ -543,16 +618,21 @@ export default function ProfileSettingsPage() {
 
           <div className="space-y-2">
             <Label htmlFor="profile-timezone">{t.profileCard.timeZoneLabel.value}</Label>
-            <Select
-              id="profile-timezone"
-              value={profileTimeZone}
-              onChange={e => setProfileTimeZone(e.target.value)}
+            <button
+              id="profile-timezone-trigger"
+              data-testid="profile-timezone-trigger"
+              type="button"
+              onClick={() => {
+                setIsTimeZoneModalOpen(true);
+                setTimeZoneSearch('');
+              }}
+              className="flex h-10 w-full items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:border-primary"
+              aria-haspopup="dialog"
+              aria-expanded={isTimeZoneModalOpen}
             >
-              <option value="">{t.profileCard.timeZones.auto.value}</option>
-              <option value="UTC">{t.profileCard.timeZones.utc.value}</option>
-              <option value="Europe/Moscow">{t.profileCard.timeZones.europeMoscow.value}</option>
-              <option value="Asia/Almaty">{t.profileCard.timeZones.asiaAlmaty.value}</option>
-            </Select>
+              <span>{selectedTimeZoneOption.label}</span>
+              <span className="text-gray-500">v</span>
+            </button>
             <p className="text-xs text-gray-500">{t.profileCard.timeZoneHelp.value}</p>
           </div>
 
@@ -956,7 +1036,7 @@ export default function ProfileSettingsPage() {
                   </div>
                 </div>
                 <Label htmlFor="profile-section">{t.navigation.sectionLabel.value}</Label>
-                <Select
+                <UiSelect
                   id="profile-section"
                   value={activeSection}
                   onChange={e => setActiveSection(normalizeSection(e.target.value))}
@@ -966,7 +1046,7 @@ export default function ProfileSettingsPage() {
                       {sectionMeta[id].title}
                     </option>
                   ))}
-                </Select>
+                </UiSelect>
               </CardContent>
             </Card>
           </div>
@@ -993,6 +1073,64 @@ export default function ProfileSettingsPage() {
           </Card>
         </main>
       </div>
+
+      <DrawerShell
+        isOpen={isTimeZoneModalOpen}
+        onClose={() => {
+          setIsTimeZoneModalOpen(false);
+          setTimeZoneSearch('');
+        }}
+        title={t.profileCard.timeZoneLabel.value}
+        position="right"
+        width="lg"
+        showCloseButton={false}
+        className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
+      >
+        <div className="flex h-full flex-col">
+          <div className="flex-1 space-y-4 overflow-y-auto">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                id="profile-timezone"
+                type="text"
+                value={timeZoneSearch}
+                onChange={event => setTimeZoneSearch(event.target.value)}
+                placeholder={t.profileCard.timeZones.auto.value}
+                className="w-full rounded-xl border border-border bg-white py-3 pl-10 pr-4 text-sm text-foreground outline-none focus:border-primary"
+              />
+            </div>
+
+            <div className="space-y-1">
+              {filteredTimeZoneSelectOptions.length > 0 ? (
+                filteredTimeZoneSelectOptions.map(option => {
+                  const isSelected = option.value === selectedTimeZoneOption.value;
+                  return (
+                    <button
+                      key={option.value || '__auto'}
+                      type="button"
+                      onClick={() => handleTimeZoneChange(option.value)}
+                      className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition-colors ${
+                        isSelected ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <span className="font-medium">{option.label}</span>
+                      {isSelected ? <Check className="h-4 w-4" /> : null}
+                    </button>
+                  );
+                })
+              ) : (
+                <p className="rounded-xl bg-white px-3 py-3 text-sm text-gray-500">
+                  No time zones found
+                </p>
+              )}
+            </div>
+          </div>
+
+          <p className="mt-4 border-t border-border pt-4 text-xs text-gray-500">
+            {t.profileCard.timeZoneHelp.value}
+          </p>
+        </div>
+      </DrawerShell>
     </div>
   );
 }

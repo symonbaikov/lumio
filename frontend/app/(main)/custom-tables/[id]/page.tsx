@@ -4,6 +4,7 @@ import ConfirmModal from '@/app/components/ConfirmModal';
 import { ModalFooter, ModalShell } from '@/app/components/ui/modal-shell';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { format } from 'date-fns';
 import { enUS, kk, ru } from 'date-fns/locale';
 import {
@@ -24,6 +25,7 @@ import 'react-day-picker/style.css';
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { CustomTableTanStack } from './CustomTableTanStack';
 import { RowDrawer } from './components/RowDrawer';
+import { handleFullscreenEscapeNavigation } from './utils/fullscreenEscapeNavigation';
 import type { CustomTableGridRow } from './utils/stylingUtils';
 
 type ColumnType = 'text' | 'number' | 'date' | 'boolean' | 'select' | 'multi_select';
@@ -750,7 +752,19 @@ export default function CustomTableDetailPage() {
     return enUS;
   }, [locale]);
 
-  const [isFullscreen, setIsFullscreen] = useState(true);
+  const [isFullscreen] = useState(true);
+  const [isPrintMode, setIsPrintMode] = useState(false);
+  const handleBackNavigation = useCallback(() => {
+    router.push('/custom-tables');
+  }, [router]);
+  const handlePrintTable = useCallback(() => {
+    setIsPrintMode(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+      });
+    });
+  }, []);
   const [editingMeta, setEditingMeta] = useState(false);
   const [metaDraft, setMetaDraft] = useState<{
     name: string;
@@ -1589,18 +1603,34 @@ export default function CustomTableDetailPage() {
 
   useEffect(() => {
     if (!isFullscreen) return;
+
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName?.toLowerCase();
       if (tag && ['input', 'textarea', 'select'].includes(tag)) return;
       if (target && (target as any).isContentEditable) return;
-      if (event.key === 'Escape') {
-        setIsFullscreen(false);
-      }
+      handleFullscreenEscapeNavigation(event.key, handleBackNavigation);
     };
+
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isFullscreen]);
+  }, [handleBackNavigation, isFullscreen]);
+
+  useEffect(() => {
+    const handleBeforePrint = () => {
+      setIsPrintMode(true);
+    };
+    const handleAfterPrint = () => {
+      setIsPrintMode(false);
+    };
+
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, []);
 
   useEffect(() => {
     if (!authLoading && user && tableId) {
@@ -2376,21 +2406,32 @@ export default function CustomTableDetailPage() {
     <div
       className={
         isFullscreen
-          ? 'h-screen w-screen overflow-hidden bg-white'
+          ? `h-screen w-screen bg-white ${isPrintMode ? 'overflow-visible' : 'overflow-hidden'}`
           : 'container-shared px-4 sm:px-6 lg:px-8 py-8'
       }
-      style={isFullscreen ? { paddingTop: '150px' } : undefined}
+      style={isFullscreen ? { paddingTop: isPrintMode ? '0' : '150px' } : undefined}
     >
       <div
         className={
           isFullscreen
-            ? 'fixed top-0 left-0 right-0 z-50 bg-white px-6 pt-5 pb-0 border-x border-t border-gray-200 rounded-t-xl'
-            : 'mb-0 flex flex-col gap-0'
+            ? `fixed top-0 left-0 right-0 z-50 bg-white px-4 sm:px-6 pt-5 border-x border-t border-gray-200 rounded-t-xl ${
+                activeTabId === columnsTabId ? 'bottom-0 overflow-y-auto pb-6' : 'pb-0'
+              } ${isPrintMode ? 'custom-table-print-controls' : ''}`
+            : `mb-0 flex flex-col gap-0 ${isPrintMode ? 'custom-table-print-controls' : ''}`
         }
       >
         {/* Row 1: Tabs */}
-        <div className="flex items-center justify-between w-full border-b border-gray-100 px-2">
-          <div className="flex items-center gap-8">
+        <div className="flex w-full items-end justify-between gap-3 border-b border-gray-100 px-2">
+          <button
+            type="button"
+            onClick={handleBackNavigation}
+            className="inline-flex shrink-0 items-center gap-1.5 pb-3 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+          >
+            <ArrowBackIcon sx={{ fontSize: 16 }} />
+            <span>{t.nav.back.value}</span>
+          </button>
+
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-5 overflow-x-auto">
             {quickTabs.map(tab => {
               const isActive = activeTabId === tab.id;
               return (
@@ -2401,7 +2442,7 @@ export default function CustomTableDetailPage() {
                     setActiveTabFilter(tab.filter ?? null);
                     setStickyQuickTab(tab.id === 'all' ? null : tab);
                   }}
-                  className={`pb-3 text-sm font-medium transition-all relative ${isActive ? 'text-primary' : 'text-gray-500 hover:text-gray-900'}`}
+                  className={`relative shrink-0 whitespace-nowrap pb-3 text-sm font-medium transition-all ${isActive ? 'text-primary' : 'text-gray-500 hover:text-gray-900'}`}
                 >
                   {tab.label}
                   {typeof tab.count === 'number' && (
@@ -2424,7 +2465,7 @@ export default function CustomTableDetailPage() {
                 setActiveTabFilter(null);
                 setStickyQuickTab(null);
               }}
-              className={`pb-3 text-sm font-medium transition-all relative ${
+              className={`relative shrink-0 whitespace-nowrap pb-3 text-sm font-medium transition-all ${
                 activeTabId === columnsTabId ? 'text-primary' : 'text-gray-500 hover:text-gray-900'
               }`}
             >
@@ -2434,111 +2475,107 @@ export default function CustomTableDetailPage() {
               )}
             </button>
           </div>
-          <button
-            type="button"
-            onClick={() => router.push('/custom-tables')}
-            className="hidden sm:inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <span>{t.nav.back.value}</span>
-          </button>
         </div>
 
         {activeTabId !== columnsTabId && (
-          <div className="flex items-center justify-between mt-4 w-full px-2 pb-4">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => markSelectedRowsPaid(true)}
-                disabled={selectedRowIds.length === 0 || bulkMarking !== null}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full border border-gray-200 text-xs font-medium transition-colors ${selectedRowIds.length > 0 && bulkMarking === null ? 'text-gray-600 hover:bg-gray-50 hover:text-green-600' : 'text-gray-400'} disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                <CheckCircle
-                  className={`h-4 w-4 ${selectedRowIds.length > 0 && bulkMarking === null ? 'text-green-500' : 'text-green-500/50'}`}
-                />
-                <span>
-                  {bulkMarking === 'paid'
-                    ? (t as any).actions.markingPaid.value
-                    : (t as any).actions.markPaid.value}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => markSelectedRowsPaid(false)}
-                disabled={selectedRowIds.length === 0 || bulkMarking !== null}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full border border-gray-200 text-xs font-medium transition-colors ${selectedRowIds.length > 0 && bulkMarking === null ? 'text-gray-600 hover:bg-gray-50 hover:text-red-500' : 'text-gray-400'} disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                <XCircle
-                  className={`h-4 w-4 ${selectedRowIds.length > 0 && bulkMarking === null ? 'text-red-500' : 'text-red-500/50'}`}
-                />
-                <span>
-                  {bulkMarking === 'unpaid'
-                    ? (t as any).actions.markingUnpaid.value
-                    : (t as any).actions.markUnpaid.value}
-                </span>
-              </button>
-              <button
-                onClick={() => window.print()}
-                className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              >
-                <Printer className="h-4 w-4" />
-                <span>{(t as any).actions.print.value}</span>
-              </button>
-              <button
-                onClick={openBulkDelete}
-                disabled={selectedRowIds.length === 0}
-                className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-600 hover:bg-red-50 hover:border-red-100 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span>{(t as any).actions.delete.value}</span>
-              </button>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <div className="relative group hidden sm:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
-                <input
-                  placeholder={(t as any).actions.searchPlaceholder.value}
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-4 py-2 text-sm w-48 lg:w-80 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                />
+          <div className="mt-3 w-full px-2 pb-3">
+            <div className="flex items-center justify-between gap-2 overflow-x-auto sm:overflow-visible">
+              <div className="flex min-w-0 flex-nowrap items-center gap-1.5 sm:gap-2">
+                <button
+                  type="button"
+                  onClick={() => markSelectedRowsPaid(true)}
+                  disabled={selectedRowIds.length === 0 || bulkMarking !== null}
+                  className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-gray-200 px-2.5 py-1 text-[11px] font-medium transition-colors sm:gap-2 sm:px-4 sm:py-1.5 sm:text-xs ${selectedRowIds.length > 0 && bulkMarking === null ? 'text-gray-600 hover:bg-gray-50 hover:text-green-600' : 'text-gray-400'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  <CheckCircle
+                    className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${selectedRowIds.length > 0 && bulkMarking === null ? 'text-green-500' : 'text-green-500/50'}`}
+                  />
+                  <span>
+                    {bulkMarking === 'paid'
+                      ? (t as any).actions.markingPaid.value
+                      : (t as any).actions.markPaid.value}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => markSelectedRowsPaid(false)}
+                  disabled={selectedRowIds.length === 0 || bulkMarking !== null}
+                  className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-gray-200 px-2.5 py-1 text-[11px] font-medium transition-colors sm:gap-2 sm:px-4 sm:py-1.5 sm:text-xs ${selectedRowIds.length > 0 && bulkMarking === null ? 'text-gray-600 hover:bg-gray-50 hover:text-red-500' : 'text-gray-400'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  <XCircle
+                    className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${selectedRowIds.length > 0 && bulkMarking === null ? 'text-red-500' : 'text-red-500/50'}`}
+                  />
+                  <span>
+                    {bulkMarking === 'unpaid'
+                      ? (t as any).actions.markingUnpaid.value
+                      : (t as any).actions.markUnpaid.value}
+                  </span>
+                </button>
+                <button
+                  onClick={handlePrintTable}
+                  className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 sm:gap-2 sm:px-4 sm:py-1.5 sm:text-xs"
+                >
+                  <Printer className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span>{(t as any).actions.print.value}</span>
+                </button>
+                <button
+                  onClick={openBulkDelete}
+                  disabled={selectedRowIds.length === 0}
+                  className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-600 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed sm:gap-2 sm:px-4 sm:py-1.5 sm:text-xs"
+                >
+                  <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span>{(t as any).actions.delete.value}</span>
+                </button>
+              </div>
+              <div className="hidden sm:flex flex-col items-end gap-2">
+                <div className="relative group">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                  <input
+                    placeholder={(t as any).actions.searchPlaceholder.value}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="pl-9 pr-4 py-2 text-sm w-48 lg:w-80 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                  />
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {activeTabId === columnsTabId && (
-          <div className="min-h-full w-full px-2 pb-10">
-            <div className="mx-auto w-full max-w-lg space-y-6 py-10">
-              <div className="space-y-3">
-                {(columnOrder.length ? columnOrder : orderedColumns.map(c => c.key)).map(key => {
-                  const col = orderedColumns.find(c => c.key === key);
-                  if (!col) return null;
-                  const isHidden = hiddenColumnKeys.includes(col.key);
-                  return (
-                    <label
-                      key={col.key}
-                      className={`flex items-center justify-between rounded-xl border px-5 py-4 text-base transition-colors ${
-                        isHidden
-                          ? 'border-gray-100 text-gray-400'
-                          : 'border-gray-200 text-gray-800 hover:bg-gray-50'
-                      }`}
-                    >
-                      <span className="truncate font-medium">{col.title || col.key}</span>
-                      <input
-                        type="checkbox"
-                        checked={!isHidden}
-                        onChange={() => toggleColumnHidden(col.key)}
-                        className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary/20"
-                      />
-                    </label>
-                  );
-                })}
+          <div className="w-full px-2 pb-4 pt-4 sm:px-4">
+            <div className="mx-auto w-full max-w-3xl space-y-4 sm:space-y-5">
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <ul className="divide-y divide-gray-200">
+                  {(columnOrder.length ? columnOrder : orderedColumns.map(c => c.key)).map(key => {
+                    const col = orderedColumns.find(c => c.key === key);
+                    if (!col) return null;
+                    const isHidden = hiddenColumnKeys.includes(col.key);
+                    return (
+                      <li key={col.key} className="list-none">
+                        <label
+                          className={`flex cursor-pointer items-center justify-between gap-3 px-4 py-3 text-sm transition-colors sm:px-5 sm:py-3.5 sm:text-base ${
+                            isHidden ? 'text-gray-400' : 'text-gray-800 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="truncate font-medium">{col.title || col.key}</span>
+                          <input
+                            type="checkbox"
+                            checked={!isHidden}
+                            onChange={() => toggleColumnHidden(col.key)}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20 sm:h-5 sm:w-5"
+                          />
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
               <button
                 type="button"
                 onClick={resetColumns}
                 disabled={isColumnsDefault}
-                className="w-full rounded-xl border border-primary bg-primary/10 px-5 py-4 text-sm font-semibold text-primary hover:bg-primary/15 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary/10"
+                className="w-full rounded-xl border border-primary bg-primary/10 px-5 py-3.5 text-sm font-semibold text-primary hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-primary/10"
               >
                 {(t as any).actions.columnsReset.value}
               </button>
@@ -2630,7 +2667,7 @@ export default function CustomTableDetailPage() {
         </ModalShell>
       </div>
 
-      <div className={isFullscreen ? 'h-full w-full pt-0' : 'mt-0'}>
+      <div className={isFullscreen ? 'h-full w-full pt-0 custom-table-print-target' : 'mt-0'}>
         <div
           className={
             isFullscreen
@@ -2669,13 +2706,16 @@ export default function CustomTableDetailPage() {
               }}
               onSelectedRowIdsChange={setSelectedRowIds}
               onAddColumnClick={() => setNewColumnOpen(true)}
+              isPrintMode={isPrintMode}
             />
           )}
         </div>
       </div>
 
       {activeTabId !== columnsTabId && (
-        <div className="mt-4 flex items-center justify-center">
+        <div
+          className={`mt-4 flex items-center justify-center ${isPrintMode ? 'custom-table-print-controls' : ''}`}
+        >
           <button
             onClick={() => loadRows()}
             disabled={!hasMore || loadingRows}
@@ -2685,6 +2725,60 @@ export default function CustomTableDetailPage() {
           </button>
         </div>
       )}
+
+      <style jsx global>{`
+        @media print {
+          .custom-table-print-controls {
+            display: none !important;
+          }
+
+          .custom-table-print-target {
+            width: 100% !important;
+            height: auto !important;
+            padding-top: 0 !important;
+            margin: 0 !important;
+          }
+
+          .custom-table-container {
+            width: 100% !important;
+          }
+
+          .custom-table-container > div {
+            height: auto !important;
+            overflow: visible !important;
+            border: 0 !important;
+            padding-top: 0 !important;
+          }
+
+          .custom-table-container table {
+            width: 100% !important;
+            min-width: 0 !important;
+            table-layout: auto !important;
+          }
+
+          .custom-table-container thead {
+            position: static !important;
+          }
+
+          .custom-table-container th,
+          .custom-table-container td {
+            width: auto !important;
+            min-width: 0 !important;
+            max-width: none !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+          }
+
+          .custom-table-container [class*='sticky'] {
+            position: static !important;
+          }
+
+          @page {
+            size: landscape;
+            margin: 10mm;
+          }
+        }
+      `}</style>
 
       <ModalShell
         isOpen={pastePreviewOpen}

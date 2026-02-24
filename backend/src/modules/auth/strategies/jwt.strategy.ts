@@ -4,6 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Repository } from 'typeorm';
+import { devDefault } from '../../../common/utils/dev-defaults';
 import { User } from '../../../entities/user.entity';
 
 export interface JwtPayload {
@@ -33,10 +34,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   ) {
     // Prefer dedicated access token secret but fall back to legacy key
     const jwtSecret =
-      configService.get<string>('JWT_ACCESS_SECRET') || configService.get<string>('JWT_SECRET');
-    if (!jwtSecret) {
-      throw new Error('JWT_ACCESS_SECRET environment variable is not set');
-    }
+      configService.get<string>('JWT_ACCESS_SECRET') ||
+      devDefault(configService.get<string>('JWT_SECRET'), 'JWT_SECRET');
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),

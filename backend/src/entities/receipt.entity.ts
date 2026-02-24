@@ -23,6 +23,13 @@ export enum ReceiptStatus {
   FAILED = 'failed',
 }
 
+export enum ReceiptSource {
+  GMAIL = 'gmail',
+  UPLOAD = 'upload',
+  TELEGRAM = 'telegram',
+  SCAN = 'scan',
+}
+
 @Entity('receipts')
 @Index(['userId'])
 @Index(['status'])
@@ -48,11 +55,19 @@ export class Receipt {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'gmail_message_id', unique: true })
-  gmailMessageId: string;
+  @Column({
+    name: 'source',
+    type: 'enum',
+    enum: ReceiptSource,
+    default: ReceiptSource.GMAIL,
+  })
+  source: ReceiptSource;
 
-  @Column({ name: 'gmail_thread_id' })
-  gmailThreadId: string;
+  @Column({ name: 'gmail_message_id', nullable: true })
+  gmailMessageId: string | null;
+
+  @Column({ name: 'gmail_thread_id', nullable: true })
+  gmailThreadId: string | null;
 
   @Column()
   subject: string;
@@ -98,6 +113,7 @@ export class Receipt {
       description: string;
       amount: number;
     }>;
+    transactionType?: 'income' | 'expense' | 'transfer' | 'unknown';
     confidence?: number;
     validationIssues?: string[];
   };

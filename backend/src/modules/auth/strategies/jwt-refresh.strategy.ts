@@ -4,6 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Repository } from 'typeorm';
+import { devDefault } from '../../../common/utils/dev-defaults';
 import { User } from '../../../entities/user.entity';
 
 export interface JwtRefreshPayload {
@@ -25,10 +26,10 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     @InjectRepository(User)
     private userRepository: Repository<User>,
   ) {
-    const jwtRefreshSecret = configService.get<string>('JWT_REFRESH_SECRET');
-    if (!jwtRefreshSecret) {
-      throw new Error('JWT_REFRESH_SECRET environment variable is not set');
-    }
+    const jwtRefreshSecret = devDefault(
+      configService.get<string>('JWT_REFRESH_SECRET'),
+      'JWT_REFRESH_SECRET',
+    );
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),

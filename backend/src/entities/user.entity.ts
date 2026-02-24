@@ -8,11 +8,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { AuthSession } from './auth-session.entity';
 import { Branch } from './branch.entity';
 import { Category } from './category.entity';
 import type { DataEntryType } from './data-entry.entity';
 import { GoogleSheet } from './google-sheet.entity';
-import { AuthSession } from './auth-session.entity';
 import { Statement } from './statement.entity';
 import { TelegramReport } from './telegram-report.entity';
 import { Wallet } from './wallet.entity';
@@ -44,6 +44,9 @@ export class User {
 
   @Column({ name: 'time_zone', type: 'varchar', length: 64, nullable: true })
   timeZone: string | null;
+
+  @Column({ name: 'onboarding_completed_at', type: 'timestamptz', nullable: true, default: null })
+  onboardingCompletedAt: Date | null;
 
   @Column({ name: 'token_version', type: 'int', default: 0 })
   tokenVersion: number;

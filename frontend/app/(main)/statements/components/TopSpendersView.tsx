@@ -13,6 +13,7 @@ import {
   resetSingleStatementFilter,
 } from '@/app/(main)/statements/components/filters/statement-filters';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient, { gmailReceiptsApi } from '@/app/lib/api';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
@@ -146,13 +147,25 @@ const getStatementDate = (statement: Statement) => {
   return statement.statementDateTo || statement.statementDateFrom || statement.createdAt || '';
 };
 
-const getStatementCurrency = (statement: Statement) => {
+const resolveCurrencyCode = (currency: string | null | undefined, fallback = 'KZT') => {
+  const normalized = String(currency || '')
+    .trim()
+    .toUpperCase();
+
+  if (/^[A-Z]{3}$/.test(normalized)) {
+    return normalized;
+  }
+
+  return fallback;
+};
+
+const getStatementCurrency = (statement: Statement, fallbackCurrency: string) => {
   return (
     statement.parsedData?.currency ||
     statement.currency ||
     statement.parsingDetails?.metadataExtracted?.currency ||
     statement.parsingDetails?.metadataExtracted?.headerDisplay?.currencyDisplay ||
-    'KZT'
+    fallbackCurrency
   );
 };
 
@@ -165,7 +178,10 @@ const getBankDisplayName = (bankName?: string | null) => {
   return resolved.key !== 'other' ? resolved.displayName : raw;
 };
 
-const mapGmailReceiptToStatement = (receipt: GmailReceipt): Statement => ({
+const mapGmailReceiptToStatement = (
+  receipt: GmailReceipt,
+  fallbackCurrency: string,
+): Statement => ({
   id: receipt.id,
   source: 'gmail',
   fileName: resolveGmailMerchantLabel({
@@ -186,7 +202,7 @@ const mapGmailReceiptToStatement = (receipt: GmailReceipt): Statement => ({
   statementDateTo: null,
   bankName: 'gmail',
   fileType: 'gmail',
-  currency: receipt.parsedData?.currency || 'KZT',
+  currency: resolveCurrencyCode(receipt.parsedData?.currency, fallbackCurrency),
   user: null,
   receivedAt: receipt.receivedAt,
   parsedData: receipt.parsedData,
@@ -198,10 +214,10 @@ const resolveLocale = (locale?: string) => {
   return 'en-US';
 };
 
-const formatMoney = (value: number, locale = 'ru') =>
+const formatMoney = (value: number, currency: string, locale = 'ru') =>
   new Intl.NumberFormat(resolveLocale(locale), {
     style: 'currency',
-    currency: 'KZT',
+    currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
@@ -209,7 +225,9 @@ const formatMoney = (value: number, locale = 'ru') =>
 export default function TopSpendersView() {
   const t = useIntlayer('statementsPage');
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const { resolvedTheme } = useTheme();
+  const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
   const [loading, setLoading] = useState(true);
   const [statements, setStatements] = useState<Statement[]>([]);
   const [gmailReceipts, setGmailReceipts] = useState<GmailReceipt[]>([]);
@@ -465,7 +483,7 @@ export default function TopSpendersView() {
 
       const dateValue = getStatementDate(item);
       const amount = getStatementAmount(item);
-      const currency = getStatementCurrency(item);
+      const currency = getStatementCurrency(item, workspaceCurrency);
 
       return {
         id: item.id,
@@ -500,7 +518,7 @@ export default function TopSpendersView() {
     });
 
     const mappedReceipts: TopSpenderRecord[] = gmailReceipts.map(receipt => {
-      const mapped = mapGmailReceiptToStatement(receipt);
+      const mapped = mapGmailReceiptToStatement(receipt, workspaceCurrency);
       const company = resolveGmailMerchantLabel({
         vendor: receipt.parsedData?.vendor,
         sender: receipt.sender,
@@ -509,7 +527,7 @@ export default function TopSpendersView() {
       });
       const amount = getStatementAmount(mapped);
       const dateValue = getStatementDate(mapped);
-      const currency = getStatementCurrency(mapped);
+      const currency = getStatementCurrency(mapped, workspaceCurrency);
 
       return {
         id: mapped.id,
@@ -551,7 +569,7 @@ export default function TopSpendersView() {
     );
 
     return [...mappedStatements, ...uniqueMappedReceipts];
-  }, [statements, gmailReceipts]);
+  }, [statements, gmailReceipts, workspaceCurrency]);
 
   const fromOptions = useMemo(() => {
     const seen = new Map<
@@ -645,7 +663,7 @@ export default function TopSpendersView() {
           total: record.amount,
           average: record.amount,
           lastDate: date,
-          currency: record.currencyValue || 'KZT',
+          currency: resolveCurrencyCode(record.currencyValue, workspaceCurrency),
         });
         return;
       }
@@ -660,7 +678,7 @@ export default function TopSpendersView() {
     });
 
     return Array.from(aggregate.values()).sort((a, b) => b.total - a.total);
-  }, [filteredRecords]);
+  }, [filteredRecords, workspaceCurrency]);
 
   const totals = useMemo(() => {
     const statementTotal = filteredRecords
@@ -969,7 +987,7 @@ export default function TopSpendersView() {
                   <ArrowDown className="h-4 w-4 text-red-500" />
                 </div>
                 <div className="mt-2 text-lg font-semibold text-red-600">
-                  {formatMoney(totals.total)}
+                  {formatMoney(totals.total, workspaceCurrency)}
                 </div>
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -980,7 +998,7 @@ export default function TopSpendersView() {
                   <ChartPie className="h-4 w-4 text-primary" />
                 </div>
                 <div className="mt-2 text-lg font-semibold text-primary">
-                  {formatMoney(totals.statementTotal)}
+                  {formatMoney(totals.statementTotal, workspaceCurrency)}
                 </div>
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -991,7 +1009,7 @@ export default function TopSpendersView() {
                   <ArrowUp className="h-4 w-4 text-emerald-500" />
                 </div>
                 <div className="mt-2 text-lg font-semibold text-emerald-600">
-                  {formatMoney(totals.receiptTotal)}
+                  {formatMoney(totals.receiptTotal, workspaceCurrency)}
                 </div>
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -1071,9 +1089,11 @@ export default function TopSpendersView() {
                           {row.sourceType === 'gmail' ? labels.sourceGmail : labels.sourceStatement}
                         </td>
                         <td className="py-2 pr-4 text-right">{row.count}</td>
-                        <td className="py-2 pr-4 text-right">{formatMoney(row.average)}</td>
+                        <td className="py-2 pr-4 text-right">
+                          {formatMoney(row.average, workspaceCurrency)}
+                        </td>
                         <td className="py-2 pr-4 text-right font-semibold text-gray-900">
-                          {formatMoney(row.total)}
+                          {formatMoney(row.total, workspaceCurrency)}
                         </td>
                         <td className="py-2 text-right text-gray-500">
                           {row.lastDate && !Number.isNaN(new Date(row.lastDate).getTime())

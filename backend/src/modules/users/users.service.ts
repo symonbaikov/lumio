@@ -10,8 +10,10 @@ import * as bcrypt from 'bcrypt';
 import type { Repository } from 'typeorm';
 import { Permission } from '../../common/enums/permissions.enum';
 import { User, UserRole } from '../../entities/user.entity';
+import { Workspace } from '../../entities/workspace.entity';
 import type { ChangeEmailDto } from './dto/change-email.dto';
 import type { ChangePasswordDto } from './dto/change-password.dto';
+import type { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
 import type { UpdateMyPreferencesDto } from './dto/update-my-preferences.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
 
@@ -20,6 +22,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Workspace)
+    private workspaceRepository: Repository<Workspace>,
   ) {}
 
   private async findOneWithPassword(id: string): Promise<User> {
@@ -43,6 +47,7 @@ export class UsersService {
         'permissions',
         'locale',
         'timeZone',
+        'onboardingCompletedAt',
         'tokenVersion',
       ],
     });
@@ -87,6 +92,7 @@ export class UsersService {
         'permissions',
         'locale',
         'timeZone',
+        'onboardingCompletedAt',
       ],
     });
 
@@ -217,6 +223,58 @@ export class UsersService {
   async updateMyAvatar(userId: string, avatarUrl: string): Promise<User> {
     const user = await this.findOneWithPassword(userId);
     user.avatarUrl = avatarUrl;
+    return this.userRepository.save(user);
+  }
+
+  async completeOnboarding(userId: string, dto: CompleteOnboardingDto): Promise<User> {
+    const user = await this.findOneWithPassword(userId);
+
+    if (dto.locale !== undefined) {
+      user.locale = dto.locale;
+    }
+
+    if (dto.timeZone !== undefined) {
+      user.timeZone = dto.timeZone === null ? null : String(dto.timeZone).trim() || null;
+    }
+
+    const shouldUpdateWorkspace =
+      Boolean(user.workspaceId) &&
+      (dto.workspaceName !== undefined ||
+        dto.workspaceCurrency !== undefined ||
+        dto.workspaceBackgroundImage !== undefined);
+
+    if (shouldUpdateWorkspace) {
+      const workspace = await this.workspaceRepository.findOne({
+        where: { id: user.workspaceId as string },
+      });
+
+      if (workspace) {
+        if (dto.workspaceName !== undefined) {
+          const workspaceName = dto.workspaceName.trim();
+          if (workspaceName.length > 0) {
+            workspace.name = workspaceName;
+          }
+        }
+
+        if (dto.workspaceCurrency !== undefined) {
+          const workspaceCurrency = dto.workspaceCurrency.trim().toUpperCase();
+          workspace.currency = workspaceCurrency.length > 0 ? workspaceCurrency : null;
+        }
+
+        if (dto.workspaceBackgroundImage !== undefined) {
+          const workspaceBackgroundImage = dto.workspaceBackgroundImage.trim();
+          workspace.backgroundImage =
+            workspaceBackgroundImage.length > 0 ? workspaceBackgroundImage : null;
+        }
+
+        await this.workspaceRepository.save(workspace);
+      }
+    }
+
+    if (!user.onboardingCompletedAt) {
+      user.onboardingCompletedAt = new Date();
+    }
+
     return this.userRepository.save(user);
   }
 }

@@ -42,6 +42,41 @@ describe('PDFThumbnail', () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelector('[data-testid="pdf-thumbnail-fallback-icon"]')).toBeTruthy();
+    const fallbackIcon = container.querySelector(
+      '[data-testid="pdf-thumbnail-fallback-icon"]',
+    ) as SVGElement | null;
+
+    expect(fallbackIcon).toBeTruthy();
+    expect(fallbackIcon?.getAttribute('width')).toBe('29');
+    expect(fallbackIcon?.getAttribute('height')).toBe('29');
+    expect(fallbackIcon?.className.baseVal).toContain('text-gray-400');
+    expect(fallbackIcon?.className.baseVal).not.toContain('text-red-500');
+  });
+
+  it('shows error icon and message in preview mode when thumbnail fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+      }),
+    );
+
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <PDFThumbnail
+          fileId="statement-2"
+          width={320}
+          height={460}
+          errorMessage="Unable to load document"
+        />,
+      );
+      await Promise.resolve();
+    });
+
+    const errorIcon = container.querySelector('[data-testid="pdf-thumbnail-error-icon"]');
+    expect(errorIcon).toBeTruthy();
+    expect(container.textContent).toContain('Unable to load document');
   });
 });

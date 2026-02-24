@@ -43,6 +43,7 @@ export default function GlobalBreadcrumbs() {
   };
 
   const items = useMemo(() => {
+    if (pathname.startsWith('/onboarding')) return [];
     if (HIDDEN_PATHS.has(pathname)) return [];
     if (pathname === '/') return [];
 

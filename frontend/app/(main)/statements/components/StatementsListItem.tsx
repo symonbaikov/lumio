@@ -4,8 +4,10 @@ import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
 import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
 import { PDFThumbnail } from '@/app/components/PDFThumbnail';
 import PaymentsIcon from '@mui/icons-material/Payments';
+import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import { ChevronRight } from 'lucide-react';
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export type StatementListItem = {
   id: string;
@@ -71,6 +73,14 @@ export function StatementsListItem({
   typeLabel,
   isManualExpense = false,
 }: Props) {
+  const PREVIEW_WIDTH = 430;
+  const PREVIEW_HEIGHT = 620;
+  const thumbnailButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewPosition, setPreviewPosition] = useState<{ top: number; left: number } | null>(
+    null,
+  );
+
   const resolvedTypeLabel = typeLabel || statement.fileType;
   const normalizedPreviewType = (isGmail ? 'pdf' : statement.fileType || statement.fileName || '')
     .trim()
@@ -81,9 +91,46 @@ export function StatementsListItem({
     normalizedPreviewType.endsWith('/pdf') ||
     normalizedPreviewType === 'application/pdf';
 
+  const updatePreviewPosition = useCallback(() => {
+    const trigger = thumbnailButtonRef.current;
+    if (!trigger || typeof window === 'undefined') return;
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const gap = 12;
+
+    const maxTop = Math.max(16, viewportHeight - PREVIEW_HEIGHT - 16);
+    const centeredTop = triggerRect.top + triggerRect.height / 2 - PREVIEW_HEIGHT / 2;
+    const top = Math.min(Math.max(16, centeredTop), maxTop);
+
+    const rightSideLeft = triggerRect.right + gap;
+    const fitsOnRight = rightSideLeft + PREVIEW_WIDTH <= viewportWidth - 12;
+    const left = fitsOnRight ? rightSideLeft : Math.max(12, triggerRect.left - PREVIEW_WIDTH - gap);
+
+    setPreviewPosition({ top, left });
+  }, []);
+
+  useEffect(() => {
+    if (!previewVisible) return;
+
+    updatePreviewPosition();
+
+    const handleReposition = () => {
+      updatePreviewPosition();
+    };
+
+    window.addEventListener('scroll', handleReposition, true);
+    window.addEventListener('resize', handleReposition);
+    return () => {
+      window.removeEventListener('scroll', handleReposition, true);
+      window.removeEventListener('resize', handleReposition);
+    };
+  }, [previewVisible, updatePreviewPosition]);
+
   return (
     <div
-      className={`relative rounded-lg border bg-white p-3 transition hover:border-primary/30 md:p-4 ${
+      className={`group/statement relative rounded-lg border bg-white p-3 transition hover:border-primary/30 md:p-4 md:hover:z-40 ${
         selected ? 'border-primary/60 bg-primary/5' : 'border-gray-200'
       }`}
     >
@@ -163,11 +210,15 @@ export function StatementsListItem({
         <div className="group/thumbnail relative pointer-events-auto">
           <button
             type="button"
+            ref={thumbnailButtonRef}
+            data-testid={`statement-thumbnail-trigger-${statement.id}`}
             className="w-11 flex items-center justify-center transition hover:opacity-80"
             onClick={event => {
               event.stopPropagation();
               onIconClick();
             }}
+            onMouseEnter={() => setPreviewVisible(true)}
+            onMouseLeave={() => setPreviewVisible(false)}
             aria-label={statement.fileName}
           >
             <DocumentTypeIcon
@@ -180,23 +231,37 @@ export function StatementsListItem({
             />
           </button>
 
-          {hasHoverPreview ? (
-            <div className="pointer-events-none absolute left-full top-1/2 z-30 ml-3 hidden w-56 -translate-y-1/2 rounded-xl border border-gray-200 bg-white p-2 shadow-xl transition group-hover/thumbnail:block">
-              <PDFThumbnail
-                fileId={statement.id}
-                fileName={statement.fileName}
-                source={isGmail ? 'gmail' : 'statement'}
-                size={208}
-              />
-            </div>
-          ) : null}
+          {hasHoverPreview && previewVisible && previewPosition
+            ? createPortal(
+                <div
+                  data-testid="statement-hover-preview"
+                  className="pointer-events-none fixed z-[140] rounded-xl border border-gray-200 bg-white p-2 shadow-2xl"
+                  style={{
+                    top: previewPosition.top,
+                    left: previewPosition.left,
+                    width: PREVIEW_WIDTH,
+                    maxWidth: 'min(430px, calc(100vw - 24px))',
+                  }}
+                >
+                  <PDFThumbnail
+                    fileId={statement.id}
+                    fileName={statement.fileName}
+                    source={isGmail ? 'gmail' : 'statement'}
+                    width={PREVIEW_WIDTH - 16}
+                    height={PREVIEW_HEIGHT}
+                    errorMessage="Не удается загрузить документ"
+                  />
+                </div>,
+                document.body,
+              )
+            : null}
         </div>
         <div className="w-3" />
         <div className="w-20 flex items-center gap-2 text-sm font-medium text-gray-500">
           {isManualExpense ? (
             <PaymentsIcon
               data-testid="manual-expense-type-icon"
-              className="text-primary"
+              className="text-gray-500"
               fontSize="small"
             />
           ) : (
@@ -236,8 +301,13 @@ export function StatementsListItem({
               onView();
             }}
             className="pointer-events-auto inline-flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:border-primary hover:text-primary"
+            aria-label={viewLabel}
           >
-            {viewLabel}
+            <RemoveRedEyeIcon
+              data-testid="statement-view-icon"
+              className="text-gray-500"
+              fontSize="small"
+            />
           </button>
           <button
             type="button"

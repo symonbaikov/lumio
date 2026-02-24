@@ -90,7 +90,8 @@ describe('StatementsListItem', () => {
     });
 
     expect(container.textContent).toContain('Shop');
-    expect(container.textContent).toContain('View');
+    const viewIcon = container.querySelector('[data-testid="statement-view-icon"]');
+    expect(viewIcon).toBeTruthy();
     expect(container.querySelector('img[alt="Gmail"]')).not.toBeNull();
   });
 
@@ -136,6 +137,55 @@ describe('StatementsListItem', () => {
     expect(
       container.querySelector('[data-testid="statement-item-desktop-statement-1"]'),
     ).toBeTruthy();
+  });
+
+  it('renders hover preview in portal without clipping', async () => {
+    const root = createRoot(container);
+
+    const statement: Statement = {
+      id: 'statement-hover-preview',
+      source: 'statement',
+      fileName: 'Preview.pdf',
+      status: 'parsed',
+      totalDebit: 1200,
+      totalCredit: 0,
+      createdAt: '2026-02-01T00:00:00Z',
+      statementDateFrom: '2026-01-01',
+      statementDateTo: '2026-01-31',
+      bankName: 'kaspi',
+      fileType: 'pdf',
+      currency: 'KZT',
+    };
+
+    act(() => {
+      root.render(
+        <StatementsListItem
+          statement={statement}
+          viewLabel="View"
+          isGmail={false}
+          isProcessing={false}
+          merchantLabel="Kaspi"
+          amountLabel="1,200 KZT"
+          dateLabel="01/31/2026"
+          onView={() => undefined}
+          onIconClick={() => undefined}
+          onToggleSelect={() => undefined}
+          typeLabel="PDF"
+        />,
+      );
+    });
+
+    const previewTrigger = container.querySelector(
+      '[data-testid="statement-thumbnail-trigger-statement-hover-preview"]',
+    ) as HTMLButtonElement | null;
+    expect(previewTrigger).toBeTruthy();
+
+    await act(async () => {
+      previewTrigger?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(document.body.querySelector('[data-testid="statement-hover-preview"]')).toBeTruthy();
   });
 
   it('renders compact mobile card without type label and view button', () => {
@@ -234,7 +284,12 @@ describe('StatementsListItem', () => {
       );
     });
 
-    expect(container.querySelector('[data-testid="manual-expense-type-icon"]')).toBeTruthy();
+    const paymentsIcon = container.querySelector(
+      '[data-testid="manual-expense-type-icon"]',
+    ) as SVGElement | null;
+
+    expect(paymentsIcon).toBeTruthy();
+    expect(paymentsIcon?.className.baseVal).toContain('text-gray-500');
     expect(container.textContent).not.toContain('FILE');
   });
 });

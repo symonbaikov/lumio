@@ -1,6 +1,7 @@
 'use client';
 
 import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
+import ErrorIcon from '@mui/icons-material/Error';
 import { FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -9,7 +10,10 @@ interface PDFThumbnailProps {
   fileName?: string;
   source?: 'statement' | 'gmail';
   size?: number;
+  width?: number;
+  height?: number;
   className?: string;
+  errorMessage?: string;
 }
 
 const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? '/api/v1').replace(/\/$/, '');
@@ -21,7 +25,10 @@ export function PDFThumbnail({
   fileName,
   source = 'statement',
   size = 40,
+  width,
+  height,
   className = '',
+  errorMessage,
 }: PDFThumbnailProps) {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -105,9 +112,32 @@ export function PDFThumbnail({
 
   // If error occurred, show default PDF icon
   if (error) {
+    const fallbackIconSize = Math.max(14, Math.round(size * 0.8));
+    const frameWidth = width ?? size;
+    const frameHeight = height ?? size;
+
+    if (errorMessage) {
+      return (
+        <div
+          className="flex flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white p-4 text-center"
+          style={{ width: frameWidth, height: frameHeight }}
+        >
+          <ErrorIcon data-testid="pdf-thumbnail-error-icon" className="text-gray-400" />
+          <p className="text-sm text-gray-500">{errorMessage}</p>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex items-center justify-center" style={{ width: size, height: size }}>
-        <FileText data-testid="pdf-thumbnail-fallback-icon" size={size} className={className} />
+      <div
+        className="flex items-center justify-center"
+        style={{ width: frameWidth, height: frameHeight }}
+      >
+        <FileText
+          data-testid="pdf-thumbnail-fallback-icon"
+          size={fallbackIconSize}
+          className="text-gray-400"
+        />
       </div>
     );
   }
@@ -115,7 +145,7 @@ export function PDFThumbnail({
   return (
     <div
       className="relative shadow-sm rounded-xl overflow-hidden"
-      style={{ width: size, height: size }}
+      style={{ width: width ?? size, height: height ?? size }}
     >
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center">

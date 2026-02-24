@@ -12,6 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { OAuth2Client } from 'google-auth-library';
 import { IsNull, type Repository } from 'typeorm';
+import { DEV_DEFAULTS } from '../../common/utils/dev-defaults';
 import {
   AuthSession,
   User,
@@ -45,6 +46,14 @@ export interface UserSessionDto {
   isCurrent: boolean;
 }
 
+const jwtSecret = () =>
+  process.env.JWT_SECRET ||
+  (process.env.NODE_ENV !== 'production' ? DEV_DEFAULTS.JWT_SECRET : undefined);
+
+const jwtRefreshSecret = () =>
+  process.env.JWT_REFRESH_SECRET ||
+  (process.env.NODE_ENV !== 'production' ? DEV_DEFAULTS.JWT_REFRESH_SECRET : undefined);
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -62,7 +71,10 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
-  async register(registerDto: RegisterDto, sessionContext?: SessionContext): Promise<AuthResponseDto> {
+  async register(
+    registerDto: RegisterDto,
+    sessionContext?: SessionContext,
+  ): Promise<AuthResponseDto> {
     const normalizedEmail = registerDto.email.trim().toLowerCase();
     const invitationToken = registerDto.invitationToken?.trim() || null;
 
@@ -109,6 +121,7 @@ export class AuthService {
       role: UserRole.USER,
       isActive: true,
       permissions: null, // Use role-based permissions by default
+      onboardingCompletedAt: invitationToken ? new Date() : null,
     });
 
     const savedUser = await this.userRepository.save(user);
@@ -154,6 +167,7 @@ export class AuthService {
         'workspaceId',
         'locale',
         'timeZone',
+        'onboardingCompletedAt',
         'avatarUrl',
         'isActive',
         'tokenVersion',
@@ -259,6 +273,7 @@ export class AuthService {
         permissions: null,
         googleId,
         avatarUrl: payload?.picture || null,
+        onboardingCompletedAt: invitationToken ? new Date() : null,
       });
 
       const savedUser = await this.userRepository.save(user);
@@ -311,7 +326,7 @@ export class AuthService {
   ): Promise<{ access_token: string }> {
     try {
       const payload = this.jwtService.verify<JwtRefreshPayload>(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: jwtRefreshSecret(),
       });
 
       if (payload.type !== 'refresh') {
@@ -352,7 +367,9 @@ export class AuthService {
         throw new UnauthorizedException('Refresh token does not match session');
       }
 
-      const parsedDevice = this.parseUserAgent(sessionContext?.userAgent || session.userAgent || null);
+      const parsedDevice = this.parseUserAgent(
+        sessionContext?.userAgent || session.userAgent || null,
+      );
 
       await this.authSessionRepository.update(
         { id: session.id },
@@ -375,7 +392,7 @@ export class AuthService {
       };
 
       const access_token = this.jwtService.sign(accessTokenPayload, {
-        secret: process.env.JWT_SECRET,
+        secret: jwtSecret(),
         expiresIn: process.env.JWT_EXPIRES_IN || '1h',
       } as any);
 
@@ -459,7 +476,10 @@ export class AuthService {
     return { message: 'Session logged out successfully' };
   }
 
-  private async generateTokens(user: User, sessionContext?: SessionContext): Promise<AuthResponseDto> {
+  private async generateTokens(
+    user: User,
+    sessionContext?: SessionContext,
+  ): Promise<AuthResponseDto> {
     const sessionId = randomUUID();
 
     const payload: JwtPayload = {
@@ -478,12 +498,12 @@ export class AuthService {
     };
 
     const access_token = this.jwtService.sign(payload, {
-      secret: process.env.JWT_SECRET,
+      secret: jwtSecret(),
       expiresIn: process.env.JWT_EXPIRES_IN || '1h',
     } as any);
 
     const refresh_token = this.jwtService.sign(refreshPayload, {
-      secret: process.env.JWT_REFRESH_SECRET,
+      secret: jwtRefreshSecret(),
       expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
     } as any);
 
@@ -512,6 +532,7 @@ export class AuthService {
         locale: user.locale,
         timeZone: user.timeZone ?? null,
         avatarUrl: user.avatarUrl ?? null,
+        onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() ?? null,
       },
       access_token,
       refresh_token,

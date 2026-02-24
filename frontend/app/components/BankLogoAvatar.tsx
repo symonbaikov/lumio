@@ -1,6 +1,7 @@
 'use client';
 
 import { resolveBankLogo } from '@bank-logos';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import React from 'react';
 
 type Props = {
@@ -12,17 +13,13 @@ type Props = {
 
 export function BankLogoAvatar({ bankName, size = 32, className, rounded = true }: Props) {
   const resolved = resolveBankLogo(bankName);
-  const [stage, setStage] = React.useState<0 | 1 | 2>(0);
+  const [imageError, setImageError] = React.useState(false);
+  const shouldShowImage = resolved.key !== 'other' && !imageError;
 
-  const fallbackLetter =
-    (bankName || resolved.displayName || 'B').trim().charAt(0).toUpperCase() || 'B';
-  const defaultSrc = '/images/bank-logo/bank.png';
-  const src = stage === 0 ? resolved.src : stage === 1 ? defaultSrc : null;
-
-  if (src) {
+  if (shouldShowImage) {
     return (
       <img
-        src={src}
+        src={resolved.src}
         alt={bankName || resolved.displayName || 'Bank'}
         width={size}
         height={size}
@@ -33,25 +30,28 @@ export function BankLogoAvatar({ bankName, size = 32, className, rounded = true 
         ]
           .filter(Boolean)
           .join(' ')}
-        onError={() => setStage(prev => (prev === 2 ? 2 : ((prev + 1) as 0 | 1 | 2)))}
+        onError={() => setImageError(true)}
       />
     );
   }
 
   return (
-    <div
+    <span
       className={[
-        'flex items-center justify-center bg-gray-100 text-gray-500 font-bold',
+        'inline-flex items-center justify-center text-gray-500',
         rounded ? 'rounded-full' : 'rounded-lg',
         className,
       ]
         .filter(Boolean)
         .join(' ')}
-      style={{ width: size, height: size, fontSize: Math.max(10, Math.floor(size / 2.6)) }}
+      style={{ width: size, height: size }}
       aria-label={bankName || resolved.displayName || 'Bank'}
       title={bankName || resolved.displayName || 'Bank'}
     >
-      {fallbackLetter}
-    </div>
+      <AccountBalanceIcon
+        data-testid="bank-logo-fallback-icon"
+        sx={{ fontSize: Math.max(14, Math.round(size * 0.9)) }}
+      />
+    </span>
   );
 }

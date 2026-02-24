@@ -2,7 +2,9 @@
 
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
-import { MailPlus, Shield, Trash2, Users } from 'lucide-react';
+import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
+import SendIcon from '@mui/icons-material/Send';
+import { MailPlus, Trash2, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -12,6 +14,8 @@ type WorkspaceOverview = {
     id: string;
     email?: string;
     name?: string;
+    avatarUrl?: string | null;
+    timeZone?: string | null;
     role: string;
     permissions?: {
       canEditStatements?: boolean;
@@ -296,7 +300,7 @@ export default function WorkspaceMembersView() {
                 disabled={!isOwnerOrAdmin || inviteLoading}
                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <Shield size={16} />
+                <SendIcon fontSize="small" />
                 {inviteLoading ? 'Sending...' : 'Send invitation'}
               </button>
             </div>
@@ -317,14 +321,25 @@ export default function WorkspaceMembersView() {
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="h-9 w-9 shrink-0 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
-                    {getInitials(member.name || member.email)}
+                  <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
+                    {normalizeAvatarUrl(member.avatarUrl) ? (
+                      <img
+                        src={normalizeAvatarUrl(member.avatarUrl) as string}
+                        alt={member.name || member.email || 'Member avatar'}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      getInitials(member.name || member.email)
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">
                       {member.name || member.email}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">{member.email}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      Timezone: {member.timeZone || 'Auto'}
+                    </p>
                   </div>
                 </div>
 

@@ -1,3 +1,4 @@
+import { createHmac } from 'crypto';
 import {
   AuthSession,
   User,
@@ -13,7 +14,6 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { createHmac } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import type { Repository } from 'typeorm';
 
@@ -121,7 +121,9 @@ describe('AuthService', () => {
     workspaceMemberRepository = testingModule.get<Repository<WorkspaceMember>>(
       getRepositoryToken(WorkspaceMember),
     );
-    authSessionRepository = testingModule.get<Repository<AuthSession>>(getRepositoryToken(AuthSession));
+    authSessionRepository = testingModule.get<Repository<AuthSession>>(
+      getRepositoryToken(AuthSession),
+    );
     jwtService = testingModule.get<JwtService>(JwtService);
   });
 
@@ -251,6 +253,23 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('access_token');
       expect(result).toHaveProperty('refresh_token');
       expect(result.user.email).toBe(loginDto.email);
+    });
+
+    it('includes onboarding completion field in auth payload', async () => {
+      const loginDto = {
+        email: 'test@example.com',
+        password: 'password123',
+      };
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue({
+        ...mockUser,
+        onboardingCompletedAt: null,
+        passwordHash: await bcrypt.hash('password123', 10),
+      } as User);
+
+      const result = await service.login(loginDto);
+
+      expect(result.user).toHaveProperty('onboardingCompletedAt', null);
     });
 
     it('should throw UnauthorizedException for invalid email', async () => {
@@ -410,7 +429,9 @@ describe('AuthService', () => {
   describe('refreshToken', () => {
     it('issues access token when refresh token belongs to active session', async () => {
       const refreshToken = 'refresh-token';
-      const refreshTokenHash = createHmac('sha256', 'session-salt').update(refreshToken).digest('hex');
+      const refreshTokenHash = createHmac('sha256', 'session-salt')
+        .update(refreshToken)
+        .digest('hex');
 
       jest.spyOn(jwtService, 'verify').mockReturnValue({
         sub: '1',

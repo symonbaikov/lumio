@@ -225,96 +225,58 @@ npm --prefix frontend run format
 ### Prerequisites
 
 - Node.js 18+ and npm
-- Docker and Docker Compose
+- Docker and Docker Compose (for local PostgreSQL/Redis)
 - Git
-- PostgreSQL 14+ (if running locally)
-- Redis 7+ (if running locally)
+- PostgreSQL 14+ (optional if you do not use Docker)
+- Redis 7+ (optional if you do not use Docker)
 
-### Initial Setup
+### Quick Start (Recommended)
+
+```bash
+git clone https://github.com/YOUR_USERNAME/financify.git
+cd financify
+make quick-dev
+```
+
+Open http://localhost:3000 and login with `demo@finflow.dev` / `demo123`.
+
+### Local Development (without backend/frontend containers)
 
 1. **Fork and clone the repository:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/parse-ledger.git
-   cd parse-ledger
+   git clone https://github.com/YOUR_USERNAME/financify.git
+   cd financify
    ```
 
-2. **Install dependencies:**
+2. **Start database services only:**
    ```bash
-   # Backend
-   cd backend
+   make db-start
+   ```
+
+3. **Install dependencies:**
+   ```bash
    npm install
-   
-   # Frontend
-   cd ../frontend
-   npm install
-   
-   # Root (optional)
-   cd ..
-   npm install
+   npm install --prefix backend
+   npm install --prefix frontend
    ```
 
-3. **Set up environment variables:**
+4. **Start development servers:**
    ```bash
-   # Copy example files
-   cp .env.example .env
-   cp backend/.env.example backend/.env
-   cp frontend/.env.local.example frontend/.env.local
-   
-   # Generate secure JWT secrets
-   openssl rand -base64 32  # Use for JWT_SECRET
-   openssl rand -base64 32  # Use for JWT_REFRESH_SECRET
-   ```
-
-4. **Start the database:**
-   ```bash
-   docker-compose up -d postgres redis
-   ```
-
-5. **Run migrations:**
-   ```bash
-   cd backend
-   npm run migration:run
-   ```
-
-6. **Create an admin user:**
-   ```bash
-   npm run create-admin -- admin@example.com admin123 "Admin User"
-   ```
-
-7. **Start development servers:**
-   
-   In one terminal:
-   ```bash
-   cd backend
-   npm run start:dev
-   ```
-   
-   In another terminal:
-   ```bash
-   cd frontend
    npm run dev
    ```
 
-8. **Access the application:**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:3001/api/v1
-   - API Docs (Swagger): http://localhost:3001/api/docs
+5. **Create demo user (optional but recommended):**
+   ```bash
+   make seed-demo
+   ```
 
-### Alternative: Full Docker Setup
+6. **Access the application:**
+    - Frontend: http://localhost:3000
+    - Backend API: http://localhost:3001/api/v1
+    - API Docs (Swagger): http://localhost:3001/api/docs
 
-```bash
-# Copy environment files
-cp .env.example .env
-cp backend/.env.example backend/.env
-
-# Edit .env files and set JWT secrets
-
-# Start all services
-docker-compose up -d --build
-
-# Create admin user
-docker exec -it finflow-backend npm run create-admin -- admin@example.com admin123 "Admin User"
-```
+No `.env` files are required for development mode. If needed, use `backend/.env.example` (minimal)
+or `backend/.env.all-options` (full reference) for local overrides.
 
 ### Hot Reload in Development
 

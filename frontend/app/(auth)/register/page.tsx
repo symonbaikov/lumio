@@ -90,8 +90,16 @@ function RegisterPageContent() {
       localStorage.setItem('access_token', access_token);
       localStorage.setItem('refresh_token', refresh_token);
       localStorage.setItem('user', JSON.stringify(user));
+      if (user.workspaceId) {
+        localStorage.setItem('currentWorkspaceId', user.workspaceId);
+      }
 
-      window.location.href = nextPath || '/';
+      if (inviteToken) {
+        window.location.href = nextPath || '/';
+        return;
+      }
+
+      window.location.href = '/onboarding';
     } catch (err: any) {
       setError(
         err.response?.data?.message || err.response?.data?.error?.message || t.registerFailed.value,

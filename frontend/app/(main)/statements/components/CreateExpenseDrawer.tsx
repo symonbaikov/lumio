@@ -39,6 +39,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 type Props = {
   open: boolean;
   initialMode: StatementExpenseMode;
+  defaultCurrency?: string | null;
   categories: StatementCategoryNode[];
   taxRates: TaxRateOption[];
   onClose: () => void;
@@ -55,9 +56,17 @@ type Props = {
   }) => Promise<void>;
 };
 
-const createDefaultManualDraft = (): ManualExpenseDraft => ({
+const resolveDefaultCurrency = (currency: string | null | undefined): string => {
+  const normalized = String(currency || '')
+    .trim()
+    .toUpperCase();
+
+  return normalized.length > 0 ? normalized : 'KZT';
+};
+
+const createDefaultManualDraft = (currency: string): ManualExpenseDraft => ({
   amount: '',
-  currency: 'KZT',
+  currency,
   description: '',
   merchant: '',
   categoryId: '',
@@ -71,12 +80,14 @@ type ManualStep = 'amount' | 'details';
 export default function CreateExpenseDrawer({
   open,
   initialMode,
+  defaultCurrency,
   categories,
   taxRates,
   onClose,
   onSubmitScan,
   onSubmitManual,
 }: Props) {
+  const resolvedDefaultCurrency = resolveDefaultCurrency(defaultCurrency);
   const [mode, setMode] = useState<StatementExpenseMode>('scan');
   const [manualStep, setManualStep] = useState<ManualStep>('amount');
   const [currencyPickerOpen, setCurrencyPickerOpen] = useState(false);
@@ -87,7 +98,9 @@ export default function CreateExpenseDrawer({
     ...DEFAULT_RECENT_CURRENCIES,
   ]);
   const [files, setFiles] = useState<File[]>([]);
-  const [manualDraft, setManualDraft] = useState<ManualExpenseDraft>(createDefaultManualDraft());
+  const [manualDraft, setManualDraft] = useState<ManualExpenseDraft>(() =>
+    createDefaultManualDraft(resolvedDefaultCurrency),
+  );
   const [manualDate, setManualDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -174,7 +187,8 @@ export default function CreateExpenseDrawer({
     setCategoryDrawerOpen(false);
     setTaxRateDrawerOpen(false);
     setCurrencySearch('');
-  }, [open, initialMode]);
+    setManualDraft(createDefaultManualDraft(resolvedDefaultCurrency));
+  }, [open, initialMode, resolvedDefaultCurrency]);
 
   useEffect(() => {
     if (!open || mode !== 'manual' || manualStep !== 'amount' || currencyPickerOpen) {
@@ -214,7 +228,7 @@ export default function CreateExpenseDrawer({
     setTaxRateDrawerOpen(false);
     setCurrencySearch('');
     setFiles([]);
-    setManualDraft(createDefaultManualDraft());
+    setManualDraft(createDefaultManualDraft(resolvedDefaultCurrency));
     setManualDate(new Date().toISOString().slice(0, 10));
     setError(null);
     setSubmitting(false);

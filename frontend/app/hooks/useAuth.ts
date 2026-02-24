@@ -17,6 +17,7 @@ interface User {
   timeZone?: string | null;
   lastLogin?: string | null;
   avatarUrl?: string | null;
+  onboardingCompletedAt?: string | null;
 }
 
 export function useAuth() {
@@ -31,7 +32,23 @@ export function useAuth() {
       apiClient
         .get('/auth/me')
         .then(response => {
-          setUser(response.data);
+          const nextUser = response.data as User;
+          setUser(nextUser);
+
+          const currentPath = window.location.pathname;
+          const isOnboardingRoute = currentPath.startsWith('/onboarding');
+          const isAuthRoute =
+            currentPath.startsWith('/login') || currentPath.startsWith('/register');
+          const isInviteRoute = currentPath.startsWith('/invite/');
+
+          if (
+            nextUser?.onboardingCompletedAt == null &&
+            !isOnboardingRoute &&
+            !isAuthRoute &&
+            !isInviteRoute
+          ) {
+            router.push('/onboarding');
+          }
         })
         .catch(() => {
           // Token invalid, clear storage

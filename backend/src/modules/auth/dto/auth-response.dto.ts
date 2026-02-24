@@ -8,6 +8,7 @@ export class AuthResponseDto {
     locale?: string;
     timeZone?: string | null;
     avatarUrl?: string | null;
+    onboardingCompletedAt?: string | null;
   };
   access_token: string;
   refresh_token: string;

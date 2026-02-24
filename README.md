@@ -85,145 +85,65 @@ parse-ledger/
 
 ## 🚀 Quick Start
 
-Get FinFlow running in under 2 minutes!
-
 ### Prerequisites
 
-- [Docker](https://www.docker.com/get-started) (version 20.10+)
-- [Docker Compose](https://docs.docker.com/compose/) (version 2.0+)
-- 4GB RAM minimum, 8GB recommended
+- [Docker](https://www.docker.com/get-started) and Docker Compose
+- [Node.js 18+](https://nodejs.org/) (only for local mode)
 
-### Option 1: Automated Setup (Recommended)
-
-The fastest way to get started:
+### Option 1: Docker (Recommended)
 
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR_ORG/parse-ledger.git
-cd parse-ledger
-
-# Run the quick start script
-bash scripts/quick-start.sh
+git clone https://github.com/symonbaikov/financify.git
+cd financify
+make quick-dev
 ```
 
-This script will:
-- ✅ Copy and configure environment files
-- ✅ Generate secure JWT secrets
-- ✅ Start all Docker containers
-- ✅ Wait for services to be ready
-- ✅ Create your first admin user
+Then open `http://localhost:3000` and login:
+- Email: `demo@finflow.dev`
+- Password: `demo123`
 
-**Access your instance:**
-- 🌐 Frontend: http://localhost:3000
-- 🔧 Backend API: http://localhost:3001/api/v1
-- 📚 API Docs: http://localhost:3001/api/docs
-
----
-
-### Option 2: Using Makefile
-
-For developers who prefer Make commands:
+### Option 2: Local Development
 
 ```bash
-# Setup environment and start services
-make setup
-make start
-
-# Create admin user
-make admin email=admin@example.com password=admin123 name="Admin User"
-
-# View all available commands
-make help
+git clone https://github.com/symonbaikov/financify.git
+cd financify
+make db-start
+npm install
+npm install --prefix backend
+npm install --prefix frontend
+npm run dev
+make seed-demo
 ```
 
----
+Then open `http://localhost:3000` and login with `demo@finflow.dev` / `demo123`.
 
-### Option 3: Manual Docker Setup
+No `.env` files are required for development. For production and integrations, see Configuration below.
 
-For more control over the setup process:
-
-```bash
-# 1. Copy environment files
-cp .env.example .env
-cp backend/.env.example backend/.env
-cp frontend/.env.local.example frontend/.env.local
-
-# 2. Generate secure JWT secrets
-openssl rand -base64 32  # Copy this for JWT_SECRET
-openssl rand -base64 32  # Copy this for JWT_REFRESH_SECRET
-
-# 3. Edit backend/.env and replace JWT secrets
-nano backend/.env
-
-# 4. Start all services
-docker-compose up -d --build
-
-# 5. Create admin user
-docker exec -it finflow-backend npm run create-admin -- admin@example.com admin123 "Admin User"
-```
-
-**URLs:**
-- Frontend: `http://localhost:3000`
-- Backend API: `http://localhost:3001/api/v1`
-- Swagger Docs: `http://localhost:3001/api/docs`
-
----
-
-### Option 4: Local Development (Without Docker)
-
-For active development with hot reload:
-
-```bash
-# 1. Start database services only
-docker-compose up -d postgres redis
-
-# 2. Setup environment files
-cp backend/.env.example backend/.env
-cp frontend/.env.local.example frontend/.env.local
-
-# 3. Configure backend/.env with local database
-# DATABASE_URL=postgresql://finflow:finflow@localhost:5432/finflow
-# REDIS_HOST=localhost
-
-# 4. Install dependencies
-cd backend && npm install
-cd ../frontend && npm install
-
-# 5. Run migrations
-cd backend && npm run migration:run
-
-# 6. Create admin user
-npm run create-admin -- admin@example.com admin123 "Admin User"
-
-# 7. Start backend (in one terminal)
-cd backend && npm run start:dev
-
-# 8. Start frontend (in another terminal)
-cd frontend && npm run dev
-```
-
----
 
 ## ⚙️ Configuration
 
-### Required Environment Variables
+### Development defaults
 
-**Backend** (`backend/.env`):
+No environment variables are required in development mode.
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@localhost:5432/finflow` |
-| `JWT_SECRET` | Secret for access tokens (32+ chars) | Generate with `openssl rand -base64 32` |
-| `JWT_REFRESH_SECRET` | Secret for refresh tokens (32+ chars) | Generate with `openssl rand -base64 32` |
-| `REDIS_HOST` | Redis host | `localhost` or `redis` (Docker) |
-| `REDIS_PORT` | Redis port | `6379` |
+| Setting | Default |
+|---------|---------|
+| `DATABASE_URL` | `postgresql://finflow:finflow@localhost:5432/finflow` |
+| `REDIS_URL` | `redis://localhost:6379` |
+| `PORT` | `3001` |
+| JWT secrets | Built-in development defaults (disabled in production) |
 
-**Frontend** (`frontend/.env.local`):
+To override any value locally, create `backend/.env` and/or `frontend/.env.local`.
+Minimal templates are available in `backend/.env.example` and `frontend/.env.local.example`.
+The full backend reference is in `backend/.env.all-options`.
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:3001/api/v1` |
-| `NEXT_PUBLIC_ENV` | Environment | `development` or `production` |
+### Production required variables
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | Secret for access token signing |
+| `JWT_REFRESH_SECRET` | Secret for refresh token signing |
 
 ### Optional Integrations
 
@@ -263,14 +183,14 @@ RESEND_FROM="FinFlow <noreply@your-domain.com>"
 [Get API key →](https://resend.com)
 </details>
 
-### Generating Secure Secrets
+### Generating production secrets
 
 ```bash
 # Generate JWT secrets
 openssl rand -base64 32
 ```
 
-Or use the automated setup script which generates secrets for you:
+Or use the helper script for local override files:
 ```bash
 bash scripts/generate-env.sh
 ```
@@ -278,6 +198,18 @@ bash scripts/generate-env.sh
 ---
 
 ## 👤 User Management
+
+### Demo User
+
+Create a local demo user with workspace defaults:
+
+```bash
+make seed-demo
+```
+
+Credentials:
+- Email: `demo@finflow.dev`
+- Password: `demo123`
 
 ### Create Admin User
 

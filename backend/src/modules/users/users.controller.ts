@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   BadRequestException,
   Body,
@@ -7,26 +9,29 @@ import {
   Param,
   Patch,
   Post,
-  Res,
-  UploadedFile,
   Put,
   Query,
-  UseInterceptors,
+  Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import * as path from 'path';
+import type { Response } from 'express';
 import { diskStorage } from 'multer';
-import * as fs from 'fs';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { TimezonesService } from '../../common/services/timezones.service';
+import { sanitizeAvatarFilename } from '../../common/utils/avatar-filename.util';
+import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import { type User, UserRole } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
 import { UpdateMyPreferencesDto } from './dto/update-my-preferences.dto';
 import type {
   AddPermissionDto,
@@ -36,10 +41,6 @@ import type {
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PermissionsService } from './services/permissions.service';
 import { UsersService } from './users.service';
-import { sanitizeAvatarFilename } from '../../common/utils/avatar-filename.util';
-import { resolveUploadsDir } from '../../common/utils/uploads.util';
-import { TimezonesService } from '../../common/services/timezones.service';
-import type { Response } from 'express';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -68,6 +69,13 @@ export class UsersController {
   @Get('timezones')
   async getTimeZones() {
     return { timeZones: this.timezonesService.listTimeZones() };
+  }
+
+  @Patch('me/onboarding')
+  async completeOnboarding(@CurrentUser() currentUser: User, @Body() dto: CompleteOnboardingDto) {
+    const updatedUser = await this.usersService.completeOnboarding(currentUser.id, dto);
+    const { passwordHash, ...safeUser } = updatedUser as any;
+    return { user: safeUser, message: 'Onboarding completed successfully' };
   }
 
   @Public()

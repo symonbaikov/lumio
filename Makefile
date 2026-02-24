@@ -1,4 +1,4 @@
-.PHONY: help setup start stop restart logs clean test build migrate admin
+.PHONY: help setup start stop restart logs clean test build migrate admin seed-demo quick-dev quick-start
 
 # Variables
 DOCKER_COMPOSE = docker-compose
@@ -29,6 +29,7 @@ install: ## Install dependencies (local development)
 
 start: ## Start all services in production mode
 	@echo "🐳 Starting FinFlow (production mode)..."
+	@touch .env
 	@$(DOCKER_COMPOSE) up -d --build
 	@echo "⏳ Waiting for services to be ready..."
 	@sleep 10
@@ -39,6 +40,7 @@ start: ## Start all services in production mode
 
 dev: ## Start all services in development mode (with hot reload)
 	@echo "🐳 Starting FinFlow (development mode)..."
+	@touch .env
 	@$(DOCKER_COMPOSE_DEV) up -d --build
 	@echo "⏳ Waiting for services to be ready..."
 	@sleep 10
@@ -46,6 +48,7 @@ dev: ## Start all services in development mode (with hot reload)
 	@echo "Frontend: http://localhost:3000"
 	@echo "Backend:  http://localhost:3001/api/v1"
 	@echo "Swagger:  http://localhost:3001/api/docs"
+	@echo "Run 'make seed-demo' to create demo@finflow.dev / demo123"
 
 stop: ## Stop all services
 	@echo "🛑 Stopping FinFlow..."
@@ -155,6 +158,15 @@ admin: ## Create admin user (usage: make admin email=admin@example.com password=
 	@echo "👤 Creating admin user..."
 	@$(DOCKER_EXEC_BACKEND) npm run create-admin -- $(email) $(password) "$(name)"
 	@echo "✅ Admin user created!"
+
+seed-demo: ## Create demo user (demo@finflow.dev / demo123)
+	@echo "👤 Creating demo user..."
+	@if docker inspect -f '{{.State.Running}}' finflow-backend >/dev/null 2>&1; then \
+		docker exec finflow-backend npm run seed:demo; \
+	else \
+		cd backend && npm run seed:demo; \
+	fi
+	@echo "✅ Demo user is ready!"
 
 ##@ Testing
 
@@ -283,14 +295,21 @@ storybook-download: ## Download Storybook from CI
 
 ##@ Quick Actions
 
-quick-start: setup start admin ## Complete setup and start (interactive)
-	@echo ""
+quick-dev: ## Zero-config startup: dev containers + demo user
+	@$(MAKE) dev
+	@echo "⏳ Waiting for backend readiness..."
+	@for i in $$(seq 1 30); do \
+		curl -sf http://localhost:3001/api/v1/health/ready >/dev/null 2>&1 && break; \
+		sleep 2; \
+	done
+	@$(MAKE) seed-demo
 	@echo "🎉 FinFlow is ready!"
-	@echo ""
-	@echo "📱 Access the application:"
 	@echo "   Frontend: http://localhost:3000"
 	@echo "   Backend:  http://localhost:3001/api/v1"
-	@echo "   Swagger:  http://localhost:3001/api/docs"
+	@echo "   Login:    demo@finflow.dev / demo123"
+
+quick-start: ## Legacy alias for quick-dev
+	@$(MAKE) quick-dev
 	@echo ""
 	@echo "📖 Next steps:"
 	@echo "   - View logs:        make logs"
