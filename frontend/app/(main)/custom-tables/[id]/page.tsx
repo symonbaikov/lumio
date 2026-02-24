@@ -26,6 +26,13 @@ import { useIntlayer, useLocale } from 'next-intlayer';
 import { CustomTableTanStack } from './CustomTableTanStack';
 import { RowDrawer } from './components/RowDrawer';
 import { handleFullscreenEscapeNavigation } from './utils/fullscreenEscapeNavigation';
+import {
+  type QuickTab,
+  buildQuickTabs,
+  findPaidColumnKey,
+  getActiveTabFilter,
+  normalizeActiveTabId,
+} from './utils/quickTabs';
 import type { CustomTableGridRow } from './utils/stylingUtils';
 
 type ColumnType = 'text' | 'number' | 'date' | 'boolean' | 'select' | 'multi_select';
@@ -85,50 +92,6 @@ type RowFilterOp =
   | 'search';
 
 type RowFilter = { col: string; op: RowFilterOp; value?: any };
-
-type QuickTab = {
-  id: string;
-  label: string;
-  filter?: RowFilter;
-  count?: number;
-};
-
-const normalizeBooleanValue = (value: unknown) => {
-  if (typeof value === 'boolean') return value;
-  const raw =
-    typeof value === 'string'
-      ? value.trim().toLowerCase()
-      : String(value ?? '')
-          .trim()
-          .toLowerCase();
-  if (['true', '1', 'yes', 'y', 't'].includes(raw)) return true;
-  if (['false', '0', 'no', 'n', 'f'].includes(raw)) return false;
-  return Boolean(value);
-};
-
-const rowMatchesFilter = (row: CustomTableRow, filter: RowFilter | null) => {
-  if (!filter) return true;
-  const value = row.data?.[filter.col];
-
-  switch (filter.op) {
-    case 'eq': {
-      if (typeof filter.value === 'boolean') {
-        if (value === null || value === undefined || value === '') return false;
-        return normalizeBooleanValue(value) === filter.value;
-      }
-      return String(value ?? '') === String(filter.value ?? '');
-    }
-    case 'in': {
-      if (!Array.isArray(filter.value)) return false;
-      if (Array.isArray(value)) {
-        return value.some(v => filter.value.includes(String(v)));
-      }
-      return filter.value.includes(String(value));
-    }
-    default:
-      return true;
-  }
-};
 
 type PasteFieldKey = 'date' | 'type' | 'amount' | 'currency' | 'comment' | 'paid';
 
@@ -738,6 +701,19 @@ const buildPastePreview = (
   };
 };
 
+const isAbortError = (error: unknown): boolean => {
+  const candidate = error as { name?: string; code?: string } | null;
+  return (
+    candidate?.name === 'CanceledError' ||
+    candidate?.name === 'AbortError' ||
+    candidate?.code === 'ERR_CANCELED'
+  );
+};
+
+const readRowsTotal = (response: any): number => {
+  return response?.data?.meta?.total ?? response?.data?.total ?? response?.data?.items?.length ?? 0;
+};
+
 export default function CustomTableDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -795,8 +771,6 @@ export default function CustomTableDetailPage() {
   const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[]>([]);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [activeTabId, setActiveTabId] = useState('all');
-  const [stickyQuickTab, setStickyQuickTab] = useState<QuickTab | null>(null);
-  const [activeTabFilter, setActiveTabFilter] = useState<RowFilter | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [bulkMarking, setBulkMarking] = useState<'paid' | 'unpaid' | null>(null);
   const columnsTabId = '__columns__';
@@ -849,6 +823,13 @@ export default function CustomTableDetailPage() {
   const MAX_COLUMN_WIDTH = 1200;
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const columnWidthTimersRef = useRef<Record<string, number>>({});
+  const rowsRef = useRef<CustomTableRow[]>([]);
+  const rowsRequestSeqRef = useRef(0);
+  const rowsAbortControllerRef = useRef<AbortController | null>(null);
+  const loadingRowsRef = useRef(false);
+  const combinedFiltersRef = useRef<string | undefined>(undefined);
+  const statsRequestSeqRef = useRef(0);
+  const statsAbortControllerRef = useRef<AbortController | null>(null);
 
   const [deleteColumnModalOpen, setDeleteColumnModalOpen] = useState(false);
   const [deleteColumnTarget, setDeleteColumnTarget] = useState<CustomTableColumn | null>(null);
@@ -929,13 +910,7 @@ export default function CustomTableDetailPage() {
     setHiddenColumnKeys(prev => prev.filter(k => keys.includes(k)));
   }, [orderedColumns]);
 
-  const paidColKey = useMemo(() => {
-    const re = /(paid|unpaid|оплач|оплата|неоплач)/i;
-    const col = orderedColumns.find(
-      c => c.type === 'boolean' && (re.test(c.title) || re.test(c.key)),
-    );
-    return col?.key || null;
-  }, [orderedColumns]);
+  const paidColKey = useMemo(() => findPaidColumnKey(orderedColumns), [orderedColumns]);
 
   const orderedVisibleColumns = useMemo(() => {
     const columnsByKey = new Map(orderedColumns.map(c => [c.key, c]));
@@ -987,202 +962,120 @@ export default function CustomTableDetailPage() {
 
   const stickyRightColumnIds = useMemo(() => ['__actions'], []);
 
+  useEffect(() => {
+    rowsRef.current = rows;
+  }, [rows]);
+
   const refreshStats = useCallback(async () => {
     if (!tableId || !user) return;
+    statsRequestSeqRef.current += 1;
+    const requestId = statsRequestSeqRef.current;
+    statsAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    statsAbortControllerRef.current = controller;
+
     try {
-      const totalResp = await apiClient.get(`/custom-tables/${tableId}/rows`, {
+      const totalRequest = apiClient.get(`/custom-tables/${tableId}/rows`, {
+        signal: controller.signal,
         params: { limit: 1 },
       });
-      // Handle both new backend structure (meta.total) and fallback
-      const total =
-        totalResp.data?.meta?.total ?? totalResp.data?.total ?? totalResp.data?.items?.length ?? 0;
 
-      let paidCount: number | null = null;
-      let unpaidCount: number | null = null;
-
-      if (paidColKey) {
-        const paidResp = await apiClient.get(`/custom-tables/${tableId}/rows`, {
-          params: {
-            limit: 1,
-            filters: JSON.stringify([{ col: paidColKey, op: 'eq', value: true }]),
-          },
+      if (!paidColKey) {
+        const totalResponse = await totalRequest;
+        if (controller.signal.aborted || requestId !== statsRequestSeqRef.current) return;
+        setTabCounts({
+          total: readRowsTotal(totalResponse),
+          paid: null,
+          unpaid: null,
         });
-        paidCount =
-          paidResp.data?.meta?.total ?? paidResp.data?.total ?? paidResp.data?.items?.length ?? 0;
-
-        const unpaidResp = await apiClient.get(`/custom-tables/${tableId}/rows`, {
-          params: {
-            limit: 1,
-            filters: JSON.stringify([{ col: paidColKey, op: 'eq', value: false }]),
-          },
-        });
-        unpaidCount =
-          unpaidResp.data?.meta?.total ??
-          unpaidResp.data?.total ??
-          unpaidResp.data?.items?.length ??
-          0;
+        return;
       }
 
-      setTabCounts(prev => ({
-        ...prev,
-        total,
-        paid: paidCount,
-        unpaid: unpaidCount,
-      }));
+      const paidRequest = apiClient.get(`/custom-tables/${tableId}/rows`, {
+        signal: controller.signal,
+        params: {
+          limit: 1,
+          filters: JSON.stringify([{ col: paidColKey, op: 'eq', value: true }]),
+        },
+      });
+      const unpaidRequest = apiClient.get(`/custom-tables/${tableId}/rows`, {
+        signal: controller.signal,
+        params: {
+          limit: 1,
+          filters: JSON.stringify([{ col: paidColKey, op: 'eq', value: false }]),
+        },
+      });
+
+      const [totalResponse, paidResponse, unpaidResponse] = await Promise.all([
+        totalRequest,
+        paidRequest,
+        unpaidRequest,
+      ]);
+      if (controller.signal.aborted || requestId !== statsRequestSeqRef.current) return;
+
+      setTabCounts({
+        total: readRowsTotal(totalResponse),
+        paid: readRowsTotal(paidResponse),
+        unpaid: readRowsTotal(unpaidResponse),
+      });
     } catch (error) {
+      if (isAbortError(error)) return;
       console.error('Failed to fetch table stats:', error);
+    } finally {
+      if (statsAbortControllerRef.current === controller) {
+        statsAbortControllerRef.current = null;
+      }
     }
-  }, [tableId, user, paidColKey]);
+  }, [paidColKey, tableId, user]);
 
   useEffect(() => {
     refreshStats();
   }, [refreshStats]);
 
+  useEffect(
+    () => () => {
+      rowsAbortControllerRef.current?.abort();
+      statsAbortControllerRef.current?.abort();
+    },
+    [],
+  );
+
   const quickTabs = useMemo<QuickTab[]>(() => {
-    const baseTabs: QuickTab[] = [{ id: 'all', label: (t as any).tabs.all.value }];
-
-    if (paidColKey && tabCounts.paid !== null && tabCounts.unpaid !== null) {
-      baseTabs.push(
-        {
-          id: `${paidColKey}:Yes`,
-          label: (t as any).tabs.paid.value,
-          filter: { col: paidColKey, op: 'eq', value: true },
-          count: tabCounts.paid,
-        },
-        {
-          id: `${paidColKey}:No`,
-          label: (t as any).tabs.unpaid.value,
-          filter: { col: paidColKey, op: 'eq', value: false },
-          count: tabCounts.unpaid,
-        },
-      );
-    }
-
-    if (!orderedColumns.length) return baseTabs;
-
-    const candidates = orderedColumns.filter(c => {
-      if (paidColKey && c.key === paidColKey) return false;
-      return c.type === 'select' || c.type === 'multi_select' || c.type === 'boolean';
+    return buildQuickTabs({
+      labels: {
+        all: (t as any).tabs.all.value,
+        paid: (t as any).tabs.paid.value,
+        unpaid: (t as any).tabs.unpaid.value,
+      },
+      paidColKey,
+      tabCounts: {
+        paid: tabCounts.paid,
+        unpaid: tabCounts.unpaid,
+      },
     });
-    if (!candidates.length) return baseTabs;
+  }, [paidColKey, t, tabCounts.paid, tabCounts.unpaid]);
 
-    let best:
-      | {
-          colKey: string;
-          colType: ColumnType;
-          topValues: Array<{ value: string; count: number; rawValue: any }>;
-        }
-      | undefined;
-    let bestScore = Number.NEGATIVE_INFINITY;
-
-    for (const col of candidates) {
-      const counts = new Map<string, { count: number; rawValue: any }>();
-
-      for (const row of rows) {
-        const raw = row.data?.[col.key];
-        if (raw === null || raw === undefined || raw === '') continue;
-
-        if (col.type === 'multi_select') {
-          const arr = Array.isArray(raw) ? raw : [raw];
-          for (const v of arr) {
-            const value = String(v ?? '').trim();
-            if (!value) continue;
-            const prev = counts.get(value);
-            counts.set(value, {
-              count: (prev?.count ?? 0) + 1,
-              rawValue: value,
-            });
-          }
-          continue;
-        }
-
-        if (col.type === 'boolean') {
-          const bool = normalizeBooleanValue(raw);
-          const value = bool ? 'Yes' : 'No';
-          const prev = counts.get(value);
-          counts.set(value, { count: (prev?.count ?? 0) + 1, rawValue: bool });
-          continue;
-        }
-
-        const value = String(raw).trim();
-        if (!value) continue;
-        const prev = counts.get(value);
-        counts.set(value, { count: (prev?.count ?? 0) + 1, rawValue: value });
-      }
-
-      const distinct = counts.size;
-      if (distinct < 2 || distinct > 20) continue;
-
-      const topValues = Array.from(counts.entries())
-        .map(([value, meta]) => ({
-          value,
-          count: meta.count,
-          rawValue: meta.rawValue,
-        }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 4);
-      if (!topValues.length) continue;
-
-      const weight = col.type === 'multi_select' ? 1.1 : col.type === 'select' ? 1.2 : 1.0;
-      const score = topValues[0].count * weight;
-
-      if (score > bestScore) {
-        bestScore = score;
-        best = { colKey: col.key, colType: col.type, topValues };
-      }
-    }
-
-    if (!best) return baseTabs;
-
-    const extraTabs: QuickTab[] = best.topValues.map(({ value, count, rawValue }) => {
-      const filter: RowFilter =
-        best.colType === 'multi_select'
-          ? { col: best.colKey, op: 'in', value: [String(rawValue)] }
-          : best.colType === 'boolean'
-            ? { col: best.colKey, op: 'eq', value: Boolean(rawValue) }
-            : { col: best.colKey, op: 'eq', value: String(rawValue) };
-
-      return { id: `${best.colKey}:${value}`, label: value, filter, count };
-    });
-
-    const tabs = [...baseTabs, ...extraTabs].slice(0, 5);
-    if (stickyQuickTab && activeTabId === stickyQuickTab.id) {
-      const exists = tabs.some(tab => tab.id === stickyQuickTab.id);
-      if (!exists) return [...tabs, stickyQuickTab].slice(0, 5);
-    }
-    return tabs;
-  }, [orderedColumns, rows, stickyQuickTab, activeTabId]);
+  const normalizedActiveTabId = useMemo(
+    () => normalizeActiveTabId(activeTabId, quickTabs, columnsTabId),
+    [activeTabId, quickTabs, columnsTabId],
+  );
 
   useEffect(() => {
-    const isSticky = stickyQuickTab?.id === activeTabId;
-    const nextTab = quickTabs.find(t => t.id === activeTabId) || (isSticky ? stickyQuickTab : null);
-    if (activeTabId === columnsTabId) {
-      setActiveTabFilter(null);
-      return;
+    if (normalizedActiveTabId !== activeTabId) {
+      setActiveTabId(normalizedActiveTabId);
     }
-    if (!nextTab && !isSticky) {
-      setActiveTabId('all');
-      setActiveTabFilter(null);
-      return;
-    }
-    if (activeTabId === 'all') {
-      setActiveTabFilter(null);
-      if (stickyQuickTab) setStickyQuickTab(null);
-      return;
-    }
-    if (nextTab?.filter) {
-      setActiveTabFilter(nextTab.filter);
-    }
-  }, [quickTabs, activeTabId, stickyQuickTab]);
+  }, [activeTabId, normalizedActiveTabId]);
+
+  const activeTabFilter = useMemo(
+    () => getActiveTabFilter(normalizedActiveTabId, quickTabs, columnsTabId),
+    [normalizedActiveTabId, quickTabs, columnsTabId],
+  );
 
   useEffect(() => {
     setSelectedRowIds([]);
-  }, [activeTabId]);
+  }, [normalizedActiveTabId]);
 
-  const displayRows = useMemo(() => {
-    if (!activeTabFilter) return rows;
-    return rows.filter(row => rowMatchesFilter(row, activeTabFilter));
-  }, [rows, activeTabFilter]);
+  const displayRows = useMemo(() => rows, [rows]);
 
   useEffect(() => {
     if (!selectedRowIds.length) return;
@@ -1354,41 +1247,71 @@ export default function CustomTableDetailPage() {
     }
   };
 
-  const loadRows = async (opts?: {
-    reset?: boolean;
-    filtersParam?: string;
-  }) => {
-    if (!tableId) return;
-    if (loadingRows) return;
-    setLoadingRows(true);
-    try {
-      const cursor = opts?.reset ? undefined : rows[rows.length - 1]?.rowNumber;
-      const filters = opts?.filtersParam !== undefined ? opts.filtersParam : combinedFiltersParam;
-      const response = await apiClient.get(`/custom-tables/${tableId}/rows`, {
-        params: { cursor, limit: 50, filters },
-      });
-      const items = response.data?.items || response.data?.data?.items || [];
-      const next = Array.isArray(items) ? items : [];
-      setRows(prev => {
-        const merged = opts?.reset ? next : [...prev, ...next];
-        const seen = new Set<string>();
-        const deduped: typeof merged = [];
-        for (const row of merged) {
-          const id = (row as any)?.id || String((row as any)?.rowNumber);
-          if (!id || seen.has(id)) continue;
-          seen.add(id);
-          deduped.push(row);
+  const loadRows = useCallback(
+    async (opts?: {
+      reset?: boolean;
+      filtersParam?: string;
+    }) => {
+      if (!tableId) return;
+      const shouldReset = Boolean(opts?.reset);
+      if (!shouldReset && loadingRowsRef.current) return;
+
+      rowsRequestSeqRef.current += 1;
+      const requestId = rowsRequestSeqRef.current;
+
+      if (shouldReset) {
+        rowsAbortControllerRef.current?.abort();
+      }
+
+      const controller = new AbortController();
+      rowsAbortControllerRef.current = controller;
+      loadingRowsRef.current = true;
+      setLoadingRows(true);
+
+      try {
+        const cursor = shouldReset
+          ? undefined
+          : rowsRef.current[rowsRef.current.length - 1]?.rowNumber;
+        const filters = opts?.filtersParam ?? combinedFiltersRef.current;
+
+        const response = await apiClient.get(`/custom-tables/${tableId}/rows`, {
+          signal: controller.signal,
+          params: { cursor, limit: 50, filters },
+        });
+
+        if (controller.signal.aborted || requestId !== rowsRequestSeqRef.current) return;
+
+        const items = response.data?.items || response.data?.data?.items || [];
+        const next = Array.isArray(items) ? items : [];
+        setRows(prev => {
+          const merged = shouldReset ? next : [...prev, ...next];
+          const seen = new Set<string>();
+          const deduped: typeof merged = [];
+          for (const row of merged) {
+            const id = (row as any)?.id || String((row as any)?.rowNumber);
+            if (!id || seen.has(id)) continue;
+            seen.add(id);
+            deduped.push(row);
+          }
+          return deduped;
+        });
+        setHasMore(next.length >= 50);
+      } catch (error) {
+        if (isAbortError(error)) return;
+        console.error('Failed to load rows:', error);
+        toast.error(t.grid.loadRowsFailed.value);
+      } finally {
+        if (requestId === rowsRequestSeqRef.current) {
+          loadingRowsRef.current = false;
+          setLoadingRows(false);
         }
-        return deduped;
-      });
-      setHasMore(next.length >= 50);
-    } catch (error) {
-      console.error('Failed to load rows:', error);
-      toast.error(t.grid.loadRowsFailed.value);
-    } finally {
-      setLoadingRows(false);
-    }
-  };
+        if (rowsAbortControllerRef.current === controller) {
+          rowsAbortControllerRef.current = null;
+        }
+      }
+    },
+    [tableId, t.grid.loadRowsFailed.value],
+  );
 
   const onGridFiltersParamChange = (next: string | undefined) => {
     if (next === gridFiltersParam) return;
@@ -1509,6 +1432,10 @@ export default function CustomTableDetailPage() {
     return merged.length ? JSON.stringify(merged) : undefined;
   }, [gridFiltersParam, requestFilters, dateFilters, activeTabFilter, searchFilter]);
 
+  useEffect(() => {
+    combinedFiltersRef.current = combinedFiltersParam;
+  }, [combinedFiltersParam]);
+
   function parseFiltersParam(raw: string | undefined): RowFilter[] {
     if (!raw) return [];
     try {
@@ -1522,11 +1449,13 @@ export default function CustomTableDetailPage() {
   useEffect(() => {
     if (!user || !tableId) return;
     setHasMore(true);
+    setRows([]);
+    setSelectedRowIds([]);
     const timer = window.setTimeout(() => {
       loadRows({ reset: true, filtersParam: combinedFiltersParam });
-    }, 400);
+    }, 250);
     return () => window.clearTimeout(timer);
-  }, [combinedFiltersParam, user, tableId]);
+  }, [combinedFiltersParam, loadRows, tableId, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -1535,7 +1464,7 @@ export default function CustomTableDetailPage() {
     } else {
       document.body.classList.remove('ff-table-fullscreen');
     }
-    if (isFullscreen && activeTabId === columnsTabId) {
+    if (isFullscreen && normalizedActiveTabId === columnsTabId) {
       document.body.classList.add('ff-table-columns-scroll');
     } else {
       document.body.classList.remove('ff-table-columns-scroll');
@@ -1544,7 +1473,7 @@ export default function CustomTableDetailPage() {
       document.body.classList.remove('ff-table-fullscreen');
       document.body.classList.remove('ff-table-columns-scroll');
     };
-  }, [isFullscreen, user, activeTabId, columnsTabId]);
+  }, [isFullscreen, user, normalizedActiveTabId, columnsTabId]);
 
   useEffect(() => {
     setMounted(true);
@@ -1636,7 +1565,6 @@ export default function CustomTableDetailPage() {
     if (!authLoading && user && tableId) {
       loadCategories();
       loadTable();
-      loadRows({ reset: true });
     }
   }, [authLoading, user, tableId]);
 
@@ -2415,7 +2343,7 @@ export default function CustomTableDetailPage() {
         className={
           isFullscreen
             ? `fixed top-0 left-0 right-0 z-50 bg-white px-4 sm:px-6 pt-5 border-x border-t border-gray-200 rounded-t-xl ${
-                activeTabId === columnsTabId ? 'bottom-0 overflow-y-auto pb-6' : 'pb-0'
+                normalizedActiveTabId === columnsTabId ? 'bottom-0 overflow-y-auto pb-6' : 'pb-0'
               } ${isPrintMode ? 'custom-table-print-controls' : ''}`
             : `mb-0 flex flex-col gap-0 ${isPrintMode ? 'custom-table-print-controls' : ''}`
         }
@@ -2433,14 +2361,13 @@ export default function CustomTableDetailPage() {
 
           <div className="flex min-w-0 flex-1 items-center justify-end gap-5 overflow-x-auto">
             {quickTabs.map(tab => {
-              const isActive = activeTabId === tab.id;
+              const isActive = normalizedActiveTabId === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => {
+                    if (normalizedActiveTabId === tab.id) return;
                     setActiveTabId(tab.id);
-                    setActiveTabFilter(tab.filter ?? null);
-                    setStickyQuickTab(tab.id === 'all' ? null : tab);
                   }}
                   className={`relative shrink-0 whitespace-nowrap pb-3 text-sm font-medium transition-all ${isActive ? 'text-primary' : 'text-gray-500 hover:text-gray-900'}`}
                 >
@@ -2461,23 +2388,24 @@ export default function CustomTableDetailPage() {
             <button
               type="button"
               onClick={() => {
+                if (normalizedActiveTabId === columnsTabId) return;
                 setActiveTabId(columnsTabId);
-                setActiveTabFilter(null);
-                setStickyQuickTab(null);
               }}
               className={`relative shrink-0 whitespace-nowrap pb-3 text-sm font-medium transition-all ${
-                activeTabId === columnsTabId ? 'text-primary' : 'text-gray-500 hover:text-gray-900'
+                normalizedActiveTabId === columnsTabId
+                  ? 'text-primary'
+                  : 'text-gray-500 hover:text-gray-900'
               }`}
             >
               {(t as any).actions.columns.value}
-              {activeTabId === columnsTabId && (
+              {normalizedActiveTabId === columnsTabId && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
               )}
             </button>
           </div>
         </div>
 
-        {activeTabId !== columnsTabId && (
+        {normalizedActiveTabId !== columnsTabId && (
           <div className="mt-3 w-full px-2 pb-3">
             <div className="flex items-center justify-between gap-2 overflow-x-auto sm:overflow-visible">
               <div className="flex min-w-0 flex-nowrap items-center gap-1.5 sm:gap-2">
@@ -2542,7 +2470,7 @@ export default function CustomTableDetailPage() {
           </div>
         )}
 
-        {activeTabId === columnsTabId && (
+        {normalizedActiveTabId === columnsTabId && (
           <div className="w-full px-2 pb-4 pt-4 sm:px-4">
             <div className="mx-auto w-full max-w-3xl space-y-4 sm:space-y-5">
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
@@ -2675,7 +2603,7 @@ export default function CustomTableDetailPage() {
               : 'rounded-xl border border-gray-200 bg-white'
           }
         >
-          {activeTabId !== columnsTabId && (
+          {normalizedActiveTabId !== columnsTabId && (
             <CustomTableTanStack
               tableId={tableId as string}
               columns={displayColumns}
@@ -2687,7 +2615,7 @@ export default function CustomTableDetailPage() {
               hasMore={hasMore}
               stickyLeftColumnIds={stickyLeftColumnIds}
               stickyRightColumnIds={stickyRightColumnIds}
-              showAddRow={activeTabId === 'all'}
+              showAddRow={normalizedActiveTabId === 'all'}
               onLoadMore={loadRows}
               onFiltersParamChange={onGridFiltersParamChange}
               onUpdateCell={updateCellFromGrid}
@@ -2712,12 +2640,12 @@ export default function CustomTableDetailPage() {
         </div>
       </div>
 
-      {activeTabId !== columnsTabId && (
+      {normalizedActiveTabId !== columnsTabId && (
         <div
           className={`mt-4 flex items-center justify-center ${isPrintMode ? 'custom-table-print-controls' : ''}`}
         >
           <button
-            onClick={() => loadRows()}
+            onClick={() => loadRows({ filtersParam: combinedFiltersParam })}
             disabled={!hasMore || loadingRows}
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
