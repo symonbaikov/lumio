@@ -17,6 +17,9 @@ interface PDFThumbnailProps {
 }
 
 const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? '/api/v1').replace(/\/$/, '');
+const DEFAULT_THUMBNAIL_WIDTH = 200;
+const MIN_THUMBNAIL_WIDTH = 80;
+const MAX_THUMBNAIL_WIDTH = 1600;
 
 const thumbnailCache = new Map<string, string>();
 
@@ -33,10 +36,14 @@ export function PDFThumbnail({
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [thumbnailDataUrl, setThumbnailDataUrl] = useState<string | null>(null);
+  const requestedWidth = Math.max(
+    MIN_THUMBNAIL_WIDTH,
+    Math.min(MAX_THUMBNAIL_WIDTH, Math.round(width ?? DEFAULT_THUMBNAIL_WIDTH)),
+  );
 
   useEffect(() => {
     let isMounted = true;
-    const cacheKey = `${source}:${fileId}`;
+    const cacheKey = `${source}:${fileId}:${requestedWidth}`;
 
     const fetchThumbnail = async () => {
       // Check in-memory cache first
@@ -64,8 +71,8 @@ export function PDFThumbnail({
 
         const thumbnailUrl =
           source === 'gmail'
-            ? `${apiBaseUrl}/integrations/gmail/receipts/${fileId}/thumbnail`
-            : `${apiBaseUrl}/statements/${fileId}/thumbnail`;
+            ? `${apiBaseUrl}/integrations/gmail/receipts/${fileId}/thumbnail?width=${requestedWidth}`
+            : `${apiBaseUrl}/statements/${fileId}/thumbnail?width=${requestedWidth}`;
 
         const response = await fetch(thumbnailUrl, {
           method: 'GET',
@@ -108,7 +115,7 @@ export function PDFThumbnail({
     return () => {
       isMounted = false;
     };
-  }, [fileId, source]);
+  }, [fileId, source, requestedWidth]);
 
   // If error occurred, show default PDF icon
   if (error) {

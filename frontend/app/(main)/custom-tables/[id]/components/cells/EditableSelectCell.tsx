@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/app/components/ui/checkbox';
 import type { Column, Table } from '@tanstack/react-table';
 import { ChevronDown } from 'lucide-react';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
@@ -124,10 +125,9 @@ export function EditableSelectCell({
                 >
                   <div className="flex items-center gap-2">
                     {multiple && (
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={isSelected}
-                        onChange={() => {}}
+                        onCheckedChange={() => {}}
                         className="h-5 w-5 rounded border-gray-300 text-primary pointer-events-none"
                       />
                     )}

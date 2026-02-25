@@ -1,12 +1,12 @@
 'use client';
 
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import { Cancel, Edit, Save } from '@mui/icons-material';
 import {
   Alert,
   Box,
   Button,
-  Checkbox,
   Chip,
   CircularProgress,
   Container,

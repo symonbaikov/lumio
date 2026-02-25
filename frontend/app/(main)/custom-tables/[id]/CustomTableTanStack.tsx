@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { Popover } from '@mui/material';
 import {
@@ -146,16 +147,11 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
         id: '__select',
         header: ({ table }) => (
           <div className="flex items-center justify-center">
-            <input
-              type="checkbox"
+            <Checkbox
               aria-label="Select all rows"
               className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary/30"
               checked={table.getIsAllRowsSelected()}
-              ref={input => {
-                if (input) {
-                  input.indeterminate = table.getIsSomeRowsSelected();
-                }
-              }}
+              indeterminate={table.getIsSomeRowsSelected()}
               onChange={table.getToggleAllRowsSelectedHandler()}
             />
           </div>
@@ -167,8 +163,7 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
         enableSorting: false,
         cell: ({ row }) => (
           <div className="flex items-center justify-center">
-            <input
-              type="checkbox"
+            <Checkbox
               aria-label={`Select row ${row.original.rowNumber}`}
               className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary/30"
               checked={row.getIsSelected()}
@@ -380,7 +375,6 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
   const allRowsSelectedMobile =
     props.rows.length > 0 && props.rows.every(row => selectedRowsSet.has(row.id));
   const someRowsSelectedMobile = props.rows.some(row => selectedRowsSet.has(row.id));
-  const mobileSelectAllRef = useRef<HTMLInputElement | null>(null);
 
   const formatMobileCellValue = useCallback(
     (column: CustomTableColumn, row: CustomTableGridRow) => {
@@ -552,11 +546,6 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
     };
   }, [resizingColumnId, props.onPersistColumnWidth, table]);
 
-  useEffect(() => {
-    if (!mobileSelectAllRef.current) return;
-    mobileSelectAllRef.current.indeterminate = someRowsSelectedMobile && !allRowsSelectedMobile;
-  }, [someRowsSelectedMobile, allRowsSelectedMobile]);
-
   if (isMobile) {
     const viewLabel = (t as any).actions.view?.value || 'View';
     const editLabel = (t as any).actions.edit?.value || 'Edit';
@@ -573,19 +562,18 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
           }}
         >
           <div className="sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
-            <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
-              <input
-                ref={mobileSelectAllRef}
-                type="checkbox"
+            <div className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+              <Checkbox
                 checked={allRowsSelectedMobile}
-                onChange={event => handleMobileSelectAll(event.target.checked)}
+                indeterminate={someRowsSelectedMobile && !allRowsSelectedMobile}
+                onCheckedChange={handleMobileSelectAll}
                 className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary/30"
                 aria-label="Select all rows"
               />
               <span>
                 {props.selectedRowIds.length}/{props.rows.length}
               </span>
-            </label>
+            </div>
 
             {props.onCreateRow ? (
               <button
@@ -612,16 +600,15 @@ export function CustomTableTanStack(props: CustomTableTanStackProps) {
                     style={rowStyle}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
-                        <input
-                          type="checkbox"
+                      <div className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                        <Checkbox
                           checked={selectedRowsSet.has(row.id)}
-                          onChange={event => handleMobileSelectRow(row.id, event.target.checked)}
+                          onCheckedChange={checked => handleMobileSelectRow(row.id, checked)}
                           className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary/30"
                           aria-label={`Select row ${row.rowNumber}`}
                         />
                         <span>#{row.rowNumber}</span>
-                      </label>
+                      </div>
 
                       <div className="flex items-center gap-1">
                         {props.onViewRow ? (

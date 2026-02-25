@@ -20,15 +20,10 @@ export default function TrashSidePanel({ trashCount }: Props) {
   const sidePanelConfig = useMemo<SidePanelPageConfig>(
     () => ({
       pageId: 'statements-trash',
-      header: {
-        title: resolveLabel(t.title, 'Statements'),
-        subtitle: trashTitle,
-      },
       sections: [
         {
           id: 'trash',
           type: 'navigation',
-          title: trashTitle,
           items: [
             {
               id: 'trash',

@@ -1,7 +1,7 @@
 'use client';
 
-import StatementsSidePanel from '@/app/(main)/statements/components/StatementsSidePanel';
 import SpendOverTimeView from '@/app/(main)/statements/components/SpendOverTimeView';
+import StatementsSidePanel from '@/app/(main)/statements/components/StatementsSidePanel';
 
 export default function StatementsSpendOverTimePage() {
   return (

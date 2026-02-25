@@ -1,12 +1,15 @@
 'use client';
 
-import ConfirmModal from '@/app/components/ConfirmModal';
-import LoadingAnimation from '@/app/components/LoadingAnimation';
-import { useAuth } from '@/app/hooks/useAuth';
-import apiClient from '@/app/lib/api';
 import { FilterActions } from '@/app/(main)/statements/components/filters/FilterActions';
 import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
 import { FilterOptionRow } from '@/app/(main)/statements/components/filters/FilterOptionRow';
+import ConfirmModal from '@/app/components/ConfirmModal';
+import LoadingAnimation from '@/app/components/LoadingAnimation';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
+import { AppPagination } from '@/app/components/ui/pagination';
+import { useAuth } from '@/app/hooks/useAuth';
+import apiClient from '@/app/lib/api';
 import {
   CUSTOM_TABLES_OPEN_ACTION_EVENT,
   CUSTOM_TABLES_VIEW_EVENT,
@@ -35,7 +38,6 @@ import {
 } from '@mui/material';
 import {
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   Search,
   SlidersHorizontal,
@@ -182,11 +184,9 @@ export default function CustomTablesPage() {
     return filteredItems.slice(start, end);
   }, [filteredItems, page]);
 
-
   const totalPages = Math.ceil(filteredItems.length / ROWS_PER_PAGE);
   const rangeStart = filteredItems.length === 0 ? 0 : (page - 1) * ROWS_PER_PAGE + 1;
   const rangeEnd = Math.min(page * ROWS_PER_PAGE, filteredItems.length);
-
 
   const loadCategories = useCallback(async () => {
     try {
@@ -437,12 +437,8 @@ export default function CustomTablesPage() {
   const createLabel = resolveLabel(actionsAny.create, 'Create');
   const openMenuLabel = resolveLabel(sidePanelAny.openMenu, 'Open table actions');
 
-  const filterChipClassName =
-    'inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[13px] font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary';
   const filterLinkClassName =
     'inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-primary';
-  const filterChipActiveClassName =
-    'inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[13px] font-medium text-primary';
   const formatPaginationLabel = (template: string, values: Record<string, string | number>) =>
     Object.entries(values).reduce(
       (result, [key, value]) => result.replace(`{${key}}`, String(value)),
@@ -589,18 +585,13 @@ export default function CustomTablesPage() {
               open={sourceDropdownOpen}
               onOpenChange={setSourceDropdownOpen}
               trigger={
-                <button
-                  type="button"
-                  className={
-                    filterSource !== 'all' ? filterChipActiveClassName : filterChipClassName
-                  }
-                >
+                <FilterChipButton active={filterSource !== 'all'}>
                   {filterSource !== 'all'
                     ? sourceOptions.find(option => option.value === filterSource)?.label ||
                       filterLabels.all
                     : filterLabels.all}
                   <ChevronDown className="h-3.5 w-3.5" />
-                </button>
+                </FilterChipButton>
               }
             >
               <div className="max-h-[320px] space-y-1 overflow-y-auto pr-1">
@@ -626,17 +617,10 @@ export default function CustomTablesPage() {
               open={sortDropdownOpen}
               onOpenChange={setSortDropdownOpen}
               trigger={
-                <button
-                  type="button"
-                  className={
-                    sortOrder !== 'updated_desc' ? filterChipActiveClassName : filterChipClassName
-                  }
-                >
-                  {sortOrder === 'updated_desc'
-                    ? filterLabels.sortUpdated
-                    : filterLabels.sortName}
+                <FilterChipButton active={sortOrder !== 'updated_desc'}>
+                  {sortOrder === 'updated_desc' ? filterLabels.sortUpdated : filterLabels.sortName}
                   <ChevronDown className="h-3.5 w-3.5" />
-                </button>
+                </FilterChipButton>
               }
             >
               <div className="max-h-[320px] space-y-1 overflow-y-auto pr-1">
@@ -711,10 +695,9 @@ export default function CustomTablesPage() {
                       }
                     }}
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       aria-label={table.name}
-                      onClick={event => event.stopPropagation()}
+                      onClick={(event: { stopPropagation: () => void }) => event.stopPropagation()}
                       className="h-4 w-4 rounded border-border text-primary focus:ring-primary shrink-0"
                     />
                     <button
@@ -793,36 +776,13 @@ export default function CustomTablesPage() {
                       })}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                    disabled={page <= 1}
-                    className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm border transition-all ${
-                      page <= 1
-                        ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                        : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
-                    }`}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    {paginationLabels.previous}
-                  </button>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-600 min-w-[120px] text-center">
                     {formatPaginationLabel(paginationLabels.pageOf, {
                       page,
                       count: totalPages || 1,
                     })}
                   </span>
-                  <button
-                    onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={page >= totalPages}
-                    className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm border transition-all ${
-                      page >= totalPages
-                        ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                        : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
-                    }`}
-                  >
-                    {paginationLabels.next}
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+                  <AppPagination page={page} total={totalPages || 1} onChange={setPage} />
                 </div>
               </div>
             </>

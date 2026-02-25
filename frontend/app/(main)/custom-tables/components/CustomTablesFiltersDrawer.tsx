@@ -1,16 +1,13 @@
 'use client';
 
-import { Button } from '@/app/components/ui/button';
-import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import { cn } from '@/app/lib/utils';
-import type {
-  CustomTableSortOrder,
-  CustomTableSourceFilter,
-} from '@/app/lib/custom-table-actions';
-import { ChevronLeft } from 'lucide-react';
 import { FilterOptionRow } from '@/app/(main)/statements/components/filters/FilterOptionRow';
 import { FilterRow } from '@/app/(main)/statements/components/filters/FilterRow';
 import { FilterSection } from '@/app/(main)/statements/components/filters/FilterSection';
+import { Button } from '@/app/components/ui/button';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import type { CustomTableSortOrder, CustomTableSourceFilter } from '@/app/lib/custom-table-actions';
+import { cn } from '@/app/lib/utils';
+import { ChevronLeft } from 'lucide-react';
 
 type FilterOption<T extends string> = {
   value: T;
@@ -65,11 +62,7 @@ export function CustomTablesFiltersDrawer({
   activeCount,
 }: CustomTablesFiltersDrawerProps) {
   const isRoot = screen === 'root';
-  const screenTitle = isRoot
-    ? labels.title
-    : screen === 'source'
-      ? labels.source
-      : labels.sort;
+  const screenTitle = isRoot ? labels.title : screen === 'source' ? labels.source : labels.sort;
 
   const resolveOptionLabel = <T extends string>(
     options: FilterOption<T>[],

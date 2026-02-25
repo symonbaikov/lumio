@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { cn } from '@/app/lib/utils';
@@ -347,7 +348,10 @@ export default function WorkspaceCategoriesView() {
         <div className="rounded-3xl border border-gray-100 bg-white p-2 shadow-sm">
           <div className="flex items-center justify-between px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
             <div className="flex items-center gap-3">
-              <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
+              <Checkbox
+                aria-label="Select all categories"
+                className="h-4 w-4 rounded border-gray-300"
+              />
               <span>{(t as any).columns?.name?.value || 'Название'}</span>
             </div>
             <span>{(t as any).enabled?.value || 'Enabled'}</span>
@@ -386,7 +390,10 @@ export default function WorkspaceCategoriesView() {
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
+                    <Checkbox
+                      aria-label={category.name}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
                     <div className="text-lg font-semibold text-slate-900">{category.name}</div>
                   </div>
 

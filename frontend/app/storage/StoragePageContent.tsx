@@ -18,8 +18,6 @@ import { Popover } from '@mui/material';
 import {
   Bookmark,
   Check,
-  ChevronLeft,
-  ChevronRight,
   Download,
   Eye,
   FileText,
@@ -51,6 +49,8 @@ import { DocumentTypeIcon } from '../components/DocumentTypeIcon';
 import { DropboxStorageWidget } from '../components/DropboxStorageWidget';
 import { GoogleDriveStorageWidget } from '../components/GoogleDriveStorageWidget';
 import { PDFPreviewModal } from '../components/PDFPreviewModal';
+import { Checkbox } from '../components/ui/checkbox';
+import { AppPagination } from '../components/ui/pagination';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import api from '../lib/api';
 
@@ -337,10 +337,9 @@ const DraggableFileRow = React.memo(
       >
         {isTrashView && (
           <td className="px-6 py-5">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={selectedTrashIds.includes(file.id)}
-              onChange={() => toggleTrashSelection(file.id)}
+              onCheckedChange={() => toggleTrashSelection(file.id)}
               className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
               aria-label={t.trash.selectRow.value}
             />
@@ -742,8 +741,6 @@ export function StoragePageContent({
   const [selectedStorageProvider, setSelectedStorageProvider] = useState<'google' | 'dropbox'>(
     'google',
   );
-
-  const selectAllTrashRef = useRef<HTMLInputElement | null>(null);
 
   const folderMoveFeedbackTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1807,13 +1804,6 @@ export function StoragePageContent({
     return folders.find(folder => folder.id === activeFolderId)?.name ?? t.folders.all;
   }, [activeFolderId, folders, t]);
 
-  useEffect(() => {
-    if (!selectAllTrashRef.current) return;
-    selectAllTrashRef.current.indeterminate =
-      selectedTrashIdsInView.length > 0 &&
-      selectedTrashIdsInView.length < selectableTrashIds.length;
-  }, [selectedTrashIdsInView.length, selectableTrashIds.length]);
-
   const toggleTrashSelection = (fileId: string) => {
     setSelectedTrashIds(prev =>
       prev.includes(fileId) ? prev.filter(id => id !== fileId) : [...prev, fileId],
@@ -2185,11 +2175,13 @@ export function StoragePageContent({
                     <tr>
                       {isTrashView && (
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider w-12">
-                          <input
-                            ref={selectAllTrashRef}
-                            type="checkbox"
+                          <Checkbox
                             checked={allTrashSelected}
-                            onChange={toggleSelectAllTrash}
+                            indeterminate={
+                              selectedTrashIdsInView.length > 0 &&
+                              selectedTrashIdsInView.length < selectableTrashIds.length
+                            }
+                            onCheckedChange={toggleSelectAllTrash}
                             className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                             aria-label={t.trash.selectAll.value}
                           />
@@ -2276,34 +2268,13 @@ export function StoragePageContent({
                     })}
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage <= 1}
-                  className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm border transition-all ${
-                    currentPage <= 1
-                      ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                      : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <ChevronLeft className="h-4 w-4" /> {paginationLabels.previous}
-                </button>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 min-w-[120px] text-center">
                   {formatPaginationLabel(paginationLabels.pageOf, {
                     page: currentPage,
                     count: totalPagesCount,
                   })}
                 </span>
-                <button
-                  onClick={() => setPage(prev => Math.min(totalPagesCount, prev + 1))}
-                  disabled={currentPage >= totalPagesCount}
-                  className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm border transition-all ${
-                    currentPage >= totalPagesCount
-                      ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                      : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {paginationLabels.next} <ChevronRight className="h-4 w-4" />
-                </button>
+                <AppPagination page={currentPage} total={totalPagesCount} onChange={setPage} />
               </div>
             </div>
           </div>
@@ -3163,15 +3134,14 @@ export function StoragePageContent({
                   {folderToDelete.name}
                   {t.folders.deleteMessageSuffix.value}
                 </p>
-                <label className="flex items-center gap-2 text-sm text-gray-600">
-                  <input
-                    type="checkbox"
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Checkbox
                     checked={deleteFolderWithContents}
-                    onChange={event => setDeleteFolderWithContents(event.target.checked)}
+                    onCheckedChange={setDeleteFolderWithContents}
                     className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
                   />
                   {t.folders.deleteWithContents}
-                </label>
+                </div>
               </div>
             ) : (
               <p className="text-gray-600 leading-relaxed">{t.folders.deleteMessageFallback}</p>

@@ -5,6 +5,9 @@ import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { createBasicSidePanelConfig, useSidePanelConfig } from '@/app/components/side-panel';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
+import { AppPagination } from '@/app/components/ui/pagination';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import apiClient from '@/app/lib/api';
@@ -14,7 +17,6 @@ import {
   AlertCircle,
   ArrowDown,
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   Columns2,
   File,
@@ -136,8 +138,6 @@ export default function ReceiptsPage() {
     next: resolveLabel((t as any)?.pagination?.next, 'Next'),
     pageOf: resolveLabel((t as any)?.pagination?.pageOf, 'Page {page} of {count}'),
   };
-  const filterChipClassName =
-    'inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary';
   const filterLinkClassName =
     'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-primary';
   const formatPaginationLabel = (template: string, values: Record<string, string | number>) =>
@@ -459,22 +459,22 @@ export default function ReceiptsPage() {
           </button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className={filterChipClassName}>
+          <FilterChipButton>
             {filterLabels.type}
             <ChevronDown className="h-4 w-4 text-gray-600" />
-          </button>
-          <button type="button" className={filterChipClassName}>
+          </FilterChipButton>
+          <FilterChipButton>
             {filterLabels.status}
             <ChevronDown className="h-4 w-4 text-gray-600" />
-          </button>
-          <button type="button" className={filterChipClassName}>
+          </FilterChipButton>
+          <FilterChipButton>
             {filterLabels.date}
             <ChevronDown className="h-4 w-4 text-gray-600" />
-          </button>
-          <button type="button" className={filterChipClassName}>
+          </FilterChipButton>
+          <FilterChipButton>
             {filterLabels.from}
             <ChevronDown className="h-4 w-4 text-gray-600" />
-          </button>
+          </FilterChipButton>
           <button type="button" className={filterLinkClassName}>
             <SlidersHorizontal className="h-4 w-4" />
             {filterLabels.filters}
@@ -542,8 +542,7 @@ export default function ReceiptsPage() {
                     key={statement.id}
                     className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 transition-colors hover:bg-gray-50"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       aria-label={statement.fileName}
                       className="h-4 w-4 rounded border-border text-primary focus:ring-primary shrink-0"
                     />
@@ -613,34 +612,13 @@ export default function ReceiptsPage() {
                     })}
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                  disabled={page <= 1}
-                  className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm border transition-all ${
-                    page <= 1
-                      ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                      : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
-                  }`}
-                >
-                  <ChevronLeft className="h-4 w-4" /> {paginationLabels.previous}
-                </button>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 min-w-[120px] text-center">
                   {formatPaginationLabel(paginationLabels.pageOf, {
                     page,
                     count: totalPagesCount,
                   })}
                 </span>
-                <button
-                  onClick={() => setPage(prev => Math.min(totalPagesCount, prev + 1))}
-                  disabled={page >= totalPagesCount}
-                  className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm border transition-all ${
-                    page >= totalPagesCount
-                      ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                      : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
-                  }`}
-                >
-                  {paginationLabels.next} <ChevronRight className="h-4 w-4" />
-                </button>
+                <AppPagination page={page} total={totalPagesCount} onChange={setPage} />
               </div>
             </div>
           </>
@@ -723,11 +701,10 @@ export default function ReceiptsPage() {
               </div>
 
               <div className="mt-4 flex items-center gap-2">
-                <input
+                <Checkbox
                   id="allow-duplicates"
-                  type="checkbox"
                   checked={allowDuplicates}
-                  onChange={e => setAllowDuplicates(e.target.checked)}
+                  onCheckedChange={setAllowDuplicates}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
                 <label htmlFor="allow-duplicates" className="text-sm text-gray-700">

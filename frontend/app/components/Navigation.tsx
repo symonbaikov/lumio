@@ -1,24 +1,22 @@
 'use client';
 
 import { NotificationDropdown } from '@/app/components/NotificationDropdown';
-import { Button } from '@/app/components/ui/button';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuTrigger,
-} from '@/app/components/ui/dropdown-menu';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
+import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
 import { TourMenu } from '@/app/tours/components/TourMenu';
 import { type DriveStep, driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
-import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownSection,
+  DropdownTrigger,
+} from '@heroui/react';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import EngineeringIcon from '@mui/icons-material/Engineering';
 import LanguageIcon from '@mui/icons-material/Language';
@@ -26,9 +24,9 @@ import PinIcon from '@mui/icons-material/Pin';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import WidgetsIcon from '@mui/icons-material/Widgets';
 import {
   Check,
-  ChevronDown,
   ChevronLeft,
   Database,
   Edit3,
@@ -51,8 +49,10 @@ import {
 } from 'lucide-react';
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { useTheme } from 'next-themes';
+import { Roboto } from 'next/font/google';
+import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
@@ -60,10 +60,17 @@ import { usePermissions } from '../hooks/usePermissions';
 
 const MOBILE_MENU_VISIBILITY_EVENT = 'lumio-mobile-menu-visibility';
 
+const robotoBlackItalic = Roboto({
+  subsets: ['latin', 'cyrillic'],
+  weight: '900',
+  style: 'italic',
+});
+
 type AppLanguage = 'ru' | 'en' | 'kk';
 
 export default function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, logout } = useAuth();
   const normalizedAvatarUrl = normalizeAvatarUrl(user?.avatarUrl);
   const { isAdmin, hasPermission } = usePermissions();
@@ -291,33 +298,29 @@ export default function Navigation() {
     [languageModal.savedToastPrefix.value, languageNames.ru.value, languages, setLocale],
   );
 
-  if (!user || pathname.startsWith('/onboarding')) {
-    return null;
-  }
-
   const navItems = [
     {
       label: nav.statements,
       path: '/statements',
-      icon: <FileText size={20} />,
+      icon: <FileText size={18} />,
       permission: 'statement.view',
     },
     {
       label: nav.tables,
       path: '/custom-tables',
-      icon: <Table size={20} />,
+      icon: <Table size={18} />,
       permission: 'statement.view',
     },
     {
       label: nav.workspaces,
       path: '/workspaces',
-      icon: <ApartmentIcon sx={{ fontSize: 20 }} />,
+      icon: <ApartmentIcon sx={{ fontSize: 18 }} />,
       permission: 'workspaces.view',
     },
     {
       label: nav.reports,
       path: '/reports',
-      icon: <QueryStatsIcon sx={{ fontSize: 20 }} />,
+      icon: <QueryStatsIcon sx={{ fontSize: 18 }} />,
       permission: 'statement.view',
     },
   ];
@@ -326,17 +329,186 @@ export default function Navigation() {
   const isNavItemActive = (itemPath: string) =>
     pathname === itemPath || pathname.startsWith(`${itemPath}/`);
 
+  const openLanguageMenu = useCallback(() => {
+    setLanguageSearch('');
+    setLanguageModalOpen(true);
+    setMobileMenuOpen(false);
+  }, []);
+
+  const navigateFromUserMenu = useCallback(
+    (path: string) => {
+      setMobileMenuOpen(false);
+      router.push(path);
+    },
+    [router],
+  );
+
+  const handleUserMenuAction = useCallback(
+    (key: React.Key) => {
+      switch (String(key)) {
+        case 'settings':
+          navigateFromUserMenu('/settings/profile');
+          return;
+        case 'integrations':
+          navigateFromUserMenu('/integrations');
+          return;
+        case 'supported-banks':
+          navigateFromUserMenu('/supported-banks');
+          return;
+        case 'trash':
+          navigateFromUserMenu('/statements/trash');
+          return;
+        case 'language':
+          openLanguageMenu();
+          return;
+        case 'admin':
+          navigateFromUserMenu('/admin');
+          return;
+        case 'logout':
+          setMobileMenuOpen(false);
+          logout();
+          toast.success(userMenu.logoutSuccess.value);
+          return;
+        default:
+      }
+    },
+    [logout, navigateFromUserMenu, openLanguageMenu, userMenu.logoutSuccess.value],
+  );
+
+  if (!user || pathname.startsWith('/onboarding')) {
+    return null;
+  }
+
+  const renderUserActionsMenu = (mobile = false) => (
+    <Dropdown placement={mobile ? 'bottom-start' : 'bottom-end'}>
+      <DropdownTrigger>
+        <Button
+          radius="full"
+          size="sm"
+          className={`${robotoBlackItalic.className} min-w-[92px] !bg-primary !text-primary-foreground px-4 font-black italic tracking-[0.08em] hover:!bg-primary/90`}
+          data-tour-id={mobile ? undefined : 'user-menu-trigger'}
+        >
+          <span className="inline-flex items-center gap-2">
+            <WidgetsIcon sx={{ fontSize: 18 }} htmlColor="#fff" />
+            MORE!
+          </span>
+        </Button>
+      </DropdownTrigger>
+      <DropdownMenu
+        aria-label="User menu actions"
+        className="w-[320px]"
+        disabledKeys={['profile-info']}
+        itemClasses={{
+          base: 'gap-3 px-3 py-2.5 data-[hover=true]:bg-muted data-[focus=true]:bg-muted',
+          title: 'text-base',
+        }}
+        onAction={handleUserMenuAction}
+      >
+        <DropdownSection showDivider>
+          <DropdownItem
+            key="profile-info"
+            textValue={`${user.name} ${user.email}`}
+            className="h-auto cursor-default rounded-xl px-3 py-3 opacity-100"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-muted text-muted-foreground flex items-center justify-center">
+                {normalizedAvatarUrl && !avatarError ? (
+                  <img
+                    src={normalizedAvatarUrl}
+                    alt={user.name || 'User avatar'}
+                    className="h-full w-full object-cover"
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : (
+                  <User size={20} />
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="text-base font-semibold text-foreground truncate">{user.name}</div>
+                <div className="text-sm font-normal text-muted-foreground truncate">
+                  {user.email}
+                </div>
+              </div>
+            </div>
+          </DropdownItem>
+        </DropdownSection>
+
+        <DropdownSection showDivider>
+          <DropdownItem
+            key="settings"
+            startContent={<Settings size={18} className="text-muted-foreground" />}
+          >
+            {userMenu.settings}
+          </DropdownItem>
+          <DropdownItem
+            key="integrations"
+            startContent={<Plug size={18} className="text-muted-foreground" />}
+          >
+            {userMenu.integrations}
+          </DropdownItem>
+          <DropdownItem
+            key="supported-banks"
+            startContent={
+              <EngineeringIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
+            }
+          >
+            {supportedBanksLabel}
+          </DropdownItem>
+          <DropdownItem
+            key="trash"
+            startContent={<Trash2 size={18} className="text-muted-foreground" />}
+          >
+            {trashLabel}
+          </DropdownItem>
+          <DropdownItem
+            key="language"
+            startContent={<LanguageIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />}
+            endContent={<span className="text-sm text-muted-foreground">{languageLabel}</span>}
+          >
+            {userMenu.language}
+          </DropdownItem>
+
+          {isAdmin ? (
+            <DropdownItem
+              key="admin"
+              startContent={<PinIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />}
+            >
+              {userMenu.admin}
+            </DropdownItem>
+          ) : null}
+        </DropdownSection>
+
+        <DropdownSection>
+          <DropdownItem
+            key="logout"
+            color="danger"
+            startContent={<LogOut size={18} />}
+            className="text-danger data-[hover=true]:bg-danger/10 data-[hover=true]:text-danger data-[focus=true]:bg-danger/10 data-[focus=true]:text-danger"
+          >
+            {userMenu.logout}
+          </DropdownItem>
+        </DropdownSection>
+      </DropdownMenu>
+    </Dropdown>
+  );
+
   return (
     <header className="border-b border-border bg-card shadow-sm transition-all duration-300">
       <div className="container-shared px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-14">
           <div className="flex items-center">
             <Link href="/" className="shrink-0 flex items-center" data-tour-id="brand">
-              <span className="text-primary ff-logo">LUMIO</span>
+              <Image
+                src="/images/logo.svg"
+                alt="Lumio"
+                width={36}
+                height={36}
+                className="h-9 w-9"
+              />
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:ml-2 md:flex md:space-x-2" data-tour-id="primary-nav">
+            <nav className="hidden md:ml-6 md:flex md:space-x-1" data-tour-id="primary-nav">
               {visibleNavItems.map(item => {
                 const isActive = isNavItemActive(item.path);
                 return (
@@ -344,15 +516,15 @@ export default function Navigation() {
                     key={item.path}
                     href={item.path}
                     className={`
-                        group inline-flex flex-col items-center justify-center px-3 pt-1 border-b-2 text-xs font-medium min-w-16 transition-colors duration-200
+                        group inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors duration-200
                         ${
                           isActive
-                            ? 'border-primary text-primary font-semibold'
-                            : 'border-transparent text-muted-foreground hover:text-primary hover:border-border'
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                         }
                       `}
                   >
-                    <span className="mb-1 group-hover:scale-110 transition-transform duration-200">
+                    <span className="opacity-70 group-hover:opacity-100 transition-opacity">
                       {item.icon}
                     </span>
                     <span className="hidden lg:block">{item.label}</span>
@@ -379,109 +551,7 @@ export default function Navigation() {
               </>
 
               {/* User Menu */}
-              <div className="relative ml-3">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className="flex items-center gap-3 max-w-xs text-sm font-semibold text-foreground hover:opacity-80 transition-opacity focus:outline-none group"
-                      data-tour-id="user-menu-trigger"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate max-w-[150px] hidden sm:block">{user.name}</span>
-                        <ChevronDown
-                          size={16}
-                          className="text-muted-foreground group-hover:text-foreground transition-colors"
-                        />
-                      </div>
-                      <div className="h-8 w-8 rounded-full flex items-center justify-center overflow-hidden text-muted-foreground transition-all group-hover:bg-muted">
-                        {normalizedAvatarUrl && !avatarError ? (
-                          <img
-                            src={normalizedAvatarUrl}
-                            alt={user?.name || 'User avatar'}
-                            className="h-full w-full object-cover"
-                            onError={() => setAvatarError(true)}
-                          />
-                        ) : (
-                          <User size={20} />
-                        )}
-                      </div>
-                    </button>
-                  </DropdownMenuTrigger>
-
-                  <DropdownMenuContent align="end" className="w-[320px] p-2">
-                    <DropdownMenuLabel className="px-3 py-3">
-                      <div className="text-base font-semibold text-foreground truncate">
-                        {user.name}
-                      </div>
-                      <div className="text-sm font-normal text-muted-foreground truncate">
-                        {user.email}
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-
-                    <DropdownMenuItem asChild>
-                      <Link href="/settings/profile">
-                        <Settings size={18} className="text-muted-foreground" />
-                        <span className="text-base">{userMenu.settings}</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/integrations">
-                        <Plug size={18} className="text-muted-foreground" />
-                        <span className="text-base">{userMenu.integrations}</span>
-                      </Link>
-                    </DropdownMenuItem>
-
-                    <DropdownMenuItem asChild>
-                      <Link href="/supported-banks">
-                        <EngineeringIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
-                        <span className="text-base">{supportedBanksLabel}</span>
-                      </Link>
-                    </DropdownMenuItem>
-
-                    <DropdownMenuItem asChild>
-                      <Link href="/statements/trash">
-                        <Trash2 size={18} className="text-muted-foreground" />
-                        <span className="text-base">{trashLabel}</span>
-                      </Link>
-                    </DropdownMenuItem>
-
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        setLanguageSearch('');
-                        setLanguageModalOpen(true);
-                      }}
-                    >
-                      <LanguageIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
-                      <span className="text-base">{userMenu.language}</span>
-                      <DropdownMenuShortcut className="text-sm">
-                        {languageLabel}
-                      </DropdownMenuShortcut>
-                    </DropdownMenuItem>
-
-                    {isAdmin && (
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin">
-                          <PinIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
-                          <span className="text-base">{userMenu.admin}</span>
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        logout();
-                        toast.success(userMenu.logoutSuccess.value);
-                      }}
-                      className="text-red-600 dark:text-red-400 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-900/40"
-                    >
-                      <LogOut size={18} />
-                      <span className="text-base">{userMenu.logout}</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <div className="relative ml-3">{renderUserActionsMenu()}</div>
             </div>
 
             {/* Mobile menu button */}
@@ -537,10 +607,7 @@ export default function Navigation() {
               }}
             >
               <div className="flex items-center justify-between border-b border-border bg-card px-4 py-4">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-foreground">{user.name}</div>
-                  <div className="truncate text-xs text-muted-foreground">{user.email}</div>
-                </div>
+                <div className="min-w-0">{renderUserActionsMenu(true)}</div>
                 <div className="flex items-center gap-2">
                   <NotificationDropdown
                     triggerClassName="h-9 w-9 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -579,64 +646,6 @@ export default function Navigation() {
                     );
                   })}
                 </div>
-
-                <div className="my-2 h-px bg-border" />
-
-                <div className="bg-card px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {userMenu.profile}
-                </div>
-
-                <Link
-                  href="/settings/profile"
-                  className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Settings size={18} className="text-muted-foreground" />
-                  <span className="flex-1">{userMenu.settings}</span>
-                </Link>
-
-                <Link
-                  href="/integrations"
-                  className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Plug size={18} className="text-muted-foreground" />
-                  <span className="flex-1">{userMenu.integrations}</span>
-                </Link>
-
-                <Link
-                  href="/supported-banks"
-                  className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <EngineeringIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
-                  <span className="flex-1">{supportedBanksLabel}</span>
-                </Link>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLanguageSearch('');
-                    setLanguageModalOpen(true);
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
-                >
-                  <LanguageIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
-                  <span className="flex-1 text-left">{userMenu.language}</span>
-                  <span className="text-sm text-muted-foreground">{languageLabel}</span>
-                </button>
-
-                {isAdmin && (
-                  <Link
-                    href="/admin"
-                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <PinIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
-                    <span className="flex-1">{userMenu.admin}</span>
-                  </Link>
-                )}
 
                 <div className="my-2 h-px bg-border" />
 
@@ -697,19 +706,6 @@ export default function Navigation() {
                     </button>
                   }
                 />
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    logout();
-                    toast.success(userMenu.logoutSuccess.value);
-                  }}
-                  className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-red-600 dark:text-red-400 hover:bg-muted transition-colors"
-                >
-                  <LogOut size={18} />
-                  <span className="flex-1 text-left">{userMenu.logout}</span>
-                </button>
               </div>
             </dialog>
           </div>

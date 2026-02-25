@@ -38,9 +38,6 @@ export default function CustomTablesSidePanel({ activeSource, sortOrder, sourceC
 
   const labels = useMemo(
     () => ({
-      title: resolveLabel((t as any)?.header?.title, 'Custom tables'),
-      subtitle: resolveLabel(sidePanelT.subtitle, 'Overview'),
-      todoTitle: resolveLabel(sidePanelT.todoTitle, 'To-do'),
       accountingTitle: resolveLabel(sidePanelT.accountingTitle, 'Accounting'),
       insightsTitle: resolveLabel(sidePanelT.insightsTitle, 'Insights'),
       allTables: resolveLabel(sidePanelT.allTables, 'All tables'),
@@ -61,8 +58,6 @@ export default function CustomTablesSidePanel({ activeSource, sortOrder, sourceC
       sidePanelT.noData,
       sidePanelT.openMenu,
       sidePanelT.sourceOverview,
-      sidePanelT.subtitle,
-      sidePanelT.todoTitle,
       t,
     ],
   );
@@ -70,15 +65,10 @@ export default function CustomTablesSidePanel({ activeSource, sortOrder, sourceC
   const sidePanelConfig = useMemo<SidePanelPageConfig>(
     () => ({
       pageId: 'custom-tables',
-      header: {
-        title: labels.title,
-        subtitle: labels.subtitle,
-      },
       sections: [
         {
           id: 'todo',
           type: 'navigation',
-          title: labels.todoTitle,
           items: [
             {
               id: 'all',
@@ -221,9 +211,6 @@ export default function CustomTablesSidePanel({ activeSource, sortOrder, sourceC
       labels.openMenu,
       labels.recentUpdates,
       labels.sourceOverview,
-      labels.subtitle,
-      labels.title,
-      labels.todoTitle,
       manualCount,
       sortOrder,
       statementCount,

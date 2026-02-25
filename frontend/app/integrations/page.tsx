@@ -316,8 +316,16 @@ export default function IntegrationsPage() {
                           <div
                             key={item.key}
                             data-integration-card={item.key}
-                            role={item.primaryAction?.href && !item.primaryAction.external ? 'button' : undefined}
-                            tabIndex={item.primaryAction?.href && !item.primaryAction.external ? 0 : undefined}
+                            role={
+                              item.primaryAction?.href && !item.primaryAction.external
+                                ? 'button'
+                                : undefined
+                            }
+                            tabIndex={
+                              item.primaryAction?.href && !item.primaryAction.external
+                                ? 0
+                                : undefined
+                            }
                             className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                             onClick={() => handleCardClick(item)}
                             onKeyDown={event => {
@@ -356,27 +364,25 @@ export default function IntegrationsPage() {
                                         {action.label}
                                         <ExternalLink className="h-3 w-3 ml-1 text-gray-400" />
                                       </a>
+                                    ) : action.primary && item.active ? (
+                                      <button
+                                        key={action.href}
+                                        type="button"
+                                        disabled
+                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-400 cursor-not-allowed"
+                                        onClick={event => event.stopPropagation()}
+                                      >
+                                        {action.label}
+                                      </button>
                                     ) : (
-                                      action.primary && item.active ? (
-                                        <button
-                                          key={action.href}
-                                          type="button"
-                                          disabled
-                                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-400 cursor-not-allowed"
-                                          onClick={event => event.stopPropagation()}
-                                        >
-                                          {action.label}
-                                        </button>
-                                      ) : (
-                                        <Link
-                                          key={action.href}
-                                          href={action.href}
-                                          onClick={event => event.stopPropagation()}
-                                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
-                                        >
-                                          {action.label}
-                                        </Link>
-                                      )
+                                      <Link
+                                        key={action.href}
+                                        href={action.href}
+                                        onClick={event => event.stopPropagation()}
+                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
+                                      >
+                                        {action.label}
+                                      </Link>
                                     ),
                                   )}
                                 </div>
@@ -419,8 +425,16 @@ export default function IntegrationsPage() {
                           <div
                             key={item.key}
                             data-integration-card={item.key}
-                            role={item.primaryAction?.href && !item.primaryAction.external ? 'button' : undefined}
-                            tabIndex={item.primaryAction?.href && !item.primaryAction.external ? 0 : undefined}
+                            role={
+                              item.primaryAction?.href && !item.primaryAction.external
+                                ? 'button'
+                                : undefined
+                            }
+                            tabIndex={
+                              item.primaryAction?.href && !item.primaryAction.external
+                                ? 0
+                                : undefined
+                            }
                             className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                             onClick={() => handleCardClick(item)}
                             onKeyDown={event => {
@@ -459,27 +473,25 @@ export default function IntegrationsPage() {
                                         {action.label}
                                         <ExternalLink className="h-3 w-3 ml-1 text-gray-400" />
                                       </a>
+                                    ) : action.primary && item.active ? (
+                                      <button
+                                        key={action.href}
+                                        type="button"
+                                        disabled
+                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-400 cursor-not-allowed"
+                                        onClick={event => event.stopPropagation()}
+                                      >
+                                        {action.label}
+                                      </button>
                                     ) : (
-                                      action.primary && item.active ? (
-                                        <button
-                                          key={action.href}
-                                          type="button"
-                                          disabled
-                                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-400 cursor-not-allowed"
-                                          onClick={event => event.stopPropagation()}
-                                        >
-                                          {action.label}
-                                        </button>
-                                      ) : (
-                                        <Link
-                                          key={action.href}
-                                          href={action.href}
-                                          onClick={event => event.stopPropagation()}
-                                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
-                                        >
-                                          {action.label}
-                                        </Link>
-                                      )
+                                      <Link
+                                        key={action.href}
+                                        href={action.href}
+                                        onClick={event => event.stopPropagation()}
+                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
+                                      >
+                                        {action.label}
+                                      </Link>
                                     ),
                                   )}
                                 </div>

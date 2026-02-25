@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useIntlayer, useLocale } from 'next-intlayer';
 import React, { useMemo, useState } from 'react';
+import { Checkbox } from '../ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
+import { AppPagination } from '../ui/pagination';
 import type { Category, FilterState, SortState, Transaction } from './types';
 
 interface TransactionsTableProps {
@@ -179,6 +181,7 @@ export default function TransactionsTable({
     paginatedTransactions.length > 0 &&
     paginatedTransactions.every(tx => selectedIds.includes(tx.id));
   const someSelected = paginatedTransactions.some(tx => selectedIds.includes(tx.id));
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedTransactions.length / rowsPerPage));
 
   const pagination =
     filteredAndSortedTransactions.length > 0 ? (
@@ -206,24 +209,11 @@ export default function TransactionsTable({
             {Math.min((page + 1) * rowsPerPage, filteredAndSortedTransactions.length)} {t.of.value}{' '}
             {filteredAndSortedTransactions.length}
           </span>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              onClick={() => setPage(Math.max(0, page - 1))}
-              disabled={page === 0}
-              className="rounded-md border border-gray-200 px-3 py-1 text-sm font-semibold text-gray-600 transition hover:border-primary hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {t.previous.value}
-            </button>
-            <button
-              type="button"
-              onClick={() => setPage(page + 1)}
-              disabled={(page + 1) * rowsPerPage >= filteredAndSortedTransactions.length}
-              className="rounded-md border border-gray-200 px-3 py-1 text-sm font-semibold text-gray-600 transition hover:border-primary hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {t.next.value}
-            </button>
-          </div>
+          <AppPagination
+            page={page + 1}
+            total={totalPages}
+            onChange={nextPage => setPage(nextPage - 1)}
+          />
         </div>
       </div>
     ) : null;
@@ -350,15 +340,10 @@ export default function TransactionsTable({
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
           <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
             <div className="inline-flex items-center gap-2">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={allSelected}
-                onChange={e => handleSelectAll(e.target.checked)}
-                ref={input => {
-                  if (input) {
-                    input.indeterminate = someSelected && !allSelected;
-                  }
-                }}
+                indeterminate={someSelected && !allSelected}
+                onCheckedChange={handleSelectAll}
                 className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20"
                 aria-label="Select all rows"
               />
@@ -411,10 +396,9 @@ export default function TransactionsTable({
                         onClick={e => e.stopPropagation()}
                         onKeyDown={e => e.stopPropagation()}
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={selectedIds.includes(tx.id)}
-                          onChange={e => handleSelectRow(tx.id, e.target.checked)}
+                          onCheckedChange={checked => handleSelectRow(tx.id, checked)}
                           className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20"
                           aria-label={`Select transaction ${tx.counterpartyName}`}
                         />
@@ -583,15 +567,10 @@ export default function TransactionsTable({
 
                   {/* Checkbox column */}
                   <th className="w-12 px-4 py-3 text-left">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={allSelected}
-                      onChange={e => handleSelectAll(e.target.checked)}
-                      ref={input => {
-                        if (input) {
-                          input.indeterminate = someSelected && !allSelected;
-                        }
-                      }}
+                      indeterminate={someSelected && !allSelected}
+                      onCheckedChange={handleSelectAll}
                       className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20"
                     />
                   </th>
@@ -716,10 +695,9 @@ export default function TransactionsTable({
                             onClick={e => e.stopPropagation()}
                             onKeyDown={e => e.stopPropagation()}
                           >
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={selectedIds.includes(tx.id)}
-                              onChange={e => handleSelectRow(tx.id, e.target.checked)}
+                              onCheckedChange={checked => handleSelectRow(tx.id, checked)}
                               className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20"
                             />
                           </td>

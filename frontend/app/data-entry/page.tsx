@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
+import { AppPagination } from '@/app/components/ui/pagination';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import apiClient from '@/app/lib/api';
@@ -13,8 +14,6 @@ import { Icon } from '@iconify/react';
 import {
   Calendar as CalendarIcon,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   ClipboardList,
   DollarSign,
   Droplets,
@@ -518,8 +517,6 @@ export default function DataEntryPage() {
     effectiveListMeta.total <= 0
       ? 0
       : Math.min(effectiveListMeta.page * effectiveListMeta.limit, effectiveListMeta.total);
-  const canGoPrev = effectiveListMeta.page > 1;
-  const canGoNext = effectiveListMeta.page < effectiveTotalPages;
   const showPagination = Boolean(activeListMeta) && effectiveListMeta.total > 0;
 
   const isBaseTab = (tab: TabKey): tab is BaseTabKey =>
@@ -2058,36 +2055,15 @@ export default function DataEntryPage() {
                     {effectiveListMeta.total}
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPageForTab(activeTab, effectiveListMeta.page - 1)}
-                      disabled={!canGoPrev}
-                      className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm border transition-all ${
-                        !canGoPrev
-                          ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                          : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-white'
-                      }`}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      {t.labels.paginationPrev.value}
-                    </button>
                     <span className="text-sm text-gray-600 font-semibold text-center min-w-[120px]">
                       {t.labels.paginationPageShort.value} {effectiveListMeta.page} из{' '}
                       {effectiveTotalPages}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setPageForTab(activeTab, effectiveListMeta.page + 1)}
-                      disabled={!canGoNext}
-                      className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm border transition-all ${
-                        !canGoNext
-                          ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                          : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-white'
-                      }`}
-                    >
-                      {t.labels.paginationNext.value}
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
+                    <AppPagination
+                      page={effectiveListMeta.page}
+                      total={effectiveTotalPages}
+                      onChange={nextPage => setPageForTab(activeTab, nextPage)}
+                    />
                   </div>
                 </div>
               )}

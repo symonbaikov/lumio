@@ -6,8 +6,8 @@ import {
   disconnectNotificationsSocket,
   getNotificationsSocket,
 } from '@/app/lib/socket';
-import type { Socket } from 'socket.io-client';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import type { Socket } from 'socket.io-client';
 import { useWorkspace } from './WorkspaceContext';
 
 export interface NotificationItem {

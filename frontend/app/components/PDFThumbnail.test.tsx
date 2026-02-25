@@ -79,4 +79,75 @@ describe('PDFThumbnail', () => {
     expect(errorIcon).toBeTruthy();
     expect(container.textContent).toContain('Unable to load document');
   });
+
+  it('requests a thumbnail with an explicit width for larger previews', async () => {
+    vi.stubGlobal(
+      'FileReader',
+      class MockFileReader {
+        result: string | ArrayBuffer | null = null;
+        onloadend: null | (() => void) = null;
+
+        readAsDataURL() {
+          this.result = 'data:image/png;base64,ZmFrZQ==';
+          this.onloadend?.();
+        }
+      },
+    );
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      blob: vi.fn().mockResolvedValue(new Blob(['thumbnail'], { type: 'image/png' })),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<PDFThumbnail fileId="statement-width" width={320} height={460} />);
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/statements/statement-width/thumbnail?width=320'),
+      expect.objectContaining({ method: 'GET' }),
+    );
+  });
+
+  it('caches thumbnails separately for different requested widths', async () => {
+    vi.stubGlobal(
+      'FileReader',
+      class MockFileReader {
+        result: string | ArrayBuffer | null = null;
+        onloadend: null | (() => void) = null;
+
+        readAsDataURL() {
+          this.result = 'data:image/png;base64,ZmFrZQ==';
+          this.onloadend?.();
+        }
+      },
+    );
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      blob: vi.fn().mockResolvedValue(new Blob(['thumbnail'], { type: 'image/png' })),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<PDFThumbnail fileId="statement-cache" width={120} height={180} />);
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      root.render(<PDFThumbnail fileId="statement-cache" width={420} height={620} />);
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toContain('width=120');
+    expect(fetchMock.mock.calls[1]?.[0]).toContain('width=420');
+  });
 });

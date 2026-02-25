@@ -8,6 +8,7 @@ import { SidePanel, SidePanelProvider, useCurrentSidePanelConfig, useSidePanel }
 
 type ClonableProps = Record<string, unknown>;
 const MOBILE_MENU_VISIBILITY_EVENT = 'lumio-mobile-menu-visibility';
+const SIDEPANEL_ACTIVE_BODY_ATTRIBUTE = 'data-side-panel-active';
 
 function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
   const config = useCurrentSidePanelConfig();
@@ -105,6 +106,16 @@ function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
     }
   }, [globalMobileMenuOpen]);
 
+  React.useLayoutEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    document.body.setAttribute(SIDEPANEL_ACTIVE_BODY_ATTRIBUTE, config ? 'true' : 'false');
+
+    return () => {
+      document.body.setAttribute(SIDEPANEL_ACTIVE_BODY_ATTRIBUTE, 'false');
+    };
+  }, [config]);
+
   const handlePanelTouchStart = React.useCallback(
     (event: React.TouchEvent<HTMLDialogElement>) => {
       if (!mobileSidePanelVisible) return;
@@ -199,7 +210,11 @@ function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
       {config ? (
         <>
           <div className={sidePanelWrapperClassName}>
-            <SidePanel config={config} className={isStatementsPage ? 'h-full' : undefined} />
+            <SidePanel
+              config={config}
+              showCollapseToggle={false}
+              className={isStatementsPage ? 'h-full' : undefined}
+            />
           </div>
 
           {!globalMobileMenuOpen ? (

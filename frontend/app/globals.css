@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "./tours/tour-theme.css";
+@plugin "./hero.ts";
+@source "../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
 
 /* Use `.dark` class for Tailwind's `dark:` variant (so it follows our app theme toggle, not OS preference). */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -41,11 +43,9 @@
   --destructive-foreground: #ffffff;
   --surface-glow: rgba(2, 132, 199, 0.14);
   --surface-success-glow: rgba(34, 197, 94, 0.12);
-  --font-family-sans:
-    var(--font-manrope), "Manrope", "Nunitoga", "Helvetica Neue", Arial,
-    Helvetica, sans-serif !important;
-  --font-family-mono:
-    ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono,
+  --font-family-sans: var(--font-manrope), "Manrope", "Nunitoga", "Helvetica Neue", Arial, Helvetica,
+    sans-serif !important;
+  --font-family-mono: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono,
     monospace !important;
   --global-nav-height: 104px;
 }
@@ -104,17 +104,8 @@
 
 body {
   background-color: var(--background);
-  background-image:
-    radial-gradient(
-      1200px 600px at -10% -20%,
-      var(--surface-glow),
-      transparent 55%
-    ),
-    radial-gradient(
-      1000px 500px at 110% -30%,
-      var(--surface-success-glow),
-      transparent 58%
-    );
+  background-image: radial-gradient(1200px 600px at -10% -20%, var(--surface-glow), transparent 55%),
+    radial-gradient(1000px 500px at 110% -30%, var(--surface-success-glow), transparent 58%);
   background-attachment: fixed;
   color: var(--foreground);
   font-family:
@@ -142,9 +133,7 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  transition:
-    background-color 220ms ease,
-    color 220ms ease;
+  transition: background-color 220ms ease, color 220ms ease;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -171,6 +160,12 @@ body {
 /* Container for shared layout alignment (Full Width) */
 .container-shared {
   width: 100%;
+}
+
+@media (min-width: 1024px) {
+  body[data-side-panel-active="true"] [data-global-breadcrumbs] {
+    display: none;
+  }
 }
 
 /* Global radius normalization for Tailwind utilities */
@@ -271,14 +266,8 @@ body {
   border-color: var(--border-color);
 }
 
-.dark
-  .divide-gray-100:not([class*="dark:divide-"])
-  > :not([hidden])
-  ~ :not([hidden]),
-.dark
-  .divide-gray-200:not([class*="dark:divide-"])
-  > :not([hidden])
-  ~ :not([hidden]) {
+.dark .divide-gray-100:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-200:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]) {
   border-color: var(--border-color);
 }
 
@@ -392,11 +381,7 @@ body {
 /* React Day Picker: align default variables with dark theme tokens. */
 .dark .rdp-root {
   --rdp-accent-color: var(--primary);
-  --rdp-accent-background-color: color-mix(
-    in srgb,
-    var(--primary) 18%,
-    transparent
-  );
+  --rdp-accent-background-color: color-mix(in srgb, var(--primary) 18%, transparent);
 }
 
 /* Custom Tables: in-app fullscreen mode (hides global navigation/breadcrumbs). */

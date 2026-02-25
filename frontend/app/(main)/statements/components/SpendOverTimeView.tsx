@@ -13,6 +13,7 @@ import {
   resetSingleStatementFilter,
 } from '@/app/(main)/statements/components/filters/statement-filters';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
+import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
@@ -328,10 +329,6 @@ export default function SpendOverTimeView() {
     };
   }, [report, appliedFilters.type, viewType, resolvedTheme]);
 
-  const filterChipClassName =
-    'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[13px] font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary';
-  const filterChipActiveClassName =
-    'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[13px] font-medium text-primary';
   const filterLinkClassName =
     'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] font-medium text-primary';
 
@@ -416,15 +413,12 @@ export default function SpendOverTimeView() {
             onApply={() => applyAndClose(() => setTypeDropdownOpen(false))}
             onReset={() => resetAndClose('type', () => setTypeDropdownOpen(false))}
             trigger={
-              <button
-                type="button"
-                className={draftFilters.type ? filterChipActiveClassName : filterChipClassName}
-              >
+              <FilterChipButton active={Boolean(draftFilters.type)}>
                 {draftFilters.type
                   ? `Type: ${TYPE_OPTIONS.find(option => option.value === draftFilters.type)?.label || 'Expense'}`
                   : 'Type'}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel="Apply"
             resetLabel="Reset"
@@ -444,10 +438,10 @@ export default function SpendOverTimeView() {
               setGroupByDropdownOpen(false);
             }}
             trigger={
-              <button type="button" className={filterChipActiveClassName}>
+              <FilterChipButton active>
                 Group by: {GROUP_BY_OPTIONS.find(option => option.value === draftGroupBy)?.label}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel="Apply"
             resetLabel="Reset"
@@ -462,17 +456,12 @@ export default function SpendOverTimeView() {
             onApply={() => applyAndClose(() => setStatusDropdownOpen(false))}
             onReset={() => resetAndClose('statuses', () => setStatusDropdownOpen(false))}
             trigger={
-              <button
-                type="button"
-                className={
-                  draftFilters.statuses.length > 0 ? filterChipActiveClassName : filterChipClassName
-                }
-              >
+              <FilterChipButton active={draftFilters.statuses.length > 0}>
                 {draftFilters.statuses.length > 0
                   ? `Status (${draftFilters.statuses.length})`
                   : 'Status'}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel="Apply"
             resetLabel="Reset"
@@ -488,17 +477,14 @@ export default function SpendOverTimeView() {
             onApply={() => applyAndClose(() => setDateDropdownOpen(false))}
             onReset={() => resetAndClose('date', () => setDateDropdownOpen(false))}
             trigger={
-              <button
-                type="button"
-                className={draftFilters.date ? filterChipActiveClassName : filterChipClassName}
-              >
+              <FilterChipButton active={Boolean(draftFilters.date)}>
                 {draftFilters.date?.preset
                   ? `Date: ${DATE_PRESETS.find(option => option.value === draftFilters.date?.preset)?.label}`
                   : draftFilters.date?.mode
                     ? `Date: ${DATE_MODES.find(option => option.value === draftFilters.date?.mode)?.label}`
                     : 'Date'}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel="Apply"
             resetLabel="Reset"
@@ -513,15 +499,10 @@ export default function SpendOverTimeView() {
             onApply={() => applyAndClose(() => setFromDropdownOpen(false))}
             onReset={() => resetAndClose('from', () => setFromDropdownOpen(false))}
             trigger={
-              <button
-                type="button"
-                className={
-                  draftFilters.from.length > 0 ? filterChipActiveClassName : filterChipClassName
-                }
-              >
+              <FilterChipButton active={draftFilters.from.length > 0}>
                 {draftFilters.from.length > 0 ? `From (${draftFilters.from.length})` : 'From'}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel="Apply"
             resetLabel="Reset"
@@ -539,10 +520,10 @@ export default function SpendOverTimeView() {
               setViewDropdownOpen(false);
             }}
             trigger={
-              <button type="button" className={filterChipActiveClassName}>
+              <FilterChipButton active>
                 View: {VIEW_OPTIONS.find(option => option.value === draftViewType)?.label}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel="Apply"
             resetLabel="Reset"

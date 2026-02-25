@@ -1,5 +1,6 @@
 'use client';
 
+import { AppPagination } from '@/app/components/ui/pagination';
 import type { AuditEvent } from '@/lib/api/audit';
 import {
   type ColumnDef,
@@ -255,8 +256,17 @@ export function AuditEventTable({
                   className={
                     data.type === 'event' ? 'cursor-pointer hover:bg-gray-50' : 'bg-gray-50'
                   }
+                  role={data.type === 'event' ? 'button' : undefined}
+                  tabIndex={data.type === 'event' ? 0 : undefined}
                   onClick={() => {
                     if (data.type === 'event') onSelect(data.event);
+                  }}
+                  onKeyDown={event => {
+                    if (data.type !== 'event') return;
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      onSelect(data.event);
+                    }
                   }}
                 >
                   {row.getVisibleCells().map(cell => (
@@ -285,24 +295,7 @@ export function AuditEventTable({
         <div>
           Page {page} of {totalPages}
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => onPageChange(Math.max(1, page - 1))}
-            className="rounded-md border border-gray-200 px-3 py-1"
-            disabled={page <= 1}
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-            className="rounded-md border border-gray-200 px-3 py-1"
-            disabled={page >= totalPages}
-          >
-            Next
-          </button>
-        </div>
+        <AppPagination page={page} total={totalPages} onChange={onPageChange} />
       </div>
     </div>
   );

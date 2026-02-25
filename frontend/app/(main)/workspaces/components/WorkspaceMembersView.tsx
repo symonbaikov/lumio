@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
@@ -265,24 +266,23 @@ export default function WorkspaceMembersView() {
                 <p className="text-sm font-medium text-foreground">Access permissions</p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {(Object.keys(PERMISSION_LABELS) as Array<keyof InvitePermissions>).map(key => (
-                    <label
+                    <div
                       key={key}
                       className="inline-flex items-center gap-2 text-sm text-foreground"
                     >
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={invitePermissions[key]}
-                        onChange={event =>
+                        onCheckedChange={checked =>
                           setInvitePermissions(prev => ({
                             ...prev,
-                            [key]: event.target.checked,
+                            [key]: checked,
                           }))
                         }
                         disabled={!isOwnerOrAdmin}
                         className="h-4 w-4 rounded border-border"
                       />
                       {PERMISSION_LABELS[key]}
-                    </label>
+                    </div>
                   ))}
                 </div>
               </div>

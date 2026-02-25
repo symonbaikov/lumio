@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useAutoSave } from '@/app/hooks/useAutoSave';
 import apiClient from '@/app/lib/api';
@@ -31,9 +32,6 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  Checkbox,
   Chip,
   CircularProgress,
   Container,
@@ -712,7 +710,10 @@ export default function EditStatementPage() {
   const hasDisabledStatementCategory = statement?.category?.isEnabled === false;
 
   return (
-    <Container maxWidth={false} sx={{ py: 5 }}>
+    <Container
+      maxWidth={false}
+      sx={{ py: 5, height: '100%', overflowY: 'auto', overflowX: 'hidden' }}
+    >
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Button
@@ -925,51 +926,85 @@ export default function EditStatementPage() {
         </Alert>
       )}
 
-      <Card
+      {/* Summary Metrics */}
+      <Box
         sx={{
-          mb: 4,
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          overflow: 'visible',
-          position: 'relative',
-          zIndex: 10,
+          mb: 3,
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
+          gap: 2,
         }}
       >
-        <CardContent sx={{ p: 3, overflow: 'visible' }}>
-          <Box
-            sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}
-          >
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 600,
-                fontSize: '1rem',
-                color: 'text.primary',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {t.labels.statementInfoTitle?.value || 'Информация о выписке'}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Chip
-                label={
-                  statement?.statementDateFrom && statement?.statementDateTo
-                    ? `${new Date(statement.statementDateFrom).toLocaleDateString()} - ${new Date(statement.statementDateTo).toLocaleDateString()}`
-                    : 'Период не указан'
-                }
-                size="small"
-                sx={{
-                  bgcolor: 'grey.50',
-                  color: 'text.secondary',
-                  border: '1px solid',
-                  borderColor: 'grey.200',
-                  fontWeight: 500,
-                }}
-              />
-            </Box>
-          </Box>
+        <Paper
+          elevation={0}
+          sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}
+        >
+          <Typography variant="caption" color="text.secondary">
+            {labels.period?.value || 'Период'}
+          </Typography>
+          <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+            {statement?.statementDateFrom && statement?.statementDateTo
+              ? `${new Date(statement.statementDateFrom).toLocaleDateString()} - ${new Date(statement.statementDateTo).toLocaleDateString()}`
+              : 'Не указан'}
+          </Typography>
+        </Paper>
+        <Paper
+          elevation={0}
+          sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}
+        >
+          <Typography variant="caption" color="text.secondary">
+            {labels.balanceStart?.value || 'Начальный баланс'}
+          </Typography>
+          <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+            {statement?.balanceStart !== null &&
+            statement?.balanceStart !== undefined &&
+            statement?.balanceStart !== ''
+              ? formatNumber(Number(statement.balanceStart))
+              : 'Не указан'}
+          </Typography>
+        </Paper>
+        <Paper
+          elevation={0}
+          sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}
+        >
+          <Typography variant="caption" color="text.secondary">
+            {labels.expenses?.value || 'Расходы'}
+          </Typography>
+          <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5, color: 'error.main' }}>
+            {!Number.isNaN(totalExpense) && totalExpense >= 0 ? formatNumber(totalExpense) : '0.00'}
+          </Typography>
+        </Paper>
+        <Paper
+          elevation={0}
+          sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}
+        >
+          <Typography variant="caption" color="text.secondary">
+            {labels.income?.value || 'Доходы'}
+          </Typography>
+          <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5, color: 'success.main' }}>
+            {!Number.isNaN(totalIncome) && totalIncome >= 0 ? formatNumber(totalIncome) : '0.00'}
+          </Typography>
+        </Paper>
+      </Box>
 
+      {/* Editing & Parsing Details Accordion */}
+      <Accordion
+        elevation={0}
+        sx={{
+          mb: 4,
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'divider',
+          '&:before': { display: 'none' },
+          overflow: 'hidden',
+        }}
+      >
+        <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: 'grey.50' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+            {t.labels.parsingDetails?.value || 'Параметры и детали парсинга'}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ p: 3 }}>
           <Box
             sx={{
               display: 'grid',
@@ -979,8 +1014,7 @@ export default function EditStatementPage() {
                 md: '1fr 1fr 1fr 1fr',
               },
               gap: 3,
-              position: 'relative',
-              zIndex: 20,
+              mb: statement?.parsingDetails ? 3 : 0,
             }}
           >
             <CustomDatePicker
@@ -1056,164 +1090,103 @@ export default function EditStatementPage() {
           </Box>
 
           {statement?.parsingDetails && (
-            <Accordion
-              elevation={0}
-              sx={{
-                mt: 3,
-                borderRadius: 2,
-                border: '1px solid',
-                borderColor: 'grey.200',
-                '&:before': { display: 'none' },
-              }}
-            >
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                  {t.labels.parsingDetails?.value || 'Детали парсинга'}
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: {
-                      xs: '1fr 1fr',
-                      sm: 'repeat(3, 1fr)',
-                      md: 'repeat(6, 1fr)',
-                    },
-                    gap: 2,
-                  }}
-                >
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Банк
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {statement.parsingDetails.detectedBank || '—'}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      {labels.bankDetectedBy?.value || 'Определено по'}
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {statement.parsingDetails.detectedBy || '—'}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Формат
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {statement.parsingDetails.detectedFormat?.toUpperCase() || '—'}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Найдено транзакций
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {statement.parsingDetails.transactionsFound ?? '—'}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Создано
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {statement.parsingDetails.transactionsCreated ?? '—'}
-                    </Typography>
-                  </Box>
-                  {statement.parsingDetails.errors &&
-                    statement.parsingDetails.errors.length > 0 && (
-                      <Box>
-                        <Typography variant="caption" color="error">
-                          Ошибки
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'error.main' }}>
-                          {statement.parsingDetails.errors.length}
-                        </Typography>
-                      </Box>
-                    )}
-                  {statement.parsingDetails.warnings &&
-                    statement.parsingDetails.warnings.length > 0 && (
-                      <Box>
-                        <Typography variant="caption" color="warning.main">
-                          Предупреждения
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'warning.main' }}>
-                          {statement.parsingDetails.warnings.length}
-                        </Typography>
-                      </Box>
-                    )}
-                  {statement.parsingDetails.otherBankMentions &&
-                    statement.parsingDetails.otherBankMentions.length > 0 && (
-                      <Box sx={{ gridColumn: { xs: '1 / -1', md: 'span 2' } }}>
-                        <Typography variant="caption" color="text.secondary">
-                          {labels.otherBankMentions?.value || 'Упоминания других банков'}
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {statement.parsingDetails.otherBankMentions.join(', ')}
-                        </Typography>
-                      </Box>
-                    )}
+            <>
+              <Divider sx={{ mb: 3 }} />
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: 'block', mb: 2, fontWeight: 600, textTransform: 'uppercase' }}
+              >
+                {t.labels.extractedMetadata?.value || 'Извлеченные данные парсером'}
+              </Typography>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr 1fr',
+                    sm: 'repeat(3, 1fr)',
+                    md: 'repeat(6, 1fr)',
+                  },
+                  gap: 2,
+                }}
+              >
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Банк
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {statement.parsingDetails.detectedBank || '—'}
+                  </Typography>
                 </Box>
-              </AccordionDetails>
-            </Accordion>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    {labels.bankDetectedBy?.value || 'Определено по'}
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {statement.parsingDetails.detectedBy || '—'}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Формат
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {statement.parsingDetails.detectedFormat?.toUpperCase() || '—'}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Найдено транзакций
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {statement.parsingDetails.transactionsFound ?? '—'}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Создано
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {statement.parsingDetails.transactionsCreated ?? '—'}
+                  </Typography>
+                </Box>
+                {statement.parsingDetails.errors && statement.parsingDetails.errors.length > 0 && (
+                  <Box>
+                    <Typography variant="caption" color="error">
+                      Ошибки
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500, color: 'error.main' }}>
+                      {statement.parsingDetails.errors.length}
+                    </Typography>
+                  </Box>
+                )}
+                {statement.parsingDetails.warnings &&
+                  statement.parsingDetails.warnings.length > 0 && (
+                    <Box>
+                      <Typography variant="caption" color="warning.main">
+                        Предупреждения
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500, color: 'warning.main' }}>
+                        {statement.parsingDetails.warnings.length}
+                      </Typography>
+                    </Box>
+                  )}
+                {statement.parsingDetails.otherBankMentions &&
+                  statement.parsingDetails.otherBankMentions.length > 0 && (
+                    <Box sx={{ gridColumn: { xs: '1 / -1', md: 'span 2' } }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {labels.otherBankMentions?.value || 'Упоминания других банков'}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {statement.parsingDetails.otherBankMentions.join(', ')}
+                      </Typography>
+                    </Box>
+                  )}
+              </Box>
+            </>
           )}
-
-          <Box
-            sx={{
-              mt: 3,
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
-              gap: 2,
-            }}
-          >
-            <Box sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                Период
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                {statement?.statementDateFrom && statement?.statementDateTo
-                  ? `${new Date(statement.statementDateFrom).toLocaleDateString()} - ${new Date(statement.statementDateTo).toLocaleDateString()}`
-                  : 'Не указан'}
-              </Typography>
-            </Box>
-            <Box sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                Начальный баланс
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                {statement?.balanceStart !== null &&
-                statement?.balanceStart !== undefined &&
-                statement?.balanceStart !== ''
-                  ? formatNumber(Number(statement.balanceStart))
-                  : 'Не указан'}
-              </Typography>
-            </Box>
-            <Box sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                Расходы
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5, color: 'error.main' }}>
-                {!Number.isNaN(totalExpense) && totalExpense >= 0
-                  ? formatNumber(totalExpense)
-                  : '0.00'}
-              </Typography>
-            </Box>
-            <Box sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                Доходы
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5, color: 'success.main' }}>
-                {!Number.isNaN(totalIncome) && totalIncome >= 0
-                  ? formatNumber(totalIncome)
-                  : '0.00'}
-              </Typography>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
+        </AccordionDetails>
+      </Accordion>
 
       <ModalShell
         isOpen={exportConfirmOpen}
@@ -1376,7 +1349,7 @@ export default function EditStatementPage() {
                 <Checkbox
                   checked={selectedRows.size === transactions.length && transactions.length > 0}
                   indeterminate={selectedRows.size > 0 && selectedRows.size < transactions.length}
-                  onChange={handleSelectAll}
+                  onCheckedChange={handleSelectAll}
                 />
               </TableCell>
               <TableCell
@@ -1486,7 +1459,7 @@ export default function EditStatementPage() {
                   <TableCell padding="checkbox">
                     <Checkbox
                       checked={selectedRows.has(transaction.id)}
-                      onChange={() => handleRowSelect(transaction.id)}
+                      onCheckedChange={() => handleRowSelect(transaction.id)}
                     />
                   </TableCell>
                   <TableCell sx={{ minWidth: 100 }}>

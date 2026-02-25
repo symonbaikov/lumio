@@ -66,7 +66,11 @@ const content = {
       filters: t({ ru: 'Фильтры', en: 'Filters', kk: 'Сүзгілер' }),
       apply: t({ ru: 'Применить', en: 'Apply', kk: 'Қолдану' }),
       reset: t({ ru: 'Сбросить', en: 'Reset', kk: 'Қалпына келтіру' }),
-      resetFilters: t({ ru: 'Сбросить фильтры', en: 'Reset filters', kk: 'Сүзгілерді қалпына келтіру' }),
+      resetFilters: t({
+        ru: 'Сбросить фильтры',
+        en: 'Reset filters',
+        kk: 'Сүзгілерді қалпына келтіру',
+      }),
       viewResults: t({ ru: 'Показать', en: 'View results', kk: 'Нәтижені көру' }),
       saveSearch: t({ ru: 'Сохранить поиск', en: 'Save search', kk: 'Іздеуді сақтау' }),
       any: t({ ru: 'Любой', en: 'Any', kk: 'Кез келген' }),

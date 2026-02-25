@@ -1,4 +1,5 @@
 import { Button } from '@/app/components/ui/button';
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { ModalFooter, ModalShell } from '@/app/components/ui/modal-shell';
 import type { Meta, StoryObj } from '@storybook/react';
 import { Pencil, Plus, Trash2, User } from 'lucide-react';
@@ -269,11 +270,10 @@ function GrantPermissionDialog({ isOpen, onClose, onGrant }: GrantPermissionDial
         </div>
 
         <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
+          <Checkbox
             id="canReshare"
             checked={canReshare}
-            onChange={e => setCanReshare(e.target.checked)}
+            onCheckedChange={setCanReshare}
             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
           <label htmlFor="canReshare" className="text-sm text-gray-700">

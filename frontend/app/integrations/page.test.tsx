@@ -18,9 +18,7 @@ vi.mock('@/app/lib/api', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: (props: React.ComponentProps<'img'>) => (
-    <img {...props} alt={props.alt ?? 'image'} />
-  ),
+  default: (props: React.ComponentProps<'img'>) => <img {...props} alt={props.alt ?? 'image'} />,
 }));
 
 vi.mock('next/link', () => ({

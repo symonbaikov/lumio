@@ -142,15 +142,17 @@ export default function ViewStatementPage({
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <LoadingAnimation size="lg" />
+      <div className="container-shared h-full overflow-y-auto overflow-x-hidden px-4 py-8 sm:px-6 lg:px-8">
+        <div className="flex h-full min-h-[320px] items-center justify-center">
+          <LoadingAnimation size="lg" />
+        </div>
       </div>
     );
   }
 
   if (error || !statement) {
     return (
-      <div className="container-shared px-4 sm:px-6 lg:px-8 py-8">
+      <div className="container-shared h-full overflow-y-auto overflow-x-hidden px-4 py-8 sm:px-6 lg:px-8">
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-600 mb-4">
           {error || 'Выписка не найдена'}
         </div>
@@ -166,7 +168,7 @@ export default function ViewStatementPage({
   }
 
   return (
-    <div className="container-shared px-4 sm:px-6 lg:px-8 py-8">
+    <div className="container-shared h-full overflow-y-auto overflow-x-hidden px-4 py-8 sm:px-6 lg:px-8">
       {/* Back Button */}
       <div className="mb-6">
         <button

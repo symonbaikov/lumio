@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import LoadingAnimation from "@/app/components/LoadingAnimation";
-import { useWorkspace } from "@/app/contexts/WorkspaceContext";
+import LoadingAnimation from '@/app/components/LoadingAnimation';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import {
+  Building2,
   ChevronRight,
   Grid,
   List,
   MoreVertical,
+  Plus,
   Search,
   SortAsc,
-  Plus,
-  Building2,
-} from "lucide-react";
-import { useIntlayer } from "next-intlayer";
-import { useRouter } from "next/navigation";
-import React, { useMemo, useState } from "react";
-import { CreateWorkspaceModal } from "./CreateWorkspaceModal";
-import { WorkspaceCard } from "./WorkspaceCard";
+} from 'lucide-react';
+import { useIntlayer } from 'next-intlayer';
+import { useRouter } from 'next/navigation';
+import React, { useMemo, useState } from 'react';
+import { CreateWorkspaceModal } from './CreateWorkspaceModal';
+import { WorkspaceCard } from './WorkspaceCard';
 
-type ViewMode = "grid" | "list";
-type SortOption = "alphabetical" | "recent" | "favorites";
+type ViewMode = 'grid' | 'list';
+type SortOption = 'alphabetical' | 'recent' | 'favorites';
 
 type Props = {
   embedded?: boolean;
@@ -29,23 +29,18 @@ type Props = {
 };
 
 export default function WorkspacesListContent({
-  redirectPathOnSelect = "/workspaces/overview",
+  redirectPathOnSelect = '/workspaces/overview',
   onWorkspaceActivated,
 }: Props) {
-  const content: any = useIntlayer("workspaces-selector" as any) as any;
-  const {
-    currentWorkspace,
-    workspaces,
-    loading,
-    switchWorkspace,
-    refreshWorkspaces,
-  } = useWorkspace();
+  const content: any = useIntlayer('workspaces-selector' as any) as any;
+  const { currentWorkspace, workspaces, loading, switchWorkspace, refreshWorkspaces } =
+    useWorkspace();
   const router = useRouter();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [sortOption, setSortOption] = useState<SortOption>("favorites");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [sortOption, setSortOption] = useState<SortOption>('favorites');
   const [showSortMenu, setShowSortMenu] = useState(false);
 
   const handleWorkspaceClick = async (workspaceId: string) => {
@@ -57,7 +52,7 @@ export default function WorkspacesListContent({
         router.push(redirectPathOnSelect);
       }
     } catch (error) {
-      console.error("Failed to switch workspace:", error);
+      console.error('Failed to switch workspace:', error);
     }
   };
 
@@ -70,30 +65,26 @@ export default function WorkspacesListContent({
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = workspaces.filter((workspace) => {
+      filtered = workspaces.filter(workspace => {
         const nameMatch = workspace.name.toLowerCase().includes(query);
-        const descriptionMatch = workspace.description
-          ?.toLowerCase()
-          .includes(query);
+        const descriptionMatch = workspace.description?.toLowerCase().includes(query);
         return nameMatch || descriptionMatch;
       });
     }
 
     return [...filtered].sort((a, b) => {
-      if (sortOption === "favorites") {
+      if (sortOption === 'favorites') {
         if (a.isFavorite && !b.isFavorite) return -1;
         if (!a.isFavorite && b.isFavorite) return 1;
         return a.name.localeCompare(b.name);
       }
 
-      if (sortOption === "alphabetical") {
+      if (sortOption === 'alphabetical') {
         return a.name.localeCompare(b.name);
       }
 
-      if (sortOption === "recent") {
-        return (
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
+      if (sortOption === 'recent') {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
 
       return 0;
@@ -105,9 +96,7 @@ export default function WorkspacesListContent({
       <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-primary/5 via-white to-primary/5 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="text-center">
           <LoadingAnimation size="xl" />
-          <p className="text-gray-600 dark:text-gray-400 mt-4">
-            {content.loading}
-          </p>
+          <p className="text-gray-600 dark:text-gray-400 mt-4">{content.loading}</p>
         </div>
       </div>
     );
@@ -127,7 +116,7 @@ export default function WorkspacesListContent({
                 type="text"
                 placeholder="Search workspaces..."
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                onChange={event => setSearchQuery(event.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-card dark:text-foreground"
               />
             </div>
@@ -139,8 +128,8 @@ export default function WorkspacesListContent({
                   onClick={() => setShowSortMenu(!showSortMenu)}
                   className={`p-2 rounded-lg transition-colors ${
                     showSortMenu
-                      ? "bg-primary/10 dark:bg-primary/20 text-primary"
-                      : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      ? 'bg-primary/10 dark:bg-primary/20 text-primary'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                   } border border-gray-300 dark:border-gray-600`}
                   title="Sort options"
                 >
@@ -151,13 +140,13 @@ export default function WorkspacesListContent({
                     <button
                       type="button"
                       onClick={() => {
-                        setSortOption("favorites");
+                        setSortOption('favorites');
                         setShowSortMenu(false);
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                        sortOption === "favorites"
-                          ? "font-semibold text-primary"
-                          : "text-gray-700 dark:text-gray-300"
+                        sortOption === 'favorites'
+                          ? 'font-semibold text-primary'
+                          : 'text-gray-700 dark:text-gray-300'
                       }`}
                     >
                       Favorites First
@@ -165,13 +154,13 @@ export default function WorkspacesListContent({
                     <button
                       type="button"
                       onClick={() => {
-                        setSortOption("alphabetical");
+                        setSortOption('alphabetical');
                         setShowSortMenu(false);
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                        sortOption === "alphabetical"
-                          ? "font-semibold text-primary"
-                          : "text-gray-700 dark:text-gray-300"
+                        sortOption === 'alphabetical'
+                          ? 'font-semibold text-primary'
+                          : 'text-gray-700 dark:text-gray-300'
                       }`}
                     >
                       Alphabetical
@@ -179,13 +168,13 @@ export default function WorkspacesListContent({
                     <button
                       type="button"
                       onClick={() => {
-                        setSortOption("recent");
+                        setSortOption('recent');
                         setShowSortMenu(false);
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                        sortOption === "recent"
-                          ? "font-semibold text-primary"
-                          : "text-gray-700 dark:text-gray-300"
+                        sortOption === 'recent'
+                          ? 'font-semibold text-primary'
+                          : 'text-gray-700 dark:text-gray-300'
                       }`}
                     >
                       Recently Created
@@ -196,11 +185,11 @@ export default function WorkspacesListContent({
 
               <button
                 type="button"
-                onClick={() => setViewMode("grid")}
+                onClick={() => setViewMode('grid')}
                 className={`p-2 rounded-lg transition-colors ${
-                  viewMode === "grid"
-                    ? "bg-primary/10 dark:bg-primary/20 text-primary"
-                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  viewMode === 'grid'
+                    ? 'bg-primary/10 dark:bg-primary/20 text-primary'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 } border border-gray-300 dark:border-gray-600`}
                 title="Grid view"
               >
@@ -208,11 +197,11 @@ export default function WorkspacesListContent({
               </button>
               <button
                 type="button"
-                onClick={() => setViewMode("list")}
+                onClick={() => setViewMode('list')}
                 className={`p-2 rounded-lg transition-colors ${
-                  viewMode === "list"
-                    ? "bg-primary/10 dark:bg-primary/20 text-primary"
-                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  viewMode === 'list'
+                    ? 'bg-primary/10 dark:bg-primary/20 text-primary'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 } border border-gray-300 dark:border-gray-600`}
                 title="List view"
               >
@@ -249,15 +238,13 @@ export default function WorkspacesListContent({
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               No workspaces found
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Try adjusting your search query
-            </p>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">Try adjusting your search query</p>
           </div>
         ) : (
           <>
-            {viewMode === "grid" ? (
+            {viewMode === 'grid' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mb-8">
-                {filteredAndSortedWorkspaces.map((workspace) => (
+                {filteredAndSortedWorkspaces.map(workspace => (
                   <WorkspaceCard
                     key={workspace.id}
                     workspace={workspace}
@@ -289,7 +276,7 @@ export default function WorkspacesListContent({
                   </div>
 
                   <div className="divide-y divide-border">
-                    {filteredAndSortedWorkspaces.map((workspace) => (
+                    {filteredAndSortedWorkspaces.map(workspace => (
                       <button
                         key={workspace.id}
                         type="button"
@@ -303,17 +290,13 @@ export default function WorkspacesListContent({
                         </div>
 
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            You
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            Current member
-                          </p>
+                          <p className="truncate text-sm font-medium text-foreground">You</p>
+                          <p className="truncate text-xs text-muted-foreground">Current member</p>
                         </div>
 
                         <div>
                           <p className="text-sm font-medium text-foreground">
-                            {workspace.memberRole || "Workspace"}
+                            {workspace.memberRole || 'Workspace'}
                           </p>
                           {currentWorkspace?.id === workspace.id && (
                             <span className="mt-1 inline-flex rounded-md border border-emerald-500/70 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">

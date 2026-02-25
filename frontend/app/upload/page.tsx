@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { CheckCircle, CloudUpload, Delete, Error as ErrorIcon } from '@mui/icons-material';
@@ -7,7 +8,6 @@ import {
   Alert,
   Box,
   Button,
-  Checkbox,
   CircularProgress,
   Container,
   FormControl,
@@ -262,13 +262,7 @@ export default function UploadPage() {
 
         <FormControlLabel
           data-tour-id="allow-duplicates"
-          control={
-            <Checkbox
-              checked={allowDuplicates}
-              onChange={(_, checked) => setAllowDuplicates(checked)}
-              color="primary"
-            />
-          }
+          control={<Checkbox checked={allowDuplicates} onCheckedChange={setAllowDuplicates} />}
           label={t.allowDuplicates?.value ?? 'Разрешить загрузку дубликатов'}
           sx={{ mb: 1 }}
         />

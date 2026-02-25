@@ -1,5 +1,6 @@
 'use client';
 
+import { AppPagination } from '@/app/components/ui/pagination';
 import { Search as SearchIcon } from '@mui/icons-material';
 import {
   Box,
@@ -11,7 +12,6 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   TableRow,
   TextField,
 } from '@mui/material';
@@ -107,6 +107,7 @@ export default function TransactionsView({ transactions }: TransactionsViewProps
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage,
   );
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / rowsPerPage));
 
   const availableColumns: ColumnDef[] = useMemo(() => {
     const presentKeys = new Set<string>();
@@ -241,18 +242,6 @@ export default function TransactionsView({ transactions }: TransactionsViewProps
     return columns;
   }, [transactions, locale, t]);
 
-  const getLabelDisplayedRows = ({
-    from,
-    to,
-    count,
-  }: {
-    from: number;
-    to: number;
-    count: number;
-  }) => {
-    return `${from}-${to} ${t.pagination.of.value} ${count}`;
-  };
-
   return (
     <Box>
       {/* Search */}
@@ -302,19 +291,37 @@ export default function TransactionsView({ transactions }: TransactionsViewProps
             )}
           </TableBody>
         </Table>
-        <TablePagination
-          component="div"
-          count={filteredTransactions.length}
-          page={page}
-          onPageChange={(_, newPage) => setPage(newPage)}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={e => {
-            setRowsPerPage(Number.parseInt(e.target.value, 10));
-            setPage(0);
-          }}
-          labelRowsPerPage={t.pagination.rowsPerPage.value}
-          labelDisplayedRows={getLabelDisplayedRows}
-        />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-700">{t.pagination.rowsPerPage.value}:</span>
+            <select
+              value={rowsPerPage}
+              onChange={e => {
+                setRowsPerPage(Number.parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              className="rounded-md border border-gray-200 px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-700">
+              {filteredTransactions.length === 0
+                ? `0-0 ${t.pagination.of.value} 0`
+                : `${page * rowsPerPage + 1}-${Math.min((page + 1) * rowsPerPage, filteredTransactions.length)} ${t.pagination.of.value} ${filteredTransactions.length}`}
+            </span>
+            <AppPagination
+              page={page + 1}
+              total={totalPages}
+              onChange={nextPage => setPage(nextPage - 1)}
+            />
+          </div>
+        </div>
       </TableContainer>
     </Box>
   );

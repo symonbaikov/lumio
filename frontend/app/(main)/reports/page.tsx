@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
 import {
@@ -158,12 +159,12 @@ const InfoCard = ({
   const color =
     accent === 'green' ? 'text-emerald-600' : accent === 'red' ? 'text-red-600' : 'text-primary';
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <div className="rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 hover:shadow-sm">
       <div className="flex items-center justify-between">
-        <div className="text-xs uppercase tracking-wider text-gray-500">{title}</div>
+        <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{title}</div>
         {icon}
       </div>
-      <div className={`mt-2 text-lg font-semibold ${color}`}>{value}</div>
+      <div className={`mt-2 text-xl font-semibold tracking-tight ${color}`}>{value}</div>
     </div>
   );
 };
@@ -646,7 +647,7 @@ export default function ReportsPage() {
 
   return (
     <div
-      className="container-shared bg-white px-4 py-12 space-y-6 sm:px-6 lg:px-8"
+      className="container-shared px-4 py-12 space-y-6 sm:px-6 lg:px-8"
       {...pullToRefreshHandlers}
     >
       {isMobile && (pullDistance > 0 || pullRefreshing) ? (
@@ -670,19 +671,18 @@ export default function ReportsPage() {
         </div>
       ) : null}
 
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 flex flex-col md:flex-row md:items-center justify-start gap-4">
-        <div />
-
-        <div
-          className="-mx-1 flex items-center gap-6 overflow-x-auto px-1 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
+      <div className="mb-6 border-b border-gray-200">
+        <nav
+          className="-mb-px flex items-center gap-8 overflow-x-auto"
+          aria-label="Tabs"
           data-tour-id="reports-tabs"
         >
           <button
             onClick={() => setTab('sheets')}
-            className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
+            className={`whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors ${
               tab === 'sheets'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-primary'
+                ? 'border-primary text-primary font-semibold'
+                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
             }`}
             data-tour-id="reports-tab-sheets"
           >
@@ -690,10 +690,10 @@ export default function ReportsPage() {
           </button>
           <button
             onClick={() => setTab('local')}
-            className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
+            className={`whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors ${
               tab === 'local'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-primary'
+                ? 'border-primary text-primary font-semibold'
+                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
             }`}
             data-tour-id="reports-tab-local"
           >
@@ -701,10 +701,10 @@ export default function ReportsPage() {
           </button>
           <button
             onClick={() => setTab('statements')}
-            className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
+            className={`whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors ${
               tab === 'statements'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-primary'
+                ? 'border-primary text-primary font-semibold'
+                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
             }`}
             data-tour-id="reports-tab-statements"
           >
@@ -712,16 +712,16 @@ export default function ReportsPage() {
           </button>
           <button
             onClick={() => setTab('balance')}
-            className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
+            className={`whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors ${
               tab === 'balance'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-primary'
+                ? 'border-primary text-primary font-semibold'
+                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
             }`}
             data-tour-id="reports-tab-balance"
           >
             {(t.labels as any).tabBalance?.value ?? 'Баланс'}
           </button>
-        </div>
+        </nav>
       </div>
 
       {error && (
@@ -786,7 +786,7 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div
-              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5"
+              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
               data-tour-id="reports-sheets-trend"
             >
               <div className="flex items-center justify-between mb-2">
@@ -811,7 +811,7 @@ export default function ReportsPage() {
             </div>
 
             <div
-              className="rounded-lg border border-gray-200 bg-white p-5"
+              className="rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
               data-tour-id="reports-sheets-expense-categories"
             >
               <div className="flex items-center justify-between mb-2">
@@ -838,7 +838,7 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div
-              className="rounded-lg border border-gray-200 bg-white p-5"
+              className="rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
               data-tour-id="reports-sheets-income-counterparty"
             >
               <div className="flex items-center justify-between mb-2">
@@ -863,7 +863,7 @@ export default function ReportsPage() {
             </div>
 
             <div
-              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5"
+              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
               data-tour-id="reports-sheets-last-operations"
             >
               <div className="flex items-center justify-between mb-2">
@@ -931,7 +931,7 @@ export default function ReportsPage() {
           </div>
 
           <details
-            className="rounded-lg border border-gray-200 bg-white p-5"
+            className="rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
             data-tour-id="reports-local-tables"
           >
             <summary className="cursor-pointer select-none font-semibold text-gray-900">
@@ -967,17 +967,16 @@ export default function ReportsPage() {
               {customTables.map(t => {
                 const checked = selectedTableIds.includes(t.id);
                 return (
-                  <label
+                  <div
                     key={t.id}
                     className={`flex items-start gap-2 rounded-md border p-3 text-sm cursor-pointer ${
                       checked ? 'border-primary bg-primary/5' : 'border-gray-200 bg-white'
                     }`}
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       className="mt-0.5"
                       checked={checked}
-                      onChange={() => {
+                      onCheckedChange={() => {
                         setSelectedTableIds(prev =>
                           prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id],
                         );
@@ -989,7 +988,7 @@ export default function ReportsPage() {
                         <span className="block text-xs text-gray-500 mt-1">{t.description}</span>
                       ) : null}
                     </span>
-                  </label>
+                  </div>
                 );
               })}
               {!loadingLocalTables && localTablesLoaded && customTables.length === 0 && (
@@ -1035,7 +1034,7 @@ export default function ReportsPage() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div
-                  className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5"
+                  className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
                   data-tour-id="reports-local-trend"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -1060,7 +1059,7 @@ export default function ReportsPage() {
                 </div>
 
                 <div
-                  className="rounded-lg border border-gray-200 bg-white p-5"
+                  className="rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
                   data-tour-id="reports-local-expense-categories"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -1087,7 +1086,7 @@ export default function ReportsPage() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div
-                  className="rounded-lg border border-gray-200 bg-white p-5"
+                  className="rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
                   data-tour-id="reports-local-income-counterparty"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -1112,7 +1111,7 @@ export default function ReportsPage() {
                 </div>
 
                 <div
-                  className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5"
+                  className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
                   data-tour-id="reports-local-last-operations"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -1155,7 +1154,7 @@ export default function ReportsPage() {
               </div>
 
               {(localSummary?.tables || []).length > 0 && (
-                <div className="rounded-lg border border-gray-200 bg-white p-5">
+                <div className="rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-semibold text-gray-900">
                       {t.labels.tablesSummary}
@@ -1266,7 +1265,7 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div
-              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5"
+              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
               data-tour-id="reports-statements-uploads-trend"
             >
               <div className="flex items-center justify-between mb-2">
@@ -1289,7 +1288,7 @@ export default function ReportsPage() {
             </div>
 
             <div
-              className="rounded-lg border border-gray-200 bg-white p-5"
+              className="rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
               data-tour-id="reports-statements-banks"
             >
               <div className="flex items-center justify-between mb-2">
@@ -1314,7 +1313,7 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div
-              className="rounded-lg border border-gray-200 bg-white p-5"
+              className="rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
               data-tour-id="reports-statements-statuses"
             >
               <div className="flex items-center justify-between mb-2">
@@ -1337,7 +1336,7 @@ export default function ReportsPage() {
             </div>
 
             <div
-              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5"
+              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
               data-tour-id="reports-statements-latest-uploads"
             >
               <div className="flex items-center justify-between mb-2">

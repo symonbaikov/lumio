@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { CheckCircle2, Link2Off, Loader2, RefreshCcw, XCircle } from 'lucide-react';
@@ -288,16 +289,15 @@ export default function GmailIntegrationPage() {
 
                 {/* Filter Settings */}
                 <div className="space-y-2">
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
+                  <div className="inline-flex items-center gap-2">
+                    <Checkbox
                       checked={status.settings?.filterEnabled ?? true}
-                      onChange={e => updateSettings({ filterEnabled: e.target.checked })}
+                      onCheckedChange={checked => updateSettings({ filterEnabled: checked })}
                       disabled={saving}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
                     <span className="text-sm text-gray-700">{t.settings.filterEnabled.value}</span>
-                  </label>
+                  </div>
                 </div>
 
                 {/* Watch Status */}
@@ -344,15 +344,14 @@ export default function GmailIntegrationPage() {
 
                 {/* Has Attachment Filter */}
                 <div className="space-y-2">
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
+                  <div className="inline-flex items-center gap-2">
+                    <Checkbox
                       checked={status.settings?.filterConfig?.hasAttachment ?? true}
-                      onChange={e =>
+                      onCheckedChange={checked =>
                         updateSettings({
                           filterConfig: {
                             ...status.settings?.filterConfig,
-                            hasAttachment: e.target.checked,
+                            hasAttachment: checked,
                           },
                         })
                       }
@@ -360,7 +359,7 @@ export default function GmailIntegrationPage() {
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
                     <span className="text-sm text-gray-700">{t.settings.hasAttachment.value}</span>
-                  </label>
+                  </div>
                 </div>
               </div>
             </div>

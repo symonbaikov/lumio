@@ -6,6 +6,8 @@ import {
   hasGmailReceiptAmount,
 } from '@/app/(main)/statements/components/gmail-receipt-mapping';
 import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { AppPagination } from '@/app/components/ui/pagination';
 import { gmailReceiptsApi } from '@/app/lib/api';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
 import { Filter, RefreshCw, Search } from 'lucide-react';
@@ -420,14 +422,13 @@ export default function GmailReceiptsPage() {
           </div>
         ) : (
           <div className="space-y-3 p-4">
-            <div className="hidden md:flex items-center gap-3 px-1 text-xs font-medium uppercase tracking-wide text-gray-500">
+            <div className="hidden md:flex items-center gap-3 px-1 py-1 text-xs font-medium uppercase tracking-wide text-gray-500">
               <div className="w-4">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={
                     selectedReceipts.size === filteredReceipts.length && filteredReceipts.length > 0
                   }
-                  onChange={handleSelectAll}
+                  onCheckedChange={handleSelectAll}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
               </div>
@@ -518,32 +519,19 @@ export default function GmailReceiptsPage() {
       </div>
 
       <div className="mt-4 flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={() =>
-            setPagination(prev => ({ ...prev, offset: Math.max(0, prev.offset - prev.limit) }))
-          }
-          disabled={currentPage <= 1}
-          className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Previous
-        </button>
-        <span className="text-sm text-gray-600">
+        <span className="text-sm text-gray-600 min-w-[120px] text-center">
           Page {currentPage} of {totalPages}
         </span>
-        <button
-          type="button"
-          onClick={() =>
+        <AppPagination
+          page={currentPage}
+          total={totalPages}
+          onChange={nextPage =>
             setPagination(prev => ({
               ...prev,
-              offset: Math.min((totalPages - 1) * prev.limit, prev.offset + prev.limit),
+              offset: (nextPage - 1) * prev.limit,
             }))
           }
-          disabled={currentPage >= totalPages}
-          className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Next
-        </button>
+        />
       </div>
 
       {/* Receipt Detail Drawer */}

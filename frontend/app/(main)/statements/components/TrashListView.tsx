@@ -2,6 +2,8 @@
 
 import ConfirmModal from '@/app/components/ConfirmModal';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { AppPagination } from '@/app/components/ui/pagination';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import {
@@ -10,7 +12,7 @@ import {
   toggleStatementSelection,
 } from '@/app/lib/statement-selection';
 import { resolveBankLogo } from '@bank-logos';
-import { ChevronLeft, ChevronRight, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { RotateCcw, Search, Trash2 } from 'lucide-react';
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -175,7 +177,6 @@ export default function TrashListView({ onCountChange }: Props) {
   const [emptyConfirmOpen, setEmptyConfirmOpen] = useState(false);
   const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([]);
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const selectAllRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -249,11 +250,6 @@ export default function TrashListView({ onCountChange }: Props) {
     const visibleSet = new Set(filteredFiles.map(file => file.id));
     setSelectedIds(prev => prev.filter(id => visibleSet.has(id)));
   }, [filteredFiles]);
-
-  useEffect(() => {
-    if (!selectAllRef.current) return;
-    selectAllRef.current.indeterminate = selectedIds.length > 0 && !allVisibleSelected;
-  }, [selectedIds.length, allVisibleSelected]);
 
   const selectedCount = selectedIds.length;
   const rangeStart = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
@@ -476,13 +472,11 @@ export default function TrashListView({ onCountChange }: Props) {
           <>
             <div className="space-y-3">
               <div className="flex items-center gap-2 px-4 md:hidden">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={allVisibleSelected}
-                  onChange={event =>
-                    setSelectedIds(prev =>
-                      toggleSelectAllVisible(prev, visibleIds, event.target.checked),
-                    )
+                  indeterminate={selectedIds.length > 0 && !allVisibleSelected}
+                  onCheckedChange={checked =>
+                    setSelectedIds(prev => toggleSelectAllVisible(prev, visibleIds, checked))
                   }
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   aria-label={labels.selectAll}
@@ -492,14 +486,11 @@ export default function TrashListView({ onCountChange }: Props) {
 
               <div className="hidden items-center gap-3 px-4 text-xs font-medium uppercase tracking-wide text-gray-500 md:flex">
                 <div className="w-4">
-                  <input
-                    ref={selectAllRef}
-                    type="checkbox"
+                  <Checkbox
                     checked={allVisibleSelected}
-                    onChange={event =>
-                      setSelectedIds(prev =>
-                        toggleSelectAllVisible(prev, visibleIds, event.target.checked),
-                      )
+                    indeterminate={selectedIds.length > 0 && !allVisibleSelected}
+                    onCheckedChange={checked =>
+                      setSelectedIds(prev => toggleSelectAllVisible(prev, visibleIds, checked))
                     }
                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     aria-label={labels.selectAll}
@@ -545,27 +536,10 @@ export default function TrashListView({ onCountChange }: Props) {
             <div className="mt-6 flex flex-col items-center justify-between gap-4 md:flex-row">
               <div className="text-sm text-gray-500">{shownLabel}</div>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                  className="inline-flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-500 disabled:opacity-50"
-                  disabled={currentPage <= 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  {labels.paginationPrevious}
-                </button>
-
-                <span className="text-sm text-gray-600">{pageOfLabel}</span>
-
-                <button
-                  type="button"
-                  onClick={() => setPage(prev => Math.min(totalPagesCount, prev + 1))}
-                  className="inline-flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-500 disabled:opacity-50"
-                  disabled={currentPage >= totalPagesCount}
-                >
-                  {labels.paginationNext}
-                  <ChevronRight className="h-4 w-4" />
-                </button>
+                <span className="text-sm text-gray-600 min-w-[120px] text-center">
+                  {pageOfLabel}
+                </span>
+                <AppPagination page={currentPage} total={totalPagesCount} onChange={setPage} />
               </div>
             </div>
           </>

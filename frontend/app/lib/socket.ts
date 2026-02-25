@@ -1,4 +1,4 @@
-import { io, type Socket } from 'socket.io-client';
+import { type Socket, io } from 'socket.io-client';
 
 let notificationsSocket: Socket | null = null;
 

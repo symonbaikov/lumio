@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { getPickerDocName, pickDriveFolder } from '@/app/lib/googleDrivePicker';
@@ -282,18 +283,17 @@ export default function GoogleDriveIntegrationPage() {
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">{t.settings.syncEnabled}</p>
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    type="checkbox"
+                <div className="inline-flex items-center gap-2">
+                  <Checkbox
                     checked={status?.settings?.syncEnabled ?? true}
-                    onChange={e => updateSettings({ syncEnabled: e.target.checked })}
+                    onCheckedChange={checked => updateSettings({ syncEnabled: checked })}
                     disabled={!status?.connected || saving}
                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
                   <span className="text-sm text-gray-700">
                     {status?.settings?.syncEnabled ? t.status.connected : t.status.disconnected}
                   </span>
-                </label>
+                </div>
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">{t.settings.syncTime}</p>

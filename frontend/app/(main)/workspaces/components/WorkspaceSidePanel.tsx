@@ -24,15 +24,10 @@ export default function WorkspaceSidePanel({
 
     return {
       pageId: 'workspace-tabs',
-      header: {
-        title: 'Workspace',
-        subtitle: currentWorkspace?.name ?? 'Management',
-      },
       sections: [
         {
           id: 'workspace-tabs',
           type: 'navigation',
-          title: 'Settings',
           items: tabItems.map(item => ({
             ...item,
             icon: item.id === 'overview' ? Building2 : item.id === 'members' ? Users : FolderOpen,
@@ -54,13 +49,7 @@ export default function WorkspaceSidePanel({
         },
       ],
     };
-  }, [
-    activeItem,
-    currentWorkspace?.name,
-    currentWorkspace?.stats?.memberCount,
-    isAllWorkspacesOpen,
-    onOpenAllWorkspaces,
-  ]);
+  }, [activeItem, currentWorkspace?.stats?.memberCount, isAllWorkspacesOpen, onOpenAllWorkspaces]);
 
   useSidePanelConfig({ config: sidePanelConfig, autoRegister: true });
 

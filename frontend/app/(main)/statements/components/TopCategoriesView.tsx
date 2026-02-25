@@ -13,9 +13,9 @@ import {
   saveStatementFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
 import { Button } from '@/app/components/ui/button';
+import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import apiClient from '@/app/lib/api';
 import { type TopCategoriesReport, fetchTopCategoriesReport } from '@/app/lib/top-categories-api';
-import { cn } from '@/app/lib/utils';
 import { ChevronDown, Download, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -353,18 +353,10 @@ export default function TopCategoriesView() {
             onApply={() => applyAndClose(() => setTypeDropdownOpen(false))}
             onReset={() => resetAndClose('type', () => setTypeDropdownOpen(false))}
             trigger={
-              <button
-                type="button"
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
-                  draftFilters.type
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
-                )}
-              >
+              <FilterChipButton active={Boolean(draftFilters.type)}>
                 {draftFilters.type || 'Type'}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel="Apply"
             resetLabel="Reset"
@@ -379,19 +371,11 @@ export default function TopCategoriesView() {
             onApply={() => applyAndClose(() => setStatusDropdownOpen(false))}
             onReset={() => resetAndClose('statuses', () => setStatusDropdownOpen(false))}
             trigger={
-              <button
-                type="button"
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
-                  draftFilters.statuses.length > 0
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
-                )}
-              >
+              <FilterChipButton active={draftFilters.statuses.length > 0}>
                 Status
                 {draftFilters.statuses.length > 0 ? ` (${draftFilters.statuses.length})` : ''}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel="Apply"
             resetLabel="Reset"
@@ -407,18 +391,10 @@ export default function TopCategoriesView() {
             onApply={() => applyAndClose(() => setDateDropdownOpen(false))}
             onReset={() => resetAndClose('date', () => setDateDropdownOpen(false))}
             trigger={
-              <button
-                type="button"
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
-                  draftFilters.date
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
-                )}
-              >
+              <FilterChipButton active={Boolean(draftFilters.date)}>
                 Date
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel="Apply"
             resetLabel="Reset"
@@ -433,19 +409,11 @@ export default function TopCategoriesView() {
             onApply={() => applyAndClose(() => setFromDropdownOpen(false))}
             onReset={() => resetAndClose('from', () => setFromDropdownOpen(false))}
             trigger={
-              <button
-                type="button"
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
-                  draftFilters.from.length > 0
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
-                )}
-              >
+              <FilterChipButton active={draftFilters.from.length > 0}>
                 Companies
                 {draftFilters.from.length > 0 ? ` (${draftFilters.from.length})` : ''}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel="Apply"
             resetLabel="Reset"

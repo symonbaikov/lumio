@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { Icon } from '@iconify/react';
@@ -461,18 +462,13 @@ export default function GoogleSheetsImportPage() {
               )}
             </label>
 
-            <label
+            <div
               className="flex items-center gap-2 text-sm text-gray-700 mb-4"
               data-tour-id="gs-import-import-data"
             >
-              <input
-                type="checkbox"
-                checked={importData}
-                onChange={e => setImportData(e.target.checked)}
-                className="h-5 w-5"
-              />
+              <Checkbox checked={importData} onCheckedChange={setImportData} className="h-5 w-5" />
               {t.result.importDataCheckbox}
-            </label>
+            </div>
 
             <button
               onClick={handleCommit}
@@ -640,13 +636,12 @@ export default function GoogleSheetsImportPage() {
                     {columns.map(c => (
                       <tr key={c.index} className="border-b border-gray-100 last:border-0">
                         <td className="px-3 py-2">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={c.include}
-                            onChange={e =>
+                            onCheckedChange={checked =>
                               setColumns(prev =>
                                 prev.map(x =>
-                                  x.index === c.index ? { ...x, include: e.target.checked } : x,
+                                  x.index === c.index ? { ...x, include: checked } : x,
                                 ),
                               )
                             }

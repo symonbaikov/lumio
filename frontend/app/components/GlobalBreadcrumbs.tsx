@@ -5,6 +5,10 @@ import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 import Breadcrumbs from './Breadcrumbs';
 
+interface GlobalBreadcrumbsProps {
+  variant?: 'topbar' | 'sidepanel';
+}
+
 const HIDDEN_PATHS = new Set<string>([
   '/login',
   '/register',
@@ -36,7 +40,7 @@ const resolveLabel = (value: unknown, fallback: string) => {
   return fallback;
 };
 
-export default function GlobalBreadcrumbs() {
+export default function GlobalBreadcrumbs({ variant = 'topbar' }: GlobalBreadcrumbsProps) {
   const pathname = usePathname() || '/';
   const { labels } = useIntlayer('breadcrumbs') as {
     labels: Record<string, unknown>;
@@ -61,9 +65,13 @@ export default function GlobalBreadcrumbs() {
 
   if (!items.length) return null;
 
+  if (variant === 'sidepanel') {
+    return <Breadcrumbs items={items} />;
+  }
+
   return (
-    <div data-global-breadcrumbs className="bg-card border-b border-border shadow-sm">
-      <div className="container-shared px-4 sm:px-6 lg:px-8 py-3">
+    <div data-global-breadcrumbs className="bg-transparent">
+      <div className="container-shared px-4 py-2 sm:px-6 lg:px-8">
         <Breadcrumbs items={items} />
       </div>
     </div>

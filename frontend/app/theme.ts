@@ -1,4 +1,4 @@
-import { alpha, type ThemeOptions, createTheme } from '@mui/material/styles';
+import { type ThemeOptions, alpha, createTheme } from '@mui/material/styles';
 import { getAppSurfaceTokens } from './mantine-theme';
 
 export type ThemeMode = 'light' | 'dark';

@@ -13,6 +13,7 @@ import {
   resetSingleStatementFilter,
 } from '@/app/(main)/statements/components/filters/statement-filters';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
+import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient, { gmailReceiptsApi } from '@/app/lib/api';
@@ -331,10 +332,6 @@ export default function TopSpendersView() {
     hasCurrency: resolveLabel((t as any)?.filters?.hasCurrency, 'Currency'),
   };
 
-  const filterChipClassName =
-    'inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[13px] font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary';
-  const filterChipActiveClassName =
-    'inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[13px] font-medium text-primary';
   const filterLinkClassName =
     'inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-primary';
 
@@ -856,16 +853,13 @@ export default function TopSpendersView() {
             onApply={() => applyAndClose(() => setTypeDropdownOpen(false))}
             onReset={() => resetAndClose('type', () => setTypeDropdownOpen(false))}
             trigger={
-              <button
-                type="button"
-                className={draftFilters.type ? filterChipActiveClassName : filterChipClassName}
-              >
+              <FilterChipButton active={Boolean(draftFilters.type)}>
                 {draftFilters.type
                   ? typeOptions.find(option => option.value === draftFilters.type)?.label ||
                     labels.type
                   : labels.type}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel={labels.apply}
             resetLabel={labels.reset}
@@ -880,17 +874,12 @@ export default function TopSpendersView() {
             onApply={() => applyAndClose(() => setStatusDropdownOpen(false))}
             onReset={() => resetAndClose('statuses', () => setStatusDropdownOpen(false))}
             trigger={
-              <button
-                type="button"
-                className={
-                  draftFilters.statuses.length > 0 ? filterChipActiveClassName : filterChipClassName
-                }
-              >
+              <FilterChipButton active={draftFilters.statuses.length > 0}>
                 {draftFilters.statuses.length > 0
                   ? `${labels.status} (${draftFilters.statuses.length})`
                   : labels.status}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel={labels.apply}
             resetLabel={labels.reset}
@@ -906,17 +895,14 @@ export default function TopSpendersView() {
             onApply={() => applyAndClose(() => setDateDropdownOpen(false))}
             onReset={() => resetAndClose('date', () => setDateDropdownOpen(false))}
             trigger={
-              <button
-                type="button"
-                className={draftFilters.date ? filterChipActiveClassName : filterChipClassName}
-              >
+              <FilterChipButton active={Boolean(draftFilters.date)}>
                 {draftFilters.date?.preset
                   ? datePresets.find(option => option.value === draftFilters.date?.preset)?.label
                   : draftFilters.date?.mode
                     ? dateModes.find(option => option.value === draftFilters.date?.mode)?.label
                     : labels.date}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel={labels.apply}
             resetLabel={labels.reset}
@@ -931,17 +917,12 @@ export default function TopSpendersView() {
             onApply={() => applyAndClose(() => setFromDropdownOpen(false))}
             onReset={() => resetAndClose('from', () => setFromDropdownOpen(false))}
             trigger={
-              <button
-                type="button"
-                className={
-                  draftFilters.from.length > 0 ? filterChipActiveClassName : filterChipClassName
-                }
-              >
+              <FilterChipButton active={draftFilters.from.length > 0}>
                 {draftFilters.from.length > 0
                   ? `${labels.from} (${draftFilters.from.length})`
                   : labels.from}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </FilterChipButton>
             }
             applyLabel={labels.apply}
             resetLabel={labels.reset}

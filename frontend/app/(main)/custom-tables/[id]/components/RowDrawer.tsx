@@ -2,6 +2,7 @@
 
 import { AuditEventDrawer } from '@/app/audit/components/AuditEventDrawer';
 import { EntityHistoryTimeline } from '@/app/audit/components/EntityHistoryTimeline';
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import type { AuditEvent } from '@/lib/api/audit';
 import { fetchEntityHistory } from '@/lib/api/audit';
@@ -241,20 +242,19 @@ export function RowDrawer({
                       {formatValue(col.type, value)}
                     </div>
                   ) : col.type === 'boolean' ? (
-                    <label className="mt-3 inline-flex items-center gap-2 text-sm text-gray-800">
-                      <input
-                        type="checkbox"
+                    <div className="mt-3 inline-flex items-center gap-2 text-sm text-gray-800">
+                      <Checkbox
                         checked={Boolean(value)}
-                        onChange={e =>
+                        onCheckedChange={checked =>
                           setDraft(prev => ({
                             ...prev,
-                            [col.key]: e.target.checked,
+                            [col.key]: checked,
                           }))
                         }
                         className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20"
                       />
                       <span>{value ? 'Yes' : 'No'}</span>
-                    </label>
+                    </div>
                   ) : col.type === 'number' ? (
                     <input
                       type="number"
@@ -303,16 +303,15 @@ export function RowDrawer({
                       {options.map(opt => {
                         const selected = Array.isArray(value) && value.includes(opt);
                         return (
-                          <label
+                          <div
                             key={opt}
                             className="inline-flex items-center gap-2 text-sm text-gray-800"
                           >
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={selected}
-                              onChange={e => {
+                              onCheckedChange={checked => {
                                 const next = Array.isArray(value) ? [...value] : [];
-                                const updated = e.target.checked
+                                const updated = checked
                                   ? Array.from(new Set([...next, opt]))
                                   : next.filter(v => v !== opt);
                                 setDraft(prev => ({
@@ -323,7 +322,7 @@ export function RowDrawer({
                               className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20"
                             />
                             <span>{opt}</span>
-                          </label>
+                          </div>
                         );
                       })}
                     </div>

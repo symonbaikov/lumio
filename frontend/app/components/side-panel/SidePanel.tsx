@@ -60,6 +60,7 @@ export function SidePanel({
   loading = false,
   error = null,
   onRetry,
+  topContent,
 }: SidePanelProps) {
   const context = useSidePanel();
 
@@ -142,7 +143,7 @@ export function SidePanel({
               type="button"
               onClick={handleToggleCollapsed}
               className={cn(
-                'p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100',
+                'p-2 rounded-[12px] text-gray-500 hover:text-gray-700 hover:bg-gray-100',
                 'dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800',
                 'transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20',
               )}
@@ -154,26 +155,27 @@ export function SidePanel({
         </div>
       ) : (
         <>
+          {topContent ? (
+            <div className="shrink-0 border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+              {topContent}
+            </div>
+          ) : null}
+
           {/* Header */}
           {(config?.header || showCollapseToggle) && (
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
+            <div className="flex items-center justify-between px-6 pt-5 pb-2 shrink-0">
               {config?.header && (
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   {config.header.icon && (
-                    <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                    <div className="p-2 rounded-[12px] bg-primary/10 shrink-0">
                       <RenderIcon icon={config.header.icon} size={18} className="text-primary" />
                     </div>
                   )}
                   <div className="min-w-0">
                     {config.header.title && (
-                      <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                      <h2 className="text-[18px] font-medium text-gray-900 dark:text-gray-100 truncate">
                         {config.header.title}
                       </h2>
-                    )}
-                    {config.header.subtitle && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {config.header.subtitle}
-                      </p>
                     )}
                   </div>
                 </div>
@@ -189,7 +191,7 @@ export function SidePanel({
                     disabled={action.disabled || action.loading}
                     title={action.tooltip || action.label}
                     className={cn(
-                      'p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100',
+                      'p-2 rounded-[12px] text-gray-500 hover:text-gray-700 hover:bg-gray-100',
                       'dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800',
                       'transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20',
                       'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -209,7 +211,7 @@ export function SidePanel({
                     type="button"
                     onClick={handleToggleCollapsed}
                     className={cn(
-                      'p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100',
+                      'p-2 rounded-[12px] text-gray-500 hover:text-gray-700 hover:bg-gray-100',
                       'dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800',
                       'transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20',
                     )}
@@ -227,7 +229,7 @@ export function SidePanel({
           )}
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {loading ? (
               <div className="flex flex-col items-center justify-center h-full py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
@@ -245,7 +247,7 @@ export function SidePanel({
                     type="button"
                     onClick={onRetry}
                     className={cn(
-                      'inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg',
+                      'inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-[12px]',
                       'text-primary bg-primary/10 hover:bg-primary/20 transition-colors',
                       'focus:outline-none focus:ring-2 focus:ring-primary/20',
                     )}
@@ -270,7 +272,7 @@ export function SidePanel({
 
           {/* Footer */}
           {config?.footer && (
-            <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 shrink-0 overflow-visible">
+            <div className="px-4 py-3 shrink-0 overflow-visible">
               {config.footer.content}
               {config.footer.actions && config.footer.actions.length > 0 && (
                 <div className="flex items-center gap-2 mt-2">
@@ -281,7 +283,7 @@ export function SidePanel({
                       onClick={action.onClick}
                       disabled={action.disabled || action.loading}
                       className={cn(
-                        'flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg',
+                        'flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-[14px]',
                         'transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20',
                         'disabled:opacity-50 disabled:cursor-not-allowed',
                         action.variant === 'primary'

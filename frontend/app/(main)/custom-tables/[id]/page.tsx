@@ -1,6 +1,7 @@
 'use client';
 
 import ConfirmModal from '@/app/components/ConfirmModal';
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { ModalFooter, ModalShell } from '@/app/components/ui/modal-shell';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
@@ -2337,7 +2338,7 @@ export default function CustomTableDetailPage() {
           ? `h-screen w-screen bg-white ${isPrintMode ? 'overflow-visible' : 'overflow-hidden'}`
           : 'container-shared px-4 sm:px-6 lg:px-8 py-8'
       }
-      style={isFullscreen ? { paddingTop: isPrintMode ? '0' : '150px' } : undefined}
+      style={isFullscreen ? { paddingTop: isPrintMode ? '0' : '80px' } : undefined}
     >
       <div
         className={
@@ -2481,19 +2482,18 @@ export default function CustomTableDetailPage() {
                     const isHidden = hiddenColumnKeys.includes(col.key);
                     return (
                       <li key={col.key} className="list-none">
-                        <label
+                        <div
                           className={`flex cursor-pointer items-center justify-between gap-3 px-4 py-3 text-sm transition-colors sm:px-5 sm:py-3.5 sm:text-base ${
                             isHidden ? 'text-gray-400' : 'text-gray-800 hover:bg-gray-50'
                           }`}
                         >
                           <span className="truncate font-medium">{col.title || col.key}</span>
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={!isHidden}
-                            onChange={() => toggleColumnHidden(col.key)}
+                            onCheckedChange={() => toggleColumnHidden(col.key)}
                             className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20 sm:h-5 sm:w-5"
                           />
-                        </label>
+                        </div>
                       </li>
                     );
                   })}
@@ -2725,15 +2725,14 @@ export default function CustomTableDetailPage() {
                 : (t as any).paste.titleFallback.value}
             </span>
             {pastePreview?.hasHeadersToggle && (
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 cursor-pointer transition-colors bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
-                <input
-                  type="checkbox"
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 cursor-pointer transition-colors bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
+                <Checkbox
                   checked={pasteUseHeaders}
-                  onChange={event => handlePasteHeadersToggle(event.target.checked)}
+                  onCheckedChange={handlePasteHeadersToggle}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20"
                 />
                 <span>{(t as any).paste.headersToggle.value}</span>
-              </label>
+              </div>
             )}
           </div>
         }

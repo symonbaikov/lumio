@@ -2,6 +2,7 @@
 
 import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
 import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { RotateCcw, Trash2 } from 'lucide-react';
 import type React from 'react';
 
@@ -43,10 +44,9 @@ export function TrashListItem({
     <div className="relative rounded-lg border border-gray-200 bg-white p-4 transition hover:border-primary/30">
       <div className="relative z-10 flex items-center gap-3">
         <div className="w-4">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={selected}
-            onChange={onToggleSelect}
+            onCheckedChange={onToggleSelect}
             className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
           />
         </div>

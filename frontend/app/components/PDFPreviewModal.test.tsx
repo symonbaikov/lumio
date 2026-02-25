@@ -69,10 +69,14 @@ describe('PDFPreviewModal manual attach flow', () => {
   });
 
   it('offers parsing prompt after successful file attach and starts replace parsing', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce({ ok: false, status: 404 })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'statement-1' }) })
-      .mockResolvedValueOnce({ ok: true, blob: async () => new Blob(['%PDF-1.4'], { type: 'application/pdf' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        blob: async () => new Blob(['%PDF-1.4'], { type: 'application/pdf' }),
+      })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'statement-1' }) });
     vi.stubGlobal('fetch', fetchMock);
 

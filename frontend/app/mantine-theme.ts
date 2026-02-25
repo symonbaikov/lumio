@@ -1,8 +1,4 @@
-import {
-  createTheme,
-  type CSSVariablesResolver,
-  type MantineColorsTuple,
-} from '@mantine/core';
+import { type CSSVariablesResolver, type MantineColorsTuple, createTheme } from '@mantine/core';
 
 export type AppThemeMode = 'light' | 'dark';
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/app/components/ui/checkbox';
 import type { Column, Table } from '@tanstack/react-table';
 import { type CSSProperties } from 'react';
 import type { CustomTableGridRow } from '../../utils/stylingUtils';
@@ -22,8 +23,7 @@ export function EditableBooleanCell({
   const value = row.original.data[column.id];
   const checked = Boolean(value);
 
-  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.checked;
+  const handleChange = async (newValue: boolean) => {
     try {
       await onUpdateCell(row.original.id, column.id, newValue);
     } catch (error) {
@@ -33,10 +33,9 @@ export function EditableBooleanCell({
 
   return (
     <div className="w-full h-full flex items-center justify-center px-2 py-1" style={style}>
-      <input
-        type="checkbox"
+      <Checkbox
         checked={checked}
-        onChange={handleChange}
+        onCheckedChange={handleChange}
         className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
       />
     </div>

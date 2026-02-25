@@ -56,4 +56,22 @@ describe('SidePanel navigation styles', () => {
     expect(activeIconWrapper?.className).not.toContain('bg-white');
     expect(activeIconWrapper?.className).not.toContain('bg-gray-100');
   });
+
+  it('adds left inset to navigation rows to align with header logo axis', async () => {
+    const container = document.createElement('div');
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SidePanelProvider>
+          <SidePanel config={config} showCollapseToggle={false} />
+        </SidePanelProvider>,
+      );
+    });
+
+    const firstNavButton = container.querySelector('button');
+
+    expect(firstNavButton).toBeTruthy();
+    expect(firstNavButton?.className).toContain('px-4');
+  });
 });
