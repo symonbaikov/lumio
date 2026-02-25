@@ -36,6 +36,7 @@ export interface NavigationItem {
   icon?: LucideIcon | ReactNode;
   badge?: string | number;
   badgeVariant?: 'default' | 'primary' | 'success' | 'warning' | 'error';
+  emphasis?: 'default' | 'high' | 'low';
   disabled?: boolean;
   active?: boolean;
   children?: NavigationItem[];
@@ -138,6 +139,8 @@ export interface SidePanelSectionBase {
   id: string;
   title?: string;
   icon?: LucideIcon | ReactNode;
+  titleClassName?: string;
+  contentClassName?: string;
   collapsible?: boolean;
   defaultCollapsed?: boolean;
   hidden?: boolean;
@@ -285,6 +288,8 @@ export interface SidePanelProps {
   error?: string | null;
   /** Callback for retry on error */
   onRetry?: () => void;
+  /** Optional content rendered above panel header */
+  topContent?: ReactNode;
 }
 
 // ============================================================================
@@ -343,9 +348,9 @@ export interface SidePanelProviderProps {
 /** Width values in pixels */
 export const WIDTH_VALUES: Record<Exclude<SidePanelWidth, number>, number> = {
   sm: 240,
-  md: 320,
-  lg: 400,
-  xl: 480,
+  md: 260,
+  lg: 320,
+  xl: 400,
 };
 
 /** Get width value in pixels */

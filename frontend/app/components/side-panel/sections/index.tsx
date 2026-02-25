@@ -83,21 +83,18 @@ function SectionWrapper({
   if (section.hidden) return null;
 
   return (
-    <div
-      className={cn(
-        'border-b border-gray-100 dark:border-gray-800 last:border-b-0',
-        section.className,
-      )}
-    >
+    <div className={cn('mb-1', section.className)}>
       {section.title && (
         <button
           type="button"
           onClick={() => section.collapsible && toggleSection(section.id)}
           disabled={!section.collapsible}
           className={cn(
-            'w-full flex items-center justify-between px-4 py-3',
-            'text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400',
-            section.collapsible && 'hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer',
+            'w-full flex items-center justify-between px-4 py-2 mt-3 first:mt-1',
+            'text-[14px] font-normal text-gray-400 dark:text-gray-500',
+            section.titleClassName,
+            section.collapsible &&
+              'hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer rounded-xl',
           )}
         >
           <div className="flex items-center gap-2">
@@ -118,7 +115,9 @@ function SectionWrapper({
           isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100',
         )}
       >
-        <div className={cn('px-4 pb-4', !section.title && 'pt-4')}>{children}</div>
+        <div className={cn('px-4 pb-3', !section.title && 'pt-3', section.contentClassName)}>
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -131,6 +130,9 @@ function SectionWrapper({
 function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; depth?: number }) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const hasChildren = item.children && item.children.length > 0;
+  const emphasis = item.emphasis || 'default';
+  const isHighEmphasis = emphasis === 'high';
+  const isLowEmphasis = emphasis === 'low';
 
   const content = (
     <>
@@ -139,7 +141,17 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
           <span
             className={cn(
               'flex h-9 w-9 items-center justify-center transition-colors',
-              item.active ? 'text-primary' : 'text-gray-500 dark:text-gray-400',
+              isHighEmphasis
+                ? item.active
+                  ? 'text-primary'
+                  : 'text-gray-700 dark:text-gray-200'
+                : isLowEmphasis
+                  ? item.active
+                    ? 'text-gray-500 dark:text-gray-300'
+                    : 'text-gray-400 dark:text-gray-500'
+                  : item.active
+                    ? 'text-primary'
+                    : 'text-gray-500 dark:text-gray-400',
             )}
           >
             <RenderIcon icon={item.icon} size={20} className="shrink-0" />
@@ -169,12 +181,20 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
   );
 
   const baseClasses = cn(
-    'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
+    'w-full flex items-center justify-between gap-2 px-4 py-2.5 my-0.5 rounded-[14px] text-sm transition-all duration-200',
     'focus:outline-none focus-visible:ring-0',
     item.disabled && 'opacity-50 cursor-not-allowed',
     item.active
-      ? 'text-gray-900 font-semibold'
-      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
+      ? isHighEmphasis
+        ? 'text-gray-900 font-semibold bg-primary/10 ring-1 ring-primary/20 dark:bg-primary/20 dark:text-gray-100'
+        : isLowEmphasis
+          ? 'text-gray-700 font-medium bg-gray-100/40 dark:bg-gray-800/40 dark:text-gray-200'
+          : 'text-gray-900 font-medium bg-gray-100/50 dark:bg-gray-800/50 dark:text-gray-100'
+      : isHighEmphasis
+        ? 'text-gray-700 font-semibold hover:bg-primary/5 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-primary/10 dark:hover:text-gray-100'
+        : isLowEmphasis
+          ? 'text-gray-500 dark:text-gray-400 hover:bg-gray-50/70 hover:text-gray-700 dark:hover:bg-gray-800/40 dark:hover:text-gray-200'
+          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-gray-800/50 dark:hover:text-gray-100',
     depth > 0 && 'ml-6',
   );
 
@@ -301,7 +321,7 @@ function SummaryItemComponent({ item }: { item: SummaryItem }) {
   }, [item]);
 
   return (
-    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+    <div className="p-3 rounded-[14px] bg-gray-50 dark:bg-gray-800/50">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{item.label}</p>
@@ -331,7 +351,7 @@ function SummaryItemComponent({ item }: { item: SummaryItem }) {
           )}
         </div>
         {item.icon && (
-          <div className="p-2 rounded-lg bg-primary/10">
+          <div className="p-2 rounded-[12px] bg-primary/10">
             <RenderIcon icon={item.icon} size={16} className="text-primary" />
           </div>
         )}
@@ -478,7 +498,7 @@ function ActionItemComponent({ item }: { item: ActionItem }) {
       disabled={item.disabled || item.loading}
       title={item.tooltip}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors',
+        'inline-flex items-center justify-center gap-2 rounded-[14px] font-medium transition-colors',
         'focus:outline-none focus:ring-2 focus:ring-primary/20',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         ACTION_VARIANTS[item.variant || 'secondary'],
@@ -582,7 +602,7 @@ function SettingsSelectComponent({ item }: { item: SettingsSelectItem }) {
         onChange={e => item.onChange(e.target.value)}
         disabled={item.disabled}
         className={cn(
-          'w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700',
+          'w-full px-3 py-2 text-sm rounded-[14px] border border-gray-200 dark:border-gray-700',
           'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
           'focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary',
           'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -643,7 +663,7 @@ function ErrorItemComponent({ item }: { item: ErrorItem }) {
   const IconComponent = ERROR_ICONS[item.severity];
 
   return (
-    <div className={cn('p-3 rounded-lg border', ERROR_COLORS[item.severity])}>
+    <div className={cn('p-3 rounded-[14px] border', ERROR_COLORS[item.severity])}>
       <div className="flex items-start gap-3">
         <IconComponent
           size={18}

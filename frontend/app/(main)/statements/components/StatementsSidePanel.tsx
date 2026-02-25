@@ -291,25 +291,31 @@ export default function StatementsSidePanel({ activeItem }: Props) {
     router.push('/integrations/gmail');
   }, [connectedCloudProviders.gmailConnected, navigateToSubmit, router]);
 
-  const sidePanelConfig = useMemo<SidePanelPageConfig>(
-    () => ({
+  const sidePanelConfig = useMemo<SidePanelPageConfig>(() => {
+    const workQueueTitle =
+      (t as any)?.sidePanel?.workQueueTitle?.value ??
+      (t as any)?.sidePanel?.todoTitle?.value ??
+      'Work queue';
+    const getQueueBadgeVariant = (count: number) => (count > 0 ? 'primary' : 'default');
+
+    return {
       pageId: 'statements',
-      header: {
-        title: 'Statements',
-        subtitle: 'Overview',
-      },
       sections: [
         {
-          id: 'todo',
+          id: 'work-queue',
           type: 'navigation',
-          title: (t as any)?.sidePanel?.todoTitle?.value ?? 'To-do',
+          title: workQueueTitle,
+          titleClassName:
+            'text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-600 dark:text-gray-300',
+          className: 'rounded-2xl border border-gray-100 bg-[#f7f9fb] px-1 pt-1',
           items: [
             {
               id: 'submit',
               label: (t as any)?.sidePanel?.submit?.value ?? 'Submit',
               icon: Send,
               badge: counts.submit,
-              badgeVariant: 'default',
+              badgeVariant: getQueueBadgeVariant(counts.submit),
+              emphasis: 'high',
               active: activeItem === 'submit',
               href: '/statements/submit',
             },
@@ -318,7 +324,8 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               label: (t as any)?.sidePanel?.approve?.value ?? 'Approve',
               icon: ThumbsUp,
               badge: counts.approve,
-              badgeVariant: 'default',
+              badgeVariant: getQueueBadgeVariant(counts.approve),
+              emphasis: 'high',
               active: activeItem === 'approve',
               href: '/statements/approve',
             },
@@ -327,7 +334,8 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               label: (t as any)?.sidePanel?.pay?.value ?? 'Pay',
               icon: Banknote,
               badge: counts.pay,
-              badgeVariant: 'default',
+              badgeVariant: getQueueBadgeVariant(counts.pay),
+              emphasis: 'high',
               active: activeItem === 'pay',
               href: '/statements/pay',
             },
@@ -337,6 +345,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
           id: 'accounting',
           type: 'navigation',
           title: (t as any)?.sidePanel?.accountingTitle?.value ?? 'Accounting',
+          titleClassName: 'text-[13px] font-medium text-gray-400 dark:text-gray-500',
           items: [
             {
               id: 'unapproved-cash',
@@ -349,11 +358,13 @@ export default function StatementsSidePanel({ activeItem }: Props) {
           id: 'insights',
           type: 'navigation',
           title: (t as any)?.sidePanel?.insightsTitle?.value ?? 'Insights',
+          titleClassName: 'text-[13px] font-medium text-gray-400 dark:text-gray-500',
           items: [
             {
               id: 'spend-over-time',
               label: (t as any)?.sidePanel?.spendOverTime?.value ?? 'Spend over time',
               icon: CalendarRange,
+              emphasis: 'low',
               href: '/statements/spend-over-time',
               active: activeItem === 'spend-over-time',
             },
@@ -362,6 +373,8 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               label: (t as any)?.sidePanel?.topSpenders?.value ?? 'Top spenders',
               icon: User,
               badge: topSenders.length,
+              badgeVariant: 'default',
+              emphasis: 'low',
               href: '/statements/top-spenders',
               active: activeItem === 'top-spenders',
             },
@@ -370,6 +383,8 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               label: (t as any)?.sidePanel?.topMerchants?.value ?? 'Top merchants',
               icon: <StorefrontIcon sx={{ fontSize: 16 }} />,
               badge: topMerchantsCount,
+              badgeVariant: 'default',
+              emphasis: 'low',
               href: '/statements/top-merchants',
               active: activeItem === 'top-merchants',
             },
@@ -378,6 +393,8 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               label: (t as any)?.sidePanel?.topCategories?.value ?? 'Top categories',
               icon: Folder,
               badge: topCategoriesCount,
+              badgeVariant: 'default',
+              emphasis: 'low',
               href: '/statements/top-categories',
               active: activeItem === 'top-categories',
             },
@@ -395,21 +412,20 @@ export default function StatementsSidePanel({ activeItem }: Props) {
           />
         ),
       },
-    }),
-    [
-      t,
-      activeItem,
-      counts,
-      topSenders,
-      topMerchantsCount,
-      topCategoriesCount,
-      connectedCloudProviders,
-      handleCloudImport,
-      handleGmailClick,
-      handleScanClick,
-      navigateToSubmit,
-    ],
-  );
+    };
+  }, [
+    t,
+    activeItem,
+    counts,
+    topSenders,
+    topMerchantsCount,
+    topCategoriesCount,
+    connectedCloudProviders,
+    handleCloudImport,
+    handleGmailClick,
+    handleScanClick,
+    navigateToSubmit,
+  ]);
 
   useSidePanelConfig({ config: sidePanelConfig, autoRegister: true });
 
