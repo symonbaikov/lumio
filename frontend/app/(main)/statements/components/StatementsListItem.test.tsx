@@ -292,4 +292,50 @@ describe('StatementsListItem', () => {
     expect(paymentsIcon?.className.baseVal).toContain('text-gray-500');
     expect(container.textContent).not.toContain('FILE');
   });
+
+  it('renders primary duplicate badge and review action for duplicate item', () => {
+    const root = createRoot(container);
+
+    const statement: Statement = {
+      id: 'duplicate-1',
+      source: 'statement',
+      fileName: 'Duplicate.pdf',
+      status: 'completed',
+      totalDebit: 1200,
+      totalCredit: 0,
+      createdAt: '2026-02-01T00:00:00Z',
+      statementDateFrom: '2026-01-01',
+      statementDateTo: '2026-01-31',
+      bankName: 'kaspi',
+      fileType: 'pdf',
+      currency: 'KZT',
+    };
+
+    act(() => {
+      root.render(
+        <StatementsListItem
+          statement={statement}
+          viewLabel="View"
+          duplicateActionLabel="Review"
+          isGmail={false}
+          isProcessing={false}
+          merchantLabel="Kaspi"
+          amountLabel="1,200 KZT"
+          dateLabel="01/31/2026"
+          isPossibleDuplicate
+          duplicateRole="primary"
+          duplicatePosition={1}
+          duplicateGroupSize={2}
+          duplicateReason="Same amount + same date + same merchant"
+          onView={() => undefined}
+          onIconClick={() => undefined}
+          onToggleSelect={() => undefined}
+          typeLabel="PDF"
+        />,
+      );
+    });
+
+    expect(container.textContent).toContain('PRIMARY #1/2');
+    expect(container.textContent).toContain('Review');
+  });
 });

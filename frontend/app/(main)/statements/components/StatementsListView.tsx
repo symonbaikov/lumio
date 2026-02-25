@@ -26,6 +26,9 @@ import {
 import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
+import { AppPagination } from '@/app/components/ui/pagination';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
@@ -59,15 +62,17 @@ import { resolveBankLogo } from '@bank-logos';
 import {
   ArrowDown,
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   Columns2,
+  Copy,
   Download,
   File,
+  GitMerge,
   RefreshCcw,
   Search,
   SlidersHorizontal,
   Trash2,
+  X,
 } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -133,6 +138,23 @@ interface Statement {
 }
 
 type UnifiedStatement = Statement;
+
+type DuplicateRole = 'primary' | 'suspected';
+
+type DuplicateGroupTone = 'sky' | 'blue' | 'indigo' | 'slate' | 'zinc' | 'stone';
+
+type DuplicateMeta = {
+  position: number;
+  total: number;
+  role: DuplicateRole;
+  reason: string;
+  groupKey: string;
+  groupLabel: string;
+  groupTone: DuplicateGroupTone;
+  primaryId: string;
+};
+
+type DuplicateOverrideState = 'duplicate' | 'not_duplicate';
 
 type StatementCategoryWithEnabled = StatementCategoryNode & {
   isEnabled?: boolean;
@@ -221,6 +243,28 @@ const resolveStatementSortDate = (statement: Statement) => {
   return date.getTime();
 };
 
+const toDuplicateGroupLabel = (index: number) => {
+  let current = index + 1;
+  let label = '';
+
+  while (current > 0) {
+    const code = (current - 1) % 26;
+    label = String.fromCharCode(65 + code) + label;
+    current = Math.floor((current - 1) / 26);
+  }
+
+  return `Group ${label}`;
+};
+
+const DUPLICATE_GROUP_TONES: DuplicateGroupTone[] = [
+  'sky',
+  'blue',
+  'indigo',
+  'slate',
+  'zinc',
+  'stone',
+];
+
 const isGmailReceiptProcessing = (statement: Statement) => {
   if (statement.source !== 'gmail') return false;
   const status = (statement.status || '').toLowerCase();
@@ -276,6 +320,24 @@ export default function StatementsListView({ stage }: Props) {
     scanning: resolveLabel(t.listHeader?.scanning, 'Scanning...'),
   };
   const viewLabel = resolveLabel(t.actions?.view, 'View');
+  const reviewDuplicateLabel = resolveLabel((t.actions as any)?.reviewDuplicate, 'Review');
+  const markDuplicateLabel = resolveLabel((t.actions as any)?.markDuplicate, 'Mark as duplicate');
+  const markNotDuplicateLabel = resolveLabel(
+    (t.actions as any)?.markNotDuplicate,
+    'Mark as not duplicate',
+  );
+  const dismissDuplicateLabel = resolveLabel(
+    (t.actions as any)?.dismissDuplicate,
+    markNotDuplicateLabel || 'Dismiss',
+  );
+  const mergeDuplicatesLabel = resolveLabel(
+    (t.actions as any)?.mergeDuplicates,
+    'Merge duplicates',
+  );
+  const selectDuplicatesLabel = resolveLabel(
+    (t.actions as any)?.selectDuplicates,
+    'Select duplicates',
+  );
   const emptyLabels = {
     title: resolveLabel(t.empty?.title, 'No statements yet'),
     description: resolveLabel(t.empty?.description, 'Upload your first statement to get started'),
@@ -286,12 +348,8 @@ export default function StatementsListView({ stage }: Props) {
     next: resolveLabel((t as any)?.pagination?.next, 'Next'),
     pageOf: resolveLabel((t as any)?.pagination?.pageOf, 'Page {page} of {count}'),
   };
-  const filterChipClassName =
-    'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[13px] font-medium text-gray-700 transition-colors hover:border-primary hover:text-primary';
   const filterLinkClassName =
     'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] font-medium text-primary';
-  const filterChipActiveClassName =
-    'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[13px] font-medium text-primary';
   const formatPaginationLabel = (template: string, values: Record<string, string | number>) =>
     Object.entries(values).reduce(
       (result, [key, value]) => result.replace(`{${key}}`, String(value)),
@@ -310,9 +368,11 @@ export default function StatementsListView({ stage }: Props) {
   const [previewAllowAttachFile, setPreviewAllowAttachFile] = useState(false);
   const [receiptDetailId, setReceiptDetailId] = useState<string | null>(null);
   const [selectedStatementIds, setSelectedStatementIds] = useState<string[]>([]);
+  const [duplicateOverrides, setDuplicateOverrides] = useState<
+    Record<string, DuplicateOverrideState>
+  >({});
   const [selectedActionsOpen, setSelectedActionsOpen] = useState(false);
   const selectedActionsRef = useRef<HTMLDivElement | null>(null);
-  const selectAllRef = useRef<HTMLInputElement | null>(null);
   const listScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [draftFilters, setDraftFilters] = useState<StatementFilters>(DEFAULT_STATEMENT_FILTERS);
@@ -553,6 +613,121 @@ export default function StatementsListView({ stage }: Props) {
     return applyStatementsFilters<Statement>(stagedStatements, appliedFilters);
   }, [stagedStatements, appliedFilters]);
 
+  const duplicateMetaById = useMemo(() => {
+    const duplicateGroups = new Map<
+      string,
+      Array<{
+        statement: Statement;
+        createdAtTimestamp: number;
+      }>
+    >();
+    const duplicateReason = 'Same merchant · same date · same amount';
+    const isKnownStatement = new Set(displayStatements.map(statement => statement.id));
+
+    displayStatements.forEach(statement => {
+      const isGmail = statement.source === 'gmail';
+      const isProcessingGmail = isGmailReceiptProcessing(statement);
+      const amountLabel = formatStatementAmount(statement);
+      const override = duplicateOverrides[statement.id];
+
+      if (override === 'not_duplicate') {
+        return;
+      }
+
+      if (
+        amountLabel === '-' ||
+        amountLabel === '0' ||
+        amountLabel === '0.00' ||
+        isProcessingGmail ||
+        statement.status === 'processing'
+      ) {
+        return;
+      }
+
+      const resolvedName = isGmail
+        ? resolveGmailMerchantLabel({
+            vendor: statement.parsedData?.vendor,
+            sender: statement.sender,
+            subject: statement.subject,
+            fallback: statement.fileName,
+          })
+        : getStatementDisplayMerchant(statement, getBankDisplayName(statement.bankName));
+      const merchantLabel = isGmail
+        ? resolvedName
+        : getStatementMerchantLabel(statement.status, resolvedName, listHeaderLabels.scanning);
+      const dateLabel = formatStatementDate(statement);
+      const signature = `${merchantLabel}::${amountLabel}::${dateLabel}`;
+      const existingGroup = duplicateGroups.get(signature);
+      const createdAtTimestamp = Number.isFinite(new Date(statement.createdAt).getTime())
+        ? new Date(statement.createdAt).getTime()
+        : Number.MAX_SAFE_INTEGER;
+
+      if (existingGroup) {
+        existingGroup.push({ statement, createdAtTimestamp });
+      } else {
+        duplicateGroups.set(signature, [{ statement, createdAtTimestamp }]);
+      }
+    });
+
+    const metaById = new Map<string, DuplicateMeta>();
+
+    let duplicateGroupOrder = 0;
+
+    duplicateGroups.forEach((group, groupKey) => {
+      if (group.length < 2) {
+        return;
+      }
+
+      const sortedGroup = [...group].sort((a, b) => {
+        if (a.createdAtTimestamp === b.createdAtTimestamp) {
+          return a.statement.id.localeCompare(b.statement.id);
+        }
+        return a.createdAtTimestamp - b.createdAtTimestamp;
+      });
+
+      const primaryId = sortedGroup[0]?.statement.id || '';
+      const groupLabel = toDuplicateGroupLabel(duplicateGroupOrder);
+      const groupTone = DUPLICATE_GROUP_TONES[duplicateGroupOrder % DUPLICATE_GROUP_TONES.length];
+      duplicateGroupOrder += 1;
+
+      sortedGroup.forEach(({ statement }, index) => {
+        metaById.set(statement.id, {
+          position: index + 1,
+          total: sortedGroup.length,
+          role: index === 0 ? 'primary' : 'suspected',
+          reason: duplicateReason,
+          groupKey,
+          groupLabel,
+          groupTone,
+          primaryId,
+        });
+      });
+    });
+
+    Object.entries(duplicateOverrides).forEach(([statementId, override]) => {
+      if (override !== 'duplicate') {
+        return;
+      }
+
+      if (!isKnownStatement.has(statementId) || metaById.has(statementId)) {
+        return;
+      }
+
+      metaById.set(statementId, {
+        position: 1,
+        total: 1,
+        role: 'suspected',
+        reason: 'Marked manually as duplicate',
+        groupKey: `manual:${statementId}`,
+        groupLabel: 'Group Manual',
+        groupTone: 'stone',
+        primaryId: statementId,
+      });
+    });
+
+    return metaById;
+  }, [displayStatements, duplicateOverrides, listHeaderLabels.scanning]);
+
   const selectableStatements = useMemo(() => displayStatements, [displayStatements]);
 
   const visibleStatementIds = useMemo(
@@ -564,6 +739,21 @@ export default function StatementsListView({ stage }: Props) {
     () => areAllVisibleSelected(selectedStatementIds, visibleStatementIds),
     [selectedStatementIds, visibleStatementIds],
   );
+
+  const duplicateStatementIds = useMemo(
+    () =>
+      displayStatements
+        .filter(statement => duplicateMetaById.has(statement.id))
+        .map(statement => statement.id),
+    [displayStatements, duplicateMetaById],
+  );
+
+  const selectedDuplicateCount = useMemo(
+    () => selectedStatementIds.filter(id => duplicateMetaById.has(id)).length,
+    [selectedStatementIds, duplicateMetaById],
+  );
+
+  const hasSelectedDuplicates = selectedDuplicateCount > 0;
 
   const selectedCount = selectedStatementIds.length;
 
@@ -774,11 +964,6 @@ export default function StatementsListView({ stage }: Props) {
     const visibleSet = new Set(visibleStatementIds);
     setSelectedStatementIds(prev => prev.filter(id => visibleSet.has(id)));
   }, [visibleStatementIds]);
-
-  useEffect(() => {
-    if (!selectAllRef.current) return;
-    selectAllRef.current.indeterminate = selectedCount > 0 && !allVisibleSelected;
-  }, [selectedCount, allVisibleSelected]);
 
   useEffect(() => {
     if (!selectedActionsOpen) return;
@@ -1013,6 +1198,140 @@ export default function StatementsListView({ stage }: Props) {
     }
   };
 
+  const handleMarkSelectedAsDuplicate = () => {
+    if (selectedStatementIds.length === 0) return;
+
+    setDuplicateOverrides(prev => {
+      const next = { ...prev };
+      selectedStatementIds.forEach(statementId => {
+        next[statementId] = 'duplicate';
+      });
+      return next;
+    });
+
+    toast.success(`Marked ${selectedStatementIds.length} item(s) as duplicate`);
+    setSelectedActionsOpen(false);
+  };
+
+  const handleDismissSelectedDuplicates = () => {
+    if (selectedStatementIds.length === 0) return;
+
+    setDuplicateOverrides(prev => {
+      const next = { ...prev };
+      selectedStatementIds.forEach(statementId => {
+        next[statementId] = 'not_duplicate';
+      });
+      return next;
+    });
+
+    toast.success(`Dismissed duplicate flags for ${selectedStatementIds.length} item(s)`);
+    setSelectedActionsOpen(false);
+  };
+
+  const handleSelectDetectedDuplicates = () => {
+    if (duplicateStatementIds.length === 0) {
+      toast.error('No duplicates detected in current list');
+      return;
+    }
+
+    setSelectedStatementIds(prev => Array.from(new Set([...prev, ...duplicateStatementIds])));
+    toast.success(`Selected ${duplicateStatementIds.length} duplicate item(s)`);
+  };
+
+  const handleMergeSelectedDuplicates = async () => {
+    if (selectedStatementIds.length < 2) {
+      toast.error('Select at least 2 items to merge duplicates');
+      return;
+    }
+
+    const selectedStatements = displayStatements.filter(statement =>
+      selectedStatementIds.includes(statement.id),
+    );
+    const selectedDuplicateStatements = selectedStatements.filter(statement =>
+      duplicateMetaById.has(statement.id),
+    );
+
+    if (selectedDuplicateStatements.length < 2) {
+      toast.error('Select at least 2 detected duplicates to merge');
+      return;
+    }
+
+    const statementById = new Map(displayStatements.map(statement => [statement.id, statement]));
+    const statementsToDelete = new Set<string>();
+    const gmailToMark = new Map<string, string>();
+    let skippedGmailCount = 0;
+
+    selectedDuplicateStatements.forEach(statement => {
+      const meta = duplicateMetaById.get(statement.id);
+      if (!meta || statement.id === meta.primaryId) {
+        return;
+      }
+
+      if (statement.source === 'gmail') {
+        const primaryStatement = statementById.get(meta.primaryId);
+        if (primaryStatement?.source === 'gmail') {
+          gmailToMark.set(statement.id, primaryStatement.id);
+        } else {
+          skippedGmailCount += 1;
+        }
+        return;
+      }
+
+      statementsToDelete.add(statement.id);
+    });
+
+    if (statementsToDelete.size === 0 && gmailToMark.size === 0) {
+      toast.error('No mergeable duplicates found in selected items');
+      return;
+    }
+
+    const confirmMessage = `Merge selected duplicates? Keep primary records, merge ${gmailToMark.size} receipt(s) and move ${statementsToDelete.size} statement(s) to trash.`;
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      await Promise.all([
+        ...Array.from(statementsToDelete).map(statementId =>
+          apiClient.delete(`/statements/${statementId}`),
+        ),
+        ...Array.from(gmailToMark.entries()).map(([receiptId, originalReceiptId]) =>
+          gmailReceiptsApi.markDuplicate(receiptId, originalReceiptId),
+        ),
+      ]);
+
+      setDuplicateOverrides(prev => {
+        const next = { ...prev };
+        Array.from(gmailToMark.keys()).forEach(receiptId => {
+          next[receiptId] = 'duplicate';
+        });
+        return next;
+      });
+
+      const processedIds = new Set([
+        ...Array.from(statementsToDelete),
+        ...Array.from(gmailToMark.keys()),
+      ]);
+      setSelectedStatementIds(prev => prev.filter(id => !processedIds.has(id)));
+      setSelectedActionsOpen(false);
+
+      await loadStatements({ silent: true, page, search, showErrorToast: false });
+      if (stage === 'submit') {
+        await loadGmailReceipts({ silent: true, showErrorToast: false });
+      }
+
+      const skipHint = skippedGmailCount
+        ? ` ${skippedGmailCount} Gmail item(s) skipped because primary record is not Gmail.`
+        : '';
+      toast.success(
+        `Merged duplicates: ${gmailToMark.size} receipt(s), ${statementsToDelete.size} statement(s).${skipHint}`,
+      );
+    } catch (error) {
+      console.error('Failed to merge selected duplicates:', error);
+      toast.error('Failed to merge selected duplicates');
+    }
+  };
+
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (appliedFilters.type) count += 1;
@@ -1208,33 +1527,81 @@ export default function StatementsListView({ stage }: Props) {
 
               {selectedActionsOpen && (
                 <div className="absolute left-0 top-[calc(100%+8px)] z-20 w-[280px] max-w-[calc(100vw-64px)] rounded-xl border border-[#dedad2] bg-white p-1.5 shadow-[0_10px_20px_rgba(17,24,39,0.1)]">
-                  <button
-                    type="button"
-                    onClick={handleExportSelected}
-                    className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[#f7f7f4]"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <Download className="h-4 w-4 text-[#99a39d]" />
-                      <span className="text-[16px] font-semibold leading-none text-[#0f3428]">
-                        Export
-                      </span>
-                    </span>
-                    <ChevronRight className="h-4 w-4 text-[#c4cac4]" />
-                  </button>
+                  {hasSelectedDuplicates ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleMergeSelectedDuplicates}
+                        className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[#f8fbff]"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <GitMerge className="h-4 w-4 text-primary" />
+                          <span className="text-[16px] font-semibold leading-none text-primary">
+                            {mergeDuplicatesLabel}
+                          </span>
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-[#c4cac4]" />
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={handleDeleteSelected}
-                    className="mt-1 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[#fff5f4]"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <Trash2 className="h-4 w-4 text-[#dc2626]" />
-                      <span className="text-[16px] font-semibold leading-none text-[#991b1b]">
-                        Delete
-                      </span>
-                    </span>
-                    <ChevronRight className="h-4 w-4 text-[#f0b5b5]" />
-                  </button>
+                      <button
+                        type="button"
+                        onClick={handleMarkSelectedAsDuplicate}
+                        className="mt-1 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[#f8fbff]"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <Copy className="h-4 w-4 text-primary" />
+                          <span className="text-[16px] font-semibold leading-none text-primary">
+                            {markDuplicateLabel}
+                          </span>
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-[#c4cac4]" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleDismissSelectedDuplicates}
+                        className="mt-1 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[#f7f7f4]"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <X className="h-4 w-4 text-[#99a39d]" />
+                          <span className="text-[16px] font-semibold leading-none text-[#0f3428]">
+                            {dismissDuplicateLabel}
+                          </span>
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-[#c4cac4]" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleExportSelected}
+                        className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[#f7f7f4]"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <Download className="h-4 w-4 text-[#99a39d]" />
+                          <span className="text-[16px] font-semibold leading-none text-[#0f3428]">
+                            Export
+                          </span>
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-[#c4cac4]" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleDeleteSelected}
+                        className="mt-1 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[#fff5f4]"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <Trash2 className="h-4 w-4 text-[#dc2626]" />
+                          <span className="text-[16px] font-semibold leading-none text-[#991b1b]">
+                            Delete
+                          </span>
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-[#f0b5b5]" />
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -1242,22 +1609,53 @@ export default function StatementsListView({ stage }: Props) {
             <div className="fixed inset-x-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg md:hidden">
               <span className="text-sm font-medium text-gray-700">{selectedCount} selected</span>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleExportSelected}
-                  className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:border-primary hover:text-primary"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Export
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteSelected}
-                  className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 transition hover:border-red-400 hover:text-red-700"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </button>
+                {hasSelectedDuplicates ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleMergeSelectedDuplicates}
+                      className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-primary/20 px-2.5 py-1 text-xs font-medium text-primary transition hover:border-primary hover:bg-primary/5"
+                    >
+                      <GitMerge className="h-3.5 w-3.5" />
+                      {mergeDuplicatesLabel}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleMarkSelectedAsDuplicate}
+                      className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-primary/20 px-2.5 py-1 text-xs font-medium text-primary transition hover:border-primary hover:bg-primary/5"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      {markDuplicateLabel}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDismissSelectedDuplicates}
+                      className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:border-primary hover:text-primary"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      {dismissDuplicateLabel}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleExportSelected}
+                      className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:border-primary hover:text-primary"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Export
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteSelected}
+                      className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 transition hover:border-red-400 hover:text-red-700"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </>
@@ -1272,16 +1670,13 @@ export default function StatementsListView({ stage }: Props) {
               onApply={() => applyAndClose(() => setTypeDropdownOpen(false))}
               onReset={() => resetAndClose('type', () => setTypeDropdownOpen(false))}
               trigger={
-                <button
-                  type="button"
-                  className={draftFilters.type ? filterChipActiveClassName : filterChipClassName}
-                >
+                <FilterChipButton active={Boolean(draftFilters.type)}>
                   {draftFilters.type
                     ? typeOptions.find(option => option.value === draftFilters.type)?.label ||
                       filterLabels.type
                     : filterLabels.type}
                   <ChevronDown className="h-3.5 w-3.5" />
-                </button>
+                </FilterChipButton>
               }
               applyLabel={filterOptionLabels.apply}
               resetLabel={filterOptionLabels.reset}
@@ -1296,19 +1691,12 @@ export default function StatementsListView({ stage }: Props) {
               onApply={() => applyAndClose(() => setStatusDropdownOpen(false))}
               onReset={() => resetAndClose('statuses', () => setStatusDropdownOpen(false))}
               trigger={
-                <button
-                  type="button"
-                  className={
-                    draftFilters.statuses.length > 0
-                      ? filterChipActiveClassName
-                      : filterChipClassName
-                  }
-                >
+                <FilterChipButton active={draftFilters.statuses.length > 0}>
                   {draftFilters.statuses.length > 0
                     ? `${filterLabels.status} (${draftFilters.statuses.length})`
                     : filterLabels.status}
                   <ChevronDown className="h-3.5 w-3.5" />
-                </button>
+                </FilterChipButton>
               }
               applyLabel={filterOptionLabels.apply}
               resetLabel={filterOptionLabels.reset}
@@ -1324,17 +1712,14 @@ export default function StatementsListView({ stage }: Props) {
               onApply={() => applyAndClose(() => setDateDropdownOpen(false))}
               onReset={() => resetAndClose('date', () => setDateDropdownOpen(false))}
               trigger={
-                <button
-                  type="button"
-                  className={draftFilters.date ? filterChipActiveClassName : filterChipClassName}
-                >
+                <FilterChipButton active={Boolean(draftFilters.date)}>
                   {draftFilters.date?.preset
                     ? datePresets.find(option => option.value === draftFilters.date?.preset)?.label
                     : draftFilters.date?.mode
                       ? dateModes.find(option => option.value === draftFilters.date?.mode)?.label
                       : filterLabels.date}
                   <ChevronDown className="h-3.5 w-3.5" />
-                </button>
+                </FilterChipButton>
               }
               applyLabel={filterOptionLabels.apply}
               resetLabel={filterOptionLabels.reset}
@@ -1349,21 +1734,30 @@ export default function StatementsListView({ stage }: Props) {
               onApply={() => applyAndClose(() => setFromDropdownOpen(false))}
               onReset={() => resetAndClose('from', () => setFromDropdownOpen(false))}
               trigger={
-                <button
-                  type="button"
-                  className={
-                    draftFilters.from.length > 0 ? filterChipActiveClassName : filterChipClassName
-                  }
-                >
+                <FilterChipButton active={draftFilters.from.length > 0}>
                   {draftFilters.from.length > 0
                     ? `${filterLabels.from} (${draftFilters.from.length})`
                     : filterLabels.from}
                   <ChevronDown className="h-3.5 w-3.5" />
-                </button>
+                </FilterChipButton>
               }
               applyLabel={filterOptionLabels.apply}
               resetLabel={filterOptionLabels.reset}
             />
+
+            {duplicateStatementIds.length > 0 ? (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-[13px] font-medium text-orange-700 transition-colors hover:border-orange-300 hover:bg-orange-100"
+                onClick={handleSelectDetectedDuplicates}
+              >
+                <Copy className="h-3.5 w-3.5" />
+                {selectDuplicatesLabel}
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[11px] font-semibold text-orange-700">
+                  {duplicateStatementIds.length}
+                </span>
+              </button>
+            ) : null}
 
             <button
               type="button"
@@ -1393,7 +1787,7 @@ export default function StatementsListView({ stage }: Props) {
       <div
         ref={listScrollRef}
         data-tour-id="statements-table"
-        className={`min-h-0 flex-1 overflow-y-auto pr-1 ${selectedCount > 0 ? 'pb-24 md:pb-0' : ''}`}
+        className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 ${selectedCount > 0 ? 'pb-24 md:pb-0' : ''}`}
       >
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -1414,39 +1808,48 @@ export default function StatementsListView({ stage }: Props) {
           <>
             <div className="space-y-3">
               <div className="flex items-center gap-2 px-4 md:hidden">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={allVisibleSelected}
-                  onChange={event => handleToggleSelectAll(event.target.checked)}
+                  indeterminate={selectedCount > 0 && !allVisibleSelected}
+                  onCheckedChange={handleToggleSelectAll}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   aria-label="Select all statements"
                 />
                 <span className="text-sm font-medium text-gray-600">Select all</span>
               </div>
-              <div className="hidden md:flex items-center gap-3 px-4 text-xs font-medium uppercase tracking-wide text-gray-500">
-                <div className="w-4">
-                  <input
-                    ref={selectAllRef}
-                    type="checkbox"
-                    checked={allVisibleSelected}
-                    onChange={event => handleToggleSelectAll(event.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    aria-label="Select all statements"
-                  />
+              <div className="hidden md:flex items-center gap-4 px-4 pb-2 text-xs font-medium uppercase tracking-wider text-gray-500">
+                <div className="flex items-center flex-1 min-w-0">
+                  <div className="flex items-center gap-3 shrink-0 mr-4">
+                    <div className="w-4 flex justify-center opacity-70">
+                      <Checkbox
+                        checked={allVisibleSelected}
+                        indeterminate={selectedCount > 0 && !allVisibleSelected}
+                        onCheckedChange={handleToggleSelectAll}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        aria-label="Select all statements"
+                      />
+                    </div>
+                    <div className="w-8 flex items-center justify-center text-gray-400">
+                      <span className="sr-only">{listHeaderLabels.receipt}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <div className="flex items-center gap-2 text-gray-400">
+                      {listHeaderLabels.merchant}
+                      <span className="px-1 text-gray-300">•</span>
+                      <div className="flex items-center gap-1 cursor-pointer hover:text-gray-600 transition">
+                        {listHeaderLabels.date}
+                        <ArrowDown className="h-3 w-3" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="w-11">{listHeaderLabels.receipt}</div>
-                <div className="w-3" />
-                <div className="w-20">{listHeaderLabels.type}</div>
-                <div className="w-24 flex items-center gap-1">
-                  {listHeaderLabels.date}
-                  <ArrowDown className="h-3 w-3" />
-                </div>
-                <div className="flex-1">{listHeaderLabels.merchant}</div>
-                <div className="w-36 text-right uppercase tracking-wide">
-                  {listHeaderLabels.amount}
-                </div>
-                <div className="w-36 text-right uppercase tracking-wide">
-                  {listHeaderLabels.action}
+
+                <div className="flex items-center justify-end gap-6 shrink-0 w-[420px] pl-4">
+                  <div className="w-32 text-right text-gray-400 pr-1">
+                    {listHeaderLabels.amount}
+                  </div>
+                  <div className="w-36 text-right text-gray-400">{listHeaderLabels.action}</div>
                 </div>
               </div>
               {displayStatements.map(statement => {
@@ -1478,6 +1881,8 @@ export default function StatementsListView({ stage }: Props) {
                 const isProcessingGmail = isGmailReceiptProcessing(statement);
                 const amountLabel = formatStatementAmount(statement);
                 const dateLabel = formatStatementDate(statement);
+                const duplicateMeta = duplicateMetaById.get(statement.id);
+                const isPossibleDuplicate = Boolean(duplicateMeta);
 
                 return (
                   <StatementsListItem
@@ -1489,6 +1894,14 @@ export default function StatementsListView({ stage }: Props) {
                     merchantLabel={merchantLabel}
                     amountLabel={amountLabel}
                     dateLabel={dateLabel}
+                    isPossibleDuplicate={isPossibleDuplicate}
+                    duplicatePosition={duplicateMeta?.position}
+                    duplicateGroupSize={duplicateMeta?.total}
+                    duplicateRole={duplicateMeta?.role}
+                    duplicateGroupLabel={duplicateMeta?.groupLabel}
+                    duplicateGroupTone={duplicateMeta?.groupTone}
+                    duplicateReason={duplicateMeta?.reason}
+                    duplicateActionLabel={reviewDuplicateLabel}
                     typeLabel={isGmail ? 'PDF' : statement.fileType}
                     isManualExpense={isManualExpense}
                     onView={() => handleView(statement)}
@@ -1522,30 +1935,13 @@ export default function StatementsListView({ stage }: Props) {
                 })}
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                  className="inline-flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-500 disabled:opacity-50"
-                  disabled={page === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  {paginationLabels.previous}
-                </button>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 min-w-[120px] text-center">
                   {formatPaginationLabel(paginationLabels.pageOf, {
                     page,
                     count: totalPagesCount,
                   })}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setPage(prev => Math.min(totalPagesCount, prev + 1))}
-                  className="inline-flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-500 disabled:opacity-50"
-                  disabled={page === totalPagesCount}
-                >
-                  {paginationLabels.next}
-                  <ChevronRight className="h-4 w-4" />
-                </button>
+                <AppPagination page={page} total={totalPagesCount} onChange={setPage} />
               </div>
             </div>
           </>

@@ -171,6 +171,7 @@ const content = {
     },
     sidePanel: {
       todoTitle: t({ ru: 'К выполнению', en: 'To-do', kk: 'Аяқтау керек' }),
+      workQueueTitle: t({ ru: 'Рабочая очередь', en: 'Work queue', kk: 'Жұмыс кезегі' }),
       submit: t({ ru: 'Отправить', en: 'Submit', kk: 'Жіберу' }),
       approve: t({ ru: 'Одобрить', en: 'Approve', kk: 'Бекіту' }),
       pay: t({ ru: 'Оплатить', en: 'Pay', kk: 'Төлеу' }),
@@ -308,6 +309,32 @@ const content = {
     },
     actions: {
       view: t({ ru: 'Просмотреть', en: 'View', kk: 'Қарау' }),
+      reviewDuplicate: t({ ru: 'Проверить', en: 'Review', kk: 'Тексеру' }),
+      markDuplicate: t({
+        ru: 'Пометить как дубликат',
+        en: 'Mark as duplicate',
+        kk: 'Дубликат деп белгілеу',
+      }),
+      markNotDuplicate: t({
+        ru: 'Это не дубликат',
+        en: 'Mark as not duplicate',
+        kk: 'Дубликат емес деп белгілеу',
+      }),
+      dismissDuplicate: t({
+        ru: 'Скрыть дубликат',
+        en: 'Dismiss',
+        kk: 'Дубликатты жасыру',
+      }),
+      selectDuplicates: t({
+        ru: 'Выбрать дубликаты',
+        en: 'Select duplicates',
+        kk: 'Дубликаттарды таңдау',
+      }),
+      mergeDuplicates: t({
+        ru: 'Объединить дубликаты',
+        en: 'Merge duplicates',
+        kk: 'Дубликаттарды біріктіру',
+      }),
       download: t({ ru: 'Скачать', en: 'Download', kk: 'Жүктеу' }),
       logs: t({ ru: 'Логи', en: 'Logs', kk: 'Логтар' }),
       retry: t({ ru: 'Повторить', en: 'Retry', kk: 'Қайта' }),
