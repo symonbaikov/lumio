@@ -117,4 +117,33 @@ describe('StatementsCircularUploadMenu', () => {
 
     expect(plusIcon?.className.baseVal).toContain('rotate-0');
   });
+
+  it('runs scan action from dedicated scan button', () => {
+    const onScan = vi.fn();
+
+    act(() => {
+      root.render(
+        <StatementsCircularUploadMenu
+          providers={{
+            gmailConnected: false,
+            googleDriveConnected: false,
+            dropboxConnected: false,
+          }}
+          onScan={onScan}
+          onCloudImport={vi.fn()}
+          onGmail={vi.fn()}
+          onLocalUpload={vi.fn()}
+        />,
+      );
+    });
+
+    const scanButton = container.querySelector('button[aria-label="Scan"]') as HTMLButtonElement;
+    expect(scanButton).not.toBeNull();
+
+    act(() => {
+      scanButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onScan).toHaveBeenCalledTimes(1);
+  });
 });

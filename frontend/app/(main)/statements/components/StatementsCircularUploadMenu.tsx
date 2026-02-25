@@ -6,6 +6,7 @@ import {
   buildStatementUploadMenuModel,
 } from '@/app/lib/statement-upload-actions';
 import { cn } from '@/app/lib/utils';
+import DocumentScannerIcon from '@mui/icons-material/DocumentScanner';
 import { Cloud, Plus, Receipt, ScanLine } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
@@ -34,8 +35,9 @@ const ARC_SIZES = {
     radius: 'rounded-tr-[232px]',
     buttonLeft: 'left-4',
     bottom: 'bottom-5',
+    scanBottom: 'bottom-[84px]',
     closedOffset: 'translate(16px, -6px)',
-    container: '-mx-4 -mb-3 h-52',
+    container: '-mx-4 -mb-3 h-24',
   },
   floating: {
     height: 'h-60',
@@ -43,6 +45,7 @@ const ARC_SIZES = {
     radius: 'rounded-tr-[240px]',
     buttonLeft: 'left-6',
     bottom: 'bottom-6',
+    scanBottom: 'bottom-[88px]',
     closedOffset: 'translate(8px, -6px)',
     container: 'h-60 w-[320px]',
   },
@@ -154,9 +157,9 @@ export default function StatementsCircularUploadMenu({
     >
       <div
         className={cn(
-          'pointer-events-none absolute bottom-0 left-0 bg-primary transition-all duration-300 ease-out',
+          'pointer-events-none absolute bottom-0 left-0 z-30 bg-primary/0 transition-all duration-300 ease-out',
           isOpen
-            ? `${styles.height} ${styles.width} ${styles.radius} opacity-100`
+            ? `${styles.height} ${styles.width} ${styles.radius} opacity-100 bg-primary/5 dark:bg-primary/10 backdrop-blur-sm`
             : 'h-0 w-0 rounded-tr-none opacity-0',
         )}
       />
@@ -169,7 +172,7 @@ export default function StatementsCircularUploadMenu({
           <div
             key={item.id}
             className={cn(
-              'absolute left-0 z-20 transition-all duration-300 ease-out',
+              'absolute left-0 z-40 transition-all duration-300 ease-out',
               styles.bottom,
               isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
             )}
@@ -193,7 +196,7 @@ export default function StatementsCircularUploadMenu({
             </button>
             <span
               className={cn(
-                'absolute left-[48px] top-1/2 z-40 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold',
+                'absolute left-[48px] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold',
                 item.id === 'local-upload' ? 'text-[#0f3428]' : 'text-primary',
               )}
             >
@@ -206,9 +209,27 @@ export default function StatementsCircularUploadMenu({
       <button
         data-statements-fab-interactive="true"
         type="button"
+        onClick={() => {
+          onScan();
+          setIsOpen(false);
+        }}
+        className={cn(
+          'absolute flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white transition-all duration-200 hover:bg-primary-hover',
+          styles.buttonLeft,
+          styles.scanBottom,
+          isOpen ? 'z-10 pointer-events-none opacity-0' : 'z-20 pointer-events-auto opacity-100',
+        )}
+        aria-label="Scan"
+      >
+        <DocumentScannerIcon sx={{ fontSize: 24 }} />
+      </button>
+
+      <button
+        data-statements-fab-interactive="true"
+        type="button"
         onClick={() => setIsOpen(prev => !prev)}
         className={cn(
-          'pointer-events-auto absolute z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white transition hover:bg-primary-hover',
+          'pointer-events-auto absolute z-60 flex h-14 w-14 items-center justify-center rounded-full bg-[#d9d6cf] text-[#9aa6a0] transition hover:bg-[#cfcbc4]',
           styles.buttonLeft,
           styles.bottom,
         )}
@@ -225,7 +246,7 @@ export default function StatementsCircularUploadMenu({
   if (placement === 'floating' && portalReady) {
     const portalTarget = document.getElementById('fab-portal') ?? document.body;
     return createPortal(
-      <div className="fixed bottom-0 left-0 z-[60] pointer-events-none lg:hidden">{menu}</div>,
+      <div className="fixed bottom-0 left-0 z-[320] pointer-events-none lg:hidden">{menu}</div>,
       portalTarget,
     );
   }

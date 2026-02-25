@@ -3,8 +3,8 @@
 import { cn } from '@/app/lib/utils';
 import { FileSpreadsheet, Plus, Table as TableIcon } from 'lucide-react';
 import Image from 'next/image';
-import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 type Props = {
   onCreateEmpty: () => void;
@@ -99,7 +99,7 @@ export default function CustomTablesCircularMenu({
       className={cn(
         'relative overflow-visible',
         styles.container,
-        placement === 'floating' && 'fixed bottom-0 left-0 z-[90] pointer-events-auto',
+        placement === 'floating' && 'fixed bottom-0 left-0 z-[140] pointer-events-auto',
       )}
     >
       <div
@@ -206,15 +206,15 @@ export default function CustomTablesCircularMenu({
         </span>
       </div>
 
-        <button
-          data-custom-tables-fab-interactive="true"
-          type="button"
-          onClick={() => setIsOpen(prev => !prev)}
-          className={cn(
-            'absolute z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white transition hover:bg-primary-hover',
-            styles.buttonLeft,
-            styles.bottom,
-          )}
+      <button
+        data-custom-tables-fab-interactive="true"
+        type="button"
+        onClick={() => setIsOpen(prev => !prev)}
+        className={cn(
+          'absolute z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white transition hover:bg-primary-hover',
+          styles.buttonLeft,
+          styles.bottom,
+        )}
         aria-label={text.openMenu}
       >
         <Plus
