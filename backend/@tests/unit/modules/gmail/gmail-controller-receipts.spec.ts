@@ -86,7 +86,13 @@ describe('GmailController - Receipts List Endpoint', () => {
   });
 
   it('allows invalid receipts when includeInvalid=true', async () => {
-    await (controller as any).listReceipts(mockUser as User, undefined, undefined, undefined, 'true');
+    await (controller as any).listReceipts(
+      mockUser as User,
+      undefined,
+      undefined,
+      undefined,
+      'true',
+    );
 
     expect(queryBuilder.andWhere).not.toHaveBeenCalledWith('receipt.status != :failedStatus', {
       failedStatus: 'failed',

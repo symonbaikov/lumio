@@ -15,10 +15,12 @@ describe('GmailReceiptProcessor', () => {
 
     const receiptRepository = {
       findOne: jest.fn().mockResolvedValue(null),
-      create: jest.fn().mockImplementation((payload) => payload),
+      create: jest.fn().mockImplementation(payload => payload),
       save: jest
         .fn()
-        .mockImplementation(async (payload) => payload.id ? payload : { ...payload, id: 'receipt-1' }),
+        .mockImplementation(async payload =>
+          payload.id ? payload : { ...payload, id: 'receipt-1' },
+        ),
     };
 
     const integrationRepository = {
@@ -181,7 +183,9 @@ describe('GmailReceiptProcessor', () => {
       create: jest.fn().mockImplementation(payload => payload),
       save: jest
         .fn()
-        .mockImplementation(async payload => (payload.id ? payload : { ...payload, id: 'receipt-1' })),
+        .mockImplementation(async payload =>
+          payload.id ? payload : { ...payload, id: 'receipt-1' },
+        ),
     };
 
     const integrationRepository = {
@@ -207,7 +211,9 @@ describe('GmailReceiptProcessor', () => {
             {
               mimeType: 'text/html',
               body: {
-                data: Buffer.from('<p>Thanks for your GitHub subscription</p>').toString('base64url'),
+                data: Buffer.from('<p>Thanks for your GitHub subscription</p>').toString(
+                  'base64url',
+                ),
               },
             },
           ],

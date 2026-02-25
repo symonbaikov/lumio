@@ -292,9 +292,7 @@ describe('TransactionsService', () => {
       } as WorkspaceMember;
       jest.spyOn(workspaceMemberRepository, 'findOne').mockResolvedValue(restrictedMember);
 
-      await expect(service.update('1', 'ws-1', '1', updateDto)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.update('1', 'ws-1', '1', updateDto)).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw NotFoundException if transaction not found', async () => {

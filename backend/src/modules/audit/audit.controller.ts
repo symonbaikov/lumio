@@ -5,11 +5,7 @@ import { Permission } from '../../common/enums/permissions.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
-import {
-  ActorType,
-  EntityType,
-  Severity,
-} from '../../entities/audit-event.entity';
+import { ActorType, EntityType, Severity } from '../../entities/audit-event.entity';
 import { type User, UserRole } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditService } from './audit.service';

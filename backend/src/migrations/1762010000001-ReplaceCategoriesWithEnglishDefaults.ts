@@ -30,7 +30,9 @@ export class ReplaceCategoriesWithEnglishDefaults1762010000001 implements Migrat
   name = 'ReplaceCategoriesWithEnglishDefaults1762010000001';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    const workspaces: Array<{ id: string }> = await queryRunner.query('SELECT id FROM "workspaces"');
+    const workspaces: Array<{ id: string }> = await queryRunner.query(
+      'SELECT id FROM "workspaces"',
+    );
 
     for (const { id: workspaceId } of workspaces) {
       await queryRunner.query(

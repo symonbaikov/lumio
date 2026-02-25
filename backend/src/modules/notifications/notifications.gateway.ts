@@ -93,7 +93,9 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
 
   @OnEvent('notification.created')
   handleNotificationCreated(notification: Notification): void {
-    this.server.to(this.getUserRoom(notification.recipientId)).emit('notification:new', notification);
+    this.server
+      .to(this.getUserRoom(notification.recipientId))
+      .emit('notification:new', notification);
   }
 
   private extractToken(client: Socket): string | null {

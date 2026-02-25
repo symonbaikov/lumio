@@ -12,7 +12,10 @@ export interface AuditOptions {
 
 export type AuditMetadataInput = { entityType: EntityType } & AuditOptions;
 
-export function Audit(entityType: EntityType, options?: AuditOptions): ReturnType<typeof SetMetadata>;
+export function Audit(
+  entityType: EntityType,
+  options?: AuditOptions,
+): ReturnType<typeof SetMetadata>;
 export function Audit(options: AuditMetadataInput): ReturnType<typeof SetMetadata>;
 export function Audit(
   entityTypeOrOptions: EntityType | AuditMetadataInput,

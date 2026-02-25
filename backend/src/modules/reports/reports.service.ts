@@ -111,7 +111,7 @@ export class ReportsService {
     const day = target.getUTCDay() || 7;
     target.setUTCDate(target.getUTCDate() + 4 - day);
     const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
-    const week = Math.ceil((((target.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+    const week = Math.ceil(((target.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
     return { year: target.getUTCFullYear(), week };
   }
 
@@ -1154,7 +1154,9 @@ export class ReportsService {
     userId: string,
     query: TopCategoriesQueryDto,
   ): Promise<TopCategoriesReport> {
-    const safeLimit = Number.isFinite(query.limit) ? Math.min(Math.max(query.limit || 20, 1), 100) : 20;
+    const safeLimit = Number.isFinite(query.limit)
+      ? Math.min(Math.max(query.limit || 20, 1), 100)
+      : 20;
     const now = new Date();
     const to = query.dateTo ? new Date(query.dateTo) : now;
     const from = query.dateFrom
@@ -1267,7 +1269,9 @@ export class ReportsService {
         qb.andWhere('COALESCE(statement.totalTransactions, 0) > 0');
       }
       if (hasTokens.includes('dateRange')) {
-        qb.andWhere('(statement.statementDateFrom IS NOT NULL OR statement.statementDateTo IS NOT NULL)');
+        qb.andWhere(
+          '(statement.statementDateFrom IS NOT NULL OR statement.statementDateTo IS NOT NULL)',
+        );
       }
       if (hasTokens.includes('currency')) {
         qb.andWhere('statement.currency IS NOT NULL');
@@ -1319,7 +1323,8 @@ export class ReportsService {
       }
 
       const categoryKey = transaction.category?.id || 'without-category';
-      const categoryName = (transaction.category?.name || 'Без категории').trim() || 'Без категории';
+      const categoryName =
+        (transaction.category?.name || 'Без категории').trim() || 'Без категории';
       const categoryCurrent = categoryMap.get(categoryKey) || {
         id: transaction.category?.id || null,
         name: categoryName,
@@ -1343,7 +1348,8 @@ export class ReportsService {
       bankCurrent.statements += 1;
       bankMap.set(bankName, bankCurrent);
 
-      const counterpartyName = (transaction.counterpartyName || 'Без названия').trim() || 'Без названия';
+      const counterpartyName =
+        (transaction.counterpartyName || 'Без названия').trim() || 'Без названия';
       const counterpartyCurrent = counterpartyMap.get(counterpartyName) || {
         name: counterpartyName,
         amount: 0,

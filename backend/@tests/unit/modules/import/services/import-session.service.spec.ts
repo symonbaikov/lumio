@@ -918,9 +918,7 @@ describe('ImportSessionService', () => {
     it('should throw ImportValidationError if session not found', async () => {
       importSessionRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.cancelSession('invalid-session')).rejects.toThrow(
-        ImportValidationError,
-      );
+      await expect(service.cancelSession('invalid-session')).rejects.toThrow(ImportValidationError);
     });
   });
 });

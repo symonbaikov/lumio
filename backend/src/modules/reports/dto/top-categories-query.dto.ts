@@ -1,5 +1,14 @@
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsDateString, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class TopCategoriesQueryDto {
   @IsOptional()

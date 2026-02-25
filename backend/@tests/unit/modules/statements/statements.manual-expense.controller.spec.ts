@@ -68,7 +68,12 @@ describe('StatementsController manual expense', () => {
 
     const result = await controller.attachFile('statement-1', file, user, workspaceId);
 
-    expect(statementsService.attachFile).toHaveBeenCalledWith('statement-1', 'user-1', 'ws-1', file);
+    expect(statementsService.attachFile).toHaveBeenCalledWith(
+      'statement-1',
+      'user-1',
+      'ws-1',
+      file,
+    );
     expect(result).toEqual({ id: 'statement-1' });
   });
 });

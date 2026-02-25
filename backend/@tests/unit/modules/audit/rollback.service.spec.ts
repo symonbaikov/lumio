@@ -1,8 +1,4 @@
-import {
-  AuditAction,
-  type AuditEvent,
-  EntityType,
-} from '@/entities/audit-event.entity';
+import { AuditAction, type AuditEvent, EntityType } from '@/entities/audit-event.entity';
 import { Category } from '@/entities/category.entity';
 import { CustomTableRow } from '@/entities/custom-table-row.entity';
 import { Statement } from '@/entities/statement.entity';

@@ -904,10 +904,16 @@ export class StatementsService {
     return { status: 'restored', source: restored.source };
   }
 
-  async getThumbnail(id: string, workspaceId: string): Promise<Buffer> {
+  async getThumbnail(id: string, workspaceId: string, requestedWidth?: number): Promise<Buffer> {
     const statement = await this.findOne(id, workspaceId);
 
-    const cacheKey = `statements:thumbnail:${id}`;
+    const normalizedWidth = Number.isFinite(requestedWidth ?? Number.NaN)
+      ? Math.round(requestedWidth ?? 200)
+      : 200;
+    const thumbnailWidth = Math.min(1600, Math.max(80, normalizedWidth));
+
+    const cacheVersion = statement.updatedAt?.getTime?.() ?? 0;
+    const cacheKey = `statements:thumbnail:${id}:${cacheVersion}:${thumbnailWidth}`;
     const cached = await this.cacheManager.get<string>(cacheKey);
     if (cached) {
       return Buffer.from(cached, 'base64');
@@ -940,10 +946,9 @@ export class StatementsService {
       // Generate thumbnail using Python script
       const thumbnailPath = path.join('/tmp', `thumbnail-${statement.id}-${Date.now()}.png`);
       const scriptPath = path.join(__dirname, '../../../scripts/generate-thumbnail.py');
-      const width = 200; // Thumbnail width in pixels
 
       // Execute Python script
-      await execAsync(`python3 "${scriptPath}" "${pdfPath}" "${thumbnailPath}" ${width}`);
+      await execAsync(`python3 "${scriptPath}" "${pdfPath}" "${thumbnailPath}" ${thumbnailWidth}`);
 
       // Read generated thumbnail
       const thumbnailData = await fs.promises.readFile(thumbnailPath);

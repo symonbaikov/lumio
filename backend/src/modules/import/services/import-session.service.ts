@@ -27,7 +27,10 @@ import {
   classifyError,
 } from '../errors/import-errors';
 import { ImportRetryService } from './import-retry.service';
-import type { ImportCommittedEvent, ImportFailedEvent } from '../../notifications/events/notification-events';
+import type {
+  ImportCommittedEvent,
+  ImportFailedEvent,
+} from '../../notifications/events/notification-events';
 
 /**
  * Result returned from processImport operation

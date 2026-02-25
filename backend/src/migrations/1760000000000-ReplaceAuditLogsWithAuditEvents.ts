@@ -8,17 +8,15 @@ export class ReplaceAuditLogsWithAuditEvents1760000000000 implements MigrationIn
     await queryRunner.query('DROP TYPE IF EXISTS "audit_action_enum"');
 
     await queryRunner.query(
-      'CREATE TYPE "actor_type_enum" AS ENUM (\'user\', \'system\', \'integration\')',
+      "CREATE TYPE \"actor_type_enum\" AS ENUM ('user', 'system', 'integration')",
     );
     await queryRunner.query(
-      'CREATE TYPE "entity_type_enum" AS ENUM (\'transaction\', \'statement\', \'receipt\', \'category\', \'rule\', \'workspace\', \'integration\', \'table_row\', \'table_cell\', \'branch\', \'wallet\', \'custom_table\', \'custom_table_column\')',
+      "CREATE TYPE \"entity_type_enum\" AS ENUM ('transaction', 'statement', 'receipt', 'category', 'rule', 'workspace', 'integration', 'table_row', 'table_cell', 'branch', 'wallet', 'custom_table', 'custom_table_column')",
     );
     await queryRunner.query(
-      'CREATE TYPE "audit_action_enum" AS ENUM (\'create\', \'update\', \'delete\', \'import\', \'link\', \'unlink\', \'match\', \'unmatch\', \'apply_rule\', \'rollback\', \'export\')',
+      "CREATE TYPE \"audit_action_enum\" AS ENUM ('create', 'update', 'delete', 'import', 'link', 'unlink', 'match', 'unmatch', 'apply_rule', 'rollback', 'export')",
     );
-    await queryRunner.query(
-      'CREATE TYPE "severity_enum" AS ENUM (\'info\', \'warn\', \'critical\')',
-    );
+    await queryRunner.query("CREATE TYPE \"severity_enum\" AS ENUM ('info', 'warn', 'critical')");
 
     await queryRunner.query(`
       CREATE TABLE "audit_events" (
@@ -77,7 +75,7 @@ export class ReplaceAuditLogsWithAuditEvents1760000000000 implements MigrationIn
     await queryRunner.query('DROP TYPE IF EXISTS "actor_type_enum"');
 
     await queryRunner.query(
-      'CREATE TYPE "audit_action_enum" AS ENUM (\'statement.upload\', \'statement.delete\', \'transaction.update\', \'category.create\', \'category.update\', \'category.delete\', \'branch.create\', \'branch.update\', \'branch.delete\', \'wallet.create\', \'wallet.update\', \'wallet.delete\', \'report.generate\', \'custom_table.create\', \'custom_table.update\', \'custom_table.delete\', \'custom_table_column.create\', \'custom_table_column.update\', \'custom_table_column.delete\', \'custom_table_column.reorder\', \'custom_table_row.create\', \'custom_table_row.update\', \'custom_table_row.delete\', \'custom_table_row.batch_create\')',
+      "CREATE TYPE \"audit_action_enum\" AS ENUM ('statement.upload', 'statement.delete', 'transaction.update', 'category.create', 'category.update', 'category.delete', 'branch.create', 'branch.update', 'branch.delete', 'wallet.create', 'wallet.update', 'wallet.delete', 'report.generate', 'custom_table.create', 'custom_table.update', 'custom_table.delete', 'custom_table_column.create', 'custom_table_column.update', 'custom_table_column.delete', 'custom_table_column.reorder', 'custom_table_row.create', 'custom_table_row.update', 'custom_table_row.delete', 'custom_table_row.batch_create')",
     );
 
     await queryRunner.query(`

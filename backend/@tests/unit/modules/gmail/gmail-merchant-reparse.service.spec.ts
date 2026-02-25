@@ -64,10 +64,7 @@ describe('GmailMerchantReparseService', () => {
       parseFromEmailOnly: jest.fn(),
     };
 
-    const service = new GmailMerchantReparseService(
-      receiptRepository as any,
-      parserService as any,
-    );
+    const service = new GmailMerchantReparseService(receiptRepository as any, parserService as any);
 
     const result = await service.reparseAll('user-1');
 
@@ -93,10 +90,7 @@ describe('GmailMerchantReparseService', () => {
       parseFromEmailOnly: jest.fn(),
     };
 
-    const service = new GmailMerchantReparseService(
-      receiptRepository as any,
-      parserService as any,
-    );
+    const service = new GmailMerchantReparseService(receiptRepository as any, parserService as any);
 
     const result = await service.reparseAll('user-1', { dryRun: true });
 
@@ -121,10 +115,7 @@ describe('GmailMerchantReparseService', () => {
       parseFromEmailOnly: jest.fn().mockResolvedValue({ vendor: 'GitHub' }),
     };
 
-    const service = new GmailMerchantReparseService(
-      receiptRepository as any,
-      parserService as any,
-    );
+    const service = new GmailMerchantReparseService(receiptRepository as any, parserService as any);
 
     const result = await service.reparseAll('user-1');
 
@@ -149,10 +140,7 @@ describe('GmailMerchantReparseService', () => {
       parseFromEmailOnly: jest.fn(),
     };
 
-    const service = new GmailMerchantReparseService(
-      receiptRepository as any,
-      parserService as any,
-    );
+    const service = new GmailMerchantReparseService(receiptRepository as any, parserService as any);
 
     const result = await service.reparseAll('user-1');
 

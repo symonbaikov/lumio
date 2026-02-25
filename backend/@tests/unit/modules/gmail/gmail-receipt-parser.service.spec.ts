@@ -92,15 +92,10 @@ describe('GmailReceiptParserService', () => {
     it('uses AI result when available and confidence is high', async () => {
       const aiMock = {
         isAvailable: jest.fn().mockReturnValue(true),
-        extractMerchant: jest
-          .fn()
-          .mockResolvedValue({ merchant: 'GitHub', confidence: 0.95 }),
+        extractMerchant: jest.fn().mockResolvedValue({ merchant: 'GitHub', confidence: 0.95 }),
       };
 
-      const aiService = new GmailReceiptParserService(
-        new UniversalAmountParser(),
-        aiMock as any,
-      );
+      const aiService = new GmailReceiptParserService(new UniversalAmountParser(), aiMock as any);
 
       const vendor = await (aiService as any).extractVendorWithAi(
         'Date2026-02-16 10:57AM PST\nGitHub',
@@ -121,10 +116,7 @@ describe('GmailReceiptParserService', () => {
         extractMerchant: jest.fn().mockResolvedValue(null),
       };
 
-      const aiService = new GmailReceiptParserService(
-        new UniversalAmountParser(),
-        aiMock as any,
-      );
+      const aiService = new GmailReceiptParserService(new UniversalAmountParser(), aiMock as any);
 
       const vendor = await (aiService as any).extractVendorWithAi(
         'Spotify\nReceipt for your subscription',
@@ -143,17 +135,11 @@ describe('GmailReceiptParserService', () => {
         extractMerchant: jest.fn(),
       };
 
-      const aiService = new GmailReceiptParserService(
-        new UniversalAmountParser(),
-        aiMock as any,
-      );
+      const aiService = new GmailReceiptParserService(new UniversalAmountParser(), aiMock as any);
 
-      const vendor = await (aiService as any).extractVendorWithAi(
-        'Netflix\nMonthly subscription',
-        {
-          sender: 'info@netflix.com',
-        },
-      );
+      const vendor = await (aiService as any).extractVendorWithAi('Netflix\nMonthly subscription', {
+        sender: 'info@netflix.com',
+      });
 
       expect(vendor).toBe('Netflix');
       expect(aiMock.extractMerchant).not.toHaveBeenCalled();
@@ -162,15 +148,10 @@ describe('GmailReceiptParserService', () => {
     it('extracts merchant from email-only parsing flow', async () => {
       const aiMock = {
         isAvailable: jest.fn().mockReturnValue(true),
-        extractMerchant: jest
-          .fn()
-          .mockResolvedValue({ merchant: 'Notion', confidence: 0.8 }),
+        extractMerchant: jest.fn().mockResolvedValue({ merchant: 'Notion', confidence: 0.8 }),
       };
 
-      const aiService = new GmailReceiptParserService(
-        new UniversalAmountParser(),
-        aiMock as any,
-      );
+      const aiService = new GmailReceiptParserService(new UniversalAmountParser(), aiMock as any);
 
       const parsed = await aiService.parseFromEmailOnly({
         sender: 'Notion <billing@makenotion.com>',

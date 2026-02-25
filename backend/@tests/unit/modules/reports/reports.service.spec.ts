@@ -45,7 +45,6 @@ describe('ReportsService (helpers)', () => {
     expect(toDateKey(new Date('2025-01-02T00:00:00.000Z'))).toBe('2025-01-02');
   });
 
-
   it('pickBestColumnKey chooses best match based on scorer', () => {
     const pickBestColumnKey = (service as any).pickBestColumnKey.bind(service) as (
       cols: CustomTableColumn[],

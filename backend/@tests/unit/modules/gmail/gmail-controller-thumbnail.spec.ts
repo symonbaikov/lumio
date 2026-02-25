@@ -70,7 +70,12 @@ describe('GmailController - Receipt Thumbnail Endpoint', () => {
     receiptRepository.findOne.mockResolvedValue(null);
     const res = createMockResponse();
 
-    await (controller as any).getReceiptThumbnail(mockUser as User, 'missing-receipt', res);
+    await (controller as any).getReceiptThumbnail(
+      mockUser as User,
+      'missing-receipt',
+      undefined,
+      res,
+    );
 
     expect(receiptRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'missing-receipt', userId: 'user-123' },
@@ -87,7 +92,7 @@ describe('GmailController - Receipt Thumbnail Endpoint', () => {
     } as Receipt);
     const res = createMockResponse();
 
-    await (controller as any).getReceiptThumbnail(mockUser as User, 'receipt-1', res);
+    await (controller as any).getReceiptThumbnail(mockUser as User, 'receipt-1', undefined, res);
 
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ error: 'No PDF attachment found' });

@@ -938,7 +938,11 @@ export class StatementProcessingService {
           classification.categoryId = undefined;
         }
 
-        if (!manualCategorySelectionRequired && !classification.categoryId && aiCategoryByIndex.has(i)) {
+        if (
+          !manualCategorySelectionRequired &&
+          !classification.categoryId &&
+          aiCategoryByIndex.has(i)
+        ) {
           classification.categoryId = aiCategoryByIndex.get(i);
         }
 

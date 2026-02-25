@@ -108,7 +108,10 @@ export class GmailService {
     const includeLabelFilter = options?.includeLabelFilter !== false;
     const maxMessages = Math.max(
       1,
-      Math.min(options?.maxMessages ?? GmailService.MAX_SYNC_MESSAGES, GmailService.MAX_SYNC_MESSAGES),
+      Math.min(
+        options?.maxMessages ?? GmailService.MAX_SYNC_MESSAGES,
+        GmailService.MAX_SYNC_MESSAGES,
+      ),
     );
 
     let searchQuery = query || '';

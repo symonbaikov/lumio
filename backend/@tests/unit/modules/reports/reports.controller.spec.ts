@@ -82,10 +82,13 @@ describe('ReportsController', () => {
     };
     const controller = new ReportsController(reportsService as any);
 
-    const result = await controller.getTopCategories({ id: 'u-1' } as any, {
-      limit: 5,
-      type: 'expense',
-    } as any);
+    const result = await controller.getTopCategories(
+      { id: 'u-1' } as any,
+      {
+        limit: 5,
+        type: 'expense',
+      } as any,
+    );
 
     expect(result).toEqual({ categories: [] });
     expect(reportsService.getTopCategoriesReport).toHaveBeenCalledWith('u-1', {
@@ -122,5 +125,4 @@ describe('ReportsController', () => {
       dateTo: '2025-01-03',
     });
   });
-
 });

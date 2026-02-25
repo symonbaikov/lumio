@@ -687,18 +687,21 @@ describe('IntelligentDeduplicationService - Tolerant Matching', () => {
       const conflicts2 = await service.detectConflicts(newTransactions, []);
       expect(conflicts2).toHaveLength(0);
 
-      const conflicts3 = await service.detectConflicts([], [
-        {
-          id: 'tx-1',
-          transactionDate: new Date('2024-01-15'),
-          counterpartyName: 'Acme Corp',
-          paymentPurpose: 'Invoice #12345',
-          debit: 1000,
-          amount: 1000,
-          currency: 'KZT',
-          workspaceId: 'ws-1',
-        } as Transaction,
-      ]);
+      const conflicts3 = await service.detectConflicts(
+        [],
+        [
+          {
+            id: 'tx-1',
+            transactionDate: new Date('2024-01-15'),
+            counterpartyName: 'Acme Corp',
+            paymentPurpose: 'Invoice #12345',
+            debit: 1000,
+            amount: 1000,
+            currency: 'KZT',
+            workspaceId: 'ws-1',
+          } as Transaction,
+        ],
+      );
       expect(conflicts3).toHaveLength(0);
     });
   });

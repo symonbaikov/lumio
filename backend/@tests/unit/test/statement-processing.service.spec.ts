@@ -250,7 +250,9 @@ describe('StatementProcessingService', () => {
     } as Statement['parsingDetails'];
     statement.categoryId = null;
     classificationService.classifyTransaction.mockResolvedValue({ categoryId: 'cat-1' });
-    classificationService.classifyTransactionsBatch.mockResolvedValue(new Map<number, string>([[0, 'cat-ai']]));
+    classificationService.classifyTransactionsBatch.mockResolvedValue(
+      new Map<number, string>([[0, 'cat-ai']]),
+    );
     classificationService.determineMajorityCategory.mockResolvedValue({
       categoryId: 'cat-majority',
       type: 'expense' as any,

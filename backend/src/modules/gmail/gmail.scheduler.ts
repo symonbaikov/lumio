@@ -37,7 +37,10 @@ export class GmailScheduler {
       );
 
       if (result.errors.length > 0) {
-        this.logger.warn(`Periodic sync had ${result.errors.length} errors`, JSON.stringify(result.errors));
+        this.logger.warn(
+          `Periodic sync had ${result.errors.length} errors`,
+          JSON.stringify(result.errors),
+        );
       }
     } catch (error) {
       this.logger.error('Error in periodic sync cron job', error);

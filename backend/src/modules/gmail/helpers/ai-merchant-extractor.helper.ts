@@ -133,7 +133,9 @@ export class AiMerchantExtractor {
     }
 
     if (input.pdfText) {
-      blocks.push(`PDF attachment text (first 5000 chars):\n${redactSensitive(input.pdfText).slice(0, 5000)}`);
+      blocks.push(
+        `PDF attachment text (first 5000 chars):\n${redactSensitive(input.pdfText).slice(0, 5000)}`,
+      );
     }
 
     return `You are a financial document analyst. Extract the merchant/vendor/company name from this receipt email.

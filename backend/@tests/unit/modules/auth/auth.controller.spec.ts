@@ -9,7 +9,7 @@ describe('AuthController', () => {
       refreshToken: jest.fn(async () => ({ access_token: 'new' })),
       logout: jest.fn(async () => ({ message: 'ok' })),
       logoutAll: jest.fn(async () => ({ message: 'ok-all' })),
-      getSessions: jest.fn(async () => ([{ id: 's1' }])),
+      getSessions: jest.fn(async () => [{ id: 's1' }]),
       logoutSession: jest.fn(async () => ({ message: 'ok-session' })),
     };
     const controller = new AuthController(authService as any);

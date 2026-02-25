@@ -240,12 +240,7 @@ export class ParserFactoryService {
 
         if (detectedBase === 'bereke') {
           if (
-            await new BerekeNewParser().canParse(
-              BankName.BEREKE_NEW,
-              fileType,
-              filePath,
-              textLower,
-            )
+            await new BerekeNewParser().canParse(BankName.BEREKE_NEW, fileType, filePath, textLower)
           ) {
             console.log(`[ParserFactory] Detected: Bereke Bank (new format)`);
             return {
@@ -257,12 +252,7 @@ export class ParserFactoryService {
             };
           }
           if (
-            await new BerekeOldParser().canParse(
-              BankName.BEREKE_OLD,
-              fileType,
-              filePath,
-              textLower,
-            )
+            await new BerekeOldParser().canParse(BankName.BEREKE_OLD, fileType, filePath, textLower)
           ) {
             console.log(`[ParserFactory] Detected: Bereke Bank (old format)`);
             return {

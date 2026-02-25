@@ -1,4 +1,7 @@
-import { generateTransactionFingerprint, normalizeForFingerprint } from '../../../src/common/utils/fingerprint.util';
+import {
+  generateTransactionFingerprint,
+  normalizeForFingerprint,
+} from '../../../src/common/utils/fingerprint.util';
 
 describe('Fingerprint Utility', () => {
   describe('generateTransactionFingerprint', () => {
@@ -7,7 +10,7 @@ describe('Fingerprint Utility', () => {
         workspaceId: 'workspace-123',
         accountNumber: 'KZ123456789012345678',
         date: new Date('2024-01-15'),
-        amount: 1500.50,
+        amount: 1500.5,
         currency: 'KZT',
         direction: 'debit' as const,
         merchant: 'Test Merchant',
@@ -26,7 +29,7 @@ describe('Fingerprint Utility', () => {
         workspaceId: 'workspace-123',
         accountNumber: 'KZ123456789012345678',
         date: new Date('2024-01-15'),
-        amount: 1500.50,
+        amount: 1500.5,
         currency: 'KZT',
         direction: 'debit' as const,
         merchant: 'Test Merchant',
@@ -45,7 +48,7 @@ describe('Fingerprint Utility', () => {
         workspaceId: 'workspace-123',
         accountNumber: 'KZ123456789012345678',
         date: new Date('2024-01-15'),
-        amount: 1500.50,
+        amount: 1500.5,
         currency: 'KZT',
         direction: 'debit' as const,
         merchant: 'Test Merchant',
@@ -64,7 +67,7 @@ describe('Fingerprint Utility', () => {
         workspaceId: 'workspace-123',
         accountNumber: 'KZ123456789012345678',
         date: new Date('2024-01-15'),
-        amount: 1500.50,
+        amount: 1500.5,
         currency: 'KZT',
         direction: 'debit' as const,
         merchant: 'Test Merchant',
@@ -83,7 +86,7 @@ describe('Fingerprint Utility', () => {
         workspaceId: 'workspace-123',
         accountNumber: 'KZ123456789012345678',
         date: new Date('2024-01-15'),
-        amount: 1500.50,
+        amount: 1500.5,
         currency: 'KZT',
         direction: 'debit' as const,
         merchant: 'Test Merchant',
@@ -102,7 +105,7 @@ describe('Fingerprint Utility', () => {
         workspaceId: 'workspace-123',
         accountNumber: 'KZ123456789012345678',
         date: new Date('2024-01-15T10:30:00.000Z'),
-        amount: 1500.50,
+        amount: 1500.5,
         currency: 'KZT',
         direction: 'debit' as const,
         merchant: 'Test Merchant',
@@ -130,7 +133,7 @@ describe('Fingerprint Utility', () => {
         merchant: 'Test Merchant',
       };
 
-      const input2 = { ...input1, amount: 1500.50 };
+      const input2 = { ...input1, amount: 1500.5 };
 
       const fingerprint1 = generateTransactionFingerprint(input1);
       const fingerprint2 = generateTransactionFingerprint(input2);
@@ -143,7 +146,7 @@ describe('Fingerprint Utility', () => {
         workspaceId: 'workspace-123',
         accountNumber: 'KZ123456789012345678',
         date: new Date('2024-01-15'),
-        amount: 1500.50,
+        amount: 1500.5,
         currency: 'KZT',
         direction: 'debit' as const,
         merchant: 'Test Merchant',
@@ -162,7 +165,7 @@ describe('Fingerprint Utility', () => {
         workspaceId: 'workspace-123',
         accountNumber: 'KZ123456789012345678',
         date: new Date('2024-01-15'),
-        amount: 1500.50,
+        amount: 1500.5,
         currency: 'kzt',
         direction: 'debit' as const,
         merchant: 'Test Merchant',
@@ -182,7 +185,7 @@ describe('Fingerprint Utility', () => {
         workspaceId: 'workspace-123',
         accountNumber: 'KZ123456789012345678',
         date: new Date('2024-01-15'),
-        amount: 1500.50,
+        amount: 1500.5,
         currency: 'KZT',
         direction: 'debit' as const,
         merchant: longMerchant,
@@ -201,7 +204,7 @@ describe('Fingerprint Utility', () => {
         workspaceId: 'workspace-123',
         accountNumber: 'KZ123456789012345678',
         date: new Date('2024-01-15'),
-        amount: 1500.50,
+        amount: 1500.5,
         currency: 'KZT',
         direction: 'debit' as const,
         merchant: '  Test Merchant  ',
@@ -220,7 +223,7 @@ describe('Fingerprint Utility', () => {
         workspaceId: 'workspace-123',
         accountNumber: 'KZ123456789012345678',
         date: new Date('2024-01-15'),
-        amount: 1500.50,
+        amount: 1500.5,
         currency: 'KZT',
         direction: 'debit' as const,
         merchant: 'Test Merchant',

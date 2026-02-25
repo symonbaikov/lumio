@@ -1,8 +1,6 @@
 import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddTransactionWorkspaceDateAmountIndex1761000000000
-  implements MigrationInterface
-{
+export class AddTransactionWorkspaceDateAmountIndex1761000000000 implements MigrationInterface {
   name = 'AddTransactionWorkspaceDateAmountIndex1761000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

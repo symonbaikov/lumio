@@ -15,9 +15,7 @@ export class GenericPdfParser extends BaseParser {
     cachedText?: string,
   ): Promise<boolean> {
     const cachedTextLength = cachedText?.length ?? 0;
-    return (
-      bankName === BankName.OTHER && fileType === FileType.PDF && cachedTextLength >= 0
-    );
+    return bankName === BankName.OTHER && fileType === FileType.PDF && cachedTextLength >= 0;
   }
 
   async parse(filePath: string, cachedText?: string): Promise<ParsedStatement> {

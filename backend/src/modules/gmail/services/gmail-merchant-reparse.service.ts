@@ -47,7 +47,10 @@ export class GmailMerchantReparseService {
     private readonly parserService: GmailReceiptParserService,
   ) {}
 
-  async reparseAll(userId: string, options: ReparseMerchantsOptions = {}): Promise<ReparseMerchantsResult> {
+  async reparseAll(
+    userId: string,
+    options: ReparseMerchantsOptions = {},
+  ): Promise<ReparseMerchantsResult> {
     const limit = Math.min(Math.max(options.limit || DEFAULT_REPARSE_LIMIT, 1), MAX_REPARSE_LIMIT);
     const dryRun = options.dryRun ?? false;
 

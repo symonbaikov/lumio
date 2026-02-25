@@ -1,7 +1,14 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Category, GmailSettings, IntegrationStatus, Receipt, Transaction, User } from '../../../../src/entities';
+import {
+  Category,
+  GmailSettings,
+  IntegrationStatus,
+  Receipt,
+  Transaction,
+  User,
+} from '../../../../src/entities';
 import { GmailController } from '../../../../src/modules/gmail/gmail.controller';
 import { GmailOAuthService } from '../../../../src/modules/gmail/services/gmail-oauth.service';
 import { GmailReceiptCategoryService } from '../../../../src/modules/gmail/services/gmail-receipt-category.service';

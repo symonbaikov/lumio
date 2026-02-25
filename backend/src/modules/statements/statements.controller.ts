@@ -305,10 +305,12 @@ export class StatementsController {
     @Param('id') id: string,
     @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
+    @Query('width') width: string | undefined,
     @Res() res: Response,
   ) {
     try {
-      const thumbnail = await this.statementsService.getThumbnail(id, workspaceId);
+      const parsedWidth = width ? Number(width) : undefined;
+      const thumbnail = await this.statementsService.getThumbnail(id, workspaceId, parsedWidth);
       res.setHeader('Content-Type', 'image/png');
       // Cache successful thumbnails for one week
       res.setHeader('Cache-Control', 'public, max-age=604800');

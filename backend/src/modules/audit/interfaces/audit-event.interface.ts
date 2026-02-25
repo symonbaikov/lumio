@@ -1,4 +1,11 @@
-import type { AuditAction, AuditEventDiff, AuditEventMeta, ActorType, EntityType, Severity } from '../../../entities/audit-event.entity';
+import type {
+  AuditAction,
+  AuditEventDiff,
+  AuditEventMeta,
+  ActorType,
+  EntityType,
+  Severity,
+} from '../../../entities/audit-event.entity';
 
 export interface CreateAuditEventDto {
   workspaceId?: string | null;

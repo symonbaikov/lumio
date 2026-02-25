@@ -72,9 +72,7 @@ describe('ParserFactoryService', () => {
 
     it('forwards cachedText into parser canParse', async () => {
       const cachedText = 'kaspi bank statement';
-      const canParseSpy = jest
-        .spyOn(KaspiParser.prototype, 'canParse')
-        .mockResolvedValue(true);
+      const canParseSpy = jest.spyOn(KaspiParser.prototype, 'canParse').mockResolvedValue(true);
 
       const parser = await service.getParser(
         BankName.KASPI,
@@ -137,11 +135,7 @@ describe('ParserFactoryService', () => {
 
     it('prefers first header match and records ambiguity when both banks appear', async () => {
       (extractTextFromPdf as jest.Mock).mockResolvedValueOnce(
-        [
-          'Kaspi Bank and Bereke Bank',
-          'Header line continues',
-          '01.01.2024 2000',
-        ].join('\n'),
+        ['Kaspi Bank and Bereke Bank', 'Header line continues', '01.01.2024 2000'].join('\n'),
       );
 
       const result = await service.detectBankAndFormat('/tmp/mock.pdf', FileType.PDF);
@@ -156,11 +150,7 @@ describe('ParserFactoryService', () => {
 
     it('falls back to header BIC when header lacks bank names', async () => {
       (extractTextFromPdf as jest.Mock).mockResolvedValueOnce(
-        [
-          'Statement header without bank name',
-          'BIC: BRKEKZKA',
-          '01.01.2024 1000',
-        ].join('\n'),
+        ['Statement header without bank name', 'BIC: BRKEKZKA', '01.01.2024 1000'].join('\n'),
       );
 
       const result = await service.detectBankAndFormat('/tmp/mock.pdf', FileType.PDF);

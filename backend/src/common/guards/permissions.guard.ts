@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { type User, UserRole } from '../../entities/user.entity';
-import { type WorkspaceMemberPermissions, WorkspaceRole } from '../../entities/workspace-member.entity';
+import {
+  type WorkspaceMemberPermissions,
+  WorkspaceRole,
+} from '../../entities/workspace-member.entity';
 import { PERMISSIONS_KEY } from '../decorators/require-permission.decorator';
 import type { Permission } from '../enums/permissions.enum';
 import { Permission as PermissionEnum, ROLE_PERMISSIONS } from '../enums/permissions.enum';
@@ -55,7 +58,9 @@ export class PermissionsGuard implements CanActivate {
       | null
       | undefined;
 
-    if (this.hasWorkspacePermission(requiredPermissions, workspaceRole, workspaceMemberPermissions)) {
+    if (
+      this.hasWorkspacePermission(requiredPermissions, workspaceRole, workspaceMemberPermissions)
+    ) {
       return true;
     }
 

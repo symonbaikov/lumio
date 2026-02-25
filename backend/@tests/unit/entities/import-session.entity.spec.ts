@@ -1,4 +1,8 @@
-import { ImportSession, ImportSessionMode, ImportSessionStatus } from '../../../src/entities/import-session.entity';
+import {
+  ImportSession,
+  ImportSessionMode,
+  ImportSessionStatus,
+} from '../../../src/entities/import-session.entity';
 
 describe('ImportSession Entity', () => {
   it('should create an import session instance', () => {

@@ -75,9 +75,7 @@ describe('ImportModule', () => {
       (repository.findOne as jest.Mock).mockResolvedValue(mockSession);
 
       // This would throw if repository wasn't properly injected
-      await expect(
-        retryService.scheduleRetry('test-id', 0),
-      ).resolves.not.toThrow();
+      await expect(retryService.scheduleRetry('test-id', 0)).resolves.not.toThrow();
 
       expect(repository.findOne).toHaveBeenCalled();
     });

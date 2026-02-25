@@ -134,9 +134,7 @@ describe('ImportRetryService', () => {
         ...mockSession,
         sessionMetadata: {
           ...mockSession.sessionMetadata!,
-          retryHistory: [
-            { attempt: 1, timestamp: '2024-01-01T00:00:00Z', error: 'First error' },
-          ],
+          retryHistory: [{ attempt: 1, timestamp: '2024-01-01T00:00:00Z', error: 'First error' }],
         },
       };
       repository.findOne.mockResolvedValue(sessionWithHistory);
@@ -158,21 +156,15 @@ describe('ImportRetryService', () => {
     it('should throw ImportValidationError if attempt is negative', async () => {
       repository.findOne.mockResolvedValue({ ...mockSession });
 
-      await expect(service.scheduleRetry('session-123', -1)).rejects.toThrow(
-        ImportValidationError,
-      );
+      await expect(service.scheduleRetry('session-123', -1)).rejects.toThrow(ImportValidationError);
     });
 
     it('should throw ImportValidationError if max retries exceeded', async () => {
       repository.findOne.mockResolvedValue({ ...mockSession });
       configService.getMaxRetries.mockReturnValue(3);
 
-      await expect(service.scheduleRetry('session-123', 3)).rejects.toThrow(
-        ImportValidationError,
-      );
-      await expect(service.scheduleRetry('session-123', 5)).rejects.toThrow(
-        ImportValidationError,
-      );
+      await expect(service.scheduleRetry('session-123', 3)).rejects.toThrow(ImportValidationError);
+      await expect(service.scheduleRetry('session-123', 5)).rejects.toThrow(ImportValidationError);
     });
 
     it('should use custom maxAttempts if provided', async () => {
@@ -200,16 +192,14 @@ describe('ImportRetryService', () => {
           nextRetryAt,
         },
       };
-      repository.findOne
-        .mockResolvedValueOnce(sessionWithRetry)
-        .mockResolvedValueOnce({
-          ...sessionWithRetry,
-          status: ImportSessionStatus.PENDING,
-          sessionMetadata: {
-            ...sessionWithRetry.sessionMetadata,
-            nextRetryAt: null,
-          },
-        });
+      repository.findOne.mockResolvedValueOnce(sessionWithRetry).mockResolvedValueOnce({
+        ...sessionWithRetry,
+        status: ImportSessionStatus.PENDING,
+        sessionMetadata: {
+          ...sessionWithRetry.sessionMetadata,
+          nextRetryAt: null,
+        },
+      });
 
       const result = await service.executeRetry('session-123');
 
@@ -474,7 +464,8 @@ describe('ImportRetryService', () => {
 
       const updateCall = repository.update.mock.calls[0][1] as any;
       // Error is appended to existing errors, so check the last error
-      const lastError = updateCall.sessionMetadata.errors[updateCall.sessionMetadata.errors.length - 1];
+      const lastError =
+        updateCall.sessionMetadata.errors[updateCall.sessionMetadata.errors.length - 1];
       expect(lastError).toContain('IMPORT_FATAL_ERROR');
       expect(lastError).toContain('Generic error');
     });

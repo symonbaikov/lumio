@@ -56,11 +56,7 @@ export class ImportRetryService {
    * @throws NotFoundException if session doesn't exist
    * @throws ImportValidationError if max retries exceeded
    */
-  async scheduleRetry(
-    sessionId: string,
-    attempt: number,
-    maxAttempts?: number,
-  ): Promise<void> {
+  async scheduleRetry(sessionId: string, attempt: number, maxAttempts?: number): Promise<void> {
     const maxRetries = maxAttempts ?? this.configService.getMaxRetries();
 
     // Validate attempt number
@@ -69,10 +65,10 @@ export class ImportRetryService {
     }
 
     if (attempt >= maxRetries) {
-      throw new ImportValidationError(
-        `Maximum retry attempts (${maxRetries}) exceeded`,
-        { attempt, maxRetries },
-      );
+      throw new ImportValidationError(`Maximum retry attempts (${maxRetries}) exceeded`, {
+        attempt,
+        maxRetries,
+      });
     }
 
     // Fetch session
@@ -226,33 +222,23 @@ export class ImportRetryService {
 
       // Only retry transient errors
       if (classified instanceof ImportTransientError) {
-        this.logger.debug(
-          `Error is retryable (transient): ${classified.message}`,
-        );
+        this.logger.debug(`Error is retryable (transient): ${classified.message}`);
         return true;
       }
 
       // Log why we're not retrying
       if (classified instanceof ImportValidationError) {
-        this.logger.debug(
-          `Error is not retryable (validation error): ${classified.message}`,
-        );
+        this.logger.debug(`Error is not retryable (validation error): ${classified.message}`);
       } else if (classified instanceof ImportConflictError) {
-        this.logger.debug(
-          `Error is not retryable (conflict error): ${classified.message}`,
-        );
+        this.logger.debug(`Error is not retryable (conflict error): ${classified.message}`);
       } else if (classified instanceof ImportFatalError) {
-        this.logger.debug(
-          `Error is not retryable (fatal error): ${classified.message}`,
-        );
+        this.logger.debug(`Error is not retryable (fatal error): ${classified.message}`);
       }
 
       return false;
     } catch (classificationError) {
       // If we can't classify the error, be conservative and don't retry
-      this.logger.error(
-        `Failed to classify error for retry decision: ${classificationError}`,
-      );
+      this.logger.error(`Failed to classify error for retry decision: ${classificationError}`);
       return false;
     }
   }
@@ -343,8 +329,6 @@ export class ImportRetryService {
       },
     );
 
-    this.logger.warn(
-      `Session ${sessionId} marked as permanently failed: ${classified.message}`,
-    );
+    this.logger.warn(`Session ${sessionId} marked as permanently failed: ${classified.message}`);
   }
 }
