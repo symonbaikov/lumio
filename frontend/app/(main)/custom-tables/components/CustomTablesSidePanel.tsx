@@ -4,7 +4,6 @@ import { type SidePanelPageConfig, useSidePanelConfig } from '@/app/components/s
 import {
   type CustomTableSortOrder,
   type CustomTableSourceFilter,
-  dispatchCustomTableAction,
   dispatchCustomTableViewEvent,
 } from '@/app/lib/custom-table-actions';
 import {
@@ -17,7 +16,6 @@ import {
 } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
 import { useMemo } from 'react';
-import CustomTablesCircularMenu from './CustomTablesCircularMenu';
 
 type Props = {
   activeSource: CustomTableSourceFilter;
@@ -48,15 +46,12 @@ export default function CustomTablesSidePanel({ activeSource, sortOrder, sourceC
       byName: resolveLabel((t as any)?.filters?.sortName, 'By name'),
       sourceOverview: resolveLabel(sidePanelT.sourceOverview, 'Sources overview'),
       noData: resolveLabel(sidePanelT.noData, 'No data'),
-      createTable: resolveLabel((t as any)?.actions?.create, 'Create table'),
-      openMenu: resolveLabel(sidePanelT.openMenu, 'Open table actions'),
     }),
     [
       sidePanelT.accountingTitle,
       sidePanelT.allTables,
       sidePanelT.insightsTitle,
       sidePanelT.noData,
-      sidePanelT.openMenu,
       sidePanelT.sourceOverview,
       t,
     ],
@@ -179,21 +174,6 @@ export default function CustomTablesSidePanel({ activeSource, sortOrder, sourceC
           ],
         },
       ],
-      footer: {
-        content: (
-          <CustomTablesCircularMenu
-            onCreateEmpty={() => dispatchCustomTableAction('create-empty')}
-            onImportFromStatement={() => dispatchCustomTableAction('import-statement')}
-            onImportGoogleSheets={() => dispatchCustomTableAction('import-google-sheets')}
-            labels={{
-              createTable: labels.createTable,
-              fromStatement: labels.fromStatement,
-              importGoogleSheets: labels.googleSheets,
-              openMenu: labels.openMenu,
-            }}
-          />
-        ),
-      },
     }),
     [
       activeSource,
@@ -202,13 +182,11 @@ export default function CustomTablesSidePanel({ activeSource, sortOrder, sourceC
       labels.accountingTitle,
       labels.allTables,
       labels.byName,
-      labels.createTable,
       labels.fromStatement,
       labels.googleSheets,
       labels.insightsTitle,
       labels.manual,
       labels.noData,
-      labels.openMenu,
       labels.recentUpdates,
       labels.sourceOverview,
       manualCount,

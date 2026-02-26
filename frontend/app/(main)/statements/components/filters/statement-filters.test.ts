@@ -121,6 +121,43 @@ describe('applyStatementsFilters', () => {
     expect(result.map(item => item.id)).toEqual(['stmt-2']);
   });
 
+  it('filters by custom on range when dateTo is provided', () => {
+    const statements = [
+      {
+        ...baseStatement,
+        id: 'stmt-1',
+        statementDateFrom: '2025-02-01',
+        statementDateTo: '2025-02-05',
+        createdAt: '2025-02-05T00:00:00.000Z',
+      },
+      {
+        ...baseStatement,
+        id: 'stmt-2',
+        statementDateFrom: '2025-02-01',
+        statementDateTo: '2025-02-08',
+        createdAt: '2025-02-08T00:00:00.000Z',
+      },
+      {
+        ...baseStatement,
+        id: 'stmt-3',
+        statementDateFrom: '2025-02-01',
+        statementDateTo: '2025-02-12',
+        createdAt: '2025-02-12T00:00:00.000Z',
+      },
+    ];
+
+    const result = applyStatementsFilters(
+      statements,
+      {
+        ...defaultFilters,
+        date: { mode: 'on', date: '2025-02-05', dateTo: '2025-02-10' },
+      },
+      new Date('2025-02-20T00:00:00.000Z'),
+    );
+
+    expect(result.map(item => item.id)).toEqual(['stmt-1', 'stmt-2']);
+  });
+
   it('filters by from tokens', () => {
     const statements = [
       { ...baseStatement, id: 'stmt-1', user: { id: 'user-1', name: 'Alex' } },

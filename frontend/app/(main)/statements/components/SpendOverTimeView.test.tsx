@@ -7,6 +7,23 @@ import SpendOverTimeView from './SpendOverTimeView';
 
 const viewportState = vi.hoisted(() => ({ isMobile: true }));
 const fetchReportMock = vi.hoisted(() => vi.fn());
+const pushMock = vi.hoisted(() => vi.fn());
+
+const STORAGE_KEY = 'finflow-spend-over-time-filters';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: pushMock,
+  }),
+}));
+
+vi.mock('@/app/contexts/WorkspaceContext', () => ({
+  useWorkspace: () => ({
+    currentWorkspace: {
+      currency: 'EUR',
+    },
+  }),
+}));
 
 vi.mock('next/dynamic', () => ({
   default: () => () => <div data-testid="mock-echarts" />,
@@ -69,6 +86,8 @@ vi.mock('@/app/components/LoadingAnimation', () => ({
 describe('SpendOverTimeView mobile rendering', () => {
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    localStorage.clear();
+    pushMock.mockReset();
     fetchReportMock.mockResolvedValue({
       totals: {
         expense: 102000,
@@ -129,5 +148,99 @@ describe('SpendOverTimeView mobile rendering', () => {
 
     expect(container.querySelector('table')).toBeTruthy();
     expect(container.querySelector('[data-testid="spend-over-time-mobile-points"]')).toBeNull();
+  });
+
+  it('shows chart empty-state and zero KPI helper text for empty periods', async () => {
+    viewportState.isMobile = false;
+    fetchReportMock.mockResolvedValue({
+      totals: {
+        expense: 0,
+        avgPerPeriod: 0,
+        count: 0,
+        net: 0,
+      },
+      points: [
+        {
+          period: '2026-01',
+          label: 'Jan',
+          income: 0,
+          expense: 0,
+          net: 0,
+          count: 0,
+        },
+      ],
+    });
+
+    const container = document.createElement('div');
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<SpendOverTimeView />);
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain('Нет данных за выбранный период');
+    expect(container.textContent).toContain('Загрузите выписки или примените другой фильтр');
+    expect(container.textContent).toContain('Перейти к загрузке выписок');
+    expect(container.textContent).toContain('Сбросить фильтры');
+    expect(container.textContent).toContain('Пока нет данных для расчета');
+  });
+
+  it('uses Flow naming and supports net flow', async () => {
+    viewportState.isMobile = false;
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        filters: { type: 'net' },
+        groupBy: 'month',
+        viewType: 'line',
+        showTable: true,
+      }),
+    );
+
+    const container = document.createElement('div');
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<SpendOverTimeView />);
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain('Flow: Net');
+    expect(container.textContent).not.toContain('Type: Expense');
+  });
+
+  it('supports yearly grouping and stacked chart view', async () => {
+    viewportState.isMobile = false;
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        filters: { type: 'all' },
+        groupBy: 'year',
+        viewType: 'stacked',
+        showTable: true,
+      }),
+    );
+
+    const container = document.createElement('div');
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<SpendOverTimeView />);
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain('Group by: Year');
+    expect(container.textContent).toContain('View: Stacked');
+    expect(fetchReportMock).toHaveBeenCalledWith(expect.anything(), 'year');
   });
 });

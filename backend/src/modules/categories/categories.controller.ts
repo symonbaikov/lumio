@@ -42,6 +42,13 @@ export class CategoriesController {
     return this.categoriesService.findAll(workspaceId, type);
   }
 
+  @Get('usage/counts')
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard, PermissionsGuard)
+  @RequirePermission(Permission.CATEGORY_VIEW)
+  async getWorkspaceUsageCounts(@WorkspaceId() workspaceId: string) {
+    return this.categoriesService.getWorkspaceCategoryUsageCounts(workspaceId);
+  }
+
   @Get(':id/usage-count')
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard, PermissionsGuard)
   @RequirePermission(Permission.CATEGORY_VIEW)

@@ -15,18 +15,21 @@ import {
   type ConnectedCloudProviders,
 } from '@/app/lib/statement-upload-actions';
 import { countStatementStages, getStatementStageMap } from '@/app/lib/statement-workflow';
-import StorefrontIcon from '@mui/icons-material/Storefront';
+import NearbyErrorIcon from '@mui/icons-material/NearbyError';
+import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import { Banknote, CalendarRange, Folder, Pencil, Send, ThumbsUp, User } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import StatementsCircularUploadMenu from './StatementsCircularUploadMenu';
+import { buildUnapprovedQueueItem } from './unapproved-cash-utils';
 
 type ActiveItem =
   | 'submit'
   | 'approve'
   | 'pay'
+  | 'unapproved-cash'
   | 'spend-over-time'
   | 'top-spenders'
   | 'top-merchants'
@@ -41,13 +44,45 @@ type StatementListItem = {
   bankName?: string | null;
   totalDebit?: number | string | null;
   totalCredit?: number | string | null;
+  status?: string | null;
+  errorMessage?: string | null;
+  fileType?: string | null;
+  parsingDetails?: {
+    importPreview?: {
+      source?: string | null;
+    } | null;
+  } | null;
+};
+
+type TransactionListItem = {
+  id: string;
+  statementId?: string | null;
+  counterpartyName?: string | null;
+  transactionType?: string | null;
+  currency?: string | null;
+  isVerified?: boolean | null;
+  isDuplicate?: boolean | null;
+  duplicateOfId?: string | null;
+  categoryId?: string | null;
+  category?: {
+    id?: string | null;
+  } | null;
+  transactionDate?: string | Date | null;
+  amount?: number | string | null;
+  debit?: number | string | null;
+  credit?: number | string | null;
 };
 
 export default function StatementsSidePanel({ activeItem }: Props) {
   const router = useRouter();
   const t = useIntlayer('statementsPage');
   const { user } = useAuth();
-  const [counts, setCounts] = useState({ submit: 0, approve: 0, pay: 0 });
+  const [counts, setCounts] = useState({
+    submit: 0,
+    approve: 0,
+    pay: 0,
+    unapprovedCash: 0,
+  });
   const [topSenders, setTopSenders] = useState<TopBankSender[]>([]);
   const [topMerchantsCount, setTopMerchantsCount] = useState(0);
   const [topCategoriesCount, setTopCategoriesCount] = useState(0);
@@ -96,7 +131,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
         const stageCounts = countStatementStages(statementIds, getStatementStageMap());
         const topBankSenders = getTopBankSenders(allStatements, 5);
 
-        const topMerchantsItems: Array<{ counterpartyName?: string | null }> = [];
+        const topMerchantsItems: TransactionListItem[] = [];
         const topMerchantsPageSize = 500;
         let topMerchantsPage = 1;
         let topMerchantsTotal = Number.POSITIVE_INFINITY;
@@ -123,11 +158,32 @@ export default function StatementsSidePanel({ activeItem }: Props) {
 
         const uniqueMerchants = new Set(
           topMerchantsItems
-            .map((item: { counterpartyName?: string | null }) =>
-              (item.counterpartyName || '').trim().toLowerCase(),
-            )
+            .map(item => (item.counterpartyName || '').trim().toLowerCase())
             .filter(Boolean),
         );
+
+        const statementMetaById = new Map(
+          allStatements
+            .filter(statement => Boolean(statement.id))
+            .map(statement => [
+              statement.id as string,
+              {
+                id: statement.id as string,
+                status: statement.status,
+                errorMessage: statement.errorMessage,
+                fileType: statement.fileType,
+                sourceHint: statement.parsingDetails?.importPreview?.source ?? null,
+              },
+            ]),
+        );
+
+        const unapprovedCashCount = topMerchantsItems.reduce((total, transaction) => {
+          const statementMeta = transaction.statementId
+            ? (statementMetaById.get(transaction.statementId) ?? null)
+            : null;
+          const queueItem = buildUnapprovedQueueItem(transaction, statementMeta);
+          return queueItem.reasons.length > 0 ? total + 1 : total;
+        }, 0);
 
         const topCategoriesResponse = await apiClient.get('/reports/top-categories', {
           params: {
@@ -140,14 +196,17 @@ export default function StatementsSidePanel({ activeItem }: Props) {
           : [];
 
         if (isMounted) {
-          setCounts(stageCounts);
+          setCounts({
+            ...stageCounts,
+            unapprovedCash: unapprovedCashCount,
+          });
           setTopSenders(topBankSenders);
           setTopMerchantsCount(uniqueMerchants.size);
           setTopCategoriesCount(topCategories.length);
         }
       } catch {
         if (isMounted) {
-          setCounts({ submit: 0, approve: 0, pay: 0 });
+          setCounts({ submit: 0, approve: 0, pay: 0, unapprovedCash: 0 });
           setTopSenders([]);
           setTopMerchantsCount(0);
           setTopCategoriesCount(0);
@@ -350,7 +409,12 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             {
               id: 'unapproved-cash',
               label: (t as any)?.sidePanel?.unapprovedCash?.value ?? 'Unapproved cash',
-              icon: Banknote,
+              icon: <NearbyErrorIcon sx={{ fontSize: 20 }} />,
+              badge: counts.unapprovedCash,
+              badgeVariant: getQueueBadgeVariant(counts.unapprovedCash),
+              emphasis: 'high',
+              href: '/statements/unapproved-cash',
+              active: activeItem === 'unapproved-cash',
             },
           ],
         },
@@ -381,7 +445,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             {
               id: 'top-merchants',
               label: (t as any)?.sidePanel?.topMerchants?.value ?? 'Top merchants',
-              icon: <StorefrontIcon sx={{ fontSize: 16 }} />,
+              icon: <PointOfSaleIcon sx={{ fontSize: 20 }} />,
               badge: topMerchantsCount,
               badgeVariant: 'default',
               emphasis: 'low',

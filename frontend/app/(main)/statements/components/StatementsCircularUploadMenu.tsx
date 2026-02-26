@@ -147,11 +147,28 @@ export default function StatementsCircularUploadMenu({
 
   const styles = ARC_SIZES[placement];
 
+  const backdrop = portalReady
+    ? createPortal(
+        <button
+          data-statements-fab-backdrop="true"
+          type="button"
+          aria-label="Close upload actions"
+          onClick={() => setIsOpen(false)}
+          className={cn(
+            'fixed inset-0 z-[300] bg-black/45 transition-opacity duration-300 ease-out',
+            isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+          )}
+        />,
+        document.body,
+      )
+    : null;
+
   const menu = (
     <div
       className={cn(
         'relative overflow-visible',
         styles.container,
+        isOpen && 'z-[310]',
         placement === 'floating' && 'pointer-events-none',
       )}
     >
@@ -246,10 +263,18 @@ export default function StatementsCircularUploadMenu({
   if (placement === 'floating' && portalReady) {
     const portalTarget = document.getElementById('fab-portal') ?? document.body;
     return createPortal(
-      <div className="fixed bottom-0 left-0 z-[320] pointer-events-none lg:hidden">{menu}</div>,
+      <>
+        {backdrop}
+        <div className="fixed bottom-0 left-0 z-[320] pointer-events-none lg:hidden">{menu}</div>
+      </>,
       portalTarget,
     );
   }
 
-  return menu;
+  return (
+    <>
+      {backdrop}
+      {menu}
+    </>
+  );
 }

@@ -1,18 +1,14 @@
 'use client';
 
-import { format } from 'date-fns';
-import { enUS, kk, ru } from 'date-fns/locale';
-import { useRouter } from 'next/navigation';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/style.css';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import apiClient from '@/app/lib/api';
+import { DatePicker } from '@heroui/date-picker';
 import { Icon } from '@iconify/react';
+import { parseDate } from '@internationalized/date';
+import { format } from 'date-fns';
 import {
-  Calendar as CalendarIcon,
   CheckCircle2,
   ClipboardList,
   DollarSign,
@@ -28,6 +24,8 @@ import {
   X,
 } from 'lucide-react';
 import { useIntlayer, useLocale } from 'next-intlayer';
+import { useRouter } from 'next/navigation';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import Select from 'react-select';
 
@@ -116,10 +114,36 @@ const resolveLocale = (locale: string) => {
   return 'en-US';
 };
 
-const resolveDateFnsLocale = (locale: string) => {
-  if (locale === 'ru') return ru;
-  if (locale === 'kk') return kk;
-  return enUS;
+const DATE_VALUE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+const normalizeDateValue = (value: string) => {
+  if (!value) {
+    return null;
+  }
+
+  if (DATE_VALUE_REGEX.test(value)) {
+    return value;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return format(parsed, 'yyyy-MM-dd');
+};
+
+const toCalendarDate = (value: string) => {
+  const normalized = normalizeDateValue(value);
+  if (!normalized) {
+    return null;
+  }
+
+  try {
+    return parseDate(normalized);
+  } catch {
+    return null;
+  }
 };
 
 export default function DataEntryPage() {
@@ -200,7 +224,6 @@ export default function DataEntryPage() {
   const [exportingTable, setExportingTable] = useState(false);
   const [syncingTable, setSyncingTable] = useState(false);
   const [customFieldHighlight, setCustomFieldHighlight] = useState(false);
-  const dateFnsLocale = useMemo(() => resolveDateFnsLocale(locale), [locale]);
   const allCurrencies = [
     { value: 'KZT', label: 'Казахстанский тенге (KZT)' },
     { value: 'USD', label: 'US Dollar (USD)' },
@@ -1724,67 +1747,30 @@ export default function DataEntryPage() {
             <>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                 <div className="relative" data-tour-id="date-field">
-                  <span className="text-sm font-medium text-gray-700 block mb-1">
-                    {t.labels.date}
-                  </span>
-                  <button
-                    type="button"
-                    className={`w-full rounded-lg border bg-white px-3 py-2 text-sm flex items-center justify-between transition-colors ${
-                      calendarOpen
-                        ? 'border-primary ring-1 ring-primary'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setCalendarOpen(!calendarOpen)}
-                  >
-                    <span className={currentForm.date ? 'text-gray-900' : 'text-gray-400'}>
-                      {currentForm.date
-                        ? format(new Date(currentForm.date), 'd MMMM yyyy', {
-                            locale: dateFnsLocale,
-                          })
-                        : t.labels.selectDate}
-                    </span>
-                    <CalendarIcon className="h-4 w-4 text-gray-500" />
-                  </button>
-
-                  {calendarOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setCalendarOpen(false)}
-                        onKeyDown={event => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            setCalendarOpen(false);
-                          }
-                        }}
-                      />
-                      <div className="absolute top-full left-0 mt-2 z-20 bg-white rounded-xl shadow-xl border border-gray-200 p-3 animate-in fade-in zoom-in-95 duration-200">
-                        <style>{`
-                       .rdp { --rdp-cell-size: 40px; --rdp-accent-color: #0a66c2; --rdp-background-color: #e3f2fd; margin: 0; }
-                       .rdp-button:hover:not([disabled]):not(.rdp-day_selected) { background-color: #f3f2ef; font-weight: bold; }
-                       .rdp-day_selected, .rdp-day_selected:focus-visible, .rdp-day_selected:hover { background-color: var(--rdp-accent-color); color: white; font-weight: bold; }
-                       .rdp-head_cell { color: #666; font-weight: 600; font-size: 0.875rem; }
-                       .rdp-caption_label { font-weight: 700; color: #191919; font-size: 1rem; }
-                       .rdp-nav_button { color: #666; }
-                       .rdp-nav_button:hover { background-color: #f3f2ef; color: #0a66c2; }
-                     `}</style>
-                        <DayPicker
-                          mode="single"
-                          selected={currentForm.date ? new Date(currentForm.date) : undefined}
-                          onSelect={day => {
-                            if (day) {
-                              handleChange(activeTab, 'date', format(day, 'yyyy-MM-dd'));
-                              setCalendarOpen(false);
-                            }
-                          }}
-                          locale={dateFnsLocale}
-                          className="rounded-lg"
-                        />
-                      </div>
-                    </>
-                  )}
+                  <DatePicker
+                    aria-label="Date"
+                    label={t.labels.date}
+                    value={toCalendarDate(currentForm.date)}
+                    onChange={date => {
+                      handleChange(activeTab, 'date', date ? date.toString() : '');
+                      setCalendarOpen(false);
+                    }}
+                    isOpen={calendarOpen}
+                    onOpenChange={setCalendarOpen}
+                    granularity="day"
+                    showMonthAndYearPickers
+                    size="sm"
+                    variant="bordered"
+                    className="w-full"
+                    classNames={{
+                      label: 'mb-1 text-sm font-medium text-gray-700',
+                      inputWrapper:
+                        'rounded-lg border-gray-200 bg-white hover:border-gray-300 group-data-[focus=true]:border-primary group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-primary',
+                      input: 'text-sm',
+                      segment: 'text-sm',
+                      selectorButton: 'text-gray-500',
+                    }}
+                  />
                 </div>
 
                 <label className="block" data-tour-id="amount-field">
@@ -1887,74 +1873,42 @@ export default function DataEntryPage() {
                 </div>
 
                 <div className="relative w-full sm:w-48" data-tour-id="date-filter">
-                  <button
-                    type="button"
-                    className={`w-full rounded-full border bg-white pl-9 pr-9 py-1.5 text-sm flex items-center justify-between transition-colors ${
-                      listCalendarOpen
-                        ? 'border-primary ring-1 ring-primary'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => {
-                      setCalendarOpen(false);
-                      setCustomIconOpen(false);
-                      setExportMenuOpen(false);
-                      setListCalendarOpen(v => !v);
+                  <DatePicker
+                    aria-label={t.labels.filterDateTitle.value}
+                    value={toCalendarDate(activeDate)}
+                    onChange={date => {
+                      setDateForTab(activeTab, date ? date.toString() : '');
+                      setListCalendarOpen(false);
                     }}
-                    title={t.labels.filterDateTitle.value}
-                  >
-                    <span className={activeDate ? 'text-gray-900' : 'text-gray-400'}>
-                      {activeDate
-                        ? format(new Date(activeDate), 'd MMMM yyyy', {
-                            locale: dateFnsLocale,
-                          })
-                        : t.labels.selectDate}
-                    </span>
-                    <CalendarIcon className="h-4 w-4 text-gray-500" />
-                  </button>
-
-                  {listCalendarOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setListCalendarOpen(false)}
-                        onKeyDown={event => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            setListCalendarOpen(false);
-                          }
-                        }}
-                      />
-                      <div className="absolute top-full left-0 mt-2 z-20 bg-white rounded-xl shadow-xl border border-gray-200 p-3 animate-in fade-in zoom-in-95 duration-200">
-                        <style>{`
-		                        .rdp { --rdp-cell-size: 40px; --rdp-accent-color: #0a66c2; --rdp-background-color: #e3f2fd; margin: 0; }
-		                        .rdp-button:hover:not([disabled]):not(.rdp-day_selected) { background-color: #f3f2ef; font-weight: bold; }
-		                        .rdp-day_selected, .rdp-day_selected:focus-visible, .rdp-day_selected:hover { background-color: var(--rdp-accent-color); color: white; font-weight: bold; }
-		                        .rdp-head_cell { color: #666; font-weight: 600; font-size: 0.875rem; }
-		                        .rdp-caption_label { font-weight: 700; color: #191919; font-size: 1rem; }
-		                        .rdp-nav_button { color: #666; }
-		                        .rdp-nav_button:hover { background-color: #f3f2ef; color: #0a66c2; }
-		                      `}</style>
-                        <DayPicker
-                          mode="single"
-                          selected={activeDate ? new Date(activeDate) : undefined}
-                          onSelect={day => {
-                            if (day) {
-                              setDateForTab(activeTab, format(day, 'yyyy-MM-dd'));
-                              setListCalendarOpen(false);
-                            }
-                          }}
-                          locale={dateFnsLocale}
-                          className="rounded-lg"
-                        />
-                      </div>
-                    </>
-                  )}
+                    isOpen={listCalendarOpen}
+                    onOpenChange={open => {
+                      if (open) {
+                        setCalendarOpen(false);
+                        setCustomIconOpen(false);
+                        setExportMenuOpen(false);
+                      }
+                      setListCalendarOpen(open);
+                    }}
+                    granularity="day"
+                    showMonthAndYearPickers
+                    size="sm"
+                    variant="bordered"
+                    radius="full"
+                    selectorButtonPlacement="start"
+                    className="w-full"
+                    classNames={{
+                      inputWrapper:
+                        'h-8 rounded-full border-gray-200 bg-white pr-9 hover:border-gray-300 group-data-[focus=true]:border-primary group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-primary',
+                      input: 'text-sm',
+                      segment: 'text-sm',
+                      selectorButton: 'text-gray-500',
+                    }}
+                  />
                   {activeDate ? (
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={event => {
+                        event.stopPropagation();
                         setDateForTab(activeTab, '');
                         setListCalendarOpen(false);
                       }}

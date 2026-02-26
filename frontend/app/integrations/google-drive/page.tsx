@@ -199,129 +199,140 @@ export default function GoogleDriveIntegrationPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {status?.connected ? (
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                 ) : (
-                  <XCircle className="h-5 w-5 text-red-500" />
+                  <XCircle className="h-6 w-6 text-red-500" />
                 )}
                 <div>
-                  <p className="text-sm text-gray-500">{t.header.title}</p>
-                  <p className="font-semibold text-gray-900">{statusLabel}</p>
+                  <h2 className="text-lg font-semibold text-gray-900">{t.header.title}</h2>
+                  <p className="text-sm text-gray-500">{statusLabel}</p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {status?.connected ? (
-                  <>
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-wrap gap-2">
+                  {status?.connected ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleSyncNow}
+                        disabled={syncing || saving}
+                        className="inline-flex items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
+                      >
+                        {syncing ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCcw className="h-4 w-4" />
+                        )}
+                        {t.actions.syncNow}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDisconnect}
+                        disabled={saving}
+                        className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Link2Off className="h-4 w-4" />
+                        {t.actions.disconnect}
+                      </button>
+                    </>
+                  ) : (
                     <button
                       type="button"
-                      onClick={handleSyncNow}
-                      disabled={syncing || saving}
-                      className="inline-flex items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
-                    >
-                      {syncing ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <RefreshCcw className="h-4 w-4" />
-                      )}
-                      {t.actions.syncNow}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDisconnect}
+                      onClick={handleConnect}
                       disabled={saving}
-                      className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
                     >
-                      <Link2Off className="h-4 w-4" />
-                      {t.actions.disconnect}
+                      <RefreshCcw className="h-4 w-4" />
+                      {status?.status === 'needs_reauth' ? t.actions.reconnect : t.actions.connect}
                     </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleConnect}
-                    disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
-                  >
-                    <RefreshCcw className="h-4 w-4" />
-                    {status?.status === 'needs_reauth' ? t.actions.reconnect : t.actions.connect}
-                  </button>
+                  )}
+                </div>
+                {!status?.connected && (
+                  <p className="text-xs text-gray-500 max-w-xs text-right mt-1">
+                    We’ll create a folder in your Google Drive and sync files daily.
+                  </p>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">{t.settings.title}</h2>
-              <button
-                type="button"
-                onClick={handlePickFolder}
-                disabled={!status?.connected || saving}
-                className="inline-flex items-center gap-2 rounded-full border border-primary px-4 py-1.5 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
-              >
-                {t.actions.pickFolder}
-              </button>
-            </div>
+          {status?.connected && (
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-gray-900">{t.settings.title}</h2>
+                <button
+                  type="button"
+                  onClick={handlePickFolder}
+                  disabled={!status?.connected || saving}
+                  className="inline-flex items-center gap-2 rounded-full border border-primary px-4 py-1.5 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
+                >
+                  {t.actions.pickFolder}
+                </button>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <p className="text-sm text-gray-500">{t.settings.folder}</p>
-                <p className="font-medium text-gray-900">
-                  {status?.settings?.folderName ||
-                    status?.settings?.folderId ||
-                    t.settings.folderPlaceholder}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-500">{t.settings.lastSync}</p>
-                <p className="font-medium text-gray-900">
-                  {formatDateTime(status?.settings?.lastSyncAt, user?.locale) || '—'}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-500">{t.settings.syncEnabled}</p>
-                <div className="inline-flex items-center gap-2">
-                  <Checkbox
-                    checked={status?.settings?.syncEnabled ?? true}
-                    onCheckedChange={checked => updateSettings({ syncEnabled: checked })}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">{t.settings.folder}</p>
+                  <p className="font-medium text-gray-900">
+                    {status?.settings?.folderName ||
+                      status?.settings?.folderId ||
+                      t.settings.folderPlaceholder}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">{t.settings.lastSync}</p>
+                  <p className="font-medium text-gray-900">
+                    {formatDateTime(status?.settings?.lastSyncAt, user?.locale) || '—'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">{t.settings.syncEnabled}</p>
+                  <div className="inline-flex items-center gap-2">
+                    <Checkbox
+                      checked={status?.settings?.syncEnabled ?? true}
+                      onCheckedChange={checked => updateSettings({ syncEnabled: checked })}
+                      disabled={!status?.connected || saving}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm text-gray-700">
+                      {status?.settings?.syncEnabled ? t.status.connected : t.status.disconnected}
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">{t.settings.syncTime}</p>
+                  <input
+                    type="time"
+                    value={status?.settings?.syncTime || '03:00'}
+                    onChange={e => updateSettings({ syncTime: e.target.value })}
                     disabled={!status?.connected || saving}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
-                  <span className="text-sm text-gray-700">
-                    {status?.settings?.syncEnabled ? t.status.connected : t.status.disconnected}
-                  </span>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">{t.settings.timeZone}</p>
+                  <p className="font-medium text-gray-900">{status?.settings?.timeZone || 'UTC'}</p>
                 </div>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-500">{t.settings.syncTime}</p>
-                <input
-                  type="time"
-                  value={status?.settings?.syncTime || '03:00'}
-                  onChange={e => updateSettings({ syncTime: e.target.value })}
-                  disabled={!status?.connected || saving}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-500">{t.settings.timeZone}</p>
-                <p className="font-medium text-gray-900">{status?.settings?.timeZone || 'UTC'}</p>
-              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm h-fit">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="h-5 w-5 text-primary mt-1" />
-            <div className="space-y-2 text-sm text-gray-600">
-              <p>{t.settings.syncEnabled}</p>
-              <p>{t.settings.folderPlaceholder}</p>
+        {status?.connected && (
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm h-fit">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-primary mt-1" />
+              <div className="space-y-2 text-sm text-gray-600">
+                <p>{t.settings.syncEnabled}</p>
+                <p>{t.settings.folderPlaceholder}</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

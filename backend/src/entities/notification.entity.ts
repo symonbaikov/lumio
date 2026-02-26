@@ -24,6 +24,9 @@ export enum NotificationType {
   IMPORT_FAILED = 'import.failed',
   TRANSACTION_UNCATEGORIZED = 'transaction.uncategorized',
   RECEIPT_UNCATEGORIZED = 'receipt.uncategorized',
+  PAYABLE_DUE_SOON = 'payable.due_soon',
+  PAYABLE_OVERDUE = 'payable.overdue',
+  PAYABLE_MARKED_PAID = 'payable.marked_paid',
 }
 
 export enum NotificationCategory {

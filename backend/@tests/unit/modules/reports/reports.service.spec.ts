@@ -116,4 +116,112 @@ describe('ReportsService (helpers)', () => {
     expect(result.totals.count).toBe(2);
     expect(result.totals.avgPerPeriod).toBeCloseTo(80 / 3, 5);
   });
+
+  it('getSpendOverTimeReport supports quarterly grouping', async () => {
+    const qb = {
+      innerJoin: jest.fn().mockReturnThis(),
+      leftJoin: jest.fn().mockReturnThis(),
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn(async () => [{ period: '2025-Q1', income: '100', expense: '40', count: '2' }]),
+    };
+    const transactionRepository = {
+      createQueryBuilder: jest.fn(() => qb),
+    };
+    const localService = new ReportsService(
+      transactionRepository as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      { get: jest.fn(), set: jest.fn() } as any,
+      { createEvent: jest.fn() } as AuditService,
+    );
+
+    const result = await (localService as any).getSpendOverTimeReport('u1', {
+      groupBy: 'quarter',
+      dateFrom: '2025-01-01',
+      dateTo: '2025-06-30',
+    });
+
+    expect(result.points).toHaveLength(2);
+    expect(result.points[0]).toEqual({
+      period: '2025-Q1',
+      label: 'Q1 2025',
+      income: 100,
+      expense: 40,
+      net: 60,
+      count: 2,
+    });
+    expect(result.points[1]).toEqual({
+      period: '2025-Q2',
+      label: 'Q2 2025',
+      income: 0,
+      expense: 0,
+      net: 0,
+      count: 0,
+    });
+  });
+
+  it('getSpendOverTimeReport supports yearly grouping', async () => {
+    const qb = {
+      innerJoin: jest.fn().mockReturnThis(),
+      leftJoin: jest.fn().mockReturnThis(),
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn(async () => [{ period: '2025', income: '250', expense: '150', count: '3' }]),
+    };
+    const transactionRepository = {
+      createQueryBuilder: jest.fn(() => qb),
+    };
+    const localService = new ReportsService(
+      transactionRepository as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      { get: jest.fn(), set: jest.fn() } as any,
+      { createEvent: jest.fn() } as AuditService,
+    );
+
+    const result = await (localService as any).getSpendOverTimeReport('u1', {
+      groupBy: 'year',
+      dateFrom: '2025-01-01',
+      dateTo: '2026-12-31',
+    });
+
+    expect(result.points).toHaveLength(2);
+    expect(result.points[0]).toEqual({
+      period: '2025',
+      label: '2025',
+      income: 250,
+      expense: 150,
+      net: 100,
+      count: 3,
+    });
+    expect(result.points[1]).toEqual({
+      period: '2026',
+      label: '2026',
+      income: 0,
+      expense: 0,
+      net: 0,
+      count: 0,
+    });
+  });
 });

@@ -12,6 +12,7 @@ import { Integration } from '@/entities/integration.entity';
 import { AuditService } from '@/modules/audit/audit.service';
 import { BalanceService } from '@/modules/balance/balance.service';
 import { CategoriesService } from '@/modules/categories/categories.service';
+import { TaxRatesService } from '@/modules/tax-rates/tax-rates.service';
 import { WorkspacesService } from '@/modules/workspaces/workspaces.service';
 import {
   BadRequestException,
@@ -112,6 +113,12 @@ describe('WorkspacesService', () => {
           provide: CategoriesService,
           useValue: {
             createSystemCategories: jest.fn(),
+          },
+        },
+        {
+          provide: TaxRatesService,
+          useValue: {
+            createDefaultTaxRates: jest.fn(),
           },
         },
         {

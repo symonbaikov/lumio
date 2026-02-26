@@ -1545,9 +1545,20 @@ export class ReportsService {
     const monthPeriodExpr = "TO_CHAR(transaction.transactionDate, 'YYYY-MM')";
     const weekPeriodExpr =
       "TO_CHAR(transaction.transactionDate, 'IYYY') || '-W' || TO_CHAR(transaction.transactionDate, 'IW')";
+    const quarterPeriodExpr =
+      "TO_CHAR(transaction.transactionDate, 'YYYY') || '-Q' || TO_CHAR(transaction.transactionDate, 'Q')";
+    const yearPeriodExpr = "TO_CHAR(transaction.transactionDate, 'YYYY')";
 
     const periodExpr =
-      groupBy === 'month' ? monthPeriodExpr : groupBy === 'week' ? weekPeriodExpr : dayPeriodExpr;
+      groupBy === 'year'
+        ? yearPeriodExpr
+        : groupBy === 'quarter'
+          ? quarterPeriodExpr
+          : groupBy === 'month'
+            ? monthPeriodExpr
+            : groupBy === 'week'
+              ? weekPeriodExpr
+              : dayPeriodExpr;
 
     const rows = await qb
       .select(`${periodExpr}`, 'period')
@@ -1593,6 +1604,14 @@ export class ReportsService {
       if (groupBy === 'month') {
         period = this.formatMonthPeriod(cursor);
         label = this.formatMonthLabel(cursor);
+      } else if (groupBy === 'quarter') {
+        const year = cursor.getUTCFullYear();
+        const quarter = Math.floor(cursor.getUTCMonth() / 3) + 1;
+        period = `${year}-Q${quarter}`;
+        label = `Q${quarter} ${year}`;
+      } else if (groupBy === 'year') {
+        period = `${cursor.getUTCFullYear()}`;
+        label = period;
       } else if (groupBy === 'week') {
         const { year, week } = this.getIsoWeekInfo(cursor);
         const weekString = `${week}`.padStart(2, '0');
@@ -1621,6 +1640,10 @@ export class ReportsService {
 
       if (groupBy === 'month') {
         cursor.setUTCMonth(cursor.getUTCMonth() + 1, 1);
+      } else if (groupBy === 'quarter') {
+        cursor.setUTCMonth(cursor.getUTCMonth() + 3, 1);
+      } else if (groupBy === 'year') {
+        cursor.setUTCFullYear(cursor.getUTCFullYear() + 1, 0, 1);
       } else if (groupBy === 'week') {
         cursor.setUTCDate(cursor.getUTCDate() + 7);
       } else {

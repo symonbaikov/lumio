@@ -1,10 +1,10 @@
 'use client';
 
+import { DatePicker } from '@heroui/date-picker';
+import { parseDate } from '@internationalized/date';
 import type { Column, Table } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/style.css';
+import { type CSSProperties, useState } from 'react';
 import type { CustomTableGridRow } from '../../utils/stylingUtils';
 
 interface EditableDateCellProps {
@@ -16,36 +16,44 @@ interface EditableDateCellProps {
   style?: CSSProperties;
 }
 
+const DATE_VALUE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+const normalizeDateValue = (value: unknown) => {
+  if (typeof value !== 'string' || !value) {
+    return null;
+  }
+
+  if (DATE_VALUE_REGEX.test(value)) {
+    return value;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return format(parsed, 'yyyy-MM-dd');
+};
+
+const toCalendarDate = (value: string | null) => {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return parseDate(value);
+  } catch {
+    return null;
+  }
+};
+
 export function EditableDateCell({ row, column, onUpdateCell, style }: EditableDateCellProps) {
-  const initialValue = row.original.data[column.id];
+  const initialValue = normalizeDateValue(row.original.data[column.id]);
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    initialValue ? new Date(initialValue) : undefined,
-  );
+  const [selectedValue, setSelectedValue] = useState<string | null>(initialValue);
   const [isSaving, setIsSaving] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        if (isEditing) {
-          handleSave();
-        }
-      }
-    };
-
-    if (isEditing) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isEditing, selectedDate]);
-
-  const handleSave = async () => {
-    const newValue = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
-
+  const handleSave = async (newValue: string | null) => {
     if (newValue === initialValue) {
       setIsEditing(false);
       return;
@@ -57,40 +65,57 @@ export function EditableDateCell({ row, column, onUpdateCell, style }: EditableD
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to update cell:', error);
-      setSelectedDate(initialValue ? new Date(initialValue) : undefined);
+      setSelectedValue(initialValue);
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
-    setSelectedDate(initialValue ? new Date(initialValue) : undefined);
+    setSelectedValue(initialValue);
     setIsEditing(false);
+  };
+
+  const handleOpenEditor = () => {
+    setSelectedValue(initialValue);
+    setIsEditing(true);
   };
 
   const displayValue = initialValue ? format(new Date(initialValue), 'dd.MM.yyyy') : '—';
 
   if (isEditing) {
     return (
-      <div ref={containerRef} className="relative z-20">
-        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2">
-          <DayPicker
-            mode="single"
-            selected={selectedDate}
-            onSelect={date => {
-              setSelectedDate(date);
-              if (date) {
-                // Auto-save on select
-                setTimeout(() => handleSave(), 100);
+      <div className="relative z-20 min-w-[220px]" style={style}>
+        <div className="rounded-lg border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+          <DatePicker
+            aria-label="Select date"
+            value={toCalendarDate(selectedValue)}
+            onChange={date => {
+              const nextValue = date ? date.toString() : null;
+              setSelectedValue(nextValue);
+              void handleSave(nextValue);
+            }}
+            isOpen={isEditing}
+            onOpenChange={open => {
+              if (!open && !isSaving) {
+                setIsEditing(false);
               }
             }}
-            className="text-sm"
+            granularity="day"
+            showMonthAndYearPickers
+            size="sm"
+            variant="bordered"
+            isDisabled={isSaving}
+            className="w-full"
+            classNames={{
+              inputWrapper: 'bg-white dark:bg-gray-800',
+            }}
           />
-          <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+          <div className="mt-2 flex justify-end gap-2 border-t border-gray-200 pt-2 dark:border-gray-700">
             <button
               type="button"
               onClick={handleCancel}
-              className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              className="rounded px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               Cancel
             </button>
@@ -103,7 +128,7 @@ export function EditableDateCell({ row, column, onUpdateCell, style }: EditableD
   return (
     <button
       type="button"
-      onClick={() => setIsEditing(true)}
+      onClick={handleOpenEditor}
       className="w-full h-full px-2 py-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded text-left truncate"
       style={style}
       title="Click to select date"

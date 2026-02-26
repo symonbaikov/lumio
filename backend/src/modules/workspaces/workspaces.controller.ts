@@ -20,6 +20,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
+import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { WorkspacesService } from './workspaces.service';
 
@@ -145,6 +146,27 @@ export class WorkspacesController {
     @Param('userId') userId: string,
   ) {
     return this.workspacesService.removeMember(workspaceId, user.id, userId);
+  }
+
+  @Patch(':id/members/:userId/role')
+  @UseGuards(JwtAuthGuard)
+  async updateWorkspaceMemberRole(
+    @CurrentUser() user: User,
+    @Param('id') workspaceId: string,
+    @Param('userId') userId: string,
+    @Body() dto: UpdateMemberRoleDto,
+  ) {
+    return this.workspacesService.updateMemberRole(workspaceId, user.id, userId, dto.role);
+  }
+
+  @Delete(':id/invitations/:invitationId')
+  @UseGuards(JwtAuthGuard)
+  async revokeWorkspaceInvitation(
+    @CurrentUser() user: User,
+    @Param('id') workspaceId: string,
+    @Param('invitationId') invitationId: string,
+  ) {
+    return this.workspacesService.cancelInvitation(workspaceId, user.id, invitationId);
   }
 
   @Post('invitations')

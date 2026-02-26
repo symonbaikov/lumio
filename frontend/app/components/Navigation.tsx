@@ -18,7 +18,6 @@ import {
   DropdownTrigger,
 } from '@heroui/react';
 import ApartmentIcon from '@mui/icons-material/Apartment';
-import EngineeringIcon from '@mui/icons-material/Engineering';
 import LanguageIcon from '@mui/icons-material/Language';
 import PinIcon from '@mui/icons-material/Pin';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
@@ -49,7 +48,6 @@ import {
 } from 'lucide-react';
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { useTheme } from 'next-themes';
-import { Roboto } from 'next/font/google';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -59,12 +57,6 @@ import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
 
 const MOBILE_MENU_VISIBILITY_EVENT = 'lumio-mobile-menu-visibility';
-
-const robotoBlackItalic = Roboto({
-  subsets: ['latin', 'cyrillic'],
-  weight: '900',
-  style: 'italic',
-});
 
 type AppLanguage = 'ru' | 'en' | 'kk';
 
@@ -84,8 +76,6 @@ export default function Navigation() {
     tour,
   } = useIntlayer('navigation');
   const trashLabel = (userMenu as Record<string, any>).trash?.value ?? 'Trash';
-  const supportedBanksLabel =
-    (userMenu as Record<string, any>).supportedBanks?.value ?? 'Supported banks';
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileMenuMounted, setMobileMenuMounted] = useState(false);
@@ -352,9 +342,6 @@ export default function Navigation() {
         case 'integrations':
           navigateFromUserMenu('/integrations');
           return;
-        case 'supported-banks':
-          navigateFromUserMenu('/supported-banks');
-          return;
         case 'trash':
           navigateFromUserMenu('/statements/trash');
           return;
@@ -385,12 +372,12 @@ export default function Navigation() {
         <Button
           radius="full"
           size="sm"
-          className={`${robotoBlackItalic.className} min-w-[92px] !bg-primary !text-primary-foreground px-4 font-black italic tracking-[0.08em] hover:!bg-primary/90`}
+          className="min-w-[92px] border border-primary/30 !bg-white !text-primary px-4 font-semibold tracking-wide hover:!bg-primary/10"
           data-tour-id={mobile ? undefined : 'user-menu-trigger'}
         >
           <span className="inline-flex items-center gap-2">
-            <WidgetsIcon sx={{ fontSize: 18 }} htmlColor="#fff" />
-            MORE!
+            <WidgetsIcon sx={{ fontSize: 18 }} htmlColor="#0a66c2" />
+            {((userMenu as any).moreActions?.value as string) || 'Menu'}
           </span>
         </Button>
       </DropdownTrigger>
@@ -445,14 +432,6 @@ export default function Navigation() {
             startContent={<Plug size={18} className="text-muted-foreground" />}
           >
             {userMenu.integrations}
-          </DropdownItem>
-          <DropdownItem
-            key="supported-banks"
-            startContent={
-              <EngineeringIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
-            }
-          >
-            {supportedBanksLabel}
           </DropdownItem>
           <DropdownItem
             key="trash"

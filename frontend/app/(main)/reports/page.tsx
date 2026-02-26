@@ -1,8 +1,13 @@
 'use client';
 
+import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
+import { Badge, type BadgeVariant } from '@/app/components/ui/badge';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
+import Box from '@mui/material/Box';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import {
   AlertCircle,
   AlertTriangle,
@@ -18,6 +23,7 @@ import {
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import apiClient from '../../lib/api';
@@ -145,26 +151,115 @@ const formatCurrency = (value: number, locale: string, currency: string) =>
     minimumFractionDigits: 2,
   }).format(value);
 
+const normalizeStatus = (status: string) => status.trim().toLowerCase();
+
+const formatStatusLabel = (status: string) => {
+  const normalized = status.trim();
+  if (!normalized) return '-';
+  const prepared = normalized.replace(/_/g, ' ');
+  return prepared.charAt(0).toUpperCase() + prepared.slice(1);
+};
+
+const getStatusBadgeVariant = (status: string): BadgeVariant => {
+  const normalized = normalizeStatus(status);
+  if (normalized === 'error') return 'destructive';
+  if (normalized === 'processing' || normalized === 'uploaded') return 'warning';
+  if (normalized === 'parsed' || normalized === 'validated' || normalized === 'completed') {
+    return 'success';
+  }
+  return 'info';
+};
+
+const getStatusPriority = (status: string) => {
+  const normalized = normalizeStatus(status);
+  if (normalized === 'error') return 0;
+  if (normalized === 'processing' || normalized === 'uploaded') return 1;
+  if (normalized === 'completed' || normalized === 'validated' || normalized === 'parsed') return 2;
+  return 3;
+};
+
+const getIsoDateKey = (value: string) => {
+  const direct = value.split('T')[0];
+  return direct || value;
+};
+
+const formatShortDate = (value: string, locale: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat(resolveLocale(locale), {
+    day: 'numeric',
+    month: 'long',
+  }).format(date);
+};
+
 const InfoCard = ({
   title,
   value,
   accent,
   icon,
+  emphasis = 'normal',
 }: {
   title: string;
   value: string;
   accent?: 'green' | 'red' | 'blue';
   icon?: React.ReactNode;
+  emphasis?: 'normal' | 'strong';
 }) => {
   const color =
     accent === 'green' ? 'text-emerald-600' : accent === 'red' ? 'text-red-600' : 'text-primary';
+
+  const cardClassName =
+    emphasis === 'strong'
+      ? 'rounded-lg border border-gray-300 bg-white p-4 shadow-sm ring-1 ring-gray-100 transition-all hover:border-gray-300 hover:shadow-sm'
+      : 'rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 hover:shadow-sm';
+
+  const valueClassName =
+    emphasis === 'strong'
+      ? 'mt-2 text-2xl font-bold tracking-tight'
+      : 'mt-2 text-xl font-semibold tracking-tight';
+
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 hover:shadow-sm">
+    <div className={cardClassName}>
       <div className="flex items-center justify-between">
         <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{title}</div>
         {icon}
       </div>
-      <div className={`mt-2 text-xl font-semibold tracking-tight ${color}`}>{value}</div>
+      <div className={`${valueClassName} ${color}`}>{value}</div>
+    </div>
+  );
+};
+
+const EmptyChartState = ({
+  title,
+  description,
+  ctaLabel,
+  ctaHref,
+  height,
+}: {
+  title: string;
+  description: string;
+  ctaLabel: string;
+  ctaHref: string;
+  height: number;
+}) => {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 text-center" style={{ height }}>
+      <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <BarChart3 className="h-5 w-5" />
+      </span>
+      <div className="space-y-1">
+        <p className="text-sm font-semibold text-gray-900">{title}</p>
+        <p className="text-xs text-gray-500">{description}</p>
+      </div>
+      <Link
+        href={ctaHref}
+        className="inline-flex items-center gap-2 rounded-full border border-primary px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+      >
+        <FileText className="h-3.5 w-3.5" />
+        {ctaLabel}
+      </Link>
     </div>
   );
 };
@@ -199,6 +294,20 @@ export default function ReportsPage() {
   const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
   const [localSummary, setLocalSummary] = useState<LocalSummaryResponse | null>(null);
   const [loadingLocalSummary, setLoadingLocalSummary] = useState(false);
+  const [activeBankFilter, setActiveBankFilter] = useState<string | null>(null);
+
+  const resolveBankName = useCallback(
+    (bankName?: string | null) => {
+      const prepared = String(bankName || '').trim();
+      return prepared.length > 0 ? prepared : t.labels.withoutBank.value;
+    },
+    [t.labels.withoutBank.value],
+  );
+
+  const normalizeBankName = useCallback(
+    (bankName?: string | null) => resolveBankName(bankName).toLowerCase(),
+    [resolveBankName],
+  );
 
   const load = async (daysOverride?: number) => {
     const windowDays = daysOverride ?? days;
@@ -292,6 +401,16 @@ export default function ReportsPage() {
       loadStatementSummary();
     }
   }, [tab]);
+
+  useEffect(() => {
+    if (!activeBankFilter) return;
+    const hasSelectedBank = statements.some(
+      statement => normalizeBankName(statement.bankName) === activeBankFilter,
+    );
+    if (!hasSelectedBank) {
+      setActiveBankFilter(null);
+    }
+  }, [activeBankFilter, normalizeBankName, statements]);
 
   useEffect(() => {
     if (tab !== 'local') return;
@@ -509,8 +628,38 @@ export default function ReportsPage() {
     };
   }, [localSummary, chartLayout]);
 
+  const isSheetsEmpty = !loading && (data?.totals.rows || 0) === 0;
+  const isLocalEmpty =
+    !loadingLocalSummary && selectedTableIds.length > 0 && (localSummary?.totals.rows || 0) === 0;
+
+  const statementBanks = useMemo(() => {
+    const bankMap = new Map<string, { name: string; value: number }>();
+
+    statements.forEach(statement => {
+      const name = resolveBankName(statement.bankName);
+      const key = name.toLowerCase();
+      const existing = bankMap.get(key);
+      if (existing) {
+        existing.value += 1;
+        return;
+      }
+      bankMap.set(key, { name, value: 1 });
+    });
+
+    return Array.from(bankMap.values()).sort((a, b) => b.value - a.value);
+  }, [resolveBankName, statements]);
+
+  const filteredStatements = useMemo(() => {
+    if (!activeBankFilter) {
+      return statements;
+    }
+    return statements.filter(
+      statement => normalizeBankName(statement.bankName) === activeBankFilter,
+    );
+  }, [activeBankFilter, normalizeBankName, statements]);
+
   const parsedStatements = useMemo(() => {
-    if (!statements || statements.length === 0) {
+    if (!filteredStatements || filteredStatements.length === 0) {
       return {
         total: 0,
         processed: 0,
@@ -524,9 +673,10 @@ export default function ReportsPage() {
         statuses: [] as Array<{ name: string; value: number }>,
       };
     }
-    const total = statements.length;
+
+    const total = filteredStatements.length;
     const processedStatuses = new Set(['parsed', 'validated', 'completed']);
-    const processingStatuses = new Set(['processing']);
+    const processingStatuses = new Set(['processing', 'uploaded']);
 
     let processed = 0;
     let processing = 0;
@@ -538,10 +688,12 @@ export default function ReportsPage() {
     const bankMap = new Map<string, number>();
     const statusMap = new Map<string, number>();
 
-    statements.forEach(s => {
-      if (processedStatuses.has(s.status)) processed += 1;
-      if (processingStatuses.has(s.status)) processing += 1;
-      if (s.status === 'error') {
+    filteredStatements.forEach(s => {
+      const status = normalizeStatus(String(s.status || ''));
+
+      if (processedStatuses.has(status)) processed += 1;
+      if (processingStatuses.has(status)) processing += 1;
+      if (status === 'error') {
         errors += 1;
         errorItems.push(s);
       }
@@ -550,11 +702,12 @@ export default function ReportsPage() {
         lastDate = s.createdAt;
       }
 
-      const dateKey = s.createdAt ? s.createdAt.split('T')[0] : '—';
+      const dateKey = s.createdAt ? getIsoDateKey(s.createdAt) : '—';
       timeseriesMap.set(dateKey, (timeseriesMap.get(dateKey) || 0) + 1);
-      const bankKey = s.bankName || t.labels.withoutBank.value;
+      const bankKey = resolveBankName(s.bankName);
       bankMap.set(bankKey, (bankMap.get(bankKey) || 0) + 1);
-      statusMap.set(s.status, (statusMap.get(s.status) || 0) + 1);
+      const statusKey = status || 'unknown';
+      statusMap.set(statusKey, (statusMap.get(statusKey) || 0) + 1);
     });
 
     return {
@@ -577,7 +730,120 @@ export default function ReportsPage() {
         value,
       })),
     };
-  }, [statements, t]);
+  }, [filteredStatements, resolveBankName]);
+
+  const peakStatementsDay = useMemo(() => {
+    if (parsedStatements.timeseries.length === 0) {
+      return null;
+    }
+
+    return parsedStatements.timeseries.reduce(
+      (peak, current) => {
+        if (!peak || current.count > peak.count) {
+          return current;
+        }
+        return peak;
+      },
+      null as { date: string; count: number } | null,
+    );
+  }, [parsedStatements.timeseries]);
+
+  const latestUploadGroups = useMemo(() => {
+    const sorted = [...filteredStatements].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    const groupedMap = new Map<
+      string,
+      {
+        id: string;
+        fileName: string;
+        bankName: string;
+        latestCreatedAt: string;
+        fileCount: number;
+        totalTransactions: number;
+        statusCounts: Map<string, number>;
+      }
+    >();
+
+    sorted.forEach(statement => {
+      const bankName = resolveBankName(statement.bankName);
+      const dateKey = statement.createdAt ? getIsoDateKey(statement.createdAt) : 'unknown-date';
+      const fileName = statement.fileName || '-';
+      const groupedKey = `${dateKey}::${bankName.toLowerCase()}::${fileName.toLowerCase()}`;
+
+      let grouped = groupedMap.get(groupedKey);
+      if (!grouped) {
+        grouped = {
+          id: statement.id,
+          fileName,
+          bankName,
+          latestCreatedAt: statement.createdAt,
+          fileCount: 0,
+          totalTransactions: 0,
+          statusCounts: new Map<string, number>(),
+        };
+        groupedMap.set(groupedKey, grouped);
+      }
+
+      grouped.fileCount += 1;
+      grouped.totalTransactions += Number(statement.totalTransactions || 0);
+      if (new Date(statement.createdAt) > new Date(grouped.latestCreatedAt)) {
+        grouped.latestCreatedAt = statement.createdAt;
+      }
+
+      const status = normalizeStatus(String(statement.status || 'uploaded')) || 'uploaded';
+      grouped.statusCounts.set(status, (grouped.statusCounts.get(status) || 0) + 1);
+    });
+
+    return Array.from(groupedMap.values())
+      .sort((a, b) => new Date(b.latestCreatedAt).getTime() - new Date(a.latestCreatedAt).getTime())
+      .slice(0, 10)
+      .map(grouped => {
+        const sortedStatuses = Array.from(grouped.statusCounts.entries()).sort((a, b) => {
+          if (b[1] !== a[1]) return b[1] - a[1];
+          return getStatusPriority(a[0]) - getStatusPriority(b[0]);
+        });
+
+        const primaryStatus = sortedStatuses[0]?.[0] || 'uploaded';
+        const statusSummary = sortedStatuses
+          .map(([status, count]) => `${formatStatusLabel(status)} ${count}`)
+          .join(' · ');
+
+        return {
+          id: grouped.id,
+          fileName: grouped.fileName,
+          bankName: grouped.bankName,
+          latestCreatedAt: grouped.latestCreatedAt,
+          fileCount: grouped.fileCount,
+          totalTransactions: grouped.totalTransactions,
+          primaryStatus,
+          statusSummary,
+        };
+      });
+  }, [filteredStatements, resolveBankName]);
+
+  const activeBankLabel = useMemo(() => {
+    if (!activeBankFilter) return null;
+    return statementBanks.find(bank => bank.name.toLowerCase() === activeBankFilter)?.name || null;
+  }, [activeBankFilter, statementBanks]);
+
+  const isStatementsEmpty =
+    !loadingStatements && !loadingStatementSummary && parsedStatements.total === 0;
+
+  const emptyAnalyticsTitle =
+    ((t.labels as any).emptyAnalyticsTitle?.value as string) ||
+    'Upload a statement to see analytics';
+  const emptyAnalyticsDescription =
+    ((t.labels as any).emptyAnalyticsDescription?.value as string) ||
+    'No transactions yet for the selected period. Start by uploading and parsing your first statement.';
+  const parseStatementLabel =
+    ((t.labels as any).parseStatement?.value as string) || 'Parse statement';
+  const bankFilterAllLabel = ((t.labels as any).allBanks?.value as string) || 'All banks';
+  const peakUploadsLabel = ((t.labels as any).peakUploads?.value as string) || 'Peak uploads';
+  const filesShortLabel = ((t.labels as any).filesShort?.value as string) || 'files';
+  const filteredByBankLabel =
+    ((t.labels as any).filteredByBank?.value as string) || 'Filtered by bank';
 
   const statementsLineOption = useMemo(() => {
     const ts = parsedStatements.timeseries;
@@ -613,14 +879,16 @@ export default function ReportsPage() {
           name: t.labels.banks.value,
           type: 'pie',
           radius: chartLayout.pieRadius,
-          data: parsedStatements.banks.map(b => ({
+          selectedMode: 'single',
+          data: statementBanks.map(b => ({
             name: b.name,
             value: b.value,
+            selected: activeBankFilter === b.name.toLowerCase(),
           })),
         },
       ],
     };
-  }, [parsedStatements.banks, t, chartLayout]);
+  }, [activeBankFilter, chartLayout, statementBanks, t.labels.banks.value]);
 
   const statementsBarOption = useMemo(() => {
     return {
@@ -630,7 +898,7 @@ export default function ReportsPage() {
       xAxis: { type: 'value' },
       yAxis: {
         type: 'category',
-        data: parsedStatements.statuses.map(s => s.name),
+        data: parsedStatements.statuses.map(s => formatStatusLabel(s.name)),
       },
       series: [
         {
@@ -644,6 +912,17 @@ export default function ReportsPage() {
       ],
     };
   }, [parsedStatements.statuses, resolvedTheme, chartLayout]);
+
+  const statementsBanksChartEvents = useMemo(
+    () => ({
+      click: (params: { name?: string }) => {
+        const clickedBank = String(params?.name || '').toLowerCase();
+        if (!clickedBank) return;
+        setActiveBankFilter(prev => (prev === clickedBank ? null : clickedBank));
+      },
+    }),
+    [],
+  );
 
   return (
     <div
@@ -671,58 +950,41 @@ export default function ReportsPage() {
         </div>
       ) : null}
 
-      <div className="mb-6 border-b border-gray-200">
-        <nav
-          className="-mb-px flex items-center gap-8 overflow-x-auto"
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs
+          value={tab}
+          onChange={(_, newValue) => setTab(newValue)}
           aria-label="Tabs"
+          variant="scrollable"
+          scrollButtons="auto"
           data-tour-id="reports-tabs"
         >
-          <button
-            onClick={() => setTab('sheets')}
-            className={`whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors ${
-              tab === 'sheets'
-                ? 'border-primary text-primary font-semibold'
-                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-            }`}
+          <Tab
+            label={t.labels.tabSheets}
+            value="sheets"
             data-tour-id="reports-tab-sheets"
-          >
-            {t.labels.tabSheets}
-          </button>
-          <button
-            onClick={() => setTab('local')}
-            className={`whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors ${
-              tab === 'local'
-                ? 'border-primary text-primary font-semibold'
-                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-            }`}
+            sx={{ textTransform: 'none', fontSize: '0.875rem', fontWeight: 500 }}
+          />
+          <Tab
+            label={t.labels.tabLocal}
+            value="local"
             data-tour-id="reports-tab-local"
-          >
-            {t.labels.tabLocal}
-          </button>
-          <button
-            onClick={() => setTab('statements')}
-            className={`whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors ${
-              tab === 'statements'
-                ? 'border-primary text-primary font-semibold'
-                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-            }`}
+            sx={{ textTransform: 'none', fontSize: '0.875rem', fontWeight: 500 }}
+          />
+          <Tab
+            label={t.labels.tabStatements}
+            value="statements"
             data-tour-id="reports-tab-statements"
-          >
-            {t.labels.tabStatements}
-          </button>
-          <button
-            onClick={() => setTab('balance')}
-            className={`whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors ${
-              tab === 'balance'
-                ? 'border-primary text-primary font-semibold'
-                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-            }`}
+            sx={{ textTransform: 'none', fontSize: '0.875rem', fontWeight: 500 }}
+          />
+          <Tab
+            label={(t.labels as any).tabBalance?.value ?? 'Баланс'}
+            value="balance"
             data-tour-id="reports-tab-balance"
-          >
-            {(t.labels as any).tabBalance?.value ?? 'Баланс'}
-          </button>
-        </nav>
-      </div>
+            sx={{ textTransform: 'none', fontSize: '0.875rem', fontWeight: 500 }}
+          />
+        </Tabs>
+      </Box>
 
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -799,6 +1061,14 @@ export default function ReportsPage() {
                 <div className="h-64 flex items-center justify-center text-gray-500">
                   {t.labels.loadingEllipsis}
                 </div>
+              ) : isSheetsEmpty ? (
+                <EmptyChartState
+                  title={emptyAnalyticsTitle}
+                  description={emptyAnalyticsDescription}
+                  ctaLabel={parseStatementLabel}
+                  ctaHref="/statements/submit"
+                  height={chartLayout.primaryChartHeight}
+                />
               ) : (
                 <ReactECharts
                   style={{ height: chartLayout.primaryChartHeight }}
@@ -824,6 +1094,14 @@ export default function ReportsPage() {
                 <div className="h-64 flex items-center justify-center text-gray-500">
                   {t.labels.loadingEllipsis}
                 </div>
+              ) : isSheetsEmpty ? (
+                <EmptyChartState
+                  title={emptyAnalyticsTitle}
+                  description={emptyAnalyticsDescription}
+                  ctaLabel={parseStatementLabel}
+                  ctaHref="/statements/submit"
+                  height={chartLayout.secondaryChartHeight}
+                />
               ) : (
                 <ReactECharts
                   style={{ height: chartLayout.secondaryChartHeight }}
@@ -851,6 +1129,14 @@ export default function ReportsPage() {
                 <div className="h-64 flex items-center justify-center text-gray-500">
                   {t.labels.loadingEllipsis}
                 </div>
+              ) : isSheetsEmpty ? (
+                <EmptyChartState
+                  title={emptyAnalyticsTitle}
+                  description={emptyAnalyticsDescription}
+                  ctaLabel={parseStatementLabel}
+                  ctaHref="/statements/submit"
+                  height={chartLayout.secondaryChartHeight}
+                />
               ) : (
                 <ReactECharts
                   style={{ height: chartLayout.secondaryChartHeight }}
@@ -893,8 +1179,16 @@ export default function ReportsPage() {
                   </div>
                 ))}
                 {(data?.recent || []).length === 0 && (
-                  <div className="py-6 text-sm text-gray-500 text-center">
-                    {t.labels.noDataPeriod}
+                  <div className="py-8 text-center">
+                    <p className="text-sm font-medium text-gray-700">{emptyAnalyticsTitle}</p>
+                    <p className="mt-1 text-xs text-gray-500">{emptyAnalyticsDescription}</p>
+                    <Link
+                      href="/statements/submit"
+                      className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      {parseStatementLabel}
+                    </Link>
                   </div>
                 )}
               </div>
@@ -1047,6 +1341,14 @@ export default function ReportsPage() {
                     <div className="h-64 flex items-center justify-center text-gray-500">
                       {t.labels.loadingEllipsis}
                     </div>
+                  ) : isLocalEmpty ? (
+                    <EmptyChartState
+                      title={emptyAnalyticsTitle}
+                      description={emptyAnalyticsDescription}
+                      ctaLabel={parseStatementLabel}
+                      ctaHref="/statements/submit"
+                      height={chartLayout.primaryChartHeight}
+                    />
                   ) : (
                     <ReactECharts
                       style={{ height: chartLayout.primaryChartHeight }}
@@ -1072,6 +1374,14 @@ export default function ReportsPage() {
                     <div className="h-64 flex items-center justify-center text-gray-500">
                       {t.labels.loadingEllipsis}
                     </div>
+                  ) : isLocalEmpty ? (
+                    <EmptyChartState
+                      title={emptyAnalyticsTitle}
+                      description={emptyAnalyticsDescription}
+                      ctaLabel={parseStatementLabel}
+                      ctaHref="/statements/submit"
+                      height={chartLayout.secondaryChartHeight}
+                    />
                   ) : (
                     <ReactECharts
                       style={{ height: chartLayout.secondaryChartHeight }}
@@ -1099,6 +1409,14 @@ export default function ReportsPage() {
                     <div className="h-64 flex items-center justify-center text-gray-500">
                       {t.labels.loadingEllipsis}
                     </div>
+                  ) : isLocalEmpty ? (
+                    <EmptyChartState
+                      title={emptyAnalyticsTitle}
+                      description={emptyAnalyticsDescription}
+                      ctaLabel={parseStatementLabel}
+                      ctaHref="/statements/submit"
+                      height={chartLayout.secondaryChartHeight}
+                    />
                   ) : (
                     <ReactECharts
                       style={{ height: chartLayout.secondaryChartHeight }}
@@ -1145,8 +1463,16 @@ export default function ReportsPage() {
                       </div>
                     ))}
                     {(localSummary?.recent || []).length === 0 && (
-                      <div className="py-6 text-sm text-gray-500 text-center">
-                        {t.labels.noDataPeriod}
+                      <div className="py-8 text-center">
+                        <p className="text-sm font-medium text-gray-700">{emptyAnalyticsTitle}</p>
+                        <p className="mt-1 text-xs text-gray-500">{emptyAnalyticsDescription}</p>
+                        <Link
+                          href="/statements/submit"
+                          className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          {parseStatementLabel}
+                        </Link>
                       </div>
                     )}
                   </div>
@@ -1205,9 +1531,44 @@ export default function ReportsPage() {
             </button>
           </div>
 
+          {activeBankLabel ? (
+            <div className="mt-3">
+              <Badge variant="info" className="px-3 py-1 text-xs font-semibold">
+                {filteredByBankLabel}: {activeBankLabel}
+              </Badge>
+            </div>
+          ) : null}
+
           <div
-            className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4"
+            className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
             data-tour-id="reports-statements-pipeline"
+          >
+            <InfoCard
+              title={t.labels.processed.value}
+              value={`${parsedStatements.processed}`}
+              accent="green"
+              icon={<CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+              emphasis="strong"
+            />
+            <InfoCard
+              title={t.labels.errorsLabel.value}
+              value={`${parsedStatements.errors}`}
+              accent="red"
+              icon={<AlertTriangle className="h-4 w-4 text-red-500" />}
+              emphasis="strong"
+            />
+            <InfoCard
+              title={t.labels.net.value}
+              value={formatAmount(statementSummary?.totals.net || 0)}
+              accent={(statementSummary?.totals.net || 0) >= 0 ? 'green' : 'red'}
+              icon={<TrendingUp className="h-4 w-4 text-primary" />}
+              emphasis="strong"
+            />
+          </div>
+
+          <div
+            className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-5"
+            data-tour-id="reports-statements-totals"
           >
             <InfoCard
               title={t.labels.total.value}
@@ -1215,29 +1576,11 @@ export default function ReportsPage() {
               icon={<FileText className="h-4 w-4 text-primary" />}
             />
             <InfoCard
-              title={t.labels.processed.value}
-              value={`${parsedStatements.processed}`}
-              accent="green"
-              icon={<CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-            />
-            <InfoCard
               title={t.labels.inProgress.value}
               value={`${parsedStatements.processing}`}
               accent="blue"
               icon={<RefreshCcw className="h-4 w-4 text-primary" />}
             />
-            <InfoCard
-              title={t.labels.errorsLabel.value}
-              value={`${parsedStatements.errors}`}
-              accent="red"
-              icon={<AlertTriangle className="h-4 w-4 text-red-500" />}
-            />
-          </div>
-
-          <div
-            className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4"
-            data-tour-id="reports-statements-totals"
-          >
             <InfoCard
               title={t.labels.income.value}
               value={formatAmount(statementSummary?.totals.income || 0)}
@@ -1251,130 +1594,232 @@ export default function ReportsPage() {
               icon={<ArrowUp className="h-4 w-4 text-red-500" />}
             />
             <InfoCard
-              title={t.labels.net.value}
-              value={formatAmount(statementSummary?.totals.net || 0)}
-              accent={(statementSummary?.totals.net || 0) >= 0 ? 'green' : 'red'}
-              icon={<TrendingUp className="h-4 w-4 text-primary" />}
-            />
-            <InfoCard
               title={t.labels.operations.value}
-              value={`${statementSummary?.totals.rows || 0}`}
+              value={`${parsedStatements.totalTransactions}`}
               icon={<FileText className="h-4 w-4 text-primary" />}
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div
-              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
-              data-tour-id="reports-statements-uploads-trend"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-gray-900">{t.labels.uploadsTrend}</h3>
-                <span className="text-xs text-gray-500">{t.labels.byUploadDates}</span>
+          {isStatementsEmpty ? (
+            <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6 text-center">
+              <div className="mx-auto mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <FileText className="h-5 w-5" />
               </div>
-              {loadingStatements || loadingStatementSummary ? (
-                <div className="h-64 flex items-center justify-center text-gray-500">
-                  {t.labels.loadingEllipsis}
-                </div>
-              ) : (
-                <ReactECharts
-                  style={{ height: chartLayout.primaryChartHeight }}
-                  option={statementsLineOption}
-                  notMerge
-                  lazyUpdate
-                  theme={echartsTheme}
-                />
-              )}
+              <p className="text-sm font-semibold text-gray-900">{emptyAnalyticsTitle}</p>
+              <p className="mt-1 text-sm text-gray-500">{emptyAnalyticsDescription}</p>
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <Link
+                  href="/statements/submit"
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+                >
+                  <FileText className="h-4 w-4" />
+                  {parseStatementLabel}
+                </Link>
+                <button
+                  onClick={() => {
+                    loadStatements();
+                    loadStatementSummary();
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-primary hover:text-primary"
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                  {t.labels.refresh}
+                </button>
+              </div>
             </div>
+          ) : null}
 
-            <div
-              className="rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
-              data-tour-id="reports-statements-banks"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-gray-900">{t.labels.banks}</h3>
-                <span className="text-xs text-gray-500">{t.labels.top}</span>
-              </div>
-              {loadingStatements ? (
-                <div className="h-64 flex items-center justify-center text-gray-500">
-                  {t.labels.loadingEllipsis}
-                </div>
-              ) : (
-                <ReactECharts
-                  style={{ height: chartLayout.secondaryChartHeight }}
-                  option={statementsPieOption}
-                  notMerge
-                  lazyUpdate
-                  theme={echartsTheme}
-                />
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div
-              className="rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
-              data-tour-id="reports-statements-statuses"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-gray-900">{t.labels.statuses}</h3>
-                <span className="text-xs text-gray-500">{t.labels.distribution}</span>
-              </div>
-              {loadingStatements ? (
-                <div className="h-64 flex items-center justify-center text-gray-500">
-                  {t.labels.loadingEllipsis}
-                </div>
-              ) : (
-                <ReactECharts
-                  style={{ height: chartLayout.secondaryChartHeight }}
-                  option={statementsBarOption}
-                  notMerge
-                  lazyUpdate
-                  theme={echartsTheme}
-                />
-              )}
-            </div>
-
-            <div
-              className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
-              data-tour-id="reports-statements-latest-uploads"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-gray-900">{t.labels.latestUploads}</h3>
-                <span className="text-xs text-gray-500">{t.labels.upToTen}</span>
-              </div>
-              {loadingStatements ? (
-                <div className="py-6 text-sm text-gray-500 text-center">
-                  {t.labels.loadingEllipsis}
-                </div>
-              ) : statements.length === 0 ? (
-                <div className="py-6 text-sm text-gray-500 text-center">{t.labels.noData}</div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {statements.slice(0, 10).map(s => (
-                    <div
-                      key={s.id}
-                      className="flex flex-col justify-between gap-1 py-3 sm:flex-row sm:items-center"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">{s.fileName}</p>
-                        <p className="text-xs text-gray-500">
-                          {s.bankName || '—'} ·{' '}
-                          {new Date(s.createdAt).toLocaleString(resolveLocale(locale))}
+          {!isStatementsEmpty ? (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div
+                  className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
+                  data-tour-id="reports-statements-uploads-trend"
+                >
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <h3 className="text-sm font-semibold text-gray-900">{t.labels.uploadsTrend}</h3>
+                    <div className="text-right text-xs text-gray-500">
+                      <p>{t.labels.byUploadDates}</p>
+                      {peakStatementsDay ? (
+                        <p className="mt-1 text-[11px] text-gray-600">
+                          {peakUploadsLabel}: {formatShortDate(peakStatementsDay.date, locale)} -{' '}
+                          {peakStatementsDay.count}
                         </p>
-                      </div>
-                      <div className="text-right text-xs text-gray-600">
-                        <p className="font-semibold capitalize">{s.status}</p>
-                        <p>
-                          {s.totalTransactions || 0} {t.labels.transactionsCount}
-                        </p>
-                      </div>
+                      ) : null}
                     </div>
-                  ))}
+                  </div>
+                  {loadingStatements || loadingStatementSummary ? (
+                    <div className="h-64 flex items-center justify-center text-gray-500">
+                      {t.labels.loadingEllipsis}
+                    </div>
+                  ) : (
+                    <ReactECharts
+                      style={{ height: chartLayout.primaryChartHeight }}
+                      option={statementsLineOption}
+                      notMerge
+                      lazyUpdate
+                      theme={echartsTheme}
+                    />
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+
+                <div
+                  className="rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
+                  data-tour-id="reports-statements-banks"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold text-gray-900">{t.labels.banks}</h3>
+                    <span className="text-xs text-gray-500">{t.labels.top}</span>
+                  </div>
+                  {loadingStatements ? (
+                    <div className="h-64 flex items-center justify-center text-gray-500">
+                      {t.labels.loadingEllipsis}
+                    </div>
+                  ) : statementBanks.length === 0 ? (
+                    <EmptyChartState
+                      title={emptyAnalyticsTitle}
+                      description={emptyAnalyticsDescription}
+                      ctaLabel={parseStatementLabel}
+                      ctaHref="/statements/submit"
+                      height={chartLayout.secondaryChartHeight}
+                    />
+                  ) : (
+                    <>
+                      <ReactECharts
+                        style={{ height: chartLayout.secondaryChartHeight }}
+                        option={statementsPieOption}
+                        notMerge
+                        lazyUpdate
+                        onEvents={statementsBanksChartEvents}
+                        theme={echartsTheme}
+                      />
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          onClick={() => setActiveBankFilter(null)}
+                          className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                            activeBankFilter === null
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
+                          }`}
+                        >
+                          {bankFilterAllLabel}
+                        </button>
+                        {statementBanks.map(bank => {
+                          const bankKey = bank.name.toLowerCase();
+                          const isActive = activeBankFilter === bankKey;
+                          return (
+                            <button
+                              key={bankKey}
+                              onClick={() => setActiveBankFilter(isActive ? null : bankKey)}
+                              className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                                isActive
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
+                              }`}
+                            >
+                              {bank.name} ({bank.value})
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div
+                  className="rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
+                  data-tour-id="reports-statements-statuses"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold text-gray-900">{t.labels.statuses}</h3>
+                    <span className="text-xs text-gray-500">{t.labels.distribution}</span>
+                  </div>
+                  {loadingStatements ? (
+                    <div className="h-64 flex items-center justify-center text-gray-500">
+                      {t.labels.loadingEllipsis}
+                    </div>
+                  ) : (
+                    <ReactECharts
+                      style={{ height: chartLayout.secondaryChartHeight }}
+                      option={statementsBarOption}
+                      notMerge
+                      lazyUpdate
+                      theme={echartsTheme}
+                    />
+                  )}
+                </div>
+
+                <div
+                  className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-sm"
+                  data-tour-id="reports-statements-latest-uploads"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      {t.labels.latestUploads}
+                    </h3>
+                    <span className="text-xs text-gray-500">{t.labels.upToTen}</span>
+                  </div>
+                  {loadingStatements ? (
+                    <div className="py-6 text-sm text-gray-500 text-center">
+                      {t.labels.loadingEllipsis}
+                    </div>
+                  ) : latestUploadGroups.length === 0 ? (
+                    <div className="py-6 text-sm text-gray-500 text-center">{t.labels.noData}</div>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {latestUploadGroups.map(group => (
+                        <div
+                          key={group.id}
+                          className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="flex min-w-0 items-start gap-3">
+                            <BankLogoAvatar
+                              bankName={group.bankName}
+                              size={34}
+                              className="border border-gray-200"
+                            />
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate text-sm font-semibold text-gray-900">
+                                  {group.fileName}
+                                </p>
+                                {group.fileCount > 1 ? (
+                                  <Badge variant="info" className="px-2 py-0.5 text-[10px]">
+                                    {group.fileCount} {filesShortLabel}
+                                  </Badge>
+                                ) : null}
+                              </div>
+                              <p className="text-xs text-gray-500">
+                                {group.bankName} -{' '}
+                                {new Date(group.latestCreatedAt).toLocaleString(
+                                  resolveLocale(locale),
+                                )}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="text-right text-xs text-gray-600">
+                            <Badge
+                              variant={getStatusBadgeVariant(group.primaryStatus)}
+                              className="px-2.5 py-1 text-[11px] font-semibold"
+                            >
+                              {formatStatusLabel(group.primaryStatus)}
+                            </Badge>
+                            <p className="mt-1">
+                              {group.totalTransactions} {t.labels.transactionsCount}
+                            </p>
+                            <p className="mt-1 text-[11px] text-gray-500">{group.statusSummary}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : null}
         </>
       )}
 

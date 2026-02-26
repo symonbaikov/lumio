@@ -304,7 +304,7 @@ export default function FileDetailsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-16">
+      <div className="container-shared px-4 py-16">
         <div className="flex flex-col items-center gap-3 text-gray-600">
           <LoadingAnimation size="lg" />
           <span>{t.loading}</span>
@@ -315,7 +315,7 @@ export default function FileDetailsPage() {
 
   if (!details) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-12">
+      <div className="container-shared px-4 py-12">
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <p className="text-gray-900 font-semibold mb-2">{t.notFound}</p>
           <button
@@ -358,7 +358,7 @@ export default function FileDetailsPage() {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+    <div className="container-shared px-4 py-8 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <button

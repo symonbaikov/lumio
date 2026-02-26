@@ -36,6 +36,7 @@ describe('WorkspacesService', () => {
   const auditService = { createEvent: jest.fn() };
   const balanceService = { seedDefaultAccounts: jest.fn(async () => undefined) };
   const categoriesService = { createSystemCategories: jest.fn(async () => undefined) };
+  const taxRatesService = { createDefaultTaxRates: jest.fn(async () => undefined) };
 
   let service: WorkspacesService;
 
@@ -50,6 +51,7 @@ describe('WorkspacesService', () => {
       auditService as any,
       balanceService as any,
       categoriesService as any,
+      taxRatesService as any,
     );
     (service as any).sendInvitationEmail = jest.fn(async () => undefined);
   });
@@ -202,6 +204,75 @@ describe('WorkspacesService', () => {
       );
       expect((service as any).sendInvitationEmail).toHaveBeenCalled();
       expect(result.invitationLink).toMatch(/\/invite\//);
+    });
+  });
+
+  describe('updateMemberRole', () => {
+    it('transfers ownership when owner assigns owner role to another member', async () => {
+      const workspace = { id: 'w1', ownerId: 'u-owner' } as Workspace;
+      const ownerMembership = {
+        id: 'm-owner',
+        workspaceId: 'w1',
+        userId: 'u-owner',
+        role: WorkspaceRole.OWNER,
+        permissions: null,
+      } as WorkspaceMember;
+      const targetMembership = {
+        id: 'm-target',
+        workspaceId: 'w1',
+        userId: 'u-target',
+        role: WorkspaceRole.VIEWER,
+        permissions: null,
+      } as WorkspaceMember;
+
+      workspaceRepository.findOne = jest.fn(async () => workspace);
+      workspaceMemberRepository.findOne = jest.fn(async ({ where }: any) => {
+        if (where?.workspaceId !== 'w1') return null;
+        if (where?.userId === 'u-owner') return ownerMembership;
+        if (where?.userId === 'u-target') return targetMembership;
+        return null;
+      });
+      workspaceRepository.save = jest.fn(async (data: any) => data);
+      workspaceMemberRepository.save = jest.fn(async (data: any) => data);
+
+      const result = await service.updateMemberRole('w1', 'u-owner', 'u-target', WorkspaceRole.OWNER);
+
+      expect(workspaceRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ ownerId: 'u-target' }),
+      );
+      expect(workspaceMemberRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'u-owner', role: WorkspaceRole.ADMIN }),
+      );
+      expect(workspaceMemberRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'u-target', role: WorkspaceRole.OWNER }),
+      );
+      expect(result).toEqual(
+        expect.objectContaining({ role: WorkspaceRole.OWNER }),
+      );
+    });
+  });
+
+  describe('cancelInvitation', () => {
+    it('marks pending invitation as cancelled', async () => {
+      workspaceMemberRepository.findOne = jest.fn(async ({ where }: any) =>
+        where?.workspaceId === 'w1' && where?.userId === 'u-admin'
+          ? ({ id: 'm-admin', role: WorkspaceRole.ADMIN } as WorkspaceMember)
+          : null,
+      );
+
+      invitationRepository.findOne = jest.fn(async () => ({
+        id: 'inv-1',
+        workspaceId: 'w1',
+        status: WorkspaceInvitationStatus.PENDING,
+      }));
+      invitationRepository.save = jest.fn(async (inv: any) => inv);
+
+      const result = await service.cancelInvitation('w1', 'u-admin', 'inv-1');
+
+      expect(invitationRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'inv-1', status: WorkspaceInvitationStatus.CANCELLED }),
+      );
+      expect(result).toEqual({ message: 'Приглашение отозвано' });
     });
   });
 

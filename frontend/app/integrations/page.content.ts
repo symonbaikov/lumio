@@ -17,6 +17,16 @@ const content = {
         kk: 'Қолжетімді',
       }),
     },
+    banner: t({
+      ru: 'Начните отсюда: подключите Gmail или Google Диск для автоматического импорта чеков и выписок.',
+      en: 'Start here: Connect Gmail or Google Drive to automatically import receipts and statements.',
+      kk: 'Осыдан бастаңыз: түбіртектер мен үзінділерді автоматты түрде импорттау үшін Gmail немесе Google Drive қосыңыз.',
+    }),
+    recommendedBadge: t({
+      ru: 'Рекомендуется',
+      en: 'Recommended',
+      kk: 'Ұсынылады',
+    }),
     empty: {
       connected: t({
         ru: 'Пока нет активных интеграций.',

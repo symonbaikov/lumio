@@ -82,6 +82,11 @@ const content = {
         kk: 'Құрылғының уақыт белдеуін қолдану үшін «Авто» қалдырыңыз.',
       }),
       submit: t({ ru: 'Сохранить', en: 'Save', kk: 'Сақтау' }),
+      unsavedChanges: t({
+        ru: 'Есть несохранённые изменения.',
+        en: 'Unsaved changes.',
+        kk: 'Сақталмаған өзгерістер бар.',
+      }),
       successFallback: t({
         ru: 'Профиль обновлён.',
         en: 'Profile updated.',
@@ -195,6 +200,26 @@ const content = {
         en: 'Ends all active sessions on other devices and browsers.',
         kk: 'Басқа құрылғылар мен браузерлердегі барлық белсенді сеанстарды аяқтайды.',
       }),
+      securityHint: t({
+        ru: 'Завершайте только знакомые сеансы. Выход с текущего устройства завершит текущую авторизацию.',
+        en: 'Sign out only sessions you recognize. Logging out on this device ends your current sign-in.',
+        kk: 'Тек өзіңіз танитын сеанстардан шығыңыз. Осы құрылғыдан шығу ағымдағы кіруді тоқтатады.',
+      }),
+      logoutSessionConfirm: t({
+        ru: 'Завершить этот сеанс?',
+        en: 'Log out this session?',
+        kk: 'Осы сеансты аяқтайсыз ба?',
+      }),
+      logoutCurrentConfirm: t({
+        ru: 'Выйти на этом устройстве? Потребуется повторный вход.',
+        en: 'Log out on this device? You will need to sign in again.',
+        kk: 'Осы құрылғыдан шығасыз ба? Қайта кіру қажет болады.',
+      }),
+      logoutAllConfirm: t({
+        ru: 'Выйти со всех устройств? На каждом устройстве потребуется вход заново.',
+        en: 'Log out of all devices? You will need to sign in again on each device.',
+        kk: 'Барлық құрылғылардан шығасыз ба? Әр құрылғыда қайта кіру қажет болады.',
+      }),
       logoutAllButton: t({
         ru: 'Выйти со всех устройств',
         en: 'Log out of all devices',
@@ -227,6 +252,16 @@ const content = {
         ru: 'Обновить пароль',
         en: 'Update password',
         kk: 'Құпиясөз жаңарту',
+      }),
+      securityHint: t({
+        ru: 'Используйте уникальный пароль и подтверждайте действие перед сохранением.',
+        en: 'Use a unique password and confirm the action before saving.',
+        kk: 'Бірегей құпиясөз қолданып, сақтар алдында әрекетті растаңыз.',
+      }),
+      confirmSubmit: t({
+        ru: 'Обновить пароль сейчас? Возможно, потребуется заново войти на других устройствах.',
+        en: 'Update password now? You may need to sign in again on other devices.',
+        kk: 'Құпиясөзді қазір жаңартасыз ба? Басқа құрылғыларда қайта кіру қажет болуы мүмкін.',
       }),
       successFallback: t({
         ru: 'Пароль успешно обновлён.',

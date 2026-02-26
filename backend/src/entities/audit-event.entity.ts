@@ -20,6 +20,7 @@ export enum EntityType {
   TRANSACTION = 'transaction',
   STATEMENT = 'statement',
   RECEIPT = 'receipt',
+  PAYABLE = 'payable',
   CATEGORY = 'category',
   RULE = 'rule',
   WORKSPACE = 'workspace',

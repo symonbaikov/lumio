@@ -118,6 +118,43 @@ describe('StatementsCircularUploadMenu', () => {
     expect(plusIcon?.className.baseVal).toContain('rotate-0');
   });
 
+  it('shows full-screen dimmed backdrop when menu is open', () => {
+    act(() => {
+      root.render(
+        <StatementsCircularUploadMenu
+          providers={{
+            gmailConnected: false,
+            googleDriveConnected: false,
+            dropboxConnected: false,
+          }}
+          onScan={vi.fn()}
+          onCloudImport={vi.fn()}
+          onGmail={vi.fn()}
+          onLocalUpload={vi.fn()}
+        />,
+      );
+    });
+
+    const toggleButton = container.querySelector(
+      'button[aria-label="Open upload actions"]',
+    ) as HTMLButtonElement;
+    expect(toggleButton).not.toBeNull();
+
+    const closedBackdrop = document.querySelector('[data-statements-fab-backdrop="true"]');
+    expect(closedBackdrop).toBeTruthy();
+    expect(closedBackdrop?.className).toContain('opacity-0');
+    expect(closedBackdrop?.className).toContain('pointer-events-none');
+
+    act(() => {
+      toggleButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const backdrop = document.querySelector('[data-statements-fab-backdrop="true"]');
+    expect(backdrop).toBeTruthy();
+    expect(backdrop?.className).toContain('bg-black/45');
+    expect(backdrop?.className).toContain('opacity-100');
+  });
+
   it('runs scan action from dedicated scan button', () => {
     const onScan = vi.fn();
 

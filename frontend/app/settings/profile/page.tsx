@@ -233,6 +233,8 @@ export default function ProfileSettingsPage() {
 
   const handleTimeZoneChange = useCallback((value: string) => {
     setProfileTimeZone(value);
+    setProfileMessage(null);
+    setProfileError(null);
     setIsTimeZoneModalOpen(false);
   }, []);
 
@@ -268,17 +270,45 @@ export default function ProfileSettingsPage() {
   }, [user?.avatarUrl]);
 
   const isAuthenticated = useMemo(() => !!user, [user]);
+  const hasProfileChanges = useMemo(() => {
+    return (
+      profileName.trim() !== (user?.name || '').trim() || profileTimeZone !== (user?.timeZone || '')
+    );
+  }, [profileName, profileTimeZone, user?.name, user?.timeZone]);
 
   const handleProfileSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setProfileMessage(null);
     setProfileError(null);
+
+    const normalizedName = profileName.trim();
+    if (!hasProfileChanges) {
+      return;
+    }
+
     try {
       setProfileLoading(true);
       const response = await apiClient.patch('/users/me/preferences', {
-        name: profileName,
+        name: normalizedName,
         timeZone: profileTimeZone ? profileTimeZone : null,
       });
+
+      const responseUser = response.data?.user;
+      const nextUser = responseUser
+        ? { ...(user || {}), ...responseUser }
+        : user
+          ? {
+              ...user,
+              name: normalizedName,
+              timeZone: profileTimeZone || null,
+            }
+          : null;
+
+      if (nextUser) {
+        setUser(nextUser);
+        localStorage.setItem('user', JSON.stringify(nextUser));
+      }
+
       setProfileMessage(response.data?.message || t.profileCard.successFallback.value);
     } catch (error: unknown) {
       setProfileError(getApiErrorMessage(error, t.profileCard.errorFallback.value));
@@ -334,6 +364,15 @@ export default function ProfileSettingsPage() {
   };
 
   const handleLogoutAll = async () => {
+    const confirmed = window.confirm(
+      (t as any).sessionsCard?.logoutAllConfirm?.value ||
+        'Log out of all devices? You will need to sign in again on each device.',
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     try {
       await apiClient.post('/auth/logout-all');
     } catch (error) {
@@ -427,6 +466,15 @@ export default function ProfileSettingsPage() {
   };
 
   const handleLogoutSession = async (session: UserSession) => {
+    const confirmMessage = session.isCurrent
+      ? (t as any).sessionsCard?.logoutCurrentConfirm?.value ||
+        'Log out on this device? You will need to sign in again.'
+      : (t as any).sessionsCard?.logoutSessionConfirm?.value || 'Log out this device session?';
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
     try {
       setLogoutSessionLoadingId(session.id);
       setSessionsError(null);
@@ -490,6 +538,15 @@ export default function ProfileSettingsPage() {
 
     if (passwords.next !== passwords.confirm) {
       setPasswordError(t.validation.passwordMismatch.value);
+      return;
+    }
+
+    const confirmed = window.confirm(
+      (t as any).passwordCard?.confirmSubmit?.value ||
+        'Update password now? You may need to sign in again on other devices.',
+    );
+
+    if (!confirmed) {
       return;
     }
 
@@ -611,7 +668,11 @@ export default function ProfileSettingsPage() {
             <Input
               id="profile-name"
               value={profileName}
-              onChange={e => setProfileName(e.target.value)}
+              onChange={e => {
+                setProfileName(e.target.value);
+                setProfileMessage(null);
+                setProfileError(null);
+              }}
               required
             />
           </div>
@@ -636,8 +697,14 @@ export default function ProfileSettingsPage() {
             <p className="text-xs text-gray-500">{t.profileCard.timeZoneHelp.value}</p>
           </div>
 
+          {hasProfileChanges && (
+            <Alert variant="warning">
+              {(t as any).profileCard?.unsavedChanges?.value || 'Unsaved changes'}
+            </Alert>
+          )}
+
           <div className="flex justify-end">
-            <Button type="submit" disabled={profileLoading} className="gap-2">
+            <Button type="submit" disabled={profileLoading || !hasProfileChanges} className="gap-2">
               {profileLoading && <CircularProgress size={16} color="inherit" />}
               {t.profileCard.submit.value}
             </Button>
@@ -651,6 +718,10 @@ export default function ProfileSettingsPage() {
         <div className="space-y-5">
           {sessionsMessage && <Alert variant="success">{sessionsMessage}</Alert>}
           {sessionsError && <Alert variant="error">{sessionsError}</Alert>}
+          <Alert variant="warning">
+            {(t as any).sessionsCard?.securityHint?.value ||
+              'Only sign out devices you recognize. Signing out current device ends this session immediately.'}
+          </Alert>
 
           <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
             <span className="font-medium text-gray-900">
@@ -876,6 +947,10 @@ export default function ProfileSettingsPage() {
       <form className="space-y-5" onSubmit={handlePasswordSubmit}>
         {passwordMessage && <Alert variant="success">{passwordMessage}</Alert>}
         {passwordError && <Alert variant="error">{passwordError}</Alert>}
+        <Alert variant="warning">
+          {(t as any).passwordCard?.securityHint?.value ||
+            'Use a unique password and keep your account email secure. Confirm before applying password changes.'}
+        </Alert>
 
         <div className="space-y-2">
           <Label htmlFor="password-current">{t.passwordCard.currentPasswordLabel.value}</Label>

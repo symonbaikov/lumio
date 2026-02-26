@@ -57,7 +57,6 @@ import {
   isManualExpenseStatement,
 } from '@/app/lib/statement-status';
 import { type StatementStage, getStatementStage } from '@/app/lib/statement-workflow';
-import { ReceiptDetailDrawer } from '@/app/storage/gmail-receipts/components/ReceiptDetailDrawer';
 import { resolveBankLogo } from '@bank-logos';
 import {
   ArrowDown,
@@ -366,7 +365,6 @@ export default function StatementsListView({ stage }: Props) {
   const [previewFileName, setPreviewFileName] = useState<string>('');
   const [previewSource, setPreviewSource] = useState<'statement' | 'gmail'>('statement');
   const [previewAllowAttachFile, setPreviewAllowAttachFile] = useState(false);
-  const [receiptDetailId, setReceiptDetailId] = useState<string | null>(null);
   const [selectedStatementIds, setSelectedStatementIds] = useState<string[]>([]);
   const [duplicateOverrides, setDuplicateOverrides] = useState<
     Record<string, DuplicateOverrideState>
@@ -1100,7 +1098,7 @@ export default function StatementsListView({ stage }: Props) {
 
   const handleView = (statement: Statement) => {
     if (statement.source === 'gmail') {
-      setReceiptDetailId(statement.id);
+      router.push(`/storage/gmail-receipts/${statement.id}`);
       return;
     }
 
@@ -1961,16 +1959,6 @@ export default function StatementsListView({ stage }: Props) {
           allowAttachFile={previewAllowAttachFile}
           onFileAttached={refreshStatementsAfterAttach}
           onParsingStarted={refreshStatementsAfterAttach}
-        />
-      )}
-
-      {receiptDetailId && (
-        <ReceiptDetailDrawer
-          receiptId={receiptDetailId}
-          onClose={() => setReceiptDetailId(null)}
-          onUpdate={() => {
-            void loadGmailReceipts({ silent: true, showErrorToast: false });
-          }}
         />
       )}
 

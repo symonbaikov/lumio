@@ -195,6 +195,53 @@ export class CategoriesService {
     return category;
   }
 
+  async getWorkspaceCategoryUsageCounts(
+    workspaceId: string,
+  ): Promise<Record<string, { transactions: number; statements: number; total: number }>> {
+    const [transactionsRaw, statementsRaw] = await Promise.all([
+      this.transactionRepository
+        .createQueryBuilder('transaction')
+        .select('transaction.categoryId', 'categoryId')
+        .addSelect('COUNT(transaction.id)', 'count')
+        .innerJoin('transaction.statement', 'statement')
+        .where('statement.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('transaction.categoryId IS NOT NULL')
+        .groupBy('transaction.categoryId')
+        .getRawMany(),
+      this.statementRepository
+        .createQueryBuilder('statement')
+        .select('statement.categoryId', 'categoryId')
+        .addSelect('COUNT(statement.id)', 'count')
+        .where('statement.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('statement.categoryId IS NOT NULL')
+        .groupBy('statement.categoryId')
+        .getRawMany(),
+    ]);
+
+    const result: Record<string, { transactions: number; statements: number; total: number }> = {};
+
+    for (const row of transactionsRaw) {
+      const catId = row.categoryId;
+      result[catId] = { transactions: Number(row.count), statements: 0, total: Number(row.count) };
+    }
+
+    for (const row of statementsRaw) {
+      const catId = row.categoryId;
+      if (!result[catId]) {
+        result[catId] = {
+          transactions: 0,
+          statements: Number(row.count),
+          total: Number(row.count),
+        };
+      } else {
+        result[catId].statements = Number(row.count);
+        result[catId].total += Number(row.count);
+      }
+    }
+
+    return result;
+  }
+
   async getCategoryUsageCount(
     categoryId: string,
     workspaceId: string,

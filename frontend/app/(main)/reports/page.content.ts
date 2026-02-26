@@ -138,6 +138,41 @@ const content = {
         en: 'By upload dates',
         kk: 'Жүктеу күндері бойынша',
       }),
+      emptyAnalyticsTitle: t({
+        ru: 'Загрузите выписку, чтобы увидеть аналитику',
+        en: 'Upload a statement to see analytics',
+        kk: 'Аналитиканы көру үшін үзінді жүктеңіз',
+      }),
+      emptyAnalyticsDescription: t({
+        ru: 'За выбранный период пока нет транзакций. Загрузите и распарсите первую выписку.',
+        en: 'No transactions yet for the selected period. Upload and parse your first statement.',
+        kk: 'Таңдалған кезеңде әзірге транзакциялар жоқ. Алғашқы үзіндіні жүктеп, парсинг жасаңыз.',
+      }),
+      parseStatement: t({
+        ru: 'Распарсить выписку',
+        en: 'Parse statement',
+        kk: 'Үзіндіні парсингтеу',
+      }),
+      allBanks: t({
+        ru: 'Все банки',
+        en: 'All banks',
+        kk: 'Барлық банктер',
+      }),
+      peakUploads: t({
+        ru: 'Пик загрузок',
+        en: 'Peak uploads',
+        kk: 'Жүктеу шыңы',
+      }),
+      filesShort: t({
+        ru: 'файла',
+        en: 'files',
+        kk: 'файл',
+      }),
+      filteredByBank: t({
+        ru: 'Фильтр по банку',
+        en: 'Filtered by bank',
+        kk: 'Банк бойынша сүзгі',
+      }),
     },
   },
 } satisfies Dictionary;

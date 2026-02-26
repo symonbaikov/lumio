@@ -63,6 +63,11 @@ const content = {
     },
     trash: {
       title: t({ ru: 'Корзина', en: 'Trash', kk: 'Қоқыс' }),
+      retentionPolicy: t({
+        ru: 'Удаленные элементы удаляются навсегда через 30 дней.',
+        en: 'Deleted items are permanently removed after 30 days.',
+        kk: 'Жойылған элементтер 30 күннен кейін біржола жойылады.',
+      }),
       searchPlaceholder: t({
         ru: 'Поиск в корзине...',
         en: 'Search in trash...',
@@ -107,8 +112,19 @@ const content = {
         receipt: t({ ru: 'Чек', en: 'Receipt', kk: 'Чек' }),
         type: t({ ru: 'Тип', en: 'Type', kk: 'Түрі' }),
         deleted: t({ ru: 'Удалено', en: 'Deleted', kk: 'Жойылған' }),
+        deletedAt: t({ ru: 'Удалено', en: 'Deleted at', kk: 'Жойылған уақыты' }),
+        willDeleteAt: t({
+          ru: 'Будет удалено навсегда',
+          en: 'Will be permanently deleted on',
+          kk: 'Біржола жойылатын күні',
+        }),
         name: t({ ru: 'Название', en: 'Name', kk: 'Атауы' }),
         actions: t({ ru: 'Действия', en: 'Actions', kk: 'Әрекеттер' }),
+      },
+      entityTypes: {
+        statement: t({ ru: 'Выписка', en: 'Statement', kk: 'Үзінді' }),
+        table: t({ ru: 'Таблица', en: 'Table', kk: 'Кесте' }),
+        workspace: t({ ru: 'Рабочее пространство', en: 'Workspace', kk: 'Жұмыс кеңістігі' }),
       },
       restoreLoading: t({
         ru: 'Восстанавливаем...',
@@ -163,6 +179,11 @@ const content = {
         kk: 'Қоқыстағы барлық файлдар қайтарусыз жойылады.',
       }),
       confirmEmpty: t({ ru: 'Очистить', en: 'Empty', kk: 'Тазарту' }),
+      irreversibleWarning: t({
+        ru: 'Это действие необратимо',
+        en: 'This action is irreversible',
+        kk: 'Бұл әрекет қайтарылмайды',
+      }),
       loadError: t({
         ru: 'Не удалось загрузить корзину',
         en: 'Failed to load trash',
@@ -187,6 +208,194 @@ const content = {
       topSpendersEmpty: t({ ru: 'Нет данных', en: 'No data', kk: 'Дерек жоқ' }),
       topCategories: t({ ru: 'Топ категории', en: 'Top categories', kk: 'Топ санаттар' }),
     },
+    unapprovedCash: {
+      title: t({
+        ru: 'Неутвержденные наличные',
+        en: 'Unapproved cash',
+        kk: 'Бекітілмеген қолма-қол',
+      }),
+      subtitle: t({
+        ru: 'Рабочая очередь проблемных операций перед попаданием в отчеты и экспорт.',
+        en: 'Working queue of problematic operations before they enter reports and exports.',
+        kk: 'Есептер мен экспортқа түспес бұрын мәселелі операциялар кезегі.',
+      }),
+      searchPlaceholder: t({
+        ru: 'Поиск по мерчанту или операции',
+        en: 'Search merchant or transaction',
+        kk: 'Сатушы немесе операция бойынша іздеу',
+      }),
+      selectCategory: t({
+        ru: 'Выберите категорию',
+        en: 'Select category',
+        kk: 'Санатты таңдаңыз',
+      }),
+      filters: {
+        reason: t({ ru: 'Причина', en: 'Reason', kk: 'Себеп' }),
+        source: t({ ru: 'Источник', en: 'Source', kk: 'Дереккөз' }),
+        amountFrom: t({ ru: 'Сумма от', en: 'Amount from', kk: 'Сома бастап' }),
+        amountTo: t({ ru: 'Сумма до', en: 'Amount to', kk: 'Сома дейін' }),
+        dateFrom: t({ ru: 'Дата от', en: 'Date from', kk: 'Күні бастап' }),
+        dateTo: t({ ru: 'Дата до', en: 'Date to', kk: 'Күні дейін' }),
+        allReasons: t({ ru: 'Все причины', en: 'All reasons', kk: 'Барлық себептер' }),
+        allSources: t({ ru: 'Все источники', en: 'All sources', kk: 'Барлық дереккөздер' }),
+        reset: t({ ru: 'Сбросить фильтры', en: 'Reset filters', kk: 'Сүзгілерді тазалау' }),
+      },
+      reasons: {
+        missingCategory: t({
+          ru: 'Нет категории',
+          en: 'Missing category',
+          kk: 'Санат жоқ',
+        }),
+        duplicateDetected: t({
+          ru: 'Обнаружен дубликат',
+          en: 'Duplicate detected',
+          kk: 'Қайталама табылды',
+        }),
+        unknownMerchant: t({
+          ru: 'Неизвестный мерчант',
+          en: 'Unknown merchant',
+          kk: 'Белгісіз сатушы',
+        }),
+        missingType: t({
+          ru: 'Не указан тип',
+          en: 'Missing type',
+          kk: 'Түрі көрсетілмеген',
+        }),
+        missingCurrency: t({
+          ru: 'Не указана валюта',
+          en: 'Missing currency',
+          kk: 'Валюта көрсетілмеген',
+        }),
+        ocrIssues: t({
+          ru: 'Проблемы OCR',
+          en: 'OCR issues',
+          kk: 'OCR мәселелері',
+        }),
+        requiresConfirmation: t({
+          ru: 'Требуется подтверждение',
+          en: 'Requires confirmation',
+          kk: 'Растау қажет',
+        }),
+      },
+      sources: {
+        gmail: t({ ru: 'Gmail', en: 'Gmail', kk: 'Gmail' }),
+        pdf: t({ ru: 'PDF', en: 'PDF', kk: 'PDF' }),
+        bank: t({ ru: 'Банк', en: 'Bank', kk: 'Банк' }),
+        manual: t({ ru: 'Ручной ввод', en: 'Manual', kk: 'Қолмен енгізу' }),
+        unknown: t({ ru: 'Неизвестно', en: 'Unknown', kk: 'Белгісіз' }),
+      },
+      summary: {
+        total: t({ ru: 'Всего в очереди', en: 'Total unapproved', kk: 'Кезектегі барлығы' }),
+        missingCategory: t({ ru: 'Без категории', en: 'Missing category', kk: 'Санатсыз' }),
+        duplicates: t({ ru: 'Дубликаты', en: 'Duplicates', kk: 'Қайталамалар' }),
+        confirmation: t({
+          ru: 'Нужно подтверждение',
+          en: 'Needs confirmation',
+          kk: 'Растау қажет',
+        }),
+      },
+      table: {
+        merchant: t({ ru: 'Мерчант', en: 'Merchant', kk: 'Сатушы' }),
+        date: t({ ru: 'Дата', en: 'Date', kk: 'Күні' }),
+        amount: t({ ru: 'Сумма', en: 'Amount', kk: 'Сома' }),
+        reason: t({ ru: 'Причина', en: 'Reason', kk: 'Себеп' }),
+        source: t({ ru: 'Источник', en: 'Source', kk: 'Дереккөз' }),
+        actions: t({ ru: 'Действия', en: 'Actions', kk: 'Әрекеттер' }),
+      },
+      actions: {
+        selected: t({
+          ru: 'Выбрано: {count}',
+          en: 'Selected: {count}',
+          kk: 'Таңдалды: {count}',
+        }),
+        selectAllVisible: t({
+          ru: 'Выбрать все видимые',
+          en: 'Select all visible',
+          kk: 'Көрінгеннің бәрін таңдау',
+        }),
+        clearSelection: t({ ru: 'Снять выбор', en: 'Clear selection', kk: 'Таңдауды тазалау' }),
+        assignCategory: t({
+          ru: 'Назначить категорию',
+          en: 'Assign category',
+          kk: 'Санатты тағайындау',
+        }),
+        approveSelected: t({
+          ru: 'Одобрить выбранные',
+          en: 'Approve selected',
+          kk: 'Таңдалғанды бекіту',
+        }),
+        mergeDuplicates: t({
+          ru: 'Объединить дубликаты',
+          en: 'Merge duplicates',
+          kk: 'Қайталамаларды біріктіру',
+        }),
+        ignore: t({ ru: 'Игнорировать', en: 'Ignore', kk: 'Елемеу' }),
+        reviewFix: t({ ru: 'Проверить / Исправить', en: 'Review / Fix', kk: 'Тексеру / Түзету' }),
+        approve: t({ ru: 'Одобрить', en: 'Approve', kk: 'Бекіту' }),
+        refresh: t({ ru: 'Обновить', en: 'Refresh', kk: 'Жаңарту' }),
+        applying: t({ ru: 'Применяем...', en: 'Applying...', kk: 'Қолданылуда...' }),
+      },
+      empty: {
+        title: t({ ru: 'Очередь пуста', en: 'All clear', kk: 'Кезек бос' }),
+        description: t({
+          ru: 'По выбранным фильтрам нет операций, требующих ручной разбор.',
+          en: 'No transactions need manual review for selected filters.',
+          kk: 'Таңдалған сүзгілер бойынша қолмен тексеру қажет операциялар жоқ.',
+        }),
+      },
+      toasts: {
+        loadFailed: t({
+          ru: 'Не удалось загрузить очередь неутвержденных операций',
+          en: 'Failed to load unapproved cash queue',
+          kk: 'Бекітілмеген операциялар кезегін жүктеу мүмкін болмады',
+        }),
+        assignSuccess: t({
+          ru: 'Категория назначена',
+          en: 'Category assigned',
+          kk: 'Санат тағайындалды',
+        }),
+        assignFailed: t({
+          ru: 'Не удалось назначить категорию',
+          en: 'Failed to assign category',
+          kk: 'Санатты тағайындау мүмкін болмады',
+        }),
+        approveSuccess: t({
+          ru: 'Операции одобрены',
+          en: 'Transactions approved',
+          kk: 'Операциялар бекітілді',
+        }),
+        approveFailed: t({
+          ru: 'Не удалось одобрить операции',
+          en: 'Failed to approve transactions',
+          kk: 'Операцияларды бекіту мүмкін болмады',
+        }),
+        mergeSuccess: t({
+          ru: 'Дубликаты объединены',
+          en: 'Duplicates merged',
+          kk: 'Қайталамалар біріктірілді',
+        }),
+        mergeFailed: t({
+          ru: 'Не удалось объединить дубликаты',
+          en: 'Failed to merge duplicates',
+          kk: 'Қайталамаларды біріктіру мүмкін болмады',
+        }),
+        mergeNeedDuplicates: t({
+          ru: 'Выберите минимум 2 дубликата',
+          en: 'Select at least 2 duplicate transactions',
+          kk: 'Кемінде 2 қайталаманы таңдаңыз',
+        }),
+        ignoreSuccess: t({
+          ru: 'Скрыто операций: {count}',
+          en: 'Ignored {count} transaction(s)',
+          kk: 'Жасырылған операциялар: {count}',
+        }),
+        reviewUnavailable: t({
+          ru: 'Для этой операции нет режима проверки',
+          en: 'Review is unavailable for this transaction',
+          kk: 'Бұл операция үшін тексеру режимі қолжетімсіз',
+        }),
+      },
+    },
     topSpenders: {
       title: t({ ru: 'Главные расходы', en: 'Top spenders', kk: 'Ең үлкен шығындар' }),
       subtitle: t({
@@ -204,16 +413,34 @@ const content = {
       receiptsSpend: t({ ru: 'По чекам', en: 'Receipts', kk: 'Чектер' }),
       totalOperations: t({ ru: 'Операций', en: 'Operations', kk: 'Операциялар' }),
       topCompanies: t({ ru: 'Топ компаний', en: 'Top companies', kk: 'Топ компаниялар' }),
+      topIncomeSenders: t({
+        ru: 'Топ отправителей дохода',
+        en: 'Top income senders',
+        kk: 'Табыс жіберушілер топы',
+      }),
       sourceSplit: t({
         ru: 'Разбивка по источникам',
         en: 'Source split',
         kk: 'Дереккөз бойынша бөліну',
       }),
       spendTrend: t({ ru: 'Тренд расходов', en: 'Spending trend', kk: 'Шығын тренді' }),
+      incomeTrend: t({ ru: 'Тренд доходов', en: 'Income trend', kk: 'Табыс тренді' }),
       leaderboard: t({
         ru: 'Рейтинг плательщиков',
         en: 'Top spenders list',
         kk: 'Ең көп жұмсаушылар тізімі',
+      }),
+      incomeLeaderboard: t({
+        ru: 'Рейтинг отправителей дохода',
+        en: 'Top income senders list',
+        kk: 'Табыс жіберушілер тізімі',
+      }),
+      totalIncome: t({ ru: 'Общий доход', en: 'Total income', kk: 'Жалпы табыс' }),
+      tabSpenders: t({ ru: 'Траты', en: 'Spenders', kk: 'Шығындар' }),
+      tabIncomeSenders: t({
+        ru: 'Доходы',
+        en: 'Income senders',
+        kk: 'Табыс жіберушілер',
       }),
       noData: t({
         ru: 'Нет данных для выбранных фильтров',
@@ -228,6 +455,39 @@ const content = {
       lastOperation: t({ ru: 'Последняя операция', en: 'Last operation', kk: 'Соңғы операция' }),
       sourceStatement: t({ ru: 'Выписка', en: 'Statement', kk: 'Үзінді' }),
       sourceGmail: t({ ru: 'Чек', en: 'Receipt', kk: 'Чек' }),
+      sourceBank: t({ ru: 'Банк', en: 'Bank', kk: 'Банк' }),
+      sourceReceipt: t({ ru: 'Чек', en: 'Receipt', kk: 'Чек' }),
+      sourceGmailInbox: t({ ru: 'Gmail', en: 'Gmail', kk: 'Gmail' }),
+      workspace: t({ ru: 'Воркспейс', en: 'Workspace', kk: 'Жұмыс кеңістігі' }),
+      allWorkspaces: t({
+        ru: 'Все воркспейсы',
+        en: 'All workspaces',
+        kk: 'Барлық жұмыс кеңістігі',
+      }),
+      currentWorkspace: t({
+        ru: 'Текущий воркспейс',
+        en: 'Current workspace',
+        kk: 'Ағымдағы жұмыс кеңістігі',
+      }),
+      sortByAmount: t({ ru: 'По сумме', en: 'Amount', kk: 'Сома бойынша' }),
+      sortByAverage: t({ ru: 'По среднему', en: 'Average', kk: 'Орташа бойынша' }),
+      sortByOperations: t({ ru: 'По операциям', en: 'Operations', kk: 'Операциялар бойынша' }),
+      vsPreviousPeriod: t({
+        ru: 'к предыдущему периоду',
+        en: 'vs previous period',
+        kk: 'алдыңғы кезеңге қарсы',
+      }),
+      comparisonNoData: t({
+        ru: 'Нет данных за прошлый период',
+        en: 'No previous period data',
+        kk: 'Алдыңғы кезең бойынша дерек жоқ',
+      }),
+      drillDown: t({ ru: 'Детализация', en: 'Drill-down', kk: 'Терең көру' }),
+      noOperations: t({
+        ru: 'Операции не найдены',
+        en: 'No operations found',
+        kk: 'Операциялар табылмады',
+      }),
     },
     topMerchants: {
       title: t({ ru: 'Топ мерчанты', en: 'Top merchants', kk: 'Топ сатушылар' }),
@@ -246,16 +506,34 @@ const content = {
       receiptsSpend: t({ ru: 'По чекам', en: 'Receipts', kk: 'Чектер' }),
       totalOperations: t({ ru: 'Операций', en: 'Operations', kk: 'Операциялар' }),
       topMerchants: t({ ru: 'Топ мерчантов', en: 'Top merchants', kk: 'Топ сатушылар' }),
+      topIncomeSenders: t({
+        ru: 'Топ отправителей дохода',
+        en: 'Top income senders',
+        kk: 'Табыс жіберушілер топы',
+      }),
       sourceSplit: t({
         ru: 'Разбивка по источникам',
         en: 'Source split',
         kk: 'Дереккөз бойынша бөліну',
       }),
       spendTrend: t({ ru: 'Тренд расходов', en: 'Spending trend', kk: 'Шығын тренді' }),
+      incomeTrend: t({ ru: 'Тренд доходов', en: 'Income trend', kk: 'Табыс тренді' }),
       leaderboard: t({
         ru: 'Рейтинг мерчантов',
         en: 'Top merchants list',
         kk: 'Топ сатушылар тізімі',
+      }),
+      incomeLeaderboard: t({
+        ru: 'Рейтинг отправителей дохода',
+        en: 'Top income senders list',
+        kk: 'Табыс жіберушілер тізімі',
+      }),
+      totalIncome: t({ ru: 'Общий доход', en: 'Total income', kk: 'Жалпы табыс' }),
+      tabSpenders: t({ ru: 'Траты', en: 'Spenders', kk: 'Шығындар' }),
+      tabIncomeSenders: t({
+        ru: 'Доходы',
+        en: 'Income senders',
+        kk: 'Табыс жіберушілер',
       }),
       noData: t({
         ru: 'Нет данных для выбранных фильтров',
@@ -270,6 +548,39 @@ const content = {
       lastOperation: t({ ru: 'Последняя операция', en: 'Last operation', kk: 'Соңғы операция' }),
       sourceStatement: t({ ru: 'Выписка', en: 'Statement', kk: 'Үзінді' }),
       sourceGmail: t({ ru: 'Чек', en: 'Receipt', kk: 'Чек' }),
+      sourceBank: t({ ru: 'Банк', en: 'Bank', kk: 'Банк' }),
+      sourceReceipt: t({ ru: 'Чек', en: 'Receipt', kk: 'Чек' }),
+      sourceGmailInbox: t({ ru: 'Gmail', en: 'Gmail', kk: 'Gmail' }),
+      workspace: t({ ru: 'Воркспейс', en: 'Workspace', kk: 'Жұмыс кеңістігі' }),
+      allWorkspaces: t({
+        ru: 'Все воркспейсы',
+        en: 'All workspaces',
+        kk: 'Барлық жұмыс кеңістігі',
+      }),
+      currentWorkspace: t({
+        ru: 'Текущий воркспейс',
+        en: 'Current workspace',
+        kk: 'Ағымдағы жұмыс кеңістігі',
+      }),
+      sortByAmount: t({ ru: 'По сумме', en: 'Amount', kk: 'Сома бойынша' }),
+      sortByAverage: t({ ru: 'По среднему', en: 'Average', kk: 'Орташа бойынша' }),
+      sortByOperations: t({ ru: 'По операциям', en: 'Operations', kk: 'Операциялар бойынша' }),
+      vsPreviousPeriod: t({
+        ru: 'к предыдущему периоду',
+        en: 'vs previous period',
+        kk: 'алдыңғы кезеңге қарсы',
+      }),
+      comparisonNoData: t({
+        ru: 'Нет данных за прошлый период',
+        en: 'No previous period data',
+        kk: 'Алдыңғы кезең бойынша дерек жоқ',
+      }),
+      drillDown: t({ ru: 'Детализация', en: 'Drill-down', kk: 'Терең көру' }),
+      noOperations: t({
+        ru: 'Операции не найдены',
+        en: 'No operations found',
+        kk: 'Операциялар табылмады',
+      }),
     },
     workflow: {
       submitAction: t({ ru: 'Отправить', en: 'Submit', kk: 'Жіберу' }),

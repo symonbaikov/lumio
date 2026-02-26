@@ -12,11 +12,10 @@ import { gmailReceiptsApi } from '@/app/lib/api';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
 import { Filter, RefreshCw, Search } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
-import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { BulkActionsBar } from './components/BulkActionsBar';
-import { ReceiptDetailDrawer } from './components/ReceiptDetailDrawer';
 
 interface Receipt extends GmailReceiptValidation {
   id: string;
@@ -51,7 +50,6 @@ const parseAmountValue = (value?: number | string | null) => {
 export default function GmailReceiptsPage() {
   const content = useIntlayer('gmail-receipts-page');
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [filteredReceipts, setFilteredReceipts] = useState<Receipt[]>([]);
@@ -60,7 +58,6 @@ export default function GmailReceiptsPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReceipts, setSelectedReceipts] = useState<Set<string>>(new Set());
-  const [selectedReceiptId, setSelectedReceiptId] = useState<string | null>(null);
   const [previewReceiptId, setPreviewReceiptId] = useState<string | null>(null);
   const [previewReceiptFileName, setPreviewReceiptFileName] = useState<string>('receipt.pdf');
   const [stats, setStats] = useState({
@@ -76,22 +73,9 @@ export default function GmailReceiptsPage() {
     total: 0,
   });
 
-  const receiptsById = useMemo(() => {
-    const map = new Map<string, Receipt>();
-    receipts.forEach(receipt => map.set(receipt.id, receipt));
-    return map;
-  }, [receipts]);
-
   useEffect(() => {
     loadStatus();
   }, []);
-
-  useEffect(() => {
-    const receiptId = searchParams.get('receiptId');
-    if (receiptId) {
-      setSelectedReceiptId(receiptId);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     loadReceipts();
@@ -196,20 +180,8 @@ export default function GmailReceiptsPage() {
     setSelectedReceipts(newSelected);
   };
 
-  const openReceiptDrawer = (id: string) => {
-    setSelectedReceiptId(id);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('receiptId', id);
-    const query = params.toString();
-    router.replace(`/storage/gmail-receipts${query ? `?${query}` : ''}`, { scroll: false });
-  };
-
-  const closeReceiptDrawer = () => {
-    setSelectedReceiptId(null);
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('receiptId');
-    const query = params.toString();
-    router.replace(`/storage/gmail-receipts${query ? `?${query}` : ''}`, { scroll: false });
+  const openReceiptPage = (id: string) => {
+    router.push(`/storage/gmail-receipts/${id}`);
   };
 
   const handleSelectAll = () => {
@@ -243,45 +215,6 @@ export default function GmailReceiptsPage() {
       console.error('Failed to export', error);
       toast.error(content.toast.error.value);
     }
-  };
-
-  const handleApprove = async (receipt: Receipt) => {
-    try {
-      await gmailReceiptsApi.approveReceipt(receipt.id, {
-        description: receipt.parsedData?.vendor || receipt.subject,
-        amount: receipt.parsedData?.amount || 0,
-        currency: receipt.parsedData?.currency || 'KZT',
-        date: receipt.parsedData?.date || receipt.receivedAt,
-      });
-      toast.success(content.toast.receiptApproved.value);
-      loadReceipts();
-    } catch (error) {
-      console.error('Failed to approve receipt', error);
-      toast.error(content.toast.error.value);
-    }
-  };
-
-  const handleReject = async (receipt: Receipt) => {
-    try {
-      await gmailReceiptsApi.updateReceipt(receipt.id, { status: 'rejected' });
-      toast.success(content.toast.receiptUpdated.value);
-      loadReceipts();
-    } catch (error) {
-      console.error('Failed to reject receipt', error);
-      toast.error(content.toast.error.value);
-    }
-  };
-
-  const handleApproveById = async (id: string) => {
-    const receipt = receiptsById.get(id);
-    if (!receipt) return;
-    await handleApprove(receipt);
-  };
-
-  const handleRejectById = async (id: string) => {
-    const receipt = receiptsById.get(id);
-    if (!receipt) return;
-    await handleReject(receipt);
   };
 
   const getStatusBadgeColor = (status: string) => {
@@ -489,7 +422,7 @@ export default function GmailReceiptsPage() {
                     amountLabel={amountLabel}
                     dateLabel={dateLabel}
                     typeLabel="PDF"
-                    onView={() => openReceiptDrawer(receipt.id)}
+                    onView={() => openReceiptPage(receipt.id)}
                     onIconClick={() => {
                       setPreviewReceiptId(receipt.id);
                       setPreviewReceiptFileName(`${merchantLabel}.pdf`);
@@ -533,16 +466,6 @@ export default function GmailReceiptsPage() {
           }
         />
       </div>
-
-      {/* Receipt Detail Drawer */}
-      {selectedReceiptId && (
-        <ReceiptDetailDrawer
-          receiptId={selectedReceiptId}
-          onClose={closeReceiptDrawer}
-          onUpdate={loadReceipts}
-        />
-      )}
-
       {previewReceiptId && (
         <PDFPreviewModal
           isOpen={Boolean(previewReceiptId)}

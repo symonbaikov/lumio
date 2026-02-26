@@ -101,6 +101,11 @@ const content = {
         en: 'Language',
         kk: 'Тіл',
       }),
+      moreActions: t({
+        ru: 'Меню',
+        en: 'Menu',
+        kk: 'Мәзір',
+      }),
     },
     languageModal: {
       sectionLabel: t({

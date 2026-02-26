@@ -15,8 +15,8 @@ export class SpendOverTimeQueryDto {
   type?: 'income' | 'expense' | 'all';
 
   @IsOptional()
-  @IsIn(['day', 'week', 'month'])
-  groupBy?: 'day' | 'week' | 'month';
+  @IsIn(['day', 'week', 'month', 'quarter', 'year'])
+  groupBy?: 'day' | 'week' | 'month' | 'quarter' | 'year';
 
   @IsOptional()
   @IsString()

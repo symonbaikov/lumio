@@ -78,7 +78,11 @@ const content = {
     },
     step1: {
       label: t({ ru: 'Шаг 1', en: 'Step 1', kk: '1-қадам' }),
-      title: t({ ru: 'Добавить таблицу', en: 'Add a sheet', kk: 'Кесте қосу' }),
+      title: t({
+        ru: 'Подключить Google Sheets',
+        en: 'Connect Google Sheets',
+        kk: 'Google Sheets қосу',
+      }),
       sheetUrlLabel: t({
         ru: 'Ссылка или ID таблицы',
         en: 'Spreadsheet URL or ID',
@@ -111,14 +115,27 @@ const content = {
         kk: 'Мысалы: Жөнелтулер',
       }),
       connectButton: t({
-        ru: 'Авторизоваться и подключить',
-        en: 'Authorize and connect',
-        kk: 'Авторизация жасап қосу',
+        ru: 'Подключить',
+        en: 'Connect',
+        kk: 'Қосу',
+      }),
+      successText: t({
+        ru: 'После подключения новые транзакции будут автоматически появляться в этой таблице.',
+        en: 'After connecting, new transactions will appear in this sheet automatically.',
+        kk: 'Қосылғаннан кейін жаңа транзакциялар осы кестеде автоматты түрде пайда болады.',
       }),
     },
     step2: {
-      label: t({ ru: 'Шаг 2', en: 'Step 2', kk: '2-қадам' }),
-      title: t({ ru: 'Настроить Apps Script', en: 'Set up Apps Script', kk: 'Apps Script баптау' }),
+      label: t({
+        ru: 'Шаг 2 (Advanced setup)',
+        en: 'Step 2 (Advanced setup)',
+        kk: '2-қадам (Қосымша баптау)',
+      }),
+      title: t({
+        ru: 'Автообновление из Google Sheets (опционально)',
+        en: 'Enable automatic updates from Google Sheets (optional)',
+        kk: 'Google Sheets-тен авто жаңарту (міндетті емес)',
+      }),
       description: t({
         ru: 'Скопируйте скрипт из нашей инструкции и поставьте триггер onEdit, чтобы отправлять изменения по вебхуку.',
         en: 'Copy the script from our guide and set an onEdit trigger to send changes via webhook.',
@@ -141,6 +158,11 @@ const content = {
       }),
       webhookHeaderLabel: t({ ru: 'Заголовок', en: 'Header', kk: 'Тақырыпша' }),
       webhookTokenHint: t({ ru: 'ваш токен', en: 'your token', kk: 'сіздің токеніңіз' }),
+      showTechnicalDetails: t({
+        ru: 'Показать технические детали',
+        en: 'Show technical details',
+        kk: 'Техникалық бөлшектерді көрсету',
+      }),
     },
     list: {
       title: t({ ru: 'Подключённые таблицы', en: 'Connected sheets', kk: 'Қосылған кестелер' }),

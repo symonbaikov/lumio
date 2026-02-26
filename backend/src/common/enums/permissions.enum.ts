@@ -29,6 +29,12 @@ export enum Permission {
   WALLET_EDIT = 'wallet.edit',
   WALLET_DELETE = 'wallet.delete',
 
+  // Payables
+  PAYABLE_VIEW = 'payable.view',
+  PAYABLE_CREATE = 'payable.create',
+  PAYABLE_EDIT = 'payable.edit',
+  PAYABLE_DELETE = 'payable.delete',
+
   // Reports
   REPORT_VIEW = 'report.view',
   REPORT_EXPORT = 'report.export',
@@ -60,6 +66,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     Permission.CATEGORY_VIEW,
     Permission.BRANCH_VIEW,
     Permission.WALLET_VIEW,
+    Permission.PAYABLE_VIEW,
     Permission.REPORT_VIEW,
     Permission.GOOGLE_SHEET_VIEW,
     Permission.TELEGRAM_VIEW,
@@ -73,6 +80,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     Permission.CATEGORY_VIEW,
     Permission.BRANCH_VIEW,
     Permission.WALLET_VIEW,
+    Permission.PAYABLE_VIEW,
     Permission.REPORT_VIEW,
     Permission.TELEGRAM_VIEW,
   ],

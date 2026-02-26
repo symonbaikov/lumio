@@ -207,6 +207,120 @@ export class WorkspacesService {
     return membership;
   }
 
+  async updateMemberRole(
+    workspaceId: string,
+    requestingUserId: string,
+    targetUserId: string,
+    role: WorkspaceRole,
+  ) {
+    const currentMembership = await this.requireAdminMembership(workspaceId, requestingUserId);
+
+    if (!targetUserId || targetUserId.trim().length === 0) {
+      throw new BadRequestException('Некорректный пользователь');
+    }
+
+    const workspace = await this.workspaceRepository.findOne({
+      where: { id: workspaceId },
+    });
+
+    if (!workspace) {
+      throw new NotFoundException('Рабочее пространство не найдено');
+    }
+
+    const member = await this.workspaceMemberRepository.findOne({
+      where: { workspaceId, userId: targetUserId },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Участник не найден');
+    }
+
+    if (member.userId === requestingUserId) {
+      throw new ForbiddenException('Нельзя изменить собственную роль');
+    }
+
+    if (member.role === WorkspaceRole.OWNER && role !== WorkspaceRole.OWNER) {
+      throw new ForbiddenException('Сначала передайте владение другому участнику');
+    }
+
+    if (currentMembership.role === WorkspaceRole.ADMIN) {
+      if (
+        member.role === WorkspaceRole.ADMIN ||
+        member.role === WorkspaceRole.OWNER ||
+        role === WorkspaceRole.ADMIN ||
+        role === WorkspaceRole.OWNER
+      ) {
+        throw new ForbiddenException(
+          'Только владелец может управлять администраторами и владельцем',
+        );
+      }
+    }
+
+    if (member.role === role) {
+      return { message: 'Роль не изменилась', role: member.role };
+    }
+
+    if (role === WorkspaceRole.OWNER) {
+      if (workspace.ownerId !== requestingUserId) {
+        throw new ForbiddenException('Только текущий владелец может передать владение');
+      }
+
+      const currentOwnerMembership = await this.workspaceMemberRepository.findOne({
+        where: { workspaceId, userId: workspace.ownerId },
+      });
+
+      if (!currentOwnerMembership) {
+        throw new NotFoundException('Владелец рабочего пространства не найден');
+      }
+
+      currentOwnerMembership.role = WorkspaceRole.ADMIN;
+      member.role = WorkspaceRole.OWNER;
+      member.permissions = null;
+
+      workspace.ownerId = member.userId;
+
+      await this.workspaceRepository.save(workspace);
+      await this.workspaceMemberRepository.save(currentOwnerMembership);
+      await this.workspaceMemberRepository.save(member);
+
+      return { message: 'Владение рабочим пространством передано', role: member.role };
+    }
+
+    member.role = role;
+    if (role !== WorkspaceRole.MEMBER) {
+      member.permissions = null;
+    }
+
+    await this.workspaceMemberRepository.save(member);
+
+    return { message: 'Роль обновлена', role: member.role };
+  }
+
+  async cancelInvitation(workspaceId: string, requestingUserId: string, invitationId: string) {
+    await this.requireAdminMembership(workspaceId, requestingUserId);
+
+    if (!invitationId || invitationId.trim().length === 0) {
+      throw new BadRequestException('Некорректное приглашение');
+    }
+
+    const invitation = await this.invitationRepository.findOne({
+      where: { id: invitationId, workspaceId },
+    });
+
+    if (!invitation) {
+      throw new NotFoundException('Приглашение не найдено');
+    }
+
+    if (invitation.status !== WorkspaceInvitationStatus.PENDING) {
+      return { message: 'Приглашение уже неактивно' };
+    }
+
+    invitation.status = WorkspaceInvitationStatus.CANCELLED;
+    await this.invitationRepository.save(invitation);
+
+    return { message: 'Приглашение отозвано' };
+  }
+
   async removeMember(workspaceId: string, requestingUserId: string, targetUserId: string) {
     const currentMembership = await this.requireAdminMembership(workspaceId, requestingUserId);
 

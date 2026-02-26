@@ -5,6 +5,7 @@ import { useAuth } from '@/app/hooks/useAuth';
 import { useAutoSave } from '@/app/hooks/useAutoSave';
 import apiClient from '@/app/lib/api';
 import { flattenStatementCategories } from '@/app/lib/statement-categories';
+import { Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/modal';
 import {
   AccountBalance,
   ArrowBack,
@@ -29,7 +30,6 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Alert,
   Box,
   Button,
   Chip,
@@ -53,6 +53,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import Alert from '@mui/material/Alert';
 
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { useParams, useRouter } from 'next/navigation';
@@ -60,7 +61,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 import CustomDatePicker from '@/app/components/CustomDatePicker';
-import { ModalShell } from '@/app/components/ui/modal-shell';
 import {
   type StatementStage,
   type StatementStageAction,
@@ -707,7 +707,82 @@ export default function EditStatementPage() {
     flattenedStatementCategories.find(category => category.id === statement?.categoryId)?.name ||
     labels.categoryButton?.value ||
     'Category';
+  const hasStatementCategory =
+    !isIdEmpty(statement?.categoryId) || !isIdEmpty(statement?.category?.id || undefined);
   const hasDisabledStatementCategory = statement?.category?.isEnabled === false;
+  const parsingErrorCount = statement?.parsingDetails?.errors?.length || 0;
+  const parsingWarningCount = statement?.parsingDetails?.warnings?.length || 0;
+  const hasCategoryIssues =
+    !hasStatementCategory || hasDisabledStatementCategory || missingCategoryCount > 0;
+  const readinessSeverity: 'success' | 'warning' | 'error' = hasCategoryIssues
+    ? 'error'
+    : parsingErrorCount > 0 || parsingWarningCount > 0
+      ? 'warning'
+      : 'success';
+
+  const readinessTitle =
+    readinessSeverity === 'error'
+      ? labels.alertNeedsFixTitle?.value || 'Нужно исправить перед отправкой'
+      : readinessSeverity === 'warning'
+        ? labels.alertReviewTitle?.value || 'Проверьте выписку перед отправкой'
+        : labels.alertReadyTitle?.value || 'Выписка готова к отправке';
+
+  const readinessDetails: string[] = [];
+
+  if (!hasStatementCategory) {
+    readinessDetails.push(
+      labels.alertStatementCategoryMissing?.value || 'Не выбрана категория выписки.',
+    );
+  }
+
+  if (hasDisabledStatementCategory) {
+    readinessDetails.push(
+      labels.alertStatementCategoryDisabled?.value ||
+        'Выбранная категория выписки отключена. Выберите активную.',
+    );
+  }
+
+  if (missingCategoryCount > 0) {
+    readinessDetails.push(
+      (
+        labels.alertTransactionsCategoryMissing?.value ||
+        '{count} транзакций требуют категорию. Назначьте категории для всех строк.'
+      ).replace('{count}', String(missingCategoryCount)),
+    );
+  }
+
+  if (parsingErrorCount > 0) {
+    readinessDetails.push(
+      (
+        labels.alertParsingErrors?.value ||
+        'Обнаружено {count} ошибок парсинга. Проверьте детали и данные выписки.'
+      ).replace('{count}', String(parsingErrorCount)),
+    );
+  }
+
+  if (parsingWarningCount > 0) {
+    readinessDetails.push(
+      (
+        labels.alertParsingWarnings?.value ||
+        'Есть {count} предупреждений парсинга. Рекомендуется проверить спорные строки.'
+      ).replace('{count}', String(parsingWarningCount)),
+    );
+  }
+
+  if (!transactions.length) {
+    readinessDetails.push(
+      labels.alertNoTransactions?.value ||
+        'В выписке нет транзакций. Проверьте файл или параметры импорта.',
+    );
+  }
+
+  const readinessMessage =
+    readinessDetails.length > 0
+      ? readinessDetails.join(' · ')
+      : labels.alertReadyBody?.value ||
+        'Все обязательные категории назначены. Данные выглядят корректно, можно отправлять.';
+
+  const readinessInlineText = `${readinessTitle}: ${readinessMessage}`;
 
   return (
     <Container
@@ -913,15 +988,60 @@ export default function EditStatementPage() {
         </Box>
       </Box>
 
+      <Box
+        sx={{
+          mb: 3,
+          width: { xs: 'calc(100% + 32px)', sm: 'calc(100% + 48px)' },
+          ml: { xs: -2, sm: -3 },
+        }}
+      >
+        <Alert
+          variant="filled"
+          severity={readinessSeverity}
+          sx={{
+            borderRadius: 0,
+            px: { xs: 2.5, sm: 4 },
+            py: 0.75,
+            minHeight: 42,
+            alignItems: 'center',
+            '& .MuiAlert-message': {
+              width: '100%',
+              py: 0,
+              overflow: 'hidden',
+            },
+            '& .MuiAlert-icon': {
+              py: 0,
+              mr: 1.25,
+              alignItems: 'center',
+            },
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              width: '100%',
+              fontWeight: 600,
+              lineHeight: 1.35,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+            title={readinessInlineText}
+          >
+            {readinessInlineText}
+          </Typography>
+        </Alert>
+      </Box>
+
       {/* Alerts */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+        <Alert variant="filled" severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
           {error}
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(false)}>
+        <Alert variant="filled" severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(false)}>
           {t.labels.changesSaved}
         </Alert>
       )}
@@ -1188,41 +1308,61 @@ export default function EditStatementPage() {
         </AccordionDetails>
       </Accordion>
 
-      <ModalShell
+      <Modal
         isOpen={exportConfirmOpen}
-        onClose={() => setExportConfirmOpen(false)}
-        size="sm"
-        title={t.labels.exportConfirmTitle.value}
-        footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <button
-              type="button"
-              onClick={() => setExportConfirmOpen(false)}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:border-primary hover:text-primary"
-            >
-              {t.labels.cancel.value}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setExportConfirmOpen(false);
-                handleExportToCustomTable();
-              }}
-              disabled={exportingToTable || !transactions.length}
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {exportingToTable ? (
-                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-              ) : null}
-              {t.labels.exportConfirmConfirm.value}
-            </button>
-          </div>
-        }
+        onOpenChange={next => {
+          if (!next) {
+            setExportConfirmOpen(false);
+          }
+        }}
+        size="2xl"
+        placement="center"
+        backdrop="opaque"
+        classNames={{
+          base: 'rounded-2xl border border-gray-200 shadow-xl',
+          backdrop: 'bg-gray-900/40 backdrop-blur-[1px]',
+          closeButton:
+            'text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors',
+        }}
       >
-        <div>
-          <p className="text-sm text-gray-700">{t.labels.exportConfirmBody.value}</p>
-        </div>
-      </ModalShell>
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className="text-[22px] font-semibold text-gray-900 px-8 py-6 border-b border-gray-200">
+                {t.labels.exportConfirmTitle.value}
+              </ModalHeader>
+              <ModalBody className="px-8 py-8 border-b border-gray-200">
+                <p className="text-base leading-8 text-gray-700">
+                  {t.labels.exportConfirmBody.value}
+                </p>
+              </ModalBody>
+              <ModalFooter className="px-8 py-6 gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-md border border-gray-200 bg-white px-6 py-2.5 text-base font-medium text-gray-600 hover:border-primary hover:text-primary"
+                >
+                  {t.labels.cancel.value}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    handleExportToCustomTable();
+                  }}
+                  disabled={exportingToTable || !transactions.length}
+                  className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-2.5 text-base font-medium text-white shadow-none hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {exportingToTable ? (
+                    <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  ) : null}
+                  {t.labels.exportConfirmConfirm.value}
+                </button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
 
       <StatementCategoryDrawer
         open={statementCategoryDrawerOpen}

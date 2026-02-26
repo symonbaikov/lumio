@@ -19,11 +19,10 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import { useIntlayer, useLocale } from 'next-intlayer';
 import { useParams, useRouter } from 'next/navigation';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import 'react-day-picker/style.css';
-import { useIntlayer, useLocale } from 'next-intlayer';
 import { CustomTableTanStack } from './CustomTableTanStack';
 import { RowDrawer } from './components/RowDrawer';
 import { handleFullscreenEscapeNavigation } from './utils/fullscreenEscapeNavigation';

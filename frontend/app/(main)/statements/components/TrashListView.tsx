@@ -14,12 +14,16 @@ import {
 import { resolveBankLogo } from '@bank-logos';
 import { RotateCcw, Search, Trash2 } from 'lucide-react';
 import { useIntlayer, useLocale } from 'next-intlayer';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { TrashListItem, type TrashListItemModel } from './TrashListItem';
+import {
+  type TrashEntityType,
+  resolvePermanentDeletionDate,
+  resolveTrashEntityType,
+} from './trash-utils';
 
 const PAGE_SIZE = 30;
-const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const DEFAULT_TRASH_TTL_DAYS = 30;
 
 type Props = {
@@ -28,22 +32,16 @@ type Props = {
 
 type TrashFile = TrashListItemModel & {
   status?: string;
+  itemType?: string | null;
+  resourceType?: string | null;
+  objectType?: string | null;
+  type?: string | null;
 };
 
 const getBankDisplayName = (bankName: string) => {
   const resolved = resolveBankLogo(bankName);
   if (!resolved) return bankName;
   return resolved.key !== 'other' ? resolved.displayName : bankName;
-};
-
-const resolveFileType = (file: TrashFile): string => {
-  const rawType = (file.fileType || '').trim().toLowerCase();
-  if (rawType && rawType !== 'file') return rawType;
-
-  const fileName = (file.fileName || '').toLowerCase();
-  const dotIndex = fileName.lastIndexOf('.');
-  if (dotIndex === -1 || dotIndex === fileName.length - 1) return 'file';
-  return fileName.slice(dotIndex + 1);
 };
 
 const resolveDateValue = (file: TrashFile): number => {
@@ -80,6 +78,11 @@ export default function TrashListView({ onCountChange }: Props) {
   };
 
   const labels = {
+    title: resolveLabel(getNested(t, ['trash', 'title']), 'Trash'),
+    retentionPolicy: resolveLabel(
+      getNested(t, ['trash', 'retentionPolicy']),
+      `Deleted items are permanently removed after ${trashTtlDays} days.`,
+    ),
     searchPlaceholder: resolveLabel(
       getNested(t, ['trash', 'searchPlaceholder']),
       'Search in trash...',
@@ -102,13 +105,27 @@ export default function TrashListView({ onCountChange }: Props) {
       getNested(t, ['trash', 'empty', 'subtitle']) ?? getNested(t, ['trash', 'emptyDescription']),
       'Deleted files will appear here',
     ),
-    expiresIn: resolveLabel(getNested(t, ['trash', 'expiresIn']), 'Deletes in {days}d'),
-    expiresToday: resolveLabel(getNested(t, ['trash', 'expiresToday']), 'Deletes today'),
-    receiptHeader: resolveLabel(getNested(t, ['trash', 'listHeader', 'receipt']), 'Receipt'),
     typeHeader: resolveLabel(getNested(t, ['trash', 'listHeader', 'type']), 'Type'),
-    deletedHeader: resolveLabel(getNested(t, ['trash', 'listHeader', 'deleted']), 'Deleted'),
+    deletedAtHeader: resolveLabel(
+      getNested(t, ['trash', 'listHeader', 'deletedAt']) ??
+        getNested(t, ['trash', 'listHeader', 'deleted']),
+      'Deleted at',
+    ),
+    autoDeleteHeader: resolveLabel(
+      getNested(t, ['trash', 'listHeader', 'willDeleteAt']),
+      'Will be permanently deleted on',
+    ),
     nameHeader: resolveLabel(getNested(t, ['trash', 'listHeader', 'name']), 'Name'),
     actionsHeader: resolveLabel(getNested(t, ['trash', 'listHeader', 'actions']), 'Actions'),
+    entityTypeStatement: resolveLabel(
+      getNested(t, ['trash', 'entityTypes', 'statement']),
+      'Statement',
+    ),
+    entityTypeTable: resolveLabel(getNested(t, ['trash', 'entityTypes', 'table']), 'Table'),
+    entityTypeWorkspace: resolveLabel(
+      getNested(t, ['trash', 'entityTypes', 'workspace']),
+      'Workspace',
+    ),
     selectAll: resolveLabel(getNested(t, ['trash', 'selectAll']), 'Select all in trash'),
     restoreLoading: resolveLabel(getNested(t, ['trash', 'restoreLoading']), 'Restoring...'),
     restoreSuccess: resolveLabel(getNested(t, ['trash', 'restoreSuccess']), 'File restored'),
@@ -154,6 +171,10 @@ export default function TrashListView({ onCountChange }: Props) {
     confirmEmpty: resolveLabel(
       getNested(t, ['trash', 'confirmEmpty']) ?? getNested(t, ['trash', 'emptyConfirm']),
       'Empty',
+    ),
+    irreversibleWarning: resolveLabel(
+      getNested(t, ['trash', 'irreversibleWarning']),
+      'This action is irreversible',
     ),
     paginationShown: resolveLabel(
       getNested(t, ['pagination', 'shown']),
@@ -272,6 +293,11 @@ export default function TrashListView({ onCountChange }: Props) {
     page: currentPage,
     count: totalPagesCount,
   });
+  const entityTypeLabelByType: Record<TrashEntityType, string> = {
+    statement: labels.entityTypeStatement,
+    table: labels.entityTypeTable,
+    workspace: labels.entityTypeWorkspace,
+  };
 
   const removeFilesFromState = (ids: string[]) => {
     if (ids.length === 0) return;
@@ -367,46 +393,48 @@ export default function TrashListView({ onCountChange }: Props) {
     }
   };
 
-  const renderExpiryBadge = (deletedAt?: string | null) => {
-    if (!deletedAt) return null;
-
-    const deletedDate = new Date(deletedAt);
-    if (Number.isNaN(deletedDate.getTime())) return null;
-
-    const expiresAt = new Date(deletedDate.getTime() + trashTtlDays * MS_PER_DAY);
-    const daysLeft = Math.ceil((expiresAt.getTime() - Date.now()) / MS_PER_DAY);
-    const isExpired = daysLeft <= 0;
-    const isSoon = daysLeft <= 3;
-
-    const label = isExpired
-      ? labels.expiresToday
-      : labels.expiresIn.replace('{days}', String(daysLeft));
-    const toneClass = isExpired
-      ? 'border-red-200 bg-red-50 text-red-700'
-      : isSoon
-        ? 'border-amber-200 bg-amber-50 text-amber-700'
-        : 'border-gray-200 bg-gray-50 text-gray-600';
-
-    return (
-      <span
-        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${toneClass}`}
-        title={expiresAt.toLocaleDateString(localeCode)}
-      >
-        {label}
-      </span>
-    );
-  };
-
-  const formatDeletedDate = (value?: string | null) => {
+  const formatDateTime = (value?: string | Date | null) => {
     if (!value) return '—';
-    const date = new Date(value);
+    const date = value instanceof Date ? value : new Date(value);
     if (Number.isNaN(date.getTime())) return '—';
-    return date.toLocaleDateString(localeCode);
+    return date.toLocaleString(localeCode, {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
+
+  const formatPermanentDeletionDate = (deletedAt?: string | null) => {
+    const expiresAt = resolvePermanentDeletionDate(deletedAt, trashTtlDays);
+    return formatDateTime(expiresAt);
+  };
+
+  const confirmDeleteMessage = (
+    <div className="space-y-2">
+      <p className="text-gray-600 leading-relaxed">
+        {labels.confirmDeleteMessage.replace('{count}', String(pendingDeleteIds.length))}
+      </p>
+      <p className="text-sm font-semibold text-red-600">{labels.irreversibleWarning}</p>
+    </div>
+  );
+
+  const confirmEmptyMessage = (
+    <div className="space-y-2">
+      <p className="text-gray-600 leading-relaxed">{labels.confirmEmptyMessage}</p>
+      <p className="text-sm font-semibold text-red-600">{labels.irreversibleWarning}</p>
+    </div>
+  );
 
   return (
     <div className="container-shared flex h-[calc(100vh-var(--global-nav-height,0px))] min-h-0 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-6 shrink-0 space-y-3">
+        <div className="space-y-1">
+          <h1 className="text-xl font-semibold text-gray-900">{labels.title}</h1>
+          <p className="text-sm text-gray-500">{labels.retentionPolicy}</p>
+        </div>
+
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -496,26 +524,30 @@ export default function TrashListView({ onCountChange }: Props) {
                     aria-label={labels.selectAll}
                   />
                 </div>
-                <div className="w-11">{labels.receiptHeader}</div>
-                <div className="w-3" />
-                <div className="w-20">{labels.typeHeader}</div>
-                <div className="w-24">{labels.deletedHeader}</div>
+                <div className="w-44">{labels.typeHeader}</div>
+                <div className="w-[440px] grid grid-cols-2 gap-3">
+                  <span>{labels.deletedAtHeader}</span>
+                  <span>{labels.autoDeleteHeader}</span>
+                </div>
                 <div className="flex-1">{labels.nameHeader}</div>
                 <div className="w-36 text-right">{labels.actionsHeader}</div>
               </div>
 
               {paginatedFiles.map(file => {
-                const fileType = resolveFileType(file);
-                const bankName = file.bankName || 'other';
-                const bankDisplayName = getBankDisplayName(bankName);
+                const entityType = resolveTrashEntityType(
+                  file as unknown as Record<string, unknown>,
+                );
+                const bankName = (file.bankName || '').trim();
+                const safeBankName = bankName || 'other';
+                const bankDisplayName = bankName ? getBankDisplayName(bankName) : '';
 
                 return (
                   <TrashListItem
                     key={file.id}
                     item={{
                       ...file,
-                      bankName,
-                      fileType,
+                      bankName: safeBankName,
+                      entityType,
                     }}
                     selected={selectedIds.includes(file.id)}
                     onToggleSelect={() =>
@@ -524,8 +556,11 @@ export default function TrashListView({ onCountChange }: Props) {
                     onRestore={() => void handleRestore(file.id)}
                     onDelete={() => openDeleteConfirm([file.id])}
                     bankDisplayName={bankDisplayName}
-                    deletedDateLabel={formatDeletedDate(file.deletedAt)}
-                    expiryBadge={renderExpiryBadge(file.deletedAt)}
+                    typeLabel={entityTypeLabelByType[entityType]}
+                    deletedAtLabel={formatDateTime(file.deletedAt)}
+                    autoDeleteAtLabel={formatPermanentDeletionDate(file.deletedAt)}
+                    deletedAtCaption={labels.deletedAtHeader}
+                    autoDeleteAtCaption={labels.autoDeleteHeader}
                     restoreLabel={labels.restore}
                     deleteLabel={labels.delete}
                   />
@@ -557,7 +592,7 @@ export default function TrashListView({ onCountChange }: Props) {
           void handleConfirmDelete();
         }}
         title={labels.confirmDeleteTitle}
-        message={labels.confirmDeleteMessage.replace('{count}', String(pendingDeleteIds.length))}
+        message={confirmDeleteMessage}
         confirmText={labels.confirmDelete}
         cancelText={labels.confirmCancel}
         isDestructive={true}
@@ -574,7 +609,7 @@ export default function TrashListView({ onCountChange }: Props) {
           void handleConfirmEmptyTrash();
         }}
         title={labels.confirmEmptyTitle}
-        message={labels.confirmEmptyMessage}
+        message={confirmEmptyMessage}
         confirmText={labels.confirmEmpty}
         cancelText={labels.confirmCancel}
         isDestructive={true}

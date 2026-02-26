@@ -5,6 +5,8 @@ import apiClient from '@/app/lib/api';
 import {
   AlertCircle,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   FileSpreadsheet,
   Loader2,
@@ -63,6 +65,7 @@ export default function GoogleSheetsIntegrationPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -281,11 +284,15 @@ export default function GoogleSheetsIntegrationPage() {
                 onClick={handleConnect}
                 disabled={submitting}
                 data-tour-id="gs-integration-connect"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70 w-fit"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 {t.step1.connectButton}
               </button>
+
+              <div className="rounded-lg bg-primary/5 p-3 text-sm text-primary mt-2">
+                {t.step1.successText}
+              </div>
             </div>
           </div>
 
@@ -324,13 +331,30 @@ export default function GoogleSheetsIntegrationPage() {
                 <ExternalLink className="h-4 w-4" />
               </a>
             </div>
-            <div className="mt-3 rounded-lg bg-gray-50 border border-dashed border-gray-200 px-3 py-2 text-xs text-gray-600">
-              {t.step2.webhookEndpointLabel.value}:{' '}
-              <code className="font-mono">/api/v1/integrations/google-sheets/update</code> <br />
-              {t.step2.webhookHeaderLabel.value}:{' '}
-              <code className="font-mono">
-                X-Webhook-Token: &lt;{t.step2.webhookTokenHint.value}&gt;
-              </code>
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setShowTechnicalDetails(prev => !prev)}
+                className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                {t.step2.showTechnicalDetails}
+                {showTechnicalDetails ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </button>
+              {showTechnicalDetails && (
+                <div className="mt-3 rounded-lg bg-gray-50 border border-dashed border-gray-200 px-3 py-2 text-xs text-gray-600">
+                  {t.step2.webhookEndpointLabel.value}:{' '}
+                  <code className="font-mono">/api/v1/integrations/google-sheets/update</code>{' '}
+                  <br />
+                  {t.step2.webhookHeaderLabel.value}:{' '}
+                  <code className="font-mono">
+                    X-Webhook-Token: &lt;{t.step2.webhookTokenHint.value}&gt;
+                  </code>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ export type StatementFilterDate = {
   preset?: StatementFilterDatePreset;
   mode?: StatementFilterDateMode;
   date?: string;
+  dateTo?: string;
 };
 
 export type StatementFilters = {
@@ -320,17 +321,25 @@ export const applyStatementsFilters = <T extends StatementFilterItem>(
       });
     } else if (filters.date.mode && filters.date.date) {
       const filterDate = toDateOnly(filters.date.date);
+      const filterDateTo = toDateOnly(filters.date.dateTo);
       if (filterDate) {
         result = result.filter(statement => {
           const dateValue = statementDateGetter(statement);
           if (!dateValue) return false;
           if (filters.date?.mode === 'on') {
+            if (filterDateTo) {
+              const startTime = Math.min(filterDate.getTime(), filterDateTo.getTime());
+              const endTime = Math.max(filterDate.getTime(), filterDateTo.getTime());
+              const valueTime = dateValue.getTime();
+              return valueTime >= startTime && valueTime <= endTime;
+            }
             return dateValue.getTime() === filterDate.getTime();
           }
           if (filters.date?.mode === 'after') {
             return dateValue.getTime() > filterDate.getTime();
           }
-          return dateValue.getTime() < filterDate.getTime();
+          const beforeDate = filterDateTo || filterDate;
+          return dateValue.getTime() < beforeDate.getTime();
         });
       }
     }

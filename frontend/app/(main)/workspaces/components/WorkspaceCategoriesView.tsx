@@ -9,7 +9,9 @@ import {
   Add,
   Check,
   ChevronRight,
+  DeleteOutline,
   FolderOutlined,
+  LockOutlined,
   MoreVert,
   Search as SearchIcon,
 } from '@mui/icons-material';
@@ -130,6 +132,8 @@ export default function WorkspaceCategoriesView() {
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [usageCounts, setUsageCounts] = useState<Record<string, CategoryUsageCount>>({});
   const [disableConfirm, setDisableConfirm] = useState<{
     category: Category;
     usage: CategoryUsageCount;
@@ -157,8 +161,12 @@ export default function WorkspaceCategoriesView() {
   const loadCategories = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/categories');
-      setCategories(response.data);
+      const [categoriesRes, usageRes] = await Promise.all([
+        apiClient.get('/categories'),
+        apiClient.get('/categories/usage/counts'),
+      ]);
+      setCategories(categoriesRes.data);
+      setUsageCounts(usageRes.data);
     } catch (error) {
       console.error('Failed to load categories:', error);
       toast.error(t.toasts.loadFailed.value);
@@ -266,6 +274,56 @@ export default function WorkspaceCategoriesView() {
     await performToggle(category, nextEnabled);
   };
 
+  const handleToggleSelectAll = () => {
+    if (selectedIds.size === filteredCategories.length && filteredCategories.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredCategories.map(c => c.id)));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setSelectedIds(next);
+  };
+
+  const handleBulkEnable = async (enable: boolean) => {
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map(id =>
+          apiClient.put(`/categories/${id}`, { isEnabled: enable }),
+        ),
+      );
+      toast.success(enable ? 'Categories enabled' : 'Categories disabled');
+      await loadCategories();
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error('Failed to bulk toggle categories:', error);
+      toast.error(t.toasts.saveFailed.value);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete selected custom categories?')) return;
+    try {
+      const customIds = Array.from(selectedIds).filter(
+        id => !categories.find(c => c.id === id)?.isSystem,
+      );
+      await Promise.all(customIds.map(id => apiClient.delete(`/categories/${id}`)));
+      toast.success('Categories deleted');
+      await loadCategories();
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error('Failed to delete categories:', error);
+      toast.error('Failed to delete some categories');
+    }
+  };
+
   const triggerIconUpload = () => {
     iconInputRef.current?.click();
   };
@@ -343,6 +401,35 @@ export default function WorkspaceCategoriesView() {
               className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
             />
           </div>
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-600 mr-2">
+                {selectedIds.size} selected
+              </span>
+              <button
+                onClick={() => handleBulkEnable(true)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Enable
+              </button>
+              <button
+                onClick={() => handleBulkEnable(false)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Disable
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100"
+              >
+                Delete Custom
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="text-sm text-gray-500 flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg">
+          Disabling a category will hide it from statements and reports.
         </div>
 
         <div className="rounded-3xl border border-gray-100 bg-white p-2 shadow-sm">
@@ -351,6 +438,10 @@ export default function WorkspaceCategoriesView() {
               <Checkbox
                 aria-label="Select all categories"
                 className="h-4 w-4 rounded border-gray-300"
+                checked={
+                  selectedIds.size === filteredCategories.length && filteredCategories.length > 0
+                }
+                onCheckedChange={handleToggleSelectAll}
               />
               <span>{(t as any).columns?.name?.value || 'Название'}</span>
             </div>
@@ -393,8 +484,28 @@ export default function WorkspaceCategoriesView() {
                     <Checkbox
                       aria-label={category.name}
                       className="h-4 w-4 rounded border-gray-300"
+                      checked={selectedIds.has(category.id)}
+                      onCheckedChange={() => handleToggleSelect(category.id)}
                     />
-                    <div className="text-lg font-semibold text-slate-900">{category.name}</div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-semibold text-slate-900">
+                          {category.name}
+                        </span>
+                        {category.isSystem && (
+                          <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                            System
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-0.5">
+                        {usageCounts[category.id]?.total ? (
+                          <span>Used in {usageCounts[category.id].total} transactions</span>
+                        ) : (
+                          <span>Not used yet</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-3">
@@ -418,17 +529,19 @@ export default function WorkspaceCategoriesView() {
                         )}
                       />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!category.isSystem) {
-                          handleOpenDialog(category);
-                        }
-                      }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-500"
-                    >
-                      <ChevronRight fontSize="small" />
-                    </button>
+                    {category.isSystem ? (
+                      <div className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-300">
+                        <LockOutlined fontSize="small" />
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDialog(category)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-500"
+                      >
+                        <ChevronRight fontSize="small" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

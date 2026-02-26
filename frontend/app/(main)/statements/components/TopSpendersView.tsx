@@ -12,14 +12,36 @@ import {
   applyStatementsFilters,
   resetSingleStatementFilter,
 } from '@/app/(main)/statements/components/filters/statement-filters';
+import {
+  type AggregateSortKey,
+  type TopSpenderAggregateRow,
+  type TopSpenderFlowType,
+  type TopSpenderSourceChannel,
+  buildPreviousPeriodRange,
+  getComparisonDelta,
+  resolveSourceChannel,
+  resolveSpenderFlow,
+  sortAggregateRows,
+} from '@/app/(main)/statements/components/top-spenders.utils';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
-import apiClient, { gmailReceiptsApi } from '@/app/lib/api';
+import apiClient from '@/app/lib/api';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
 import { resolveBankLogo } from '@bank-logos';
-import { ArrowDown, ArrowUp, ChartPie, ChevronDown, Search, SlidersHorizontal } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChartPie,
+  ChevronDown,
+  Landmark,
+  Mail,
+  Receipt,
+  Search,
+  SlidersHorizontal,
+  X,
+} from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
 import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
@@ -66,6 +88,8 @@ type Statement = {
   subject?: string | null;
   sender?: string | null;
   receivedAt?: string | null;
+  workspaceId?: string;
+  workspaceName?: string;
 };
 
 type GmailReceipt = {
@@ -81,25 +105,20 @@ type GmailReceipt = {
     date?: string;
   };
   gmailMessageId?: string;
+  workspaceId?: string;
+  workspaceName?: string;
 };
 
 type TopSpenderRecord = StatementFilterItem & {
   sourceType: 'statement' | 'gmail';
+  sourceChannel: TopSpenderSourceChannel;
+  flowType: TopSpenderFlowType;
   company: string;
   amount: number;
   currencyValue: string;
   dateValue: string;
-};
-
-type AggregateRow = {
-  id: string;
-  company: string;
-  sourceType: 'statement' | 'gmail';
-  count: number;
-  total: number;
-  average: number;
-  lastDate: string;
-  currency: string;
+  workspaceId?: string;
+  workspaceName?: string;
 };
 
 const STORAGE_KEY = 'finflow-top-spenders-filters';
@@ -122,23 +141,6 @@ const loadTopSpendersFilters = (): StatementFilters => {
 const saveTopSpendersFilters = (filters: StatementFilters) => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
-};
-
-const parseAmountValue = (value?: number | string | null) => {
-  if (value === null || value === undefined || value === '') return 0;
-  const parsed = typeof value === 'string' ? Number(value) : value;
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const getStatementAmount = (statement: Statement) => {
-  if (statement.source === 'gmail') {
-    return parseAmountValue(statement.parsedData?.amount ?? null);
-  }
-  const debit = parseAmountValue(statement.totalDebit);
-  const credit = parseAmountValue(statement.totalCredit);
-  if (debit > 0) return debit;
-  if (credit > 0) return credit;
-  return 0;
 };
 
 const getStatementDate = (statement: Statement) => {
@@ -207,6 +209,8 @@ const mapGmailReceiptToStatement = (
   user: null,
   receivedAt: receipt.receivedAt,
   parsedData: receipt.parsedData,
+  workspaceId: receipt.workspaceId,
+  workspaceName: receipt.workspaceName,
 });
 
 const resolveLocale = (locale?: string) => {
@@ -223,16 +227,44 @@ const formatMoney = (value: number, currency: string, locale = 'ru') =>
     maximumFractionDigits: 2,
   }).format(value);
 
+const toDateOnly = (value?: string | null) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+};
+
+const getRecordDate = (record: { dateValue?: string; createdAt?: string | null }) => {
+  return toDateOnly(record.dateValue || record.createdAt || null);
+};
+
+const getSourceLabel = (
+  channel: TopSpenderSourceChannel,
+  labels: {
+    sourceBank: string;
+    sourceReceipt: string;
+    sourceGmailInbox: string;
+  },
+) => {
+  if (channel === 'gmail') return labels.sourceGmailInbox;
+  if (channel === 'receipt') return labels.sourceReceipt;
+  return labels.sourceBank;
+};
+
 export default function TopSpendersView() {
   const t = useIntlayer('statementsPage');
   const { user } = useAuth();
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, workspaces } = useWorkspace();
   const { resolvedTheme } = useTheme();
   const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
   const [loading, setLoading] = useState(true);
   const [statements, setStatements] = useState<Statement[]>([]);
   const [gmailReceipts, setGmailReceipts] = useState<GmailReceipt[]>([]);
   const [searchInput, setSearchInput] = useState('');
+  const [workspaceFilter, setWorkspaceFilter] = useState<'current' | 'all' | string>('current');
+  const [activeFlowType, setActiveFlowType] = useState<TopSpenderFlowType>('spend');
+  const [sortKey, setSortKey] = useState<AggregateSortKey>('amount');
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
   const [draftFilters, setDraftFilters] = useState<StatementFilters>(DEFAULT_STATEMENT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<StatementFilters>(DEFAULT_STATEMENT_FILTERS);
@@ -260,9 +292,18 @@ export default function TopSpendersView() {
     receiptsSpend: resolveLabel((t as any)?.topSpenders?.receiptsSpend, 'Receipts'),
     totalOperations: resolveLabel((t as any)?.topSpenders?.totalOperations, 'Operations'),
     topCompanies: resolveLabel((t as any)?.topSpenders?.topCompanies, 'Top companies'),
+    topIncomeSenders: resolveLabel((t as any)?.topSpenders?.topIncomeSenders, 'Top income senders'),
     sourceSplit: resolveLabel((t as any)?.topSpenders?.sourceSplit, 'Source split'),
     spendTrend: resolveLabel((t as any)?.topSpenders?.spendTrend, 'Spending trend'),
+    incomeTrend: resolveLabel((t as any)?.topSpenders?.incomeTrend, 'Income trend'),
     leaderboard: resolveLabel((t as any)?.topSpenders?.leaderboard, 'Top spenders list'),
+    incomeLeaderboard: resolveLabel(
+      (t as any)?.topSpenders?.incomeLeaderboard,
+      'Top income senders list',
+    ),
+    totalIncome: resolveLabel((t as any)?.topSpenders?.totalIncome, 'Total income'),
+    tabSpenders: resolveLabel((t as any)?.topSpenders?.tabSpenders, 'Top spenders'),
+    tabIncomeSenders: resolveLabel((t as any)?.topSpenders?.tabIncomeSenders, 'Top income senders'),
     noData: resolveLabel((t as any)?.topSpenders?.noData, 'No data for selected filters'),
     source: resolveLabel((t as any)?.topSpenders?.source, 'Source'),
     company: resolveLabel((t as any)?.topSpenders?.company, 'Company'),
@@ -272,6 +313,23 @@ export default function TopSpendersView() {
     lastOperation: resolveLabel((t as any)?.topSpenders?.lastOperation, 'Last operation'),
     sourceStatement: resolveLabel((t as any)?.topSpenders?.sourceStatement, 'Statement'),
     sourceGmail: resolveLabel((t as any)?.topSpenders?.sourceGmail, 'Receipt'),
+    sourceBank: resolveLabel((t as any)?.topSpenders?.sourceBank, 'Bank'),
+    sourceReceipt: resolveLabel((t as any)?.topSpenders?.sourceReceipt, 'Receipt'),
+    sourceGmailInbox: resolveLabel((t as any)?.topSpenders?.sourceGmailInbox, 'Gmail'),
+    workspace: resolveLabel((t as any)?.topSpenders?.workspace, 'Workspace'),
+    allWorkspaces: resolveLabel((t as any)?.topSpenders?.allWorkspaces, 'All workspaces'),
+    currentWorkspace: resolveLabel((t as any)?.topSpenders?.currentWorkspace, 'Current workspace'),
+    sortByAmount: resolveLabel((t as any)?.topSpenders?.sortByAmount, 'Sort by amount'),
+    sortByAverage: resolveLabel((t as any)?.topSpenders?.sortByAverage, 'Sort by average'),
+    sortByOperations: resolveLabel((t as any)?.topSpenders?.sortByOperations, 'Sort by operations'),
+    vsPreviousPeriod: resolveLabel((t as any)?.topSpenders?.vsPreviousPeriod, 'vs previous period'),
+    comparisonNoData: resolveLabel(
+      (t as any)?.topSpenders?.comparisonNoData,
+      'No previous period data',
+    ),
+    drillDown: resolveLabel((t as any)?.topSpenders?.drillDown, 'Operations'),
+    close: resolveLabel((t as any)?.common?.close, 'Close'),
+    noOperations: resolveLabel((t as any)?.topSpenders?.noOperations, 'No operations found'),
     filters: resolveLabel((t as any)?.filters?.filters, 'Filters'),
     type: resolveLabel((t as any)?.filters?.type, 'Type'),
     status: resolveLabel((t as any)?.filters?.status, 'Status'),
@@ -392,53 +450,127 @@ export default function TopSpendersView() {
     setAppliedFilters(storedFilters);
   }, []);
 
+  const workspaceTargets = useMemo(() => {
+    if (workspaceFilter === 'all') {
+      const all = workspaces.map(workspace => ({
+        id: workspace.id,
+        name: workspace.name || 'Workspace',
+      }));
+      if (all.length > 0) return all;
+    }
+
+    if (workspaceFilter === 'current') {
+      if (currentWorkspace?.id) {
+        return [
+          { id: currentWorkspace.id, name: currentWorkspace.name || labels.currentWorkspace },
+        ];
+      }
+      return [];
+    }
+
+    const selectedWorkspace = workspaces.find(workspace => workspace.id === workspaceFilter);
+    return [
+      {
+        id: workspaceFilter,
+        name: selectedWorkspace?.name || labels.currentWorkspace,
+      },
+    ];
+  }, [
+    workspaceFilter,
+    workspaces,
+    currentWorkspace?.id,
+    currentWorkspace?.name,
+    labels.currentWorkspace,
+  ]);
+
+  const workspaceTargetKey = useMemo(
+    () => workspaceTargets.map(target => target.id).join(','),
+    [workspaceTargets],
+  );
+
   useEffect(() => {
     let isMounted = true;
 
     const loadData = async () => {
       if (!user) return;
+      if (workspaceTargets.length === 0) {
+        setStatements([]);
+        setGmailReceipts([]);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
 
       try {
         const allStatements: Statement[] = [];
-        const statementsPageSize = 500;
-        let statementsPage = 1;
-        let statementsTotal = Number.POSITIVE_INFINITY;
-
-        while (allStatements.length < statementsTotal) {
-          const response = await apiClient.get('/statements', {
-            params: {
-              page: statementsPage,
-              pageSize: statementsPageSize,
-            },
-          });
-
-          const items = response.data?.data || response.data || [];
-          const batch = Array.isArray(items) ? items : [];
-          allStatements.push(...batch);
-          statementsTotal = Number(response.data?.total ?? allStatements.length);
-
-          if (batch.length < statementsPageSize) break;
-          statementsPage += 1;
-        }
-
         const allReceipts: GmailReceipt[] = [];
-        const receiptsLimit = 100;
-        let receiptsOffset = 0;
-        let receiptsTotal = Number.POSITIVE_INFINITY;
 
-        while (allReceipts.length < receiptsTotal) {
-          const response = await gmailReceiptsApi.listReceipts({
-            limit: receiptsLimit,
-            offset: receiptsOffset,
-          });
-          const payload = response.data || {};
-          const batch = Array.isArray(payload?.receipts) ? payload.receipts : [];
-          allReceipts.push(...batch);
-          receiptsTotal = Number(payload?.total ?? allReceipts.length);
+        for (const target of workspaceTargets) {
+          const requestHeaders = {
+            'X-Workspace-Id': target.id,
+          };
 
-          if (batch.length < receiptsLimit) break;
-          receiptsOffset += receiptsLimit;
+          const statementsPageSize = 500;
+          let statementsPage = 1;
+          let statementsTotal = Number.POSITIVE_INFINITY;
+          const workspaceStatements: Statement[] = [];
+
+          while (workspaceStatements.length < statementsTotal) {
+            const response = await apiClient.get('/statements', {
+              params: {
+                page: statementsPage,
+                pageSize: statementsPageSize,
+              },
+              headers: requestHeaders,
+            });
+
+            const items = response.data?.data || response.data || [];
+            const batch = Array.isArray(items) ? items : [];
+            workspaceStatements.push(
+              ...batch.map(statement => ({
+                ...statement,
+                workspaceId: target.id,
+                workspaceName: target.name,
+              })),
+            );
+            statementsTotal = Number(response.data?.total ?? workspaceStatements.length);
+
+            if (batch.length < statementsPageSize) break;
+            statementsPage += 1;
+          }
+
+          allStatements.push(...workspaceStatements);
+
+          const receiptsLimit = 100;
+          let receiptsOffset = 0;
+          let receiptsTotal = Number.POSITIVE_INFINITY;
+          const workspaceReceipts: GmailReceipt[] = [];
+
+          while (workspaceReceipts.length < receiptsTotal) {
+            const response = await apiClient.get('/integrations/gmail/receipts', {
+              params: {
+                limit: receiptsLimit,
+                offset: receiptsOffset,
+              },
+              headers: requestHeaders,
+            });
+            const payload = response.data || {};
+            const batch = Array.isArray(payload?.receipts) ? payload.receipts : [];
+            workspaceReceipts.push(
+              ...batch.map((receipt: GmailReceipt) => ({
+                ...receipt,
+                workspaceId: target.id,
+                workspaceName: target.name,
+              })),
+            );
+            receiptsTotal = Number(payload?.total ?? workspaceReceipts.length);
+
+            if (batch.length < receiptsLimit) break;
+            receiptsOffset += receiptsLimit;
+          }
+
+          allReceipts.push(...workspaceReceipts);
         }
 
         if (!isMounted) return;
@@ -463,7 +595,7 @@ export default function TopSpendersView() {
     return () => {
       isMounted = false;
     };
-  }, [user, t]);
+  }, [user, t, workspaceTargetKey, workspaceTargets]);
 
   const allRecords = useMemo<TopSpenderRecord[]>(() => {
     const mappedStatements: TopSpenderRecord[] = statements.map(item => {
@@ -479,8 +611,14 @@ export default function TopSpendersView() {
           : getBankDisplayName(item.bankName);
 
       const dateValue = getStatementDate(item);
-      const amount = getStatementAmount(item);
+      const flow = resolveSpenderFlow({
+        sourceType,
+        totalDebit: item.totalDebit,
+        totalCredit: item.totalCredit,
+      });
+      const amount = flow.amount;
       const currency = getStatementCurrency(item, workspaceCurrency);
+      const fileType = (item.fileType || '').toLowerCase() || null;
 
       return {
         id: item.id,
@@ -489,7 +627,7 @@ export default function TopSpendersView() {
         subject: item.subject || null,
         sender: item.sender || null,
         status: item.status || null,
-        fileType: (item.fileType || '').toLowerCase() || null,
+        fileType,
         createdAt: item.createdAt || null,
         statementDateFrom: item.statementDateFrom || null,
         statementDateTo: item.statementDateTo || null,
@@ -511,6 +649,10 @@ export default function TopSpendersView() {
         currencyValue: currency,
         dateValue,
         sourceType,
+        sourceChannel: resolveSourceChannel({ sourceType, fileType }),
+        flowType: flow.flowType,
+        workspaceId: item.workspaceId,
+        workspaceName: item.workspaceName,
       };
     });
 
@@ -522,7 +664,12 @@ export default function TopSpendersView() {
         subject: receipt.subject,
         fallback: mapped.fileName,
       });
-      const amount = getStatementAmount(mapped);
+      const flow = resolveSpenderFlow({
+        sourceType: 'gmail',
+        totalDebit: mapped.totalDebit,
+        totalCredit: mapped.totalCredit,
+      });
+      const amount = flow.amount;
       const dateValue = getStatementDate(mapped);
       const currency = getStatementCurrency(mapped, workspaceCurrency);
 
@@ -555,6 +702,10 @@ export default function TopSpendersView() {
         currencyValue: currency,
         dateValue,
         sourceType: 'gmail',
+        sourceChannel: resolveSourceChannel({ sourceType: 'gmail', fileType: 'gmail' }),
+        flowType: flow.flowType,
+        workspaceId: receipt.workspaceId,
+        workspaceName: receipt.workspaceName,
       };
     });
 
@@ -567,6 +718,10 @@ export default function TopSpendersView() {
 
     return [...mappedStatements, ...uniqueMappedReceipts];
   }, [statements, gmailReceipts, workspaceCurrency]);
+
+  useEffect(() => {
+    setSelectedRowId(null);
+  }, [activeFlowType, workspaceFilter]);
 
   const fromOptions = useMemo(() => {
     const seen = new Map<
@@ -642,12 +797,41 @@ export default function TopSpendersView() {
     });
   }, [allRecords, appliedFilters, searchInput]);
 
-  const aggregatedRows = useMemo<AggregateRow[]>(() => {
-    const aggregate = new Map<string, AggregateRow>();
+  const flowFilteredRecords = useMemo(
+    () => filteredRecords.filter(record => record.flowType === activeFlowType),
+    [filteredRecords, activeFlowType],
+  );
 
-    filteredRecords.forEach(record => {
+  const recordsWithoutDateFilter = useMemo(() => {
+    const filtersWithoutDate = {
+      ...appliedFilters,
+      date: null,
+    };
+    const filtered = applyStatementsFilters<TopSpenderRecord>(allRecords, filtersWithoutDate);
+    const query = searchInput.trim().toLowerCase();
+    if (!query) return filtered;
+
+    return filtered.filter(record => {
+      return (
+        record.company.toLowerCase().includes(query) ||
+        (record.sender || '').toLowerCase().includes(query) ||
+        (record.subject || '').toLowerCase().includes(query) ||
+        (record.bankName || '').toLowerCase().includes(query)
+      );
+    });
+  }, [allRecords, appliedFilters, searchInput]);
+
+  const flowRecordsWithoutDateFilter = useMemo(
+    () => recordsWithoutDateFilter.filter(record => record.flowType === activeFlowType),
+    [recordsWithoutDateFilter, activeFlowType],
+  );
+
+  const aggregatedRows = useMemo<TopSpenderAggregateRow[]>(() => {
+    const aggregate = new Map<string, TopSpenderAggregateRow>();
+
+    flowFilteredRecords.forEach(record => {
       const normalizedCompany = (record.company || '').trim() || 'Unknown';
-      const key = `${record.sourceType}:${normalizedCompany.toLowerCase()}`;
+      const key = `${record.flowType}:${record.sourceChannel}:${normalizedCompany.toLowerCase()}`;
       const existing = aggregate.get(key);
       const date = record.dateValue || record.createdAt || '';
 
@@ -656,6 +840,8 @@ export default function TopSpendersView() {
           id: key,
           company: normalizedCompany,
           sourceType: record.sourceType,
+          sourceChannel: record.sourceChannel,
+          flowType: record.flowType,
           count: 1,
           total: record.amount,
           average: record.amount,
@@ -674,14 +860,19 @@ export default function TopSpendersView() {
           : existing.lastDate;
     });
 
-    return Array.from(aggregate.values()).sort((a, b) => b.total - a.total);
-  }, [filteredRecords, workspaceCurrency]);
+    return Array.from(aggregate.values());
+  }, [flowFilteredRecords, workspaceCurrency]);
+
+  const sortedAggregatedRows = useMemo(
+    () => sortAggregateRows(aggregatedRows, sortKey),
+    [aggregatedRows, sortKey],
+  );
 
   const totals = useMemo(() => {
-    const statementTotal = filteredRecords
+    const statementTotal = flowFilteredRecords
       .filter(record => record.sourceType === 'statement')
       .reduce((sum, record) => sum + record.amount, 0);
-    const receiptTotal = filteredRecords
+    const receiptTotal = flowFilteredRecords
       .filter(record => record.sourceType === 'gmail')
       .reduce((sum, record) => sum + record.amount, 0);
 
@@ -689,12 +880,92 @@ export default function TopSpendersView() {
       total: statementTotal + receiptTotal,
       statementTotal,
       receiptTotal,
-      operations: filteredRecords.length,
+      operations: flowFilteredRecords.length,
     };
-  }, [filteredRecords]);
+  }, [flowFilteredRecords]);
+
+  const currentPeriodRange = useMemo(() => {
+    const points = flowFilteredRecords
+      .map(record => getRecordDate(record))
+      .filter((date): date is Date => Boolean(date))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    if (points.length === 0) return null;
+
+    return {
+      start: points[0],
+      end: points[points.length - 1],
+    };
+  }, [flowFilteredRecords]);
+
+  const previousPeriodTotals = useMemo(() => {
+    if (!currentPeriodRange) return null;
+    const previousRange = buildPreviousPeriodRange(
+      currentPeriodRange.start,
+      currentPeriodRange.end,
+    );
+    if (!previousRange) return null;
+
+    const previousRecords = flowRecordsWithoutDateFilter.filter(record => {
+      const recordDate = getRecordDate(record);
+      if (!recordDate) return false;
+      return recordDate >= previousRange.start && recordDate <= previousRange.end;
+    });
+
+    const statementTotal = previousRecords
+      .filter(record => record.sourceType === 'statement')
+      .reduce((sum, record) => sum + record.amount, 0);
+    const receiptTotal = previousRecords
+      .filter(record => record.sourceType === 'gmail')
+      .reduce((sum, record) => sum + record.amount, 0);
+
+    return {
+      total: statementTotal + receiptTotal,
+      statementTotal,
+      receiptTotal,
+      operations: previousRecords.length,
+    };
+  }, [currentPeriodRange, flowRecordsWithoutDateFilter]);
+
+  const comparison = useMemo(() => {
+    if (!previousPeriodTotals) return null;
+
+    return {
+      total: getComparisonDelta(totals.total, previousPeriodTotals.total),
+      statementTotal: getComparisonDelta(
+        totals.statementTotal,
+        previousPeriodTotals.statementTotal,
+      ),
+      receiptTotal: getComparisonDelta(totals.receiptTotal, previousPeriodTotals.receiptTotal),
+      operations: getComparisonDelta(totals.operations, previousPeriodTotals.operations),
+    };
+  }, [totals, previousPeriodTotals]);
+
+  const selectedRow = useMemo(
+    () => sortedAggregatedRows.find(row => row.id === selectedRowId) || null,
+    [sortedAggregatedRows, selectedRowId],
+  );
+
+  const drillDownRecords = useMemo(() => {
+    if (!selectedRow) return [];
+    const normalizedCompany = selectedRow.company.trim().toLowerCase();
+    return flowFilteredRecords
+      .filter(record => {
+        return (
+          record.flowType === selectedRow.flowType &&
+          record.sourceChannel === selectedRow.sourceChannel &&
+          record.company.trim().toLowerCase() === normalizedCompany
+        );
+      })
+      .sort((a, b) => {
+        const aTime = getRecordDate(a)?.getTime() ?? 0;
+        const bTime = getRecordDate(b)?.getTime() ?? 0;
+        return bTime - aTime;
+      });
+  }, [selectedRow, flowFilteredRecords]);
 
   const topCompaniesChart = useMemo(() => {
-    const top = aggregatedRows.slice(0, 12).reverse();
+    const top = sortedAggregatedRows.slice(0, 12).reverse();
     return {
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -715,7 +986,7 @@ export default function TopSpendersView() {
         },
       ],
     };
-  }, [aggregatedRows, resolvedTheme]);
+  }, [sortedAggregatedRows, resolvedTheme]);
 
   const sourceChart = useMemo(() => {
     return {
@@ -737,7 +1008,7 @@ export default function TopSpendersView() {
 
   const trendChart = useMemo(() => {
     const points = new Map<string, number>();
-    filteredRecords.forEach(record => {
+    flowFilteredRecords.forEach(record => {
       const rawDate = record.dateValue || record.createdAt || '';
       if (!rawDate) return;
       const parsed = new Date(rawDate);
@@ -758,7 +1029,7 @@ export default function TopSpendersView() {
       yAxis: { type: 'value' },
       series: [
         {
-          name: labels.totalSpend,
+          name: activeFlowType === 'income' ? labels.totalIncome : labels.totalSpend,
           type: 'line',
           smooth: true,
           data: sorted.map(point => Number(point.amount.toFixed(2))),
@@ -770,7 +1041,7 @@ export default function TopSpendersView() {
         },
       ],
     };
-  }, [filteredRecords, labels.totalSpend, resolvedTheme]);
+  }, [flowFilteredRecords, activeFlowType, labels.totalIncome, labels.totalSpend, resolvedTheme]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -821,14 +1092,112 @@ export default function TopSpendersView() {
   };
 
   const chartTheme = resolvedTheme === 'dark' ? 'dark' : 'light';
+  const isIncomeView = activeFlowType === 'income';
+  const primaryMetricLabel = isIncomeView ? labels.totalIncome : labels.totalSpend;
+  const trendTitle = isIncomeView ? labels.incomeTrend : labels.spendTrend;
+  const companiesTitle = isIncomeView ? labels.topIncomeSenders : labels.topCompanies;
+  const leaderboardTitle = isIncomeView ? labels.incomeLeaderboard : labels.leaderboard;
+
+  const formatPercentage = (value: number) => {
+    const normalized = Number.isInteger(value) ? value.toString() : value.toFixed(1);
+    if (value > 0) return `+${normalized}%`;
+    return `${normalized}%`;
+  };
+
+  const renderComparisonLine = (
+    item: ReturnType<typeof getComparisonDelta> | null,
+    isMoney = true,
+  ) => {
+    if (!item) {
+      return <p className="mt-1 text-xs text-gray-400">{labels.comparisonNoData}</p>;
+    }
+
+    const deltaColor =
+      item.trend === 'up'
+        ? 'text-emerald-600'
+        : item.trend === 'down'
+          ? 'text-red-600'
+          : 'text-gray-500';
+    const prefix = item.delta > 0 ? '+' : item.delta < 0 ? '-' : '';
+    const deltaValue = isMoney
+      ? formatMoney(Math.abs(item.delta), workspaceCurrency)
+      : Math.abs(Math.round(item.delta)).toString();
+
+    return (
+      <p className={`mt-1 text-xs ${deltaColor}`}>
+        {formatPercentage(item.percentage)} ({prefix}
+        {deltaValue}) {labels.vsPreviousPeriod}
+      </p>
+    );
+  };
+
+  const renderSourceBadge = (sourceChannel: TopSpenderSourceChannel) => {
+    const label = getSourceLabel(sourceChannel, {
+      sourceBank: labels.sourceBank,
+      sourceReceipt: labels.sourceReceipt,
+      sourceGmailInbox: labels.sourceGmailInbox,
+    });
+
+    if (sourceChannel === 'gmail') {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-gray-600">
+          <Mail className="h-3.5 w-3.5" />
+          {label}
+        </span>
+      );
+    }
+
+    if (sourceChannel === 'receipt') {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-gray-600">
+          <Receipt className="h-3.5 w-3.5" />
+          {label}
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1.5 text-gray-600">
+        <Landmark className="h-3.5 w-3.5" />
+        {label}
+      </span>
+    );
+  };
 
   return (
     <div className="container-shared flex h-[calc(100vh-var(--global-nav-height,0px))] min-h-0 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-5 shrink-0 space-y-3">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">{labels.title}</h1>
-          <p className="text-sm text-gray-500">{labels.subtitle}</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">{labels.title}</h1>
+            <p className="text-sm text-gray-500">{labels.subtitle}</p>
+          </div>
+          <div className="inline-flex rounded-md border border-gray-200 bg-white p-1">
+            <button
+              type="button"
+              className={`rounded px-3 py-1.5 text-xs font-medium transition ${
+                activeFlowType === 'spend'
+                  ? 'bg-primary text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+              onClick={() => setActiveFlowType('spend')}
+            >
+              {labels.tabSpenders}
+            </button>
+            <button
+              type="button"
+              className={`rounded px-3 py-1.5 text-xs font-medium transition ${
+                activeFlowType === 'income'
+                  ? 'bg-primary text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+              onClick={() => setActiveFlowType('income')}
+            >
+              {labels.tabIncomeSenders}
+            </button>
+          </div>
         </div>
+
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="h-4 w-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -840,6 +1209,25 @@ export default function TopSpendersView() {
               aria-label={labels.searchPlaceholder}
               className="w-full rounded-md border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
             />
+          </div>
+          <div className="sm:w-60">
+            <label htmlFor="top-spenders-workspace-filter" className="sr-only">
+              {labels.workspace}
+            </label>
+            <select
+              id="top-spenders-workspace-filter"
+              value={workspaceFilter}
+              onChange={event => setWorkspaceFilter(event.target.value)}
+              className="w-full rounded-md border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+            >
+              <option value="current">{labels.currentWorkspace}</option>
+              <option value="all">{labels.allWorkspaces}</option>
+              {workspaces.map(workspace => (
+                <option key={workspace.id} value={workspace.id}>
+                  {workspace.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -953,7 +1341,7 @@ export default function TopSpendersView() {
           <div className="flex h-64 items-center justify-center">
             <LoadingAnimation size="lg" />
           </div>
-        ) : filteredRecords.length === 0 ? (
+        ) : flowFilteredRecords.length === 0 ? (
           <div className="rounded-lg border border-dashed border-gray-300 bg-white p-12 text-center text-sm text-gray-500">
             {labels.noData}
           </div>
@@ -963,13 +1351,22 @@ export default function TopSpendersView() {
               <div className="rounded-lg border border-gray-200 bg-white p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase tracking-wider text-gray-500">
-                    {labels.totalSpend}
+                    {primaryMetricLabel}
                   </span>
-                  <ArrowDown className="h-4 w-4 text-red-500" />
+                  {isIncomeView ? (
+                    <ArrowUp className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-red-500" />
+                  )}
                 </div>
-                <div className="mt-2 text-lg font-semibold text-red-600">
+                <div
+                  className={`mt-2 text-lg font-semibold ${
+                    isIncomeView ? 'text-emerald-600' : 'text-red-600'
+                  }`}
+                >
                   {formatMoney(totals.total, workspaceCurrency)}
                 </div>
+                {renderComparisonLine(comparison?.total || null)}
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-4">
                 <div className="flex items-center justify-between">
@@ -981,6 +1378,7 @@ export default function TopSpendersView() {
                 <div className="mt-2 text-lg font-semibold text-primary">
                   {formatMoney(totals.statementTotal, workspaceCurrency)}
                 </div>
+                {renderComparisonLine(comparison?.statementTotal || null)}
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-4">
                 <div className="flex items-center justify-between">
@@ -992,6 +1390,7 @@ export default function TopSpendersView() {
                 <div className="mt-2 text-lg font-semibold text-emerald-600">
                   {formatMoney(totals.receiptTotal, workspaceCurrency)}
                 </div>
+                {renderComparisonLine(comparison?.receiptTotal || null)}
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-4">
                 <div className="flex items-center justify-between">
@@ -1001,13 +1400,14 @@ export default function TopSpendersView() {
                   <span className="text-xs font-medium text-gray-500">#</span>
                 </div>
                 <div className="mt-2 text-lg font-semibold text-gray-900">{totals.operations}</div>
+                {renderComparisonLine(comparison?.operations || null, false)}
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-5">
                 <div className="mb-2 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-900">{labels.spendTrend}</h3>
+                  <h3 className="text-sm font-semibold text-gray-900">{trendTitle}</h3>
                 </div>
                 <ReactECharts
                   style={{ height: 300 }}
@@ -1033,7 +1433,7 @@ export default function TopSpendersView() {
 
             <div className="rounded-lg border border-gray-200 bg-white p-5">
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900">{labels.topCompanies}</h3>
+                <h3 className="text-sm font-semibold text-gray-900">{companiesTitle}</h3>
               </div>
               <ReactECharts
                 style={{ height: 320 }}
@@ -1045,9 +1445,42 @@ export default function TopSpendersView() {
             </div>
 
             <div className="rounded-lg border border-gray-200 bg-white p-5">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900">{labels.leaderboard}</h3>
-                <span className="text-xs text-gray-500">{aggregatedRows.length}</span>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-900">{leaderboardTitle}</h3>
+                  <span className="text-xs text-gray-500">{sortedAggregatedRows.length}</span>
+                </div>
+                <div className="inline-flex rounded-md border border-gray-200 bg-gray-50 p-1">
+                  <button
+                    type="button"
+                    className={`rounded px-2.5 py-1 text-xs font-medium ${
+                      sortKey === 'amount' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                    }`}
+                    onClick={() => setSortKey('amount')}
+                  >
+                    {labels.sortByAmount}
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded px-2.5 py-1 text-xs font-medium ${
+                      sortKey === 'average' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                    }`}
+                    onClick={() => setSortKey('average')}
+                  >
+                    {labels.sortByAverage}
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded px-2.5 py-1 text-xs font-medium ${
+                      sortKey === 'operations'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600'
+                    }`}
+                    onClick={() => setSortKey('operations')}
+                  >
+                    {labels.sortByOperations}
+                  </button>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
@@ -1063,12 +1496,18 @@ export default function TopSpendersView() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {aggregatedRows.slice(0, 60).map(row => (
+                    {sortedAggregatedRows.slice(0, 60).map(row => (
                       <tr key={row.id} className="text-gray-700">
-                        <td className="py-2 pr-4 font-medium text-gray-900">{row.company}</td>
-                        <td className="py-2 pr-4">
-                          {row.sourceType === 'gmail' ? labels.sourceGmail : labels.sourceStatement}
+                        <td className="py-2 pr-4 font-medium text-gray-900">
+                          <button
+                            type="button"
+                            className="text-left text-primary hover:underline"
+                            onClick={() => setSelectedRowId(row.id)}
+                          >
+                            {row.company}
+                          </button>
                         </td>
+                        <td className="py-2 pr-4">{renderSourceBadge(row.sourceChannel)}</td>
                         <td className="py-2 pr-4 text-right">{row.count}</td>
                         <td className="py-2 pr-4 text-right">
                           {formatMoney(row.average, workspaceCurrency)}
@@ -1146,6 +1585,66 @@ export default function TopSpendersView() {
         }}
         activeCount={activeFilterCount}
       />
+
+      {selectedRow ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4">
+          <div className="max-h-[85vh] w-full max-w-4xl overflow-hidden rounded-lg border border-gray-200 bg-white">
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900">
+                  {selectedRow.company} - {labels.drillDown}
+                </h4>
+                <p className="text-xs text-gray-500">
+                  {renderSourceBadge(selectedRow.sourceChannel)}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                onClick={() => setSelectedRowId(null)}
+                aria-label={labels.close}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="max-h-[65vh] overflow-y-auto px-5 py-4">
+              {drillDownRecords.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
+                  {labels.noOperations}
+                </div>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-100 text-sm">
+                  <thead>
+                    <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
+                      <th className="py-2 pr-4">{labels.lastOperation}</th>
+                      <th className="py-2 pr-4">{labels.source}</th>
+                      <th className="py-2 pr-4">{labels.workspace}</th>
+                      <th className="py-2 text-right">{labels.amount}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {drillDownRecords.slice(0, 120).map(record => (
+                      <tr key={record.id} className="text-gray-700">
+                        <td className="py-2 pr-4 text-gray-600">
+                          {record.dateValue && !Number.isNaN(new Date(record.dateValue).getTime())
+                            ? new Date(record.dateValue).toLocaleDateString()
+                            : '-'}
+                        </td>
+                        <td className="py-2 pr-4">{renderSourceBadge(record.sourceChannel)}</td>
+                        <td className="py-2 pr-4 text-gray-600">{record.workspaceName || '-'}</td>
+                        <td className="py-2 text-right font-medium text-gray-900">
+                          {formatMoney(record.amount, workspaceCurrency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

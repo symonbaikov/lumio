@@ -3,6 +3,9 @@
 import { FilterActions } from '@/app/(main)/statements/components/filters/FilterActions';
 import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
 import { FilterOptionRow } from '@/app/(main)/statements/components/filters/FilterOptionRow';
+import { useIsMobile } from '@/app/hooks/useIsMobile';
+import { RangeCalendar } from '@heroui/calendar';
+import { parseDate } from '@internationalized/date';
 import { ChevronRight } from 'lucide-react';
 import type {
   StatementFilterDate,
@@ -38,7 +41,19 @@ const ensureDate = (value?: StatementFilterDate | null): StatementFilterDate => 
   preset: value?.preset,
   mode: value?.mode,
   date: value?.date,
+  dateTo: value?.dateTo,
 });
+
+const toCalendarDate = (value?: string) => {
+  if (!value) return null;
+  try {
+    return parseDate(value);
+  } catch {
+    return null;
+  }
+};
+
+const resolveFallbackDate = () => new Date().toISOString().slice(0, 10);
 
 export function DateFilterDropdown({
   open,
@@ -54,9 +69,23 @@ export function DateFilterDropdown({
   resetLabel,
 }: DateFilterDropdownProps) {
   const current = ensureDate(value);
+  const isMobile = useIsMobile();
+  const calendarStart = toCalendarDate(current.date);
+  const calendarEnd = toCalendarDate(current.dateTo || current.date);
+  const calendarValue = calendarStart
+    ? {
+        start: calendarStart,
+        end: calendarEnd || calendarStart,
+      }
+    : null;
 
   return (
-    <FilterDropdown open={open} onOpenChange={onOpenChange} trigger={trigger}>
+    <FilterDropdown
+      open={open}
+      onOpenChange={onOpenChange}
+      trigger={trigger}
+      contentClassName="w-[720px] max-w-[calc(100vw-24px)]"
+    >
       <div className="space-y-2">
         <div className="space-y-1">
           {presets.map(option => (
@@ -79,10 +108,19 @@ export function DateFilterDropdown({
                   key={option.value}
                   type="button"
                   onClick={() =>
-                    onChange({
-                      mode: option.value,
-                      date: current.date ?? new Date().toISOString().slice(0, 10),
-                    })
+                    onChange(
+                      option.value === 'on'
+                        ? {
+                            mode: option.value,
+                            date: current.date ?? resolveFallbackDate(),
+                            dateTo: current.dateTo || current.date || resolveFallbackDate(),
+                          }
+                        : {
+                            mode: option.value,
+                            date: current.date ?? resolveFallbackDate(),
+                            dateTo: current.dateTo,
+                          },
+                    )
                   }
                   className="flex w-full items-center justify-between rounded-xl px-2 py-3 text-left text-base font-semibold text-gray-900 transition hover:bg-gray-50"
                 >
@@ -96,16 +134,38 @@ export function DateFilterDropdown({
 
           {current.mode && (
             <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-3">
-              <input
-                type="date"
-                value={current.date ?? ''}
-                onChange={event =>
+              <RangeCalendar
+                aria-label="Date range"
+                value={calendarValue as any}
+                onChange={(range: any) => {
+                  const startValue = range?.start?.toString?.();
+                  const endValue = range?.end?.toString?.() || startValue;
+                  const fallbackDate = current.date || resolveFallbackDate();
+
+                  if (current.mode === 'after') {
+                    onChange({
+                      mode: current.mode,
+                      date: startValue || fallbackDate,
+                    });
+                    return;
+                  }
+
+                  if (current.mode === 'before') {
+                    onChange({
+                      mode: current.mode,
+                      date: endValue || startValue || fallbackDate,
+                    });
+                    return;
+                  }
+
                   onChange({
                     mode: current.mode,
-                    date: event.target.value,
-                  })
-                }
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+                    date: startValue || fallbackDate,
+                    dateTo: endValue || startValue || fallbackDate,
+                  });
+                }}
+                visibleMonths={isMobile ? 1 : 2}
+                className="w-full"
               />
             </div>
           )}

@@ -3,7 +3,7 @@ import apiClient from '@/app/lib/api';
 
 export type SpendOverTimeQuery = {
   type?: 'income' | 'expense' | 'all';
-  groupBy?: 'day' | 'week' | 'month';
+  groupBy?: 'day' | 'week' | 'month' | 'quarter' | 'year';
   dateFrom?: string;
   dateTo?: string;
   statuses?: string;
@@ -84,6 +84,9 @@ const extractCounterparties = (tokens: string[]) =>
     .filter(Boolean);
 
 const resolveReportType = (type: StatementFilters['type']): 'income' | 'expense' | 'all' => {
+  if (type === 'net') {
+    return 'all';
+  }
   if (type === 'income' || type === 'expense' || type === 'all') {
     return type;
   }

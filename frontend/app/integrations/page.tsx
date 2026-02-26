@@ -1,7 +1,7 @@
 'use client';
 
 import apiClient from '@/app/lib/api';
-import { CheckCircle2, ExternalLink, Plug, Search } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Plug, Search, Star } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -22,6 +22,7 @@ export default function IntegrationsPage() {
         description: t.cards.dropbox.description,
         badge: t.cards.dropbox.badge,
         category: 'storage',
+        recommended: false,
         icon: (
           <Image
             src="/icons/dropbox-icon.png"
@@ -50,6 +51,7 @@ export default function IntegrationsPage() {
         description: t.cards.googleDrive.description,
         badge: t.cards.googleDrive.badge,
         category: 'storage',
+        recommended: true,
         icon: (
           <Image
             src="/icons/google-drive-icon.png"
@@ -78,6 +80,7 @@ export default function IntegrationsPage() {
         description: 'Automatically import receipts and invoices from your Gmail inbox',
         badge: 'Active',
         category: 'email',
+        recommended: true,
         icon: (
           <Image src="/icons/gmail.png" alt="Gmail" width={32} height={32} className="rounded" />
         ),
@@ -100,6 +103,7 @@ export default function IntegrationsPage() {
         description: t.cards.googleSheets.description,
         badge: t.cards.googleSheets.badge,
         category: 'spreadsheets',
+        recommended: true,
         icon: (
           <Image
             src="/icons/icons8-google-sheets-48.png"
@@ -128,6 +132,7 @@ export default function IntegrationsPage() {
         description: t.cards.telegram.description,
         badge: t.cards.telegram.badge,
         category: 'messaging',
+        recommended: false,
         icon: (
           <Image
             src="/icons/icons8-telegram-48.png"
@@ -278,6 +283,15 @@ export default function IntegrationsPage() {
         </div>
       </div>
 
+      {!searchQuery && (
+        <div className="mb-8 rounded-xl bg-primary/5 border border-primary/20 p-4 flex items-start gap-3">
+          <Star className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-gray-900">{t.banner}</p>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-8">
         {active.length > 0 || !searchQuery ? (
           <div>
@@ -343,9 +357,17 @@ export default function IntegrationsPage() {
                                   <h2 className="text-lg font-semibold text-gray-900">
                                     {item.name}
                                   </h2>
-                                  <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                    <CheckCircle2 className="h-3 w-3 mr-1" /> {item.badge}
-                                  </span>
+                                  {item.recommended && (
+                                    <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                      <Star className="h-3 w-3 mr-1 fill-current" />
+                                      {t.recommendedBadge}
+                                    </span>
+                                  )}
+                                  {!item.recommended && (
+                                    <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                      <CheckCircle2 className="h-3 w-3 mr-1" /> {item.badge}
+                                    </span>
+                                  )}
                                 </div>
                                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                                   {item.description}
@@ -374,12 +396,21 @@ export default function IntegrationsPage() {
                                       >
                                         {action.label}
                                       </button>
+                                    ) : action.primary ? (
+                                      <Link
+                                        key={action.href}
+                                        href={action.href}
+                                        onClick={event => event.stopPropagation()}
+                                        className="inline-flex items-center px-4 py-1.5 text-xs font-medium rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                                      >
+                                        {action.label}
+                                      </Link>
                                     ) : (
                                       <Link
                                         key={action.href}
                                         href={action.href}
                                         onClick={event => event.stopPropagation()}
-                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
+                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
                                       >
                                         {action.label}
                                       </Link>
@@ -452,9 +483,17 @@ export default function IntegrationsPage() {
                                   <h2 className="text-lg font-semibold text-gray-900">
                                     {item.name}
                                   </h2>
-                                  <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                    <CheckCircle2 className="h-3 w-3 mr-1" /> {item.badge}
-                                  </span>
+                                  {item.recommended && (
+                                    <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                      <Star className="h-3 w-3 mr-1 fill-current" />
+                                      {t.recommendedBadge}
+                                    </span>
+                                  )}
+                                  {!item.recommended && (
+                                    <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                      <CheckCircle2 className="h-3 w-3 mr-1" /> {item.badge}
+                                    </span>
+                                  )}
                                 </div>
                                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                                   {item.description}
@@ -483,12 +522,21 @@ export default function IntegrationsPage() {
                                       >
                                         {action.label}
                                       </button>
+                                    ) : action.primary ? (
+                                      <Link
+                                        key={action.href}
+                                        href={action.href}
+                                        onClick={event => event.stopPropagation()}
+                                        className="inline-flex items-center px-4 py-1.5 text-xs font-medium rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                                      >
+                                        {action.label}
+                                      </Link>
                                     ) : (
                                       <Link
                                         key={action.href}
                                         href={action.href}
                                         onClick={event => event.stopPropagation()}
-                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-primary text-primary hover:bg-primary/10 transition-colors"
+                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
                                       >
                                         {action.label}
                                       </Link>

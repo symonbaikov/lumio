@@ -201,73 +201,80 @@ export default function GmailIntegrationPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {status?.connected ? (
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                 ) : (
-                  <XCircle className="h-5 w-5 text-red-500" />
+                  <XCircle className="h-6 w-6 text-red-500" />
                 )}
                 <div>
-                  <p className="text-sm text-gray-500">{t.status.disconnected.value}</p>
-                  <p className="font-semibold text-gray-900">{statusLabel}</p>
+                  <h2 className="text-lg font-semibold text-gray-900">{t.header.title.value}</h2>
+                  <p className="text-sm text-gray-500">{statusLabel}</p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {status?.connected ? (
-                  <>
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-wrap gap-2">
+                  {status?.connected ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleSync}
+                        disabled={saving || syncing}
+                        className="inline-flex items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
+                      >
+                        {syncing ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCcw className="h-4 w-4" />
+                        )}
+                        {t.actions.sync.value}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDisconnect}
+                        disabled={saving}
+                        className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        {saving ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Link2Off className="h-4 w-4" />
+                        )}
+                        {t.actions.disconnect.value}
+                      </button>
+                    </>
+                  ) : (
                     <button
                       type="button"
-                      onClick={handleSync}
-                      disabled={saving || syncing}
-                      className="inline-flex items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
-                    >
-                      {syncing ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <RefreshCcw className="h-4 w-4" />
-                      )}
-                      {t.actions.sync.value}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDisconnect}
+                      onClick={handleConnect}
                       disabled={saving}
-                      className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
                     >
                       {saving ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Link2Off className="h-4 w-4" />
+                        <RefreshCcw className="h-4 w-4" />
                       )}
-                      {t.actions.disconnect.value}
+                      {status?.status === 'needs_reauth'
+                        ? t.actions.reconnect.value
+                        : t.actions.connect.value}
                     </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleConnect}
-                    disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
-                  >
-                    {saving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCcw className="h-4 w-4" />
-                    )}
-                    {status?.status === 'needs_reauth'
-                      ? t.actions.reconnect.value
-                      : t.actions.connect.value}
-                  </button>
+                  )}
+                </div>
+                {!status?.connected && (
+                  <p className="text-xs text-gray-500 max-w-xs text-right mt-1">
+                    We’ll create a label in your Gmail and sync new receipts automatically.
+                  </p>
                 )}
               </div>
             </div>
           </div>
 
           {status?.connected && (
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.settings.title.value}</h2>
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">{t.settings.title.value}</h2>
 
               <div className="space-y-4">
                 {/* Label Info */}

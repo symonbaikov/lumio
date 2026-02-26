@@ -20,6 +20,7 @@ import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
 import { type SpendOverTimeReport, fetchSpendOverTimeReport } from '@/app/lib/spend-over-time-api';
 import { ChevronDown, Columns2, LineChart, RefreshCcw, SlidersHorizontal } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -29,13 +30,18 @@ const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 const STORAGE_KEY = 'finflow-spend-over-time-filters';
 
-const DEFAULT_GROUP_BY: 'day' | 'week' | 'month' = 'month';
-const DEFAULT_VIEW: 'line' | 'bar' = 'line';
+type FlowFilterValue = 'expense' | 'income' | 'net' | 'all';
+type GroupByValue = 'day' | 'week' | 'month' | 'quarter' | 'year';
+type ViewTypeValue = 'line' | 'bar' | 'stacked';
+
+const DEFAULT_GROUP_BY: GroupByValue = 'month';
+const DEFAULT_VIEW: ViewTypeValue = 'line';
+const DEFAULT_FLOW: FlowFilterValue = 'expense';
 
 type StoredState = {
   filters: StatementFilters;
-  groupBy: 'day' | 'week' | 'month';
-  viewType: 'line' | 'bar';
+  groupBy: GroupByValue;
+  viewType: ViewTypeValue;
   showTable: boolean;
 };
 
@@ -47,7 +53,7 @@ const FILTER_LABELS = {
   general: 'General',
   expenses: 'Expenses',
   reports: 'Reports',
-  type: 'Type',
+  type: 'Flow',
   from: 'From',
   groupBy: 'Group by',
   has: 'Has',
@@ -67,9 +73,10 @@ const FILTER_LABELS = {
   no: 'No',
 };
 
-const TYPE_OPTIONS = [
+const FLOW_OPTIONS: Array<{ value: FlowFilterValue; label: string }> = [
   { value: 'expense', label: 'Expense' },
   { value: 'income', label: 'Income' },
+  { value: 'net', label: 'Net' },
   { value: 'all', label: 'All' },
 ];
 
@@ -102,16 +109,23 @@ const HAS_OPTIONS = [
   { value: 'currency', label: 'Currency' },
 ];
 
-const GROUP_BY_OPTIONS = [
+const GROUP_BY_OPTIONS: Array<{ value: GroupByValue; label: string }> = [
   { value: 'day', label: 'Day' },
   { value: 'week', label: 'Week' },
   { value: 'month', label: 'Month' },
+  { value: 'quarter', label: 'Quarter' },
+  { value: 'year', label: 'Year' },
 ];
 
-const VIEW_OPTIONS = [
+const VIEW_OPTIONS: Array<{ value: ViewTypeValue; label: string }> = [
   { value: 'line', label: 'Line' },
   { value: 'bar', label: 'Bar' },
+  { value: 'stacked', label: 'Stacked' },
 ];
+
+const FLOW_VALUES: FlowFilterValue[] = ['expense', 'income', 'net', 'all'];
+const GROUP_BY_VALUES: GroupByValue[] = ['day', 'week', 'month', 'quarter', 'year'];
+const VIEW_VALUES: ViewTypeValue[] = ['line', 'bar', 'stacked'];
 
 const resolveCurrencyCode = (currency: string | null | undefined, fallback = 'KZT') => {
   const normalized = String(currency || '')
@@ -133,10 +147,19 @@ const formatMoney = (value: number, currency: string) =>
     maximumFractionDigits: 2,
   }).format(value);
 
+const resolveStoredFlow = (value: unknown): FlowFilterValue =>
+  FLOW_VALUES.includes(value as FlowFilterValue) ? (value as FlowFilterValue) : DEFAULT_FLOW;
+
+const resolveStoredGroupBy = (value: unknown): GroupByValue =>
+  GROUP_BY_VALUES.includes(value as GroupByValue) ? (value as GroupByValue) : DEFAULT_GROUP_BY;
+
+const resolveStoredViewType = (value: unknown): ViewTypeValue =>
+  VIEW_VALUES.includes(value as ViewTypeValue) ? (value as ViewTypeValue) : DEFAULT_VIEW;
+
 const loadStoredState = (): StoredState => {
   if (typeof window === 'undefined') {
     return {
-      filters: { ...DEFAULT_STATEMENT_FILTERS, type: 'expense' },
+      filters: { ...DEFAULT_STATEMENT_FILTERS, type: DEFAULT_FLOW },
       groupBy: DEFAULT_GROUP_BY,
       viewType: DEFAULT_VIEW,
       showTable: true,
@@ -146,7 +169,7 @@ const loadStoredState = (): StoredState => {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
     return {
-      filters: { ...DEFAULT_STATEMENT_FILTERS, type: 'expense' },
+      filters: { ...DEFAULT_STATEMENT_FILTERS, type: DEFAULT_FLOW },
       groupBy: DEFAULT_GROUP_BY,
       viewType: DEFAULT_VIEW,
       showTable: true,
@@ -155,15 +178,20 @@ const loadStoredState = (): StoredState => {
 
   try {
     const parsed = JSON.parse(raw) as Partial<StoredState>;
+    const parsedFilters = (parsed.filters || {}) as Partial<StatementFilters>;
     return {
-      filters: { ...DEFAULT_STATEMENT_FILTERS, type: 'expense', ...(parsed.filters || {}) },
-      groupBy: parsed.groupBy || DEFAULT_GROUP_BY,
-      viewType: parsed.viewType || DEFAULT_VIEW,
+      filters: {
+        ...DEFAULT_STATEMENT_FILTERS,
+        ...parsedFilters,
+        type: resolveStoredFlow(parsedFilters.type),
+      },
+      groupBy: resolveStoredGroupBy(parsed.groupBy),
+      viewType: resolveStoredViewType(parsed.viewType),
       showTable: parsed.showTable ?? true,
     };
   } catch {
     return {
-      filters: { ...DEFAULT_STATEMENT_FILTERS, type: 'expense' },
+      filters: { ...DEFAULT_STATEMENT_FILTERS, type: DEFAULT_FLOW },
       groupBy: DEFAULT_GROUP_BY,
       viewType: DEFAULT_VIEW,
       showTable: true,
@@ -179,6 +207,7 @@ const saveStoredState = (state: StoredState) => {
 export default function SpendOverTimeView() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
+  const router = useRouter();
   const isMobile = useIsMobile();
   const { resolvedTheme } = useTheme();
   const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
@@ -190,10 +219,10 @@ export default function SpendOverTimeView() {
 
   const [draftFilters, setDraftFilters] = useState<StatementFilters>(initial.filters);
   const [appliedFilters, setAppliedFilters] = useState<StatementFilters>(initial.filters);
-  const [draftGroupBy, setDraftGroupBy] = useState<'day' | 'week' | 'month'>(initial.groupBy);
-  const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month'>(initial.groupBy);
-  const [draftViewType, setDraftViewType] = useState<'line' | 'bar'>(initial.viewType);
-  const [viewType, setViewType] = useState<'line' | 'bar'>(initial.viewType);
+  const [draftGroupBy, setDraftGroupBy] = useState<GroupByValue>(initial.groupBy);
+  const [groupBy, setGroupBy] = useState<GroupByValue>(initial.groupBy);
+  const [draftViewType, setDraftViewType] = useState<ViewTypeValue>(initial.viewType);
+  const [viewType, setViewType] = useState<ViewTypeValue>(initial.viewType);
   const [showTable, setShowTable] = useState(initial.showTable);
 
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
@@ -290,11 +319,56 @@ export default function SpendOverTimeView() {
     if (!report) return {};
 
     const labels = report.points.map(point => point.label);
+
+    if (viewType === 'stacked') {
+      return {
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis' },
+        legend: { top: 0 },
+        grid: { left: 30, right: 30, bottom: 30, top: 38 },
+        xAxis: { type: 'category', data: labels },
+        yAxis: { type: 'value' },
+        series: [
+          {
+            name: 'Income',
+            type: 'bar',
+            stack: 'flow',
+            data: report.points.map(point => Number(point.income.toFixed(2))),
+            itemStyle: {
+              color: resolvedTheme === 'dark' ? '#4ade80' : '#16a34a',
+              borderRadius: [6, 6, 0, 0],
+            },
+          },
+          {
+            name: 'Expense',
+            type: 'bar',
+            stack: 'flow',
+            data: report.points.map(point => Number(point.expense.toFixed(2))),
+            itemStyle: {
+              color: resolvedTheme === 'dark' ? '#f87171' : '#dc2626',
+              borderRadius: [6, 6, 0, 0],
+            },
+          },
+        ],
+      };
+    }
+
+    const selectedFlow = resolveStoredFlow(appliedFilters.type);
     const values = report.points.map(point => {
-      if (appliedFilters.type === 'income') return Number(point.income.toFixed(2));
-      if (appliedFilters.type === 'all') return Number(point.net.toFixed(2));
+      if (selectedFlow === 'income') return Number(point.income.toFixed(2));
+      if (selectedFlow === 'net') return Number(point.net.toFixed(2));
+      if (selectedFlow === 'all') return Number((point.income + point.expense).toFixed(2));
       return Number(point.expense.toFixed(2));
     });
+
+    const seriesName =
+      selectedFlow === 'income'
+        ? 'Income'
+        : selectedFlow === 'expense'
+          ? 'Expense'
+          : selectedFlow === 'net'
+            ? 'Net'
+            : 'Total flow';
 
     return {
       backgroundColor: 'transparent',
@@ -305,25 +379,25 @@ export default function SpendOverTimeView() {
       series: [
         viewType === 'bar'
           ? {
-              name: 'Spend',
+              name: seriesName,
               type: 'bar',
               data: values,
               barWidth: 24,
               itemStyle: {
-                color: resolvedTheme === 'dark' ? '#38BDF8' : '#0EA5E9',
+                color: resolvedTheme === 'dark' ? '#60a5fa' : '#0a66c2',
                 borderRadius: [6, 6, 0, 0],
               },
             }
           : {
-              name: 'Spend',
+              name: seriesName,
               type: 'line',
               smooth: true,
               data: values,
               areaStyle: {
-                color: resolvedTheme === 'dark' ? 'rgba(56,189,248,0.16)' : 'rgba(14,165,233,0.14)',
+                color: resolvedTheme === 'dark' ? 'rgba(96,165,250,0.18)' : 'rgba(10,102,194,0.14)',
               },
-              lineStyle: { color: resolvedTheme === 'dark' ? '#38BDF8' : '#0EA5E9' },
-              itemStyle: { color: resolvedTheme === 'dark' ? '#38BDF8' : '#0EA5E9' },
+              lineStyle: { color: resolvedTheme === 'dark' ? '#60a5fa' : '#0a66c2' },
+              itemStyle: { color: resolvedTheme === 'dark' ? '#60a5fa' : '#0a66c2' },
             },
       ],
     };
@@ -351,7 +425,7 @@ export default function SpendOverTimeView() {
   };
 
   const resetAllFilters = () => {
-    const next = { ...DEFAULT_STATEMENT_FILTERS, type: 'expense' };
+    const next = { ...DEFAULT_STATEMENT_FILTERS, type: DEFAULT_FLOW };
     setDraftFilters(next);
     setAppliedFilters(next);
     setDraftGroupBy(DEFAULT_GROUP_BY);
@@ -393,7 +467,14 @@ export default function SpendOverTimeView() {
         ? 'Weeks'
         : groupBy === 'month'
           ? 'Months'
-          : 'Periods';
+          : groupBy === 'quarter'
+            ? 'Quarters'
+            : groupBy === 'year'
+              ? 'Years'
+              : 'Periods';
+
+  const hasAnyTransactions = (report?.totals.count || 0) > 0;
+  const kpiHint = 'Пока нет данных для расчета';
 
   return (
     <div className="container-shared flex h-[calc(100vh-var(--global-nav-height,0px))] min-h-0 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
@@ -407,7 +488,7 @@ export default function SpendOverTimeView() {
           <TypeFilterDropdown
             open={typeDropdownOpen}
             onOpenChange={setTypeDropdownOpen}
-            options={TYPE_OPTIONS}
+            options={FLOW_OPTIONS}
             value={draftFilters.type}
             onChange={value => setDraftFilters(prev => ({ ...prev, type: value }))}
             onApply={() => applyAndClose(() => setTypeDropdownOpen(false))}
@@ -415,8 +496,8 @@ export default function SpendOverTimeView() {
             trigger={
               <FilterChipButton active={Boolean(draftFilters.type)}>
                 {draftFilters.type
-                  ? `Type: ${TYPE_OPTIONS.find(option => option.value === draftFilters.type)?.label || 'Expense'}`
-                  : 'Type'}
+                  ? `Flow: ${FLOW_OPTIONS.find(option => option.value === draftFilters.type)?.label || 'Expense'}`
+                  : 'Flow'}
                 <ChevronDown className="h-3.5 w-3.5" />
               </FilterChipButton>
             }
@@ -429,9 +510,7 @@ export default function SpendOverTimeView() {
             onOpenChange={setGroupByDropdownOpen}
             options={GROUP_BY_OPTIONS}
             value={draftGroupBy}
-            onChange={value =>
-              setDraftGroupBy((value as 'day' | 'week' | 'month') || DEFAULT_GROUP_BY)
-            }
+            onChange={value => setDraftGroupBy(resolveStoredGroupBy(value))}
             onApply={() => applyAndClose(() => setGroupByDropdownOpen(false))}
             onReset={() => {
               setDraftGroupBy(DEFAULT_GROUP_BY);
@@ -513,7 +592,7 @@ export default function SpendOverTimeView() {
             onOpenChange={setViewDropdownOpen}
             options={VIEW_OPTIONS}
             value={draftViewType}
-            onChange={value => setDraftViewType((value as 'line' | 'bar') || DEFAULT_VIEW)}
+            onChange={value => setDraftViewType(resolveStoredViewType(value))}
             onApply={() => applyAndClose(() => setViewDropdownOpen(false))}
             onReset={() => {
               setDraftViewType(DEFAULT_VIEW);
@@ -590,7 +669,7 @@ export default function SpendOverTimeView() {
           <div className="flex h-64 items-center justify-center">
             <LoadingAnimation size="lg" />
           </div>
-        ) : !report || report.points.length === 0 ? (
+        ) : !report ? (
           <div className="rounded-lg border border-dashed border-gray-300 bg-white p-12 text-center text-sm text-gray-500">
             No data for selected filters
           </div>
@@ -602,28 +681,40 @@ export default function SpendOverTimeView() {
                 <div className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
                   {formatMoney(report.totals.expense, workspaceCurrency)}
                 </div>
+                {!hasAnyTransactions ? (
+                  <p className="mt-1 text-xs text-gray-400">{kpiHint}</p>
+                ) : null}
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-4">
                 <div className="text-xs uppercase tracking-wider text-gray-500">Avg per period</div>
                 <div className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
                   {formatMoney(report.totals.avgPerPeriod, workspaceCurrency)}
                 </div>
+                {!hasAnyTransactions ? (
+                  <p className="mt-1 text-xs text-gray-400">{kpiHint}</p>
+                ) : null}
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-4">
                 <div className="text-xs uppercase tracking-wider text-gray-500">Transactions</div>
                 <div className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
                   {report.totals.count}
                 </div>
+                {!hasAnyTransactions ? (
+                  <p className="mt-1 text-xs text-gray-400">{kpiHint}</p>
+                ) : null}
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-4">
                 <div className="text-xs uppercase tracking-wider text-gray-500">Net</div>
                 <div className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
                   {formatMoney(report.totals.net, workspaceCurrency)}
                 </div>
+                {!hasAnyTransactions ? (
+                  <p className="mt-1 text-xs text-gray-400">{kpiHint}</p>
+                ) : null}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 bg-white p-5">
+            <div className="relative rounded-2xl border border-gray-200 bg-white p-5">
               <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                 <LineChart className="h-4 w-4 text-emerald-500" />
                 {periodLabel}
@@ -631,6 +722,35 @@ export default function SpendOverTimeView() {
               <div className="mt-4 h-[280px] sm:h-[320px]">
                 <ReactECharts option={chartOptions} theme={chartTheme} style={{ height: '100%' }} />
               </div>
+
+              {!hasAnyTransactions ? (
+                <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/90 p-6 backdrop-blur-[1px]">
+                  <div className="max-w-md text-center">
+                    <p className="text-base font-semibold text-gray-900">
+                      Нет данных за выбранный период
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Загрузите выписки или примените другой фильтр
+                    </p>
+                    <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary/90"
+                        onClick={() => router.push('/statements/submit')}
+                      >
+                        Перейти к загрузке выписок
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/5"
+                        onClick={resetAllFilters}
+                      >
+                        Сбросить фильтры
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {showTable ? (
@@ -725,13 +845,13 @@ export default function SpendOverTimeView() {
           setFiltersDrawerOpen(false);
           setFiltersDrawerScreen('root');
         }}
-        typeOptions={TYPE_OPTIONS}
+        typeOptions={FLOW_OPTIONS}
         statusOptions={STATUS_OPTIONS}
         datePresets={DATE_PRESETS}
         dateModes={DATE_MODES}
         fromOptions={fromOptions}
         toOptions={fromOptions}
-        groupByOptions={[]}
+        groupByOptions={GROUP_BY_OPTIONS}
         hasOptions={HAS_OPTIONS}
         currencyOptions={[]}
         labels={FILTER_LABELS}

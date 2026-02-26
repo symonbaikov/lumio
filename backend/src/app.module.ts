@@ -36,6 +36,7 @@ import {
   GoogleSheetRow,
   Integration,
   IntegrationToken,
+  Insight,
   Notification,
   NotificationPreference,
   ParsingRule,
@@ -65,6 +66,7 @@ import { DropboxModule } from './modules/dropbox/dropbox.module';
 import { GmailModule } from './modules/gmail/gmail.module';
 import { GoogleDriveModule } from './modules/google-drive/google-drive.module';
 import { GoogleSheetsModule } from './modules/google-sheets/google-sheets.module';
+import { InsightsModule } from './modules/insights/insights.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { HttpMetricsInterceptor } from './modules/observability/http-metrics.interceptor';
 import { ObservabilityModule } from './modules/observability/observability.module';
@@ -137,6 +139,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
       WorkspaceMember,
       Integration,
       IntegrationToken,
+      Insight,
       DriveSettings,
       DropboxSettings,
       GmailSettings,
@@ -169,6 +172,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     CustomTablesModule,
     WorkspacesModule,
     NotificationsModule,
+    InsightsModule,
     ObservabilityModule,
   ],
   controllers: [AppController],

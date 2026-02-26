@@ -38,6 +38,9 @@ const NOTIFICATION_PREFERENCE_MAP: Record<NotificationType, NotificationPreferen
   [NotificationType.IMPORT_FAILED]: 'importFailures',
   [NotificationType.TRANSACTION_UNCATEGORIZED]: 'uncategorizedItems',
   [NotificationType.RECEIPT_UNCATEGORIZED]: 'uncategorizedItems',
+  [NotificationType.PAYABLE_DUE_SOON]: 'workspaceUpdated',
+  [NotificationType.PAYABLE_OVERDUE]: 'workspaceUpdated',
+  [NotificationType.PAYABLE_MARKED_PAID]: 'workspaceUpdated',
 };
 
 export interface CreateNotificationPayload {
