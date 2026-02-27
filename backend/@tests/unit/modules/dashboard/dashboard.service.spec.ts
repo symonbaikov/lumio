@@ -1,8 +1,8 @@
-import { DashboardService } from '../../../../src/modules/dashboard/dashboard.service';
 import { AuditAction, ActorType, EntityType } from '../../../../src/entities/audit-event.entity';
 import { StatementStatus } from '../../../../src/entities/statement.entity';
 import { TransactionType } from '../../../../src/entities/transaction.entity';
 import { WorkspaceRole } from '../../../../src/entities/workspace-member.entity';
+import { DashboardService } from '../../../../src/modules/dashboard/dashboard.service';
 
 const createRepoMock = () => ({
   count: jest.fn(),
