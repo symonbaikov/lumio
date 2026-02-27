@@ -10,7 +10,7 @@ vi.mock('@/app/lib/api', () => ({
   },
 }));
 
-import { fetchEntityHistory } from './audit';
+import { fetchAuditEvents, fetchEntityHistory } from './audit';
 
 describe('fetchEntityHistory', () => {
   beforeEach(() => {
@@ -36,5 +36,21 @@ describe('fetchEntityHistory', () => {
     getMock.mockRejectedValueOnce(error);
 
     await expect(fetchEntityHistory('table_cell', 'row-1')).rejects.toEqual(error);
+  });
+});
+
+describe('fetchAuditEvents', () => {
+  beforeEach(() => {
+    getMock.mockReset();
+  });
+
+  it('forwards action and actorLabel filters', async () => {
+    getMock.mockResolvedValueOnce({ data: { data: [], total: 0, page: 1, limit: 50 } });
+
+    await fetchAuditEvents({ action: 'update', actorLabel: 'admin' });
+
+    expect(getMock).toHaveBeenCalledWith('/audit-events', {
+      params: { action: 'update', actorLabel: 'admin' },
+    });
   });
 });

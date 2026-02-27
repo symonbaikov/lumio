@@ -86,6 +86,8 @@ export interface AuditEventFilter {
   entityId?: string;
   actorType?: ActorType;
   actorId?: string;
+  action?: AuditAction;
+  actorLabel?: string;
   dateFrom?: string;
   dateTo?: string;
   batchId?: string;
