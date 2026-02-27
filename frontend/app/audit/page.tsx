@@ -29,6 +29,19 @@ const ENTITY_TYPES = [
 ] as const;
 
 const ACTOR_TYPES = ['user', 'system', 'integration'] as const;
+const ACTIONS = [
+  'create',
+  'update',
+  'delete',
+  'import',
+  'link',
+  'unlink',
+  'match',
+  'unmatch',
+  'apply_rule',
+  'rollback',
+  'export',
+] as const;
 const SEVERITIES = ['info', 'warn', 'critical'] as const;
 
 export default function AuditPage() {
@@ -154,6 +167,43 @@ export default function AuditPage() {
                   {ACTOR_TYPES.map(type => (
                     <option key={type} value={type}>
                       {type}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-gray-500">User</span>
+                <input
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+                  value={filters.actorLabel || ''}
+                  onChange={e => {
+                    setFilters(prev => ({
+                      ...prev,
+                      actorLabel: e.target.value || undefined,
+                    }));
+                    setPage(1);
+                  }}
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-gray-500">Action</span>
+                <select
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+                  value={filters.action || ''}
+                  onChange={e => {
+                    setFilters(prev => ({
+                      ...prev,
+                      action: (e.target.value || undefined) as any,
+                    }));
+                    setPage(1);
+                  }}
+                >
+                  <option value="">All</option>
+                  {ACTIONS.map(action => (
+                    <option key={action} value={action}>
+                      {action}
                     </option>
                   ))}
                 </select>

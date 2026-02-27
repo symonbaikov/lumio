@@ -2,6 +2,7 @@
 
 import { AppPagination } from '@/app/components/ui/pagination';
 import type { AuditEvent } from '@/lib/api/audit';
+import { formatAuditEvent } from '../utils/formatAuditEvent';
 import {
   type ColumnDef,
   type SortingState,
@@ -44,6 +45,14 @@ const severityClasses: Record<string, string> = {
   critical: 'bg-red-50 text-red-700',
 };
 
+const actionToneClasses: Record<string, string> = {
+  info: 'bg-blue-50 text-blue-700',
+  warn: 'bg-yellow-50 text-yellow-700',
+  critical: 'bg-red-50 text-red-700',
+  primary: 'bg-indigo-50 text-indigo-700',
+  success: 'bg-emerald-50 text-emerald-700',
+};
+
 export function AuditEventTable({
   events,
   onSelect,
@@ -53,7 +62,7 @@ export function AuditEventTable({
   onPageChange,
 }: AuditEventTableProps) {
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'timestamp', desc: true }]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'date', desc: true }]);
 
   const groupedData = useMemo<AuditTableRow[]>(() => {
     const rows: AuditTableRow[] = [];
@@ -114,18 +123,8 @@ export function AuditEventTable({
   const columns = useMemo<ColumnDef<AuditTableRow>[]>(
     () => [
       {
-        id: 'timestamp',
-        header: 'Timestamp',
-        cell: ({ row }) => {
-          const data = row.original;
-          return (
-            <div className="text-sm text-gray-700">{new Date(data.createdAt).toLocaleString()}</div>
-          );
-        },
-      },
-      {
-        id: 'actor',
-        header: 'Actor',
+        id: 'action',
+        header: 'Action',
         cell: ({ row }) => {
           const data = row.original;
           if (data.type === 'group') {
@@ -144,6 +143,57 @@ export function AuditEventTable({
               </button>
             );
           }
+          const formatted = formatAuditEvent(data.event);
+          return (
+            <span
+              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${
+                actionToneClasses[formatted.actionTone] || 'bg-gray-100 text-gray-700'
+              }`}
+            >
+              {formatted.actionLabel}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'object',
+        header: 'Object',
+        cell: ({ row }) => {
+          const data = row.original;
+          if (data.type === 'group') {
+            return <span className="text-sm text-gray-500">{data.count} events</span>;
+          }
+          const formatted = formatAuditEvent(data.event);
+          return (
+            <div className="text-sm text-gray-800">
+              {formatted.objectLabel}
+              <div className="text-xs text-gray-500">{data.event.entityId}</div>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'description',
+        header: 'Description',
+        cell: ({ row }) => {
+          const data = row.original;
+          if (data.type === 'group') return <span className="text-sm text-gray-500">—</span>;
+          const formatted = formatAuditEvent(data.event);
+          return (
+            <div className="space-y-1 text-sm text-gray-700">
+              {formatted.descriptionLines.map((line, index) => (
+                <div key={`${data.event.id}-description-${index}`}>{line}</div>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'user',
+        header: 'User',
+        cell: ({ row }) => {
+          const data = row.original;
+          if (data.type === 'group') return <span className="text-sm text-gray-500">—</span>;
           const Icon =
             data.event.actorType === 'integration'
               ? Plug
@@ -159,27 +209,12 @@ export function AuditEventTable({
         },
       },
       {
-        id: 'action',
-        header: 'Action',
+        id: 'date',
+        header: 'Date',
         cell: ({ row }) => {
           const data = row.original;
-          if (data.type === 'group') {
-            return <span className="text-sm text-gray-500">{data.count} events</span>;
-          }
-          return <span className="text-sm text-gray-800">{data.event.action}</span>;
-        },
-      },
-      {
-        id: 'entity',
-        header: 'Entity',
-        cell: ({ row }) => {
-          const data = row.original;
-          if (data.type === 'group') return <span className="text-sm text-gray-500">—</span>;
           return (
-            <div className="text-sm text-gray-800">
-              {data.event.entityType}
-              <div className="text-xs text-gray-500">{data.event.entityId}</div>
-            </div>
+            <div className="text-sm text-gray-700">{new Date(data.createdAt).toLocaleString()}</div>
           );
         },
       },
@@ -198,18 +233,6 @@ export function AuditEventTable({
               {data.event.severity}
             </span>
           );
-        },
-      },
-      {
-        id: 'batch',
-        header: 'Batch',
-        cell: ({ row }) => {
-          const data = row.original;
-          if (data.type === 'group') {
-            return <span className="text-xs font-mono text-gray-600">{data.batchId}</span>;
-          }
-          if (!data.batchId) return <span className="text-sm text-gray-500">—</span>;
-          return <span className="text-xs font-mono text-gray-600">{data.batchId}</span>;
         },
       },
     ],
