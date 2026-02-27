@@ -28,6 +28,8 @@ export interface AuditEventFilter {
   entityId?: string;
   actorType?: ActorType;
   actorId?: string;
+  action?: AuditAction;
+  actorLabel?: string;
   dateFrom?: Date | string;
   dateTo?: Date | string;
   batchId?: string;

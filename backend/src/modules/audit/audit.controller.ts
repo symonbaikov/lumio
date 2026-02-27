@@ -5,7 +5,7 @@ import { Permission } from '../../common/enums/permissions.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
-import { ActorType, EntityType, Severity } from '../../entities/audit-event.entity';
+import { AuditAction, ActorType, EntityType, Severity } from '../../entities/audit-event.entity';
 import { type User, UserRole } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditService } from './audit.service';
@@ -23,6 +23,8 @@ export class AuditController {
     @Query('entityId') entityId?: string,
     @Query('actorType') actorType?: ActorType,
     @Query('actorId') actorId?: string,
+    @Query('action') action?: AuditAction,
+    @Query('actorLabel') actorLabel?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('batchId') batchId?: string,
@@ -38,6 +40,8 @@ export class AuditController {
       entityId,
       actorType,
       actorId,
+      action,
+      actorLabel,
       dateFrom,
       dateTo,
       batchId,

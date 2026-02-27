@@ -124,6 +124,16 @@ export class AuditService {
       qb.andWhere('event.actorId = :actorId', { actorId: filter.actorId });
     }
 
+    if (filter.action) {
+      qb.andWhere('event.action = :action', { action: filter.action });
+    }
+
+    if (filter.actorLabel) {
+      qb.andWhere('event.actorLabel ILIKE :actorLabel', {
+        actorLabel: `%${filter.actorLabel}%`,
+      });
+    }
+
     if (filter.batchId) {
       qb.andWhere('event.batchId = :batchId', { batchId: filter.batchId });
     }

@@ -121,6 +121,8 @@ describe('AuditService', () => {
       actorType: ActorType.USER,
       actorId: 'u1',
       batchId: 'batch-1',
+      action: AuditAction.UPDATE,
+      actorLabel: 'admin@example.com',
       severity: Severity.WARN,
       dateFrom: '2025-01-01',
       dateTo: '2025-01-02',
@@ -139,6 +141,12 @@ describe('AuditService', () => {
     });
     expect(qb.andWhere).toHaveBeenCalledWith('event.actorId = :actorId', { actorId: 'u1' });
     expect(qb.andWhere).toHaveBeenCalledWith('event.batchId = :batchId', { batchId: 'batch-1' });
+    expect(qb.andWhere).toHaveBeenCalledWith('event.action = :action', {
+      action: AuditAction.UPDATE,
+    });
+    expect(qb.andWhere).toHaveBeenCalledWith('event.actorLabel ILIKE :actorLabel', {
+      actorLabel: '%admin@example.com%',
+    });
     expect(qb.andWhere).toHaveBeenCalledWith('event.severity = :severity', {
       severity: Severity.WARN,
     });
