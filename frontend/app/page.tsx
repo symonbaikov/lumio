@@ -17,7 +17,6 @@ import { RecentActivity } from './components/dashboard/RecentActivity';
 import { TopMerchantsCard } from './components/dashboard/TopMerchantsCard';
 import { TopCategoriesCard } from './components/dashboard/TopCategoriesCard';
 import { RangeSwitcher } from './components/dashboard/RangeSwitcher';
-import { EmptyState } from './components/dashboard/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 
 const resolveLocale = (locale: string) => {
@@ -85,12 +84,6 @@ export default function DashboardPage() {
 
   const isRedirecting =
     authLoading || workspaceLoading || !user || needsOnboarding || !currentWorkspace;
-
-  const isEmpty =
-    data &&
-    data.snapshot.income30d === 0 &&
-    data.snapshot.expense30d === 0 &&
-    data.snapshot.totalBalance === 0;
 
   if (isRedirecting) {
     return (
@@ -208,85 +201,65 @@ export default function DashboardPage() {
         {/* Dashboard content */}
         {data ? (
           <>
-            {isEmpty ? (
-              /* Empty state */
-              <EmptyState
-                labels={{
-                  title: text(t.emptyState?.title),
-                  description: text(t.emptyState?.description),
-                  uploadCta: text(t.emptyState?.upload),
-                  connectGmail: text(t.emptyState?.gmail),
-                  manualEntry: text(t.emptyState?.manual),
-                  step1Label: text(t.emptyState?.step1Label),
-                  step2Label: text(t.emptyState?.step2Label),
-                  step3Label: text(t.emptyState?.step3Label),
-                }}
+            {/* Row 1: Summary Cards */}
+            <FinancialSnapshot
+              snapshot={data.snapshot}
+              formatAmount={formatAmount}
+              labels={{
+                totalBalance: text(t.snapshot?.totalBalance),
+                income: text(t.snapshot?.income),
+                expense: text(t.snapshot?.expense),
+                netFlow: text(t.snapshot?.netFlow),
+                toPay: text(t.snapshot?.toPay),
+                overdue: text(t.snapshot?.overdue),
+              }}
+            />
+
+            {/* Row 2: Action Required */}
+            <ActionRequired
+              actions={data.actions}
+              title={text(t.actions?.title)}
+              emptyLabel={text(t.actions?.empty)}
+            />
+
+            {/* Row 3: Cash Flow Chart */}
+            <Card className="border-gray-200/80 bg-white shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-gray-900">
+                  {text(t.cashFlow?.title)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CashFlowChart
+                  data={data.cashFlow}
+                  emptyLabel={text(t.cashFlow?.empty)}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Row 4: Top Merchants + Top Categories */}
+            <div className="grid gap-4 lg:grid-cols-2">
+              <TopMerchantsCard
+                merchants={data.topMerchants ?? []}
+                title={text(t.topMerchants?.title)}
+                emptyLabel={text(t.topMerchants?.empty)}
+                formatAmount={formatAmount}
               />
-            ) : (
-              <>
-                {/* Row 1: Summary Cards */}
-                <FinancialSnapshot
-                  snapshot={data.snapshot}
-                  formatAmount={formatAmount}
-                  labels={{
-                    totalBalance: text(t.snapshot?.totalBalance),
-                    income: text(t.snapshot?.income),
-                    expense: text(t.snapshot?.expense),
-                    netFlow: text(t.snapshot?.netFlow),
-                    toPay: text(t.snapshot?.toPay),
-                    overdue: text(t.snapshot?.overdue),
-                  }}
-                />
+              <TopCategoriesCard
+                categories={data.topCategories ?? []}
+                title={text(t.topCategories?.title)}
+                emptyLabel={text(t.topCategories?.empty)}
+                formatAmount={formatAmount}
+              />
+            </div>
 
-                {/* Row 2: Action Required */}
-                {data.actions.length > 0 ? (
-                  <ActionRequired
-                    actions={data.actions}
-                    title={text(t.actions?.title)}
-                    emptyLabel={text(t.actions?.empty)}
-                  />
-                ) : null}
-
-                {/* Row 3: Cash Flow Chart */}
-                <Card className="border-gray-200/80 bg-white shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-semibold text-gray-900">
-                      {text(t.cashFlow?.title)}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CashFlowChart
-                      data={data.cashFlow}
-                      emptyLabel={text(t.cashFlow?.empty)}
-                    />
-                  </CardContent>
-                </Card>
-
-                {/* Row 4: Top Merchants + Top Categories */}
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <TopMerchantsCard
-                    merchants={data.topMerchants ?? []}
-                    title={text(t.topMerchants?.title)}
-                    emptyLabel={text(t.topMerchants?.empty)}
-                    formatAmount={formatAmount}
-                  />
-                  <TopCategoriesCard
-                    categories={data.topCategories ?? []}
-                    title={text(t.topCategories?.title)}
-                    emptyLabel={text(t.topCategories?.empty)}
-                    formatAmount={formatAmount}
-                  />
-                </div>
-
-                {/* Row 5: Recent Activity */}
-                <RecentActivity
-                  activities={data.recentActivity}
-                  formatAmount={formatAmount}
-                  title={text(t.activity?.title)}
-                  emptyLabel={text(t.activity?.empty)}
-                />
-              </>
-            )}
+            {/* Row 5: Recent Activity */}
+            <RecentActivity
+              activities={data.recentActivity}
+              formatAmount={formatAmount}
+              title={text(t.activity?.title)}
+              emptyLabel={text(t.activity?.empty)}
+            />
           </>
         ) : null}
       </div>
