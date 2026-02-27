@@ -95,10 +95,56 @@ const content = {
         en: 'No entries yet',
         kk: 'Әзірге жазбалар жоқ',
       }),
+      title: t({
+        ru: 'Аудит-лог',
+        en: 'Audit log',
+        kk: 'Аудит журналы',
+      }),
+      helper: t({
+        ru: 'Отслеживайте действия в рабочем пространстве и откаты.',
+        en: 'Track workspace activity and rollbacks.',
+        kk: 'Жұмыс кеңістігіндегі әрекеттер мен қайтаруларды бақылаңыз.',
+      }),
       action: t({ ru: 'Действие', en: 'Action', kk: 'Әрекет' }),
       description: t({ ru: 'Описание', en: 'Description', kk: 'Сипаттама' }),
       user: t({ ru: 'Пользователь', en: 'User', kk: 'Пайдаланушы' }),
       date: t({ ru: 'Дата', en: 'Date', kk: 'Күні' }),
+      loading: t({
+        ru: 'Загрузка событий аудита...',
+        en: 'Loading audit events...',
+        kk: 'Аудит оқиғалары жүктелуде...',
+      }),
+      filters: {
+        title: t({ ru: 'Фильтры', en: 'Filters', kk: 'Сүзгілер' }),
+        all: t({ ru: 'Все', en: 'All', kk: 'Барлығы' }),
+        entityType: t({
+          ru: 'Тип сущности',
+          en: 'Entity Type',
+          kk: 'Мән түрі',
+        }),
+        user: t({ ru: 'Пользователь', en: 'User', kk: 'Пайдаланушы' }),
+        action: t({ ru: 'Действие', en: 'Action', kk: 'Әрекет' }),
+        entityId: t({
+          ru: 'ID сущности',
+          en: 'Entity ID',
+          kk: 'Мән ID',
+        }),
+        severity: t({
+          ru: 'Серьезность',
+          en: 'Severity',
+          kk: 'Маңыздылық',
+        }),
+        dateFrom: t({
+          ru: 'Дата от',
+          en: 'Date From',
+          kk: 'Күні бастап',
+        }),
+        dateTo: t({
+          ru: 'Дата до',
+          en: 'Date To',
+          kk: 'Күні дейін',
+        }),
+      },
     },
     errorDialog: {
       title: t({ ru: 'Детали ошибки', en: 'Error details', kk: 'Қате мәліметтері' }),
