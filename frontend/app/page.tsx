@@ -1,209 +1,295 @@
 'use client';
 
-import { CalendarDays, Clock3, FileText } from 'lucide-react';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { RefreshCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
-import { type ChangelogEntry, ChangelogModal } from './components/ChangelogModal';
-import { useWorkspace } from './contexts/WorkspaceContext';
+import { useIntlayer, useLocale } from 'next-intlayer';
 import { useAuth } from './hooks/useAuth';
+import { useWorkspace } from './contexts/WorkspaceContext';
+import { type DashboardRange, useDashboard } from './hooks/useDashboard';
+import { useIsMobile } from './hooks/useIsMobile';
+import { usePullToRefresh } from './hooks/usePullToRefresh';
+import { QuickActions } from './components/dashboard/QuickActions';
+import { FinancialSnapshot } from './components/dashboard/FinancialSnapshot';
+import { CashFlowChart } from './components/dashboard/CashFlowChart';
+import { ActionRequired } from './components/dashboard/ActionRequired';
+import { RecentActivity } from './components/dashboard/RecentActivity';
+import { TopMerchantsCard } from './components/dashboard/TopMerchantsCard';
+import { TopCategoriesCard } from './components/dashboard/TopCategoriesCard';
+import { RangeSwitcher } from './components/dashboard/RangeSwitcher';
+import { EmptyState } from './components/dashboard/EmptyState';
+import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 
-interface ChangelogPayload {
-  entries?: ChangelogEntry[];
-}
+const resolveLocale = (locale: string) => {
+  if (locale === 'ru') return 'ru-RU';
+  if (locale === 'kk') return 'kk-KZ';
+  return 'en-US';
+};
 
-export default function Home() {
+export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
   const { locale } = useLocale();
-  const t = useIntlayer('homePage');
+  const t = useIntlayer('dashboardPage' as any) as any;
+  const text = (value: unknown) => {
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object' && 'value' in value) {
+      const tokenValue = (value as { value?: string }).value;
+      if (typeof tokenValue === 'string') return tokenValue;
+    }
+    return '';
+  };
+  const isMobile = useIsMobile();
+  const { data, loading, error, refresh, range, changeRange } = useDashboard('30d');
 
-  const [entries, setEntries] = useState<ChangelogEntry[]>([]);
-  const [loadingEntries, setLoadingEntries] = useState(true);
-  const [selectedEntry, setSelectedEntry] = useState<ChangelogEntry | null>(null);
   const needsOnboarding = user?.onboardingCompletedAt == null;
 
   useEffect(() => {
-    if (authLoading || workspaceLoading) {
-      return;
-    }
-
-    if (!user) {
-      router.replace('/login');
-      return;
-    }
-
-    if (needsOnboarding) {
-      router.replace('/onboarding');
-      return;
-    }
-
-    if (!currentWorkspace) {
-      router.replace('/workspaces');
-    }
+    if (authLoading || workspaceLoading) return;
+    if (!user) { router.replace('/login'); return; }
+    if (needsOnboarding) { router.replace('/onboarding'); return; }
+    if (!currentWorkspace) { router.replace('/workspaces'); }
   }, [authLoading, currentWorkspace, needsOnboarding, router, user, workspaceLoading]);
 
-  useEffect(() => {
-    if (!user || !currentWorkspace) {
-      return;
-    }
+  const {
+    handlers: pullToRefreshHandlers,
+    pullDistance,
+    isRefreshing: pullRefreshing,
+    isReadyToRefresh,
+  } = usePullToRefresh({
+    enabled: isMobile,
+    onRefresh: () => refresh(),
+  });
 
-    let cancelled = false;
+  const formatAmount = useCallback(
+    (value: number) => {
+      return new Intl.NumberFormat(resolveLocale(locale), {
+        style: 'currency',
+        currency: data?.snapshot?.currency || 'KZT',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(value);
+    },
+    [locale, data?.snapshot?.currency],
+  );
 
-    const loadChangelog = async () => {
-      try {
-        setLoadingEntries(true);
-        const response = await fetch('/changelog.json', { cache: 'no-store' });
-
-        if (!response.ok) {
-          throw new Error(`Failed to load changelog: ${response.status}`);
-        }
-
-        const payload = (await response.json()) as ChangelogPayload;
-
-        if (cancelled) {
-          return;
-        }
-
-        const normalizedEntries = Array.isArray(payload.entries) ? payload.entries : [];
-        setEntries(normalizedEntries);
-      } catch {
-        if (!cancelled) {
-          setEntries([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingEntries(false);
-        }
-      }
-    };
-
-    void loadChangelog();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentWorkspace, user]);
+  const rangeLabels: Record<DashboardRange, string> = useMemo(
+    () => ({
+      '7d': text(t.range?.['7d']),
+      '30d': text(t.range?.['30d']),
+      '90d': text(t.range?.['90d']),
+    }),
+    [t],
+  );
 
   const isRedirecting =
     authLoading || workspaceLoading || !user || needsOnboarding || !currentWorkspace;
 
-  const formattedEntries = useMemo(() => {
-    return entries.map(entry => {
-      const date = new Date(entry.date);
-      const formattedDate = Number.isNaN(date.getTime())
-        ? entry.date
-        : new Intl.DateTimeFormat(locale || 'ru', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-          }).format(date);
-
-      return {
-        ...entry,
-        dateLabel: formattedDate,
-      };
-    });
-  }, [entries, locale]);
-
-  const toPlainText = (value: unknown) => {
-    if (typeof value === 'string') {
-      return value;
-    }
-
-    if (value && typeof value === 'object' && 'value' in value) {
-      const tokenValue = (value as { value?: string }).value;
-      if (typeof tokenValue === 'string') {
-        return tokenValue;
-      }
-    }
-
-    return '';
-  };
-
-  const releaseLabelText = toPlainText(t.releaseLabel);
-  const closeLabelText = toPlainText(t.closeLabel);
+  const isEmpty =
+    data &&
+    data.snapshot.income30d === 0 &&
+    data.snapshot.expense30d === 0 &&
+    data.snapshot.totalBalance === 0;
 
   if (isRedirecting) {
     return (
       <div className="flex min-h-[calc(100vh-var(--global-nav-height,0px))] items-center justify-center bg-background">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#d8e3d8] border-t-[#0f3428]" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-gray-200 border-t-primary" />
       </div>
     );
   }
 
   return (
-    <main className="min-h-[calc(100vh-var(--global-nav-height,0px))] bg-background">
-      <div className="container-shared px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pt-12">
-        <header className="mb-6 rounded-2xl border border-[#d8e4d9] bg-white/85 px-5 py-6 backdrop-blur-sm sm:px-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5e7468]">
-            {t.badge}
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold leading-tight text-[#103528] sm:text-4xl">
-            {t.title}
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-[#5a7164] sm:text-base">{t.description}</p>
-        </header>
+    <main
+      className="min-h-[calc(100vh-var(--global-nav-height,0px))] bg-background"
+      {...pullToRefreshHandlers}
+    >
+      <div className="container-shared space-y-5 px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pt-8">
+        {/* Pull-to-refresh indicator */}
+        {isMobile && (pullDistance > 0 || pullRefreshing) ? (
+          <div className="pointer-events-none flex justify-center">
+            <div
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition-colors ${
+                isReadyToRefresh || pullRefreshing
+                  ? 'border-primary/40 text-primary'
+                  : 'border-gray-200 text-gray-500'
+              }`}
+            >
+              <RefreshCcw className={`h-3.5 w-3.5 ${pullRefreshing ? 'animate-spin' : ''}`} />
+              <span>
+                {pullRefreshing
+                  ? text(t.refresh?.loading)
+                  : isReadyToRefresh
+                    ? text(t.refresh?.ready)
+                    : text(t.refresh?.idle)}
+              </span>
+            </div>
+          </div>
+        ) : null}
 
-        {loadingEntries ? (
-          <div className="rounded-2xl border border-[#d8e4d9] bg-white px-5 py-8 text-sm text-[#5a7164]">
-            {t.loading}
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">{text(t.title)}</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              {currentWorkspace?.name || text(t.workspaceFallback)}
+            </p>
           </div>
-        ) : formattedEntries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#cddbcf] bg-white px-5 py-14 text-center">
-            <FileText className="mb-3 h-8 w-8 text-[#89a093]" />
-            <p className="text-sm font-medium text-[#314c3f]">{t.empty}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <RangeSwitcher
+              value={range}
+              onChange={changeRange}
+              labels={rangeLabels}
+            />
+            {data?.role !== 'viewer' ? (
+              <QuickActions
+                allowed={
+                  data?.role === 'member'
+                    ? ['upload', 'expense']
+                    : ['upload', 'payment', 'expense']
+                }
+                labels={{
+                  upload: text(t.quickActions?.upload),
+                  payment: text(t.quickActions?.payment),
+                  expense: text(t.quickActions?.expense),
+                }}
+              />
+            ) : null}
           </div>
-        ) : (
-          <div className="space-y-3">
-            {formattedEntries.map(entry => (
+        </div>
+
+        {/* Error */}
+        {error ? (
+          <Card className="border-rose-200 bg-rose-50 shadow-sm">
+            <CardContent className="flex items-center gap-2 px-4 py-3 text-sm text-rose-700">
+              <span>{error}</span>
               <button
-                key={entry.id}
                 type="button"
-                onClick={() => setSelectedEntry(entry)}
-                className="w-full rounded-2xl border border-[#d8e4d9] bg-white px-5 py-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bdd2c1] hover:bg-[#fdfefd]"
+                onClick={() => refresh()}
+                className="ml-auto rounded-full p-1 text-rose-600 transition-colors hover:bg-rose-100"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="line-clamp-2 text-lg font-semibold leading-snug text-[#123528]">
-                      {entry.title}
-                    </h2>
-                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#5a7064]">
-                      {entry.summary}
-                    </p>
-                  </div>
-
-                  {entry.version ? (
-                    <span className="shrink-0 rounded-full border border-[#d3e1d5] bg-[#f3f9f4] px-3 py-1 text-xs font-semibold text-[#365848]">
-                      {entry.version}
-                    </span>
-                  ) : null}
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-[#607266]">
-                  <span className="inline-flex items-center gap-1.5">
-                    <CalendarDays className="h-3.5 w-3.5" />
-                    {entry.dateLabel}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Clock3 className="h-3.5 w-3.5" />
-                    {t.openDetails}
-                  </span>
-                </div>
+                <RefreshCcw className="h-4 w-4" />
               </button>
-            ))}
-          </div>
-        )}
-      </div>
+            </CardContent>
+          </Card>
+        ) : null}
 
-      <ChangelogModal
-        isOpen={Boolean(selectedEntry)}
-        onClose={() => setSelectedEntry(null)}
-        entry={selectedEntry}
-        releaseLabel={releaseLabelText}
-        closeLabel={closeLabelText}
-      />
+        {/* Skeleton loading */}
+        {loading && !data ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <Card key={`skeleton-card-${index + 1}`} className="border-gray-200/80 bg-white shadow-sm">
+                  <CardContent className="h-20 animate-pulse" />
+                </Card>
+              ))}
+            </div>
+            <Card className="border-gray-200/80 bg-white shadow-sm">
+              <CardContent className="h-24 animate-pulse" />
+            </Card>
+            <Card className="border-gray-200/80 bg-white shadow-sm">
+              <CardContent className="h-72 animate-pulse" />
+            </Card>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card className="border-gray-200/80 bg-white shadow-sm">
+                <CardContent className="h-48 animate-pulse" />
+              </Card>
+              <Card className="border-gray-200/80 bg-white shadow-sm">
+                <CardContent className="h-48 animate-pulse" />
+              </Card>
+            </div>
+            <Card className="border-gray-200/80 bg-white shadow-sm">
+              <CardContent className="h-64 animate-pulse" />
+            </Card>
+          </div>
+        ) : null}
+
+        {/* Dashboard content */}
+        {data ? (
+          <>
+            {isEmpty ? (
+              /* Empty state */
+              <EmptyState
+                labels={{
+                  title: text(t.emptyState?.title),
+                  description: text(t.emptyState?.description),
+                  uploadCta: text(t.emptyState?.upload),
+                  connectGmail: text(t.emptyState?.gmail),
+                  manualEntry: text(t.emptyState?.manual),
+                  step1Label: text(t.emptyState?.step1Label),
+                  step2Label: text(t.emptyState?.step2Label),
+                  step3Label: text(t.emptyState?.step3Label),
+                }}
+              />
+            ) : (
+              <>
+                {/* Row 1: Summary Cards */}
+                <FinancialSnapshot
+                  snapshot={data.snapshot}
+                  formatAmount={formatAmount}
+                  labels={{
+                    totalBalance: text(t.snapshot?.totalBalance),
+                    income: text(t.snapshot?.income),
+                    expense: text(t.snapshot?.expense),
+                    netFlow: text(t.snapshot?.netFlow),
+                    toPay: text(t.snapshot?.toPay),
+                    overdue: text(t.snapshot?.overdue),
+                  }}
+                />
+
+                {/* Row 2: Action Required */}
+                {data.actions.length > 0 ? (
+                  <ActionRequired
+                    actions={data.actions}
+                    title={text(t.actions?.title)}
+                    emptyLabel={text(t.actions?.empty)}
+                  />
+                ) : null}
+
+                {/* Row 3: Cash Flow Chart */}
+                <Card className="border-gray-200/80 bg-white shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold text-gray-900">
+                      {text(t.cashFlow?.title)}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CashFlowChart
+                      data={data.cashFlow}
+                      emptyLabel={text(t.cashFlow?.empty)}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Row 4: Top Merchants + Top Categories */}
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <TopMerchantsCard
+                    merchants={data.topMerchants ?? []}
+                    title={text(t.topMerchants?.title)}
+                    emptyLabel={text(t.topMerchants?.empty)}
+                    formatAmount={formatAmount}
+                  />
+                  <TopCategoriesCard
+                    categories={data.topCategories ?? []}
+                    title={text(t.topCategories?.title)}
+                    emptyLabel={text(t.topCategories?.empty)}
+                    formatAmount={formatAmount}
+                  />
+                </div>
+
+                {/* Row 5: Recent Activity */}
+                <RecentActivity
+                  activities={data.recentActivity}
+                  formatAmount={formatAmount}
+                  title={text(t.activity?.title)}
+                  emptyLabel={text(t.activity?.empty)}
+                />
+              </>
+            )}
+          </>
+        ) : null}
+      </div>
     </main>
   );
 }
