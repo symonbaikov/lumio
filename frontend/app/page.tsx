@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { RefreshCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useIntlayer, useLocale } from 'next-intlayer';
@@ -84,6 +84,20 @@ export default function DashboardPage() {
 
   const isRedirecting =
     authLoading || workspaceLoading || !user || needsOnboarding || !currentWorkspace;
+  const hasSnapshotData = Boolean(
+    data &&
+      (data.snapshot.totalBalance !== 0 ||
+        data.snapshot.income30d !== 0 ||
+        data.snapshot.expense30d !== 0 ||
+        data.snapshot.totalPayable !== 0 ||
+        data.snapshot.totalOverdue !== 0),
+  );
+  const hasActions = (data?.actions?.length ?? 0) > 0;
+  const hasCashFlow = (data?.cashFlow?.length ?? 0) > 0;
+  const hasTopMerchants = (data?.topMerchants?.length ?? 0) > 0;
+  const hasTopCategories = (data?.topCategories?.length ?? 0) > 0;
+  const hasRecentActivity = (data?.recentActivity?.length ?? 0) > 0;
+  const topGridCols = hasTopMerchants && hasTopCategories ? 'lg:grid-cols-2' : 'lg:grid-cols-1';
 
   if (isRedirecting) {
     return (
@@ -202,64 +216,78 @@ export default function DashboardPage() {
         {data ? (
           <>
             {/* Row 1: Summary Cards */}
-            <FinancialSnapshot
-              snapshot={data.snapshot}
-              formatAmount={formatAmount}
-              labels={{
-                totalBalance: text(t.snapshot?.totalBalance),
-                income: text(t.snapshot?.income),
-                expense: text(t.snapshot?.expense),
-                netFlow: text(t.snapshot?.netFlow),
-                toPay: text(t.snapshot?.toPay),
-                overdue: text(t.snapshot?.overdue),
-              }}
-            />
+            {hasSnapshotData ? (
+              <FinancialSnapshot
+                snapshot={data.snapshot}
+                formatAmount={formatAmount}
+                labels={{
+                  totalBalance: text(t.snapshot?.totalBalance),
+                  income: text(t.snapshot?.income),
+                  expense: text(t.snapshot?.expense),
+                  netFlow: text(t.snapshot?.netFlow),
+                  toPay: text(t.snapshot?.toPay),
+                  overdue: text(t.snapshot?.overdue),
+                }}
+              />
+            ) : null}
 
             {/* Row 2: Action Required */}
-            <ActionRequired
-              actions={data.actions}
-              title={text(t.actions?.title)}
-              emptyLabel={text(t.actions?.empty)}
-            />
+            {hasActions ? (
+              <ActionRequired
+                actions={data.actions}
+                title={text(t.actions?.title)}
+                emptyLabel={text(t.actions?.empty)}
+              />
+            ) : null}
 
             {/* Row 3: Cash Flow Chart */}
-            <Card className="border-gray-200/80 bg-white shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-gray-900">
-                  {text(t.cashFlow?.title)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CashFlowChart
-                  data={data.cashFlow}
-                  emptyLabel={text(t.cashFlow?.empty)}
-                />
-              </CardContent>
-            </Card>
+            {hasCashFlow ? (
+              <Card className="border-gray-200/80 bg-white shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold text-gray-900">
+                    {text(t.cashFlow?.title)}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CashFlowChart
+                    data={data.cashFlow}
+                    emptyLabel={text(t.cashFlow?.empty)}
+                  />
+                </CardContent>
+              </Card>
+            ) : null}
 
             {/* Row 4: Top Merchants + Top Categories */}
-            <div className="grid gap-4 lg:grid-cols-2">
-              <TopMerchantsCard
-                merchants={data.topMerchants ?? []}
-                title={text(t.topMerchants?.title)}
-                emptyLabel={text(t.topMerchants?.empty)}
-                formatAmount={formatAmount}
-              />
-              <TopCategoriesCard
-                categories={data.topCategories ?? []}
-                title={text(t.topCategories?.title)}
-                emptyLabel={text(t.topCategories?.empty)}
-                formatAmount={formatAmount}
-              />
-            </div>
+            {hasTopMerchants || hasTopCategories ? (
+              <div className={`grid gap-4 ${topGridCols}`}>
+                {hasTopMerchants ? (
+                  <TopMerchantsCard
+                    merchants={data.topMerchants ?? []}
+                    title={text(t.topMerchants?.title)}
+                    emptyLabel={text(t.topMerchants?.empty)}
+                    formatAmount={formatAmount}
+                  />
+                ) : null}
+                {hasTopCategories ? (
+                  <TopCategoriesCard
+                    categories={data.topCategories ?? []}
+                    title={text(t.topCategories?.title)}
+                    emptyLabel={text(t.topCategories?.empty)}
+                    formatAmount={formatAmount}
+                  />
+                ) : null}
+              </div>
+            ) : null}
 
             {/* Row 5: Recent Activity */}
-            <RecentActivity
-              activities={data.recentActivity}
-              formatAmount={formatAmount}
-              title={text(t.activity?.title)}
-              emptyLabel={text(t.activity?.empty)}
-            />
+            {hasRecentActivity ? (
+              <RecentActivity
+                activities={data.recentActivity}
+                formatAmount={formatAmount}
+                title={text(t.activity?.title)}
+                emptyLabel={text(t.activity?.empty)}
+              />
+            ) : null}
           </>
         ) : null}
       </div>
