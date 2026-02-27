@@ -36,12 +36,12 @@ const ACTION_TONES: Record<AuditAction, ActionTone> = {
   create: 'success',
   update: 'primary',
   delete: 'critical',
-  import: 'info',
+  import: 'primary',
   link: 'info',
   unlink: 'warn',
   match: 'info',
   unmatch: 'warn',
-  apply_rule: 'primary',
+  apply_rule: 'success',
   rollback: 'warn',
   export: 'info',
 };
@@ -63,10 +63,25 @@ const formatValue = (value: unknown) => {
   }
 };
 
-const extractDescriptionLines = (event: AuditEvent): string[] => {
+const buildFallbackDescription = (
+  actionLabel: string,
+  objectLabel: string,
+  entityId?: string | null,
+): string[] => {
+  const baseLabel = `${actionLabel} ${objectLabel}`;
+  const trimmedId = typeof entityId === 'string' ? entityId.trim() : '';
+  if (!trimmedId) return [baseLabel];
+  return [`${baseLabel} ${trimmedId}`];
+};
+
+const extractDescriptionLines = (
+  event: AuditEvent,
+  actionLabel: string,
+  objectLabel: string,
+): string[] => {
   const diff = event.diff;
   if (!diff || Array.isArray(diff)) {
-    return [`${ENTITY_LABELS[event.entityType]} ${event.entityId}`];
+    return buildFallbackDescription(actionLabel, objectLabel, event.entityId);
   }
 
   const before = diff.before ?? {};
@@ -74,21 +89,41 @@ const extractDescriptionLines = (event: AuditEvent): string[] => {
   const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)])).sort();
 
   if (keys.length === 0) {
-    return [`${ENTITY_LABELS[event.entityType]} ${event.entityId}`];
+    return buildFallbackDescription(actionLabel, objectLabel, event.entityId);
   }
 
-  const key = keys[0];
-  const beforeValue = formatValue((before as Record<string, unknown>)[key]);
-  const afterValue = formatValue((after as Record<string, unknown>)[key]);
+  if (keys.length === 1) {
+    const key = keys[0];
+    const beforeValue = formatValue((before as Record<string, unknown>)[key]);
+    const afterValue = formatValue((after as Record<string, unknown>)[key]);
 
-  return [`From: ${beforeValue}`, `To: ${afterValue}`];
+    return [`From: ${beforeValue}`, `To: ${afterValue}`];
+  }
+
+  const displayedKeys = keys.slice(0, 3);
+  const remainingCount = keys.length - displayedKeys.length;
+  const fieldsLabel = remainingCount
+    ? `Fields: ${displayedKeys.join(', ')} +${remainingCount} more`
+    : `Fields: ${displayedKeys.join(', ')}`;
+  const lines: string[] = [fieldsLabel];
+
+  displayedKeys.forEach((key) => {
+    const beforeValue = formatValue((before as Record<string, unknown>)[key]);
+    const afterValue = formatValue((after as Record<string, unknown>)[key]);
+    lines.push(`Field: ${key}`, `From: ${beforeValue}`, `To: ${afterValue}`);
+  });
+
+  return lines;
 };
 
 export const formatAuditEvent = (event: AuditEvent) => {
   const actionLabel = ACTION_LABELS[event.action] ?? event.action;
   const objectLabel = ENTITY_LABELS[event.entityType] ?? event.entityType;
-  const descriptionLines = extractDescriptionLines(event);
-  const actionTone = SEVERITY_TONES[event.severity] ?? ACTION_TONES[event.action] ?? 'info';
+  const descriptionLines = extractDescriptionLines(event, actionLabel, objectLabel);
+  const actionTone =
+    event.severity === 'warn' || event.severity === 'critical'
+      ? SEVERITY_TONES[event.severity]
+      : ACTION_TONES[event.action] ?? 'info';
 
   return {
     actionLabel,
