@@ -1,5 +1,7 @@
 'use client';
 
+import type { AuditEvent, AuditEventFilter } from '@/lib/api/audit';
+import { fetchAuditEvents } from '@/lib/api/audit';
 import { Delete, Error as ErrorIcon, Refresh } from '@mui/icons-material';
 import {
   Box,
@@ -26,11 +28,9 @@ import {
 import { useIntlayer, useLocale } from 'next-intlayer';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import apiClient from '../lib/api';
-import type { AuditEvent, AuditEventFilter } from '@/lib/api/audit';
-import { fetchAuditEvents } from '@/lib/api/audit';
 import { AuditEventDrawer } from '../audit/components/AuditEventDrawer';
 import { AuditEventTable } from '../audit/components/AuditEventTable';
+import apiClient from '../lib/api';
 
 interface Statement {
   id: string;
@@ -77,7 +77,7 @@ const ACTIONS = [
 const SEVERITIES = ['info', 'warn', 'critical'] as const;
 
 export default function AdminPage() {
-  const t = useIntlayer('adminPage');
+  const t = useIntlayer('adminPage') as any;
   const { locale } = useLocale();
   const [tab, setTab] = useState(0);
   const [statements, setStatements] = useState<Statement[]>([]);
@@ -200,7 +200,7 @@ export default function AdminPage() {
   );
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth={false} sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
         {t.title}
       </Typography>
@@ -326,14 +326,14 @@ export default function AdminPage() {
 
           {tab === 2 && (
             <div className="min-h-screen bg-gray-50 px-6 py-8">
-              <div className="mx-auto max-w-7xl space-y-6">
+              <div className="w-full space-y-6">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">{t.auditTab.title}</h2>
                   <p className="text-sm text-gray-600">{t.auditTab.helper}</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
-                  <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="h-fit rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                     <h3 className="text-sm font-semibold text-gray-700">
                       {t.auditTab.filters.title}
                     </h3>
@@ -346,7 +346,8 @@ export default function AdminPage() {
                           onChange={event => {
                             setAuditFilters(prev => ({
                               ...prev,
-                              entityType: (event.target.value || undefined) as AuditEventFilter['entityType'],
+                              entityType: (event.target.value ||
+                                undefined) as AuditEventFilter['entityType'],
                             }));
                             setAuditPage(1);
                           }}
@@ -383,7 +384,8 @@ export default function AdminPage() {
                           onChange={event => {
                             setAuditFilters(prev => ({
                               ...prev,
-                              action: (event.target.value || undefined) as AuditEventFilter['action'],
+                              action: (event.target.value ||
+                                undefined) as AuditEventFilter['action'],
                             }));
                             setAuditPage(1);
                           }}
@@ -420,7 +422,8 @@ export default function AdminPage() {
                           onChange={event => {
                             setAuditFilters(prev => ({
                               ...prev,
-                              severity: (event.target.value || undefined) as AuditEventFilter['severity'],
+                              severity: (event.target.value ||
+                                undefined) as AuditEventFilter['severity'],
                             }));
                             setAuditPage(1);
                           }}

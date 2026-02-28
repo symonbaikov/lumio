@@ -6,12 +6,13 @@ import { Transaction } from '@/entities/transaction.entity';
 import { RollbackService } from '@/modules/audit/rollback/rollback.service';
 import type { Repository } from 'typeorm';
 
-function createRepoMock<T>() {
+function createRepoMock<T extends Record<string, any>>() {
   return {
     update: jest.fn(async () => ({ affected: 1 })),
     delete: jest.fn(async () => ({ affected: 1 })),
     create: jest.fn((data: Partial<T>) => data as T),
     save: jest.fn(async (data: Partial<T>) => data as T),
+    findOne: jest.fn(async () => null),
   } as unknown as Repository<T> & Record<string, any>;
 }
 
@@ -76,6 +77,29 @@ describe('RollbackService', () => {
     const result = await service.rollback(event);
 
     expect(categoryRepository.delete).toHaveBeenCalledWith('c1');
+    expect(result.success).toBe(true);
+  });
+
+  it('rolls back table cell updates by restoring prior value', async () => {
+    const event: AuditEvent = {
+      id: 'evt-4',
+      entityId: 'row-1',
+      entityType: EntityType.TABLE_CELL,
+      action: AuditAction.UPDATE,
+      diff: { before: { value: 'old' }, after: { value: 'new' } },
+      meta: { cell: { column: 'amount' } },
+    } as AuditEvent;
+
+    (customTableRowRepository.findOne as jest.Mock).mockResolvedValue({
+      id: 'row-1',
+      data: { amount: 'new', other: 1 },
+    });
+
+    const result = await service.rollback(event);
+
+    expect(customTableRowRepository.update).toHaveBeenCalledWith('row-1', {
+      data: { amount: 'old', other: 1 },
+    });
     expect(result.success).toBe(true);
   });
 });

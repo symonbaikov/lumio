@@ -29,6 +29,7 @@ type Props = {
 };
 
 export default function WorkspacesListContent({
+  embedded,
   redirectPathOnSelect = '/workspaces/overview',
   onWorkspaceActivated,
 }: Props) {
@@ -103,115 +104,121 @@ export default function WorkspacesListContent({
   }
 
   return (
-    <div className="h-[calc(100vh-var(--global-nav-height,0px))] bg-background dark:bg-background overflow-hidden">
+    <div
+      className={`h-[calc(100vh-var(--global-nav-height,0px))] bg-background dark:bg-background overflow-hidden ${
+        embedded ? 'pt-4' : ''
+      }`}
+    >
       <div className="container max-w-full px-6 py-8">
-        {workspaces.length > 0 && (
-          <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="relative flex-1 max-w-md w-full">
-              <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                size={20}
-              />
-              <input
-                type="text"
-                placeholder="Search workspaces..."
-                value={searchQuery}
-                onChange={event => setSearchQuery(event.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-card dark:text-foreground"
-              />
-            </div>
+        {embedded
+          ? null
+          : workspaces.length > 0 && (
+              <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="relative flex-1 max-w-md w-full">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    size={20}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search workspaces..."
+                    value={searchQuery}
+                    onChange={event => setSearchQuery(event.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-card dark:text-foreground"
+                  />
+                </div>
 
-            <div className="flex gap-2">
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowSortMenu(!showSortMenu)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    showSortMenu
-                      ? 'bg-primary/10 dark:bg-primary/20 text-primary'
-                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  } border border-gray-300 dark:border-gray-600`}
-                  title="Sort options"
-                >
-                  <SortAsc size={20} />
-                </button>
-                {showSortMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-10">
+                <div className="flex gap-2">
+                  <div className="relative">
                     <button
                       type="button"
-                      onClick={() => {
-                        setSortOption('favorites');
-                        setShowSortMenu(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                        sortOption === 'favorites'
-                          ? 'font-semibold text-primary'
-                          : 'text-gray-700 dark:text-gray-300'
-                      }`}
+                      onClick={() => setShowSortMenu(!showSortMenu)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        showSortMenu
+                          ? 'bg-primary/10 dark:bg-primary/20 text-primary'
+                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      } border border-gray-300 dark:border-gray-600`}
+                      title="Sort options"
                     >
-                      Favorites First
+                      <SortAsc size={20} />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSortOption('alphabetical');
-                        setShowSortMenu(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                        sortOption === 'alphabetical'
-                          ? 'font-semibold text-primary'
-                          : 'text-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      Alphabetical
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSortOption('recent');
-                        setShowSortMenu(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                        sortOption === 'recent'
-                          ? 'font-semibold text-primary'
-                          : 'text-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      Recently Created
-                    </button>
+                    {showSortMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-10">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSortOption('favorites');
+                            setShowSortMenu(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            sortOption === 'favorites'
+                              ? 'font-semibold text-primary'
+                              : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          Favorites First
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSortOption('alphabetical');
+                            setShowSortMenu(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            sortOption === 'alphabetical'
+                              ? 'font-semibold text-primary'
+                              : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          Alphabetical
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSortOption('recent');
+                            setShowSortMenu(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            sortOption === 'recent'
+                              ? 'font-semibold text-primary'
+                              : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          Recently Created
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 rounded-lg transition-colors ${
+                      viewMode === 'grid'
+                        ? 'bg-primary/10 dark:bg-primary/20 text-primary'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    } border border-gray-300 dark:border-gray-600`}
+                    title="Grid view"
+                  >
+                    <Grid size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('list')}
+                    className={`p-2 rounded-lg transition-colors ${
+                      viewMode === 'list'
+                        ? 'bg-primary/10 dark:bg-primary/20 text-primary'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    } border border-gray-300 dark:border-gray-600`}
+                    title="List view"
+                  >
+                    <List size={20} />
+                  </button>
+                </div>
               </div>
+            )}
 
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-colors ${
-                  viewMode === 'grid'
-                    ? 'bg-primary/10 dark:bg-primary/20 text-primary'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                } border border-gray-300 dark:border-gray-600`}
-                title="Grid view"
-              >
-                <Grid size={20} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-primary/10 dark:bg-primary/20 text-primary'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                } border border-gray-300 dark:border-gray-600`}
-                title="List view"
-              >
-                <List size={20} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {workspaces.length === 0 ? (
+        {embedded ? null : workspaces.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">
               <Building2 size={48} />

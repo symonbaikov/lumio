@@ -80,6 +80,7 @@ import { TransactionsModule } from './modules/transactions/transactions.module';
 import { UsersModule } from './modules/users/users.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -174,6 +175,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     NotificationsModule,
     InsightsModule,
     ObservabilityModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [

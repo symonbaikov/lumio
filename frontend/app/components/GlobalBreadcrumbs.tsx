@@ -15,6 +15,7 @@ const HIDDEN_PATHS = new Set<string>([
   '/auth',
   '/auth/callback',
   '/workspaces',
+  '/dashboard',
 ]);
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
@@ -50,6 +51,7 @@ export default function GlobalBreadcrumbs({ variant = 'topbar' }: GlobalBreadcru
     if (pathname.startsWith('/onboarding')) return [];
     if (HIDDEN_PATHS.has(pathname)) return [];
     if (pathname === '/') return [];
+    if (pathname.startsWith('/dashboard')) return [];
 
     const segments = pathname.split('/').filter(Boolean);
     const crumbs = segments.map((_, idx) => {

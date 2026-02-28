@@ -1,4 +1,11 @@
 export const STATEMENTS_OPEN_UPLOAD_MODAL_EVENT = 'statements:open-upload-modal';
+export const STATEMENTS_GMAIL_SYNC_EVENT = 'statements:gmail-sync';
+export const STATEMENTS_GMAIL_SYNC_STORAGE_KEY = 'statements:gmail-sync-skeleton';
+
+export type GmailSyncSkeletonMeta = {
+  count: number;
+  timestamp: number;
+};
 
 export type ConnectedCloudProviders = {
   googleDriveConnected: boolean;

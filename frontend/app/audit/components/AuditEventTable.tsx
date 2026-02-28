@@ -2,7 +2,6 @@
 
 import { AppPagination } from '@/app/components/ui/pagination';
 import type { AuditEvent } from '@/lib/api/audit';
-import { formatAuditEvent } from '../utils/formatAuditEvent';
 import {
   type ColumnDef,
   type SortingState,
@@ -13,6 +12,7 @@ import {
 } from '@tanstack/react-table';
 import { ChevronDown, ChevronRight, Cpu, Plug, User } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import { formatAuditEvent } from '../utils/formatAuditEvent';
 
 interface AuditEventTableProps {
   events: AuditEvent[];

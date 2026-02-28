@@ -107,7 +107,7 @@ const extractDescriptionLines = (
     : `Fields: ${displayedKeys.join(', ')}`;
   const lines: string[] = [fieldsLabel];
 
-  displayedKeys.forEach((key) => {
+  displayedKeys.forEach(key => {
     const beforeValue = formatValue((before as Record<string, unknown>)[key]);
     const afterValue = formatValue((after as Record<string, unknown>)[key]);
     lines.push(`Field: ${key}`, `From: ${beforeValue}`, `To: ${afterValue}`);
@@ -123,7 +123,7 @@ export const formatAuditEvent = (event: AuditEvent) => {
   const actionTone =
     event.severity === 'warn' || event.severity === 'critical'
       ? SEVERITY_TONES[event.severity]
-      : ACTION_TONES[event.action] ?? 'info';
+      : (ACTION_TONES[event.action] ?? 'info');
 
   return {
     actionLabel,

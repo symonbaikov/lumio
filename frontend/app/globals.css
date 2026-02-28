@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap");
 @import "tailwindcss";
 @import "./tours/tour-theme.css";
 @plugin "./hero.ts";
@@ -43,11 +44,33 @@
   --destructive-foreground: #ffffff;
   --surface-glow: rgba(2, 132, 199, 0.14);
   --surface-success-glow: rgba(34, 197, 94, 0.12);
+  /* Dashboard palette */
+  --ff-dash-primary: #f59e0b;
+  --ff-dash-primary-soft: #fbbf24;
+  --ff-dash-cta: #8b5cf6;
+  --ff-dash-surface: #f8fafc;
+  --ff-dash-foreground: #0f172a;
+  --ff-dash-muted: #e2e8f0;
+  --ff-dash-border: #e5e7eb;
+  --ff-dash-critical: #ef4444;
+  --ff-dash-warning: #f59e0b;
+  --ff-dash-info: #2563eb;
+  --ff-dash-success: #10b981;
+  --ff-dashboard-card: #ffffff;
+  --ff-dashboard-card-border: #e5e7eb;
+  --ff-dashboard-card-foreground: #0f172a;
+  --font-dashboard-sans: "IBM Plex Sans", var(--font-ibm-plex-sans), sans-serif;
+  --font-dashboard-mono: "IBM Plex Sans", var(--font-ibm-plex-sans), monospace;
   --font-family-sans: var(--font-manrope), "Manrope", "Nunitoga", "Helvetica Neue", Arial, Helvetica,
     sans-serif !important;
   --font-family-mono: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono,
     monospace !important;
   --global-nav-height: 104px;
+
+  /* Dashboard typographic helpers */
+  --dash-title: 0.75rem;
+  --dash-label: 0.875rem;
+  --dash-metric: 1.5rem;
 }
 
 .dark {
@@ -78,6 +101,21 @@
   --destructive-foreground: #11090a;
   --surface-glow: rgba(56, 189, 248, 0.24);
   --surface-success-glow: rgba(34, 197, 94, 0.2);
+  /* Dashboard palette (dark adjustments) */
+  --ff-dash-primary: #fbbf24;
+  --ff-dash-primary-soft: #f59e0b;
+  --ff-dash-cta: #a78bfa;
+  --ff-dash-surface: #0b1220;
+  --ff-dash-foreground: #e2e8f0;
+  --ff-dash-muted: #1f2937;
+  --ff-dash-border: #1f2937;
+  --ff-dash-critical: #f87171;
+  --ff-dash-warning: #fbbf24;
+  --ff-dash-info: #60a5fa;
+  --ff-dash-success: #34d399;
+  --ff-dashboard-card: #0b1220;
+  --ff-dashboard-card-border: #1f2937;
+  --ff-dashboard-card-foreground: #e2e8f0;
 }
 
 @theme inline {
@@ -135,6 +173,14 @@ body {
   min-height: 100vh;
   transition: background-color 220ms ease, color 220ms ease;
   -webkit-font-smoothing: antialiased;
+}
+
+.ff-dashboard-sans {
+  font-family: var(--font-dashboard-sans);
+}
+
+.ff-dashboard-mono {
+  font-family: var(--font-dashboard-mono);
 }
 
 /* Global hover effects in light mode */

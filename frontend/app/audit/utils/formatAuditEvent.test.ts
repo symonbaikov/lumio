@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import type { AuditEvent } from '@/lib/api/audit';
+import { describe, expect, it } from 'vitest';
 import { formatAuditEvent } from './formatAuditEvent';
 
 describe('formatAuditEvent', () => {

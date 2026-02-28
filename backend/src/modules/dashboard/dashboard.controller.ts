@@ -14,10 +14,11 @@ export class DashboardController {
   async getDashboard(
     @CurrentUser() user: User,
     @Query('range') range: '7d' | '30d' | '90d' = '30d',
+    @Query('date') date?: string,
   ) {
     const validRange: '7d' | '30d' | '90d' = ['7d', '30d', '90d'].includes(range)
       ? range
       : '30d';
-    return this.dashboardService.getDashboard(user.id, user.workspaceId, validRange);
+    return this.dashboardService.getDashboard(user.id, user.workspaceId, validRange, date);
   }
 }

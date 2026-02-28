@@ -9,18 +9,20 @@ describe('ActionRequired', () => {
     const container = document.createElement('div');
     const root = createRoot(container);
 
-    const actions = [
+    const actions: Array<Parameters<typeof ActionRequired>[0]['actions'][number]> = [
       {
         type: 'statements_pending_submit',
         count: 3,
         label: '3 statements pending submit',
         href: '/statements/submit',
+        priority: 'warning',
       },
       {
         type: 'payments_overdue',
         count: 2,
         label: '2 payments overdue',
         href: '/statements/pay',
+        priority: 'critical',
       },
     ];
 
@@ -44,9 +46,7 @@ describe('ActionRequired', () => {
     const root = createRoot(container);
 
     await act(async () => {
-      root.render(
-        <ActionRequired actions={[]} title="Action Required" emptyLabel="All clear" />,
-      );
+      root.render(<ActionRequired actions={[]} title="Action Required" emptyLabel="All clear" />);
     });
 
     expect(container.textContent).toContain('All clear');

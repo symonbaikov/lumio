@@ -13,9 +13,10 @@ type Item = {
 type Props = {
   title: string;
   items: Item[];
+  variant?: 'card' | 'flat';
 };
 
-export default function TopCategoriesChart({ title, items }: Props) {
+export default function TopCategoriesChart({ title, items, variant = 'card' }: Props) {
   const option = {
     grid: {
       top: 16,
@@ -75,6 +76,10 @@ export default function TopCategoriesChart({ title, items }: Props) {
       },
     ],
   };
+
+  if (variant === 'flat') {
+    return <ReactECharts option={option} style={{ height: 320 }} notMerge lazyUpdate />;
+  }
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4">

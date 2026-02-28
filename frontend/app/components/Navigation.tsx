@@ -18,12 +18,13 @@ import {
   DropdownTrigger,
 } from '@heroui/react';
 import ApartmentIcon from '@mui/icons-material/Apartment';
+import AssignmentAddIcon from '@mui/icons-material/AssignmentAdd';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import ElectricBoltIcon from '@mui/icons-material/ElectricBolt';
+import FiberSmartRecordIcon from '@mui/icons-material/FiberSmartRecord';
 import LanguageIcon from '@mui/icons-material/Language';
-import PinIcon from '@mui/icons-material/Pin';
-import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import WidgetsIcon from '@mui/icons-material/Widgets';
 import {
   Check,
   ChevronLeft,
@@ -48,13 +49,18 @@ import {
 } from 'lucide-react';
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { useTheme } from 'next-themes';
+import { Nunito } from 'next/font/google';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
+import { canAccessWorkspaceActivity } from '../lib/workspace-activity-access';
+
+const nunito = Nunito({ subsets: ['latin'], weight: ['800', '900'] });
 
 const MOBILE_MENU_VISIBILITY_EVENT = 'lumio-mobile-menu-visibility';
 
@@ -66,6 +72,7 @@ export default function Navigation() {
   const { user, logout } = useAuth();
   const normalizedAvatarUrl = normalizeAvatarUrl(user?.avatarUrl);
   const { isAdmin, hasPermission } = usePermissions();
+  const { currentWorkspace } = useWorkspace();
   const { locale, availableLocales, setLocale } = useLocale();
   const { setTheme, theme: selectedTheme } = useTheme();
   const {
@@ -290,6 +297,12 @@ export default function Navigation() {
 
   const navItems = [
     {
+      label: (nav as any).dashboard,
+      path: '/',
+      icon: <DashboardIcon sx={{ fontSize: 18 }} />,
+      permission: 'statement.view',
+    },
+    {
       label: nav.statements,
       path: '/statements',
       icon: <FileText size={18} />,
@@ -310,7 +323,7 @@ export default function Navigation() {
     {
       label: nav.reports,
       path: '/reports',
-      icon: <QueryStatsIcon sx={{ fontSize: 18 }} />,
+      icon: <AssignmentAddIcon sx={{ fontSize: 18 }} />,
       permission: 'statement.view',
     },
   ];
@@ -362,7 +375,14 @@ export default function Navigation() {
     [logout, navigateFromUserMenu, openLanguageMenu, userMenu.logoutSuccess.value],
   );
 
-  if (!user || pathname.startsWith('/onboarding')) {
+  if (
+    !user ||
+    pathname.startsWith('/onboarding') ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/shared') ||
+    pathname.startsWith('/invite')
+  ) {
     return null;
   }
 
@@ -371,12 +391,12 @@ export default function Navigation() {
       <DropdownTrigger>
         <Button
           radius="full"
-          size="sm"
-          className="min-w-[92px] border border-primary/30 !bg-white !text-primary px-4 font-semibold tracking-wide hover:!bg-primary/10"
+          size="md"
+          className="min-w-[100px] h-[40px] px-5 !bg-white !text-[#0a66c2] font-semibold text-[15px] hover:scale-105 active:scale-95 transition-transform"
           data-tour-id={mobile ? undefined : 'user-menu-trigger'}
         >
-          <span className="inline-flex items-center gap-2">
-            <WidgetsIcon sx={{ fontSize: 18 }} htmlColor="#0a66c2" />
+          <span className="inline-flex items-center gap-2.5 tracking-wide">
+            <FiberSmartRecordIcon sx={{ fontSize: 18, color: '#0a66c2' }} />
             {((userMenu as any).moreActions?.value as string) || 'Menu'}
           </span>
         </Button>
@@ -447,10 +467,12 @@ export default function Navigation() {
             {userMenu.language}
           </DropdownItem>
 
-          {isAdmin ? (
+          {isAdmin || canAccessWorkspaceActivity(currentWorkspace?.memberRole) ? (
             <DropdownItem
               key="admin"
-              startContent={<PinIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />}
+              startContent={
+                <ElectricBoltIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />
+              }
             >
               {userMenu.admin}
             </DropdownItem>
@@ -472,18 +494,34 @@ export default function Navigation() {
   );
 
   return (
-    <header className="border-b border-border bg-card shadow-sm transition-all duration-300">
+    <header className="border-b border-white/10 bg-[#1a2130] shadow-sm transition-all duration-300">
       <div className="container-shared px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-14">
           <div className="flex items-center">
-            <Link href="/" className="shrink-0 flex items-center" data-tour-id="brand">
-              <Image
-                src="/images/logo.svg"
-                alt="Lumio"
-                width={36}
-                height={36}
-                className="h-9 w-9"
-              />
+            <Link href="/" className="shrink-0 flex items-center gap-3" data-tour-id="brand">
+              <div className="flex items-center justify-center w-8 h-8 bg-[#0a66c2] rounded-[10px] border-[2px] border-white shrink-0">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  role="img"
+                  aria-labelledby="lumioLogo"
+                >
+                  <title id="lumioLogo">Lumio Logo</title>
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </div>
+              <span
+                className={`text-white text-[19px] tracking-[0.2em] font-extrabold ${nunito.className}`}
+              >
+                LUMIO
+              </span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -498,8 +536,8 @@ export default function Navigation() {
                         group inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors duration-200
                         ${
                           isActive
-                            ? 'bg-primary/10 text-primary'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                            ? 'bg-white/10 text-white'
+                            : 'text-slate-400 hover:text-white hover:bg-white/5'
                         }
                       `}
                   >
@@ -520,7 +558,7 @@ export default function Navigation() {
                 <TourMenu
                   trigger={
                     <button
-                      className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      className="h-8 w-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
                       title="Help"
                     >
                       <QuestionMarkIcon sx={{ fontSize: 20 }} />
@@ -537,7 +575,7 @@ export default function Navigation() {
             <div className="flex items-center md:hidden">
               <button
                 onClick={() => setMobileMenuOpen(prev => !prev)}
-                className="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none"
+                className="inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-white hover:bg-white/10 focus:outline-none"
                 data-tour-id="mobile-menu-toggle"
                 aria-label="Open menu"
                 aria-expanded={mobileMenuOpen}

@@ -65,6 +65,36 @@ describe('PermissionsGuard', () => {
 
     expect(result).toBe(true);
   });
+
+  it('allows workspace owner to view audit log', () => {
+    const context = createMockExecutionContext({
+      user: { id: 'user-3', role: UserRole.USER, permissions: null },
+      workspaceRole: WorkspaceRole.OWNER,
+      workspaceMemberPermissions: null,
+    });
+    jest
+      .spyOn(reflector, 'getAllAndOverride')
+      .mockReturnValue([PermissionEnum.AUDIT_VIEW] as Permission[]);
+
+    const result = guard.canActivate(context);
+
+    expect(result).toBe(true);
+  });
+
+  it('allows workspace admin to view audit log', () => {
+    const context = createMockExecutionContext({
+      user: { id: 'user-4', role: UserRole.USER, permissions: null },
+      workspaceRole: WorkspaceRole.ADMIN,
+      workspaceMemberPermissions: null,
+    });
+    jest
+      .spyOn(reflector, 'getAllAndOverride')
+      .mockReturnValue([PermissionEnum.AUDIT_VIEW] as Permission[]);
+
+    const result = guard.canActivate(context);
+
+    expect(result).toBe(true);
+  });
 });
 
 function createMockExecutionContext(request: Record<string, unknown>): ExecutionContext {

@@ -124,7 +124,7 @@ export function NotificationDropdown({
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            'relative h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors',
+            'relative h-8 w-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors',
             triggerClassName,
           )}
           title={t.aria.notifications.value}
@@ -132,7 +132,7 @@ export function NotificationDropdown({
         >
           <NotificationsNone sx={{ fontSize: iconSize }} />
           {unreadCount > 0 ? (
-            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold leading-none flex items-center justify-center">
+            <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 rounded-full bg-[#ff4d4f] text-white text-[11px] font-bold leading-none flex items-center justify-center border-2 border-[#1a2130]">
               {unreadLabel}
             </span>
           ) : null}

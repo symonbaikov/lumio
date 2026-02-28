@@ -38,6 +38,8 @@ export class RollbackService {
         return this.rollbackCategory(event);
       case EntityType.TABLE_ROW:
         return this.rollbackCustomTableRow(event);
+      case EntityType.TABLE_CELL:
+        return this.rollbackCustomTableCell(event);
       default:
         return {
           success: false,
@@ -62,6 +64,37 @@ export class RollbackService {
     return this.applyRollback(event, this.customTableRowRepository);
   }
 
+  async rollbackCustomTableCell(event: AuditEvent): Promise<RollbackResult> {
+    if (event.action !== AuditAction.UPDATE) {
+      return { success: false, message: `Rollback not supported for action ${event.action}` };
+    }
+
+    const columnKey = event.meta?.cell?.column;
+    if (!columnKey) {
+      return { success: false, message: 'Missing cell column for rollback' };
+    }
+
+    const snapshot = this.extractSnapshots(event.diff);
+    if (!snapshot?.before) {
+      return { success: false, message: 'Missing before state for rollback' };
+    }
+
+    try {
+      const row = await this.customTableRowRepository.findOne({ where: { id: event.entityId } });
+      if (!row) {
+        return { success: false, message: 'Row not found for rollback' };
+      }
+      const data = { ...(row.data || {}) } as Record<string, any>;
+      data[columnKey] = (snapshot.before as Record<string, any>)?.value ?? null;
+      await this.customTableRowRepository.update(event.entityId, { data } as any);
+      return { success: true, message: 'Cell update rolled back' };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Rollback failed: ${message}`);
+      return { success: false, message };
+    }
+  }
+
   private async applyRollback<T extends { id: string }>(
     event: AuditEvent,
     repository: Repository<T>,
@@ -82,9 +115,10 @@ export class RollbackService {
           if (!snapshot?.before) {
             return { success: false, message: 'Missing before state for rollback' };
           }
-          const restored = repository.create(snapshot.before as any);
+          let restored = repository.create(snapshot.before as any);
           if (event.entityType === EntityType.STATEMENT && 'deletedAt' in restored) {
-            delete (restored as { deletedAt?: unknown }).deletedAt;
+            const { deletedAt: _deletedAt, ...rest } = restored as Record<string, any>;
+            restored = rest as typeof restored;
           }
           await repository.save(restored);
           return { success: true, message: 'Delete rolled back' };

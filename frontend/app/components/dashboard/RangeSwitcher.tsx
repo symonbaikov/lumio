@@ -13,7 +13,7 @@ const RANGES: DashboardRange[] = ['7d', '30d', '90d'];
 export function RangeSwitcher({ value, onChange, labels }: RangeSwitcherProps) {
   return (
     <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-      {RANGES.map((range) => (
+      {RANGES.map(range => (
         <button
           key={range}
           type="button"

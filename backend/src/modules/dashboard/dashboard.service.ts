@@ -44,18 +44,26 @@ export class DashboardService {
     userId: string,
     workspaceId: string,
     range: '7d' | '30d' | '90d' = '30d',
+    endDateParam?: string,
   ): Promise<DashboardResponse> {
     const days = range === '7d' ? 7 : range === '90d' ? 90 : 30;
-    const since = new Date();
+    
+    // Parse target date and set to end of day
+    const endDate = endDateParam ? new Date(endDateParam) : new Date();
+    endDate.setHours(23, 59, 59, 999);
+    
+    const since = new Date(endDate);
     since.setDate(since.getDate() - days);
+    // Set since to start of day
+    since.setHours(0, 0, 0, 0);
 
     const [snapshot, actions, cashFlow, topMerchants, topCategories, recentActivity, memberRole] =
       await Promise.all([
-        this.getSnapshot(workspaceId, since),
+        this.getSnapshot(workspaceId, since, endDate),
         this.getActions(userId, workspaceId),
-        this.getCashFlow(workspaceId, since, days),
-        this.getTopMerchants(workspaceId, since),
-        this.getTopCategories(workspaceId, since),
+        this.getCashFlow(workspaceId, since, endDate, days),
+        this.getTopMerchants(workspaceId, since, endDate),
+        this.getTopCategories(workspaceId, since, endDate),
         this.getRecentActivity(workspaceId),
         this.getMemberRole(userId, workspaceId),
       ]);
@@ -75,6 +83,7 @@ export class DashboardService {
   private async getSnapshot(
     workspaceId: string,
     since: Date,
+    endDate: Date,
   ): Promise<DashboardFinancialSnapshot> {
     const walletResult = await this.walletRepo
       .createQueryBuilder('w')
@@ -94,13 +103,19 @@ export class DashboardService {
       .select([
         'COALESCE(SUM(CASE WHEN t.transactionType = :income THEN t.credit ELSE 0 END), 0) AS income',
         'COALESCE(SUM(CASE WHEN t.transactionType = :expense THEN t.debit ELSE 0 END), 0) AS expense',
+        'COALESCE(SUM(CASE WHEN s.status IN (:...unapprovedStatuses) THEN (CASE WHEN t.transactionType = :income THEN t.credit ELSE -t.debit END) ELSE 0 END), 0) AS "unapprovedCash"',
       ])
       .where('s.workspaceId = :workspaceId', { workspaceId })
-      .andWhere('t.transactionDate >= :since', { since })
+      .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
       .andWhere('s.deletedAt IS NULL')
       .setParameter('income', TransactionType.INCOME)
       .setParameter('expense', TransactionType.EXPENSE)
-      .getRawOne<{ income: string; expense: string }>();
+      .setParameter('unapprovedStatuses', [
+        StatementStatus.UPLOADED,
+        StatementStatus.PARSED,
+        StatementStatus.VALIDATED,
+      ])
+      .getRawOne<{ income: string; expense: string; unapprovedCash: string }>();
 
     const payableResult = await this.payableRepo
       .createQueryBuilder('p')
@@ -116,6 +131,7 @@ export class DashboardService {
 
     const income = Number.parseFloat(txResult?.income ?? '') || 0;
     const expense = Number.parseFloat(txResult?.expense ?? '') || 0;
+    const unapprovedCash = Number.parseFloat(txResult?.unapprovedCash ?? '') || 0;
     const workspace = await this.workspaceRepo.findOne({
       where: { id: workspaceId },
       select: ['currency'],
@@ -128,6 +144,7 @@ export class DashboardService {
       netFlow30d: income - expense,
       totalPayable: Number.parseFloat(payableResult?.totalPayable ?? '') || 0,
       totalOverdue: Number.parseFloat(payableResult?.totalOverdue ?? '') || 0,
+      unapprovedCash,
       currency: workspace?.currency || 'KZT',
     };
   }
@@ -225,6 +242,7 @@ export class DashboardService {
   private async getCashFlow(
     workspaceId: string,
     since: Date,
+    endDate: Date,
     days: number,
   ): Promise<DashboardCashFlowPoint[]> {
     // For 90d range, group by week; otherwise group by day
@@ -243,7 +261,7 @@ export class DashboardService {
         'expense',
       )
       .where('s.workspaceId = :workspaceId', { workspaceId })
-      .andWhere('t.transactionDate >= :since', { since })
+      .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
       .andWhere('s.deletedAt IS NULL')
       .groupBy(`TO_CHAR(t.transactionDate, ${groupFormat})`)
       .orderBy(`TO_CHAR(t.transactionDate, ${groupFormat})`, 'ASC')
@@ -261,6 +279,7 @@ export class DashboardService {
   private async getTopMerchants(
     workspaceId: string,
     since: Date,
+    endDate: Date,
   ): Promise<DashboardTopMerchant[]> {
     const result = await this.transactionRepo
       .createQueryBuilder('t')
@@ -269,7 +288,7 @@ export class DashboardService {
       .addSelect('COALESCE(SUM(t.debit), 0)', 'amount')
       .addSelect('COUNT(t.id)', 'count')
       .where('s.workspaceId = :workspaceId', { workspaceId })
-      .andWhere('t.transactionDate >= :since', { since })
+      .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
       .andWhere('s.deletedAt IS NULL')
       .andWhere('t.transactionType = :expense', { expense: TransactionType.EXPENSE })
       .andWhere('t.counterpartyName IS NOT NULL')
@@ -289,6 +308,7 @@ export class DashboardService {
   private async getTopCategories(
     workspaceId: string,
     since: Date,
+    endDate: Date,
   ): Promise<DashboardTopCategory[]> {
     const result = await this.transactionRepo
       .createQueryBuilder('t')
@@ -299,7 +319,7 @@ export class DashboardService {
       .addSelect('COALESCE(SUM(t.debit), 0)', 'amount')
       .addSelect('COUNT(t.id)', 'count')
       .where('s.workspaceId = :workspaceId', { workspaceId })
-      .andWhere('t.transactionDate >= :since', { since })
+      .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
       .andWhere('s.deletedAt IS NULL')
       .andWhere('t.transactionType = :expense', { expense: TransactionType.EXPENSE })
       .groupBy('c.id')

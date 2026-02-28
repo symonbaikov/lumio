@@ -1,9 +1,9 @@
+import type { AuditEvent } from '@/lib/api/audit';
 // @vitest-environment jsdom
 import React from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AuditEvent } from '@/lib/api/audit';
 
 const apiGet = vi.hoisted(() => vi.fn());
 const fetchAuditEvents = vi.hoisted(() => vi.fn());
@@ -156,8 +156,8 @@ describe('AdminPage audit tab', () => {
     expect(container.textContent).toContain('Date From');
     expect(container.textContent).toContain('Date To');
 
-    const headers = Array.from(container.querySelectorAll('th')).map(
-      header => header.textContent?.trim(),
+    const headers = Array.from(container.querySelectorAll('th')).map(header =>
+      header.textContent?.trim(),
     );
 
     expect(headers).toEqual(['Action', 'Object', 'Description', 'User', 'Date', 'Severity']);

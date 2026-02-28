@@ -56,8 +56,14 @@ import {
   hasProcessingStatements,
   isManualExpenseStatement,
 } from '@/app/lib/statement-status';
+import {
+  type GmailSyncSkeletonMeta,
+  STATEMENTS_GMAIL_SYNC_EVENT,
+  STATEMENTS_GMAIL_SYNC_STORAGE_KEY,
+} from '@/app/lib/statement-upload-actions';
 import { type StatementStage, getStatementStage } from '@/app/lib/statement-workflow';
 import { resolveBankLogo } from '@bank-logos';
+import Skeleton from '@mui/material/Skeleton';
 import {
   ArrowDown,
   ChevronDown,
@@ -285,6 +291,7 @@ export default function StatementsListView({ stage }: Props) {
   const [statements, setStatements] = useState<Statement[]>([]);
   const [gmailReceipts, setGmailReceipts] = useState<GmailReceipt[]>([]);
   const [gmailLoading, setGmailLoading] = useState(false);
+  const [gmailSyncSkeletonKeys, setGmailSyncSkeletonKeys] = useState<string[]>([]);
   const statementsRef = useRef<Statement[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -554,6 +561,25 @@ export default function StatementsListView({ stage }: Props) {
       loadGmailReceipts({ silent: true, showErrorToast: false });
     }
   }, [user, page, search]);
+
+  const buildGmailSyncSkeletonKeys = (count: number) => {
+    return Array.from({ length: count }, (_, index) => `gmail-sync-${Date.now()}-${index}`);
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || stage !== 'submit') return;
+    const raw = sessionStorage.getItem(STATEMENTS_GMAIL_SYNC_STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as GmailSyncSkeletonMeta | null;
+      if (parsed && parsed.count > 0) {
+        const nextCount = Math.min(parsed.count, PAGE_SIZE);
+        setGmailSyncSkeletonKeys(buildGmailSyncSkeletonKeys(nextCount));
+      }
+    } catch {
+      sessionStorage.removeItem(STATEMENTS_GMAIL_SYNC_STORAGE_KEY);
+    }
+  }, [stage]);
 
   useEffect(() => {
     if (!user) return;
@@ -927,6 +953,22 @@ export default function StatementsListView({ stage }: Props) {
       window.clearInterval(intervalId);
     };
   }, [user, stage]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || stage !== 'submit') return;
+
+    const handleGmailSyncEvent = (event: Event) => {
+      const detail = (event as CustomEvent<GmailSyncSkeletonMeta>).detail;
+      if (!detail || detail.count <= 0) return;
+      const nextCount = Math.min(detail.count, PAGE_SIZE);
+      setGmailSyncSkeletonKeys(buildGmailSyncSkeletonKeys(nextCount));
+    };
+
+    window.addEventListener(STATEMENTS_GMAIL_SYNC_EVENT, handleGmailSyncEvent);
+    return () => {
+      window.removeEventListener(STATEMENTS_GMAIL_SYNC_EVENT, handleGmailSyncEvent);
+    };
+  }, [stage]);
 
   useEffect(() => {
     const handleOpenExpenseDrawer = (event: Event) => {
@@ -1458,6 +1500,15 @@ export default function StatementsListView({ stage }: Props) {
     return Array.from(seen.values());
   }, [stagedStatements]);
 
+  useEffect(() => {
+    if (stage !== 'submit' || gmailSyncSkeletonKeys.length === 0) return;
+    if (gmailReceipts.length === 0) return;
+    setGmailSyncSkeletonKeys([]);
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(STATEMENTS_GMAIL_SYNC_STORAGE_KEY);
+    }
+  }, [stage, gmailReceipts.length, gmailSyncSkeletonKeys.length]);
+
   const toOptions = fromOptions;
 
   const currencyOptions = useMemo(() => {
@@ -1787,11 +1838,11 @@ export default function StatementsListView({ stage }: Props) {
         data-tour-id="statements-table"
         className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 ${selectedCount > 0 ? 'pb-24 md:pb-0' : ''}`}
       >
-        {loading ? (
+        {loading && gmailSyncSkeletonKeys.length === 0 ? (
           <div className="flex justify-center items-center h-64">
             <LoadingAnimation size="lg" />
           </div>
-        ) : displayStatements.length === 0 ? (
+        ) : displayStatements.length === 0 && gmailSyncSkeletonKeys.length === 0 ? (
           <div className="text-center py-20 px-4">
             <div className="mx-auto h-16 w-16 text-gray-300 mb-4 bg-gray-50 rounded-full flex items-center justify-center">
               <File className="h-8 w-8" />
@@ -1850,6 +1901,56 @@ export default function StatementsListView({ stage }: Props) {
                   <div className="w-36 text-right text-gray-400">{listHeaderLabels.action}</div>
                 </div>
               </div>
+              {gmailSyncSkeletonKeys.length > 0
+                ? gmailSyncSkeletonKeys.map(key => (
+                    <div
+                      key={key}
+                      data-testid="gmail-sync-skeleton-row"
+                      className="relative overflow-hidden rounded-lg border border-gray-200 bg-white p-3 md:py-2.5 md:px-4"
+                    >
+                      <div className="md:hidden">
+                        <div className="flex items-center gap-3">
+                          <div className="h-4 w-4 rounded border border-gray-200 bg-gray-100" />
+                          <div className="w-10">
+                            <Skeleton variant="rounded" width={34} height={34} />
+                          </div>
+                          <div className="flex-1">
+                            <Skeleton variant="text" width="60%" height={16} />
+                            <div className="mt-1 flex items-center justify-between">
+                              <Skeleton variant="text" width={80} height={14} />
+                              <Skeleton variant="text" width={70} height={14} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="hidden md:flex items-center gap-4">
+                        <div className="flex items-center flex-1 min-w-0">
+                          <div className="flex items-center gap-3 shrink-0 mr-4">
+                            <div className="w-4 flex justify-center">
+                              <div className="h-4 w-4 rounded border border-gray-200 bg-gray-100" />
+                            </div>
+                            <div className="w-8 flex items-center justify-center">
+                              <Skeleton variant="rounded" width={28} height={28} />
+                            </div>
+                          </div>
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <Skeleton variant="text" width="45%" height={18} />
+                            <Skeleton variant="text" width="25%" height={14} />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-6 shrink-0 w-[420px] pl-4">
+                          <div className="w-32 text-right">
+                            <Skeleton variant="text" width={90} height={20} />
+                          </div>
+                          <div className="w-36 flex justify-end">
+                            <Skeleton variant="rounded" width={72} height={30} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                : null}
               {displayStatements.map(statement => {
                 const isGmail = statement.source === 'gmail';
                 const resolvedName = isGmail

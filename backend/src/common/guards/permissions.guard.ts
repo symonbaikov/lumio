@@ -97,6 +97,14 @@ export class PermissionsGuard implements CanActivate {
   ): boolean {
     if (!workspaceRole) return false;
 
+    const hasAuditPermission = requiredPermissions.every(permission =>
+      [PermissionEnum.AUDIT_VIEW, PermissionEnum.AUDIT_LOG_VIEW].includes(permission),
+    );
+
+    if (hasAuditPermission) {
+      return [WorkspaceRole.ADMIN, WorkspaceRole.OWNER].includes(workspaceRole);
+    }
+
     const statementPermissions = new Set<Permission>([
       PermissionEnum.STATEMENT_UPLOAD,
       PermissionEnum.STATEMENT_EDIT,

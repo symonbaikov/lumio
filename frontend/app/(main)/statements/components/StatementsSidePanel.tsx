@@ -13,6 +13,9 @@ import { type TopBankSender, getTopBankSenders } from '@/app/lib/statement-insig
 import {
   type CloudImportProvider,
   type ConnectedCloudProviders,
+  type GmailSyncSkeletonMeta,
+  STATEMENTS_GMAIL_SYNC_EVENT,
+  STATEMENTS_GMAIL_SYNC_STORAGE_KEY,
 } from '@/app/lib/statement-upload-actions';
 import { countStatementStages, getStatementStageMap } from '@/app/lib/statement-workflow';
 import NearbyErrorIcon from '@mui/icons-material/NearbyError';
@@ -321,6 +324,15 @@ export default function StatementsSidePanel({ activeItem }: Props) {
           const messagesFound = Number(response.data?.messagesFound ?? 0);
           const jobsCreated = Number(response.data?.jobsCreated ?? 0);
           const skipped = Number(response.data?.skipped ?? 0);
+
+          if (jobsCreated > 0 && typeof window !== 'undefined') {
+            const payload: GmailSyncSkeletonMeta = {
+              count: jobsCreated,
+              timestamp: Date.now(),
+            };
+            sessionStorage.setItem(STATEMENTS_GMAIL_SYNC_STORAGE_KEY, JSON.stringify(payload));
+            window.dispatchEvent(new CustomEvent(STATEMENTS_GMAIL_SYNC_EVENT, { detail: payload }));
+          }
 
           if (jobsCreated > 0) {
             toast.success(`Gmail sync started (${jobsCreated} receipts)`);

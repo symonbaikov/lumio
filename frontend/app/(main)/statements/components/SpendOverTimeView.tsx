@@ -20,9 +20,9 @@ import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
 import { type SpendOverTimeReport, fetchSpendOverTimeReport } from '@/app/lib/spend-over-time-api';
 import { ChevronDown, Columns2, LineChart, RefreshCcw, SlidersHorizontal } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 

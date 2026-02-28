@@ -5,6 +5,7 @@ export interface DashboardFinancialSnapshot {
   netFlow30d: number;
   totalPayable: number;
   totalOverdue: number;
+  unapprovedCash: number;
   currency: string;
 }
 

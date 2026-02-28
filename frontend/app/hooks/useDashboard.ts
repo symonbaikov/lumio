@@ -12,6 +12,7 @@ export interface DashboardFinancialSnapshot {
   netFlow30d: number;
   totalPayable: number;
   totalOverdue: number;
+  unapprovedCash: number;
   currency: string;
 }
 
@@ -30,7 +31,14 @@ export interface DashboardCashFlowPoint {
 
 export interface DashboardRecentActivity {
   id: string;
-  type: 'statement_upload' | 'payment' | 'categorization' | 'transaction';
+  type:
+    | 'statement_upload'
+    | 'payment'
+    | 'categorization'
+    | 'transaction'
+    | 'import'
+    | 'delete'
+    | 'update';
   title: string;
   description: string | null;
   amount: number | null;
@@ -79,17 +87,22 @@ export interface DashboardNotification {
 
 export function useDashboard(initialRange: DashboardRange = '30d') {
   const [range, setRange] = useState<DashboardRange>(initialRange);
+  const [targetDate, setTargetDate] = useState<string | null>(null);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(
-    async (r: DashboardRange = range) => {
+    async (r: DashboardRange = range, date: string | null = null) => {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await apiClient.get('/dashboard', { params: { range: r } });
+        const params: Record<string, any> = { range: r };
+        if (date) {
+          params.date = date;
+        }
+        const response = await apiClient.get('/dashboard', { params });
         const payload = response.data?.data || response.data;
         setData(payload);
       } catch (err: unknown) {
@@ -103,16 +116,33 @@ export function useDashboard(initialRange: DashboardRange = '30d') {
   );
 
   useEffect(() => {
-    load();
-  }, [load]);
+    load(range, targetDate);
+  }, [load, range, targetDate]);
 
   const changeRange = useCallback(
     (newRange: DashboardRange) => {
       setRange(newRange);
-      void load(newRange);
+      void load(newRange, targetDate);
     },
-    [load],
+    [load, targetDate],
   );
 
-  return { data, loading, error, refresh: load, range, changeRange };
+  const changeTargetDate = useCallback(
+    (newDate: string | null) => {
+      setTargetDate(newDate);
+      void load(range, newDate);
+    },
+    [load, range],
+  );
+
+  return {
+    data,
+    loading,
+    error,
+    refresh: () => load(range, targetDate),
+    range,
+    changeRange,
+    targetDate,
+    changeTargetDate,
+  };
 }

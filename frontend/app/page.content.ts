@@ -105,8 +105,16 @@ const content = {
       expense: t({ ru: 'Добавить расход', en: 'Add manual expense', kk: 'Шығын қосу' }),
     },
     refresh: {
-      idle: t({ ru: 'Потяните, чтобы обновить', en: 'Pull to refresh', kk: 'Жаңарту үшін тартыңыз' }),
-      ready: t({ ru: 'Отпустите для обновления', en: 'Release to refresh', kk: 'Жаңарту үшін жіберіңіз' }),
+      idle: t({
+        ru: 'Потяните, чтобы обновить',
+        en: 'Pull to refresh',
+        kk: 'Жаңарту үшін тартыңыз',
+      }),
+      ready: t({
+        ru: 'Отпустите для обновления',
+        en: 'Release to refresh',
+        kk: 'Жаңарту үшін жіберіңіз',
+      }),
       loading: t({ ru: 'Обновляем...', en: 'Refreshing...', kk: 'Жаңартылуда...' }),
     },
     error: {

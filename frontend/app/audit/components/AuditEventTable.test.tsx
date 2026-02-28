@@ -1,10 +1,10 @@
+import type { AuditEvent } from '@/lib/api/audit';
 // @vitest-environment jsdom
 import React from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it } from 'vitest';
 import { AuditEventTable } from './AuditEventTable';
-import type { AuditEvent } from '@/lib/api/audit';
 
 const events: AuditEvent[] = [
   {
@@ -46,8 +46,8 @@ describe('AuditEventTable', () => {
       );
     });
 
-    const headers = Array.from(container.querySelectorAll('th')).map(
-      header => header.textContent?.trim(),
+    const headers = Array.from(container.querySelectorAll('th')).map(header =>
+      header.textContent?.trim(),
     );
 
     expect(headers).toEqual(['Action', 'Object', 'Description', 'User', 'Date', 'Severity']);

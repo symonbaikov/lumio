@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import '@mantine/core/styles.css';
-import { Manrope, Nunito } from 'next/font/google';
+import { IBM_Plex_Sans, Manrope, Nunito } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { getIntlayer } from 'next-intlayer';
@@ -17,6 +17,12 @@ const manrope = Manrope({
 const nunito = Nunito({
   subsets: ['latin', 'cyrillic'],
   variable: '--font-nunito',
+});
+
+const ibmPlexSans = IBM_Plex_Sans({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-ibm-plex-sans',
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -44,7 +50,7 @@ export default async function RootLayout({
   return (
     <html lang={resolvedLocale} dir={direction} suppressHydrationWarning>
       <body
-        className={`${manrope.variable} ${nunito.variable} bg-background text-foreground antialiased font-sans`}
+        className={`${manrope.variable} ${nunito.variable} ${ibmPlexSans.variable} bg-background text-foreground antialiased font-sans`}
       >
         <IntlayerServerProvider>
           <ThemeProvider

@@ -21,7 +21,7 @@ describe('TopMerchantsCard', () => {
           merchants={mockMerchants}
           title="Top Merchants"
           emptyLabel="No data"
-          formatAmount={(v) => `${v} KZT`}
+          formatAmount={v => `${v} KZT`}
         />,
       );
     });
@@ -43,7 +43,7 @@ describe('TopMerchantsCard', () => {
           merchants={[]}
           title="Top Merchants"
           emptyLabel="No merchant data available"
-          formatAmount={(v) => String(v)}
+          formatAmount={v => String(v)}
         />,
       );
     });
@@ -62,7 +62,7 @@ describe('TopMerchantsCard', () => {
           merchants={[{ name: 'Kaspi Bank', amount: 150000, count: 12 }]}
           title="Top Merchants"
           emptyLabel="No data"
-          formatAmount={(v) => String(v)}
+          formatAmount={v => String(v)}
         />,
       );
     });

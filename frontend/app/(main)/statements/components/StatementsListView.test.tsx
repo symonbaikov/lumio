@@ -1,9 +1,9 @@
+import { STATEMENTS_GMAIL_SYNC_EVENT } from '@/app/lib/statement-upload-actions';
 // @vitest-environment jsdom
 import React from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { STATEMENTS_GMAIL_SYNC_EVENT } from '@/app/lib/statement-upload-actions';
 import StatementsListView from './StatementsListView';
 
 const apiMocks = vi.hoisted(() => ({

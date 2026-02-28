@@ -4,6 +4,11 @@ const content = {
   key: 'navigation',
   content: {
     nav: {
+      dashboard: t({
+        ru: 'Дашборд',
+        en: 'Dashboard',
+        kk: 'Дашборд',
+      }),
       statements: t({
         ru: 'Выписки',
         en: 'Statements',

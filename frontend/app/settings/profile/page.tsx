@@ -1,5 +1,6 @@
 'use client';
 
+import { type ChangelogEntry, ChangelogModal } from '@/app/components/ChangelogModal';
 import { Alert } from '@/app/components/ui/alert';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
@@ -16,6 +17,7 @@ import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Select as UiSelect } from '@/app/components/ui/select';
 import { Separator } from '@/app/components/ui/separator';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
@@ -32,10 +34,11 @@ import SecurityIcon from '@mui/icons-material/Security';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import SmartphoneOutlinedIcon from '@mui/icons-material/SmartphoneOutlined';
 import TabletMacOutlinedIcon from '@mui/icons-material/TabletMacOutlined';
+import UpdateOutlinedIcon from '@mui/icons-material/UpdateOutlined';
 import CircularProgress from '@mui/material/CircularProgress';
 import type { AxiosError } from 'axios';
-import { Check, Search } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { CalendarDays, Check, Clock3, FileText, Search } from 'lucide-react';
+import { useIntlayer, useLocale } from 'next-intlayer';
 import { useRouter } from 'next/navigation';
 import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -68,6 +71,10 @@ type NotificationPreferences = {
   uncategorizedItems: boolean;
 };
 
+interface ChangelogPayload {
+  entries?: ChangelogEntry[];
+}
+
 const defaultNotificationPreferences: NotificationPreferences = {
   statementUploaded: true,
   importCommitted: true,
@@ -95,7 +102,14 @@ const systemNotificationSettings: Array<{
   key: keyof NotificationPreferences;
 }> = [{ key: 'parsingErrors' }, { key: 'importFailures' }, { key: 'uncategorizedItems' }];
 
-const sections = ['profile', 'sessions', 'email', 'password', 'notifications'] as const;
+const sections = [
+  'profile',
+  'sessions',
+  'email',
+  'password',
+  'notifications',
+  'changelog',
+] as const;
 type SectionId = (typeof sections)[number];
 
 const normalizeSection = (value: string | null | undefined): SectionId => {
@@ -161,6 +175,8 @@ const resolveTimeZoneOptions = () => {
 export default function ProfileSettingsPage() {
   const router = useRouter();
   const { user, loading, setUser } = useAuth();
+  const { locale } = useLocale();
+  const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
   const t = useIntlayer('settingsProfilePage');
   const [activeSection, setActiveSection] = useState<SectionId>('profile');
   const [profileName, setProfileName] = useState('');
@@ -202,6 +218,9 @@ export default function ProfileSettingsPage() {
   const [avatarErrorMessage, setAvatarErrorMessage] = useState<string | null>(null);
   const [isTimeZoneModalOpen, setIsTimeZoneModalOpen] = useState(false);
   const [timeZoneSearch, setTimeZoneSearch] = useState('');
+  const [changelogEntries, setChangelogEntries] = useState<ChangelogEntry[]>([]);
+  const [changelogLoading, setChangelogLoading] = useState(false);
+  const [changelogSelectedEntry, setChangelogSelectedEntry] = useState<ChangelogEntry | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const timeZoneOptions = useMemo(resolveTimeZoneOptions, []);
 
@@ -443,6 +462,48 @@ export default function ProfileSettingsPage() {
     };
   }, [activeSection, isAuthenticated]);
 
+  useEffect(() => {
+    if (!isAuthenticated || activeSection !== 'changelog') {
+      return;
+    }
+
+    if (!currentWorkspace || workspaceLoading) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadChangelog = async () => {
+      try {
+        setChangelogLoading(true);
+        const response = await fetch('/changelog.json', { cache: 'no-store' });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load changelog: ${response.status}`);
+        }
+
+        const payload = (await response.json()) as ChangelogPayload;
+        if (!cancelled) {
+          setChangelogEntries(Array.isArray(payload.entries) ? payload.entries : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setChangelogEntries([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setChangelogLoading(false);
+        }
+      }
+    };
+
+    void loadChangelog();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSection, currentWorkspace, isAuthenticated, workspaceLoading]);
+
   const toggleNotificationPreference = async (
     key: keyof NotificationPreferences,
     value: boolean,
@@ -604,6 +665,11 @@ export default function ProfileSettingsPage() {
       title: (t as any).notificationsCard?.title?.value || 'Notifications',
       description: (t as any).notificationsCard?.description?.value || '',
       icon: NotificationsNoneOutlinedIcon,
+    },
+    changelog: {
+      title: (t as any).changelogCard?.title?.value || 'Changelog',
+      description: (t as any).changelogCard?.description?.value || '',
+      icon: UpdateOutlinedIcon,
     },
   };
 
@@ -939,6 +1005,92 @@ export default function ProfileSettingsPage() {
               </Card>
             </>
           )}
+        </div>
+      );
+    }
+
+    if (activeSection === 'changelog') {
+      const releaseLabelText = (t as any).changelogCard?.releaseLabel?.value || 'Release';
+      const closeLabelText = (t as any).changelogCard?.closeLabel?.value || 'Close changelog';
+      const emptyText = (t as any).changelogCard?.empty?.value || 'No published updates yet.';
+      const loadingText = (t as any).changelogCard?.loading?.value || 'Loading changelog...';
+      const openDetailsText = (t as any).changelogCard?.openDetails?.value || 'Open details';
+
+      const formattedEntries = changelogEntries.map(entry => {
+        const date = new Date(entry.date);
+        const formattedDate = Number.isNaN(date.getTime())
+          ? entry.date
+          : new Intl.DateTimeFormat(locale || 'ru', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            }).format(date);
+
+        return {
+          ...entry,
+          dateLabel: formattedDate,
+        };
+      });
+
+      return (
+        <div className="space-y-4">
+          {changelogLoading ? (
+            <div className="rounded-2xl border border-[#d8e4d9] bg-white px-5 py-8 text-sm text-[#5a7164]">
+              {loadingText}
+            </div>
+          ) : formattedEntries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#cddbcf] bg-white px-5 py-14 text-center">
+              <FileText className="mb-3 h-8 w-8 text-[#89a093]" />
+              <p className="text-sm font-medium text-[#314c3f]">{emptyText}</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {formattedEntries.map(entry => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => setChangelogSelectedEntry(entry)}
+                  className="w-full rounded-2xl border border-[#d8e4d9] bg-white px-5 py-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bdd2c1] hover:bg-[#fdfefd]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="line-clamp-2 text-lg font-semibold leading-snug text-[#123528]">
+                        {entry.title}
+                      </h2>
+                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#5a7064]">
+                        {entry.summary}
+                      </p>
+                    </div>
+
+                    {entry.version ? (
+                      <span className="shrink-0 rounded-full border border-[#d3e1d5] bg-[#f3f9f4] px-3 py-1 text-xs font-semibold text-[#365848]">
+                        {entry.version}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-[#607266]">
+                    <span className="inline-flex items-center gap-1.5">
+                      <CalendarDays className="h-3.5 w-3.5" />
+                      {entry.dateLabel}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock3 className="h-3.5 w-3.5" />
+                      {openDetailsText}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <ChangelogModal
+            isOpen={Boolean(changelogSelectedEntry)}
+            onClose={() => setChangelogSelectedEntry(null)}
+            entry={changelogSelectedEntry}
+            releaseLabel={releaseLabelText}
+            closeLabel={closeLabelText}
+          />
         </div>
       );
     }

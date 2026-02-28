@@ -1,23 +1,26 @@
 'use client';
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { Calendar } from '@heroui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@heroui/popover';
+import { getLocalTimeZone, parseDate, today } from '@internationalized/date';
+import { Tab, Tabs } from '@mui/material';
 import { RefreshCcw } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useIntlayer, useLocale } from 'next-intlayer';
-import { useAuth } from './hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { FinlabBalanceStatCard } from './components/dashboard/FinlabBalanceStatCard';
+import { FinlabExpenseCard } from './components/dashboard/FinlabExpenseCard';
+import { FinlabExpenseCategoryCard } from './components/dashboard/FinlabExpenseCategoryCard';
+import { FinlabIncomeCard } from './components/dashboard/FinlabIncomeCard';
+import { FinlabTransactionCard } from './components/dashboard/FinlabTransactionCard';
+import { OverviewTab } from './components/dashboard/OverviewTab';
+import { TransactionTab } from './components/dashboard/TransactionTab';
+import { Card, CardContent } from './components/ui/card';
 import { useWorkspace } from './contexts/WorkspaceContext';
+import { useAuth } from './hooks/useAuth';
 import { type DashboardRange, useDashboard } from './hooks/useDashboard';
 import { useIsMobile } from './hooks/useIsMobile';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
-import { QuickActions } from './components/dashboard/QuickActions';
-import { FinancialSnapshot } from './components/dashboard/FinancialSnapshot';
-import { CashFlowChart } from './components/dashboard/CashFlowChart';
-import { ActionRequired } from './components/dashboard/ActionRequired';
-import { RecentActivity } from './components/dashboard/RecentActivity';
-import { TopMerchantsCard } from './components/dashboard/TopMerchantsCard';
-import { TopCategoriesCard } from './components/dashboard/TopCategoriesCard';
-import { RangeSwitcher } from './components/dashboard/RangeSwitcher';
-import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 
 const resolveLocale = (locale: string) => {
   if (locale === 'ru') return 'ru-RU';
@@ -40,15 +43,25 @@ export default function DashboardPage() {
     return '';
   };
   const isMobile = useIsMobile();
-  const { data, loading, error, refresh, range, changeRange } = useDashboard('30d');
+  const { data, loading, error, refresh, range, changeRange, targetDate, changeTargetDate } =
+    useDashboard('30d');
+  const [activeTab, setActiveTab] = useState<'overview' | 'transaction' | 'statistics'>('overview');
 
   const needsOnboarding = user?.onboardingCompletedAt == null;
 
   useEffect(() => {
     if (authLoading || workspaceLoading) return;
-    if (!user) { router.replace('/login'); return; }
-    if (needsOnboarding) { router.replace('/onboarding'); return; }
-    if (!currentWorkspace) { router.replace('/workspaces'); }
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+    if (needsOnboarding) {
+      router.replace('/onboarding');
+      return;
+    }
+    if (!currentWorkspace) {
+      router.replace('/workspaces');
+    }
   }, [authLoading, currentWorkspace, needsOnboarding, router, user, workspaceLoading]);
 
   const {
@@ -89,14 +102,17 @@ export default function DashboardPage() {
       (data.snapshot.totalBalance !== 0 ||
         data.snapshot.income30d !== 0 ||
         data.snapshot.expense30d !== 0 ||
+        data.snapshot.netFlow30d !== 0 ||
         data.snapshot.totalPayable !== 0 ||
         data.snapshot.totalOverdue !== 0),
   );
-  const hasActions = (data?.actions?.length ?? 0) > 0;
+  const topActions = (data?.actions ?? []).slice(0, 4);
+  const hasActions = topActions.length > 0;
   const hasCashFlow = (data?.cashFlow?.length ?? 0) > 0;
   const hasTopMerchants = (data?.topMerchants?.length ?? 0) > 0;
   const hasTopCategories = (data?.topCategories?.length ?? 0) > 0;
-  const hasRecentActivity = (data?.recentActivity?.length ?? 0) > 0;
+  const topRecentActivity = (data?.recentActivity ?? []).slice(0, 6);
+  const hasRecentActivity = topRecentActivity.length > 0;
   const topGridCols = hasTopMerchants && hasTopCategories ? 'lg:grid-cols-2' : 'lg:grid-cols-1';
 
   if (isRedirecting) {
@@ -109,18 +125,18 @@ export default function DashboardPage() {
 
   return (
     <main
-      className="min-h-[calc(100vh-var(--global-nav-height,0px))] bg-background"
+      className="min-h-[calc(100vh-var(--global-nav-height,0px))] bg-[#1a2130]"
       {...pullToRefreshHandlers}
     >
-      <div className="container-shared space-y-5 px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pt-8">
+      <div className="w-full">
         {/* Pull-to-refresh indicator */}
         {isMobile && (pullDistance > 0 || pullRefreshing) ? (
-          <div className="pointer-events-none flex justify-center">
+          <div className="pointer-events-none flex justify-center pt-4">
             <div
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition-colors ${
                 isReadyToRefresh || pullRefreshing
-                  ? 'border-primary/40 text-primary'
-                  : 'border-gray-200 text-gray-500'
+                  ? 'border-primary/40 text-primary bg-white'
+                  : 'border-gray-200 text-gray-500 bg-white'
               }`}
             >
               <RefreshCcw className={`h-3.5 w-3.5 ${pullRefreshing ? 'animate-spin' : ''}`} />
@@ -135,160 +151,194 @@ export default function DashboardPage() {
           </div>
         ) : null}
 
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">{text(t.title)}</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              {currentWorkspace?.name || text(t.workspaceFallback)}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <RangeSwitcher
-              value={range}
-              onChange={changeRange}
-              labels={rangeLabels}
-            />
-            {data?.role !== 'viewer' ? (
-              <QuickActions
-                allowed={
-                  data?.role === 'member'
-                    ? ['upload', 'expense']
-                    : ['upload', 'payment', 'expense']
-                }
-                labels={{
-                  upload: text(t.quickActions?.upload),
-                  payment: text(t.quickActions?.payment),
-                  expense: text(t.quickActions?.expense),
-                }}
-              />
-            ) : null}
-          </div>
-        </div>
-
         {/* Error */}
         {error ? (
-          <Card className="border-rose-200 bg-rose-50 shadow-sm">
-            <CardContent className="flex items-center gap-2 px-4 py-3 text-sm text-rose-700">
-              <span>{error}</span>
-              <button
-                type="button"
-                onClick={() => refresh()}
-                className="ml-auto rounded-full p-1 text-rose-600 transition-colors hover:bg-rose-100"
-              >
-                <RefreshCcw className="h-4 w-4" />
-              </button>
-            </CardContent>
-          </Card>
+          <div className="px-8 pt-6">
+            <Card className="border-rose-200 bg-rose-50 shadow-sm">
+              <CardContent className="flex items-center gap-2 px-4 py-3 text-sm text-rose-700">
+                <span>{error}</span>
+                <button
+                  type="button"
+                  onClick={() => refresh()}
+                  className="ml-auto rounded-full p-1 text-rose-600 transition-colors hover:bg-rose-100"
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                </button>
+              </CardContent>
+            </Card>
+          </div>
         ) : null}
 
         {/* Skeleton loading */}
         {loading && !data ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <Card key={`skeleton-card-${index + 1}`} className="border-gray-200/80 bg-white shadow-sm">
-                  <CardContent className="h-20 animate-pulse" />
-                </Card>
-              ))}
-            </div>
-            <Card className="border-gray-200/80 bg-white shadow-sm">
-              <CardContent className="h-24 animate-pulse" />
-            </Card>
-            <Card className="border-gray-200/80 bg-white shadow-sm">
-              <CardContent className="h-72 animate-pulse" />
-            </Card>
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card className="border-gray-200/80 bg-white shadow-sm">
-                <CardContent className="h-48 animate-pulse" />
-              </Card>
-              <Card className="border-gray-200/80 bg-white shadow-sm">
-                <CardContent className="h-48 animate-pulse" />
-              </Card>
-            </div>
-            <Card className="border-gray-200/80 bg-white shadow-sm">
-              <CardContent className="h-64 animate-pulse" />
-            </Card>
+          <div className="px-8 pt-8 flex items-center justify-center min-h-[50vh]">
+            <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-white" />
           </div>
         ) : null}
 
-        {/* Dashboard content */}
+        {/* Finlab Dark Header Section */}
         {data ? (
-          <>
-            {/* Row 1: Summary Cards */}
-            {hasSnapshotData ? (
-              <FinancialSnapshot
-                snapshot={data.snapshot}
-                formatAmount={formatAmount}
-                labels={{
-                  totalBalance: text(t.snapshot?.totalBalance),
-                  income: text(t.snapshot?.income),
-                  expense: text(t.snapshot?.expense),
-                  netFlow: text(t.snapshot?.netFlow),
-                  toPay: text(t.snapshot?.toPay),
-                  overdue: text(t.snapshot?.overdue),
-                }}
-              />
-            ) : null}
+          <div className="px-8 pt-8 w-full">
+            <h1 className="text-[28px] font-bold text-white tracking-tight">
+              Welcome back, {user?.name || 'User'} <span className="ml-1">👋</span>
+            </h1>
 
-            {/* Row 2: Action Required */}
-            {hasActions ? (
-              <ActionRequired
-                actions={data.actions}
-                title={text(t.actions?.title)}
-                emptyLabel={text(t.actions?.empty)}
-              />
-            ) : null}
+            <div className="mt-3 flex items-center gap-2 text-[13px] font-medium text-slate-400">
+              <span className="hover:text-slate-300 cursor-pointer transition-colors">
+                Dashboard
+              </span>
+              <span className="text-slate-600">{'>'}</span>
+              <span className="text-white">Statistics</span>
+            </div>
 
-            {/* Row 3: Cash Flow Chart */}
-            {hasCashFlow ? (
-              <Card className="border-gray-200/80 bg-white shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold text-gray-900">
-                    {text(t.cashFlow?.title)}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CashFlowChart
-                    data={data.cashFlow}
-                    emptyLabel={text(t.cashFlow?.empty)}
+            <div className="mt-8 flex items-end justify-between border-b border-white/10 pb-0 w-full">
+              <div className="flex px-2">
+                <Tabs
+                  value={activeTab}
+                  onChange={(_, newValue) => setActiveTab(newValue)}
+                  sx={{
+                    minHeight: '48px',
+                    '& .MuiTabs-indicator': {
+                      backgroundColor: 'var(--primary)',
+                      height: '3px',
+                    },
+                    '& .MuiTabs-flexContainer': {
+                      gap: '40px',
+                    },
+                  }}
+                >
+                  <Tab
+                    value="overview"
+                    label="Overview"
+                    disableRipple
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: '#94a3b8',
+                      minWidth: 'auto',
+                      padding: '0 0 16px 0',
+                      '&.Mui-selected': { color: '#ffffff' },
+                    }}
                   />
-                </CardContent>
-              </Card>
-            ) : null}
-
-            {/* Row 4: Top Merchants + Top Categories */}
-            {hasTopMerchants || hasTopCategories ? (
-              <div className={`grid gap-4 ${topGridCols}`}>
-                {hasTopMerchants ? (
-                  <TopMerchantsCard
-                    merchants={data.topMerchants ?? []}
-                    title={text(t.topMerchants?.title)}
-                    emptyLabel={text(t.topMerchants?.empty)}
-                    formatAmount={formatAmount}
+                  <Tab
+                    value="transaction"
+                    label="Transaction"
+                    disableRipple
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: '#94a3b8',
+                      minWidth: 'auto',
+                      padding: '0 0 16px 0',
+                      '&.Mui-selected': { color: '#ffffff' },
+                    }}
                   />
-                ) : null}
-                {hasTopCategories ? (
-                  <TopCategoriesCard
-                    categories={data.topCategories ?? []}
-                    title={text(t.topCategories?.title)}
-                    emptyLabel={text(t.topCategories?.empty)}
-                    formatAmount={formatAmount}
+                  <Tab
+                    value="statistics"
+                    label="Statistics"
+                    disableRipple
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: '#94a3b8',
+                      minWidth: 'auto',
+                      padding: '0 0 16px 0',
+                      '&.Mui-selected': { color: '#ffffff' },
+                    }}
                   />
-                ) : null}
+                </Tabs>
               </div>
-            ) : null}
+              <Popover placement="bottom-end">
+                <PopoverTrigger>
+                  <div className="mb-2 flex items-center gap-2 text-slate-300 text-[13px] font-medium bg-white/5 hover:bg-white/10 transition-colors cursor-pointer px-4 py-2 rounded-xl border border-white/10">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-label="Calendar icon"
+                    >
+                      <title>Calendar</title>
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                    {targetDate
+                      ? new Date(targetDate).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })
+                      : new Date().toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 border-none bg-transparent">
+                  <Calendar
+                    aria-label="Date selection"
+                    value={targetDate ? parseDate(targetDate) : today(getLocalTimeZone())}
+                    onChange={val => changeTargetDate(val.toString())}
+                    classNames={{
+                      base: 'bg-white dark:bg-[#0b1220] rounded-xl shadow-xl',
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        ) : null}
 
-            {/* Row 5: Recent Activity */}
-            {hasRecentActivity ? (
-              <RecentActivity
-                activities={data.recentActivity}
-                formatAmount={formatAmount}
-                title={text(t.activity?.title)}
-                emptyLabel={text(t.activity?.empty)}
-              />
-            ) : null}
-          </>
+        {/* Finlab White Content Body */}
+        {data ? (
+          <div className="bg-[#f4f7f9] w-full px-8 py-8 min-h-[calc(100vh-280px)]">
+            {activeTab === 'overview' && <OverviewTab data={data} formatAmount={formatAmount} />}
+
+            {activeTab === 'statistics' && (
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 w-full">
+                {/* Row 1: Income, Expense, Balance Stats */}
+                <div className="lg:col-span-3 min-h-[280px]">
+                  <FinlabIncomeCard data={data.cashFlow} formatAmount={formatAmount} />
+                </div>
+                <div className="lg:col-span-3 min-h-[280px]">
+                  <FinlabExpenseCard data={data.cashFlow} formatAmount={formatAmount} />
+                </div>
+                <div className="lg:col-span-6 min-h-[280px]">
+                  <FinlabBalanceStatCard data={data.cashFlow} formatAmount={formatAmount} />
+                </div>
+
+                {/* Row 2: Expense Category, Last Transaction */}
+                <div className="lg:col-span-4 min-h-[380px]">
+                  <FinlabExpenseCategoryCard
+                    categories={data.topCategories}
+                    formatAmount={formatAmount}
+                  />
+                </div>
+                <div className="lg:col-span-8 min-h-[380px]">
+                  <FinlabTransactionCard
+                    activities={data.recentActivity}
+                    formatAmount={formatAmount}
+                  />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'transaction' && (
+              <div className="w-full">
+                <TransactionTab />
+              </div>
+            )}
+          </div>
         ) : null}
       </div>
     </main>

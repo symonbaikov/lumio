@@ -22,6 +22,39 @@ const content = {
       title: t({ ru: 'Разделы', en: 'Sections', kk: 'Бөлімдер' }),
       sectionLabel: t({ ru: 'Раздел', en: 'Section', kk: 'Бөлім' }),
     },
+    changelogCard: {
+      title: t({ ru: 'Changelog', en: 'Changelog', kk: 'Changelog' }),
+      description: t({
+        ru: 'Краткая лента обновлений продукта.',
+        en: 'A compact stream of product updates.',
+        kk: 'Өнім жаңартуларының қысқаша таспасы.',
+      }),
+      loading: t({
+        ru: 'Загружаем changelog...',
+        en: 'Loading changelog...',
+        kk: 'Changelog жүктелуде...',
+      }),
+      empty: t({
+        ru: 'Пока нет опубликованных обновлений.',
+        en: 'No published updates yet.',
+        kk: 'Жарияланған жаңартулар әлі жоқ.',
+      }),
+      openDetails: t({
+        ru: 'Открыть детали',
+        en: 'Open details',
+        kk: 'Толығырақ ашу',
+      }),
+      releaseLabel: t({
+        ru: 'Релиз',
+        en: 'Release',
+        kk: 'Релиз',
+      }),
+      closeLabel: t({
+        ru: 'Закрыть changelog',
+        en: 'Close changelog',
+        kk: 'Changelog жабу',
+      }),
+    },
     validation: {
       passwordRequiredForEmail: t({
         ru: 'Введите текущий пароль для подтверждения.',
