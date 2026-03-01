@@ -92,7 +92,7 @@ export function OverviewTab({ data, formatAmount }: OverviewTabProps) {
         <div className="lg:col-span-6 h-[350px]">
           <CashFlowMini
             data={data.cashFlow}
-            title="Mini Cash Flow"
+            title="Cash Flow"
             emptyLabel="No cash flow data available."
           />
         </div>

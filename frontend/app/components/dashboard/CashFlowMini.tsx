@@ -19,10 +19,28 @@ export function CashFlowMini({ data, title, emptyLabel, onUploadClick }: CashFlo
   const option = useMemo(() => {
     if (!data || data.length === 0) return null;
 
+    const fmt = (v: number) =>
+      new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(v);
+
     return {
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis' },
-      grid: { top: 16, left: 8, right: 8, bottom: 12, containLabel: true },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(15,23,42,0.90)',
+        borderColor: 'transparent',
+        textStyle: { color: '#fff', fontSize: 12 },
+        formatter: (params: Array<{ seriesName: string; value: number }>) =>
+          params.map(p => `${p.seriesName}: ${fmt(p.value)}`).join('<br/>'),
+      },
+      legend: {
+        data: ['Income', 'Expense'],
+        bottom: 0,
+        textStyle: { color: '#94a3b8', fontSize: 11 },
+        icon: 'roundRect',
+        itemWidth: 12,
+        itemHeight: 6,
+      },
+      grid: { top: 16, left: 8, right: 8, bottom: 36, containLabel: true },
       xAxis: {
         type: 'category',
         data: data.map(point => point.date),
@@ -37,13 +55,24 @@ export function CashFlowMini({ data, title, emptyLabel, onUploadClick }: CashFlo
       },
       series: [
         {
-          name: 'Net',
+          name: 'Income',
           type: 'line',
           smooth: true,
-          data: data.map(point => point.income - point.expense),
-          areaStyle: { color: 'rgba(139, 92, 246, 0.12)' },
-          lineStyle: { color: '#8b5cf6', width: 2 },
-          itemStyle: { color: '#8b5cf6' },
+          symbol: 'none',
+          data: data.map(point => point.income),
+          areaStyle: { color: 'rgba(34,197,94,0.08)' },
+          lineStyle: { color: '#22c55e', width: 2 },
+          itemStyle: { color: '#22c55e' },
+        },
+        {
+          name: 'Expense',
+          type: 'line',
+          smooth: true,
+          symbol: 'none',
+          data: data.map(point => point.expense),
+          areaStyle: { color: 'rgba(239,68,68,0.08)' },
+          lineStyle: { color: '#ef4444', width: 2 },
+          itemStyle: { color: '#ef4444' },
         },
       ],
     };
@@ -71,7 +100,7 @@ export function CashFlowMini({ data, title, emptyLabel, onUploadClick }: CashFlo
             ) : null}
           </div>
         ) : (
-          <ReactECharts style={{ height: 200 }} option={option} notMerge lazyUpdate />
+          <ReactECharts style={{ height: 240 }} option={option} notMerge lazyUpdate />
         )}
       </CardContent>
     </Card>
