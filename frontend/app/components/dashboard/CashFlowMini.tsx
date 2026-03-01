@@ -50,7 +50,7 @@ export function CashFlowMini({ data, title, emptyLabel, onUploadClick }: CashFlo
   }, [data]);
 
   return (
-    <Card className={cardShell}>
+    <Card className={`${cardShell} h-full`}>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold text-[var(--ff-dashboard-card-foreground)]">
           {title}

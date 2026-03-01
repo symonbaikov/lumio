@@ -35,13 +35,13 @@ export function OverviewTab({ data, formatAmount }: OverviewTabProps) {
   ] as const;
 
   return (
-    <div className="flex flex-col gap-8 w-full">
+    <div className="flex flex-col gap-4 w-full">
       {/* 1. Action Required */}
       <section>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.1em] text-slate-400">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-[0.1em] text-slate-400">
           Action Required
         </h2>
-        <div className="min-h-[140px]">
+        <div>
           <ActionRequired
             actions={mappedActions}
             title="Action Required"
@@ -52,10 +52,10 @@ export function OverviewTab({ data, formatAmount }: OverviewTabProps) {
 
       {/* 2. Financial Snapshot */}
       <section>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.1em] text-slate-400">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-[0.1em] text-slate-400">
           Financial Snapshot
         </h2>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {snapshotCards.map(({ key, label, icon: Icon }) => {
             const value = data.snapshot[key];
             const isNegative = value < 0;
@@ -88,15 +88,15 @@ export function OverviewTab({ data, formatAmount }: OverviewTabProps) {
       </section>
 
       {/* 3 & 4. Mini cash flow chart & Recent Activity */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-4 h-[350px]">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        <div className="lg:col-span-6 h-[350px]">
           <CashFlowMini
             data={data.cashFlow}
             title="Mini Cash Flow"
             emptyLabel="No cash flow data available."
           />
         </div>
-        <div className="lg:col-span-8 h-[350px]">
+        <div className="lg:col-span-6 h-[350px]">
           <RecentActivity
             activities={data.recentActivity}
             formatAmount={formatAmount}

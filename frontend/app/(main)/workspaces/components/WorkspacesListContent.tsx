@@ -218,7 +218,7 @@ export default function WorkspacesListContent({
               </div>
             )}
 
-        {embedded ? null : workspaces.length === 0 ? (
+        {workspaces.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">
               <Building2 size={48} />

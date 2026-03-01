@@ -43,8 +43,8 @@ export default function DashboardPage() {
     return '';
   };
   const isMobile = useIsMobile();
-  const { data, loading, error, refresh, range, changeRange, targetDate, changeTargetDate } =
-    useDashboard('30d');
+  const { data, loading, error, refresh, range, changeRange } = useDashboard('30d');
+  const [targetDate, setTargetDate] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'transaction' | 'statistics'>('overview');
 
   const needsOnboarding = user?.onboardingCompletedAt == null;
@@ -125,10 +125,10 @@ export default function DashboardPage() {
 
   return (
     <main
-      className="min-h-[calc(100vh-var(--global-nav-height,0px))] bg-[#1a2130]"
+      className="min-h-[calc(100vh-var(--global-nav-height,0px))] bg-[#1a2130] flex flex-col"
       {...pullToRefreshHandlers}
     >
-      <div className="w-full">
+      <div className="w-full flex-1 flex flex-col">
         {/* Pull-to-refresh indicator */}
         {isMobile && (pullDistance > 0 || pullRefreshing) ? (
           <div className="pointer-events-none flex justify-center pt-4">
@@ -178,20 +178,12 @@ export default function DashboardPage() {
 
         {/* Finlab Dark Header Section */}
         {data ? (
-          <div className="px-8 pt-8 w-full">
+          <div className="px-8 pt-8 w-full shrink-0">
             <h1 className="text-[28px] font-bold text-white tracking-tight">
               Welcome back, {user?.name || 'User'} <span className="ml-1">👋</span>
             </h1>
 
-            <div className="mt-3 flex items-center gap-2 text-[13px] font-medium text-slate-400">
-              <span className="hover:text-slate-300 cursor-pointer transition-colors">
-                Dashboard
-              </span>
-              <span className="text-slate-600">{'>'}</span>
-              <span className="text-white">Statistics</span>
-            </div>
-
-            <div className="mt-8 flex items-end justify-between border-b border-white/10 pb-0 w-full">
+            <div className="mt-6 flex items-end justify-between border-b border-white/10 pb-0 w-full">
               <div className="flex px-2">
                 <Tabs
                   value={activeTab}
@@ -204,6 +196,10 @@ export default function DashboardPage() {
                     },
                     '& .MuiTabs-flexContainer': {
                       gap: '40px',
+                    },
+                    '& .MuiTab-root:hover': {
+                      backgroundColor: 'transparent !important',
+                      color: '#ffffff',
                     },
                   }}
                 >
@@ -288,7 +284,7 @@ export default function DashboardPage() {
                   <Calendar
                     aria-label="Date selection"
                     value={targetDate ? parseDate(targetDate) : today(getLocalTimeZone())}
-                    onChange={val => changeTargetDate(val.toString())}
+                    onChange={val => setTargetDate(val.toString())}
                     classNames={{
                       base: 'bg-white dark:bg-[#0b1220] rounded-xl shadow-xl',
                     }}
@@ -301,7 +297,7 @@ export default function DashboardPage() {
 
         {/* Finlab White Content Body */}
         {data ? (
-          <div className="bg-[#f4f7f9] w-full px-8 py-8 min-h-[calc(100vh-280px)]">
+          <div className="bg-[#f4f7f9] w-full px-8 py-8 flex-1 rounded-bl-3xl lg:rounded-bl-[40px] rounded-br-3xl lg:rounded-br-[40px] lg:rounded-b-none pb-12 lg:pb-8">
             {activeTab === 'overview' && <OverviewTab data={data} formatAmount={formatAmount} />}
 
             {activeTab === 'statistics' && (
