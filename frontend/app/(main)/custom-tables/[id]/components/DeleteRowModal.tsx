@@ -43,7 +43,7 @@ export function DeleteRowModal({
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, isLoading, onClose]);
 
-  if (!mounted) return null;
+  if (!mounted || typeof document === 'undefined') return null;
 
   return createPortal(
     <AnimatePresence>
@@ -126,5 +126,6 @@ export function DeleteRowModal({
         </div>
       )}
     </AnimatePresence>,
+    document.body,
   );
 }
