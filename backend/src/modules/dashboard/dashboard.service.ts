@@ -6,7 +6,6 @@ import { Payable, PayableStatus } from '../../entities/payable.entity';
 import { Receipt, ReceiptStatus } from '../../entities/receipt.entity';
 import { Statement, StatementStatus } from '../../entities/statement.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
-import { Wallet } from '../../entities/wallet.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import type {
@@ -28,8 +27,6 @@ export class DashboardService {
     private readonly statementRepo: Repository<Statement>,
     @InjectRepository(Payable)
     private readonly payableRepo: Repository<Payable>,
-    @InjectRepository(Wallet)
-    private readonly walletRepo: Repository<Wallet>,
     @InjectRepository(Receipt)
     private readonly receiptRepo: Repository<Receipt>,
     @InjectRepository(WorkspaceMember)
@@ -85,18 +82,6 @@ export class DashboardService {
     since: Date,
     endDate: Date,
   ): Promise<DashboardFinancialSnapshot> {
-    const walletResult = await this.walletRepo
-      .createQueryBuilder('w')
-      .select('COALESCE(SUM(w.initialBalance), 0)', 'totalBalance')
-      .innerJoin(
-        'workspace_members',
-        'wm',
-        'wm.user_id = w.user_id AND wm.workspace_id = :workspaceId',
-        { workspaceId },
-      )
-      .where('w.is_active = true')
-      .getRawOne<{ totalBalance: string }>();
-
     const txResult = await this.transactionRepo
       .createQueryBuilder('t')
       .innerJoin('t.statement', 's')
@@ -116,6 +101,25 @@ export class DashboardService {
         StatementStatus.VALIDATED,
       ])
       .getRawOne<{ income: string; expense: string; unapprovedCash: string }>();
+
+    // All-time balance: income credits minus expense debits, no date range
+    const balanceResult = await this.transactionRepo
+      .createQueryBuilder('t')
+      .innerJoin('t.statement', 's')
+      .select(
+        `COALESCE(SUM(CASE WHEN t.transactionType = :balIncome THEN t.credit WHEN t.transactionType = :balExpense THEN -t.debit ELSE 0 END), 0)`,
+        'totalBalance',
+      )
+      .where('s.workspaceId = :workspaceId', { workspaceId })
+      .andWhere('s.deletedAt IS NULL')
+      .andWhere('s.status NOT IN (:...excludedStatuses)', {
+        excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
+      })
+      .setParameter('balIncome', TransactionType.INCOME)
+      .setParameter('balExpense', TransactionType.EXPENSE)
+      .getRawOne<{ totalBalance: string }>();
+
+    const totalBalance = Number.parseFloat(balanceResult?.totalBalance ?? '') || 0;
 
     const payableResult = await this.payableRepo
       .createQueryBuilder('p')
@@ -138,7 +142,7 @@ export class DashboardService {
     });
 
     return {
-      totalBalance: Number.parseFloat(walletResult?.totalBalance ?? '') || 0,
+      totalBalance,
       income30d: income,
       expense30d: expense,
       netFlow30d: income - expense,

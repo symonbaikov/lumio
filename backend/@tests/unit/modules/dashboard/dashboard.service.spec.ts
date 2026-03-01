@@ -49,7 +49,6 @@ describe('DashboardService', () => {
       transactionRepo,
       statementRepo,
       payableRepo,
-      walletRepo,
       receiptRepo,
       memberRepo,
       workspaceRepo,
@@ -144,17 +143,19 @@ describe('DashboardService', () => {
     expect(diffDays).toBe(90);
   });
 
-  it('getSnapshot calculates totals correctly', async () => {
-    const walletQb = createQueryBuilderMock({ totalBalance: '1500.5' });
-    const txQb = createQueryBuilderMock({ income: '1200', expense: '200' });
+  it('getSnapshot calculates totals correctly from transactions, not wallets', async () => {
+    // txResult (period income/expense) then balanceResult (all-time balance)
+    const txQb = createQueryBuilderMock({ income: '1200', expense: '200', unapprovedCash: '0' });
+    const balanceQb = createQueryBuilderMock({ totalBalance: '1500.5' });
     const payableQb = createQueryBuilderMock({ totalPayable: '300', totalOverdue: '50' });
 
-    walletRepo.createQueryBuilder.mockReturnValue(walletQb);
-    transactionRepo.createQueryBuilder.mockReturnValue(txQb);
+    transactionRepo.createQueryBuilder
+      .mockReturnValueOnce(txQb)
+      .mockReturnValueOnce(balanceQb);
     payableRepo.createQueryBuilder.mockReturnValue(payableQb);
     workspaceRepo.findOne.mockResolvedValue({ currency: 'USD' });
 
-    const result = await (service as any).getSnapshot('ws-1', new Date('2026-02-01'));
+    const result = await (service as any).getSnapshot('ws-1', new Date('2026-02-01'), new Date('2026-03-01'));
 
     expect(result).toEqual({
       totalBalance: 1500.5,
@@ -163,8 +164,11 @@ describe('DashboardService', () => {
       netFlow30d: 1000,
       totalPayable: 300,
       totalOverdue: 50,
+      unapprovedCash: 0,
       currency: 'USD',
     });
+    // walletRepo should NOT be used for balance computation
+    expect(walletRepo.createQueryBuilder).not.toHaveBeenCalled();
   });
 
   it('getActions returns only non-zero action items', async () => {
