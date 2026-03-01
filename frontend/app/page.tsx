@@ -297,7 +297,7 @@ export default function DashboardPage() {
         {/* Finlab White Content Body */}
         {data ? (
           <div className="bg-[#f4f7f9] w-full px-8 py-8 flex-1 rounded-bl-3xl lg:rounded-bl-[40px] rounded-br-3xl lg:rounded-br-[40px] lg:rounded-b-none pb-12 lg:pb-8">
-            {activeTab === 'overview' && <OverviewTab data={data} formatAmount={formatAmount} />}
+            {activeTab === 'overview' && <OverviewTab data={data} formatAmount={formatAmount} range={range} />}
 
             {activeTab === 'statistics' && (
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 w-full">
