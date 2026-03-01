@@ -213,6 +213,7 @@ export class DashboardService {
       .where('s.workspaceId = :workspaceId', { workspaceId })
       .andWhere('t.categoryId IS NULL')
       .andWhere('s.deletedAt IS NULL')
+      .andWhere('t.isDuplicate = false')
       .getCount();
 
     if (uncategorized > 0) {
