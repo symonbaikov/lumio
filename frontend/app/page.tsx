@@ -43,8 +43,7 @@ export default function DashboardPage() {
     return '';
   };
   const isMobile = useIsMobile();
-  const { data, loading, error, refresh, range, changeRange } = useDashboard('30d');
-  const [targetDate, setTargetDate] = useState<string | null>(null);
+  const { data, loading, error, refresh, range, changeRange, targetDate, changeTargetDate } = useDashboard('30d');
   const [activeTab, setActiveTab] = useState<'overview' | 'transaction' | 'statistics'>('overview');
 
   const needsOnboarding = user?.onboardingCompletedAt == null;
@@ -284,7 +283,7 @@ export default function DashboardPage() {
                   <Calendar
                     aria-label="Date selection"
                     value={targetDate ? parseDate(targetDate) : today(getLocalTimeZone())}
-                    onChange={val => setTargetDate(val.toString())}
+                    onChange={val => changeTargetDate(val.toString())}
                     classNames={{
                       base: 'bg-white dark:bg-[#0b1220] rounded-xl shadow-xl',
                     }}
@@ -304,13 +303,13 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 w-full">
                 {/* Row 1: Income, Expense, Balance Stats */}
                 <div className="lg:col-span-3 min-h-[280px]">
-                  <FinlabIncomeCard data={data.cashFlow} formatAmount={formatAmount} />
+                  <FinlabIncomeCard data={data.cashFlow} formatAmount={formatAmount} range={range} onRangeChange={changeRange} />
                 </div>
                 <div className="lg:col-span-3 min-h-[280px]">
-                  <FinlabExpenseCard data={data.cashFlow} formatAmount={formatAmount} />
+                  <FinlabExpenseCard data={data.cashFlow} formatAmount={formatAmount} range={range} onRangeChange={changeRange} />
                 </div>
                 <div className="lg:col-span-6 min-h-[280px]">
-                  <FinlabBalanceStatCard data={data.cashFlow} formatAmount={formatAmount} />
+                  <FinlabBalanceStatCard data={data.cashFlow} formatAmount={formatAmount} range={range} onRangeChange={changeRange} />
                 </div>
 
                 {/* Row 2: Expense Category, Last Transaction */}
@@ -318,12 +317,16 @@ export default function DashboardPage() {
                   <FinlabExpenseCategoryCard
                     categories={data.topCategories}
                     formatAmount={formatAmount}
+                    range={range}
+                    onRangeChange={changeRange}
                   />
                 </div>
                 <div className="lg:col-span-8 min-h-[380px]">
                   <FinlabTransactionCard
                     activities={data.recentActivity}
                     formatAmount={formatAmount}
+                    range={range}
+                    onRangeChange={changeRange}
                   />
                 </div>
               </div>
