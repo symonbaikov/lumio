@@ -9,8 +9,8 @@ import {
   Receipt,
   ReceiptProcessingJob,
 } from '../../../../src/entities';
-import { GmailService } from '../../../../src/modules/gmail/services/gmail.service';
 import { GmailSyncService } from '../../../../src/modules/gmail/services/gmail-sync.service';
+import { GmailService } from '../../../../src/modules/gmail/services/gmail.service';
 
 describe('GmailSyncService', () => {
   let service: GmailSyncService;

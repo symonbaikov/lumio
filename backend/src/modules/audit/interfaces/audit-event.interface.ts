@@ -1,8 +1,8 @@
 import type {
+  ActorType,
   AuditAction,
   AuditEventDiff,
   AuditEventMeta,
-  ActorType,
   EntityType,
   Severity,
 } from '../../../entities/audit-event.entity';

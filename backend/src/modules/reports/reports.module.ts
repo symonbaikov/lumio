@@ -8,9 +8,9 @@ import { CustomTable } from '../../entities/custom-table.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { Wallet } from '../../entities/wallet.entity';
+import { AuditModule } from '../audit/audit.module';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
-import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [

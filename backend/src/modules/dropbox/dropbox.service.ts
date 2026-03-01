@@ -15,8 +15,8 @@ import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import {
   ActorType,
   AuditAction,
-  EntityType,
   DropboxSettings,
+  EntityType,
   Integration,
   IntegrationProvider,
   IntegrationStatus,

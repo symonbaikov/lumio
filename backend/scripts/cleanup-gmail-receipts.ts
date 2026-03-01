@@ -1,6 +1,6 @@
+import { IsNull, Not } from 'typeorm';
 import { AppDataSource } from '../src/data-source';
 import { Receipt } from '../src/entities/receipt.entity';
-import { IsNull, Not } from 'typeorm';
 
 const HELP_TEXT = `
 Usage: npm run cleanup:gmail-receipts -- [--dry-run]

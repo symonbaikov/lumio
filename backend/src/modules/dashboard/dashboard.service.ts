@@ -47,11 +47,11 @@ export class DashboardService {
     endDateParam?: string,
   ): Promise<DashboardResponse> {
     const days = range === '7d' ? 7 : range === '90d' ? 90 : 30;
-    
+
     // Parse target date and set to end of day
     const endDate = endDateParam ? new Date(endDateParam) : new Date();
     endDate.setHours(23, 59, 59, 999);
-    
+
     const since = new Date(endDate);
     since.setDate(since.getDate() - days);
     // Set since to start of day
@@ -232,7 +232,7 @@ export class DashboardService {
         type: 'receipts_pending_review',
         count: pendingReceipts,
         label: `${pendingReceipts} receipt${pendingReceipts > 1 ? 's' : ''} need review`,
-        href: '/receipts',
+        href: '/statements?missingCategory=true',
       });
     }
 

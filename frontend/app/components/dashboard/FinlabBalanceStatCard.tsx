@@ -1,20 +1,34 @@
 'use client';
 
-import type { DashboardCashFlowPoint } from '@/app/hooks/useDashboard';
+import type { DashboardCashFlowPoint, DashboardRange } from '@/app/hooks/useDashboard';
 import { Info } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
+import { PeriodDropdown } from './PeriodDropdown';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 interface FinlabBalanceStatCardProps {
   data: DashboardCashFlowPoint[];
   formatAmount: (value: number) => string;
+  range: DashboardRange;
+  onRangeChange: (range: DashboardRange) => void;
 }
 
-export function FinlabBalanceStatCard({ data, formatAmount }: FinlabBalanceStatCardProps) {
+export function FinlabBalanceStatCard({
+  data,
+  formatAmount,
+  range,
+  onRangeChange,
+}: FinlabBalanceStatCardProps) {
   const option = useMemo(() => {
     if (!data.length) return null;
+    const sliceMap: Record<DashboardRange, number> = {
+      '7d': 7,
+      '30d': 12,
+      '90d': 13,
+    };
+    const chartData = data.slice(-sliceMap[range]);
 
     return {
       grid: { top: 30, right: 10, bottom: 20, left: 40 },
@@ -34,7 +48,7 @@ export function FinlabBalanceStatCard({ data, formatAmount }: FinlabBalanceStatC
       },
       xAxis: {
         type: 'category',
-        data: data.slice(-12).map(d => {
+        data: chartData.map(d => {
           const date = new Date(d.date);
           return date.toLocaleDateString('en-US', { month: 'short' });
         }),
@@ -60,7 +74,7 @@ export function FinlabBalanceStatCard({ data, formatAmount }: FinlabBalanceStatC
         {
           name: 'Income',
           type: 'bar',
-          data: data.slice(-12).map(d => d.income),
+          data: chartData.map(d => d.income),
           itemStyle: { color: '#a7f3d0' },
           barGap: '20%',
           barWidth: '25%',
@@ -68,14 +82,14 @@ export function FinlabBalanceStatCard({ data, formatAmount }: FinlabBalanceStatC
         {
           name: 'Expense',
           type: 'bar',
-          data: data.slice(-12).map(d => d.expense),
+          data: chartData.map(d => d.expense),
           itemStyle: { color: '#10b981' },
           barWidth: '25%',
         },
       ],
       animationDuration: 1000,
     };
-  }, [data, formatAmount]);
+  }, [data, formatAmount, range]);
 
   return (
     <div className="bg-white rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.04)] h-full border border-slate-100/50">
@@ -84,9 +98,7 @@ export function FinlabBalanceStatCard({ data, formatAmount }: FinlabBalanceStatC
           Balance Statistics
           <Info className="w-4 h-4 text-slate-400" />
         </div>
-        <button className="text-sm text-slate-400 font-medium flex items-center gap-1">
-          Monthly <span className="text-[10px]">▼</span>
-        </button>
+        <PeriodDropdown value={range} onChange={onRangeChange} />
       </div>
 
       <div className="h-[240px] w-full">

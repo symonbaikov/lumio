@@ -1,15 +1,15 @@
-import { Statement } from '@/entities/statement.entity';
 import { AuditAction, EntityType } from '@/entities/audit-event.entity';
+import { Statement } from '@/entities/statement.entity';
 import { Transaction, TransactionType } from '@/entities/transaction.entity';
 import { User, UserRole } from '@/entities/user.entity';
 import { WorkspaceMember, WorkspaceRole } from '@/entities/workspace-member.entity';
+import { AuditService } from '@/modules/audit/audit.service';
 import { TransactionsService } from '@/modules/transactions/transactions.service';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
-import { AuditService } from '@/modules/audit/audit.service';
 
 describe('TransactionsService', () => {
   let testingModule: TestingModule;

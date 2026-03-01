@@ -1,7 +1,7 @@
 import {
+  ActorType,
   AuditAction,
   AuditEvent,
-  ActorType,
   EntityType,
   Severity,
 } from '@/entities/audit-event.entity';

@@ -1,5 +1,5 @@
-import { Transaction } from '../../../src/entities/transaction.entity';
 import { ImportSession } from '../../../src/entities/import-session.entity';
+import { Transaction } from '../../../src/entities/transaction.entity';
 
 describe('Transaction Entity - Fingerprint Extensions', () => {
   it('should accept fingerprint field', () => {

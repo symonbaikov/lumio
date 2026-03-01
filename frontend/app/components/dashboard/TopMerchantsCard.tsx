@@ -6,14 +6,21 @@ import { Card, CardContent } from '../ui/card';
 interface TopMerchantsCardProps {
   merchants: NonNullable<DashboardData['topMerchants']>;
   formatAmount: (value: number) => string;
+  title?: string;
+  emptyLabel?: string;
 }
 
-export function TopMerchantsCard({ merchants, formatAmount }: TopMerchantsCardProps) {
+export function TopMerchantsCard({
+  merchants,
+  formatAmount,
+  title = 'Top Merchants',
+  emptyLabel = 'No merchants data',
+}: TopMerchantsCardProps) {
   if (!merchants.length) {
     return (
       <Card className="h-full rounded-3xl border border-slate-100 bg-white shadow-sm">
         <CardContent className="flex h-full items-center justify-center text-sm text-slate-400">
-          No merchants data
+          {emptyLabel}
         </CardContent>
       </Card>
     );
@@ -27,7 +34,7 @@ export function TopMerchantsCard({ merchants, formatAmount }: TopMerchantsCardPr
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Top Merchants
+              {title}
             </p>
             <p className="mt-1 text-sm text-slate-500">Spending distribution</p>
           </div>

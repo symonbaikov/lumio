@@ -64,7 +64,7 @@ export function NotificationDropdown({
     meta: Record<string, unknown> | null;
   }): string | null => {
     if (notification.type === 'receipt.uncategorized' && notification.entityId) {
-      return `/storage/gmail-receipts?receiptId=${notification.entityId}`;
+      return `/statements`;
     }
 
     if (
@@ -85,7 +85,7 @@ export function NotificationDropdown({
     }
 
     if (notification.entityType === 'receipt' && notification.entityId) {
-      return `/storage/gmail-receipts?receiptId=${notification.entityId}`;
+      return `/statements`;
     }
 
     if (notification.entityType === 'category') {

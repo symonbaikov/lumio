@@ -1,6 +1,6 @@
 import { TransactionType } from '@/entities/transaction.entity';
-import { ReportsService } from '@/modules/reports/reports.service';
 import { AuditService } from '@/modules/audit/audit.service';
+import { ReportsService } from '@/modules/reports/reports.service';
 
 const createQueryBuilderMock = (transactions: any[]) => {
   const queryBuilder = {

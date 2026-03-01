@@ -3,10 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { type Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
+  ActorType,
   AuditAction,
   AuditEvent,
   type AuditEventDiff,
-  ActorType,
   EntityType,
   Severity,
 } from '../../entities/audit-event.entity';

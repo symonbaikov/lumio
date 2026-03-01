@@ -1,15 +1,16 @@
-import { AuditAction, ActorType, EntityType } from '../../../../src/entities/audit-event.entity';
+import { ActorType, AuditAction, EntityType } from '../../../../src/entities/audit-event.entity';
 import { StatementStatus } from '../../../../src/entities/statement.entity';
 import { TransactionType } from '../../../../src/entities/transaction.entity';
 import { WorkspaceRole } from '../../../../src/entities/workspace-member.entity';
 import { DashboardService } from '../../../../src/modules/dashboard/dashboard.service';
 
-const createRepoMock = () => ({
-  count: jest.fn(),
-  find: jest.fn(),
-  findOne: jest.fn(),
-  createQueryBuilder: jest.fn(),
-} as any);
+const createRepoMock = () =>
+  ({
+    count: jest.fn(),
+    find: jest.fn(),
+    findOne: jest.fn(),
+    createQueryBuilder: jest.fn(),
+  }) as any;
 
 const createQueryBuilderMock = (result: unknown) => ({
   select: jest.fn().mockReturnThis(),
@@ -167,9 +168,7 @@ describe('DashboardService', () => {
   });
 
   it('getActions returns only non-zero action items', async () => {
-    statementRepo.count
-      .mockResolvedValueOnce(0)
-      .mockResolvedValueOnce(2);
+    statementRepo.count.mockResolvedValueOnce(0).mockResolvedValueOnce(2);
     payableRepo.count.mockResolvedValueOnce(0);
     const uncategorizedQb = createQueryBuilderMock(3);
     transactionRepo.createQueryBuilder.mockReturnValue(uncategorizedQb);
@@ -213,10 +212,7 @@ describe('DashboardService', () => {
     const result = await (service as any).getCashFlow('ws-1', new Date('2025-11-01'), 90);
 
     // Verify the query builder was called (weekly grouping used IYYY-IW format)
-    expect(cashFlowQb.select).toHaveBeenCalledWith(
-      expect.stringContaining('IYYY-IW'),
-      'date',
-    );
+    expect(cashFlowQb.select).toHaveBeenCalledWith(expect.stringContaining('IYYY-IW'), 'date');
     expect(result).toHaveLength(2);
   });
 

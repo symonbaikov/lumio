@@ -5,8 +5,8 @@ import {
   type WorkspaceMember,
   WorkspaceRole,
 } from '@/entities';
-import { TransactionsService } from '@/modules/transactions/transactions.service';
 import { AuditService } from '@/modules/audit/audit.service';
+import { TransactionsService } from '@/modules/transactions/transactions.service';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 

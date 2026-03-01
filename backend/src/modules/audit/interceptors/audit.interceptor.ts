@@ -9,9 +9,9 @@ import { Reflector } from '@nestjs/core';
 import type { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import {
+  ActorType,
   AuditAction,
   type AuditEventDiff,
-  ActorType,
   Severity,
 } from '../../../entities/audit-event.entity';
 import { AuditService } from '../audit.service';

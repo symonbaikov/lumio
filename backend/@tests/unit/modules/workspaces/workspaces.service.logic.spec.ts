@@ -235,7 +235,12 @@ describe('WorkspacesService', () => {
       workspaceRepository.save = jest.fn(async (data: any) => data);
       workspaceMemberRepository.save = jest.fn(async (data: any) => data);
 
-      const result = await service.updateMemberRole('w1', 'u-owner', 'u-target', WorkspaceRole.OWNER);
+      const result = await service.updateMemberRole(
+        'w1',
+        'u-owner',
+        'u-target',
+        WorkspaceRole.OWNER,
+      );
 
       expect(workspaceRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ ownerId: 'u-target' }),
@@ -246,9 +251,7 @@ describe('WorkspacesService', () => {
       expect(workspaceMemberRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ userId: 'u-target', role: WorkspaceRole.OWNER }),
       );
-      expect(result).toEqual(
-        expect.objectContaining({ role: WorkspaceRole.OWNER }),
-      );
+      expect(result).toEqual(expect.objectContaining({ role: WorkspaceRole.OWNER }));
     });
   });
 

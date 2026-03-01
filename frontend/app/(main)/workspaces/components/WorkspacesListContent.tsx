@@ -94,7 +94,7 @@ export default function WorkspacesListContent({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-primary/5 via-white to-primary/5 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <LoadingAnimation size="xl" />
           <p className="text-gray-600 dark:text-gray-400 mt-4">{content.loading}</p>
@@ -105,7 +105,7 @@ export default function WorkspacesListContent({
 
   return (
     <div
-      className={`h-[calc(100vh-var(--global-nav-height,0px))] bg-background dark:bg-background overflow-hidden ${
+      className={`h-[calc(100vh-var(--global-nav-height,0px))] overflow-hidden ${
         embedded ? 'pt-4' : ''
       }`}
     >

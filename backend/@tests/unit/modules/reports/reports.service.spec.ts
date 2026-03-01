@@ -1,7 +1,7 @@
 import type { CustomTableColumn } from '@/entities';
 import { CustomTableColumnType } from '@/entities/custom-table-column.entity';
-import { ReportsService } from '@/modules/reports/reports.service';
 import { AuditService } from '@/modules/audit/audit.service';
+import { ReportsService } from '@/modules/reports/reports.service';
 
 function createRepoMock() {
   return {} as any;
@@ -128,7 +128,9 @@ describe('ReportsService (helpers)', () => {
       addSelect: jest.fn().mockReturnThis(),
       groupBy: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
-      getRawMany: jest.fn(async () => [{ period: '2025-Q1', income: '100', expense: '40', count: '2' }]),
+      getRawMany: jest.fn(async () => [
+        { period: '2025-Q1', income: '100', expense: '40', count: '2' },
+      ]),
     };
     const transactionRepository = {
       createQueryBuilder: jest.fn(() => qb),
@@ -182,7 +184,9 @@ describe('ReportsService (helpers)', () => {
       addSelect: jest.fn().mockReturnThis(),
       groupBy: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
-      getRawMany: jest.fn(async () => [{ period: '2025', income: '250', expense: '150', count: '3' }]),
+      getRawMany: jest.fn(async () => [
+        { period: '2025', income: '250', expense: '150', count: '3' },
+      ]),
     };
     const transactionRepository = {
       createQueryBuilder: jest.fn(() => qb),

@@ -2081,7 +2081,7 @@ export function StoragePageContent({
               <div className="flex flex-wrap gap-2">
                 {/** View button disabled when Gmail not connected */}
                 <button
-                  onClick={() => router.push('/storage/gmail-receipts')}
+                  onClick={() => router.push('/statements')}
                   disabled={!(gmailStatus?.connected === true) || gmailLoading}
                   aria-disabled={!(gmailStatus?.connected === true) || gmailLoading}
                   className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${

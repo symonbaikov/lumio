@@ -24,6 +24,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { CustomTableTanStack } from './CustomTableTanStack';
+import { DeleteRowModal } from './components/DeleteRowModal';
 import { RowDrawer } from './components/RowDrawer';
 import { handleFullscreenEscapeNavigation } from './utils/fullscreenEscapeNavigation';
 import {
@@ -2904,7 +2905,7 @@ export default function CustomTableDetailPage() {
         isDestructive
       />
 
-      <ConfirmModal
+      <DeleteRowModal
         isOpen={deleteRowModalOpen}
         onClose={() => {
           setDeleteRowModalOpen(false);
@@ -2919,7 +2920,7 @@ export default function CustomTableDetailPage() {
         }
         confirmText={(t as any).deleteRow.confirm.value}
         cancelText={(t as any).deleteRow.cancel.value}
-        isDestructive
+        isLoading={false}
       />
     </div>
   );

@@ -1,14 +1,22 @@
 'use client';
 
-import type { DashboardRecentActivity } from '@/app/hooks/useDashboard';
+import type { DashboardRange, DashboardRecentActivity } from '@/app/hooks/useDashboard';
 import { CreditCard, FileText, Info, Upload } from 'lucide-react';
+import { PeriodDropdown } from './PeriodDropdown';
 
 interface FinlabTransactionCardProps {
   activities: DashboardRecentActivity[];
   formatAmount: (value: number) => string;
+  range: DashboardRange;
+  onRangeChange: (range: DashboardRange) => void;
 }
 
-export function FinlabTransactionCard({ activities, formatAmount }: FinlabTransactionCardProps) {
+export function FinlabTransactionCard({
+  activities,
+  formatAmount,
+  range,
+  onRangeChange,
+}: FinlabTransactionCardProps) {
   return (
     <div className="bg-white rounded-[32px] p-8 shadow-[0_2px_10px_rgba(0,0,0,0.04)] h-full border border-slate-100/50">
       <div className="flex items-center justify-between mb-8">
@@ -16,9 +24,7 @@ export function FinlabTransactionCard({ activities, formatAmount }: FinlabTransa
           Last Transaction
           <Info className="w-4 h-4 text-slate-400" />
         </div>
-        <button className="text-[13px] text-slate-400 font-medium flex items-center gap-1 hover:text-slate-600 transition-colors">
-          Monthly <span className="text-[10px]">▼</span>
-        </button>
+        <PeriodDropdown value={range} onChange={onRangeChange} />
       </div>
 
       {!activities.length ? (
@@ -76,11 +82,10 @@ export function FinlabTransactionCard({ activities, formatAmount }: FinlabTransa
                   <div className="w-24 text-right">
                     {amount !== null && amount !== undefined ? (
                       <span className="text-[16px] font-bold text-slate-800 block">
-                        {isPayment && amount > 0 ? '-' : ''}
                         {formatAmount(amount)}
                       </span>
                     ) : (
-                      <span className="text-[16px] font-bold text-slate-800 block">-</span>
+                      <span className="text-[16px] font-bold text-slate-800 block">—</span>
                     )}
                   </div>
 

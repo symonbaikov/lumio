@@ -34,9 +34,9 @@ import {
   GmailWatchSubscription,
   GoogleSheet,
   GoogleSheetRow,
+  Insight,
   Integration,
   IntegrationToken,
-  Insight,
   Notification,
   NotificationPreference,
   ParsingRule,
@@ -61,6 +61,7 @@ import { BranchesModule } from './modules/branches/branches.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ClassificationModule } from './modules/classification/classification.module';
 import { CustomTablesModule } from './modules/custom-tables/custom-tables.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DataEntryModule } from './modules/data-entry/data-entry.module';
 import { DropboxModule } from './modules/dropbox/dropbox.module';
 import { GmailModule } from './modules/gmail/gmail.module';
@@ -80,7 +81,6 @@ import { TransactionsModule } from './modules/transactions/transactions.module';
 import { UsersModule } from './modules/users/users.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
-import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [

@@ -12,6 +12,10 @@ import { Statement } from '../../../entities/statement.entity';
 import { Transaction } from '../../../entities/transaction.entity';
 import { User } from '../../../entities/user.entity';
 import { Workspace } from '../../../entities/workspace.entity';
+import type {
+  ImportCommittedEvent,
+  ImportFailedEvent,
+} from '../../notifications/events/notification-events';
 import { ParsedTransaction } from '../../parsing/interfaces/parsed-statement.interface';
 import {
   ConflictGroup,
@@ -27,10 +31,6 @@ import {
   classifyError,
 } from '../errors/import-errors';
 import { ImportRetryService } from './import-retry.service';
-import type {
-  ImportCommittedEvent,
-  ImportFailedEvent,
-} from '../../notifications/events/notification-events';
 
 /**
  * Result returned from processImport operation

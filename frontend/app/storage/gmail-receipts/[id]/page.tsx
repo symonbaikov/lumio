@@ -728,7 +728,7 @@ export default function GmailReceiptDocumentPage() {
           variant="filled"
           severity={readinessSeverity}
           sx={{
-            borderRadius: 0,
+            borderRadius: '0 !important',
             px: { xs: 2.5, sm: 4 },
             py: 0.75,
             minHeight: 42,

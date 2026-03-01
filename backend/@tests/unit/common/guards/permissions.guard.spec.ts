@@ -1,10 +1,10 @@
-import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import { type Permission, Permission as PermissionEnum } from '@/common/enums/permissions.enum';
+import { PermissionsGuard } from '@/common/guards/permissions.guard';
+import { UserRole } from '@/entities/user.entity';
+import { WorkspaceRole } from '@/entities/workspace-member.entity';
 import { type ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { UserRole } from '@/entities/user.entity';
-import { WorkspaceRole } from '@/entities/workspace-member.entity';
 
 describe('PermissionsGuard', () => {
   let testingModule: TestingModule;

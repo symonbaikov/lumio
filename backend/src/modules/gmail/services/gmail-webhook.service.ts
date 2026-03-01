@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
-import { ActorType, AuditAction, EntityType } from '../../../entities/audit-event.entity';
 import { Integration, IntegrationProvider } from '../../../entities';
+import { ActorType, AuditAction, EntityType } from '../../../entities/audit-event.entity';
 import { AuditService } from '../../audit/audit.service';
 import { GmailWatchService } from './gmail-watch.service';
 

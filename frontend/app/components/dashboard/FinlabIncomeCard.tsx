@@ -1,22 +1,30 @@
 'use client';
 
-import type { DashboardCashFlowPoint } from '@/app/hooks/useDashboard';
+import type { DashboardCashFlowPoint, DashboardRange } from '@/app/hooks/useDashboard';
 import { Info } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
+import { PeriodDropdown } from './PeriodDropdown';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 interface FinlabIncomeCardProps {
   data: DashboardCashFlowPoint[];
   formatAmount: (value: number) => string;
+  range: DashboardRange;
+  onRangeChange: (range: DashboardRange) => void;
 }
 
-export function FinlabIncomeCard({ data, formatAmount }: FinlabIncomeCardProps) {
-  const totalIncome = data.reduce((sum, p) => sum + p.income, 0);
+export function FinlabIncomeCard({
+  data,
+  formatAmount,
+  range,
+  onRangeChange,
+}: FinlabIncomeCardProps) {
+  const totalIncome = data.reduce((sum, p) => sum + (p.income ?? 0), 0);
   const mid = Math.floor(data.length / 2);
-  const prevIncome = data.slice(0, mid).reduce((sum, p) => sum + p.income, 0);
-  const currIncome = data.slice(mid).reduce((sum, p) => sum + p.income, 0);
+  const prevIncome = data.slice(0, mid).reduce((sum, p) => sum + (p.income ?? 0), 0);
+  const currIncome = data.slice(mid).reduce((sum, p) => sum + (p.income ?? 0), 0);
   let pct = 0;
   if (prevIncome > 0) {
     pct = ((currIncome - prevIncome) / prevIncome) * 100;
@@ -26,11 +34,17 @@ export function FinlabIncomeCard({ data, formatAmount }: FinlabIncomeCardProps) 
 
   const option = useMemo(() => {
     if (!data.length) return null;
+    const sliceMap: Record<DashboardRange, number> = {
+      '7d': 7,
+      '30d': 10,
+      '90d': 12,
+    };
+    const chartData = data.slice(-sliceMap[range]);
     return {
       grid: { top: 10, right: 0, bottom: 20, left: 0 },
       xAxis: {
         type: 'category',
-        data: data.slice(-5).map(d => {
+        data: chartData.map(d => {
           const date = new Date(d.date);
           return date.toLocaleDateString('en-US', { month: 'short' });
         }),
@@ -42,14 +56,14 @@ export function FinlabIncomeCard({ data, formatAmount }: FinlabIncomeCardProps) 
       series: [
         {
           type: 'bar',
-          data: data.slice(-5).map(d => d.income),
+          data: chartData.map(d => d.income),
           itemStyle: { color: '#f97316', borderRadius: [2, 2, 0, 0] },
           barWidth: '35%',
         },
       ],
       tooltip: { show: false },
     };
-  }, [data]);
+  }, [data, range]);
 
   return (
     <div className="bg-white rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.04)] h-full flex flex-col justify-between border border-slate-100/50">
@@ -78,9 +92,7 @@ export function FinlabIncomeCard({ data, formatAmount }: FinlabIncomeCardProps) 
 
       <div className="mt-6">
         <div className="flex justify-end mb-2">
-          <button className="text-xs text-slate-400 font-medium flex items-center gap-1">
-            Monthly <span className="text-[10px]">▼</span>
-          </button>
+          <PeriodDropdown value={range} onChange={onRangeChange} />
         </div>
         {option ? (
           <div className="h-[100px] w-full border-t border-slate-100/[0.6] pt-2">

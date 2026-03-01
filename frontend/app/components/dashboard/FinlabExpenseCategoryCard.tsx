@@ -1,15 +1,18 @@
 'use client';
 
-import type { DashboardData } from '@/app/hooks/useDashboard';
+import type { DashboardData, DashboardRange } from '@/app/hooks/useDashboard';
 import { Info } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
+import { PeriodDropdown } from './PeriodDropdown';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 interface FinlabExpenseCategoryCardProps {
   categories: NonNullable<DashboardData['topCategories']>;
   formatAmount: (value: number) => string;
+  range: DashboardRange;
+  onRangeChange: (range: DashboardRange) => void;
 }
 
 const COLORS = ['#3b82f6', '#f97316', '#ef4444', '#10b981', '#8b5cf6'];
@@ -17,6 +20,8 @@ const COLORS = ['#3b82f6', '#f97316', '#ef4444', '#10b981', '#8b5cf6'];
 export function FinlabExpenseCategoryCard({
   categories,
   formatAmount,
+  range,
+  onRangeChange,
 }: FinlabExpenseCategoryCardProps) {
   const total = useMemo(() => categories.reduce((sum, c) => sum + c.amount, 0) || 1, [categories]);
 
@@ -51,9 +56,7 @@ export function FinlabExpenseCategoryCard({
           Expense Category
           <Info className="w-4 h-4 text-slate-400" />
         </div>
-        <button className="text-sm text-slate-400 font-medium flex items-center gap-1">
-          Monthly <span className="text-[10px]">▼</span>
-        </button>
+        <PeriodDropdown value={range} onChange={onRangeChange} />
       </div>
 
       {!categories.length ? (
@@ -74,7 +77,10 @@ export function FinlabExpenseCategoryCard({
             {categories.slice(0, 4).map((cat, idx) => {
               const pct = ((cat.amount / total) * 100).toFixed(1);
               return (
-                <div key={idx} className="flex items-center justify-between gap-4">
+                <div
+                  key={cat.id ?? cat.name ?? `cat-${idx}`}
+                  className="flex items-center justify-between gap-4"
+                >
                   <div className="flex items-center gap-2 min-w-0">
                     <div
                       className="w-2.5 h-2.5 rounded-full shrink-0"

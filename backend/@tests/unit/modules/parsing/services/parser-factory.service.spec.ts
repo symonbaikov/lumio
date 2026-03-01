@@ -1,3 +1,4 @@
+import { extractTextFromPdf } from '@/common/utils/pdf-parser.util';
 import { BankName, FileType } from '@/entities/statement.entity';
 import { BerekeNewParser } from '@/modules/parsing/parsers/bereke-new.parser';
 import { BerekeOldParser } from '@/modules/parsing/parsers/bereke-old.parser';
@@ -6,7 +7,6 @@ import { ExcelParser } from '@/modules/parsing/parsers/excel.parser';
 import { GenericPdfParser } from '@/modules/parsing/parsers/generic-pdf.parser';
 import { KaspiParser } from '@/modules/parsing/parsers/kaspi.parser';
 import { ParserFactoryService } from '@/modules/parsing/services/parser-factory.service';
-import { extractTextFromPdf } from '@/common/utils/pdf-parser.util';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 jest.mock('@/common/utils/advanced-language-detector.util', () => ({

@@ -1,13 +1,13 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Category, GmailSettings, Receipt, Transaction, User } from '../../../../src/entities';
 import { GmailController } from '../../../../src/modules/gmail/gmail.controller';
+import { GmailMerchantReparseService } from '../../../../src/modules/gmail/services/gmail-merchant-reparse.service';
 import { GmailOAuthService } from '../../../../src/modules/gmail/services/gmail-oauth.service';
 import { GmailReceiptCategoryService } from '../../../../src/modules/gmail/services/gmail-receipt-category.service';
 import { GmailReceiptDuplicateService } from '../../../../src/modules/gmail/services/gmail-receipt-duplicate.service';
 import { GmailReceiptExportService } from '../../../../src/modules/gmail/services/gmail-receipt-export.service';
-import { GmailMerchantReparseService } from '../../../../src/modules/gmail/services/gmail-merchant-reparse.service';
 import { GmailSyncService } from '../../../../src/modules/gmail/services/gmail-sync.service';
 import { GmailWatchService } from '../../../../src/modules/gmail/services/gmail-watch.service';
 import { GmailService } from '../../../../src/modules/gmail/services/gmail.service';

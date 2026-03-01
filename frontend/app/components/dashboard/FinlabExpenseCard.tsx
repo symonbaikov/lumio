@@ -1,22 +1,30 @@
 'use client';
 
-import type { DashboardCashFlowPoint } from '@/app/hooks/useDashboard';
+import type { DashboardCashFlowPoint, DashboardRange } from '@/app/hooks/useDashboard';
 import { Info } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
+import { PeriodDropdown } from './PeriodDropdown';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 interface FinlabExpenseCardProps {
   data: DashboardCashFlowPoint[];
   formatAmount: (value: number) => string;
+  range: DashboardRange;
+  onRangeChange: (range: DashboardRange) => void;
 }
 
-export function FinlabExpenseCard({ data, formatAmount }: FinlabExpenseCardProps) {
-  const totalExpense = data.reduce((sum, p) => sum + p.expense, 0);
+export function FinlabExpenseCard({
+  data,
+  formatAmount,
+  range,
+  onRangeChange,
+}: FinlabExpenseCardProps) {
+  const totalExpense = data.reduce((sum, p) => sum + (p.expense ?? 0), 0);
   const mid = Math.floor(data.length / 2);
-  const prevExpense = data.slice(0, mid).reduce((sum, p) => sum + p.expense, 0);
-  const currExpense = data.slice(mid).reduce((sum, p) => sum + p.expense, 0);
+  const prevExpense = data.slice(0, mid).reduce((sum, p) => sum + (p.expense ?? 0), 0);
+  const currExpense = data.slice(mid).reduce((sum, p) => sum + (p.expense ?? 0), 0);
   let pct = 0;
   if (prevExpense > 0) {
     pct = ((currExpense - prevExpense) / prevExpense) * 100;
@@ -27,11 +35,17 @@ export function FinlabExpenseCard({ data, formatAmount }: FinlabExpenseCardProps
   // Finlab usually uses red/rose for expenses, but the ref image uses a blue line chart for Expense Analysis.
   const option = useMemo(() => {
     if (!data.length) return null;
+    const sliceMap: Record<DashboardRange, number> = {
+      '7d': 7,
+      '30d': 10,
+      '90d': 12,
+    };
+    const chartData = data.slice(-sliceMap[range]);
     return {
       grid: { top: 10, right: 10, bottom: 20, left: 10 },
       xAxis: {
         type: 'category',
-        data: data.slice(-5).map(d => ''),
+        data: chartData.map(() => ''),
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: { show: false },
@@ -41,7 +55,7 @@ export function FinlabExpenseCard({ data, formatAmount }: FinlabExpenseCardProps
         {
           type: 'line',
           smooth: true,
-          data: data.slice(-5).map(d => d.expense),
+          data: chartData.map(d => d.expense),
           itemStyle: { color: '#3b82f6' },
           lineStyle: { width: 3, color: '#3b82f6' },
           symbol: 'circle',
@@ -63,7 +77,7 @@ export function FinlabExpenseCard({ data, formatAmount }: FinlabExpenseCardProps
       ],
       tooltip: { show: false },
     };
-  }, [data]);
+  }, [data, range]);
 
   return (
     <div className="bg-white rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.04)] h-full flex flex-col justify-between border border-slate-100/50">
@@ -92,9 +106,7 @@ export function FinlabExpenseCard({ data, formatAmount }: FinlabExpenseCardProps
 
       <div className="mt-6">
         <div className="flex justify-center mb-2">
-          <button className="text-xs text-slate-400 font-medium flex items-center gap-1">
-            Monthly <span className="text-[10px]">▼</span>
-          </button>
+          <PeriodDropdown value={range} onChange={onRangeChange} />
         </div>
         {option ? (
           <div className="h-[100px] w-full">

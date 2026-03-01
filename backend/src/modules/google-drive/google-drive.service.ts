@@ -14,8 +14,8 @@ import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import {
   ActorType,
   AuditAction,
-  EntityType,
   DriveSettings,
+  EntityType,
   Integration,
   IntegrationProvider,
   IntegrationStatus,

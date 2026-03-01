@@ -85,15 +85,15 @@ export interface DashboardNotification {
   meta: Record<string, unknown> | null;
 }
 
-export function useDashboard(initialRange: DashboardRange = '30d') {
-  const [range, setRange] = useState<DashboardRange>(initialRange);
-  const [targetDate, setTargetDate] = useState<string | null>(null);
+export function useDashboard(controlledRange: DashboardRange = '30d', controlledDate?: string) {
+  const [range, setRange] = useState<DashboardRange>(controlledRange);
+  const [targetDate, setTargetDate] = useState<string | null>(controlledDate ?? null);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(
-    async (r: DashboardRange = range, date: string | null = null) => {
+    async (r: DashboardRange = range, date: string | null = targetDate) => {
       setLoading(true);
       setError(null);
 
@@ -112,8 +112,16 @@ export function useDashboard(initialRange: DashboardRange = '30d') {
         setLoading(false);
       }
     },
-    [range],
+    [range, targetDate],
   );
+
+  useEffect(() => {
+    setRange(controlledRange);
+  }, [controlledRange]);
+
+  useEffect(() => {
+    setTargetDate(controlledDate ?? null);
+  }, [controlledDate]);
 
   useEffect(() => {
     load(range, targetDate);

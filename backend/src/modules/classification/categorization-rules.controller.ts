@@ -22,8 +22,8 @@ import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.e
 import { CategorizationRule } from '../../entities/categorization-rule.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import type { User } from '../../entities/user.entity';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditService } from '../audit/audit.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateCategorizationRuleDto } from './dto/create-categorization-rule.dto';
 import { TestCategorizationRuleDto } from './dto/test-categorization-rule.dto';
 import { UpdateCategorizationRuleDto } from './dto/update-categorization-rule.dto';

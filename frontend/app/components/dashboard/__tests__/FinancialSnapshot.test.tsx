@@ -3,21 +3,12 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it } from 'vitest';
 import { FinancialSnapshot } from '../FinancialSnapshot';
+import { snapshotMock } from './__mocks__/snapshot';
 
 describe('FinancialSnapshot', () => {
   it('renders six snapshot cards with values', async () => {
     const container = document.createElement('div');
     const root = createRoot(container);
-
-    const snapshot = {
-      totalBalance: 1500,
-      income30d: 2400,
-      expense30d: 900,
-      netFlow30d: 1500,
-      totalPayable: 400,
-      totalOverdue: 120,
-      currency: 'KZT',
-    };
 
     const labels = {
       totalBalance: 'Total Balance',
@@ -31,7 +22,7 @@ describe('FinancialSnapshot', () => {
     await act(async () => {
       root.render(
         <FinancialSnapshot
-          snapshot={snapshot}
+          snapshot={snapshotMock}
           formatAmount={value => `${value}`}
           labels={labels}
         />,

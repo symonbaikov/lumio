@@ -3,11 +3,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FileStorageService } from '../../../../src/common/services/file-storage.service';
-import { AuditService } from '../../../../src/modules/audit/audit.service';
 import { Statement } from '../../../../src/entities/statement.entity';
 import { Transaction } from '../../../../src/entities/transaction.entity';
 import { User } from '../../../../src/entities/user.entity';
 import { WorkspaceMember } from '../../../../src/entities/workspace-member.entity';
+import { AuditService } from '../../../../src/modules/audit/audit.service';
 import { StatementProcessingService } from '../../../../src/modules/parsing/services/statement-processing.service';
 import { StatementsService } from '../../../../src/modules/statements/statements.service';
 

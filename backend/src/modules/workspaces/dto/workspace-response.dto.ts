@@ -1,6 +1,6 @@
 import {
-  WorkspaceRole,
   WorkspaceMemberPermissions,
+  WorkspaceRole,
 } from '../../../entities/workspace-member.entity';
 
 export class WorkspaceStatsDto {
