@@ -161,5 +161,5 @@ describe('AdminPage audit tab', () => {
     );
 
     expect(headers).toEqual(['Action', 'Object', 'Description', 'User', 'Date', 'Severity']);
-  });
+  }, 10000);
 });

@@ -2,14 +2,8 @@
 
 import { Card, CardContent } from '@/app/components/ui/card';
 import type { DashboardData, DashboardRange } from '@/app/hooks/useDashboard';
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  Banknote,
-  Clock,
-  TrendingUp,
-  Wallet,
-} from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Banknote, Clock, TrendingUp, Wallet } from 'lucide-react';
+import { Spinner } from '../ui/spinner';
 import { ActionRequired } from './ActionRequired';
 import { CashFlowMini } from './CashFlowMini';
 import { RecentActivity } from './RecentActivity';
@@ -19,9 +13,10 @@ interface OverviewTabProps {
   data: DashboardData;
   formatAmount: (value: number) => string;
   range: DashboardRange;
+  isLoading?: boolean;
 }
 
-export function OverviewTab({ data, formatAmount, range }: OverviewTabProps) {
+export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTabProps) {
   const mappedActions = (data.actions || []).map(a => {
     let priority: 'critical' | 'warning' | 'info' | 'success' = 'info';
     if (a.type === 'payments_overdue') priority = 'critical';
@@ -86,6 +81,7 @@ export function OverviewTab({ data, formatAmount, range }: OverviewTabProps) {
           actions={mappedActions}
           title="Action Required"
           emptyLabel="Everything looks good! No actions needed right now."
+          isLoading={isLoading}
         />
       </section>
 
@@ -114,8 +110,10 @@ export function OverviewTab({ data, formatAmount, range }: OverviewTabProps) {
                     </span>
                   </div>
                   <div>
-                    <span className={`text-xl font-bold font-ibm-plex-sans tracking-tight ${textColor}`}>
-                      {formatAmount(Math.abs(value))}
+                    <span
+                      className={`text-xl font-bold font-ibm-plex-sans tracking-tight ${textColor}`}
+                    >
+                      {isLoading ? <Spinner className="size-4" /> : formatAmount(Math.abs(value))}
                     </span>
                     {value < 0 && key !== 'expense30d' ? (
                       <span className="ml-1 text-xs text-rose-400">-</span>

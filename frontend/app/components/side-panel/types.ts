@@ -36,6 +36,7 @@ export interface NavigationItem {
   icon?: LucideIcon | ReactNode;
   badge?: string | number;
   badgeVariant?: 'default' | 'primary' | 'success' | 'warning' | 'error';
+  badgeLoading?: boolean;
   emphasis?: 'default' | 'high' | 'low';
   disabled?: boolean;
   active?: boolean;

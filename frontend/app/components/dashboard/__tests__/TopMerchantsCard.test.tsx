@@ -52,7 +52,7 @@ describe('TopMerchantsCard', () => {
     expect(container.querySelector('a')).toBeNull();
   });
 
-  it('renders links to statements filtered by counterparty', async () => {
+  it('does not render links for merchant rows', async () => {
     const container = document.createElement('div');
     const root = createRoot(container);
 
@@ -68,8 +68,6 @@ describe('TopMerchantsCard', () => {
     });
 
     const link = container.querySelector('a');
-    expect(link).not.toBeNull();
-    expect(link?.getAttribute('href')).toContain('counterparty=');
-    expect(link?.getAttribute('href')).toContain('Kaspi');
+    expect(link).toBeNull();
   });
 });

@@ -86,6 +86,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
     pay: 0,
     unapprovedCash: 0,
   });
+  const [countsLoading, setCountsLoading] = useState(true);
   const [topSenders, setTopSenders] = useState<TopBankSender[]>([]);
   const [topMerchantsCount, setTopMerchantsCount] = useState(0);
   const [topCategoriesCount, setTopCategoriesCount] = useState(0);
@@ -99,7 +100,10 @@ export default function StatementsSidePanel({ activeItem }: Props) {
     let isMounted = true;
 
     const loadStageCounts = async () => {
-      if (!user) return;
+      if (!user) {
+        setCountsLoading(false);
+        return;
+      }
 
       try {
         const allStatements: StatementListItem[] = [];
@@ -206,6 +210,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
           setTopSenders(topBankSenders);
           setTopMerchantsCount(uniqueMerchants.size);
           setTopCategoriesCount(topCategories.length);
+          setCountsLoading(false);
         }
       } catch {
         if (isMounted) {
@@ -213,10 +218,12 @@ export default function StatementsSidePanel({ activeItem }: Props) {
           setTopSenders([]);
           setTopMerchantsCount(0);
           setTopCategoriesCount(0);
+          setCountsLoading(false);
         }
       }
     };
 
+    setCountsLoading(true);
     loadStageCounts();
 
     return () => {
@@ -385,6 +392,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               label: (t as any)?.sidePanel?.submit?.value ?? 'Submit',
               icon: Send,
               badge: counts.submit,
+              badgeLoading: countsLoading,
               badgeVariant: getQueueBadgeVariant(counts.submit),
               emphasis: 'high',
               active: activeItem === 'submit',
@@ -395,6 +403,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               label: (t as any)?.sidePanel?.approve?.value ?? 'Approve',
               icon: ThumbsUp,
               badge: counts.approve,
+              badgeLoading: countsLoading,
               badgeVariant: getQueueBadgeVariant(counts.approve),
               emphasis: 'high',
               active: activeItem === 'approve',
@@ -405,6 +414,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               label: (t as any)?.sidePanel?.pay?.value ?? 'Pay',
               icon: Banknote,
               badge: counts.pay,
+              badgeLoading: countsLoading,
               badgeVariant: getQueueBadgeVariant(counts.pay),
               emphasis: 'high',
               active: activeItem === 'pay',
@@ -423,6 +433,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               label: (t as any)?.sidePanel?.unapprovedCash?.value ?? 'Unapproved cash',
               icon: <NearbyErrorIcon sx={{ fontSize: 20 }} />,
               badge: counts.unapprovedCash,
+              badgeLoading: countsLoading,
               badgeVariant: getQueueBadgeVariant(counts.unapprovedCash),
               emphasis: 'high',
               href: '/statements/unapproved-cash',
@@ -449,6 +460,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               label: (t as any)?.sidePanel?.topSpenders?.value ?? 'Top spenders',
               icon: User,
               badge: topSenders.length,
+              badgeLoading: countsLoading,
               badgeVariant: 'default',
               emphasis: 'low',
               href: '/statements/top-spenders',
@@ -459,6 +471,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               label: (t as any)?.sidePanel?.topMerchants?.value ?? 'Top merchants',
               icon: <PointOfSaleIcon sx={{ fontSize: 20 }} />,
               badge: topMerchantsCount,
+              badgeLoading: countsLoading,
               badgeVariant: 'default',
               emphasis: 'low',
               href: '/statements/top-merchants',
@@ -469,6 +482,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               label: (t as any)?.sidePanel?.topCategories?.value ?? 'Top categories',
               icon: Folder,
               badge: topCategoriesCount,
+              badgeLoading: countsLoading,
               badgeVariant: 'default',
               emphasis: 'low',
               href: '/statements/top-categories',

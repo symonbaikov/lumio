@@ -353,18 +353,21 @@ const GothicBuilding = ({ delay, duration, w = 160, h = 320, ...pos }: any) => (
           opacity: 0.4,
         }}
       >
-        {Array.from({ length: 6 }).map((_, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: visual
-          <div
-            key={i}
-            style={{
-              height: 40,
-              background: Math.random() > 0.3 ? 'white' : 'transparent',
-              borderTopLeftRadius: '20px',
-              borderTopRightRadius: '20px',
-            }}
-          />
-        ))}
+        {Array.from({ length: 6 }).map((_, i) => {
+          const windowKey = `window-${i}`;
+
+          return (
+            <div
+              key={windowKey}
+              style={{
+                height: 40,
+                background: Math.random() > 0.3 ? 'white' : 'transparent',
+                borderTopLeftRadius: '20px',
+                borderTopRightRadius: '20px',
+              }}
+            />
+          );
+        })}
       </div>
       <WindowGrid cols={5} rows={Math.floor((h - 100) / 25)} density={0.3} />
     </Block>

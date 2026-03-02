@@ -71,7 +71,7 @@ export default function StatementCategoryDrawer({
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <span className="text-lg font-semibold text-[#073b32]">{labels.title}</span>
+          <span className="text-lg font-semibold text-gray-900">{labels.title}</span>
         </div>
       }
     >
@@ -84,12 +84,12 @@ export default function StatementCategoryDrawer({
               value={searchQuery}
               onChange={event => setSearchQuery(event.target.value)}
               placeholder={labels.searchPlaceholder}
-              className="h-14 w-full rounded-2xl border border-emerald-400 bg-white pl-12 pr-4 text-base text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              className="h-14 w-full rounded-2xl border border-primary bg-white pl-12 pr-4 text-base text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </label>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto pb-24">
           <div className="divide-y divide-transparent">
             {showAllOption ? (
               <button
@@ -98,12 +98,12 @@ export default function StatementCategoryDrawer({
                 onClick={() => onSelect('')}
                 className={`flex w-full items-center justify-between px-4 py-5 text-left text-base font-semibold transition-colors ${
                   selectedCategoryId === ''
-                    ? 'bg-[#ede8e1] text-[#073b32]'
-                    : 'text-[#073b32] hover:bg-gray-50'
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-gray-900 hover:bg-gray-50'
                 }`}
               >
                 <span>{labels.allOption}</span>
-                {selectedCategoryId === '' ? <Check className="h-6 w-6 text-emerald-500" /> : null}
+                {selectedCategoryId === '' ? <Check className="h-6 w-6 text-primary" /> : null}
               </button>
             ) : null}
 
@@ -119,11 +119,11 @@ export default function StatementCategoryDrawer({
                     disabled={selecting}
                     onClick={() => onSelect(category.id)}
                     className={`flex w-full items-center justify-between px-4 py-5 text-left text-base font-semibold transition-colors ${
-                      isSelected ? 'bg-[#ede8e1] text-[#073b32]' : 'text-[#073b32] hover:bg-gray-50'
+                      isSelected ? 'bg-primary/10 text-primary' : 'text-gray-900 hover:bg-gray-50'
                     }`}
                   >
                     <span>{category.name}</span>
-                    {isSelected ? <Check className="h-6 w-6 text-emerald-500" /> : null}
+                    {isSelected ? <Check className="h-6 w-6 text-primary" /> : null}
                   </button>
                 );
               })

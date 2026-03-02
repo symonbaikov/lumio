@@ -48,6 +48,13 @@ vi.mock('@/app/hooks/useAuth', () => ({
   }),
 }));
 
+vi.mock('@/app/contexts/WorkspaceContext', () => ({
+  useWorkspace: () => ({
+    currentWorkspace: { id: 'workspace-1' },
+    loading: false,
+  }),
+}));
+
 vi.mock('next-intlayer', () => ({
   useIntlayer: () => i18nContent,
   useLocale: () => ({ locale: 'ru', setLocale: vi.fn() }),

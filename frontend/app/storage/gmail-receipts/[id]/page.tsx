@@ -1,10 +1,10 @@
 'use client';
 
+import StatementCategoryDrawer from '@/app/(main)/statements/[id]/edit/StatementCategoryDrawer';
 import { AuditEventDrawer } from '@/app/audit/components/AuditEventDrawer';
 import { EntityHistoryTimeline } from '@/app/audit/components/EntityHistoryTimeline';
 import { Checkbox } from '@/app/components/ui/checkbox';
-import { gmailReceiptsApi } from '@/app/lib/api';
-import apiClient from '@/app/lib/api';
+import apiClient, { gmailReceiptsApi } from '@/app/lib/api';
 import {
   getFinancialDocumentStatusLabel,
   isLowConfidenceDocument,
@@ -133,6 +133,11 @@ const parseAmountValue = (value?: number | string | null): number | null => {
 const isIdEmpty = (id?: string | null) =>
   !id || id === 'null' || id === 'undefined' || id === '0' || id === '';
 
+const buildGmailMessageLink = (gmailMessageId?: string | null) => {
+  if (!gmailMessageId) return null;
+  return `https://mail.google.com/mail/u/0/#inbox/${gmailMessageId}`;
+};
+
 export default function GmailReceiptDocumentPage() {
   const params = useParams<{ id: string }>();
   const receiptId = params.id;
@@ -156,6 +161,8 @@ export default function GmailReceiptDocumentPage() {
   const [editedRowData, setEditedRowData] = useState<Record<string, Partial<EditableLineItem>>>({});
   const [bulkCategoryDialogOpen, setBulkCategoryDialogOpen] = useState(false);
   const [bulkCategoryId, setBulkCategoryId] = useState('');
+  const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false);
+  const [categorySaving, setCategorySaving] = useState(false);
 
   const categoryFieldRef = useRef<HTMLSelectElement | null>(null);
 
@@ -267,6 +274,47 @@ export default function GmailReceiptDocumentPage() {
       toast.error('Failed to submit receipt');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCategorySelect = async (categoryId: string) => {
+    if (!receipt || categorySaving) return;
+
+    const selected = categories.find(c => c.id === categoryId);
+
+    try {
+      setCategorySaving(true);
+      await gmailReceiptsApi.updateReceiptParsedData(receipt.id, {
+        categoryId: categoryId || null,
+        category: selected?.name || null,
+      });
+
+      setEditedData(prev => ({
+        ...prev,
+        categoryId: categoryId || undefined,
+        category: selected?.name,
+      }));
+
+      setReceipt(prev =>
+        prev
+          ? {
+              ...prev,
+              parsedData: {
+                ...prev.parsedData,
+                categoryId: categoryId || undefined,
+                category: selected?.name,
+              },
+            }
+          : prev,
+      );
+
+      setCategoryDrawerOpen(false);
+      toast.success('Category updated');
+    } catch (error) {
+      console.error('Failed to update category', error);
+      toast.error('Failed to update category');
+    } finally {
+      setCategorySaving(false);
     }
   };
 
@@ -472,6 +520,7 @@ export default function GmailReceiptDocumentPage() {
   const readinessInlineText = `${readinessTitle}: ${readinessMessage}`;
 
   const enabledCategories = categories.filter(c => c.isEnabled !== false);
+  const gmailMessageLink = receipt ? buildGmailMessageLink(receipt.gmailMessageId) : null;
 
   if (loading) {
     return (
@@ -493,7 +542,7 @@ export default function GmailReceiptDocumentPage() {
           </Typography>
           <Button
             startIcon={<ArrowBack />}
-            onClick={() => router.push('/storage/gmail-receipts')}
+            onClick={() => router.push('/statements')}
             sx={{ mt: 2, textTransform: 'none' }}
           >
             Back to receipts
@@ -512,7 +561,7 @@ export default function GmailReceiptDocumentPage() {
       <Box sx={{ mb: 4 }}>
         <Button
           startIcon={<ArrowBack />}
-          onClick={() => router.push('/storage/gmail-receipts')}
+          onClick={() => router.push('/statements')}
           sx={{
             mb: 3,
             color: 'text.secondary',
@@ -599,7 +648,7 @@ export default function GmailReceiptDocumentPage() {
             <Button
               variant="outlined"
               startIcon={<Category />}
-              onClick={() => categoryFieldRef.current?.focus()}
+              onClick={() => setCategoryDrawerOpen(true)}
               title={selectedCategory?.name || 'Select category'}
               sx={{
                 textTransform: 'none',
@@ -711,6 +760,31 @@ export default function GmailReceiptDocumentPage() {
               }}
             >
               Export
+            </Button>
+
+            {/* Watch in Gmail */}
+            <Button
+              variant="outlined"
+              startIcon={<Receipt />}
+              component="a"
+              href={gmailMessageLink || undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              disabled={!gmailMessageLink}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                borderRadius: 2,
+                borderColor: 'grey.300',
+                color: gmailMessageLink ? 'text.secondary' : 'text.disabled',
+                '&:hover': {
+                  borderColor: 'primary.300',
+                  color: 'primary.700',
+                  bgcolor: 'primary.50',
+                },
+              }}
+            >
+              Watch in Gmail
             </Button>
           </Box>
         </Box>
@@ -1621,6 +1695,23 @@ export default function GmailReceiptDocumentPage() {
         event={selectedHistoryEvent}
         open={historyDrawerOpen}
         onClose={() => setHistoryDrawerOpen(false)}
+      />
+
+      <StatementCategoryDrawer
+        open={categoryDrawerOpen}
+        onClose={() => setCategoryDrawerOpen(false)}
+        categories={enabledCategories}
+        selectedCategoryId={selectedCategoryId}
+        selecting={categorySaving}
+        onSelect={handleCategorySelect}
+        labels={{
+          title: 'Category',
+          searchPlaceholder: 'Search categories',
+          allOption: 'Not selected',
+          noResults: 'No categories found',
+        }}
+        width="sm"
+        showAllOption
       />
 
       {/* Receipt preview modal */}

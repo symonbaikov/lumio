@@ -203,7 +203,14 @@ export class GmailReceiptParserService {
       const date = this.extractDate(text);
       const vendor = await this.extractVendorWithAi(text, context);
       const tax = this.extractTax(text);
-      const lineItems = await this.extractLineItems(text);
+      let lineItems = await this.extractLineItems(text);
+
+      if (amount !== undefined && amount > 0 && lineItems.length > 0) {
+        const lineItemsTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+        if (lineItemsTotal > amount * 2) {
+          lineItems = [];
+        }
+      }
 
       // Calculate subtotal if tax is found
       let subtotal: number | undefined;
@@ -460,6 +467,52 @@ export class GmailReceiptParserService {
     return false;
   }
 
+  private isDateRangeLike(value: string): boolean {
+    if (
+      /\d{4}[-/.]\d{2}[-/.]\d{2}\s*[-–]\s*\d{4}[-/.]\d{2}[-/.]\d{2}/.test(value)
+    ) {
+      return true;
+    }
+
+    if (
+      /\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}\s*[-–]\s*\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}/.test(
+        value,
+      )
+    ) {
+      return true;
+    }
+
+    if (
+      /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+\d{1,2},?\s*\d{4}\s*[-–]\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+\d{1,2}(?:,?\s*\d{4})?\b/i.test(
+        value,
+      )
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private isAddressLike(value: string): boolean {
+    if (/\b[A-Z]{2}\s*\d{5}(?:-\d{4})?\b/.test(value)) {
+      return true;
+    }
+
+    if (/,\s*[A-Z]{2}\b/.test(value) && /\b\d{5}(?:-\d{4})?\b/.test(value)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private isYearLikeAmount(amount: number, hasExplicitCurrency: boolean): boolean {
+    if (hasExplicitCurrency) {
+      return false;
+    }
+
+    return amount >= 1900 && amount <= 2099 && Number.isInteger(Math.round(amount));
+  }
+
   private extractTax(text: string): number | undefined {
     // Look for tax patterns
     const patterns = [
@@ -495,11 +548,21 @@ export class GmailReceiptParserService {
     );
 
     for (const line of lines) {
-      const match = line.trim().match(itemPattern);
+      const trimmedLine = line.trim();
+      if (!trimmedLine) {
+        continue;
+      }
+
+      if (this.hasTotalKeyword(trimmedLine)) {
+        continue;
+      }
+
+      const match = trimmedLine.match(itemPattern);
       if (match) {
         const description = match[1].trim();
         const parsedAmount = await this.parseAmountFragment(match[2]);
         const amount = parsedAmount?.amount;
+        const hasExplicitCurrency = Boolean(this.extractCurrency(match[2]));
 
         if (
           amount !== undefined &&
@@ -508,6 +571,22 @@ export class GmailReceiptParserService {
           description.length > 0 &&
           description.length < 200
         ) {
+          if (this.isLikelySentence(description)) {
+            continue;
+          }
+
+          if (this.isDateRangeLike(description)) {
+            continue;
+          }
+
+          if (this.isAddressLike(description)) {
+            continue;
+          }
+
+          if (this.isYearLikeAmount(amount, hasExplicitCurrency)) {
+            continue;
+          }
+
           lineItems.push({ description, amount });
         }
       }

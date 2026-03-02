@@ -51,7 +51,7 @@ export function FinlabExpenseCategoryCard({
 
   return (
     <div className="bg-white rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.04)] h-full border border-slate-100/50">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5 text-slate-800 font-bold text-base">
           Expense Category
           <Info className="w-4 h-4 text-slate-400" />
@@ -60,12 +60,12 @@ export function FinlabExpenseCategoryCard({
       </div>
 
       {!categories.length ? (
-        <div className="flex h-[200px] items-center justify-center text-sm text-slate-400">
+        <div className="flex h-[160px] items-center justify-center text-sm text-slate-400">
           No data available
         </div>
       ) : (
-        <div className="flex flex-col sm:flex-row items-center gap-8 mt-6">
-          <div className="relative w-[180px] h-[180px] shrink-0">
+        <div className="flex flex-col sm:flex-row items-center gap-6 mt-4">
+          <div className="relative w-[140px] h-[140px] shrink-0">
             {option && <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <span className="text-lg font-bold text-slate-800">100%</span>
@@ -73,7 +73,7 @@ export function FinlabExpenseCategoryCard({
             </div>
           </div>
 
-          <div className="flex-1 space-y-4 min-w-0 pr-4 w-full">
+          <div className="flex-1 space-y-3 min-w-0 pr-4 w-full">
             {categories.slice(0, 4).map((cat, idx) => {
               const pct = ((cat.amount / total) * 100).toFixed(1);
               return (

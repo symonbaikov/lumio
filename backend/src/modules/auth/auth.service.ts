@@ -23,6 +23,7 @@ import {
   WorkspaceMember,
   WorkspaceRole,
 } from '../../entities';
+import { CategoriesService } from '../categories/categories.service';
 import type { AuthResponseDto } from './dto/auth-response.dto';
 import type { GoogleLoginDto } from './dto/google-login.dto';
 import type { LoginDto } from './dto/login.dto';
@@ -67,6 +68,7 @@ export class AuthService {
     private workspaceMemberRepository: Repository<WorkspaceMember>,
     @InjectRepository(AuthSession)
     private authSessionRepository: Repository<AuthSession>,
+    private readonly categoriesService: CategoriesService,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
@@ -150,6 +152,8 @@ export class AuthService {
       role: WorkspaceRole.OWNER,
       invitedById: savedUser.id,
     });
+
+    await this.categoriesService.createSystemCategories(savedWorkspace.id, savedUser.id);
 
     return this.generateTokens(savedUser, sessionContext);
   }
@@ -300,6 +304,8 @@ export class AuthService {
         role: WorkspaceRole.OWNER,
         invitedById: savedUser.id,
       });
+
+      await this.categoriesService.createSystemCategories(savedWorkspace.id, savedUser.id);
 
       user = savedUser;
     } else {

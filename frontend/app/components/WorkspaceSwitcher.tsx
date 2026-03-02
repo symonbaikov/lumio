@@ -208,7 +208,6 @@ export function WorkspaceSwitcher() {
                   >
                     <div className="relative">
                       <input
-                        autoFocus
                         type="text"
                         value={newCatName}
                         onChange={e => setNewCatName(e.target.value)}

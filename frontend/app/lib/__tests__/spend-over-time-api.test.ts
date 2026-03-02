@@ -22,8 +22,10 @@ describe('spend over time api query builder', () => {
     const query = buildSpendOverTimeQuery(DEFAULT_STATEMENT_FILTERS, 'year');
 
     expect(query).toEqual({
-      type: 'expense',
+      type: 'all',
       groupBy: 'year',
+      dateFrom: expect.any(String),
+      dateTo: expect.any(String),
     });
   });
 });

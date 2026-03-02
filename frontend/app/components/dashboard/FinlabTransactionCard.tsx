@@ -1,25 +1,63 @@
 'use client';
 
-import type { DashboardRange, DashboardRecentActivity } from '@/app/hooks/useDashboard';
-import { CreditCard, FileText, Info, Upload } from 'lucide-react';
+import type { DashboardRange } from '@/app/hooks/useDashboard';
+import { gmailReceiptsApi } from '@/app/lib/api';
+import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
+import { Info } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { BrandLogoAvatar } from '../BrandLogoAvatar';
 import { PeriodDropdown } from './PeriodDropdown';
 
 interface FinlabTransactionCardProps {
-  activities: DashboardRecentActivity[];
   formatAmount: (value: number) => string;
   range: DashboardRange;
   onRangeChange: (range: DashboardRange) => void;
 }
 
 export function FinlabTransactionCard({
-  activities,
   formatAmount,
   range,
   onRangeChange,
 }: FinlabTransactionCardProps) {
+  interface GmailReceipt {
+    id: string;
+    sender: string;
+    subject: string;
+    receivedAt?: string | null;
+    status: string;
+    parsedData?: {
+      amount?: number | null;
+      vendor?: string | null;
+      currency?: string | null;
+    } | null;
+  }
+
+  const [receipts, setReceipts] = useState<GmailReceipt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadReceipts = async () => {
+      setIsLoading(true);
+      try {
+        const response = await gmailReceiptsApi.listReceipts({ limit: 5, hasAmount: true });
+        const nextReceipts = Array.isArray(response.data?.receipts)
+          ? response.data.receipts
+          : [];
+        setReceipts(nextReceipts);
+      } catch (error) {
+        console.error('Failed to load Gmail receipts:', error);
+        setReceipts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadReceipts();
+  }, [range]);
+
   return (
-    <div className="bg-white rounded-[32px] p-8 shadow-[0_2px_10px_rgba(0,0,0,0.04)] h-full border border-slate-100/50">
-      <div className="flex items-center justify-between mb-8">
+    <div className="bg-white rounded-[32px] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.04)] h-full flex flex-col border border-slate-100/50">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1.5 text-slate-800 font-bold text-[17px]">
           Last Transaction
           <Info className="w-4 h-4 text-slate-400" />
@@ -27,37 +65,38 @@ export function FinlabTransactionCard({
         <PeriodDropdown value={range} onChange={onRangeChange} />
       </div>
 
-      {!activities.length ? (
+      {isLoading ? (
         <div className="flex h-[200px] items-center justify-center text-sm text-slate-400">
-          No recent transactions
+          Loading...
+        </div>
+      ) : receipts.length === 0 ? (
+        <div className="flex h-[200px] items-center justify-center text-sm text-slate-400">
+          No receipts found
         </div>
       ) : (
-        <div className="space-y-6">
-          {activities.slice(0, 4).map(activity => {
-            const isPayment = activity.type === 'payment' || activity.type === 'transaction';
-            const amount = activity.amount;
+        <div className="space-y-3">
+          {receipts.slice(0, 5).map(receipt => {
+            const vendorLabel = resolveGmailMerchantLabel({
+              vendor: receipt.parsedData?.vendor,
+              sender: receipt.sender,
+              subject: receipt.subject,
+              fallback: 'Gmail receipt',
+            });
+            const amount = receipt.parsedData?.amount ?? null;
+            const isApproved = receipt.status === 'approved';
+            const receivedAt = receipt.receivedAt ? new Date(receipt.receivedAt) : null;
+            const hasValidReceivedAt = receivedAt instanceof Date && !Number.isNaN(receivedAt.valueOf());
 
             return (
-              <div
-                key={activity.id}
-                className="flex items-center justify-between group cursor-pointer"
-              >
+              <div key={receipt.id} className="flex items-center justify-between group">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-slate-50 border border-slate-100 group-hover:shadow-sm transition-all">
-                    {isPayment ? (
-                      <CreditCard className="w-5 h-5 text-indigo-500" />
-                    ) : activity.type === 'statement_upload' || activity.type === 'import' ? (
-                      <Upload className="w-5 h-5 text-sky-500" />
-                    ) : (
-                      <FileText className="w-5 h-5 text-rose-500" />
-                    )}
-                  </div>
+                  <BrandLogoAvatar sender={receipt.sender} vendorName={vendorLabel} size={48} />
                   <div>
                     <p className="text-[15px] font-bold text-slate-800 tracking-tight leading-tight">
-                      {activity.title}
+                      {vendorLabel}
                     </p>
-                    <p className="text-[13px] text-slate-400 font-medium mt-0.5 capitalize">
-                      {activity.type.replace('_', ' ')}
+                    <p className="text-[13px] text-slate-400 font-medium mt-0.5">
+                      Gmail receipt
                     </p>
                   </div>
                 </div>
@@ -65,33 +104,33 @@ export function FinlabTransactionCard({
                 <div className="flex items-center gap-10">
                   <div className="text-right hidden sm:block">
                     <p className="text-[14px] font-bold text-slate-800">
-                      {new Date(activity.timestamp).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
+                      {hasValidReceivedAt
+                        ? receivedAt?.toLocaleDateString('en-US', {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })
+                        : '—'}
                     </p>
                     <p className="text-[13px] text-slate-400 font-medium mt-0.5">
-                      {new Date(activity.timestamp).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {hasValidReceivedAt
+                        ? receivedAt?.toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '—'}
                     </p>
                   </div>
 
                   <div className="w-24 text-right">
-                    {amount !== null && amount !== undefined ? (
-                      <span className="text-[16px] font-bold text-slate-800 block">
-                        {formatAmount(amount)}
-                      </span>
-                    ) : (
-                      <span className="text-[16px] font-bold text-slate-800 block">—</span>
-                    )}
+                    <span className="text-[16px] font-bold text-slate-800 block">
+                      {amount == null ? '—' : formatAmount(amount)}
+                    </span>
                   </div>
 
                   <div className="w-[84px] text-right">
                     <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-lg text-[13px] font-bold bg-emerald-50 text-emerald-600">
-                      Success
+                      {isApproved ? 'Approved' : 'Success'}
                     </span>
                   </div>
                 </div>

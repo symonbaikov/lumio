@@ -1,10 +1,22 @@
-import { GmailReceiptParserService } from '../../../../src/modules/gmail/services/gmail-receipt-parser.service';
-import { UniversalAmountParser } from '../../../../src/modules/parsing/services/universal-amount-parser.service';
+jest.mock('pdf-parse', () => {
+  const mock = jest.fn();
+  (mock as any).__esModule = true;
+  return mock;
+});
+
+const { GmailReceiptParserService } =
+  require('../../../../src/modules/gmail/services/gmail-receipt-parser.service') as typeof import('../../../../src/modules/gmail/services/gmail-receipt-parser.service');
+const { UniversalAmountParser } =
+  require('../../../../src/modules/parsing/services/universal-amount-parser.service') as typeof import('../../../../src/modules/parsing/services/universal-amount-parser.service');
+const pdfParse = require('pdf-parse') as jest.MockedFunction<typeof import('pdf-parse')>;
 
 describe('GmailReceiptParserService', () => {
-  let service: GmailReceiptParserService;
+  let service: InstanceType<typeof GmailReceiptParserService>;
+  let pdfParseMock: jest.MockedFunction<typeof pdfParse>;
 
   beforeEach(() => {
+    pdfParseMock = pdfParse as jest.MockedFunction<typeof pdfParse>;
+    pdfParseMock.mockReset();
     service = new GmailReceiptParserService(new UniversalAmountParser());
   });
 
@@ -181,5 +193,74 @@ describe('GmailReceiptParserService', () => {
     const parsed = await (service as any).extractAmountWithCurrency('Celkem: 1 500,00 CZK');
 
     expect(parsed).toEqual({ amount: 1500, currency: 'CZK' });
+  });
+
+  describe('line item extraction filters', () => {
+    it('skips date-range-like descriptions', async () => {
+      const lineItems = await (service as any).extractLineItems(
+        'Feb 27, 2026-Mar 15,2026 202.00\nTotal 202.00',
+      );
+
+      expect(lineItems).toEqual([]);
+    });
+
+    it('skips address-like descriptions', async () => {
+      const lineItems = await (service as any).extractLineItems(
+        'San Francisco, CA 94107 941.00\nTotal 941.00',
+      );
+
+      expect(lineItems).toEqual([]);
+    });
+
+    it('skips sentence-like descriptions', async () => {
+      const lineItems = await (service as any).extractLineItems(
+        'Thanks for your purchase! 202.00\nTotal 202.00',
+      );
+
+      expect(lineItems).toEqual([]);
+    });
+
+    it('accepts a normal line item', async () => {
+      const lineItems = await (service as any).extractLineItems('GitHub Actions 10.00');
+
+      expect(lineItems).toEqual([{ description: 'GitHub Actions', amount: 10 }]);
+    });
+  });
+
+  it('drops line items when their sum dwarfs the total', async () => {
+    pdfParseMock.mockResolvedValue({
+      text: [
+        'GitHub',
+        'Line Item A 600.00',
+        'Line Item B 500.00',
+        'Total $10.00',
+      ].join('\n'),
+    } as any);
+
+    const parsed = await (service as any).parsePdfReceipt(Buffer.from(''), {
+      sender: 'GitHub <noreply@github.com>',
+    });
+
+    expect(parsed.amount).toBe(10);
+    expect(parsed.lineItems).toEqual([]);
+  });
+
+  it('keeps GitHub receipt date/address lines out of line items', async () => {
+    pdfParseMock.mockResolvedValue({
+      text: [
+        'GitHub',
+        'Thanks for your purchase',
+        'Feb 27, 2026 - Mar 15, 2026',
+        'San Francisco, CA 94107',
+        'Total: $17.61',
+      ].join('\n'),
+    } as any);
+
+    const parsed = await (service as any).parsePdfReceipt(Buffer.from(''), {
+      sender: 'GitHub <noreply@github.com>',
+    });
+
+    expect(parsed.amount).toBe(17.61);
+    expect(parsed.lineItems).toEqual([]);
   });
 });

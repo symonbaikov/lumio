@@ -15,17 +15,23 @@ const baseAction = {
 
 describe('ActionRequired', () => {
   it('shows empty state when no actions', () => {
-    render(<ActionRequired actions={[]} title="Action required" emptyLabel="All clear" />);
+    render(
+      <ActionRequired
+        actions={[]}
+        title="Action required"
+        emptyLabel="All clear"
+        isLoading={false}
+      />,
+    );
     expect(screen.getByText('All clear')).toBeInTheDocument();
   });
 
-  it('renders actions with CTA and priority badge', () => {
+  it('renders actions with priority badge', () => {
     render(
       <ActionRequired actions={[baseAction]} title="Action required" emptyLabel="All clear" />,
     );
 
     expect(screen.getByText('Transactions uncategorized')).toBeInTheDocument();
-    expect(screen.getByText('Categorize')).toBeInTheDocument();
     expect(screen.getByText('info')).toBeInTheDocument();
   });
 });

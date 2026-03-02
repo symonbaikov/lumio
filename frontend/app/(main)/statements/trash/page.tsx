@@ -5,7 +5,7 @@ import TrashListView from '../components/TrashListView';
 import TrashSidePanel from '../components/TrashSidePanel';
 
 export default function StatementsTrashPage() {
-  const [trashCount, setTrashCount] = useState(0);
+  const [trashCount, setTrashCount] = useState<number | null>(null);
 
   return (
     <>

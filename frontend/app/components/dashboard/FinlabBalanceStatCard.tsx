@@ -92,7 +92,7 @@ export function FinlabBalanceStatCard({
   }, [data, formatAmount, range]);
 
   return (
-    <div className="bg-white rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.04)] h-full border border-slate-100/50">
+    <div className="bg-white rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.04)] h-full flex flex-col border border-slate-100/50">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-1.5 text-slate-800 font-bold text-base">
           Balance Statistics
@@ -101,7 +101,7 @@ export function FinlabBalanceStatCard({
         <PeriodDropdown value={range} onChange={onRangeChange} />
       </div>
 
-      <div className="h-[240px] w-full">
+      <div className="h-[160px] w-full">
         {option ? (
           <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
         ) : (

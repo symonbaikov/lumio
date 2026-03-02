@@ -6,7 +6,7 @@ import { useIntlayer } from 'next-intlayer';
 import { useMemo } from 'react';
 
 type Props = {
-  trashCount: number;
+  trashCount: number | null;
 };
 
 export default function TrashSidePanel({ trashCount }: Props) {
@@ -29,7 +29,8 @@ export default function TrashSidePanel({ trashCount }: Props) {
               id: 'trash',
               label: trashTitle,
               icon: Trash2,
-              badge: trashCount,
+              badge: trashCount ?? 0,
+              badgeLoading: trashCount === null,
               badgeVariant: 'default',
               active: true,
               href: '/statements/trash',

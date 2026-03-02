@@ -3,9 +3,9 @@
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
+import { Spinner } from '@/app/components/ui/spinner';
 import apiClient from '@/app/lib/api';
 import { AlertTriangle, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import DuplicateGroupCard from './components/DuplicateGroupCard';
 
@@ -33,7 +33,6 @@ interface DuplicatesResponse {
 }
 
 export default function TransactionDuplicatesPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [detecting, setDetecting] = useState(false);
   const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
@@ -118,14 +117,6 @@ export default function TransactionDuplicatesPage() {
     loadDuplicates();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Header */}
@@ -175,16 +166,24 @@ export default function TransactionDuplicatesPage() {
             <div className="flex items-center gap-6">
               <div>
                 <p className="text-sm text-muted-foreground">Total Groups</p>
-                <p className="text-2xl font-bold">{duplicateGroups.length}</p>
+                <p className="text-2xl font-bold">
+                  {loading ? <Spinner className="size-4" /> : duplicateGroups.length}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Selected</p>
-                <p className="text-2xl font-bold">{selectedGroups.size}</p>
+                <p className="text-2xl font-bold">
+                  {loading ? <Spinner className="size-4" /> : selectedGroups.size}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Duplicates</p>
                 <p className="text-2xl font-bold">
-                  {duplicateGroups.reduce((sum, g) => sum + g.duplicates.length, 0)}
+                  {loading ? (
+                    <Spinner className="size-4" />
+                  ) : (
+                    duplicateGroups.reduce((sum, g) => sum + g.duplicates.length, 0)
+                  )}
                 </p>
               </div>
             </div>
@@ -211,7 +210,12 @@ export default function TransactionDuplicatesPage() {
       </div>
 
       {/* Duplicate Groups */}
-      {duplicateGroups.length === 0 ? (
+      {loading ? (
+        <Card className="p-12 text-center">
+          <Spinner className="size-6 text-primary" />
+          <h3 className="mt-4 text-sm font-medium text-muted-foreground">Loading duplicates...</h3>
+        </Card>
+      ) : duplicateGroups.length === 0 ? (
         <Card className="p-12 text-center">
           <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500" />
           <h3 className="text-xl font-semibold mb-2">No Duplicates Found</h3>

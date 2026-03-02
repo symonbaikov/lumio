@@ -29,6 +29,7 @@ import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { AppPagination } from '@/app/components/ui/pagination';
+import { Spinner } from '@/app/components/ui/spinner';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
@@ -1794,16 +1795,17 @@ export default function StatementsListView({ stage }: Props) {
               resetLabel={filterOptionLabels.reset}
             />
 
-            {duplicateStatementIds.length > 0 ? (
+            {loading || duplicateStatementIds.length > 0 ? (
               <button
                 type="button"
                 className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-[13px] font-medium text-orange-700 transition-colors hover:border-orange-300 hover:bg-orange-100"
                 onClick={handleSelectDetectedDuplicates}
+                disabled={loading || duplicateStatementIds.length === 0}
               >
                 <Copy className="h-3.5 w-3.5" />
                 {selectDuplicatesLabel}
                 <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[11px] font-semibold text-orange-700">
-                  {duplicateStatementIds.length}
+                  {loading ? <Spinner className="size-3" /> : duplicateStatementIds.length}
                 </span>
               </button>
             ) : null}

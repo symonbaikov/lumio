@@ -68,6 +68,14 @@ const SUBTOTAL_PATTERNS = [
   /промежуточный\s*итог[:\s]+(\d+[\s,.]?\d*)/i,
 ];
 
+const MONTH_DATE_RANGE_REGEX =
+  /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+\d{1,2},?\s*\d{4}\s*[-–]\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+\d{1,2}(?:,?\s*\d{4})?\b/i;
+
+const DATE_RANGE_REGEX =
+  /\d{4}[-/.]\d{2}[-/.]\d{2}\s*[-–]\s*\d{4}[-/.]\d{2}[-/.]\d{2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}\s*[-–]\s*\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}/;
+
+const ADDRESS_LIKE_REGEX = /\b[A-Z]{2}\s*\d{5}(?:-\d{4})?\b/;
+
 @Injectable()
 export class UniversalExtractorService {
   private readonly logger = new Logger(UniversalExtractorService.name);
@@ -478,6 +486,7 @@ export class UniversalExtractorService {
 
       const description = match[1].trim();
       const amount = await this.parseAmountFragment(match[2]);
+      const hasExplicitCurrency = Boolean(this.extractCurrency(match[2]));
       if (
         amount?.amount !== undefined &&
         Number.isFinite(amount.amount) &&
@@ -485,6 +494,22 @@ export class UniversalExtractorService {
         description.length > 0 &&
         description.length < 200
       ) {
+        if (this.isLikelySentence(description)) {
+          continue;
+        }
+
+        if (this.isDateRangeLike(description)) {
+          continue;
+        }
+
+        if (this.isAddressLike(description)) {
+          continue;
+        }
+
+        if (this.isYearLikeAmount(amount.amount, hasExplicitCurrency)) {
+          continue;
+        }
+
         lineItems.push({
           description,
           amount: amount.amount,
@@ -650,5 +675,56 @@ export class UniversalExtractorService {
       fieldConfidence: {},
       validationIssues: [],
     };
+  }
+
+  private isLikelySentence(value: string): boolean {
+    const lower = value.toLowerCase();
+    const words = lower.split(/\s+/).filter(Boolean);
+
+    if (words.length >= 6) {
+      return true;
+    }
+
+    if (/^(we|your|thanks?|dear|hello|hi)\b/.test(lower)) {
+      return true;
+    }
+
+    if (/[.!?]/.test(value) && words.length >= 4) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private isDateRangeLike(value: string): boolean {
+    if (DATE_RANGE_REGEX.test(value)) {
+      return true;
+    }
+
+    if (MONTH_DATE_RANGE_REGEX.test(value)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private isAddressLike(value: string): boolean {
+    if (ADDRESS_LIKE_REGEX.test(value)) {
+      return true;
+    }
+
+    if (/,\s*[A-Z]{2}\b/.test(value) && /\b\d{5}(?:-\d{4})?\b/.test(value)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private isYearLikeAmount(amount: number, hasExplicitCurrency: boolean): boolean {
+    if (hasExplicitCurrency) {
+      return false;
+    }
+
+    return amount >= 1900 && amount <= 2099 && Number.isInteger(Math.round(amount));
   }
 }

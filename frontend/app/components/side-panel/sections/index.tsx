@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import React, { isValidElement, useMemo } from 'react';
+import { Spinner } from '../../ui/spinner';
 import { useSidePanel } from '../SidePanelContext';
 import {
   ACTION_VARIANTS,
@@ -167,7 +168,7 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
               BADGE_VARIANTS[item.badgeVariant || 'default'],
             )}
           >
-            {item.badge}
+            {item.badgeLoading ? <Spinner className="size-3" /> : item.badge}
           </span>
         )}
         {hasChildren && (

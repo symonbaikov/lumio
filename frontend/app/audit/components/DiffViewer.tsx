@@ -23,18 +23,22 @@ export function DiffViewer({ diff }: { diff: AuditEventDiff | null }) {
   if (Array.isArray(diff)) {
     return (
       <div className="space-y-2">
-        {diff.map((op, idx) => (
-          <div key={idx} className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm">
-            <div className="font-semibold text-gray-800">
-              {op.op.toUpperCase()} {op.path}
+        {diff.map((op, idx) => {
+          const key = `${op.op}-${op.path}-${idx}`;
+
+          return (
+            <div key={key} className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm">
+              <div className="font-semibold text-gray-800">
+                {op.op.toUpperCase()} {op.path}
+              </div>
+              {op.value !== undefined && (
+                <pre className="mt-2 whitespace-pre-wrap text-xs text-gray-600">
+                  {formatValue(op.value)}
+                </pre>
+              )}
             </div>
-            {op.value !== undefined && (
-              <pre className="mt-2 whitespace-pre-wrap text-xs text-gray-600">
-                {formatValue(op.value)}
-              </pre>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   }

@@ -43,7 +43,8 @@ export default function DashboardPage() {
     return '';
   };
   const isMobile = useIsMobile();
-  const { data, loading, error, refresh, range, changeRange, targetDate, changeTargetDate } = useDashboard('30d');
+  const { data, loading, error, refresh, range, changeRange, targetDate, changeTargetDate } =
+    useDashboard('30d');
   const [activeTab, setActiveTab] = useState<'overview' | 'transaction' | 'statistics'>('overview');
 
   const needsOnboarding = user?.onboardingCompletedAt == null;
@@ -297,23 +298,48 @@ export default function DashboardPage() {
         {/* Finlab White Content Body */}
         {data ? (
           <div className="bg-[#f4f7f9] w-full px-8 py-8 flex-1 rounded-bl-3xl lg:rounded-bl-[40px] rounded-br-3xl lg:rounded-br-[40px] lg:rounded-b-none pb-12 lg:pb-8">
-            {activeTab === 'overview' && <OverviewTab data={data} formatAmount={formatAmount} range={range} />}
+            {activeTab === 'overview' && (
+              <OverviewTab
+                data={data}
+                formatAmount={formatAmount}
+                range={range}
+                isLoading={loading}
+              />
+            )}
 
             {activeTab === 'statistics' && (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 w-full">
+              <div
+                className="grid grid-cols-1 gap-4 lg:grid-cols-12 w-full"
+                style={{ height: 'calc(100vh - 220px)' }}
+              >
                 {/* Row 1: Income, Expense, Balance Stats */}
-                <div className="lg:col-span-3 min-h-[280px]">
-                  <FinlabIncomeCard data={data.cashFlow} formatAmount={formatAmount} range={range} onRangeChange={changeRange} />
+                <div className="lg:col-span-3 flex flex-col h-full">
+                  <FinlabIncomeCard
+                    data={data.cashFlow}
+                    formatAmount={formatAmount}
+                    range={range}
+                    onRangeChange={changeRange}
+                  />
                 </div>
-                <div className="lg:col-span-3 min-h-[280px]">
-                  <FinlabExpenseCard data={data.cashFlow} formatAmount={formatAmount} range={range} onRangeChange={changeRange} />
+                <div className="lg:col-span-3 flex flex-col h-full">
+                  <FinlabExpenseCard
+                    data={data.cashFlow}
+                    formatAmount={formatAmount}
+                    range={range}
+                    onRangeChange={changeRange}
+                  />
                 </div>
-                <div className="lg:col-span-6 min-h-[280px]">
-                  <FinlabBalanceStatCard data={data.cashFlow} formatAmount={formatAmount} range={range} onRangeChange={changeRange} />
+                <div className="lg:col-span-6 flex flex-col h-full">
+                  <FinlabBalanceStatCard
+                    data={data.cashFlow}
+                    formatAmount={formatAmount}
+                    range={range}
+                    onRangeChange={changeRange}
+                  />
                 </div>
 
                 {/* Row 2: Expense Category, Last Transaction */}
-                <div className="lg:col-span-4 min-h-[380px]">
+                <div className="lg:col-span-4 flex flex-col h-full">
                   <FinlabExpenseCategoryCard
                     categories={data.topCategories}
                     formatAmount={formatAmount}
@@ -321,9 +347,8 @@ export default function DashboardPage() {
                     onRangeChange={changeRange}
                   />
                 </div>
-                <div className="lg:col-span-8 min-h-[380px]">
+                <div className="lg:col-span-8 flex flex-col h-full">
                   <FinlabTransactionCard
-                    activities={data.recentActivity}
                     formatAmount={formatAmount}
                     range={range}
                     onRangeChange={changeRange}

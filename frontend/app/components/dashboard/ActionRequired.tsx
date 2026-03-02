@@ -1,6 +1,7 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Card, CardContent } from '@/app/components/ui/card';
+import { Spinner } from '@/app/components/ui/spinner';
 import type { DashboardActionItem } from '@/app/hooks/useDashboard';
 import { ArrowUpRight, CircleAlert, FileText, Receipt, ShieldAlert, Tag } from 'lucide-react';
 import Link from 'next/link';
@@ -18,6 +19,7 @@ interface ActionRequiredProps {
   >;
   title: string;
   emptyLabel: string;
+  isLoading?: boolean;
 }
 
 const iconMap: Record<string, React.ElementType> = {
@@ -28,8 +30,8 @@ const iconMap: Record<string, React.ElementType> = {
   receipts_pending_review: Receipt,
 };
 
-export function ActionRequired({ actions, title, emptyLabel }: ActionRequiredProps) {
-  if (actions.length === 0) {
+export function ActionRequired({ actions, title, emptyLabel, isLoading }: ActionRequiredProps) {
+  if (!isLoading && actions.length === 0) {
     return (
       <Card className="border-emerald-200 bg-emerald-50 shadow-sm dark:border-emerald-400/40 dark:bg-emerald-500/10">
         <CardContent className="flex items-center gap-2 p-4 text-sm text-emerald-800 dark:text-emerald-100">
@@ -67,7 +69,7 @@ export function ActionRequired({ actions, title, emptyLabel }: ActionRequiredPro
               <div className="flex flex-col min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[18px] font-[600] tracking-tight leading-none text-slate-900 font-ibm-plex-sans">
-                    {action.count}
+                    {isLoading ? <Spinner className="size-4" /> : action.count}
                   </span>
                   <span
                     className={`${subtleBadge} ${tone.bg} ${tone.text} bg-white ring-1 ring-inset ${tone.ring} rounded-full px-2 py-[2px] text-[10px] font-bold tracking-wide uppercase`}

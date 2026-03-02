@@ -5,6 +5,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu';
+import { Spinner } from '@/app/components/ui/spinner';
 import { useNotifications } from '@/app/hooks/useNotifications';
 import { cn } from '@/app/lib/utils';
 import { NotificationsNone } from '@mui/icons-material';
@@ -64,7 +65,7 @@ export function NotificationDropdown({
     meta: Record<string, unknown> | null;
   }): string | null => {
     if (notification.type === 'receipt.uncategorized' && notification.entityId) {
-      return `/statements`;
+      return `/storage/gmail-receipts/${notification.entityId}`;
     }
 
     if (
@@ -131,7 +132,11 @@ export function NotificationDropdown({
           aria-label={t.aria.notifications.value}
         >
           <NotificationsNone sx={{ fontSize: iconSize }} />
-          {unreadCount > 0 ? (
+          {loading ? (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 rounded-full bg-[#ff4d4f] text-white text-[11px] font-bold leading-none flex items-center justify-center border-2 border-[#1a2130]">
+              <Spinner className="size-3 text-white" />
+            </span>
+          ) : unreadCount > 0 ? (
             <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 rounded-full bg-[#ff4d4f] text-white text-[11px] font-bold leading-none flex items-center justify-center border-2 border-[#1a2130]">
               {unreadLabel}
             </span>

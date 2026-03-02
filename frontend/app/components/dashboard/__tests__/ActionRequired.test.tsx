@@ -28,7 +28,12 @@ describe('ActionRequired', () => {
 
     await act(async () => {
       root.render(
-        <ActionRequired actions={actions} title="Action Required" emptyLabel="All clear" />,
+        <ActionRequired
+          actions={actions}
+          title="Action Required"
+          emptyLabel="All clear"
+          isLoading={false}
+        />,
       );
     });
 
@@ -36,7 +41,6 @@ describe('ActionRequired', () => {
     expect(links).toHaveLength(2);
     expect(links[0].getAttribute('href')).toBe('/statements/submit');
     expect(links[1].getAttribute('href')).toBe('/statements/pay');
-    expect(container.textContent).toContain('Action Required');
     expect(container.textContent).toContain('3 statements pending submit');
     expect(container.textContent).toContain('2 payments overdue');
   });
@@ -46,7 +50,14 @@ describe('ActionRequired', () => {
     const root = createRoot(container);
 
     await act(async () => {
-      root.render(<ActionRequired actions={[]} title="Action Required" emptyLabel="All clear" />);
+      root.render(
+        <ActionRequired
+          actions={[]}
+          title="Action Required"
+          emptyLabel="All clear"
+          isLoading={false}
+        />,
+      );
     });
 
     expect(container.textContent).toContain('All clear');
