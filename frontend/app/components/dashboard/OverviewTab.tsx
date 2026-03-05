@@ -29,6 +29,16 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
     return { ...a, priority };
   });
 
+  if (data.dataHealth?.parsingWarnings > 0) {
+    mappedActions.push({
+      type: 'parsing_warnings',
+      count: data.dataHealth.parsingWarnings,
+      label: 'Parsing issues found',
+      href: '/statements?filter=has_errors',
+      priority: 'warning' as const,
+    });
+  }
+
   const rangeLabel = range === '7d' ? '7d' : range === '90d' ? '90d' : '30d';
 
   const snapshotCards = [

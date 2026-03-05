@@ -3,7 +3,7 @@
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Spinner } from '@/app/components/ui/spinner';
 import type { DashboardActionItem } from '@/app/hooks/useDashboard';
-import { ArrowUpRight, CircleAlert, FileText, Receipt, ShieldAlert, Tag } from 'lucide-react';
+import { ArrowUpRight, CircleAlert, FileText, Receipt, ShieldAlert, Tag, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { cardShell, priorityTone, subtleBadge } from './common';
 
@@ -28,6 +28,7 @@ const iconMap: Record<string, React.ElementType> = {
   payments_overdue: CircleAlert,
   transactions_uncategorized: Tag,
   receipts_pending_review: Receipt,
+  parsing_warnings: TriangleAlert,
 };
 
 export function ActionRequired({ actions, title, emptyLabel, isLoading }: ActionRequiredProps) {
@@ -43,7 +44,7 @@ export function ActionRequired({ actions, title, emptyLabel, isLoading }: Action
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 h-full">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2 h-full">
       {actions.map(action => {
         const Icon = iconMap[action.type] ?? FileText;
         const priority: ActionPriority = action.priority ?? 'info';
@@ -53,11 +54,11 @@ export function ActionRequired({ actions, title, emptyLabel, isLoading }: Action
           <Link
             key={action.type}
             href={action.href}
-            className={`group flex items-center justify-between gap-4 rounded-[12px] border border-slate-100 bg-white px-4 py-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-10px_rgba(2,132,199,0.30)]`}
+            className={`group flex items-center justify-between gap-4 rounded-[12px] border border-slate-100 bg-white px-5 py-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-10px_rgba(2,132,199,0.30)]`}
           >
             <div className="flex items-center gap-3 w-full">
               <span
-                className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tone.bg} ${tone.text} shadow-sm ring-1 ring-inset ring-black/5`}
+                className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${tone.bg} ${tone.text} shadow-sm ring-1 ring-inset ring-black/5`}
               >
                 <Icon className="h-4 w-4" />
                 {priority === 'critical' ? (
@@ -68,7 +69,7 @@ export function ActionRequired({ actions, title, emptyLabel, isLoading }: Action
               </span>
               <div className="flex flex-col min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[18px] font-[600] tracking-tight leading-none text-slate-900 font-ibm-plex-sans">
+                  <span className="text-[22px] font-[600] tracking-tight leading-none text-slate-900 font-ibm-plex-sans">
                     {isLoading ? <Spinner className="size-4" /> : action.count}
                   </span>
                   <span
@@ -78,7 +79,7 @@ export function ActionRequired({ actions, title, emptyLabel, isLoading }: Action
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
-                  <span className="text-[13px] font-[500] text-slate-700 truncate">
+                  <span className="text-[14px] font-[500] text-slate-700 truncate">
                     {action.label}
                   </span>
                   {action.periodLabel ? (
