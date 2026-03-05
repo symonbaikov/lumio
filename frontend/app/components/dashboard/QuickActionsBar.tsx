@@ -13,7 +13,7 @@ export function QuickActionsBar({ reviewCount }: QuickActionsBarProps) {
     { key: 'upload', label: 'Upload / Parse', href: '/statements/submit', icon: FileUp },
     {
       key: 'review',
-      label: `Review queue${reviewCount ? ` (${reviewCount})` : ''}`,
+      label: reviewCount !== undefined ? `Review queue (${reviewCount})` : 'Review queue',
       href: '/statements?filter=needs_review',
       icon: ListChecks,
     },
