@@ -9,7 +9,7 @@ interface TrendsTabProps {
   isLoading?: boolean;
 }
 
-export function TrendsTab({ data, formatAmount, range, isLoading }: TrendsTabProps) {
+export function TrendsTab(_props: TrendsTabProps) {
   return (
     <div className="flex flex-col gap-6 w-full">
       <p className="text-slate-400 text-sm">Trends tab — coming next</p>

@@ -9,7 +9,7 @@ interface DataHealthTabProps {
   isLoading?: boolean;
 }
 
-export function DataHealthTab({ data, formatAmount, range, isLoading }: DataHealthTabProps) {
+export function DataHealthTab(_props: DataHealthTabProps) {
   return (
     <div className="flex flex-col gap-6 w-full">
       <p className="text-slate-400 text-sm">Data Health tab — coming next</p>
