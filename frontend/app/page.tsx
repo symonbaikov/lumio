@@ -7,18 +7,15 @@ import { Tab, Tabs } from '@mui/material';
 import { RefreshCcw } from 'lucide-react';
 import { useIntlayer, useLocale } from 'next-intlayer';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FinlabBalanceStatCard } from './components/dashboard/FinlabBalanceStatCard';
-import { FinlabExpenseCard } from './components/dashboard/FinlabExpenseCard';
-import { FinlabExpenseCategoryCard } from './components/dashboard/FinlabExpenseCategoryCard';
-import { FinlabIncomeCard } from './components/dashboard/FinlabIncomeCard';
-import { FinlabTransactionCard } from './components/dashboard/FinlabTransactionCard';
+import { useCallback, useEffect, useState } from 'react';
+import { DataHealthTab } from './components/dashboard/DataHealthTab';
 import { OverviewTab } from './components/dashboard/OverviewTab';
-import { TransactionTab } from './components/dashboard/TransactionTab';
+import { QuickActionsBar } from './components/dashboard/QuickActionsBar';
+import { TrendsTab } from './components/dashboard/TrendsTab';
 import { Card, CardContent } from './components/ui/card';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { useAuth } from './hooks/useAuth';
-import { type DashboardRange, useDashboard } from './hooks/useDashboard';
+import { useDashboard } from './hooks/useDashboard';
 import { useIsMobile } from './hooks/useIsMobile';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 
@@ -43,9 +40,9 @@ export default function DashboardPage() {
     return '';
   };
   const isMobile = useIsMobile();
-  const { data, loading, error, refresh, range, changeRange, targetDate, changeTargetDate } =
+  const { data, loading, error, refresh, range, targetDate, changeTargetDate } =
     useDashboard('30d');
-  const [activeTab, setActiveTab] = useState<'overview' | 'transaction' | 'statistics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'trends' | 'data-health'>('overview');
 
   const needsOnboarding = user?.onboardingCompletedAt == null;
 
@@ -86,34 +83,8 @@ export default function DashboardPage() {
     [locale, data?.snapshot?.currency],
   );
 
-  const rangeLabels: Record<DashboardRange, string> = useMemo(
-    () => ({
-      '7d': text(t.range?.['7d']),
-      '30d': text(t.range?.['30d']),
-      '90d': text(t.range?.['90d']),
-    }),
-    [t],
-  );
-
   const isRedirecting =
     authLoading || workspaceLoading || !user || needsOnboarding || !currentWorkspace;
-  const hasSnapshotData = Boolean(
-    data &&
-      (data.snapshot.totalBalance !== 0 ||
-        data.snapshot.income30d !== 0 ||
-        data.snapshot.expense30d !== 0 ||
-        data.snapshot.netFlow30d !== 0 ||
-        data.snapshot.totalPayable !== 0 ||
-        data.snapshot.totalOverdue !== 0),
-  );
-  const topActions = (data?.actions ?? []).slice(0, 4);
-  const hasActions = topActions.length > 0;
-  const hasCashFlow = (data?.cashFlow?.length ?? 0) > 0;
-  const hasTopMerchants = (data?.topMerchants?.length ?? 0) > 0;
-  const hasTopCategories = (data?.topCategories?.length ?? 0) > 0;
-  const topRecentActivity = (data?.recentActivity ?? []).slice(0, 6);
-  const hasRecentActivity = topRecentActivity.length > 0;
-  const topGridCols = hasTopMerchants && hasTopCategories ? 'lg:grid-cols-2' : 'lg:grid-cols-1';
 
   if (isRedirecting) {
     return (
@@ -218,8 +189,8 @@ export default function DashboardPage() {
                     }}
                   />
                   <Tab
-                    value="transaction"
-                    label="Transaction"
+                    value="trends"
+                    label="Trends"
                     disableRipple
                     sx={{
                       textTransform: 'none',
@@ -232,8 +203,8 @@ export default function DashboardPage() {
                     }}
                   />
                   <Tab
-                    value="statistics"
-                    label="Statistics"
+                    value="data-health"
+                    label="Data Health"
                     disableRipple
                     sx={{
                       textTransform: 'none',
@@ -298,6 +269,19 @@ export default function DashboardPage() {
         {/* Finlab White Content Body */}
         {data ? (
           <div className="bg-[#f4f7f9] w-full px-8 py-8 flex-1 rounded-bl-3xl lg:rounded-bl-[40px] rounded-br-3xl lg:rounded-br-[40px] lg:rounded-b-none pb-12 lg:pb-8">
+            {/* Persistent Quick Actions Bar */}
+            <div className="mb-6">
+              <QuickActionsBar
+                reviewCount={
+                  data.actions
+                    ?.filter(a =>
+                      ['statements_pending_review', 'receipts_pending_review'].includes(a.type),
+                    )
+                    .reduce((sum, a) => sum + a.count, 0) || 0
+                }
+              />
+            </div>
+
             {activeTab === 'overview' && (
               <OverviewTab
                 data={data}
@@ -307,60 +291,22 @@ export default function DashboardPage() {
               />
             )}
 
-            {activeTab === 'statistics' && (
-              <div
-                className="grid grid-cols-1 gap-4 lg:grid-cols-12 w-full"
-                style={{ height: 'calc(100vh - 220px)' }}
-              >
-                {/* Row 1: Income, Expense, Balance Stats */}
-                <div className="lg:col-span-3 flex flex-col h-full">
-                  <FinlabIncomeCard
-                    data={data.cashFlow}
-                    formatAmount={formatAmount}
-                    range={range}
-                    onRangeChange={changeRange}
-                  />
-                </div>
-                <div className="lg:col-span-3 flex flex-col h-full">
-                  <FinlabExpenseCard
-                    data={data.cashFlow}
-                    formatAmount={formatAmount}
-                    range={range}
-                    onRangeChange={changeRange}
-                  />
-                </div>
-                <div className="lg:col-span-6 flex flex-col h-full">
-                  <FinlabBalanceStatCard
-                    data={data.cashFlow}
-                    formatAmount={formatAmount}
-                    range={range}
-                    onRangeChange={changeRange}
-                  />
-                </div>
-
-                {/* Row 2: Expense Category, Last Transaction */}
-                <div className="lg:col-span-4 flex flex-col h-full">
-                  <FinlabExpenseCategoryCard
-                    categories={data.topCategories}
-                    formatAmount={formatAmount}
-                    range={range}
-                    onRangeChange={changeRange}
-                  />
-                </div>
-                <div className="lg:col-span-8 flex flex-col h-full">
-                  <FinlabTransactionCard
-                    formatAmount={formatAmount}
-                    range={range}
-                    onRangeChange={changeRange}
-                  />
-                </div>
-              </div>
+            {activeTab === 'trends' && (
+              <TrendsTab
+                data={data}
+                formatAmount={formatAmount}
+                range={range}
+                isLoading={loading}
+              />
             )}
 
-            {activeTab === 'transaction' && (
-              <div className="w-full">
-                <TransactionTab />
-              </div>
+            {activeTab === 'data-health' && (
+              <DataHealthTab
+                data={data}
+                formatAmount={formatAmount}
+                range={range}
+                isLoading={loading}
+              />
             )}
           </div>
         ) : null}
