@@ -61,6 +61,15 @@ export interface DashboardTopMerchant {
   count: number;
 }
 
+export interface DashboardDataHealth {
+  uncategorizedTransactions: number;
+  statementsWithErrors: number;
+  statementsPendingReview: number;
+  unapprovedCash: number;
+  lastUploadDate: string | null;
+  parsingWarnings: number;
+}
+
 export interface DashboardData {
   snapshot: DashboardFinancialSnapshot;
   actions: DashboardActionItem[];
@@ -70,6 +79,7 @@ export interface DashboardData {
   recentActivity: DashboardRecentActivity[];
   role: 'owner' | 'admin' | 'member' | 'viewer';
   range: DashboardRange;
+  dataHealth: DashboardDataHealth;
 }
 
 export interface DashboardNotification {

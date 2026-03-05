@@ -50,6 +50,15 @@ export interface DashboardTopCategory {
   count: number;
 }
 
+export interface DashboardDataHealth {
+  uncategorizedTransactions: number;
+  statementsWithErrors: number;
+  statementsPendingReview: number;
+  unapprovedCash: number;
+  lastUploadDate: string | null;
+  parsingWarnings: number;
+}
+
 export interface DashboardResponse {
   snapshot: DashboardFinancialSnapshot;
   actions: DashboardActionItem[];
@@ -59,4 +68,5 @@ export interface DashboardResponse {
   recentActivity: DashboardRecentActivity[];
   role: 'owner' | 'admin' | 'member' | 'viewer';
   range: '7d' | '30d' | '90d';
+  dataHealth: DashboardDataHealth;
 }

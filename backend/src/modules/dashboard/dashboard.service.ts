@@ -11,6 +11,7 @@ import { Workspace } from '../../entities/workspace.entity';
 import type {
   DashboardActionItem,
   DashboardCashFlowPoint,
+  DashboardDataHealth,
   DashboardFinancialSnapshot,
   DashboardRecentActivity,
   DashboardResponse,
@@ -54,7 +55,7 @@ export class DashboardService {
     // Set since to start of day
     since.setHours(0, 0, 0, 0);
 
-    const [snapshot, actions, cashFlow, topMerchants, topCategories, recentActivity, memberRole] =
+    const [snapshot, actions, cashFlow, topMerchants, topCategories, recentActivity, memberRole, dataHealth] =
       await Promise.all([
         this.getSnapshot(workspaceId, since, endDate),
         this.getActions(userId, workspaceId),
@@ -63,6 +64,7 @@ export class DashboardService {
         this.getTopCategories(workspaceId, since, endDate),
         this.getRecentActivity(workspaceId),
         this.getMemberRole(userId, workspaceId),
+        this.getDataHealth(workspaceId),
       ]);
 
     return {
@@ -74,6 +76,7 @@ export class DashboardService {
       recentActivity,
       role: memberRole,
       range,
+      dataHealth,
     };
   }
 
@@ -467,5 +470,76 @@ export class DashboardService {
     });
 
     return (member?.role as 'owner' | 'admin' | 'member' | 'viewer') || 'member';
+  }
+
+  private async getDataHealth(workspaceId: string): Promise<DashboardDataHealth> {
+    const [
+      uncategorizedTransactions,
+      statementsWithErrors,
+      statementsPendingReview,
+      parsingWarnings,
+      latestStatement,
+      unapprovedCashResult,
+    ] = await Promise.all([
+      // uncategorized transactions (non-duplicate)
+      this.transactionRepo
+        .createQueryBuilder('t')
+        .innerJoin('t.statement', 's')
+        .where('s.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('t.categoryId IS NULL')
+        .andWhere('s.deletedAt IS NULL')
+        .andWhere('t.isDuplicate = false')
+        .getCount(),
+      // statements with errors
+      this.statementRepo.count({
+        where: { workspaceId, status: StatementStatus.ERROR, deletedAt: IsNull() },
+      }),
+      // statements pending review: parsed or validated
+      this.statementRepo.count({
+        where: {
+          workspaceId,
+          status: In([StatementStatus.PARSED, StatementStatus.VALIDATED]),
+          deletedAt: IsNull(),
+        },
+      }),
+      // parsing warnings: still processing or uploaded
+      this.statementRepo.count({
+        where: {
+          workspaceId,
+          status: In([StatementStatus.PROCESSING, StatementStatus.UPLOADED]),
+          deletedAt: IsNull(),
+        },
+      }),
+      // latest statement upload date
+      this.statementRepo.findOne({
+        where: { workspaceId, deletedAt: IsNull() },
+        order: { createdAt: 'DESC' },
+        select: ['createdAt'],
+      }),
+      // unapproved cash
+      this.transactionRepo
+        .createQueryBuilder('t')
+        .innerJoin('t.statement', 's')
+        .select(
+          'COALESCE(SUM(CASE WHEN t.transactionType = :income THEN t.credit ELSE -t.debit END), 0)',
+          'unapprovedCash',
+        )
+        .where('s.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('s.status IN (:...unapprovedStatuses)', {
+          unapprovedStatuses: [StatementStatus.UPLOADED, StatementStatus.PARSED, StatementStatus.VALIDATED],
+        })
+        .andWhere('s.deletedAt IS NULL')
+        .setParameter('income', TransactionType.INCOME)
+        .getRawOne<{ unapprovedCash: string }>(),
+    ]);
+
+    return {
+      uncategorizedTransactions,
+      statementsWithErrors,
+      statementsPendingReview,
+      unapprovedCash: Number.parseFloat(unapprovedCashResult?.unapprovedCash ?? '') || 0,
+      lastUploadDate: latestStatement?.createdAt?.toISOString() ?? null,
+      parsingWarnings,
+    };
   }
 }
