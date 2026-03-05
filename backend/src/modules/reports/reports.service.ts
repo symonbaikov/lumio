@@ -15,6 +15,7 @@ import {
 } from '../../entities/custom-table-column.entity';
 import { CustomTableRow } from '../../entities/custom-table-row.entity';
 import { CustomTable } from '../../entities/custom-table.entity';
+import { ReportHistory } from '../../entities/report-history.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { Wallet } from '../../entities/wallet.entity';
@@ -22,6 +23,7 @@ import { AuditService } from '../audit/audit.service';
 import { type CustomReportDto, ReportGroupBy } from './dto/custom-report.dto';
 import type { CustomTablesSummaryDto } from './dto/custom-tables-summary.dto';
 import { ExportFormat, type ExportReportDto } from './dto/export-report.dto';
+import type { GenerateReportDto } from './dto/generate-report.dto';
 import type { SpendOverTimeQueryDto } from './dto/spend-over-time-query.dto';
 import type { TopCategoriesQueryDto } from './dto/top-categories-query.dto';
 import type { CustomReport, CustomReportGroup } from './interfaces/custom-report.interface';
@@ -223,6 +225,8 @@ export class ReportsService {
     private readonly userRepository: Repository<User>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly auditService: AuditService,
+    @InjectRepository(ReportHistory)
+    private readonly reportHistoryRepo: Repository<ReportHistory>,
   ) {}
 
   private async getReportsVersion(userId: string): Promise<string> {
@@ -1667,5 +1671,39 @@ export class ReportsService {
         avgPerPeriod,
       },
     };
+  }
+
+  async generateFromTemplate(
+    userId: string,
+    dto: GenerateReportDto,
+  ): Promise<{ filePath: string; fileName: string; contentType: string }> {
+    switch (dto.templateId) {
+      case 'pnl':
+        throw new BadRequestException('P&L generator not yet implemented');
+      case 'cash-flow':
+        throw new BadRequestException('Cash Flow generator not yet implemented');
+      case 'expense-by-category':
+        throw new BadRequestException('Expense by Category generator not yet implemented');
+      default:
+        throw new BadRequestException(`Unknown template: ${dto.templateId}`);
+    }
+  }
+
+  async getReportHistory(userId: string): Promise<ReportHistory[]> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'workspaceId'],
+    });
+
+    if (!user?.workspaceId) {
+      return [];
+    }
+
+    return this.reportHistoryRepo.find({
+      where: { workspaceId: user.workspaceId },
+      order: { generatedAt: 'DESC' },
+      take: 50,
+      relations: ['user'],
+    });
   }
 }

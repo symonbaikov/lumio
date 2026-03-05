@@ -22,6 +22,7 @@ describe('ReportsService (helpers)', () => {
       createRepoMock() as any,
       { get: jest.fn(), set: jest.fn() } as any,
       { createEvent: jest.fn() } as AuditService,
+      createRepoMock() as any,
     );
   });
 
@@ -93,6 +94,7 @@ describe('ReportsService (helpers)', () => {
       createRepoMock() as any,
       { get: jest.fn(), set: jest.fn() } as any,
       { createEvent: jest.fn() } as AuditService,
+      createRepoMock() as any,
     );
 
     const result = await (localService as any).getSpendOverTimeReport('u1', {
@@ -146,6 +148,7 @@ describe('ReportsService (helpers)', () => {
       createRepoMock() as any,
       { get: jest.fn(), set: jest.fn() } as any,
       { createEvent: jest.fn() } as AuditService,
+      createRepoMock() as any,
     );
 
     const result = await (localService as any).getSpendOverTimeReport('u1', {
@@ -202,6 +205,7 @@ describe('ReportsService (helpers)', () => {
       createRepoMock() as any,
       { get: jest.fn(), set: jest.fn() } as any,
       { createEvent: jest.fn() } as AuditService,
+      createRepoMock() as any,
     );
 
     const result = await (localService as any).getSpendOverTimeReport('u1', {

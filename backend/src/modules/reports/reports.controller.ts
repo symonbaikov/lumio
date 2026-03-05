@@ -23,6 +23,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { type CustomReportDto, ReportFormat } from './dto/custom-report.dto';
 import { CustomTablesSummaryDto } from './dto/custom-tables-summary.dto';
 import { ExportFormat, type ExportReportDto } from './dto/export-report.dto';
+import { GenerateReportDto } from './dto/generate-report.dto';
 import { SpendOverTimeQueryDto } from './dto/spend-over-time-query.dto';
 import { TopCategoriesQueryDto } from './dto/top-categories-query.dto';
 import { ReportsService } from './reports.service';
@@ -144,6 +145,32 @@ export class ReportsController {
     fileStream.on('end', () => {
       fs.unlinkSync(filePath);
     });
+  }
+
+  @Post('generate')
+  @UseGuards(PermissionsGuard)
+  @RequirePermission(Permission.REPORT_EXPORT)
+  async generateReport(
+    @CurrentUser() user: User,
+    @Body() dto: GenerateReportDto,
+    @Res() res: Response,
+  ) {
+    const { filePath, fileName, contentType } = await this.reportsService.generateFromTemplate(
+      user.id,
+      dto,
+    );
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', buildContentDisposition('attachment', fileName));
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+    fileStream.on('end', () => fs.unlinkSync(filePath));
+  }
+
+  @Get('history')
+  @UseGuards(PermissionsGuard)
+  @RequirePermission(Permission.REPORT_VIEW)
+  async getHistory(@CurrentUser() user: User) {
+    return this.reportsService.getReportHistory(user.id);
   }
 
   @Get('latest')

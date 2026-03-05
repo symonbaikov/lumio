@@ -42,3 +42,4 @@ export * from './balance-snapshot.entity';
 export * from './auth-session.entity';
 export * from './tax-rate.entity';
 export * from './payable.entity';
+export * from './report-history.entity';
