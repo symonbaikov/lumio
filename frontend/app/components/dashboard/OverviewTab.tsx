@@ -2,7 +2,8 @@
 
 import { Card, CardContent } from '@/app/components/ui/card';
 import type { DashboardData, DashboardRange } from '@/app/hooks/useDashboard';
-import { ArrowDownRight, ArrowUpRight, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, FileUp, TrendingUp, Wallet } from 'lucide-react';
+import Link from 'next/link';
 import { Spinner } from '../ui/spinner';
 import { ActionRequired } from './ActionRequired';
 import { CashFlowMini } from './CashFlowMini';
@@ -39,6 +40,12 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
     });
   }
 
+  const hasNoData =
+    data.cashFlow.length === 0 &&
+    mappedActions.length === 0 &&
+    data.recentActivity.length === 0 &&
+    data.snapshot.totalBalance === 0;
+
   const rangeLabel = range === '7d' ? '7d' : range === '90d' ? '90d' : '30d';
 
   const snapshotCards = [
@@ -67,6 +74,30 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
       colorClass: (v: number) => (v >= 0 ? 'text-emerald-600' : 'text-rose-600'),
     },
   ];
+
+  if (hasNoData) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-[12px] bg-sky-50 mb-6">
+          <FileUp className="h-10 w-10 text-sky-500" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 mb-2">
+          Upload your first statement
+        </h2>
+        <p className="text-sm text-slate-500 max-w-md mb-8">
+          Start tracking your finances by uploading a bank statement.
+          We&apos;ll parse it automatically and show your cash flow, categories, and insights.
+        </p>
+        <Link
+          href="/statements/submit"
+          className="inline-flex items-center gap-2 rounded-[12px] bg-[#0a66c2] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#004182]"
+        >
+          <FileUp className="h-4 w-4" />
+          Parse statement
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 w-full">
