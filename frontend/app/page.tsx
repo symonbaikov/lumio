@@ -268,7 +268,7 @@ export default function DashboardPage() {
 
         {/* Finlab White Content Body */}
         {data ? (
-          <div className="bg-[#f4f7f9] w-full px-8 py-8 flex-1 rounded-bl-3xl lg:rounded-bl-[40px] rounded-br-3xl lg:rounded-br-[40px] lg:rounded-b-none pb-12 lg:pb-8">
+          <div className="bg-background w-full px-8 py-8 flex-1 rounded-bl-3xl lg:rounded-bl-[40px] rounded-br-3xl lg:rounded-br-[40px] lg:rounded-b-none pb-12 lg:pb-8">
             {/* Persistent Quick Actions Bar */}
             <div className="mb-6">
               <QuickActionsBar

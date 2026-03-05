@@ -18,7 +18,7 @@
 }
 
 :root {
-  --background: #f6f9fd;
+  --background: #fbfaf8;
   --foreground: #0f172a;
   --radius: 0.5rem;
   --radius-sm: 0.5rem;
@@ -142,9 +142,6 @@
 
 body {
   background-color: var(--background);
-  background-image: radial-gradient(1200px 600px at -10% -20%, var(--surface-glow), transparent 55%),
-    radial-gradient(1000px 500px at 110% -30%, var(--surface-success-glow), transparent 58%);
-  background-attachment: fixed;
   color: var(--foreground);
   font-family:
     var(--font-manrope),

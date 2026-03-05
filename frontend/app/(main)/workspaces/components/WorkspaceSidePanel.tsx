@@ -28,7 +28,7 @@ export default function WorkspaceSidePanel({
         {
           id: 'workspace-tabs',
           type: 'navigation',
-          className: 'rounded-2xl border border-gray-100 bg-[#f7f9fb] px-1 pt-1',
+          className: 'rounded-2xl border border-gray-100 bg-white px-1 pt-1',
           items: tabItems.map(item => ({
             ...item,
             icon: item.id === 'overview' ? Building2 : item.id === 'members' ? Users : FolderOpen,

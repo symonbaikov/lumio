@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { Spinner } from '../ui/spinner';
 import { ActionRequired } from './ActionRequired';
 import { CashFlowMini } from './CashFlowMini';
-import { RecentActivity } from './RecentActivity';
 import { TopCategoriesCard } from './TopCategoriesCard';
 
 interface OverviewTabProps {
@@ -43,7 +42,6 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
   const hasNoData =
     data.cashFlow.length === 0 &&
     mappedActions.length === 0 &&
-    data.recentActivity.length === 0 &&
     data.snapshot.totalBalance === 0;
 
   const rangeLabel = range === '7d' ? '7d' : range === '90d' ? '90d' : '30d';
@@ -188,20 +186,6 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
         </div>
       </section>
 
-      {/* 5. Recent Activity */}
-      <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-          Recent Activity
-        </h2>
-        <div className="h-[340px]">
-          <RecentActivity
-            activities={data.recentActivity}
-            formatAmount={formatAmount}
-            title="Recent Activity"
-            emptyLabel="No recent updates."
-          />
-        </div>
-      </section>
     </div>
   );
 }

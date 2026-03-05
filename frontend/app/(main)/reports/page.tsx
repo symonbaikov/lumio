@@ -75,7 +75,7 @@ export default function ReportsPage() {
 
   if (showBalanceSheet) {
     return (
-      <div className="min-h-screen bg-[#f4f7f9]">
+      <div className="min-h-screen">
         <div className="px-8 pt-8 pb-6">
           <button
             type="button"
@@ -94,7 +94,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f7f9]">
+    <div className="min-h-screen">
       <div className="px-8 pt-8 pb-0">
         <h1 className="text-2xl font-bold text-slate-900">Reports</h1>
         <p className="text-sm text-slate-500 mt-1">
