@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/app/components/ui/card';
 import type { DashboardData, DashboardRange } from '@/app/hooks/useDashboard';
-import { ArrowDownRight, ArrowUpRight, Banknote, Clock, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, TrendingUp, Wallet } from 'lucide-react';
 import { Spinner } from '../ui/spinner';
 import { ActionRequired } from './ActionRequired';
 import { CashFlowMini } from './CashFlowMini';
@@ -56,18 +56,6 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
       label: `Net Flow (${rangeLabel})`,
       colorClass: (v: number) => (v >= 0 ? 'text-emerald-600' : 'text-rose-600'),
     },
-    {
-      key: 'totalPayable' as const,
-      icon: Banknote,
-      label: 'To Pay',
-      colorClass: () => 'text-amber-600',
-    },
-    {
-      key: 'totalOverdue' as const,
-      icon: Clock,
-      label: 'Overdue',
-      colorClass: (v: number) => (v > 0 ? 'text-rose-700' : 'text-slate-900'),
-    },
   ];
 
   return (
@@ -90,7 +78,7 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
           Financial Snapshot
         </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {snapshotCards.map(({ key, label, icon: Icon, colorClass }) => {
             const value = data.snapshot[key];
             const textColor = colorClass(value);
