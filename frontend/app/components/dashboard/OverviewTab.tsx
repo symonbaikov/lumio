@@ -98,7 +98,7 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
             return (
               <Card
                 key={key}
-                className="group border border-slate-100 bg-white shadow-sm ring-1 ring-black/5 rounded-[20px] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-10px_rgba(2,132,199,0.20)]"
+                className="group border border-slate-100 bg-white shadow-sm ring-1 ring-black/5 rounded-[12px] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-10px_rgba(2,132,199,0.20)]"
               >
                 <CardContent className="p-4 flex flex-col h-full justify-between gap-4">
                   <div className="flex items-center justify-between">
@@ -139,7 +139,7 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
           {data.topCategories && data.topCategories.length > 0 ? (
             <TopCategoriesCard categories={data.topCategories} />
           ) : (
-            <Card className="h-full border border-slate-100 bg-white shadow-sm rounded-[20px] flex items-center justify-center">
+            <Card className="h-full border border-slate-100 bg-white shadow-sm rounded-[12px] flex items-center justify-center">
               <div className="text-center text-sm text-slate-400">
                 <p className="font-medium">No spending categories yet</p>
                 <p className="text-xs mt-1">Categorize transactions to see top spending areas</p>

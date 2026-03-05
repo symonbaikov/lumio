@@ -89,7 +89,7 @@ export function RecentActivity({
   const groups = groupActivities(activities);
 
   return (
-    <Card className="border-0 shadow-[0_22px_60px_-35px_rgba(2,132,199,0.45)] rounded-[24px] bg-white h-full relative overflow-hidden group/card text-left transition-all duration-300">
+    <Card className="border-0 shadow-[0_22px_60px_-35px_rgba(2,132,199,0.45)] rounded-[12px] bg-white h-full relative overflow-hidden group/card text-left transition-all duration-300">
       <CardContent className="h-full pt-8 p-8 overflow-hidden relative z-10">
         {activities.length === 0 ? (
           <div className="flex h-32 items-center justify-center text-sm text-[var(--ff-dash-muted)]">
@@ -113,7 +113,7 @@ export function RecentActivity({
                       <Link
                         key={activity.id}
                         href={activity.href}
-                        className="flex items-start gap-4 rounded-2xl border border-transparent bg-white/40 px-2 py-1 transition-all hover:border-sky-100 hover:bg-sky-50/40"
+                        className="flex items-start gap-4 rounded-[12px] border border-transparent bg-white/40 px-2 py-1 transition-all hover:border-sky-100 hover:bg-sky-50/40"
                       >
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-600 ring-1 ring-slate-100 transition-colors hover:bg-sky-50 hover:text-sky-700 hover:ring-sky-100">
                           <Icon className="h-4 w-4" />

@@ -53,7 +53,7 @@ export function ActionRequired({ actions, title, emptyLabel, isLoading }: Action
           <Link
             key={action.type}
             href={action.href}
-            className={`group flex items-center justify-between gap-4 rounded-[20px] border border-slate-100 bg-white px-4 py-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-10px_rgba(2,132,199,0.30)]`}
+            className={`group flex items-center justify-between gap-4 rounded-[12px] border border-slate-100 bg-white px-4 py-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-10px_rgba(2,132,199,0.30)]`}
           >
             <div className="flex items-center gap-3 w-full">
               <span

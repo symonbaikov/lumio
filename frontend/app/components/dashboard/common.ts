@@ -29,7 +29,7 @@ export const priorityTone: Record<
 };
 
 export const cardShell =
-  'rounded-xl border border-[var(--ff-dashboard-card-border)] bg-[var(--ff-dashboard-card)] text-[var(--ff-dashboard-card-foreground)] shadow-sm';
+  'rounded-[12px] border border-[var(--ff-dashboard-card-border)] bg-[var(--ff-dashboard-card)] text-[var(--ff-dashboard-card-foreground)] shadow-sm';
 
 export const subtleBadge =
   'inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold';

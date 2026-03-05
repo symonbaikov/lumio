@@ -56,7 +56,7 @@ export function TopCategoriesCard({ categories }: TopCategoriesCardProps) {
   }, [categories]);
 
   return (
-    <Card className="h-full rounded-3xl border border-slate-100 bg-white shadow-[0_18px_46px_-28px_rgba(2,132,199,0.45)]">
+    <Card className="h-full rounded-[12px] border border-slate-100 bg-white shadow-[0_18px_46px_-28px_rgba(2,132,199,0.45)]">
       <CardContent className="p-6">
         <div className="mb-4 flex items-center justify-between">
           <div>
