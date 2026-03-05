@@ -363,4 +363,42 @@ describe('generateFromTemplate', () => {
       }),
     ).rejects.toThrow(BadRequestException);
   });
+
+  it('should generate Cash Flow as excel', async () => {
+    mockUserRepository.findOne.mockResolvedValue({ id: 'user1', workspaceId: 'ws1' });
+    mockTransactionRepository.find.mockResolvedValue([
+      { amount: 5000, transactionType: 'income', transactionDate: new Date('2024-01-15'), isDuplicate: false, category: null, categoryId: null },
+      { amount: 2000, transactionType: 'expense', transactionDate: new Date('2024-01-15'), isDuplicate: false, category: null, categoryId: null },
+    ]);
+    const result = await service.generateFromTemplate('user1', {
+      templateId: 'cash-flow',
+      dateFrom: '2024-01-01',
+      dateTo: '2024-01-31',
+      format: 'excel',
+    });
+    expect(result).toHaveProperty('filePath');
+    expect(result.contentType).toContain('spreadsheet');
+    if (result.filePath && require('fs').existsSync(result.filePath)) {
+      require('fs').unlinkSync(result.filePath);
+    }
+  });
+
+  it('should generate Expense by Category as excel', async () => {
+    mockUserRepository.findOne.mockResolvedValue({ id: 'user1', workspaceId: 'ws1' });
+    mockTransactionRepository.find.mockResolvedValue([
+      { amount: 3000, transactionType: 'expense', transactionDate: new Date('2024-01-15'), isDuplicate: false, category: { name: 'Marketing' }, categoryId: 'cat1' },
+      { amount: 1500, transactionType: 'expense', transactionDate: new Date('2024-01-20'), isDuplicate: false, category: { name: 'Rent' }, categoryId: 'cat2' },
+    ]);
+    const result = await service.generateFromTemplate('user1', {
+      templateId: 'expense-by-category',
+      dateFrom: '2024-01-01',
+      dateTo: '2024-01-31',
+      format: 'excel',
+    });
+    expect(result).toHaveProperty('filePath');
+    expect(result.contentType).toContain('spreadsheet');
+    if (result.filePath && require('fs').existsSync(result.filePath)) {
+      require('fs').unlinkSync(result.filePath);
+    }
+  });
 });

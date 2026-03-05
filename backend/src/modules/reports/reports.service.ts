@@ -1682,9 +1682,9 @@ export class ReportsService {
       case 'pnl':
         return this.generatePnLReport(userId, dto);
       case 'cash-flow':
-        throw new BadRequestException('Cash Flow generator not yet implemented');
+        return this.generateCashFlowReport(userId, dto);
       case 'expense-by-category':
-        throw new BadRequestException('Expense by Category generator not yet implemented');
+        return this.generateExpenseByCategoryReport(userId, dto);
       default:
         throw new BadRequestException(`Unknown template: ${dto.templateId}`);
     }
@@ -1807,6 +1807,223 @@ export class ReportsService {
       userId: user.id,
       templateId: 'pnl',
       templateName: 'Profit & Loss (P&L)',
+      dateFrom: dto.dateFrom,
+      dateTo: dto.dateTo,
+      format: dto.format,
+      fileName,
+      filePath,
+      fileSize: fs.statSync(filePath).size,
+    });
+
+    return { filePath, fileName, contentType };
+  }
+
+  private async generateCashFlowReport(
+    userId: string,
+    dto: GenerateReportDto,
+  ): Promise<{ filePath: string; fileName: string; contentType: string }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user?.workspaceId) throw new BadRequestException('No workspace');
+
+    if (dto.format === 'pdf') {
+      throw new BadRequestException('PDF export not yet supported');
+    }
+
+    const dateFrom = new Date(dto.dateFrom);
+    const dateTo = new Date(dto.dateTo);
+    dateTo.setUTCHours(23, 59, 59, 999);
+
+    const transactions = await this.transactionRepository.find({
+      where: {
+        workspaceId: user.workspaceId,
+        isDuplicate: false,
+        transactionDate: Between(dateFrom, dateTo),
+      },
+      relations: ['category'],
+    });
+
+    // Group by date (daily buckets)
+    const bucketMap = new Map<string, { income: number; expense: number }>();
+
+    for (const t of transactions) {
+      const dateKey = new Date(t.transactionDate).toISOString().slice(0, 10);
+      if (!bucketMap.has(dateKey)) {
+        bucketMap.set(dateKey, { income: 0, expense: 0 });
+      }
+      const bucket = bucketMap.get(dateKey);
+      if (!bucket) continue;
+      const amount = Math.abs(Number(t.amount || 0));
+      if (t.transactionType === TransactionType.INCOME) {
+        bucket.income += amount;
+      } else {
+        bucket.expense += amount;
+      }
+    }
+
+    // Sort by date ascending
+    const sortedBuckets = Array.from(bucketMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, { income, expense }]) => ({ date, income, expense, net: income - expense }));
+
+    const totalIncome = sortedBuckets.reduce((sum, r) => sum + r.income, 0);
+    const totalExpense = sortedBuckets.reduce((sum, r) => sum + r.expense, 0);
+    const totalNet = totalIncome - totalExpense;
+
+    let filePath: string;
+    let fileName: string;
+    let contentType: string;
+
+    if (dto.format === 'excel') {
+      const wb = XLSX.utils.book_new();
+      const rows: (string | number)[][] = [];
+
+      rows.push(['Cash Flow Statement', '', '', user.workspaceId]);
+      rows.push(['Period:', dto.dateFrom, 'to', dto.dateTo]);
+      rows.push([]);
+      rows.push(['Date', 'Income', 'Expense', 'Net']);
+
+      for (const row of sortedBuckets) {
+        rows.push([row.date, row.income, row.expense, row.net]);
+      }
+
+      rows.push([]);
+      rows.push(['TOTAL', totalIncome, totalExpense, totalNet]);
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Cash Flow');
+
+      fileName = `cash-flow-${dto.dateFrom}-${dto.dateTo}.xlsx`;
+      filePath = path.join(os.tmpdir(), fileName);
+      XLSX.writeFile(wb, filePath);
+      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    } else {
+      // csv
+      const csvRows: (string | number)[][] = [
+        ['Date', 'Income', 'Expense', 'Net'],
+        ...sortedBuckets.map(r => [r.date, r.income, r.expense, r.net]),
+        ['TOTAL', totalIncome, totalExpense, totalNet],
+      ];
+      const csvContent = csvRows.map(r => r.join(',')).join('\n');
+      fileName = `cash-flow-${dto.dateFrom}-${dto.dateTo}.csv`;
+      filePath = path.join(os.tmpdir(), fileName);
+      fs.writeFileSync(filePath, csvContent, 'utf-8');
+      contentType = 'text/csv';
+    }
+
+    await this.reportHistoryRepo.save({
+      workspaceId: user.workspaceId,
+      userId: user.id,
+      templateId: 'cash-flow',
+      templateName: 'Cash Flow Statement',
+      dateFrom: dto.dateFrom,
+      dateTo: dto.dateTo,
+      format: dto.format,
+      fileName,
+      filePath,
+      fileSize: fs.statSync(filePath).size,
+    });
+
+    return { filePath, fileName, contentType };
+  }
+
+  private async generateExpenseByCategoryReport(
+    userId: string,
+    dto: GenerateReportDto,
+  ): Promise<{ filePath: string; fileName: string; contentType: string }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user?.workspaceId) throw new BadRequestException('No workspace');
+
+    if (dto.format === 'pdf') {
+      throw new BadRequestException('PDF export not yet supported');
+    }
+
+    const dateFrom = new Date(dto.dateFrom);
+    const dateTo = new Date(dto.dateTo);
+    dateTo.setUTCHours(23, 59, 59, 999);
+
+    const transactions = await this.transactionRepository.find({
+      where: {
+        workspaceId: user.workspaceId,
+        isDuplicate: false,
+        transactionDate: Between(dateFrom, dateTo),
+        transactionType: TransactionType.EXPENSE,
+      },
+      relations: ['category'],
+    });
+
+    // Group by category name
+    const categoryMap = new Map<string, { total: number; count: number }>();
+
+    for (const t of transactions) {
+      const categoryName = t.category?.name || 'Uncategorized';
+      const amount = Math.abs(Number(t.amount || 0));
+      if (!categoryMap.has(categoryName)) {
+        categoryMap.set(categoryName, { total: 0, count: 0 });
+      }
+      const entry = categoryMap.get(categoryName);
+      if (!entry) continue;
+      entry.total += amount;
+      entry.count += 1;
+    }
+
+    const totalExpenses = Array.from(categoryMap.values()).reduce((sum, e) => sum + e.total, 0);
+
+    // Sort by amount descending
+    const categoryRows = Array.from(categoryMap.entries())
+      .map(([categoryName, { total, count }]) => ({
+        categoryName,
+        total,
+        count,
+        percentage: totalExpenses > 0 ? (total / totalExpenses) * 100 : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    let filePath: string;
+    let fileName: string;
+    let contentType: string;
+
+    if (dto.format === 'excel') {
+      const wb = XLSX.utils.book_new();
+      const rows: (string | number)[][] = [];
+
+      rows.push(['Expense by Category', '', '', user.workspaceId]);
+      rows.push(['Period:', dto.dateFrom, 'to', dto.dateTo]);
+      rows.push([]);
+      rows.push(['Category', 'Total Amount', 'Transaction Count', '% of Total']);
+
+      for (const row of categoryRows) {
+        rows.push([row.categoryName, row.total, row.count, Number(row.percentage.toFixed(2))]);
+      }
+
+      rows.push([]);
+      rows.push(['TOTAL', totalExpenses, categoryRows.reduce((s, r) => s + r.count, 0), 100]);
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Expense by Category');
+
+      fileName = `expense-by-category-${dto.dateFrom}-${dto.dateTo}.xlsx`;
+      filePath = path.join(os.tmpdir(), fileName);
+      XLSX.writeFile(wb, filePath);
+      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    } else {
+      // csv
+      const csvRows: (string | number)[][] = [
+        ['Category', 'Total Amount', 'Transaction Count', '% of Total'],
+        ...categoryRows.map(r => [r.categoryName, r.total, r.count, Number(r.percentage.toFixed(2))]),
+        ['TOTAL', totalExpenses, categoryRows.reduce((s, r) => s + r.count, 0), 100],
+      ];
+      const csvContent = csvRows.map(r => r.join(',')).join('\n');
+      fileName = `expense-by-category-${dto.dateFrom}-${dto.dateTo}.csv`;
+      filePath = path.join(os.tmpdir(), fileName);
+      fs.writeFileSync(filePath, csvContent, 'utf-8');
+      contentType = 'text/csv';
+    }
+
+    await this.reportHistoryRepo.save({
+      workspaceId: user.workspaceId,
+      userId: user.id,
+      templateId: 'expense-by-category',
+      templateName: 'Expense by Category',
       dateFrom: dto.dateFrom,
       dateTo: dto.dateTo,
       format: dto.format,
