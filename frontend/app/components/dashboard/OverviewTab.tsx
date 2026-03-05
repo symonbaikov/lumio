@@ -124,16 +124,26 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
         </div>
       </section>
 
-      {/* 3. Cash Flow + Top Categories */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        <div className="lg:col-span-7 h-[320px]">
+      {/* 3. Cash Flow — full width */}
+      <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
+          Cash Flow
+        </h2>
+        <div className="h-[400px]">
           <CashFlowMini
             data={data.cashFlow}
             title={`Cash Flow (${rangeLabel})`}
             emptyLabel="No cash flow data available. Upload a bank statement to get started."
           />
         </div>
-        <div className="lg:col-span-5 h-[320px]">
+      </section>
+
+      {/* 4. Spending Categories */}
+      <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
+          Spending Categories
+        </h2>
+        <div className="h-[320px]">
           {data.topCategories && data.topCategories.length > 0 ? (
             <TopCategoriesCard categories={data.topCategories} />
           ) : (
@@ -147,7 +157,7 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
         </div>
       </section>
 
-      {/* 4. Recent Activity */}
+      {/* 5. Recent Activity */}
       <section>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
           Recent Activity
