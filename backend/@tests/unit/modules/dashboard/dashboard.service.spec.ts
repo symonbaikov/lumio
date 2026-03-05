@@ -81,6 +81,14 @@ describe('DashboardService', () => {
         href: '/statements/a1',
       },
     ];
+    const dataHealth = {
+      uncategorizedTransactions: 0,
+      statementsWithErrors: 0,
+      statementsPendingReview: 0,
+      unapprovedCash: 0,
+      lastUploadDate: null,
+      parsingWarnings: 0,
+    };
 
     jest.spyOn(service as any, 'getSnapshot').mockResolvedValue(snapshot);
     jest.spyOn(service as any, 'getActions').mockResolvedValue(actions);
@@ -89,6 +97,7 @@ describe('DashboardService', () => {
     jest.spyOn(service as any, 'getTopCategories').mockResolvedValue(topCategories);
     jest.spyOn(service as any, 'getRecentActivity').mockResolvedValue(recentActivity);
     jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('admin');
+    jest.spyOn(service as any, 'getDataHealth').mockResolvedValue(dataHealth);
 
     const result = await service.getDashboard('user-1', 'ws-1', '30d');
 
@@ -101,6 +110,7 @@ describe('DashboardService', () => {
       recentActivity,
       role: 'admin',
       range: '30d',
+      dataHealth,
     });
     expect((service as any).getSnapshot).toHaveBeenCalledWith('ws-1', expect.any(Date));
     expect((service as any).getTopMerchants).toHaveBeenCalledWith('ws-1', expect.any(Date));
@@ -115,6 +125,7 @@ describe('DashboardService', () => {
     jest.spyOn(service as any, 'getTopCategories').mockResolvedValue([]);
     jest.spyOn(service as any, 'getRecentActivity').mockResolvedValue([]);
     jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('member');
+    jest.spyOn(service as any, 'getDataHealth').mockResolvedValue({} as any);
 
     const beforeCall = new Date();
     await service.getDashboard('user-1', 'ws-1', '7d');
@@ -133,6 +144,7 @@ describe('DashboardService', () => {
     jest.spyOn(service as any, 'getTopCategories').mockResolvedValue([]);
     jest.spyOn(service as any, 'getRecentActivity').mockResolvedValue([]);
     jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('member');
+    jest.spyOn(service as any, 'getDataHealth').mockResolvedValue({} as any);
 
     const beforeCall = new Date();
     await service.getDashboard('user-1', 'ws-1', '90d');
