@@ -51,7 +51,7 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
       key: 'totalBalance' as const,
       icon: Wallet,
       label: 'Total Balance',
-      colorClass: (v: number) => (v >= 0 ? 'text-slate-900' : 'text-rose-600'),
+      colorClass: (v: number) => (v >= 0 ? 'text-slate-800' : 'text-rose-600'),
     },
     {
       key: 'income30d' as const,
@@ -98,93 +98,87 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full">
-      {/* 1. Action Required */}
-      <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-          Action Required
-        </h2>
-        <ActionRequired
-          actions={mappedActions}
-          title="Action Required"
-          emptyLabel="Everything looks good! No actions needed right now."
-          isLoading={isLoading}
-        />
-      </section>
+    <div className="flex flex-col gap-4 w-full">
 
-      {/* 2. Financial Snapshot — 4 KPI cards */}
-      <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-          Financial Snapshot
-        </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {snapshotCards.map(({ key, label, icon: Icon, colorClass }) => {
-            const value = data.snapshot[key];
-            const textColor = colorClass(value);
-
-            return (
-              <Card
-                key={key}
-                className="group border border-slate-100 bg-white shadow-sm ring-1 ring-black/5 rounded-[12px] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-10px_rgba(2,132,199,0.20)]"
-              >
-                <CardContent className="p-4 flex flex-col h-full justify-between gap-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500 leading-tight">
-                      {label}
-                    </span>
-                    <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-slate-50 text-slate-400 ring-1 ring-inset ring-slate-100 group-hover:bg-sky-50 group-hover:text-sky-600 group-hover:ring-sky-100 transition-colors shrink-0">
-                      <Icon className="h-3.5 w-3.5" />
-                    </span>
-                  </div>
-                  <div>
-                    <span
-                      className={`text-xl font-bold font-ibm-plex-sans tracking-tight ${textColor}`}
-                    >
-                      {isLoading ? <Spinner className="size-4" /> : formatAmount(Math.abs(value))}
-                    </span>
-                    {value < 0 && key !== 'expense30d' ? (
-                      <span className="ml-1 text-xs text-rose-400">-</span>
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 3. Cash Flow — full width */}
-      <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-          Cash Flow
-        </h2>
-        <div className="h-[400px]">
-          <CashFlowMini
-            data={data.cashFlow}
-            title={`Cash Flow (${rangeLabel})`}
-            emptyLabel="No cash flow data available. Upload a bank statement to get started."
-          />
-        </div>
-      </section>
-
-      {/* 4. Spending Categories */}
-      <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-          Spending Categories
-        </h2>
-        <div className="h-[320px]">
-          {data.topCategories && data.topCategories.length > 0 ? (
-            <TopCategoriesCard categories={data.topCategories} />
-          ) : (
-            <Card className="h-full border border-slate-100 bg-white shadow-sm rounded-[12px] flex items-center justify-center">
-              <div className="text-center text-sm text-slate-400">
-                <p className="font-medium">No spending categories yet</p>
-                <p className="text-xs mt-1">Categorize transactions to see top spending areas</p>
-              </div>
+      {/* Row 1: KPI strip — 4 cards in one row */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {snapshotCards.map(({ key, label, icon: Icon, colorClass }) => {
+          const value = data.snapshot[key];
+          const textColor = colorClass(value);
+          return (
+            <Card
+              key={key}
+              className="border border-slate-100 bg-white shadow-none rounded-xl"
+            >
+              <CardContent className="px-4 py-3 flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">
+                    {label}
+                  </span>
+                  <Icon className="h-3 w-3 text-slate-300 shrink-0" />
+                </div>
+                <span className={`text-base font-semibold font-ibm-plex-sans tracking-tight ${textColor}`}>
+                  {isLoading ? <Spinner className="size-3" /> : (
+                    <>
+                      {value < 0 && key !== 'expense30d' ? '−' : ''}
+                      {formatAmount(Math.abs(value))}
+                    </>
+                  )}
+                </span>
+              </CardContent>
             </Card>
-          )}
-        </div>
-      </section>
+          );
+        })}
+      </div>
+
+      {/* Row 2: Actions (left) + Cash Flow (right) */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
+
+        {/* Left column: Action Required */}
+        <Card className="border border-slate-100 bg-white shadow-none rounded-xl">
+          <CardContent className="px-4 py-3">
+            <h2 className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400 mb-3">
+              Action Required
+            </h2>
+            <ActionRequired
+              actions={mappedActions}
+              title="Action Required"
+              emptyLabel="No actions needed"
+              isLoading={isLoading}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Right column: Cash Flow */}
+        <Card className="border border-slate-100 bg-white shadow-none rounded-xl">
+          <CardContent className="px-4 py-3 h-[220px]">
+            <h2 className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400 mb-2">
+              Cash Flow ({rangeLabel})
+            </h2>
+            <div className="h-[calc(100%-24px)]">
+              <CashFlowMini
+                data={data.cashFlow}
+                title={`Cash Flow (${rangeLabel})`}
+                emptyLabel="No cash flow data yet."
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Row 3: Spending Categories — full width */}
+      {data.topCategories && data.topCategories.length > 0 ? (
+        <Card className="border border-slate-100 bg-white shadow-none rounded-xl">
+          <CardContent className="px-4 py-3 h-[260px]">
+            <h2 className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400 mb-2">
+              Spending Categories
+            </h2>
+            <div className="h-[calc(100%-24px)]">
+              <TopCategoriesCard categories={data.topCategories} />
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
     </div>
   );

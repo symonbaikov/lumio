@@ -28,9 +28,9 @@ export function QuickActionsBar({ reviewCount }: QuickActionsBarProps) {
         return (
           <Link key={action.key} href={action.href}>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="gap-2 rounded-full border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:text-primary hover:bg-primary/5 shadow-sm text-xs h-8"
+              className="gap-1.5 rounded-full text-slate-500 hover:text-slate-700 hover:bg-slate-100 text-xs h-7 px-3 font-normal"
             >
               <action.icon className="h-3.5 w-3.5" />
               {label}
