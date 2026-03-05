@@ -20,7 +20,7 @@ import {
 import { countStatementStages, getStatementStageMap } from '@/app/lib/statement-workflow';
 import NearbyErrorIcon from '@mui/icons-material/NearbyError';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
-import { Banknote, CalendarRange, Folder, Pencil, Send, ThumbsUp, User } from 'lucide-react';
+import { Banknote, CalendarRange, Folder, List, Pencil, Send, ThumbsUp, User } from 'lucide-react';
 import { useIntlayer } from 'next-intlayer';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -36,7 +36,8 @@ type ActiveItem =
   | 'spend-over-time'
   | 'top-spenders'
   | 'top-merchants'
-  | 'top-categories';
+  | 'top-categories'
+  | 'transactions';
 
 type Props = {
   activeItem: ActiveItem;
@@ -487,6 +488,14 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               emphasis: 'low',
               href: '/statements/top-categories',
               active: activeItem === 'top-categories',
+            },
+            {
+              id: 'transactions',
+              label: (t as any)?.sidePanel?.transactions?.value ?? 'Transactions',
+              icon: List,
+              emphasis: 'low',
+              href: '/statements/transactions',
+              active: activeItem === 'transactions',
             },
           ],
         },
