@@ -99,11 +99,6 @@ const content = {
         kk: 'Чектер әлі жоқ',
       }),
     },
-    quickActions: {
-      upload: t({ ru: 'Загрузить документ', en: 'Upload document', kk: 'Құжат жүктеу' }),
-      payment: t({ ru: 'Создать платеж', en: 'Create payment', kk: 'Төлем жасау' }),
-      expense: t({ ru: 'Добавить расход', en: 'Add manual expense', kk: 'Шығын қосу' }),
-    },
     refresh: {
       idle: t({
         ru: 'Потяните, чтобы обновить',
@@ -128,6 +123,33 @@ const content = {
       '7d': t({ ru: '7 дней', en: '7d', kk: '7 күн' }),
       '30d': t({ ru: '30 дней', en: '30d', kk: '30 күн' }),
       '90d': t({ ru: '90 дней', en: '90d', kk: '90 күн' }),
+    },
+    tabs: {
+      overview: t({ ru: 'Обзор', en: 'Overview', kk: 'Шолу' }),
+      trends: t({ ru: 'Тренды', en: 'Trends', kk: 'Трендтер' }),
+      dataHealth: t({ ru: 'Качество данных', en: 'Data Health', kk: 'Деректер сапасы' }),
+    },
+    quickActions: {
+      upload: t({ ru: 'Загрузить / Распарсить', en: 'Upload / Parse', kk: 'Жүктеу / Талдау' }),
+      review: t({ ru: 'Очередь на проверку', en: 'Review queue', kk: 'Тексеру кезегі' }),
+      export: t({ ru: 'Экспорт', en: 'Export', kk: 'Экспорт' }),
+    },
+    dataHealth: {
+      uncategorized: t({ ru: 'Без категории', en: 'Uncategorized', kk: 'Санатсыз' }),
+      errors: t({ ru: 'Ошибки', en: 'Errors', kk: 'Қателер' }),
+      pendingReview: t({ ru: 'На проверке', en: 'Pending review', kk: 'Тексеруде' }),
+      parsingWarnings: t({ ru: 'Предупреждения', en: 'Parsing warnings', kk: 'Ескертулер' }),
+      balanceOk: t({ ru: 'Баланс сведён', en: 'Balance is balanced', kk: 'Баланс теңестірілген' }),
+      balanceWarning: t({ ru: 'Баланс не сведён', en: 'Balance mismatch', kk: 'Баланс сәйкес емес' }),
+      noBalance: t({ ru: 'Баланс не настроен', en: 'No balance sheet', kk: 'Баланс жоқ' }),
+      lastUpload: t({ ru: 'Последняя загрузка', en: 'Last upload', kk: 'Соңғы жүктеу' }),
+      unapprovedCash: t({ ru: 'Неподтверждённые', en: 'Unapproved cash', kk: 'Расталмаған' }),
+    },
+    trends: {
+      dailyTrend: t({ ru: 'Ежедневный тренд', en: 'Daily trend', kk: 'Күнделікті тренд' }),
+      categories: t({ ru: 'Категории расходов', en: 'Expense categories', kk: 'Шығыс санаттары' }),
+      counterparties: t({ ru: 'Доход по контрагентам', en: 'Income by counterparty', kk: 'Контрагент бойынша түсім' }),
+      sources: t({ ru: 'Источники данных', en: 'Data sources', kk: 'Деректер көздері' }),
     },
     topMerchants: {
       title: t({ ru: 'Топ поставщиков', en: 'Top merchants', kk: 'Топ жеткізушілер' }),
