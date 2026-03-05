@@ -1,6 +1,8 @@
+import * as fs from 'fs';
 import type { CustomTableColumn } from '@/entities';
 import { CustomTableColumnType } from '@/entities/custom-table-column.entity';
 import { AuditService } from '@/modules/audit/audit.service';
+import { BadRequestException } from '@nestjs/common';
 import { ReportsService } from '@/modules/reports/reports.service';
 
 function createRepoMock() {
@@ -231,5 +233,134 @@ describe('ReportsService (helpers)', () => {
       net: 0,
       count: 0,
     });
+  });
+});
+
+describe('generateFromTemplate', () => {
+  let mockTransactionRepository: any;
+  let mockUserRepository: any;
+  let mockReportHistoryRepo: any;
+  let service: ReportsService;
+
+  beforeEach(() => {
+    mockTransactionRepository = {
+      find: jest.fn(),
+      createQueryBuilder: jest.fn(),
+    };
+    mockUserRepository = {
+      findOne: jest.fn(),
+    };
+    mockReportHistoryRepo = {
+      save: jest.fn().mockResolvedValue({}),
+      find: jest.fn().mockResolvedValue([]),
+    };
+
+    service = new ReportsService(
+      mockTransactionRepository as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      createRepoMock() as any,
+      mockUserRepository as any,
+      { get: jest.fn(), set: jest.fn() } as any,
+      { createEvent: jest.fn() } as AuditService,
+      mockReportHistoryRepo as any,
+    );
+  });
+
+  it('should throw for unknown template', async () => {
+    mockUserRepository.findOne.mockResolvedValue({ id: 'user1', workspaceId: 'ws1' });
+    await expect(
+      service.generateFromTemplate('user1', {
+        templateId: 'unknown',
+        dateFrom: '2024-01-01',
+        dateTo: '2024-12-31',
+        format: 'excel',
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('should generate P&L as excel', async () => {
+    mockUserRepository.findOne.mockResolvedValue({ id: 'user1', workspaceId: 'ws1' });
+    mockTransactionRepository.find.mockResolvedValue([
+      {
+        amount: 5000,
+        transactionType: 'income',
+        category: { name: 'Sales' },
+        categoryId: 'cat1',
+        isDuplicate: false,
+      },
+      {
+        amount: 2000,
+        transactionType: 'expense',
+        category: { name: 'Rent' },
+        categoryId: 'cat2',
+        isDuplicate: false,
+      },
+    ]);
+    const result = await service.generateFromTemplate('user1', {
+      templateId: 'pnl',
+      dateFrom: '2024-01-01',
+      dateTo: '2024-12-31',
+      format: 'excel',
+    });
+    expect(result).toHaveProperty('filePath');
+    expect(result).toHaveProperty('fileName');
+    expect(result.contentType).toContain('spreadsheet');
+    // Clean up temp file
+    if (result.filePath && fs.existsSync(result.filePath)) {
+      fs.unlinkSync(result.filePath);
+    }
+  });
+
+  it('should generate P&L as csv', async () => {
+    mockUserRepository.findOne.mockResolvedValue({ id: 'user1', workspaceId: 'ws1' });
+    mockTransactionRepository.find.mockResolvedValue([
+      {
+        amount: 3000,
+        transactionType: 'income',
+        category: { name: 'Services' },
+        categoryId: 'cat3',
+        isDuplicate: false,
+      },
+    ]);
+    const result = await service.generateFromTemplate('user1', {
+      templateId: 'pnl',
+      dateFrom: '2024-01-01',
+      dateTo: '2024-12-31',
+      format: 'csv',
+    });
+    expect(result.contentType).toBe('text/csv');
+    expect(result.fileName).toMatch(/\.csv$/);
+    if (result.filePath && fs.existsSync(result.filePath)) {
+      fs.unlinkSync(result.filePath);
+    }
+  });
+
+  it('should throw BadRequestException when no workspace', async () => {
+    mockUserRepository.findOne.mockResolvedValue({ id: 'user1', workspaceId: null });
+    await expect(
+      service.generateFromTemplate('user1', {
+        templateId: 'pnl',
+        dateFrom: '2024-01-01',
+        dateTo: '2024-12-31',
+        format: 'excel',
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('should throw BadRequestException for pdf format', async () => {
+    mockUserRepository.findOne.mockResolvedValue({ id: 'user1', workspaceId: 'ws1' });
+    mockTransactionRepository.find.mockResolvedValue([]);
+    await expect(
+      service.generateFromTemplate('user1', {
+        templateId: 'pnl',
+        dateFrom: '2024-01-01',
+        dateTo: '2024-12-31',
+        format: 'pdf',
+      }),
+    ).rejects.toThrow(BadRequestException);
   });
 });

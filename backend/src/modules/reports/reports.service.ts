@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as os from 'node:os';
 import * as path from 'path';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
@@ -1679,7 +1680,7 @@ export class ReportsService {
   ): Promise<{ filePath: string; fileName: string; contentType: string }> {
     switch (dto.templateId) {
       case 'pnl':
-        throw new BadRequestException('P&L generator not yet implemented');
+        return this.generatePnLReport(userId, dto);
       case 'cash-flow':
         throw new BadRequestException('Cash Flow generator not yet implemented');
       case 'expense-by-category':
@@ -1687,6 +1688,134 @@ export class ReportsService {
       default:
         throw new BadRequestException(`Unknown template: ${dto.templateId}`);
     }
+  }
+
+  private async generatePnLReport(
+    userId: string,
+    dto: GenerateReportDto,
+  ): Promise<{ filePath: string; fileName: string; contentType: string }> {
+    // 1. Get user workspace
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user?.workspaceId) throw new BadRequestException('No workspace');
+
+    // 2. Query all transactions in [dateFrom, dateTo] scoped by workspaceId
+    const dateFrom = new Date(dto.dateFrom);
+    const dateTo = new Date(dto.dateTo);
+    dateTo.setUTCHours(23, 59, 59, 999);
+
+    const transactions = await this.transactionRepository.find({
+      where: {
+        workspaceId: user.workspaceId,
+        isDuplicate: false,
+        transactionDate: Between(dateFrom, dateTo),
+      },
+      relations: ['category'],
+    });
+
+    // 3. Group by category, separate income and expense
+    const incomeMap = new Map<string, number>();
+    const expenseMap = new Map<string, number>();
+
+    for (const t of transactions) {
+      const categoryName = t.category?.name || 'Uncategorized';
+      const amount = Math.abs(Number(t.amount || 0));
+
+      if (t.transactionType === TransactionType.INCOME) {
+        incomeMap.set(categoryName, (incomeMap.get(categoryName) || 0) + amount);
+      } else {
+        expenseMap.set(categoryName, (expenseMap.get(categoryName) || 0) + amount);
+      }
+    }
+
+    const incomeRows = Array.from(incomeMap.entries()).map(([categoryName, total]) => ({
+      categoryName,
+      total,
+    }));
+    const expenseRows = Array.from(expenseMap.entries()).map(([categoryName, total]) => ({
+      categoryName,
+      total,
+    }));
+
+    // 4. Calculate totals
+    const totalRevenue = incomeRows.reduce((sum, r) => sum + r.total, 0);
+    const totalExpenses = expenseRows.reduce((sum, r) => sum + r.total, 0);
+    const netIncome = totalRevenue - totalExpenses;
+
+    // 5. Export based on format
+    if (dto.format === 'pdf') {
+      throw new BadRequestException('PDF export not yet supported');
+    }
+
+    let filePath: string;
+    let fileName: string;
+    let contentType: string;
+
+    if (dto.format === 'excel') {
+      const wb = XLSX.utils.book_new();
+      const rows: (string | number)[][] = [];
+
+      rows.push(['P&L Report', '', '', user.workspaceId]);
+      rows.push(['Period:', dto.dateFrom, 'to', dto.dateTo]);
+      rows.push([]);
+      rows.push(['Category', 'Type', 'Amount']);
+
+      rows.push(['--- REVENUE ---', '', '']);
+      for (const row of incomeRows) {
+        rows.push([row.categoryName, 'Income', row.total]);
+      }
+      rows.push(['TOTAL REVENUE', '', totalRevenue]);
+
+      rows.push([]);
+
+      rows.push(['--- EXPENSES ---', '', '']);
+      for (const row of expenseRows) {
+        rows.push([row.categoryName, 'Expense', row.total]);
+      }
+      rows.push(['TOTAL EXPENSES', '', totalExpenses]);
+
+      rows.push([]);
+      rows.push(['NET INCOME', '', netIncome]);
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'P&L');
+
+      fileName = `pnl-${dto.dateFrom}-${dto.dateTo}.xlsx`;
+      filePath = path.join(os.tmpdir(), fileName);
+      XLSX.writeFile(wb, filePath);
+      contentType =
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    } else {
+      // csv
+      const csvRows: (string | number)[][] = [
+        ['Category', 'Type', 'Amount'],
+        ...incomeRows.map(r => [r.categoryName, 'Income', r.total]),
+        ['TOTAL REVENUE', '', totalRevenue],
+        ...expenseRows.map(r => [r.categoryName, 'Expense', r.total]),
+        ['TOTAL EXPENSES', '', totalExpenses],
+        ['NET INCOME', '', netIncome],
+      ];
+      const csvContent = csvRows.map(r => r.join(',')).join('\n');
+      fileName = `pnl-${dto.dateFrom}-${dto.dateTo}.csv`;
+      filePath = path.join(os.tmpdir(), fileName);
+      fs.writeFileSync(filePath, csvContent, 'utf-8');
+      contentType = 'text/csv';
+    }
+
+    // Save report history
+    await this.reportHistoryRepo.save({
+      workspaceId: user.workspaceId,
+      userId: user.id,
+      templateId: 'pnl',
+      templateName: 'Profit & Loss (P&L)',
+      dateFrom: dto.dateFrom,
+      dateTo: dto.dateTo,
+      format: dto.format,
+      fileName,
+      filePath,
+      fileSize: fs.statSync(filePath).size,
+    });
+
+    return { filePath, fileName, contentType };
   }
 
   async getReportHistory(userId: string): Promise<ReportHistory[]> {
