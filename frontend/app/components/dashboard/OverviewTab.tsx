@@ -73,7 +73,7 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
         />
       </section>
 
-      {/* 2. Financial Snapshot — 6 KPI cards */}
+      {/* 2. Financial Snapshot — 4 KPI cards */}
       <section>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
           Financial Snapshot
