@@ -95,6 +95,41 @@ export interface DashboardNotification {
   meta: Record<string, unknown> | null;
 }
 
+export interface DashboardTrends {
+  dailyTrend: Array<{ date: string; income: number; expense: number }>;
+  categories: Array<{ name: string; amount: number; count: number }>;
+  counterparties: Array<{ name: string; amount: number; count: number }>;
+  sources: {
+    statements: { income: number; expense: number; rows: number };
+  };
+}
+
+export function useDashboardTrends(days = 30) {
+  const [data, setData] = useState<DashboardTrends | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiClient.get('/dashboard/trends', { params: { days } });
+      setData(res.data?.data || res.data);
+    } catch (err: unknown) {
+      const apiError = err as { response?: { data?: { message?: string } } };
+      setError(apiError?.response?.data?.message || 'Failed to load trends');
+    } finally {
+      setLoading(false);
+    }
+  }, [days]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  return { data, loading, error, refresh: load };
+}
+
 export function useDashboard(controlledRange: DashboardRange = '30d', controlledDate?: string) {
   const [range, setRange] = useState<DashboardRange>(controlledRange);
   const [targetDate, setTargetDate] = useState<string | null>(controlledDate ?? null);
@@ -108,7 +143,7 @@ export function useDashboard(controlledRange: DashboardRange = '30d', controlled
       setError(null);
 
       try {
-        const params: Record<string, any> = { range: r };
+        const params: Record<string, string> = { range: r };
         if (date) {
           params.date = date;
         }

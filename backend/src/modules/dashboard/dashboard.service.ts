@@ -18,6 +18,7 @@ import type {
   DashboardTopCategory,
   DashboardTopMerchant,
 } from './interfaces/dashboard-response.interface';
+import type { DashboardTrendsResponse } from './interfaces/dashboard-trends.interface';
 
 @Injectable()
 export class DashboardService {
@@ -540,6 +541,132 @@ export class DashboardService {
       unapprovedCash: Number.parseFloat(unapprovedCashResult?.unapprovedCash ?? '') || 0,
       lastUploadDate: latestStatement?.createdAt?.toISOString() ?? null,
       parsingWarnings,
+    };
+  }
+
+  async getTrends(workspaceId: string, days = 30): Promise<DashboardTrendsResponse> {
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+    const since = new Date(endDate);
+    since.setDate(since.getDate() - days);
+    since.setHours(0, 0, 0, 0);
+
+    const groupFormat = days >= 90 ? "'IYYY-IW'" : "'YYYY-MM-DD'";
+
+    const [dailyRows, categoryRows, counterpartyRows, sourceRows] = await Promise.all([
+      // Daily income/expense trend
+      this.transactionRepo
+        .createQueryBuilder('t')
+        .innerJoin('t.statement', 's')
+        .select(`TO_CHAR(t.transactionDate, ${groupFormat})`, 'date')
+        .addSelect(
+          'COALESCE(SUM(CASE WHEN t.transactionType = :income THEN t.credit ELSE 0 END), 0)',
+          'income',
+        )
+        .addSelect(
+          'COALESCE(SUM(CASE WHEN t.transactionType = :expense THEN t.debit ELSE 0 END), 0)',
+          'expense',
+        )
+        .where('s.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
+        .andWhere('s.deletedAt IS NULL')
+        .andWhere('s.status NOT IN (:...excludedStatuses)', {
+          excludedStatuses: [StatementStatus.ERROR],
+        })
+        .groupBy(`TO_CHAR(t.transactionDate, ${groupFormat})`)
+        .orderBy(`TO_CHAR(t.transactionDate, ${groupFormat})`, 'ASC')
+        .setParameter('income', TransactionType.INCOME)
+        .setParameter('expense', TransactionType.EXPENSE)
+        .getRawMany<{ date: string; income: string; expense: string }>(),
+
+      // Top expense categories
+      this.transactionRepo
+        .createQueryBuilder('t')
+        .innerJoin('t.statement', 's')
+        .leftJoin('t.category', 'c')
+        .select("COALESCE(c.name, 'Uncategorized')", 'name')
+        .addSelect('COALESCE(SUM(t.debit), 0)', 'amount')
+        .addSelect('COUNT(t.id)', 'count')
+        .where('s.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
+        .andWhere('s.deletedAt IS NULL')
+        .andWhere('s.status NOT IN (:...excludedStatuses)', {
+          excludedStatuses: [StatementStatus.ERROR],
+        })
+        .andWhere('t.transactionType = :expense', { expense: TransactionType.EXPENSE })
+        .groupBy('c.name')
+        .orderBy('amount', 'DESC')
+        .limit(10)
+        .getRawMany<{ name: string; amount: string; count: string }>(),
+
+      // Top income counterparties
+      this.transactionRepo
+        .createQueryBuilder('t')
+        .innerJoin('t.statement', 's')
+        .select('t.counterpartyName', 'name')
+        .addSelect('COALESCE(SUM(t.credit), 0)', 'amount')
+        .addSelect('COUNT(t.id)', 'count')
+        .where('s.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
+        .andWhere('s.deletedAt IS NULL')
+        .andWhere('s.status NOT IN (:...excludedStatuses)', {
+          excludedStatuses: [StatementStatus.ERROR],
+        })
+        .andWhere('t.transactionType = :income', { income: TransactionType.INCOME })
+        .andWhere('t.counterpartyName IS NOT NULL')
+        .andWhere("t.counterpartyName != ''")
+        .groupBy('t.counterpartyName')
+        .orderBy('amount', 'DESC')
+        .limit(10)
+        .getRawMany<{ name: string; amount: string; count: string }>(),
+
+      // Source breakdown (statements only)
+      this.transactionRepo
+        .createQueryBuilder('t')
+        .innerJoin('t.statement', 's')
+        .select(
+          'COALESCE(SUM(CASE WHEN t.transactionType = :income THEN t.credit ELSE 0 END), 0)',
+          'income',
+        )
+        .addSelect(
+          'COALESCE(SUM(CASE WHEN t.transactionType = :expense THEN t.debit ELSE 0 END), 0)',
+          'expense',
+        )
+        .addSelect('COUNT(DISTINCT t.id)', 'rows')
+        .where('s.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
+        .andWhere('s.deletedAt IS NULL')
+        .andWhere('s.status NOT IN (:...excludedStatuses)', {
+          excludedStatuses: [StatementStatus.ERROR],
+        })
+        .setParameter('income', TransactionType.INCOME)
+        .setParameter('expense', TransactionType.EXPENSE)
+        .getRawOne<{ income: string; expense: string; rows: string }>(),
+    ]);
+
+    return {
+      dailyTrend: dailyRows.map(row => ({
+        date: row.date,
+        income: Number.parseFloat(row.income) || 0,
+        expense: Number.parseFloat(row.expense) || 0,
+      })),
+      categories: categoryRows.map(row => ({
+        name: row.name,
+        amount: Number.parseFloat(row.amount) || 0,
+        count: Number.parseInt(row.count, 10) || 0,
+      })),
+      counterparties: counterpartyRows.map(row => ({
+        name: row.name,
+        amount: Number.parseFloat(row.amount) || 0,
+        count: Number.parseInt(row.count, 10) || 0,
+      })),
+      sources: {
+        statements: {
+          income: Number.parseFloat(sourceRows?.income ?? '') || 0,
+          expense: Number.parseFloat(sourceRows?.expense ?? '') || 0,
+          rows: Number.parseInt(sourceRows?.rows ?? '0', 10) || 0,
+        },
+      },
     };
   }
 }
