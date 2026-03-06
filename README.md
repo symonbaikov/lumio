@@ -1,7 +1,6 @@
 # Lumio
 
 <div align="center">
-<img width="256" height="256" position="relative" alt="favicon-new" src="https://github.com/user-attachments/assets/36e8f3f0-e594-4d85-87f4-8092900cd8fb" />
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
@@ -10,10 +9,10 @@
 
 **Open-source financial data platform for importing, processing, and analyzing bank statements**
 
-
 [Quick Start](#quick-start) • [Features](#features) • [Tech Stack](#tech-stack) • [Architecture](#architecture) • [Contributing](CONTRIBUTING.md)
 
 </div>
+<img width="3808" height="1908" alt="CleanShot 2026-03-06 at 00 19 20@2x" src="https://github.com/user-attachments/assets/1e94ba9a-39c1-4f67-9609-df099514456e" />
 
 ---
 
@@ -34,9 +33,9 @@
 
 ## Screenshots
 
-| Upload | Transactions | Dashboard |
-|--------|-------------|-----------|
-| ![Upload flow](docs/screenshots/upload.png) | ![Transactions](docs/screenshots/transactions.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+| Upload | Tables | Dashboard |
+|--------|--------|-----------|
+| ![Upload flow](docs/screenshots/upload.png) | ![Tables](docs/screenshots/tables.png) | ![Dashboard](docs/screenshots/dashboard.png) |
 
 | Reports | Audit Log |
 |---------|-----------|
@@ -45,19 +44,6 @@
 > A short demo GIF (upload → parse → dashboard update) can go here: `docs/screenshots/demo.gif`
 
 ---
-
-<p align="center">
-  <a href="https://bank.gov.ua/en/news/all/natsionalniy-bank-vidkriv-rahunok-dlya-gumanitarnoyi-dopomogi-ukrayintsyam-postrajdalim-vid-rosiyskoyi-agresiyi" target="_blank">
-    <img
-      src="https://upload.wikimedia.org/wikipedia/commons/4/49/Flag_of_Ukraine.svg"
-      alt="Ukraine Flag"
-      width="520"
-      height="120"
-    /><br/>
-    <strong>Humanitarian Aid for Ukraine</strong><br/>
-    Support humanitarian relief via the official National Bank of Ukraine account.
-  </a>
-</p>
 
 ## Features
 
