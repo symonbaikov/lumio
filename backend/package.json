@@ -5,6 +5,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "nest build",
+    "build:scripts": "tsc -p tsconfig.scripts.json --outDir dist",
     "start": "node dist/main",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -26,7 +27,8 @@
     "migration:generate": "npm run typeorm migration:generate",
     "migration:revert": "npm run typeorm migration:revert",
     "create-admin": "ts-node -r tsconfig-paths/register scripts/create-admin.ts",
-    "seed:demo": "ts-node -r tsconfig-paths/register scripts/seed-demo.ts",
+    "seed:demo": "node dist/scripts/seed-demo.js",
+    "seed:demo:dev": "ts-node -r tsconfig-paths/register scripts/seed-demo.ts",
     "parse:debug": "ts-node -r tsconfig-paths/register scripts/parse-debug.ts",
     "parse:tables": "ts-node -r tsconfig-paths/register scripts/pdf-table-dump.ts",
     "parse:diff": "ts-node -r tsconfig-paths/register scripts/parse-diff.ts",
