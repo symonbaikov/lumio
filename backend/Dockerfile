@@ -6,7 +6,6 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 COPY tsconfig.json ./
-COPY tsconfig.scripts.json ./
 COPY nest-cli.json ./
 
 # Install dependencies
@@ -15,8 +14,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build application (compiles src/ to dist/ and scripts/ to dist/scripts/)
-RUN npm run build && npm run build:scripts
+# Build application (compiles src/ to dist/)
+RUN npm run build
 
 # --- Dev stage (used by docker-compose.dev.yml) ---
 # Keeps ALL dependencies including devDependencies
