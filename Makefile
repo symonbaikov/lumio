@@ -164,7 +164,7 @@ seed-demo: ## Create demo user (demo@lumio.dev / demo123)
 	@if docker inspect -f '{{.State.Running}}' finflow-backend >/dev/null 2>&1; then \
 		docker exec finflow-backend node dist/scripts/seed-demo.js; \
 	else \
-		cd backend && npm run seed:demo; \
+		cd backend && npm run seed:demo:dev; \
 	fi
 	@echo "✅ Demo user is ready!"
 
