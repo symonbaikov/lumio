@@ -1,7 +1,7 @@
-# Lumio
 
 <div align="center">
-<img width="100" height="100" alt="favicon-new" src="https://github.com/user-attachments/assets/b01ed201-d44a-457d-8c84-c745cd5a1221" />
+<img width="1584" height="396" alt="White and Blue Simple Gradient Business Profile LinkedIn Banner" src="https://github.com/user-attachments/assets/c4df04a1-234c-44c6-a033-beb7420d5296" />
+
 
 ---
 
