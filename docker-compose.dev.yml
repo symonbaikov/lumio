@@ -6,7 +6,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: builder
+      target: dev
     environment:
       - NODE_ENV=development
       - JWT_SECRET=finflow-dev-jwt-secret-do-not-use-in-production-abc123
