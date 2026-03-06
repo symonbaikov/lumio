@@ -1,6 +1,7 @@
 # Lumio
 
 <div align="center">
+<img width="256" height="256" position="relative" alt="favicon-new" src="https://github.com/user-attachments/assets/36e8f3f0-e594-4d85-87f4-8092900cd8fb" />
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
@@ -9,10 +10,10 @@
 
 **Open-source financial data platform for importing, processing, and analyzing bank statements**
 
+
 [Quick Start](#quick-start) • [Features](#features) • [Tech Stack](#tech-stack) • [Architecture](#architecture) • [Contributing](CONTRIBUTING.md)
 
 </div>
-<img width="3808" height="1908" alt="CleanShot 2026-03-06 at 00 19 20@2x" src="https://github.com/user-attachments/assets/1e94ba9a-39c1-4f67-9609-df099514456e" />
 
 ---
 
@@ -32,8 +33,6 @@
 ---
 
 ## Screenshots
-
-<!-- Replace placeholders with real screenshots once available -->
 
 | Upload | Transactions | Dashboard |
 |--------|-------------|-----------|
