@@ -1,0 +1,38 @@
+<svg width="960" height="420" viewBox="0 0 960 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="960" height="420" rx="24" fill="#F8FAFC"/>
+  <rect x="70" y="70" width="220" height="110" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="180" y="120" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="16" fill="#0F172A">Frontend</text>
+  <text x="180" y="145" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="12" fill="#475569">Next.js 16</text>
+
+  <rect x="365" y="60" width="240" height="140" rx="16" fill="#FFFFFF" stroke="#0EA5E9" stroke-width="2"/>
+  <text x="485" y="110" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="16" fill="#0F172A">Backend API</text>
+  <text x="485" y="135" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="12" fill="#475569">NestJS / REST + Socket.IO</text>
+
+  <rect x="700" y="70" width="200" height="110" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="800" y="120" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="16" fill="#0F172A">PostgreSQL</text>
+  <text x="800" y="145" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="12" fill="#475569">TypeORM</text>
+
+  <rect x="365" y="230" width="240" height="120" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="485" y="270" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="16" fill="#0F172A">Redis + Workers</text>
+  <text x="485" y="295" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="12" fill="#475569">Queues / Dedup / AI jobs</text>
+
+  <rect x="70" y="250" width="220" height="100" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="180" y="290" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="15" fill="#0F172A">Integrations</text>
+  <text x="180" y="315" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="12" fill="#475569">Gmail / Drive / Dropbox</text>
+
+  <rect x="700" y="250" width="200" height="100" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="800" y="290" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="15" fill="#0F172A">Observability</text>
+  <text x="800" y="315" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="12" fill="#475569">Prometheus / Grafana</text>
+
+  <path d="M290 125H365" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M605 125H700" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M485 200V230" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M290 300H365" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M605 300H700" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0L10 5L0 10Z" fill="#94A3B8" />
+    </marker>
+  </defs>
+</svg>

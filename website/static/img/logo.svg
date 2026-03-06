@@ -1,0 +1,6 @@
+<svg width="120" height="32" viewBox="0 0 120 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="4" width="32" height="24" rx="8" fill="#0284C7"/>
+  <path d="M6 19.5C9.5 15 14 13 18.5 13C23 13 26 14.5 26 14.5" stroke="white" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M6 24C10 19 15 17 20 17C24 17 26 18 26 18" stroke="white" stroke-width="2.6" stroke-linecap="round" opacity="0.75"/>
+  <text x="42" y="22" font-family="Manrope, Arial, sans-serif" font-size="18" font-weight="700" fill="#0F172A">Lumio</text>
+</svg>
