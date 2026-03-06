@@ -9,6 +9,26 @@ const { withIntlayerSync } = require('next-intlayer/server');
 const nextConfig = {
   output: 'standalone',
   outputFileTracingRoot: __dirname,
+
+  serverExternalPackages: [
+    'intlayer',
+    'next-intlayer',
+    '@intlayer/core',
+    '@intlayer/dictionaries-entry',
+    'react-intlayer',
+  ],
+
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+      };
+    }
+    return config;
+  },
+
   async rewrites() {
     return [
       {
