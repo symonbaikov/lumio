@@ -66,6 +66,12 @@
 
 ---
 
+## Why Lumio exists
+
+Many teams receive financial data in unstructured formats like PDF statements and email receipts. Lumio provides an open-source platform to transform these documents into structured, queryable financial data.
+
+---
+
 ## Features
 
 Lumio is a full-stack financial operations platform built for teams that need to import, categorize, analyze, and collaborate on bank statement data.
@@ -694,6 +700,72 @@ Stories live in `frontend/app/stories/` and follow the `*.stories.tsx` naming co
 ---
 
 ## Architecture
+
+### System Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Browser / Client                        │
+└────────────┬────────────────────────────────────┬───────────────┘
+             │                                    │
+             │ HTTP/WebSocket                     │ HTTP
+             │                                    │
+┌────────────▼────────────┐         ┌────────────▼───────────────┐
+│   Next.js Frontend      │         │   External Integrations     │
+│   (Port 3000)           │         │  - Google OAuth             │
+│                         │         │  - Gmail API                │
+│  - App Router           │         │  - Google Drive             │
+│  - React 19             │         │  - Dropbox                  │
+│  - TailwindCSS          │         │  - Telegram Bot             │
+│  - Real-time updates    │         │  - OpenAI / Gemini          │
+└────────────┬────────────┘         └─────────────────────────────┘
+             │
+             │ REST API (/api/v1)
+             │ WebSocket (Socket.IO)
+             │
+┌────────────▼─────────────────────────────────────────────────────┐
+│              NestJS Backend (Port 3001)                          │
+│                                                                  │
+│  ┌─────────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │  Auth & RBAC    │  │   Parsing    │  │  Classification  │  │
+│  │  - JWT          │  │  - Kaspi     │  │  - AI Auto-Cat   │  │
+│  │  - Sessions     │  │  - Bereke    │  │  - ML Rules      │  │
+│  │  - Permissions  │  │  - CSV/XLSX  │  │  - Learning      │  │
+│  └─────────────────┘  │  - Generic   │  └──────────────────┘  │
+│                       │  - OCR       │                          │
+│  ┌─────────────────┐  └──────────────┘  ┌──────────────────┐  │
+│  │  Transactions   │                    │   Workspaces     │  │
+│  │  - CRUD         │  ┌──────────────┐  │  - Multi-tenant  │  │
+│  │  - Dedup        │  │  Reports &   │  │  - Invitations   │  │
+│  │  - Search       │  │  Dashboard   │  │  - RBAC          │  │
+│  └─────────────────┘  │  - Cash flow │  └──────────────────┘  │
+│                       │  - Export    │                          │
+│  ┌─────────────────┐  └──────────────┘  ┌──────────────────┐  │
+│  │  Audit Log      │                    │   Storage &      │  │
+│  │  - Events       │  ┌──────────────┐  │   Files          │  │
+│  │  - Rollback     │  │ Integrations │  │  - Versions      │  │
+│  └─────────────────┘  │ - Gmail      │  │  - Shared links  │  │
+│                       │ - Drive      │  └──────────────────┘  │
+│                       │ - Sheets     │                          │
+│                       └──────────────┘                          │
+└──────────┬────────────────────────────┬─────────────────────────┘
+           │                            │
+           │                            │
+┌──────────▼────────────┐   ┌──────────▼────────────┐
+│   PostgreSQL 14       │   │     Redis 7           │
+│                       │   │                       │
+│  - 50 TypeORM entities│   │  - Session cache      │
+│  - 64 migrations      │   │  - Rate limiting      │
+│  - Full-text search   │   │  - Bull queues        │
+└───────────────────────┘   └───────────────────────┘
+
+                ┌─────────────────────────┐
+                │   Observability         │
+                │                         │
+                │  - Prometheus (metrics) │
+                │  - Grafana (dashboards) │
+                └─────────────────────────┘
+```
 
 ### API Design
 
