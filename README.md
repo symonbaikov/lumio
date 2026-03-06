@@ -68,7 +68,7 @@
 
 ## Why Lumio exists
 
-Many teams receive financial data in unstructured formats like PDF statements and email receipts. Lumio provides an open-source platform to transform these documents into structured, queryable financial data.
+Lumio turns unstructured financial documents (PDFs, CSVs, email receipts) into clean, queryable data. Open-source, self-hosted, and built for teams that need control over their financial data pipeline.
 
 ---
 
