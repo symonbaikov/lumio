@@ -3,6 +3,8 @@
 <div align="center">
 <img width="100" height="100" alt="favicon-new" src="https://github.com/user-attachments/assets/b01ed201-d44a-457d-8c84-c745cd5a1221" />
 
+---
+
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](CONTRIBUTING.md)
