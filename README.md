@@ -19,8 +19,8 @@
 
 ---
 
-[![Maintainability](https://qlty.sh/gh/symonbaikov/projects/parse-ledger/maintainability.svg)](https://qlty.sh/gh/symonbaikov/projects/parse-ledger)
-[![Code Coverage](https://qlty.sh/gh/symonbaikov/projects/parse-ledger/coverage.svg)](https://qlty.sh/gh/symonbaikov/projects/parse-ledger)
+[![Maintainability](https://qlty.sh/gh/symonbaikov/projects/lumio/maintainability.svg)](https://qlty.sh/gh/symonbaikov/projects/lumio)
+[![Code Coverage](https://qlty.sh/gh/symonbaikov/projects/lumio/coverage.svg)](https://qlty.sh/gh/symonbaikov/projects/lumio)
 
 ---
 
