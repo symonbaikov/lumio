@@ -50,7 +50,7 @@ export class GmailReceiptExportService {
         const createResponse = await sheets.spreadsheets.create({
           requestBody: {
             properties: {
-              title: `FinFlow Receipts Export - ${new Date().toISOString().split('T')[0]}`,
+              title: `Lumio Receipts Export - ${new Date().toISOString().split('T')[0]}`,
             },
             sheets: [
               {

@@ -1,6 +1,6 @@
-# Contributing to FinFlow
+# Contributing to Lumio
 
-First off, thank you for considering contributing to FinFlow! It's people like you that make FinFlow such a great tool.
+First off, thank you for considering contributing to Lumio! It's people like you that make Lumio such a great tool.
 
 ## Table of Contents
 
@@ -61,9 +61,9 @@ Unsure where to begin? You can start by looking through these issues:
 
 The process described here has several goals:
 
-- Maintain FinFlow's quality
+- Maintain Lumio's quality
 - Fix problems that are important to users
-- Engage the community in working toward the best possible FinFlow
+- Engage the community in working toward the best possible Lumio
 - Enable a sustainable system for maintainers to review contributions
 
 **Before submitting a pull request:**
@@ -233,19 +233,19 @@ npm --prefix frontend run format
 ### Quick Start (Recommended)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/financify.git
-cd financify
+git clone https://github.com/YOUR_USERNAME/lumio.git
+cd lumio
 make quick-dev
 ```
 
-Open http://localhost:3000 and login with `demo@finflow.dev` / `demo123`.
+Open http://localhost:3000 and login with `demo@lumio.dev` / `demo123`.
 
 ### Local Development (without backend/frontend containers)
 
 1. **Fork and clone the repository:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/financify.git
-   cd financify
+   git clone https://github.com/YOUR_USERNAME/lumio.git
+   cd lumio
    ```
 
 2. **Start database services only:**
@@ -315,7 +315,7 @@ docker-compose down               # Stop all services
 docker-compose logs -f            # View logs
 docker-compose logs -f backend    # View backend logs
 docker-compose restart backend    # Restart backend
-docker exec -it finflow-backend bash  # Shell into backend
+docker exec -it lumio-backend bash  # Shell into backend
 ```
 
 ## Testing
@@ -393,7 +393,7 @@ npm run test:cov
 ## Project Structure
 
 ```
-parse-ledger/
+lumio/
 ├── backend/                    # NestJS backend
 │   ├── src/
 │   │   ├── modules/           # Feature modules
@@ -469,4 +469,4 @@ Contributors are recognized in:
 - GitHub contributors page
 - Special mentions for significant contributions
 
-Thank you for contributing to FinFlow! 🎉
+Thank you for contributing to Lumio! 🎉

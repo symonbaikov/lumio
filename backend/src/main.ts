@@ -70,7 +70,7 @@ async function bootstrap() {
 
   // Swagger / OpenAPI
   const config = new DocumentBuilder()
-    .setTitle('FinFlow API')
+    .setTitle('Lumio API')
     .setDescription('REST API для загрузки выписок, классификации, отчётов и интеграций')
     .setVersion('1.0.0')
     .addBearerAuth(

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FinFlow is an open-source financial data platform for importing, processing, and analyzing bank statements. The application is built as a full-stack TypeScript monorepo with a NestJS backend and Next.js 14 frontend.
+Lumio is an open-source financial data platform for importing, processing, and analyzing bank statements. The application is built as a full-stack TypeScript monorepo with a NestJS backend and Next.js 14 frontend.
 
 **Tech Stack:**
 - **Backend:** NestJS + TypeORM + PostgreSQL + Redis (BullMQ)
@@ -204,7 +204,7 @@ frontend/app/
 
 ### Parsing System
 
-The parsing module is the core of FinFlow's statement processing:
+The parsing module is the core of Lumio's statement processing:
 
 **Parser Factory Pattern:**
 - `ParserFactoryService` automatically selects the correct parser based on:
@@ -243,7 +243,7 @@ The parsing module is the core of FinFlow's statement processing:
 
 ### Workspace & Permissions System
 
-FinFlow supports **multi-tenant workspaces** with role-based access control (RBAC):
+Lumio supports **multi-tenant workspaces** with role-based access control (RBAC):
 
 **Workspace roles:**
 - `owner` - Full control, can delete workspace
@@ -328,7 +328,7 @@ make format        # Format code
 ### Backend Required Variables
 
 ```bash
-DATABASE_URL=postgresql://user:password@localhost:5432/finflow
+DATABASE_URL=postgresql://user:password@localhost:5432/lumio
 JWT_SECRET=<generate with: openssl rand -base64 32>
 JWT_REFRESH_SECRET=<generate with: openssl rand -base64 32>
 REDIS_HOST=localhost  # or 'redis' in Docker
@@ -426,10 +426,10 @@ npm run storage:repair
 - `docker-compose.observability.yml` - Monitoring stack
 
 **Services:**
-- `finflow-backend` - NestJS API (port 3001)
-- `finflow-frontend` - Next.js app (port 3000)
-- `finflow-postgres` - PostgreSQL (port 5432)
-- `finflow-redis` - Redis (port 6379)
+- `lumio-backend` - NestJS API (port 3001)
+- `lumio-frontend` - Next.js app (port 3000)
+- `lumio-postgres` - PostgreSQL (port 5432)
+- `lumio-redis` - Redis (port 6379)
 - `prometheus` - Metrics (port 9090)
 - `grafana` - Dashboards (port 3002)
 

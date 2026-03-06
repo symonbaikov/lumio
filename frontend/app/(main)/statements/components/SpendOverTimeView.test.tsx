@@ -9,7 +9,7 @@ const viewportState = vi.hoisted(() => ({ isMobile: true }));
 const fetchReportMock = vi.hoisted(() => vi.fn());
 const pushMock = vi.hoisted(() => vi.fn());
 
-const STORAGE_KEY = 'finflow-spend-over-time-filters';
+const STORAGE_KEY = 'lumio-spend-over-time-filters';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({

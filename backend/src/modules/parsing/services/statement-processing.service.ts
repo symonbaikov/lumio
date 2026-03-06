@@ -133,7 +133,7 @@ export class StatementProcessingService {
     const ext = this.getFileExtension(statement);
     const tempFilePath = path.join(
       os.tmpdir(),
-      `finflow-statement-${statement.id}-${Date.now()}.${ext}`,
+      `lumio-statement-${statement.id}-${Date.now()}.${ext}`,
     );
     await fs.promises.writeFile(tempFilePath, fileData);
     return { filePath: tempFilePath, tempFilePath };

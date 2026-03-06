@@ -792,7 +792,7 @@
   "schemaVersion": 38,
   "style": "dark",
   "tags": [
-    "finflow",
+    "lumio",
     "backend",
     "http",
     "grafana",
@@ -847,8 +847,8 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "FinFlow Backend - HTTP",
-  "uid": "finflow-backend-http",
+  "title": "Lumio Backend - HTTP",
+  "uid": "lumio-backend-http",
   "version": 2,
   "weekStart": ""
 }

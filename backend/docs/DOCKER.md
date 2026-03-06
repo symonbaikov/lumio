@@ -1,4 +1,4 @@
-# Docker инструкции для FinFlow
+# Docker инструкции для Lumio
 
 ## Быстрый запуск в Docker
 
@@ -97,7 +97,7 @@ docker-compose down -v
 ### Подключение к PostgreSQL
 
 ```bash
-docker exec -it finflow-postgres psql -U finflow -d finflow
+docker exec -it lumio-postgres psql -U lumio -d lumio
 ```
 
 ### Выполнение миграций
@@ -106,19 +106,19 @@ docker exec -it finflow-postgres psql -U finflow -d finflow
 
 ```bash
 # В контейнере backend
-docker exec -it finflow-backend npm run migration:run
+docker exec -it lumio-backend npm run migration:run
 ```
 
 ### Бэкап базы данных
 
 ```bash
-docker exec finflow-postgres pg_dump -U finflow finflow > backup.sql
+docker exec lumio-postgres pg_dump -U lumio lumio > backup.sql
 ```
 
 ### Восстановление базы данных
 
 ```bash
-docker exec -i finflow-postgres psql -U finflow finflow < backup.sql
+docker exec -i lumio-postgres psql -U lumio lumio < backup.sql
 ```
 
 ## Пересборка контейнеров
@@ -183,7 +183,7 @@ docker-compose ps postgres
 docker-compose logs postgres
 
 # Проверьте подключение
-docker exec -it finflow-postgres psql -U finflow -d finflow -c "SELECT 1;"
+docker exec -it lumio-postgres psql -U lumio -d lumio -c "SELECT 1;"
 ```
 
 ### Проблема: Порты заняты

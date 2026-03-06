@@ -16,7 +16,7 @@ export class GmailSettings {
   @Column({ name: 'label_id', nullable: true })
   labelId: string;
 
-  @Column({ name: 'label_name', default: 'FinFlow/Receipts' })
+  @Column({ name: 'label_name', default: 'Lumio/Receipts' })
   labelName: string;
 
   @Column({ name: 'filter_enabled', default: true })

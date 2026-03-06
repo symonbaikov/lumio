@@ -412,7 +412,7 @@ export class TelegramService {
       );
       await this.sendMessage(
         chatId,
-        `✅ Файл принят и отправлен в обработку. Статус: ${statement.status}. Проверить результат можно в веб-интерфейсе FinFlow.`,
+        `✅ Файл принят и отправлен в обработку. Статус: ${statement.status}. Проверить результат можно в веб-интерфейсе Lumio.`,
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

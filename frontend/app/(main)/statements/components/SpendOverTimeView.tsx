@@ -28,7 +28,7 @@ import toast from 'react-hot-toast';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
-const STORAGE_KEY = 'finflow-spend-over-time-filters';
+const STORAGE_KEY = 'lumio-spend-over-time-filters';
 
 type FlowFilterValue = 'expense' | 'income' | 'net' | 'all';
 type GroupByValue = 'day' | 'week' | 'month' | 'quarter' | 'year';

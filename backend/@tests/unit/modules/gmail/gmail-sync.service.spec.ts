@@ -30,7 +30,7 @@ describe('GmailSyncService', () => {
       id: 'settings-123',
       integrationId: 'int-123',
       labelId: 'Label_123',
-      labelName: 'FinFlow/Receipts',
+      labelName: 'Lumio/Receipts',
       filterEnabled: true,
       filterConfig: {
         hasAttachment: true,

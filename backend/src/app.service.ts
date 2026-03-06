@@ -9,7 +9,7 @@ export class AppService {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      service: 'finflow-backend',
+      service: 'lumio-backend',
     };
   }
 

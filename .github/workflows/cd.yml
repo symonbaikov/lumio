@@ -274,7 +274,7 @@ jobs:
           role: ${{ secrets.VAULT_JWT_ROLE }}
           jwtGithubAudience: sigstore
           secrets: |
-            secret/data/finflow/${{ needs.build-and-publish.outputs.target_env }} healthcheck_url | SMOKE_URL ;
+            secret/data/lumio/${{ needs.build-and-publish.outputs.target_env }} healthcheck_url | SMOKE_URL ;
 
       - name: Run smoke check
         env:

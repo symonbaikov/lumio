@@ -1994,7 +1994,7 @@ describe('Import Flow Integration Tests', () => {
           port: parseInt(process.env.DATABASE_PORT || '5432', 10),
           username: process.env.DATABASE_USER || 'postgres',
           password: process.env.DATABASE_PASSWORD || 'postgres',
-          database: process.env.DATABASE_NAME || 'finflow_test',
+          database: process.env.DATABASE_NAME || 'lumio_test',
           entities: [__dirname + '/../../src/entities/**/*.entity{.ts,.js}'],
           synchronize: true, // Only for tests
         }),
@@ -2404,7 +2404,7 @@ DATABASE_HOST=localhost
 DATABASE_PORT=5432
 DATABASE_USER=postgres
 DATABASE_PASSWORD=postgres
-DATABASE_NAME=finflow_test
+DATABASE_NAME=lumio_test
 JWT_SECRET=test-secret
 JWT_REFRESH_SECRET=test-refresh-secret
 REDIS_HOST=localhost
@@ -2485,7 +2485,7 @@ git commit -m "feat(frontend): show import status and conflict resolution link
 
 ## Summary
 
-This implementation plan provides a complete, test-driven approach to integrating the idempotent import flow into the FinFlow application. Key achievements:
+This implementation plan provides a complete, test-driven approach to integrating the idempotent import flow into the Lumio application. Key achievements:
 
 1. **Fuzzy Conflict Detection** - Loads candidate transactions by date/amount window for tolerant matching
 2. **Import Session Integration** - Statement processing uses preview/commit workflow instead of direct saves

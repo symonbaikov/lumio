@@ -6,7 +6,7 @@
 
 ## Overview
 
-Complete redesign of FinFlow to match Expensify's minimalist styling with light blue accent colors. The design prioritizes clean white canvas, generous whitespace, minimal borders, and subtle shadows while using light blue exclusively for primary actions and interactive elements.
+Complete redesign of Lumio to match Expensify's minimalist styling with light blue accent colors. The design prioritizes clean white canvas, generous whitespace, minimal borders, and subtle shadows while using light blue exclusively for primary actions and interactive elements.
 
 ## Design Philosophy
 

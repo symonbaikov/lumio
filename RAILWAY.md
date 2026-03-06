@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to deploy FinFlow to Railway. The application consists of a NestJS backend and Next.js frontend served together from a single container.
+This guide explains how to deploy Lumio to Railway. The application consists of a NestJS backend and Next.js frontend served together from a single container.
 
 ## Architecture
 
@@ -54,7 +54,7 @@ JWT_EXPIRES_IN=1h
 JWT_REFRESH_EXPIRES_IN=7d
 
 # Database (Railway auto-generates, but verify these match)
-DATABASE_URL=postgresql://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}@${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/finflow
+DATABASE_URL=postgresql://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}@${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/lumio
 
 # Redis
 REDIS_HOST=${{Redis.REDIS_HOST}}
@@ -90,7 +90,7 @@ Copy the output to JWT_SECRET and JWT_REFRESH_SECRET environment variables in Ra
 
 1. In Railway project, click "Add Service"
 2. Select "PostgreSQL"
-3. Set database name to `finflow`
+3. Set database name to `lumio`
 4. Railway will auto-generate credentials
 
 ### 5. Add Redis Service
@@ -153,7 +153,7 @@ Railway Project (Single Service)
 │   ├── Swagger Docs on /api/docs
 │   └── Frontend listens on $PORT (default 3000) and proxies API to internal $API_PORT (default 4000)
 ├── PostgreSQL Service
-│   └── Auto-provisioned database (finflow)
+│   └── Auto-provisioned database (lumio)
 └── Redis Service
     └── Auto-provisioned cache
 ```

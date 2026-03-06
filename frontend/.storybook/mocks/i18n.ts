@@ -192,7 +192,7 @@ export const mockTranslations = {
     tour: {
       steps: {
         brand: {
-          title: { value: 'Добро пожаловать в FinFlow' },
+          title: { value: 'Добро пожаловать в Lumio' },
           description: { value: 'Это ваш финансовый помощник' },
         },
         navigation: {

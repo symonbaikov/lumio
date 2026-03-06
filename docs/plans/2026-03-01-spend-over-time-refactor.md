@@ -89,10 +89,10 @@ it('does not count default flow as active filter', async () => {
 });
 
 it('clears stored filters on reset', async () => {
-  localStorage.setItem('finflow-spend-over-time-filters', JSON.stringify({ ... }));
+  localStorage.setItem('lumio-spend-over-time-filters', JSON.stringify({ ... }));
   render(<SpendOverTimeView />);
   userEvent.click(screen.getByRole('button', { name: /reset filters/i }));
-  expect(localStorage.getItem('finflow-spend-over-time-filters')).toBeNull();
+  expect(localStorage.getItem('lumio-spend-over-time-filters')).toBeNull();
 });
 ```
 

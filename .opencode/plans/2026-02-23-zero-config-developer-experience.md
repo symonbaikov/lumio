@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Make FinFlow launchable with `git clone` + one command, no `.env` configuration needed for development. Both Docker (`make dev`) and local (`npm run dev`) modes must work identically.
+**Goal:** Make Lumio launchable with `git clone` + one command, no `.env` configuration needed for development. Both Docker (`make dev`) and local (`npm run dev`) modes must work identically.
 
 **Architecture:** Add deterministic dev-fallback values for all required env vars (JWT secrets, DB URL, Redis) directly in backend code, guarded by `NODE_ENV !== 'production'`. Create a seed script that bootstraps a demo user with workspace. Update `.env.example` files to be minimal reference docs, not required for startup. Update README/CONTRIBUTING with streamlined Quick Start.
 
@@ -26,7 +26,7 @@
 
 | Component | Default | File |
 |-----------|---------|------|
-| `DATABASE_URL` | `postgresql://finflow:finflow@localhost:5432/finflow` | `database.config.ts:16` |
+| `DATABASE_URL` | `postgresql://lumio:lumio@localhost:5432/lumio` | `database.config.ts:16` |
 | `REDIS_URL` | `redis://localhost:6379` | `app.module.ts:101` |
 | `PORT` | `3001` | `main.ts:93` |
 | `FRONTEND_URL` | `http://localhost:3000` | `main.ts:62` |
@@ -36,7 +36,7 @@
 | Resend email | Logs invite link instead | `workspaces.service.ts:869` |
 | OpenRouter AI | Sets client=null, `isAvailable()` returns false | `openrouter.service.ts:18` |
 | Gemini AI | `isAvailable()` returns false | Various AI helpers |
-| `INTEGRATIONS_ENCRYPTION_KEY` | Falls back to `JWT_SECRET`, then `'finflow'` | `encryption.util.ts:7` |
+| `INTEGRATIONS_ENCRYPTION_KEY` | Falls back to `JWT_SECRET`, then `'lumio'` | `encryption.util.ts:7` |
 
 ---
 
@@ -59,8 +59,8 @@ const logger = new Logger('DevDefaults');
  * Deterministic (not random) so JWT tokens survive backend restarts during development.
  */
 export const DEV_DEFAULTS = {
-  JWT_SECRET: 'finflow-dev-jwt-secret-do-not-use-in-production-abc123',
-  JWT_REFRESH_SECRET: 'finflow-dev-jwt-refresh-secret-do-not-use-in-production-xyz789',
+  JWT_SECRET: 'lumio-dev-jwt-secret-do-not-use-in-production-abc123',
+  JWT_REFRESH_SECRET: 'lumio-dev-jwt-refresh-secret-do-not-use-in-production-xyz789',
 } as const;
 
 let warned = false;
@@ -231,7 +231,7 @@ import * as bcrypt from 'bcrypt';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
 
-const DEMO_EMAIL = 'demo@finflow.dev';
+const DEMO_EMAIL = 'demo@lumio.dev';
 const DEMO_PASSWORD = 'demo123';
 const DEMO_NAME = 'Demo User';
 
@@ -309,7 +309,7 @@ Add to `"scripts"`:
 In `Makefile`, add after the `admin` target:
 
 ```makefile
-## Create demo user (demo@finflow.dev / demo123) with workspace and default data
+## Create demo user (demo@lumio.dev / demo123) with workspace and default data
 seed-demo:
 	@echo "Creating demo user..."
 	@$(DOCKER_EXEC_BACKEND) npm run seed:demo 2>/dev/null || (cd backend && npm run seed:demo)
@@ -348,7 +348,7 @@ cp backend/.env.example backend/.env.all-options
 Prepend a header:
 
 ```env
-# FinFlow Backend - Full Configuration Reference
+# Lumio Backend - Full Configuration Reference
 # =================================================
 # This file documents ALL available environment variables.
 # You do NOT need all of these. See .env.example for the minimal set.
@@ -359,7 +359,7 @@ Prepend a header:
 ### Step 2: Rewrite root `.env.example`
 
 ```env
-# FinFlow Environment Configuration
+# Lumio Environment Configuration
 # ===================================
 # For development: no configuration needed! The app works without this file.
 # For production: copy to .env and set the required values below.
@@ -374,14 +374,14 @@ Prepend a header:
 # NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 # TELEGRAM_BOT_TOKEN=
 # RESEND_API_KEY=
-# RESEND_FROM=FinFlow <noreply@your-domain.com>
+# RESEND_FROM=Lumio <noreply@your-domain.com>
 # GEMINI_API_KEY=
 ```
 
 ### Step 3: Rewrite `backend/.env.example`
 
 ```env
-# FinFlow Backend Configuration
+# Lumio Backend Configuration
 # ================================
 # For development: no configuration needed! The app starts with sensible defaults.
 # For production: copy to .env and configure required values.
@@ -391,7 +391,7 @@ Prepend a header:
 # --- Core (defaults shown, uncomment to override) ---
 # PORT=3001
 # NODE_ENV=development
-# DATABASE_URL=postgresql://finflow:finflow@localhost:5432/finflow
+# DATABASE_URL=postgresql://lumio:lumio@localhost:5432/lumio
 # REDIS_URL=redis://localhost:6379
 
 # --- Auth (auto-generated in development, required in production) ---
@@ -407,7 +407,7 @@ Prepend a header:
 ### Step 4: Create `frontend/.env.local.example`
 
 ```env
-# FinFlow Frontend Configuration
+# Lumio Frontend Configuration
 # =================================
 # For development: no configuration needed!
 # The frontend proxies API requests to http://127.0.0.1:3001 by default.
@@ -458,8 +458,8 @@ In the backend service environment section, add:
   backend:
     environment:
       NODE_ENV: development
-      JWT_SECRET: finflow-dev-jwt-secret-do-not-use-in-production-abc123
-      JWT_REFRESH_SECRET: finflow-dev-jwt-refresh-secret-do-not-use-in-production-xyz789
+      JWT_SECRET: lumio-dev-jwt-secret-do-not-use-in-production-abc123
+      JWT_REFRESH_SECRET: lumio-dev-jwt-refresh-secret-do-not-use-in-production-xyz789
 ```
 
 These match the deterministic values in `dev-defaults.ts`. Real `.env` values override if present.
@@ -476,12 +476,12 @@ dev:
 	@touch .env
 	$(DOCKER_COMPOSE_DEV) up -d --build
 	@echo ""
-	@echo "FinFlow is running!"
+	@echo "Lumio is running!"
 	@echo "  Frontend:  http://localhost:3000"
 	@echo "  Backend:   http://localhost:3001/api/v1"
 	@echo "  API Docs:  http://localhost:3001/api/docs"
 	@echo ""
-	@echo "Run 'make seed-demo' to create a demo user (demo@finflow.dev / demo123)"
+	@echo "Run 'make seed-demo' to create a demo user (demo@lumio.dev / demo123)"
 ```
 
 ### Step 4: Add `make quick-dev` one-command target
@@ -496,8 +496,8 @@ quick-dev:
 	done
 	@$(MAKE) seed-demo
 	@echo ""
-	@echo "FinFlow is ready! Login at http://localhost:3000"
-	@echo "  Email:    demo@finflow.dev"
+	@echo "Lumio is ready! Login at http://localhost:3000"
+	@echo "  Email:    demo@lumio.dev"
 	@echo "  Password: demo123"
 ```
 
@@ -521,7 +521,7 @@ git commit -m "feat(docker): enable zero-config dev startup, add quick-dev targe
 ```bash
 #!/bin/bash
 
-echo "FinFlow - Environment Setup"
+echo "Lumio - Environment Setup"
 echo ""
 echo "NOTE: .env files are OPTIONAL for development."
 echo "The app works without any configuration."
@@ -539,7 +539,7 @@ if [ ! -f "backend/.env" ]; then
   cat > backend/.env << EOF
 # Generated by generate-env.sh - all values are optional in development
 NODE_ENV=development
-DATABASE_URL=postgresql://finflow:finflow@localhost:5432/finflow
+DATABASE_URL=postgresql://lumio:lumio@localhost:5432/lumio
 JWT_SECRET=${JWT_SECRET}
 JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
 EOF
@@ -575,13 +575,13 @@ Replace the admin user creation section (the interactive prompt) with:
 
 ```bash
 echo "Creating demo user..."
-docker exec finflow-backend npm run seed:demo || echo "Note: seed-demo failed, you can run it later with: make seed-demo"
+docker exec lumio-backend npm run seed:demo || echo "Note: seed-demo failed, you can run it later with: make seed-demo"
 
 echo ""
-echo "FinFlow is ready!"
+echo "Lumio is ready!"
 echo "  Frontend:  http://localhost:3000"
 echo "  Backend:   http://localhost:3001/api/v1"
-echo "  Login:     demo@finflow.dev / demo123"
+echo "  Login:     demo@lumio.dev / demo123"
 ```
 
 ### Step 3: Commit
@@ -613,20 +613,20 @@ Replace with:
 ### Option 1: Docker (Recommended)
 
 ```bash
-git clone https://github.com/symonbaikov/finflow.git
-cd finflow
+git clone https://github.com/symonbaikov/lumio.git
+cd lumio
 make quick-dev
 ```
 
 That's it. Open http://localhost:3000 and login:
-- **Email:** `demo@finflow.dev`
+- **Email:** `demo@lumio.dev`
 - **Password:** `demo123`
 
 ### Option 2: Local Development
 
 ```bash
-git clone https://github.com/symonbaikov/finflow.git
-cd finflow
+git clone https://github.com/symonbaikov/lumio.git
+cd lumio
 
 # Start Postgres & Redis in Docker
 make db-start
@@ -641,7 +641,7 @@ npm run dev
 make seed-demo
 ```
 
-Open http://localhost:3000 and login with `demo@finflow.dev` / `demo123`.
+Open http://localhost:3000 and login with `demo@lumio.dev` / `demo123`.
 Or register a new account through the UI.
 
 > **No `.env` files needed.** The app auto-configures everything for development.
@@ -661,7 +661,7 @@ Replace "Required Environment Variables" with:
 
 | Setting | Default |
 |---------|---------|
-| Database | `postgresql://finflow:finflow@localhost:5432/finflow` |
+| Database | `postgresql://lumio:lumio@localhost:5432/lumio` |
 | Redis | `redis://localhost:6379` |
 | JWT secrets | Auto-generated dev keys |
 | Backend port | `3001` |
@@ -693,7 +693,7 @@ Add demo user info:
 ### Demo User
 
 For development, run `make seed-demo` to create:
-- **Email:** `demo@finflow.dev`
+- **Email:** `demo@lumio.dev`
 - **Password:** `demo123`
 
 ### Create Admin User
@@ -731,15 +731,15 @@ Replace with:
 
 1. **Fork and clone the repository:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/finflow.git
-   cd finflow
+   git clone https://github.com/symonbaikov/lumio.git
+   cd lumio
    ```
 
 2. **Start with Docker (fastest):**
    ```bash
    make quick-dev
    ```
-   Open http://localhost:3000 — login with `demo@finflow.dev` / `demo123`.
+   Open http://localhost:3000 — login with `demo@lumio.dev` / `demo123`.
 
 3. **Or start locally:**
    ```bash
@@ -750,7 +750,7 @@ Replace with:
    npm run dev                        # Start both backend & frontend
    make seed-demo                     # Create demo user
    ```
-   Open http://localhost:3000 — login with `demo@finflow.dev` / `demo123`.
+   Open http://localhost:3000 — login with `demo@lumio.dev` / `demo123`.
 
 > **No `.env` configuration needed.** Everything auto-configures for development.
 > For integrations (Google OAuth, Telegram, etc.), see the README [Configuration section](README.md#configuration).
@@ -789,7 +789,7 @@ make quick-dev
 # 1. Backend starts without errors (check: make logs-backend)
 # 2. Frontend loads at http://localhost:3000
 # 3. Login page shows NO Google button or "or" divider
-# 4. Login as demo@finflow.dev / demo123 works
+# 4. Login as demo@lumio.dev / demo123 works
 # 5. Workspace exists with categories visible in sidebar
 ```
 
@@ -860,15 +860,15 @@ git commit -m "test: verify zero-config developer experience end-to-end"
 
 ```
 # Docker mode:
-$ git clone https://github.com/symonbaikov/finflow.git && cd finflow
+$ git clone https://github.com/symonbaikov/lumio.git && cd lumio
 $ make quick-dev
-  -> FinFlow is ready! Login at http://localhost:3000
-     Email: demo@finflow.dev / Password: demo123
+  -> Lumio is ready! Login at http://localhost:3000
+     Email: demo@lumio.dev / Password: demo123
 
 # Local mode:
-$ git clone https://github.com/symonbaikov/finflow.git && cd finflow
+$ git clone https://github.com/symonbaikov/lumio.git && cd lumio
 $ make db-start && npm install --prefix backend && npm install --prefix frontend
 $ npm run dev
 $ make seed-demo
-  -> Open http://localhost:3000 — demo@finflow.dev / demo123
+  -> Open http://localhost:3000 — demo@lumio.dev / demo123
 ```

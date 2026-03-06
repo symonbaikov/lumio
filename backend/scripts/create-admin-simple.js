@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 async function createAdmin() {
   const client = new Client({
     connectionString:
-      process.env.DATABASE_URL || 'postgresql://finflow:finflow@finflow-postgres:5432/finflow',
+      process.env.DATABASE_URL || 'postgresql://lumio:lumio@lumio-postgres:5432/lumio',
   });
 
   try {

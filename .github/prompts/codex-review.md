@@ -1,6 +1,6 @@
-# Codex PR Review Prompt (parse-ledger)
+# Codex PR Review Prompt (lumio)
 
-You are Codex reviewing a pull request for the `parse-ledger` repository (FinFlow bank statements processing system).
+You are Codex reviewing a pull request for the `lumio` repository (Lumio bank statements processing system).
 
 ## Goal
 Review this pull request for **correctness**, **security**, **performance**, **reliability**, and **style**.

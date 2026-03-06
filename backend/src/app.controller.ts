@@ -37,7 +37,7 @@ export class AppController {
     } else {
       // Fallback to API info
       res.status(200).json({
-        message: 'FinFlow - Bank Statement Processing System',
+        message: 'Lumio - Bank Statement Processing System',
         version: '1.0.0',
         status: 'running',
         endpoints: {

@@ -1,9 +1,9 @@
 apiVersion: 1
 
 providers:
-  - name: FinFlow
+  - name: Lumio
     orgId: 1
-    folder: FinFlow
+    folder: Lumio
     type: file
     updateIntervalSeconds: 10
     disableDeletion: true

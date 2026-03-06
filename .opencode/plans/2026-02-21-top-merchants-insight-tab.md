@@ -225,7 +225,7 @@ This is the main component (~1100 lines). It follows the exact same pattern as `
 | **Record type field** | `company` | `merchant` |
 | **AggregateRow field** | `company` | `merchant` |
 | **i18n key** | `topSpenders` | `topMerchants` |
-| **localStorage key** | `finflow-top-spenders-filters` | `finflow-top-merchants-filters` |
+| **localStorage key** | `lumio-top-spenders-filters` | `lumio-top-merchants-filters` |
 | **Search fields** | company, sender, subject, bankName | merchant, sender, subject, paymentPurpose |
 | **Table "Company" header** | `labels.company` | `labels.merchant` |
 | **Import** | `resolveBankLogo` from `@bank-logos` | Not needed |
@@ -363,7 +363,7 @@ merchant: resolveLabel((t as any)?.topMerchants?.merchant, 'Merchant'),
 **7. localStorage key:**
 
 ```typescript
-const STORAGE_KEY = 'finflow-top-merchants-filters';
+const STORAGE_KEY = 'lumio-top-merchants-filters';
 ```
 
 **8. Search filter:**

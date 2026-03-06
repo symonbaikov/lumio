@@ -1,4 +1,4 @@
-# FinFlow Backend
+# Lumio Backend
 
 Backend приложение для системы обработки банковских выписок на базе NestJS.
 
@@ -20,7 +20,7 @@ cp .env.example .env
 
 - `APP_URL` — базовый URL фронтенда (используется в ссылках приглашений)
 - `RESEND_API_KEY` — API ключ Resend
-- `RESEND_FROM` — From адрес, например `"FinFlow <noreply@your-domain.com>"`
+- `RESEND_FROM` — From адрес, например `"Lumio <noreply@your-domain.com>"`
 - `RESEND_REPLY_TO` — опционально, Reply-To адрес
 
 Если `RESEND_API_KEY` или `RESEND_FROM` не заданы, ссылка всё равно вернётся в ответе API, но письмо отправлено не будет.
@@ -44,7 +44,7 @@ docker-compose up -d
 npm run migration:run
 
 # или внутри Docker-контейнера backend
-docker exec -it finflow-backend npm run migration:run
+docker exec -it lumio-backend npm run migration:run
 ```
 
 ## Запуск приложения

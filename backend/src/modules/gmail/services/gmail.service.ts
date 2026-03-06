@@ -27,7 +27,7 @@ export class GmailService {
       // Get or create label
       const labelsResponse = await gmail.users.labels.list({ userId: 'me' });
       const existingLabel = labelsResponse.data.labels?.find(
-        label => label.name === 'FinFlow/Receipts',
+        label => label.name === 'Lumio/Receipts',
       );
 
       let labelId: string;
@@ -37,7 +37,7 @@ export class GmailService {
         const createLabelResponse = await gmail.users.labels.create({
           userId: 'me',
           requestBody: {
-            name: 'FinFlow/Receipts',
+            name: 'Lumio/Receipts',
             labelListVisibility: 'labelShow',
             messageListVisibility: 'show',
           },
@@ -79,7 +79,7 @@ export class GmailService {
 
       if (settings) {
         settings.labelId = labelId;
-        settings.labelName = 'FinFlow/Receipts';
+        settings.labelName = 'Lumio/Receipts';
         await this.gmailSettingsRepository.save(settings);
       }
 

@@ -8,7 +8,7 @@ import { CategoriesService } from '../src/modules/categories/categories.service'
 import { TaxRatesService } from '../src/modules/tax-rates/tax-rates.service';
 import { WorkspacesService } from '../src/modules/workspaces/workspaces.service';
 
-const DEMO_EMAIL = 'demo@finflow.dev';
+const DEMO_EMAIL = 'demo@lumio.dev';
 const DEMO_PASSWORD = 'demo123';
 const DEMO_NAME = 'Demo User';
 

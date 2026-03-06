@@ -1,5 +1,5 @@
 name: Feature Request
-description: Suggest a new feature or enhancement for FinFlow
+description: Suggest a new feature or enhancement for Lumio
 title: "[Feature]: "
 labels: ["enhancement", "needs-triage"]
 body:
@@ -130,7 +130,7 @@ body:
       options:
         - label: I have searched existing issues and feature requests
           required: true
-        - label: This feature aligns with FinFlow's goals
+        - label: This feature aligns with Lumio's goals
           required: true
         - label: I have provided a clear problem statement and solution
           required: true

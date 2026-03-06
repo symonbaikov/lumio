@@ -12,7 +12,7 @@ export class AddGmailIntegration1738051200000 implements MigrationInterface {
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "integration_id" uuid NOT NULL,
         "label_id" character varying,
-        "label_name" character varying NOT NULL DEFAULT 'FinFlow/Receipts',
+        "label_name" character varying NOT NULL DEFAULT 'Lumio/Receipts',
         "filter_enabled" boolean NOT NULL DEFAULT true,
         "filter_config" jsonb,
         "watch_enabled" boolean NOT NULL DEFAULT false,

@@ -4,7 +4,7 @@ This file gives Codebuff context about your project: goals, commands, convention
 
 ## Overview
 
-**FinFlow** is an open-source financial data platform for importing, processing, and analyzing bank statements. Full-stack TypeScript monorepo with NestJS backend and Next.js 14 frontend.
+**Lumio** is an open-source financial data platform for importing, processing, and analyzing bank statements. Full-stack TypeScript monorepo with NestJS backend and Next.js 14 frontend.
 
 ## Quickstart
 
@@ -138,7 +138,7 @@ frontend/app/
 
 ### Backend (required)
 ```
-DATABASE_URL=postgresql://user:pass@localhost:5432/finflow
+DATABASE_URL=postgresql://user:pass@localhost:5432/lumio
 JWT_SECRET=<openssl rand -base64 32>
 JWT_REFRESH_SECRET=<openssl rand -base64 32>
 REDIS_HOST=localhost

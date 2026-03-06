@@ -1,4 +1,4 @@
-# FinFlow Frontend
+# Lumio Frontend
 
 Frontend приложение для системы обработки банковских выписок на базе Next.js.
 

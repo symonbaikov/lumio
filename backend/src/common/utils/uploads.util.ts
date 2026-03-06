@@ -7,7 +7,7 @@ export function resolveUploadsDir(): string {
     process.env.UPLOADS_DIR,
     path.join(process.cwd(), 'uploads'),
     path.join(process.cwd(), '..', 'uploads'),
-    path.join(os.tmpdir(), 'finflow-uploads'),
+    path.join(os.tmpdir(), 'lumio-uploads'),
   ].filter(Boolean) as string[];
 
   for (const dir of candidates) {

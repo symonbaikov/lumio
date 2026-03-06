@@ -78,7 +78,7 @@ export class GoogleDriveService {
   }
 
   private getStateSecret() {
-    return process.env.GOOGLE_DRIVE_STATE_SECRET || process.env.JWT_SECRET || 'finflow-state';
+    return process.env.GOOGLE_DRIVE_STATE_SECRET || process.env.JWT_SECRET || 'lumio-state';
   }
 
   private getOAuthClient() {
@@ -431,7 +431,7 @@ export class GoogleDriveService {
 
     const response = await drive.files.create({
       requestBody: {
-        name: 'FinFlow',
+        name: 'Lumio',
         mimeType: 'application/vnd.google-apps.folder',
       },
       fields: 'id,name',

@@ -4,7 +4,7 @@ const ENCRYPTION_PREFIX = 'enc:';
 const ALGORITHM = 'aes-256-gcm';
 
 const getEncryptionKey = () => {
-  const secret = process.env.INTEGRATIONS_ENCRYPTION_KEY || process.env.JWT_SECRET || 'finflow';
+  const secret = process.env.INTEGRATIONS_ENCRYPTION_KEY || process.env.JWT_SECRET || 'lumio';
   return crypto.createHash('sha256').update(secret).digest();
 };
 

@@ -40,7 +40,7 @@ type StatementApiItem = {
   } | null;
 };
 
-const IGNORED_STORAGE_KEY = 'finflow-unapproved-cash-ignored';
+const IGNORED_STORAGE_KEY = 'lumio-unapproved-cash-ignored';
 
 const REASON_BADGE_CLASSNAME: Record<UnapprovedReasonId, string> = {
   'missing-category': 'border-amber-200 bg-amber-50 text-amber-700',

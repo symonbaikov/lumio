@@ -52,7 +52,7 @@ export class GmailOAuthService {
   }
 
   private getStateSecret() {
-    return process.env.GMAIL_STATE_SECRET || process.env.JWT_SECRET || 'finflow-state';
+    return process.env.GMAIL_STATE_SECRET || process.env.JWT_SECRET || 'lumio-state';
   }
 
   private getOAuthClient() {
@@ -252,7 +252,7 @@ export class GmailOAuthService {
       existing?.gmailSettings ||
       this.gmailSettingsRepository.create({
         integrationId: savedIntegration.id,
-        labelName: 'FinFlow/Receipts',
+        labelName: 'Lumio/Receipts',
         filterEnabled: true,
         filterConfig: {
           hasAttachment: true,

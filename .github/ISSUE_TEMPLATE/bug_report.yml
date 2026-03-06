@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug or issue with FinFlow
+description: Report a bug or issue with Lumio
 title: "[Bug]: "
 labels: ["bug", "needs-triage"]
 body:
@@ -89,7 +89,7 @@ body:
         - Node.js version: [e.g., 18.17.0]
         - Docker version: [e.g., 24.0.5]
         - Browser (if frontend): [e.g., Chrome 120, Safari 17]
-        - FinFlow version/commit: [e.g., v1.0.0, commit abc123]
+        - Lumio version/commit: [e.g., v1.0.0, commit abc123]
     validations:
       required: true
 
@@ -128,5 +128,5 @@ body:
           required: true
         - label: I have provided all the required information above
           required: true
-        - label: I am using the latest version of FinFlow
+        - label: I am using the latest version of Lumio
           required: false

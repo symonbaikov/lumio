@@ -124,7 +124,7 @@ type MerchantRecord = StatementFilterItem & {
   workspaceName?: string;
 };
 
-const STORAGE_KEY = 'finflow-top-merchants-filters';
+const STORAGE_KEY = 'lumio-top-merchants-filters';
 
 const loadTopMerchantsFilters = (): StatementFilters => {
   if (typeof window === 'undefined') return DEFAULT_STATEMENT_FILTERS;

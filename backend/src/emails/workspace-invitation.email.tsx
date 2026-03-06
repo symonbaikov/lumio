@@ -34,7 +34,7 @@ export function WorkspaceInvitationEmail({
       <Body style={styles.main}>
         <Container style={styles.container}>
           <Section style={styles.card}>
-            <Text style={styles.brand}>FinFlow</Text>
+            <Text style={styles.brand}>Lumio</Text>
             <Heading style={styles.h1}>Приглашение в рабочее пространство</Heading>
             <Text style={styles.text}>
               {invitedBy ? (

@@ -27,7 +27,7 @@ const normalizeLogLevel = (value: string | undefined): Level => {
 };
 
 export class AppLogger implements LoggerService {
-  private readonly serviceName = process.env.SERVICE_NAME || 'finflow-backend';
+  private readonly serviceName = process.env.SERVICE_NAME || 'lumio-backend';
   private readonly host = os.hostname();
   private readonly minLevel = normalizeLogLevel(process.env.LOG_LEVEL);
   private logLevels?: LogLevel[];

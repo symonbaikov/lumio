@@ -1,4 +1,4 @@
-# FinFlow
+# Lumio
 
 <div align="center">
 
@@ -22,7 +22,7 @@
 
 ## Features
 
-FinFlow is a full-stack financial operations platform built for teams that need to import, categorize, analyze, and collaborate on bank statement data.
+Lumio is a full-stack financial operations platform built for teams that need to import, categorize, analyze, and collaborate on bank statement data.
 
 ### Core
 
@@ -148,7 +148,7 @@ FinFlow is a full-stack financial operations platform built for teams that need 
 ## Repository Structure
 
 ```
-financify/
+lumio/
 ├── backend/                         # NestJS API server
 │   ├── src/
 │   │   ├── modules/                 # 27 feature modules
@@ -239,8 +239,8 @@ financify/
 ### Option 1: Docker (Recommended)
 
 ```bash
-git clone https://github.com/symonbaikov/financify.git
-cd financify
+git clone https://github.com/symonbaikov/lumio.git
+cd lumio
 make quick-dev
 ```
 
@@ -251,14 +251,14 @@ make quick-dev
 - **Swagger Docs:** http://localhost:3001/api/docs
 
 Demo credentials:
-- **Email:** `demo@finflow.dev`
+- **Email:** `demo@lumio.dev`
 - **Password:** `demo123`
 
 ### Option 2: Local Development (no Docker)
 
 ```bash
-git clone https://github.com/symonbaikov/financify.git
-cd financify
+git clone https://github.com/symonbaikov/lumio.git
+cd lumio
 
 # Start only PostgreSQL and Redis via Docker
 make db-start
@@ -300,7 +300,7 @@ No environment variables are required in development mode. The backend uses sens
 
 | Setting | Default Value |
 |---|---|
-| `DATABASE_URL` | `postgresql://finflow:finflow@localhost:5432/finflow` |
+| `DATABASE_URL` | `postgresql://lumio:lumio@localhost:5432/lumio` |
 | `REDIS_HOST` | `localhost` |
 | `REDIS_PORT` | `6379` |
 | `PORT` | `3001` |
@@ -397,7 +397,7 @@ Used for workspace invitation emails. If not configured, invitation links are re
 ```bash
 # backend/.env
 RESEND_API_KEY=re_your-api-key
-RESEND_FROM="FinFlow <noreply@your-domain.com>"
+RESEND_FROM="Lumio <noreply@your-domain.com>"
 ```
 
 Get an API key at [resend.com](https://resend.com).
@@ -413,7 +413,7 @@ Get an API key at [resend.com](https://resend.com).
 make seed-demo
 ```
 
-Creates `demo@finflow.dev` with password `demo123` and a sample workspace with demo transactions.
+Creates `demo@lumio.dev` with password `demo123` and a sample workspace with demo transactions.
 
 ### Create Admin User
 
@@ -422,7 +422,7 @@ Creates `demo@finflow.dev` with password `demo123` and a sample workspace with d
 make admin email=admin@example.com password=admin123 name="Admin User"
 
 # Using Docker exec directly
-docker exec -it finflow-backend npm run create-admin -- admin@example.com admin123 "Admin User"
+docker exec -it lumio-backend npm run create-admin -- admin@example.com admin123 "Admin User"
 
 # Local (no Docker)
 cd backend && npm run create-admin -- admin@example.com admin123 "Admin User"
@@ -529,7 +529,7 @@ make update            # Update npm dependencies
 
 ### Database Migrations
 
-FinFlow uses TypeORM migrations exclusively (`synchronize: false`). Migrations run automatically on every startup unless `RUN_MIGRATIONS=false` is set. There are currently 64 migrations covering the entire schema history.
+Lumio uses TypeORM migrations exclusively (`synchronize: false`). Migrations run automatically on every startup unless `RUN_MIGRATIONS=false` is set. There are currently 64 migrations covering the entire schema history.
 
 ```bash
 # Apply all pending migrations (Docker)
@@ -738,7 +738,7 @@ Docker Compose runs four services: `postgres` (PostgreSQL 14-alpine), `redis` (R
 
 ### Railway
 
-FinFlow can be deployed to [Railway](https://railway.app/) with automatic migrations on every deploy:
+Lumio can be deployed to [Railway](https://railway.app/) with automatic migrations on every deploy:
 
 1. Push to GitHub
 2. Connect Railway to your repository
@@ -846,8 +846,8 @@ Built on great open-source foundations:
 
 <div align="center">
 
-**[back to top](#finflow)**
+**[back to top](#lumio)**
 
-Made with care by the FinFlow community
+Made with care by the Lumio community
 
 </div>

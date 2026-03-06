@@ -121,7 +121,7 @@ type TopSpenderRecord = StatementFilterItem & {
   workspaceName?: string;
 };
 
-const STORAGE_KEY = 'finflow-top-spenders-filters';
+const STORAGE_KEY = 'lumio-top-spenders-filters';
 
 const loadTopSpendersFilters = (): StatementFilters => {
   if (typeof window === 'undefined') return DEFAULT_STATEMENT_FILTERS;

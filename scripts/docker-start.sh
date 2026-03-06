@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Script to start FinFlow in Docker
+# Script to start Lumio in Docker
 
 set -e
 
-echo "🐳 FinFlow - Docker Startup Script"
+echo "🐳 Lumio - Docker Startup Script"
 echo ""
 
 # Check if .env exists
@@ -46,14 +46,14 @@ echo ""
 echo "🔍 Checking service health..."
 
 # Check PostgreSQL
-if docker exec finflow-postgres pg_isready -U finflow > /dev/null 2>&1; then
+if docker exec lumio-postgres pg_isready -U lumio > /dev/null 2>&1; then
   echo "✅ PostgreSQL is ready"
 else
   echo "❌ PostgreSQL is not ready"
 fi
 
 # Check Redis
-if docker exec finflow-redis redis-cli ping > /dev/null 2>&1; then
+if docker exec lumio-redis redis-cli ping > /dev/null 2>&1; then
   echo "✅ Redis is ready"
 else
   echo "❌ Redis is not ready"

@@ -74,7 +74,7 @@ export class DropboxService {
   }
 
   private getStateSecret() {
-    return process.env.DROPBOX_STATE_SECRET || process.env.JWT_SECRET || 'finflow-state';
+    return process.env.DROPBOX_STATE_SECRET || process.env.JWT_SECRET || 'lumio-state';
   }
 
   private getDropboxClient(accessToken?: string) {
@@ -446,7 +446,7 @@ export class DropboxService {
 
     try {
       const response = await dbx.filesCreateFolderV2({
-        path: '/FinFlow',
+        path: '/Lumio',
         autorename: false,
       });
 
@@ -459,8 +459,8 @@ export class DropboxService {
       }
     } catch (error: any) {
       if (error?.error?.error_summary?.includes('path/conflict/folder')) {
-        settings.folderId = '/finflow';
-        settings.folderName = 'FinFlow';
+        settings.folderId = '/lumio';
+        settings.folderName = 'Lumio';
         return this.dropboxSettingsRepository.save(settings);
       }
       throw error;

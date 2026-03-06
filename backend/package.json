@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "FinFlow Backend - Bank statements processing system",
+  "description": "Lumio Backend - Bank statements processing system",
   "main": "dist/main.js",
   "scripts": {
     "build": "nest build",

@@ -15,7 +15,7 @@ help: ## Display this help message
 ##@ Setup
 
 setup: ## Initial setup - copy env files and generate secrets
-	@echo "🚀 Setting up FinFlow..."
+	@echo "🚀 Setting up Lumio..."
 	@bash scripts/generate-env.sh
 	@echo "✅ Setup complete!"
 
@@ -28,40 +28,40 @@ install: ## Install dependencies (local development)
 ##@ Docker Operations
 
 start: ## Start all services in production mode
-	@echo "🐳 Starting FinFlow (production mode)..."
+	@echo "🐳 Starting Lumio (production mode)..."
 	@touch .env
 	@$(DOCKER_COMPOSE) up -d --build
 	@echo "⏳ Waiting for services to be ready..."
 	@sleep 10
-	@echo "✅ FinFlow is running!"
+	@echo "✅ Lumio is running!"
 	@echo "Frontend: http://localhost:3000"
 	@echo "Backend:  http://localhost:3001/api/v1"
 	@echo "Swagger:  http://localhost:3001/api/docs"
 
 dev: ## Start all services in development mode (with hot reload)
-	@echo "🐳 Starting FinFlow (development mode)..."
+	@echo "🐳 Starting Lumio (development mode)..."
 	@touch .env
 	@$(DOCKER_COMPOSE_DEV) up -d --build
 	@echo "⏳ Waiting for services to be ready..."
 	@sleep 10
-	@echo "✅ FinFlow is running in development mode!"
+	@echo "✅ Lumio is running in development mode!"
 	@echo "Frontend: http://localhost:3000"
 	@echo "Backend:  http://localhost:3001/api/v1"
 	@echo "Swagger:  http://localhost:3001/api/docs"
-	@echo "Run 'make seed-demo' to create demo@finflow.dev / demo123"
+	@echo "Run 'make seed-demo' to create demo@lumio.dev / demo123"
 
 stop: ## Stop all services
-	@echo "🛑 Stopping FinFlow..."
+	@echo "🛑 Stopping Lumio..."
 	@$(DOCKER_COMPOSE) down
 	@echo "✅ Services stopped!"
 
 restart: ## Restart all services
-	@echo "🔄 Restarting FinFlow..."
+	@echo "🔄 Restarting Lumio..."
 	@$(DOCKER_COMPOSE) restart
 	@echo "✅ Services restarted!"
 
 clean: ## Stop services and remove volumes
-	@echo "🧹 Cleaning up FinFlow..."
+	@echo "🧹 Cleaning up Lumio..."
 	@$(DOCKER_COMPOSE) down -v
 	@echo "✅ Cleanup complete!"
 
@@ -159,7 +159,7 @@ admin: ## Create admin user (usage: make admin email=admin@example.com password=
 	@$(DOCKER_EXEC_BACKEND) npm run create-admin -- $(email) $(password) "$(name)"
 	@echo "✅ Admin user created!"
 
-seed-demo: ## Create demo user (demo@finflow.dev / demo123)
+seed-demo: ## Create demo user (demo@lumio.dev / demo123)
 	@echo "👤 Creating demo user..."
 	@if docker inspect -f '{{.State.Running}}' finflow-backend >/dev/null 2>&1; then \
 		docker exec finflow-backend npm run seed:demo; \
@@ -226,7 +226,7 @@ type-check: ## Run TypeScript type checking
 ##@ Build
 
 build: ## Build for production
-	@echo "🏗️  Building FinFlow..."
+	@echo "🏗️  Building Lumio..."
 	@cd backend && npm run build
 	@cd frontend && npm run build
 	@echo "✅ Build complete!"
@@ -303,10 +303,10 @@ quick-dev: ## Zero-config startup: dev containers + demo user
 		sleep 2; \
 	done
 	@$(MAKE) seed-demo
-	@echo "🎉 FinFlow is ready!"
+	@echo "🎉 Lumio is ready!"
 	@echo "   Frontend: http://localhost:3000"
 	@echo "   Backend:  http://localhost:3001/api/v1"
-	@echo "   Login:    demo@finflow.dev / demo123"
+	@echo "   Login:    demo@lumio.dev / demo123"
 
 quick-start: ## Legacy alias for quick-dev
 	@$(MAKE) quick-dev
@@ -325,4 +325,4 @@ update: ## Update dependencies
 	@echo "✅ Dependencies updated!"
 
 reset: clean setup start ## Complete reset - clean, setup, and start
-	@echo "✅ FinFlow has been reset!"
+	@echo "✅ Lumio has been reset!"

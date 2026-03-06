@@ -11,7 +11,7 @@ We release security updates for the following versions:
 
 ## Reporting a Vulnerability
 
-We take the security of FinFlow seriously. If you believe you have found a security vulnerability, please report it to us as described below.
+We take the security of Lumio seriously. If you believe you have found a security vulnerability, please report it to us as described below.
 
 ### Where to Report
 
@@ -61,7 +61,7 @@ After you submit a report, here's what will happen:
 
 ## Security Best Practices
 
-When deploying FinFlow, please follow these security best practices:
+When deploying Lumio, please follow these security best practices:
 
 ### Environment Variables
 
@@ -151,7 +151,7 @@ We follow responsible disclosure practices:
 
 ## Bug Bounty Program
 
-We currently do not have a bug bounty program, but we deeply appreciate security researchers who help us keep FinFlow secure. We will:
+We currently do not have a bug bounty program, but we deeply appreciate security researchers who help us keep Lumio secure. We will:
 
 - Credit you in our security advisories (with your permission)
 - Thank you in our release notes
@@ -172,4 +172,4 @@ For security-related questions that are not vulnerabilities, you can:
 
 ---
 
-Thank you for helping keep FinFlow and our users safe!
+Thank you for helping keep Lumio and our users safe!
