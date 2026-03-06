@@ -21,6 +21,9 @@
 
 [![Maintainability](https://qlty.sh/gh/symonbaikov/projects/lumio/maintainability.svg)](https://qlty.sh/gh/symonbaikov/projects/lumio)
 [![Code Coverage](https://qlty.sh/gh/symonbaikov/projects/lumio/coverage.svg)](https://qlty.sh/gh/symonbaikov/projects/lumio)
+[![GitHub Stars](https://img.shields.io/github/stars/symonbaikov/lumio?style=flat-square&logo=github)](https://github.com/symonbaikov/lumio/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/symonbaikov/lumio?style=flat-square&logo=github)](https://github.com/symonbaikov/lumio/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/symonbaikov/lumio?style=flat-square&logo=github)](https://github.com/symonbaikov/lumio/issues)
 
 ---
 
