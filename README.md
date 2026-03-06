@@ -21,61 +21,102 @@
 
 ---
 
+> **TL;DR**
+>
+> - Upload bank statements (PDF / CSV / XLSX / image) → auto-parse → deduplicate → AI-categorize
+> - Multi-tenant workspaces with RBAC, audit log, and one-click rollback
+> - Full stack running locally in one command: `make quick-dev`
+>
+> Built for finance teams, accountants, and developers who need to process and analyze bank statement data without proprietary SaaS lock-in.
+
+---
+
+## Screenshots
+
+<!-- Replace placeholders with real screenshots once available -->
+
+| Upload | Transactions | Dashboard |
+|--------|-------------|-----------|
+| ![Upload flow](docs/screenshots/upload.png) | ![Transactions](docs/screenshots/transactions.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+
+| Reports | Audit Log |
+|---------|-----------|
+| ![Reports](docs/screenshots/reports.png) | ![Audit Log](docs/screenshots/audit-log.png) |
+
+> A short demo GIF (upload → parse → dashboard update) can go here: `docs/screenshots/demo.gif`
+
+---
+
 ## Features
 
 Lumio is a full-stack financial operations platform built for teams that need to import, categorize, analyze, and collaborate on bank statement data.
 
-### Core
+### Core capabilities
 
-- **Multi-format Statement Import** — Upload PDF, CSV, XLSX, and image files. Native parsers for Kaspi Bank and Bereke Bank (new and legacy formats). Generic AI-powered PDF parser for any other bank.
-- **OCR for Image Statements** — Tesseract.js-powered text extraction from scanned documents and photos.
-- **Idempotent Uploads** — SHA-256 file hashing prevents duplicate imports. `Idempotency-Key` header support on all upload endpoints.
+- **Multi-format Statement Import** — PDF, CSV, XLSX, and image files. Native parsers for Kaspi Bank and Bereke Bank. Generic AI PDF parser for any other bank.
+- **OCR for Image Statements** — Tesseract.js text extraction from scanned documents and photos.
+- **Idempotent Uploads** — SHA-256 file hashing prevents duplicate imports.
 - **Transaction Deduplication** — Fingerprint-based duplicate detection with confidence scoring, merge, and mark-as-duplicate workflows.
-- **Import Sessions** — Each upload creates an isolated import session with status tracking (pending → processing → complete/failed).
+- **AI Auto-Categorization** — OpenAI / Gemini / OpenRouter-backed categorization with per-workspace learning rules.
+- **Multi-Tenant Workspaces** — Unlimited workspaces with invitation flows and per-workspace data isolation.
+- **Granular RBAC** — Roles: owner, admin, member, viewer. Per-user permission overrides.
+- **Dashboard & Reports** — Cash flow, top categories, trends, custom report builder with CSV/XLSX export.
+- **Audit Log** — Complete event trail with one-click rollback for supported operations.
+- **Docker Ready** — One-command deployment with Docker Compose.
+
+<details>
+<summary><b>Extended modules</b></summary>
 
 ### Intelligence
 
-- **AI Auto-Categorization** — OpenAI / Google Gemini / OpenRouter-backed automatic transaction categorization with workspace-scoped learning rules.
-- **ML Categorization Rules** — `CategoryLearning` model remembers per-workspace merchant→category patterns and applies them automatically on future imports.
+- **ML Categorization Rules** — `CategoryLearning` remembers per-workspace merchant→category patterns and applies them automatically on future imports.
 - **AI Financial Insights** — Automatically generated insights surfaced on the dashboard; dismissible per-user.
-- **Generic AI PDF Parser** — When no native parser matches, Gemini/OpenAI extracts structured transaction data from any PDF format.
+- **Generic AI PDF Parser** — Gemini/OpenAI extracts structured transaction data from any PDF when no native parser matches.
 
 ### Integrations
 
-- **Gmail Receipts** — OAuth-connected Gmail sync: pulls email receipts from inbox, parses merchant/amount/tax/line-item data, and links receipts to matching transactions.
-- **Google Drive** — OAuth integration for importing statement files directly from Drive folders.
+- **Gmail Receipts** — OAuth Gmail sync: pulls email receipts, parses merchant/amount/tax/line-item data, links receipts to transactions.
+- **Google Drive** — OAuth integration for importing statement files from Drive folders.
 - **Dropbox** — OAuth integration for importing statement files from Dropbox.
 - **Google Sheets** — Two-way sync: export transactions to Sheets; import Sheets data into custom tables.
-- **Telegram Bot** — Automated scheduled financial reports delivered to a Telegram chat or channel.
+- **Telegram Bot** — Scheduled financial reports delivered to a Telegram chat or channel.
 
 ### Collaboration & Access Control
 
-- **Multi-Tenant Workspaces** — Unlimited workspaces per user with invitation flows and per-workspace data isolation.
-- **Granular RBAC** — Roles: owner, admin, member, viewer. Per-user permission overrides on top of workspace roles.
 - **Auth Sessions** — List and manage active login sessions per device. Revoke individual sessions or all at once.
 - **Workspace Invitations** — Email invitation flow with token-based acceptance.
 
 ### Finance & Reporting
 
-- **Dashboard** — Overview, trends, cash flow chart, top categories, top merchants, financial snapshot, and a data-health tab showing import quality.
-- **Reports** — Spend-over-time, top categories, daily/monthly breakdowns, statement summaries, and a fully custom report builder with CSV/XLSX export.
 - **Balance Sheet** — Account-level balance tracking with historical snapshots and export.
 - **Accounts Payable** — Pay-tab workflow for managing and tracking payable records.
-- **Custom Tables** — User-defined data structures with arbitrary typed columns, batch row editing, formula support, and Google Sheets import.
+- **Custom Tables** — User-defined data structures with typed columns, batch editing, formula support, and Sheets import.
 - **Manual Data Entry** — Record cash expenses, income, and receipts manually with custom fields and file attachments.
 - **Categories** — Hierarchical transaction categories with usage counts and enable/disable toggle.
 - **Reference Data** — Tax rates, branches, and wallets for enriching transactions.
 
 ### Platform
 
-- **File Storage** — Full document store: folders, tags, file versioning, per-file permissions, and public shared-link generation with expiry.
-- **Audit Log** — Complete event trail with severity levels, batch tracking, human-readable descriptions, and one-click rollback for supported operations.
-- **In-App Notifications** — Real-time notification feed with per-category preferences and unread badge count.
+- **File Storage** — Document store with folders, tags, versioning, per-file permissions, and expiring shared links.
+- **In-App Notifications** — Real-time feed with per-category preferences and unread badge count.
 - **WebSocket Support** — Live updates via Socket.IO for notifications and import progress.
 - **Observability** — Prometheus metrics endpoint (`/api/v1/metrics`) with pre-built Grafana dashboards.
-- **Guided Onboarding** — 10 interactive feature tours in English, Russian, and Kazakh (driver.js + Intlayer i18n).
+- **Guided Onboarding** — 10 interactive feature tours in English, Russian, and Kazakh.
 - **Storybook** — Component library with stories for every UI primitive; auto-built on every PR.
-- **Docker Ready** — One-command deployment with Docker Compose.
+
+</details>
+
+---
+
+## What Lumio is NOT
+
+Setting expectations upfront:
+
+- **Not a bank integration** — Lumio parses statement files you export from your bank. It does not connect to bank APIs or fetch transactions automatically.
+- **Not a full general ledger** — There is no double-entry bookkeeping, chart of accounts, or journal entry workflow.
+- **Not a tax calculation engine** — Tax rates are reference data for enriching transactions; Lumio does not compute tax returns or filings.
+- **Not an invoicing tool** — There is no invoice creation, sending, or payment tracking.
+- **Not a replacement for accounting software** — Think of Lumio as the import and analysis layer that feeds your existing workflow, not a replacement for QuickBooks, Xero, or 1C.
 
 ---
 
@@ -301,7 +342,7 @@ No environment variables are required in development mode. The backend uses sens
 
 | Setting | Default Value |
 |---|---|
-| `DATABASE_URL` | `postgresql://lumio:lumio@localhost:5432/lumio` |
+| `DATABASE_URL` | `postgresql://finflow:finflow@localhost:5432/finflow` |
 | `REDIS_HOST` | `localhost` |
 | `REDIS_PORT` | `6379` |
 | `PORT` | `3001` |
@@ -423,7 +464,7 @@ Creates `demo@lumio.dev` with password `demo123` and a sample workspace with dem
 make admin email=admin@example.com password=admin123 name="Admin User"
 
 # Using Docker exec directly
-docker exec -it lumio-backend npm run create-admin -- admin@example.com admin123 "Admin User"
+docker exec -it finflow-backend npm run create-admin -- admin@example.com admin123 "Admin User"
 
 # Local (no Docker)
 cd backend && npm run create-admin -- admin@example.com admin123 "Admin User"
