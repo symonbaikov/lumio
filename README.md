@@ -44,7 +44,11 @@
 |---------|-----------|
 | ![Reports](docs/screenshots/reports.png) | ![Audit Log](docs/screenshots/audit-log.png) |
 
-> A short demo GIF (upload → parse → dashboard update) can go here: `docs/screenshots/demo.gif`
+<div align="center" width="100" height="100">
+  
+![CleanShot 2026-03-06 at 12 32 23](https://github.com/user-attachments/assets/69a32ee9-aa97-4395-a25f-3b8158e5574d)
+  
+</div>
 
 ---
 
