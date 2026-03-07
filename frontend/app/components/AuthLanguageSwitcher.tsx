@@ -3,7 +3,7 @@
 import { Button } from '@/app/components/ui/button';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { Check, ChevronLeft, Globe, Search } from 'lucide-react';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';

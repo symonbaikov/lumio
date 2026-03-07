@@ -4,7 +4,7 @@ import { Button } from '@/app/components/ui/button';
 import { resolveBankLogo } from '@bank-logos';
 import { Download, FileText, FileUp, TrendingDown, TrendingUp } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import React, { useMemo } from 'react';
 import type { StatementDetails, Transaction } from './types';
 

@@ -13,7 +13,7 @@ import {
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { GripVertical, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import { useTheme } from 'next-themes';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HexColorPicker } from 'react-colorful';

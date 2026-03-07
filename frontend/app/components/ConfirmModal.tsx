@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertTriangle } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import React from 'react';
 import { ModalFooter, ModalShell } from './ui/modal-shell';
 

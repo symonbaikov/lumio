@@ -31,7 +31,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import { useEffect, useState } from 'react';
 import apiClient from '../../lib/api';
 

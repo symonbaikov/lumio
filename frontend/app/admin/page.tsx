@@ -25,7 +25,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { AuditEventDrawer } from '../audit/components/AuditEventDrawer';

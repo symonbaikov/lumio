@@ -32,7 +32,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { Loader2 } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 

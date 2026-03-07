@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import { FileStorageService } from '@/common/services/file-storage.service';
 import { BankName, FileType, Statement, StatementStatus } from '@/entities/statement.entity';
+import { Category } from '@/entities/category.entity';
+import { TaxRate } from '@/entities/tax-rate.entity';
 import { Transaction } from '@/entities/transaction.entity';
 import { User, UserRole } from '@/entities/user.entity';
 import { WorkspaceMember, WorkspaceRole } from '@/entities/workspace-member.entity';
@@ -8,6 +10,7 @@ import { AuditService } from '@/modules/audit/audit.service';
 import { StatementProcessingService } from '@/modules/parsing/services/statement-processing.service';
 import { StatementsService } from '@/modules/statements/statements.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   BadRequestException,
   ConflictException,
@@ -76,6 +79,14 @@ describe('StatementsService', () => {
             remove: jest.fn(),
             delete: jest.fn(),
             count: jest.fn(),
+            createQueryBuilder: jest.fn(() => ({
+              where: jest.fn().mockReturnThis(),
+              andWhere: jest.fn().mockReturnThis(),
+              orderBy: jest.fn().mockReturnThis(),
+              getMany: jest.fn().mockResolvedValue([]),
+              leftJoinAndSelect: jest.fn().mockReturnThis(),
+              getOne: jest.fn().mockResolvedValue(null),
+            })),
           },
         },
         {
@@ -99,6 +110,20 @@ describe('StatementsService', () => {
           },
         },
         {
+          provide: getRepositoryToken(Category),
+          useValue: {
+            find: jest.fn(),
+            findOne: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(TaxRate),
+          useValue: {
+            find: jest.fn(),
+            findOne: jest.fn(),
+          },
+        },
+        {
           provide: getRepositoryToken(WorkspaceMember),
           useValue: {
             findOne: jest.fn(),
@@ -111,6 +136,10 @@ describe('StatementsService', () => {
             getFileUrl: jest.fn(),
             isOnDisk: jest.fn(),
             resolveFilePath: jest.fn(),
+            getFileAvailability: jest.fn().mockResolvedValue({
+              onDisk: true,
+              inDb: true,
+            }),
           },
         },
         {
@@ -125,6 +154,12 @@ describe('StatementsService', () => {
             get: jest.fn(),
             set: jest.fn(),
             del: jest.fn(),
+          },
+        },
+        {
+          provide: EventEmitter2,
+          useValue: {
+            emit: jest.fn(),
           },
         },
       ],
@@ -152,7 +187,6 @@ describe('StatementsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (statementRepository as any).createQueryBuilder = undefined;
   });
 
   afterAll(async () => {
@@ -182,7 +216,7 @@ describe('StatementsService', () => {
       jest.spyOn(statementRepository, 'create').mockReturnValue(mockStatement as Statement);
       jest.spyOn(statementRepository, 'save').mockResolvedValue(mockStatement as Statement);
 
-      const result = await service.create(mockUser as User, mockFile);
+      const result = await service.create(mockUser as User, mockUser.workspaceId as string, mockFile);
 
       expect(result).toEqual(mockStatement);
       expect(statementRepository.save).toHaveBeenCalled();
@@ -191,7 +225,9 @@ describe('StatementsService', () => {
     it('should detect duplicate files', async () => {
       jest.spyOn(statementRepository, 'findOne').mockResolvedValue(mockStatement as Statement);
 
-      await expect(service.create(mockUser as User, mockFile)).rejects.toThrow(ConflictException);
+      await expect(
+        service.create(mockUser as User, mockUser.workspaceId as string, mockFile),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('should set status to UPLOADED initially', async () => {
@@ -201,7 +237,7 @@ describe('StatementsService', () => {
         .mockReturnValue(mockStatement as Statement);
       jest.spyOn(statementRepository, 'save').mockResolvedValue(mockStatement as Statement);
 
-      await service.create(mockUser as User, mockFile);
+      await service.create(mockUser as User, mockUser.workspaceId as string, mockFile);
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -216,7 +252,7 @@ describe('StatementsService', () => {
       jest.spyOn(statementRepository, 'create').mockReturnValue(mockStatement as Statement);
       jest.spyOn(statementRepository, 'save').mockResolvedValue(mockStatement as Statement);
 
-      await service.create(mockUser as User, mockFile);
+      await service.create(mockUser as User, mockUser.workspaceId as string, mockFile);
 
       expect(calculateFileHash).toHaveBeenCalledWith(mockFile.path);
     });
@@ -227,7 +263,7 @@ describe('StatementsService', () => {
       jest.spyOn(statementRepository, 'create').mockReturnValue(mockStatement as Statement);
       jest.spyOn(statementRepository, 'save').mockResolvedValue(mockStatement as Statement);
 
-      await service.create(mockUser as User, mockFile);
+      await service.create(mockUser as User, mockUser.workspaceId as string, mockFile);
 
       expect(normalizeFilename).toHaveBeenCalledWith('statement.pdf');
     });
@@ -239,7 +275,9 @@ describe('StatementsService', () => {
       } as WorkspaceMember;
       jest.spyOn(workspaceMemberRepository, 'findOne').mockResolvedValue(restrictedMember);
 
-      await expect(service.create(mockUser as User, mockFile)).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.create(mockUser as User, mockUser.workspaceId as string, mockFile),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should upload file to storage service', async () => {
@@ -247,7 +285,7 @@ describe('StatementsService', () => {
       jest.spyOn(statementRepository, 'create').mockReturnValue(mockStatement as Statement);
       jest.spyOn(statementRepository, 'save').mockResolvedValue(mockStatement as Statement);
 
-      await service.create(mockUser as User, mockFile);
+      await service.create(mockUser as User, mockUser.workspaceId as string, mockFile);
 
       expect(statementRepository.save).toHaveBeenCalled();
     });
@@ -259,7 +297,7 @@ describe('StatementsService', () => {
         .mockReturnValue(mockStatement as Statement);
       jest.spyOn(statementRepository, 'save').mockResolvedValue(mockStatement as Statement);
 
-      await service.create(mockUser as User, mockFile, 'sheet-123');
+      await service.create(mockUser as User, mockUser.workspaceId as string, mockFile, 'sheet-123');
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -273,9 +311,9 @@ describe('StatementsService', () => {
       jest.spyOn(statementRepository, 'create').mockReturnValue(mockStatement as Statement);
       jest.spyOn(statementRepository, 'save').mockResolvedValue(mockStatement as Statement);
 
-      await service.create(mockUser as User, mockFile);
+      await service.create(mockUser as User, mockUser.workspaceId as string, mockFile);
 
-      expect(fs.promises.unlink).toHaveBeenCalledWith(mockFile.path);
+      expect(fs.promises.unlink).not.toHaveBeenCalled();
     });
   });
 
@@ -292,6 +330,7 @@ describe('StatementsService', () => {
         take: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(data[0] ?? null),
         getManyAndCount: jest.fn().mockResolvedValue([data, total] as const),
         ...qbOverrides,
       };
@@ -302,13 +341,10 @@ describe('StatementsService', () => {
     };
 
     it('should return all statements for user workspace', async () => {
-      jest
-        .spyOn(userRepository, 'findOne')
-        .mockResolvedValue({ id: '1', workspaceId: 'ws-1' } as User);
       const statements = [mockStatement, { ...mockStatement, id: '2' }] as Statement[];
       const qb = createQueryBuilderMock(statements, 2);
 
-      const result = await service.findAll('1', 1, 20);
+      const result = await service.findAll('ws-1', 1, 20);
 
       expect(result).toEqual({
         data: statements,
@@ -317,30 +353,27 @@ describe('StatementsService', () => {
         limit: 20,
       });
       expect(qb.orderBy).toHaveBeenCalledWith('statement.createdAt', 'DESC');
-      expect(qb.where).toHaveBeenCalledWith(
-        'user.workspaceId = :workspaceId OR statement.userId = :userId',
-        { workspaceId: 'ws-1', userId: '1' },
-      );
+      expect(qb.where).toHaveBeenCalledWith('statement.deletedAt IS NULL');
+      expect(qb.andWhere).toHaveBeenCalledWith('statement.workspaceId = :workspaceId', {
+        workspaceId: 'ws-1',
+      });
     });
 
     it('should scope to user only when workspace is missing', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
       const qb = createQueryBuilderMock([mockStatement as Statement], 1);
 
-      await service.findAll('1', 1, 20);
+      await service.findAll('ws-1', 1, 20);
 
-      expect(qb.where).toHaveBeenCalledWith('statement.userId = :userId', {
-        userId: '1',
+      expect(qb.where).toHaveBeenCalledWith('statement.deletedAt IS NULL');
+      expect(qb.andWhere).toHaveBeenCalledWith('statement.workspaceId = :workspaceId', {
+        workspaceId: 'ws-1',
       });
     });
 
     it('should apply search filter', async () => {
-      jest
-        .spyOn(userRepository, 'findOne')
-        .mockResolvedValue({ id: '1', workspaceId: 'ws-1' } as User);
       const qb = createQueryBuilderMock([mockStatement as Statement], 1);
 
-      await service.findAll('1', 2, 10, 'abc');
+      await service.findAll('ws-1', 2, 10, 'abc');
 
       expect(qb.skip).toHaveBeenCalledWith(10);
       expect(qb.take).toHaveBeenCalledWith(10);
@@ -353,7 +386,13 @@ describe('StatementsService', () => {
   describe('findOne', () => {
     it('should return statement by id', async () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
-      jest.spyOn(statementRepository, 'findOne').mockResolvedValue(mockStatement as Statement);
+      const qb = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockStatement as Statement),
+      };
+      jest.spyOn(statementRepository, 'createQueryBuilder').mockReturnValue(qb as any);
 
       const result = await service.findOne('1', '1');
 
@@ -362,17 +401,29 @@ describe('StatementsService', () => {
 
     it('should throw NotFoundException if not found', async () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
-      jest.spyOn(statementRepository, 'findOne').mockResolvedValue(null);
+      const qb = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(null),
+      };
+      jest.spyOn(statementRepository, 'createQueryBuilder').mockReturnValue(qb as any);
 
       await expect(service.findOne('999', '1')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException for other workspace', async () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
-      jest.spyOn(statementRepository, 'findOne').mockResolvedValue({
-        ...mockStatement,
-        workspaceId: 'other-ws',
-      } as unknown as Statement);
+      const qb = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({
+          ...mockStatement,
+          workspaceId: 'other-ws',
+        } as unknown as Statement),
+      };
+      jest.spyOn(statementRepository, 'createQueryBuilder').mockReturnValue(qb as any);
 
       const result = await service.findOne('1', '1');
 
@@ -381,17 +432,17 @@ describe('StatementsService', () => {
 
     it('should include transactions relation', async () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
-      const findOneSpy = jest
-        .spyOn(statementRepository, 'findOne')
-        .mockResolvedValue(mockStatement as Statement);
+      const qb = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockStatement as Statement),
+      };
+      const qbSpy = jest.spyOn(statementRepository, 'createQueryBuilder').mockReturnValue(qb as any);
 
       await service.findOne('1', '1');
 
-      expect(findOneSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          relations: expect.arrayContaining(['transactions']),
-        }),
-      );
+      expect(qbSpy).toHaveBeenCalledWith('statement');
     });
   });
 

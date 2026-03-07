@@ -112,9 +112,21 @@ describe('DashboardService', () => {
       range: '30d',
       dataHealth,
     });
-    expect((service as any).getSnapshot).toHaveBeenCalledWith('ws-1', expect.any(Date));
-    expect((service as any).getTopMerchants).toHaveBeenCalledWith('ws-1', expect.any(Date));
-    expect((service as any).getTopCategories).toHaveBeenCalledWith('ws-1', expect.any(Date));
+    expect((service as any).getSnapshot).toHaveBeenCalledWith(
+      'ws-1',
+      expect.any(Date),
+      expect.any(Date),
+    );
+    expect((service as any).getTopMerchants).toHaveBeenCalledWith(
+      'ws-1',
+      expect.any(Date),
+      expect.any(Date),
+    );
+    expect((service as any).getTopCategories).toHaveBeenCalledWith(
+      'ws-1',
+      expect.any(Date),
+      expect.any(Date),
+    );
   });
 
   it('getDashboard uses 7-day window for range=7d', async () => {
@@ -209,7 +221,12 @@ describe('DashboardService', () => {
     const cashFlowQb = createQueryBuilderMock(rows);
     transactionRepo.createQueryBuilder.mockReturnValue(cashFlowQb);
 
-    const result = await (service as any).getCashFlow('ws-1', new Date('2026-02-01'), 30);
+    const result = await (service as any).getCashFlow(
+      'ws-1',
+      new Date('2026-02-01'),
+      new Date('2026-03-01'),
+      30,
+    );
 
     expect(result).toEqual([
       { date: '2026-02-01', income: 100, expense: 50 },
@@ -225,10 +242,18 @@ describe('DashboardService', () => {
     const cashFlowQb = createQueryBuilderMock(rows);
     transactionRepo.createQueryBuilder.mockReturnValue(cashFlowQb);
 
-    const result = await (service as any).getCashFlow('ws-1', new Date('2025-11-01'), 90);
+    const result = await (service as any).getCashFlow(
+      'ws-1',
+      new Date('2025-11-01'),
+      new Date('2026-02-01'),
+      90,
+    );
 
     // Verify the query builder was called (weekly grouping used IYYY-IW format)
-    expect(cashFlowQb.select).toHaveBeenCalledWith(expect.stringContaining('IYYY-IW'), 'date');
+    expect(cashFlowQb.select).toHaveBeenCalledWith(
+      "TO_CHAR(t.transactionDate, 'IYYY-IW')",
+      'date',
+    );
     expect(result).toHaveLength(2);
   });
 
@@ -240,7 +265,11 @@ describe('DashboardService', () => {
     const qb = createQueryBuilderMock(rows);
     transactionRepo.createQueryBuilder.mockReturnValue(qb);
 
-    const result = await (service as any).getTopMerchants('ws-1', new Date('2026-02-01'));
+    const result = await (service as any).getTopMerchants(
+      'ws-1',
+      new Date('2026-02-01'),
+      new Date('2026-03-01'),
+    );
 
     expect(result).toEqual([
       { name: 'Kaspi', amount: 50000, count: 10 },
@@ -257,7 +286,11 @@ describe('DashboardService', () => {
     const qb = createQueryBuilderMock(rows);
     transactionRepo.createQueryBuilder.mockReturnValue(qb);
 
-    const result = await (service as any).getTopCategories('ws-1', new Date('2026-02-01'));
+    const result = await (service as any).getTopCategories(
+      'ws-1',
+      new Date('2026-02-01'),
+      new Date('2026-03-01'),
+    );
 
     expect(result).toEqual([
       { id: 'cat-1', name: 'Utilities', amount: 40000, count: 8 },

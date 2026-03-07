@@ -6,7 +6,7 @@ import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { Check, RefreshCcw, Search, X } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';

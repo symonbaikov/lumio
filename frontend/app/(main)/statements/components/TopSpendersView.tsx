@@ -42,7 +42,7 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';

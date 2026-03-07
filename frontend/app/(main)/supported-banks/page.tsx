@@ -1,7 +1,7 @@
 'use client';
 
 import { Building2, CheckCircle2 } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import Image from 'next/image';
 
 type SupportedBankCard = {

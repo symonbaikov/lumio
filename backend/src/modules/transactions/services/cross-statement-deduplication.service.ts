@@ -47,7 +47,7 @@ export class CrossStatementDeduplicationService {
     );
 
     // Get transactions to check
-    const transactionsToCheck = await this.getTransactionsToCheck(workspaceId, statementId);
+    const transactionsToCheck = (await this.getTransactionsToCheck(workspaceId, statementId)) ?? [];
 
     if (transactionsToCheck.length === 0) {
       return [];
@@ -83,7 +83,7 @@ export class CrossStatementDeduplicationService {
       }
 
       const candidates = potentialDuplicates
-        .filter(t => t.id !== transaction.id && !processedIds.has(t.id))
+        .filter(t => t.id !== transaction.id && !processedIds.has(t.id) && !t.isDuplicate)
         .map(candidate => ({
           candidate,
           ...this.calculateSimilarity(transaction, candidate),

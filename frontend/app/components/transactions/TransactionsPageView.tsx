@@ -1,6 +1,6 @@
 'use client';
 
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import DetailsDrawer from './DetailsDrawer';

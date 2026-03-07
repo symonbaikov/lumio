@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@heroui/popover';
 import { getLocalTimeZone, parseDate, today } from '@internationalized/date';
 import { Tab, Tabs } from '@mui/material';
 import { RefreshCcw } from 'lucide-react';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { DataHealthTab } from './components/dashboard/DataHealthTab';

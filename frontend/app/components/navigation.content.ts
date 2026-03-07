@@ -91,6 +91,11 @@ const content = {
         en: 'Activity',
         kk: 'Админка',
       }),
+      knowledgeBase: t({
+        ru: 'База знаний',
+        en: 'Knowledge base',
+        kk: 'Білім қоры',
+      }),
       logout: t({
         ru: 'Выйти',
         en: 'Log out',

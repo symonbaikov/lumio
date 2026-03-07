@@ -24,6 +24,7 @@ import ElectricBoltIcon from '@mui/icons-material/ElectricBolt';
 import FiberSmartRecordIcon from '@mui/icons-material/FiberSmartRecord';
 import LanguageIcon from '@mui/icons-material/Language';
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
+import SchoolIcon from '@mui/icons-material/School';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import {
   Check,
@@ -47,7 +48,7 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import { useTheme } from 'next-themes';
 import { Nunito } from 'next/font/google';
 import Image from 'next/image';
@@ -364,6 +365,10 @@ export default function Navigation() {
         case 'admin':
           navigateFromUserMenu('/admin');
           return;
+        case 'knowledgeBase':
+          setMobileMenuOpen(false);
+          window.open('https://symonbaikov.github.io/lumio/', '_blank', 'noopener,noreferrer');
+          return;
         case 'logout':
           setMobileMenuOpen(false);
           logout();
@@ -477,6 +482,12 @@ export default function Navigation() {
               {userMenu.admin}
             </DropdownItem>
           ) : null}
+          <DropdownItem
+            key="knowledgeBase"
+            startContent={<SchoolIcon sx={{ fontSize: 18 }} className="text-muted-foreground" />}
+          >
+            {(userMenu as any).knowledgeBase}
+          </DropdownItem>
         </DropdownSection>
 
         <DropdownSection>

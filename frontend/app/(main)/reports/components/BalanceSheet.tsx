@@ -8,7 +8,7 @@ import {
   Loader2,
   RefreshCcw,
 } from 'lucide-react';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import apiClient from '../../../lib/api';
 

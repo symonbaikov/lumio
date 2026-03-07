@@ -5,7 +5,7 @@ import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { Icon } from '@iconify/react';
 import { Loader2, Sparkles } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

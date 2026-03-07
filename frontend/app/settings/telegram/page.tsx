@@ -29,7 +29,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import { useEffect, useMemo, useState } from 'react';
 
 type ReportStatus = 'pending' | 'sent' | 'failed';

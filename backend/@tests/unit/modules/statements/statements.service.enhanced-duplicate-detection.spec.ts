@@ -7,9 +7,12 @@ import { Statement } from '../../../../src/entities/statement.entity';
 import { Transaction } from '../../../../src/entities/transaction.entity';
 import { User } from '../../../../src/entities/user.entity';
 import { WorkspaceMember } from '../../../../src/entities/workspace-member.entity';
+import { Category } from '../../../../src/entities/category.entity';
+import { TaxRate } from '../../../../src/entities/tax-rate.entity';
 import { AuditService } from '../../../../src/modules/audit/audit.service';
 import { StatementProcessingService } from '../../../../src/modules/parsing/services/statement-processing.service';
 import { StatementsService } from '../../../../src/modules/statements/statements.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 // Mock the file hash calculation
 jest.mock('../../../../src/common/utils/file-hash.util', () => ({
@@ -48,6 +51,8 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
     transaction: {},
     auditService: { createEvent: jest.fn() },
     user: {},
+    category: {},
+    taxRate: {},
     workspaceMember: { findOne: jest.fn() },
   };
 
@@ -72,6 +77,14 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
           useValue: mockRepositories.user,
         },
         {
+          provide: getRepositoryToken(Category),
+          useValue: mockRepositories.category,
+        },
+        {
+          provide: getRepositoryToken(TaxRate),
+          useValue: mockRepositories.taxRate,
+        },
+        {
           provide: getRepositoryToken(WorkspaceMember),
           useValue: mockRepositories.workspaceMember,
         },
@@ -86,6 +99,10 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
         {
           provide: 'CACHE_MANAGER',
           useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn() },
+        },
+        {
+          provide: EventEmitter2,
+          useValue: { emit: jest.fn() },
         },
       ],
     }).compile();

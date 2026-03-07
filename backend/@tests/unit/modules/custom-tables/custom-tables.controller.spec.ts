@@ -11,10 +11,19 @@ describe('CustomTablesController', () => {
     const importJobsService = {
       createGoogleSheetsJob: jest.fn(async () => ({ id: 'job-1' })),
     };
+    const customTablesCache = {
+      bumpList: jest.fn(),
+      bumpTable: jest.fn(),
+      bumpRows: jest.fn(),
+      listKey: jest.fn(),
+      rowsKey: jest.fn(),
+      getOrSet: jest.fn(),
+    };
     const controller = new CustomTablesController(
       customTablesService as any,
       customTablesImportService as any,
       importJobsService as any,
+      customTablesCache as any,
     );
 
     const result = await controller.commitGoogleSheets({ id: 'u1' } as any, { any: true } as any);
@@ -26,10 +35,14 @@ describe('CustomTablesController', () => {
       { listRows: jest.fn() } as any,
       {} as any,
       {} as any,
+      {
+        rowsKey: jest.fn(),
+        getOrSet: jest.fn(),
+      } as any,
     );
 
     await expect(
-      controller.listRows({ id: 'u1' } as any, 't1', undefined, 10, '{bad'),
+      controller.listRows({ id: 'u1' } as any, 'ws-1', 't1', undefined, 10, '{bad'),
     ).rejects.toThrow(BadRequestException);
   });
 });

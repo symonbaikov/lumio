@@ -9,7 +9,7 @@
  * - Confidence scoring and explainability
  */
 
-import { franc } from 'franc';
+type FrancFn = typeof import('franc').franc;
 import { detectLocaleFromText as legacyDetectLocale } from './language-detector.util';
 import { DetectedLocale } from './language-detector.util';
 
@@ -347,6 +347,8 @@ class NgramLanguageDetector {
 export class AdvancedLanguageDetector {
   private cache = new LanguageDetectionCache();
   private ngramDetector = new NgramLanguageDetector();
+  private francFn: FrancFn | null = null;
+  private francInit: Promise<FrancFn> | null = null;
 
   /**
    * Detect language with multiple strategies and fallbacks
@@ -375,7 +377,7 @@ export class AdvancedLanguageDetector {
 
     // Strategy 1: Try franc library (most accurate)
     try {
-      const francResult = franc(text);
+      const francResult = (await this.getFranc())(text);
       if (francResult !== 'und') {
         // Map franc codes to our locale format
         const localeMap: Record<string, string> = {
@@ -474,6 +476,35 @@ export class AdvancedLanguageDetector {
    */
   clearCache(): void {
     this.cache = new LanguageDetectionCache();
+  }
+
+  private async getFranc(): Promise<FrancFn> {
+    if (this.francFn) {
+      return this.francFn;
+    }
+
+    if (!this.francInit) {
+      this.francInit = this.loadFranc();
+    }
+
+    try {
+      this.francFn = await this.francInit;
+      return this.francFn;
+    } catch (error) {
+      this.francInit = null;
+      throw error;
+    }
+  }
+
+  private async loadFranc(): Promise<FrancFn> {
+    const { franc } = await this.loadFrancModule();
+    return franc as FrancFn;
+  }
+
+  private async loadFrancModule(): Promise<typeof import('franc')> {
+    // Use native dynamic import to load ESM from CommonJS output.
+    const load = new Function('return import("franc")');
+    return load() as Promise<typeof import('franc')>;
   }
 }
 

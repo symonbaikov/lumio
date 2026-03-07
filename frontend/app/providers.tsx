@@ -3,7 +3,7 @@
 import { HeroUIProvider } from '@heroui/react';
 import { MantineProvider } from '@mantine/core';
 import { ThemeProvider } from '@mui/material/styles';
-import { IntlayerClientProvider } from 'next-intlayer';
+import { IntlayerProvider } from 'react-intlayer';
 import { useTheme as useNextTheme } from 'next-themes';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
@@ -46,7 +46,7 @@ export function Providers({
 
   return (
     <HeroUIProvider>
-      <IntlayerClientProvider
+      <IntlayerProvider
         locale={locale}
         setLocale={nextLocale => setLocale(nextLocale as AppLocale)}
       >
@@ -88,7 +88,7 @@ export function Providers({
             </WorkspaceProvider>
           </ThemeProvider>
         </MantineProvider>
-      </IntlayerClientProvider>
+      </IntlayerProvider>
     </HeroUIProvider>
   );
 }

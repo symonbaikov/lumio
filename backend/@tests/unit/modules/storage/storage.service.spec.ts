@@ -9,6 +9,12 @@ import {
   User,
   WorkspaceMember,
   WorkspaceRole,
+  FileVersion,
+  StorageView,
+  Folder,
+  Tag,
+  Transaction,
+  Category,
 } from '@/entities';
 import type { CreateSharedLinkDto } from '@/modules/storage/dto/create-shared-link.dto';
 import { StorageService } from '@/modules/storage/storage.service';
@@ -16,6 +22,8 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { StatementsService } from '@/modules/statements/statements.service';
+import { MetricsService } from '@/modules/observability/metrics.service';
 
 describe('StorageService', () => {
   let testingModule: TestingModule;
@@ -84,6 +92,50 @@ describe('StorageService', () => {
           },
         },
         {
+          provide: getRepositoryToken(FileVersion),
+          useValue: {
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn(),
+            update: jest.fn(),
+            delete: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(StorageView),
+          useValue: {
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn(),
+            update: jest.fn(),
+            delete: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(Folder),
+          useValue: {
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn(),
+            update: jest.fn(),
+            delete: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(Tag),
+          useValue: {
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn(),
+            update: jest.fn(),
+            delete: jest.fn(),
+          },
+        },
+        {
           provide: getRepositoryToken(User),
           useValue: {
             findOne: jest.fn(),
@@ -96,10 +148,43 @@ describe('StorageService', () => {
           },
         },
         {
+          provide: getRepositoryToken(Transaction),
+          useValue: {
+            find: jest.fn(),
+            findOne: jest.fn(),
+            createQueryBuilder: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(Category),
+          useValue: {
+            find: jest.fn(),
+            findOne: jest.fn(),
+            createQueryBuilder: jest.fn(),
+          },
+        },
+        {
           provide: FileStorageService,
           useValue: {
-            getFileAvailability: jest.fn(),
+            getFileAvailability: jest.fn().mockResolvedValue({
+              onDisk: true,
+              inDb: false,
+              status: 'disk',
+            }),
             getFileUrl: jest.fn(),
+          },
+        },
+        {
+          provide: StatementsService,
+          useValue: {
+            remove: jest.fn(),
+          },
+        },
+        {
+          provide: MetricsService,
+          useValue: {
+            observeStorageRead: jest.fn(),
+            observeStorageWrite: jest.fn(),
           },
         },
       ],
@@ -142,6 +227,7 @@ describe('StorageService', () => {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
+        distinct: jest.fn().mockReturnThis(),
         getMany: jest.fn().mockResolvedValue([mockStatement]),
       };
 

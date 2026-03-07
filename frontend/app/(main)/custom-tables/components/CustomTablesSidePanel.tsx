@@ -14,7 +14,7 @@ import {
   Pencil,
   Table as TableIcon,
 } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import { useMemo } from 'react';
 
 type Props = {

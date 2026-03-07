@@ -4,7 +4,7 @@ import { DEFAULT_BACKGROUND } from '@/app/(main)/workspaces/constants';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { OnboardingNavigation } from './components/OnboardingNavigation';

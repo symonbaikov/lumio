@@ -23,6 +23,8 @@ import {
   IntelligentDeduplicationService,
 } from '../../../../../src/modules/parsing/services/intelligent-deduplication.service';
 import { TransactionFingerprintService } from '../../../../../src/modules/transactions/services/transaction-fingerprint.service';
+import { ImportConfigService } from '../../../../../src/modules/import/config/import.config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 describe('ImportSessionService', () => {
   let service: ImportSessionService;
@@ -86,6 +88,7 @@ describe('ImportSessionService', () => {
       manager: {
         create: jest.fn(),
         save: jest.fn(),
+        findOne: jest.fn(),
       },
     } as any;
 
@@ -123,6 +126,7 @@ describe('ImportSessionService', () => {
           useValue: {
             generateFingerprint: jest.fn(),
             findByFingerprints: jest.fn(),
+            findCandidatesByWindow: jest.fn().mockResolvedValue([]),
           },
         },
         {
@@ -139,6 +143,19 @@ describe('ImportSessionService', () => {
             scheduleRetry: jest.fn(),
             markAsPermanentlyFailed: jest.fn(),
             getRetryMetadata: jest.fn(),
+          },
+        },
+        {
+          provide: ImportConfigService,
+          useValue: {
+            getDedupDateToleranceDays: jest.fn().mockReturnValue(2),
+            getDedupAmountTolerancePercent: jest.fn().mockReturnValue(5),
+          },
+        },
+        {
+          provide: EventEmitter2,
+          useValue: {
+            emit: jest.fn(),
           },
         },
       ],
@@ -336,6 +353,7 @@ describe('ImportSessionService', () => {
       importSessionRepository.findOne.mockResolvedValue(mockSession);
       fingerprintService.generateFingerprint.mockReturnValue('fingerprint-1');
       fingerprintService.findByFingerprints.mockResolvedValue([]);
+      fingerprintService.findCandidatesByWindow.mockResolvedValue([]);
       deduplicationService.detectConflicts.mockResolvedValue([]);
       importSessionRepository.update.mockResolvedValue(undefined as any);
 
@@ -371,6 +389,7 @@ describe('ImportSessionService', () => {
       importSessionRepository.findOne.mockResolvedValue(mockSession);
       fingerprintService.generateFingerprint.mockReturnValue('fingerprint-1');
       fingerprintService.findByFingerprints.mockResolvedValue([existingTransaction]);
+      fingerprintService.findCandidatesByWindow.mockResolvedValue([]);
       deduplicationService.detectConflicts.mockResolvedValue([]);
       importSessionRepository.update.mockResolvedValue(undefined as any);
 
@@ -407,6 +426,7 @@ describe('ImportSessionService', () => {
       importSessionRepository.findOne.mockResolvedValue(mockSession);
       fingerprintService.generateFingerprint.mockReturnValue('fingerprint-1');
       fingerprintService.findByFingerprints.mockResolvedValue([existingTransaction]);
+      fingerprintService.findCandidatesByWindow.mockResolvedValue([existingTransaction]);
       deduplicationService.detectConflicts.mockResolvedValue([conflict]);
       importSessionRepository.update.mockResolvedValue(undefined as any);
 
@@ -432,6 +452,7 @@ describe('ImportSessionService', () => {
         throw new Error('Fingerprint generation failed');
       });
       fingerprintService.findByFingerprints.mockResolvedValue([]);
+      fingerprintService.findCandidatesByWindow.mockResolvedValue([]);
       deduplicationService.detectConflicts.mockResolvedValue([]);
       importSessionRepository.update.mockResolvedValue(undefined as any);
 

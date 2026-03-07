@@ -23,7 +23,7 @@ import {
   Select,
   Typography,
 } from '@mui/material';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 

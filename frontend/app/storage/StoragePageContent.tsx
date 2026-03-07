@@ -37,7 +37,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';

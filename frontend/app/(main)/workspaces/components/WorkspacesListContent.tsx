@@ -12,7 +12,7 @@ import {
   Search,
   SortAsc,
 } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import React, { useMemo, useState } from 'react';
 import { CreateWorkspaceModal } from './CreateWorkspaceModal';

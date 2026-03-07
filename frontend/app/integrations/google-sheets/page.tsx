@@ -14,7 +14,7 @@ import {
   RefreshCcw,
   Trash2,
 } from 'lucide-react';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 

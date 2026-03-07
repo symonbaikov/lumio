@@ -32,7 +32,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import React, { useState } from 'react';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import api from '../lib/api';

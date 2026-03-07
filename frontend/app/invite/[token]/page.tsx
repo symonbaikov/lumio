@@ -13,7 +13,7 @@ import {
   Typography,
 } from '@mui/material';
 import { ShieldCheck } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 

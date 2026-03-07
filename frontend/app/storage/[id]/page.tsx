@@ -11,7 +11,7 @@ import {
   Shield,
   ShieldCheck,
 } from 'lucide-react';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import LoadingAnimation from '../../components/LoadingAnimation';

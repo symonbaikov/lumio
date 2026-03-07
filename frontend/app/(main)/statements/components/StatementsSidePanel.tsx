@@ -21,7 +21,7 @@ import { countStatementStages, getStatementStageMap } from '@/app/lib/statement-
 import NearbyErrorIcon from '@mui/icons-material/NearbyError';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import { Banknote, CalendarRange, Folder, Pencil, Send, ThumbsUp, User } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';

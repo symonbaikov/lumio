@@ -38,7 +38,7 @@ import UpdateOutlinedIcon from '@mui/icons-material/UpdateOutlined';
 import CircularProgress from '@mui/material/CircularProgress';
 import type { AxiosError } from 'axios';
 import { CalendarDays, Check, Clock3, FileText, Search } from 'lucide-react';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 

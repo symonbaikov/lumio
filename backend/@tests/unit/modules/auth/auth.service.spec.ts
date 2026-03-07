@@ -16,6 +16,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import type { Repository } from 'typeorm';
+import { CategoriesService } from '@/modules/categories/categories.service';
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn(async (value: string) => `hashed_${value}`),
@@ -107,6 +108,14 @@ describe('AuthService', () => {
               if (key === 'JWT_REFRESH_SECRET') return 'refresh-secret';
               return null;
             }),
+          },
+        },
+        {
+          provide: CategoriesService,
+          useValue: {
+            createDefaultCategories: jest.fn(),
+            createDefaultCategoriesForWorkspace: jest.fn(),
+            createSystemCategories: jest.fn(),
           },
         },
       ],

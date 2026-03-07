@@ -161,6 +161,7 @@ describe('StatementProcessingService', () => {
     service = new StatementProcessingService(
       statementRepository as any,
       transactionRepository as any,
+      { findOne: jest.fn().mockResolvedValue({ name: 'User' }) } as any,
       parserFactory as any,
       classificationService as any,
       metadataExtractionService as any,

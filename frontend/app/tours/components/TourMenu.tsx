@@ -6,7 +6,7 @@
 
 import { Button, Divider, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material';
 import { CheckCircle, Circle, Disc, HelpCircle } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { cloneElement, isValidElement, useEffect, useState } from 'react';
 import { getTourManager } from '../TourManager';

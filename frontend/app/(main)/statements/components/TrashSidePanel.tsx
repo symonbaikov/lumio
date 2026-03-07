@@ -2,7 +2,7 @@
 
 import { type SidePanelPageConfig, useSidePanelConfig } from '@/app/components/side-panel';
 import { Trash2 } from 'lucide-react';
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import { useMemo } from 'react';
 
 type Props = {

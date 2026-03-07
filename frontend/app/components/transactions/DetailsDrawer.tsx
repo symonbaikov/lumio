@@ -5,7 +5,7 @@ import { EntityHistoryTimeline } from '@/app/audit/components/EntityHistoryTimel
 import type { AuditEvent } from '@/lib/api/audit';
 import { fetchEntityHistory } from '@/lib/api/audit';
 import { Building2, Calendar, FileText, Tag, TrendingDown, TrendingUp } from 'lucide-react';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import React, { useEffect, useState } from 'react';
 import { DrawerShell } from '../ui/drawer-shell';
 import type { Category, Transaction } from './types';

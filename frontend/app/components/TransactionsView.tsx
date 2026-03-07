@@ -15,7 +15,7 @@ import {
   TableRow,
   TextField,
 } from '@mui/material';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import React, { useMemo, useState } from 'react';
 
 export interface Transaction {

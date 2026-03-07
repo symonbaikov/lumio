@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { CategorizationRule } from '../../../../src/entities/categorization-rule.entity';
 import { Transaction } from '../../../../src/entities/transaction.entity';
 import { AuditService } from '../../../../src/modules/audit/audit.service';
@@ -58,6 +58,10 @@ describe('CategorizationRulesController', () => {
         {
           provide: AuditService,
           useValue: mockAuditService,
+        },
+        {
+          provide: DataSource,
+          useValue: {},
         },
       ],
     }).compile();

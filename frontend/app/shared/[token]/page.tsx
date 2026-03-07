@@ -13,7 +13,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import TransactionsView from '../../components/TransactionsView';

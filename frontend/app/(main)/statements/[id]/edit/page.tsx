@@ -55,7 +55,7 @@ import {
 } from '@mui/material';
 import Alert from '@mui/material/Alert';
 
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';

@@ -14,7 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useIntlayer, useLocale } from 'next-intlayer';
+import { useIntlayer, useLocale } from "@/app/i18n";
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import AuthLayout from '../AuthLayout';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useIntlayer } from 'next-intlayer';
+import { useIntlayer } from "@/app/i18n";
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 import Breadcrumbs from './Breadcrumbs';
