@@ -134,6 +134,57 @@ const content = {
       review: t({ ru: 'Очередь на проверку', en: 'Review queue', kk: 'Тексеру кезегі' }),
       export: t({ ru: 'Экспорт', en: 'Export', kk: 'Экспорт' }),
     },
+    greeting: {
+      fallbackName: t({ ru: 'Пользователь', en: 'User', kk: 'Қолданушы' }),
+      empty: {
+        title: t({
+          ru: 'Добро пожаловать, {name}',
+          en: 'Welcome, {name}',
+          kk: 'Қош келдіңіз, {name}',
+        }),
+        subtitle: t({
+          ru: 'Загрузите первую выписку, чтобы начать финансовый обзор',
+          en: 'Upload your first statement to start building your financial overview',
+          kk: 'Қаржылық шолуды бастау үшін алғашқы үзіндіні жүктеңіз',
+        }),
+      },
+      pendingReview: {
+        title: t({
+          ru: 'С возвращением, {name}',
+          en: 'Welcome back, {name}',
+          kk: 'Қайта оралдыңыз, {name}',
+        }),
+        subtitle: t({
+          ru: 'У вас {count} транзакций ждут проверки',
+          en: 'You have {count} transactions waiting for review',
+          kk: '{count} транзакция тексеруді күтеді',
+        }),
+      },
+      stale: {
+        title: t({
+          ru: 'Добрый вечер, {name}',
+          en: 'Good evening, {name}',
+          kk: 'Қайырлы кеш, {name}',
+        }),
+        subtitle: t({
+          ru: 'За последние {days} дней не было новых импортов',
+          en: 'No new statements have been imported in the last {days} days',
+          kk: 'Соңғы {days} күнде жаңа импорт болмады',
+        }),
+      },
+      upToDate: {
+        title: t({
+          ru: 'С возвращением, {name}',
+          en: 'Welcome back, {name}',
+          kk: 'Қайта оралдыңыз, {name}',
+        }),
+        subtitle: t({
+          ru: 'Последние импорты обработаны и актуальны',
+          en: 'Your latest imports are processed and up to date',
+          kk: 'Соңғы импорттар өңделіп, актуалды',
+        }),
+      },
+    },
     dataHealth: {
       uncategorized: t({ ru: 'Без категории', en: 'Uncategorized', kk: 'Санатсыз' }),
       errors: t({ ru: 'Ошибки', en: 'Errors', kk: 'Қателер' }),

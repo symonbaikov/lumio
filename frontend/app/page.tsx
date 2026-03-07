@@ -39,6 +39,11 @@ export default function DashboardPage() {
     }
     return '';
   };
+  const fillTemplate = (template: string, values: Record<string, string>) => {
+    return Object.entries(values).reduce((acc, [key, value]) => {
+      return acc.split(`{${key}}`).join(value);
+    }, template);
+  };
   const isMobile = useIsMobile();
   const { data, loading, error, refresh, range, targetDate, changeTargetDate } =
     useDashboard('30d');
@@ -85,6 +90,32 @@ export default function DashboardPage() {
 
   const isRedirecting =
     authLoading || workspaceLoading || !user || needsOnboarding || !currentWorkspace;
+
+  const greetingName = user?.name || text(t.greeting?.fallbackName) || 'User';
+  const pendingReviewCount = data?.dataHealth?.statementsPendingReview ?? 0;
+  const lastUploadDate = data?.dataHealth?.lastUploadDate;
+  const daysSinceUpload = lastUploadDate
+    ? Math.floor((Date.now() - new Date(lastUploadDate).getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+  const isEmptyWorkspace = !lastUploadDate;
+  const isStaleImport = !isEmptyWorkspace && daysSinceUpload !== null && daysSinceUpload >= 14;
+  const greetingCopy = isEmptyWorkspace
+    ? t.greeting?.empty
+    : pendingReviewCount > 0
+      ? t.greeting?.pendingReview
+      : isStaleImport
+        ? t.greeting?.stale
+        : t.greeting?.upToDate;
+  const greetingTitle = fillTemplate(text(greetingCopy?.title), {
+    name: greetingName,
+    count: String(pendingReviewCount),
+    days: '14',
+  });
+  const greetingSubtitle = fillTemplate(text(greetingCopy?.subtitle), {
+    name: greetingName,
+    count: String(pendingReviewCount),
+    days: '14',
+  });
 
   if (isRedirecting) {
     return (
@@ -151,8 +182,9 @@ export default function DashboardPage() {
         {data ? (
           <div className="px-8 pt-8 w-full shrink-0">
             <h1 className="text-[28px] font-bold text-white tracking-tight">
-              Welcome back, {user?.name || 'User'} <span className="ml-1">👋</span>
+              {greetingTitle}
             </h1>
+            <p className="mt-2 text-sm text-slate-300">{greetingSubtitle}</p>
 
             <div className="mt-6 flex items-end justify-between border-b border-white/10 pb-0 w-full">
               <div className="flex px-2">
