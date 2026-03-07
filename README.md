@@ -53,7 +53,7 @@
   
 </div>
 
-> ⚠️ The demo GIF is based on **v1** and will be updated soon.
+> ⚠️ The demo GIF and screenshots are based on **v1** and will be updated soon.
 
 <p align="center">
   <a href="https://bank.gov.ua/en/news/all/natsionalniy-bank-vidkriv-rahunok-dlya-gumanitarnoyi-dopomogi-ukrayintsyam-postrajdalim-vid-rosiyskoyi-agresiyi" target="_blank">
