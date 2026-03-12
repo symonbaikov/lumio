@@ -12,7 +12,6 @@ import {
   DeleteOutline,
   FolderOutlined,
   LockOutlined,
-  MoreVert,
   Search as SearchIcon,
 } from '@mui/icons-material';
 import {
@@ -145,6 +144,7 @@ export default function WorkspaceCategoriesView() {
     type: 'expense' as 'income' | 'expense',
     color: '#2196F3',
     icon: 'mdi:tag',
+    withoutIcon: false,
     parentId: '',
   });
 
@@ -183,6 +183,7 @@ export default function WorkspaceCategoriesView() {
         type: category.type,
         color: category.color || '#2196F3',
         icon: category.icon || 'mdi:tag',
+        withoutIcon: !category.icon,
         parentId: category.parentId || '',
       });
     } else {
@@ -192,6 +193,7 @@ export default function WorkspaceCategoriesView() {
         type: 'expense',
         color: '#2196F3',
         icon: 'mdi:tag',
+        withoutIcon: false,
         parentId: '',
       });
     }
@@ -208,9 +210,11 @@ export default function WorkspaceCategoriesView() {
 
   const handleSave = async () => {
     try {
+      const { withoutIcon, ...restFormData } = formData;
       const data = {
-        ...formData,
-        parentId: formData.parentId || undefined,
+        ...restFormData,
+        icon: withoutIcon ? undefined : restFormData.icon,
+        parentId: restFormData.parentId || undefined,
       };
 
       if (editingCategory) {
@@ -341,7 +345,7 @@ export default function WorkspaceCategoriesView() {
       });
       const url = response.data?.url || response.data;
       if (url) {
-        setFormData(prev => ({ ...prev, icon: url }));
+        setFormData(prev => ({ ...prev, icon: url, withoutIcon: false }));
         toast.success(t.toasts.iconUploaded.value);
       }
     } catch (error) {
@@ -376,13 +380,6 @@ export default function WorkspaceCategoriesView() {
             >
               <Add fontSize="small" />
               {t.add}
-            </button>
-            <button
-              className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-primary/40 hover:text-primary"
-              type="button"
-            >
-              <MoreVert fontSize="small" />
-              {(t as any).more?.value || 'More'}
             </button>
           </div>
         </div>
@@ -472,21 +469,45 @@ export default function WorkspaceCategoriesView() {
             </div>
           ) : (
             <div className="space-y-3 px-2 pb-4">
-              {filteredCategories.map((category, index) => (
-                <div
-                  key={category.id}
-                  className={cn(
-                    'flex items-center justify-between rounded-2xl px-4 py-4 transition-colors',
-                    index % 2 === 0 ? 'bg-white' : 'bg-slate-50/80',
-                  )}
-                >
-                  <div className="flex items-center gap-3">
+              {filteredCategories.map((category, index) => {
+                const categoryColor = category.color || '#2196F3';
+                const hasIcon = Boolean(category.icon?.trim());
+                const iconUrl = resolveIconUrl(category.icon);
+                const iconTint = alpha(categoryColor, category.isEnabled === false ? 0.12 : 0.16);
+
+                return (
+                  <div
+                    key={category.id}
+                    className={cn(
+                      'flex items-center justify-between rounded-2xl px-4 py-4 transition-colors',
+                      index % 2 === 0 ? 'bg-white' : 'bg-slate-50/80',
+                    )}
+                    style={{ borderLeft: `3px solid ${categoryColor}` }}
+                  >
+                    <div className="flex items-center gap-3">
                     <Checkbox
                       aria-label={category.name}
                       className="h-4 w-4 rounded border-gray-300"
                       checked={selectedIds.has(category.id)}
                       onCheckedChange={() => handleToggleSelect(category.id)}
                     />
+                    {!category.isSystem && hasIcon ? (
+                      <div
+                        className="flex h-8 w-8 items-center justify-center rounded-lg"
+                        style={{ backgroundColor: iconTint, color: categoryColor }}
+                      >
+                        {iconUrl ? (
+                          <Box
+                            component="img"
+                            src={iconUrl}
+                            alt=""
+                            sx={{ width: 16, height: 16, objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <Icon icon={category.icon || 'mdi:tag'} width={16} height={16} />
+                        )}
+                      </div>
+                    ) : null}
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-lg font-semibold text-slate-900">
@@ -508,7 +529,7 @@ export default function WorkspaceCategoriesView() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={event => {
@@ -543,8 +564,9 @@ export default function WorkspaceCategoriesView() {
                       </button>
                     )}
                   </div>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -611,7 +633,7 @@ export default function WorkspaceCategoriesView() {
                 {PREDEFINED_ICONS.map(iconName => (
                   <Box
                     key={iconName}
-                    onClick={() => setFormData({ ...formData, icon: iconName })}
+                    onClick={() => setFormData({ ...formData, icon: iconName, withoutIcon: false })}
                     sx={{
                       width: 40,
                       height: 40,
@@ -637,6 +659,16 @@ export default function WorkspaceCategoriesView() {
                   </Box>
                 ))}
               </Box>
+              <Box sx={{ mt: 1.5 }}>
+                <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.withoutIcon}
+                    onChange={e => setFormData({ ...formData, withoutIcon: e.target.checked })}
+                  />
+                  {(t as any).dialog?.withoutIcon?.value || 'Without icon'}
+                </label>
+              </Box>
               <Box
                 sx={{
                   display: 'flex',
@@ -646,7 +678,7 @@ export default function WorkspaceCategoriesView() {
                   gap: 2,
                 }}
               >
-                {resolveIconUrl(formData.icon) && (
+                {!formData.withoutIcon && resolveIconUrl(formData.icon) && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="body2" color="text.secondary">
                       {t.dialog.uploadedIcon}
@@ -737,16 +769,16 @@ export default function WorkspaceCategoriesView() {
                   color: formData.color || '#2196F3',
                 }}
               >
-                {resolveIconUrl(formData.icon) ? (
+                {!formData.withoutIcon && resolveIconUrl(formData.icon) ? (
                   <Box
                     component="img"
                     src={resolveIconUrl(formData.icon) as string}
                     alt=""
                     sx={{ width: 28, height: 28, objectFit: 'contain' }}
                   />
-                ) : (
+                ) : !formData.withoutIcon ? (
                   <Icon icon={formData.icon || 'mdi:tag'} width={28} height={28} />
-                )}
+                ) : null}
               </Box>
               <Typography variant="subtitle1" fontWeight="bold">
                 {formData.name || t.dialog.placeholderName}
