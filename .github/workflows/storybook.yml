@@ -46,7 +46,7 @@ jobs:
 
       - name: Upload Storybook artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: storybook-${{ github.event_name == 'pull_request' && 'pr' || 'main' }}
           path: frontend/storybook-static
