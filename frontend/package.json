@@ -25,7 +25,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@heroui/calendar": "^2.2.31",
+    "@heroui/calendar": "^2.2.32",
     "@heroui/chip": "^2.2.24",
     "@heroui/date-picker": "^2.3.32",
     "@heroui/modal": "^2.2.28",
