@@ -157,10 +157,7 @@ function RegisterPageContent() {
   );
 
   return (
-    <AuthLayout sideContent={sideContent}>
-      <Box sx={{ position: 'absolute', top: 0, right: 0, p: 2 }}>
-        <AuthLanguageSwitcher />
-      </Box>
+    <AuthLayout sideContent={sideContent} topRightAction={<AuthLanguageSwitcher />}>
 
       <Box
         sx={{

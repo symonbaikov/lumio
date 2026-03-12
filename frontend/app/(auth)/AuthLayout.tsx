@@ -9,9 +9,10 @@ import MoneyAnimation from './MoneyAnimation';
 interface AuthLayoutProps {
   children: ReactNode;
   sideContent: ReactNode;
+  topRightAction?: ReactNode;
 }
 
-export default function AuthLayout({ children, sideContent }: AuthLayoutProps) {
+export default function AuthLayout({ children, sideContent, topRightAction }: AuthLayoutProps) {
   const theme = useTheme();
   // Deep blue palette
   const darkBlue = '#011e3c'; // Deep blue background
@@ -34,6 +35,12 @@ export default function AuthLayout({ children, sideContent }: AuthLayoutProps) {
           boxShadow: { md: '10px 0 30px rgba(0,0,0,0.1)' },
         }}
       >
+        {topRightAction ? (
+          <Box sx={{ position: 'absolute', top: 0, right: 0, p: 2, zIndex: 40 }}>
+            {topRightAction}
+          </Box>
+        ) : null}
+
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}

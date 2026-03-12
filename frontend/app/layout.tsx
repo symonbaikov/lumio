@@ -6,8 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { getIntlayer } from 'react-intlayer';
 import { IntlayerServerProvider } from 'react-intlayer/server';
 import { getLocale } from 'next-intlayer/server';
-import GlobalNavHeight from './components/GlobalNavHeight';
-import Navigation from './components/Navigation';
+import AppChrome from './components/AppChrome';
 import { Providers } from './providers';
 
 const manrope = Manrope({
@@ -61,15 +60,7 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <Providers initialLocale={resolvedLocale as 'en' | 'ru' | 'kk'}>
-              <GlobalNavHeight />
-              <div className="fixed top-0 inset-x-0 z-50" data-global-nav>
-                <Navigation />
-              </div>
-              <div
-                aria-hidden="true"
-                data-global-nav-spacer
-                style={{ height: 'var(--global-nav-height, 0px)' }}
-              />
+              <AppChrome />
               <main>{children}</main>
               <div id="fab-portal" className="fixed inset-0 z-[300] pointer-events-none">
                 <div className="relative h-full w-full" />

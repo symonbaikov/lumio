@@ -49,46 +49,51 @@ export function WorkspaceCard({ workspace, onClick, onFavoriteToggle }: Workspac
     : '/workspace-backgrounds/vidar-nordli-mathisen-641pLhGEEyg-unsplash.jpg';
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group relative cursor-pointer rounded-lg overflow-hidden aspect-video hover:shadow-xl transition-all duration-300 text-left"
+      className="group relative rounded-lg overflow-hidden aspect-video hover:shadow-xl transition-all duration-300"
     >
-      {/* Background Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-        style={{ backgroundImage: `url(${backgroundImage})` }}
-      />
-
-      {/* Darkening Overlay */}
-      <div
-        className={`absolute inset-0 transition-all duration-500 ${isHovered ? 'bg-black/60 backdrop-blur-[2px]' : 'bg-black/20'}`}
-      />
-
-      {/* Static Content (Visible by default) */}
-      <div
-        className={`absolute inset-0 flex flex-col justify-end p-4 transition-opacity duration-300 ${isHovered ? 'opacity-40' : 'opacity-100'}`}
+      <button
+        type="button"
+        onClick={onClick}
+        className="relative h-full w-full cursor-pointer text-left"
       >
-        <h3 className="text-lg font-bold text-white drop-shadow-md truncate">{workspace.name}</h3>
-      </div>
-
-      {/* Animated Description (Slides in on hover) */}
-      <div className="absolute inset-0 flex items-center p-6 pointer-events-none">
+        {/* Background Image */}
         <div
-          className={`transition-all duration-500 transform ease-out max-w-[80%] ${
-            isHovered ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'
-          }`}
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+        />
+
+        {/* Darkening Overlay */}
+        <div
+          className={`absolute inset-0 transition-all duration-500 ${isHovered ? 'bg-black/60 backdrop-blur-[2px]' : 'bg-black/20'}`}
+        />
+
+        {/* Static Content (Visible by default) */}
+        <div
+          className={`absolute inset-0 flex flex-col justify-end p-4 transition-opacity duration-300 ${isHovered ? 'opacity-40' : 'opacity-100'}`}
         >
-          <p className="text-white text-sm font-medium leading-relaxed drop-shadow-lg italic">
-            {workspace.description || 'No description provided'}
-          </p>
+          <h3 className="text-lg font-bold text-white drop-shadow-md truncate">{workspace.name}</h3>
         </div>
-      </div>
+
+        {/* Animated Description (Slides in on hover) */}
+        <div className="absolute inset-0 flex items-center p-6 pointer-events-none">
+          <div
+            className={`transition-all duration-500 transform ease-out max-w-[80%] ${
+              isHovered ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'
+            }`}
+          >
+            <p className="text-white text-sm font-medium leading-relaxed drop-shadow-lg italic">
+              {workspace.description || 'No description provided'}
+            </p>
+          </div>
+        </div>
+      </button>
 
       {/* Star Button (Top Right) */}
       <button
+        type="button"
         onClick={handleFavoriteClick}
         className={`absolute top-3 right-3 p-2 rounded-full transition-all duration-200 ${
           isHovered || isFavorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
@@ -100,6 +105,6 @@ export function WorkspaceCard({ workspace, onClick, onFavoriteToggle }: Workspac
       >
         <Star size={18} className={isFavorite ? 'fill-current' : ''} />
       </button>
-    </button>
+    </div>
   );
 }
