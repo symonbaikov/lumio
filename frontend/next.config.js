@@ -19,13 +19,6 @@ const nextConfig = {
   outputFileTracingRoot: __dirname,
 
   serverExternalPackages: [
-    'intlayer',
-    'next-intlayer',
-    '@intlayer/core',
-    '@intlayer/dictionaries-entry',
-    'react-intlayer',
-    '@intlayer/config',
-    '@intlayer/cli',
     'esbuild',
   ],
 

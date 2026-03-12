@@ -7,6 +7,7 @@ import { devDefault } from '../../common/utils/dev-defaults';
 import { AuthSession, User, Workspace, WorkspaceInvitation, WorkspaceMember } from '../../entities';
 import { CategoriesModule } from '../categories/categories.module';
 import { AuthController } from './auth.controller';
+import { AuthDevBootstrapService } from './auth-dev-bootstrap.service';
 import { AuthService } from './auth.service';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -31,7 +32,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtRefreshStrategy],
+  providers: [AuthService, AuthDevBootstrapService, JwtStrategy, JwtRefreshStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

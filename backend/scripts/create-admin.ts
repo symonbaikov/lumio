@@ -1,118 +1,111 @@
 import * as bcrypt from 'bcrypt';
-import { DataSource } from 'typeorm';
-import { Branch } from '../src/entities/branch.entity';
-import { Category } from '../src/entities/category.entity';
-import { GoogleSheetRow } from '../src/entities/google-sheet-row.entity';
-import { GoogleSheet } from '../src/entities/google-sheet.entity';
-import { Statement } from '../src/entities/statement.entity';
-import { TelegramReport } from '../src/entities/telegram-report.entity';
-import { Transaction } from '../src/entities/transaction.entity';
-import { User, UserRole } from '../src/entities/user.entity';
-import { Wallet } from '../src/entities/wallet.entity';
+import { AppDataSource } from '../src/data-source';
+import { User, UserRole, Workspace, WorkspaceMember, WorkspaceRole } from '../src/entities';
+import { DEV_DEFAULTS } from '../src/common/utils/dev-defaults';
+
+const DEFAULT_EMAIL = DEV_DEFAULTS.ADMIN_EMAIL;
+const DEFAULT_PASSWORD = DEV_DEFAULTS.ADMIN_PASSWORD;
+const DEFAULT_NAME = DEV_DEFAULTS.ADMIN_NAME;
 
 async function createAdmin() {
-  const databaseUrl =
-    process.env.DATABASE_URL || 'postgresql://lumio:lumio@localhost:5432/lumio';
-
-  // Parse DATABASE_URL
-  let username: string;
-  let password: string;
-  let host: string;
-  let port: number;
-  let database: string;
-
   try {
-    const url = new URL(databaseUrl);
-    username = url.username;
-    password = url.password;
-    host = url.hostname;
-    port = Number.parseInt(url.port) || 5432;
-    database = url.pathname.slice(1);
-  } catch (error) {
-    // Fallback to direct connection parameters
-    username = process.env.DB_USERNAME || 'lumio';
-    password = process.env.DB_PASSWORD || 'lumio';
-    host = process.env.DB_HOST || 'localhost';
-    port = Number.parseInt(process.env.DB_PORT || '5432');
-    database = process.env.DB_NAME || 'lumio';
-  }
-
-  const dataSource = new DataSource({
-    type: 'postgres',
-    host,
-    port,
-    username,
-    password,
-    database,
-    entities: [
-      User,
-      Statement,
-      GoogleSheet,
-      GoogleSheetRow,
-      TelegramReport,
-      Category,
-      Branch,
-      Wallet,
-      Transaction,
-    ],
-  });
-
-  try {
-    await dataSource.initialize();
-    console.log('✅ Connected to database');
-
-    const email = process.argv[2] || 'admin@example.com';
-    const password = process.argv[3] || 'admin123';
-    const name = process.argv[4] || 'Administrator';
-
-    // Check if admin already exists
-    const existingUser = await dataSource.getRepository(User).findOne({
-      where: { email },
-    });
-
-    if (existingUser) {
-      if (existingUser.role === UserRole.ADMIN) {
-        // Update password and ensure user is active
-        existingUser.passwordHash = await bcrypt.hash(password, 10);
-        existingUser.isActive = true;
-        await dataSource.getRepository(User).save(existingUser);
-        console.log(`✅ Updated admin user ${email} (password updated, account activated)`);
-        await dataSource.destroy();
-        return;
-      }
-
-      // Update existing user to admin
-      existingUser.role = UserRole.ADMIN;
-      existingUser.passwordHash = await bcrypt.hash(password, 10);
-      existingUser.isActive = true;
-      await dataSource.getRepository(User).save(existingUser);
-      console.log(`✅ Updated user ${email} to admin role`);
-      await dataSource.destroy();
-      return;
+    if (!AppDataSource.isInitialized) {
+      await AppDataSource.initialize();
     }
 
-    // Create new admin user
+    const userRepository = AppDataSource.getRepository(User);
+    const workspaceRepository = AppDataSource.getRepository(Workspace);
+    const workspaceMemberRepository = AppDataSource.getRepository(WorkspaceMember);
+
+    const email = (process.argv[2] || DEFAULT_EMAIL).trim().toLowerCase();
+    const password = process.argv[3] || DEFAULT_PASSWORD;
+    const name = process.argv[4] || DEFAULT_NAME;
+
     const passwordHash = await bcrypt.hash(password, 10);
-    const admin = dataSource.getRepository(User).create({
-      email,
-      passwordHash,
-      name,
-      role: UserRole.ADMIN,
-      isActive: true,
+
+    const existingUser = await userRepository.findOne({
+      where: { email },
+      select: ['id', 'email', 'role', 'isActive', 'name'],
     });
 
-    await dataSource.getRepository(User).save(admin);
-    console.log(`✅ Admin user created successfully!`);
+    let adminUser: User;
+
+    if (!existingUser) {
+      adminUser = await userRepository.save(
+        userRepository.create({
+          email,
+          passwordHash,
+          name,
+          role: UserRole.ADMIN,
+          isActive: true,
+        }),
+      );
+
+      console.log('✅ Admin user created successfully');
+    } else {
+      const updatePayload: Partial<User> = {
+        passwordHash,
+        role: UserRole.ADMIN,
+        isActive: true,
+      };
+
+      if (!existingUser.name || existingUser.name.trim() === '') {
+        updatePayload.name = name;
+      }
+
+      await userRepository.update(existingUser.id, updatePayload);
+
+      console.log(`✅ Updated admin user ${email}`);
+      console.log('   Role set to admin, password rotated, account activated');
+    }
+
+    adminUser = (await userRepository.findOne({
+      where: { email },
+      select: ['id', 'email', 'name', 'workspaceId', 'lastWorkspaceId'],
+    })) as User;
+
+    let workspaceId = adminUser.workspaceId;
+    if (!workspaceId) {
+      const workspace = await workspaceRepository.save(
+        workspaceRepository.create({
+          name: `${adminUser.name || adminUser.email} workspace`,
+          ownerId: adminUser.id,
+        }),
+      );
+      workspaceId = workspace.id;
+      await userRepository.update(adminUser.id, {
+        workspaceId,
+        lastWorkspaceId: workspaceId,
+      });
+      console.log(`✅ Workspace created for admin: ${workspace.name} (${workspace.id})`);
+    }
+
+    const existingMembership = await workspaceMemberRepository.findOne({
+      where: { workspaceId: workspaceId as string, userId: adminUser.id },
+      select: ['id'],
+    });
+
+    if (!existingMembership) {
+      await workspaceMemberRepository.save(
+        workspaceMemberRepository.create({
+          workspaceId: workspaceId as string,
+          userId: adminUser.id,
+          role: WorkspaceRole.OWNER,
+          invitedById: adminUser.id,
+        }),
+      );
+      console.log('✅ Workspace membership ensured for admin');
+    }
+
     console.log(`   Email: ${email}`);
     console.log(`   Password: ${password}`);
-    console.log(`   Name: ${name}`);
-    console.log(`\n⚠️  IMPORTANT: Change the password after first login!`);
-
-    await dataSource.destroy();
   } catch (error) {
     console.error('❌ Error creating admin user:', error);
-    await dataSource.destroy();
-    process.exit(1);
+    process.exitCode = 1;
+  } finally {
+    if (AppDataSource.isInitialized) {
+      await AppDataSource.destroy();
+    }
   }
 }
 

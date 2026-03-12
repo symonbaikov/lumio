@@ -5,6 +5,9 @@ const logger = new Logger('DevDefaults');
 export const DEV_DEFAULTS = {
   JWT_SECRET: 'finflow-dev-jwt-secret-do-not-use-in-production-abc123',
   JWT_REFRESH_SECRET: 'finflow-dev-jwt-refresh-secret-do-not-use-in-production-xyz789',
+  ADMIN_EMAIL: 'admin@example.com',
+  ADMIN_PASSWORD: 'admin123',
+  ADMIN_NAME: 'Administrator',
 } as const;
 
 let warned = false;

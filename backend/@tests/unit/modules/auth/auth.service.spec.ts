@@ -79,6 +79,7 @@ describe('AuthService', () => {
         {
           provide: getRepositoryToken(WorkspaceMember),
           useValue: {
+            findOne: jest.fn(),
             create: jest.fn(),
             save: jest.fn(),
           },
@@ -487,6 +488,49 @@ describe('AuthService', () => {
       jest.spyOn(authSessionRepository, 'findOne').mockResolvedValue(null);
 
       await expect(service.refreshToken('refresh-token')).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('ensureDevAdminUser', () => {
+    it('creates workspace membership when admin exists without workspace', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue({
+        id: 'admin-1',
+        email: 'admin@example.com',
+        passwordHash: 'hashed_admin123',
+        role: UserRole.ADMIN,
+        isActive: true,
+        name: 'Administrator',
+        workspaceId: null,
+      } as unknown as User);
+
+      jest.spyOn(workspaceRepository, 'create').mockReturnValue({
+        id: 'ws-1',
+        name: 'Administrator workspace',
+        ownerId: 'admin-1',
+      } as Workspace);
+      jest.spyOn(workspaceRepository, 'save').mockResolvedValue({
+        id: 'ws-1',
+        name: 'Administrator workspace',
+        ownerId: 'admin-1',
+      } as Workspace);
+
+      await service.ensureDevAdminUser();
+
+      expect(workspaceRepository.create).toHaveBeenCalled();
+      expect(workspaceRepository.save).toHaveBeenCalled();
+      expect(workspaceMemberRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws-1',
+          userId: 'admin-1',
+          role: WorkspaceRole.OWNER,
+        }),
+      );
+      expect(userRepository.update).toHaveBeenCalledWith(
+        'admin-1',
+        expect.objectContaining({
+          workspaceId: 'ws-1',
+        }),
+      );
     });
   });
 });

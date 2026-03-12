@@ -6,7 +6,7 @@ import { DataSource } from 'typeorm';
 config();
 
 const databaseUrl =
-  process.env.DATABASE_URL || 'postgresql://lumio:lumio@localhost:5432/lumio';
+  process.env.DATABASE_URL || 'postgresql://finflow:finflow@localhost:5432/finflow';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',

@@ -2,6 +2,14 @@
 # Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 services:
+  postgres:
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+
+  redis:
+    volumes:
+      - redis_dev_data:/data
+
   backend:
     build:
       context: ./backend
@@ -30,3 +38,7 @@ services:
       - /app/node_modules
       - /app/.next
     command: npm run dev
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:

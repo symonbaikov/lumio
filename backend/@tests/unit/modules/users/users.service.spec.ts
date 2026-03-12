@@ -1,5 +1,6 @@
 import { User, UserRole } from '@/entities/user.entity';
 import { Workspace } from '@/entities/workspace.entity';
+import { WorkspacesService } from '@/modules/workspaces/workspaces.service';
 import { UsersService } from '@/modules/users/users.service';
 import {
   ConflictException,
@@ -22,6 +23,7 @@ describe('UsersService', () => {
   let service: UsersService;
   let repository: Repository<User>;
   let workspaceRepository: Repository<Workspace>;
+  let workspacesService: WorkspacesService;
 
   const mockUser: Partial<User> = {
     id: '1',
@@ -61,12 +63,19 @@ describe('UsersService', () => {
             save: jest.fn(),
           },
         },
+        {
+          provide: WorkspacesService,
+          useValue: {
+            ensureUserWorkspace: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = testingModule.get<UsersService>(UsersService);
     repository = testingModule.get<Repository<User>>(getRepositoryToken(User));
     workspaceRepository = testingModule.get<Repository<Workspace>>(getRepositoryToken(Workspace));
+    workspacesService = testingModule.get<WorkspacesService>(WorkspacesService);
   });
 
   beforeEach(() => {
@@ -401,7 +410,7 @@ describe('UsersService', () => {
       expect(result.onboardingCompletedAt).toBeTruthy();
     });
 
-    it('is idempotent and does not fail without workspace', async () => {
+    it('ensures workspace when user has none', async () => {
       const alreadyCompleted = {
         ...mockUser,
         workspaceId: null,
@@ -411,16 +420,23 @@ describe('UsersService', () => {
       jest
         .spyOn<any, any>(service as any, 'findOneWithPassword')
         .mockResolvedValue(alreadyCompleted);
+      const ensureWorkspaceSpy = jest
+        .spyOn(workspacesService, 'ensureUserWorkspace')
+        .mockResolvedValue({ id: 'workspace-ensured' } as Workspace);
       const workspaceFindSpy = jest.spyOn(workspaceRepository, 'findOne').mockResolvedValue(null);
       const workspaceSaveSpy = jest.spyOn(workspaceRepository, 'save');
       const userSaveSpy = jest.spyOn(repository, 'save').mockResolvedValue(alreadyCompleted);
 
       await service.completeOnboarding('1', {});
 
+      expect(ensureWorkspaceSpy).toHaveBeenCalledWith(expect.objectContaining({ id: '1' }));
       expect(workspaceFindSpy).not.toHaveBeenCalled();
       expect(workspaceSaveSpy).not.toHaveBeenCalled();
       expect(userSaveSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ onboardingCompletedAt: alreadyCompleted.onboardingCompletedAt }),
+        expect.objectContaining({
+          workspaceId: 'workspace-ensured',
+          onboardingCompletedAt: alreadyCompleted.onboardingCompletedAt,
+        }),
       );
     });
   });

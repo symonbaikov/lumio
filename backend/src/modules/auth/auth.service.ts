@@ -73,6 +73,100 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
+  async ensureDevAdminUser(): Promise<void> {
+    if (process.env.NODE_ENV === 'production') {
+      return;
+    }
+
+    const email = DEV_DEFAULTS.ADMIN_EMAIL;
+    const existing = await this.userRepository.findOne({
+      where: { email },
+      select: ['id', 'email', 'passwordHash', 'role', 'isActive', 'name', 'workspaceId'],
+    });
+
+    const passwordHash = await bcrypt.hash(DEV_DEFAULTS.ADMIN_PASSWORD, 10);
+
+    if (!existing) {
+      const created = await this.userRepository.save(
+        this.userRepository.create({
+          email,
+          passwordHash,
+          name: DEV_DEFAULTS.ADMIN_NAME,
+          role: UserRole.ADMIN,
+          isActive: true,
+        }),
+      );
+      await this.ensureWorkspaceForUser(created);
+      return;
+    }
+
+    const hasValidPassword = existing.passwordHash
+      ? await bcrypt.compare(DEV_DEFAULTS.ADMIN_PASSWORD, existing.passwordHash)
+      : false;
+
+    if (
+      existing.role !== UserRole.ADMIN ||
+      !existing.isActive ||
+      existing.name !== DEV_DEFAULTS.ADMIN_NAME ||
+      !hasValidPassword
+    ) {
+      await this.userRepository.update(existing.id, {
+        passwordHash,
+        role: UserRole.ADMIN,
+        isActive: true,
+        name: DEV_DEFAULTS.ADMIN_NAME,
+      });
+    }
+
+    await this.ensureWorkspaceForUser(existing);
+  }
+
+  private async ensureWorkspaceForUser(user: Pick<User, 'id' | 'email' | 'name' | 'workspaceId'>) {
+    let workspaceId = user.workspaceId;
+
+    if (workspaceId) {
+      const workspace = await this.workspaceRepository.findOne({
+        where: { id: workspaceId },
+        select: ['id'],
+      });
+      if (!workspace) {
+        workspaceId = null;
+      }
+    }
+
+    if (!workspaceId) {
+      const workspace = await this.workspaceRepository.save(
+        this.workspaceRepository.create({
+          name: `${user.name || user.email} workspace`,
+          ownerId: user.id,
+        }),
+      );
+
+      workspaceId = workspace.id;
+
+      await this.userRepository.update(user.id, {
+        workspaceId,
+        lastWorkspaceId: workspaceId,
+      });
+
+      await this.categoriesService.createSystemCategories(workspaceId, user.id);
+    }
+
+    const membership = await this.workspaceMemberRepository.findOne({
+      where: { workspaceId, userId: user.id },
+      select: ['id'],
+    });
+
+    if (!membership) {
+      await this.workspaceMemberRepository.save({
+        workspaceId,
+        userId: user.id,
+        role: WorkspaceRole.OWNER,
+        invitedById: user.id,
+      });
+    }
+  }
+
   async register(
     registerDto: RegisterDto,
     sessionContext?: SessionContext,

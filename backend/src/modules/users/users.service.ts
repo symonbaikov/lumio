@@ -16,6 +16,7 @@ import type { ChangePasswordDto } from './dto/change-password.dto';
 import type { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
 import type { UpdateMyPreferencesDto } from './dto/update-my-preferences.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
+import { WorkspacesService } from '../workspaces/workspaces.service';
 
 @Injectable()
 export class UsersService {
@@ -24,6 +25,7 @@ export class UsersService {
     private userRepository: Repository<User>,
     @InjectRepository(Workspace)
     private workspaceRepository: Repository<Workspace>,
+    private readonly workspacesService: WorkspacesService,
   ) {}
 
   private async findOneWithPassword(id: string): Promise<User> {
@@ -228,6 +230,11 @@ export class UsersService {
 
   async completeOnboarding(userId: string, dto: CompleteOnboardingDto): Promise<User> {
     const user = await this.findOneWithPassword(userId);
+
+    if (!user.workspaceId) {
+      const ensuredWorkspace = await this.workspacesService.ensureUserWorkspace(user);
+      user.workspaceId = ensuredWorkspace.id;
+    }
 
     if (dto.locale !== undefined) {
       user.locale = dto.locale;

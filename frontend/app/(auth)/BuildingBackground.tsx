@@ -3,6 +3,12 @@
 import { motion } from 'framer-motion';
 import { memo } from 'react';
 
+const stableWindowNoise = (seed: number) => {
+  // Deterministic pseudo-random value in [0, 1)
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+};
+
 // Common base glass style
 const glassStyle = {
   background: 'rgba(255, 255, 255, 0.1)',
@@ -33,7 +39,7 @@ const WindowGrid = ({
         // biome-ignore lint/suspicious/noArrayIndexKey: pure visual decoration
         key={i}
         style={{
-          background: Math.random() > 1 - density ? 'white' : 'transparent',
+          background: stableWindowNoise((cols + 11) * (rows + 7) * (i + 1)) < density ? 'white' : 'transparent',
           borderRadius: '2px',
         }}
       />
@@ -361,7 +367,7 @@ const GothicBuilding = ({ delay, duration, w = 160, h = 320, ...pos }: any) => (
               key={windowKey}
               style={{
                 height: 40,
-                background: Math.random() > 0.3 ? 'white' : 'transparent',
+                background: stableWindowNoise(1000 + i) < 0.7 ? 'white' : 'transparent',
                 borderTopLeftRadius: '20px',
                 borderTopRightRadius: '20px',
               }}

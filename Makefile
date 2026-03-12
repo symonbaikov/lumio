@@ -62,7 +62,8 @@ restart: ## Restart all services
 
 clean: ## Stop services and remove volumes
 	@echo "🧹 Cleaning up Lumio..."
-	@$(DOCKER_COMPOSE) down -v
+	@$(DOCKER_COMPOSE_DEV) down -v --remove-orphans
+	@$(DOCKER_COMPOSE) down -v --remove-orphans
 	@echo "✅ Cleanup complete!"
 
 ##@ Logs
