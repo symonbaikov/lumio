@@ -200,7 +200,7 @@ jobs:
           push-to-registry: true
 
       - name: Scan pushed image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: ${{ steps.image.outputs.primary_tag }}
           severity: HIGH,CRITICAL
