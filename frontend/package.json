@@ -51,7 +51,7 @@
     "echarts": "^5.5.0",
     "echarts-for-react": "^3.0.2",
     "framer-motion": "^12.34.3",
-    "intlayer": "^7.5.11",
+    "intlayer": "^8.3.0",
     "lucide-react": "^0.561.0",
     "next": "^16.1.2",
     "next-intlayer": "^7.5.11",
