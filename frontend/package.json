@@ -33,7 +33,7 @@
     "@heroui/react": "^2.8.9",
     "@heroui/system": "^2.4.27",
     "@heroui/theme": "^2.4.26",
-    "@heroui/tooltip": "^2.2.28",
+    "@heroui/tooltip": "^2.2.29",
     "@iconify/react": "^6.0.2",
     "@internationalized/date": "^3.11.0",
     "@joeattardi/emoji-button": "^4.6.4",
