@@ -103,6 +103,12 @@ export interface AuditEventResponse {
   limit: number;
 }
 
+export interface RollbackResponse {
+  success: boolean;
+  message?: string;
+  eventId?: string;
+}
+
 export const fetchAuditEvents = async (filter: AuditEventFilter): Promise<AuditEventResponse> => {
   const response = await apiClient.get<AuditEventResponse>('/audit-events', {
     params: filter,
@@ -132,7 +138,7 @@ export const fetchBatchEvents = async (batchId: string): Promise<AuditEvent[]> =
   return response.data;
 };
 
-export const rollbackEvent = async (eventId: string) => {
-  const response = await apiClient.post(`/audit-events/${eventId}/rollback`);
+export const rollbackEvent = async (eventId: string): Promise<RollbackResponse> => {
+  const response = await apiClient.post<RollbackResponse>(`/audit-events/${eventId}/rollback`);
   return response.data;
 };

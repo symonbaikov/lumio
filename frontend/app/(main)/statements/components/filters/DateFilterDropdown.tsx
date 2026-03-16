@@ -3,7 +3,6 @@
 import { FilterActions } from '@/app/(main)/statements/components/filters/FilterActions';
 import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
 import { FilterOptionRow } from '@/app/(main)/statements/components/filters/FilterOptionRow';
-import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { RangeCalendar } from '@heroui/calendar';
 import { parseDate } from '@internationalized/date';
 import { ChevronRight } from 'lucide-react';
@@ -69,7 +68,6 @@ export function DateFilterDropdown({
   resetLabel,
 }: DateFilterDropdownProps) {
   const current = ensureDate(value);
-  const isMobile = useIsMobile();
   const calendarStart = toCalendarDate(current.date);
   const calendarEnd = toCalendarDate(current.dateTo || current.date);
   const calendarValue = calendarStart
@@ -84,7 +82,6 @@ export function DateFilterDropdown({
       open={open}
       onOpenChange={onOpenChange}
       trigger={trigger}
-      contentClassName="w-[720px] max-w-[calc(100vw-24px)]"
     >
       <div className="space-y-2">
         <div className="space-y-1">
@@ -164,7 +161,7 @@ export function DateFilterDropdown({
                     dateTo: endValue || startValue || fallbackDate,
                   });
                 }}
-                visibleMonths={isMobile ? 1 : 2}
+                visibleMonths={1}
                 className="w-full"
               />
             </div>

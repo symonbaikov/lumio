@@ -11,9 +11,23 @@ const pushMock = vi.hoisted(() => vi.fn());
 
 const STORAGE_KEY = 'lumio-spend-over-time-filters';
 
+const spendOverTimeI18n = {
+  kpiHint: { value: 'No calculations yet' },
+  emptyStateTitle: { value: 'No data in selected period' },
+  emptyStateDescription: { value: 'Upload statements or change filters' },
+  emptyStateUploadCta: { value: 'Go to statement upload' },
+  emptyStateResetCta: { value: 'Reset all filters' },
+};
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: pushMock,
+  }),
+}));
+
+vi.mock('@/app/i18n', () => ({
+  useIntlayer: () => ({
+    spendOverTime: spendOverTimeI18n,
   }),
 }));
 
@@ -182,11 +196,11 @@ describe('SpendOverTimeView mobile rendering', () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toContain('Нет данных за выбранный период');
-    expect(container.textContent).toContain('Загрузите выписки или примените другой фильтр');
-    expect(container.textContent).toContain('Перейти к загрузке выписок');
-    expect(container.textContent).toContain('Сбросить фильтры');
-    expect(container.textContent).toContain('Пока нет данных для расчета');
+    expect(container.textContent).toContain(spendOverTimeI18n.emptyStateTitle.value);
+    expect(container.textContent).toContain(spendOverTimeI18n.emptyStateDescription.value);
+    expect(container.textContent).toContain(spendOverTimeI18n.emptyStateUploadCta.value);
+    expect(container.textContent).toContain(spendOverTimeI18n.emptyStateResetCta.value);
+    expect(container.textContent).toContain(spendOverTimeI18n.kpiHint.value);
   });
 
   it('uses Flow naming and supports net flow', async () => {

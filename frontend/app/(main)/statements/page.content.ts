@@ -489,6 +489,33 @@ const content = {
         kk: 'Операциялар табылмады',
       }),
     },
+    spendOverTime: {
+      kpiHint: t({
+        ru: 'Пока нет данных для расчета',
+        en: 'No data yet for calculations',
+        kk: 'Есептеу үшін дерек әлі жоқ',
+      }),
+      emptyStateTitle: t({
+        ru: 'Нет данных за выбранный период',
+        en: 'No data for selected period',
+        kk: 'Таңдалған кезең бойынша дерек жоқ',
+      }),
+      emptyStateDescription: t({
+        ru: 'Загрузите выписки или примените другой фильтр',
+        en: 'Upload statements or apply another filter',
+        kk: 'Үзінділерді жүктеңіз немесе басқа сүзгіні қолданыңыз',
+      }),
+      emptyStateUploadCta: t({
+        ru: 'Перейти к загрузке выписок',
+        en: 'Go to statement upload',
+        kk: 'Үзінді жүктеуге өту',
+      }),
+      emptyStateResetCta: t({
+        ru: 'Сбросить фильтры',
+        en: 'Reset filters',
+        kk: 'Сүзгілерді тазалау',
+      }),
+    },
     topMerchants: {
       title: t({ ru: 'Топ мерчанты', en: 'Top merchants', kk: 'Топ сатушылар' }),
       subtitle: t({

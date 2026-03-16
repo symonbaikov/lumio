@@ -7,6 +7,7 @@ import { getIntlayer } from 'react-intlayer';
 import { IntlayerServerProvider } from 'react-intlayer/server';
 import { getLocale } from 'next-intlayer/server';
 import AppChrome from './components/AppChrome';
+import DynamicPageTitle from './components/DynamicPageTitle';
 import { Providers } from './providers';
 
 const manrope = Manrope({
@@ -60,6 +61,7 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <Providers initialLocale={resolvedLocale as 'en' | 'ru' | 'kk'}>
+              <DynamicPageTitle />
               <AppChrome />
               <main>{children}</main>
               <div id="fab-portal" className="fixed inset-0 z-[300] pointer-events-none">

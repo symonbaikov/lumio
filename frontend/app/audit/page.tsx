@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { AuditEventDrawer } from './components/AuditEventDrawer';
 import { AuditEventTable } from './components/AuditEventTable';
 import { RollbackConfirmModal } from './components/RollbackConfirmModal';
+import { assertRollbackSucceeded } from './utils/rollback-result';
 
 const ENTITY_TYPES = [
   'transaction',
@@ -101,7 +102,8 @@ export default function AuditPage() {
     setRollbackLoading(true);
     setRollbackError(null);
     try {
-      await rollbackEvent(rollbackTarget.id);
+      const result = await rollbackEvent(rollbackTarget.id);
+      assertRollbackSucceeded(result);
       toast.success('Rollback successful');
       setRollbackTarget(null);
       setDrawerOpen(false);

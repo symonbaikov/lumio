@@ -18,6 +18,7 @@ import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
+import { useIntlayer } from '@/app/i18n';
 import { type SpendOverTimeReport, fetchSpendOverTimeReport } from '@/app/lib/spend-over-time-api';
 import { ChevronDown, Columns2, LineChart, RefreshCcw, SlidersHorizontal } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -205,6 +206,7 @@ const saveStoredState = (state: StoredState) => {
 };
 
 export default function SpendOverTimeView() {
+  const t = useIntlayer('statementsPage') as any;
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const router = useRouter();
@@ -474,7 +476,30 @@ export default function SpendOverTimeView() {
               : 'Periods';
 
   const hasAnyTransactions = (report?.totals.count || 0) > 0;
-  const kpiHint = 'Пока нет данных для расчета';
+  const resolveLabel = (value: unknown, fallback: string) => {
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object' && 'value' in value) {
+      const tokenValue = (value as { value?: string }).value;
+      if (typeof tokenValue === 'string') return tokenValue;
+    }
+    return fallback;
+  };
+
+  const spendOverTimeLabels = {
+    kpiHint: resolveLabel(t?.spendOverTime?.kpiHint, 'No data yet for calculations'),
+    emptyStateTitle: resolveLabel(t?.spendOverTime?.emptyStateTitle, 'No data for selected period'),
+    emptyStateDescription: resolveLabel(
+      t?.spendOverTime?.emptyStateDescription,
+      'Upload statements or apply another filter',
+    ),
+    emptyStateUploadCta: resolveLabel(
+      t?.spendOverTime?.emptyStateUploadCta,
+      'Go to statement upload',
+    ),
+    emptyStateResetCta: resolveLabel(t?.spendOverTime?.emptyStateResetCta, 'Reset filters'),
+  };
+
+  const kpiHint = spendOverTimeLabels.kpiHint;
 
   return (
     <div className="container-shared flex h-[calc(100vh-var(--global-nav-height,0px))] min-h-0 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
@@ -727,10 +752,10 @@ export default function SpendOverTimeView() {
                 <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/90 p-6 backdrop-blur-[1px]">
                   <div className="max-w-md text-center">
                     <p className="text-base font-semibold text-gray-900">
-                      Нет данных за выбранный период
+                      {spendOverTimeLabels.emptyStateTitle}
                     </p>
                     <p className="mt-1 text-sm text-gray-500">
-                      Загрузите выписки или примените другой фильтр
+                      {spendOverTimeLabels.emptyStateDescription}
                     </p>
                     <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                       <button
@@ -738,14 +763,14 @@ export default function SpendOverTimeView() {
                         className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary/90"
                         onClick={() => router.push('/statements/submit')}
                       >
-                        Перейти к загрузке выписок
+                        {spendOverTimeLabels.emptyStateUploadCta}
                       </button>
                       <button
                         type="button"
                         className="inline-flex items-center rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/5"
                         onClick={resetAllFilters}
                       >
-                        Сбросить фильтры
+                        {spendOverTimeLabels.emptyStateResetCta}
                       </button>
                     </div>
                   </div>

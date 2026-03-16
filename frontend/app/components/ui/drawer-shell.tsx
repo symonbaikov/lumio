@@ -288,7 +288,7 @@ export function DrawerShell({
         )}
 
         {/* Content */}
-        <div className="p-6 flex h-full flex-col">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col p-6">{children}</div>
       </div>
     </dialog>
   );

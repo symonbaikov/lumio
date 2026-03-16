@@ -5,11 +5,12 @@ import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('next-intlayer', () => ({
+vi.mock('@/app/i18n', () => ({
   useIntlayer: () => ({
     loading: 'Loading...',
     noWorkspaces: 'No workspaces',
     createWorkspace: 'Create Workspace',
+    searchPlaceholder: 'Search workspaces...',
   }),
 }));
 
@@ -50,6 +51,21 @@ describe('WorkspacesListContent', () => {
     expect(html).not.toContain('Switch workspace without leaving this page');
     expect(html).not.toContain('All Workspaces');
     expect(html).not.toContain('Close');
+  });
+
+  it('renders statements-style search bar in embedded mode', async () => {
+    const { default: WorkspacesListContent } = await import('./WorkspacesListContent');
+    const container = document.createElement('div');
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<WorkspacesListContent embedded onCloseEmbedded={vi.fn()} />);
+    });
+
+    const searchInput = container.querySelector('input[aria-label="Search workspaces..."]');
+    expect(searchInput).toBeTruthy();
+    expect(searchInput?.className).toContain('pl-11');
+    expect(searchInput?.className).toContain('rounded-md');
   });
 
   it('switches to list format when list view button is clicked', async () => {

@@ -17,41 +17,42 @@ export function AuditEventDrawer({ event, open, onClose, onRollback }: AuditEven
 
   return (
     <DrawerShell isOpen={open} onClose={onClose} title="Audit Event" position="right" width="lg">
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Timestamp</span>
-            <span className="font-semibold text-gray-900">
-              {new Date(event.createdAt).toLocaleString()}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Actor</span>
-            <span className="font-semibold text-gray-900">{event.actorLabel}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Action</span>
-            <span className="font-semibold text-gray-900">{event.action}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Entity</span>
-            <span className="font-semibold text-gray-900">{event.entityType}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Entity ID</span>
-            <span className="font-mono text-xs text-gray-800">{event.entityId}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Severity</span>
-            <span className="font-semibold text-gray-900">{event.severity}</span>
-          </div>
-          {event.batchId && (
+      <div data-testid="audit-event-drawer-scroll" className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <div className="space-y-6 pb-6">
+          <div className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Batch</span>
-              <span className="font-mono text-xs text-gray-800">{event.batchId}</span>
+              <span className="text-gray-600">Timestamp</span>
+              <span className="font-semibold text-gray-900">
+                {new Date(event.createdAt).toLocaleString()}
+              </span>
             </div>
-          )}
-        </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Actor</span>
+              <span className="font-semibold text-gray-900">{event.actorLabel}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Action</span>
+              <span className="font-semibold text-gray-900">{event.action}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Entity</span>
+              <span className="font-semibold text-gray-900">{event.entityType}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Entity ID</span>
+              <span className="font-mono text-xs text-gray-800">{event.entityId}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Severity</span>
+              <span className="font-semibold text-gray-900">{event.severity}</span>
+            </div>
+            {event.batchId && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Batch</span>
+                <span className="font-mono text-xs text-gray-800">{event.batchId}</span>
+              </div>
+            )}
+          </div>
 
         <div>
           <div className="text-sm font-semibold text-gray-900">Diff</div>
@@ -85,6 +86,7 @@ export function AuditEventDrawer({ event, open, onClose, onRollback }: AuditEven
             Rollback
           </button>
         )}
+        </div>
       </div>
     </DrawerShell>
   );

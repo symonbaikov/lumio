@@ -5,6 +5,8 @@ import { Checkbox } from '@/app/components/ui/checkbox';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
+import { type DateValue, parseDate } from '@internationalized/date';
+import { DatePicker } from '@heroui/date-picker';
 import { Check, RefreshCcw, Search, X } from 'lucide-react';
 import { useIntlayer } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
@@ -100,6 +102,34 @@ const extractErrorMessage = (error: unknown): string | null => {
 
   return null;
 };
+
+const DATE_VALUE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+const normalizeToDateString = (value?: string | null) => {
+  if (!value) return null;
+  if (DATE_VALUE_REGEX.test(value)) return value;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  const year = parsed.getFullYear();
+  const month = `${parsed.getMonth() + 1}`.padStart(2, '0');
+  const day = `${parsed.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const toCalendarDate = (value?: string | null) => {
+  const normalized = normalizeToDateString(value);
+  if (!normalized) return null;
+
+  try {
+    return parseDate(normalized);
+  } catch {
+    return null;
+  }
+};
+
+const toFilterDateValue = (date: DateValue | null) => (date ? date.toString() : '');
 
 const fetchAllTransactions = async (): Promise<UnapprovedQueueTransaction[]> => {
   const allTransactions: UnapprovedQueueTransaction[] = [];
@@ -817,19 +847,37 @@ export default function UnapprovedCashView() {
           </div>
 
           <div className="mt-2 grid gap-2 md:grid-cols-2">
-            <input
-              type="date"
-              value={filters.dateFrom}
-              onChange={event => setFilters(prev => ({ ...prev, dateFrom: event.target.value }))}
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+            <DatePicker
               aria-label={labels.filters.dateFrom}
+              value={toCalendarDate(filters.dateFrom)}
+              onChange={value =>
+                setFilters(prev => ({ ...prev, dateFrom: toFilterDateValue(value) }))
+              }
+              granularity="day"
+              showMonthAndYearPickers
+              className="w-full"
+              classNames={{
+                inputWrapper:
+                  'min-h-[44px] rounded-md border border-gray-200 bg-white px-3 py-2 shadow-none transition-colors hover:border-gray-300 group-data-[focus=true]:border-primary group-data-[focus=true]:ring-2 group-data-[focus=true]:ring-primary/10',
+                input: 'text-sm text-gray-900',
+                segment: 'text-sm text-gray-900',
+                selectorButton: 'text-gray-700',
+              }}
             />
-            <input
-              type="date"
-              value={filters.dateTo}
-              onChange={event => setFilters(prev => ({ ...prev, dateTo: event.target.value }))}
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+            <DatePicker
               aria-label={labels.filters.dateTo}
+              value={toCalendarDate(filters.dateTo)}
+              onChange={value => setFilters(prev => ({ ...prev, dateTo: toFilterDateValue(value) }))}
+              granularity="day"
+              showMonthAndYearPickers
+              className="w-full"
+              classNames={{
+                inputWrapper:
+                  'min-h-[44px] rounded-md border border-gray-200 bg-white px-3 py-2 shadow-none transition-colors hover:border-gray-300 group-data-[focus=true]:border-primary group-data-[focus=true]:ring-2 group-data-[focus=true]:ring-primary/10',
+                input: 'text-sm text-gray-900',
+                segment: 'text-sm text-gray-900',
+                selectorButton: 'text-gray-700',
+              }}
             />
           </div>
         </div>

@@ -1,14 +1,16 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function StatementsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    router.replace('/statements/submit');
-  }, [router]);
+    const query = searchParams.toString();
+    router.replace(query ? `/statements/submit?${query}` : '/statements/submit');
+  }, [router, searchParams]);
 
   return null;
 }

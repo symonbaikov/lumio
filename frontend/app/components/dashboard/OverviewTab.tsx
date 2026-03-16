@@ -87,7 +87,7 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
           We&apos;ll parse it automatically and show your cash flow, categories, and insights.
         </p>
         <Link
-          href="/statements/submit"
+          href="/statements?openExpenseDrawer=scan"
           className="inline-flex items-center gap-2 rounded-[12px] bg-[#0a66c2] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#004182]"
         >
           <FileUp className="h-4 w-4" />

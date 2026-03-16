@@ -43,6 +43,7 @@ export default function WorkspacesListContent({
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortOption, setSortOption] = useState<SortOption>('favorites');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const searchPlaceholder = content.searchPlaceholder?.value || 'Search workspaces...';
 
   const handleWorkspaceClick = async (workspaceId: string) => {
     try {
@@ -110,25 +111,22 @@ export default function WorkspacesListContent({
       }`}
     >
       <div className="container max-w-full px-6 py-8">
-        {embedded
-          ? null
-          : workspaces.length > 0 && (
-              <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="relative flex-1 max-w-md w-full">
-                  <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    size={20}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search workspaces..."
-                    value={searchQuery}
-                    onChange={event => setSearchQuery(event.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-card dark:text-foreground"
-                  />
-                </div>
+        {workspaces.length > 0 ? (
+          <div className="mb-8 space-y-3">
+            <div className="relative flex-1" data-tour-id="search-bar">
+              <Search className="h-4 w-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={event => setSearchQuery(event.target.value)}
+                placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
+                className="w-full rounded-md border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+              />
+            </div>
 
-                <div className="flex gap-2">
+            {!embedded ? (
+              <div className="flex justify-end gap-2">
                   <div className="relative">
                     <button
                       type="button"
@@ -215,8 +213,9 @@ export default function WorkspacesListContent({
                     <List size={20} />
                   </button>
                 </div>
-              </div>
-            )}
+            ) : null}
+          </div>
+        ) : null}
 
         {workspaces.length === 0 ? (
           <div className="text-center py-12">
