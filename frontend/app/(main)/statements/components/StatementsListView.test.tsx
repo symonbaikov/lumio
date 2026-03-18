@@ -11,6 +11,8 @@ const apiMocks = vi.hoisted(() => ({
   mockListReceipts: vi.fn(),
 }));
 
+const statementsListItemPropsSpy = vi.hoisted(() => vi.fn());
+
 vi.mock('@/app/lib/api', () => ({
   default: {
     get: apiMocks.mockApiGet,
@@ -153,7 +155,10 @@ vi.mock('@/app/(main)/statements/components/filters/TypeFilterDropdown', () => (
 }));
 
 vi.mock('@/app/(main)/statements/components/StatementsListItem', () => ({
-  StatementsListItem: () => null,
+  StatementsListItem: (props: any) => {
+    statementsListItemPropsSpy(props);
+    return null;
+  },
 }));
 
 vi.mock('@/app/(main)/statements/components/gmail-receipt-mapping', () => ({
@@ -176,6 +181,9 @@ describe('StatementsListView Gmail sync skeleton', () => {
     document.body.appendChild(container);
     root = createRoot(container);
     sessionStorage.clear();
+    apiMocks.mockApiGet.mockReset();
+    apiMocks.mockListReceipts.mockReset();
+    statementsListItemPropsSpy.mockReset();
   });
 
   afterEach(() => {
@@ -202,5 +210,98 @@ describe('StatementsListView Gmail sync skeleton', () => {
 
     const skeletonRows = container.querySelectorAll('[data-testid="gmail-sync-skeleton-row"]');
     expect(skeletonRows).toHaveLength(3);
+  });
+
+  it('sorts statements by date when date header clicked', async () => {
+    apiMocks.mockApiGet.mockImplementation((url: string) => {
+      if (url === '/categories') {
+        return Promise.resolve({ data: [] });
+      }
+
+      if (url === '/tax-rates') {
+        return Promise.resolve({ data: [] });
+      }
+
+      if (url === '/statements') {
+        return Promise.resolve({
+          data: {
+            data: [
+              {
+                id: 'newer',
+                source: 'statement',
+                fileName: 'newer.pdf',
+                status: 'completed',
+                totalTransactions: 1,
+                totalDebit: 100,
+                totalCredit: 0,
+                createdAt: '2026-03-17T00:00:00Z',
+                statementDateFrom: '2026-03-16',
+                statementDateTo: '2026-03-17',
+                bankName: 'kaspi',
+                fileType: 'pdf',
+                currency: 'KZT',
+              },
+              {
+                id: 'older',
+                source: 'statement',
+                fileName: 'older.pdf',
+                status: 'completed',
+                totalTransactions: 1,
+                totalDebit: 50,
+                totalCredit: 0,
+                createdAt: '2026-03-01T00:00:00Z',
+                statementDateFrom: '2026-02-28',
+                statementDateTo: '2026-03-01',
+                bankName: 'kaspi',
+                fileType: 'pdf',
+                currency: 'KZT',
+              },
+            ],
+            total: 2,
+          },
+        });
+      }
+
+      return Promise.resolve({ data: [] });
+    });
+    apiMocks.mockListReceipts.mockResolvedValue({ data: { receipts: [] } });
+
+    act(() => {
+      root.render(<StatementsListView stage="submit" />);
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const initialIds = statementsListItemPropsSpy.mock.calls
+      .map(call => call[0]?.statement?.id)
+      .filter(Boolean);
+    const firstNewerIndex = initialIds.indexOf('newer');
+    const firstOlderIndex = initialIds.indexOf('older');
+    expect(firstNewerIndex).toBeGreaterThanOrEqual(0);
+    expect(firstOlderIndex).toBeGreaterThanOrEqual(0);
+    expect(firstNewerIndex).toBeLessThan(firstOlderIndex);
+
+    statementsListItemPropsSpy.mockClear();
+
+    const sortButton = container.querySelector(
+      '[data-testid="statements-date-sort"]',
+    ) as HTMLButtonElement | null;
+    expect(sortButton).toBeTruthy();
+
+    act(() => {
+      sortButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const sortedIds = statementsListItemPropsSpy.mock.calls
+      .map(call => call[0]?.statement?.id)
+      .filter(Boolean);
+    const secondNewerIndex = sortedIds.indexOf('newer');
+    const secondOlderIndex = sortedIds.indexOf('older');
+    expect(secondNewerIndex).toBeGreaterThanOrEqual(0);
+    expect(secondOlderIndex).toBeGreaterThanOrEqual(0);
+    expect(secondOlderIndex).toBeLessThan(secondNewerIndex);
   });
 });

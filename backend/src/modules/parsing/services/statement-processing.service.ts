@@ -636,7 +636,7 @@ export class StatementProcessingService {
       }
       parsedStatement.transactions = schemaResult.valid;
       parsingDetails.transactionsFound = parsedStatement.transactions.length;
-      parsingDetails.droppedSamples = droppedSamples.slice(0, 10);
+      parsingDetails.droppedSamples = droppedSamples;
       const enrichedMetadata = this.buildCompleteMetadata(
         parsedStatement,
         parsedStatement.transactions,
@@ -675,6 +675,7 @@ export class StatementProcessingService {
       const majorityCategory = await this.classificationService.determineMajorityCategory(
         parsedStatement.transactions,
         statement.userId,
+        statement.workspaceId,
       );
 
       addLog('info', 'Creating transactions...');
@@ -944,10 +945,6 @@ export class StatementProcessingService {
           aiCategoryByIndex.has(i)
         ) {
           classification.categoryId = aiCategoryByIndex.get(i);
-        }
-
-        if (!manualCategorySelectionRequired && !classification.categoryId && defaultCategoryId) {
-          classification.categoryId = defaultCategoryId;
         }
 
         const currency = parsed.currency || statement.currency || 'KZT';

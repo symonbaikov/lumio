@@ -293,6 +293,65 @@ describe('StatementsListItem', () => {
     expect(container.textContent).not.toContain('FILE');
   });
 
+  it('does not call onView when view is disabled', () => {
+    const root = createRoot(container);
+    const onView = vi.fn();
+
+    const statement: Statement = {
+      id: 'statement-disabled-view',
+      source: 'statement',
+      fileName: 'Processing.pdf',
+      status: 'processing',
+      totalDebit: 0,
+      totalCredit: 0,
+      createdAt: '2026-02-01T00:00:00Z',
+      statementDateFrom: '2026-01-01',
+      statementDateTo: '2026-01-31',
+      bankName: 'kaspi',
+      fileType: 'pdf',
+      currency: 'KZT',
+    };
+
+    act(() => {
+      root.render(
+        <StatementsListItem
+          statement={statement}
+          viewLabel="View"
+          isGmail={false}
+          isProcessing
+          merchantLabel="Kaspi"
+          amountLabel="0 KZT"
+          dateLabel="01/31/2026"
+          onView={onView}
+          onIconClick={() => undefined}
+          onToggleSelect={() => undefined}
+          typeLabel="PDF"
+          viewDisabled
+        />,
+      );
+    });
+
+    const mobileCardButton = container.querySelector(
+      '[data-testid="statement-item-mobile-card-statement-disabled-view"]',
+    ) as HTMLButtonElement | null;
+    expect(mobileCardButton).toBeTruthy();
+
+    act(() => {
+      mobileCardButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const desktopViewButton = container.querySelector(
+      '[data-testid="statement-view-icon"]',
+    ) as HTMLButtonElement | null;
+    expect(desktopViewButton).toBeTruthy();
+
+    act(() => {
+      desktopViewButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onView).not.toHaveBeenCalled();
+  });
+
   it('renders primary duplicate badge and review action for duplicate item', () => {
     const root = createRoot(container);
 

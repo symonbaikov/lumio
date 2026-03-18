@@ -11,6 +11,7 @@ import { Transaction } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { WorkspaceMember, WorkspaceRole } from '../../entities/workspace-member.entity';
 import { AuditService } from '../audit/audit.service';
+import { ClassificationService } from '../classification/services/classification.service';
 import type { DataDeletedEvent } from '../notifications/events/notification-events';
 import type { BulkUpdateItemDto } from './dto/bulk-update-transaction.dto';
 import type { UpdateTransactionDto } from './dto/update-transaction.dto';
@@ -28,6 +29,7 @@ export class TransactionsService {
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly auditService: AuditService,
+    private readonly classificationService: ClassificationService,
     private readonly eventEmitter?: EventEmitter2,
   ) {}
 
@@ -80,6 +82,8 @@ export class TransactionsService {
     const query = this.transactionRepository
       .createQueryBuilder('transaction')
       .where('transaction.workspaceId = :workspaceId', { workspaceId })
+      .leftJoinAndSelect('transaction.statement', 'statement')
+      .andWhere('(transaction.statementId IS NULL OR statement.deletedAt IS NULL)')
       .leftJoinAndSelect('transaction.category', 'category')
       .leftJoinAndSelect('transaction.branch', 'branch')
       .leftJoinAndSelect('transaction.wallet', 'wallet');
@@ -146,6 +150,7 @@ export class TransactionsService {
     await this.ensureCanEditStatements(userId);
     const transaction = await this.findOne(id, workspaceId);
     const before = { ...transaction };
+    const previousCategoryId = transaction.categoryId;
 
     // Recalculate amount if debit/credit changed
     if (updateDto.debit !== undefined || updateDto.credit !== undefined) {
@@ -188,6 +193,19 @@ export class TransactionsService {
       batchId: batchId ?? null,
       isUndoable: true,
     });
+
+    if (
+      updateDto.categoryId !== undefined &&
+      updateDto.categoryId !== null &&
+      updateDto.categoryId !== previousCategoryId
+    ) {
+      try {
+        await this.classificationService.learnFromCorrection(saved, updateDto.categoryId, userId);
+      } catch (error) {
+        console.error('[TransactionsService] Failed to learn from category correction:', error);
+      }
+    }
+
     return saved;
   }
 

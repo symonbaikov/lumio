@@ -17,6 +17,12 @@ export enum CategoryType {
   EXPENSE = 'expense',
 }
 
+export enum CategorySource {
+  SYSTEM = 'system',
+  USER = 'user',
+  PARSING = 'parsing',
+}
+
 @Entity('categories')
 export class Category {
   @PrimaryGeneratedColumn('uuid')
@@ -62,6 +68,9 @@ export class Category {
 
   @Column({ name: 'is_system', default: false })
   isSystem: boolean;
+
+  @Column({ type: 'varchar', default: CategorySource.USER })
+  source: CategorySource;
 
   @Column({ name: 'is_enabled', default: true })
   isEnabled: boolean;

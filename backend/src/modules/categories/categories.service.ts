@@ -13,7 +13,7 @@ import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
 import { Statement, Transaction, User, WorkspaceMember, WorkspaceRole } from '../../entities';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
-import { Category, CategoryType } from '../../entities/category.entity';
+import { Category, CategorySource, CategoryType } from '../../entities/category.entity';
 import { AuditService } from '../audit/audit.service';
 import type { CategoryChangedEvent } from '../notifications/events/notification-events';
 import type { CreateCategoryDto } from './dto/create-category.dto';
@@ -23,29 +23,29 @@ const DEFAULT_SYSTEM_CATEGORIES: ReadonlyArray<{
   name: string;
   type: CategoryType;
 }> = [
-  { name: 'Sales', type: CategoryType.INCOME },
-  { name: 'Services', type: CategoryType.INCOME },
-  { name: 'Interest Income', type: CategoryType.INCOME },
-  { name: 'Other Income', type: CategoryType.INCOME },
-  { name: 'Advertising', type: CategoryType.EXPENSE },
-  { name: 'Benefits', type: CategoryType.EXPENSE },
-  { name: 'Car', type: CategoryType.EXPENSE },
-  { name: 'Equipment', type: CategoryType.EXPENSE },
-  { name: 'Fees', type: CategoryType.EXPENSE },
-  { name: 'Home Office', type: CategoryType.EXPENSE },
-  { name: 'Insurance', type: CategoryType.EXPENSE },
-  { name: 'Interest', type: CategoryType.EXPENSE },
-  { name: 'Labor', type: CategoryType.EXPENSE },
-  { name: 'Maintenance', type: CategoryType.EXPENSE },
-  { name: 'Materials', type: CategoryType.EXPENSE },
-  { name: 'Meals and Entertainment', type: CategoryType.EXPENSE },
-  { name: 'Office Supplies', type: CategoryType.EXPENSE },
-  { name: 'Other', type: CategoryType.EXPENSE },
-  { name: 'Professional Services', type: CategoryType.EXPENSE },
-  { name: 'Rent', type: CategoryType.EXPENSE },
-  { name: 'Taxes', type: CategoryType.EXPENSE },
-  { name: 'Travel', type: CategoryType.EXPENSE },
-  { name: 'Utilities', type: CategoryType.EXPENSE },
+  { name: 'Продажи', type: CategoryType.INCOME },
+  { name: 'Услуги', type: CategoryType.INCOME },
+  { name: 'Процентный доход', type: CategoryType.INCOME },
+  { name: 'Прочий доход', type: CategoryType.INCOME },
+  { name: 'Реклама', type: CategoryType.EXPENSE },
+  { name: 'Льготы и компенсации', type: CategoryType.EXPENSE },
+  { name: 'Автомобильные расходы', type: CategoryType.EXPENSE },
+  { name: 'Оборудование', type: CategoryType.EXPENSE },
+  { name: 'Комиссии и сборы', type: CategoryType.EXPENSE },
+  { name: 'Домашний офис', type: CategoryType.EXPENSE },
+  { name: 'Страхование', type: CategoryType.EXPENSE },
+  { name: 'Проценты', type: CategoryType.EXPENSE },
+  { name: 'Оплата труда', type: CategoryType.EXPENSE },
+  { name: 'Обслуживание и ремонт', type: CategoryType.EXPENSE },
+  { name: 'Материалы', type: CategoryType.EXPENSE },
+  { name: 'Питание и представительские расходы', type: CategoryType.EXPENSE },
+  { name: 'Канцелярские товары', type: CategoryType.EXPENSE },
+  { name: 'Прочие расходы', type: CategoryType.EXPENSE },
+  { name: 'Профессиональные услуги', type: CategoryType.EXPENSE },
+  { name: 'Аренда', type: CategoryType.EXPENSE },
+  { name: 'Налоги', type: CategoryType.EXPENSE },
+  { name: 'Командировки', type: CategoryType.EXPENSE },
+  { name: 'Коммунальные услуги', type: CategoryType.EXPENSE },
 ];
 
 @Injectable()
@@ -77,6 +77,7 @@ export class CategoriesService {
       userId: category.userId,
       parentId: category.parentId,
       isSystem: category.isSystem,
+      source: category.source,
       isEnabled: category.isEnabled,
       color: category.color,
       icon: category.icon,
@@ -128,6 +129,7 @@ export class CategoriesService {
       userId,
       ...createDto,
       isSystem: false,
+      source: CategorySource.USER,
       isEnabled: createDto.isEnabled ?? true,
     });
 
@@ -383,6 +385,7 @@ export class CategoriesService {
           workspaceId,
           userId,
           isSystem: true,
+          source: CategorySource.SYSTEM,
           isEnabled: true,
           ...catData,
         });

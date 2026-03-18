@@ -4,37 +4,40 @@ import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
-import { type DateValue, parseDate } from '@internationalized/date';
 import { DatePicker } from '@heroui/date-picker';
+import { type DateValue, parseDate } from '@internationalized/date';
 import { Check, RefreshCcw, Search, X } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   DEFAULT_UNAPPROVED_QUEUE_FILTERS,
+  type UnapprovedQueueFilterTarget,
   type UnapprovedQueueFilters,
-  type UnapprovedQueueItem,
   type UnapprovedQueueTransaction,
   type UnapprovedReasonId,
   type UnapprovedSource,
   type UnapprovedStatementMeta,
-  buildUnapprovedQueueItem,
+  type UnapprovedStatementQueueItem,
+  buildUnapprovedStatementQueue,
   matchesUnapprovedFilters,
 } from './unapproved-cash-utils';
 
-type CategoryOption = {
-  id: string;
-  name: string;
-  isEnabled?: boolean | null;
-};
-
 type StatementApiItem = {
   id: string;
+  fileName?: string | null;
+  bankName?: string | null;
   status?: string | null;
   errorMessage?: string | null;
   fileType?: string | null;
+  currency?: string | null;
+  totalDebit?: number | string | null;
+  totalCredit?: number | string | null;
+  statementDateFrom?: string | null;
+  statementDateTo?: string | null;
+  createdAt?: string | null;
   parsingDetails?: {
     importPreview?: {
       source?: string | null;
@@ -199,13 +202,24 @@ const fetchAllStatements = async (): Promise<StatementApiItem[]> => {
 
 const toStatementMeta = (statement: StatementApiItem): UnapprovedStatementMeta => ({
   id: statement.id,
+  fileName: statement.fileName,
+  bankName: statement.bankName,
   status: statement.status,
   errorMessage: statement.errorMessage,
   fileType: statement.fileType,
+  currency: statement.currency,
+  totalDebit: statement.totalDebit,
+  totalCredit: statement.totalCredit,
+  statementDateFrom: statement.statementDateFrom,
+  statementDateTo: statement.statementDateTo,
+  createdAt: statement.createdAt,
   sourceHint: statement.parsingDetails?.importPreview?.source ?? null,
 });
 
-const sortByNewestDate = (left: UnapprovedQueueItem, right: UnapprovedQueueItem) => {
+const sortByNewestDate = (
+  left: UnapprovedQueueFilterTarget,
+  right: UnapprovedQueueFilterTarget,
+) => {
   const leftTime = left.date?.getTime() ?? 0;
   const rightTime = right.date?.getTime() ?? 0;
   return rightTime - leftTime;
@@ -223,13 +237,12 @@ export default function UnapprovedCashView() {
     title: resolveLabel(unapprovedAny.title, 'Unapproved cash'),
     subtitle: resolveLabel(
       unapprovedAny.subtitle,
-      'Review and fix transactions before they appear in reports and exports.',
+      'Review uploaded statements before they appear in reports and exports.',
     ),
     searchPlaceholder: resolveLabel(
       unapprovedAny.searchPlaceholder,
-      'Search merchant or transaction',
+      'Search file, bank, or transaction',
     ),
-    selectCategory: resolveLabel(unapprovedAny.selectCategory, 'Select category'),
     filters: {
       reason: resolveLabel(unapprovedAny.filters?.reason, 'Reason'),
       source: resolveLabel(unapprovedAny.filters?.source, 'Source'),
@@ -270,7 +283,7 @@ export default function UnapprovedCashView() {
       confirmation: resolveLabel(unapprovedAny.summary?.confirmation, 'Needs confirmation'),
     },
     table: {
-      merchant: resolveLabel(unapprovedAny.table?.merchant, 'Merchant'),
+      merchant: resolveLabel(unapprovedAny.table?.merchant, 'Statement'),
       date: resolveLabel(unapprovedAny.table?.date, 'Date'),
       amount: resolveLabel(unapprovedAny.table?.amount, 'Amount'),
       reason: resolveLabel(unapprovedAny.table?.reason, 'Reason'),
@@ -294,7 +307,7 @@ export default function UnapprovedCashView() {
       title: resolveLabel(unapprovedAny.empty?.title, 'All clear'),
       description: resolveLabel(
         unapprovedAny.empty?.description,
-        'No transactions need manual review for the selected filters.',
+        'No statement files need manual review for the selected filters.',
       ),
     },
     toasts: {
@@ -409,17 +422,12 @@ export default function UnapprovedCashView() {
     [labels.sources, sourceOptions],
   );
 
-  const [queueItems, setQueueItems] = useState<UnapprovedQueueItem[]>([]);
-  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [queueItems, setQueueItems] = useState<UnapprovedStatementQueueItem[]>([]);
   const [filters, setFilters] = useState<UnapprovedQueueFilters>(DEFAULT_UNAPPROVED_QUEUE_FILTERS);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [bulkCategoryId, setBulkCategoryId] = useState('');
   const [ignoredIds, setIgnoredIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [actionLoading, setActionLoading] = useState<
-    null | 'assign' | 'approve' | 'merge' | 'ignore'
-  >(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -456,36 +464,17 @@ export default function UnapprovedCashView() {
       }
 
       try {
-        const [transactions, statements, categoriesResponse] = await Promise.all([
+        const [transactions, statements] = await Promise.all([
           fetchAllTransactions(),
           fetchAllStatements(),
-          apiClient.get('/categories'),
         ]);
 
-        const statementMetaById = new Map<string, UnapprovedStatementMeta>(
-          statements.map(statement => [statement.id, toStatementMeta(statement)]),
-        );
-
-        const nextQueue = transactions
-          .map(transaction => {
-            const statement = transaction.statementId
-              ? (statementMetaById.get(transaction.statementId) ?? null)
-              : null;
-            return buildUnapprovedQueueItem(transaction, statement);
-          })
-          .filter(item => item.reasons.length > 0)
-          .sort(sortByNewestDate);
-
-        const categoryPayload = Array.isArray(categoriesResponse.data)
-          ? categoriesResponse.data
-          : Array.isArray(categoriesResponse.data?.items)
-            ? categoriesResponse.data.items
-            : [];
+        const nextQueue = buildUnapprovedStatementQueue({
+          statements: statements.map(toStatementMeta),
+          transactions,
+        }).sort(sortByNewestDate);
 
         setQueueItems(nextQueue);
-        setCategories(
-          categoryPayload.filter((category: CategoryOption) => category?.isEnabled !== false),
-        );
       } catch (error) {
         toast.error(extractErrorMessage(error) || labels.toasts.loadFailed);
       } finally {
@@ -506,7 +495,7 @@ export default function UnapprovedCashView() {
   const ignoredSet = useMemo(() => new Set(ignoredIds), [ignoredIds]);
 
   const queueWithoutIgnored = useMemo(
-    () => queueItems.filter(item => !ignoredSet.has(item.transaction.id)),
+    () => queueItems.filter(item => !ignoredSet.has(item.id)),
     [ignoredSet, queueItems],
   );
 
@@ -516,19 +505,11 @@ export default function UnapprovedCashView() {
   );
 
   useEffect(() => {
-    const availableIds = new Set(queueWithoutIgnored.map(item => item.transaction.id));
+    const availableIds = new Set(queueWithoutIgnored.map(item => item.id));
     setSelectedIds(prev => prev.filter(id => availableIds.has(id)));
   }, [queueWithoutIgnored]);
 
-  const queueItemById = useMemo(() => {
-    const map = new Map<string, UnapprovedQueueItem>();
-    queueWithoutIgnored.forEach(item => {
-      map.set(item.transaction.id, item);
-    });
-    return map;
-  }, [queueWithoutIgnored]);
-
-  const visibleIds = useMemo(() => filteredQueue.map(item => item.transaction.id), [filteredQueue]);
+  const visibleIds = useMemo(() => filteredQueue.map(item => item.id), [filteredQueue]);
 
   const selectedCount = selectedIds.length;
   const allVisibleSelected =
@@ -583,96 +564,8 @@ export default function UnapprovedCashView() {
     });
   };
 
-  const runBulkUpdate = async (
-    ids: string[],
-    updates: Record<string, unknown>,
-    actionKey: 'assign' | 'approve',
-    successMessage: string,
-    failedMessage: string,
-  ) => {
-    if (ids.length === 0) return;
-
-    setActionLoading(actionKey);
-    try {
-      await apiClient.post('/transactions/bulk-update', {
-        ids,
-        updates,
-      });
-
-      toast.success(successMessage);
-      setSelectedIds(prev => prev.filter(id => !ids.includes(id)));
-      await loadQueueData(true);
-    } catch (error) {
-      toast.error(extractErrorMessage(error) || failedMessage);
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleAssignCategory = async () => {
-    if (!bulkCategoryId || selectedIds.length === 0) return;
-
-    await runBulkUpdate(
-      selectedIds,
-      { categoryId: bulkCategoryId },
-      'assign',
-      labels.toasts.assignSuccess,
-      labels.toasts.assignFailed,
-    );
-  };
-
-  const handleApproveSelected = async () => {
-    if (selectedIds.length === 0) return;
-
-    await runBulkUpdate(
-      selectedIds,
-      { isVerified: true },
-      'approve',
-      labels.toasts.approveSuccess,
-      labels.toasts.approveFailed,
-    );
-  };
-
-  const handleApproveSingle = async (transactionId: string) => {
-    await runBulkUpdate(
-      [transactionId],
-      { isVerified: true },
-      'approve',
-      labels.toasts.approveSuccess,
-      labels.toasts.approveFailed,
-    );
-  };
-
-  const handleMergeDuplicates = async () => {
-    const duplicateIds = selectedIds.filter(id =>
-      queueItemById.get(id)?.reasons.includes('duplicate-detected'),
-    );
-
-    if (duplicateIds.length < 2) {
-      toast.error(labels.toasts.mergeNeedDuplicates);
-      return;
-    }
-
-    setActionLoading('merge');
-    try {
-      await apiClient.post('/transactions/duplicates/merge', {
-        transactionIds: duplicateIds,
-      });
-
-      toast.success(labels.toasts.mergeSuccess);
-      setSelectedIds(prev => prev.filter(id => !duplicateIds.includes(id)));
-      await loadQueueData(true);
-    } catch (error) {
-      toast.error(extractErrorMessage(error) || labels.toasts.mergeFailed);
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
   const handleIgnoreSelected = () => {
     if (selectedIds.length === 0) return;
-
-    setActionLoading('ignore');
 
     const nextIgnoredIds = Array.from(new Set([...ignoredIds, ...selectedIds]));
     setIgnoredIds(nextIgnoredIds);
@@ -680,11 +573,10 @@ export default function UnapprovedCashView() {
 
     toast.success(formatTemplate(labels.toasts.ignoreSuccess, { count: selectedIds.length }));
     setSelectedIds([]);
-    setActionLoading(null);
   };
 
-  const handleReview = (item: UnapprovedQueueItem) => {
-    const statementId = item.transaction.statementId;
+  const handleReview = (item: UnapprovedStatementQueueItem) => {
+    const statementId = item.statement.id;
     if (!statementId) {
       toast.error(labels.toasts.reviewUnavailable);
       return;
@@ -693,10 +585,10 @@ export default function UnapprovedCashView() {
     router.push(`/statements/${statementId}/edit`);
   };
 
-  const formatAmount = (item: UnapprovedQueueItem) => {
+  const formatAmount = (item: UnapprovedStatementQueueItem) => {
     if (item.amount === null) return '—';
 
-    const currency = (item.transaction.currency || workspaceCurrency).toUpperCase();
+    const currency = (item.statement.currency || workspaceCurrency).toUpperCase();
     const value = new Intl.NumberFormat('ru', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -705,12 +597,10 @@ export default function UnapprovedCashView() {
     return `${value} ${currency}`.trim();
   };
 
-  const formatDate = (item: UnapprovedQueueItem) => {
+  const formatDate = (item: UnapprovedStatementQueueItem) => {
     if (!item.date) return '—';
     return item.date.toLocaleDateString();
   };
-
-  const actionBusy = actionLoading !== null;
 
   return (
     <div className="container-shared flex h-[calc(100vh-var(--global-nav-height,0px))] min-h-0 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
@@ -867,7 +757,9 @@ export default function UnapprovedCashView() {
             <DatePicker
               aria-label={labels.filters.dateTo}
               value={toCalendarDate(filters.dateTo)}
-              onChange={value => setFilters(prev => ({ ...prev, dateTo: toFilterDateValue(value) }))}
+              onChange={value =>
+                setFilters(prev => ({ ...prev, dateTo: toFilterDateValue(value) }))
+              }
               granularity="day"
               showMonthAndYearPickers
               className="w-full"
@@ -897,59 +789,12 @@ export default function UnapprovedCashView() {
                 {labels.actions.selectAllVisible}
               </button>
 
-              <select
-                value={bulkCategoryId}
-                onChange={event => setBulkCategoryId(event.target.value)}
-                className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
-              >
-                <option value="">{labels.selectCategory}</option>
-                {categories.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                type="button"
-                onClick={() => void handleAssignCategory()}
-                disabled={!bulkCategoryId || actionBusy}
-                className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {actionLoading === 'assign'
-                  ? labels.actions.applying
-                  : labels.actions.assignCategory}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => void handleApproveSelected()}
-                disabled={actionBusy}
-                className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {actionLoading === 'approve'
-                  ? labels.actions.applying
-                  : labels.actions.approveSelected}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => void handleMergeDuplicates()}
-                disabled={actionBusy}
-                className="inline-flex items-center rounded-md border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 transition hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {actionLoading === 'merge'
-                  ? labels.actions.applying
-                  : labels.actions.mergeDuplicates}
-              </button>
-
               <button
                 type="button"
                 onClick={handleIgnoreSelected}
-                disabled={actionBusy}
                 className="inline-flex items-center rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {actionLoading === 'ignore' ? labels.actions.applying : labels.actions.ignore}
+                {labels.actions.ignore}
               </button>
 
               <button
@@ -999,8 +844,8 @@ export default function UnapprovedCashView() {
                 </thead>
                 <tbody>
                   {filteredQueue.map(item => {
-                    const transactionId = item.transaction.id;
-                    const selected = selectedIds.includes(transactionId);
+                    const statementId = item.id;
+                    const selected = selectedIds.includes(statementId);
                     const reasonPreview = item.reasons.slice(0, 2);
                     const hiddenReasonCount = Math.max(
                       0,
@@ -1008,18 +853,22 @@ export default function UnapprovedCashView() {
                     );
 
                     return (
-                      <tr key={transactionId} className="border-b border-gray-100 last:border-b-0">
+                      <tr key={statementId} className="border-b border-gray-100 last:border-b-0">
                         <td className="px-4 py-3 align-top">
                           <Checkbox
                             checked={selected}
-                            onCheckedChange={() => toggleSelect(transactionId)}
+                            onCheckedChange={() => toggleSelect(statementId)}
                           />
                         </td>
                         <td className="px-2 py-3 align-top">
                           <p className="font-medium text-gray-900">
-                            {item.transaction.counterpartyName?.trim() || '—'}
+                            {item.statement.fileName?.trim() ||
+                              item.statement.bankName?.trim() ||
+                              '—'}
                           </p>
-                          <p className="mt-1 text-xs text-gray-500">#{transactionId.slice(0, 8)}</p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {item.statement.bankName?.trim() || `#${statementId.slice(0, 8)}`}
+                          </p>
                         </td>
                         <td className="px-2 py-3 align-top text-gray-700">{formatDate(item)}</td>
                         <td className="px-2 py-3 align-top font-medium text-gray-900">
@@ -1058,14 +907,6 @@ export default function UnapprovedCashView() {
                             >
                               {labels.actions.reviewFix}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => void handleApproveSingle(transactionId)}
-                              disabled={actionBusy}
-                              className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {labels.actions.approve}
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1077,22 +918,26 @@ export default function UnapprovedCashView() {
 
             <div className="space-y-3 p-3 md:hidden">
               {filteredQueue.map(item => {
-                const transactionId = item.transaction.id;
-                const selected = selectedIds.includes(transactionId);
+                const statementId = item.id;
+                const selected = selectedIds.includes(statementId);
 
                 return (
-                  <article key={transactionId} className="rounded-lg border border-gray-200 p-3">
+                  <article key={statementId} className="rounded-lg border border-gray-200 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-2">
                         <Checkbox
                           checked={selected}
-                          onCheckedChange={() => toggleSelect(transactionId)}
+                          onCheckedChange={() => toggleSelect(statementId)}
                         />
                         <div>
                           <p className="text-sm font-semibold text-gray-900">
-                            {item.transaction.counterpartyName?.trim() || '—'}
+                            {item.statement.fileName?.trim() ||
+                              item.statement.bankName?.trim() ||
+                              '—'}
                           </p>
-                          <p className="text-xs text-gray-500">{formatDate(item)}</p>
+                          <p className="text-xs text-gray-500">
+                            {item.statement.bankName?.trim() || formatDate(item)}
+                          </p>
                         </div>
                       </div>
                       <p className="text-sm font-semibold text-gray-900">{formatAmount(item)}</p>
@@ -1123,14 +968,6 @@ export default function UnapprovedCashView() {
                           className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700"
                         >
                           {labels.actions.reviewFix}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleApproveSingle(transactionId)}
-                          disabled={actionBusy}
-                          className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 disabled:opacity-50"
-                        >
-                          {labels.actions.approve}
                         </button>
                       </div>
                     </div>

@@ -3,6 +3,7 @@
 import StatementCategoryDrawer from '@/app/(main)/statements/[id]/edit/StatementCategoryDrawer';
 import { Button } from '@/app/components/ui/button';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useLocale } from '@/app/i18n';
 import {
   type StatementCategoryNode,
   flattenStatementCategories,
@@ -88,6 +89,7 @@ export default function CreateExpenseDrawer({
   onSubmitScan,
   onSubmitManual,
 }: Props) {
+  const { locale } = useLocale();
   const resolvedDefaultCurrency = resolveDefaultCurrency(defaultCurrency);
   const [mode, setMode] = useState<StatementExpenseMode>('scan');
   const [manualStep, setManualStep] = useState<ManualStep>('amount');
@@ -122,7 +124,10 @@ export default function CreateExpenseDrawer({
     () => computeManualAmountFontSize(manualDraft.amount),
     [manualDraft.amount],
   );
-  const flatCategories = useMemo(() => flattenStatementCategories(categories), [categories]);
+  const flatCategories = useMemo(
+    () => flattenStatementCategories(categories, '', locale),
+    [categories, locale],
+  );
   const selectedCategoryName = useMemo(
     () => flatCategories.find(category => category.id === manualDraft.categoryId)?.name ?? '',
     [flatCategories, manualDraft.categoryId],
@@ -290,7 +295,7 @@ export default function CreateExpenseDrawer({
       await onSubmitScan({
         files,
         allowDuplicates: ALWAYS_ALLOW_STATEMENT_DUPLICATES,
-        requireManualCategorySelection: true,
+        requireManualCategorySelection: false,
       });
       handleClose();
     } catch (submitError: any) {

@@ -10,6 +10,7 @@ interface CustomDatePickerProps {
   label?: string;
   placeholder?: string;
   helperText?: string;
+  containerTestId?: string;
 }
 
 const DATE_VALUE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -50,6 +51,7 @@ export default function CustomDatePicker({
   label,
   placeholder,
   helperText,
+  containerTestId,
 }: CustomDatePickerProps) {
   const calendarValue = toCalendarDate(value);
 
@@ -58,24 +60,27 @@ export default function CustomDatePicker({
   };
 
   return (
-    <DatePicker
-      aria-label={label ?? placeholder ?? 'Date'}
-      label={label}
-      value={calendarValue}
-      onChange={handleChange}
-      granularity="day"
-      showMonthAndYearPickers
-      description={helperText}
-      className="w-full"
-      classNames={{
-        label: 'text-xs text-gray-500 font-medium mb-1 ml-1',
-        inputWrapper:
-          'rounded-lg border border-gray-300 bg-white px-2 transition-colors hover:border-gray-400 group-data-[focus=true]:border-primary group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-primary',
-        input: 'text-sm text-gray-900',
-        segment: 'text-sm text-gray-900',
-        selectorButton: 'text-gray-500',
-        description: 'mt-1 text-xs text-gray-500 ml-3.5',
-      }}
-    />
+    <div data-testid={containerTestId}>
+      <DatePicker
+        aria-label={label ?? placeholder ?? 'Date'}
+        label={label}
+        value={calendarValue}
+        onChange={handleChange}
+        granularity="day"
+        showMonthAndYearPickers
+        description={helperText}
+        className="w-full"
+        classNames={{
+          base: 'w-full',
+          label: 'text-xs text-gray-500 font-medium mb-1 ml-1',
+          inputWrapper:
+            'min-h-[40px] rounded-md border border-gray-300 bg-white px-3 transition-colors hover:border-[var(--mui-palette-primary-main)] group-data-[focus=true]:border-[var(--mui-palette-primary-main)] group-data-[focus=true]:ring-0',
+          input: 'text-sm text-gray-900',
+          segment: 'text-sm text-gray-900',
+          selectorButton: 'text-gray-500',
+          description: 'mt-1 text-xs text-gray-500 ml-3.5',
+        }}
+      />
+    </div>
   );
 }

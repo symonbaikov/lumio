@@ -16,6 +16,11 @@ const content = {
     columns: {
       name: t({ ru: 'Название', en: 'Name', kk: 'Атауы' }),
     },
+    sourceBadges: {
+      system: t({ ru: 'System', en: 'System', kk: 'System' }),
+      parsing: t({ ru: 'Данные из парсинга', en: 'Parsing data', kk: 'Parsing data' }),
+      user: t({ ru: 'Пользовательская', en: 'Custom', kk: 'Custom' }),
+    },
     loading: t({ ru: 'Загрузка...', en: 'Loading...', kk: 'Жүктелуде...' }),
     type: {
       income: t({ ru: 'Доход', en: 'Income', kk: 'Кіріс' }),

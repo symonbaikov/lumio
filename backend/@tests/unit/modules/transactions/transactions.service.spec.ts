@@ -4,12 +4,13 @@ import { Transaction, TransactionType } from '@/entities/transaction.entity';
 import { User, UserRole } from '@/entities/user.entity';
 import { WorkspaceMember, WorkspaceRole } from '@/entities/workspace-member.entity';
 import { AuditService } from '@/modules/audit/audit.service';
+import { ClassificationService } from '@/modules/classification/services/classification.service';
 import { TransactionsService } from '@/modules/transactions/transactions.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Repository } from 'typeorm';
 
 describe('TransactionsService', () => {
@@ -20,6 +21,7 @@ describe('TransactionsService', () => {
   let userRepository: Repository<User>;
   let workspaceMemberRepository: Repository<WorkspaceMember>;
   let auditService: AuditService;
+  let classificationService: ClassificationService;
 
   const mockUser: Partial<User> = {
     id: '1',
@@ -87,6 +89,12 @@ describe('TransactionsService', () => {
           },
         },
         {
+          provide: ClassificationService,
+          useValue: {
+            learnFromCorrection: jest.fn(),
+          },
+        },
+        {
           provide: EventEmitter2,
           useValue: {
             emit: jest.fn(),
@@ -105,9 +113,11 @@ describe('TransactionsService', () => {
       getRepositoryToken(WorkspaceMember),
     );
     auditService = testingModule.get<AuditService>(AuditService);
+    classificationService = testingModule.get<ClassificationService>(ClassificationService);
   });
 
   beforeEach(() => {
+    jest.restoreAllMocks();
     jest.clearAllMocks();
   });
 
@@ -208,6 +218,16 @@ describe('TransactionsService', () => {
         workspaceId: 'ws-1',
       });
     });
+
+    it('should exclude transactions from deleted statements', async () => {
+      await service.findAll('ws-1', {});
+
+      const qb = mockQueryBuilder;
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('transaction.statement', 'statement');
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        '(transaction.statementId IS NULL OR statement.deletedAt IS NULL)',
+      );
+    });
   });
 
   describe('findOne', () => {
@@ -270,7 +290,8 @@ describe('TransactionsService', () => {
       } as WorkspaceMember);
       jest
         .spyOn(transactionRepository, 'findOne')
-        .mockResolvedValue(mockTransaction as Transaction);
+        .mockImplementation(async () => ({ ...mockTransaction }) as Transaction);
+      jest.spyOn(classificationService, 'learnFromCorrection').mockResolvedValue(undefined);
     });
 
     it('should update transaction', async () => {
@@ -290,6 +311,38 @@ describe('TransactionsService', () => {
           entityId: '1',
         }),
       );
+    });
+
+    it('triggers learning when categoryId changes', async () => {
+      jest.spyOn(transactionRepository, 'save').mockResolvedValue({
+        ...mockTransaction,
+        workspaceId: 'ws-1',
+        paymentPurpose: 'Оплата аренды',
+        counterpartyName: 'ТОО Арендодатель',
+        categoryId: 'cat-2',
+      } as Transaction);
+
+      await service.update('1', 'ws-1', '1', { categoryId: 'cat-2' });
+
+      expect(classificationService.learnFromCorrection).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: '1',
+          categoryId: 'cat-2',
+        }),
+        'cat-2',
+        '1',
+      );
+    });
+
+    it('does not trigger learning when categoryId is unchanged', async () => {
+      jest.spyOn(transactionRepository, 'save').mockResolvedValue({
+        ...mockTransaction,
+        categoryId: 'cat-1',
+      } as Transaction);
+
+      await service.update('1', 'ws-1', '1', { article: 'Updated only' });
+
+      expect(classificationService.learnFromCorrection).not.toHaveBeenCalled();
     });
 
     it('should check permissions before update', async () => {

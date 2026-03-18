@@ -34,16 +34,33 @@ export type UnapprovedStatementMeta = {
   errorMessage?: string | null;
   fileType?: string | null;
   sourceHint?: string | null;
+  fileName?: string | null;
+  bankName?: string | null;
+  currency?: string | null;
+  totalDebit?: number | string | null;
+  totalCredit?: number | string | null;
+  statementDateFrom?: string | Date | null;
+  statementDateTo?: string | Date | null;
+  createdAt?: string | Date | null;
 };
 
-export type UnapprovedQueueItem = {
-  transaction: UnapprovedQueueTransaction;
-  statement: UnapprovedStatementMeta | null;
+export type UnapprovedQueueFilterTarget = {
   reasons: UnapprovedReasonId[];
   source: UnapprovedSource;
   amount: number | null;
   date: Date | null;
   searchBlob: string;
+};
+
+export type UnapprovedQueueItem = UnapprovedQueueFilterTarget & {
+  transaction: UnapprovedQueueTransaction;
+  statement: UnapprovedStatementMeta | null;
+};
+
+export type UnapprovedStatementQueueItem = UnapprovedQueueFilterTarget & {
+  id: string;
+  statement: UnapprovedStatementMeta;
+  transactionIds: string[];
 };
 
 export type UnapprovedQueueFilters = {
@@ -59,6 +76,7 @@ export type UnapprovedQueueFilters = {
 const UNKNOWN_MERCHANT_MARKERS = ['unknown', 'ambiguous', 'неизвест', 'без названия', 'n/a'];
 
 const NUMERIC_FILE_TYPES = ['csv', 'xls', 'xlsx', 'ofx', 'qif'];
+const PENDING_CONFIRMATION_STATUSES = ['uploaded', 'parsed', 'validated'];
 
 const isPresentId = (value?: string | null) => {
   if (!value) return false;
@@ -93,6 +111,28 @@ const resolveDate = (value?: string | Date | null): Date | null => {
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 };
+
+const resolveStatementAmount = (statement: UnapprovedStatementMeta): number | null => {
+  const totalDebit = parseNumberish(statement.totalDebit);
+  if (totalDebit !== null && totalDebit !== 0) return Math.abs(totalDebit);
+
+  const totalCredit = parseNumberish(statement.totalCredit);
+  if (totalCredit !== null && totalCredit !== 0) return Math.abs(totalCredit);
+
+  return totalDebit !== null
+    ? Math.abs(totalDebit)
+    : totalCredit !== null
+      ? Math.abs(totalCredit)
+      : null;
+};
+
+const resolveStatementDate = (statement: UnapprovedStatementMeta): Date | null =>
+  resolveDate(statement.statementDateTo || statement.statementDateFrom || statement.createdAt);
+
+const normalizeStatementStatus = (status?: string | null) => (status || '').trim().toLowerCase();
+
+const isPendingConfirmationStatement = (statement?: UnapprovedStatementMeta | null) =>
+  PENDING_CONFIRMATION_STATUSES.includes(normalizeStatementStatus(statement?.status));
 
 const hasUnknownMerchant = (counterpartyName?: string | null): boolean => {
   const normalized = (counterpartyName || '').trim().toLowerCase();
@@ -193,6 +233,66 @@ export const buildUnapprovedQueueItem = (
   };
 };
 
+export const buildUnapprovedStatementQueue = ({
+  statements,
+  transactions,
+}: {
+  statements: UnapprovedStatementMeta[];
+  transactions: UnapprovedQueueTransaction[];
+}): UnapprovedStatementQueueItem[] => {
+  const transactionsByStatementId = new Map<string, UnapprovedQueueTransaction[]>();
+
+  transactions.forEach(transaction => {
+    if (!transaction.statementId) return;
+    const items = transactionsByStatementId.get(transaction.statementId) || [];
+    items.push(transaction);
+    transactionsByStatementId.set(transaction.statementId, items);
+  });
+
+  return statements
+    .map(statement => {
+      const relatedTransactions = transactionsByStatementId.get(statement.id) || [];
+      const reasons = new Set<UnapprovedReasonId>();
+
+      relatedTransactions.forEach(transaction => {
+        resolveUnapprovedReasons(transaction, statement).forEach(reason => {
+          reasons.add(reason);
+        });
+      });
+
+      if (normalizeStatementStatus(statement.status) === 'error' || statement.errorMessage) {
+        reasons.add('ocr-issues');
+      }
+
+      if (isPendingConfirmationStatement(statement)) {
+        reasons.add('requires-confirmation');
+      }
+
+      const searchBlob = [
+        statement.id,
+        statement.fileName,
+        statement.bankName,
+        statement.currency,
+        ...relatedTransactions.map(transaction => transaction.counterpartyName),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return {
+        id: statement.id,
+        statement,
+        transactionIds: relatedTransactions.map(transaction => transaction.id),
+        reasons: Array.from(reasons),
+        source: resolveUnapprovedSource(statement),
+        amount: resolveStatementAmount(statement),
+        date: resolveStatementDate(statement),
+        searchBlob,
+      } satisfies UnapprovedStatementQueueItem;
+    })
+    .filter(item => item.reasons.length > 0);
+};
+
 const startOfDay = (dateValue: string): Date | null => {
   if (!dateValue) return null;
   const date = new Date(`${dateValue}T00:00:00`);
@@ -206,7 +306,7 @@ const endOfDay = (dateValue: string): Date | null => {
 };
 
 export const matchesUnapprovedFilters = (
-  item: UnapprovedQueueItem,
+  item: UnapprovedQueueFilterTarget,
   filters: UnapprovedQueueFilters,
 ): boolean => {
   if (filters.reasons.length > 0) {

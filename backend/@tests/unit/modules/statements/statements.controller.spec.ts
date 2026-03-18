@@ -9,6 +9,7 @@ describe('StatementsController', () => {
   const statementsService = {
     create: jest.fn(),
     findAll: jest.fn(),
+    convertDroppedSampleToTransaction: jest.fn(),
   };
 
   const idempotencyService = {
@@ -97,5 +98,38 @@ describe('StatementsController', () => {
       page: 2,
       limit: 10,
     });
+  });
+
+  it('converts a dropped sample into a transaction', async () => {
+    const response = {
+      statement: { id: 'stmt-1' },
+      transaction: { id: 'tx-1' },
+    };
+
+    statementsService.convertDroppedSampleToTransaction.mockResolvedValue(response);
+
+    const result = await controller.convertDroppedSample(
+      'stmt-1',
+      {
+        index: 0,
+        transaction: {
+          transactionDate: '2026-03-17',
+          debit: 1250,
+        },
+      } as any,
+      { id: 'user-1' } as any,
+      'ws-1',
+    );
+
+    expect(statementsService.convertDroppedSampleToTransaction).toHaveBeenCalledWith(
+      'stmt-1',
+      'user-1',
+      'ws-1',
+      expect.objectContaining({
+        index: 0,
+        transaction: expect.objectContaining({ debit: 1250 }),
+      }),
+    );
+    expect(result).toEqual(response);
   });
 });

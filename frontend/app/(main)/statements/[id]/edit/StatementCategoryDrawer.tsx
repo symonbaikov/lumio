@@ -1,6 +1,7 @@
 'use client';
 
 import { DrawerShell, type DrawerWidth } from '@/app/components/ui/drawer-shell';
+import { useLocale } from '@/app/i18n';
 import {
   type StatementCategoryNode,
   filterStatementCategories,
@@ -41,6 +42,7 @@ export default function StatementCategoryDrawer({
   showAllOption = true,
 }: StatementCategoryDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const { locale } = useLocale();
 
   useEffect(() => {
     if (!open) {
@@ -49,8 +51,8 @@ export default function StatementCategoryDrawer({
   }, [open]);
 
   const filteredCategories = useMemo(
-    () => filterStatementCategories(categories, searchQuery),
-    [categories, searchQuery],
+    () => filterStatementCategories(categories, searchQuery, locale),
+    [categories, searchQuery, locale],
   );
 
   return (

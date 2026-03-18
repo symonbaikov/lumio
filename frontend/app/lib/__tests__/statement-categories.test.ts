@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { filterStatementCategories, flattenStatementCategories } from '../statement-categories';
+import {
+  filterStatementCategories,
+  flattenStatementCategories,
+  getCategoryDisplayName,
+  localizeStatementCategoryName,
+} from '../statement-categories';
 
 describe('statement categories helpers', () => {
   const categories = [
@@ -21,7 +26,7 @@ describe('statement categories helpers', () => {
   ];
 
   it('flattens nested categories with parent path', () => {
-    expect(flattenStatementCategories(categories)).toEqual([
+    expect(flattenStatementCategories(categories, '', 'en')).toEqual([
       {
         id: '1',
         name: 'Equipment',
@@ -38,7 +43,7 @@ describe('statement categories helpers', () => {
   });
 
   it('filters flattened categories by search query', () => {
-    expect(filterStatementCategories(categories, 'lap')).toEqual([
+    expect(filterStatementCategories(categories, 'lap', 'en')).toEqual([
       {
         id: '1-1',
         name: 'Equipment / Laptop',
@@ -47,6 +52,47 @@ describe('statement categories helpers', () => {
   });
 
   it('returns all flattened categories when query is empty', () => {
-    expect(filterStatementCategories(categories, '   ')).toHaveLength(3);
+    expect(filterStatementCategories(categories, '   ', 'en')).toHaveLength(3);
+  });
+
+  it('localizes known system category names by locale', () => {
+    expect(localizeStatementCategoryName('Логистика и доставка', 'en')).toBe(
+      'Logistics and delivery',
+    );
+    expect(localizeStatementCategoryName('Продажи', 'en')).toBe('Sales');
+    expect(localizeStatementCategoryName('Аренда', 'kk')).toBe('Жалға алу');
+    expect(localizeStatementCategoryName('Logistics and delivery', 'ru')).toBe(
+      'Логистика и доставка',
+    );
+  });
+
+  it('localizes only system categories for display and keeps parsing names raw', () => {
+    expect(getCategoryDisplayName({ name: 'Аренда', source: 'system' }, 'en')).toBe('Rent');
+    expect(getCategoryDisplayName({ name: 'Аренда', source: 'parsing' }, 'en')).toBe('Аренда');
+  });
+
+  it('flattens categories with localized system names and raw parsing names', () => {
+    expect(
+      flattenStatementCategories(
+        [
+          { id: 'sys-1', name: 'Аренда', source: 'system' },
+          { id: 'parsing-1', name: 'Аренда', source: 'parsing' },
+        ],
+        '',
+        'en',
+      ),
+    ).toEqual([
+      { id: 'sys-1', name: 'Rent', source: 'system', isSystem: undefined },
+      { id: 'parsing-1', name: 'Аренда', source: 'parsing', isSystem: undefined },
+    ]);
+  });
+
+  it('does not alter custom category names', () => {
+    expect(localizeStatementCategoryName('Kaspi Marketplace Fees', 'en')).toBe(
+      'Kaspi Marketplace Fees',
+    );
+    expect(localizeStatementCategoryName('Kaspi Marketplace Fees', 'ru')).toBe(
+      'Kaspi Marketplace Fees',
+    );
   });
 });

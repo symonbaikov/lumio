@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import { calculateFileHash } from '@/common/utils/file-hash.util';
+import { FileType } from '@/entities/statement.entity';
 import { StatementsService } from '@/modules/statements/statements.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -116,5 +117,58 @@ describe('StatementsService', () => {
     const user = { id: 'user-1' } as any;
     await service.create(user, 'ws-1', file);
     await expect(service.create(user, 'ws-1', file)).rejects.toThrow();
+  });
+
+  it('falls back to qlmanage when python thumbnail generation fails on darwin', async () => {
+    const originalPlatform = process.platform;
+    const pythonSpy = jest
+      .spyOn(service as any, 'generateThumbnailWithPython')
+      .mockRejectedValue(new Error('python failed'));
+    const quickLookSpy = jest
+      .spyOn(service as any, 'generateThumbnailWithQuickLook')
+      .mockResolvedValue('/tmp/statement.pdf.png');
+
+    statementRepository.createQueryBuilder = jest.fn(() => ({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue({
+        id: 'stmt-thumb',
+        workspaceId: 'ws-1',
+        fileType: FileType.PDF,
+        fileName: 'statement.pdf',
+        fileData: Buffer.from('%PDF-1.4'),
+        updatedAt: new Date('2026-03-17T00:00:00.000Z'),
+      }),
+    }));
+    (fileStorageService as any).getFileAvailability = jest.fn().mockResolvedValue({
+      onDisk: true,
+      inDb: false,
+    });
+
+    statementRepository.findOne.mockResolvedValue({
+      id: 'stmt-thumb',
+      workspaceId: 'ws-1',
+      fileType: FileType.PDF,
+      fileName: 'statement.pdf',
+      fileData: Buffer.from('%PDF-1.4'),
+      updatedAt: new Date('2026-03-17T00:00:00.000Z'),
+    } as any);
+
+    jest.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined as any);
+    cacheManager.get.mockResolvedValue(null);
+    (fs.promises.readFile as jest.Mock).mockResolvedValue(Buffer.from('png-data'));
+    Object.defineProperty(process, 'platform', { value: 'darwin' });
+
+    try {
+      const result = await service.getThumbnail('stmt-thumb', 'ws-1', 200);
+
+      expect(result).toEqual(Buffer.from('png-data'));
+      expect(pythonSpy).toHaveBeenCalledTimes(1);
+      expect(quickLookSpy).toHaveBeenCalledWith(expect.any(String), '/tmp', 200);
+      expect(cacheManager.set).toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    }
   });
 });

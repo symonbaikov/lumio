@@ -33,6 +33,7 @@ import { EntityType } from '../../entities/audit-event.entity';
 import type { User } from '../../entities/user.entity';
 import { Audit } from '../audit/decorators/audit.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { ConvertDroppedSampleDto } from './dto/convert-dropped-sample.dto';
 import { CreateManualExpenseDto } from './dto/create-manual-expense.dto';
 import { UpdateStatementDto } from './dto/update-statement.dto';
 import { UploadStatementDto } from './dto/upload-statement.dto';
@@ -411,6 +412,23 @@ export class StatementsController {
     @WorkspaceId() workspaceId: string,
   ) {
     return this.statementsService.updateMetadata(id, user.id, workspaceId, updateDto);
+  }
+
+  @Post(':id/convert-dropped-sample')
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard, PermissionsGuard)
+  @RequirePermission(Permission.STATEMENT_EDIT)
+  async convertDroppedSample(
+    @Param('id') id: string,
+    @Body() payload: ConvertDroppedSampleDto,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.statementsService.convertDroppedSampleToTransaction(
+      id,
+      user.id,
+      workspaceId,
+      payload,
+    );
   }
 
   @Delete(':id')

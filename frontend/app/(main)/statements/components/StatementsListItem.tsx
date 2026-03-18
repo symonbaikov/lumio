@@ -120,6 +120,7 @@ type Props = {
   duplicateGroupLabel?: string;
   duplicateGroupTone?: DuplicateGroupTone;
   duplicateReason?: string;
+  viewDisabled?: boolean;
 };
 
 function StatusBadge({
@@ -172,6 +173,7 @@ export function StatementsListItem({
   duplicateGroupLabel,
   duplicateGroupTone,
   duplicateReason,
+  viewDisabled = false,
 }: Props) {
   const PREVIEW_WIDTH = 430;
   const PREVIEW_HEIGHT = 620;
@@ -250,6 +252,12 @@ export function StatementsListItem({
     resolvedDuplicateRole === 'primary'
       ? 'font-semibold shadow-sm'
       : 'font-medium border-dashed opacity-90';
+  const handleView = () => {
+    if (viewDisabled) {
+      return;
+    }
+    onView();
+  };
 
   return (
     <div
@@ -282,9 +290,10 @@ export function StatementsListItem({
           <button
             type="button"
             data-testid={`statement-item-mobile-card-${statement.id}`}
-            onClick={onView}
+            onClick={handleView}
             className="w-full rounded-md text-left focus:outline-none focus:ring-2 focus:ring-primary/20"
             aria-label={actionLabel}
+            aria-disabled={viewDisabled}
           >
             <div className="flex items-center gap-3">
               <div className="w-10 shrink-0">
@@ -341,9 +350,10 @@ export function StatementsListItem({
 
       <button
         type="button"
-        onClick={onView}
+        onClick={handleView}
         className="absolute inset-0 hidden rounded-lg md:block z-0"
         aria-label={viewLabel}
+        aria-disabled={viewDisabled}
       />
 
       {/* Desktop Layout - Rebuilt Hierarchy */}
@@ -410,6 +420,7 @@ export function StatementsListItem({
                         source={isGmail ? 'gmail' : 'statement'}
                         width={PREVIEW_WIDTH - 16}
                         height={PREVIEW_HEIGHT}
+                        preservePageAspect
                         errorMessage="Не удается загрузить документ"
                       />
                     </div>,
@@ -499,7 +510,7 @@ export function StatementsListItem({
               type="button"
               onClick={event => {
                 event.stopPropagation();
-                onView();
+                handleView();
               }}
               className={`inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-xs font-semibold transition shadow-sm ${
                 isPossibleDuplicate
@@ -507,6 +518,7 @@ export function StatementsListItem({
                   : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900'
               }`}
               aria-label={actionLabel}
+              disabled={viewDisabled}
             >
               {actionLabel}
             </button>

@@ -215,14 +215,14 @@ const content = {
         kk: 'Бекітілмеген қолма-қол',
       }),
       subtitle: t({
-        ru: 'Рабочая очередь проблемных операций перед попаданием в отчеты и экспорт.',
-        en: 'Working queue of problematic operations before they enter reports and exports.',
-        kk: 'Есептер мен экспортқа түспес бұрын мәселелі операциялар кезегі.',
+        ru: 'Рабочая очередь загруженных выписок перед попаданием в отчеты и экспорт.',
+        en: 'Working queue of uploaded statements before they enter reports and exports.',
+        kk: 'Есептер мен экспортқа түспес бұрын жүктелген үзінді көшірмелер кезегі.',
       }),
       searchPlaceholder: t({
-        ru: 'Поиск по мерчанту или операции',
-        en: 'Search merchant or transaction',
-        kk: 'Сатушы немесе операция бойынша іздеу',
+        ru: 'Поиск по файлу, банку или операции',
+        en: 'Search file, bank, or transaction',
+        kk: 'Файл, банк немесе операция бойынша іздеу',
       }),
       selectCategory: t({
         ru: 'Выберите категорию',
@@ -295,7 +295,7 @@ const content = {
         }),
       },
       table: {
-        merchant: t({ ru: 'Мерчант', en: 'Merchant', kk: 'Сатушы' }),
+        merchant: t({ ru: 'Выписка', en: 'Statement', kk: 'Үзінді көшірме' }),
         date: t({ ru: 'Дата', en: 'Date', kk: 'Күні' }),
         amount: t({ ru: 'Сумма', en: 'Amount', kk: 'Сома' }),
         reason: t({ ru: 'Причина', en: 'Reason', kk: 'Себеп' }),
@@ -338,9 +338,9 @@ const content = {
       empty: {
         title: t({ ru: 'Очередь пуста', en: 'All clear', kk: 'Кезек бос' }),
         description: t({
-          ru: 'По выбранным фильтрам нет операций, требующих ручной разбор.',
-          en: 'No transactions need manual review for selected filters.',
-          kk: 'Таңдалған сүзгілер бойынша қолмен тексеру қажет операциялар жоқ.',
+          ru: 'По выбранным фильтрам нет выписок, требующих ручной разбор.',
+          en: 'No statement files need manual review for selected filters.',
+          kk: 'Таңдалған сүзгілер бойынша қолмен тексеру қажет үзінді көшірмелер жоқ.',
         }),
       },
       toasts: {

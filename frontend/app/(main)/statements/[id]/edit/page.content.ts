@@ -112,6 +112,24 @@ const content = {
       periodTo: t({ ru: 'Период по', en: 'Period to', kk: 'Кезең (дейін)' }),
       balanceStart: t({ ru: 'Остаток на начало', en: 'Opening balance', kk: 'Бастапқы қалдық' }),
       balanceEnd: t({ ru: 'Остаток на конец', en: 'Closing balance', kk: 'Соңғы қалдық' }),
+      expenses: t({ ru: 'Расходы', en: 'Expenses', kk: 'Шығыстар' }),
+      income: t({ ru: 'Доходы', en: 'Income', kk: 'Кіріс' }),
+      startDate: t({ ru: 'Дата начала', en: 'Start date', kk: 'Басталу күні' }),
+      endDate: t({ ru: 'Дата окончания', en: 'End date', kk: 'Аяқталу күні' }),
+      notSpecified: t({ ru: 'Не указан', en: 'Not specified', kk: 'Көрсетілмеген' }),
+      openingBalance: t({ ru: 'Начальный баланс', en: 'Opening balance', kk: 'Бастапқы қалдық' }),
+      enterOpeningBalance: t({
+        ru: 'Введите начальный баланс',
+        en: 'Enter opening balance',
+        kk: 'Бастапқы қалдықты енгізіңіз',
+      }),
+      selectedTransactions: t({
+        ru: 'Выбрано: {count} транзакций',
+        en: 'Selected: {count} transactions',
+        kk: 'Таңдалғаны: {count} транзакция',
+      }),
+      save: t({ ru: 'Сохранить', en: 'Save', kk: 'Сақтау' }),
+      delete: t({ ru: 'Удалить', en: 'Delete', kk: 'Жою' }),
       fromFilePrefix: t({ ru: 'Из файла: ', en: 'From file: ', kk: 'Файлдан: ' }),
       enterManuallyHint: t({
         ru: 'Укажите вручную, если не подтянулось',
@@ -254,6 +272,7 @@ const content = {
         en: 'Failed to update statement category',
         kk: 'Үзінді санатын жаңарту мүмкін болмады',
       }),
+      fixDroppedRow: t({ ru: 'Исправить', en: 'Fix', kk: 'Түзету' }),
       alertNeedsFixTitle: t({
         ru: 'Нужно исправить перед отправкой',
         en: 'Fix required before submit',
@@ -316,6 +335,21 @@ const content = {
         en: 'Assign categories to all transactions before submitting',
         kk: 'Жіберу алдында барлық транзакцияларға санаттарды тағайындаңыз',
       }),
+      confirmDeleteOne: t({
+        ru: 'Удалить транзакцию?',
+        en: 'Delete transaction?',
+        kk: 'Транзакцияны жою керек пе?',
+      }),
+      confirmDeleteMany: t({
+        ru: 'Удалить {count} транзакций?',
+        en: 'Delete {count} transactions?',
+        kk: '{count} транзакцияны жою керек пе?',
+      }),
+      assignCategoryForTransactions: t({
+        ru: 'Назначить категорию для {count} транзакций',
+        en: 'Assign category for {count} transactions',
+        kk: '{count} транзакцияға санат тағайындау',
+      }),
       unapproveSuccess: t({
         ru: 'Выписка возвращена в Submit',
         en: 'Statement moved back to submit',
@@ -333,6 +367,17 @@ const content = {
       }),
     },
     columns: {
+      date: t({ ru: 'Дата', en: 'Date', kk: 'Күні' }),
+      counterparty: t({ ru: 'Контрагент', en: 'Counterparty', kk: 'Контрагент' }),
+      paymentPurposeShort: t({
+        ru: 'Назначение платежа',
+        en: 'Payment purpose',
+        kk: 'Төлем мақсаты',
+      }),
+      expense: t({ ru: 'Расход', en: 'Expense', kk: 'Шығыс' }),
+      income: t({ ru: 'Доход', en: 'Income', kk: 'Кіріс' }),
+      category: t({ ru: 'Категория', en: 'Category', kk: 'Санат' }),
+      actions: t({ ru: 'Действия', en: 'Actions', kk: 'Әрекеттер' }),
       transactionDate: t({ ru: 'Дата операции', en: 'Transaction date', kk: 'Операция күні' }),
       documentNumber: t({ ru: 'Номер документа', en: 'Document number', kk: 'Құжат нөмірі' }),
       counterpartyName: t({

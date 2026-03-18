@@ -7,7 +7,7 @@ import { ActorType, AuditAction, EntityType } from '../../../entities/audit-even
 import { Branch } from '../../../entities/branch.entity';
 import { CategorizationRule } from '../../../entities/categorization-rule.entity';
 import { CategoryLearning } from '../../../entities/category-learning.entity';
-import { Category, CategoryType } from '../../../entities/category.entity';
+import { Category, CategorySource, CategoryType } from '../../../entities/category.entity';
 import { type Transaction, TransactionType } from '../../../entities/transaction.entity';
 import { Wallet } from '../../../entities/wallet.entity';
 import { AuditService } from '../../audit/audit.service';
@@ -55,6 +55,7 @@ export class ClassificationService {
     batchId?: string | null,
   ): Promise<Partial<Transaction>> {
     const classification: Partial<Transaction> = {};
+    const workspaceId = transaction.workspaceId || null;
     let matchedRule: ClassificationRule | null = null;
 
     // Determine transaction type (income/expense)
@@ -65,14 +66,16 @@ export class ClassificationService {
     }
 
     // Check cache first
-    const cacheKey = `classification:${transaction.id}`;
-    const cached = await this.cacheManager.get<Partial<Transaction>>(cacheKey);
-    if (cached) {
-      return cached;
+    const cacheKey = transaction.id ? `classification:${transaction.id}` : null;
+    if (cacheKey) {
+      const cached = await this.cacheManager.get<Partial<Transaction>>(cacheKey);
+      if (cached) {
+        return cached;
+      }
     }
 
     // Get classification rules for user
-    const rules = await this.getClassificationRules(userId);
+    const rules = (await this.getClassificationRules(userId, workspaceId)) ?? [];
 
     // Apply rules in priority order
     for (const rule of rules.sort((a, b) => b.priority - a.priority)) {
@@ -106,6 +109,7 @@ export class ClassificationService {
         transaction,
         userId,
         classification.transactionType || TransactionType.EXPENSE,
+        workspaceId,
       );
     }
 
@@ -120,7 +124,9 @@ export class ClassificationService {
     }
 
     // Cache result for 5 minutes
-    await this.cacheManager.set(cacheKey, classification, 300000); // 5 minutes in ms
+    if (cacheKey) {
+      await this.cacheManager.set(cacheKey, classification, 300000); // 5 minutes in ms
+    }
 
     if (matchedRule) {
       // Audit: record rule application for categorization transparency.
@@ -208,10 +214,22 @@ export class ClassificationService {
     transaction: Transaction,
     userId: string,
     transactionType: TransactionType,
+    workspaceId: string | null = null,
   ): Promise<string | undefined> {
     // Look for common patterns in counterparty name or purpose
     const searchText =
       `${transaction.counterpartyName} ${transaction.paymentPurpose}`.toLowerCase();
+
+    if (workspaceId) {
+      const workspaceCategoryId = await this.matchWorkspaceCategories(
+        searchText,
+        workspaceId,
+        transactionType,
+      );
+      if (workspaceCategoryId) {
+        return workspaceCategoryId;
+      }
+    }
 
     // Common patterns for Kaspi and other banks
     const patterns: Array<{ pattern: RegExp; categoryName: string }> = [
@@ -267,6 +285,8 @@ export class ClassificationService {
           userId,
           categoryName,
           transactionType === TransactionType.INCOME ? CategoryType.INCOME : CategoryType.EXPENSE,
+          undefined,
+          workspaceId,
         );
 
         if (categoryId) {
@@ -280,14 +300,14 @@ export class ClassificationService {
       transaction,
       userId,
       transactionType,
-      transaction.workspaceId || null,
+      workspaceId,
     );
     if (learnedMatch) {
       return learnedMatch;
     }
 
     // Try to find category by historical data
-    const historicalCategory = await this.findCategoryByHistory(transaction, userId);
+    const historicalCategory = await this.findCategoryByHistory(transaction, userId, workspaceId);
     if (historicalCategory) {
       return historicalCategory.id;
     }
@@ -297,12 +317,15 @@ export class ClassificationService {
       userId,
       'Без категории',
       transactionType === TransactionType.INCOME ? CategoryType.INCOME : CategoryType.EXPENSE,
+      undefined,
+      workspaceId,
     );
   }
 
   private async findCategoryByHistory(
     transaction: Transaction,
     userId: string,
+    workspaceId: string | null = null,
   ): Promise<Category | null> {
     if (typeof (this.categoryRepository as any).createQueryBuilder !== 'function') {
       // In unit tests repositories are shallow mocks without query builder; skip lookup.
@@ -310,19 +333,28 @@ export class ClassificationService {
     }
     // Find most common category for this counterparty
     // Note: transactions don't have userId, they're linked via statement->user
-    const result = await this.categoryRepository
+    const query = this.categoryRepository
       .createQueryBuilder('category')
       .innerJoin('category.transactions', 'transaction')
       .innerJoin('transaction.statement', 'statement')
       .where('transaction.counterpartyName = :counterpartyName', {
         counterpartyName: transaction.counterpartyName,
       })
-      .andWhere('statement.userId = :userId', { userId })
-      .andWhere('category.userId = :userId', { userId })
       .groupBy('category.id')
       .orderBy('COUNT(transaction.id)', 'DESC')
-      .limit(1)
-      .getOne();
+      .limit(1);
+
+    if (workspaceId) {
+      query
+        .andWhere('statement.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('category.workspaceId = :workspaceId', { workspaceId });
+    } else {
+      query
+        .andWhere('statement.userId = :userId', { userId })
+        .andWhere('category.userId = :userId', { userId });
+    }
+
+    const result = await query.getOne();
 
     return result || null;
   }
@@ -378,11 +410,15 @@ export class ClassificationService {
     return (matched || branches[0])?.id;
   }
 
-  private async getClassificationRules(userId: string): Promise<ClassificationRule[]> {
+  private async getClassificationRules(
+    userId: string,
+    workspaceId: string | null = null,
+  ): Promise<ClassificationRule[]> {
     // Load user-defined categorization rules from database
     const userRules = await this.categorizationRuleRepository.find({
       where: {
         userId,
+        ...(workspaceId ? { workspaceId } : {}),
         isActive: true,
       },
       order: {
@@ -524,7 +560,13 @@ export class ClassificationService {
 
     const rules: ClassificationRule[] = [];
     for (const template of templates) {
-      const categoryId = await this.ensureCategory(userId, template.category, template.type);
+      const categoryId = await this.ensureCategory(
+        userId,
+        template.category,
+        template.type,
+        undefined,
+        workspaceId,
+      );
       if (!categoryId) continue;
 
       rules.push({
@@ -555,6 +597,43 @@ export class ClassificationService {
     categoryName: string,
   ): Promise<string | undefined> {
     return this.ensureCategory(userId, categoryName);
+  }
+
+  private async matchWorkspaceCategories(
+    searchText: string,
+    workspaceId: string,
+    transactionType: TransactionType,
+  ): Promise<string | undefined> {
+    const type =
+      transactionType === TransactionType.INCOME ? CategoryType.INCOME : CategoryType.EXPENSE;
+    const categories = (await this.categoriesService.findAll(workspaceId, type)) ?? [];
+
+    const searchTokens = this.tokenizeForCategoryMatch(searchText);
+
+    for (const category of categories) {
+      if (category.isEnabled === false) {
+        continue;
+      }
+
+      const normalizedName = category.name.trim().toLowerCase();
+      if (normalizedName === 'без категории' || normalizedName === 'other') {
+        continue;
+      }
+
+      const words = this.tokenizeForCategoryMatch(normalizedName).filter(word => word.length >= 3);
+      if (!words.length) {
+        continue;
+      }
+
+      const matchedWords = words.filter(word =>
+        searchTokens.some(token => this.categoryWordsMatch(word, token)),
+      );
+      if (matchedWords.length / words.length >= 0.7) {
+        return category.id;
+      }
+    }
+
+    return undefined;
   }
 
   async classifyBulk(transactionIds: string[], userId: string): Promise<void> {
@@ -641,22 +720,53 @@ export class ClassificationService {
     categoryName: string,
     type: CategoryType = CategoryType.EXPENSE,
     color?: string,
+    workspaceId: string | null = null,
   ): Promise<string | undefined> {
+    if (workspaceId) {
+      const workspaceCategory = await this.categoryRepository.findOne({
+        where: { workspaceId, name: categoryName, type },
+      });
+
+      if (workspaceCategory) {
+        if (!workspaceCategory.color && color) {
+          workspaceCategory.color = color;
+          await this.categoryRepository.save(workspaceCategory);
+        }
+
+        return workspaceCategory.id;
+      }
+    }
+
     let category = await this.categoryRepository.findOne({
-      where: { userId, name: categoryName },
+      where: { userId, name: categoryName, type },
     });
+
+    if (workspaceId && category && category.workspaceId !== workspaceId) {
+      category = null;
+    }
 
     if (!category) {
       category = this.categoryRepository.create({
         userId,
+        workspaceId,
         name: categoryName,
         type,
         isSystem: false,
+        source: workspaceId ? CategorySource.PARSING : CategorySource.USER,
         color,
       });
       category = await this.categoryRepository.save(category);
+      if (workspaceId) {
+        await this.invalidateWorkspaceCategoriesCache(workspaceId);
+      }
     } else if (!category.color && color) {
+      if (workspaceId && category.source !== CategorySource.PARSING) {
+        category.source = CategorySource.PARSING;
+      }
       category.color = color;
+      await this.categoryRepository.save(category);
+    } else if (workspaceId && category.source !== CategorySource.PARSING) {
+      category.source = CategorySource.PARSING;
       await this.categoryRepository.save(category);
     }
 
@@ -675,6 +785,7 @@ export class ClassificationService {
       counterpartyName?: string;
     }>,
     userId: string,
+    workspaceId: string | null = null,
   ): Promise<{ categoryId?: string; type: CategoryType }> {
     const totalDebit = transactions.reduce((sum, t) => sum + (t.debit ?? 0), 0);
     const totalCredit = transactions.reduce((sum, t) => sum + (t.credit ?? 0), 0);
@@ -693,8 +804,40 @@ export class ClassificationService {
           : 'Доходы';
 
     const color = this.pickColor(name);
-    const categoryId = await this.ensureCategory(userId, name, type, color);
+    const categoryId = await this.ensureCategory(userId, name, type, color, workspaceId);
     return { categoryId, type };
+  }
+
+  private async invalidateWorkspaceCategoriesCache(workspaceId: string): Promise<void> {
+    await this.cacheManager.del(`categories:${workspaceId}:all`);
+    await this.cacheManager.del(`categories:${workspaceId}:${CategoryType.INCOME}`);
+    await this.cacheManager.del(`categories:${workspaceId}:${CategoryType.EXPENSE}`);
+  }
+
+  private tokenizeForCategoryMatch(value: string): string[] {
+    return value
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .split(/\s+/)
+      .map(token => token.trim())
+      .filter(Boolean);
+  }
+
+  private categoryWordsMatch(categoryWord: string, searchWord: string): boolean {
+    if (categoryWord === searchWord) {
+      return true;
+    }
+
+    if (categoryWord.includes(searchWord) || searchWord.includes(categoryWord)) {
+      return true;
+    }
+
+    const minPrefixLength = Math.min(4, categoryWord.length, searchWord.length);
+    if (minPrefixLength >= 3) {
+      return categoryWord.slice(0, minPrefixLength) === searchWord.slice(0, minPrefixLength);
+    }
+
+    return false;
   }
 
   private extractDominantKeyword(

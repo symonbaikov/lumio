@@ -35,6 +35,7 @@ import type {
   StatementUploadedEvent,
 } from '../notifications/events/notification-events';
 import { StatementProcessingService } from '../parsing/services/statement-processing.service';
+import type { ConvertDroppedSampleDto } from './dto/convert-dropped-sample.dto';
 import type { CreateManualExpenseDto } from './dto/create-manual-expense.dto';
 import type { UpdateStatementDto } from './dto/update-statement.dto';
 
@@ -104,6 +105,37 @@ export class StatementsService {
       return `"${value.replaceAll('"', '""')}"`;
     }
     return value;
+  }
+
+  private normalizePositiveAmount(value: number | string | null | undefined): number | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+
+  private async generateThumbnailWithPython(
+    pdfPath: string,
+    thumbnailPath: string,
+    thumbnailWidth: number,
+  ): Promise<void> {
+    const scriptPath = path.join(__dirname, '../../../scripts/generate-thumbnail.py');
+    await execAsync(`python3 "${scriptPath}" "${pdfPath}" "${thumbnailPath}" ${thumbnailWidth}`);
+  }
+
+  private async generateThumbnailWithQuickLook(
+    pdfPath: string,
+    outputDir: string,
+    thumbnailWidth: number,
+  ): Promise<string> {
+    await execAsync(`qlmanage -t -s ${thumbnailWidth} -o "${outputDir}" "${pdfPath}"`);
+    const generatedPath = path.join(outputDir, `${path.basename(pdfPath)}.png`);
+    if (!fs.existsSync(generatedPath)) {
+      throw new Error('Quick Look thumbnail output not found');
+    }
+    return generatedPath;
   }
 
   async createManualExpense(params: {
@@ -338,6 +370,126 @@ export class StatementsService {
     });
 
     return savedStatement;
+  }
+
+  async convertDroppedSampleToTransaction(
+    id: string,
+    userId: string,
+    workspaceId: string,
+    payload: ConvertDroppedSampleDto,
+  ): Promise<{ statement: Statement; transaction: Transaction }> {
+    const statement = await this.findOne(id, workspaceId);
+    await this.ensureCanModify(statement, userId, workspaceId);
+
+    const warnings = statement.parsingDetails?.warnings || [];
+    const droppedSamples = statement.parsingDetails?.droppedSamples || [];
+    const warning = payload.warning || warnings[payload.index] || null;
+    const warningTxKey = warning?.match(/tx#\d+/i)?.[0]?.toLowerCase() || null;
+    const sampleIndex = droppedSamples.findIndex(sample => {
+      const sampleTxKey = sample.reason.match(/tx#\d+/i)?.[0]?.toLowerCase() || null;
+      return sample.reason === warning || Boolean(warningTxKey && sampleTxKey === warningTxKey);
+    });
+    const sample = sampleIndex >= 0 ? droppedSamples[sampleIndex] : null;
+
+    if (!sample && !warning) {
+      throw new NotFoundException('Dropped sample not found');
+    }
+
+    const transactionDate = new Date(payload.transaction.transactionDate);
+    if (Number.isNaN(transactionDate.getTime())) {
+      throw new BadRequestException('Transaction date is invalid');
+    }
+
+    const debit = this.normalizePositiveAmount(payload.transaction.debit);
+    const credit = this.normalizePositiveAmount(payload.transaction.credit);
+
+    if (!debit && !credit) {
+      throw new BadRequestException('Either debit or credit amount is required');
+    }
+
+    const transactionType = debit ? TransactionType.EXPENSE : TransactionType.INCOME;
+    const amount = debit || credit || 0;
+    const originalTransaction = sample?.transaction;
+
+    const transaction = this.transactionRepository.create({
+      workspaceId,
+      statementId: statement.id,
+      transactionDate: new Date(transactionDate.toISOString().slice(0, 10)),
+      documentNumber: payload.transaction.documentNumber || originalTransaction?.documentNumber || null,
+      counterpartyName:
+        payload.transaction.counterpartyName?.trim() ||
+        String(originalTransaction?.counterpartyName || '').trim() ||
+        'Неизвестный контрагент',
+      counterpartyBin:
+        payload.transaction.counterpartyBin || (originalTransaction?.counterpartyBin as string) || null,
+      counterpartyAccount:
+        payload.transaction.counterpartyAccount ||
+        (originalTransaction?.counterpartyAccount as string) ||
+        null,
+      counterpartyBank:
+        payload.transaction.counterpartyBank || (originalTransaction?.counterpartyBank as string) || null,
+      debit: debit ?? null,
+      credit: credit ?? null,
+      amount,
+      currency:
+        payload.transaction.currency?.trim() ||
+        String(originalTransaction?.currency || '').trim() ||
+        statement.currency ||
+        'KZT',
+      paymentPurpose:
+        payload.transaction.paymentPurpose?.trim() ||
+        String(originalTransaction?.paymentPurpose || '').trim() ||
+        'Не указано',
+      categoryId: payload.transaction.categoryId || (originalTransaction?.categoryId as string) || null,
+      branchId: payload.transaction.branchId || (originalTransaction?.branchId as string) || null,
+      walletId: payload.transaction.walletId || (originalTransaction?.walletId as string) || null,
+      article: payload.transaction.article || (originalTransaction?.article as string) || null,
+      comments: payload.transaction.comments || (originalTransaction?.comments as string) || null,
+      transactionType,
+      isVerified: true,
+    });
+
+    const savedTransaction = await this.transactionRepository.save(transaction);
+
+    const nextDroppedSamples =
+      sampleIndex >= 0 ? droppedSamples.filter((_, index) => index !== sampleIndex) : droppedSamples;
+    const warningToRemove = warning || sample?.reason || null;
+    const nextWarnings = warnings.filter(currentWarning => currentWarning !== warningToRemove);
+
+    statement.totalTransactions = Number(statement.totalTransactions || 0) + 1;
+    statement.totalDebit = Number(statement.totalDebit || 0) + (debit || 0);
+    statement.totalCredit = Number(statement.totalCredit || 0) + (credit || 0);
+    statement.parsingDetails = {
+      ...(statement.parsingDetails || {}),
+      warnings: nextWarnings,
+      droppedSamples: nextDroppedSamples,
+      transactionsCreated: Number(statement.parsingDetails?.transactionsCreated || 0) + 1,
+    };
+
+    const savedStatement = await this.statementRepository.save(statement);
+
+    await this.auditService.createEvent({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      actorLabel: (await this.userRepository.findOne({ where: { id: userId } }))?.email || 'User',
+      entityType: EntityType.TRANSACTION,
+      entityId: savedTransaction.id,
+      action: AuditAction.CREATE,
+      diff: { before: null, after: savedTransaction },
+      meta: {
+        source: 'statement-dropped-sample-conversion',
+        statementId: statement.id,
+        droppedSampleIndex: payload.index,
+      },
+      severity: Severity.INFO,
+      isUndoable: false,
+    });
+
+    return {
+      statement: savedStatement,
+      transaction: savedTransaction,
+    };
   }
 
   async create(
@@ -945,20 +1097,30 @@ export class StatementsService {
     try {
       // Generate thumbnail using Python script
       const thumbnailPath = path.join('/tmp', `thumbnail-${statement.id}-${Date.now()}.png`);
-      const scriptPath = path.join(__dirname, '../../../scripts/generate-thumbnail.py');
+      let generatedThumbnailPath = thumbnailPath;
 
-      // Execute Python script
-      await execAsync(`python3 "${scriptPath}" "${pdfPath}" "${thumbnailPath}" ${thumbnailWidth}`);
+      try {
+        await this.generateThumbnailWithPython(pdfPath, thumbnailPath, thumbnailWidth);
+      } catch (pythonError) {
+        if (process.platform !== 'darwin') {
+          throw pythonError;
+        }
+        generatedThumbnailPath = await this.generateThumbnailWithQuickLook(
+          pdfPath,
+          '/tmp',
+          thumbnailWidth,
+        );
+      }
 
       // Read generated thumbnail
-      const thumbnailData = await fs.promises.readFile(thumbnailPath);
+      const thumbnailData = await fs.promises.readFile(generatedThumbnailPath);
 
       // Cache the thumbnail (1 week)
       await this.cacheManager.set(cacheKey, thumbnailData.toString('base64'), 604800);
 
       // Clean up temporary files
       try {
-        await fs.promises.unlink(thumbnailPath);
+        await fs.promises.unlink(generatedThumbnailPath);
         if (tempPdfPath) {
           await fs.promises.unlink(tempPdfPath);
         }

@@ -86,20 +86,36 @@ describe('CategoriesService', () => {
 
   it('createSystemCategories skips existing entries from new defaults', async () => {
     categoryRepository.findOne = jest.fn(async ({ where }: any) =>
-      where?.name === 'Sales' ? ({ id: 'exists' } as any) : null,
+      where?.name === 'Продажи' ? ({ id: 'exists' } as any) : null,
     );
 
     await service.createSystemCategories('w1');
 
     expect(categoryRepository.findOne).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { workspaceId: 'w1', name: 'Sales' } }),
+      expect.objectContaining({ where: { workspaceId: 'w1', name: 'Продажи' } }),
     );
     expect(categoryRepository.findOne).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { workspaceId: 'w1', name: 'Utilities' } }),
+      expect.objectContaining({ where: { workspaceId: 'w1', name: 'Коммунальные услуги' } }),
     );
     expect(categoryRepository.save).toHaveBeenCalled();
     expect(categoryRepository.save).not.toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Sales' }),
+      expect.objectContaining({ name: 'Продажи' }),
+    );
+  });
+
+  it('createSystemCategories seeds localized default names', async () => {
+    categoryRepository.findOne = jest.fn(async () => null);
+
+    await service.createSystemCategories('w1');
+
+    expect(categoryRepository.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { workspaceId: 'w1', name: 'Продажи' } }),
+    );
+    expect(categoryRepository.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { workspaceId: 'w1', name: 'Коммунальные услуги' } }),
+    );
+    expect(categoryRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Продажи', isSystem: true }),
     );
   });
 

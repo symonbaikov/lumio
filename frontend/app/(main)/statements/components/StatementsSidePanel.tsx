@@ -2,6 +2,7 @@
 
 import { type SidePanelPageConfig, useSidePanelConfig } from '@/app/components/side-panel';
 import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import {
   type OpenExpenseDrawerEventDetail,
@@ -21,12 +22,11 @@ import { countStatementStages, getStatementStageMap } from '@/app/lib/statement-
 import NearbyErrorIcon from '@mui/icons-material/NearbyError';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import { Banknote, CalendarRange, Folder, Pencil, Send, ThumbsUp, User } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import StatementsCircularUploadMenu from './StatementsCircularUploadMenu';
-import { buildUnapprovedQueueItem } from './unapproved-cash-utils';
+import { buildUnapprovedStatementQueue } from './unapproved-cash-utils';
 
 type ActiveItem =
   | 'submit'
@@ -177,21 +177,26 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               statement.id as string,
               {
                 id: statement.id as string,
+                fileName: null,
+                bankName: statement.bankName ?? null,
                 status: statement.status,
                 errorMessage: statement.errorMessage,
                 fileType: statement.fileType,
+                currency: null,
+                totalDebit: statement.totalDebit ?? null,
+                totalCredit: statement.totalCredit ?? null,
+                statementDateFrom: null,
+                statementDateTo: null,
+                createdAt: null,
                 sourceHint: statement.parsingDetails?.importPreview?.source ?? null,
               },
             ]),
         );
 
-        const unapprovedCashCount = topMerchantsItems.reduce((total, transaction) => {
-          const statementMeta = transaction.statementId
-            ? (statementMetaById.get(transaction.statementId) ?? null)
-            : null;
-          const queueItem = buildUnapprovedQueueItem(transaction, statementMeta);
-          return queueItem.reasons.length > 0 ? total + 1 : total;
-        }, 0);
+        const unapprovedCashCount = buildUnapprovedStatementQueue({
+          statements: Array.from(statementMetaById.values()),
+          transactions: topMerchantsItems,
+        }).length;
 
         const topCategoriesResponse = await apiClient.get('/reports/top-categories', {
           params: {

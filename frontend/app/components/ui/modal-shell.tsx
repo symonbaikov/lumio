@@ -99,7 +99,7 @@ export function ModalShell({
 
   const modal = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden p-4"
+      className="fixed inset-0 z-[400] flex items-center justify-center overflow-y-auto overflow-x-hidden p-4"
       // biome-ignore lint/a11y/useSemanticElements: using div for styling control
       role="dialog"
       aria-modal="true"

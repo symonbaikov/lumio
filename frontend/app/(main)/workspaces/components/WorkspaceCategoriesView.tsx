@@ -2,7 +2,9 @@
 
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
+import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import { cn } from '@/app/lib/utils';
 import { Icon } from '@iconify/react';
 import {
@@ -31,7 +33,6 @@ import {
   useTheme,
 } from '@mui/material';
 import { Loader2 } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -40,11 +41,18 @@ interface Category {
   name: string;
   type: 'income' | 'expense';
   isSystem?: boolean;
+  source?: 'system' | 'user' | 'parsing';
   isEnabled?: boolean;
   color?: string;
   icon?: string;
   parentId?: string;
 }
+
+const SOURCE_BADGE_STYLES: Record<NonNullable<Category['source']>, string> = {
+  system: 'bg-blue-50 text-blue-700 ring-blue-700/10',
+  parsing: 'bg-amber-50 text-amber-700 ring-amber-700/10',
+  user: 'bg-slate-100 text-slate-600 ring-slate-500/10',
+};
 
 interface CategoryUsageCount {
   transactions: number;
@@ -119,6 +127,7 @@ const PREDEFINED_COLORS = [
 
 export default function WorkspaceCategoriesView() {
   const t = useIntlayer('categoriesPage');
+  const { locale } = useLocale();
   const theme = useTheme();
   const { user } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -138,6 +147,30 @@ export default function WorkspaceCategoriesView() {
     usage: CategoryUsageCount;
   } | null>(null);
 
+  const getCategoryBadgeLabel = (category: Category) => {
+    if (category.source === 'parsing') {
+      return (t as any).sourceBadges?.parsing?.value || 'Parsing data';
+    }
+
+    if (category.isSystem || category.source === 'system') {
+      return (t as any).sourceBadges?.system?.value || 'System';
+    }
+
+    return null;
+  };
+
+  const getCategoryBadgeClassName = (category: Category) => {
+    if (category.source === 'parsing') {
+      return SOURCE_BADGE_STYLES.parsing;
+    }
+
+    if (category.isSystem || category.source === 'system') {
+      return SOURCE_BADGE_STYLES.system;
+    }
+
+    return null;
+  };
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -149,7 +182,7 @@ export default function WorkspaceCategoriesView() {
   });
 
   const filteredCategories = categories.filter(cat => {
-    return cat.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return getCategoryDisplayName(cat, locale).toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   useEffect(() => {
@@ -474,6 +507,8 @@ export default function WorkspaceCategoriesView() {
                 const hasIcon = Boolean(category.icon?.trim());
                 const iconUrl = resolveIconUrl(category.icon);
                 const iconTint = alpha(categoryColor, category.isEnabled === false ? 0.12 : 0.16);
+                const badgeLabel = getCategoryBadgeLabel(category);
+                const badgeClassName = getCategoryBadgeClassName(category);
 
                 return (
                   <div
@@ -485,85 +520,90 @@ export default function WorkspaceCategoriesView() {
                     style={{ borderLeft: `3px solid ${categoryColor}` }}
                   >
                     <div className="flex items-center gap-3">
-                    <Checkbox
-                      aria-label={category.name}
-                      className="h-4 w-4 rounded border-gray-300"
-                      checked={selectedIds.has(category.id)}
-                      onCheckedChange={() => handleToggleSelect(category.id)}
-                    />
-                    {!category.isSystem && hasIcon ? (
-                      <div
-                        className="flex h-8 w-8 items-center justify-center rounded-lg"
-                        style={{ backgroundColor: iconTint, color: categoryColor }}
-                      >
-                        {iconUrl ? (
-                          <Box
-                            component="img"
-                            src={iconUrl}
-                            alt=""
-                            sx={{ width: 16, height: 16, objectFit: 'contain' }}
-                          />
-                        ) : (
-                          <Icon icon={category.icon || 'mdi:tag'} width={16} height={16} />
-                        )}
-                      </div>
-                    ) : null}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-semibold text-slate-900">
-                          {category.name}
-                        </span>
-                        {category.isSystem && (
-                          <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                            System
+                      <Checkbox
+                        aria-label={category.name}
+                        className="h-4 w-4 rounded border-gray-300"
+                        checked={selectedIds.has(category.id)}
+                        onCheckedChange={() => handleToggleSelect(category.id)}
+                      />
+                      {!category.isSystem && hasIcon ? (
+                        <div
+                          className="flex h-8 w-8 items-center justify-center rounded-lg"
+                          style={{ backgroundColor: iconTint, color: categoryColor }}
+                        >
+                          {iconUrl ? (
+                            <Box
+                              component="img"
+                              src={iconUrl}
+                              alt=""
+                              sx={{ width: 16, height: 16, objectFit: 'contain' }}
+                            />
+                          ) : (
+                            <Icon icon={category.icon || 'mdi:tag'} width={16} height={16} />
+                          )}
+                        </div>
+                      ) : null}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-semibold text-slate-900">
+                            {getCategoryDisplayName(category, locale)}
                           </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-500 mt-0.5">
-                        {usageCounts[category.id]?.total ? (
-                          <span>Used in {usageCounts[category.id].total} transactions</span>
-                        ) : (
-                          <span>Not used yet</span>
-                        )}
+                          {badgeLabel && badgeClassName && (
+                            <span
+                              className={cn(
+                                'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset',
+                                badgeClassName,
+                              )}
+                            >
+                              {badgeLabel}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-0.5">
+                          {usageCounts[category.id]?.total ? (
+                            <span>Used in {usageCounts[category.id].total} transactions</span>
+                          ) : (
+                            <span>Not used yet</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
                     <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={event => {
-                        event.stopPropagation();
-                        handleToggleEnabled(category);
-                      }}
-                      disabled={togglingIds.has(category.id)}
-                      className={cn(
-                        'relative inline-flex h-8 w-[54px] items-center rounded-full transition-colors',
-                        category.isEnabled === false ? 'bg-gray-300' : 'bg-primary',
-                        togglingIds.has(category.id) ? 'opacity-60' : 'opacity-100',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform',
-                          category.isEnabled === false ? 'translate-x-1' : 'translate-x-7',
-                        )}
-                      />
-                    </button>
-                    {category.isSystem ? (
-                      <div className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-300">
-                        <LockOutlined fontSize="small" />
-                      </div>
-                    ) : (
                       <button
                         type="button"
-                        onClick={() => handleOpenDialog(category)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-500"
+                        onClick={event => {
+                          event.stopPropagation();
+                          handleToggleEnabled(category);
+                        }}
+                        disabled={togglingIds.has(category.id)}
+                        className={cn(
+                          'relative inline-flex h-8 w-[54px] items-center rounded-full transition-colors',
+                          category.isEnabled === false ? 'bg-gray-300' : 'bg-primary',
+                          togglingIds.has(category.id) ? 'opacity-60' : 'opacity-100',
+                        )}
                       >
-                        <ChevronRight fontSize="small" />
+                        <span
+                          className={cn(
+                            'inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform',
+                            category.isEnabled === false ? 'translate-x-1' : 'translate-x-7',
+                          )}
+                        />
                       </button>
-                    )}
-                  </div>
+                      {category.isSystem ? (
+                        <div className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-300">
+                          <LockOutlined fontSize="small" />
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDialog(category)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-500"
+                        >
+                          <ChevronRight fontSize="small" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}

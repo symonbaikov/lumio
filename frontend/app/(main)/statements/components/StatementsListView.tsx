@@ -277,6 +277,11 @@ const isGmailReceiptProcessing = (statement: Statement) => {
   return status === 'new' || status === 'processing';
 };
 
+const isStatementParsingInProgress = (statement: Statement) => {
+  const status = (statement.status || '').toLowerCase();
+  return status === 'uploaded' || status === 'processing';
+};
+
 type Props = {
   stage: StatementStage;
 };
@@ -300,6 +305,7 @@ export default function StatementsListView({ stage }: Props) {
   const [total, setTotal] = useState(0);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [dateSortDirection, setDateSortDirection] = useState<'desc' | 'asc'>('desc');
 
   const [expenseDrawerOpen, setExpenseDrawerOpen] = useState(false);
   const [expenseDrawerMode, setExpenseDrawerMode] = useState<StatementExpenseMode>('scan');
@@ -637,6 +643,21 @@ export default function StatementsListView({ stage }: Props) {
   const displayStatements = useMemo(() => {
     return applyStatementsFilters<Statement>(stagedStatements, appliedFilters);
   }, [stagedStatements, appliedFilters]);
+
+  const sortedDisplayStatements = useMemo(() => {
+    const directionFactor = dateSortDirection === 'asc' ? 1 : -1;
+    return [...displayStatements].sort((left, right) => {
+      const leftDate = resolveStatementSortDate(left);
+      const rightDate = resolveStatementSortDate(right);
+      const dateDiff = leftDate - rightDate;
+
+      if (dateDiff !== 0) {
+        return dateDiff * directionFactor;
+      }
+
+      return left.id.localeCompare(right.id) * directionFactor;
+    });
+  }, [displayStatements, dateSortDirection]);
 
   const duplicateMetaById = useMemo(() => {
     const duplicateGroups = new Map<
@@ -1888,9 +1909,27 @@ export default function StatementsListView({ stage }: Props) {
                     <div className="flex items-center gap-2 text-gray-400">
                       {listHeaderLabels.merchant}
                       <span className="px-1 text-gray-300">•</span>
-                      <div className="flex items-center gap-1 cursor-pointer hover:text-gray-600 transition">
-                        {listHeaderLabels.date}
-                        <ArrowDown className="h-3 w-3" />
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          data-testid="statements-date-sort"
+                          className="inline-flex items-center gap-1 hover:text-gray-600 transition"
+                          onClick={() =>
+                            setDateSortDirection(current =>
+                              current === 'desc' ? 'asc' : 'desc',
+                            )
+                          }
+                          aria-label={`Sort by date ${
+                            dateSortDirection === 'desc' ? 'ascending' : 'descending'
+                          }`}
+                        >
+                          {listHeaderLabels.date}
+                          <ArrowDown
+                            className={`h-3 w-3 transition-transform ${
+                              dateSortDirection === 'asc' ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1953,7 +1992,7 @@ export default function StatementsListView({ stage }: Props) {
                     </div>
                   ))
                 : null}
-              {displayStatements.map(statement => {
+              {sortedDisplayStatements.map(statement => {
                 const isGmail = statement.source === 'gmail';
                 const resolvedName = isGmail
                   ? resolveGmailMerchantLabel({
@@ -1980,6 +2019,7 @@ export default function StatementsListView({ stage }: Props) {
                   (manualAttachmentCount === 0 ||
                     statement.fileName.toLowerCase().startsWith('manual-expense-'));
                 const isProcessingGmail = isGmailReceiptProcessing(statement);
+                const isProcessingStatement = isStatementParsingInProgress(statement);
                 const amountLabel = formatStatementAmount(statement);
                 const dateLabel = formatStatementDate(statement);
                 const duplicateMeta = duplicateMetaById.get(statement.id);
@@ -2005,6 +2045,7 @@ export default function StatementsListView({ stage }: Props) {
                     duplicateActionLabel={reviewDuplicateLabel}
                     typeLabel={isGmail ? 'PDF' : statement.fileType}
                     isManualExpense={isManualExpense}
+                    viewDisabled={isProcessingStatement}
                     onView={() => handleView(statement)}
                     onIconClick={() => {
                       if (isGmail) {

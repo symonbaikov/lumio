@@ -14,9 +14,13 @@ interface PDFThumbnailProps {
   height?: number;
   className?: string;
   errorMessage?: string;
+  preservePageAspect?: boolean;
 }
 
-const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? '/api/v1').replace(/\/$/, '');
+const apiBaseUrl = (
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === 'development' ? 'http://localhost:3001/api/v1' : '/api/v1')
+).replace(/\/$/, '');
 const DEFAULT_THUMBNAIL_WIDTH = 200;
 const MIN_THUMBNAIL_WIDTH = 80;
 const MAX_THUMBNAIL_WIDTH = 1600;
@@ -32,14 +36,49 @@ export function PDFThumbnail({
   height,
   className = '',
   errorMessage,
+  preservePageAspect = false,
 }: PDFThumbnailProps) {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [thumbnailDataUrl, setThumbnailDataUrl] = useState<string | null>(null);
+  const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
   const requestedWidth = Math.max(
     MIN_THUMBNAIL_WIDTH,
     Math.min(MAX_THUMBNAIL_WIDTH, Math.round(width ?? DEFAULT_THUMBNAIL_WIDTH)),
   );
+
+  const frameWidth = width ?? size;
+  const maxFrameHeight = height ?? size;
+  const resolvedFrameHeight =
+    preservePageAspect && imageAspectRatio
+      ? Math.min(maxFrameHeight, Math.round(frameWidth / imageAspectRatio))
+      : maxFrameHeight;
+
+  useEffect(() => {
+    if (!thumbnailDataUrl || !preservePageAspect) {
+      setImageAspectRatio(null);
+      return;
+    }
+
+    let cancelled = false;
+    const image = new Image();
+    image.onload = () => {
+      if (cancelled || image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+        return;
+      }
+      setImageAspectRatio(image.naturalWidth / image.naturalHeight);
+    };
+    image.onerror = () => {
+      if (!cancelled) {
+        setImageAspectRatio(null);
+      }
+    };
+    image.src = thumbnailDataUrl;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [thumbnailDataUrl, preservePageAspect]);
 
   useEffect(() => {
     let isMounted = true;
@@ -120,8 +159,7 @@ export function PDFThumbnail({
   // If error occurred, show default PDF icon
   if (error) {
     const fallbackIconSize = Math.max(14, Math.round(size * 0.8));
-    const frameWidth = width ?? size;
-    const frameHeight = height ?? size;
+    const frameHeight = maxFrameHeight;
 
     if (errorMessage) {
       return (
@@ -151,8 +189,9 @@ export function PDFThumbnail({
 
   return (
     <div
+      data-testid="pdf-thumbnail-frame"
       className="relative shadow-sm rounded-xl overflow-hidden"
-      style={{ width: width ?? size, height: height ?? size }}
+      style={{ width: frameWidth, height: resolvedFrameHeight }}
     >
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center">

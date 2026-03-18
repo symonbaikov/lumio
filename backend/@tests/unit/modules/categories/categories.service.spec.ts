@@ -1,5 +1,5 @@
 import { AuditAction, EntityType } from '@/entities/audit-event.entity';
-import { Category, CategoryType } from '@/entities/category.entity';
+import { Category, CategorySource, CategoryType } from '@/entities/category.entity';
 import { Statement } from '@/entities/statement.entity';
 import { Transaction } from '@/entities/transaction.entity';
 import { User, UserRole } from '@/entities/user.entity';
@@ -34,6 +34,7 @@ describe('CategoriesService', () => {
     type: CategoryType.EXPENSE,
     userId: '1',
     isSystem: false,
+    source: CategorySource.USER,
   };
 
   beforeAll(async () => {
@@ -176,6 +177,7 @@ describe('CategoriesService', () => {
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           isSystem: false,
+          source: CategorySource.USER,
         }),
       );
     });
@@ -286,12 +288,27 @@ describe('CategoriesService', () => {
       const systemCategory = {
         ...mockCategory,
         isSystem: true,
+        source: CategorySource.SYSTEM,
       };
       jest.spyOn(categoryRepository, 'find').mockResolvedValue([systemCategory] as Category[]);
 
       const result = await service.findAll('1');
 
       expect(result.some(c => c.isSystem)).toBe(true);
+    });
+
+    it('should include parsing source categories in workspace lists', async () => {
+      const parsingCategory = {
+        ...mockCategory,
+        id: 'cat-parsing',
+        workspaceId: '1',
+        source: CategorySource.PARSING,
+      };
+      jest.spyOn(categoryRepository, 'find').mockResolvedValue([parsingCategory] as Category[]);
+
+      const result = await service.findAll('1');
+
+      expect(result[0]?.source).toBe(CategorySource.PARSING);
     });
   });
 

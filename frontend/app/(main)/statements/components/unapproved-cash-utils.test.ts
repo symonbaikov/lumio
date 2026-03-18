@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type UnapprovedQueueFilters,
   buildUnapprovedQueueItem,
+  buildUnapprovedStatementQueue,
   matchesUnapprovedFilters,
   resolveUnapprovedReasons,
   resolveUnapprovedSource,
@@ -120,5 +121,82 @@ describe('matchesUnapprovedFilters', () => {
     );
 
     expect(matchesUnapprovedFilters(item, filters)).toBe(false);
+  });
+});
+
+describe('buildUnapprovedStatementQueue', () => {
+  it('returns one queue item per statement with statement total amount', () => {
+    const queue = buildUnapprovedStatementQueue({
+      statements: [
+        {
+          id: 'statement-1',
+          fileName: 'kaspi-2026-01.pdf',
+          bankName: 'Kaspi Bank',
+          fileType: 'pdf',
+          totalDebit: 4947.03,
+          totalCredit: 0,
+          currency: 'KZT',
+          statementDateTo: '2026-01-31',
+        },
+      ],
+      transactions: [
+        {
+          id: 'tx-1',
+          statementId: 'statement-1',
+          counterpartyName: 'Coffee Point',
+          transactionType: 'expense',
+          currency: 'KZT',
+          amount: 1500,
+          isVerified: false,
+        },
+        {
+          id: 'tx-2',
+          statementId: 'statement-1',
+          counterpartyName: 'Taxi',
+          transactionType: 'expense',
+          currency: 'KZT',
+          amount: 3447.03,
+          isVerified: false,
+          categoryId: 'category-1',
+        },
+      ],
+    });
+
+    expect(queue).toHaveLength(1);
+    expect(queue[0]).toMatchObject({
+      statement: expect.objectContaining({
+        id: 'statement-1',
+        fileName: 'kaspi-2026-01.pdf',
+      }),
+      transactionIds: ['tx-1', 'tx-2'],
+      amount: 4947.03,
+      source: 'pdf',
+      reasons: ['missing-category', 'requires-confirmation'],
+    });
+  });
+
+  it('includes errored statements without creating one row per transaction', () => {
+    const queue = buildUnapprovedStatementQueue({
+      statements: [
+        {
+          id: 'statement-err',
+          fileName: 'broken.pdf',
+          bankName: 'Kaspi Bank',
+          fileType: 'pdf',
+          status: 'error',
+          errorMessage: 'OCR failed',
+          totalDebit: 180000,
+          totalCredit: 0,
+          currency: 'KZT',
+          statementDateTo: '2026-02-01',
+        },
+      ],
+      transactions: [],
+    });
+
+    expect(queue).toHaveLength(1);
+    expect(queue[0]?.reasons).toEqual(['ocr-issues']);
+    expect(queue[0]?.transactionIds).toEqual([]);
+    expect(queue[0]?.amount).toBe(180000);
   });
 });

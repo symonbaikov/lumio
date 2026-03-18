@@ -4,7 +4,11 @@ import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useAutoSave } from '@/app/hooks/useAutoSave';
 import apiClient from '@/app/lib/api';
-import { flattenStatementCategories } from '@/app/lib/statement-categories';
+import {
+  flattenStatementCategories,
+  getCategoryDisplayName,
+  localizeStatementCategoryName,
+} from '@/app/lib/statement-categories';
 import { Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/modal';
 import {
   AccountBalance,
@@ -54,10 +58,11 @@ import {
   Typography,
 } from '@mui/material';
 import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
 
-import { useIntlayer, useLocale } from "@/app/i18n";
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 import CustomDatePicker from '@/app/components/CustomDatePicker';
@@ -70,6 +75,7 @@ import {
   isStageActionBlocked,
   setStatementStage,
 } from '@/app/lib/statement-workflow';
+import { type ParsingDroppedSample, ParsingWarningsPanel } from './ParsingWarningsPanel';
 import StatementCategoryDrawer from './StatementCategoryDrawer';
 
 interface CategoryOption {
@@ -77,6 +83,8 @@ interface CategoryOption {
   name: string;
   type?: 'income' | 'expense';
   isEnabled?: boolean;
+  source?: 'system' | 'user' | 'parsing';
+  isSystem?: boolean;
   children?: CategoryOption[];
 }
 
@@ -110,7 +118,13 @@ interface Transaction {
   article?: string;
   comments?: string;
   transactionType: 'income' | 'expense';
-  category?: { id: string; name: string; isEnabled?: boolean };
+  category?: {
+    id: string;
+    name: string;
+    isEnabled?: boolean;
+    source?: 'system' | 'user' | 'parsing';
+    isSystem?: boolean;
+  };
   branch?: { id: string; name: string };
   wallet?: { id: string; name: string };
 }
@@ -121,7 +135,13 @@ interface Statement {
   status: string;
   totalTransactions: number;
   categoryId?: string | null;
-  category?: { id: string; name: string; isEnabled?: boolean } | null;
+  category?: {
+    id: string;
+    name: string;
+    isEnabled?: boolean;
+    source?: 'system' | 'user' | 'parsing';
+    isSystem?: boolean;
+  } | null;
   statementDateFrom?: string | null;
   statementDateTo?: string | null;
   balanceStart?: number | string | null;
@@ -157,6 +177,7 @@ interface Statement {
     };
     processingTime?: number;
     logEntries?: Array<{ timestamp: string; level: string; message: string }>;
+    droppedSamples?: Array<string | ParsingDroppedSample>;
   } | null;
 }
 
@@ -201,6 +222,7 @@ export default function EditStatementPage() {
   const { user } = useAuth();
   const t = useIntlayer('statementEditPage');
   const labels = t.labels as Record<string, { value?: string }>;
+  const columns = t.columns as Record<string, { value?: string }>;
   const { locale } = useLocale();
   const statementId = params.id as string;
 
@@ -234,6 +256,9 @@ export default function EditStatementPage() {
     statementDateTo: '',
   });
   const [exportConfirmOpen, setExportConfirmOpen] = useState(false);
+  const [parsingDetailsExpanded, setParsingDetailsExpanded] = useState(true);
+  const balanceStartInputRef = useRef<HTMLInputElement | null>(null);
+  const balanceEndInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (user && statementId) {
@@ -241,6 +266,18 @@ export default function EditStatementPage() {
       loadData();
     }
   }, [user, statementId]);
+
+  const formatLabel = (
+    template: string | undefined,
+    replacements: Record<string, string | number>,
+  ) => {
+    if (!template) return '';
+
+    return Object.entries(replacements).reduce(
+      (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
+      template,
+    );
+  };
 
   const loadData = async () => {
     try {
@@ -411,6 +448,48 @@ export default function EditStatementPage() {
     [statementId],
   );
 
+  const handleResolveParsingWarning = useCallback((warning: string) => {
+    setParsingDetailsExpanded(true);
+
+    const target = /balance mismatch/i.test(warning)
+      ? balanceEndInputRef.current || balanceStartInputRef.current
+      : null;
+
+    if (target) {
+      window.setTimeout(() => {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.focus();
+      }, 0);
+    }
+  }, []);
+
+  const handleConvertDroppedSample = useCallback(
+    async (sample: ParsingDroppedSample, index: number, warning?: string) => {
+      const response = await apiClient.post(`/statements/${statementId}/convert-dropped-sample`, {
+        index,
+        warning,
+        transaction: sample.transaction,
+      });
+
+      const updatedStatement = response.data?.statement || response.data?.data?.statement;
+      const createdTransaction = response.data?.transaction || response.data?.data?.transaction;
+
+      if (updatedStatement) {
+        setStatement(updatedStatement);
+      }
+
+      if (createdTransaction) {
+        setTransactions(prev => [createdTransaction, ...prev]);
+      } else {
+        await loadData();
+      }
+
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    },
+    [statementId],
+  );
+
   useAutoSave({
     data: metadataForm,
     onSave: handleMetadataAutoSave,
@@ -424,14 +503,14 @@ export default function EditStatementPage() {
   };
 
   const handleDelete = async (transactionId: string) => {
-    if (!window.confirm('Удалить транзакцию?')) return;
+    if (!window.confirm(labels.confirmDeleteOne?.value || 'Delete transaction?')) return;
     try {
       await apiClient.delete(`/transactions/${transactionId}`);
       setTransactions(prev => prev.filter(t => t.id !== transactionId));
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Не удалось удалить транзакцию');
+      setError(err.response?.data?.error?.message || t.errors.deleteTransaction.value);
     }
   };
 
@@ -458,7 +537,14 @@ export default function EditStatementPage() {
   };
 
   const handleBulkDelete = async () => {
-    if (!window.confirm(`Удалить ${selectedRows.size} транзакций?`)) return;
+    if (
+      !window.confirm(
+        formatLabel(labels.confirmDeleteMany?.value, { count: selectedRows.size }) ||
+          `Delete ${selectedRows.size} transactions?`,
+      )
+    ) {
+      return;
+    }
     try {
       setSaving(true);
       await apiClient.post('/transactions/bulk-delete', {
@@ -469,7 +555,7 @@ export default function EditStatementPage() {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Не удалось удалить транзакции');
+      setError(err.response?.data?.error?.message || t.errors.deleteTransactions.value);
     } finally {
       setSaving(false);
     }
@@ -593,7 +679,16 @@ export default function EditStatementPage() {
       return value ? formatNumber(value) : '—';
     }
     if (field === 'categoryId') {
-      return transaction.category?.name || '—';
+      return transaction.category?.name
+        ? getCategoryDisplayName(
+            {
+              name: transaction.category.name,
+              source: transaction.category.source,
+              isSystem: transaction.category.isSystem,
+            },
+            locale,
+          )
+        : '—';
     }
     if (field === 'branchId') {
       return transaction.branch?.name || '—';
@@ -619,9 +714,11 @@ export default function EditStatementPage() {
   };
 
   const enabledStatementCategories = filterEnabledCategories(categories);
-  const flattenedStatementCategories = flattenStatementCategories(categories);
+  const flattenedStatementCategories = flattenStatementCategories(categories, '', locale);
   const flattenedEnabledStatementCategories = flattenStatementCategories(
     enabledStatementCategories,
+    '',
+    locale,
   );
 
   const stageActions = getStatementStageActions(currentStage);
@@ -703,7 +800,16 @@ export default function EditStatementPage() {
   }, 0);
 
   const selectedStatementCategoryName =
-    statement?.category?.name?.trim() ||
+    (statement?.category?.name
+      ? getCategoryDisplayName(
+          {
+            name: statement.category.name,
+            source: statement.category.source,
+            isSystem: statement.category.isSystem,
+          },
+          locale,
+        ).trim()
+      : '') ||
     flattenedStatementCategories.find(category => category.id === statement?.categoryId)?.name ||
     labels.categoryButton?.value ||
     'Category';
@@ -1109,6 +1215,8 @@ export default function EditStatementPage() {
 
       {/* Editing & Parsing Details Accordion */}
       <Accordion
+        expanded={parsingDetailsExpanded}
+        onChange={(_, expanded) => setParsingDetailsExpanded(expanded)}
         elevation={0}
         sx={{
           mb: 4,
@@ -1138,7 +1246,8 @@ export default function EditStatementPage() {
             }}
           >
             <CustomDatePicker
-              label="Дата начала"
+              containerTestId="statement-metadata-field-start-date"
+              label={labels.startDate?.value || 'Start date'}
               value={metadataForm.statementDateFrom}
               onChange={value => handleMetadataChange('statementDateFrom', value)}
               helperText={
@@ -1148,7 +1257,8 @@ export default function EditStatementPage() {
               }
             />
             <CustomDatePicker
-              label="Дата окончания"
+              containerTestId="statement-metadata-field-end-date"
+              label={labels.endDate?.value || 'End date'}
               value={metadataForm.statementDateTo}
               onChange={value => handleMetadataChange('statementDateTo', value)}
               helperText={
@@ -1157,21 +1267,22 @@ export default function EditStatementPage() {
                   : undefined
               }
             />
-            <div>
+            <div data-testid="statement-metadata-field-opening-balance">
               <span className="text-xs text-gray-500 block mb-1 font-medium ml-1">
-                Начальный баланс
+                {labels.openingBalance?.value || 'Opening balance'}
               </span>
               <TextField
                 type="number"
                 fullWidth
                 size="small"
+                inputRef={balanceStartInputRef}
                 value={metadataForm.balanceStart}
                 onChange={e => handleMetadataChange('balanceStart', e.target.value)}
                 placeholder="0.00"
                 helperText={
                   statement?.parsingDetails?.metadataExtracted?.balanceStart
                     ? `Из файла: ${formatNumber(statement.parsingDetails.metadataExtracted.balanceStart)}`
-                    : 'Введите начальный баланс'
+                    : labels.enterOpeningBalance?.value || 'Enter opening balance'
                 }
                 sx={{
                   '& .MuiOutlinedInput-root': {
@@ -1182,21 +1293,22 @@ export default function EditStatementPage() {
                 }}
               />
             </div>
-            <div>
+            <div data-testid="statement-metadata-field-closing-balance">
               <span className="text-xs text-gray-500 block mb-1 font-medium ml-1">
-                Конечный баланс
+                {labels.balanceEnd?.value || 'Closing balance'}
               </span>
               <TextField
                 type="number"
                 fullWidth
                 size="small"
+                inputRef={balanceEndInputRef}
                 value={metadataForm.balanceEnd}
                 onChange={e => handleMetadataChange('balanceEnd', e.target.value)}
                 placeholder="0.00"
                 helperText={
                   statement?.parsingDetails?.metadataExtracted?.balanceEnd
                     ? `Из файла: ${formatNumber(statement.parsingDetails.metadataExtracted.balanceEnd)}`
-                    : 'Введите конечный баланс'
+                    : labels.enterManuallyHint?.value || 'Enter manually if it was not detected'
                 }
                 sx={{
                   '& .MuiOutlinedInput-root': {
@@ -1217,7 +1329,7 @@ export default function EditStatementPage() {
                 color="text.secondary"
                 sx={{ display: 'block', mb: 2, fontWeight: 600, textTransform: 'uppercase' }}
               >
-                {t.labels.extractedMetadata?.value || 'Извлеченные данные парсером'}
+                {labels.extractedMetadata?.value || 'Extracted metadata'}
               </Typography>
               <Box
                 sx={{
@@ -1232,7 +1344,7 @@ export default function EditStatementPage() {
               >
                 <Box>
                   <Typography variant="caption" color="text.secondary">
-                    Банк
+                    {labels.bank?.value || 'Bank'}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
                     {statement.parsingDetails.detectedBank || '—'}
@@ -1248,7 +1360,7 @@ export default function EditStatementPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary">
-                    Формат
+                    {labels.format?.value || 'Format'}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
                     {statement.parsingDetails.detectedFormat?.toUpperCase() || '—'}
@@ -1256,7 +1368,7 @@ export default function EditStatementPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary">
-                    Найдено транзакций
+                    {labels.foundTransactions?.value || 'Transactions found'}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
                     {statement.parsingDetails.transactionsFound ?? '—'}
@@ -1264,7 +1376,7 @@ export default function EditStatementPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary">
-                    Создано
+                    {labels.createdTransactions?.value || 'Transactions created'}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
                     {statement.parsingDetails.transactionsCreated ?? '—'}
@@ -1273,7 +1385,7 @@ export default function EditStatementPage() {
                 {statement.parsingDetails.errors && statement.parsingDetails.errors.length > 0 && (
                   <Box>
                     <Typography variant="caption" color="error">
-                      Ошибки
+                      {labels.errors?.value || 'Errors'}
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 500, color: 'error.main' }}>
                       {statement.parsingDetails.errors.length}
@@ -1284,7 +1396,7 @@ export default function EditStatementPage() {
                   statement.parsingDetails.warnings.length > 0 && (
                     <Box>
                       <Typography variant="caption" color="warning.main">
-                        Предупреждения
+                        {labels.warnings?.value || 'Warnings'}
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500, color: 'warning.main' }}>
                         {statement.parsingDetails.warnings.length}
@@ -1303,6 +1415,25 @@ export default function EditStatementPage() {
                     </Box>
                   )}
               </Box>
+
+              {(statement.parsingDetails.warnings?.length || 0) > 0 ||
+              (statement.parsingDetails.droppedSamples?.length || 0) > 0 ? (
+                <ParsingWarningsPanel
+                  warnings={statement.parsingDetails.warnings || []}
+                  droppedSamples={statement.parsingDetails.droppedSamples || []}
+                  onConvertDroppedSample={handleConvertDroppedSample}
+                  onResolveWarning={handleResolveParsingWarning}
+                  fixTooltipLabel={labels.fixDroppedRow?.value || 'Fix'}
+                  resolveBalanceTooltipLabel={labels.balanceEnd?.value || 'Review balances'}
+                  title={labels.warnings?.value || 'Warnings'}
+                  helperText={
+                    labels.alertParsingWarnings?.value?.replace(
+                      '{count}',
+                      String(statement.parsingDetails.warnings?.length || 0),
+                    ) || 'Review the flagged rows before submitting this statement.'
+                  }
+                />
+              ) : null}
             </>
           )}
         </AccordionDetails>
@@ -1407,7 +1538,8 @@ export default function EditStatementPage() {
                 fontSize: '0.9375rem',
               }}
             >
-              Выбрано: {selectedRows.size} транзакций
+              {formatLabel(labels.selectedTransactions?.value, { count: selectedRows.size }) ||
+                `Selected: ${selectedRows.size} transactions`}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1.5 }}>
               <Button
@@ -1428,7 +1560,7 @@ export default function EditStatementPage() {
                   },
                 }}
               >
-                Назначить категорию
+                {labels.assignCategory?.value || 'Assign category'}
               </Button>
               <Button
                 variant="contained"
@@ -1443,7 +1575,7 @@ export default function EditStatementPage() {
                   boxShadow: 'none',
                 }}
               >
-                Сохранить
+                {labels.save?.value || 'Save'}
               </Button>
               <Button
                 variant="outlined"
@@ -1458,7 +1590,7 @@ export default function EditStatementPage() {
                   borderRadius: 2,
                 }}
               >
-                Удалить
+                {labels.delete?.value || 'Delete'}
               </Button>
             </Box>
           </Box>
@@ -1501,7 +1633,7 @@ export default function EditStatementPage() {
                   letterSpacing: '0.06em',
                 }}
               >
-                Дата
+                {columns.date?.value || 'Date'}
               </TableCell>
               <TableCell
                 sx={{
@@ -1512,7 +1644,7 @@ export default function EditStatementPage() {
                   letterSpacing: '0.06em',
                 }}
               >
-                Контрагент
+                {columns.counterparty?.value || 'Counterparty'}
               </TableCell>
               <TableCell
                 sx={{
@@ -1523,19 +1655,7 @@ export default function EditStatementPage() {
                   letterSpacing: '0.06em',
                 }}
               >
-                Назначение платежа
-              </TableCell>
-              <TableCell
-                align="right"
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '0.75rem',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                Расход
+                {columns.paymentPurposeShort?.value || 'Payment purpose'}
               </TableCell>
               <TableCell
                 align="right"
@@ -1547,7 +1667,19 @@ export default function EditStatementPage() {
                   letterSpacing: '0.06em',
                 }}
               >
-                Доход
+                {columns.expense?.value || 'Expense'}
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  color: 'text.secondary',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                {columns.income?.value || 'Income'}
               </TableCell>
               <TableCell
                 sx={{
@@ -1558,7 +1690,7 @@ export default function EditStatementPage() {
                   letterSpacing: '0.06em',
                 }}
               >
-                Категория
+                {columns.category?.value || 'Category'}
               </TableCell>
               <TableCell
                 sx={{
@@ -1569,7 +1701,7 @@ export default function EditStatementPage() {
                   letterSpacing: '0.06em',
                 }}
               >
-                Действия
+                {columns.actions?.value || 'Actions'}
               </TableCell>
             </TableRow>
           </TableHead>
@@ -1659,8 +1791,22 @@ export default function EditStatementPage() {
                           <Chip
                             label={
                               transaction.category.isEnabled === false
-                                ? `${transaction.category.name} — выберите категорию`
-                                : transaction.category.name
+                                ? `${getCategoryDisplayName(
+                                    {
+                                      name: transaction.category.name,
+                                      source: transaction.category.source,
+                                      isSystem: transaction.category.isSystem,
+                                    },
+                                    locale,
+                                  )} — ${labels.assignCategory?.value || 'Assign category'}`
+                                : getCategoryDisplayName(
+                                    {
+                                      name: transaction.category.name,
+                                      source: transaction.category.source,
+                                      isSystem: transaction.category.isSystem,
+                                    },
+                                    locale,
+                                  )
                             }
                             size="small"
                             sx={{
@@ -1684,7 +1830,7 @@ export default function EditStatementPage() {
                           />
                         ) : (
                           <Chip
-                            label="Без категории"
+                            label={labels.noCategoryOption?.value || 'No category'}
                             size="small"
                             icon={<Warning sx={{ fontSize: 16 }} />}
                             sx={{
@@ -1791,16 +1937,20 @@ export default function EditStatementPage() {
             pb: 1,
           }}
         >
-          Назначить категорию для {selectedRows.size} транзакций
+          {formatLabel(labels.assignCategoryForTransactions?.value, { count: selectedRows.size }) ||
+            `Assign category for ${selectedRows.size} transactions`}
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
           <TextField
             select
-            label="Категория"
+            label={labels.category?.value || 'Category'}
             fullWidth
             value={bulkCategoryId}
             onChange={e => setBulkCategoryId(e.target.value)}
-            helperText="Выберите категорию для назначения всем выбранным транзакциям"
+            helperText={
+              labels.bulkCategoryHelper?.value ||
+              'The category will be applied to all selected transactions'
+            }
             sx={{
               '& .MuiOutlinedInput-root': {
                 '&:hover fieldset': {
@@ -1809,7 +1959,7 @@ export default function EditStatementPage() {
               },
             }}
           >
-            <MenuItem value="">Не выбрано</MenuItem>
+            <MenuItem value="">{labels.notSelected?.value || 'Not selected'}</MenuItem>
             {flattenedEnabledStatementCategories.map(cat => (
               <MenuItem key={cat.id} value={cat.id}>
                 {cat.name}
@@ -1826,7 +1976,7 @@ export default function EditStatementPage() {
               color: 'text.secondary',
             }}
           >
-            Отмена
+            {labels.cancel?.value || 'Cancel'}
           </Button>
           <Button
             variant="contained"
@@ -1843,7 +1993,7 @@ export default function EditStatementPage() {
               },
             }}
           >
-            Применить
+            {labels.apply?.value || 'Apply'}
           </Button>
         </DialogActions>
       </Dialog>

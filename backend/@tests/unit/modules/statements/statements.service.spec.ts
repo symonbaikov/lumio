@@ -92,7 +92,9 @@ describe('StatementsService', () => {
         {
           provide: getRepositoryToken(Transaction),
           useValue: {
+            create: jest.fn(),
             find: jest.fn(),
+            save: jest.fn(),
             delete: jest.fn(),
             count: jest.fn(),
           },
@@ -468,8 +470,11 @@ describe('StatementsService', () => {
 
       await service.remove('1', '1');
 
-      expect(deleteTxSpy).toHaveBeenCalledWith({ statementId: '1' });
-      expect(removeSpy).toHaveBeenCalledWith(expect.objectContaining({ id: '1' }));
+      expect(deleteTxSpy).not.toHaveBeenCalled();
+      expect(removeSpy).not.toHaveBeenCalled();
+      expect(statementRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: '1', deletedAt: expect.any(Date) }),
+      );
     });
 
     it('should delete file from storage', async () => {
@@ -491,7 +496,7 @@ describe('StatementsService', () => {
       jest.spyOn(workspaceMemberRepository, 'findOne').mockResolvedValue(restrictedMember);
       jest.spyOn(statementRepository, 'findOne').mockResolvedValue(mockStatement as Statement);
 
-      await expect(service.remove('1', '1')).rejects.toThrow(ForbiddenException);
+      await expect(service.remove('1', '1', 'ws-1')).rejects.toThrow(ForbiddenException);
     });
 
     it('should create audit event for deletion', async () => {
@@ -519,6 +524,7 @@ describe('StatementsService', () => {
       jest.spyOn(workspaceMemberRepository, 'findOne').mockResolvedValue({
         role: WorkspaceRole.ADMIN,
       } as WorkspaceMember);
+      jest.spyOn(transactionRepository, 'find').mockResolvedValue([]);
     });
 
     it('should trigger statement reprocessing', async () => {
@@ -560,6 +566,214 @@ describe('StatementsService', () => {
       } as Statement);
 
       await expect(service.reprocess('1', '1')).resolves.toBeDefined();
+    });
+  });
+
+  describe('convertDroppedSampleToTransaction', () => {
+    beforeEach(() => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
+      jest.spyOn(workspaceMemberRepository, 'findOne').mockResolvedValue({
+        role: WorkspaceRole.ADMIN,
+      } as WorkspaceMember);
+    });
+
+    it('creates a transaction and removes the dropped sample from parsing details', async () => {
+      const statement = {
+        ...mockStatement,
+        id: 'stmt-1',
+        userId: '1',
+        workspaceId: 'ws-1',
+        totalTransactions: 3,
+        totalDebit: 100,
+        totalCredit: 50,
+        currency: 'KZT',
+        parsingDetails: {
+          warnings: [
+            'tx#207: skipped (no debit/credit amount)',
+            'tx#208: skipped (invalid date)',
+          ],
+          droppedSamples: [
+            {
+              reason: 'tx#207: skipped (no debit/credit amount)',
+              transaction: {
+                transactionDate: '2026-03-17',
+                counterpartyName: 'Kaspi Pay',
+                paymentPurpose: 'Service payment',
+              },
+            },
+            {
+              reason: 'tx#208: skipped (invalid date)',
+              transaction: {
+                transactionDate: 'invalid',
+              },
+            },
+          ],
+        },
+      } as Statement;
+
+      const createdTransaction = {
+        id: 'tx-new',
+        statementId: 'stmt-1',
+        workspaceId: 'ws-1',
+        transactionType: 'expense',
+        debit: 1250,
+      } as unknown as Transaction;
+
+      jest.spyOn(service, 'findOne').mockResolvedValue(statement);
+      jest.spyOn(transactionRepository, 'create').mockReturnValue(createdTransaction);
+      jest.spyOn(transactionRepository, 'save').mockResolvedValue(createdTransaction);
+      jest.spyOn(statementRepository, 'save').mockResolvedValue({
+        ...statement,
+        totalTransactions: 4,
+      } as Statement);
+
+      const result = await service.convertDroppedSampleToTransaction('stmt-1', '1', 'ws-1', {
+        index: 0,
+        transaction: {
+          transactionDate: '2026-03-17',
+          counterpartyName: 'Kaspi Pay',
+          paymentPurpose: 'Service payment',
+          debit: 1250,
+        },
+      });
+
+      expect(transactionRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statementId: 'stmt-1',
+          workspaceId: 'ws-1',
+          transactionType: 'expense',
+          amount: 1250,
+          debit: 1250,
+          credit: null,
+          currency: 'KZT',
+        }),
+      );
+      expect(statementRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          totalTransactions: 4,
+          totalDebit: 1350,
+          totalCredit: 50,
+          parsingDetails: expect.objectContaining({
+            warnings: ['tx#208: skipped (invalid date)'],
+            droppedSamples: [
+              expect.objectContaining({ reason: 'tx#208: skipped (invalid date)' }),
+            ],
+          }),
+        }),
+      );
+      expect(result).toEqual({
+        statement: expect.any(Object),
+        transaction: createdTransaction,
+      });
+    });
+
+    it('rejects dropped sample conversion without a positive debit or credit', async () => {
+      const statement = {
+        ...mockStatement,
+        id: 'stmt-1',
+        userId: '1',
+        workspaceId: 'ws-1',
+        currency: 'KZT',
+        parsingDetails: {
+          warnings: ['tx#207: skipped (no debit/credit amount)'],
+          droppedSamples: [
+            {
+              reason: 'tx#207: skipped (no debit/credit amount)',
+              transaction: {
+                transactionDate: '2026-03-17',
+              },
+            },
+          ],
+        },
+      } as Statement;
+
+      jest.spyOn(service, 'findOne').mockResolvedValue(statement);
+
+      await expect(
+        service.convertDroppedSampleToTransaction('stmt-1', '1', 'ws-1', {
+          index: 0,
+          transaction: {
+            transactionDate: '2026-03-17',
+            debit: 0,
+            credit: 0,
+          },
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('converts a warning row even when dropped sample payload is missing', async () => {
+      const statement = {
+        ...mockStatement,
+        id: 'stmt-1',
+        userId: '1',
+        workspaceId: 'ws-1',
+        totalTransactions: 3,
+        totalDebit: 100,
+        totalCredit: 50,
+        currency: 'KZT',
+        parsingDetails: {
+          warnings: [
+            'tx#243: skipped (negative amount)',
+            'tx#245: skipped (no debit/credit amount)',
+          ],
+          droppedSamples: [],
+        },
+      } as Statement;
+
+      const createdTransaction = {
+        id: 'tx-new',
+        statementId: 'stmt-1',
+        workspaceId: 'ws-1',
+        transactionType: 'expense',
+        debit: 1250,
+      } as unknown as Transaction;
+
+      jest.spyOn(service, 'findOne').mockResolvedValue(statement);
+      jest.spyOn(transactionRepository, 'create').mockReturnValue(createdTransaction);
+      jest.spyOn(transactionRepository, 'save').mockResolvedValue(createdTransaction);
+      jest.spyOn(statementRepository, 'save').mockResolvedValue({
+        ...statement,
+        totalTransactions: 4,
+      } as Statement);
+
+      const result = await service.convertDroppedSampleToTransaction('stmt-1', '1', 'ws-1', {
+        index: 1,
+        transaction: {
+          transactionDate: '2026-03-17',
+          counterpartyName: 'Kaspi Pay',
+          paymentPurpose: 'Service payment',
+          debit: 1250,
+        },
+      });
+
+      expect(transactionRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statementId: 'stmt-1',
+          workspaceId: 'ws-1',
+          transactionType: 'expense',
+          amount: 1250,
+          debit: 1250,
+          credit: null,
+          currency: 'KZT',
+          counterpartyName: 'Kaspi Pay',
+          paymentPurpose: 'Service payment',
+        }),
+      );
+      expect(statementRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          totalTransactions: 4,
+          totalDebit: 1350,
+          totalCredit: 50,
+          parsingDetails: expect.objectContaining({
+            warnings: ['tx#243: skipped (negative amount)'],
+            droppedSamples: [],
+          }),
+        }),
+      );
+      expect(result).toEqual({
+        statement: expect.any(Object),
+        transaction: createdTransaction,
+      });
     });
   });
 });

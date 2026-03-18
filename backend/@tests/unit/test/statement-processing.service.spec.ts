@@ -245,6 +245,21 @@ describe('StatementProcessingService', () => {
     });
   });
 
+  it('does not assign one majority category to every uncategorized transaction', async () => {
+    classificationService.classifyTransaction.mockResolvedValue({} as any);
+    classificationService.classifyTransactionsBatch.mockResolvedValue(new Map<number, string>());
+    classificationService.determineMajorityCategory.mockResolvedValue({
+      categoryId: 'cat-majority',
+      type: 'expense' as any,
+    });
+
+    await service.processStatement(statement.id);
+
+    expect(savedTransactions[0].categoryId).toBeUndefined();
+    expect(savedTransactions[1].categoryId).toBeUndefined();
+    expect(statement.categoryId).toBe('cat-majority');
+  });
+
   it('skips automatic category assignment when manual category selection is required', async () => {
     statement.parsingDetails = {
       manualCategorySelectionRequired: true,
@@ -284,5 +299,30 @@ describe('StatementProcessingService', () => {
 
     await expect(service.commitImport(statement.id)).resolves.toBe(statement);
     expect(importSessionService.processImport).not.toHaveBeenCalled();
+  });
+
+  it('keeps all dropped samples so every warning row remains repairable', async () => {
+    const manyInvalidTransactions = Array.from({ length: 12 }, (_, index) => ({
+      transactionDate: new Date('2024-01-05'),
+      documentNumber: `DOC-${index + 1}`,
+      counterpartyName: `Counterparty ${index + 1}`,
+      paymentPurpose: `Purpose ${index + 1}`,
+      debit: 0,
+      credit: 0,
+      currency: 'KZT',
+    }));
+
+    parserFactory.getParser.mockResolvedValueOnce({
+      parse: jest.fn().mockResolvedValue({
+        metadata: parsedStatement.metadata,
+        transactions: manyInvalidTransactions,
+      }),
+      constructor: { name: 'FakeParser' },
+    });
+
+    await service.processStatement(statement.id);
+
+    expect(statement.parsingDetails?.warnings).toHaveLength(12);
+    expect(statement.parsingDetails?.droppedSamples).toHaveLength(12);
   });
 });
