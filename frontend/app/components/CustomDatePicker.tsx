@@ -61,26 +61,25 @@ export default function CustomDatePicker({
 
   return (
     <div data-testid={containerTestId}>
+      {label ? <span className="text-xs text-gray-500 block mb-1 font-medium ml-1">{label}</span> : null}
       <DatePicker
         aria-label={label ?? placeholder ?? 'Date'}
-        label={label}
         value={calendarValue}
         onChange={handleChange}
         granularity="day"
         showMonthAndYearPickers
-        description={helperText}
         className="w-full"
         classNames={{
           base: 'w-full',
-          label: 'text-xs text-gray-500 font-medium mb-1 ml-1',
           inputWrapper:
-            'min-h-[40px] rounded-md border border-gray-300 bg-white px-3 transition-colors hover:border-[var(--mui-palette-primary-main)] group-data-[focus=true]:border-[var(--mui-palette-primary-main)] group-data-[focus=true]:ring-0',
+            'h-10 min-h-[40px] rounded-md border border-gray-300 bg-white px-3 py-0 shadow-none transition-colors hover:border-[var(--mui-palette-primary-main)] group-data-[focus=true]:border-[var(--mui-palette-primary-main)] group-data-[focus=true]:ring-0',
+          innerWrapper: 'h-full gap-x-2',
           input: 'text-sm text-gray-900',
-          segment: 'text-sm text-gray-900',
-          selectorButton: 'text-gray-500',
-          description: 'mt-1 text-xs text-gray-500 ml-3.5',
+          segment: 'text-sm text-gray-900 leading-none',
+          selectorButton: 'h-8 w-8 min-w-8 text-gray-500',
         }}
       />
+      {helperText ? <p className="mt-1 ml-3.5 text-xs text-gray-500">{helperText}</p> : null}
     </div>
   );
 }

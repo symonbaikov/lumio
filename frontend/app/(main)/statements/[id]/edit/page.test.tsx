@@ -322,5 +322,21 @@ describe('EditStatementPage locale', () => {
       container.querySelector('[data-testid="statement-metadata-field-closing-balance"]'),
     ).toBeTruthy();
     expect(metadataShells).toHaveLength(4);
+
+    const startDateWrapper = container.querySelector(
+      '[data-testid="statement-metadata-field-start-date"] [data-slot="input-wrapper"]',
+    );
+    const endDateWrapper = container.querySelector(
+      '[data-testid="statement-metadata-field-end-date"] [data-slot="input-wrapper"]',
+    );
+    const startDateLabel = container.querySelector(
+      '[data-testid="statement-metadata-field-start-date"] [data-slot="label"]',
+    );
+
+    expect(startDateWrapper?.className).toContain('min-h-[40px]');
+    expect(startDateWrapper?.className).not.toContain('h-14');
+    expect(endDateWrapper?.className).toContain('min-h-[40px]');
+    expect(endDateWrapper?.className).not.toContain('h-14');
+    expect(startDateLabel).toBeNull();
   });
 });
