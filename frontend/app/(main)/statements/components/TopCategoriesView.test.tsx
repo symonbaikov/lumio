@@ -4,13 +4,11 @@ import React from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import SpendOverTimeView from './SpendOverTimeView';
+import TopCategoriesView from './TopCategoriesView';
 
 const apiMocks = vi.hoisted(() => ({
   get: vi.fn(),
 }));
-
-const pushMock = vi.hoisted(() => vi.fn());
 
 vi.mock('next/dynamic', () => ({
   default: () => () => <div data-testid="mock-echarts" />,
@@ -20,12 +18,6 @@ vi.mock('@/app/lib/api', () => ({
   default: {
     get: apiMocks.get,
   },
-}));
-
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: pushMock,
-  }),
 }));
 
 vi.mock('@/app/hooks/useAuth', () => ({
@@ -51,30 +43,12 @@ vi.mock('@/app/contexts/WorkspaceContext', () => ({
         name: 'Main workspace',
         currency: 'USD',
       },
-      {
-        id: 'ws-2',
-        name: 'Side workspace',
-        currency: 'USD',
-      },
     ],
   }),
 }));
 
 vi.mock('next-themes', () => ({
   useTheme: () => ({ resolvedTheme: 'light' }),
-}));
-
-vi.mock('@/app/hooks/useIsMobile', () => ({
-  useIsMobile: () => false,
-}));
-
-vi.mock('@/app/hooks/usePullToRefresh', () => ({
-  usePullToRefresh: () => ({
-    handlers: {},
-    pullDistance: 0,
-    isRefreshing: false,
-    isReadyToRefresh: false,
-  }),
 }));
 
 vi.mock('@/app/i18n', () => ({
@@ -144,10 +118,6 @@ vi.mock('@/app/(main)/statements/components/filters/TypeFilterDropdown', () => (
   TypeFilterDropdown: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
 }));
 
-vi.mock('@/app/(main)/statements/components/filters/GroupByFilterDropdown', () => ({
-  GroupByFilterDropdown: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
-}));
-
 vi.mock('@/app/(main)/statements/components/filters/StatusFilterDropdown', () => ({
   StatusFilterDropdown: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
 }));
@@ -158,10 +128,6 @@ vi.mock('@/app/(main)/statements/components/filters/DateFilterDropdown', () => (
 
 vi.mock('@/app/(main)/statements/components/filters/FromFilterDropdown', () => ({
   FromFilterDropdown: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
-}));
-
-vi.mock('@/app/(main)/statements/components/filters/ViewFilterDropdown', () => ({
-  ViewFilterDropdown: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
 }));
 
 vi.mock('@/app/(main)/statements/components/filters/FiltersDrawer', () => ({
@@ -184,14 +150,13 @@ vi.mock('react-hot-toast', () => ({
   },
 }));
 
-describe('SpendOverTimeView', () => {
+describe('TopCategoriesView', () => {
   let container: HTMLDivElement;
   let root: ReturnType<typeof createRoot>;
 
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     localStorage.clear();
-    pushMock.mockReset();
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -204,25 +169,15 @@ describe('SpendOverTimeView', () => {
               {
                 id: 'statement-1',
                 status: 'completed',
-                createdAt: '2026-01-10T00:00:00.000Z',
-                statementDateFrom: '2026-01-01T00:00:00.000Z',
-                statementDateTo: '2026-01-10T00:00:00.000Z',
+                createdAt: '2026-02-10T00:00:00.000Z',
+                statementDateFrom: '2026-02-01T00:00:00.000Z',
+                statementDateTo: '2026-02-10T00:00:00.000Z',
                 bankName: 'Kaspi',
                 fileType: 'expense',
                 currency: 'USD',
               },
-              {
-                id: 'statement-2',
-                status: 'completed',
-                createdAt: '2026-02-03T00:00:00.000Z',
-                statementDateFrom: '2026-02-01T00:00:00.000Z',
-                statementDateTo: '2026-02-03T00:00:00.000Z',
-                bankName: 'Halyk',
-                fileType: 'income',
-                currency: 'USD',
-              },
             ],
-            total: 2,
+            total: 1,
           },
         });
       }
@@ -234,7 +189,7 @@ describe('SpendOverTimeView', () => {
               {
                 id: 'tx-1',
                 statementId: 'statement-1',
-                transactionDate: '2026-01-10T00:00:00.000Z',
+                transactionDate: '2026-02-10T00:00:00.000Z',
                 debit: 320,
                 credit: 0,
                 amount: 320,
@@ -242,21 +197,15 @@ describe('SpendOverTimeView', () => {
                 transactionType: 'expense',
                 counterpartyName: 'Anthropic',
                 paymentPurpose: 'Claude subscription',
-              },
-              {
-                id: 'tx-2',
-                statementId: 'statement-2',
-                transactionDate: '2026-02-03T00:00:00.000Z',
-                debit: 0,
-                credit: 500,
-                amount: 500,
-                currency: 'USD',
-                transactionType: 'income',
-                counterpartyName: 'Client payment',
-                paymentPurpose: 'January retainer',
+                categoryId: 'cat-1',
+                category: {
+                  id: 'cat-1',
+                  name: 'Software',
+                  color: '#2563eb',
+                },
               },
             ],
-            total: 2,
+            total: 1,
           },
         });
       }
@@ -267,31 +216,35 @@ describe('SpendOverTimeView', () => {
             receipts: [
               {
                 id: 'receipt-1',
-                subject: 'Uber ride',
+                subject: 'Travel receipt',
                 sender: 'Uber <noreply@uber.com>',
-                receivedAt: '2026-01-12T00:00:00.000Z',
+                receivedAt: '2026-02-12T00:00:00.000Z',
                 status: 'approved',
                 transactionId: null,
                 parsedData: {
                   amount: 45,
                   currency: 'USD',
                   vendor: 'Uber',
-                  date: '2026-01-12',
+                  date: '2026-02-12',
+                  category: 'Travel',
+                  categoryId: 'cat-2',
                   transactionType: 'expense',
                 },
               },
               {
                 id: 'receipt-2',
-                subject: 'Duplicate Anthropic receipt',
+                subject: 'Duplicate software receipt',
                 sender: 'Anthropic <billing@anthropic.com>',
-                receivedAt: '2026-01-11T00:00:00.000Z',
+                receivedAt: '2026-02-13T00:00:00.000Z',
                 status: 'approved',
                 transactionId: 'tx-1',
                 parsedData: {
                   amount: 320,
                   currency: 'USD',
                   vendor: 'Anthropic',
-                  date: '2026-01-11',
+                  date: '2026-02-13',
+                  category: 'Software',
+                  categoryId: 'cat-1',
                   transactionType: 'expense',
                 },
               },
@@ -314,9 +267,9 @@ describe('SpendOverTimeView', () => {
     apiMocks.get.mockReset();
   });
 
-  it('renders aggregated monthly analytics from transactions and unique gmail receipts', async () => {
+  it('renders aggregated categories from transactions and non-duplicated receipts', async () => {
     await act(async () => {
-      root.render(<SpendOverTimeView />);
+      root.render(<TopCategoriesView />);
     });
 
     await act(async () => {
@@ -324,18 +277,15 @@ describe('SpendOverTimeView', () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toContain('Spend over time');
-    expect(container.textContent).toContain('Current workspace');
-    expect(container.textContent).toContain('View: Line');
-    expect(container.textContent).toContain('Group by: Month');
-    expect(container.textContent).toContain('Jan 2026');
-    expect(container.textContent).not.toContain('Feb 2026');
-    expect(container.textContent).not.toContain('Duplicate Anthropic receipt');
+    expect(container.textContent).toContain('Top categories');
+    expect(container.textContent).toContain('Software');
+    expect(container.textContent).toContain('Travel');
+    expect(container.textContent).not.toContain('Duplicate software receipt');
   });
 
-  it('opens drill-down modal for a selected period row', async () => {
+  it('opens a drilldown modal for a selected category row', async () => {
     await act(async () => {
-      root.render(<SpendOverTimeView />);
+      root.render(<TopCategoriesView />);
     });
 
     await act(async () => {
@@ -344,7 +294,7 @@ describe('SpendOverTimeView', () => {
     });
 
     const rowButton = Array.from(container.querySelectorAll('button')).find(button =>
-      button.textContent?.includes('Jan 2026'),
+      button.textContent?.includes('Software'),
     );
 
     expect(rowButton).toBeTruthy();
@@ -353,36 +303,7 @@ describe('SpendOverTimeView', () => {
       rowButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(document.body.textContent).toContain('Jan 2026 - Drill-down');
-    expect(document.body.textContent).toContain('Anthropic');
-    expect(document.body.textContent).toContain('Uber');
-  });
-
-  it('shows empty state actions when no operations match filters', async () => {
-    apiMocks.get.mockImplementation((url: string) => {
-      if (url === '/statements') {
-        return Promise.resolve({ data: { data: [], total: 0 } });
-      }
-      if (url === '/transactions') {
-        return Promise.resolve({ data: { data: [], total: 0 } });
-      }
-      if (url === '/integrations/gmail/receipts') {
-        return Promise.resolve({ data: { receipts: [], total: 0 } });
-      }
-      return Promise.reject(new Error(`Unhandled request: ${url}`));
-    });
-
-    await act(async () => {
-      root.render(<SpendOverTimeView />);
-    });
-
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    expect(container.textContent).toContain('No data for selected period');
-    expect(container.textContent).toContain('Go to statement upload');
-    expect(container.textContent).toContain('Reset filters');
+    expect(document.body.textContent).toContain('Software - Drill-down');
+    expect(document.body.textContent).toContain('Main workspace');
   });
 });

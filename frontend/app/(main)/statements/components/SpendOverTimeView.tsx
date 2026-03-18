@@ -5,128 +5,132 @@ import { FiltersDrawer } from '@/app/(main)/statements/components/filters/Filter
 import { FromFilterDropdown } from '@/app/(main)/statements/components/filters/FromFilterDropdown';
 import { GroupByFilterDropdown } from '@/app/(main)/statements/components/filters/GroupByFilterDropdown';
 import { StatusFilterDropdown } from '@/app/(main)/statements/components/filters/StatusFilterDropdown';
-import { TypeFilterDropdown } from '@/app/(main)/statements/components/filters/TypeFilterDropdown';
 import { ViewFilterDropdown } from '@/app/(main)/statements/components/filters/ViewFilterDropdown';
 import {
   DEFAULT_STATEMENT_FILTERS,
+  type StatementFilterItem,
   type StatementFilters,
+  applyStatementsFilters,
   resetSingleStatementFilter,
 } from '@/app/(main)/statements/components/filters/statement-filters';
+import {
+  type SpendOverTimeFlowType,
+  type SpendOverTimeGroupBy,
+  type SpendOverTimeRecord,
+  buildSpendOverTimeReport,
+  dedupeSpendOverTimeReceiptRecords,
+  resolveSpendOverTimeFlow,
+} from '@/app/(main)/statements/components/spend-over-time.utils';
+import {
+  buildPreviousPeriodRange,
+  getComparisonDelta,
+  resolveSourceChannel,
+} from '@/app/(main)/statements/components/top-merchants.utils';
 import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
-import { useIsMobile } from '@/app/hooks/useIsMobile';
-import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
 import { useIntlayer } from '@/app/i18n';
-import { type SpendOverTimeReport, fetchSpendOverTimeReport } from '@/app/lib/spend-over-time-api';
-import { ChevronDown, Columns2, LineChart, RefreshCcw, SlidersHorizontal } from 'lucide-react';
+import apiClient from '@/app/lib/api';
+import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChartPie,
+  ChevronDown,
+  Landmark,
+  Mail,
+  Receipt,
+  Search,
+  SlidersHorizontal,
+  X,
+} from 'lucide-react';
 import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
-const STORAGE_KEY = 'lumio-spend-over-time-filters';
+type StatementMeta = {
+  id: string;
+  status?: string;
+  createdAt?: string | null;
+  statementDateFrom?: string | null;
+  statementDateTo?: string | null;
+  bankName?: string | null;
+  fileType?: string | null;
+  currency?: string | null;
+  exported?: boolean | null;
+  paid?: boolean | null;
+  workspaceId?: string;
+  workspaceName?: string;
+  parsingDetails?: {
+    metadataExtracted?: {
+      currency?: string;
+      headerDisplay?: {
+        currencyDisplay?: string;
+      };
+    };
+  } | null;
+  user?: {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+    avatarUrl?: string | null;
+  } | null;
+};
 
-type FlowFilterValue = 'expense' | 'income' | 'net' | 'all';
-type GroupByValue = 'day' | 'week' | 'month' | 'quarter' | 'year';
+type Transaction = {
+  id: string;
+  statementId?: string | null;
+  counterpartyName?: string | null;
+  transactionDate?: string | null;
+  debit?: number | string | null;
+  credit?: number | string | null;
+  amount?: number | string | null;
+  currency?: string | null;
+  paymentPurpose?: string | null;
+  transactionType?: 'income' | 'expense' | null;
+  createdAt?: string | null;
+  workspaceId?: string;
+  workspaceName?: string;
+};
+
+type GmailReceipt = {
+  id: string;
+  subject: string;
+  sender: string;
+  receivedAt: string;
+  status: string;
+  transactionId?: string | null;
+  parsedData?: {
+    amount?: number;
+    currency?: string;
+    vendor?: string;
+    date?: string;
+    transactionType?: 'income' | 'expense' | 'transfer' | 'unknown';
+  };
+  workspaceId?: string;
+  workspaceName?: string;
+};
+
 type ViewTypeValue = 'line' | 'bar' | 'stacked';
-
-const DEFAULT_GROUP_BY: GroupByValue = 'month';
-const DEFAULT_VIEW: ViewTypeValue = 'line';
-const DEFAULT_FLOW: FlowFilterValue = 'expense';
+type SortKey = 'amount' | 'average' | 'operations';
 
 type StoredState = {
   filters: StatementFilters;
-  groupBy: GroupByValue;
+  groupBy: SpendOverTimeGroupBy;
   viewType: ViewTypeValue;
-  showTable: boolean;
+  workspaceFilter: 'current' | 'all' | string;
+  activeFlowType: SpendOverTimeFlowType;
 };
 
-const FILTER_LABELS = {
-  title: 'Filters',
-  viewResults: 'View results',
-  saveSearch: 'Save search',
-  resetFilters: 'Reset filters',
-  general: 'General',
-  expenses: 'Expenses',
-  reports: 'Reports',
-  type: 'Flow',
-  from: 'From',
-  groupBy: 'Group by',
-  has: 'Has',
-  keywords: 'Keywords',
-  limit: 'Limit',
-  status: 'Status',
-  to: 'To',
-  amount: 'Amount',
-  approved: 'Approved',
-  billable: 'Billable',
-  currency: 'Currency',
-  date: 'Date',
-  exported: 'Exported',
-  paid: 'Paid',
-  any: 'Any',
-  yes: 'Yes',
-  no: 'No',
-};
-
-const FLOW_OPTIONS: Array<{ value: FlowFilterValue; label: string }> = [
-  { value: 'expense', label: 'Expense' },
-  { value: 'income', label: 'Income' },
-  { value: 'net', label: 'Net' },
-  { value: 'all', label: 'All' },
-];
-
-const STATUS_OPTIONS = [
-  { value: 'unreported', label: 'Unreported' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'outstanding', label: 'Outstanding' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'paid', label: 'Paid' },
-  { value: 'done', label: 'Done' },
-];
-
-const DATE_PRESETS = [
-  { value: 'thisMonth' as const, label: 'This month' },
-  { value: 'lastMonth' as const, label: 'Last month' },
-  { value: 'yearToDate' as const, label: 'Year to date' },
-];
-
-const DATE_MODES = [
-  { value: 'on' as const, label: 'On' },
-  { value: 'after' as const, label: 'After' },
-  { value: 'before' as const, label: 'Before' },
-];
-
-const HAS_OPTIONS = [
-  { value: 'errors', label: 'Errors' },
-  { value: 'processingDetails', label: 'Logs' },
-  { value: 'transactions', label: 'Transactions' },
-  { value: 'dateRange', label: 'Date range' },
-  { value: 'currency', label: 'Currency' },
-];
-
-const GROUP_BY_OPTIONS: Array<{ value: GroupByValue; label: string }> = [
-  { value: 'day', label: 'Day' },
-  { value: 'week', label: 'Week' },
-  { value: 'month', label: 'Month' },
-  { value: 'quarter', label: 'Quarter' },
-  { value: 'year', label: 'Year' },
-];
-
-const VIEW_OPTIONS: Array<{ value: ViewTypeValue; label: string }> = [
-  { value: 'line', label: 'Line' },
-  { value: 'bar', label: 'Bar' },
-  { value: 'stacked', label: 'Stacked' },
-];
-
-const FLOW_VALUES: FlowFilterValue[] = ['expense', 'income', 'net', 'all'];
-const GROUP_BY_VALUES: GroupByValue[] = ['day', 'week', 'month', 'quarter', 'year'];
-const VIEW_VALUES: ViewTypeValue[] = ['line', 'bar', 'stacked'];
+const STORAGE_KEY = 'lumio-spend-over-time-filters-v2';
+const DEFAULT_GROUP_BY: SpendOverTimeGroupBy = 'month';
+const DEFAULT_VIEW: ViewTypeValue = 'line';
+const DEFAULT_FLOW: SpendOverTimeFlowType = 'expense';
 
 const resolveCurrencyCode = (currency: string | null | undefined, fallback = 'KZT') => {
   const normalized = String(currency || '')
@@ -140,62 +144,97 @@ const resolveCurrencyCode = (currency: string | null | undefined, fallback = 'KZ
   return fallback;
 };
 
-const formatMoney = (value: number, currency: string) =>
-  new Intl.NumberFormat('ru', {
+const resolveLocale = (locale?: string) => {
+  if (locale === 'ru') return 'ru-RU';
+  if (locale === 'kk') return 'kk-KZ';
+  return 'en-US';
+};
+
+const formatMoney = (value: number, currency: string, locale = 'ru') =>
+  new Intl.NumberFormat(resolveLocale(locale), {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
 
-const resolveStoredFlow = (value: unknown): FlowFilterValue =>
-  FLOW_VALUES.includes(value as FlowFilterValue) ? (value as FlowFilterValue) : DEFAULT_FLOW;
+const toDateOnly = (value?: string | null) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+};
 
-const resolveStoredGroupBy = (value: unknown): GroupByValue =>
-  GROUP_BY_VALUES.includes(value as GroupByValue) ? (value as GroupByValue) : DEFAULT_GROUP_BY;
+const getTransactionDate = (transaction: Transaction, statement?: StatementMeta) => {
+  return (
+    transaction.transactionDate ||
+    statement?.statementDateTo ||
+    statement?.statementDateFrom ||
+    statement?.createdAt ||
+    transaction.createdAt ||
+    ''
+  );
+};
 
-const resolveStoredViewType = (value: unknown): ViewTypeValue =>
-  VIEW_VALUES.includes(value as ViewTypeValue) ? (value as ViewTypeValue) : DEFAULT_VIEW;
+const getTransactionCurrency = (
+  transaction: Transaction,
+  statement: StatementMeta | undefined,
+  fallbackCurrency: string,
+) => {
+  return (
+    transaction.currency ||
+    statement?.currency ||
+    statement?.parsingDetails?.metadataExtracted?.currency ||
+    statement?.parsingDetails?.metadataExtracted?.headerDisplay?.currencyDisplay ||
+    fallbackCurrency
+  );
+};
+
+const getRecordDate = (record: { dateValue?: string; createdAt?: string | null }) => {
+  return toDateOnly(record.dateValue || record.createdAt || null);
+};
 
 const loadStoredState = (): StoredState => {
   if (typeof window === 'undefined') {
     return {
-      filters: { ...DEFAULT_STATEMENT_FILTERS, type: DEFAULT_FLOW },
+      filters: DEFAULT_STATEMENT_FILTERS,
       groupBy: DEFAULT_GROUP_BY,
       viewType: DEFAULT_VIEW,
-      showTable: true,
+      workspaceFilter: 'current',
+      activeFlowType: DEFAULT_FLOW,
     };
   }
 
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
     return {
-      filters: { ...DEFAULT_STATEMENT_FILTERS, type: DEFAULT_FLOW },
+      filters: DEFAULT_STATEMENT_FILTERS,
       groupBy: DEFAULT_GROUP_BY,
       viewType: DEFAULT_VIEW,
-      showTable: true,
+      workspaceFilter: 'current',
+      activeFlowType: DEFAULT_FLOW,
     };
   }
 
   try {
     const parsed = JSON.parse(raw) as Partial<StoredState>;
-    const parsedFilters = (parsed.filters || {}) as Partial<StatementFilters>;
     return {
       filters: {
         ...DEFAULT_STATEMENT_FILTERS,
-        ...parsedFilters,
-        type: resolveStoredFlow(parsedFilters.type),
+        ...parsed.filters,
       },
-      groupBy: resolveStoredGroupBy(parsed.groupBy),
-      viewType: resolveStoredViewType(parsed.viewType),
-      showTable: parsed.showTable ?? true,
+      groupBy: parsed.groupBy || DEFAULT_GROUP_BY,
+      viewType: parsed.viewType || DEFAULT_VIEW,
+      workspaceFilter: parsed.workspaceFilter || 'current',
+      activeFlowType: parsed.activeFlowType || DEFAULT_FLOW,
     };
   } catch {
     return {
-      filters: { ...DEFAULT_STATEMENT_FILTERS, type: DEFAULT_FLOW },
+      filters: DEFAULT_STATEMENT_FILTERS,
       groupBy: DEFAULT_GROUP_BY,
       viewType: DEFAULT_VIEW,
-      showTable: true,
+      workspaceFilter: 'current',
+      activeFlowType: DEFAULT_FLOW,
     };
   }
 };
@@ -205,28 +244,77 @@ const saveStoredState = (state: StoredState) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 };
 
+const getSourceLabel = (
+  channel: SpendOverTimeRecord['sourceChannel'],
+  labels: {
+    sourceBank: string;
+    sourceReceipt: string;
+    sourceGmailInbox: string;
+  },
+) => {
+  if (channel === 'gmail') return labels.sourceGmailInbox;
+  if (channel === 'receipt') return labels.sourceReceipt;
+  return labels.sourceBank;
+};
+
+const matchesPeriod = (date: Date, period: string, groupBy: SpendOverTimeGroupBy) => {
+  if (groupBy === 'day') {
+    return date.toISOString().split('T')[0] === period;
+  }
+
+  if (groupBy === 'week') {
+    const day = date.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const weekStart = new Date(date);
+    weekStart.setDate(date.getDate() + diff);
+    const normalized = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate())
+      .toISOString()
+      .split('T')[0];
+    return normalized === period;
+  }
+
+  if (groupBy === 'month') {
+    const key = `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}`;
+    return key === period;
+  }
+
+  if (groupBy === 'quarter') {
+    const quarter = Math.floor(date.getMonth() / 3) + 1;
+    return `${date.getFullYear()}-Q${quarter}` === period;
+  }
+
+  return `${date.getFullYear()}` === period;
+};
+
 export default function SpendOverTimeView() {
-  const t = useIntlayer('statementsPage') as any;
-  const { user } = useAuth();
-  const { currentWorkspace } = useWorkspace();
+  const t = useIntlayer('statementsPage');
   const router = useRouter();
-  const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const { currentWorkspace, workspaces } = useWorkspace();
   const { resolvedTheme } = useTheme();
   const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
-
   const initial = useMemo(() => loadStoredState(), []);
 
   const [loading, setLoading] = useState(true);
-  const [report, setReport] = useState<SpendOverTimeReport | null>(null);
+  const [statements, setStatements] = useState<StatementMeta[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [gmailReceipts, setGmailReceipts] = useState<GmailReceipt[]>([]);
+  const [searchInput, setSearchInput] = useState('');
+  const [workspaceFilter, setWorkspaceFilter] = useState<'current' | 'all' | string>(
+    initial.workspaceFilter,
+  );
+  const [activeFlowType, setActiveFlowType] = useState<SpendOverTimeFlowType>(
+    initial.activeFlowType,
+  );
+  const [sortKey, setSortKey] = useState<SortKey>('amount');
+  const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
 
   const [draftFilters, setDraftFilters] = useState<StatementFilters>(initial.filters);
   const [appliedFilters, setAppliedFilters] = useState<StatementFilters>(initial.filters);
-  const [draftGroupBy, setDraftGroupBy] = useState<GroupByValue>(initial.groupBy);
-  const [groupBy, setGroupBy] = useState<GroupByValue>(initial.groupBy);
+  const [draftGroupBy, setDraftGroupBy] = useState<SpendOverTimeGroupBy>(initial.groupBy);
+  const [groupBy, setGroupBy] = useState<SpendOverTimeGroupBy>(initial.groupBy);
   const [draftViewType, setDraftViewType] = useState<ViewTypeValue>(initial.viewType);
   const [viewType, setViewType] = useState<ViewTypeValue>(initial.viewType);
-  const [showTable, setShowTable] = useState(initial.showTable);
-
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
   const [groupByDropdownOpen, setGroupByDropdownOpen] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
@@ -235,27 +323,760 @@ export default function SpendOverTimeView() {
   const [viewDropdownOpen, setViewDropdownOpen] = useState(false);
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
   const [filtersDrawerScreen, setFiltersDrawerScreen] = useState('root');
-  const contentScrollRef = useRef<HTMLDivElement | null>(null);
 
-  const fromOptions = useMemo(() => {
-    const items = [] as Array<{
-      id: string;
-      label: string;
-      description?: string | null;
-      avatarUrl?: string | null;
-      bankName?: string | null;
-    }>;
+  const resolveLabel = (value: any, fallback: string) => value?.value ?? value ?? fallback;
 
-    if (user?.id) {
-      items.push({
-        id: `user:${user.id}`,
-        label: user.name || user.email || 'User',
-        description: user.email ? `@${user.email.split('@')[0]}` : null,
-      });
+  const labels = {
+    title: resolveLabel((t as any)?.spendOverTimeAnalytics?.title, 'Spend over time'),
+    subtitle: resolveLabel(
+      (t as any)?.spendOverTimeAnalytics?.subtitle,
+      'Track spend and income dynamics with the same filters and drill-down as Top merchants.',
+    ),
+    searchPlaceholder: resolveLabel(
+      (t as any)?.spendOverTimeAnalytics?.searchPlaceholder,
+      'Search by merchant, sender or subject',
+    ),
+    totalSpend: resolveLabel((t as any)?.spendOverTimeAnalytics?.totalSpend, 'Total spend'),
+    totalIncome: resolveLabel((t as any)?.spendOverTimeAnalytics?.totalIncome, 'Total income'),
+    statementsAmount: resolveLabel(
+      (t as any)?.spendOverTimeAnalytics?.statementsAmount,
+      'Statements',
+    ),
+    receiptsAmount: resolveLabel((t as any)?.spendOverTimeAnalytics?.receiptsAmount, 'Receipts'),
+    totalOperations: resolveLabel(
+      (t as any)?.spendOverTimeAnalytics?.totalOperations,
+      'Operations',
+    ),
+    avgPerPeriod: resolveLabel(
+      (t as any)?.spendOverTimeAnalytics?.avgPerPeriod,
+      'Average per period',
+    ),
+    periodChart: resolveLabel((t as any)?.spendOverTimeAnalytics?.periodChart, 'Top periods'),
+    trendTitle: resolveLabel((t as any)?.spendOverTimeAnalytics?.trendTitle, 'Trend'),
+    sourceSplit: resolveLabel((t as any)?.spendOverTimeAnalytics?.sourceSplit, 'Source split'),
+    leaderboard: resolveLabel(
+      (t as any)?.spendOverTimeAnalytics?.leaderboard,
+      'Periods leaderboard',
+    ),
+    workspace: resolveLabel((t as any)?.spendOverTimeAnalytics?.workspace, 'Workspace'),
+    allWorkspaces: resolveLabel(
+      (t as any)?.spendOverTimeAnalytics?.allWorkspaces,
+      'All workspaces',
+    ),
+    currentWorkspace: resolveLabel(
+      (t as any)?.spendOverTimeAnalytics?.currentWorkspace,
+      'Current workspace',
+    ),
+    tabExpense: resolveLabel((t as any)?.spendOverTimeAnalytics?.tabExpense, 'Expenses'),
+    tabIncome: resolveLabel((t as any)?.spendOverTimeAnalytics?.tabIncome, 'Income'),
+    period: resolveLabel((t as any)?.spendOverTimeAnalytics?.period, 'Period'),
+    amount: resolveLabel((t as any)?.spendOverTimeAnalytics?.amount, 'Amount'),
+    average: resolveLabel((t as any)?.spendOverTimeAnalytics?.average, 'Average'),
+    operations: resolveLabel((t as any)?.spendOverTimeAnalytics?.operations, 'Operations'),
+    source: resolveLabel((t as any)?.spendOverTimeAnalytics?.source, 'Source'),
+    lastOperation: resolveLabel(
+      (t as any)?.spendOverTimeAnalytics?.lastOperation,
+      'Last operation',
+    ),
+    sortByAmount: resolveLabel((t as any)?.spendOverTimeAnalytics?.sortByAmount, 'Amount'),
+    sortByAverage: resolveLabel((t as any)?.spendOverTimeAnalytics?.sortByAverage, 'Average'),
+    sortByOperations: resolveLabel(
+      (t as any)?.spendOverTimeAnalytics?.sortByOperations,
+      'Operations',
+    ),
+    comparisonNoData: resolveLabel(
+      (t as any)?.spendOverTimeAnalytics?.comparisonNoData,
+      'No previous period data',
+    ),
+    vsPreviousPeriod: resolveLabel(
+      (t as any)?.spendOverTimeAnalytics?.vsPreviousPeriod,
+      'vs previous period',
+    ),
+    drillDown: resolveLabel((t as any)?.spendOverTimeAnalytics?.drillDown, 'Drill-down'),
+    noOperations: resolveLabel(
+      (t as any)?.spendOverTimeAnalytics?.noOperations,
+      'No operations found',
+    ),
+    sourceBank: resolveLabel((t as any)?.spendOverTimeAnalytics?.sourceBank, 'Bank'),
+    sourceReceipt: resolveLabel((t as any)?.spendOverTimeAnalytics?.sourceReceipt, 'Receipt'),
+    sourceGmailInbox: resolveLabel((t as any)?.spendOverTimeAnalytics?.sourceGmailInbox, 'Gmail'),
+    emptyStateTitle: resolveLabel(
+      (t as any)?.spendOverTime?.emptyStateTitle,
+      'No data for selected period',
+    ),
+    emptyStateDescription: resolveLabel(
+      (t as any)?.spendOverTime?.emptyStateDescription,
+      'Upload statements or apply another filter',
+    ),
+    emptyStateUploadCta: resolveLabel(
+      (t as any)?.spendOverTime?.emptyStateUploadCta,
+      'Go to statement upload',
+    ),
+    emptyStateResetCta: resolveLabel(
+      (t as any)?.spendOverTime?.emptyStateResetCta,
+      'Reset filters',
+    ),
+    close: resolveLabel((t as any)?.common?.close, 'Close'),
+    filters: resolveLabel((t as any)?.filters?.filters, 'Filters'),
+    type: resolveLabel((t as any)?.filters?.type, 'Type'),
+    status: resolveLabel((t as any)?.filters?.status, 'Status'),
+    date: resolveLabel((t as any)?.filters?.date, 'Date'),
+    from: resolveLabel((t as any)?.filters?.from, 'From'),
+    apply: resolveLabel((t as any)?.filters?.apply, 'Apply'),
+    reset: resolveLabel((t as any)?.filters?.reset, 'Reset'),
+  };
+
+  const filterOptionLabels = {
+    apply: resolveLabel((t as any)?.filters?.apply, 'Apply'),
+    reset: resolveLabel((t as any)?.filters?.reset, 'Reset'),
+    resetFilters: resolveLabel((t as any)?.filters?.resetFilters, 'Reset filters'),
+    viewResults: resolveLabel((t as any)?.filters?.viewResults, 'View results'),
+    saveSearch: resolveLabel((t as any)?.filters?.saveSearch, 'Save search'),
+    any: resolveLabel((t as any)?.filters?.any, 'Any'),
+    yes: resolveLabel((t as any)?.filters?.yes, 'Yes'),
+    no: resolveLabel((t as any)?.filters?.no, 'No'),
+    typeExpense: resolveLabel((t as any)?.filters?.typeExpense, 'Expense'),
+    typeReport: resolveLabel((t as any)?.filters?.typeReport, 'Expense Report'),
+    typeChat: resolveLabel((t as any)?.filters?.typeChat, 'Chat'),
+    typeTrip: resolveLabel((t as any)?.filters?.typeTrip, 'Trip'),
+    typeTask: resolveLabel((t as any)?.filters?.typeTask, 'Task'),
+    statusUnreported: resolveLabel((t as any)?.filters?.statusUnreported, 'Unreported'),
+    statusDraft: resolveLabel((t as any)?.filters?.statusDraft, 'Draft'),
+    statusOutstanding: resolveLabel((t as any)?.filters?.statusOutstanding, 'Outstanding'),
+    statusApproved: resolveLabel((t as any)?.filters?.statusApproved, 'Approved'),
+    statusPaid: resolveLabel((t as any)?.filters?.statusPaid, 'Paid'),
+    statusDone: resolveLabel((t as any)?.filters?.statusDone, 'Done'),
+    dateThisMonth: resolveLabel((t as any)?.filters?.dateThisMonth, 'This month'),
+    dateLastMonth: resolveLabel((t as any)?.filters?.dateLastMonth, 'Last month'),
+    dateYearToDate: resolveLabel((t as any)?.filters?.dateYearToDate, 'Year to date'),
+    dateOn: resolveLabel((t as any)?.filters?.dateOn, 'On'),
+    dateAfter: resolveLabel((t as any)?.filters?.dateAfter, 'After'),
+    dateBefore: resolveLabel((t as any)?.filters?.dateBefore, 'Before'),
+    drawerTitle: resolveLabel((t as any)?.filters?.drawerTitle, 'Filters'),
+    drawerGeneral: resolveLabel((t as any)?.filters?.drawerGeneral, 'General'),
+    drawerExpenses: resolveLabel((t as any)?.filters?.drawerExpenses, 'Expenses'),
+    drawerReports: resolveLabel((t as any)?.filters?.drawerReports, 'Reports'),
+    drawerGroupBy: resolveLabel((t as any)?.filters?.drawerGroupBy, 'Group by'),
+    drawerHas: resolveLabel((t as any)?.filters?.drawerHas, 'Has'),
+    drawerKeywords: resolveLabel((t as any)?.filters?.drawerKeywords, 'Keywords'),
+    drawerLimit: resolveLabel((t as any)?.filters?.drawerLimit, 'Limit'),
+    drawerTo: resolveLabel((t as any)?.filters?.drawerTo, 'To'),
+    drawerAmount: resolveLabel((t as any)?.filters?.drawerAmount, 'Amount'),
+    drawerApproved: resolveLabel((t as any)?.filters?.drawerApproved, 'Approved'),
+    drawerBillable: resolveLabel((t as any)?.filters?.drawerBillable, 'Billable'),
+    groupByDate: resolveLabel((t as any)?.filters?.groupByDate, 'Date'),
+    groupByStatus: resolveLabel((t as any)?.filters?.groupByStatus, 'Status'),
+    groupByType: resolveLabel((t as any)?.filters?.groupByType, 'Type'),
+    groupByBank: resolveLabel((t as any)?.filters?.groupByBank, 'Bank'),
+    groupByUser: resolveLabel((t as any)?.filters?.groupByUser, 'User'),
+    groupByAmount: resolveLabel((t as any)?.filters?.groupByAmount, 'Amount'),
+    hasErrors: resolveLabel((t as any)?.filters?.hasErrors, 'Errors'),
+    hasLogs: resolveLabel((t as any)?.filters?.hasLogs, 'Logs'),
+    hasTransactions: resolveLabel((t as any)?.filters?.hasTransactions, 'Transactions'),
+    hasDateRange: resolveLabel((t as any)?.filters?.hasDateRange, 'Date range'),
+    hasCurrency: resolveLabel((t as any)?.filters?.hasCurrency, 'Currency'),
+  };
+
+  const filterLinkClassName =
+    'inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-primary';
+
+  const typeOptions = [
+    { value: 'expense', label: filterOptionLabels.typeExpense },
+    { value: 'expense_report', label: filterOptionLabels.typeReport },
+    { value: 'chat', label: filterOptionLabels.typeChat },
+    { value: 'trip', label: filterOptionLabels.typeTrip },
+    { value: 'task', label: filterOptionLabels.typeTask },
+    { value: 'gmail', label: 'Gmail' },
+    { value: 'pdf', label: 'PDF' },
+    { value: 'xlsx', label: 'Excel' },
+    { value: 'csv', label: 'CSV' },
+    { value: 'image', label: 'Image' },
+  ];
+
+  const statusOptions = [
+    { value: 'unreported', label: filterOptionLabels.statusUnreported },
+    { value: 'draft', label: filterOptionLabels.statusDraft },
+    { value: 'outstanding', label: filterOptionLabels.statusOutstanding },
+    { value: 'approved', label: filterOptionLabels.statusApproved },
+    { value: 'paid', label: filterOptionLabels.statusPaid },
+    { value: 'done', label: filterOptionLabels.statusDone },
+  ];
+
+  const datePresets = [
+    { value: 'thisMonth' as const, label: filterOptionLabels.dateThisMonth },
+    { value: 'lastMonth' as const, label: filterOptionLabels.dateLastMonth },
+    { value: 'yearToDate' as const, label: filterOptionLabels.dateYearToDate },
+  ];
+
+  const dateModes = [
+    { value: 'on' as const, label: filterOptionLabels.dateOn },
+    { value: 'after' as const, label: filterOptionLabels.dateAfter },
+    { value: 'before' as const, label: filterOptionLabels.dateBefore },
+  ];
+
+  const groupByOptions = [
+    { value: 'day' as const, label: 'Day' },
+    { value: 'week' as const, label: 'Week' },
+    { value: 'month' as const, label: 'Month' },
+    { value: 'quarter' as const, label: 'Quarter' },
+    { value: 'year' as const, label: 'Year' },
+  ];
+
+  const viewOptions = [
+    { value: 'line' as const, label: 'Line' },
+    { value: 'bar' as const, label: 'Bar' },
+    { value: 'stacked' as const, label: 'Stacked' },
+  ];
+
+  const hasOptions = [
+    { value: 'errors', label: filterOptionLabels.hasErrors },
+    { value: 'processingDetails', label: filterOptionLabels.hasLogs },
+    { value: 'transactions', label: filterOptionLabels.hasTransactions },
+    { value: 'dateRange', label: filterOptionLabels.hasDateRange },
+    { value: 'currency', label: filterOptionLabels.hasCurrency },
+  ];
+
+  const workspaceTargets = useMemo(() => {
+    if (workspaceFilter === 'all') {
+      const all = workspaces.map(workspace => ({
+        id: workspace.id,
+        name: workspace.name || 'Workspace',
+      }));
+      if (all.length > 0) return all;
     }
 
-    return items;
-  }, [user]);
+    if (workspaceFilter === 'current') {
+      if (currentWorkspace?.id) {
+        return [{ id: currentWorkspace.id, name: currentWorkspace.name || labels.currentWorkspace }];
+      }
+      return [];
+    }
+
+    const selectedWorkspace = workspaces.find(workspace => workspace.id === workspaceFilter);
+    return [{ id: workspaceFilter, name: selectedWorkspace?.name || labels.currentWorkspace }];
+  }, [workspaceFilter, workspaces, currentWorkspace?.id, currentWorkspace?.name, labels.currentWorkspace]);
+
+  const workspaceTargetKey = useMemo(
+    () => workspaceTargets.map(target => target.id).join(','),
+    [workspaceTargets],
+  );
+
+  useEffect(() => {
+    saveStoredState({
+      filters: appliedFilters,
+      groupBy,
+      viewType,
+      workspaceFilter,
+      activeFlowType,
+    });
+  }, [appliedFilters, groupBy, viewType, workspaceFilter, activeFlowType]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      if (!user?.id) return;
+      if (workspaceTargets.length === 0) {
+        setStatements([]);
+        setTransactions([]);
+        setGmailReceipts([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const allStatements: StatementMeta[] = [];
+        const allTransactions: Transaction[] = [];
+        const allReceipts: GmailReceipt[] = [];
+
+        for (const target of workspaceTargets) {
+          const requestHeaders = {
+            'X-Workspace-Id': target.id,
+          };
+
+          const statementsResponse = await apiClient.get('/statements', {
+            params: { page: 1, limit: 500 },
+            headers: requestHeaders,
+          });
+          const statementItems = statementsResponse.data?.data || statementsResponse.data || [];
+          allStatements.push(
+            ...(Array.isArray(statementItems) ? statementItems : []).map(statement => ({
+              ...statement,
+              workspaceId: target.id,
+              workspaceName: target.name,
+            })),
+          );
+
+          const transactionsResponse = await apiClient.get('/transactions', {
+            params: { page: 1, limit: 500 },
+            headers: requestHeaders,
+          });
+          const transactionItems =
+            transactionsResponse.data?.data || transactionsResponse.data?.items || transactionsResponse.data || [];
+          allTransactions.push(
+            ...(Array.isArray(transactionItems) ? transactionItems : []).map(transaction => ({
+              ...transaction,
+              workspaceId: target.id,
+              workspaceName: target.name,
+            })),
+          );
+
+          const receiptsResponse = await apiClient.get('/integrations/gmail/receipts', {
+            params: { limit: 100, offset: 0 },
+            headers: requestHeaders,
+          });
+          const receiptItems = receiptsResponse.data?.receipts || [];
+          allReceipts.push(
+            ...(Array.isArray(receiptItems) ? receiptItems : []).map(receipt => ({
+              ...receipt,
+              workspaceId: target.id,
+              workspaceName: target.name,
+            })),
+          );
+        }
+
+        if (!isMounted) return;
+        setStatements(allStatements);
+        setTransactions(allTransactions);
+        setGmailReceipts(allReceipts);
+      } catch (error) {
+        console.error('Failed to load spend over time data', error);
+        if (isMounted) {
+          toast.error('Failed to load spending data');
+          setStatements([]);
+          setTransactions([]);
+          setGmailReceipts([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id, workspaceTargetKey]);
+
+  const allRecords = useMemo<SpendOverTimeRecord[]>(() => {
+    const statementById = new Map(statements.map(statement => [statement.id, statement]));
+
+    const mappedTransactions: SpendOverTimeRecord[] = transactions
+      .map((item): SpendOverTimeRecord => {
+        const statementMeta = item.statementId ? statementById.get(item.statementId) : undefined;
+        const flow = resolveSpendOverTimeFlow({
+          sourceType: 'statement' as const,
+          debit: item.debit,
+          credit: item.credit,
+          amount: item.amount,
+          transactionType: item.transactionType,
+        });
+        const currency = getTransactionCurrency(item, statementMeta, workspaceCurrency);
+        const merchant = (item.counterpartyName || '').trim() || 'Unknown';
+        const fileType = (statementMeta?.fileType || item.transactionType || 'expense')
+          .toString()
+          .toLowerCase();
+
+        return {
+          id: item.id,
+          source: 'statement' as const,
+          fileName: merchant,
+          subject: null,
+          sender: null,
+          status: statementMeta?.status || null,
+          fileType,
+          createdAt: statementMeta?.createdAt || item.createdAt || null,
+          statementDateFrom: statementMeta?.statementDateFrom || item.transactionDate || null,
+          statementDateTo: statementMeta?.statementDateTo || null,
+          bankName: statementMeta?.bankName || null,
+          totalDebit: flow.flowType === 'expense' ? flow.amount : null,
+          totalCredit: flow.flowType === 'income' ? flow.amount : null,
+          currency,
+          exported: statementMeta?.exported ?? null,
+          paid: statementMeta?.paid ?? null,
+          parsingDetails: statementMeta?.parsingDetails || null,
+          user: statementMeta?.user || null,
+          receivedAt: null,
+          parsedData: {
+            vendor: merchant,
+            date: item.transactionDate || null,
+          },
+          sourceType: 'statement',
+          sourceChannel: resolveSourceChannel({ sourceType: 'statement', fileType }),
+          flowType: flow.flowType,
+          amount: flow.amount,
+          currencyValue: currency,
+          dateValue: getTransactionDate(item, statementMeta),
+          transactionId: item.id,
+          workspaceId: statementMeta?.workspaceId || item.workspaceId,
+          workspaceName: statementMeta?.workspaceName || item.workspaceName,
+          merchant,
+          paymentPurpose: item.paymentPurpose,
+        };
+      })
+      .filter(record => record.amount > 0);
+
+    const mappedReceipts: SpendOverTimeRecord[] = gmailReceipts
+      .map((receipt): SpendOverTimeRecord => {
+        const flow = resolveSpendOverTimeFlow({
+          sourceType: 'gmail' as const,
+          amount: receipt.parsedData?.amount ?? 0,
+          transactionType: receipt.parsedData?.transactionType,
+        });
+        const merchant = resolveGmailMerchantLabel({
+          vendor: receipt.parsedData?.vendor,
+          sender: receipt.sender,
+          subject: receipt.subject,
+          fallback: 'Gmail receipt',
+        });
+        const currency = resolveCurrencyCode(receipt.parsedData?.currency, workspaceCurrency);
+
+        return {
+          id: receipt.id,
+          source: 'gmail' as const,
+          fileName: merchant,
+          subject: receipt.subject,
+          sender: receipt.sender,
+          status: receipt.status,
+          fileType: 'gmail',
+          createdAt: receipt.receivedAt,
+          statementDateFrom: receipt.parsedData?.date || receipt.receivedAt,
+          statementDateTo: null,
+          bankName: 'gmail',
+          totalDebit: flow.flowType === 'expense' ? flow.amount : null,
+          totalCredit: flow.flowType === 'income' ? flow.amount : null,
+          currency,
+          exported: null,
+          paid: null,
+          parsingDetails: null,
+          user: null,
+          receivedAt: receipt.receivedAt,
+          parsedData: {
+            vendor: merchant,
+            date: receipt.parsedData?.date || receipt.receivedAt,
+          },
+          sourceType: 'gmail',
+          sourceChannel: 'gmail',
+          flowType: flow.flowType,
+          amount: flow.amount,
+          currencyValue: currency,
+          dateValue: receipt.parsedData?.date || receipt.receivedAt,
+          transactionId: receipt.transactionId ?? null,
+          workspaceId: receipt.workspaceId,
+          workspaceName: receipt.workspaceName,
+          merchant,
+          paymentPurpose: merchant,
+        };
+      })
+      .filter(record => record.amount > 0);
+
+    const existingTransactionIds = new Set(transactions.map(transaction => transaction.id));
+    const uniqueReceipts = dedupeSpendOverTimeReceiptRecords(mappedReceipts, existingTransactionIds);
+
+    return [...mappedTransactions, ...uniqueReceipts];
+  }, [transactions, gmailReceipts, statements, workspaceCurrency]);
+
+  const fromOptions = useMemo(() => {
+    const seen = new Map<
+      string,
+      {
+        id: string;
+        label: string;
+        description?: string | null;
+        avatarUrl?: string | null;
+        bankName?: string | null;
+      }
+    >();
+
+    allRecords.forEach(record => {
+      if (record.user?.id && !seen.has(`user:${record.user.id}`)) {
+        seen.set(`user:${record.user.id}`, {
+          id: `user:${record.user.id}`,
+          label: record.user.name || record.user.email || 'User',
+          description: record.user.email ? `@${record.user.email.split('@')[0]}` : null,
+        });
+      }
+
+      if (record.bankName && !seen.has(`bank:${record.bankName}`)) {
+        seen.set(`bank:${record.bankName}`, {
+          id: `bank:${record.bankName}`,
+          label: record.bankName === 'gmail' ? 'Gmail' : record.bankName,
+          bankName: record.bankName,
+        });
+      }
+    });
+
+    return Array.from(seen.values());
+  }, [allRecords]);
+
+  const currencyOptions = useMemo(() => {
+    const unique = new Set<string>();
+    allRecords.forEach(record => {
+      if (record.currencyValue) unique.add(record.currencyValue);
+    });
+    return Array.from(unique.values());
+  }, [allRecords]);
+
+  const filterBySearchQuery = (records: SpendOverTimeRecord[]) => {
+    const query = searchInput.trim().toLowerCase();
+    if (!query) return records;
+
+    return records.filter(record => {
+      return (
+        (record.merchant || '').toLowerCase().includes(query) ||
+        (record.sender || '').toLowerCase().includes(query) ||
+        (record.subject || '').toLowerCase().includes(query) ||
+        (record.paymentPurpose || '').toLowerCase().includes(query) ||
+        (record.bankName || '').toLowerCase().includes(query)
+      );
+    });
+  };
+
+  const filteredRecords = useMemo(() => {
+    const filtered = applyStatementsFilters<SpendOverTimeRecord>(allRecords, appliedFilters);
+    return filterBySearchQuery(filtered);
+  }, [allRecords, appliedFilters, searchInput]);
+
+  const flowFilteredRecords = useMemo(
+    () => filteredRecords.filter(record => record.flowType === activeFlowType),
+    [filteredRecords, activeFlowType],
+  );
+
+  const recordsWithoutDateFilter = useMemo(() => {
+    const filtersWithoutDate = {
+      ...appliedFilters,
+      date: null,
+    };
+    const filtered = applyStatementsFilters<SpendOverTimeRecord>(allRecords, filtersWithoutDate);
+    return filterBySearchQuery(filtered);
+  }, [allRecords, appliedFilters, searchInput]);
+
+  const flowRecordsWithoutDateFilter = useMemo(
+    () => recordsWithoutDateFilter.filter(record => record.flowType === activeFlowType),
+    [recordsWithoutDateFilter, activeFlowType],
+  );
+
+  const report = useMemo(
+    () => buildSpendOverTimeReport(flowFilteredRecords, groupBy),
+    [flowFilteredRecords, groupBy],
+  );
+
+  const rows = useMemo(() => {
+    return [...report.points].sort((a, b) => {
+      if (sortKey === 'average') {
+        const aAvg = a.count > 0 ? (a.income + a.expense) / a.count : 0;
+        const bAvg = b.count > 0 ? (b.income + b.expense) / b.count : 0;
+        return bAvg - aAvg;
+      }
+      if (sortKey === 'operations') return b.count - a.count;
+      return b.income + b.expense - (a.income + a.expense);
+    });
+  }, [report.points, sortKey]);
+
+  const currentPeriodRange = useMemo(() => {
+    const points = flowFilteredRecords
+      .map(record => getRecordDate(record))
+      .filter((date): date is Date => Boolean(date))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    if (points.length === 0) return null;
+
+    return {
+      start: points[0],
+      end: points[points.length - 1],
+    };
+  }, [flowFilteredRecords]);
+
+  const previousPeriodTotals = useMemo(() => {
+    if (!currentPeriodRange) return null;
+    const previousRange = buildPreviousPeriodRange(currentPeriodRange.start, currentPeriodRange.end);
+    if (!previousRange) return null;
+
+    const previousRecords = flowRecordsWithoutDateFilter.filter(record => {
+      const recordDate = getRecordDate(record);
+      if (!recordDate) return false;
+      return recordDate >= previousRange.start && recordDate <= previousRange.end;
+    });
+
+    return buildSpendOverTimeReport(previousRecords, groupBy).totals;
+  }, [currentPeriodRange, flowRecordsWithoutDateFilter, groupBy]);
+
+  const comparison = useMemo(() => {
+    if (!previousPeriodTotals) return null;
+
+    return {
+      total: getComparisonDelta(
+        activeFlowType === 'income' ? report.totals.income : report.totals.expense,
+        activeFlowType === 'income' ? previousPeriodTotals.income : previousPeriodTotals.expense,
+      ),
+      statementsAmount: getComparisonDelta(
+        report.totals.statementAmount,
+        previousPeriodTotals.statementAmount,
+      ),
+      receiptsAmount: getComparisonDelta(report.totals.gmailAmount, previousPeriodTotals.gmailAmount),
+      operations: getComparisonDelta(report.totals.count, previousPeriodTotals.count),
+      avgPerPeriod: getComparisonDelta(report.totals.avgPerPeriod, previousPeriodTotals.avgPerPeriod),
+    };
+  }, [report.totals, previousPeriodTotals, activeFlowType]);
+
+  const selectedPoint = useMemo(
+    () => report.points.find(point => point.period === selectedPeriod) || null,
+    [report.points, selectedPeriod],
+  );
+
+  const drillDownRecords = useMemo(() => {
+    if (!selectedPoint) return [];
+
+    return flowFilteredRecords
+      .filter(record => {
+        const date = getRecordDate(record);
+        if (!date) return false;
+        return matchesPeriod(date, selectedPoint.period, groupBy);
+      })
+      .sort((a, b) => {
+        const aTime = getRecordDate(a)?.getTime() ?? 0;
+        const bTime = getRecordDate(b)?.getTime() ?? 0;
+        return bTime - aTime;
+      });
+  }, [selectedPoint, flowFilteredRecords, groupBy]);
+
+  const trendChart = useMemo(() => {
+    const labelsList = report.points.map(point => point.label);
+
+    if (viewType === 'stacked') {
+      return {
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis' },
+        legend: { top: 0 },
+        grid: { left: 30, right: 30, bottom: 30, top: 38 },
+        xAxis: { type: 'category', data: labelsList },
+        yAxis: { type: 'value' },
+        series: [
+          {
+            name: labels.totalIncome,
+            type: 'bar',
+            stack: 'flow',
+            data: report.points.map(point => Number(point.income.toFixed(2))),
+            itemStyle: {
+              color: resolvedTheme === 'dark' ? '#4ade80' : '#16a34a',
+              borderRadius: [6, 6, 0, 0],
+            },
+          },
+          {
+            name: labels.totalSpend,
+            type: 'bar',
+            stack: 'flow',
+            data: report.points.map(point => Number(point.expense.toFixed(2))),
+            itemStyle: {
+              color: resolvedTheme === 'dark' ? '#f87171' : '#dc2626',
+              borderRadius: [6, 6, 0, 0],
+            },
+          },
+        ],
+      };
+    }
+
+    const values = report.points.map(point =>
+      Number((activeFlowType === 'income' ? point.income : point.expense).toFixed(2)),
+    );
+    const color = activeFlowType === 'income' ? '#16a34a' : '#dc2626';
+    const darkColor = activeFlowType === 'income' ? '#4ade80' : '#f87171';
+
+    return {
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      grid: { left: 30, right: 30, bottom: 30, top: 30 },
+      xAxis: { type: 'category', data: labelsList },
+      yAxis: { type: 'value' },
+      series: [
+        viewType === 'bar'
+          ? {
+              name: activeFlowType === 'income' ? labels.totalIncome : labels.totalSpend,
+              type: 'bar',
+              data: values,
+              barWidth: 24,
+              itemStyle: {
+                color: resolvedTheme === 'dark' ? darkColor : color,
+                borderRadius: [6, 6, 0, 0],
+              },
+            }
+          : {
+              name: activeFlowType === 'income' ? labels.totalIncome : labels.totalSpend,
+              type: 'line',
+              smooth: true,
+              data: values,
+              areaStyle: {
+                color:
+                  activeFlowType === 'income'
+                    ? resolvedTheme === 'dark'
+                      ? 'rgba(74,222,128,0.18)'
+                      : 'rgba(22,163,74,0.14)'
+                    : resolvedTheme === 'dark'
+                      ? 'rgba(248,113,113,0.18)'
+                      : 'rgba(220,38,38,0.12)',
+              },
+              lineStyle: { color: resolvedTheme === 'dark' ? darkColor : color },
+              itemStyle: { color: resolvedTheme === 'dark' ? darkColor : color },
+            },
+      ],
+    };
+  }, [report.points, viewType, activeFlowType, labels.totalIncome, labels.totalSpend, resolvedTheme]);
+
+  const sourceChart = useMemo(() => {
+    return {
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'item' },
+      legend: { top: 'bottom' },
+      series: [
+        {
+          type: 'pie',
+          radius: ['35%', '72%'],
+          data: [
+            { name: labels.statementsAmount, value: Number(report.totals.statementAmount.toFixed(2)) },
+            { name: labels.receiptsAmount, value: Number(report.totals.gmailAmount.toFixed(2)) },
+          ],
+        },
+      ],
+    };
+  }, [labels.receiptsAmount, labels.statementsAmount, report.totals.gmailAmount, report.totals.statementAmount]);
+
+  const periodsChart = useMemo(() => {
+    const top = rows.slice(0, 12).reverse();
+    return {
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      grid: { left: 120, right: 20, top: 20, bottom: 20 },
+      xAxis: { type: 'value' },
+      yAxis: {
+        type: 'category',
+        data: top.map(item => item.label),
+      },
+      series: [
+        {
+          type: 'bar',
+          data: top.map(item => ({
+            value: Number((activeFlowType === 'income' ? item.income : item.expense).toFixed(2)),
+            itemStyle: {
+              color:
+                activeFlowType === 'income'
+                  ? resolvedTheme === 'dark'
+                    ? '#4ade80'
+                    : '#16a34a'
+                  : resolvedTheme === 'dark'
+                    ? '#f87171'
+                    : '#dc2626',
+              borderRadius: [4, 4, 4, 4],
+            },
+          })),
+        },
+      ],
+    };
+  }, [rows, activeFlowType, resolvedTheme]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -277,136 +1098,9 @@ export default function SpendOverTimeView() {
     return count;
   }, [appliedFilters]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const run = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchSpendOverTimeReport(appliedFilters, groupBy);
-        if (!cancelled) {
-          setReport(data);
-        }
-      } catch {
-        if (!cancelled) {
-          setReport(null);
-          toast.error('Failed to load spend over time');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [appliedFilters, groupBy]);
-
-  useEffect(() => {
-    saveStoredState({
-      filters: appliedFilters,
-      groupBy,
-      viewType,
-      showTable,
-    });
-  }, [appliedFilters, groupBy, viewType, showTable]);
-
-  const chartTheme = resolvedTheme === 'dark' ? 'dark' : 'light';
-
-  const chartOptions = useMemo(() => {
-    if (!report) return {};
-
-    const labels = report.points.map(point => point.label);
-
-    if (viewType === 'stacked') {
-      return {
-        backgroundColor: 'transparent',
-        tooltip: { trigger: 'axis' },
-        legend: { top: 0 },
-        grid: { left: 30, right: 30, bottom: 30, top: 38 },
-        xAxis: { type: 'category', data: labels },
-        yAxis: { type: 'value' },
-        series: [
-          {
-            name: 'Income',
-            type: 'bar',
-            stack: 'flow',
-            data: report.points.map(point => Number(point.income.toFixed(2))),
-            itemStyle: {
-              color: resolvedTheme === 'dark' ? '#4ade80' : '#16a34a',
-              borderRadius: [6, 6, 0, 0],
-            },
-          },
-          {
-            name: 'Expense',
-            type: 'bar',
-            stack: 'flow',
-            data: report.points.map(point => Number(point.expense.toFixed(2))),
-            itemStyle: {
-              color: resolvedTheme === 'dark' ? '#f87171' : '#dc2626',
-              borderRadius: [6, 6, 0, 0],
-            },
-          },
-        ],
-      };
-    }
-
-    const selectedFlow = resolveStoredFlow(appliedFilters.type);
-    const values = report.points.map(point => {
-      if (selectedFlow === 'income') return Number(point.income.toFixed(2));
-      if (selectedFlow === 'net') return Number(point.net.toFixed(2));
-      if (selectedFlow === 'all') return Number((point.income + point.expense).toFixed(2));
-      return Number(point.expense.toFixed(2));
-    });
-
-    const seriesName =
-      selectedFlow === 'income'
-        ? 'Income'
-        : selectedFlow === 'expense'
-          ? 'Expense'
-          : selectedFlow === 'net'
-            ? 'Net'
-            : 'Total flow';
-
-    return {
-      backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis' },
-      grid: { left: 30, right: 30, bottom: 30, top: 30 },
-      xAxis: { type: 'category', data: labels },
-      yAxis: { type: 'value' },
-      series: [
-        viewType === 'bar'
-          ? {
-              name: seriesName,
-              type: 'bar',
-              data: values,
-              barWidth: 24,
-              itemStyle: {
-                color: resolvedTheme === 'dark' ? '#60a5fa' : '#0a66c2',
-                borderRadius: [6, 6, 0, 0],
-              },
-            }
-          : {
-              name: seriesName,
-              type: 'line',
-              smooth: true,
-              data: values,
-              areaStyle: {
-                color: resolvedTheme === 'dark' ? 'rgba(96,165,250,0.18)' : 'rgba(10,102,194,0.14)',
-              },
-              lineStyle: { color: resolvedTheme === 'dark' ? '#60a5fa' : '#0a66c2' },
-              itemStyle: { color: resolvedTheme === 'dark' ? '#60a5fa' : '#0a66c2' },
-            },
-      ],
-    };
-  }, [report, appliedFilters.type, viewType, resolvedTheme]);
-
-  const filterLinkClassName =
-    'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] font-medium text-primary';
+  const updateFilter = (next: Partial<StatementFilters>) => {
+    setDraftFilters(prev => ({ ...prev, ...next }));
+  };
 
   const applyFilterChanges = () => {
     setAppliedFilters(draftFilters);
@@ -427,115 +1121,156 @@ export default function SpendOverTimeView() {
   };
 
   const resetAllFilters = () => {
-    const next = { ...DEFAULT_STATEMENT_FILTERS, type: DEFAULT_FLOW };
-    setDraftFilters(next);
-    setAppliedFilters(next);
+    setDraftFilters(DEFAULT_STATEMENT_FILTERS);
+    setAppliedFilters(DEFAULT_STATEMENT_FILTERS);
     setDraftGroupBy(DEFAULT_GROUP_BY);
     setGroupBy(DEFAULT_GROUP_BY);
     setDraftViewType(DEFAULT_VIEW);
     setViewType(DEFAULT_VIEW);
   };
 
-  const refreshReport = async () => {
-    setLoading(true);
-    try {
-      const data = await fetchSpendOverTimeReport(appliedFilters, groupBy);
-      setReport(data);
-    } catch {
-      toast.error('Failed to refresh spend over time');
-    } finally {
-      setLoading(false);
+  const chartTheme = resolvedTheme === 'dark' ? 'dark' : 'light';
+
+  const formatPercentage = (value: number) => {
+    const normalized = Number.isInteger(value) ? value.toString() : value.toFixed(1);
+    if (value > 0) return `+${normalized}%`;
+    return `${normalized}%`;
+  };
+
+  const renderComparisonLine = (
+    item: ReturnType<typeof getComparisonDelta> | null,
+    isMoney = true,
+  ) => {
+    if (!item) {
+      return <p className="mt-1 text-xs text-gray-400">{labels.comparisonNoData}</p>;
     }
+
+    const deltaColor =
+      item.trend === 'up'
+        ? 'text-emerald-600'
+        : item.trend === 'down'
+          ? 'text-red-600'
+          : 'text-gray-500';
+    const prefix = item.delta > 0 ? '+' : item.delta < 0 ? '-' : '';
+    const deltaValue = isMoney
+      ? formatMoney(Math.abs(item.delta), workspaceCurrency)
+      : Math.abs(Math.round(item.delta)).toString();
+
+    return (
+      <p className={`mt-1 text-xs ${deltaColor}`}>
+        {formatPercentage(item.percentage)} ({prefix}
+        {deltaValue}) {labels.vsPreviousPeriod}
+      </p>
+    );
   };
 
-  const {
-    handlers: pullToRefreshHandlers,
-    pullDistance,
-    isRefreshing: pullRefreshing,
-    isReadyToRefresh,
-  } = usePullToRefresh({
-    enabled: isMobile,
-    isAtTop: () => {
-      if (!contentScrollRef.current) return true;
-      return contentScrollRef.current.scrollTop <= 0;
-    },
-    onRefresh: refreshReport,
-  });
+  const renderSourceBadge = (sourceChannel: SpendOverTimeRecord['sourceChannel']) => {
+    const label = getSourceLabel(sourceChannel, {
+      sourceBank: labels.sourceBank,
+      sourceReceipt: labels.sourceReceipt,
+      sourceGmailInbox: labels.sourceGmailInbox,
+    });
 
-  const periodLabel =
-    groupBy === 'day'
-      ? 'Days'
-      : groupBy === 'week'
-        ? 'Weeks'
-        : groupBy === 'month'
-          ? 'Months'
-          : groupBy === 'quarter'
-            ? 'Quarters'
-            : groupBy === 'year'
-              ? 'Years'
-              : 'Periods';
-
-  const hasAnyTransactions = (report?.totals.count || 0) > 0;
-  const resolveLabel = (value: unknown, fallback: string) => {
-    if (typeof value === 'string') return value;
-    if (value && typeof value === 'object' && 'value' in value) {
-      const tokenValue = (value as { value?: string }).value;
-      if (typeof tokenValue === 'string') return tokenValue;
+    if (sourceChannel === 'gmail') {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-gray-600">
+          <Mail className="h-3.5 w-3.5" />
+          {label}
+        </span>
+      );
     }
-    return fallback;
-  };
 
-  const spendOverTimeLabels = {
-    kpiHint: resolveLabel(t?.spendOverTime?.kpiHint, 'No data yet for calculations'),
-    emptyStateTitle: resolveLabel(t?.spendOverTime?.emptyStateTitle, 'No data for selected period'),
-    emptyStateDescription: resolveLabel(
-      t?.spendOverTime?.emptyStateDescription,
-      'Upload statements or apply another filter',
-    ),
-    emptyStateUploadCta: resolveLabel(
-      t?.spendOverTime?.emptyStateUploadCta,
-      'Go to statement upload',
-    ),
-    emptyStateResetCta: resolveLabel(t?.spendOverTime?.emptyStateResetCta, 'Reset filters'),
-  };
+    if (sourceChannel === 'receipt') {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-gray-600">
+          <Receipt className="h-3.5 w-3.5" />
+          {label}
+        </span>
+      );
+    }
 
-  const kpiHint = spendOverTimeLabels.kpiHint;
+    return (
+      <span className="inline-flex items-center gap-1.5 text-gray-600">
+        <Landmark className="h-3.5 w-3.5" />
+        {label}
+      </span>
+    );
+  };
 
   return (
     <div className="container-shared flex h-[calc(100vh-var(--global-nav-height,0px))] min-h-0 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-5 shrink-0 space-y-3">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Spend over time</h1>
-          <p className="text-sm text-gray-500">Track spend dynamics by period.</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">{labels.title}</h1>
+            <p className="text-sm text-gray-500">{labels.subtitle}</p>
+          </div>
+          <div className="inline-flex rounded-md border border-gray-200 bg-white p-1">
+            <button
+              type="button"
+              className={`rounded px-3 py-1.5 text-xs font-medium transition ${
+                activeFlowType === 'expense'
+                  ? 'bg-primary text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+              onClick={() => setActiveFlowType('expense')}
+            >
+              {labels.tabExpense}
+            </button>
+            <button
+              type="button"
+              className={`rounded px-3 py-1.5 text-xs font-medium transition ${
+                activeFlowType === 'income'
+                  ? 'bg-primary text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+              onClick={() => setActiveFlowType('income')}
+            >
+              {labels.tabIncome}
+            </button>
+          </div>
         </div>
 
-        <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
-          <TypeFilterDropdown
-            open={typeDropdownOpen}
-            onOpenChange={setTypeDropdownOpen}
-            options={FLOW_OPTIONS}
-            value={draftFilters.type}
-            onChange={value => setDraftFilters(prev => ({ ...prev, type: value }))}
-            onApply={() => applyAndClose(() => setTypeDropdownOpen(false))}
-            onReset={() => resetAndClose('type', () => setTypeDropdownOpen(false))}
-            trigger={
-              <FilterChipButton active={Boolean(draftFilters.type)}>
-                {draftFilters.type
-                  ? `Flow: ${FLOW_OPTIONS.find(option => option.value === draftFilters.type)?.label || 'Expense'}`
-                  : 'Flow'}
-                <ChevronDown className="h-3.5 w-3.5" />
-              </FilterChipButton>
-            }
-            applyLabel="Apply"
-            resetLabel="Reset"
-          />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={event => setSearchInput(event.target.value)}
+              placeholder={labels.searchPlaceholder}
+              aria-label={labels.searchPlaceholder}
+              className="w-full rounded-md border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+            />
+          </div>
+          <div className="sm:w-60">
+            <label htmlFor="spend-over-time-workspace-filter" className="sr-only">
+              {labels.workspace}
+            </label>
+            <select
+              id="spend-over-time-workspace-filter"
+              value={workspaceFilter}
+              onChange={event => setWorkspaceFilter(event.target.value)}
+              className="w-full rounded-md border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+            >
+              <option value="current">{labels.currentWorkspace}</option>
+              <option value="all">{labels.allWorkspaces}</option>
+              {workspaces.map(workspace => (
+                <option key={workspace.id} value={workspace.id}>
+                  {workspace.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
+        <div className="flex flex-wrap items-center gap-2">
           <GroupByFilterDropdown
             open={groupByDropdownOpen}
             onOpenChange={setGroupByDropdownOpen}
-            options={GROUP_BY_OPTIONS}
+            options={groupByOptions}
             value={draftGroupBy}
-            onChange={value => setDraftGroupBy(resolveStoredGroupBy(value))}
+            onChange={value => setDraftGroupBy(value as SpendOverTimeGroupBy)}
             onApply={() => applyAndClose(() => setGroupByDropdownOpen(false))}
             onReset={() => {
               setDraftGroupBy(DEFAULT_GROUP_BY);
@@ -543,81 +1278,20 @@ export default function SpendOverTimeView() {
             }}
             trigger={
               <FilterChipButton active>
-                Group by: {GROUP_BY_OPTIONS.find(option => option.value === draftGroupBy)?.label}
+                Group by: {groupByOptions.find(option => option.value === draftGroupBy)?.label}
                 <ChevronDown className="h-3.5 w-3.5" />
               </FilterChipButton>
             }
-            applyLabel="Apply"
-            resetLabel="Reset"
-          />
-
-          <StatusFilterDropdown
-            open={statusDropdownOpen}
-            onOpenChange={setStatusDropdownOpen}
-            options={STATUS_OPTIONS}
-            values={draftFilters.statuses}
-            onChange={values => setDraftFilters(prev => ({ ...prev, statuses: values }))}
-            onApply={() => applyAndClose(() => setStatusDropdownOpen(false))}
-            onReset={() => resetAndClose('statuses', () => setStatusDropdownOpen(false))}
-            trigger={
-              <FilterChipButton active={draftFilters.statuses.length > 0}>
-                {draftFilters.statuses.length > 0
-                  ? `Status (${draftFilters.statuses.length})`
-                  : 'Status'}
-                <ChevronDown className="h-3.5 w-3.5" />
-              </FilterChipButton>
-            }
-            applyLabel="Apply"
-            resetLabel="Reset"
-          />
-
-          <DateFilterDropdown
-            open={dateDropdownOpen}
-            onOpenChange={setDateDropdownOpen}
-            presets={DATE_PRESETS}
-            modes={DATE_MODES}
-            value={draftFilters.date}
-            onChange={value => setDraftFilters(prev => ({ ...prev, date: value }))}
-            onApply={() => applyAndClose(() => setDateDropdownOpen(false))}
-            onReset={() => resetAndClose('date', () => setDateDropdownOpen(false))}
-            trigger={
-              <FilterChipButton active={Boolean(draftFilters.date)}>
-                {draftFilters.date?.preset
-                  ? `Date: ${DATE_PRESETS.find(option => option.value === draftFilters.date?.preset)?.label}`
-                  : draftFilters.date?.mode
-                    ? `Date: ${DATE_MODES.find(option => option.value === draftFilters.date?.mode)?.label}`
-                    : 'Date'}
-                <ChevronDown className="h-3.5 w-3.5" />
-              </FilterChipButton>
-            }
-            applyLabel="Apply"
-            resetLabel="Reset"
-          />
-
-          <FromFilterDropdown
-            open={fromDropdownOpen}
-            onOpenChange={setFromDropdownOpen}
-            options={fromOptions}
-            values={draftFilters.from}
-            onChange={values => setDraftFilters(prev => ({ ...prev, from: values }))}
-            onApply={() => applyAndClose(() => setFromDropdownOpen(false))}
-            onReset={() => resetAndClose('from', () => setFromDropdownOpen(false))}
-            trigger={
-              <FilterChipButton active={draftFilters.from.length > 0}>
-                {draftFilters.from.length > 0 ? `From (${draftFilters.from.length})` : 'From'}
-                <ChevronDown className="h-3.5 w-3.5" />
-              </FilterChipButton>
-            }
-            applyLabel="Apply"
-            resetLabel="Reset"
+            applyLabel={labels.apply}
+            resetLabel={labels.reset}
           />
 
           <ViewFilterDropdown
             open={viewDropdownOpen}
             onOpenChange={setViewDropdownOpen}
-            options={VIEW_OPTIONS}
+            options={viewOptions}
             value={draftViewType}
-            onChange={value => setDraftViewType(resolveStoredViewType(value))}
+            onChange={value => setDraftViewType(value as ViewTypeValue)}
             onApply={() => applyAndClose(() => setViewDropdownOpen(false))}
             onReset={() => {
               setDraftViewType(DEFAULT_VIEW);
@@ -625,12 +1299,73 @@ export default function SpendOverTimeView() {
             }}
             trigger={
               <FilterChipButton active>
-                View: {VIEW_OPTIONS.find(option => option.value === draftViewType)?.label}
+                View: {viewOptions.find(option => option.value === draftViewType)?.label}
                 <ChevronDown className="h-3.5 w-3.5" />
               </FilterChipButton>
             }
-            applyLabel="Apply"
-            resetLabel="Reset"
+            applyLabel={labels.apply}
+            resetLabel={labels.reset}
+          />
+
+          <StatusFilterDropdown
+            open={statusDropdownOpen}
+            onOpenChange={setStatusDropdownOpen}
+            options={statusOptions}
+            values={draftFilters.statuses}
+            onChange={values => updateFilter({ statuses: values })}
+            onApply={() => applyAndClose(() => setStatusDropdownOpen(false))}
+            onReset={() => resetAndClose('statuses', () => setStatusDropdownOpen(false))}
+            trigger={
+              <FilterChipButton active={draftFilters.statuses.length > 0}>
+                {draftFilters.statuses.length > 0
+                  ? `${labels.status} (${draftFilters.statuses.length})`
+                  : labels.status}
+                <ChevronDown className="h-3.5 w-3.5" />
+              </FilterChipButton>
+            }
+            applyLabel={labels.apply}
+            resetLabel={labels.reset}
+          />
+
+          <DateFilterDropdown
+            open={dateDropdownOpen}
+            onOpenChange={setDateDropdownOpen}
+            presets={datePresets}
+            modes={dateModes}
+            value={draftFilters.date}
+            onChange={value => updateFilter({ date: value })}
+            onApply={() => applyAndClose(() => setDateDropdownOpen(false))}
+            onReset={() => resetAndClose('date', () => setDateDropdownOpen(false))}
+            trigger={
+              <FilterChipButton active={Boolean(draftFilters.date)}>
+                {draftFilters.date?.preset
+                  ? datePresets.find(option => option.value === draftFilters.date?.preset)?.label
+                  : draftFilters.date?.mode
+                    ? dateModes.find(option => option.value === draftFilters.date?.mode)?.label
+                    : labels.date}
+                <ChevronDown className="h-3.5 w-3.5" />
+              </FilterChipButton>
+            }
+            applyLabel={labels.apply}
+            resetLabel={labels.reset}
+          />
+
+          <FromFilterDropdown
+            open={fromDropdownOpen}
+            onOpenChange={setFromDropdownOpen}
+            options={fromOptions}
+            values={draftFilters.from}
+            onChange={values => updateFilter({ from: values })}
+            onApply={() => applyAndClose(() => setFromDropdownOpen(false))}
+            onReset={() => resetAndClose('from', () => setFromDropdownOpen(false))}
+            trigger={
+              <FilterChipButton active={draftFilters.from.length > 0}>
+                {draftFilters.from.length > 0 ? `${labels.from} (${draftFilters.from.length})` : labels.from}
+                <ChevronDown className="h-3.5 w-3.5" />
+              </FilterChipButton>
+            }
+            applyLabel={labels.apply}
+            resetLabel={labels.reset}
           />
 
           <button
@@ -645,210 +1380,220 @@ export default function SpendOverTimeView() {
             }}
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filters
+            {labels.filters}
             {activeFilterCount > 0 ? (
               <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                 {activeFilterCount}
               </span>
             ) : null}
           </button>
-
-          <button
-            type="button"
-            className={filterLinkClassName}
-            onClick={() => setShowTable(prev => !prev)}
-          >
-            <Columns2 className="h-3.5 w-3.5" />
-            {showTable ? 'Hide table' : 'Show table'}
-          </button>
         </div>
       </div>
 
-      {isMobile && (pullDistance > 0 || pullRefreshing) ? (
-        <div className="pointer-events-none mb-2 flex justify-center">
-          <div
-            className={`inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs font-medium shadow-sm transition-colors ${
-              isReadyToRefresh || pullRefreshing
-                ? 'border-primary/40 text-primary'
-                : 'border-gray-200 text-gray-600'
-            }`}
-          >
-            <RefreshCcw className={`h-3.5 w-3.5 ${pullRefreshing ? 'animate-spin' : ''}`} />
-            <span>
-              {pullRefreshing
-                ? 'Refreshing...'
-                : isReadyToRefresh
-                  ? 'Release to refresh'
-                  : 'Pull to refresh'}
-            </span>
-          </div>
-        </div>
-      ) : null}
-
-      <div
-        ref={contentScrollRef}
-        className="min-h-0 flex-1 overflow-y-auto pr-1"
-        {...pullToRefreshHandlers}
-      >
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
         {loading ? (
           <div className="flex h-64 items-center justify-center">
             <LoadingAnimation size="lg" />
           </div>
-        ) : !report ? (
-          <div className="rounded-lg border border-dashed border-gray-300 bg-white p-12 text-center text-sm text-gray-500">
-            No data for selected filters
+        ) : flowFilteredRecords.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
+            <p className="text-base font-semibold text-gray-900">{labels.emptyStateTitle}</p>
+            <p className="mt-1 text-sm text-gray-500">{labels.emptyStateDescription}</p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary/90"
+                onClick={() => router.push('/statements/submit')}
+              >
+                {labels.emptyStateUploadCta}
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/5"
+                onClick={resetAllFilters}
+              >
+                {labels.emptyStateResetCta}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-4 pb-6">
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
               <div className="rounded-lg border border-gray-200 bg-white p-4">
-                <div className="text-xs uppercase tracking-wider text-gray-500">Total spend</div>
-                <div className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
-                  {formatMoney(report.totals.expense, workspaceCurrency)}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-wider text-gray-500">
+                    {activeFlowType === 'income' ? labels.totalIncome : labels.totalSpend}
+                  </span>
+                  {activeFlowType === 'income' ? (
+                    <ArrowUp className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-red-500" />
+                  )}
                 </div>
-                {!hasAnyTransactions ? (
-                  <p className="mt-1 text-xs text-gray-400">{kpiHint}</p>
-                ) : null}
+                <div
+                  className={`mt-2 text-lg font-semibold ${
+                    activeFlowType === 'income' ? 'text-emerald-600' : 'text-red-600'
+                  }`}
+                >
+                  {formatMoney(
+                    activeFlowType === 'income' ? report.totals.income : report.totals.expense,
+                    workspaceCurrency,
+                  )}
+                </div>
+                {renderComparisonLine(comparison?.total || null)}
               </div>
+
               <div className="rounded-lg border border-gray-200 bg-white p-4">
-                <div className="text-xs uppercase tracking-wider text-gray-500">Avg per period</div>
-                <div className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-wider text-gray-500">
+                    {labels.statementsAmount}
+                  </span>
+                  <ChartPie className="h-4 w-4 text-primary" />
+                </div>
+                <div className="mt-2 text-lg font-semibold text-primary">
+                  {formatMoney(report.totals.statementAmount, workspaceCurrency)}
+                </div>
+                {renderComparisonLine(comparison?.statementsAmount || null)}
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-wider text-gray-500">
+                    {labels.receiptsAmount}
+                  </span>
+                  <Mail className="h-4 w-4 text-emerald-500" />
+                </div>
+                <div className="mt-2 text-lg font-semibold text-emerald-600">
+                  {formatMoney(report.totals.gmailAmount, workspaceCurrency)}
+                </div>
+                {renderComparisonLine(comparison?.receiptsAmount || null)}
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-wider text-gray-500">
+                    {labels.totalOperations}
+                  </span>
+                  <span className="text-xs font-medium text-gray-500">#</span>
+                </div>
+                <div className="mt-2 text-lg font-semibold text-gray-900">{report.totals.count}</div>
+                {renderComparisonLine(comparison?.operations || null, false)}
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-wider text-gray-500">
+                    {labels.avgPerPeriod}
+                  </span>
+                  <span className="text-xs font-medium text-gray-500">AVG</span>
+                </div>
+                <div className="mt-2 text-lg font-semibold text-gray-900">
                   {formatMoney(report.totals.avgPerPeriod, workspaceCurrency)}
                 </div>
-                {!hasAnyTransactions ? (
-                  <p className="mt-1 text-xs text-gray-400">{kpiHint}</p>
-                ) : null}
-              </div>
-              <div className="rounded-lg border border-gray-200 bg-white p-4">
-                <div className="text-xs uppercase tracking-wider text-gray-500">Transactions</div>
-                <div className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
-                  {report.totals.count}
-                </div>
-                {!hasAnyTransactions ? (
-                  <p className="mt-1 text-xs text-gray-400">{kpiHint}</p>
-                ) : null}
-              </div>
-              <div className="rounded-lg border border-gray-200 bg-white p-4">
-                <div className="text-xs uppercase tracking-wider text-gray-500">Net</div>
-                <div className="mt-2 text-lg font-semibold text-gray-900 sm:text-xl">
-                  {formatMoney(report.totals.net, workspaceCurrency)}
-                </div>
-                {!hasAnyTransactions ? (
-                  <p className="mt-1 text-xs text-gray-400">{kpiHint}</p>
-                ) : null}
+                {renderComparisonLine(comparison?.avgPerPeriod || null)}
               </div>
             </div>
 
-            <div className="relative rounded-2xl border border-gray-200 bg-white p-5">
-              <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                <LineChart className="h-4 w-4 text-emerald-500" />
-                {periodLabel}
-              </div>
-              <div className="mt-4 h-[280px] sm:h-[320px]">
-                <ReactECharts option={chartOptions} theme={chartTheme} style={{ height: '100%' }} />
-              </div>
-
-              {!hasAnyTransactions ? (
-                <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/90 p-6 backdrop-blur-[1px]">
-                  <div className="max-w-md text-center">
-                    <p className="text-base font-semibold text-gray-900">
-                      {spendOverTimeLabels.emptyStateTitle}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-500">
-                      {spendOverTimeLabels.emptyStateDescription}
-                    </p>
-                    <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary/90"
-                        onClick={() => router.push('/statements/submit')}
-                      >
-                        {spendOverTimeLabels.emptyStateUploadCta}
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex items-center rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/5"
-                        onClick={resetAllFilters}
-                      >
-                        {spendOverTimeLabels.emptyStateResetCta}
-                      </button>
-                    </div>
-                  </div>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className="rounded-lg border border-gray-200 bg-white p-5 lg:col-span-2">
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-900">{labels.trendTitle}</h3>
                 </div>
-              ) : null}
+                <ReactECharts style={{ height: 300 }} option={trendChart} theme={chartTheme} />
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-5">
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-900">{labels.sourceSplit}</h3>
+                </div>
+                <ReactECharts style={{ height: 300 }} option={sourceChart} theme={chartTheme} />
+              </div>
             </div>
 
-            {showTable ? (
-              <div className="rounded-xl border border-gray-200 bg-white">
-                {isMobile ? (
-                  <div data-testid="spend-over-time-mobile-points" className="space-y-2 p-3">
-                    {report.points.map(point => (
-                      <article key={point.period} className="rounded-lg border border-gray-200 p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="text-sm font-semibold text-gray-900">{point.label}</h3>
-                          <span className="text-xs text-gray-500">Count: {point.count}</span>
-                        </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-5">
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-900">{labels.periodChart}</h3>
+              </div>
+              <ReactECharts style={{ height: 320 }} option={periodsChart} theme={chartTheme} />
+            </div>
 
-                        <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                          <div>
-                            <dt className="text-gray-500">Income</dt>
-                            <dd className="font-medium text-gray-900">
-                              {formatMoney(point.income, workspaceCurrency)}
-                            </dd>
-                          </div>
-                          <div>
-                            <dt className="text-gray-500">Expense</dt>
-                            <dd className="font-medium text-gray-900">
-                              {formatMoney(point.expense, workspaceCurrency)}
-                            </dd>
-                          </div>
-                          <div className="col-span-2">
-                            <dt className="text-gray-500">Net</dt>
-                            <dd className="font-medium text-gray-900">
-                              {formatMoney(point.net, workspaceCurrency)}
-                            </dd>
-                          </div>
-                        </dl>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wider text-gray-500">
-                          <th className="px-4 py-3">Period</th>
-                          <th className="px-4 py-3">Income</th>
-                          <th className="px-4 py-3">Expense</th>
-                          <th className="px-4 py-3">Net</th>
-                          <th className="px-4 py-3">Count</th>
+            <div className="rounded-lg border border-gray-200 bg-white p-5">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-900">{labels.leaderboard}</h3>
+                  <span className="text-xs text-gray-500">{rows.length}</span>
+                </div>
+                <div className="inline-flex rounded-md border border-gray-200 bg-gray-50 p-1">
+                  <button
+                    type="button"
+                    className={`rounded px-2.5 py-1 text-xs font-medium ${
+                      sortKey === 'amount' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                    }`}
+                    onClick={() => setSortKey('amount')}
+                  >
+                    {labels.sortByAmount}
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded px-2.5 py-1 text-xs font-medium ${
+                      sortKey === 'average' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                    }`}
+                    onClick={() => setSortKey('average')}
+                  >
+                    {labels.sortByAverage}
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded px-2.5 py-1 text-xs font-medium ${
+                      sortKey === 'operations' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                    }`}
+                    onClick={() => setSortKey('operations')}
+                  >
+                    {labels.sortByOperations}
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-100 text-sm">
+                  <thead>
+                    <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
+                      <th className="py-2 pr-4">{labels.period}</th>
+                      <th className="py-2 pr-4 text-right">{labels.operations}</th>
+                      <th className="py-2 pr-4 text-right">{labels.average}</th>
+                      <th className="py-2 pr-4 text-right">{labels.amount}</th>
+                      <th className="py-2 text-right">{labels.lastOperation}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {rows.slice(0, 60).map(row => {
+                      const total = activeFlowType === 'income' ? row.income : row.expense;
+                      const average = row.count > 0 ? total / row.count : 0;
+                      return (
+                        <tr key={row.period} className="text-gray-700">
+                          <td className="py-2 pr-4 font-medium text-gray-900">
+                            <button
+                              type="button"
+                              className="text-left text-primary hover:underline"
+                              onClick={() => setSelectedPeriod(row.period)}
+                            >
+                              {row.label}
+                            </button>
+                          </td>
+                          <td className="py-2 pr-4 text-right">{row.count}</td>
+                          <td className="py-2 pr-4 text-right">
+                            {formatMoney(average, workspaceCurrency)}
+                          </td>
+                          <td className="py-2 pr-4 text-right font-semibold text-gray-900">
+                            {formatMoney(total, workspaceCurrency)}
+                          </td>
+                          <td className="py-2 text-right text-gray-500">{row.label}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {report.points.map(point => (
-                          <tr
-                            key={point.period}
-                            className="border-b border-gray-100 last:border-b-0"
-                          >
-                            <td className="px-4 py-3 font-medium text-gray-900">{point.label}</td>
-                            <td className="px-4 py-3 text-gray-700">
-                              {formatMoney(point.income, workspaceCurrency)}
-                            </td>
-                            <td className="px-4 py-3 text-gray-700">
-                              {formatMoney(point.expense, workspaceCurrency)}
-                            </td>
-                            <td className="px-4 py-3 text-gray-700">
-                              {formatMoney(point.net, workspaceCurrency)}
-                            </td>
-                            <td className="px-4 py-3 text-gray-700">{point.count}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            ) : null}
+            </div>
           </div>
         )}
       </div>
@@ -863,25 +1608,113 @@ export default function SpendOverTimeView() {
         screen={filtersDrawerScreen}
         onBack={() => setFiltersDrawerScreen('root')}
         onSelect={screen => setFiltersDrawerScreen(screen)}
-        onUpdateFilters={next => setDraftFilters(prev => ({ ...prev, ...next }))}
+        onUpdateFilters={updateFilter}
         onResetAll={resetAllFilters}
         onViewResults={() => {
           applyFilterChanges();
           setFiltersDrawerOpen(false);
           setFiltersDrawerScreen('root');
         }}
-        typeOptions={FLOW_OPTIONS}
-        statusOptions={STATUS_OPTIONS}
-        datePresets={DATE_PRESETS}
-        dateModes={DATE_MODES}
+        typeOptions={typeOptions}
+        statusOptions={statusOptions}
+        datePresets={datePresets}
+        dateModes={dateModes}
         fromOptions={fromOptions}
         toOptions={fromOptions}
-        groupByOptions={GROUP_BY_OPTIONS}
-        hasOptions={HAS_OPTIONS}
-        currencyOptions={[]}
-        labels={FILTER_LABELS}
+        groupByOptions={groupByOptions}
+        hasOptions={hasOptions}
+        currencyOptions={currencyOptions}
+        labels={{
+          title: filterOptionLabels.drawerTitle,
+          viewResults: filterOptionLabels.viewResults,
+          saveSearch: filterOptionLabels.saveSearch,
+          resetFilters: filterOptionLabels.resetFilters,
+          general: filterOptionLabels.drawerGeneral,
+          expenses: filterOptionLabels.drawerExpenses,
+          reports: filterOptionLabels.drawerReports,
+          type: labels.type,
+          from: labels.from,
+          groupBy: filterOptionLabels.drawerGroupBy,
+          has: filterOptionLabels.drawerHas,
+          keywords: filterOptionLabels.drawerKeywords,
+          limit: filterOptionLabels.drawerLimit,
+          status: labels.status,
+          to: filterOptionLabels.drawerTo,
+          amount: filterOptionLabels.drawerAmount,
+          approved: filterOptionLabels.drawerApproved,
+          billable: filterOptionLabels.drawerBillable,
+          currency: filterOptionLabels.hasCurrency,
+          date: labels.date,
+          exported: 'Exported',
+          paid: 'Paid',
+          any: filterOptionLabels.any,
+          yes: filterOptionLabels.yes,
+          no: filterOptionLabels.no,
+        }}
         activeCount={activeFilterCount}
       />
+
+      {selectedPoint ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4">
+          <div className="max-h-[85vh] w-full max-w-4xl overflow-hidden rounded-lg border border-gray-200 bg-white">
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900">
+                  {selectedPoint.label} - {labels.drillDown}
+                </h4>
+                <p className="text-xs text-gray-500">{groupBy}</p>
+              </div>
+              <button
+                type="button"
+                className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                onClick={() => setSelectedPeriod(null)}
+                aria-label={labels.close}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="max-h-[65vh] overflow-y-auto px-5 py-4">
+              {drillDownRecords.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
+                  {labels.noOperations}
+                </div>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-100 text-sm">
+                  <thead>
+                    <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
+                      <th className="py-2 pr-4">{labels.lastOperation}</th>
+                      <th className="py-2 pr-4">{labels.source}</th>
+                      <th className="py-2 pr-4">{labels.workspace}</th>
+                      <th className="py-2 pr-4">Merchant</th>
+                      <th className="py-2 text-right">{labels.amount}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {drillDownRecords.slice(0, 120).map(record => (
+                      <tr key={record.id} className="text-gray-700">
+                        <td className="py-2 pr-4 text-gray-600">
+                          {record.dateValue && !Number.isNaN(new Date(record.dateValue).getTime())
+                            ? new Date(record.dateValue).toLocaleDateString()
+                            : '-'}
+                        </td>
+                        <td className="py-2 pr-4">{renderSourceBadge(record.sourceChannel)}</td>
+                        <td className="py-2 pr-4 text-gray-600">{record.workspaceName || '-'}</td>
+                        <td className="py-2 pr-4 text-gray-600">
+                          {record.merchant || record.sender || record.subject || '-'}
+                        </td>
+                        <td className="py-2 text-right font-medium text-gray-900">
+                          {formatMoney(record.amount, workspaceCurrency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

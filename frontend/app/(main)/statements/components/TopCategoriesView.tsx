@@ -7,240 +7,1070 @@ import { StatusFilterDropdown } from '@/app/(main)/statements/components/filters
 import { TypeFilterDropdown } from '@/app/(main)/statements/components/filters/TypeFilterDropdown';
 import {
   DEFAULT_STATEMENT_FILTERS,
+  type StatementFilterItem,
   type StatementFilters,
-  loadStatementFilters,
+  applyStatementsFilters,
   resetSingleStatementFilter,
-  saveStatementFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
-import { Button } from '@/app/components/ui/button';
+import {
+  type CategorySortKey,
+  type TopCategoryFlowType,
+  type TopCategoryRecord,
+  type TopCategorySourceChannel,
+  createCategoryAggregateRows,
+  dedupeCategoryReceiptRecords,
+  loadTopCategoriesFilters,
+  resolveCategoryFlow,
+  resolveCategoryName,
+  resolveCategorySourceChannel,
+  saveTopCategoriesFilters,
+  sortCategoryRows,
+} from '@/app/(main)/statements/components/top-categories.utils';
+import {
+  buildPreviousPeriodRange,
+  getComparisonDelta,
+} from '@/app/(main)/statements/components/top-merchants.utils';
+import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
-import { type TopCategoriesReport, fetchTopCategoriesReport } from '@/app/lib/top-categories-api';
-import { ChevronDown, Download, SlidersHorizontal } from 'lucide-react';
+import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChartPie,
+  ChevronDown,
+  Landmark,
+  Mail,
+  Receipt,
+  Search,
+  SlidersHorizontal,
+  X,
+} from 'lucide-react';
+import { useTheme } from 'next-themes';
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import TopCategoriesChart from './TopCategoriesChart';
-import TopCategoriesPeriodFilter, {
-  type TopCategoriesPeriodPreset,
-} from './TopCategoriesPeriodFilter';
-import TopCategoriesTable from './TopCategoriesTable';
 
-const formatDateOnly = (date: Date) => {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
-const resolvePeriodRange = (
-  period: TopCategoriesPeriodPreset,
-  customFrom: string,
-  customTo: string,
-): { dateFrom?: string; dateTo?: string } => {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  if (period === 'custom') {
-    return {
-      dateFrom: customFrom || undefined,
-      dateTo: customTo || undefined,
+type StatementMeta = {
+  id: string;
+  status?: string;
+  createdAt?: string | null;
+  statementDateFrom?: string | null;
+  statementDateTo?: string | null;
+  bankName?: string | null;
+  fileType?: string | null;
+  currency?: string | null;
+  exported?: boolean | null;
+  paid?: boolean | null;
+  workspaceId?: string;
+  workspaceName?: string;
+  parsingDetails?: {
+    metadataExtracted?: {
+      currency?: string;
+      headerDisplay?: {
+        currencyDisplay?: string;
+      };
     };
-  }
-
-  const start = new Date(today);
-  if (period === '7d') {
-    start.setDate(today.getDate() - 7);
-  } else if (period === '30d') {
-    start.setDate(today.getDate() - 30);
-  } else if (period === '90d') {
-    start.setDate(today.getDate() - 90);
-  } else {
-    start.setFullYear(today.getFullYear() - 1);
-  }
-
-  return {
-    dateFrom: formatDateOnly(start),
-    dateTo: formatDateOnly(today),
-  };
+  } | null;
+  user?: {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+    avatarUrl?: string | null;
+  } | null;
 };
 
-const STATUS_OPTIONS = [
-  { value: 'uploaded', label: 'Uploaded' },
-  { value: 'processing', label: 'Processing' },
-  { value: 'parsed', label: 'Parsed' },
-  { value: 'validated', label: 'Validated' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'error', label: 'Error' },
-];
+type Transaction = {
+  id: string;
+  statementId?: string | null;
+  counterpartyName?: string | null;
+  transactionDate?: string | null;
+  debit?: number | string | null;
+  credit?: number | string | null;
+  amount?: number | string | null;
+  currency?: string | null;
+  paymentPurpose?: string | null;
+  transactionType?: 'income' | 'expense' | null;
+  createdAt?: string | null;
+  workspaceId?: string;
+  workspaceName?: string;
+  categoryId?: string | null;
+  category?: {
+    id?: string | null;
+    name?: string | null;
+    color?: string | null;
+    icon?: string | null;
+  } | null;
+};
 
-const DATE_PRESETS = [
-  { value: 'thisMonth' as const, label: 'This month' },
-  { value: 'lastMonth' as const, label: 'Last month' },
-  { value: 'yearToDate' as const, label: 'Year to date' },
-];
+type GmailReceipt = {
+  id: string;
+  subject: string;
+  sender: string;
+  receivedAt: string;
+  status: string;
+  transactionId?: string | null;
+  parsedData?: {
+    amount?: number;
+    currency?: string;
+    vendor?: string;
+    date?: string;
+    category?: string;
+    categoryId?: string;
+    transactionType?: 'income' | 'expense' | 'transfer' | 'unknown';
+  };
+  workspaceId?: string;
+  workspaceName?: string;
+};
 
-const DATE_MODES = [
-  { value: 'on' as const, label: 'On' },
-  { value: 'after' as const, label: 'After' },
-  { value: 'before' as const, label: 'Before' },
-];
+const getTransactionDate = (transaction: Transaction, statement?: StatementMeta) => {
+  return (
+    transaction.transactionDate ||
+    statement?.statementDateTo ||
+    statement?.statementDateFrom ||
+    statement?.createdAt ||
+    transaction.createdAt ||
+    ''
+  );
+};
 
-const GROUP_BY_OPTIONS = [
-  { value: 'date', label: 'Date' },
-  { value: 'status', label: 'Status' },
-  { value: 'type', label: 'Type' },
-  { value: 'bank', label: 'Bank' },
-  { value: 'user', label: 'User' },
-  { value: 'amount', label: 'Amount' },
-];
+const resolveCurrencyCode = (currency: string | null | undefined, fallback = 'KZT') => {
+  const normalized = String(currency || '')
+    .trim()
+    .toUpperCase();
 
-const HAS_OPTIONS = [
-  { value: 'errors', label: 'Errors' },
-  { value: 'processingDetails', label: 'Processing details' },
-  { value: 'transactions', label: 'Transactions' },
-  { value: 'dateRange', label: 'Date range' },
-  { value: 'currency', label: 'Currency' },
-];
+  if (/^[A-Z]{3}$/.test(normalized)) {
+    return normalized;
+  }
 
-const FILTER_LABELS = {
-  title: 'Filters',
-  viewResults: 'View results',
-  saveSearch: 'Save search',
-  resetFilters: 'Reset filters',
-  general: 'General',
-  expenses: 'Expenses',
-  reports: 'Reports',
-  type: 'Type',
-  from: 'From',
-  groupBy: 'Group by',
-  has: 'Has',
-  keywords: 'Keywords',
-  limit: 'Limit',
-  status: 'Status',
-  to: 'To',
-  amount: 'Amount',
-  approved: 'Approved',
-  billable: 'Billable',
-  currency: 'Currency',
-  date: 'Date',
-  exported: 'Exported',
-  paid: 'Paid',
-  any: 'Any',
-  yes: 'Yes',
-  no: 'No',
+  return fallback;
+};
+
+const getTransactionCurrency = (
+  transaction: Transaction,
+  statement: StatementMeta | undefined,
+  fallbackCurrency: string,
+) => {
+  return (
+    transaction.currency ||
+    statement?.currency ||
+    statement?.parsingDetails?.metadataExtracted?.currency ||
+    statement?.parsingDetails?.metadataExtracted?.headerDisplay?.currencyDisplay ||
+    fallbackCurrency
+  );
+};
+
+const mapGmailReceiptToStatement = (
+  receipt: GmailReceipt,
+  categoryName: string,
+  fallbackCurrency: string,
+): StatementFilterItem => ({
+  id: receipt.id,
+  source: 'gmail',
+  fileName: categoryName,
+  subject: receipt.subject,
+  sender: receipt.sender,
+  status: receipt.status,
+  totalDebit: receipt.parsedData?.amount ?? null,
+  totalCredit: null,
+  exported: null,
+  paid: null,
+  createdAt: receipt.receivedAt,
+  statementDateFrom: receipt.parsedData?.date || receipt.receivedAt,
+  statementDateTo: null,
+  bankName: 'gmail',
+  fileType: 'gmail',
+  currency: resolveCurrencyCode(receipt.parsedData?.currency, fallbackCurrency),
+  user: null,
+  receivedAt: receipt.receivedAt,
+  parsedData: {
+    vendor: receipt.parsedData?.vendor,
+    date: receipt.parsedData?.date,
+  },
+});
+
+const resolveLocale = (locale?: string) => {
+  if (locale === 'ru') return 'ru-RU';
+  if (locale === 'kk') return 'kk-KZ';
+  return 'en-US';
+};
+
+const formatMoney = (value: number, currency: string, locale = 'ru') =>
+  new Intl.NumberFormat(resolveLocale(locale), {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+
+const toDateOnly = (value?: string | null) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+};
+
+const getRecordDate = (record: { dateValue?: string; createdAt?: string | null }) => {
+  return toDateOnly(record.dateValue || record.createdAt || null);
+};
+
+const getSourceLabel = (
+  channel: TopCategorySourceChannel,
+  labels: {
+    sourceBank: string;
+    sourceReceipt: string;
+    sourceGmailInbox: string;
+  },
+) => {
+  if (channel === 'gmail') return labels.sourceGmailInbox;
+  if (channel === 'receipt') return labels.sourceReceipt;
+  return labels.sourceBank;
 };
 
 export default function TopCategoriesView() {
-  const [report, setReport] = useState<TopCategoriesReport | null>(null);
+  const t = useIntlayer('statementsPage');
+  const { user } = useAuth();
+  const { currentWorkspace, workspaces } = useWorkspace();
+  const { resolvedTheme } = useTheme();
+  const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [statements, setStatements] = useState<StatementMeta[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [gmailReceipts, setGmailReceipts] = useState<GmailReceipt[]>([]);
+  const [searchInput, setSearchInput] = useState('');
+  const [workspaceFilter, setWorkspaceFilter] = useState<'current' | 'all' | string>('current');
+  const [activeFlowType, setActiveFlowType] = useState<TopCategoryFlowType>('spend');
+  const [sortKey, setSortKey] = useState<CategorySortKey>('amount');
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
-  const [period, setPeriod] = useState<TopCategoriesPeriodPreset>('30d');
-  const [customFrom, setCustomFrom] = useState('');
-  const [customTo, setCustomTo] = useState('');
-
-  const [appliedFilters, setAppliedFilters] = useState<StatementFilters>(DEFAULT_STATEMENT_FILTERS);
   const [draftFilters, setDraftFilters] = useState<StatementFilters>(DEFAULT_STATEMENT_FILTERS);
-  const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<StatementFilters>(DEFAULT_STATEMENT_FILTERS);
   const [filtersDrawerScreen, setFiltersDrawerScreen] = useState('root');
-
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   const [fromDropdownOpen, setFromDropdownOpen] = useState(false);
+  const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
+
+  const resolveLabel = (value: any, fallback: string) => value?.value ?? value ?? fallback;
+
+  const labels = {
+    title: resolveLabel((t as any)?.topCategoriesAnalytics?.title, 'Top categories'),
+    subtitle: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.subtitle,
+      'Spending analytics by categories with the same filters and drill-down as Top merchants.',
+    ),
+    searchPlaceholder: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.searchPlaceholder,
+      'Search by category, merchant or subject',
+    ),
+    totalSpend: resolveLabel((t as any)?.topCategoriesAnalytics?.totalSpend, 'Total spend'),
+    statementsSpend: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.statementsSpend,
+      'Statements',
+    ),
+    receiptsSpend: resolveLabel((t as any)?.topCategoriesAnalytics?.receiptsSpend, 'Receipts'),
+    totalOperations: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.totalOperations,
+      'Operations',
+    ),
+    topCategories: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.topCategories,
+      'Top categories',
+    ),
+    topIncomeCategories: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.topIncomeCategories,
+      'Top income categories',
+    ),
+    sourceSplit: resolveLabel((t as any)?.topCategoriesAnalytics?.sourceSplit, 'Source split'),
+    spendTrend: resolveLabel((t as any)?.topCategoriesAnalytics?.spendTrend, 'Spending trend'),
+    incomeTrend: resolveLabel((t as any)?.topCategoriesAnalytics?.incomeTrend, 'Income trend'),
+    leaderboard: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.leaderboard,
+      'Top categories list',
+    ),
+    incomeLeaderboard: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.incomeLeaderboard,
+      'Top income categories list',
+    ),
+    totalIncome: resolveLabel((t as any)?.topCategoriesAnalytics?.totalIncome, 'Total income'),
+    tabSpenders: resolveLabel((t as any)?.topCategoriesAnalytics?.tabSpenders, 'Expenses'),
+    tabIncomeSenders: resolveLabel((t as any)?.topCategoriesAnalytics?.tabIncomeSenders, 'Income'),
+    noData: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.noData,
+      'No data for selected filters',
+    ),
+    source: resolveLabel((t as any)?.topCategoriesAnalytics?.source, 'Source'),
+    category: resolveLabel((t as any)?.topCategoriesAnalytics?.category, 'Category'),
+    amount: resolveLabel((t as any)?.topCategoriesAnalytics?.amount, 'Amount'),
+    operations: resolveLabel((t as any)?.topCategoriesAnalytics?.operations, 'Operations'),
+    average: resolveLabel((t as any)?.topCategoriesAnalytics?.average, 'Average'),
+    lastOperation: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.lastOperation,
+      'Last operation',
+    ),
+    sourceStatement: resolveLabel((t as any)?.topCategoriesAnalytics?.sourceStatement, 'Statement'),
+    sourceGmail: resolveLabel((t as any)?.topCategoriesAnalytics?.sourceGmail, 'Receipt'),
+    sourceBank: resolveLabel((t as any)?.topCategoriesAnalytics?.sourceBank, 'Bank'),
+    sourceReceipt: resolveLabel((t as any)?.topCategoriesAnalytics?.sourceReceipt, 'Receipt'),
+    sourceGmailInbox: resolveLabel((t as any)?.topCategoriesAnalytics?.sourceGmailInbox, 'Gmail'),
+    workspace: resolveLabel((t as any)?.topCategoriesAnalytics?.workspace, 'Workspace'),
+    allWorkspaces: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.allWorkspaces,
+      'All workspaces',
+    ),
+    currentWorkspace: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.currentWorkspace,
+      'Current workspace',
+    ),
+    sortByAmount: resolveLabel((t as any)?.topCategoriesAnalytics?.sortByAmount, 'Amount'),
+    sortByAverage: resolveLabel((t as any)?.topCategoriesAnalytics?.sortByAverage, 'Average'),
+    sortByOperations: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.sortByOperations,
+      'Operations',
+    ),
+    vsPreviousPeriod: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.vsPreviousPeriod,
+      'vs previous period',
+    ),
+    comparisonNoData: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.comparisonNoData,
+      'No previous period data',
+    ),
+    drillDown: resolveLabel((t as any)?.topCategoriesAnalytics?.drillDown, 'Drill-down'),
+    close: resolveLabel((t as any)?.common?.close, 'Close'),
+    noOperations: resolveLabel(
+      (t as any)?.topCategoriesAnalytics?.noOperations,
+      'No operations found',
+    ),
+    filters: resolveLabel((t as any)?.filters?.filters, 'Filters'),
+    type: resolveLabel((t as any)?.filters?.type, 'Type'),
+    status: resolveLabel((t as any)?.filters?.status, 'Status'),
+    date: resolveLabel((t as any)?.filters?.date, 'Date'),
+    from: resolveLabel((t as any)?.filters?.from, 'From'),
+    apply: resolveLabel((t as any)?.filters?.apply, 'Apply'),
+    reset: resolveLabel((t as any)?.filters?.reset, 'Reset'),
+  };
+
+  const filterOptionLabels = {
+    apply: resolveLabel((t as any)?.filters?.apply, 'Apply'),
+    reset: resolveLabel((t as any)?.filters?.reset, 'Reset'),
+    resetFilters: resolveLabel((t as any)?.filters?.resetFilters, 'Reset filters'),
+    viewResults: resolveLabel((t as any)?.filters?.viewResults, 'View results'),
+    saveSearch: resolveLabel((t as any)?.filters?.saveSearch, 'Save search'),
+    any: resolveLabel((t as any)?.filters?.any, 'Any'),
+    yes: resolveLabel((t as any)?.filters?.yes, 'Yes'),
+    no: resolveLabel((t as any)?.filters?.no, 'No'),
+    typeExpense: resolveLabel((t as any)?.filters?.typeExpense, 'Expense'),
+    typeReport: resolveLabel((t as any)?.filters?.typeReport, 'Expense Report'),
+    typeChat: resolveLabel((t as any)?.filters?.typeChat, 'Chat'),
+    typeTrip: resolveLabel((t as any)?.filters?.typeTrip, 'Trip'),
+    typeTask: resolveLabel((t as any)?.filters?.typeTask, 'Task'),
+    statusUnreported: resolveLabel((t as any)?.filters?.statusUnreported, 'Unreported'),
+    statusDraft: resolveLabel((t as any)?.filters?.statusDraft, 'Draft'),
+    statusOutstanding: resolveLabel((t as any)?.filters?.statusOutstanding, 'Outstanding'),
+    statusApproved: resolveLabel((t as any)?.filters?.statusApproved, 'Approved'),
+    statusPaid: resolveLabel((t as any)?.filters?.statusPaid, 'Paid'),
+    statusDone: resolveLabel((t as any)?.filters?.statusDone, 'Done'),
+    dateThisMonth: resolveLabel((t as any)?.filters?.dateThisMonth, 'This month'),
+    dateLastMonth: resolveLabel((t as any)?.filters?.dateLastMonth, 'Last month'),
+    dateYearToDate: resolveLabel((t as any)?.filters?.dateYearToDate, 'Year to date'),
+    dateOn: resolveLabel((t as any)?.filters?.dateOn, 'On'),
+    dateAfter: resolveLabel((t as any)?.filters?.dateAfter, 'After'),
+    dateBefore: resolveLabel((t as any)?.filters?.dateBefore, 'Before'),
+    drawerTitle: resolveLabel((t as any)?.filters?.drawerTitle, 'Filters'),
+    drawerGeneral: resolveLabel((t as any)?.filters?.drawerGeneral, 'General'),
+    drawerExpenses: resolveLabel((t as any)?.filters?.drawerExpenses, 'Expenses'),
+    drawerReports: resolveLabel((t as any)?.filters?.drawerReports, 'Reports'),
+    drawerGroupBy: resolveLabel((t as any)?.filters?.drawerGroupBy, 'Group by'),
+    drawerHas: resolveLabel((t as any)?.filters?.drawerHas, 'Has'),
+    drawerKeywords: resolveLabel((t as any)?.filters?.drawerKeywords, 'Keywords'),
+    drawerLimit: resolveLabel((t as any)?.filters?.drawerLimit, 'Limit'),
+    drawerTo: resolveLabel((t as any)?.filters?.drawerTo, 'To'),
+    drawerAmount: resolveLabel((t as any)?.filters?.drawerAmount, 'Amount'),
+    drawerApproved: resolveLabel((t as any)?.filters?.drawerApproved, 'Approved'),
+    drawerBillable: resolveLabel((t as any)?.filters?.drawerBillable, 'Billable'),
+    groupByDate: resolveLabel((t as any)?.filters?.groupByDate, 'Date'),
+    groupByStatus: resolveLabel((t as any)?.filters?.groupByStatus, 'Status'),
+    groupByType: resolveLabel((t as any)?.filters?.groupByType, 'Type'),
+    groupByBank: resolveLabel((t as any)?.filters?.groupByBank, 'Bank'),
+    groupByUser: resolveLabel((t as any)?.filters?.groupByUser, 'User'),
+    groupByAmount: resolveLabel((t as any)?.filters?.groupByAmount, 'Amount'),
+    hasErrors: resolveLabel((t as any)?.filters?.hasErrors, 'Errors'),
+    hasLogs: resolveLabel((t as any)?.filters?.hasLogs, 'Logs'),
+    hasTransactions: resolveLabel((t as any)?.filters?.hasTransactions, 'Transactions'),
+    hasDateRange: resolveLabel((t as any)?.filters?.hasDateRange, 'Date range'),
+    hasCurrency: resolveLabel((t as any)?.filters?.hasCurrency, 'Currency'),
+  };
+
+  const filterLinkClassName =
+    'inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-primary';
+
+  const typeOptions = [
+    { value: 'expense', label: filterOptionLabels.typeExpense },
+    { value: 'expense_report', label: filterOptionLabels.typeReport },
+    { value: 'chat', label: filterOptionLabels.typeChat },
+    { value: 'trip', label: filterOptionLabels.typeTrip },
+    { value: 'task', label: filterOptionLabels.typeTask },
+    { value: 'gmail', label: 'Gmail' },
+    { value: 'pdf', label: 'PDF' },
+    { value: 'xlsx', label: 'Excel' },
+    { value: 'csv', label: 'CSV' },
+    { value: 'image', label: 'Image' },
+  ];
+
+  const statusOptions = [
+    { value: 'unreported', label: filterOptionLabels.statusUnreported },
+    { value: 'draft', label: filterOptionLabels.statusDraft },
+    { value: 'outstanding', label: filterOptionLabels.statusOutstanding },
+    { value: 'approved', label: filterOptionLabels.statusApproved },
+    { value: 'paid', label: filterOptionLabels.statusPaid },
+    { value: 'done', label: filterOptionLabels.statusDone },
+  ];
+
+  const datePresets = [
+    { value: 'thisMonth' as const, label: filterOptionLabels.dateThisMonth },
+    { value: 'lastMonth' as const, label: filterOptionLabels.dateLastMonth },
+    { value: 'yearToDate' as const, label: filterOptionLabels.dateYearToDate },
+  ];
+
+  const dateModes = [
+    { value: 'on' as const, label: filterOptionLabels.dateOn },
+    { value: 'after' as const, label: filterOptionLabels.dateAfter },
+    { value: 'before' as const, label: filterOptionLabels.dateBefore },
+  ];
+
+  const groupByOptions = [
+    { value: 'date', label: filterOptionLabels.groupByDate },
+    { value: 'status', label: filterOptionLabels.groupByStatus },
+    { value: 'type', label: filterOptionLabels.groupByType },
+    { value: 'bank', label: filterOptionLabels.groupByBank },
+    { value: 'user', label: filterOptionLabels.groupByUser },
+    { value: 'amount', label: filterOptionLabels.groupByAmount },
+  ];
+
+  const hasOptions = [
+    { value: 'errors', label: filterOptionLabels.hasErrors },
+    { value: 'processingDetails', label: filterOptionLabels.hasLogs },
+    { value: 'transactions', label: filterOptionLabels.hasTransactions },
+    { value: 'dateRange', label: filterOptionLabels.hasDateRange },
+    { value: 'currency', label: filterOptionLabels.hasCurrency },
+  ];
 
   useEffect(() => {
-    const stored = loadStatementFilters();
-    setAppliedFilters(stored);
-    setDraftFilters(stored);
+    const storedFilters = loadTopCategoriesFilters();
+    setDraftFilters(storedFilters);
+    setAppliedFilters(storedFilters);
   }, []);
 
+  const workspaceTargets = useMemo(() => {
+    if (workspaceFilter === 'all') {
+      const all = workspaces.map(workspace => ({
+        id: workspace.id,
+        name: workspace.name || 'Workspace',
+      }));
+      if (all.length > 0) return all;
+    }
+
+    if (workspaceFilter === 'current') {
+      if (currentWorkspace?.id) {
+        return [
+          { id: currentWorkspace.id, name: currentWorkspace.name || labels.currentWorkspace },
+        ];
+      }
+      return [];
+    }
+
+    const selectedWorkspace = workspaces.find(workspace => workspace.id === workspaceFilter);
+    return [{ id: workspaceFilter, name: selectedWorkspace?.name || labels.currentWorkspace }];
+  }, [
+    workspaceFilter,
+    workspaces,
+    currentWorkspace?.id,
+    currentWorkspace?.name,
+    labels.currentWorkspace,
+  ]);
+
+  const workspaceTargetKey = useMemo(
+    () => workspaceTargets.map(target => target.id).join(','),
+    [workspaceTargets],
+  );
+
   useEffect(() => {
-    let active = true;
-    const load = async () => {
+    let isMounted = true;
+    const userId = user?.id;
+
+    const loadData = async () => {
+      if (!userId) return;
+      if (workspaceTargets.length === 0) {
+        setStatements([]);
+        setTransactions([]);
+        setGmailReceipts([]);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
-      setError(null);
+
       try {
-        const range = resolvePeriodRange(period, customFrom, customTo);
-        const response = await fetchTopCategoriesReport(appliedFilters, range);
-        if (!active) return;
-        setReport(response);
-      } catch (requestError: any) {
-        if (!active) return;
-        setError(requestError?.message || 'Failed to load top categories');
+        const allStatements: StatementMeta[] = [];
+        const allTransactions: Transaction[] = [];
+        const allReceipts: GmailReceipt[] = [];
+
+        for (const target of workspaceTargets) {
+          const requestHeaders = {
+            'X-Workspace-Id': target.id,
+          };
+
+          const statementsPageSize = 500;
+          let statementsPage = 1;
+          let statementsTotal = Number.POSITIVE_INFINITY;
+          const workspaceStatements: StatementMeta[] = [];
+
+          while (workspaceStatements.length < statementsTotal) {
+            const response = await apiClient.get('/statements', {
+              params: {
+                page: statementsPage,
+                limit: statementsPageSize,
+              },
+              headers: requestHeaders,
+            });
+
+            const items = response.data?.data || response.data || [];
+            const batch = Array.isArray(items) ? items : [];
+            workspaceStatements.push(
+              ...batch.map(statement => ({
+                ...statement,
+                workspaceId: target.id,
+                workspaceName: target.name,
+              })),
+            );
+            statementsTotal = Number(response.data?.total ?? workspaceStatements.length);
+
+            if (batch.length < statementsPageSize) break;
+            statementsPage += 1;
+          }
+
+          allStatements.push(...workspaceStatements);
+
+          const transactionsPageSize = 500;
+          let transactionsPage = 1;
+          let transactionsTotal = Number.POSITIVE_INFINITY;
+          const workspaceTransactions: Transaction[] = [];
+
+          while (workspaceTransactions.length < transactionsTotal) {
+            const response = await apiClient.get('/transactions', {
+              params: {
+                page: transactionsPage,
+                limit: transactionsPageSize,
+              },
+              headers: requestHeaders,
+            });
+
+            const items = response.data?.data || response.data?.items || response.data || [];
+            const batch = Array.isArray(items) ? items : [];
+            workspaceTransactions.push(
+              ...batch.map(transaction => ({
+                ...transaction,
+                workspaceId: target.id,
+                workspaceName: target.name,
+              })),
+            );
+            transactionsTotal = Number(response.data?.total ?? workspaceTransactions.length);
+
+            if (batch.length < transactionsPageSize) break;
+            transactionsPage += 1;
+          }
+
+          allTransactions.push(...workspaceTransactions);
+
+          const receiptsLimit = 100;
+          let receiptsOffset = 0;
+          let receiptsTotal = Number.POSITIVE_INFINITY;
+          const workspaceReceipts: GmailReceipt[] = [];
+
+          while (workspaceReceipts.length < receiptsTotal) {
+            const response = await apiClient.get('/integrations/gmail/receipts', {
+              params: {
+                limit: receiptsLimit,
+                offset: receiptsOffset,
+              },
+              headers: requestHeaders,
+            });
+            const payload = response.data || {};
+            const batch = Array.isArray(payload?.receipts) ? payload.receipts : [];
+            workspaceReceipts.push(
+              ...batch.map((receipt: GmailReceipt) => ({
+                ...receipt,
+                workspaceId: target.id,
+                workspaceName: target.name,
+              })),
+            );
+            receiptsTotal = Number(payload?.total ?? workspaceReceipts.length);
+
+            if (batch.length < receiptsLimit) break;
+            receiptsOffset += receiptsLimit;
+          }
+
+          allReceipts.push(...workspaceReceipts);
+        }
+
+        if (!isMounted) return;
+        setStatements(allStatements);
+        setTransactions(allTransactions);
+        setGmailReceipts(allReceipts);
+      } catch (error) {
+        console.error('Failed to load top categories data', error);
+        if (isMounted) {
+          toast.error(resolveLabel((t as any)?.loadListError, 'Failed to load spending data'));
+          setStatements([]);
+          setTransactions([]);
+          setGmailReceipts([]);
+        }
       } finally {
-        if (active) {
+        if (isMounted) {
           setLoading(false);
         }
       }
     };
 
-    void load();
+    void loadData();
 
     return () => {
-      active = false;
+      isMounted = false;
     };
-  }, [appliedFilters, period, customFrom, customTo]);
+  }, [user?.id, workspaceTargetKey]);
 
-  const categoryRows = useMemo(
-    () =>
-      (report?.categories || []).map(item => ({
-        name: item.name,
-        amount: item.amount,
-        percentage: item.percentage,
-        count: item.transactions,
-        color: item.color,
-      })),
-    [report],
-  );
+  const allRecords = useMemo<TopCategoryRecord[]>(() => {
+    const statementById = new Map(statements.map(statement => [statement.id, statement]));
 
-  const bankRows = useMemo(
-    () =>
-      (report?.banks || []).map(item => ({
-        name: item.bankName,
-        amount: item.amount,
-        percentage: item.percentage,
-        count: item.statements,
-        bankName: item.bankName,
-      })),
-    [report],
-  );
+    const mappedTransactions: TopCategoryRecord[] = transactions
+      .map((item): TopCategoryRecord => {
+        const statementMeta = item.statementId ? statementById.get(item.statementId) : undefined;
+        const categoryName = resolveCategoryName(item.category?.name);
+        const flow = resolveCategoryFlow({
+          sourceType: 'statement' as const,
+          debit: item.debit,
+          credit: item.credit,
+          amount: item.amount,
+          transactionType: item.transactionType,
+        });
+        const amount = flow.amount;
+        const dateValue = getTransactionDate(item, statementMeta);
+        const currency = getTransactionCurrency(item, statementMeta, workspaceCurrency);
+        const fileType = (statementMeta?.fileType || item.transactionType || 'expense')
+          .toString()
+          .toLowerCase();
 
-  const counterpartyRows = useMemo(
-    () =>
-      (report?.counterparties || []).map(item => ({
-        name: item.name,
-        amount: item.amount,
-        percentage: item.percentage,
-        count: item.transactions,
-      })),
-    [report],
-  );
+        return {
+          id: item.id,
+          source: 'statement' as const,
+          fileName: categoryName,
+          subject: null,
+          sender: null,
+          status: statementMeta?.status || null,
+          fileType,
+          createdAt: statementMeta?.createdAt || item.createdAt || null,
+          statementDateFrom: statementMeta?.statementDateFrom || item.transactionDate || null,
+          statementDateTo: statementMeta?.statementDateTo || null,
+          bankName: statementMeta?.bankName || null,
+          totalDebit: amount,
+          totalCredit: null,
+          currency,
+          exported: statementMeta?.exported ?? null,
+          paid: statementMeta?.paid ?? null,
+          parsingDetails: statementMeta?.parsingDetails || null,
+          user: statementMeta?.user || null,
+          receivedAt: null,
+          parsedData: {
+            vendor: item.counterpartyName || categoryName,
+            date: item.transactionDate || null,
+          },
+          category: categoryName,
+          amount,
+          currencyValue: currency,
+          dateValue,
+          sourceType: 'statement',
+          sourceChannel: resolveCategorySourceChannel({ sourceType: 'statement', fileType }),
+          flowType: flow.flowType,
+          transactionId: item.id,
+          color: item.category?.color ?? null,
+          icon: item.category?.icon ?? null,
+          workspaceId: statementMeta?.workspaceId || item.workspaceId,
+          workspaceName: statementMeta?.workspaceName || item.workspaceName,
+          paymentPurpose: item.paymentPurpose,
+          counterpartyName: item.counterpartyName,
+        };
+      })
+      .filter(record => record.amount > 0);
+
+    const mappedReceipts: TopCategoryRecord[] = gmailReceipts
+      .map((receipt): TopCategoryRecord => {
+        const categoryName = resolveCategoryName(
+          receipt.parsedData?.category || receipt.parsedData?.categoryId || null,
+        );
+        const mapped = mapGmailReceiptToStatement(receipt, categoryName, workspaceCurrency);
+        const merchant = resolveGmailMerchantLabel({
+          vendor: receipt.parsedData?.vendor,
+          sender: receipt.sender,
+          subject: receipt.subject,
+          fallback: mapped.fileName,
+        });
+        const flow = resolveCategoryFlow({
+          sourceType: 'gmail' as const,
+          amount: receipt.parsedData?.amount ?? 0,
+          transactionType: receipt.parsedData?.transactionType,
+        });
+        const amount = flow.amount;
+        const dateValue = receipt.parsedData?.date || receipt.receivedAt || '';
+        const currency = resolveCurrencyCode(receipt.parsedData?.currency, workspaceCurrency);
+
+        return {
+          id: mapped.id,
+          source: 'gmail' as const,
+          fileName: categoryName,
+          subject: mapped.subject || null,
+          sender: mapped.sender || null,
+          status: mapped.status || null,
+          fileType: 'gmail',
+          createdAt: mapped.createdAt || null,
+          statementDateFrom: mapped.statementDateFrom || null,
+          statementDateTo: mapped.statementDateTo || null,
+          bankName: 'gmail',
+          totalDebit: amount,
+          totalCredit: null,
+          currency,
+          exported: null,
+          paid: null,
+          parsingDetails: null,
+          user: null,
+          receivedAt: mapped.receivedAt || null,
+          parsedData: {
+            vendor: merchant,
+            date: receipt.parsedData?.date || mapped.receivedAt || mapped.createdAt || null,
+          },
+          category: categoryName,
+          amount,
+          currencyValue: currency,
+          dateValue,
+          sourceType: 'gmail',
+          sourceChannel: resolveCategorySourceChannel({ sourceType: 'gmail', fileType: 'gmail' }),
+          flowType: flow.flowType,
+          transactionId: receipt.transactionId ?? null,
+          color: null,
+          icon: null,
+          workspaceId: receipt.workspaceId,
+          workspaceName: receipt.workspaceName,
+          paymentPurpose: merchant,
+          counterpartyName: merchant,
+        };
+      })
+      .filter(record => record.amount > 0);
+
+    const existingTransactionIds = new Set(transactions.map(transaction => transaction.id));
+    const uniqueMappedReceipts = dedupeCategoryReceiptRecords(
+      mappedReceipts,
+      existingTransactionIds,
+    );
+
+    return [...mappedTransactions, ...uniqueMappedReceipts];
+  }, [transactions, gmailReceipts, statements, workspaceCurrency]);
+
+  useEffect(() => {
+    setSelectedRowId(null);
+  }, [activeFlowType, workspaceFilter]);
 
   const fromOptions = useMemo(() => {
-    const banks = (report?.banks || []).map(item => ({
-      id: `bank:${item.bankName}`,
-      label: item.bankName,
-      description: 'Bank',
-      bankName: item.bankName,
-    }));
-    const counterparties = (report?.counterparties || []).map(item => ({
-      id: `counterparty:${item.name}`,
-      label: item.name,
-      description: 'Company',
-    }));
-    return [...banks, ...counterparties];
-  }, [report]);
+    const seen = new Map<
+      string,
+      {
+        id: string;
+        label: string;
+        description?: string | null;
+        avatarUrl?: string | null;
+        bankName?: string | null;
+      }
+    >();
 
-  const typeOptions = useMemo(
-    () => [
-      { value: 'expense', label: 'Expense' },
-      { value: 'income', label: 'Income' },
-      { value: 'all', label: 'All' },
-    ],
-    [],
+    const addOption = (
+      id: string,
+      option: {
+        id: string;
+        label: string;
+        description?: string | null;
+        avatarUrl?: string | null;
+        bankName?: string | null;
+      },
+    ) => {
+      if (!seen.has(id)) {
+        seen.set(id, option);
+      }
+    };
+
+    allRecords.forEach(record => {
+      if (record.user?.id) {
+        addOption(`user:${record.user.id}`, {
+          id: `user:${record.user.id}`,
+          label: record.user.name || record.user.email || 'User',
+          description: record.user.email ? `@${record.user.email.split('@')[0]}` : null,
+        });
+      }
+
+      if (record.bankName) {
+        addOption(`bank:${record.bankName}`, {
+          id: `bank:${record.bankName}`,
+          label: record.bankName === 'gmail' ? 'Gmail' : record.bankName,
+          description: null,
+          bankName: record.bankName,
+        });
+      }
+    });
+
+    return Array.from(seen.values());
+  }, [allRecords]);
+
+  const currencyOptions = useMemo(() => {
+    const unique = new Set<string>();
+    allRecords.forEach(record => {
+      if (record.currencyValue) {
+        unique.add(record.currencyValue);
+      }
+    });
+    return Array.from(unique.values());
+  }, [allRecords]);
+
+  const filterBySearchQuery = (records: TopCategoryRecord[]) => {
+    const query = searchInput.trim().toLowerCase();
+    if (!query) return records;
+
+    return records.filter(record => {
+      return (
+        record.category.toLowerCase().includes(query) ||
+        (record.counterpartyName || '').toLowerCase().includes(query) ||
+        (record.sender || '').toLowerCase().includes(query) ||
+        (record.subject || '').toLowerCase().includes(query) ||
+        (record.paymentPurpose || '').toLowerCase().includes(query) ||
+        (record.bankName || '').toLowerCase().includes(query)
+      );
+    });
+  };
+
+  const filteredRecords = useMemo(() => {
+    const filtered = applyStatementsFilters<TopCategoryRecord>(allRecords, appliedFilters);
+    return filterBySearchQuery(filtered);
+  }, [allRecords, appliedFilters, searchInput]);
+
+  const flowFilteredRecords = useMemo(
+    () => filteredRecords.filter(record => record.flowType === activeFlowType),
+    [filteredRecords, activeFlowType],
   );
+
+  const recordsWithoutDateFilter = useMemo(() => {
+    const filtersWithoutDate = {
+      ...appliedFilters,
+      date: null,
+    };
+    const filtered = applyStatementsFilters<TopCategoryRecord>(allRecords, filtersWithoutDate);
+    return filterBySearchQuery(filtered);
+  }, [allRecords, appliedFilters, searchInput]);
+
+  const flowRecordsWithoutDateFilter = useMemo(
+    () => recordsWithoutDateFilter.filter(record => record.flowType === activeFlowType),
+    [recordsWithoutDateFilter, activeFlowType],
+  );
+
+  const aggregatedRows = useMemo(
+    () => createCategoryAggregateRows(flowFilteredRecords),
+    [flowFilteredRecords],
+  );
+
+  const sortedAggregatedRows = useMemo(
+    () => sortCategoryRows(aggregatedRows, sortKey),
+    [aggregatedRows, sortKey],
+  );
+
+  const totals = useMemo(() => {
+    const statementTotal = flowFilteredRecords
+      .filter(record => record.sourceType === 'statement')
+      .reduce((sum, record) => sum + record.amount, 0);
+    const receiptTotal = flowFilteredRecords
+      .filter(record => record.sourceType === 'gmail')
+      .reduce((sum, record) => sum + record.amount, 0);
+
+    return {
+      total: statementTotal + receiptTotal,
+      statementTotal,
+      receiptTotal,
+      operations: flowFilteredRecords.length,
+    };
+  }, [flowFilteredRecords]);
+
+  const currentPeriodRange = useMemo(() => {
+    const points = flowFilteredRecords
+      .map(record => getRecordDate(record))
+      .filter((date): date is Date => Boolean(date))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    if (points.length === 0) return null;
+
+    return {
+      start: points[0],
+      end: points[points.length - 1],
+    };
+  }, [flowFilteredRecords]);
+
+  const previousPeriodTotals = useMemo(() => {
+    if (!currentPeriodRange) return null;
+    const previousRange = buildPreviousPeriodRange(
+      currentPeriodRange.start,
+      currentPeriodRange.end,
+    );
+    if (!previousRange) return null;
+
+    const previousRecords = flowRecordsWithoutDateFilter.filter(record => {
+      const recordDate = getRecordDate(record);
+      if (!recordDate) return false;
+      return recordDate >= previousRange.start && recordDate <= previousRange.end;
+    });
+
+    const statementTotal = previousRecords
+      .filter(record => record.sourceType === 'statement')
+      .reduce((sum, record) => sum + record.amount, 0);
+    const receiptTotal = previousRecords
+      .filter(record => record.sourceType === 'gmail')
+      .reduce((sum, record) => sum + record.amount, 0);
+
+    return {
+      total: statementTotal + receiptTotal,
+      statementTotal,
+      receiptTotal,
+      operations: previousRecords.length,
+    };
+  }, [currentPeriodRange, flowRecordsWithoutDateFilter]);
+
+  const comparison = useMemo(() => {
+    if (!previousPeriodTotals) return null;
+
+    return {
+      total: getComparisonDelta(totals.total, previousPeriodTotals.total),
+      statementTotal: getComparisonDelta(
+        totals.statementTotal,
+        previousPeriodTotals.statementTotal,
+      ),
+      receiptTotal: getComparisonDelta(totals.receiptTotal, previousPeriodTotals.receiptTotal),
+      operations: getComparisonDelta(totals.operations, previousPeriodTotals.operations),
+    };
+  }, [totals, previousPeriodTotals]);
+
+  const selectedRow = useMemo(
+    () => sortedAggregatedRows.find(row => row.id === selectedRowId) || null,
+    [sortedAggregatedRows, selectedRowId],
+  );
+
+  const drillDownRecords = useMemo(() => {
+    if (!selectedRow) return [];
+    const normalizedCategory = selectedRow.category.trim().toLowerCase();
+
+    return flowFilteredRecords
+      .filter(record => {
+        return (
+          record.flowType === selectedRow.flowType &&
+          record.sourceChannel === selectedRow.sourceChannel &&
+          record.category.trim().toLowerCase() === normalizedCategory
+        );
+      })
+      .sort((a, b) => {
+        const aTime = getRecordDate(a)?.getTime() ?? 0;
+        const bTime = getRecordDate(b)?.getTime() ?? 0;
+        return bTime - aTime;
+      });
+  }, [selectedRow, flowFilteredRecords]);
+
+  const topCategoriesChart = useMemo(() => {
+    const top = sortedAggregatedRows.slice(0, 12).reverse();
+    return {
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      grid: { left: 120, right: 20, top: 20, bottom: 20 },
+      xAxis: { type: 'value' },
+      yAxis: {
+        type: 'category',
+        data: top.map(item => item.category),
+      },
+      series: [
+        {
+          type: 'bar',
+          data: top.map(item => ({
+            value: Number(item.total.toFixed(2)),
+            itemStyle: {
+              color: item.color || (resolvedTheme === 'dark' ? '#38BDF8' : '#0EA5E9'),
+              borderRadius: [4, 4, 4, 4],
+            },
+          })),
+        },
+      ],
+    };
+  }, [sortedAggregatedRows, resolvedTheme]);
+
+  const sourceChart = useMemo(() => {
+    return {
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'item' },
+      legend: { top: 'bottom' },
+      series: [
+        {
+          type: 'pie',
+          radius: ['35%', '72%'],
+          data: [
+            { name: labels.sourceStatement, value: Number(totals.statementTotal.toFixed(2)) },
+            { name: labels.sourceGmail, value: Number(totals.receiptTotal.toFixed(2)) },
+          ],
+        },
+      ],
+    };
+  }, [labels.sourceGmail, labels.sourceStatement, totals.receiptTotal, totals.statementTotal]);
+
+  const trendChart = useMemo(() => {
+    const points = new Map<string, number>();
+    flowFilteredRecords.forEach(record => {
+      const rawDate = record.dateValue || record.createdAt || '';
+      if (!rawDate) return;
+      const parsed = new Date(rawDate);
+      if (Number.isNaN(parsed.getTime())) return;
+      const dateKey = parsed.toISOString().split('T')[0];
+      points.set(dateKey, (points.get(dateKey) || 0) + record.amount);
+    });
+
+    const sorted = Array.from(points.entries())
+      .map(([date, amount]) => ({ date, amount }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      grid: { left: 30, right: 30, bottom: 30, top: 30 },
+      xAxis: { type: 'category', data: sorted.map(point => point.date) },
+      yAxis: { type: 'value' },
+      series: [
+        {
+          name: activeFlowType === 'income' ? labels.totalIncome : labels.totalSpend,
+          type: 'line',
+          smooth: true,
+          data: sorted.map(point => Number(point.amount.toFixed(2))),
+          areaStyle: {
+            color: resolvedTheme === 'dark' ? 'rgba(56,189,248,0.16)' : 'rgba(14,165,233,0.14)',
+          },
+          lineStyle: { color: resolvedTheme === 'dark' ? '#38BDF8' : '#0EA5E9' },
+          itemStyle: { color: resolvedTheme === 'dark' ? '#38BDF8' : '#0EA5E9' },
+        },
+      ],
+    };
+  }, [flowFilteredRecords, activeFlowType, labels.totalIncome, labels.totalSpend, resolvedTheme]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -262,86 +1092,173 @@ export default function TopCategoriesView() {
     return count;
   }, [appliedFilters]);
 
-  const applyAndClose = (close: () => void) => {
+  const updateFilter = (next: Partial<StatementFilters>) => {
+    setDraftFilters(prev => ({ ...prev, ...next }));
+  };
+
+  const applyFilterChanges = () => {
     setAppliedFilters(draftFilters);
-    saveStatementFilters(draftFilters);
+    saveTopCategoriesFilters(draftFilters);
+  };
+
+  const applyAndClose = (close: () => void) => {
+    applyFilterChanges();
     close();
   };
 
-  const resetAndClose = (field: keyof StatementFilters, close: () => void) => {
-    const next = resetSingleStatementFilter(draftFilters, field);
+  const resetAndClose = (key: keyof StatementFilters, close: () => void) => {
+    const next = resetSingleStatementFilter(draftFilters, key);
     setDraftFilters(next);
     setAppliedFilters(next);
-    saveStatementFilters(next);
+    saveTopCategoriesFilters(next);
     close();
   };
 
-  const handleExport = async () => {
-    const range = resolvePeriodRange(period, customFrom, customTo);
-    if (!range.dateFrom || !range.dateTo) {
-      toast.error('Select both from and to dates for export');
-      return;
+  const resetAllFilters = () => {
+    setDraftFilters(DEFAULT_STATEMENT_FILTERS);
+    setAppliedFilters(DEFAULT_STATEMENT_FILTERS);
+    saveTopCategoriesFilters(DEFAULT_STATEMENT_FILTERS);
+  };
+
+  const chartTheme = resolvedTheme === 'dark' ? 'dark' : 'light';
+  const isIncomeView = activeFlowType === 'income';
+  const primaryMetricLabel = isIncomeView ? labels.totalIncome : labels.totalSpend;
+  const trendTitle = isIncomeView ? labels.incomeTrend : labels.spendTrend;
+  const categoriesTitle = isIncomeView ? labels.topIncomeCategories : labels.topCategories;
+  const leaderboardTitle = isIncomeView ? labels.incomeLeaderboard : labels.leaderboard;
+
+  const formatPercentage = (value: number) => {
+    const normalized = Number.isInteger(value) ? value.toString() : value.toFixed(1);
+    if (value > 0) return `+${normalized}%`;
+    return `${normalized}%`;
+  };
+
+  const renderComparisonLine = (
+    item: ReturnType<typeof getComparisonDelta> | null,
+    isMoney = true,
+  ) => {
+    if (!item) {
+      return <p className="mt-1 text-xs text-gray-400">{labels.comparisonNoData}</p>;
     }
 
-    setExporting(true);
-    try {
-      const response = await apiClient.post(
-        '/reports/export',
-        {
-          dateFrom: range.dateFrom,
-          dateTo: range.dateTo,
-          format: 'excel',
-        },
-        { responseType: 'blob' },
+    const deltaColor =
+      item.trend === 'up'
+        ? 'text-emerald-600'
+        : item.trend === 'down'
+          ? 'text-red-600'
+          : 'text-gray-500';
+    const prefix = item.delta > 0 ? '+' : item.delta < 0 ? '-' : '';
+    const deltaValue = isMoney
+      ? formatMoney(Math.abs(item.delta), workspaceCurrency)
+      : Math.abs(Math.round(item.delta)).toString();
+
+    return (
+      <p className={`mt-1 text-xs ${deltaColor}`}>
+        {formatPercentage(item.percentage)} ({prefix}
+        {deltaValue}) {labels.vsPreviousPeriod}
+      </p>
+    );
+  };
+
+  const renderSourceBadge = (sourceChannel: TopCategorySourceChannel) => {
+    const label = getSourceLabel(sourceChannel, {
+      sourceBank: labels.sourceBank,
+      sourceReceipt: labels.sourceReceipt,
+      sourceGmailInbox: labels.sourceGmailInbox,
+    });
+
+    if (sourceChannel === 'gmail') {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-gray-600">
+          <Mail className="h-3.5 w-3.5" />
+          {label}
+        </span>
       );
-
-      const blob = response.data as Blob;
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `top-categories-${range.dateFrom}-${range.dateTo}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success('Report exported');
-    } catch {
-      toast.error('Failed to export report');
-    } finally {
-      setExporting(false);
     }
+
+    if (sourceChannel === 'receipt') {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-gray-600">
+          <Receipt className="h-3.5 w-3.5" />
+          {label}
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1.5 text-gray-600">
+        <Landmark className="h-3.5 w-3.5" />
+        {label}
+      </span>
+    );
   };
 
   return (
     <div className="container-shared flex h-[calc(100vh-var(--global-nav-height,0px))] min-h-0 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-4 shrink-0 space-y-4">
+      <div className="mb-5 shrink-0 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Top categories</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Category, bank, and company spend analytics with detailed filters.
-            </p>
+            <h1 className="text-xl font-semibold text-gray-900">{labels.title}</h1>
+            <p className="text-sm text-gray-500">{labels.subtitle}</p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-full"
-            onClick={handleExport}
-            disabled={exporting}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            {exporting ? 'Exporting...' : 'Export'}
-          </Button>
+          <div className="inline-flex rounded-md border border-gray-200 bg-white p-1">
+            <button
+              type="button"
+              className={`rounded px-3 py-1.5 text-xs font-medium transition ${
+                activeFlowType === 'spend'
+                  ? 'bg-primary text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+              onClick={() => setActiveFlowType('spend')}
+            >
+              {labels.tabSpenders}
+            </button>
+            <button
+              type="button"
+              className={`rounded px-3 py-1.5 text-xs font-medium transition ${
+                activeFlowType === 'income'
+                  ? 'bg-primary text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+              onClick={() => setActiveFlowType('income')}
+            >
+              {labels.tabIncomeSenders}
+            </button>
+          </div>
         </div>
 
-        <TopCategoriesPeriodFilter
-          period={period}
-          customFrom={customFrom}
-          customTo={customTo}
-          onPeriodChange={setPeriod}
-          onCustomFromChange={setCustomFrom}
-          onCustomToChange={setCustomTo}
-        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={event => setSearchInput(event.target.value)}
+              placeholder={labels.searchPlaceholder}
+              aria-label={labels.searchPlaceholder}
+              className="w-full rounded-md border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+            />
+          </div>
+          <div className="sm:w-60">
+            <label htmlFor="top-categories-workspace-filter" className="sr-only">
+              {labels.workspace}
+            </label>
+            <select
+              id="top-categories-workspace-filter"
+              value={workspaceFilter}
+              onChange={event => setWorkspaceFilter(event.target.value)}
+              className="w-full rounded-md border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+            >
+              <option value="current">{labels.currentWorkspace}</option>
+              <option value="all">{labels.allWorkspaces}</option>
+              {workspaces.map(workspace => (
+                <option key={workspace.id} value={workspace.id}>
+                  {workspace.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <TypeFilterDropdown
@@ -349,55 +1266,63 @@ export default function TopCategoriesView() {
             onOpenChange={setTypeDropdownOpen}
             options={typeOptions}
             value={draftFilters.type}
-            onChange={value => setDraftFilters(prev => ({ ...prev, type: value }))}
+            onChange={value => updateFilter({ type: value })}
             onApply={() => applyAndClose(() => setTypeDropdownOpen(false))}
             onReset={() => resetAndClose('type', () => setTypeDropdownOpen(false))}
             trigger={
               <FilterChipButton active={Boolean(draftFilters.type)}>
-                {draftFilters.type || 'Type'}
+                {draftFilters.type
+                  ? typeOptions.find(option => option.value === draftFilters.type)?.label ||
+                    labels.type
+                  : labels.type}
                 <ChevronDown className="h-3.5 w-3.5" />
               </FilterChipButton>
             }
-            applyLabel="Apply"
-            resetLabel="Reset"
+            applyLabel={labels.apply}
+            resetLabel={labels.reset}
           />
 
           <StatusFilterDropdown
             open={statusDropdownOpen}
             onOpenChange={setStatusDropdownOpen}
-            options={STATUS_OPTIONS}
+            options={statusOptions}
             values={draftFilters.statuses}
-            onChange={values => setDraftFilters(prev => ({ ...prev, statuses: values }))}
+            onChange={values => updateFilter({ statuses: values })}
             onApply={() => applyAndClose(() => setStatusDropdownOpen(false))}
             onReset={() => resetAndClose('statuses', () => setStatusDropdownOpen(false))}
             trigger={
               <FilterChipButton active={draftFilters.statuses.length > 0}>
-                Status
-                {draftFilters.statuses.length > 0 ? ` (${draftFilters.statuses.length})` : ''}
+                {draftFilters.statuses.length > 0
+                  ? `${labels.status} (${draftFilters.statuses.length})`
+                  : labels.status}
                 <ChevronDown className="h-3.5 w-3.5" />
               </FilterChipButton>
             }
-            applyLabel="Apply"
-            resetLabel="Reset"
+            applyLabel={labels.apply}
+            resetLabel={labels.reset}
           />
 
           <DateFilterDropdown
             open={dateDropdownOpen}
             onOpenChange={setDateDropdownOpen}
-            presets={DATE_PRESETS}
-            modes={DATE_MODES}
+            presets={datePresets}
+            modes={dateModes}
             value={draftFilters.date}
-            onChange={value => setDraftFilters(prev => ({ ...prev, date: value }))}
+            onChange={value => updateFilter({ date: value })}
             onApply={() => applyAndClose(() => setDateDropdownOpen(false))}
             onReset={() => resetAndClose('date', () => setDateDropdownOpen(false))}
             trigger={
               <FilterChipButton active={Boolean(draftFilters.date)}>
-                Date
+                {draftFilters.date?.preset
+                  ? datePresets.find(option => option.value === draftFilters.date?.preset)?.label
+                  : draftFilters.date?.mode
+                    ? dateModes.find(option => option.value === draftFilters.date?.mode)?.label
+                    : labels.date}
                 <ChevronDown className="h-3.5 w-3.5" />
               </FilterChipButton>
             }
-            applyLabel="Apply"
-            resetLabel="Reset"
+            applyLabel={labels.apply}
+            resetLabel={labels.reset}
           />
 
           <FromFilterDropdown
@@ -405,33 +1330,34 @@ export default function TopCategoriesView() {
             onOpenChange={setFromDropdownOpen}
             options={fromOptions}
             values={draftFilters.from}
-            onChange={values => setDraftFilters(prev => ({ ...prev, from: values }))}
+            onChange={values => updateFilter({ from: values })}
             onApply={() => applyAndClose(() => setFromDropdownOpen(false))}
             onReset={() => resetAndClose('from', () => setFromDropdownOpen(false))}
             trigger={
               <FilterChipButton active={draftFilters.from.length > 0}>
-                Companies
-                {draftFilters.from.length > 0 ? ` (${draftFilters.from.length})` : ''}
+                {draftFilters.from.length > 0
+                  ? `${labels.from} (${draftFilters.from.length})`
+                  : labels.from}
                 <ChevronDown className="h-3.5 w-3.5" />
               </FilterChipButton>
             }
-            applyLabel="Apply"
-            resetLabel="Reset"
+            applyLabel={labels.apply}
+            resetLabel={labels.reset}
           />
 
           <button
             type="button"
+            className={filterLinkClassName}
             onClick={() => {
               setDraftFilters(appliedFilters);
               setFiltersDrawerScreen('root');
               setFiltersDrawerOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300"
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filters
+            {labels.filters}
             {activeFilterCount > 0 ? (
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+              <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                 {activeFilterCount}
               </span>
             ) : null}
@@ -439,78 +1365,319 @@ export default function TopCategoriesView() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-4">
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
         {loading ? (
-          <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-500">
-            Loading top categories...
+          <div className="flex h-64 items-center justify-center">
+            <LoadingAnimation size="lg" />
           </div>
-        ) : error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {error}
+        ) : flowFilteredRecords.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-300 bg-white p-12 text-center text-sm text-gray-500">
+            {labels.noData}
           </div>
         ) : (
-          <>
-            <div className="grid gap-4 xl:grid-cols-2">
-              <TopCategoriesChart
-                title="Top categories by amount"
-                items={(report?.categories || []).slice(0, 10).map(item => ({
-                  name: item.name,
-                  amount: item.amount,
-                  color: item.color,
-                }))}
-              />
-              <TopCategoriesTable title="Top categories" rows={categoryRows} />
+          <div className="space-y-4 pb-6">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-wider text-gray-500">
+                    {primaryMetricLabel}
+                  </span>
+                  {isIncomeView ? (
+                    <ArrowUp className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-red-500" />
+                  )}
+                </div>
+                <div
+                  className={`mt-2 text-lg font-semibold ${
+                    isIncomeView ? 'text-emerald-600' : 'text-red-600'
+                  }`}
+                >
+                  {formatMoney(totals.total, workspaceCurrency)}
+                </div>
+                {renderComparisonLine(comparison?.total || null)}
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-wider text-gray-500">
+                    {labels.statementsSpend}
+                  </span>
+                  <ChartPie className="h-4 w-4 text-primary" />
+                </div>
+                <div className="mt-2 text-lg font-semibold text-primary">
+                  {formatMoney(totals.statementTotal, workspaceCurrency)}
+                </div>
+                {renderComparisonLine(comparison?.statementTotal || null)}
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-wider text-gray-500">
+                    {labels.receiptsSpend}
+                  </span>
+                  <ArrowUp className="h-4 w-4 text-emerald-500" />
+                </div>
+                <div className="mt-2 text-lg font-semibold text-emerald-600">
+                  {formatMoney(totals.receiptTotal, workspaceCurrency)}
+                </div>
+                {renderComparisonLine(comparison?.receiptTotal || null)}
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-wider text-gray-500">
+                    {labels.totalOperations}
+                  </span>
+                  <span className="text-xs font-medium text-gray-500">#</span>
+                </div>
+                <div className="mt-2 text-lg font-semibold text-gray-900">{totals.operations}</div>
+                {renderComparisonLine(comparison?.operations || null, false)}
+              </div>
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-2">
-              <TopCategoriesChart
-                title="Top banks by amount"
-                items={(report?.banks || []).slice(0, 10).map(item => ({
-                  name: item.bankName,
-                  amount: item.amount,
-                }))}
-              />
-              <TopCategoriesTable title="Top banks" rows={bankRows} />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className="rounded-lg border border-gray-200 bg-white p-5 lg:col-span-2">
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-900">{trendTitle}</h3>
+                </div>
+                <ReactECharts
+                  style={{ height: 300 }}
+                  option={trendChart}
+                  notMerge
+                  lazyUpdate
+                  theme={chartTheme}
+                />
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-5">
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-900">{labels.sourceSplit}</h3>
+                </div>
+                <ReactECharts
+                  style={{ height: 300 }}
+                  option={sourceChart}
+                  notMerge
+                  lazyUpdate
+                  theme={chartTheme}
+                />
+              </div>
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-2">
-              <TopCategoriesChart
-                title="Top companies by amount"
-                items={(report?.counterparties || []).slice(0, 10).map(item => ({
-                  name: item.name,
-                  amount: item.amount,
-                }))}
+            <div className="rounded-lg border border-gray-200 bg-white p-5">
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-900">{categoriesTitle}</h3>
+              </div>
+              <ReactECharts
+                style={{ height: 320 }}
+                option={topCategoriesChart}
+                notMerge
+                lazyUpdate
+                theme={chartTheme}
               />
-              <TopCategoriesTable title="Top companies" rows={counterpartyRows} />
             </div>
-          </>
+
+            <div className="rounded-lg border border-gray-200 bg-white p-5">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-900">{leaderboardTitle}</h3>
+                  <span className="text-xs text-gray-500">{sortedAggregatedRows.length}</span>
+                </div>
+                <div className="inline-flex rounded-md border border-gray-200 bg-gray-50 p-1">
+                  <button
+                    type="button"
+                    className={`rounded px-2.5 py-1 text-xs font-medium ${
+                      sortKey === 'amount' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                    }`}
+                    onClick={() => setSortKey('amount')}
+                  >
+                    {labels.sortByAmount}
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded px-2.5 py-1 text-xs font-medium ${
+                      sortKey === 'average' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                    }`}
+                    onClick={() => setSortKey('average')}
+                  >
+                    {labels.sortByAverage}
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded px-2.5 py-1 text-xs font-medium ${
+                      sortKey === 'operations'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600'
+                    }`}
+                    onClick={() => setSortKey('operations')}
+                  >
+                    {labels.sortByOperations}
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-100 text-sm">
+                  <thead>
+                    <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
+                      <th className="py-2 pr-4">{labels.category}</th>
+                      <th className="py-2 pr-4">{labels.source}</th>
+                      <th className="py-2 pr-4 text-right">{labels.operations}</th>
+                      <th className="py-2 pr-4 text-right">{labels.average}</th>
+                      <th className="py-2 pr-4 text-right">{labels.amount}</th>
+                      <th className="py-2 text-right">{labels.lastOperation}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {sortedAggregatedRows.slice(0, 60).map(row => (
+                      <tr key={row.id} className="text-gray-700">
+                        <td className="py-2 pr-4 font-medium text-gray-900">
+                          <button
+                            type="button"
+                            className="text-left text-primary hover:underline"
+                            onClick={() => setSelectedRowId(row.id)}
+                          >
+                            {row.category}
+                          </button>
+                        </td>
+                        <td className="py-2 pr-4">{renderSourceBadge(row.sourceChannel)}</td>
+                        <td className="py-2 pr-4 text-right">{row.count}</td>
+                        <td className="py-2 pr-4 text-right">
+                          {formatMoney(row.average, workspaceCurrency)}
+                        </td>
+                        <td className="py-2 pr-4 text-right font-semibold text-gray-900">
+                          {formatMoney(row.total, workspaceCurrency)}
+                        </td>
+                        <td className="py-2 text-right text-gray-500">
+                          {row.lastDate && !Number.isNaN(new Date(row.lastDate).getTime())
+                            ? new Date(row.lastDate).toLocaleDateString()
+                            : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
       <FiltersDrawer
         open={filtersDrawerOpen}
-        onClose={() => setFiltersDrawerOpen(false)}
+        onClose={() => {
+          setFiltersDrawerOpen(false);
+          setFiltersDrawerScreen('root');
+        }}
         filters={draftFilters}
         screen={filtersDrawerScreen}
         onBack={() => setFiltersDrawerScreen('root')}
-        onSelect={field => setFiltersDrawerScreen(field)}
-        onUpdateFilters={next => setDraftFilters(prev => ({ ...prev, ...next }))}
-        onResetAll={() => setDraftFilters(DEFAULT_STATEMENT_FILTERS)}
+        onSelect={screen => setFiltersDrawerScreen(screen)}
+        onUpdateFilters={updateFilter}
+        onResetAll={resetAllFilters}
         onViewResults={() => {
-          applyAndClose(() => setFiltersDrawerOpen(false));
+          applyFilterChanges();
+          setFiltersDrawerOpen(false);
+          setFiltersDrawerScreen('root');
         }}
         typeOptions={typeOptions}
-        statusOptions={STATUS_OPTIONS}
-        datePresets={DATE_PRESETS}
-        dateModes={DATE_MODES}
+        statusOptions={statusOptions}
+        datePresets={datePresets}
+        dateModes={dateModes}
         fromOptions={fromOptions}
         toOptions={fromOptions}
-        groupByOptions={GROUP_BY_OPTIONS}
-        hasOptions={HAS_OPTIONS}
-        currencyOptions={[]}
-        labels={FILTER_LABELS}
+        groupByOptions={groupByOptions}
+        hasOptions={hasOptions}
+        currencyOptions={currencyOptions}
+        labels={{
+          title: filterOptionLabels.drawerTitle,
+          viewResults: filterOptionLabels.viewResults,
+          saveSearch: filterOptionLabels.saveSearch,
+          resetFilters: filterOptionLabels.resetFilters,
+          general: filterOptionLabels.drawerGeneral,
+          expenses: filterOptionLabels.drawerExpenses,
+          reports: filterOptionLabels.drawerReports,
+          type: labels.type,
+          from: labels.from,
+          groupBy: filterOptionLabels.drawerGroupBy,
+          has: filterOptionLabels.drawerHas,
+          keywords: filterOptionLabels.drawerKeywords,
+          limit: filterOptionLabels.drawerLimit,
+          status: labels.status,
+          to: filterOptionLabels.drawerTo,
+          amount: filterOptionLabels.drawerAmount,
+          approved: filterOptionLabels.drawerApproved,
+          billable: filterOptionLabels.drawerBillable,
+          currency: filterOptionLabels.hasCurrency,
+          date: labels.date,
+          exported: 'Exported',
+          paid: 'Paid',
+          any: filterOptionLabels.any,
+          yes: filterOptionLabels.yes,
+          no: filterOptionLabels.no,
+        }}
         activeCount={activeFilterCount}
       />
+
+      {selectedRow ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4">
+          <div className="max-h-[85vh] w-full max-w-4xl overflow-hidden rounded-lg border border-gray-200 bg-white">
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900">
+                  {selectedRow.category} - {labels.drillDown}
+                </h4>
+                <p className="text-xs text-gray-500">
+                  {renderSourceBadge(selectedRow.sourceChannel)}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                onClick={() => setSelectedRowId(null)}
+                aria-label={labels.close}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="max-h-[65vh] overflow-y-auto px-5 py-4">
+              {drillDownRecords.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
+                  {labels.noOperations}
+                </div>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-100 text-sm">
+                  <thead>
+                    <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
+                      <th className="py-2 pr-4">{labels.lastOperation}</th>
+                      <th className="py-2 pr-4">{labels.source}</th>
+                      <th className="py-2 pr-4">{labels.workspace}</th>
+                      <th className="py-2 pr-4">Merchant</th>
+                      <th className="py-2 text-right">{labels.amount}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {drillDownRecords.slice(0, 120).map(record => (
+                      <tr key={record.id} className="text-gray-700">
+                        <td className="py-2 pr-4 text-gray-600">
+                          {record.dateValue && !Number.isNaN(new Date(record.dateValue).getTime())
+                            ? new Date(record.dateValue).toLocaleDateString()
+                            : '-'}
+                        </td>
+                        <td className="py-2 pr-4">{renderSourceBadge(record.sourceChannel)}</td>
+                        <td className="py-2 pr-4 text-gray-600">{record.workspaceName || '-'}</td>
+                        <td className="py-2 pr-4 text-gray-600">
+                          {record.counterpartyName || record.sender || record.subject || '-'}
+                        </td>
+                        <td className="py-2 text-right font-medium text-gray-900">
+                          {formatMoney(record.amount, workspaceCurrency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

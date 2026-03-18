@@ -1,13 +1,13 @@
 'use client';
 
-import CategoriesListView from '@/app/(main)/statements/components/CategoriesListView';
 import StatementsSidePanel from '@/app/(main)/statements/components/StatementsSidePanel';
+import TopCategoriesView from '@/app/(main)/statements/components/TopCategoriesView';
 
 export default function StatementsTopCategoriesPage() {
   return (
     <>
       <StatementsSidePanel activeItem="top-categories" />
-      <CategoriesListView />
+      <TopCategoriesView />
     </>
   );
 }

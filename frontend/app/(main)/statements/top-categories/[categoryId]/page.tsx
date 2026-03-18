@@ -1,17 +1,16 @@
 'use client';
 
-import CategoryStatementsView from '@/app/(main)/statements/components/CategoryStatementsView';
-import StatementsSidePanel from '@/app/(main)/statements/components/StatementsSidePanel';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-export default function StatementCategoryPage() {
+export default function StatementCategoryRedirectPage() {
+  const router = useRouter();
   const params = useParams<{ categoryId: string }>();
-  const categoryId = params?.categoryId || 'uncategorized';
 
-  return (
-    <>
-      <StatementsSidePanel activeItem="top-categories" />
-      <CategoryStatementsView categoryId={categoryId} />
-    </>
-  );
+  useEffect(() => {
+    const categoryId = params?.categoryId || 'uncategorized';
+    router.replace(`/statements/top-categories?category=${encodeURIComponent(categoryId)}`);
+  }, [params?.categoryId, router]);
+
+  return null;
 }
