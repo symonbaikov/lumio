@@ -1,3 +1,4 @@
+import { FilterStatementsDto } from '@/modules/statements/dto/filter-statements.dto';
 import * as fs from 'fs';
 import { FileStorageService } from '@/common/services/file-storage.service';
 import { BankName, FileType, Statement, StatementStatus } from '@/entities/statement.entity';
@@ -93,6 +94,13 @@ describe('StatementsService', () => {
           provide: getRepositoryToken(Transaction),
           useValue: {
             create: jest.fn(),
+            createQueryBuilder: jest.fn(() => ({
+              select: jest.fn().mockReturnThis(),
+              where: jest.fn().mockReturnThis(),
+              andWhere: jest.fn().mockReturnThis(),
+              getQuery: jest.fn().mockReturnValue('SELECT transaction.statementId FROM transactions'),
+              getParameters: jest.fn().mockReturnValue({}),
+            })),
             find: jest.fn(),
             save: jest.fn(),
             delete: jest.fn(),
@@ -332,6 +340,7 @@ describe('StatementsService', () => {
         take: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
+        setParameters: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(data[0] ?? null),
         getManyAndCount: jest.fn().mockResolvedValue([data, total] as const),
         ...qbOverrides,
@@ -342,11 +351,29 @@ describe('StatementsService', () => {
       return qb;
     };
 
+    const createTransactionSubQueryBuilderMock = (
+      params: Record<string, string> = {},
+      qbOverrides?: Partial<Record<string, jest.Mock>>,
+    ) => {
+      const qb = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getQuery: jest.fn().mockReturnValue('SELECT DISTINCT transaction.statementId FROM transaction'),
+        getParameters: jest.fn().mockReturnValue(params),
+        ...qbOverrides,
+      };
+
+      (transactionRepository as any).createQueryBuilder = jest.fn(() => qb);
+
+      return qb;
+    };
+
     it('should return all statements for user workspace', async () => {
       const statements = [mockStatement, { ...mockStatement, id: '2' }] as Statement[];
       const qb = createQueryBuilderMock(statements, 2);
 
-      const result = await service.findAll('ws-1', 1, 20);
+      const result = await service.findAll('ws-1', { page: 1, limit: 20 });
 
       expect(result).toEqual({
         data: statements,
@@ -364,7 +391,7 @@ describe('StatementsService', () => {
     it('should scope to user only when workspace is missing', async () => {
       const qb = createQueryBuilderMock([mockStatement as Statement], 1);
 
-      await service.findAll('ws-1', 1, 20);
+      await service.findAll('ws-1', { page: 1, limit: 20 });
 
       expect(qb.where).toHaveBeenCalledWith('statement.deletedAt IS NULL');
       expect(qb.andWhere).toHaveBeenCalledWith('statement.workspaceId = :workspaceId', {
@@ -375,13 +402,98 @@ describe('StatementsService', () => {
     it('should apply search filter', async () => {
       const qb = createQueryBuilderMock([mockStatement as Statement], 1);
 
-      await service.findAll('ws-1', 2, 10, 'abc');
+      await service.findAll('ws-1', { page: 2, limit: 10, search: 'abc' });
 
       expect(qb.skip).toHaveBeenCalledWith(10);
       expect(qb.take).toHaveBeenCalledWith(10);
       expect(qb.andWhere).toHaveBeenCalledWith('statement.fileName ILIKE :search', {
         search: '%abc%',
       });
+    });
+
+    it('applies extended filters without pagination when page is omitted', async () => {
+      const qb = createQueryBuilderMock([mockStatement as Statement], 1);
+      const subQuery = createTransactionSubQueryBuilderMock({
+        workspaceId: 'ws-1',
+        categoryId: 'cat-1',
+      });
+
+      await service.findAll('ws-1', {
+        limit: 15,
+        search: 'abc',
+        type: 'pdf',
+        statuses: ['processing', 'error'],
+        from: ['user:1', 'bank:kaspi'],
+        to: ['bank:bereke_new'],
+        keywords: 'alex',
+        amountMin: 100,
+        amountMax: 500,
+        approved: true,
+        billable: false,
+        currencies: ['KZT', 'USD'],
+        exported: true,
+        paid: false,
+        has: ['errors', 'transactions'],
+        categoryId: 'cat-1',
+        groupBy: 'amount',
+      } satisfies FilterStatementsDto);
+
+      expect(qb.skip).not.toHaveBeenCalled();
+      expect(qb.take).toHaveBeenCalledWith(15);
+      expect(qb.andWhere).toHaveBeenCalledWith('statement.fileType = :type', { type: 'pdf' });
+      expect(qb.andWhere).toHaveBeenCalledWith('LOWER(statement.status) IN (:...statuses)', {
+        statuses: ['processing', 'error'],
+      });
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('statement.userId IN (:...fromUserIds)'),
+        expect.objectContaining({ fromUserIds: ['1'], fromBankNames: ['kaspi'] }),
+      );
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('statement.bankName IN (:...toBankNames)'),
+        expect.objectContaining({ toBankNames: ['bereke_new'] }),
+      );
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('GREATEST(COALESCE(statement.totalDebit, 0), COALESCE(statement.totalCredit, 0)) >= :amountMin'),
+        expect.objectContaining({ amountMin: 100, amountMax: 500 }),
+      );
+      expect(qb.andWhere).toHaveBeenCalledWith('statement.status IN (:...approvedStatuses)', {
+        approvedStatuses: ['validated', 'completed', 'parsed'],
+      });
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        'GREATEST(COALESCE(statement.totalDebit, 0), COALESCE(statement.totalCredit, 0)) <= 0',
+      );
+      expect(qb.andWhere).toHaveBeenCalledWith('LOWER(statement.currency) IN (:...currencies)', {
+        currencies: ['kzt', 'usd'],
+      });
+      expect(qb.andWhere).toHaveBeenCalledWith('statement.processedAt IS NOT NULL');
+      expect(qb.andWhere).toHaveBeenCalledWith('statement.statementDateTo IS NULL');
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('statement.id IN (SELECT DISTINCT transaction.statementId FROM transaction)'),
+      );
+      expect(qb.setParameters).toHaveBeenCalledWith({ workspaceId: 'ws-1', categoryId: 'cat-1' });
+      expect(subQuery.andWhere).toHaveBeenCalledWith('transaction.categoryId = :categoryId', {
+        categoryId: 'cat-1',
+      });
+      expect(qb.orderBy).toHaveBeenLastCalledWith(
+        'GREATEST(COALESCE(statement.totalDebit, 0), COALESCE(statement.totalCredit, 0))',
+        'ASC',
+      );
+    });
+
+    it('applies date presets and uncategorized category filter', async () => {
+      const qb = createQueryBuilderMock([mockStatement as Statement], 1);
+      const subQuery = createTransactionSubQueryBuilderMock({ workspaceId: 'ws-1' });
+
+      await service.findAll('ws-1', {
+        datePreset: 'thisMonth',
+        categoryId: 'uncategorized',
+      });
+
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('COALESCE(statement.statementDateTo'),
+        expect.objectContaining({ dateFrom: expect.any(String), dateTo: expect.any(String) }),
+      );
+      expect(subQuery.andWhere).toHaveBeenCalledWith('transaction.categoryId IS NULL');
     });
   });
 

@@ -35,6 +35,7 @@ import { Audit } from '../audit/decorators/audit.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ConvertDroppedSampleDto } from './dto/convert-dropped-sample.dto';
 import { CreateManualExpenseDto } from './dto/create-manual-expense.dto';
+import { FilterStatementsDto } from './dto/filter-statements.dto';
 import { UpdateStatementDto } from './dto/update-statement.dto';
 import { UploadStatementDto } from './dto/upload-statement.dto';
 import { StatementsService } from './statements.service';
@@ -204,20 +205,11 @@ export class StatementsController {
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard, PermissionsGuard)
   @RequirePermission(Permission.STATEMENT_VIEW)
   async findAll(
-    @CurrentUser() user: User,
+    @CurrentUser() _user: User,
     @WorkspaceId() workspaceId: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('search') search?: string,
-    @Query('categoryId') categoryId?: string,
+    @Query() filters: FilterStatementsDto,
   ) {
-    const result = await this.statementsService.findAll(
-      workspaceId,
-      page ? Number.parseInt(page) : 1,
-      limit ? Number.parseInt(limit) : 20,
-      search,
-      categoryId,
-    );
+    const result = await this.statementsService.findAll(workspaceId, filters);
 
     // Include 'items' field for backward compatibility
     return {

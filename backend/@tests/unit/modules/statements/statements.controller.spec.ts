@@ -3,6 +3,7 @@ jest.mock('franc', () => ({
 }));
 
 import { StatementStatus } from '@/entities/statement.entity';
+import { FilterStatementsDto } from '@/modules/statements/dto/filter-statements.dto';
 import { StatementsController } from '@/modules/statements/statements.controller';
 
 describe('StatementsController', () => {
@@ -73,7 +74,7 @@ describe('StatementsController', () => {
     });
   });
 
-  it('passes categoryId to findAll and keeps items alias', async () => {
+  it('passes filter dto to findAll and keeps items alias', async () => {
     statementsService.findAll.mockResolvedValue({
       data: [{ id: 'stmt-1' }],
       total: 1,
@@ -81,16 +82,22 @@ describe('StatementsController', () => {
       limit: 10,
     });
 
+    const filters = {
+      page: 2,
+      limit: 10,
+      search: 'abc',
+      categoryId: 'cat-1',
+      type: 'pdf',
+      statuses: ['processing', 'error'],
+    } as FilterStatementsDto;
+
     const result = await controller.findAll(
       { id: 'user-1' } as any,
       'ws-1',
-      '2',
-      '10',
-      'abc',
-      'cat-1',
+      filters,
     );
 
-    expect(statementsService.findAll).toHaveBeenCalledWith('ws-1', 2, 10, 'abc', 'cat-1');
+    expect(statementsService.findAll).toHaveBeenCalledWith('ws-1', filters);
     expect(result).toEqual({
       data: [{ id: 'stmt-1' }],
       items: [{ id: 'stmt-1' }],

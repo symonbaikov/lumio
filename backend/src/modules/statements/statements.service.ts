@@ -37,9 +37,71 @@ import type {
 import { StatementProcessingService } from '../parsing/services/statement-processing.service';
 import type { ConvertDroppedSampleDto } from './dto/convert-dropped-sample.dto';
 import type { CreateManualExpenseDto } from './dto/create-manual-expense.dto';
+import type { FilterStatementsDto } from './dto/filter-statements.dto';
 import type { UpdateStatementDto } from './dto/update-statement.dto';
 
 const execAsync = promisify(exec);
+const APPROVED_STATUSES = [StatementStatus.VALIDATED, StatementStatus.COMPLETED, StatementStatus.PARSED];
+const NOT_APPROVED_STATUSES = [
+  StatementStatus.UPLOADED,
+  StatementStatus.PROCESSING,
+  StatementStatus.ERROR,
+];
+
+const toDateOnlyString = (value: Date) => {
+  const year = value.getFullYear();
+  const month = `${value.getMonth() + 1}`.padStart(2, '0');
+  const day = `${value.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getDatePresetRange = (preset: 'thisMonth' | 'lastMonth' | 'yearToDate', now: Date) => {
+  const current = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (preset === 'thisMonth') {
+    return {
+      dateFrom: toDateOnlyString(new Date(current.getFullYear(), current.getMonth(), 1)),
+      dateTo: toDateOnlyString(new Date(current.getFullYear(), current.getMonth() + 1, 0)),
+    };
+  }
+
+  if (preset === 'lastMonth') {
+    return {
+      dateFrom: toDateOnlyString(new Date(current.getFullYear(), current.getMonth() - 1, 1)),
+      dateTo: toDateOnlyString(new Date(current.getFullYear(), current.getMonth(), 0)),
+    };
+  }
+
+  return {
+    dateFrom: toDateOnlyString(new Date(current.getFullYear(), 0, 1)),
+    dateTo: toDateOnlyString(current),
+  };
+};
+
+const splitReferenceTokens = (tokens?: string[]) => {
+  const normalizedTokens = tokens || [];
+
+  return normalizedTokens.reduce(
+    (acc, token) => {
+      if (token.startsWith('user:')) {
+        const userId = token.replace('user:', '').trim();
+        if (userId) {
+          acc.userIds.push(userId);
+        }
+      }
+
+      if (token.startsWith('bank:')) {
+        const bankName = token.replace('bank:', '').trim().toLowerCase();
+        if (bankName) {
+          acc.bankNames.push(bankName);
+        }
+      }
+
+      return acc;
+    },
+    { userIds: [] as string[], bankNames: [] as string[] },
+  );
+};
 
 @Injectable()
 export class StatementsService {
@@ -617,42 +679,231 @@ export class StatementsService {
 
   async findAll(
     workspaceId: string,
-    page = 1,
-    limit = 20,
-    search?: string,
-    categoryId?: string,
+    filters: FilterStatementsDto = {},
   ): Promise<{
     data: Statement[];
     total: number;
     page: number;
     limit: number;
   }> {
+    const page = filters.page;
+    const limit = filters.limit ?? (page ? 20 : undefined);
+    const statementDateExpression =
+      'DATE(COALESCE(statement.statementDateTo, statement.statementDateFrom, statement.createdAt))';
+    const amountExpression =
+      'GREATEST(COALESCE(statement.totalDebit, 0), COALESCE(statement.totalCredit, 0))';
     const qb = this.statementRepository
       .createQueryBuilder('statement')
       .leftJoinAndSelect('statement.user', 'user')
       .where('statement.deletedAt IS NULL')
       .andWhere('statement.workspaceId = :workspaceId', { workspaceId })
-      .orderBy('statement.createdAt', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit);
+      .orderBy('statement.createdAt', 'DESC');
 
-    if (search) {
+    if (page && limit) {
+      qb.skip((page - 1) * limit).take(limit);
+    } else if (!page && limit) {
+      qb.take(limit);
+    }
+
+    if (filters.search) {
       qb.andWhere('statement.fileName ILIKE :search', {
-        search: `%${search}%`,
+        search: `%${filters.search}%`,
       });
     }
 
-    if (categoryId) {
+    if (filters.type) {
+      qb.andWhere('statement.fileType = :type', {
+        type: filters.type.toLowerCase(),
+      });
+    }
+
+    if (filters.statuses && filters.statuses.length > 0) {
+      qb.andWhere('LOWER(statement.status) IN (:...statuses)', {
+        statuses: filters.statuses.map(status => status.toLowerCase()),
+      });
+    }
+
+    if (typeof filters.approved === 'boolean') {
+      if (filters.approved) {
+        qb.andWhere('statement.status IN (:...approvedStatuses)', {
+          approvedStatuses: APPROVED_STATUSES,
+        });
+      } else {
+        qb.andWhere('statement.status IN (:...notApprovedStatuses)', {
+          notApprovedStatuses: NOT_APPROVED_STATUSES,
+        });
+      }
+    }
+
+    if (typeof filters.billable === 'boolean') {
+      if (filters.billable) {
+        qb.andWhere(`${amountExpression} > 0`);
+      } else {
+        qb.andWhere(`${amountExpression} <= 0`);
+      }
+    }
+
+    if (filters.datePreset) {
+      const { dateFrom, dateTo } = getDatePresetRange(filters.datePreset, new Date());
+      qb.andWhere(`${statementDateExpression} BETWEEN :dateFrom AND :dateTo`, {
+        dateFrom,
+        dateTo,
+      });
+    } else if (filters.dateMode && filters.dateFrom) {
+      if (filters.dateMode === 'on') {
+        if (filters.dateTo) {
+          const sortedRange = [filters.dateFrom, filters.dateTo].sort();
+          qb.andWhere(`${statementDateExpression} BETWEEN :dateFrom AND :dateTo`, {
+            dateFrom: sortedRange[0],
+            dateTo: sortedRange[1],
+          });
+        } else {
+          qb.andWhere(`${statementDateExpression} = :dateFrom`, {
+            dateFrom: filters.dateFrom,
+          });
+        }
+      } else if (filters.dateMode === 'after') {
+        qb.andWhere(`${statementDateExpression} > :dateFrom`, {
+          dateFrom: filters.dateFrom,
+        });
+      } else {
+        qb.andWhere(`${statementDateExpression} < :dateTo`, {
+          dateTo: filters.dateTo || filters.dateFrom,
+        });
+      }
+    }
+
+    const fromReferences = splitReferenceTokens(filters.from);
+    if (fromReferences.userIds.length > 0 || fromReferences.bankNames.length > 0) {
+      const conditions: string[] = [];
+      const params: Record<string, string[]> = {};
+
+      if (fromReferences.userIds.length > 0) {
+        conditions.push('statement.userId IN (:...fromUserIds)');
+        params.fromUserIds = fromReferences.userIds;
+      }
+
+      if (fromReferences.bankNames.length > 0) {
+        conditions.push('statement.bankName IN (:...fromBankNames)');
+        params.fromBankNames = fromReferences.bankNames;
+      }
+
+      qb.andWhere(`(${conditions.join(' OR ')})`, params);
+    }
+
+    const toReferences = splitReferenceTokens(filters.to);
+    if (toReferences.userIds.length > 0 || toReferences.bankNames.length > 0) {
+      const conditions: string[] = [];
+      const params: Record<string, string[]> = {};
+
+      if (toReferences.userIds.length > 0) {
+        conditions.push('statement.userId IN (:...toUserIds)');
+        params.toUserIds = toReferences.userIds;
+      }
+
+      if (toReferences.bankNames.length > 0) {
+        conditions.push('statement.bankName IN (:...toBankNames)');
+        params.toBankNames = toReferences.bankNames;
+      }
+
+      qb.andWhere(`(${conditions.join(' OR ')})`, params);
+    }
+
+    if (filters.keywords?.trim()) {
+      qb.andWhere(
+        `(
+          statement.fileName ILIKE :keywords OR
+          CAST(statement.bankName AS text) ILIKE :keywords OR
+          CAST(statement.status AS text) ILIKE :keywords OR
+          COALESCE(user.name, '') ILIKE :keywords OR
+          COALESCE(user.email, '') ILIKE :keywords OR
+          COALESCE(statement.accountNumber, '') ILIKE :keywords
+        )`,
+        {
+          keywords: `%${filters.keywords.trim()}%`,
+        },
+      );
+    }
+
+    if (filters.amountMin !== undefined || filters.amountMax !== undefined) {
+      const amountConditions: string[] = [];
+      const params: Record<string, number> = {};
+
+      if (filters.amountMin !== undefined) {
+        amountConditions.push(`${amountExpression} >= :amountMin`);
+        params.amountMin = filters.amountMin;
+      }
+
+      if (filters.amountMax !== undefined) {
+        amountConditions.push(`${amountExpression} <= :amountMax`);
+        params.amountMax = filters.amountMax;
+      }
+
+      qb.andWhere(amountConditions.join(' AND '), params);
+    }
+
+    if (filters.currencies && filters.currencies.length > 0) {
+      qb.andWhere('LOWER(statement.currency) IN (:...currencies)', {
+        currencies: filters.currencies.map(currency => currency.toLowerCase()),
+      });
+    }
+
+    if (typeof filters.exported === 'boolean') {
+      qb.andWhere(filters.exported ? 'statement.processedAt IS NOT NULL' : 'statement.processedAt IS NULL');
+    }
+
+    if (typeof filters.paid === 'boolean') {
+      qb.andWhere(filters.paid ? 'statement.statementDateTo IS NOT NULL' : 'statement.statementDateTo IS NULL');
+    }
+
+    if (filters.has?.includes('errors')) {
+      qb.andWhere(
+        `(
+          statement.status = :errorStatus OR
+          statement.errorMessage IS NOT NULL OR
+          jsonb_array_length(COALESCE(statement.parsingDetails->'errors', '[]'::jsonb)) > 0
+        )`,
+        { errorStatus: StatementStatus.ERROR },
+      );
+    }
+
+    if (filters.has?.includes('processingDetails')) {
+      qb.andWhere(
+        "jsonb_array_length(COALESCE(statement.parsingDetails->'logEntries', '[]'::jsonb)) > 0",
+      );
+    }
+
+    if (filters.has?.includes('transactions')) {
+      qb.andWhere('statement.totalTransactions > 0');
+    }
+
+    if (filters.has?.includes('dateRange')) {
+      qb.andWhere('(statement.statementDateFrom IS NOT NULL OR statement.statementDateTo IS NOT NULL)');
+    }
+
+    if (filters.has?.includes('currency')) {
+      qb.andWhere(
+        `(
+          statement.currency IS NOT NULL OR
+          statement.parsingDetails->'metadataExtracted'->>'currency' IS NOT NULL OR
+          statement.parsingDetails->'metadataExtracted'->'headerDisplay'->>'currencyDisplay' IS NOT NULL
+        )`,
+      );
+    }
+
+    if (filters.categoryId) {
       const categorySubQuery = this.transactionRepository
         .createQueryBuilder('transaction')
         .select('DISTINCT transaction.statementId')
         .where('transaction.workspaceId = :workspaceId', { workspaceId })
         .andWhere('transaction.statementId IS NOT NULL');
 
-      if (categoryId === 'uncategorized') {
+      if (filters.categoryId === 'uncategorized') {
         categorySubQuery.andWhere('transaction.categoryId IS NULL');
       } else {
-        categorySubQuery.andWhere('transaction.categoryId = :categoryId', { categoryId });
+        categorySubQuery.andWhere('transaction.categoryId = :categoryId', {
+          categoryId: filters.categoryId,
+        });
       }
 
       qb.andWhere(`statement.id IN (${categorySubQuery.getQuery()})`).setParameters(
@@ -660,7 +911,21 @@ export class StatementsService {
       );
     }
 
-    const [dataRaw, total] = await qb.getManyAndCount();
+    if (filters.groupBy === 'date') {
+      qb.orderBy(statementDateExpression, 'ASC');
+    } else if (filters.groupBy === 'status') {
+      qb.orderBy('statement.status', 'ASC');
+    } else if (filters.groupBy === 'type') {
+      qb.orderBy('statement.fileType', 'ASC');
+    } else if (filters.groupBy === 'bank') {
+      qb.orderBy('statement.bankName', 'ASC');
+    } else if (filters.groupBy === 'user') {
+      qb.orderBy(`LOWER(COALESCE(user.name, user.email, ''))`, 'ASC');
+    } else if (filters.groupBy === 'amount') {
+      qb.orderBy(amountExpression, 'ASC');
+    }
+
+    const [dataRaw, totalCount] = await qb.getManyAndCount();
     const data = await Promise.all(
       dataRaw.map(async st => {
         const availability = await this.fileStorageService.getFileAvailability(st);
@@ -671,7 +936,14 @@ export class StatementsService {
       }),
     );
 
-    return { data, total, page, limit };
+    const total = page ? totalCount : data.length;
+
+    return {
+      data,
+      total,
+      page: page ?? 1,
+      limit: limit ?? total,
+    };
   }
 
   async findOne(id: string, workspaceId: string): Promise<Statement> {

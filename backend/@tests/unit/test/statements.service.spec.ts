@@ -72,7 +72,7 @@ describe('StatementsService', () => {
   it('orders by createdAt when listing statements', async () => {
     qb.getManyAndCount = jest.fn(async () => [[], 0]);
 
-    const result = await service.findAll('ws-1', 1, 20);
+    const result = await service.findAll('ws-1', { page: 1, limit: 20 });
 
     expect(statementRepository.createQueryBuilder).toHaveBeenCalledWith('statement');
     expect(qb.orderBy).toHaveBeenCalledWith('statement.createdAt', 'DESC');
@@ -86,7 +86,7 @@ describe('StatementsService', () => {
   it('filters by workspace when user is in workspace', async () => {
     qb.getManyAndCount = jest.fn(async () => [[], 0]);
 
-    await service.findAll('ws-1', 1, 20);
+    await service.findAll('ws-1', { page: 1, limit: 20 });
 
     expect(qb.where).toHaveBeenCalledWith('statement.deletedAt IS NULL');
     expect(qb.andWhere).toHaveBeenCalledWith('statement.workspaceId = :workspaceId', {
