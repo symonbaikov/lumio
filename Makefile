@@ -3,9 +3,19 @@
 # Variables
 DOCKER_COMPOSE = docker-compose
 DOCKER_COMPOSE_DEV = docker-compose -f docker-compose.yml -f docker-compose.dev.yml
-DOCKER_EXEC_BACKEND = docker exec -it finflow-backend
+DOCKER_EXEC_BACKEND = docker exec finflow-backend
 DOCKER_EXEC_FRONTEND = docker exec -it finflow-frontend
 DOCKER_EXEC_DB = docker exec -it finflow-postgres
+
+define wait_for_users_table
+	@echo "⏳ Waiting for database schema..."
+	@for i in $$(seq 1 60); do \
+		if docker exec finflow-postgres psql -U finflow -d finflow -tAc "select 1 from information_schema.tables where table_schema='public' and table_name='users'" 2>/dev/null | grep -q 1; then \
+			break; \
+		fi; \
+		sleep 2; \
+	done
+endef
 
 ##@ General
 
@@ -157,13 +167,33 @@ admin: ## Create admin user (usage: make admin email=admin@example.com password=
 		exit 1; \
 	fi
 	@echo "👤 Creating admin user..."
-	@$(DOCKER_EXEC_BACKEND) npm run create-admin -- $(email) $(password) "$(name)"
+	$(call wait_for_users_table)
+	@if docker inspect -f '{{.State.Running}}' finflow-backend >/dev/null 2>&1; then \
+		if [ "$$(docker exec finflow-backend printenv NODE_ENV 2>/dev/null)" = "development" ]; then \
+			docker exec finflow-backend sh -lc 'NODE_OPTIONS=--max-old-space-size=2048 npm run create-admin:dev -- $(email) $(password) "$(name)"'; \
+		elif docker exec finflow-backend sh -lc 'test -f dist/scripts/create-admin.js'; then \
+			docker exec finflow-backend node dist/scripts/create-admin.js $(email) $(password) "$(name)"; \
+		else \
+			echo "❌ No create-admin entrypoint available in finflow-backend"; \
+			exit 1; \
+		fi; \
+	else \
+		cd backend && npm run create-admin -- $(email) $(password) "$(name)"; \
+	fi
 	@echo "✅ Admin user created!"
 
 seed-demo: ## Create demo user (demo@lumio.dev / demo123)
 	@echo "👤 Creating demo user..."
+	$(call wait_for_users_table)
 	@if docker inspect -f '{{.State.Running}}' finflow-backend >/dev/null 2>&1; then \
-		cd backend && npm run build:scripts && docker exec finflow-backend node dist/scripts/seed-demo.js; \
+		if [ "$$(docker exec finflow-backend printenv NODE_ENV 2>/dev/null)" = "development" ]; then \
+			docker exec finflow-backend sh -lc 'NODE_OPTIONS=--max-old-space-size=2048 npm run seed:demo:dev'; \
+		elif docker exec finflow-backend sh -lc 'test -f dist/scripts/seed-demo.js'; then \
+			docker exec finflow-backend node dist/scripts/seed-demo.js; \
+		else \
+			echo "❌ No seed-demo entrypoint available in finflow-backend"; \
+			exit 1; \
+		fi; \
 	else \
 		cd backend && npm run build:scripts && npm run seed:demo; \
 	fi
@@ -303,6 +333,7 @@ quick-dev: ## Zero-config startup: dev containers + demo user
 		curl -sf http://localhost:3001/api/v1/health/ready >/dev/null 2>&1 && break; \
 		sleep 2; \
 	done
+	$(call wait_for_users_table)
 	@$(MAKE) seed-demo
 	@echo "🎉 Lumio is ready!"
 	@echo "   Frontend: http://localhost:3000"

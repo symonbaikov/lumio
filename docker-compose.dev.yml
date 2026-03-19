@@ -23,7 +23,7 @@ services:
       - ./backend:/app
       - /app/node_modules
       - backend_uploads:/app/uploads
-    command: npm run start:dev
+    command: sh -lc "NODE_OPTIONS=--max-old-space-size=2048 npm run migration:run:dev && NODE_OPTIONS=--max-old-space-size=2048 npm run start:dev"
 
   frontend:
     build:
