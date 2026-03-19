@@ -3,6 +3,7 @@
 import { Download, MoreVertical, X } from 'lucide-react';
 import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 type ReactPdfModule = typeof import('react-pdf');
+import { useIntlayer } from '@/app/i18n';
 import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { ModalShell } from './ui/modal-shell';
 
@@ -29,6 +30,8 @@ export function PDFPreviewModal({
   onFileAttached,
   onParsingStarted,
 }: PDFPreviewModalProps) {
+  const t = useIntlayer('pdfPreviewModal');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pdfObjectUrl, setPdfObjectUrl] = useState<string | null>(null);
@@ -71,7 +74,7 @@ export function PDFPreviewModal({
 
         const headers = getWorkspaceHeaders();
         if (!headers.Authorization) {
-          setError('Необходима авторизация');
+          setError(t.errors.authRequired.value);
           setLoading(false);
           return;
         }
@@ -88,7 +91,7 @@ export function PDFPreviewModal({
         });
 
         if (!response.ok) {
-          throw new Error(`Ошибка загрузки файла: ${response.status}`);
+          throw new Error(`${t.errors.fileLoadError.value}: ${response.status}`);
         }
 
         const blob = await response.blob();
@@ -101,7 +104,7 @@ export function PDFPreviewModal({
       } catch (err) {
         console.error('Error loading PDF:', err);
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Не удалось загрузить файл');
+          setError(err instanceof Error ? err.message : t.errors.fileLoadFailed.value);
           setLoading(false);
         }
       }
@@ -132,7 +135,7 @@ export function PDFPreviewModal({
       } catch (err) {
         console.error('Error loading PDF renderer:', err);
         if (active) {
-          setError('Не удалось загрузить просмотрщик PDF');
+          setError(t.errors.pdfRendererFailed.value);
         }
       }
     };
@@ -186,7 +189,7 @@ export function PDFPreviewModal({
     try {
       const headers = getWorkspaceHeaders();
       if (!headers.Authorization) {
-        alert('Необходима авторизация');
+        alert(t.errors.authRequired.value);
         return;
       }
 
@@ -202,7 +205,7 @@ export function PDFPreviewModal({
       });
 
       if (!response.ok) {
-        throw new Error('Ошибка скачивания файла');
+        throw new Error(t.errors.downloadFailed.value);
       }
 
       const blob = await response.blob();
@@ -216,7 +219,7 @@ export function PDFPreviewModal({
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Error downloading PDF:', err);
-      alert('Не удалось скачать файл');
+      alert(t.errors.downloadAlertFailed.value);
     }
   };
 
@@ -239,7 +242,7 @@ export function PDFPreviewModal({
     try {
       const headers = getWorkspaceHeaders();
       if (!headers.Authorization) {
-        setError('Необходима авторизация');
+        setError(t.errors.authRequired.value);
         return;
       }
 
@@ -255,7 +258,7 @@ export function PDFPreviewModal({
       });
 
       if (!response.ok) {
-        throw new Error('Не удалось загрузить файл');
+        throw new Error(t.errors.uploadFailed.value);
       }
 
       setError(null);
@@ -263,7 +266,7 @@ export function PDFPreviewModal({
       setShowParsePrompt(true);
       setReloadToken(prev => prev + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не удалось загрузить файл');
+      setError(err instanceof Error ? err.message : t.errors.uploadFailed.value);
     } finally {
       setAttachingFile(false);
     }
@@ -273,7 +276,7 @@ export function PDFPreviewModal({
     try {
       const headers = getWorkspaceHeaders();
       if (!headers.Authorization) {
-        setError('Необходима авторизация');
+        setError(t.errors.authRequired.value);
         return;
       }
 
@@ -285,13 +288,13 @@ export function PDFPreviewModal({
       });
 
       if (!response.ok) {
-        throw new Error('Не удалось запустить парсинг');
+        throw new Error(t.errors.parsingFailed.value);
       }
 
       setShowParsePrompt(false);
       onParsingStarted?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не удалось запустить парсинг');
+      setError(err instanceof Error ? err.message : t.errors.parsingFailed.value);
     } finally {
       setStartingParsing(false);
     }
@@ -355,7 +358,7 @@ export function PDFPreviewModal({
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
               <div className="text-center">
                 <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-gray-200 border-t-black" />
-                <p className="text-sm font-medium text-gray-500">Загрузка документа...</p>
+                <p className="text-sm font-medium text-gray-500">{t.loading.value}</p>
               </div>
             </div>
           )}
@@ -367,10 +370,10 @@ export function PDFPreviewModal({
                   <X size={24} className="text-red-500" strokeWidth={1.5} />
                 </div>
                 <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                  {showAttachFallback ? 'Файл не прикреплен' : 'Ошибка загрузки'}
+                  {showAttachFallback ? t.fileNotAttached.value : t.loadError.value}
                 </h3>
                 <p className="mb-4 text-sm text-gray-500">
-                  {showAttachFallback ? 'Загрузите файл, чтобы открыть превью документа' : error}
+                  {showAttachFallback ? t.uploadFileHint.value : error}
                 </p>
 
                 {showAttachFallback ? (
@@ -388,14 +391,14 @@ export function PDFPreviewModal({
                       disabled={attachingFile}
                       className="rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {attachingFile ? 'Загрузка...' : 'Загрузить файл'}
+                      {attachingFile ? t.uploading.value : t.uploadFile.value}
                     </button>
                     <button
                       type="button"
                       onClick={onClose}
                       className="rounded-lg border border-gray-200 bg-white px-5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                     >
-                      Закрыть
+                      {t.close.value}
                     </button>
                   </div>
                 ) : (
@@ -404,7 +407,7 @@ export function PDFPreviewModal({
                     onClick={onClose}
                     className="rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800"
                   >
-                    Закрыть
+                    {t.close.value}
                   </button>
                 )}
               </div>
@@ -414,10 +417,8 @@ export function PDFPreviewModal({
           {showParsePrompt && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/25 px-4">
               <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-[0_20px_36px_rgba(15,23,42,0.2)]">
-                <h3 className="text-base font-semibold text-[#0f3428]">Запустить парсинг?</h3>
-                <p className="mt-2 text-sm text-gray-600">
-                  Хотите извлечь данные из загруженной выписки и заменить текущие ручные значения?
-                </p>
+                <h3 className="text-base font-semibold text-[#0f3428]">{t.startParsing.value}</h3>
+                <p className="mt-2 text-sm text-gray-600">{t.startParsingDescription.value}</p>
                 <div className="mt-5 flex items-center justify-end gap-2">
                   <button
                     type="button"
@@ -425,7 +426,7 @@ export function PDFPreviewModal({
                     disabled={startingParsing}
                     className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
                   >
-                    Отказаться
+                    {t.decline.value}
                   </button>
                   <button
                     type="button"
@@ -433,7 +434,7 @@ export function PDFPreviewModal({
                     disabled={startingParsing}
                     className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
                   >
-                    {startingParsing ? 'Запуск...' : 'Запустить парсинг'}
+                    {startingParsing ? t.startingParsing.value : t.startParsingButton.value}
                   </button>
                 </div>
               </div>
@@ -447,7 +448,7 @@ export function PDFPreviewModal({
                   file={pdfObjectUrl}
                   loading={null}
                   onLoadSuccess={({ numPages: loadedPages }) => setNumPages(loadedPages)}
-                  onLoadError={() => setError('Не удалось отобразить документ')}
+                  onLoadError={() => setError(t.errors.displayFailed.value)}
                   className="w-full"
                 >
                   {Array.from({ length: numPages }, (_, index) => (

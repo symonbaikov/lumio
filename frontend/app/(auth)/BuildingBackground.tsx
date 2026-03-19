@@ -39,7 +39,10 @@ const WindowGrid = ({
         // biome-ignore lint/suspicious/noArrayIndexKey: pure visual decoration
         key={i}
         style={{
-          background: stableWindowNoise((cols + 11) * (rows + 7) * (i + 1)) < density ? 'white' : 'transparent',
+          background:
+            stableWindowNoise((cols + 11) * (rows + 7) * (i + 1)) < density
+              ? 'white'
+              : 'transparent',
           borderRadius: '2px',
         }}
       />

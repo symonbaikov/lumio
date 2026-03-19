@@ -1,5 +1,6 @@
 'use client';
 
+import { useIntlayer, useLocale } from '@/app/i18n';
 import type { AuditEvent, AuditEventFilter } from '@/lib/api/audit';
 import { fetchAuditEvents } from '@/lib/api/audit';
 import { Delete, Error as ErrorIcon, Refresh } from '@mui/icons-material';
@@ -25,7 +26,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { AuditEventDrawer } from '../audit/components/AuditEventDrawer';

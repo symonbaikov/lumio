@@ -45,6 +45,26 @@ const content = {
       spreadsheets: t({ ru: 'Таблицы', en: 'Spreadsheets', kk: 'Кестелер' }),
       messaging: t({ ru: 'Мессенджеры', en: 'Messaging', kk: 'Мессенджерлер' }),
     },
+    searchPlaceholder: t({
+      ru: 'Поиск интеграций...',
+      en: 'Search integrations...',
+      kk: 'Интеграцияларды іздеу...',
+    }),
+    noResults: t({
+      ru: 'Ничего не найдено',
+      en: 'Nothing found',
+      kk: 'Ештеңе табылмады',
+    }),
+    noResultsDescription: t({
+      ru: 'По запросу «{{query}}» нет подходящих интеграций.',
+      en: 'No matching integrations found for "{{query}}".',
+      kk: '«{{query}}» сұрауы бойынша сәйкес интеграциялар табылмады.',
+    }),
+    resetSearch: t({
+      ru: 'Сбросить поиск',
+      en: 'Reset search',
+      kk: 'Іздеуді қалпына келтіру',
+    }),
     cards: {
       dropbox: {
         description: t({

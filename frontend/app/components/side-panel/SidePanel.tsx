@@ -122,7 +122,7 @@ export function SidePanel({
   return (
     <aside
       className={cn(
-        'relative flex flex-col bg-[#fbfaf8] dark:bg-gray-900 border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out',
+        'relative flex flex-col bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out',
         'shadow-sm overflow-visible',
         positionClasses,
         className,

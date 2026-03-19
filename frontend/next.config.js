@@ -10,7 +10,8 @@ const { withIntlayerSync } = require('next-intlayer/server');
 const intlayerAliases = {
   intlayer: './node_modules/intlayer/dist/cjs/index.cjs',
   '@intlayer/config/built': './node_modules/@intlayer/config/dist/cjs/built.cjs',
-  'react-intlayer': './node_modules/react-intlayer/dist/cjs/index.cjs',
+  'react-intlayer$': './node_modules/react-intlayer/dist/cjs/index.cjs',
+  'react-intlayer/server$': './node_modules/react-intlayer/dist/cjs/server/index.cjs',
 };
 
 /** @type {import('next').NextConfig} */
@@ -18,9 +19,7 @@ const nextConfig = {
   output: 'standalone',
   outputFileTracingRoot: __dirname,
 
-  serverExternalPackages: [
-    'esbuild',
-  ],
+  serverExternalPackages: ['esbuild'],
 
   turbopack: {
     resolveAlias: {
@@ -43,7 +42,11 @@ const nextConfig = {
         __dirname,
         'node_modules/@intlayer/config/dist/cjs/built.cjs',
       ),
-      'react-intlayer': path.resolve(__dirname, 'node_modules/react-intlayer/dist/cjs/index.cjs'),
+      'react-intlayer$': path.resolve(__dirname, 'node_modules/react-intlayer/dist/cjs/index.cjs'),
+      'react-intlayer/server$': path.resolve(
+        __dirname,
+        'node_modules/react-intlayer/dist/cjs/server/index.cjs',
+      ),
     };
     return config;
   },

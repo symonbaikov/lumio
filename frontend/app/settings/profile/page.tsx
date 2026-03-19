@@ -19,6 +19,7 @@ import { Select as UiSelect } from '@/app/components/ui/select';
 import { Separator } from '@/app/components/ui/separator';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
 import { MAX_AVATAR_SIZE_BYTES } from '@/app/lib/constants';
@@ -38,7 +39,6 @@ import UpdateOutlinedIcon from '@mui/icons-material/UpdateOutlined';
 import CircularProgress from '@mui/material/CircularProgress';
 import type { AxiosError } from 'axios';
 import { CalendarDays, Check, Clock3, FileText, Search } from 'lucide-react';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -1311,7 +1311,7 @@ export default function ProfileSettingsPage() {
         position="right"
         width="lg"
         showCloseButton={false}
-        className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
+        className="max-w-full border-l-0 bg-white sm:max-w-lg"
       >
         <div className="flex h-full flex-col">
           <div className="flex-1 space-y-4 overflow-y-auto">

@@ -1,3 +1,9 @@
+import {
+  DEFAULT_STATEMENT_FILTERS,
+  type StatementFilters,
+  resetSingleStatementFilter,
+} from '../filters/statement-filters';
+
 export type StatementColumnId =
   | 'receipt'
   | 'date'
@@ -44,6 +50,37 @@ export const DEFAULT_STATEMENT_COLUMNS: StatementColumn[] = [
   { id: 'exportedTo', label: 'Exported to', visible: false, order: 15 },
 ];
 
+export const COLUMN_FILTER_MAP: Partial<Record<StatementColumnId, Array<keyof StatementFilters>>> =
+  {
+    receipt: ['type', 'statuses'],
+    date: ['date'],
+    merchant: ['keywords'],
+    from: [],
+    to: [],
+    category: [],
+    tag: [],
+    amount: ['amountMin', 'amountMax'],
+    action: [],
+    approved: ['approved'],
+    billable: ['billable'],
+    card: [],
+    description: ['keywords'],
+    exchangeRate: [],
+    exported: ['exported'],
+    exportedTo: [],
+  };
+
+const ALWAYS_AVAILABLE_FILTER_KEYS: Array<keyof StatementFilters> = [
+  'type',
+  'statuses',
+  'groupBy',
+  'has',
+  'keywords',
+  'limit',
+  'paid',
+  'exported',
+];
+
 const sortColumns = (columns: StatementColumn[]) => [...columns].sort((a, b) => a.order - b.order);
 
 export const loadStatementColumns = (): StatementColumn[] => {
@@ -85,4 +122,32 @@ export const reorderStatementColumns = (
   const [moved] = next.splice(activeIndex, 1);
   next.splice(overIndex, 0, moved);
   return next.map((column, index) => ({ ...column, order: index }));
+};
+
+export const getAllowedStatementFilterKeys = (visibleColumnIds: StatementColumnId[]) => {
+  const allowed = new Set<keyof StatementFilters>(ALWAYS_AVAILABLE_FILTER_KEYS);
+
+  visibleColumnIds.forEach(columnId => {
+    COLUMN_FILTER_MAP[columnId]?.forEach(filterKey => {
+      allowed.add(filterKey);
+    });
+  });
+
+  return Array.from(allowed).sort();
+};
+
+export const resetDisallowedStatementFilters = (
+  filters: StatementFilters,
+  allowedKeys: Array<keyof StatementFilters>,
+) => {
+  const allowed = new Set<keyof StatementFilters>(allowedKeys);
+  let next = { ...filters };
+
+  (Object.keys(DEFAULT_STATEMENT_FILTERS) as Array<keyof StatementFilters>).forEach(key => {
+    if (!allowed.has(key)) {
+      next = resetSingleStatementFilter(next, key);
+    }
+  });
+
+  return next;
 };

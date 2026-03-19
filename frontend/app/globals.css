@@ -18,18 +18,18 @@
 }
 
 :root {
-  --background: #fbfaf8;
+  --background: #ffffff;
   --foreground: #0f172a;
-  --radius: 0.5rem;
-  --radius-sm: 0.5rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.5rem;
-  --radius-2xl: 0.5rem;
-  --radius-3xl: 0.5rem;
+  --radius: 0rem;
+  --radius-sm: 0rem;
+  --radius-md: 0rem;
+  --radius-lg: 0rem;
+  --radius-xl: 0rem;
+  --radius-2xl: 0rem;
+  --radius-3xl: 0rem;
   --radius-full: 9999px;
-  --primary: #0284c7;
-  --primary-hover: #0369a1;
+  --primary: #e42313;
+  --primary-hover: #c11b0e;
   --primary-foreground: #ffffff;
   --secondary: #475569;
   --secondary-foreground: #ffffff;
@@ -48,7 +48,7 @@
   --ff-dash-primary: #f59e0b;
   --ff-dash-primary-soft: #fbbf24;
   --ff-dash-cta: #8b5cf6;
-  --ff-dash-surface: #f8fafc;
+  --ff-dash-surface: #ffffff;
   --ff-dash-foreground: #0f172a;
   --ff-dash-muted: #e2e8f0;
   --ff-dash-border: #e5e7eb;
@@ -59,12 +59,11 @@
   --ff-dashboard-card: #ffffff;
   --ff-dashboard-card-border: #e5e7eb;
   --ff-dashboard-card-foreground: #0f172a;
-  --font-dashboard-sans: "IBM Plex Sans", var(--font-ibm-plex-sans), sans-serif;
-  --font-dashboard-mono: "IBM Plex Sans", var(--font-ibm-plex-sans), monospace;
-  --font-family-sans: var(--font-manrope), "Manrope", "Nunitoga", "Helvetica Neue", Arial, Helvetica,
-    sans-serif !important;
-  --font-family-mono: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono,
-    monospace !important;
+  --font-dashboard-sans: "Inter", var(--font-inter), sans-serif;
+  --font-dashboard-mono: "Space Grotesk", var(--font-space-grotesk), monospace;
+  --font-family-sans: var(--font-inter), "Inter", "Helvetica Neue", Arial, Helvetica, sans-serif !important;
+  --font-family-mono: var(--font-space-grotesk), "Space Grotesk", ui-monospace, SFMono-Regular, SF
+    Mono, Menlo, Consolas, Liberation Mono, monospace !important;
   --global-nav-height: 104px;
 
   /* Dashboard typographic helpers */
@@ -77,16 +76,16 @@
   color-scheme: dark;
   --background: #020617;
   --foreground: #e2e8f0;
-  --radius: 0.5rem;
-  --radius-sm: 0.5rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.5rem;
-  --radius-2xl: 0.5rem;
-  --radius-3xl: 0.5rem;
+  --radius: 0rem;
+  --radius-sm: 0rem;
+  --radius-md: 0rem;
+  --radius-lg: 0rem;
+  --radius-xl: 0rem;
+  --radius-2xl: 0rem;
+  --radius-3xl: 0rem;
   --radius-full: 9999px;
-  --primary: #38bdf8;
-  --primary-hover: #0ea5e9;
+  --primary: #e42313;
+  --primary-hover: #c11b0e;
   --primary-foreground: #041019;
   --secondary: #93a4bf;
   --secondary-foreground: #081221;
@@ -144,8 +143,8 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family:
-    var(--font-manrope),
-    "Manrope",
+    var(--font-inter),
+    "Inter",
     -apple-system,
     system-ui,
     BlinkMacSystemFont,

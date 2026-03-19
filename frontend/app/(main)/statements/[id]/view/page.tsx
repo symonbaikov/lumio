@@ -3,6 +3,7 @@
 import LoadingAnimation from '@/app/components/LoadingAnimation';
 import TransactionsPageView from '@/app/components/transactions/TransactionsPageView';
 import type { Category, StatementDetails, Transaction } from '@/app/components/transactions/types';
+import { useIntlayer } from '@/app/i18n';
 import api from '@/app/lib/api';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -17,6 +18,7 @@ export default function ViewStatementPage({
   params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
+  const t = useIntlayer('statementViewPage');
   const [statement, setStatement] = useState<StatementDetails | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -84,8 +86,8 @@ export default function ViewStatementPage({
       setCategories(categoriesResponse.data || []);
     } catch (err) {
       console.error('Error fetching data:', err);
-      setError('Не удалось загрузить данные выписки');
-      toast.error('Не удалось загрузить данные выписки');
+      setError(t.errors.loadFailed.value);
+      toast.error(t.errors.loadFailed.value);
     } finally {
       setLoading(false);
     }
@@ -111,7 +113,7 @@ export default function ViewStatementPage({
 
   const handleDownload = async () => {
     if (!statementId) return;
-    const toastId = toast.loading('Загрузка файла...');
+    const toastId = toast.loading(t.loading.value);
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(`${apiBaseUrl}/statements/edit`, {
@@ -130,13 +132,13 @@ export default function ViewStatementPage({
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        toast.success('Файл загружен', { id: toastId });
+        toast.success(t.fileLoaded.value, { id: toastId });
       } else {
         throw new Error('Download failed');
       }
     } catch (error) {
       console.error('Failed to download file:', error);
-      toast.error('Не удалось загрузить файл', { id: toastId });
+      toast.error(t.fileLoadFailed.value, { id: toastId });
     }
   };
 
@@ -154,14 +156,14 @@ export default function ViewStatementPage({
     return (
       <div className="container-shared h-full overflow-y-auto overflow-x-hidden px-4 py-8 sm:px-6 lg:px-8">
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-600 mb-4">
-          {error || 'Выписка не найдена'}
+          {error || t.statementNotFound.value}
         </div>
         <button
           onClick={() => router.back()}
           className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover"
         >
           <ArrowLeft className="h-4 w-4" />
-          Назад
+          {t.back.value}
         </button>
       </div>
     );
@@ -176,7 +178,7 @@ export default function ViewStatementPage({
           className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-muted"
         >
           <ArrowLeft className="h-4 w-4" />
-          Назад к списку выписок
+          {t.backToStatements.value}
         </button>
       </div>
 

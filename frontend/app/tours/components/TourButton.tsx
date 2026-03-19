@@ -1,5 +1,5 @@
 /**
- * Компонент кнопки для запуска тура
+ * Tour trigger button component
  */
 
 'use client';
@@ -22,7 +22,7 @@ export function TourButton({
   tourId,
   variant = 'outlined',
   size = 'small',
-  label = 'Показать тур',
+  label = 'Show tour',
   icon = <PlayCircle size={16} />,
   disabled = false,
   className = '',
@@ -48,7 +48,7 @@ export function TourButton({
         fontWeight: 500,
       }}
     >
-      {isCompleted ? 'Повторить тур' : label}
+      {isCompleted ? 'Repeat tour' : label}
     </Button>
   );
 }

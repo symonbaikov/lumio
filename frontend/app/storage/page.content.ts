@@ -739,6 +739,36 @@ const content = {
         }),
       },
     },
+    preview: t({
+      ru: 'Предпросмотр',
+      en: 'Preview',
+      kk: 'Алдын ала қарау',
+    }),
+    searchFiles: t({
+      ru: 'Поиск по файлам',
+      en: 'Search files',
+      kk: 'Файлдарды іздеу',
+    }),
+    scrollHint: t({
+      ru: 'Используйте колесико мыши для перемещения',
+      en: 'Use mouse wheel to navigate',
+      kk: 'Жылжу үшін тінтуірдің дөңгелегін пайдаланыңыз',
+    }),
+    dragAndDrop: t({
+      ru: 'Перетащить',
+      en: 'Drag and drop',
+      kk: 'Сүйреп апару',
+    }),
+    done: t({
+      ru: 'Готово',
+      en: 'Done',
+      kk: 'Дайын',
+    }),
+    tagColor: t({
+      ru: 'Цвет тега',
+      en: 'Tag color',
+      kk: 'Тег түсі',
+    }),
     actions: {
       view: t({ ru: 'Просмотр', en: 'View', kk: 'Қарау' }),
       download: t({ ru: 'Скачать', en: 'Download', kk: 'Жүктеу' }),

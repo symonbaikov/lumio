@@ -1,6 +1,7 @@
 'use client';
 
 import { AppPagination } from '@/app/components/ui/pagination';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { Search as SearchIcon } from '@mui/icons-material';
 import {
   Box,
@@ -15,7 +16,6 @@ import {
   TableRow,
   TextField,
 } from '@mui/material';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import React, { useMemo, useState } from 'react';
 
 export interface Transaction {

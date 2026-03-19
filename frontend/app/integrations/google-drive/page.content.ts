@@ -3,6 +3,7 @@ import { type Dictionary, t } from 'intlayer';
 const content = {
   key: 'googleDriveIntegrationPage',
   content: {
+    loading: t({ ru: 'Загрузка...', en: 'Loading...', kk: 'Жүктелуде...' }),
     header: {
       title: t({ ru: 'Google Drive', en: 'Google Drive', kk: 'Google Drive' }),
       subtitle: t({

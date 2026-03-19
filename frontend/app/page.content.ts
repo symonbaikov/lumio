@@ -185,13 +185,51 @@ const content = {
         }),
       },
     },
+    statusHeading: {
+      error: t({ ru: 'Данные недоступны', en: 'Data unavailable', kk: 'Деректер қолжетімсіз' }),
+      loading: t({ ru: 'Загрузка...', en: 'Loading...', kk: 'Жүктелуде...' }),
+      empty: t({ ru: 'Данных пока нет', en: 'No data yet', kk: 'Деректер әлі жоқ' }),
+      overdue: t({ ru: 'Просрочки', en: 'Overdue payments', kk: 'Мерзімі өткен' }),
+      needsReview: t({ ru: 'Ждёт проверки', en: 'Needs review', kk: 'Тексеру керек' }),
+      parsingIssues: t({
+        ru: 'Ошибки парсинга',
+        en: 'Parsing issues',
+        kk: 'Талдау қателері',
+      }),
+      uncategorized: t({
+        ru: 'Без категорий',
+        en: 'Uncategorized items',
+        kk: 'Санатталмаған',
+      }),
+      stale: t({ ru: 'Данные устарели', en: 'Data is stale', kk: 'Деректер ескірді' }),
+      negativeFlow: t({
+        ru: 'Отрицательный поток',
+        en: 'Negative cash flow',
+        kk: 'Теріс ағын',
+      }),
+      positiveFlow: t({
+        ru: 'Положительный поток',
+        en: 'Positive cash flow',
+        kk: 'Оң ақша ағыны',
+      }),
+      breakEven: t({
+        ru: 'Период баланса',
+        en: 'Break-even period',
+        kk: 'Тепе-теңдік кезеңі',
+      }),
+      allClear: t({ ru: 'Всё хорошо', en: 'All good', kk: 'Бәрі жақсы' }),
+    },
     dataHealth: {
       uncategorized: t({ ru: 'Без категории', en: 'Uncategorized', kk: 'Санатсыз' }),
       errors: t({ ru: 'Ошибки', en: 'Errors', kk: 'Қателер' }),
       pendingReview: t({ ru: 'На проверке', en: 'Pending review', kk: 'Тексеруде' }),
       parsingWarnings: t({ ru: 'Предупреждения', en: 'Parsing warnings', kk: 'Ескертулер' }),
       balanceOk: t({ ru: 'Баланс сведён', en: 'Balance is balanced', kk: 'Баланс теңестірілген' }),
-      balanceWarning: t({ ru: 'Баланс не сведён', en: 'Balance mismatch', kk: 'Баланс сәйкес емес' }),
+      balanceWarning: t({
+        ru: 'Баланс не сведён',
+        en: 'Balance mismatch',
+        kk: 'Баланс сәйкес емес',
+      }),
       noBalance: t({ ru: 'Баланс не настроен', en: 'No balance sheet', kk: 'Баланс жоқ' }),
       lastUpload: t({ ru: 'Последняя загрузка', en: 'Last upload', kk: 'Соңғы жүктеу' }),
       unapprovedCash: t({ ru: 'Неподтверждённые', en: 'Unapproved cash', kk: 'Расталмаған' }),
@@ -199,7 +237,11 @@ const content = {
     trends: {
       dailyTrend: t({ ru: 'Ежедневный тренд', en: 'Daily trend', kk: 'Күнделікті тренд' }),
       categories: t({ ru: 'Категории расходов', en: 'Expense categories', kk: 'Шығыс санаттары' }),
-      counterparties: t({ ru: 'Доход по контрагентам', en: 'Income by counterparty', kk: 'Контрагент бойынша түсім' }),
+      counterparties: t({
+        ru: 'Доход по контрагентам',
+        en: 'Income by counterparty',
+        kk: 'Контрагент бойынша түсім',
+      }),
       sources: t({ ru: 'Источники данных', en: 'Data sources', kk: 'Деректер көздері' }),
     },
     topMerchants: {

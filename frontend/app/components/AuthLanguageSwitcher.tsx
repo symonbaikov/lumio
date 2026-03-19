@@ -2,8 +2,8 @@
 
 import { Button } from '@/app/components/ui/button';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { Check, ChevronLeft, Globe, Search } from 'lucide-react';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
@@ -97,7 +97,7 @@ export function AuthLanguageSwitcher() {
         position="right"
         width="lg"
         showCloseButton={false}
-        className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
+        className="max-w-full border-l-0 bg-white sm:max-w-lg"
       >
         <div className="flex h-full flex-col">
           <div className="flex-1 space-y-4 overflow-y-auto pb-4">

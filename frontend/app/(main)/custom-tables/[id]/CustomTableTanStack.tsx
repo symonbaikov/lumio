@@ -2,6 +2,7 @@
 
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
+import { useIntlayer } from '@/app/i18n';
 import { Popover } from '@mui/material';
 import {
   type ColumnDef,
@@ -13,7 +14,6 @@ import {
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { GripVertical, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import { useTheme } from 'next-themes';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HexColorPicker } from 'react-colorful';

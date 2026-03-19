@@ -18,6 +18,7 @@ import {
   type TopSpenderFlowType,
   type TopSpenderSourceChannel,
   buildPreviousPeriodRange,
+  buildTopSpendersStatementsParams,
   getComparisonDelta,
   resolveSourceChannel,
   resolveSpenderFlow,
@@ -27,6 +28,7 @@ import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
 import { resolveBankLogo } from '@bank-logos';
@@ -42,7 +44,6 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
@@ -518,10 +519,7 @@ export default function TopSpendersView() {
 
           while (workspaceStatements.length < statementsTotal) {
             const response = await apiClient.get('/statements', {
-              params: {
-                page: statementsPage,
-                pageSize: statementsPageSize,
-              },
+              params: buildTopSpendersStatementsParams(statementsPage, statementsPageSize),
               headers: requestHeaders,
             });
 

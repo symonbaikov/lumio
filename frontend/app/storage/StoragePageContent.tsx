@@ -1,5 +1,6 @@
 'use client';
 
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { resolveBankLogo } from '@bank-logos';
 import {
   DndContext,
@@ -37,7 +38,6 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
@@ -363,7 +363,7 @@ const DraggableFileRow = React.memo(
                 setPreviewFileName(file.fileName);
                 setPreviewModalOpen(true);
               }}
-              title="Предпросмотр"
+              title={t.preview.value}
             >
               <DocumentTypeIcon
                 fileType={file.fileType}
@@ -1988,7 +1988,7 @@ export function StoragePageContent({
                     value={searchQuery}
                     onChange={e => handleSearchChange(e.target.value)}
                     placeholder={t.searchPlaceholder.value}
-                    aria-label="Поиск по файлам"
+                    aria-label={t.searchFiles.value}
                     className="w-full rounded-full border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-800 py-2.5 pl-10 pr-4 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
@@ -2383,7 +2383,7 @@ export function StoragePageContent({
                             </h4>
                             {pickedFolderId && (
                               <span className="mt-0.5 text-xs font-bold text-primary animate-pulse tracking-tight">
-                                Используйте колесико мыши для перемещения
+                                {t.scrollHint.value}
                               </span>
                             )}
                           </div>
@@ -2503,8 +2503,7 @@ export function StoragePageContent({
                                             }}
                                             className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-400 hover:text-primary hover:bg-primary/5 transition-all opacity-0 group-hover:opacity-100"
                                           >
-                                            {(t.dragDrop as Record<string, { value?: string }>).pick
-                                              ?.value || 'Перетащить'}
+                                            {t.dragAndDrop.value}
                                           </button>
                                         ) : pickedFolderId === folder.id ? (
                                           <button
@@ -2518,7 +2517,7 @@ export function StoragePageContent({
                                             }}
                                             className="ml-auto inline-flex items-center gap-1 rounded-lg bg-primary text-white px-3 py-1 text-xs font-semibold shadow-sm hover:bg-primary/90 transition-all scale-105"
                                           >
-                                            Готово
+                                            {t.done.value}
                                           </button>
                                         ) : null}
                                         {canEditFolder(folder) && (
@@ -2601,7 +2600,7 @@ export function StoragePageContent({
                                 setNewTagPickerOpen(prev => !prev);
                               }}
                               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 p-1"
-                              aria-label="Цвет тега"
+                              aria-label={t.tagColor.value}
                             >
                               <span
                                 className="h-6 w-6 rounded-full"
@@ -2697,7 +2696,7 @@ export function StoragePageContent({
                                             );
                                           }}
                                           className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 p-1"
-                                          aria-label="Цвет тега"
+                                          aria-label={t.tagColor.value}
                                         >
                                           <span
                                             className="h-4 w-4 rounded-full"

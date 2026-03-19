@@ -1,12 +1,12 @@
 'use client';
 
+import apiClient from '@/app/lib/api';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import apiClient from '@/app/lib/api';
 import { BarChart3, DollarSign, PieChart, Scale } from 'lucide-react';
 import { useState } from 'react';
 import BalanceSheet from './components/BalanceSheet';
-import { ReportGenerator, type ReportGenerateParams } from './components/ReportGenerator';
+import { type ReportGenerateParams, ReportGenerator } from './components/ReportGenerator';
 import { ReportHistory } from './components/ReportHistory';
 import { type ReportTemplate, ReportTemplateCard } from './components/ReportTemplateCard';
 

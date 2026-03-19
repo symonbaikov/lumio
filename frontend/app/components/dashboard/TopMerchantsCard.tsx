@@ -18,7 +18,7 @@ export function TopMerchantsCard({
 }: TopMerchantsCardProps) {
   if (!merchants.length) {
     return (
-      <Card className="h-full rounded-3xl border border-slate-100 bg-white shadow-sm">
+      <Card className="h-full rounded-none border border-[#E8E8E8] bg-white shadow-none">
         <CardContent className="flex h-full items-center justify-center text-sm text-slate-400">
           {emptyLabel}
         </CardContent>
@@ -29,7 +29,7 @@ export function TopMerchantsCard({
   const maxAmount = Math.max(...merchants.map(m => m.amount));
 
   return (
-    <Card className="h-full rounded-3xl border border-slate-100 bg-white shadow-[0_18px_46px_-28px_rgba(2,132,199,0.45)]">
+    <Card className="h-full rounded-none border border-[#E8E8E8] bg-white shadow-none">
       <CardContent className="p-6 space-y-5">
         <div className="flex items-center justify-between">
           <div>
@@ -48,7 +48,7 @@ export function TopMerchantsCard({
               <div key={merchant.name} className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-slate-700 ring-1 ring-slate-100">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-slate-50 text-slate-700 border border-[#E8E8E8]">
                       {merchant.name?.[0] ?? '•'}
                     </span>
                     <div className="min-w-0">

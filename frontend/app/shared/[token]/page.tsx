@@ -1,5 +1,6 @@
 'use client';
 
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { Download as DownloadIcon, Lock as LockIcon } from '@mui/icons-material';
 import {
   Alert,
@@ -13,7 +14,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import TransactionsView from '../../components/TransactionsView';

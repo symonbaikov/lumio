@@ -4,6 +4,7 @@ import ConfirmModal from '@/app/components/ConfirmModal';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { ModalFooter, ModalShell } from '@/app/components/ui/modal-shell';
 import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { format } from 'date-fns';
@@ -19,7 +20,6 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import { useParams, useRouter } from 'next/navigation';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';

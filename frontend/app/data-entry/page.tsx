@@ -3,6 +3,7 @@
 import { AppPagination } from '@/app/components/ui/pagination';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { DatePicker } from '@heroui/date-picker';
 import { Icon } from '@iconify/react';
@@ -23,7 +24,6 @@ import {
   TrendingUp,
   X,
 } from 'lucide-react';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -225,10 +225,10 @@ export default function DataEntryPage() {
   const [syncingTable, setSyncingTable] = useState(false);
   const [customFieldHighlight, setCustomFieldHighlight] = useState(false);
   const allCurrencies = [
-    { value: 'KZT', label: 'Казахстанский тенге (KZT)' },
+    { value: 'KZT', label: 'Kazakhstani Tenge (KZT)' },
     { value: 'USD', label: 'US Dollar (USD)' },
     { value: 'EUR', label: 'Euro (EUR)' },
-    { value: 'RUB', label: 'Российский рубль (RUB)' },
+    { value: 'RUB', label: 'Russian Ruble (RUB)' },
     { value: 'GBP', label: 'British Pound (GBP)' },
     { value: 'JPY', label: 'Japanese Yen (JPY)' },
     { value: 'CNY', label: 'Chinese Yuan (CNY)' },
@@ -2010,8 +2010,8 @@ export default function DataEntryPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600 font-semibold text-center min-w-[120px]">
-                      {t.labels.paginationPageShort.value} {effectiveListMeta.page} из{' '}
-                      {effectiveTotalPages}
+                      {t.labels.paginationPageShort.value} {effectiveListMeta.page}{' '}
+                      {t.labels.paginationShowingOf.value} {effectiveTotalPages}
                     </span>
                     <AppPagination
                       page={effectiveListMeta.page}

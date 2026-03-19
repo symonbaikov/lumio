@@ -1,7 +1,7 @@
 'use client';
 
 import { Select } from '@/app/components/ui/select';
-import { useIntlayer } from "@/app/i18n";
+import { useIntlayer } from '@/app/i18n';
 import { useMemo } from 'react';
 import ReactSelect, { type StylesConfig } from 'react-select';
 import type { SupportedLocale } from '../useOnboardingWizard';

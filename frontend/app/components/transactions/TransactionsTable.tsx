@@ -1,6 +1,7 @@
 'use client';
 
 import { useIsMobile } from '@/app/hooks/useIsMobile';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import {
   ArrowDownUp,
   ArrowUpDown,
@@ -11,7 +12,6 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import React, { useMemo, useState } from 'react';
 import { Checkbox } from '../ui/checkbox';
 import {
@@ -194,7 +194,7 @@ export default function TransactionsTable({
               setRowsPerPage(Number(e.target.value));
               setPage(0);
             }}
-            className="rounded-md border border-gray-200 px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+            className="rounded-none border border-gray-200 px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
           >
             <option value={10}>10</option>
             <option value={25}>25</option>
@@ -230,7 +230,7 @@ export default function TransactionsTable({
             placeholder={t.searchPlaceholder.value}
             value={filters.search}
             onChange={e => onFilterChange({ ...filters, search: e.target.value })}
-            className="w-full rounded-md border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+            className="w-full rounded-none border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
           />
           {filters.search && (
             <button
@@ -247,7 +247,7 @@ export default function TransactionsTable({
         <button
           type="button"
           onClick={() => setShowFilters(!showFilters)}
-          className={`inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition ${
+          className={`inline-flex items-center gap-2 rounded-none border px-4 py-2 text-sm font-semibold transition ${
             hasActiveFilters
               ? 'border-primary bg-primary/10 text-primary'
               : 'border-gray-200 bg-white text-gray-600 hover:border-primary hover:text-primary'
@@ -265,7 +265,7 @@ export default function TransactionsTable({
 
       {/* Filter panel */}
       {showFilters && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-4">
+        <div className="rounded-none border border-gray-200 bg-gray-50/60 p-4">
           <div className="flex flex-wrap items-center gap-3">
             {/* Status filter */}
             <div className="flex-1 min-w-[200px]">
@@ -284,7 +284,7 @@ export default function TransactionsTable({
                     status: e.target.value as FilterState['status'],
                   })
                 }
-                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+                className="w-full rounded-none border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
               >
                 <option value="all">{t.statusAll.value}</option>
                 <option value="warnings">{t.statusWarnings.value}</option>
@@ -310,7 +310,7 @@ export default function TransactionsTable({
                     category: e.target.value || null,
                   })
                 }
-                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+                className="w-full rounded-none border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
               >
                 <option value="">{t.categoryAll.value}</option>
                 {categories.map(cat => (
@@ -326,7 +326,7 @@ export default function TransactionsTable({
               <button
                 type="button"
                 onClick={clearFilters}
-                className="mt-auto rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 transition hover:border-primary hover:text-primary"
+                className="mt-auto rounded-none border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 transition hover:border-primary hover:text-primary"
               >
                 {t.clearFilters.value}
               </button>
@@ -337,7 +337,7 @@ export default function TransactionsTable({
 
       {/* Table / Mobile cards */}
       {isMobile ? (
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <div className="overflow-hidden rounded-none border border-gray-200 bg-white">
           <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
             <div className="inline-flex items-center gap-2">
               <Checkbox
@@ -372,7 +372,7 @@ export default function TransactionsTable({
 
           <div className="space-y-3 p-3">
             {paginatedTransactions.length === 0 ? (
-              <div className="rounded-lg border border-gray-200 px-4 py-10 text-center text-sm text-gray-500">
+              <div className="rounded-none border border-gray-200 px-4 py-10 text-center text-sm text-gray-500">
                 {t.noResults.value}
               </div>
             ) : (
@@ -384,7 +384,7 @@ export default function TransactionsTable({
                   <div
                     key={tx.id}
                     data-testid={`transaction-card-${tx.id}`}
-                    className={`rounded-xl border p-3 transition ${
+                    className={`rounded-none border p-3 transition ${
                       selectedIds.includes(tx.id)
                         ? 'border-primary bg-primary/5'
                         : 'border-gray-200 bg-white'
@@ -408,7 +408,7 @@ export default function TransactionsTable({
                         <button
                           type="button"
                           onClick={() => onRowClick(tx)}
-                          className="w-full rounded-md text-left focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full rounded-none text-left focus:outline-none focus:ring-2 focus:ring-primary/20"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
@@ -452,7 +452,7 @@ export default function TransactionsTable({
                               <DropdownMenuTrigger asChild>
                                 <button
                                   type="button"
-                                  className="inline-flex max-w-full items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                  className="inline-flex max-w-full items-center gap-1 rounded-none px-2.5 py-1 text-xs font-semibold transition hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/20"
                                   style={{
                                     backgroundColor: hasDisabledCategory
                                       ? '#fee2e2'
@@ -504,7 +504,7 @@ export default function TransactionsTable({
                             onClick={e => toggleExpansion(tx.id, e)}
                             aria-expanded={isExpanded}
                             aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
-                            className="inline-flex items-center justify-center rounded-md p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+                            className="inline-flex items-center justify-center rounded-none p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
                           >
                             {isExpanded ? (
                               <ChevronDown className="h-4 w-4" />
@@ -515,7 +515,7 @@ export default function TransactionsTable({
                         </div>
 
                         {isExpanded && (
-                          <div className="mt-3 grid grid-cols-2 gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs">
+                          <div className="mt-3 grid grid-cols-2 gap-3 rounded-none border border-gray-100 bg-gray-50 p-3 text-xs">
                             <div>
                               <span className="mb-1 block font-semibold text-gray-500">
                                 {t.columnBin.value}
@@ -557,7 +557,7 @@ export default function TransactionsTable({
           {pagination}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <div className="overflow-hidden rounded-none border border-gray-200 bg-white">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="sticky top-0 z-10 border-b border-gray-200 bg-gray-50">
@@ -753,7 +753,7 @@ export default function TransactionsTable({
                               <DropdownMenuTrigger asChild>
                                 <button
                                   type="button"
-                                  className="inline-flex items-center gap-1 rounded-md px-2.5 py-0.5 text-xs font-semibold transition hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                  className="inline-flex items-center gap-1 rounded-none px-2.5 py-0.5 text-xs font-semibold transition hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/20"
                                   style={{
                                     backgroundColor: hasDisabledCategory
                                       ? '#fee2e2'
@@ -804,7 +804,7 @@ export default function TransactionsTable({
                           <tr className="bg-gray-50/40">
                             <td colSpan={2} />
                             <td colSpan={7} className="px-4 py-3">
-                              <div className="grid grid-cols-2 gap-4 rounded-lg bg-white p-4 text-xs sm:grid-cols-4 border border-gray-100">
+                              <div className="grid grid-cols-2 gap-4 rounded-none bg-white p-4 text-xs sm:grid-cols-4 border border-gray-100">
                                 <div>
                                   <span className="block font-semibold text-gray-500 mb-1">
                                     {t.columnBin.value}

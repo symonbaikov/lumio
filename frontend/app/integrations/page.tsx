@@ -1,8 +1,8 @@
 'use client';
 
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { CheckCircle2, ExternalLink, Plug, Search, Star } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -276,7 +276,7 @@ export default function IntegrationsPage() {
           <input
             type="text"
             className="block w-full rounded-full border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm placeholder-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-            placeholder="Поиск интеграций..."
+            placeholder={t.searchPlaceholder.value}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
@@ -561,15 +561,15 @@ export default function IntegrationsPage() {
             <div className="mb-4 rounded-full bg-gray-100 p-4">
               <Search className="h-8 w-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900">Ничего не найдено</h3>
+            <h3 className="text-lg font-medium text-gray-900">{t.noResults.value}</h3>
             <p className="text-gray-500 mt-1">
-              По запросу «{searchQuery}» нет подходящих интеграций.
+              {t.noResultsDescription.value.replace('{{query}}', searchQuery)}
             </p>
             <button
               onClick={() => setSearchQuery('')}
               className="mt-4 text-sm font-semibold text-primary hover:underline"
             >
-              Сбросить поиск
+              {t.resetSearch.value}
             </button>
           </div>
         )}

@@ -10,6 +10,7 @@ import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getStatementMerchantLabel, isStatementProcessingStatus } from '@/app/lib/statement-status';
 import { resolveBankLogo } from '@bank-logos';
@@ -26,7 +27,6 @@ import {
   UploadCloud,
   X,
 } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -93,14 +93,14 @@ export default function ReceiptsPage() {
   const [allowDuplicates, setAllowDuplicates] = useState(false);
   const resolveLabel = (value: any, fallback: string) => value?.value ?? value ?? fallback;
   const searchPlaceholder =
-    (t.searchPlaceholder as any)?.value ?? t.searchPlaceholder ?? 'Поиск по чекам';
+    (t.searchPlaceholder as any)?.value ?? t.searchPlaceholder ?? 'Search receipts';
   const filterLabels = {
-    type: resolveLabel(t.filters?.type, 'Тип'),
-    status: resolveLabel(t.filters?.status, 'Статус'),
-    date: resolveLabel(t.filters?.date, 'Дата'),
-    from: resolveLabel(t.filters?.from, 'От'),
-    filters: resolveLabel(t.filters?.filters, 'Фильтры'),
-    columns: resolveLabel(t.filters?.columns, 'Колонки'),
+    type: resolveLabel(t.filters?.type, 'Type'),
+    status: resolveLabel(t.filters?.status, 'Status'),
+    date: resolveLabel(t.filters?.date, 'Date'),
+    from: resolveLabel(t.filters?.from, 'From'),
+    filters: resolveLabel(t.filters?.filters, 'Filters'),
+    columns: resolveLabel(t.filters?.columns, 'Columns'),
   };
   const listHeaderLabels = {
     receipt: resolveLabel(t.listHeader?.receipt, 'Receipt'),
@@ -115,7 +115,7 @@ export default function ReceiptsPage() {
   const uploadLabel = resolveLabel(t.uploadStatement, 'Upload');
   const allowDuplicatesLabel = resolveLabel(
     (t.uploadModal as any)?.allowDuplicates,
-    'Разрешить загрузку дубликатов',
+    'Allow duplicate uploads',
   );
   const uploadModalLabels = {
     title: resolveLabel(t.uploadModal?.title, 'Upload files'),
@@ -554,7 +554,7 @@ export default function ReceiptsPage() {
                         setPreviewFileName(statement.fileName);
                         setPreviewModalOpen(true);
                       }}
-                      title="Открыть предпросмотр"
+                      title={resolveLabel((t as any).openPreview, 'Open preview')}
                     >
                       {getFileIcon(statement.fileType, statement.fileName, statement.id)}
                     </button>

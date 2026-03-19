@@ -36,7 +36,11 @@ export default function AppChrome() {
       <div className="fixed top-0 inset-x-0 z-50" data-global-nav>
         <Navigation />
       </div>
-      <div aria-hidden="true" data-global-nav-spacer style={{ height: 'var(--global-nav-height, 0px)' }} />
+      <div
+        aria-hidden="true"
+        data-global-nav-spacer
+        style={{ height: 'var(--global-nav-height, 0px)' }}
+      />
     </>
   );
 }

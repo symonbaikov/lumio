@@ -123,7 +123,7 @@ export function ColumnsDrawer({
       position="right"
       width="sm"
       showCloseButton={false}
-      className="bg-[#fbfaf8] border-l-0"
+      className="bg-white border-l-0"
       title={
         <div className="flex items-center gap-3">
           <button
@@ -157,7 +157,7 @@ export function ColumnsDrawer({
             </SortableContext>
           </DndContext>
         </div>
-        <div className="sticky bottom-0 pt-4 pb-2 bg-[#fbfaf8]">
+        <div className="sticky bottom-0 pt-4 pb-2 bg-white">
           <Button className="w-full rounded-full" size="lg" onClick={onSave}>
             {labels.save}
           </Button>

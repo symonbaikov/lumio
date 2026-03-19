@@ -2,6 +2,7 @@
 
 import { AuthLanguageSwitcher } from '@/app/components/AuthLanguageSwitcher';
 import { GoogleAuthButton } from '@/app/components/GoogleAuthButton';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import {
   Alert,
@@ -14,7 +15,6 @@ import {
   Typography,
 } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import AuthLayout from '../AuthLayout';
@@ -159,7 +159,6 @@ function LoginPageContent() {
 
   return (
     <AuthLayout sideContent={sideContent} topRightAction={<AuthLanguageSwitcher />}>
-
       <Box
         sx={{
           width: 60,

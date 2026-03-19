@@ -7,10 +7,10 @@ import {
 } from '@/app/components/ui/dropdown-menu';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useNotifications } from '@/app/hooks/useNotifications';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { cn } from '@/app/lib/utils';
 import { NotificationsNone } from '@mui/icons-material';
 import { AlertTriangle, CircleAlert, Info } from 'lucide-react';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';

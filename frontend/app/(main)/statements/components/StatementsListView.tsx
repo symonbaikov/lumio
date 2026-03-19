@@ -18,7 +18,6 @@ import { TypeFilterDropdown } from '@/app/(main)/statements/components/filters/T
 import {
   DEFAULT_STATEMENT_FILTERS,
   type StatementFilters,
-  applyStatementsFilters,
   loadStatementFilters,
   resetSingleStatementFilter,
   saveStatementFilters,
@@ -35,6 +34,7 @@ import { useAuth } from '@/app/hooks/useAuth';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
+import { useIntlayer } from '@/app/i18n';
 import apiClient, { gmailReceiptsApi } from '@/app/lib/api';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
 import { type StatementCategoryNode } from '@/app/lib/statement-categories';
@@ -80,11 +80,16 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { StatementsListItem } from './StatementsListItem';
+import {
+  buildStatementRequestParams,
+  deriveVisibleFilterScreens,
+  paginateStatements,
+  reconcileFiltersWithColumns,
+} from './StatementsListView.utils';
 import {
   type GmailReceipt,
   hasGmailReceiptAmount,
@@ -302,7 +307,6 @@ export default function StatementsListView({ stage }: Props) {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const pageSize = PAGE_SIZE;
-  const [total, setTotal] = useState(0);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [dateSortDirection, setDateSortDirection] = useState<'desc' | 'asc'>('desc');
@@ -314,14 +318,14 @@ export default function StatementsListView({ stage }: Props) {
   );
   const [manualExpenseTaxRates, setManualExpenseTaxRates] = useState<TaxRateOption[]>([]);
   const resolveLabel = (value: any, fallback: string) => value?.value ?? value ?? fallback;
-  const searchPlaceholder = resolveLabel(t.searchPlaceholder, 'Поиск по выпискам');
+  const searchPlaceholder = resolveLabel(t.searchPlaceholder, 'Search statements');
   const filterLabels = {
-    type: resolveLabel(t.filters?.type, 'Тип'),
-    status: resolveLabel(t.filters?.status, 'Статус'),
-    date: resolveLabel(t.filters?.date, 'Дата'),
-    from: resolveLabel(t.filters?.from, 'От'),
-    filters: resolveLabel(t.filters?.filters, 'Фильтры'),
-    columns: resolveLabel(t.filters?.columns, 'Колонки'),
+    type: resolveLabel(t.filters?.type, 'Type'),
+    status: resolveLabel(t.filters?.status, 'Status'),
+    date: resolveLabel(t.filters?.date, 'Date'),
+    from: resolveLabel(t.filters?.from, 'From'),
+    filters: resolveLabel(t.filters?.filters, 'Filters'),
+    columns: resolveLabel(t.filters?.columns, 'Columns'),
   };
   const listHeaderLabels = {
     receipt: resolveLabel(t.listHeader?.receipt, 'Receipt'),
@@ -370,9 +374,6 @@ export default function StatementsListView({ stage }: Props) {
     );
 
   useLockBodyScroll(expenseDrawerOpen);
-  const totalPagesCount = Math.max(1, Math.ceil(total / pageSize) || 1);
-  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const rangeEnd = total === 0 ? 0 : Math.min(total, page * pageSize);
 
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
@@ -416,12 +417,12 @@ export default function StatementsListView({ stage }: Props) {
     typeChat: resolveLabel((t.filters as any)?.typeChat, 'Chat'),
     typeTrip: resolveLabel((t.filters as any)?.typeTrip, 'Trip'),
     typeTask: resolveLabel((t.filters as any)?.typeTask, 'Task'),
-    statusUnreported: resolveLabel((t.filters as any)?.statusUnreported, 'Unreported'),
-    statusDraft: resolveLabel((t.filters as any)?.statusDraft, 'Draft'),
-    statusOutstanding: resolveLabel((t.filters as any)?.statusOutstanding, 'Outstanding'),
-    statusApproved: resolveLabel((t.filters as any)?.statusApproved, 'Approved'),
-    statusPaid: resolveLabel((t.filters as any)?.statusPaid, 'Paid'),
-    statusDone: resolveLabel((t.filters as any)?.statusDone, 'Done'),
+    statusUploaded: resolveLabel((t.filters as any)?.statusUploaded, 'Uploaded'),
+    statusProcessing: resolveLabel((t.filters as any)?.statusProcessing, 'Processing'),
+    statusParsed: resolveLabel((t.filters as any)?.statusParsed, 'Parsed'),
+    statusValidated: resolveLabel((t.filters as any)?.statusValidated, 'Validated'),
+    statusCompleted: resolveLabel((t.filters as any)?.statusCompleted, 'Completed'),
+    statusError: resolveLabel((t.filters as any)?.statusError, 'Error'),
     dateThisMonth: resolveLabel((t.filters as any)?.dateThisMonth, 'This month'),
     dateLastMonth: resolveLabel((t.filters as any)?.dateLastMonth, 'Last month'),
     dateYearToDate: resolveLabel((t.filters as any)?.dateYearToDate, 'Year to date'),
@@ -484,12 +485,12 @@ export default function StatementsListView({ stage }: Props) {
   ];
 
   const statusOptions = [
-    { value: 'unreported', label: filterOptionLabels.statusUnreported },
-    { value: 'draft', label: filterOptionLabels.statusDraft },
-    { value: 'outstanding', label: filterOptionLabels.statusOutstanding },
-    { value: 'approved', label: filterOptionLabels.statusApproved },
-    { value: 'paid', label: filterOptionLabels.statusPaid },
-    { value: 'done', label: filterOptionLabels.statusDone },
+    { value: 'uploaded', label: filterOptionLabels.statusUploaded },
+    { value: 'processing', label: filterOptionLabels.statusProcessing },
+    { value: 'parsed', label: filterOptionLabels.statusParsed },
+    { value: 'validated', label: filterOptionLabels.statusValidated },
+    { value: 'completed', label: filterOptionLabels.statusCompleted },
+    { value: 'error', label: filterOptionLabels.statusError },
   ];
 
   const datePresets = [
@@ -563,11 +564,11 @@ export default function StatementsListView({ stage }: Props) {
 
   useEffect(() => {
     if (!user) return;
-    loadStatements({ page, search });
+    loadStatements({ search });
     if (stage === 'submit') {
       loadGmailReceipts({ silent: true, showErrorToast: false });
     }
-  }, [user, page, search]);
+  }, [user, search, appliedFilters, stage]);
 
   const buildGmailSyncSkeletonKeys = (count: number) => {
     return Array.from({ length: count }, (_, index) => `gmail-sync-${Date.now()}-${index}`);
@@ -602,19 +603,13 @@ export default function StatementsListView({ stage }: Props) {
     setDraftColumns(storedColumns);
   }, []);
 
-  const filteredStatements = useMemo(() => {
-    const query = searchInput.trim().toLowerCase();
-    if (!query) return statements;
-    return statements.filter(stmt => stmt.fileName.toLowerCase().includes(query));
-  }, [searchInput, statements]);
-
   const gmailStatements = useMemo<UnifiedStatement[]>(() => {
     if (stage !== 'submit') return [];
     return mapGmailReceiptsToStatements(gmailReceipts);
   }, [gmailReceipts, stage]);
 
   const stagedStatements = useMemo(() => {
-    const baseStatements = filteredStatements.filter(statement => {
+    const baseStatements = statements.filter(statement => {
       const currentStage = getStatementStage(statement.id);
       return currentStage === stage;
     });
@@ -623,9 +618,9 @@ export default function StatementsListView({ stage }: Props) {
       return baseStatements;
     }
 
-    const gmailFiltered = searchInput.trim()
+    const gmailFiltered = search.trim()
       ? gmailStatements.filter(statement => {
-          const query = searchInput.trim().toLowerCase();
+          const query = search.trim().toLowerCase();
           return (
             statement.fileName.toLowerCase().includes(query) ||
             (statement.subject || '').toLowerCase().includes(query) ||
@@ -638,11 +633,9 @@ export default function StatementsListView({ stage }: Props) {
     return [...gmailFiltered, ...baseStatements].sort(
       (a, b) => resolveStatementSortDate(b) - resolveStatementSortDate(a),
     );
-  }, [filteredStatements, stage, searchInput, gmailStatements]);
+  }, [statements, stage, search, gmailStatements]);
 
-  const displayStatements = useMemo(() => {
-    return applyStatementsFilters<Statement>(stagedStatements, appliedFilters);
-  }, [stagedStatements, appliedFilters]);
+  const displayStatements = useMemo(() => stagedStatements, [stagedStatements]);
 
   const sortedDisplayStatements = useMemo(() => {
     const directionFactor = dateSortDirection === 'asc' ? 1 : -1;
@@ -658,6 +651,16 @@ export default function StatementsListView({ stage }: Props) {
       return left.id.localeCompare(right.id) * directionFactor;
     });
   }, [displayStatements, dateSortDirection]);
+
+  const paginatedDisplayStatements = useMemo(
+    () => paginateStatements(sortedDisplayStatements, page, pageSize),
+    [sortedDisplayStatements, page, pageSize],
+  );
+
+  const total = sortedDisplayStatements.length;
+  const totalPagesCount = Math.max(1, Math.ceil(total / pageSize) || 1);
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = total === 0 ? 0 : Math.min(total, page * pageSize);
 
   const duplicateMetaById = useMemo(() => {
     const duplicateGroups = new Map<
@@ -775,10 +778,11 @@ export default function StatementsListView({ stage }: Props) {
   }, [displayStatements, duplicateOverrides, listHeaderLabels.scanning]);
 
   const selectableStatements = useMemo(() => displayStatements, [displayStatements]);
+  const visibleStatements = useMemo(() => paginatedDisplayStatements, [paginatedDisplayStatements]);
 
   const visibleStatementIds = useMemo(
-    () => selectableStatements.map(statement => statement.id),
-    [selectableStatements],
+    () => visibleStatements.map(statement => statement.id),
+    [visibleStatements],
   );
 
   const allVisibleSelected = useMemo(
@@ -788,10 +792,10 @@ export default function StatementsListView({ stage }: Props) {
 
   const duplicateStatementIds = useMemo(
     () =>
-      displayStatements
+      visibleStatements
         .filter(statement => duplicateMetaById.has(statement.id))
         .map(statement => statement.id),
-    [displayStatements, duplicateMetaById],
+    [visibleStatements, duplicateMetaById],
   );
 
   const selectedDuplicateCount = useMemo(
@@ -806,11 +810,10 @@ export default function StatementsListView({ stage }: Props) {
   const loadStatements = async (opts?: {
     silent?: boolean;
     notifyOnCompletion?: boolean;
-    page?: number;
     search?: string;
     showErrorToast?: boolean;
   }) => {
-    const { silent, notifyOnCompletion, page, search, showErrorToast } = opts || {};
+    const { silent, notifyOnCompletion, search, showErrorToast } = opts || {};
     if (!silent) {
       setLoading(true);
     }
@@ -818,11 +821,7 @@ export default function StatementsListView({ stage }: Props) {
     let didLoad = true;
     try {
       const response = await apiClient.get('/statements', {
-        params: {
-          page,
-          pageSize,
-          search,
-        },
+        params: buildStatementRequestParams({ appliedFilters, search }),
       });
 
       const rawData = response.data?.data || response.data || [];
@@ -831,7 +830,6 @@ export default function StatementsListView({ stage }: Props) {
         fileType: stmt.fileName?.toLowerCase().includes('pdf') ? 'pdf' : 'file',
       }));
       setStatements(statementsWithFileType);
-      setTotal(response.data?.total || statementsWithFileType.length);
 
       if (notifyOnCompletion && Array.isArray(statementsWithFileType)) {
         const firstFinished = statementsWithFileType.find(
@@ -916,7 +914,6 @@ export default function StatementsListView({ stage }: Props) {
   const refreshActiveStatements = async () => {
     const didLoad = await loadStatements({
       silent: true,
-      page,
       search,
       showErrorToast: false,
     });
@@ -950,7 +947,6 @@ export default function StatementsListView({ stage }: Props) {
     const intervalId = window.setInterval(() => {
       loadStatements({
         silent: true,
-        page,
         search,
         showErrorToast: false,
       }).catch(error => {
@@ -961,7 +957,7 @@ export default function StatementsListView({ stage }: Props) {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [user, shouldPollStatements, page, search]);
+  }, [user, shouldPollStatements, search, appliedFilters]);
 
   useEffect(() => {
     if (!user || stage !== 'submit') return;
@@ -1053,7 +1049,6 @@ export default function StatementsListView({ stage }: Props) {
     setPage(1);
     try {
       const didLoad = await loadStatements({
-        page: 1,
         search,
         notifyOnCompletion: false,
         showErrorToast: false,
@@ -1070,7 +1065,6 @@ export default function StatementsListView({ stage }: Props) {
   const refreshStatementsAfterAttach = () => {
     void loadStatements({
       silent: true,
-      page,
       search,
       showErrorToast: false,
     });
@@ -1252,7 +1246,7 @@ export default function StatementsListView({ stage }: Props) {
         prev.filter(id => !deletableStatements.some(statement => statement.id === id)),
       );
       setSelectedActionsOpen(false);
-      await loadStatements({ page, search, showErrorToast: false });
+      await loadStatements({ search, showErrorToast: false });
       toast.success('Selected statements moved to trash');
     } catch (error) {
       console.error('Failed to delete selected statements:', error);
@@ -1377,7 +1371,7 @@ export default function StatementsListView({ stage }: Props) {
       setSelectedStatementIds(prev => prev.filter(id => !processedIds.has(id)));
       setSelectedActionsOpen(false);
 
-      await loadStatements({ silent: true, page, search, showErrorToast: false });
+      await loadStatements({ silent: true, search, showErrorToast: false });
       if (stage === 'submit') {
         await loadGmailReceipts({ silent: true, showErrorToast: false });
       }
@@ -1414,6 +1408,8 @@ export default function StatementsListView({ stage }: Props) {
     return count;
   }, [appliedFilters]);
 
+  const visibleFilterScreens = useMemo(() => deriveVisibleFilterScreens(columns), [columns]);
+
   const updateFilter = (next: Partial<StatementFilters>) => {
     setDraftFilters(prev => ({ ...prev, ...next }));
   };
@@ -1421,6 +1417,7 @@ export default function StatementsListView({ stage }: Props) {
   const applyFilterChanges = () => {
     setAppliedFilters(draftFilters);
     saveStatementFilters(draftFilters);
+    setPage(1);
   };
 
   const applyAndClose = (close: () => void) => {
@@ -1440,6 +1437,7 @@ export default function StatementsListView({ stage }: Props) {
     setDraftFilters(DEFAULT_STATEMENT_FILTERS);
     setAppliedFilters(DEFAULT_STATEMENT_FILTERS);
     saveStatementFilters(DEFAULT_STATEMENT_FILTERS);
+    setPage(1);
   };
 
   const updateColumnsToggle = (id: StatementColumnId, visible: boolean) => {
@@ -1461,8 +1459,17 @@ export default function StatementsListView({ stage }: Props) {
 
   const handleSaveColumns = () => {
     const next = draftColumns.map((column, index) => ({ ...column, order: index }));
+    const { nextAppliedFilters, nextDraftFilters } = reconcileFiltersWithColumns({
+      columns: next,
+      appliedFilters,
+      draftFilters,
+    });
+
     setColumns(next);
+    setDraftFilters(nextDraftFilters);
+    setAppliedFilters(nextAppliedFilters);
     saveStatementColumns(next);
+    saveStatementFilters(nextAppliedFilters);
     setColumnsDrawerOpen(false);
   };
 
@@ -1530,6 +1537,12 @@ export default function StatementsListView({ stage }: Props) {
       sessionStorage.removeItem(STATEMENTS_GMAIL_SYNC_STORAGE_KEY);
     }
   }, [stage, gmailReceipts.length, gmailSyncSkeletonKeys.length]);
+
+  useEffect(() => {
+    if (page > totalPagesCount) {
+      setPage(totalPagesCount);
+    }
+  }, [page, totalPagesCount]);
 
   const toOptions = fromOptions;
 
@@ -1915,9 +1928,7 @@ export default function StatementsListView({ stage }: Props) {
                           data-testid="statements-date-sort"
                           className="inline-flex items-center gap-1 hover:text-gray-600 transition"
                           onClick={() =>
-                            setDateSortDirection(current =>
-                              current === 'desc' ? 'asc' : 'desc',
-                            )
+                            setDateSortDirection(current => (current === 'desc' ? 'asc' : 'desc'))
                           }
                           aria-label={`Sort by date ${
                             dateSortDirection === 'desc' ? 'ascending' : 'descending'
@@ -1992,7 +2003,7 @@ export default function StatementsListView({ stage }: Props) {
                     </div>
                   ))
                 : null}
-              {sortedDisplayStatements.map(statement => {
+              {paginatedDisplayStatements.map(statement => {
                 const isGmail = statement.source === 'gmail';
                 const resolvedName = isGmail
                   ? resolveGmailMerchantLabel({
@@ -2111,6 +2122,7 @@ export default function StatementsListView({ stage }: Props) {
         onClose={() => setFiltersDrawerOpen(false)}
         filters={draftFilters}
         screen={filtersDrawerScreen}
+        visibleScreens={visibleFilterScreens}
         onBack={() => setFiltersDrawerScreen('root')}
         onSelect={field => setFiltersDrawerScreen(field)}
         onUpdateFilters={updateFilter}
@@ -2150,7 +2162,7 @@ export default function StatementsListView({ stage }: Props) {
           currency: filterOptionLabels.hasCurrency,
           date: filterLabels.date,
           exported: filterOptionLabels.columnExported,
-          paid: filterOptionLabels.statusPaid,
+          paid: resolveLabel((t.filters as any)?.paid, 'Paid'),
           any: filterOptionLabels.any,
           yes: filterOptionLabels.yes,
           no: filterOptionLabels.no,

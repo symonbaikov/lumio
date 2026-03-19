@@ -2,10 +2,10 @@
 
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getPickerDocName, pickDriveFolder } from '@/app/lib/googleDrivePicker';
 import { AlertCircle, CheckCircle2, Link2Off, Loader2, RefreshCcw, XCircle } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -193,7 +193,7 @@ export default function GoogleDriveIntegrationPage() {
       {loading && (
         <div className="mb-4 flex items-center gap-2 text-sm text-gray-500">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Загрузка...
+          {t.loading}
         </div>
       )}
 

@@ -63,7 +63,7 @@ const emerald: MantineColorsTuple = [
 
 const TOKENS: Record<AppThemeMode, AppSurfaceTokens> = {
   light: {
-    background: '#f6f9fd',
+    background: '#ffffff',
     foreground: '#0f172a',
     card: '#ffffff',
     muted: '#edf3fb',

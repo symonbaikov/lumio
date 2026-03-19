@@ -1,3 +1,4 @@
+import UnpublishedIcon from '@mui/icons-material/Unpublished';
 // @vitest-environment jsdom
 import React from 'react';
 import { act } from 'react';
@@ -8,6 +9,12 @@ import StatementsSidePanel from './StatementsSidePanel';
 const pushMock = vi.hoisted(() => vi.fn());
 const capturedConfigRef = vi.hoisted(() => ({
   current: null as null | {
+    sections?: Array<{
+      items?: Array<{
+        id?: string;
+        icon?: React.ReactNode;
+      }>;
+    }>;
     footer?: {
       content?: React.ReactElement<{
         onScan: () => void;
@@ -74,6 +81,26 @@ describe('StatementsSidePanel FAB navigation', () => {
     });
 
     expect(pushMock).toHaveBeenCalledWith('/statements/submit?openExpenseDrawer=scan');
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it('uses Unpublished icon for unapproved cash navigation item', async () => {
+    const container = document.createElement('div');
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<StatementsSidePanel activeItem="unapproved-cash" />);
+    });
+
+    const unapprovedCashItem = capturedConfigRef.current?.sections
+      ?.flatMap(section => section.items ?? [])
+      .find(item => item.id === 'unapproved-cash');
+
+    expect(React.isValidElement(unapprovedCashItem?.icon)).toBe(true);
+    expect((unapprovedCashItem?.icon as React.ReactElement).type).toBe(UnpublishedIcon);
 
     await act(async () => {
       root.unmount();

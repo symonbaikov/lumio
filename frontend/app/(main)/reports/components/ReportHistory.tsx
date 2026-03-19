@@ -1,9 +1,9 @@
 'use client';
 
 import { Badge } from '@/app/components/ui/badge';
+import apiClient from '@/app/lib/api';
 import { Download, FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import apiClient from '@/app/lib/api';
 
 export interface ReportHistoryItem {
   id: string;
@@ -71,9 +71,7 @@ export function ReportHistory() {
       <div className="flex flex-col items-center justify-center py-16 gap-3">
         <FileText className="h-10 w-10 text-slate-200" />
         <p className="text-sm font-semibold text-slate-500">No reports generated yet</p>
-        <p className="text-xs text-slate-400">
-          Select a template and generate your first report.
-        </p>
+        <p className="text-xs text-slate-400">Select a template and generate your first report.</p>
       </div>
     );
   }

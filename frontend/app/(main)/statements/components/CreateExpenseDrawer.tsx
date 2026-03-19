@@ -337,7 +337,7 @@ export default function CreateExpenseDrawer({
         position="right"
         width="lg"
         showCloseButton={false}
-        className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
+        className="max-w-full border-l-0 bg-white sm:max-w-lg"
         title={
           <div className="flex items-center gap-3">
             <button
@@ -759,7 +759,7 @@ export default function CreateExpenseDrawer({
           noResults: 'No categories found',
         }}
         width="lg"
-        className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
+        className="max-w-full border-l-0 bg-white sm:max-w-lg"
         showAllOption={false}
       />
 
@@ -769,7 +769,7 @@ export default function CreateExpenseDrawer({
         position="right"
         width="lg"
         showCloseButton={false}
-        className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
+        className="max-w-full border-l-0 bg-white sm:max-w-lg"
         title={
           <div className="flex items-center gap-3">
             <button

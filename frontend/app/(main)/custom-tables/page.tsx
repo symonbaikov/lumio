@@ -15,6 +15,7 @@ import {
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import {
   CUSTOM_TABLES_OPEN_ACTION_EVENT,
@@ -55,7 +56,6 @@ import {
   Table as TableIcon,
   Trash2,
 } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';

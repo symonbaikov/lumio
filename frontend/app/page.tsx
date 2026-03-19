@@ -1,13 +1,14 @@
 'use client';
 
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { Calendar } from '@heroui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@heroui/popover';
 import { getLocalTimeZone, parseDate, today } from '@internationalized/date';
 import { Tab, Tabs } from '@mui/material';
 import { RefreshCcw } from 'lucide-react';
-import { useIntlayer, useLocale } from "@/app/i18n";
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DataHealthTab } from './components/dashboard/DataHealthTab';
 import { OverviewTab } from './components/dashboard/OverviewTab';
 import { QuickActionsBar } from './components/dashboard/QuickActionsBar';
@@ -18,6 +19,7 @@ import { useAuth } from './hooks/useAuth';
 import { useDashboard } from './hooks/useDashboard';
 import { useIsMobile } from './hooks/useIsMobile';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
+import { resolveDashboardStatusHeading } from './lib/dashboard-status-heading';
 
 const resolveLocale = (locale: string) => {
   if (locale === 'ru') return 'ru-RU';
@@ -106,16 +108,21 @@ export default function DashboardPage() {
       : isStaleImport
         ? t.greeting?.stale
         : t.greeting?.upToDate;
-  const greetingTitle = fillTemplate(text(greetingCopy?.title), {
-    name: greetingName,
-    count: String(pendingReviewCount),
-    days: '14',
-  });
   const greetingSubtitle = fillTemplate(text(greetingCopy?.subtitle), {
     name: greetingName,
     count: String(pendingReviewCount),
     days: '14',
   });
+  const statusHeadingKey = useMemo(
+    () =>
+      resolveDashboardStatusHeading({
+        data,
+        error,
+        loading,
+      }),
+    [data, error, loading],
+  );
+  const statusHeading = text(t.statusHeading?.[statusHeadingKey]) || 'All good';
 
   if (isRedirecting) {
     return (
@@ -127,7 +134,7 @@ export default function DashboardPage() {
 
   return (
     <main
-      className="min-h-[calc(100vh-var(--global-nav-height,0px))] bg-[#1a2130] flex flex-col"
+      className="min-h-[calc(100vh-var(--global-nav-height,0px))] bg-white flex flex-col font-sans"
       {...pullToRefreshHandlers}
     >
       <div className="w-full flex-1 flex flex-col">
@@ -178,15 +185,76 @@ export default function DashboardPage() {
           </div>
         ) : null}
 
-        {/* Finlab Dark Header Section */}
+        {/* Swiss Clean Header Section */}
         {data ? (
-          <div className="px-8 pt-8 w-full shrink-0">
-            <h1 className="text-[28px] font-bold text-white tracking-tight">
-              {greetingTitle}
-            </h1>
-            <p className="mt-2 text-sm text-slate-300">{greetingSubtitle}</p>
+          <div className="px-10 pt-10 w-full shrink-0 flex flex-col gap-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h1
+                  className="text-[32px] md:text-[40px] font-medium text-[#0D0D0D] tracking-tight"
+                  style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+                >
+                  {statusHeading}
+                </h1>
+                <p className="mt-1 text-[14px] text-[#7A7A7A]">{greetingSubtitle}</p>
+              </div>
 
-            <div className="mt-6 flex items-end justify-between border-b border-white/10 pb-0 w-full">
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/reports"
+                  className="flex items-center gap-2 px-5 py-2.5 border border-[#E8E8E8] text-[#0D0D0D] hover:bg-gray-50 transition-colors"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <title>Export</title>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  <span
+                    className="text-[13px] font-medium"
+                    style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+                  >
+                    Export
+                  </span>
+                </Link>
+                <Link
+                  href="/statements/submit"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] transition-colors"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <title>New Record</title>
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  <span
+                    className="text-[13px] font-medium"
+                    style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+                  >
+                    New Record
+                  </span>
+                </Link>
+              </div>
+            </div>
+
+            <div className="flex items-end justify-between border-b border-[#E8E8E8] pb-0 w-full mt-2">
               <div className="flex px-2">
                 <Tabs
                   value={activeTab}
@@ -195,14 +263,14 @@ export default function DashboardPage() {
                     minHeight: '48px',
                     '& .MuiTabs-indicator': {
                       backgroundColor: 'var(--primary)',
-                      height: '3px',
+                      height: '2px',
                     },
                     '& .MuiTabs-flexContainer': {
                       gap: '40px',
                     },
                     '& .MuiTab-root:hover': {
                       backgroundColor: 'transparent !important',
-                      color: '#ffffff',
+                      color: '#0D0D0D',
                     },
                   }}
                 >
@@ -211,13 +279,15 @@ export default function DashboardPage() {
                     label="Overview"
                     disableRipple
                     sx={{
-                      textTransform: 'none',
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      color: '#94a3b8',
+                      fontSize: '13px',
+                      letterSpacing: '1px',
+                      fontWeight: 600,
+                      fontFamily: 'var(--font-dashboard-mono)',
+                      textTransform: 'uppercase',
+                      color: '#7A7A7A',
                       minWidth: 'auto',
                       padding: '0 0 16px 0',
-                      '&.Mui-selected': { color: '#ffffff' },
+                      '&.Mui-selected': { color: '#0D0D0D' },
                     }}
                   />
                   <Tab
@@ -225,13 +295,15 @@ export default function DashboardPage() {
                     label="Trends"
                     disableRipple
                     sx={{
-                      textTransform: 'none',
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      color: '#94a3b8',
+                      fontSize: '13px',
+                      letterSpacing: '1px',
+                      fontWeight: 600,
+                      fontFamily: 'var(--font-dashboard-mono)',
+                      textTransform: 'uppercase',
+                      color: '#7A7A7A',
                       minWidth: 'auto',
                       padding: '0 0 16px 0',
-                      '&.Mui-selected': { color: '#ffffff' },
+                      '&.Mui-selected': { color: '#0D0D0D' },
                     }}
                   />
                   <Tab
@@ -239,20 +311,23 @@ export default function DashboardPage() {
                     label="Data Health"
                     disableRipple
                     sx={{
-                      textTransform: 'none',
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      color: '#94a3b8',
+                      fontSize: '13px',
+                      letterSpacing: '1px',
+                      fontWeight: 600,
+                      fontFamily: 'var(--font-dashboard-mono)',
+                      textTransform: 'uppercase',
+                      color: '#7A7A7A',
                       minWidth: 'auto',
                       padding: '0 0 16px 0',
-                      '&.Mui-selected': { color: '#ffffff' },
+                      '&.Mui-selected': { color: '#0D0D0D' },
                     }}
                   />
                 </Tabs>
               </div>
-              <Popover placement="bottom-end">
+              {/* @ts-ignore */}
+              <Popover placement="bottom-end" as="div">
                 <PopoverTrigger>
-                  <div className="mb-2 flex items-center gap-2 text-slate-300 text-[13px] font-medium bg-white/5 hover:bg-white/10 transition-colors cursor-pointer px-4 py-2 rounded-xl border border-white/10">
+                  <div className="mb-2 flex items-center gap-2 text-[#7A7A7A] text-[13px] font-medium bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer px-4 py-2 border border-[#E8E8E8]">
                     <svg
                       width="14"
                       height="14"
@@ -283,13 +358,13 @@ export default function DashboardPage() {
                         })}
                   </div>
                 </PopoverTrigger>
-                <PopoverContent className="p-0 border-none bg-transparent">
+                <PopoverContent className="p-0 border border-[#E8E8E8] bg-white rounded-none shadow-sm">
                   <Calendar
                     aria-label="Date selection"
                     value={targetDate ? parseDate(targetDate) : today(getLocalTimeZone())}
-                    onChange={val => changeTargetDate(val.toString())}
+                    onChange={(val: any) => changeTargetDate(val.toString())}
                     classNames={{
-                      base: 'bg-white dark:bg-[#0b1220] rounded-xl shadow-xl',
+                      base: 'bg-white',
                     }}
                   />
                 </PopoverContent>
@@ -298,22 +373,9 @@ export default function DashboardPage() {
           </div>
         ) : null}
 
-        {/* Finlab White Content Body */}
+        {/* Content Body */}
         {data ? (
-          <div className="bg-background w-full px-8 py-5 flex-1 rounded-bl-3xl lg:rounded-bl-[40px] rounded-br-3xl lg:rounded-br-[40px] lg:rounded-b-none pb-12 lg:pb-8">
-            {/* Quick Actions Bar */}
-            <div className="flex items-center justify-between mb-4">
-              <QuickActionsBar
-                reviewCount={
-                  data.actions
-                    ?.filter(a =>
-                      ['statements_pending_review', 'receipts_pending_review'].includes(a.type),
-                    )
-                    .reduce((sum, a) => sum + a.count, 0) || 0
-                }
-              />
-            </div>
-
+          <div className="bg-white w-full px-10 py-8 flex-1 pb-12">
             {activeTab === 'overview' && (
               <OverviewTab
                 data={data}

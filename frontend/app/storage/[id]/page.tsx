@@ -1,5 +1,6 @@
 'use client';
 
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { resolveBankLogo } from '@bank-logos';
 import {
   ArrowLeft,
@@ -11,7 +12,6 @@ import {
   Shield,
   ShieldCheck,
 } from 'lucide-react';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import LoadingAnimation from '../../components/LoadingAnimation';

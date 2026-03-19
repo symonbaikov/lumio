@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 import '@mantine/core/styles.css';
-import { IBM_Plex_Sans, Manrope, Nunito } from 'next/font/google';
+import { IBM_Plex_Sans, Inter, Manrope, Nunito, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
+import { getLocale } from 'next-intlayer/server';
 import { getIntlayer } from 'react-intlayer';
 import { IntlayerServerProvider } from 'react-intlayer/server';
-import { getLocale } from 'next-intlayer/server';
 import AppChrome from './components/AppChrome';
 import DynamicPageTitle from './components/DynamicPageTitle';
 import { Providers } from './providers';
@@ -18,6 +18,16 @@ const manrope = Manrope({
 const nunito = Nunito({
   subsets: ['latin', 'cyrillic'],
   variable: '--font-nunito',
+});
+
+const inter = Inter({
+  subsets: ['latin', 'cyrillic'],
+  variable: '--font-inter',
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
 });
 
 const ibmPlexSans = IBM_Plex_Sans({
@@ -51,7 +61,7 @@ export default async function RootLayout({
   return (
     <html lang={resolvedLocale} dir={direction} suppressHydrationWarning>
       <body
-        className={`${manrope.variable} ${nunito.variable} ${ibmPlexSans.variable} bg-background text-foreground antialiased font-sans`}
+        className={`${manrope.variable} ${nunito.variable} ${ibmPlexSans.variable} ${inter.variable} ${spaceGrotesk.variable} bg-background text-foreground antialiased font-sans`}
       >
         <IntlayerServerProvider>
           <ThemeProvider

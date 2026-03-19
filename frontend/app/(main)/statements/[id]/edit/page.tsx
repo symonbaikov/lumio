@@ -344,16 +344,16 @@ export default function EditStatementPage() {
     }
 
     try {
-      const rawName = `Выписка — ${statement.fileName}`;
+      const rawName = `${t.labels.statementNamePrefix.value}${statement.fileName}`;
       const MAX_NAME_LENGTH = 120;
       const name = rawName.length > MAX_NAME_LENGTH ? rawName.slice(0, MAX_NAME_LENGTH) : rawName;
 
       const payload = {
         statementIds: [statementId],
         name,
-        description: `Экспорт из выписки от ${formatDate(statement.statementDateFrom)} - ${formatDate(
-          statement.statementDateTo,
-        )}`,
+        description: t.labels.exportDescription.value
+          .replace('{{dateFrom}}', formatDate(statement.statementDateFrom))
+          .replace('{{dateTo}}', formatDate(statement.statementDateTo)),
       };
 
       const response = await apiClient.post('/custom-tables/from-statements', payload);
@@ -418,7 +418,7 @@ export default function EditStatementPage() {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Не удалось сохранить транзакцию');
+      setError(err.response?.data?.error?.message || t.errors.saveTransaction.value);
     }
   };
 
@@ -530,7 +530,7 @@ export default function EditStatementPage() {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Не удалось обновить транзакции');
+      setError(err.response?.data?.error?.message || t.errors.updateTransactions.value);
     } finally {
       setSaving(false);
     }
@@ -828,23 +828,23 @@ export default function EditStatementPage() {
 
   const readinessTitle =
     readinessSeverity === 'error'
-      ? labels.alertNeedsFixTitle?.value || 'Нужно исправить перед отправкой'
+      ? labels.alertNeedsFixTitle?.value || 'Fix required before submit'
       : readinessSeverity === 'warning'
-        ? labels.alertReviewTitle?.value || 'Проверьте выписку перед отправкой'
-        : labels.alertReadyTitle?.value || 'Выписка готова к отправке';
+        ? labels.alertReviewTitle?.value || 'Review statement before submit'
+        : labels.alertReadyTitle?.value || 'Statement is ready to submit';
 
   const readinessDetails: string[] = [];
 
   if (!hasStatementCategory) {
     readinessDetails.push(
-      labels.alertStatementCategoryMissing?.value || 'Не выбрана категория выписки.',
+      labels.alertStatementCategoryMissing?.value || 'Statement category is not selected.',
     );
   }
 
   if (hasDisabledStatementCategory) {
     readinessDetails.push(
       labels.alertStatementCategoryDisabled?.value ||
-        'Выбранная категория выписки отключена. Выберите активную.',
+        'Selected statement category is disabled. Choose an active category.',
     );
   }
 
@@ -852,7 +852,7 @@ export default function EditStatementPage() {
     readinessDetails.push(
       (
         labels.alertTransactionsCategoryMissing?.value ||
-        '{count} транзакций требуют категорию. Назначьте категории для всех строк.'
+        '{count} transactions require a category. Assign categories for all rows.'
       ).replace('{count}', String(missingCategoryCount)),
     );
   }
@@ -861,7 +861,7 @@ export default function EditStatementPage() {
     readinessDetails.push(
       (
         labels.alertParsingErrors?.value ||
-        'Обнаружено {count} ошибок парсинга. Проверьте детали и данные выписки.'
+        '{count} parsing errors found. Review parsing details and statement data.'
       ).replace('{count}', String(parsingErrorCount)),
     );
   }
@@ -870,7 +870,7 @@ export default function EditStatementPage() {
     readinessDetails.push(
       (
         labels.alertParsingWarnings?.value ||
-        'Есть {count} предупреждений парсинга. Рекомендуется проверить спорные строки.'
+        '{count} parsing warnings found. It is recommended to review flagged rows.'
       ).replace('{count}', String(parsingWarningCount)),
     );
   }
@@ -878,7 +878,7 @@ export default function EditStatementPage() {
   if (!transactions.length) {
     readinessDetails.push(
       labels.alertNoTransactions?.value ||
-        'В выписке нет транзакций. Проверьте файл или параметры импорта.',
+        'No transactions found in this statement. Check file or import settings.',
     );
   }
 
@@ -886,7 +886,7 @@ export default function EditStatementPage() {
     readinessDetails.length > 0
       ? readinessDetails.join(' · ')
       : labels.alertReadyBody?.value ||
-        'Все обязательные категории назначены. Данные выглядят корректно, можно отправлять.';
+        'All required categories are assigned. The data looks good and ready to submit.';
 
   const readinessInlineText = `${readinessTitle}: ${readinessMessage}`;
 
@@ -936,7 +936,7 @@ export default function EditStatementPage() {
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
               <Chip
                 icon={<Receipt />}
-                label={`${statement?.totalTransactions} ${t.labels.transactionsCount.value || 'транзакций'}`}
+                label={`${statement?.totalTransactions} ${t.labels.transactionsCount.value || 'transactions'}`}
                 size="small"
                 sx={{
                   bgcolor: 'grey.50',
@@ -951,7 +951,10 @@ export default function EditStatementPage() {
               {missingCategoryCount > 0 && (
                 <Chip
                   icon={<Warning />}
-                  label={`${missingCategoryCount} требуют категории`}
+                  label={t.labels.requireCategory.value.replace(
+                    '{{count}}',
+                    String(missingCategoryCount),
+                  )}
                   size="small"
                   sx={{
                     bgcolor: 'error.50',
@@ -966,7 +969,7 @@ export default function EditStatementPage() {
             </Box>
             {missingCategoryCount > 0 ? (
               <Typography sx={{ mt: 1, color: 'error.main', fontSize: '0.75rem', fontWeight: 500 }}>
-                Выберите категорию для каждой транзакции с пустой или отключенной категорией
+                {t.labels.selectCategoryHint.value}
               </Typography>
             ) : null}
           </Box>
@@ -1018,7 +1021,7 @@ export default function EditStatementPage() {
                 }}
               >
                 {hasDisabledStatementCategory
-                  ? `${selectedStatementCategoryName} — отключена`
+                  ? `${selectedStatementCategoryName}${t.labels.disabledSuffix.value}`
                   : selectedStatementCategoryName}
               </Box>
             </Button>
@@ -1166,12 +1169,12 @@ export default function EditStatementPage() {
           sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}
         >
           <Typography variant="caption" color="text.secondary">
-            {labels.period?.value || 'Период'}
+            {labels.period?.value || 'Period'}
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
             {statement?.statementDateFrom && statement?.statementDateTo
               ? `${new Date(statement.statementDateFrom).toLocaleDateString()} - ${new Date(statement.statementDateTo).toLocaleDateString()}`
-              : 'Не указан'}
+              : labels.notSpecified?.value || 'Not specified'}
           </Typography>
         </Paper>
         <Paper
@@ -1179,14 +1182,14 @@ export default function EditStatementPage() {
           sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}
         >
           <Typography variant="caption" color="text.secondary">
-            {labels.balanceStart?.value || 'Начальный баланс'}
+            {labels.balanceStart?.value || 'Opening balance'}
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
             {statement?.balanceStart !== null &&
             statement?.balanceStart !== undefined &&
             statement?.balanceStart !== ''
               ? formatNumber(Number(statement.balanceStart))
-              : 'Не указан'}
+              : labels.notSpecified?.value || 'Not specified'}
           </Typography>
         </Paper>
         <Paper
@@ -1194,7 +1197,7 @@ export default function EditStatementPage() {
           sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}
         >
           <Typography variant="caption" color="text.secondary">
-            {labels.expenses?.value || 'Расходы'}
+            {labels.expenses?.value || 'Expenses'}
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5, color: 'error.main' }}>
             {!Number.isNaN(totalExpense) && totalExpense >= 0 ? formatNumber(totalExpense) : '0.00'}
@@ -1205,7 +1208,7 @@ export default function EditStatementPage() {
           sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2 }}
         >
           <Typography variant="caption" color="text.secondary">
-            {labels.income?.value || 'Доходы'}
+            {labels.income?.value || 'Income'}
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5, color: 'success.main' }}>
             {!Number.isNaN(totalIncome) && totalIncome >= 0 ? formatNumber(totalIncome) : '0.00'}
@@ -1229,7 +1232,7 @@ export default function EditStatementPage() {
       >
         <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: 'grey.50' }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-            {t.labels.parsingDetails?.value || 'Параметры и детали парсинга'}
+            {t.labels.parsingDetails?.value || 'Parsing details'}
           </Typography>
         </AccordionSummary>
         <AccordionDetails sx={{ p: 3 }}>
@@ -1252,7 +1255,7 @@ export default function EditStatementPage() {
               onChange={value => handleMetadataChange('statementDateFrom', value)}
               helperText={
                 statement?.parsingDetails?.metadataExtracted?.dateFrom
-                  ? `Из файла: ${new Date(statement.parsingDetails.metadataExtracted.dateFrom).toLocaleDateString(resolveLocale(locale))}`
+                  ? `${labels.fromFilePrefix?.value || 'From file: '}${new Date(statement.parsingDetails.metadataExtracted.dateFrom).toLocaleDateString(resolveLocale(locale))}`
                   : undefined
               }
             />
@@ -1263,7 +1266,7 @@ export default function EditStatementPage() {
               onChange={value => handleMetadataChange('statementDateTo', value)}
               helperText={
                 statement?.parsingDetails?.metadataExtracted?.dateTo
-                  ? `Из файла: ${new Date(statement.parsingDetails.metadataExtracted.dateTo).toLocaleDateString(resolveLocale(locale))}`
+                  ? `${labels.fromFilePrefix?.value || 'From file: '}${new Date(statement.parsingDetails.metadataExtracted.dateTo).toLocaleDateString(resolveLocale(locale))}`
                   : undefined
               }
             />
@@ -1281,7 +1284,7 @@ export default function EditStatementPage() {
                 placeholder="0.00"
                 helperText={
                   statement?.parsingDetails?.metadataExtracted?.balanceStart
-                    ? `Из файла: ${formatNumber(statement.parsingDetails.metadataExtracted.balanceStart)}`
+                    ? `${labels.fromFilePrefix?.value || 'From file: '}${formatNumber(statement.parsingDetails.metadataExtracted.balanceStart)}`
                     : labels.enterOpeningBalance?.value || 'Enter opening balance'
                 }
                 sx={{
@@ -1307,7 +1310,7 @@ export default function EditStatementPage() {
                 placeholder="0.00"
                 helperText={
                   statement?.parsingDetails?.metadataExtracted?.balanceEnd
-                    ? `Из файла: ${formatNumber(statement.parsingDetails.metadataExtracted.balanceEnd)}`
+                    ? `${labels.fromFilePrefix?.value || 'From file: '}${formatNumber(statement.parsingDetails.metadataExtracted.balanceEnd)}`
                     : labels.enterManuallyHint?.value || 'Enter manually if it was not detected'
                 }
                 sx={{
@@ -1352,7 +1355,7 @@ export default function EditStatementPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary">
-                    {labels.bankDetectedBy?.value || 'Определено по'}
+                    {labels.bankDetectedBy?.value || 'Detected by'}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
                     {statement.parsingDetails.detectedBy || '—'}
@@ -1407,7 +1410,7 @@ export default function EditStatementPage() {
                   statement.parsingDetails.otherBankMentions.length > 0 && (
                     <Box sx={{ gridColumn: { xs: '1 / -1', md: 'span 2' } }}>
                       <Typography variant="caption" color="text.secondary">
-                        {labels.otherBankMentions?.value || 'Упоминания других банков'}
+                        {labels.otherBankMentions?.value || 'Other bank mentions'}
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
                         {statement.parsingDetails.otherBankMentions.join(', ')}

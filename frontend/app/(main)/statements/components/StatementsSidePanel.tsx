@@ -19,8 +19,8 @@ import {
   STATEMENTS_GMAIL_SYNC_STORAGE_KEY,
 } from '@/app/lib/statement-upload-actions';
 import { countStatementStages, getStatementStageMap } from '@/app/lib/statement-workflow';
-import NearbyErrorIcon from '@mui/icons-material/NearbyError';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
+import UnpublishedIcon from '@mui/icons-material/Unpublished';
 import { Banknote, CalendarRange, Folder, Pencil, Send, ThumbsUp, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -437,7 +437,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             {
               id: 'unapproved-cash',
               label: (t as any)?.sidePanel?.unapprovedCash?.value ?? 'Unapproved cash',
-              icon: <NearbyErrorIcon sx={{ fontSize: 20 }} />,
+              icon: <UnpublishedIcon sx={{ fontSize: 20 }} />,
               badge: counts.unapprovedCash,
               badgeLoading: countsLoading,
               badgeVariant: getQueueBadgeVariant(counts.unapprovedCash),

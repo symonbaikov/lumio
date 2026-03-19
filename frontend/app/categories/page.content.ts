@@ -16,6 +16,7 @@ const content = {
     columns: {
       name: t({ ru: 'Название', en: 'Name', kk: 'Атауы' }),
     },
+    noData: t({ ru: 'Нет категорий', en: 'No categories', kk: 'Санаттар жоқ' }),
     sourceBadges: {
       system: t({ ru: 'System', en: 'System', kk: 'System' }),
       parsing: t({ ru: 'Данные из парсинга', en: 'Parsing data', kk: 'Parsing data' }),

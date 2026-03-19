@@ -125,11 +125,7 @@ export function ReportGenerator({ template, onClose, onGenerate }: ReportGenerat
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="gap-2"
-          >
+          <Button onClick={handleGenerate} disabled={generating} className="gap-2">
             {generating ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />

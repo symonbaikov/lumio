@@ -54,38 +54,40 @@ export function AuditEventDrawer({ event, open, onClose, onRollback }: AuditEven
             )}
           </div>
 
-        <div>
-          <div className="text-sm font-semibold text-gray-900">Diff</div>
-          <div className="mt-2">
-            <DiffViewer diff={event.diff} />
+          <div>
+            <div className="text-sm font-semibold text-gray-900">Diff</div>
+            <div className="mt-2">
+              <DiffViewer diff={event.diff} />
+            </div>
           </div>
-        </div>
 
-        <details className="rounded-lg border border-gray-200 bg-white p-3">
-          <summary className="cursor-pointer text-sm font-semibold text-gray-900">Metadata</summary>
-          <div className="mt-2 text-xs text-gray-700">
-            <pre className="whitespace-pre-wrap">
-              {event.meta ? JSON.stringify(event.meta, null, 2) : 'No metadata'}
-            </pre>
-          </div>
-        </details>
+          <details className="rounded-lg border border-gray-200 bg-white p-3">
+            <summary className="cursor-pointer text-sm font-semibold text-gray-900">
+              Metadata
+            </summary>
+            <div className="mt-2 text-xs text-gray-700">
+              <pre className="whitespace-pre-wrap">
+                {event.meta ? JSON.stringify(event.meta, null, 2) : 'No metadata'}
+              </pre>
+            </div>
+          </details>
 
-        {event.meta?.rollbackOf && (
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
-            Related event (rollback of):
-            <span className="ml-2 font-mono text-xs text-gray-900">{event.meta.rollbackOf}</span>
-          </div>
-        )}
+          {event.meta?.rollbackOf && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+              Related event (rollback of):
+              <span className="ml-2 font-mono text-xs text-gray-900">{event.meta.rollbackOf}</span>
+            </div>
+          )}
 
-        {event.isUndoable && (
-          <button
-            type="button"
-            onClick={() => onRollback?.(event)}
-            className="w-full rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
-          >
-            Rollback
-          </button>
-        )}
+          {event.isUndoable && (
+            <button
+              type="button"
+              onClick={() => onRollback?.(event)}
+              className="w-full rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
+            >
+              Rollback
+            </button>
+          )}
         </div>
       </div>
     </DrawerShell>

@@ -2,6 +2,7 @@
 
 import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { useIntlayer } from '@/app/i18n';
 import {
   Building2,
   ChevronRight,
@@ -12,7 +13,6 @@ import {
   Search,
   SortAsc,
 } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import React, { useMemo, useState } from 'react';
 import { CreateWorkspaceModal } from './CreateWorkspaceModal';
@@ -127,92 +127,92 @@ export default function WorkspacesListContent({
 
             {!embedded ? (
               <div className="flex justify-end gap-2">
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowSortMenu(!showSortMenu)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        showSortMenu
-                          ? 'bg-primary/10 dark:bg-primary/20 text-primary'
-                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                      } border border-gray-300 dark:border-gray-600`}
-                      title="Sort options"
-                    >
-                      <SortAsc size={20} />
-                    </button>
-                    {showSortMenu && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-10">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSortOption('favorites');
-                            setShowSortMenu(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                            sortOption === 'favorites'
-                              ? 'font-semibold text-primary'
-                              : 'text-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          Favorites First
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSortOption('alphabetical');
-                            setShowSortMenu(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                            sortOption === 'alphabetical'
-                              ? 'font-semibold text-primary'
-                              : 'text-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          Alphabetical
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSortOption('recent');
-                            setShowSortMenu(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                            sortOption === 'recent'
-                              ? 'font-semibold text-primary'
-                              : 'text-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          Recently Created
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
+                <div className="relative">
                   <button
                     type="button"
-                    onClick={() => setViewMode('grid')}
+                    onClick={() => setShowSortMenu(!showSortMenu)}
                     className={`p-2 rounded-lg transition-colors ${
-                      viewMode === 'grid'
+                      showSortMenu
                         ? 'bg-primary/10 dark:bg-primary/20 text-primary'
                         : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                     } border border-gray-300 dark:border-gray-600`}
-                    title="Grid view"
+                    title="Sort options"
                   >
-                    <Grid size={20} />
+                    <SortAsc size={20} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('list')}
-                    className={`p-2 rounded-lg transition-colors ${
-                      viewMode === 'list'
-                        ? 'bg-primary/10 dark:bg-primary/20 text-primary'
-                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    } border border-gray-300 dark:border-gray-600`}
-                    title="List view"
-                  >
-                    <List size={20} />
-                  </button>
+                  {showSortMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-10">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSortOption('favorites');
+                          setShowSortMenu(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                          sortOption === 'favorites'
+                            ? 'font-semibold text-primary'
+                            : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        Favorites First
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSortOption('alphabetical');
+                          setShowSortMenu(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                          sortOption === 'alphabetical'
+                            ? 'font-semibold text-primary'
+                            : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        Alphabetical
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSortOption('recent');
+                          setShowSortMenu(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                          sortOption === 'recent'
+                            ? 'font-semibold text-primary'
+                            : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        Recently Created
+                      </button>
+                    </div>
+                  )}
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-lg transition-colors ${
+                    viewMode === 'grid'
+                      ? 'bg-primary/10 dark:bg-primary/20 text-primary'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  } border border-gray-300 dark:border-gray-600`}
+                  title="Grid view"
+                >
+                  <Grid size={20} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-lg transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-primary/10 dark:bg-primary/20 text-primary'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  } border border-gray-300 dark:border-gray-600`}
+                  title="List view"
+                >
+                  <List size={20} />
+                </button>
+              </div>
             ) : null}
           </div>
         ) : null}

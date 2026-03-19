@@ -70,6 +70,7 @@ type FiltersDrawerProps = {
   onClose: () => void;
   filters: StatementFilters;
   screen: string;
+  visibleScreens?: string[];
   onBack: () => void;
   onSelect: (field: string) => void;
   onUpdateFilters: (next: Partial<StatementFilters>) => void;
@@ -93,6 +94,7 @@ export function FiltersDrawer({
   onClose,
   filters,
   screen,
+  visibleScreens,
   onBack,
   onSelect,
   onUpdateFilters,
@@ -114,6 +116,9 @@ export function FiltersDrawer({
     value && value.length > 0 ? value : fallback || labels.any;
 
   const isRoot = screen === 'root';
+  const allowedScreens = new Set(visibleScreens || []);
+  const isScreenVisible = (screenId: string) =>
+    visibleScreens === undefined || allowedScreens.has(screenId);
   const screenTitle = isRoot
     ? labels.title
     : {
@@ -491,7 +496,7 @@ export function FiltersDrawer({
       position="right"
       width="sm"
       showCloseButton={false}
-      className="bg-[#fbfaf8] border-l-0"
+      className="bg-white border-l-0"
       title={
         <div className="flex w-full items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -521,95 +526,137 @@ export function FiltersDrawer({
         {isRoot ? (
           <div className="flex-1 overflow-y-auto space-y-6 pb-28">
             <FilterSection title={labels.general}>
-              <FilterRow
-                label={labels.type}
-                value={summaryValue(filters.type)}
-                onClick={() => onSelect('type')}
-              />
-              <FilterRow
-                label={labels.from}
-                value={summaryValue(filters.from.length ? `${filters.from.length}` : '')}
-                onClick={() => onSelect('from')}
-              />
-              <FilterRow
-                label={labels.keywords}
-                value={summaryValue(filters.keywords)}
-                onClick={() => onSelect('keywords')}
-              />
-              <FilterRow
-                label={labels.status}
-                value={summaryValue(filters.statuses.length ? `${filters.statuses.length}` : '')}
-                onClick={() => onSelect('status')}
-              />
-              <FilterRow
-                label={labels.to}
-                value={summaryValue(filters.to.length ? `${filters.to.length}` : '')}
-                onClick={() => onSelect('to')}
-              />
-              <FilterRow
-                label={labels.groupBy}
-                value={summaryValue(filters.groupBy)}
-                onClick={() => onSelect('groupBy')}
-              />
-              <FilterRow
-                label={labels.has}
-                value={summaryValue(filters.has.length ? `${filters.has.length}` : '')}
-                onClick={() => onSelect('has')}
-              />
-              <FilterRow
-                label={labels.limit}
-                value={summaryValue(filters.limit ? `${filters.limit}` : '')}
-                onClick={() => onSelect('limit')}
-              />
+              {isScreenVisible('type') ? (
+                <FilterRow
+                  label={labels.type}
+                  value={summaryValue(filters.type)}
+                  onClick={() => onSelect('type')}
+                />
+              ) : null}
+              {isScreenVisible('from') ? (
+                <FilterRow
+                  label={labels.from}
+                  value={summaryValue(filters.from.length ? `${filters.from.length}` : '')}
+                  onClick={() => onSelect('from')}
+                />
+              ) : null}
+              {isScreenVisible('keywords') ? (
+                <FilterRow
+                  label={labels.keywords}
+                  value={summaryValue(filters.keywords)}
+                  onClick={() => onSelect('keywords')}
+                />
+              ) : null}
+              {isScreenVisible('status') ? (
+                <FilterRow
+                  label={labels.status}
+                  value={summaryValue(filters.statuses.length ? `${filters.statuses.length}` : '')}
+                  onClick={() => onSelect('status')}
+                />
+              ) : null}
+              {isScreenVisible('to') ? (
+                <FilterRow
+                  label={labels.to}
+                  value={summaryValue(filters.to.length ? `${filters.to.length}` : '')}
+                  onClick={() => onSelect('to')}
+                />
+              ) : null}
+              {isScreenVisible('groupBy') ? (
+                <FilterRow
+                  label={labels.groupBy}
+                  value={summaryValue(filters.groupBy)}
+                  onClick={() => onSelect('groupBy')}
+                />
+              ) : null}
+              {isScreenVisible('has') ? (
+                <FilterRow
+                  label={labels.has}
+                  value={summaryValue(filters.has.length ? `${filters.has.length}` : '')}
+                  onClick={() => onSelect('has')}
+                />
+              ) : null}
+              {isScreenVisible('limit') ? (
+                <FilterRow
+                  label={labels.limit}
+                  value={summaryValue(filters.limit ? `${filters.limit}` : '')}
+                  onClick={() => onSelect('limit')}
+                />
+              ) : null}
             </FilterSection>
 
             <FilterSection title={labels.expenses}>
-              <FilterRow
-                label={labels.amount}
-                value={summaryValue(filters.amountMin || filters.amountMax ? 'set' : '')}
-                onClick={() => onSelect('amount')}
-              />
-              <FilterRow
-                label={labels.billable}
-                value={
-                  filters.billable === null ? labels.any : filters.billable ? labels.yes : labels.no
-                }
-                onClick={() => onSelect('billable')}
-              />
+              {isScreenVisible('amount') ? (
+                <FilterRow
+                  label={labels.amount}
+                  value={summaryValue(filters.amountMin || filters.amountMax ? 'set' : '')}
+                  onClick={() => onSelect('amount')}
+                />
+              ) : null}
+              {isScreenVisible('billable') ? (
+                <FilterRow
+                  label={labels.billable}
+                  value={
+                    filters.billable === null
+                      ? labels.any
+                      : filters.billable
+                        ? labels.yes
+                        : labels.no
+                  }
+                  onClick={() => onSelect('billable')}
+                />
+              ) : null}
             </FilterSection>
 
             <FilterSection title={labels.reports}>
-              <FilterRow
-                label={labels.approved}
-                value={
-                  filters.approved === null ? labels.any : filters.approved ? labels.yes : labels.no
-                }
-                onClick={() => onSelect('approved')}
-              />
-              <FilterRow
-                label={labels.currency}
-                value={summaryValue(
-                  filters.currencies.length > 0 ? `${filters.currencies.length}` : '',
-                )}
-                onClick={() => onSelect('currency')}
-              />
-              <FilterRow
-                label={labels.date}
-                value={summaryValue(filters.date ? 'set' : '')}
-                onClick={() => onSelect('date')}
-              />
-              <FilterRow
-                label={labels.exported}
-                value={
-                  filters.exported === null ? labels.any : filters.exported ? labels.yes : labels.no
-                }
-                onClick={() => onSelect('exported')}
-              />
-              <FilterRow
-                label={labels.paid}
-                value={filters.paid === null ? labels.any : filters.paid ? labels.yes : labels.no}
-                onClick={() => onSelect('paid')}
-              />
+              {isScreenVisible('approved') ? (
+                <FilterRow
+                  label={labels.approved}
+                  value={
+                    filters.approved === null
+                      ? labels.any
+                      : filters.approved
+                        ? labels.yes
+                        : labels.no
+                  }
+                  onClick={() => onSelect('approved')}
+                />
+              ) : null}
+              {isScreenVisible('currency') ? (
+                <FilterRow
+                  label={labels.currency}
+                  value={summaryValue(
+                    filters.currencies.length > 0 ? `${filters.currencies.length}` : '',
+                  )}
+                  onClick={() => onSelect('currency')}
+                />
+              ) : null}
+              {isScreenVisible('date') ? (
+                <FilterRow
+                  label={labels.date}
+                  value={summaryValue(filters.date ? 'set' : '')}
+                  onClick={() => onSelect('date')}
+                />
+              ) : null}
+              {isScreenVisible('exported') ? (
+                <FilterRow
+                  label={labels.exported}
+                  value={
+                    filters.exported === null
+                      ? labels.any
+                      : filters.exported
+                        ? labels.yes
+                        : labels.no
+                  }
+                  onClick={() => onSelect('exported')}
+                />
+              ) : null}
+              {isScreenVisible('paid') ? (
+                <FilterRow
+                  label={labels.paid}
+                  value={filters.paid === null ? labels.any : filters.paid ? labels.yes : labels.no}
+                  onClick={() => onSelect('paid')}
+                />
+              ) : null}
             </FilterSection>
           </div>
         ) : (
@@ -619,7 +666,7 @@ export function FiltersDrawer({
         )}
 
         {isRoot ? (
-          <div className="sticky bottom-0 pt-4 pb-2 space-y-3 bg-[#fbfaf8]">
+          <div className="sticky bottom-0 pt-4 pb-2 space-y-3 bg-white">
             <Button variant="secondary" className="w-full rounded-full" size="lg" disabled>
               {labels.saveSearch}
             </Button>
@@ -637,7 +684,7 @@ export function FiltersDrawer({
             </Button>
           </div>
         ) : (
-          <div className="sticky bottom-0 pt-4 pb-2 bg-[#fbfaf8]">
+          <div className="sticky bottom-0 pt-4 pb-2 bg-white">
             <Button className="w-full rounded-full" size="lg" onClick={onViewResults}>
               {labels.viewResults}
               {activeCount > 0 ? (

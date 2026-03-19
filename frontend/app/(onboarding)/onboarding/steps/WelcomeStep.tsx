@@ -1,7 +1,7 @@
 'use client';
 
+import { useIntlayer } from '@/app/i18n';
 import { CheckCircle2, ShieldCheck, Sparkles, Workflow } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 
 export function WelcomeStep() {
   const t = useIntlayer('onboardingPage' as any) as any;

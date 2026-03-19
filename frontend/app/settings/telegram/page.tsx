@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/app/hooks/useAuth';
 import { usePermissions } from '@/app/hooks/usePermissions';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import {
   AccessTime,
@@ -29,7 +30,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import { useEffect, useMemo, useState } from 'react';
 
 type ReportStatus = 'pending' | 'sent' | 'failed';

@@ -1,8 +1,8 @@
 'use client';
 
 import { type SidePanelPageConfig, useSidePanelConfig } from '@/app/components/side-panel';
+import { useIntlayer } from '@/app/i18n';
 import { Trash2 } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import { useMemo } from 'react';
 
 type Props = {

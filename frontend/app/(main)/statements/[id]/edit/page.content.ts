@@ -323,6 +323,31 @@ const content = {
         en: 'No transactions found in this statement. Check file or import settings.',
         kk: 'Үзіндіде транзакциялар жоқ. Файлды не импорт баптауларын тексеріңіз.',
       }),
+      statementNamePrefix: t({
+        ru: 'Выписка — ',
+        en: 'Statement — ',
+        kk: 'Үзінді — ',
+      }),
+      exportDescription: t({
+        ru: 'Экспорт из выписки от {{dateFrom}} - {{dateTo}}',
+        en: 'Export from statement {{dateFrom}} - {{dateTo}}',
+        kk: 'Үзіндіден экспорт {{dateFrom}} - {{dateTo}}',
+      }),
+      requireCategory: t({
+        ru: '{{count}} требуют категории',
+        en: '{{count}} require category',
+        kk: '{{count}} санат қажет етеді',
+      }),
+      selectCategoryHint: t({
+        ru: 'Выберите категорию для каждой транзакции с пустой или отключенной категорией',
+        en: 'Select a category for each transaction with an empty or disabled category',
+        kk: 'Бос немесе өшірілген санаты бар әрбір транзакция үшін санат таңдаңыз',
+      }),
+      disabledSuffix: t({
+        ru: ' — отключена',
+        en: ' — disabled',
+        kk: ' — өшірілген',
+      }),
       unapprove: t({ ru: 'Снять с утверждения', en: 'Unapprove', kk: 'Бекітуден қайтару' }),
       pay: t({ ru: 'Оплатить', en: 'Pay', kk: 'Төлеу' }),
       rollbackToApprove: t({

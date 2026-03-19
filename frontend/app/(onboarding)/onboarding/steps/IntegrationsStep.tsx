@@ -1,7 +1,7 @@
 'use client';
 
+import { useIntlayer } from '@/app/i18n';
 import { Loader2 } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import Image from 'next/image';
 
 export interface OnboardingIntegrationCard {

@@ -66,7 +66,7 @@ export function FinlabIncomeCard({
   }, [data, range]);
 
   return (
-    <div className="bg-white rounded-3xl p-4 shadow-[0_2px_10px_rgba(0,0,0,0.04)] h-full flex flex-col justify-between border border-slate-100/50">
+    <div className="bg-white rounded-none p-4 shadow-none h-full flex flex-col justify-between border border-[#E8E8E8]">
       <div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-slate-600 font-medium text-sm">
@@ -95,7 +95,7 @@ export function FinlabIncomeCard({
           <PeriodDropdown value={range} onChange={onRangeChange} />
         </div>
         {option ? (
-          <div className="h-[80px] w-full border-t border-slate-100/[0.6] pt-2">
+          <div className="h-[80px] w-full border-t border-[#E8E8E8][0.6] pt-2">
             <ReactECharts option={option} style={{ height: '80px', width: '100%' }} />
           </div>
         ) : (

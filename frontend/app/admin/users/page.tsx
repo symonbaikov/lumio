@@ -2,6 +2,7 @@
 
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { Cancel, Edit, Save } from '@mui/icons-material';
 import {
   Alert,
@@ -31,7 +32,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import { useEffect, useState } from 'react';
 import apiClient from '../../lib/api';
 

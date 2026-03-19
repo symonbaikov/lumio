@@ -1,0 +1,37 @@
+--- frontend/app/page.tsx
++++ frontend/app/page.tsx
+@@ -211,8 +211,10 @@
+                       textTransform: 'none',
+-                      fontSize: '14px',
++                      fontSize: '13px',
++                      letterSpacing: '1px',
+                       fontWeight: 500,
++                      fontFamily: 'var(--font-dashboard-mono)',
+                       color: '#7A7A7A',
+                       minWidth: 'auto',
+                       padding: '0 0 16px 0',
+                       '&.Mui-selected': { color: '#0D0D0D' },
+                     }}
+@@ -223,8 +225,10 @@
+                       textTransform: 'none',
+-                      fontSize: '14px',
++                      fontSize: '13px',
++                      letterSpacing: '1px',
+                       fontWeight: 500,
++                      fontFamily: 'var(--font-dashboard-mono)',
+                       color: '#7A7A7A',
+                       minWidth: 'auto',
+                       padding: '0 0 16px 0',
+                       '&.Mui-selected': { color: '#0D0D0D' },
+                     }}
+@@ -235,8 +239,10 @@
+                       textTransform: 'none',
+-                      fontSize: '14px',
++                      fontSize: '13px',
++                      letterSpacing: '1px',
+                       fontWeight: 500,
++                      fontFamily: 'var(--font-dashboard-mono)',
+                       color: '#7A7A7A',
+                       minWidth: 'auto',
+                       padding: '0 0 16px 0',
+                       '&.Mui-selected': { color: '#0D0D0D' },

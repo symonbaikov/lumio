@@ -40,9 +40,7 @@ export function FinlabTransactionCard({
       setIsLoading(true);
       try {
         const response = await gmailReceiptsApi.listReceipts({ limit: 5, hasAmount: true });
-        const nextReceipts = Array.isArray(response.data?.receipts)
-          ? response.data.receipts
-          : [];
+        const nextReceipts = Array.isArray(response.data?.receipts) ? response.data.receipts : [];
         setReceipts(nextReceipts);
       } catch (error) {
         console.error('Failed to load Gmail receipts:', error);
@@ -56,7 +54,7 @@ export function FinlabTransactionCard({
   }, [range]);
 
   return (
-    <div className="bg-white rounded-[32px] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.04)] h-full flex flex-col border border-slate-100/50">
+    <div className="bg-white rounded-none p-5 shadow-none h-full flex flex-col border border-[#E8E8E8]">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1.5 text-slate-800 font-bold text-[17px]">
           Last Transaction
@@ -85,7 +83,8 @@ export function FinlabTransactionCard({
             const amount = receipt.parsedData?.amount ?? null;
             const isApproved = receipt.status === 'approved';
             const receivedAt = receipt.receivedAt ? new Date(receipt.receivedAt) : null;
-            const hasValidReceivedAt = receivedAt instanceof Date && !Number.isNaN(receivedAt.valueOf());
+            const hasValidReceivedAt =
+              receivedAt instanceof Date && !Number.isNaN(receivedAt.valueOf());
 
             return (
               <div key={receipt.id} className="flex items-center justify-between group">
@@ -95,9 +94,7 @@ export function FinlabTransactionCard({
                     <p className="text-[15px] font-bold text-slate-800 tracking-tight leading-tight">
                       {vendorLabel}
                     </p>
-                    <p className="text-[13px] text-slate-400 font-medium mt-0.5">
-                      Gmail receipt
-                    </p>
+                    <p className="text-[13px] text-slate-400 font-medium mt-0.5">Gmail receipt</p>
                   </div>
                 </div>
 
@@ -129,7 +126,7 @@ export function FinlabTransactionCard({
                   </div>
 
                   <div className="w-[84px] text-right">
-                    <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-lg text-[13px] font-bold bg-emerald-50 text-emerald-600">
+                    <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-none text-[13px] font-bold bg-emerald-50 text-emerald-600">
                       {isApproved ? 'Approved' : 'Success'}
                     </span>
                   </div>

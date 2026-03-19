@@ -1,6 +1,7 @@
 'use client';
 
 import { type SidePanelPageConfig, useSidePanelConfig } from '@/app/components/side-panel';
+import { useIntlayer } from '@/app/i18n';
 import {
   type CustomTableSortOrder,
   type CustomTableSourceFilter,
@@ -14,7 +15,6 @@ import {
   Pencil,
   Table as TableIcon,
 } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import { useMemo } from 'react';
 
 type Props = {

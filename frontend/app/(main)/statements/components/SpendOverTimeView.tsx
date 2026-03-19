@@ -47,9 +47,9 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
@@ -547,14 +547,22 @@ export default function SpendOverTimeView() {
 
     if (workspaceFilter === 'current') {
       if (currentWorkspace?.id) {
-        return [{ id: currentWorkspace.id, name: currentWorkspace.name || labels.currentWorkspace }];
+        return [
+          { id: currentWorkspace.id, name: currentWorkspace.name || labels.currentWorkspace },
+        ];
       }
       return [];
     }
 
     const selectedWorkspace = workspaces.find(workspace => workspace.id === workspaceFilter);
     return [{ id: workspaceFilter, name: selectedWorkspace?.name || labels.currentWorkspace }];
-  }, [workspaceFilter, workspaces, currentWorkspace?.id, currentWorkspace?.name, labels.currentWorkspace]);
+  }, [
+    workspaceFilter,
+    workspaces,
+    currentWorkspace?.id,
+    currentWorkspace?.name,
+    labels.currentWorkspace,
+  ]);
 
   const workspaceTargetKey = useMemo(
     () => workspaceTargets.map(target => target.id).join(','),
@@ -614,7 +622,10 @@ export default function SpendOverTimeView() {
             headers: requestHeaders,
           });
           const transactionItems =
-            transactionsResponse.data?.data || transactionsResponse.data?.items || transactionsResponse.data || [];
+            transactionsResponse.data?.data ||
+            transactionsResponse.data?.items ||
+            transactionsResponse.data ||
+            [];
           allTransactions.push(
             ...(Array.isArray(transactionItems) ? transactionItems : []).map(transaction => ({
               ...transaction,
@@ -776,7 +787,10 @@ export default function SpendOverTimeView() {
       .filter(record => record.amount > 0);
 
     const existingTransactionIds = new Set(transactions.map(transaction => transaction.id));
-    const uniqueReceipts = dedupeSpendOverTimeReceiptRecords(mappedReceipts, existingTransactionIds);
+    const uniqueReceipts = dedupeSpendOverTimeReceiptRecords(
+      mappedReceipts,
+      existingTransactionIds,
+    );
 
     return [...mappedTransactions, ...uniqueReceipts];
   }, [transactions, gmailReceipts, statements, workspaceCurrency]);
@@ -894,7 +908,10 @@ export default function SpendOverTimeView() {
 
   const previousPeriodTotals = useMemo(() => {
     if (!currentPeriodRange) return null;
-    const previousRange = buildPreviousPeriodRange(currentPeriodRange.start, currentPeriodRange.end);
+    const previousRange = buildPreviousPeriodRange(
+      currentPeriodRange.start,
+      currentPeriodRange.end,
+    );
     if (!previousRange) return null;
 
     const previousRecords = flowRecordsWithoutDateFilter.filter(record => {
@@ -918,9 +935,15 @@ export default function SpendOverTimeView() {
         report.totals.statementAmount,
         previousPeriodTotals.statementAmount,
       ),
-      receiptsAmount: getComparisonDelta(report.totals.gmailAmount, previousPeriodTotals.gmailAmount),
+      receiptsAmount: getComparisonDelta(
+        report.totals.gmailAmount,
+        previousPeriodTotals.gmailAmount,
+      ),
       operations: getComparisonDelta(report.totals.count, previousPeriodTotals.count),
-      avgPerPeriod: getComparisonDelta(report.totals.avgPerPeriod, previousPeriodTotals.avgPerPeriod),
+      avgPerPeriod: getComparisonDelta(
+        report.totals.avgPerPeriod,
+        previousPeriodTotals.avgPerPeriod,
+      ),
     };
   }, [report.totals, previousPeriodTotals, activeFlowType]);
 
@@ -1025,7 +1048,14 @@ export default function SpendOverTimeView() {
             },
       ],
     };
-  }, [report.points, viewType, activeFlowType, labels.totalIncome, labels.totalSpend, resolvedTheme]);
+  }, [
+    report.points,
+    viewType,
+    activeFlowType,
+    labels.totalIncome,
+    labels.totalSpend,
+    resolvedTheme,
+  ]);
 
   const sourceChart = useMemo(() => {
     return {
@@ -1037,13 +1067,21 @@ export default function SpendOverTimeView() {
           type: 'pie',
           radius: ['35%', '72%'],
           data: [
-            { name: labels.statementsAmount, value: Number(report.totals.statementAmount.toFixed(2)) },
+            {
+              name: labels.statementsAmount,
+              value: Number(report.totals.statementAmount.toFixed(2)),
+            },
             { name: labels.receiptsAmount, value: Number(report.totals.gmailAmount.toFixed(2)) },
           ],
         },
       ],
     };
-  }, [labels.receiptsAmount, labels.statementsAmount, report.totals.gmailAmount, report.totals.statementAmount]);
+  }, [
+    labels.receiptsAmount,
+    labels.statementsAmount,
+    report.totals.gmailAmount,
+    report.totals.statementAmount,
+  ]);
 
   const periodsChart = useMemo(() => {
     const top = rows.slice(0, 12).reverse();
@@ -1360,7 +1398,9 @@ export default function SpendOverTimeView() {
             onReset={() => resetAndClose('from', () => setFromDropdownOpen(false))}
             trigger={
               <FilterChipButton active={draftFilters.from.length > 0}>
-                {draftFilters.from.length > 0 ? `${labels.from} (${draftFilters.from.length})` : labels.from}
+                {draftFilters.from.length > 0
+                  ? `${labels.from} (${draftFilters.from.length})`
+                  : labels.from}
                 <ChevronDown className="h-3.5 w-3.5" />
               </FilterChipButton>
             }
@@ -1476,7 +1516,9 @@ export default function SpendOverTimeView() {
                   </span>
                   <span className="text-xs font-medium text-gray-500">#</span>
                 </div>
-                <div className="mt-2 text-lg font-semibold text-gray-900">{report.totals.count}</div>
+                <div className="mt-2 text-lg font-semibold text-gray-900">
+                  {report.totals.count}
+                </div>
                 {renderComparisonLine(comparison?.operations || null, false)}
               </div>
 
@@ -1544,7 +1586,9 @@ export default function SpendOverTimeView() {
                   <button
                     type="button"
                     className={`rounded px-2.5 py-1 text-xs font-medium ${
-                      sortKey === 'operations' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                      sortKey === 'operations'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600'
                     }`}
                     onClick={() => setSortKey('operations')}
                   >

@@ -1,5 +1,6 @@
 'use client';
 
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import {
   Alert,
@@ -13,7 +14,6 @@ import {
   Typography,
 } from '@mui/material';
 import { ShieldCheck } from 'lucide-react';
-import { useIntlayer } from "@/app/i18n";
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 

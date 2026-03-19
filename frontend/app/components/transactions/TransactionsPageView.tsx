@@ -1,6 +1,6 @@
 'use client';
 
-import { useIntlayer } from "@/app/i18n";
+import { useIntlayer } from '@/app/i18n';
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import DetailsDrawer from './DetailsDrawer';
@@ -94,13 +94,15 @@ export default function TransactionsPageView({
     const uncategorizedTxIds = transactions.filter(tx => !tx.category).map(tx => tx.id);
 
     if (uncategorizedTxIds.length === 0) {
-      toast.success('Все транзакции уже категоризированы');
+      toast.success(t.allCategorized.value);
       return;
     }
 
     try {
       setFixing(true);
-      const toastId = toast.loading(`Категоризация ${uncategorizedTxIds.length} транзакций...`);
+      const toastId = toast.loading(
+        t.categorizingProgress.value.replace('{{count}}', String(uncategorizedTxIds.length)),
+      );
 
       // Call classification API
       const response = await fetch(
@@ -129,24 +131,32 @@ export default function TransactionsPageView({
       // Show detailed results based on outcome
       if (results.successful > 0 && results.failed === 0 && results.notFound === 0) {
         // All successful
-        toast.success(`Успешно категоризировано ${results.successful} транзакций`, { id: toastId });
+        toast.success(t.categorizeSuccess.value.replace('{{count}}', String(results.successful)), {
+          id: toastId,
+        });
       } else if (results.successful > 0 && (results.failed > 0 || results.notFound > 0)) {
         // Partial success
         toast(
-          `Категоризировано ${results.successful} из ${results.total}. Ошибок: ${results.failed + results.notFound}`,
+          t.categorizePartial.value
+            .replace('{{successful}}', String(results.successful))
+            .replace('{{total}}', String(results.total))
+            .replace('{{failed}}', String(results.failed + results.notFound)),
           { id: toastId, duration: 6000, icon: '⚠️' },
         );
         console.error('Categorization errors:', results.errors);
       } else {
         // All failed
-        toast.error(`Не удалось категоризировать (ошибок: ${results.failed + results.notFound})`, {
-          id: toastId,
-        });
+        toast.error(
+          t.categorizeFailed.value.replace('{{count}}', String(results.failed + results.notFound)),
+          {
+            id: toastId,
+          },
+        );
         console.error('All errors:', results.errors);
       }
     } catch (error) {
       console.error('Failed to fix issues:', error);
-      toast.error('Не удалось автоматически исправить проблемы');
+      toast.error(t.autoFixFailed.value);
     } finally {
       setFixing(false);
     }
@@ -166,7 +176,7 @@ export default function TransactionsPageView({
 
       {/* Bulk Actions Toolbar */}
       {selectedIds.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+        <div className="flex flex-wrap items-center gap-3 rounded-none border border-primary/30 bg-primary/5 p-4">
           <div className="flex items-center gap-2">
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
               {selectedIds.length}
@@ -178,7 +188,7 @@ export default function TransactionsPageView({
             <select
               value={bulkCategoryId}
               onChange={e => setBulkCategoryId(e.target.value)}
-              className="flex-1 max-w-xs rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="flex-1 max-w-xs rounded-none border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="">{t.selectCategory.value}</option>
               {categories
@@ -194,7 +204,7 @@ export default function TransactionsPageView({
               type="button"
               onClick={handleBulkAssignCategory}
               disabled={!bulkCategoryId}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-none bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t.apply.value}
             </button>
@@ -203,7 +213,7 @@ export default function TransactionsPageView({
           <button
             type="button"
             onClick={() => setSelectedIds([])}
-            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+            className="rounded-none border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
           >
             {t.clearSelection.value}
           </button>
@@ -237,9 +247,9 @@ export default function TransactionsPageView({
         onClose={() => setExportModalOpen(false)}
         onExport={type => {
           if (type === 'table') {
-            toast.success('Экспорт в таблицу: функционал в разработке');
+            toast.success(t.exportToTable.value);
           } else {
-            toast.success(`Экспорт в ${type}: функционал в разработке`);
+            toast.success(t.exportFormat.value.replace('{{type}}', type));
           }
         }}
       />

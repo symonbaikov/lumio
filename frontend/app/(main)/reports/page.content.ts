@@ -24,7 +24,11 @@ const content = {
       tabHistory: t({ ru: 'История', en: 'History', kk: 'Тарих' }),
 
       // Templates
-      templatePnlName: t({ ru: 'Прибыли и убытки (P&L)', en: 'Profit & Loss (P&L)', kk: 'Пайда мен шығын (P&L)' }),
+      templatePnlName: t({
+        ru: 'Прибыли и убытки (P&L)',
+        en: 'Profit & Loss (P&L)',
+        kk: 'Пайда мен шығын (P&L)',
+      }),
       templatePnlDescription: t({
         ru: 'Сводка доходов и расходов с чистой прибылью за период',
         en: 'Income and expenses summary with net profit for a period',
@@ -36,13 +40,21 @@ const content = {
         en: 'Assets, liabilities and equity snapshot',
         kk: 'Активтер, міндеттемелер және капитал суреті',
       }),
-      templateCashFlowName: t({ ru: 'Отчёт о движении денежных средств', en: 'Cash Flow Statement', kk: 'Ақша ағыны туралы есеп' }),
+      templateCashFlowName: t({
+        ru: 'Отчёт о движении денежных средств',
+        en: 'Cash Flow Statement',
+        kk: 'Ақша ағыны туралы есеп',
+      }),
       templateCashFlowDescription: t({
         ru: 'Притоки и оттоки денежных средств за период',
         en: 'Cash inflows and outflows over a period',
         kk: 'Кезеңдегі ақша ағындары мен кетулері',
       }),
-      templateExpenseByCategoryName: t({ ru: 'Расходы по категориям', en: 'Expense by Category', kk: 'Санаттар бойынша шығыстар' }),
+      templateExpenseByCategoryName: t({
+        ru: 'Расходы по категориям',
+        en: 'Expense by Category',
+        kk: 'Санаттар бойынша шығыстар',
+      }),
       templateExpenseByCategoryDescription: t({
         ru: 'Разбивка расходов по категориям с итогами',
         en: 'Breakdown of expenses by category with totals',
@@ -65,7 +77,11 @@ const content = {
       historyGeneratedAt: t({ ru: 'Дата создания', en: 'Generated at', kk: 'Жасалған күні' }),
       historySize: t({ ru: 'Размер', en: 'Size', kk: 'Өлшем' }),
       historyDownload: t({ ru: 'Скачать', en: 'Download', kk: 'Жүктеу' }),
-      historyEmpty: t({ ru: 'История отчётов пуста', en: 'No reports generated yet', kk: 'Есептер тарихы бос' }),
+      historyEmpty: t({
+        ru: 'История отчётов пуста',
+        en: 'No reports generated yet',
+        kk: 'Есептер тарихы бос',
+      }),
 
       // Balance Sheet labels (kept for BalanceSheet.tsx compatibility)
       assets: t({ ru: 'Активы', en: 'Assets', kk: 'Активтер' }),
@@ -77,7 +93,11 @@ const content = {
       exportBalance: t({ ru: 'Экспорт баланса', en: 'Export balance', kk: 'Балансты экспорттау' }),
       exportExcel: t({ ru: 'Excel', en: 'Excel', kk: 'Excel' }),
       exportPdf: t({ ru: 'PDF', en: 'PDF', kk: 'PDF' }),
-      balanceDifference: t({ ru: 'Разница баланса', en: 'Balance difference', kk: 'Баланс айырмасы' }),
+      balanceDifference: t({
+        ru: 'Разница баланса',
+        en: 'Balance difference',
+        kk: 'Баланс айырмасы',
+      }),
       loadingEllipsis: t({ ru: 'Загрузка…', en: 'Loading…', kk: 'Жүктелуде…' }),
       noData: t({ ru: 'Нет данных', en: 'No data', kk: 'Деректер жоқ' }),
       refresh: t({ ru: 'Обновить', en: 'Refresh', kk: 'Жаңарту' }),

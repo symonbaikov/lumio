@@ -38,7 +38,7 @@ export function PeriodDropdown({ value, onChange }: PeriodDropdownProps) {
         {LABELS[value]} <span className="text-[10px]">▼</span>
       </button>
       {open ? (
-        <div className="absolute right-0 mt-1 w-[140px] rounded-lg border border-slate-100 bg-white shadow-md z-10">
+        <div className="absolute right-0 mt-1 w-[140px] rounded-none border border-[#E8E8E8] bg-white shadow-none z-10">
           {(Object.entries(LABELS) as [DashboardRange, string][]).map(([r, label]) => (
             <button
               key={r}

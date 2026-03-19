@@ -1,5 +1,6 @@
 'use client';
 
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { ContentCopy as CopyIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import {
   Box,
@@ -13,7 +14,6 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import React, { useState } from 'react';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import api from '../lib/api';

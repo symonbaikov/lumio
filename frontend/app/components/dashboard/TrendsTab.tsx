@@ -4,7 +4,6 @@ import type { DashboardData, DashboardRange } from '@/app/hooks/useDashboard';
 import { useDashboardTrends } from '@/app/hooks/useDashboard';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
-import { cardShell } from '@/app/components/dashboard/common';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
@@ -16,9 +15,9 @@ interface TrendsTabProps {
 }
 
 const DAY_OPTIONS: { label: string; value: number }[] = [
-  { label: '7d', value: 7 },
-  { label: '30d', value: 30 },
-  { label: '90d', value: 90 },
+  { label: '7D', value: 7 },
+  { label: '30D', value: 30 },
+  { label: '90D', value: 90 },
 ];
 
 export function TrendsTab({ formatAmount }: TrendsTabProps) {
@@ -29,29 +28,53 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
     if (!trendsData?.dailyTrend?.length) return null;
     return {
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['Income', 'Expense'] },
-      grid: { left: 40, right: 16, top: 40, bottom: 24 },
-      xAxis: { type: 'category', data: trendsData.dailyTrend.map(p => p.date) },
-      yAxis: { type: 'value' },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: '#1a1a1a',
+        borderColor: 'transparent',
+        textStyle: { color: '#F5F3EF', fontSize: 12 },
+      },
+      legend: {
+        data: ['Income', 'Expense'],
+        top: 0,
+        right: 0,
+        textStyle: { color: '#555555', fontSize: 11, fontFamily: 'var(--font-dashboard-sans)' },
+        icon: 'rect',
+        itemWidth: 12,
+        itemHeight: 6,
+      },
+      grid: { left: 40, right: 0, top: 40, bottom: 24 },
+      xAxis: {
+        type: 'category',
+        data: trendsData.dailyTrend.map(p => p.date),
+        axisLabel: { color: '#555555', fontSize: 10, fontFamily: 'var(--font-dashboard-sans)' },
+        axisLine: { lineStyle: { color: '#D1CCC4' } },
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: { color: '#555555', fontSize: 10, fontFamily: 'var(--font-dashboard-sans)' },
+        splitLine: { lineStyle: { color: '#D1CCC4' } },
+      },
       series: [
         {
           name: 'Income',
           type: 'line',
           smooth: true,
+          symbol: 'none',
           data: trendsData.dailyTrend.map(p => p.income),
-          areaStyle: { color: 'rgba(14,165,233,0.12)' },
-          lineStyle: { color: '#0EA5E9' },
-          itemStyle: { color: '#0EA5E9' },
+          areaStyle: { color: 'rgba(26,26,26,0.05)' },
+          lineStyle: { color: '#1a1a1a', width: 2 },
+          itemStyle: { color: '#1a1a1a' },
         },
         {
           name: 'Expense',
           type: 'line',
           smooth: true,
+          symbol: 'none',
           data: trendsData.dailyTrend.map(p => p.expense),
-          areaStyle: { color: 'rgba(239,68,68,0.08)' },
-          lineStyle: { color: '#DC2626' },
-          itemStyle: { color: '#DC2626' },
+          areaStyle: { color: 'rgba(209,61,86,0.08)' },
+          lineStyle: { color: '#D13D56', width: 2 },
+          itemStyle: { color: '#D13D56' },
         },
       ],
     };
@@ -62,14 +85,26 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
     const top10 = trendsData.categories.slice(0, 10);
     return {
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'item' },
-      legend: { top: 'bottom' },
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: '#1a1a1a',
+        borderColor: 'transparent',
+        textStyle: { color: '#F5F3EF', fontSize: 12 },
+      },
+      legend: {
+        bottom: 0,
+        textStyle: { color: '#555555', fontSize: 11, fontFamily: 'var(--font-dashboard-sans)' },
+        itemWidth: 10,
+        itemHeight: 10,
+      },
       series: [
         {
           name: 'Expense categories',
           type: 'pie',
           radius: ['20%', '60%'],
+          center: ['50%', '45%'],
           roseType: 'radius',
+          label: { show: false },
           data: top10.map(c => ({ name: c.name, value: Number(c.amount.toFixed(2)) })),
         },
       ],
@@ -77,92 +112,137 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
   }, [trendsData]);
 
   return (
-    <div className="flex flex-col gap-6 w-full">
-      {/* Row 1: Day selector */}
+    <div className="flex flex-col gap-6 w-full pb-10">
+      <div className="flex items-center justify-between">
+        <h1
+          className="text-[30px] font-bold text-[#1a1a1a]"
+          style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+        >
+          TRENDS DASHBOARD
+        </h1>
+      </div>
+
       <div className="flex items-center gap-2">
         {DAY_OPTIONS.map(opt => (
           <button
             key={opt.value}
             type="button"
             onClick={() => setDays(opt.value)}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+            className={`px-3 py-1.5 rounded-none text-[11px] font-semibold tracking-[1px] transition-colors ${
               days === opt.value
-                ? 'bg-sky-500 text-white border-sky-500'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-sky-300 hover:text-sky-600'
+                ? 'bg-[#1a1a1a] text-[#F5F3EF]'
+                : 'bg-[#E8E4DC] text-[#555555] hover:bg-[#D1CCC4]'
             }`}
+            style={{ fontFamily: 'var(--font-dashboard-mono)' }}
           >
             {opt.label}
           </button>
         ))}
       </div>
 
-      {/* Loading state */}
       {loading && (
         <div className="flex items-center justify-center py-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-sky-500 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1a1a1a] border-t-transparent" />
         </div>
       )}
 
-      {/* Error state */}
       {!loading && error && (
         <div className="flex items-center justify-center py-12">
-          <p className="text-sm text-rose-500">{error}</p>
+          <p
+            className="text-[13px] text-[#D13D56]"
+            style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+          >
+            {error}
+          </p>
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && !error && !trendsData && (
         <div className="flex items-center justify-center py-12">
-          <p className="text-sm text-slate-400">No trend data available for this period.</p>
+          <p
+            className="text-[13px] text-[#888888]"
+            style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+          >
+            No trend data available for this period.
+          </p>
         </div>
       )}
 
-      {/* Data views */}
       {!loading && !error && trendsData && (
         <>
-          {/* Row 2: Source KPI strip */}
-          <section>
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-              Data Sources
+          <section className="flex flex-col gap-3 mt-4">
+            <h2
+              className="text-[12px] font-bold tracking-[1px] text-[#555555] uppercase"
+              style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+            >
+              DATA SOURCES
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Statements card */}
-              <div className={`${cardShell} p-4 flex flex-col gap-2`}>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
-                  Statements
-                </span>
-                <div className="flex flex-col gap-1 mt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="bg-[#E8E4DC] p-6 flex flex-col gap-3 rounded-none">
+                <h3
+                  className="text-[18px] font-bold text-[#1a1a1a]"
+                  style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+                >
+                  STATEMENTS
+                </h3>
+                <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Income</span>
-                    <span className="text-sm font-bold text-emerald-600">
+                    <span
+                      className="text-[14px] text-[#555555]"
+                      style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+                    >
+                      Income
+                    </span>
+                    <span
+                      className="text-[14px] text-[#555555]"
+                      style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+                    >
                       {formatAmount(trendsData.sources.statements.income)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Expense</span>
-                    <span className="text-sm font-bold text-rose-500">
+                    <span
+                      className="text-[14px] text-[#555555]"
+                      style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+                    >
+                      Expense
+                    </span>
+                    <span
+                      className="text-[14px] text-[#555555]"
+                      style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+                    >
                       {formatAmount(trendsData.sources.statements.expense)}
                     </span>
                   </div>
                 </div>
+                <div className="mt-auto pt-2">
+                  <span
+                    className="text-[11px] font-semibold text-[#4A7C59] tracking-[1px] uppercase"
+                    style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+                  >
+                    SYNCED
+                  </span>
+                </div>
               </div>
 
-              {/* Summary card — Net */}
-              <div className={`${cardShell} p-4 flex flex-col gap-2`}>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
-                  Net Flow
-                </span>
-                <div className="flex flex-col gap-1 mt-1">
+              <div className="bg-[#E8E4DC] p-6 flex flex-col gap-3 rounded-none">
+                <h3
+                  className="text-[18px] font-bold text-[#1a1a1a]"
+                  style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+                >
+                  NET FLOW
+                </h3>
+                <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Net</span>
                     <span
-                      className={`text-sm font-bold ${
-                        trendsData.sources.statements.income -
-                          trendsData.sources.statements.expense >=
-                        0
-                          ? 'text-emerald-600'
-                          : 'text-rose-500'
-                      }`}
+                      className="text-[14px] text-[#555555]"
+                      style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+                    >
+                      Net
+                    </span>
+                    <span
+                      className="text-[14px] text-[#555555]"
+                      style={{ fontFamily: 'var(--font-dashboard-sans)' }}
                     >
                       {formatAmount(
                         Math.abs(
@@ -173,62 +253,118 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Categories</span>
-                    <span className="text-xs font-semibold text-slate-600">
+                    <span
+                      className="text-[14px] text-[#555555]"
+                      style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+                    >
+                      Categories
+                    </span>
+                    <span
+                      className="text-[14px] text-[#555555]"
+                      style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+                    >
                       {trendsData.categories.length}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-1 mt-1">
-                    <span className="text-xs text-slate-400">Counterparties</span>
-                    <span className="text-xs font-semibold text-slate-600">
+                </div>
+                <div className="mt-auto pt-2">
+                  <span
+                    className="text-[11px] font-semibold text-[#0584C7] tracking-[1px] uppercase"
+                    style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+                  >
+                    ACTIVE
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-[#E8E4DC] p-6 flex flex-col gap-3 rounded-none">
+                <h3
+                  className="text-[18px] font-bold text-[#1a1a1a]"
+                  style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+                >
+                  COUNTERPARTIES
+                </h3>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="text-[14px] text-[#555555]"
+                      style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+                    >
+                      Total Found
+                    </span>
+                    <span
+                      className="text-[14px] text-[#555555]"
+                      style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+                    >
                       {trendsData.counterparties.length}
                     </span>
                   </div>
                 </div>
+                <div className="mt-auto pt-2">
+                  <span
+                    className="text-[11px] font-semibold text-[#888888] tracking-[1px] uppercase"
+                    style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+                  >
+                    READY
+                  </span>
+                </div>
               </div>
-
             </div>
           </section>
 
-          {/* Row 3: Daily trend (2/3) + Expense pie (1/3) */}
-          <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-            <div className={`lg:col-span-8 ${cardShell} p-4`}>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-                Daily Trend
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start mt-4">
+            <div className="lg:col-span-8 bg-[#E8E4DC] p-6 flex flex-col gap-3 rounded-none h-full">
+              <h3
+                className="text-[18px] font-bold text-[#1a1a1a] uppercase"
+                style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+              >
+                SPEND TREND
               </h3>
               {dailyTrendOption ? (
-                <ReactECharts
-                  option={dailyTrendOption}
-                  style={{ height: 280 }}
-                  notMerge
-                  lazyUpdate
-                />
+                <div className="flex-1 min-h-[280px]">
+                  <ReactECharts
+                    option={dailyTrendOption}
+                    style={{ height: '100%', width: '100%' }}
+                    notMerge
+                    lazyUpdate
+                  />
+                </div>
               ) : (
-                <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
-                  No daily trend data
+                <div
+                  className="flex h-[280px] items-center justify-center text-[13px] text-[#888888]"
+                  style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+                >
+                  No trend data available for selected range
                 </div>
               )}
             </div>
 
-            <div className={`lg:col-span-4 ${cardShell} p-4`}>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-                Expense Categories
+            <div className="lg:col-span-4 bg-[#E8E4DC] p-6 flex flex-col gap-3 rounded-none h-full">
+              <h3
+                className="text-[18px] font-bold text-[#1a1a1a] uppercase"
+                style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+              >
+                CATEGORY BREAKDOWN
               </h3>
               {rosePieOption ? (
-                <ReactECharts
-                  option={rosePieOption}
-                  style={{ height: 280 }}
-                  notMerge
-                  lazyUpdate
-                />
+                <div className="flex-1 min-h-[280px]">
+                  <ReactECharts
+                    option={rosePieOption}
+                    style={{ height: '100%', width: '100%' }}
+                    notMerge
+                    lazyUpdate
+                  />
+                </div>
               ) : (
-                <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
-                  No category data
+                <div
+                  className="flex h-[280px] items-center justify-center text-[13px] text-[#888888]"
+                  style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+                >
+                  No categorized transactions to visualize
                 </div>
               )}
             </div>
           </section>
-
         </>
       )}
     </div>

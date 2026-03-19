@@ -38,7 +38,7 @@ export default function StatementCategoryDrawer({
   onSelect,
   labels,
   width = 'sm',
-  className = 'bg-[#fbfaf8] border-l-0',
+  className = 'bg-white border-l-0',
   showAllOption = true,
 }: StatementCategoryDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('');

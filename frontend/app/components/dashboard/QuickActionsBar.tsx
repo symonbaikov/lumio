@@ -6,7 +6,12 @@ import Link from 'next/link';
 
 const staticActions = [
   { key: 'upload' as const, label: 'Upload / Parse', href: '/statements/submit', icon: FileUp },
-  { key: 'review' as const, baseLabel: 'Review queue', href: '/statements?filter=needs_review', icon: ListChecks },
+  {
+    key: 'review' as const,
+    baseLabel: 'Review queue',
+    href: '/statements?filter=needs_review',
+    icon: ListChecks,
+  },
   { key: 'export' as const, label: 'Export', href: '/reports', icon: Download },
 ];
 

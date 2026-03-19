@@ -1,5 +1,6 @@
 'use client';
 
+import { useIntlayer } from '@/app/i18n';
 import { FileSpreadsheet, Table } from 'lucide-react';
 import React, { useState } from 'react';
 import { ModalFooter, ModalShell } from '../ui/modal-shell';
@@ -12,6 +13,7 @@ interface ExportModalProps {
 
 export default function ExportModal({ open, onClose, onExport }: ExportModalProps) {
   const [selectedType, setSelectedType] = useState<'table' | 'excel' | 'csv'>('table');
+  const t = useIntlayer('exportModal');
 
   const handleConfirm = () => {
     onExport(selectedType);
@@ -22,28 +24,26 @@ export default function ExportModal({ open, onClose, onExport }: ExportModalProp
     <ModalShell
       isOpen={open}
       onClose={onClose}
-      title="Экспорт транзакций"
+      title={t.title.value}
       size="md"
       footer={
         <ModalFooter
           onCancel={onClose}
           onConfirm={handleConfirm}
-          confirmText="Экспортировать"
-          cancelText="Отмена"
+          confirmText={t.exportButton.value}
+          cancelText={t.cancel.value}
         />
       }
     >
       <div className="space-y-4">
-        <p className="text-sm text-gray-600">
-          Выберите формат экспорта для текущей выборки транзакций:
-        </p>
+        <p className="text-sm text-gray-600">{t.description.value}</p>
 
         <div className="grid gap-3">
           {/* Export to Table */}
           <label
-            className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${
+            className={`relative flex cursor-pointer rounded-none border p-4 shadow-none focus:outline-none ${
               selectedType === 'table'
-                ? 'border-primary ring-1 ring-primary'
+                ? 'border-primary border ring-primary'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
@@ -59,10 +59,10 @@ export default function ExportModal({ open, onClose, onExport }: ExportModalProp
               <span className="flex flex-col">
                 <span className="flex items-center gap-2 text-sm font-medium text-gray-900">
                   <Table className="h-4 w-4 text-primary" />
-                  Экспорт в таблицу
+                  {t.exportToTable.value}
                 </span>
                 <span className="mt-1 flex items-center text-xs text-gray-500">
-                  Создать новую таблицу или добавить в существующую
+                  {t.exportToTableDescription.value}
                 </span>
               </span>
             </span>
@@ -81,9 +81,9 @@ export default function ExportModal({ open, onClose, onExport }: ExportModalProp
 
           {/* Export to Excel */}
           <label
-            className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${
+            className={`relative flex cursor-pointer rounded-none border p-4 shadow-none focus:outline-none ${
               selectedType === 'excel'
-                ? 'border-primary ring-1 ring-primary'
+                ? 'border-primary border ring-primary'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
@@ -102,7 +102,7 @@ export default function ExportModal({ open, onClose, onExport }: ExportModalProp
                   Excel / CSV
                 </span>
                 <span className="mt-1 flex items-center text-xs text-gray-500">
-                  Скачать файл в формате .xlsx или .csv
+                  {t.downloadFile.value}
                 </span>
               </span>
             </span>

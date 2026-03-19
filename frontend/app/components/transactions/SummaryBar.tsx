@@ -1,10 +1,10 @@
 'use client';
 
 import { Button } from '@/app/components/ui/button';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { resolveBankLogo } from '@bank-logos';
 import { Download, FileText, FileUp, TrendingDown, TrendingUp } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import React, { useMemo } from 'react';
 import type { StatementDetails, Transaction } from './types';
 
@@ -89,7 +89,7 @@ export default function SummaryBar({
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
+    <div className="rounded-none border border-gray-200 bg-white p-6">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Left section: File metadata and parsing status */}
         <div className="space-y-4">
@@ -113,24 +113,24 @@ export default function SummaryBar({
 
           {/* Parsing status */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+            <div className="inline-flex items-center gap-1.5 rounded-none border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
               {t.parsed.value}: {stats.totalParsed}
             </div>
             {stats.totalWarnings > 0 && (
-              <div className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+              <div className="inline-flex items-center gap-1.5 rounded-none border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-600" />
                 {t.warnings.value}: {stats.totalWarnings}
               </div>
             )}
             {stats.totalErrors > 0 && (
-              <div className="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
+              <div className="inline-flex items-center gap-1.5 rounded-none border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-600" />
                 {t.errors.value}: {stats.totalErrors}
               </div>
             )}
             {stats.uncategorized > 0 && (
-              <div className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+              <div className="inline-flex items-center gap-1.5 rounded-none border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
                 {t.uncategorized.value}: {stats.uncategorized}
               </div>
@@ -142,7 +142,7 @@ export default function SummaryBar({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             {/* Debit Total */}
-            <div className="rounded-lg border border-red-200 bg-red-50/50 p-3">
+            <div className="rounded-none border border-red-200 bg-red-50/50 p-3">
               <div className="flex items-center gap-2 text-xs font-semibold text-red-700">
                 <TrendingDown className="h-4 w-4" />
                 {t.debitTotal.value}
@@ -153,7 +153,7 @@ export default function SummaryBar({
             </div>
 
             {/* Credit Total */}
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
+            <div className="rounded-none border border-emerald-200 bg-emerald-50/50 p-3">
               <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700">
                 <TrendingUp className="h-4 w-4" />
                 {t.creditTotal.value}

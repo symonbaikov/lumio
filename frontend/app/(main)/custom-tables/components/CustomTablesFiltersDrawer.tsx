@@ -121,7 +121,7 @@ export function CustomTablesFiltersDrawer({
       position="right"
       width="sm"
       showCloseButton={false}
-      className="bg-[#fbfaf8] border-l-0"
+      className="bg-white border-l-0"
       title={
         <div className="flex w-full items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -174,7 +174,7 @@ export function CustomTablesFiltersDrawer({
         )}
 
         {isRoot ? (
-          <div className="sticky bottom-0 pt-4 pb-2 space-y-3 bg-[#fbfaf8]">
+          <div className="sticky bottom-0 pt-4 pb-2 space-y-3 bg-white">
             <Button variant="secondary" className="w-full rounded-full" size="lg" disabled>
               {labels.saveSearch}
             </Button>
@@ -192,7 +192,7 @@ export function CustomTablesFiltersDrawer({
             </Button>
           </div>
         ) : (
-          <div className="sticky bottom-0 pt-4 pb-2 bg-[#fbfaf8]">
+          <div className="sticky bottom-0 pt-4 pb-2 bg-white">
             <Button className="w-full rounded-full" size="lg" onClick={onViewResults}>
               {labels.viewResults}
               {activeCount > 0 ? (

@@ -2,10 +2,10 @@
 
 import { AuditEventDrawer } from '@/app/audit/components/AuditEventDrawer';
 import { EntityHistoryTimeline } from '@/app/audit/components/EntityHistoryTimeline';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import type { AuditEvent } from '@/lib/api/audit';
 import { fetchEntityHistory } from '@/lib/api/audit';
 import { Building2, Calendar, FileText, Tag, TrendingDown, TrendingUp } from 'lucide-react';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import React, { useEffect, useState } from 'react';
 import { DrawerShell } from '../ui/drawer-shell';
 import type { Category, Transaction } from './types';
@@ -112,7 +112,7 @@ export default function DetailsDrawer({
           <button
             type="button"
             onClick={() => setActiveTab('details')}
-            className={`rounded-md px-3 py-1 ${
+            className={`rounded-none px-3 py-1 ${
               activeTab === 'details' ? 'border-b-2 border-primary text-primary' : 'text-gray-500'
             }`}
           >
@@ -121,7 +121,7 @@ export default function DetailsDrawer({
           <button
             type="button"
             onClick={() => setActiveTab('history')}
-            className={`rounded-md px-3 py-1 ${
+            className={`rounded-none px-3 py-1 ${
               activeTab === 'history' ? 'border-b-2 border-primary text-primary' : 'text-gray-500'
             }`}
           >
@@ -134,7 +134,7 @@ export default function DetailsDrawer({
             {/* Date and Document */}
             <div className="space-y-3">
               <div className="flex items-start gap-3">
-                <div className="rounded-md bg-gray-100 p-2">
+                <div className="rounded-none bg-gray-100 p-2">
                   <Calendar className="h-5 w-5 text-gray-600" />
                 </div>
                 <div className="flex-1">
@@ -149,7 +149,7 @@ export default function DetailsDrawer({
 
               {transaction.documentNumber && (
                 <div className="flex items-start gap-3">
-                  <div className="rounded-md bg-gray-100 p-2">
+                  <div className="rounded-none bg-gray-100 p-2">
                     <FileText className="h-5 w-5 text-gray-600" />
                   </div>
                   <div className="flex-1">
@@ -165,9 +165,9 @@ export default function DetailsDrawer({
             </div>
 
             {/* Counterparty */}
-            <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-4">
+            <div className="rounded-none border border-gray-200 bg-gray-50/60 p-4">
               <div className="flex items-start gap-3">
-                <div className="rounded-md bg-white p-2 border border-gray-100">
+                <div className="rounded-none bg-white p-2 border border-gray-100">
                   <Building2 className="h-5 w-5 text-gray-600" />
                 </div>
                 <div className="flex-1">
@@ -191,14 +191,14 @@ export default function DetailsDrawer({
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                 {t.purpose.value}
               </div>
-              <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50/60 p-3 text-sm text-gray-900">
+              <div className="mt-2 rounded-none border border-gray-200 bg-gray-50/60 p-3 text-sm text-gray-900">
                 {transaction.paymentPurpose || '—'}
               </div>
             </div>
 
             {/* Amounts */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg border border-red-200 bg-red-50/60 p-4">
+              <div className="rounded-none border border-red-200 bg-red-50/60 p-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-red-700">
                   <TrendingDown className="h-4 w-4" />
                   {t.debit.value}
@@ -210,7 +210,7 @@ export default function DetailsDrawer({
                 </div>
               </div>
 
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4">
+              <div className="rounded-none border border-emerald-200 bg-emerald-50/60 p-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700">
                   <TrendingUp className="h-4 w-4" />
                   {t.credit.value}
@@ -224,7 +224,7 @@ export default function DetailsDrawer({
             </div>
 
             {/* Additional Details */}
-            <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50/60 p-4">
+            <div className="space-y-2 rounded-none border border-gray-200 bg-gray-50/60 p-4">
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-700">
                 {t.additionalDetails.value}
               </div>
@@ -269,7 +269,7 @@ export default function DetailsDrawer({
 
             {/* Parsing Metadata */}
             {(transaction.parsingConfidence || transaction.rawExtract) && (
-              <div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50/60 p-4">
+              <div className="space-y-2 rounded-none border border-blue-200 bg-blue-50/60 p-4">
                 <div className="text-xs font-semibold uppercase tracking-wide text-blue-700">
                   {t.parsingMetadata.value}
                 </div>
@@ -295,7 +295,7 @@ export default function DetailsDrawer({
             )}
 
             {/* Current Category */}
-            <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-4">
+            <div className="rounded-none border border-gray-200 bg-gray-50/60 p-4">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-700">
                 <Tag className="h-4 w-4" />
                 {t.currentCategory.value}
@@ -303,7 +303,7 @@ export default function DetailsDrawer({
               <div className="mt-2">
                 {transaction.category ? (
                   <span
-                    className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold"
+                    className="inline-flex items-center gap-2 rounded-none px-3 py-1.5 text-sm font-semibold"
                     style={{
                       backgroundColor:
                         transaction.category.isEnabled === false
@@ -345,7 +345,7 @@ export default function DetailsDrawer({
                       id="category-select"
                       value={selectedCategoryId}
                       onChange={e => setSelectedCategoryId(e.target.value)}
-                      className="flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+                      className="flex-1 rounded-none border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
                     >
                       <option value="">{t.selectCategory.value}</option>
                       {categories
@@ -360,7 +360,7 @@ export default function DetailsDrawer({
                       type="button"
                       onClick={handleUpdateCategory}
                       disabled={!selectedCategoryId || updating}
-                      className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-none bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {updating ? t.updating.value : t.apply.value}
                     </button>
@@ -373,7 +373,7 @@ export default function DetailsDrawer({
                 <button
                   type="button"
                   onClick={handleMarkIgnored}
-                  className="w-full rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 transition hover:border-primary hover:text-primary"
+                  className="w-full rounded-none border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 transition hover:border-primary hover:text-primary"
                 >
                   {t.markIgnored.value}
                 </button>
@@ -383,7 +383,7 @@ export default function DetailsDrawer({
         ) : (
           <div className="space-y-4">
             {historyLoading ? (
-              <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-500">
+              <div className="rounded-none border border-gray-200 bg-white p-4 text-sm text-gray-500">
                 Loading history...
               </div>
             ) : (

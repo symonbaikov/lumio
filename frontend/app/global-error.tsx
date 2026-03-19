@@ -16,16 +16,13 @@ export default function GlobalError({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontFamily:
-              'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif',
+            fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif',
             padding: 24,
           }}
         >
           <div style={{ textAlign: 'center', maxWidth: 520 }}>
             <h1 style={{ fontSize: 22, marginBottom: 12 }}>Something went wrong</h1>
-            <p style={{ marginBottom: 16 }}>
-              {error?.message || 'An unexpected error occurred.'}
-            </p>
+            <p style={{ marginBottom: 16 }}>{error?.message || 'An unexpected error occurred.'}</p>
             <button
               type="button"
               onClick={reset}

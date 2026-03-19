@@ -183,6 +183,52 @@ describe('ParsingWarningsPanel', () => {
     expect(document.body.textContent).toContain('Convert dropped row');
   });
 
+  it('opens currency picker drawer when currency field is clicked in dropped-row modal', async () => {
+    await act(async () => {
+      root.render(
+        <ParsingWarningsPanel
+          warnings={['tx#203: skipped (negative amount)']}
+          droppedSamples={[
+            {
+              reason: 'tx#203: skipped (negative amount)',
+              transaction: {
+                transactionDate: '2026-03-17',
+                counterpartyName: 'CASPKZKA',
+                paymentPurpose: 'Service payment',
+                currency: 'KZT',
+              },
+            },
+          ]}
+        />,
+      );
+    });
+
+    const rowButton = Array.from(container.querySelectorAll('button')).find(button =>
+      button.textContent?.includes('tx#203: skipped (negative amount)'),
+    ) as HTMLButtonElement | undefined;
+
+    expect(rowButton).toBeTruthy();
+
+    await act(async () => {
+      rowButton?.click();
+    });
+
+    const currencyInput = Array.from(document.body.querySelectorAll('input')).find(input =>
+      (input.getAttribute('name') || '').includes('currency'),
+    ) as HTMLInputElement | undefined;
+
+    expect(currencyInput).toBeTruthy();
+    expect(document.body.textContent).not.toContain('Select a currency');
+
+    await act(async () => {
+      currencyInput?.click();
+    });
+
+    expect(document.body.textContent).toContain('Select a currency');
+    expect(document.body.textContent).toContain('Recents');
+    expect(document.body.textContent).toContain('All');
+  });
+
   it('matches editable warning rows by transaction number, not only full reason text', async () => {
     await act(async () => {
       root.render(
@@ -247,9 +293,7 @@ describe('ParsingWarningsPanel', () => {
     await act(async () => {
       root.render(
         <ParsingWarningsPanel
-          warnings={[
-            'Balance mismatch: expected 1000.00 got 800.00 (diff 200.00)',
-          ]}
+          warnings={['Balance mismatch: expected 1000.00 got 800.00 (diff 200.00)']}
           fixTooltipLabel="Исправить"
         />,
       );
@@ -272,8 +316,9 @@ describe('ParsingWarningsPanel', () => {
       );
     });
 
-    const tooltipHost = Array.from(container.querySelectorAll('[data-tooltip-content]')).find(node =>
-      node.textContent?.includes('Balance mismatch: expected 1000.00 got 800.00 (diff 200.00)'),
+    const tooltipHost = Array.from(container.querySelectorAll('[data-tooltip-content]')).find(
+      node =>
+        node.textContent?.includes('Balance mismatch: expected 1000.00 got 800.00 (diff 200.00)'),
     ) as HTMLElement | undefined;
 
     expect(tooltipHost).toBeTruthy();
@@ -300,8 +345,8 @@ describe('ParsingWarningsPanel', () => {
       );
     });
 
-    const tooltipHost = Array.from(container.querySelectorAll('[data-tooltip-content]')).find(node =>
-      node.textContent?.includes('tx#207: skipped (no debit/credit amount)'),
+    const tooltipHost = Array.from(container.querySelectorAll('[data-tooltip-content]')).find(
+      node => node.textContent?.includes('tx#207: skipped (no debit/credit amount)'),
     ) as HTMLElement | undefined;
 
     expect(tooltipHost).toBeTruthy();

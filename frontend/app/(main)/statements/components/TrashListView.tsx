@@ -5,6 +5,7 @@ import LoadingAnimation from '@/app/components/LoadingAnimation';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import {
   areAllVisibleSelected,
@@ -13,7 +14,6 @@ import {
 } from '@/app/lib/statement-selection';
 import { resolveBankLogo } from '@bank-logos';
 import { RotateCcw, Search, Trash2 } from 'lucide-react';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { TrashListItem, type TrashListItemModel } from './TrashListItem';

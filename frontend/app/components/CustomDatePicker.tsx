@@ -61,7 +61,9 @@ export default function CustomDatePicker({
 
   return (
     <div data-testid={containerTestId}>
-      {label ? <span className="text-xs text-gray-500 block mb-1 font-medium ml-1">{label}</span> : null}
+      {label ? (
+        <span className="text-xs text-gray-500 block mb-1 font-medium ml-1">{label}</span>
+      ) : null}
       <DatePicker
         aria-label={label ?? placeholder ?? 'Date'}
         value={calendarValue}

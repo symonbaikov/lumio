@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import {
   Alert,
@@ -13,7 +14,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useIntlayer } from "@/app/i18n";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 

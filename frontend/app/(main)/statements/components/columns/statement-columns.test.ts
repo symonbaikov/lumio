@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  COLUMN_FILTER_MAP,
   DEFAULT_STATEMENT_COLUMNS,
   STATEMENT_COLUMNS_STORAGE_KEY,
   type StatementColumn,
+  getAllowedStatementFilterKeys,
   loadStatementColumns,
   reorderStatementColumns,
   saveStatementColumns,
@@ -78,5 +80,31 @@ describe('statement column storage', () => {
     const result = reorderStatementColumns(columns, 'date', 'amount');
 
     expect(result).toBe(columns);
+  });
+
+  it('maps visible columns to allowed filter keys', () => {
+    const result = getAllowedStatementFilterKeys(['amount', 'approved', 'date']);
+
+    expect(result).toEqual([
+      'amountMax',
+      'amountMin',
+      'approved',
+      'date',
+      'exported',
+      'groupBy',
+      'has',
+      'keywords',
+      'limit',
+      'paid',
+      'statuses',
+      'type',
+    ]);
+  });
+
+  it('exposes column filter mapping for optional filters only', () => {
+    expect(COLUMN_FILTER_MAP.amount).toEqual(['amountMin', 'amountMax']);
+    expect(COLUMN_FILTER_MAP.approved).toEqual(['approved']);
+    expect(COLUMN_FILTER_MAP.exported).toEqual(['exported']);
+    expect(COLUMN_FILTER_MAP.receipt).toEqual(['type', 'statuses']);
   });
 });

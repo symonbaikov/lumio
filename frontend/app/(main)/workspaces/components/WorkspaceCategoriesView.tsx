@@ -473,7 +473,7 @@ export default function WorkspaceCategoriesView() {
                 }
                 onCheckedChange={handleToggleSelectAll}
               />
-              <span>{(t as any).columns?.name?.value || 'Название'}</span>
+              <span>{(t as any).columns?.name?.value || 'Name'}</span>
             </div>
             <span>{(t as any).enabled?.value || 'Enabled'}</span>
           </div>
@@ -488,7 +488,7 @@ export default function WorkspaceCategoriesView() {
                 <SearchIcon className="text-[32px]" />
               </div>
               <h3 className="text-lg font-medium text-gray-900">
-                {(t as any).noData?.value || 'Нет категорий'}
+                {(t as any).noData?.value || 'No categories'}
               </h3>
               <div className="mt-6">
                 <button

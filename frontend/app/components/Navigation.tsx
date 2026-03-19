@@ -9,6 +9,7 @@ import { TourMenu } from '@/app/tours/components/TourMenu';
 import { type DriveStep, driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
+import { useIntlayer, useLocale } from '@/app/i18n';
 import {
   Button,
   Dropdown,
@@ -21,7 +22,6 @@ import ApartmentIcon from '@mui/icons-material/Apartment';
 import AssignmentAddIcon from '@mui/icons-material/AssignmentAdd';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ElectricBoltIcon from '@mui/icons-material/ElectricBolt';
-import FiberSmartRecordIcon from '@mui/icons-material/FiberSmartRecord';
 import LanguageIcon from '@mui/icons-material/Language';
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import SchoolIcon from '@mui/icons-material/School';
@@ -48,7 +48,6 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { useIntlayer, useLocale } from "@/app/i18n";
 import { useTheme } from 'next-themes';
 import { Nunito } from 'next/font/google';
 import Image from 'next/image';
@@ -401,7 +400,7 @@ export default function Navigation() {
           data-tour-id={mobile ? undefined : 'user-menu-trigger'}
         >
           <span className="inline-flex items-center gap-2.5 tracking-wide">
-            <FiberSmartRecordIcon sx={{ fontSize: 18, color: '#0a66c2' }} />
+            <Menu size={18} color="#0a66c2" strokeWidth={2.25} />
             {((userMenu as any).moreActions?.value as string) || 'Menu'}
           </span>
         </Button>
@@ -729,7 +728,7 @@ export default function Navigation() {
                     >
                       <PlayCircle size={18} className="text-muted-foreground" />
                       <span className="flex-1 text-left">
-                        {((nav as any)?.tours?.value as string) ?? 'Туры'}
+                        {((nav as any)?.tours?.value as string) ?? 'Tours'}
                       </span>
                     </button>
                   }
@@ -766,7 +765,7 @@ export default function Navigation() {
           position="right"
           width="lg"
           showCloseButton={false}
-          className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
+          className="max-w-full border-l-0 bg-white sm:max-w-lg"
         >
           <div className="flex h-full flex-col">
             <div className="flex-1 space-y-4 overflow-y-auto pb-4">

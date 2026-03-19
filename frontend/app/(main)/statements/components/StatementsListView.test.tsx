@@ -12,6 +12,7 @@ const apiMocks = vi.hoisted(() => ({
 }));
 
 const statementsListItemPropsSpy = vi.hoisted(() => vi.fn());
+const filtersDrawerPropsSpy = vi.hoisted(() => vi.fn());
 
 vi.mock('@/app/lib/api', () => ({
   default: {
@@ -87,27 +88,70 @@ vi.mock('@/app/(main)/statements/components/filters/statement-filters', () => ({
     paid: null,
     limit: null,
   },
-  applyStatementsFilters: (items: unknown[]) => items,
   loadStatementFilters: () => ({
-    type: null,
-    statuses: [],
-    date: null,
+    type: 'pdf',
+    statuses: ['processing'],
+    date: { mode: 'on', date: '2026-03-01' },
     from: [],
     to: [],
-    keywords: '',
-    amountMin: null,
+    keywords: 'alex',
+    amountMin: 10,
     amountMax: null,
-    approved: null,
+    approved: true,
     billable: null,
-    groupBy: null,
-    has: [],
-    currencies: [],
-    exported: null,
+    groupBy: 'amount',
+    has: ['errors'],
+    currencies: ['KZT'],
+    exported: false,
     paid: null,
-    limit: null,
+    limit: 25,
   }),
   resetSingleStatementFilter: (filters: unknown) => filters,
   saveStatementFilters: () => undefined,
+}));
+
+vi.mock('@/app/(main)/statements/components/columns/statement-columns', () => ({
+  STATEMENT_COLUMNS_STORAGE_KEY: 'lumio-statement-columns',
+  DEFAULT_STATEMENT_COLUMNS: [
+    { id: 'receipt', label: 'Receipt', visible: true, order: 0 },
+    { id: 'date', label: 'Date', visible: true, order: 1 },
+    { id: 'amount', label: 'Amount', visible: true, order: 2 },
+    { id: 'approved', label: 'Approved', visible: false, order: 3 },
+    { id: 'billable', label: 'Billable', visible: false, order: 4 },
+    { id: 'exported', label: 'Exported', visible: false, order: 5 },
+  ],
+  COLUMN_FILTER_MAP: {
+    receipt: ['type', 'statuses'],
+    date: ['date'],
+    amount: ['amountMin', 'amountMax'],
+    approved: ['approved'],
+    billable: ['billable'],
+    exported: ['exported'],
+  },
+  loadStatementColumns: () => [
+    { id: 'receipt', label: 'Receipt', visible: true, order: 0 },
+    { id: 'date', label: 'Date', visible: true, order: 1 },
+    { id: 'amount', label: 'Amount', visible: true, order: 2 },
+    { id: 'approved', label: 'Approved', visible: false, order: 3 },
+    { id: 'billable', label: 'Billable', visible: false, order: 4 },
+    { id: 'exported', label: 'Exported', visible: false, order: 5 },
+  ],
+  saveStatementColumns: () => undefined,
+  reorderStatementColumns: (columns: unknown) => columns,
+  getAllowedStatementFilterKeys: () => [
+    'amountMax',
+    'amountMin',
+    'date',
+    'exported',
+    'groupBy',
+    'has',
+    'keywords',
+    'limit',
+    'paid',
+    'statuses',
+    'type',
+  ],
+  resetDisallowedStatementFilters: (filters: unknown) => filters,
 }));
 
 vi.mock('@/app/components/LoadingAnimation', () => ({
@@ -119,7 +163,10 @@ vi.mock('@/app/components/PDFPreviewModal', () => ({
 }));
 
 vi.mock('@/app/(main)/statements/components/filters/FiltersDrawer', () => ({
-  FiltersDrawer: () => null,
+  FiltersDrawer: (props: any) => {
+    filtersDrawerPropsSpy(props);
+    return null;
+  },
 }));
 
 vi.mock('@/app/(main)/statements/components/columns/ColumnsDrawer', () => ({
@@ -184,6 +231,7 @@ describe('StatementsListView Gmail sync skeleton', () => {
     apiMocks.mockApiGet.mockReset();
     apiMocks.mockListReceipts.mockReset();
     statementsListItemPropsSpy.mockReset();
+    filtersDrawerPropsSpy.mockReset();
   });
 
   afterEach(() => {
@@ -303,5 +351,62 @@ describe('StatementsListView Gmail sync skeleton', () => {
     expect(secondNewerIndex).toBeGreaterThanOrEqual(0);
     expect(secondOlderIndex).toBeGreaterThanOrEqual(0);
     expect(secondOlderIndex).toBeLessThan(secondNewerIndex);
+  });
+
+  it('sends serialized server-side filters to /statements and passes visible screens to FiltersDrawer', async () => {
+    apiMocks.mockApiGet.mockImplementation((url: string, config?: { params?: unknown }) => {
+      if (url === '/categories' || url === '/tax-rates') {
+        return Promise.resolve({ data: [] });
+      }
+
+      if (url === '/statements') {
+        expect(config?.params).toEqual({
+          type: 'pdf',
+          statuses: ['processing'],
+          dateMode: 'on',
+          dateFrom: '2026-03-01',
+          keywords: 'alex',
+          amountMin: 10,
+          limit: 25,
+          approved: true,
+          groupBy: 'amount',
+          has: ['errors'],
+          currencies: ['KZT'],
+          exported: false,
+          page: 1,
+        });
+
+        return Promise.resolve({ data: { data: [], total: 0 } });
+      }
+
+      return Promise.resolve({ data: [] });
+    });
+    apiMocks.mockListReceipts.mockResolvedValue({ data: { receipts: [] } });
+
+    await act(async () => {
+      root.render(<StatementsListView stage="submit" />);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const lastFiltersDrawerProps = filtersDrawerPropsSpy.mock.calls.at(-1)?.[0];
+    expect(lastFiltersDrawerProps?.visibleScreens).toEqual([
+      'amount',
+      'date',
+      'groupBy',
+      'has',
+      'keywords',
+      'limit',
+      'status',
+      'type',
+    ]);
+    expect(lastFiltersDrawerProps?.statusOptions).toEqual([
+      { value: 'uploaded', label: 'Uploaded' },
+      { value: 'processing', label: 'Processing' },
+      { value: 'parsed', label: 'Parsed' },
+      { value: 'validated', label: 'Validated' },
+      { value: 'completed', label: 'Completed' },
+      { value: 'error', label: 'Error' },
+    ]);
   });
 });

@@ -60,8 +60,10 @@ describe('DateFilterDropdown', () => {
 
     const calendar = container.querySelector('[data-testid="range-calendar"]');
     expect(calendar?.getAttribute('data-visible-months')).toBe('1');
-    expect(mockFilterDropdown).toHaveBeenCalledWith(expect.not.objectContaining({
-      contentClassName: expect.any(String),
-    }));
+    expect(mockFilterDropdown).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        contentClassName: expect.any(String),
+      }),
+    );
   });
 });

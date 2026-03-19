@@ -67,7 +67,7 @@ export function FinlabBalanceStatCard({
           },
         },
         splitLine: {
-          lineStyle: { type: 'dashed', color: '#f8fafc' },
+          lineStyle: { type: 'dashed', color: '#E8E8E8' },
         },
       },
       series: [
@@ -92,7 +92,7 @@ export function FinlabBalanceStatCard({
   }, [data, formatAmount, range]);
 
   return (
-    <div className="bg-white rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.04)] h-full flex flex-col border border-slate-100/50">
+    <div className="bg-white rounded-none p-6 shadow-none h-full flex flex-col border border-[#E8E8E8]">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-1.5 text-slate-800 font-bold text-base">
           Balance Statistics

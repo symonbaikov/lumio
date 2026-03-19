@@ -354,7 +354,7 @@ export default function WorkspaceOverviewView() {
         position="right"
         width="lg"
         showCloseButton={false}
-        className="max-w-full border-l-0 bg-[#fbfaf8] sm:max-w-lg"
+        className="max-w-full border-l-0 bg-white sm:max-w-lg"
         title={
           <div className="flex items-center gap-3">
             <button

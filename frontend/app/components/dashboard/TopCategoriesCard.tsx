@@ -3,7 +3,6 @@
 import type { DashboardData } from '@/app/hooks/useDashboard';
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
-import { Card, CardContent } from '../ui/card';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
@@ -19,9 +18,9 @@ export function TopCategoriesCard({ categories }: TopCategoriesCardProps) {
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'item',
-        backgroundColor: 'rgba(15,23,42,0.95)',
-        textStyle: { color: '#fff', fontSize: 12 },
-        borderRadius: 12,
+        backgroundColor: '#1a1a1a',
+        textStyle: { color: '#F5F3EF', fontSize: 12 },
+        borderRadius: 0,
         padding: [10, 12],
       },
       legend: {
@@ -30,7 +29,12 @@ export function TopCategoriesCard({ categories }: TopCategoriesCardProps) {
         top: 'middle',
         itemWidth: 10,
         itemHeight: 10,
-        textStyle: { color: '#475569', fontSize: 12, fontWeight: 600 },
+        textStyle: {
+          color: '#555555',
+          fontSize: 12,
+          fontWeight: 600,
+          fontFamily: 'var(--font-dashboard-sans)',
+        },
       },
       series: [
         {
@@ -38,7 +42,7 @@ export function TopCategoriesCard({ categories }: TopCategoriesCardProps) {
           type: 'pie',
           radius: ['45%', '68%'],
           avoidLabelOverlap: false,
-          itemStyle: { borderColor: '#fff', borderWidth: 2 },
+          itemStyle: { borderColor: '#F5F3EF', borderWidth: 2 },
           label: { show: false },
           emphasis: {
             label: { show: true, fontSize: 14, fontWeight: 'bold' },
@@ -49,50 +53,42 @@ export function TopCategoriesCard({ categories }: TopCategoriesCardProps) {
           })),
         },
       ],
-      color: ['#0284c7', '#0ea5e9', '#38bdf8', '#22c55e', '#f59e0b', '#8b5cf6'],
+      color: ['#0584C7', '#0D9568', '#D13D56', '#F5A623', '#2A364E', '#7A869B'],
       animationDuration: 1400,
       animationEasing: 'cubicOut',
     };
   }, [categories]);
 
-  return (
-    <Card className="h-full rounded-[12px] border border-slate-100 bg-white shadow-[0_18px_46px_-28px_rgba(2,132,199,0.45)]">
-      <CardContent className="p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Top Categories
-            </p>
-            <p className="mt-1 text-sm text-slate-500">Share of spend</p>
-          </div>
-          <span className="rounded-full bg-sky-50 px-3 py-1 text-[11px] font-semibold text-sky-700 ring-1 ring-sky-100">
-            Donut
-          </span>
-        </div>
+  if (!option) {
+    return (
+      <div
+        className="flex h-full w-full items-center justify-center text-[13px] text-[#888888]"
+        style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+      >
+        No category data
+      </div>
+    );
+  }
 
-        {option ? (
-          <div className="relative">
-            <ReactECharts
-              style={{ height: 260, width: '100%' }}
-              option={option}
-              notMerge
-              lazyUpdate
-            />
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                  Total
-                </p>
-                <p className="mt-1 text-lg font-bold text-slate-800">Categories</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex h-[260px] items-center justify-center text-sm text-slate-400">
-            No data
-          </div>
-        )}
-      </CardContent>
-    </Card>
+  return (
+    <div className="flex h-full w-full relative">
+      <ReactECharts style={{ height: '100%', width: '100%' }} option={option} notMerge lazyUpdate />
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className="text-center pb-2 pr-[80px]">
+          <p
+            className="text-[10px] font-semibold uppercase tracking-[2px] text-[#7A869B]"
+            style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+          >
+            TOTAL
+          </p>
+          <p
+            className="text-[14px] font-bold text-[#1a1a1a]"
+            style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+          >
+            Categories
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useIntlayer } from "@/app/i18n";
+import { useIntlayer } from '@/app/i18n';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -130,7 +130,7 @@ export function TransactionTab() {
 
   if (error && transactions.length === 0) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-600 mb-4">
+      <div className="rounded-none border border-red-200 bg-red-50 p-4 text-red-600 mb-4">
         {error}
       </div>
     );
@@ -140,7 +140,7 @@ export function TransactionTab() {
     <div className="space-y-6">
       {/* Bulk Actions Toolbar */}
       {selectedIds.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 transition-all duration-300">
+        <div className="flex flex-wrap items-center gap-3 rounded-none border border-primary/30 bg-primary/5 p-4 transition-all duration-300">
           <div className="flex items-center gap-2">
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
               {selectedIds.length}
@@ -154,7 +154,7 @@ export function TransactionTab() {
             <select
               value={bulkCategoryId}
               onChange={e => setBulkCategoryId(e.target.value)}
-              className="flex-1 max-w-xs rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="flex-1 max-w-xs rounded-none border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="">{t.selectCategory?.value || 'Select category...'}</option>
               {categories
@@ -170,7 +170,7 @@ export function TransactionTab() {
               type="button"
               onClick={handleBulkAssignCategory}
               disabled={!bulkCategoryId}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-none bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t.apply?.value || 'Apply'}
             </button>
@@ -179,7 +179,7 @@ export function TransactionTab() {
           <button
             type="button"
             onClick={() => setSelectedIds([])}
-            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+            className="rounded-none border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
           >
             {t.clearSelection?.value || 'Clear selection'}
           </button>

@@ -35,13 +35,13 @@ export function FinancialSnapshot({ snapshot, formatAmount, labels }: FinancialS
         return (
           <Card
             key={key}
-            className="group border-0 bg-white shadow-[0_20px_50px_-30px_rgba(15,23,42,0.55)] ring-1 ring-slate-100/70 rounded-2xl"
+            className="group border-0 bg-white shadow-none border border-[#E8E8E8] rounded-none"
           >
             <CardContent className="p-5 flex flex-col h-full justify-between">
               <div>
                 <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                   <span>{labels[labelKey]}</span>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-50 text-slate-500 ring-1 ring-slate-100 group-hover:bg-sky-50 group-hover:text-primary group-hover:ring-sky-100 transition-colors">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-none bg-slate-50 text-slate-500 border border-[#E8E8E8] group-hover:bg-sky-50 group-hover:text-primary group-hover:ring-sky-100 transition-colors">
                     <Icon className="h-4 w-4" />
                   </span>
                 </div>
@@ -55,7 +55,7 @@ export function FinancialSnapshot({ snapshot, formatAmount, labels }: FinancialS
               {key === 'netFlow30d' ? (
                 <div className="mt-4">
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold border ring-inset ${
                       value >= 0
                         ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
                         : 'bg-rose-50 text-rose-700 ring-rose-200'

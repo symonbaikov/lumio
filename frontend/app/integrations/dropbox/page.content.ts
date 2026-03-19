@@ -3,6 +3,7 @@ import { type Dictionary, t } from 'intlayer';
 const content = {
   key: 'dropboxIntegrationPage',
   content: {
+    loading: t({ ru: 'Загрузка...', en: 'Loading...', kk: 'Жүктелуде...' }),
     header: {
       title: t({ ru: 'Dropbox', en: 'Dropbox', kk: 'Dropbox' }),
       subtitle: t({

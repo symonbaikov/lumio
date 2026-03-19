@@ -78,11 +78,7 @@ export function DateFilterDropdown({
     : null;
 
   return (
-    <FilterDropdown
-      open={open}
-      onOpenChange={onOpenChange}
-      trigger={trigger}
-    >
+    <FilterDropdown open={open} onOpenChange={onOpenChange} trigger={trigger}>
       <div className="space-y-2">
         <div className="space-y-1">
           {presets.map(option => (

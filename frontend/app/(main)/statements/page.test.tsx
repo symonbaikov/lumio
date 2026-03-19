@@ -22,7 +22,9 @@ describe('StatementsPage', () => {
       root.render(<StatementsPage />);
     });
 
-    expect(navigationMocks.replace).toHaveBeenCalledWith('/statements/submit?openExpenseDrawer=scan');
+    expect(navigationMocks.replace).toHaveBeenCalledWith(
+      '/statements/submit?openExpenseDrawer=scan',
+    );
 
     act(() => {
       root.unmount();

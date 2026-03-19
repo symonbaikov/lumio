@@ -63,6 +63,46 @@ const content = {
       en: 'Clear',
       kk: 'Тазалау',
     }),
+    allCategorized: t({
+      ru: 'Все транзакции уже категоризированы',
+      en: 'All transactions are already categorized',
+      kk: 'Барлық транзакциялар санатталған',
+    }),
+    categorizingProgress: t({
+      ru: 'Категоризация {{count}} транзакций...',
+      en: 'Categorizing {{count}} transactions...',
+      kk: '{{count}} транзакция санатталуда...',
+    }),
+    categorizeSuccess: t({
+      ru: 'Успешно категоризировано {{count}} транзакций',
+      en: 'Successfully categorized {{count}} transactions',
+      kk: '{{count}} транзакция сәтті санатталды',
+    }),
+    categorizePartial: t({
+      ru: 'Категоризировано {{successful}} из {{total}}. Ошибок: {{failed}}',
+      en: 'Categorized {{successful}} of {{total}}. Errors: {{failed}}',
+      kk: '{{total}} ішінен {{successful}} санатталды. Қателер: {{failed}}',
+    }),
+    categorizeFailed: t({
+      ru: 'Не удалось категоризировать (ошибок: {{count}})',
+      en: 'Failed to categorize (errors: {{count}})',
+      kk: 'Санаттау мүмкін болмады (қателер: {{count}})',
+    }),
+    autoFixFailed: t({
+      ru: 'Не удалось автоматически исправить проблемы',
+      en: 'Failed to automatically fix issues',
+      kk: 'Мәселелерді автоматты түрде түзету мүмкін болмады',
+    }),
+    exportToTable: t({
+      ru: 'Экспорт в таблицу: функционал в разработке',
+      en: 'Export to table: feature in development',
+      kk: 'Кестеге экспорт: функционал әзірленуде',
+    }),
+    exportFormat: t({
+      ru: 'Экспорт в {{type}}: функционал в разработке',
+      en: 'Export to {{type}}: feature in development',
+      kk: '{{type}} экспорты: функционал әзірленуде',
+    }),
   },
 } satisfies Dictionary;
 

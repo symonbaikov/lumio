@@ -421,7 +421,7 @@ export function StatementsListItem({
                         width={PREVIEW_WIDTH - 16}
                         height={PREVIEW_HEIGHT}
                         preservePageAspect
-                        errorMessage="Не удается загрузить документ"
+                        errorMessage="Unable to load document"
                       />
                     </div>,
                     document.body,

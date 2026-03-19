@@ -201,8 +201,8 @@ export interface ModalFooterProps {
 export function ModalFooter({
   onCancel,
   onConfirm,
-  cancelText = 'Отмена',
-  confirmText = 'Подтвердить',
+  cancelText = 'Cancel',
+  confirmText = 'Confirm',
   confirmVariant = 'primary',
   isConfirmLoading = false,
   isConfirmDisabled = false,

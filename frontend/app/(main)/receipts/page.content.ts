@@ -176,6 +176,11 @@ const content = {
       en: 'Failed to delete',
       kk: 'Жою қатесі',
     }),
+    openPreview: t({
+      ru: 'Открыть предпросмотр',
+      en: 'Open preview',
+      kk: 'Алдын ала қарауды ашу',
+    }),
     uploadModal: {
       title: t({
         ru: 'Загрузка файлов',

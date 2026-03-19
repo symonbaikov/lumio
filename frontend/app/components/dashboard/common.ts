@@ -28,8 +28,7 @@ export const priorityTone: Record<
   },
 };
 
-export const cardShell =
-  'rounded-[12px] border border-[var(--ff-dashboard-card-border)] bg-[var(--ff-dashboard-card)] text-[var(--ff-dashboard-card-foreground)] shadow-sm';
+export const cardShell = 'border border-[#E8E8E8] bg-white shadow-none rounded-none text-[#0D0D0D]';
 
 export const subtleBadge =
   'inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold';

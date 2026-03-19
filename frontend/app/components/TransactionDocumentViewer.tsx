@@ -24,6 +24,8 @@ import {
 } from '@mui/material';
 import React from 'react';
 
+import { useIntlayer } from '@/app/i18n';
+
 export interface Transaction {
   id: string;
   transactionDate: string;
@@ -90,6 +92,8 @@ export default function TransactionDocumentViewer({
   transactions,
   locale = 'ru',
 }: TransactionDocumentViewerProps) {
+  const t = useIntlayer('transactionDocumentViewer');
+
   const formatNumber = (value: number | undefined | null, currency = 'KZT') => {
     if (value === undefined || value === null) return '—';
     return `${new Intl.NumberFormat(locale, {
@@ -118,7 +122,7 @@ export default function TransactionDocumentViewer({
   const netChange = totalIncome - totalExpense;
 
   const headerDisplay = statement.parsingDetails?.metadataExtracted?.headerDisplay;
-  const detectedBank = statement.parsingDetails?.detectedBank || 'Банк не определен';
+  const detectedBank = statement.parsingDetails?.detectedBank || t.bankNotDetected.value;
   const accountNumber = statement.parsingDetails?.metadataExtracted?.accountNumber || '—';
 
   return (
@@ -200,7 +204,7 @@ export default function TransactionDocumentViewer({
               <BankIcon sx={{ fontSize: 40, mr: 2, opacity: 0.9 }} />
               <Box>
                 <Typography variant="h4" fontWeight="700" letterSpacing="0.5px">
-                  {headerDisplay?.title || 'Банковская выписка'}
+                  {headerDisplay?.title || t.bankStatement.value}
                 </Typography>
                 <Typography variant="body1" sx={{ opacity: 0.9, mt: 0.5 }}>
                   {detectedBank}
@@ -223,7 +227,7 @@ export default function TransactionDocumentViewer({
             >
               <Box>
                 <Typography variant="caption" sx={{ opacity: 0.8, display: 'block', mb: 0.5 }}>
-                  Номер счета
+                  {t.accountNumber}
                 </Typography>
                 <Typography variant="h6" fontWeight="600">
                   {accountNumber}
@@ -231,7 +235,7 @@ export default function TransactionDocumentViewer({
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ opacity: 0.8, display: 'block', mb: 0.5 }}>
-                  Период выписки
+                  {t.statementPeriod}
                 </Typography>
                 <Typography variant="h6" fontWeight="600">
                   {formatDate(statement.statementDateFrom)} —{' '}
@@ -240,7 +244,7 @@ export default function TransactionDocumentViewer({
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ opacity: 0.8, display: 'block', mb: 0.5 }}>
-                  Файл выписки
+                  {t.statementFile}
                 </Typography>
                 <Typography
                   variant="body2"
@@ -290,7 +294,7 @@ export default function TransactionDocumentViewer({
             }}
           >
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-              Начальный баланс
+              {t.openingBalance}
             </Typography>
             <Typography variant="h5" fontWeight="700" color="text.primary">
               {formatNumber(
@@ -326,7 +330,7 @@ export default function TransactionDocumentViewer({
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <TrendingUpIcon sx={{ color: 'success.main', mr: 1, fontSize: 20 }} />
               <Typography variant="caption" color="success.dark">
-                Поступления
+                {t.income}
               </Typography>
             </Box>
             <Typography variant="h5" fontWeight="700" color="success.main">
@@ -359,7 +363,7 @@ export default function TransactionDocumentViewer({
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <TrendingDownIcon sx={{ color: 'error.main', mr: 1, fontSize: 20 }} />
               <Typography variant="caption" color="error.dark">
-                Списания
+                {t.expenses}
               </Typography>
             </Box>
             <Typography variant="h5" fontWeight="700" color="error.main">
@@ -386,7 +390,7 @@ export default function TransactionDocumentViewer({
             }}
           >
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-              Конечный баланс
+              {t.closingBalance}
             </Typography>
             <Typography variant="h5" fontWeight="700" color="text.primary">
               {formatNumber(
@@ -426,7 +430,7 @@ export default function TransactionDocumentViewer({
           >
             <Box>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Изменение баланса за период
+                {t.balanceChange}
               </Typography>
               <Typography
                 variant="h4"
@@ -439,7 +443,7 @@ export default function TransactionDocumentViewer({
             </Box>
             <Box sx={{ textAlign: 'right' }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Всего транзакций
+                {t.totalTransactions}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <ReceiptIcon sx={{ color: 'primary.main' }} />
@@ -478,10 +482,10 @@ export default function TransactionDocumentViewer({
             }}
           >
             <Typography variant="h6" fontWeight="700" color="text.primary">
-              Список транзакций
+              {t.transactionList}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              Детальная информация по всем операциям
+              {t.transactionListDescription}
             </Typography>
           </Box>
 
@@ -520,7 +524,7 @@ export default function TransactionDocumentViewer({
                       letterSpacing: '0.5px',
                     }}
                   >
-                    Дата
+                    {t.columns.date}
                   </TableCell>
                   <TableCell
                     sx={{
@@ -531,7 +535,7 @@ export default function TransactionDocumentViewer({
                       letterSpacing: '0.5px',
                     }}
                   >
-                    Номер документа
+                    {t.columns.documentNumber}
                   </TableCell>
                   <TableCell
                     sx={{
@@ -542,7 +546,7 @@ export default function TransactionDocumentViewer({
                       letterSpacing: '0.5px',
                     }}
                   >
-                    Контрагент
+                    {t.columns.counterparty}
                   </TableCell>
                   <TableCell
                     sx={{
@@ -553,7 +557,7 @@ export default function TransactionDocumentViewer({
                       letterSpacing: '0.5px',
                     }}
                   >
-                    БИН
+                    {t.columns.bin}
                   </TableCell>
                   <TableCell
                     sx={{
@@ -564,19 +568,7 @@ export default function TransactionDocumentViewer({
                       letterSpacing: '0.5px',
                     }}
                   >
-                    Назначение платежа
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{
-                      fontWeight: 700,
-                      fontSize: '0.75rem',
-                      color: 'text.secondary',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
-                    Дебет
+                    {t.columns.paymentPurpose}
                   </TableCell>
                   <TableCell
                     align="right"
@@ -588,7 +580,19 @@ export default function TransactionDocumentViewer({
                       letterSpacing: '0.5px',
                     }}
                   >
-                    Кредит
+                    {t.columns.debit}
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: '0.75rem',
+                      color: 'text.secondary',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    {t.columns.credit}
                   </TableCell>
                   <TableCell
                     sx={{
@@ -599,7 +603,7 @@ export default function TransactionDocumentViewer({
                       letterSpacing: '0.5px',
                     }}
                   >
-                    Валюта
+                    {t.columns.currency}
                   </TableCell>
                 </TableRow>
               </TableHead>
@@ -748,11 +752,11 @@ export default function TransactionDocumentViewer({
               }}
             >
               <Typography variant="body1" fontWeight="700" color="text.primary">
-                ИТОГО:
+                {t.total}
               </Typography>
               <Box sx={{ textAlign: 'right' }}>
                 <Typography variant="caption" color="text.secondary" display="block">
-                  Всего списаний
+                  {t.totalExpenses}
                 </Typography>
                 <Typography variant="h6" fontWeight="700" color="error.main">
                   {formatNumber(totalExpense)}
@@ -760,7 +764,7 @@ export default function TransactionDocumentViewer({
               </Box>
               <Box sx={{ textAlign: 'right' }}>
                 <Typography variant="caption" color="text.secondary" display="block">
-                  Всего поступлений
+                  {t.totalIncome}
                 </Typography>
                 <Typography variant="h6" fontWeight="700" color="success.main">
                   {formatNumber(totalIncome)}
@@ -780,7 +784,7 @@ export default function TransactionDocumentViewer({
           }}
         >
           <Typography variant="caption" color="text.secondary" textAlign="center" display="block">
-            Документ сформирован автоматически • Lumio Parse Ledger
+            {t.footer}
           </Typography>
           <Typography
             variant="caption"

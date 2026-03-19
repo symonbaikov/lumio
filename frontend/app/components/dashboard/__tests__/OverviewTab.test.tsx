@@ -1,8 +1,8 @@
+import type { DashboardData } from '@/app/hooks/useDashboard';
 // @vitest-environment jsdom
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it } from 'vitest';
-import type { DashboardData } from '@/app/hooks/useDashboard';
 import { OverviewTab } from '../OverviewTab';
 
 const emptyDashboardData: DashboardData = {
@@ -34,6 +34,31 @@ const emptyDashboardData: DashboardData = {
 };
 
 describe('OverviewTab', () => {
+  it('renders formatted snapshot amounts without duplicating currency code', async () => {
+    const container = document.createElement('div');
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <OverviewTab
+          data={{
+            ...emptyDashboardData,
+            snapshot: {
+              ...emptyDashboardData.snapshot,
+              totalBalance: 1025215,
+            },
+          }}
+          formatAmount={() => 'KZT 1,025,215'}
+          range="30d"
+          isLoading={false}
+        />,
+      );
+    });
+
+    expect(container.textContent).toContain('KZT 1,025,215');
+    expect(container.textContent).not.toContain('KZT KZT 1,025,215');
+  });
+
   it('links parse statement CTA to statements with scan drawer', async () => {
     const container = document.createElement('div');
     const root = createRoot(container);

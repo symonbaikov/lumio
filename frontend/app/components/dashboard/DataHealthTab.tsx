@@ -1,10 +1,8 @@
 'use client';
 
-import { cn } from '@/app/lib/utils';
 import type { DashboardData, DashboardRange } from '@/app/hooks/useDashboard';
-import { AlertTriangle, CheckCircle2, Clock, FileWarning, Link2 } from 'lucide-react';
+import { cn } from '@/app/lib/utils';
 import Link from 'next/link';
-import { cardShell } from '@/app/components/dashboard/common';
 
 interface DataHealthTabProps {
   data: DashboardData;
@@ -30,27 +28,11 @@ function getRelativeTime(isoDate: string): string {
 
 type SeverityKey = 'green' | 'amber' | 'red' | 'blue';
 
-const severityClasses: Record<SeverityKey, { card: string; icon: string; badge: string }> = {
-  green: {
-    card: 'bg-emerald-50 border-emerald-100',
-    icon: 'text-emerald-600',
-    badge: 'text-emerald-700',
-  },
-  amber: {
-    card: 'bg-amber-50 border-amber-100',
-    icon: 'text-amber-600',
-    badge: 'text-amber-800',
-  },
-  red: {
-    card: 'bg-rose-50 border-rose-100',
-    icon: 'text-rose-600',
-    badge: 'text-rose-700',
-  },
-  blue: {
-    card: 'bg-blue-50 border-blue-100',
-    icon: 'text-blue-600',
-    badge: 'text-blue-700',
-  },
+const severityText: Record<SeverityKey, string> = {
+  green: 'text-[#4A7C59]',
+  amber: 'text-[#C05A3C]', // Adapted amber to a warm rusty tone
+  red: 'text-[var(--primary)]',
+  blue: 'text-[#3B82F6]',
 };
 
 export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabProps) {
@@ -59,30 +41,26 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
   const metricCards = [
     {
       key: 'uncategorizedTransactions',
-      label: 'Uncategorized',
+      label: 'UNCATEGORIZED',
       value: dataHealth.uncategorizedTransactions,
-      icon: AlertTriangle,
       severity: (dataHealth.uncategorizedTransactions > 0 ? 'amber' : 'green') as SeverityKey,
     },
     {
       key: 'statementsWithErrors',
-      label: 'Statement Errors',
+      label: 'STATEMENT ERRORS',
       value: dataHealth.statementsWithErrors,
-      icon: FileWarning,
       severity: (dataHealth.statementsWithErrors > 0 ? 'red' : 'green') as SeverityKey,
     },
     {
       key: 'statementsPendingReview',
-      label: 'Pending Review',
+      label: 'PENDING REVIEW',
       value: dataHealth.statementsPendingReview,
-      icon: Clock,
       severity: (dataHealth.statementsPendingReview > 0 ? 'blue' : 'green') as SeverityKey,
     },
     {
       key: 'parsingWarnings',
-      label: 'Parsing Warnings',
+      label: 'PARSING WARNINGS',
       value: dataHealth.parsingWarnings,
-      icon: AlertTriangle,
       severity: (dataHealth.parsingWarnings > 0 ? 'amber' : 'green') as SeverityKey,
     },
   ];
@@ -108,38 +86,54 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-8 w-full pb-10">
+      {/* Tab Actions Header */}
+      <div className="flex items-center gap-6 pb-2">
+        <Link
+          href="/upload"
+          className="text-[#666666] ff-dashboard-sans text-[12px] font-medium hover:text-[#1a1a1a] transition-colors"
+        >
+          Upload / Parse
+        </Link>
+        <Link
+          href="/statements/approve"
+          className="text-[#666666] ff-dashboard-sans text-[12px] font-medium hover:text-[#1a1a1a] transition-colors"
+        >
+          Review Queue ({dataHealth.statementsPendingReview})
+        </Link>
+        <button
+          type="button"
+          className="text-[#666666] ff-dashboard-sans text-[12px] font-medium hover:text-[#1a1a1a] transition-colors"
+        >
+          Export
+        </button>
+      </div>
+
       {/* 1. Summary metric strip */}
       <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-          Data Quality Metrics
+        <h2 className="mb-4 text-[#1a1a1a] ff-dashboard-mono text-[24px] font-bold">
+          DATA QUALITY METRICS
         </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {metricCards.map(({ key, label, value, icon: Icon, severity }) => {
-            const classes = severityClasses[severity];
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          {metricCards.map(({ key, label, value, severity }) => {
+            const textColor = severityText[severity];
             return (
               <div
                 key={key}
                 className={cn(
-                  cardShell,
-                  classes.card,
-                  'flex flex-col gap-3 p-4 transition-all duration-200 hover:-translate-y-0.5',
+                  'bg-[#E8E4DC] border border-[#D1CCC4] rounded-none flex flex-col p-[14px] h-[120px] transition-all duration-200 hover:-translate-y-0.5',
                 )}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500 leading-tight">
-                    {label}
-                  </span>
-                  <Icon className={cn('h-4 w-4 shrink-0', classes.icon)} strokeWidth={2} />
-                </div>
-                <div className={cn('text-2xl font-bold font-ibm-plex-sans tracking-tight', classes.badge)}>
+                <span className="text-[#555555] ff-dashboard-mono text-[11px] font-semibold tracking-[1px] uppercase leading-none">
+                  {label}
+                </span>
+
+                <div className="text-[#1a1a1a] ff-dashboard-mono text-[40px] font-bold leading-none mt-[20px]">
                   {isLoading ? '—' : value}
                 </div>
-                <div className="flex items-center gap-1">
-                  {value === 0 ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" strokeWidth={2} />
-                  ) : null}
-                  <span className={cn('text-xs font-medium', classes.badge)}>
+
+                <div className="mt-auto">
+                  <span className={cn('ff-dashboard-sans text-[13px] font-medium', textColor)}>
                     {value === 0 ? 'All good' : `${value} need${value === 1 ? 's' : ''} attention`}
                   </span>
                 </div>
@@ -150,101 +144,86 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
       </section>
 
       {/* 2. Last upload + Unapproved cash row */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Last upload card */}
-        <div className={cn(cardShell, 'p-5 flex flex-col gap-3')}>
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-slate-400" strokeWidth={2} />
-            <span className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-              Last Upload
-            </span>
-          </div>
+        <div className="bg-[#E8E4DC] border border-[#D1CCC4] rounded-none p-[16px] h-[340px] flex flex-col relative">
+          <span className="text-[#555555] ff-dashboard-mono text-[11px] font-semibold tracking-[1px] uppercase leading-none">
+            LAST UPLOAD
+          </span>
+
           {dataHealth.lastUploadDate ? (
-            <div>
-              <p className="text-xl font-bold text-slate-900 font-ibm-plex-sans">
+            <>
+              <div className="text-[#1a1a1a] ff-dashboard-mono text-[56px] font-bold leading-[1.1] mt-[90px] tracking-tight">
                 {getRelativeTime(dataHealth.lastUploadDate)}
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              </div>
+              <div className="text-[#666666] ff-dashboard-sans text-[13px] font-medium mt-auto pb-[20px]">
                 {new Date(dataHealth.lastUploadDate).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'short',
                   day: 'numeric',
                 })}
-              </p>
-            </div>
+              </div>
+            </>
           ) : (
-            <div className="flex flex-col gap-2">
-              <p className="text-sm text-slate-500">No statements uploaded yet</p>
+            <div className="mt-[90px] flex flex-col gap-2">
+              <p className="text-[#1a1a1a] ff-dashboard-mono text-[32px] font-bold">No data yet</p>
               <Link
                 href="/statements/submit"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0a66c2] hover:text-[#004182] transition-colors"
+                className="text-[#C05A3C] hover:text-[#A0452C] ff-dashboard-sans text-[13px] font-medium transition-colors"
               >
-                <Link2 className="h-3.5 w-3.5" strokeWidth={2} />
-                Upload your first statement
+                Upload your first statement →
               </Link>
             </div>
           )}
         </div>
 
         {/* Unapproved cash card */}
-        <div
-          className={cn(
-            cardShell,
-            dataHealth.unapprovedCash > 0
-              ? 'bg-amber-50 border-amber-100'
-              : 'bg-emerald-50 border-emerald-100',
-            'p-5 flex flex-col gap-3',
-          )}
-        >
-          <div className="flex items-center gap-2">
-            <AlertTriangle
-              className={cn(
-                'h-4 w-4',
-                dataHealth.unapprovedCash > 0 ? 'text-amber-500' : 'text-emerald-500',
-              )}
-              strokeWidth={2}
-            />
-            <span className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-              Unapproved Cash
-            </span>
+        <div className="bg-[#1a1a1a] border border-[#3a3a3a] rounded-none p-[16px] h-[340px] flex flex-col relative">
+          <span className="text-[#888888] ff-dashboard-mono text-[11px] font-semibold tracking-[1px] uppercase leading-none">
+            UNAPPROVED CASH
+          </span>
+
+          <div
+            className={cn(
+              'ff-dashboard-mono font-bold leading-[1.1] mt-[100px] tracking-tight',
+              dataHealth.unapprovedCash > 0
+                ? 'text-[var(--primary)] text-[56px]'
+                : 'text-[#F5F3EF] text-[48px]',
+            )}
+          >
+            {isLoading
+              ? '—'
+              : dataHealth.unapprovedCash > 0
+                ? formatAmount(dataHealth.unapprovedCash)
+                : 'ALL CASH APPROVED'}
           </div>
-          {dataHealth.unapprovedCash > 0 ? (
-            <div className="flex flex-col gap-2">
-              <p className="text-xl font-bold text-amber-800 font-ibm-plex-sans">
-                {isLoading ? '—' : formatAmount(dataHealth.unapprovedCash)}
-              </p>
-              <Link
-                href="/statements/approve"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700 hover:text-amber-900 transition-colors"
-              >
-                <Link2 className="h-3.5 w-3.5" strokeWidth={2} />
-                Review &amp; approve cash
-              </Link>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" strokeWidth={2} />
-              <p className="text-sm font-semibold text-emerald-700">All cash approved</p>
-            </div>
+
+          {dataHealth.unapprovedCash > 0 && (
+            <Link
+              href="/statements/approve"
+              className="text-[#888888] hover:text-[#F5F3EF] ff-dashboard-sans text-[13px] font-medium mt-auto pb-[20px] transition-colors"
+            >
+              Review &amp; approve cash →
+            </Link>
           )}
         </div>
       </section>
 
       {/* 3. Quick links (only if there are issues) */}
       {quickLinks.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">
-            Quick Actions
+        <section className="mt-4">
+          <h2 className="mb-4 text-[#1a1a1a] ff-dashboard-mono text-[16px] font-bold uppercase tracking-wide">
+            ACTION REQUIRED
           </h2>
-          <div className={cn(cardShell, 'p-4 flex flex-col divide-y divide-slate-100')}>
+          <div className="flex flex-col border border-[#D1CCC4] bg-[#E8E4DC] divide-y divide-[#D1CCC4] rounded-none">
             {quickLinks.map(({ label, href }) => (
               <Link
                 key={href}
                 href={href}
-                className="flex items-center gap-2 py-3 text-sm font-medium text-[#0a66c2] hover:text-[#004182] transition-colors first:pt-0 last:pb-0"
+                className="flex items-center justify-between p-4 text-[#1a1a1a] hover:bg-[#D1CCC4]/30 ff-dashboard-sans text-[14px] font-medium transition-colors"
               >
-                <Link2 className="h-4 w-4 shrink-0" strokeWidth={2} />
-                {label}
+                <span>{label}</span>
+                <span className="text-[#C05A3C]">→</span>
               </Link>
             ))}
           </div>

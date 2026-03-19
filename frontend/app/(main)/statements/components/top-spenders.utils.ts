@@ -86,6 +86,11 @@ export const sortAggregateRows = (
   });
 };
 
+export const buildTopSpendersStatementsParams = (page: number, limit: number) => ({
+  page,
+  limit,
+});
+
 export const buildPreviousPeriodRange = (currentStart: Date, currentEnd: Date) => {
   if (Number.isNaN(currentStart.getTime()) || Number.isNaN(currentEnd.getTime())) return null;
   const startTime = currentStart.getTime();

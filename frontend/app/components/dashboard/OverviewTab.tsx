@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/app/components/ui/card';
 import type { DashboardData, DashboardRange } from '@/app/hooks/useDashboard';
-import { ArrowDownRight, ArrowUpRight, FileUp, TrendingUp, Wallet } from 'lucide-react';
+import { FileUp } from 'lucide-react';
 import Link from 'next/link';
 import { Spinner } from '../ui/spinner';
 import { ActionRequired } from './ActionRequired';
@@ -40,55 +40,56 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
   }
 
   const hasNoData =
-    data.cashFlow.length === 0 &&
-    mappedActions.length === 0 &&
-    data.snapshot.totalBalance === 0;
+    data.cashFlow.length === 0 && mappedActions.length === 0 && data.snapshot.totalBalance === 0;
 
   const rangeLabel = range === '7d' ? '7d' : range === '90d' ? '90d' : '30d';
 
   const snapshotCards = [
     {
       key: 'totalBalance' as const,
-      icon: Wallet,
-      label: 'Total Balance',
-      colorClass: (v: number) => (v >= 0 ? 'text-slate-800' : 'text-rose-600'),
+      label: 'TOTAL BALANCE',
+      colorClass: (v: number) => (v >= 0 ? 'text-[#2A364E]' : 'text-[#D13D56]'),
     },
     {
       key: 'income30d' as const,
-      icon: ArrowUpRight,
-      label: `Income (${rangeLabel})`,
-      colorClass: () => 'text-emerald-600',
+      label: `INCOME (${rangeLabel})`.toUpperCase(),
+      colorClass: () => 'text-[#0D9568]',
     },
     {
       key: 'expense30d' as const,
-      icon: ArrowDownRight,
-      label: `Expense (${rangeLabel})`,
-      colorClass: () => 'text-rose-500',
+      label: `EXPENSE (${rangeLabel})`.toUpperCase(),
+      colorClass: () => 'text-[#D13D56]',
     },
     {
       key: 'netFlow30d' as const,
-      icon: TrendingUp,
-      label: `Net Flow (${rangeLabel})`,
-      colorClass: (v: number) => (v >= 0 ? 'text-emerald-600' : 'text-rose-600'),
+      label: `NET FLOW (${rangeLabel})`.toUpperCase(),
+      colorClass: (v: number) => (v >= 0 ? 'text-[#0D9568]' : 'text-[#D13D56]'),
     },
   ];
 
   if (hasNoData) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-[12px] bg-sky-50 mb-6">
-          <FileUp className="h-10 w-10 text-sky-500" />
+        <div className="flex h-20 w-20 items-center justify-center rounded-none bg-[#E8E4DC] border border-[#D1CCC4] mb-6">
+          <FileUp className="h-10 w-10 text-[#7A869B]" />
         </div>
-        <h2 className="text-xl font-bold text-slate-900 mb-2">
+        <h2
+          className="text-xl font-bold text-[#2A364E] mb-2"
+          style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+        >
           Upload your first statement
         </h2>
-        <p className="text-sm text-slate-500 max-w-md mb-8">
-          Start tracking your finances by uploading a bank statement.
-          We&apos;ll parse it automatically and show your cash flow, categories, and insights.
+        <p
+          className="text-sm text-[#7A869B] max-w-md mb-8"
+          style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+        >
+          Start tracking your finances by uploading a bank statement. We&apos;ll parse it
+          automatically and show your cash flow, categories, and insights.
         </p>
         <Link
           href="/statements?openExpenseDrawer=scan"
-          className="inline-flex items-center gap-2 rounded-[12px] bg-[#0a66c2] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#004182]"
+          className="inline-flex items-center gap-2 rounded-none bg-[#1a1a1a] px-6 py-3 text-sm font-semibold text-[#F5F3EF] transition-colors hover:bg-black"
+          style={{ fontFamily: 'var(--font-dashboard-sans)' }}
         >
           <FileUp className="h-4 w-4" />
           Parse statement
@@ -98,29 +99,32 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
   }
 
   return (
-    <div className="flex flex-col gap-4 w-full">
-
-      {/* Row 1: KPI strip — 4 cards in one row */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {snapshotCards.map(({ key, label, icon: Icon, colorClass }) => {
+    <div className="flex flex-col gap-[30px] w-full pb-10">
+      <div className="grid grid-cols-2 gap-[32px] xl:grid-cols-4">
+        {snapshotCards.map(({ key, label, colorClass }) => {
           const value = data.snapshot[key];
           const textColor = colorClass(value);
           return (
             <Card
               key={key}
-              className="border border-slate-100 bg-white shadow-none rounded-xl"
+              className="border border-[#D1CCC4] bg-[#E8E4DC] shadow-none rounded-none h-[72px]"
             >
-              <CardContent className="px-4 py-3 flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">
-                    {label}
-                  </span>
-                  <Icon className="h-3 w-3 text-slate-300 shrink-0" />
-                </div>
-                <span className={`text-base font-semibold font-ibm-plex-sans tracking-tight ${textColor}`}>
-                  {isLoading ? <Spinner className="size-3" /> : (
+              <CardContent className="px-3 py-2 flex flex-col justify-between h-full">
+                <span
+                  className="text-[10px] font-semibold text-[#7A869B] uppercase tracking-[1px]"
+                  style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+                >
+                  {label}
+                </span>
+                <span
+                  className={`text-[30px] font-bold leading-none ${textColor} mt-1`}
+                  style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+                >
+                  {isLoading ? (
+                    <Spinner className="size-3" />
+                  ) : (
                     <>
-                      {value < 0 && key !== 'expense30d' ? '−' : ''}
+                      {value < 0 && key !== 'expense30d' ? '− ' : ''}
                       {formatAmount(Math.abs(value))}
                     </>
                   )}
@@ -131,55 +135,60 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
         })}
       </div>
 
-      {/* Row 2: Actions (left) + Cash Flow (right) */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
-
-        {/* Left column: Action Required */}
-        <Card className="border border-slate-100 bg-white shadow-none rounded-xl">
-          <CardContent className="px-4 py-3">
-            <h2 className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400 mb-3">
-              Action Required
+      <div className="grid grid-cols-1 gap-[36px] lg:grid-cols-[217px_1fr]">
+        <Card className="border border-[#D1CCC4] bg-[#E8E4DC] shadow-none rounded-none h-[188px]">
+          <CardContent className="p-3 flex flex-col h-full overflow-hidden">
+            <h2
+              className="text-[10px] font-semibold text-[#7A869B] uppercase tracking-[1px] mb-2"
+              style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+            >
+              ACTION REQUIRED
             </h2>
-            <ActionRequired
-              actions={mappedActions}
-              title="Action Required"
-              emptyLabel="No actions needed"
-              isLoading={isLoading}
-            />
+            <div className="flex-1 overflow-y-auto">
+              <ActionRequired
+                actions={mappedActions}
+                title="Action Required"
+                emptyLabel="No actions needed"
+                isLoading={isLoading}
+              />
+            </div>
           </CardContent>
         </Card>
 
-        {/* Right column: Cash Flow */}
-        <Card className="border border-slate-100 bg-white shadow-none rounded-xl">
-          <CardContent className="px-4 py-3 h-[220px]">
-            <h2 className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400 mb-2">
-              Cash Flow ({rangeLabel})
+        <Card className="border border-[#D1CCC4] bg-[#E8E4DC] shadow-none rounded-none h-[188px]">
+          <CardContent className="p-3 h-full flex flex-col overflow-hidden">
+            <h2
+              className="text-[10px] font-semibold text-[#7A869B] uppercase tracking-[1px] mb-2"
+              style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+            >
+              CASH FLOW ({rangeLabel.toUpperCase()})
             </h2>
-            <div className="h-[calc(100%-24px)]">
+            <div className="bg-[#F5F3EF] border border-[#D1CCC4] flex-1 flex flex-col relative px-4 py-3 h-[146px]">
               <CashFlowMini
                 data={data.cashFlow}
                 title={`Cash Flow (${rangeLabel})`}
-                emptyLabel="No cash flow data yet."
+                emptyLabel="No cash flow data yet"
               />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Row 3: Spending Categories — full width */}
       {data.topCategories && data.topCategories.length > 0 ? (
-        <Card className="border border-slate-100 bg-white shadow-none rounded-xl">
-          <CardContent className="px-4 py-3 h-[260px]">
-            <h2 className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400 mb-2">
-              Spending Categories
+        <Card className="border border-[#D1CCC4] bg-[#E8E4DC] shadow-none rounded-none h-[300px]">
+          <CardContent className="p-3 h-full flex flex-col overflow-hidden">
+            <h2
+              className="text-[10px] font-semibold text-[#7A869B] uppercase tracking-[1px] mb-2"
+              style={{ fontFamily: 'var(--font-dashboard-mono)' }}
+            >
+              SPENDING CATEGORIES
             </h2>
-            <div className="h-[calc(100%-24px)]">
+            <div className="bg-[#F5F3EF] border border-[#D1CCC4] flex-1 relative px-4 py-3">
               <TopCategoriesCard categories={data.topCategories} />
             </div>
           </CardContent>
         </Card>
       ) : null}
-
     </div>
   );
 }

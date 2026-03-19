@@ -3,10 +3,10 @@
 import { HeroUIProvider } from '@heroui/react';
 import { MantineProvider } from '@mantine/core';
 import { ThemeProvider } from '@mui/material/styles';
-import { IntlayerProviderContent } from 'react-intlayer';
 import { useTheme as useNextTheme } from 'next-themes';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { IntlayerProviderContent } from 'react-intlayer';
 import { SidePanelProvider } from './components/side-panel';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';

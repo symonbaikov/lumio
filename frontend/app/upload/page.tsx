@@ -2,6 +2,7 @@
 
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { CheckCircle, CloudUpload, Delete, Error as ErrorIcon } from '@mui/icons-material';
 import {
@@ -23,7 +24,6 @@ import {
   Select,
   Typography,
 } from '@mui/material';
-import { useIntlayer } from "@/app/i18n";
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -263,7 +263,7 @@ export default function UploadPage() {
         <FormControlLabel
           data-tour-id="allow-duplicates"
           control={<Checkbox checked={allowDuplicates} onCheckedChange={setAllowDuplicates} />}
-          label={t.allowDuplicates?.value ?? 'Разрешить загрузку дубликатов'}
+          label={t.allowDuplicates?.value ?? 'Allow uploading duplicates'}
           sx={{ mb: 1 }}
         />
 

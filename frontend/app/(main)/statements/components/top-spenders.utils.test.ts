@@ -4,6 +4,7 @@ import {
   type AggregateSortKey,
   type TopSpenderAggregateRow,
   buildPreviousPeriodRange,
+  buildTopSpendersStatementsParams,
   getComparisonDelta,
   resolveSourceChannel,
   resolveSpenderFlow,
@@ -102,6 +103,13 @@ describe('top spenders helpers', () => {
       delta: -100,
       percentage: -20,
       trend: 'down',
+    });
+  });
+
+  it('builds statements request params with limit instead of pageSize', () => {
+    expect(buildTopSpendersStatementsParams(3, 500)).toEqual({
+      page: 3,
+      limit: 500,
     });
   });
 });

@@ -1,5 +1,5 @@
 /**
- * Компонент индикатора прогресса тура
+ * Tour progress indicator component
  */
 
 'use client';
@@ -19,7 +19,7 @@ export function TourProgress({ current, total, className = '' }: TourProgressPro
     <Box className={className} sx={{ width: '100%', maxWidth: 300 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
-          Прогресс тура
+          Tour progress
         </Typography>
         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
           {current}/{total}
