@@ -47,28 +47,37 @@ export class DashboardService {
   ): Promise<DashboardResponse> {
     const days = range === '7d' ? 7 : range === '90d' ? 90 : 30;
 
-    // Parse target date and set to end of day
-    const endDate = endDateParam ? new Date(endDateParam) : new Date();
-    endDate.setHours(23, 59, 59, 999);
+    const requestedWindow = this.getWindowBounds(days, endDateParam ? new Date(endDateParam) : new Date());
 
-    const since = new Date(endDate);
-    since.setDate(since.getDate() - days);
-    // Set since to start of day
-    since.setHours(0, 0, 0, 0);
+    const [initialSnapshot, actions, recentActivity, memberRole, dataHealth] = await Promise.all([
+      this.getSnapshot(workspaceId, requestedWindow.since, requestedWindow.endDate),
+      this.getActions(userId, workspaceId),
+      this.getRecentActivity(workspaceId),
+      this.getMemberRole(userId, workspaceId),
+      this.getDataHealth(workspaceId),
+    ]);
 
-    const [snapshot, actions, cashFlow, topMerchants, topCategories, recentActivity, memberRole, dataHealth] =
-      await Promise.all([
-        this.getSnapshot(workspaceId, since, endDate),
-        this.getActions(userId, workspaceId),
-        this.getCashFlow(workspaceId, since, endDate, days),
-        this.getTopMerchants(workspaceId, since, endDate),
-        this.getTopCategories(workspaceId, since, endDate),
-        this.getRecentActivity(workspaceId),
-        this.getMemberRole(userId, workspaceId),
-        this.getDataHealth(workspaceId),
-      ]);
+    let snapshot = initialSnapshot;
+    let effectiveWindow = requestedWindow;
+    let autoShifted = false;
 
-    return {
+    if (!endDateParam && snapshot.income30d === 0 && snapshot.expense30d === 0) {
+      const latestTransactionDate = await this.getLatestTransactionDate(workspaceId);
+
+      if (latestTransactionDate) {
+        effectiveWindow = this.getWindowBounds(days, latestTransactionDate);
+        snapshot = await this.getSnapshot(workspaceId, effectiveWindow.since, effectiveWindow.endDate);
+        autoShifted = true;
+      }
+    }
+
+    const [cashFlow, topMerchants, topCategories] = await Promise.all([
+      this.getCashFlow(workspaceId, effectiveWindow.since, effectiveWindow.endDate, days),
+      this.getTopMerchants(workspaceId, effectiveWindow.since, effectiveWindow.endDate),
+      this.getTopCategories(workspaceId, effectiveWindow.since, effectiveWindow.endDate),
+    ]);
+
+    const response: DashboardResponse = {
       snapshot,
       actions,
       cashFlow,
@@ -79,6 +88,13 @@ export class DashboardService {
       range,
       dataHealth,
     };
+
+    if (autoShifted) {
+      response.effectiveEndDate = this.formatDateOnly(effectiveWindow.endDate);
+      response.effectiveSince = this.formatDateOnly(effectiveWindow.since);
+    }
+
+    return response;
   }
 
   private async getSnapshot(
@@ -97,6 +113,10 @@ export class DashboardService {
       .where('s.workspaceId = :workspaceId', { workspaceId })
       .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
       .andWhere('s.deletedAt IS NULL')
+      .andWhere('t.isDuplicate = false')
+      .andWhere('s.status NOT IN (:...excludedStatuses)', {
+        excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
+      })
       .setParameter('income', TransactionType.INCOME)
       .setParameter('expense', TransactionType.EXPENSE)
       .setParameter('unapprovedStatuses', [
@@ -116,6 +136,7 @@ export class DashboardService {
       )
       .where('s.workspaceId = :workspaceId', { workspaceId })
       .andWhere('s.deletedAt IS NULL')
+      .andWhere('t.isDuplicate = false')
       .andWhere('s.status NOT IN (:...excludedStatuses)', {
         excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
       })
@@ -272,6 +293,10 @@ export class DashboardService {
       .where('s.workspaceId = :workspaceId', { workspaceId })
       .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
       .andWhere('s.deletedAt IS NULL')
+      .andWhere('t.isDuplicate = false')
+      .andWhere('s.status NOT IN (:...excludedStatuses)', {
+        excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
+      })
       .groupBy(`TO_CHAR(t.transactionDate, ${groupFormat})`)
       .orderBy(`TO_CHAR(t.transactionDate, ${groupFormat})`, 'ASC')
       .setParameter('income', TransactionType.INCOME)
@@ -299,6 +324,10 @@ export class DashboardService {
       .where('s.workspaceId = :workspaceId', { workspaceId })
       .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
       .andWhere('s.deletedAt IS NULL')
+      .andWhere('t.isDuplicate = false')
+      .andWhere('s.status NOT IN (:...excludedStatuses)', {
+        excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
+      })
       .andWhere('t.transactionType = :expense', { expense: TransactionType.EXPENSE })
       .andWhere('t.counterpartyName IS NOT NULL')
       .andWhere("t.counterpartyName != ''")
@@ -330,6 +359,10 @@ export class DashboardService {
       .where('s.workspaceId = :workspaceId', { workspaceId })
       .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
       .andWhere('s.deletedAt IS NULL')
+      .andWhere('t.isDuplicate = false')
+      .andWhere('s.status NOT IN (:...excludedStatuses)', {
+        excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
+      })
       .andWhere('t.transactionType = :expense', { expense: TransactionType.EXPENSE })
       .groupBy('c.id')
       .addGroupBy('c.name')
@@ -499,18 +532,17 @@ export class DashboardService {
       this.statementRepo.count({
         where: {
           workspaceId,
-          status: In([StatementStatus.PARSED, StatementStatus.VALIDATED]),
+          status: In([StatementStatus.UPLOADED, StatementStatus.PROCESSING, StatementStatus.ERROR]),
           deletedAt: IsNull(),
         },
       }),
-      // parsing warnings: still processing or uploaded
-      this.statementRepo.count({
-        where: {
-          workspaceId,
-          status: In([StatementStatus.PROCESSING, StatementStatus.UPLOADED]),
-          deletedAt: IsNull(),
-        },
-      }),
+      // parsing warnings: actual warnings captured in parsing details
+      this.statementRepo
+        .createQueryBuilder('s')
+        .where('s.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('s.deletedAt IS NULL')
+        .andWhere("jsonb_array_length(COALESCE(s.parsing_details->'warnings', '[]'::jsonb)) > 0")
+        .getCount(),
       // latest statement upload date
       this.statementRepo.findOne({
         where: { workspaceId, deletedAt: IsNull() },
@@ -545,16 +577,88 @@ export class DashboardService {
   }
 
   async getTrends(workspaceId: string, days = 30): Promise<DashboardTrendsResponse> {
-    const endDate = new Date();
+    const requestedWindow = this.getWindowBounds(days, new Date());
+    let effectiveWindow = requestedWindow;
+    let trendData = await this.getTrendData(workspaceId, requestedWindow.since, requestedWindow.endDate, days);
+    let autoShifted = false;
+
+    if (trendData.dailyRows.length === 0) {
+      const latestTransactionDate = await this.getLatestTransactionDate(workspaceId);
+
+      if (latestTransactionDate) {
+        effectiveWindow = this.getWindowBounds(days, latestTransactionDate);
+        trendData = await this.getTrendData(workspaceId, effectiveWindow.since, effectiveWindow.endDate, days);
+        autoShifted = true;
+      }
+    }
+
+    const response: DashboardTrendsResponse = {
+      dailyTrend: trendData.dailyRows.map(row => ({
+        date: row.date,
+        income: Number.parseFloat(row.income) || 0,
+        expense: Number.parseFloat(row.expense) || 0,
+      })),
+      categories: trendData.categoryRows.map(row => ({
+        name: row.name,
+        amount: Number.parseFloat(row.amount) || 0,
+        count: Number.parseInt(row.count, 10) || 0,
+      })),
+      counterparties: trendData.counterpartyRows.map(row => ({
+        name: row.name,
+        amount: Number.parseFloat(row.amount) || 0,
+        count: Number.parseInt(row.count, 10) || 0,
+      })),
+      sources: {
+        statements: {
+          income: Number.parseFloat(trendData.sourceRows?.income ?? '') || 0,
+          expense: Number.parseFloat(trendData.sourceRows?.expense ?? '') || 0,
+          rows: Number.parseInt(trendData.sourceRows?.rows ?? '0', 10) || 0,
+        },
+      },
+    };
+
+    if (autoShifted) {
+      response.effectiveEndDate = this.formatDateOnly(effectiveWindow.endDate);
+      response.effectiveSince = this.formatDateOnly(effectiveWindow.since);
+    }
+
+    return response;
+  }
+
+  private getWindowBounds(days: number, targetDate: Date): { since: Date; endDate: Date } {
+    const endDate = new Date(targetDate);
     endDate.setHours(23, 59, 59, 999);
+
     const since = new Date(endDate);
     since.setDate(since.getDate() - days);
     since.setHours(0, 0, 0, 0);
 
+    return { since, endDate };
+  }
+
+  private async getLatestTransactionDate(workspaceId: string): Promise<Date | null> {
+    const result = await this.transactionRepo
+      .createQueryBuilder('t')
+      .innerJoin('t.statement', 's')
+      .select('MAX(t.transactionDate)', 'latestTransactionDate')
+      .where('s.workspaceId = :workspaceId', { workspaceId })
+      .andWhere('s.deletedAt IS NULL')
+      .andWhere('s.status NOT IN (:...excludedStatuses)', {
+        excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
+      })
+      .getRawOne<{ latestTransactionDate: Date | string | null }>();
+
+    return result?.latestTransactionDate ? new Date(result.latestTransactionDate) : null;
+  }
+
+  private formatDateOnly(date: Date): string {
+    return date.toISOString().slice(0, 10);
+  }
+
+  private async getTrendData(workspaceId: string, since: Date, endDate: Date, days: number) {
     const groupFormat = days >= 90 ? "'IYYY-IW'" : "'YYYY-MM-DD'";
 
     const [dailyRows, categoryRows, counterpartyRows, sourceRows] = await Promise.all([
-      // Daily income/expense trend
       this.transactionRepo
         .createQueryBuilder('t')
         .innerJoin('t.statement', 's')
@@ -570,16 +674,15 @@ export class DashboardService {
         .where('s.workspaceId = :workspaceId', { workspaceId })
         .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
         .andWhere('s.deletedAt IS NULL')
+        .andWhere('t.isDuplicate = false')
         .andWhere('s.status NOT IN (:...excludedStatuses)', {
-          excludedStatuses: [StatementStatus.ERROR],
+          excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
         })
         .groupBy(`TO_CHAR(t.transactionDate, ${groupFormat})`)
         .orderBy(`TO_CHAR(t.transactionDate, ${groupFormat})`, 'ASC')
         .setParameter('income', TransactionType.INCOME)
         .setParameter('expense', TransactionType.EXPENSE)
         .getRawMany<{ date: string; income: string; expense: string }>(),
-
-      // Top expense categories
       this.transactionRepo
         .createQueryBuilder('t')
         .innerJoin('t.statement', 's')
@@ -590,16 +693,15 @@ export class DashboardService {
         .where('s.workspaceId = :workspaceId', { workspaceId })
         .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
         .andWhere('s.deletedAt IS NULL')
+        .andWhere('t.isDuplicate = false')
         .andWhere('s.status NOT IN (:...excludedStatuses)', {
-          excludedStatuses: [StatementStatus.ERROR],
+          excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
         })
         .andWhere('t.transactionType = :expense', { expense: TransactionType.EXPENSE })
         .groupBy('c.name')
         .orderBy('amount', 'DESC')
         .limit(10)
         .getRawMany<{ name: string; amount: string; count: string }>(),
-
-      // Top income counterparties
       this.transactionRepo
         .createQueryBuilder('t')
         .innerJoin('t.statement', 's')
@@ -609,8 +711,9 @@ export class DashboardService {
         .where('s.workspaceId = :workspaceId', { workspaceId })
         .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
         .andWhere('s.deletedAt IS NULL')
+        .andWhere('t.isDuplicate = false')
         .andWhere('s.status NOT IN (:...excludedStatuses)', {
-          excludedStatuses: [StatementStatus.ERROR],
+          excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
         })
         .andWhere('t.transactionType = :income', { income: TransactionType.INCOME })
         .andWhere('t.counterpartyName IS NOT NULL')
@@ -619,8 +722,6 @@ export class DashboardService {
         .orderBy('amount', 'DESC')
         .limit(10)
         .getRawMany<{ name: string; amount: string; count: string }>(),
-
-      // Source breakdown (statements only)
       this.transactionRepo
         .createQueryBuilder('t')
         .innerJoin('t.statement', 's')
@@ -636,37 +737,15 @@ export class DashboardService {
         .where('s.workspaceId = :workspaceId', { workspaceId })
         .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
         .andWhere('s.deletedAt IS NULL')
+        .andWhere('t.isDuplicate = false')
         .andWhere('s.status NOT IN (:...excludedStatuses)', {
-          excludedStatuses: [StatementStatus.ERROR],
+          excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
         })
         .setParameter('income', TransactionType.INCOME)
         .setParameter('expense', TransactionType.EXPENSE)
         .getRawOne<{ income: string; expense: string; rows: string }>(),
     ]);
 
-    return {
-      dailyTrend: dailyRows.map(row => ({
-        date: row.date,
-        income: Number.parseFloat(row.income) || 0,
-        expense: Number.parseFloat(row.expense) || 0,
-      })),
-      categories: categoryRows.map(row => ({
-        name: row.name,
-        amount: Number.parseFloat(row.amount) || 0,
-        count: Number.parseInt(row.count, 10) || 0,
-      })),
-      counterparties: counterpartyRows.map(row => ({
-        name: row.name,
-        amount: Number.parseFloat(row.amount) || 0,
-        count: Number.parseInt(row.count, 10) || 0,
-      })),
-      sources: {
-        statements: {
-          income: Number.parseFloat(sourceRows?.income ?? '') || 0,
-          expense: Number.parseFloat(sourceRows?.expense ?? '') || 0,
-          rows: Number.parseInt(sourceRows?.rows ?? '0', 10) || 0,
-        },
-      },
-    };
+    return { dailyRows, categoryRows, counterpartyRows, sourceRows };
   }
 }

@@ -9,4 +9,6 @@ export interface DashboardTrendsResponse {
   sources: {
     statements: { income: number; expense: number; rows: number };
   };
+  effectiveEndDate?: string;
+  effectiveSince?: string;
 }

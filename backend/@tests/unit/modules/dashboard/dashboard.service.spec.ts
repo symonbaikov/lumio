@@ -3,6 +3,7 @@ import { StatementStatus } from '../../../../src/entities/statement.entity';
 import { TransactionType } from '../../../../src/entities/transaction.entity';
 import { WorkspaceRole } from '../../../../src/entities/workspace-member.entity';
 import { DashboardService } from '../../../../src/modules/dashboard/dashboard.service';
+import { In, IsNull } from 'typeorm';
 
 const createRepoMock = () =>
   ({
@@ -31,6 +32,19 @@ const createQueryBuilderMock = (result: unknown) => ({
   getCount: jest.fn().mockResolvedValue(result),
   getMany: jest.fn().mockResolvedValue(result),
 });
+
+const createExpectedWindow = (days: number, targetDate: string | Date) => {
+  const endDate = new Date(targetDate);
+  endDate.setHours(23, 59, 59, 999);
+
+  const since = new Date(endDate);
+  since.setDate(since.getDate() - days);
+  since.setHours(0, 0, 0, 0);
+
+  return { since, endDate };
+};
+
+const formatDateOnly = (date: Date) => date.toISOString().slice(0, 10);
 
 describe('DashboardService', () => {
   let service: DashboardService;
@@ -130,6 +144,9 @@ describe('DashboardService', () => {
   });
 
   it('getDashboard uses 7-day window for range=7d', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-19T12:00:00Z'));
+
     jest.spyOn(service as any, 'getSnapshot').mockResolvedValue({} as any);
     jest.spyOn(service as any, 'getActions').mockResolvedValue([]);
     jest.spyOn(service as any, 'getCashFlow').mockResolvedValue([]);
@@ -139,16 +156,20 @@ describe('DashboardService', () => {
     jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('member');
     jest.spyOn(service as any, 'getDataHealth').mockResolvedValue({} as any);
 
-    const beforeCall = new Date();
     await service.getDashboard('user-1', 'ws-1', '7d');
 
     const snapshotCall = (service as any).getSnapshot.mock.calls[0];
-    const since: Date = snapshotCall[1];
-    const diffDays = Math.round((beforeCall.getTime() - since.getTime()) / (1000 * 60 * 60 * 24));
-    expect(diffDays).toBe(7);
+    const expectedWindow = createExpectedWindow(7, '2026-03-19T12:00:00Z');
+    expect(snapshotCall[1]).toEqual(expectedWindow.since);
+    expect(snapshotCall[2]).toEqual(expectedWindow.endDate);
+
+    jest.useRealTimers();
   });
 
   it('getDashboard uses 90-day window for range=90d', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-19T12:00:00Z'));
+
     jest.spyOn(service as any, 'getSnapshot').mockResolvedValue({} as any);
     jest.spyOn(service as any, 'getActions').mockResolvedValue([]);
     jest.spyOn(service as any, 'getCashFlow').mockResolvedValue([]);
@@ -158,13 +179,134 @@ describe('DashboardService', () => {
     jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('member');
     jest.spyOn(service as any, 'getDataHealth').mockResolvedValue({} as any);
 
-    const beforeCall = new Date();
     await service.getDashboard('user-1', 'ws-1', '90d');
 
     const snapshotCall = (service as any).getSnapshot.mock.calls[0];
-    const since: Date = snapshotCall[1];
-    const diffDays = Math.round((beforeCall.getTime() - since.getTime()) / (1000 * 60 * 60 * 24));
-    expect(diffDays).toBe(90);
+    const expectedWindow = createExpectedWindow(90, '2026-03-19T12:00:00Z');
+    expect(snapshotCall[1]).toEqual(expectedWindow.since);
+    expect(snapshotCall[2]).toEqual(expectedWindow.endDate);
+
+    jest.useRealTimers();
+  });
+
+  it('getDashboard auto-shifts to the latest transaction window when current window is empty', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-19T12:00:00Z'));
+
+    const emptySnapshot = {
+      totalBalance: 1000,
+      income30d: 0,
+      expense30d: 0,
+      netFlow30d: 0,
+      totalPayable: 75,
+      totalOverdue: 10,
+      unapprovedCash: 0,
+      currency: 'USD',
+    };
+    const shiftedSnapshot = {
+      ...emptySnapshot,
+      income30d: 200,
+      expense30d: 50,
+      netFlow30d: 150,
+    };
+    const latestTransactionDate = new Date('2026-02-10T08:30:00Z');
+    const cashFlow = [{ date: '2026-02-10', income: 200, expense: 50 }];
+    const topMerchants = [{ name: 'Kaspi', amount: 50000, count: 10 }];
+    const topCategories = [{ id: 'cat-1', name: 'Utilities', amount: 30000, count: 5 }];
+    const recentActivity: any[] = [];
+    const dataHealth = {
+      uncategorizedTransactions: 0,
+      statementsWithErrors: 0,
+      statementsPendingReview: 0,
+      unapprovedCash: 0,
+      lastUploadDate: null,
+      parsingWarnings: 0,
+    };
+
+    jest.spyOn(service as any, 'getSnapshot').mockResolvedValueOnce(emptySnapshot).mockResolvedValueOnce(shiftedSnapshot);
+    jest.spyOn(service as any, 'getLatestTransactionDate').mockResolvedValue(latestTransactionDate);
+    jest.spyOn(service as any, 'getActions').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getCashFlow').mockResolvedValue(cashFlow);
+    jest.spyOn(service as any, 'getTopMerchants').mockResolvedValue(topMerchants);
+    jest.spyOn(service as any, 'getTopCategories').mockResolvedValue(topCategories);
+    jest.spyOn(service as any, 'getRecentActivity').mockResolvedValue(recentActivity);
+    jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('admin');
+    jest.spyOn(service as any, 'getDataHealth').mockResolvedValue(dataHealth);
+
+    const result = await service.getDashboard('user-1', 'ws-1', '30d');
+
+    const requestedWindow = createExpectedWindow(30, '2026-03-19T12:00:00Z');
+    const adjustedWindow = createExpectedWindow(30, latestTransactionDate);
+
+    expect((service as any).getSnapshot).toHaveBeenNthCalledWith(
+      1,
+      'ws-1',
+      requestedWindow.since,
+      requestedWindow.endDate,
+    );
+    expect((service as any).getLatestTransactionDate).toHaveBeenCalledWith('ws-1');
+    expect((service as any).getSnapshot).toHaveBeenNthCalledWith(
+      2,
+      'ws-1',
+      adjustedWindow.since,
+      adjustedWindow.endDate,
+    );
+    expect((service as any).getCashFlow).toHaveBeenCalledWith(
+      'ws-1',
+      adjustedWindow.since,
+      adjustedWindow.endDate,
+      30,
+    );
+    expect((service as any).getTopMerchants).toHaveBeenCalledWith(
+      'ws-1',
+      adjustedWindow.since,
+      adjustedWindow.endDate,
+    );
+    expect((service as any).getTopCategories).toHaveBeenCalledWith(
+      'ws-1',
+      adjustedWindow.since,
+      adjustedWindow.endDate,
+    );
+    expect(result).toMatchObject({
+      snapshot: shiftedSnapshot,
+      cashFlow,
+      topMerchants,
+      topCategories,
+      effectiveEndDate: formatDateOnly(adjustedWindow.endDate),
+      effectiveSince: formatDateOnly(adjustedWindow.since),
+    });
+
+    jest.useRealTimers();
+  });
+
+  it('getDashboard does not auto-shift when explicit end date is provided', async () => {
+    const emptySnapshot = {
+      totalBalance: 1000,
+      income30d: 0,
+      expense30d: 0,
+      netFlow30d: 0,
+      totalPayable: 75,
+      totalOverdue: 10,
+      unapprovedCash: 0,
+      currency: 'USD',
+    };
+
+    jest.spyOn(service as any, 'getSnapshot').mockResolvedValue(emptySnapshot);
+    jest.spyOn(service as any, 'getLatestTransactionDate').mockResolvedValue(new Date('2026-02-10T08:30:00Z'));
+    jest.spyOn(service as any, 'getActions').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getCashFlow').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getTopMerchants').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getTopCategories').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getRecentActivity').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('admin');
+    jest.spyOn(service as any, 'getDataHealth').mockResolvedValue({} as any);
+
+    const result = await service.getDashboard('user-1', 'ws-1', '30d', '2026-03-01');
+
+    expect((service as any).getSnapshot).toHaveBeenCalledTimes(1);
+    expect((service as any).getLatestTransactionDate).not.toHaveBeenCalled();
+    expect(result).not.toHaveProperty('effectiveEndDate');
+    expect(result).not.toHaveProperty('effectiveSince');
   });
 
   it('getSnapshot calculates totals correctly from transactions, not wallets', async () => {
@@ -193,6 +335,37 @@ describe('DashboardService', () => {
     });
     // walletRepo should NOT be used for balance computation
     expect(walletRepo.createQueryBuilder).not.toHaveBeenCalled();
+  });
+
+  it('getSnapshot excludes error and processing statements from period totals', async () => {
+    const txQb = createQueryBuilderMock({ income: '1200', expense: '200', unapprovedCash: '0' });
+    const balanceQb = createQueryBuilderMock({ totalBalance: '1500.5' });
+    const payableQb = createQueryBuilderMock({ totalPayable: '300', totalOverdue: '50' });
+
+    transactionRepo.createQueryBuilder.mockReturnValueOnce(txQb).mockReturnValueOnce(balanceQb);
+    payableRepo.createQueryBuilder.mockReturnValue(payableQb);
+    workspaceRepo.findOne.mockResolvedValue({ currency: 'USD' });
+
+    await (service as any).getSnapshot('ws-1', new Date('2026-02-01'), new Date('2026-03-01'));
+
+    expect(txQb.andWhere).toHaveBeenCalledWith('s.status NOT IN (:...excludedStatuses)', {
+      excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
+    });
+  });
+
+  it('getSnapshot excludes duplicate transactions from period totals and total balance', async () => {
+    const txQb = createQueryBuilderMock({ income: '1200', expense: '200', unapprovedCash: '0' });
+    const balanceQb = createQueryBuilderMock({ totalBalance: '1500.5' });
+    const payableQb = createQueryBuilderMock({ totalPayable: '300', totalOverdue: '50' });
+
+    transactionRepo.createQueryBuilder.mockReturnValueOnce(txQb).mockReturnValueOnce(balanceQb);
+    payableRepo.createQueryBuilder.mockReturnValue(payableQb);
+    workspaceRepo.findOne.mockResolvedValue({ currency: 'USD' });
+
+    await (service as any).getSnapshot('ws-1', new Date('2026-02-01'), new Date('2026-03-01'));
+
+    expect(txQb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
+    expect(balanceQb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
   });
 
   it('getActions returns only non-zero action items', async () => {
@@ -232,6 +405,10 @@ describe('DashboardService', () => {
       { date: '2026-02-01', income: 100, expense: 50 },
       { date: '2026-02-02', income: 0, expense: 25 },
     ]);
+    expect(cashFlowQb.andWhere).toHaveBeenCalledWith('s.status NOT IN (:...excludedStatuses)', {
+      excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
+    });
+    expect(cashFlowQb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
   });
 
   it('getCashFlow groups by week for 90d range', async () => {
@@ -276,6 +453,10 @@ describe('DashboardService', () => {
       { name: 'Halyk', amount: 30000, count: 5 },
     ]);
     expect(qb.limit).toHaveBeenCalledWith(5);
+    expect(qb.andWhere).toHaveBeenCalledWith('s.status NOT IN (:...excludedStatuses)', {
+      excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
+    });
+    expect(qb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
   });
 
   it('getTopCategories returns top 5 categories sorted by amount', async () => {
@@ -297,6 +478,24 @@ describe('DashboardService', () => {
       { id: null, name: 'Uncategorized', amount: 15000, count: 3 },
     ]);
     expect(qb.limit).toHaveBeenCalledWith(5);
+    expect(qb.andWhere).toHaveBeenCalledWith('s.status NOT IN (:...excludedStatuses)', {
+      excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
+    });
+    expect(qb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
+  });
+
+  it('getLatestTransactionDate returns the latest valid transaction date', async () => {
+    const latestTransactionDate = new Date('2026-02-10T08:30:00Z');
+    const qb = createQueryBuilderMock({ latestTransactionDate });
+    transactionRepo.createQueryBuilder.mockReturnValue(qb);
+
+    const result = await (service as any).getLatestTransactionDate('ws-1');
+
+    expect(result).toEqual(latestTransactionDate);
+    expect(qb.andWhere).toHaveBeenCalledWith('s.deletedAt IS NULL');
+    expect(qb.andWhere).toHaveBeenCalledWith('s.status NOT IN (:...excludedStatuses)', {
+      excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
+    });
   });
 
   it('getRecentActivity uses AuditEvent when available', async () => {
@@ -384,5 +583,93 @@ describe('DashboardService', () => {
     memberRepo.findOne.mockResolvedValue(null);
     const defaultRole = await (service as any).getMemberRole('user-1', 'ws-1');
     expect(defaultRole).toBe('member');
+  });
+
+  it('getTrends auto-shifts to the latest transaction window when current window has no rows', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-19T12:00:00Z'));
+
+    jest.spyOn(service as any, 'getLatestTransactionDate').mockResolvedValue(new Date('2026-02-10T08:30:00Z'));
+
+    transactionRepo.createQueryBuilder
+      .mockReturnValueOnce(createQueryBuilderMock([]))
+      .mockReturnValueOnce(createQueryBuilderMock([]))
+      .mockReturnValueOnce(createQueryBuilderMock([]))
+      .mockReturnValueOnce(createQueryBuilderMock({ income: '0', expense: '0', rows: '0' }))
+      .mockReturnValueOnce(createQueryBuilderMock([{ date: '2026-02-10', income: '100', expense: '40' }]))
+      .mockReturnValueOnce(createQueryBuilderMock([{ name: 'Utilities', amount: '40', count: '1' }]))
+      .mockReturnValueOnce(createQueryBuilderMock([{ name: 'Client A', amount: '100', count: '1' }]))
+      .mockReturnValueOnce(createQueryBuilderMock({ income: '100', expense: '40', rows: '2' }));
+
+    const result = await service.getTrends('ws-1', 30);
+    const adjustedWindow = createExpectedWindow(30, '2026-02-10T08:30:00Z');
+
+    expect((service as any).getLatestTransactionDate).toHaveBeenCalledWith('ws-1');
+    expect(result).toEqual({
+      dailyTrend: [{ date: '2026-02-10', income: 100, expense: 40 }],
+      categories: [{ name: 'Utilities', amount: 40, count: 1 }],
+      counterparties: [{ name: 'Client A', amount: 100, count: 1 }],
+      sources: {
+        statements: {
+          income: 100,
+          expense: 40,
+          rows: 2,
+        },
+      },
+      effectiveEndDate: formatDateOnly(adjustedWindow.endDate),
+      effectiveSince: formatDateOnly(adjustedWindow.since),
+    });
+
+    jest.useRealTimers();
+  });
+
+  it('getTrendData excludes duplicate transactions from all aggregate queries', async () => {
+    const dailyQb = createQueryBuilderMock([]);
+    const categoryQb = createQueryBuilderMock([]);
+    const counterpartyQb = createQueryBuilderMock([]);
+    const sourceQb = createQueryBuilderMock({ income: '0', expense: '0', rows: '0' });
+
+    transactionRepo.createQueryBuilder
+      .mockReturnValueOnce(dailyQb)
+      .mockReturnValueOnce(categoryQb)
+      .mockReturnValueOnce(counterpartyQb)
+      .mockReturnValueOnce(sourceQb);
+
+    await (service as any).getTrendData('ws-1', new Date('2026-02-01'), new Date('2026-03-01'), 30);
+
+    expect(dailyQb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
+    expect(categoryQb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
+    expect(counterpartyQb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
+    expect(sourceQb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
+  });
+
+  it('getDataHealth counts pending review and parsing warnings from actual statement conditions', async () => {
+    const warningsQb = createQueryBuilderMock(4);
+
+    transactionRepo.createQueryBuilder
+      .mockReturnValueOnce(createQueryBuilderMock(2))
+      .mockReturnValueOnce(createQueryBuilderMock({ unapprovedCash: '0' }));
+    statementRepo.count.mockResolvedValueOnce(1).mockResolvedValueOnce(3);
+    statementRepo.findOne.mockResolvedValue({ createdAt: new Date('2026-03-17T00:00:00Z') });
+    statementRepo.createQueryBuilder.mockReturnValue(warningsQb);
+
+    const result = await (service as any).getDataHealth('ws-1');
+
+    expect(result).toMatchObject({
+      uncategorizedTransactions: 2,
+      statementsWithErrors: 1,
+      statementsPendingReview: 3,
+      parsingWarnings: 4,
+    });
+    expect(statementRepo.count).toHaveBeenNthCalledWith(2, {
+      where: {
+        workspaceId: 'ws-1',
+        status: In([StatementStatus.UPLOADED, StatementStatus.PROCESSING, StatementStatus.ERROR]),
+        deletedAt: IsNull(),
+      },
+    });
+    expect(warningsQb.andWhere).toHaveBeenCalledWith(
+      "jsonb_array_length(COALESCE(s.parsing_details->'warnings', '[]'::jsonb)) > 0",
+    );
   });
 });

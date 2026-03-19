@@ -69,4 +69,6 @@ export interface DashboardResponse {
   role: 'owner' | 'admin' | 'member' | 'viewer';
   range: '7d' | '30d' | '90d';
   dataHealth: DashboardDataHealth;
+  effectiveEndDate?: string;
+  effectiveSince?: string;
 }

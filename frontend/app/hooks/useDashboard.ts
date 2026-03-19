@@ -1,7 +1,7 @@
 'use client';
 
 import apiClient from '@/app/lib/api';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type DashboardRange = '7d' | '30d' | '90d';
 
@@ -80,6 +80,8 @@ export interface DashboardData {
   role: 'owner' | 'admin' | 'member' | 'viewer';
   range: DashboardRange;
   dataHealth: DashboardDataHealth;
+  effectiveEndDate?: string;
+  effectiveSince?: string;
 }
 
 export interface DashboardNotification {
@@ -102,6 +104,8 @@ export interface DashboardTrends {
   sources: {
     statements: { income: number; expense: number; rows: number };
   };
+  effectiveEndDate?: string;
+  effectiveSince?: string;
 }
 
 export function useDashboardTrends(days = 30) {
@@ -136,9 +140,11 @@ export function useDashboard(controlledRange: DashboardRange = '30d', controlled
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
   const load = useCallback(
     async (r: DashboardRange = range, date: string | null = targetDate) => {
+      const requestId = ++requestIdRef.current;
       setLoading(true);
       setError(null);
 
@@ -149,12 +155,23 @@ export function useDashboard(controlledRange: DashboardRange = '30d', controlled
         }
         const response = await apiClient.get('/dashboard', { params });
         const payload = response.data?.data || response.data;
+
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
         setData(payload);
       } catch (err: unknown) {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
         const apiError = err as { response?: { data?: { message?: string } } };
         setError(apiError?.response?.data?.message || 'Failed to load dashboard');
       } finally {
-        setLoading(false);
+        if (requestId === requestIdRef.current) {
+          setLoading(false);
+        }
       }
     },
     [range, targetDate],
@@ -175,17 +192,15 @@ export function useDashboard(controlledRange: DashboardRange = '30d', controlled
   const changeRange = useCallback(
     (newRange: DashboardRange) => {
       setRange(newRange);
-      void load(newRange, targetDate);
     },
-    [load, targetDate],
+    [],
   );
 
   const changeTargetDate = useCallback(
     (newDate: string | null) => {
       setTargetDate(newDate);
-      void load(range, newDate);
     },
-    [load, range],
+    [],
   );
 
   return {

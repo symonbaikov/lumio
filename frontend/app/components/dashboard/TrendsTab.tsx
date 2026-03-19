@@ -2,6 +2,7 @@
 
 import type { DashboardData, DashboardRange } from '@/app/hooks/useDashboard';
 import { useDashboardTrends } from '@/app/hooks/useDashboard';
+import { resolveDashboardEffectivePeriod } from '@/app/lib/dashboard-effective-window';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 
@@ -23,6 +24,10 @@ const DAY_OPTIONS: { label: string; value: number }[] = [
 export function TrendsTab({ formatAmount }: TrendsTabProps) {
   const [days, setDays] = useState<number>(30);
   const { data: trendsData, loading, error } = useDashboardTrends(days);
+  const effectivePeriod = resolveDashboardEffectivePeriod(
+    trendsData?.effectiveSince,
+    trendsData?.effectiveEndDate,
+  );
 
   const dailyTrendOption = useMemo(() => {
     if (!trendsData?.dailyTrend?.length) return null;
@@ -113,6 +118,15 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
 
   return (
     <div className="flex flex-col gap-6 w-full pb-10">
+      {effectivePeriod ? (
+        <div
+          className="border border-[#D1CCC4] bg-[#F5F3EF] px-4 py-3 text-[12px] text-[#555555]"
+          style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+        >
+          Showing latest available period: {effectivePeriod}
+        </div>
+      ) : null}
+
       <div className="flex items-center justify-between">
         <h1
           className="text-[30px] font-bold text-[#1a1a1a]"

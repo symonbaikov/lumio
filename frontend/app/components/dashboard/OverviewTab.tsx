@@ -7,16 +7,16 @@ import Link from 'next/link';
 import { Spinner } from '../ui/spinner';
 import { ActionRequired } from './ActionRequired';
 import { CashFlowMini } from './CashFlowMini';
-import { TopCategoriesCard } from './TopCategoriesCard';
 
 interface OverviewTabProps {
   data: DashboardData;
   formatAmount: (value: number) => string;
   range: DashboardRange;
   isLoading?: boolean;
+  effectivePeriod?: string | null;
 }
 
-export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTabProps) {
+export function OverviewTab({ data, formatAmount, range, isLoading, effectivePeriod }: OverviewTabProps) {
   const mappedActions = (data.actions || []).map(a => {
     let priority: 'critical' | 'warning' | 'info' | 'success' = 'info';
     if (a.type === 'payments_overdue') priority = 'critical';
@@ -100,6 +100,15 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
 
   return (
     <div className="flex flex-col gap-[30px] w-full pb-10">
+      {effectivePeriod ? (
+        <div
+          className="border border-[#D1CCC4] bg-[#F5F3EF] px-4 py-3 text-[12px] text-[#555555]"
+          style={{ fontFamily: 'var(--font-dashboard-sans)' }}
+        >
+          Showing latest available period: {effectivePeriod}
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-2 gap-[32px] xl:grid-cols-4">
         {snapshotCards.map(({ key, label, colorClass }) => {
           const value = data.snapshot[key];
@@ -163,7 +172,7 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
             >
               CASH FLOW ({rangeLabel.toUpperCase()})
             </h2>
-            <div className="bg-[#F5F3EF] border border-[#D1CCC4] flex-1 flex flex-col relative px-4 py-3 h-[146px]">
+            <div className="bg-[#E9E4DC] flex-1 flex flex-col relative px-4 py-3 h-[146px]">
               <CashFlowMini
                 data={data.cashFlow}
                 title={`Cash Flow (${rangeLabel})`}
@@ -173,22 +182,6 @@ export function OverviewTab({ data, formatAmount, range, isLoading }: OverviewTa
           </CardContent>
         </Card>
       </div>
-
-      {data.topCategories && data.topCategories.length > 0 ? (
-        <Card className="border border-[#D1CCC4] bg-[#E8E4DC] shadow-none rounded-none h-[300px]">
-          <CardContent className="p-3 h-full flex flex-col overflow-hidden">
-            <h2
-              className="text-[10px] font-semibold text-[#7A869B] uppercase tracking-[1px] mb-2"
-              style={{ fontFamily: 'var(--font-dashboard-mono)' }}
-            >
-              SPENDING CATEGORIES
-            </h2>
-            <div className="bg-[#F5F3EF] border border-[#D1CCC4] flex-1 relative px-4 py-3">
-              <TopCategoriesCard categories={data.topCategories} />
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
     </div>
   );
 }
