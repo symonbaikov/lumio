@@ -139,4 +139,41 @@ describe('CustomTablesImportService', () => {
       service.previewGoogleSheets('u1', { googleSheetId: 'missing' } as any),
     ).rejects.toThrow(NotFoundException);
   });
+
+  it('previewGoogleSheets looks up connected sheet by workspaceId ownership', async () => {
+    googleSheetRepository.findOne = jest.fn(async ({ where }: any) => {
+      if (where?.id === 'gs1' && where?.workspaceId === 'ws1' && where?.isActive === true) {
+        return {
+          id: 'gs1',
+          workspaceId: 'ws1',
+          isActive: true,
+          sheetId: 'sheet',
+          worksheetName: 'Sheet1',
+          accessToken: 'at',
+          refreshToken: 'rt',
+        };
+      }
+      return null;
+    });
+
+    googleSheetsApiService.getValues = jest.fn(async () => ({
+      accessToken: 'at',
+      range: "'Sheet1'!A1:A2",
+      values: [['name'], ['Alice']],
+    }));
+    googleSheetsApiService.getGridData = jest.fn(async () => {
+      throw new Error('no grid');
+    });
+
+    await expect(
+      service.previewGoogleSheets('ws1', { googleSheetId: 'gs1' } as any),
+    ).resolves.toMatchObject({
+      spreadsheetId: 'sheet',
+      worksheetName: 'Sheet1',
+    });
+
+    expect(googleSheetRepository.findOne).toHaveBeenCalledWith({
+      where: { id: 'gs1', workspaceId: 'ws1', isActive: true },
+    });
+  });
 });

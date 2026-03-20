@@ -56,6 +56,11 @@ const content = {
         en: 'Import from Google Sheets',
         kk: 'Google Sheets-тен импорт',
       }),
+      createBlankTable: t({
+        ru: 'Создать пустую таблицу',
+        en: 'Create blank table',
+        kk: 'Бос кесте құру',
+      }),
       close: t({ ru: 'Закрыть', en: 'Close', kk: 'Жабу' }),
       cancel: t({ ru: 'Отмена', en: 'Cancel', kk: 'Болдырмау' }),
       delete: t({ ru: 'Удалить', en: 'Delete', kk: 'Жою' }),

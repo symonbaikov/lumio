@@ -463,9 +463,9 @@ export class CustomTablesImportService {
     return category.id;
   }
 
-  private async requireGoogleSheet(userId: string, googleSheetId: string): Promise<GoogleSheet> {
+  private async requireGoogleSheet(workspaceId: string, googleSheetId: string): Promise<GoogleSheet> {
     const sheet = await this.googleSheetRepository.findOne({
-      where: { id: googleSheetId, userId, isActive: true },
+      where: { id: googleSheetId, workspaceId, isActive: true },
     });
     if (!sheet) {
       throw new NotFoundException('Google Sheet не найден или недоступен');
@@ -531,8 +531,8 @@ export class CustomTablesImportService {
     return GoogleSheetsImportLayoutType.FLAT;
   }
 
-  async previewGoogleSheets(userId: string, dto: GoogleSheetsImportPreviewDto) {
-    const sheet = await this.requireGoogleSheet(userId, dto.googleSheetId);
+  async previewGoogleSheets(workspaceId: string, dto: GoogleSheetsImportPreviewDto) {
+    const sheet = await this.requireGoogleSheet(workspaceId, dto.googleSheetId);
     const worksheetName = await this.resolveWorksheetName(sheet, dto.worksheetName);
     const range = this.buildRange(worksheetName, dto.range);
 
@@ -692,7 +692,7 @@ export class CustomTablesImportService {
   }
 
   async executeGoogleSheetsCommit(
-    userId: string,
+    workspaceId: string,
     dto: GoogleSheetsImportCommitDto,
     opts?: {
       onProgress?: (progress: number, stage?: string) => void | Promise<void>;
@@ -707,7 +707,7 @@ export class CustomTablesImportService {
     };
 
     await report(1, 'reading_values');
-    const sheet = await this.requireGoogleSheet(userId, dto.googleSheetId);
+    const sheet = await this.requireGoogleSheet(workspaceId, dto.googleSheetId);
     const worksheetName = await this.resolveWorksheetName(sheet, dto.worksheetName);
     const range = this.buildRange(worksheetName, dto.range);
 
@@ -766,25 +766,25 @@ export class CustomTablesImportService {
     const categoryId =
       dto.categoryId === null || dto.categoryId === undefined
         ? null
-        : await this.resolveCategoryId(userId, dto.categoryId);
+        : await this.resolveCategoryId(sheet.userId, dto.categoryId);
 
     let table: CustomTable;
     try {
-      table = await this.customTableRepository.save(
-        this.customTableRepository.create({
-          userId,
-          name: dto.name.trim(),
-          description: dto.description ?? null,
-          source: CustomTableSource.GOOGLE_SHEETS_IMPORT,
-          categoryId,
-        }),
+        table = await this.customTableRepository.save(
+          this.customTableRepository.create({
+          userId: sheet.userId,
+            name: dto.name.trim(),
+            description: dto.description ?? null,
+            source: CustomTableSource.GOOGLE_SHEETS_IMPORT,
+            categoryId,
+          }),
       );
     } catch (error) {
       this.throwHelpfulSchemaError(error);
     }
 
     await this.logIntegrationEvent({
-      userId,
+      userId: sheet.userId,
       workspaceId: sheet.workspaceId ?? null,
       entityType: EntityType.CUSTOM_TABLE,
       entityId: table.id,
@@ -1063,7 +1063,7 @@ export class CustomTablesImportService {
         .filter((row): row is CustomTableRow => Boolean(row));
 
       await this.logIntegrationRowBatch({
-        userId,
+        userId: sheet.userId,
         workspaceId: sheet.workspaceId ?? null,
         tableId: table.id,
         rows: rowsForAudit,
@@ -1148,7 +1148,7 @@ export class CustomTablesImportService {
     };
   }
 
-  async commitGoogleSheets(userId: string, dto: GoogleSheetsImportCommitDto) {
-    return this.executeGoogleSheetsCommit(userId, dto);
+  async commitGoogleSheets(workspaceId: string, dto: GoogleSheetsImportCommitDto) {
+    return this.executeGoogleSheetsCommit(workspaceId, dto);
   }
 }

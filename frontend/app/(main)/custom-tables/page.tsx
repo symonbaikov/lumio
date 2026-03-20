@@ -786,6 +786,11 @@ export default function CustomTablesPage() {
     actionsAny.createFirstExportTable,
     'Create your first export table',
   );
+  const importGoogleSheetsLabel = resolveLabel(
+    actionsAny.importGoogleSheets,
+    'Import from Google Sheets',
+  );
+  const createBlankTableLabel = resolveLabel(actionsAny.createBlankTable, 'Create blank table');
   const exportLabel = resolveLabel(actionsAny.export, 'Export');
   const exportCsvLabel = resolveLabel(actionsAny.exportCsv, 'CSV');
   const exportXlsxLabel = resolveLabel(actionsAny.exportXlsx, 'XLSX');
@@ -1033,14 +1038,34 @@ export default function CustomTablesPage() {
                   <FileSpreadsheet className="h-4 w-4" />
                   {createExportTableLabel}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setCreateOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary"
-                >
-                  <TableIcon className="h-4 w-4" />
-                  {createLabel}
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary"
+                    >
+                      <TableIcon className="h-4 w-4" />
+                      {createLabel}
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-[240px]">
+                    <DropdownMenuItem
+                      onClick={() => handleTableAction('import-google-sheets')}
+                      className="cursor-pointer"
+                    >
+                      <FileSpreadsheet className="h-4 w-4" />
+                      {importGoogleSheetsLabel}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleTableAction('create-empty')}
+                      className="cursor-pointer"
+                    >
+                      <TableIcon className="h-4 w-4" />
+                      {createBlankTableLabel}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
             <p className="mt-3 text-xs text-gray-500">{ctaDescriptionLabel}</p>

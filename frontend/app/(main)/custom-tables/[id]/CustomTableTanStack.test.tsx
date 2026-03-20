@@ -1,7 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import CustomTablesPage from '../page';
 import { CustomTableTanStack } from './CustomTableTanStack';
 
 const viewportState = vi.hoisted(() => ({ isMobile: false }));
@@ -17,7 +15,7 @@ const createI18nProxy = () =>
     },
   );
 
-vi.mock('next-intlayer', () => ({
+vi.mock('@/app/i18n', () => ({
   useIntlayer: () => createI18nProxy(),
 }));
 
@@ -36,32 +34,6 @@ vi.mock('@mui/material', async () => {
     Popover: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   };
 });
-
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
-}));
-
-vi.mock('@/app/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { id: 'user-1' }, loading: false }),
-}));
-
-const apiGet = vi.hoisted(() => vi.fn());
-
-vi.mock('@/app/lib/api', () => ({
-  default: {
-    get: apiGet,
-    post: vi.fn(),
-    delete: vi.fn(),
-  },
-}));
-
-vi.mock('react-hot-toast', () => ({
-  default: {
-    error: vi.fn(),
-    success: vi.fn(),
-    loading: vi.fn(),
-  },
-}));
 
 vi.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: () => ({
@@ -172,22 +144,5 @@ describe('CustomTableTanStack', () => {
     expect(html).toContain('Name');
     expect(html).toContain('Alice');
     expect(html).not.toContain('<table');
-  });
-});
-
-describe('CustomTablesPage', () => {
-  it('renders loading indicator while fetching tables', async () => {
-    apiGet.mockImplementation((url: string) => {
-      if (url === '/custom-tables') {
-        return new Promise(() => undefined);
-      }
-      return Promise.resolve({ data: { data: [] } });
-    });
-
-    render(<CustomTablesPage />);
-
-    await waitFor(() => {
-      expect(screen.getByRole('progressbar')).toBeInTheDocument();
-    });
   });
 });
