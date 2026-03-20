@@ -51,4 +51,20 @@ describe('AuthController', () => {
     expect(authService.logout).toHaveBeenCalledWith('u1', 's1');
     expect(authService.getSessions).toHaveBeenCalledWith('u1', 's1');
   });
+
+  it('redirects legacy google callback for google sheets integrations', async () => {
+    const authService = {};
+    const controller = new AuthController(authService as any);
+
+    const result = controller.handleGoogleCallback(
+      'integrations/google-sheets',
+      'code-123',
+      undefined,
+    );
+
+    expect(result.statusCode).toBe(302);
+    expect(result.url).toBe(
+      'http://localhost:3000/google-sheets/callback?code=code-123&state=integrations%2Fgoogle-sheets',
+    );
+  });
 });

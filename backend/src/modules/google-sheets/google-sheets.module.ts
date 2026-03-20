@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User, WorkspaceMember } from '../../entities';
+import { GoogleSheetsCredential, User, WorkspaceMember } from '../../entities';
 import { Branch } from '../../entities/branch.entity';
 import { Category } from '../../entities/category.entity';
 import { GoogleSheetRow } from '../../entities/google-sheet-row.entity';
@@ -22,6 +22,7 @@ import { GoogleSheetsUpdatesService } from './services/google-sheets-updates.ser
   imports: [
     TypeOrmModule.forFeature([
       GoogleSheet,
+      GoogleSheetsCredential,
       GoogleSheetRow,
       Transaction,
       Category,

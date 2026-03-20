@@ -24,6 +24,16 @@ const content = {
         en: 'Failed to connect spreadsheet',
         kk: 'Кестені қосу мүмкін болмады',
       }),
+      loadWorksheets: t({
+        ru: 'Не удалось загрузить листы таблицы',
+        en: 'Failed to load spreadsheet worksheets',
+        kk: 'Кесте парақтарын жүктеу мүмкін болмады',
+      }),
+      spreadsheetRequired: t({
+        ru: 'Сначала выберите таблицу в Google Picker',
+        en: 'Choose a spreadsheet in Google Picker first',
+        kk: 'Алдымен Google Picker арқылы кестені таңдаңыз',
+      }),
       syncFailed: t({
         ru: 'Не удалось синхронизировать',
         en: 'Failed to sync',
@@ -40,6 +50,11 @@ const content = {
         ru: 'Открываем Google авторизацию…',
         en: 'Opening Google authorization…',
         kk: 'Google авторизациясы ашылуда…',
+      }),
+      connected: t({
+        ru: 'Google Sheets подключен',
+        en: 'Google Sheets connected',
+        kk: 'Google Sheets қосылды',
       }),
       syncStarted: t({
         ru: 'Синхронизация запущена',
@@ -83,15 +98,55 @@ const content = {
         en: 'Connect Google Sheets',
         kk: 'Google Sheets қосу',
       }),
-      sheetUrlLabel: t({
-        ru: 'Ссылка или ID таблицы',
-        en: 'Spreadsheet URL or ID',
-        kk: 'Кестенің сілтемесі немесе ID',
+      accountLabel: t({
+        ru: 'Google аккаунт',
+        en: 'Google account',
+        kk: 'Google аккаунты',
       }),
-      sheetUrlPlaceholder: t({
-        ru: 'https://docs.google.com/spreadsheets/d/… или 1A2B3C…',
-        en: 'https://docs.google.com/spreadsheets/d/… or 1A2B3C…',
-        kk: 'https://docs.google.com/spreadsheets/d/… немесе 1A2B3C…',
+      accountHelp: t({
+        ru: 'Подключите Google аккаунт, чтобы открыть список ваших таблиц.',
+        en: 'Connect your Google account to browse your spreadsheets.',
+        kk: 'Кестелер тізімін ашу үшін Google аккаунтыңызды қосыңыз.',
+      }),
+      connectedAs: t({
+        ru: 'Подключено как {email}',
+        en: 'Connected as {email}',
+        kk: '{email} ретінде қосылған',
+      }),
+      connectAccountButton: t({
+        ru: 'Войти в Google',
+        en: 'Sign in with Google',
+        kk: 'Google арқылы кіру',
+      }),
+      reconnectButton: t({
+        ru: 'Сменить Google аккаунт',
+        en: 'Switch Google account',
+        kk: 'Google аккаунтын ауыстыру',
+      }),
+      spreadsheetLabel: t({
+        ru: 'Таблица для импорта',
+        en: 'Spreadsheet to import',
+        kk: 'Импортталатын кесте',
+      }),
+      spreadsheetHelp: t({
+        ru: 'Откройте Google Picker и выберите нужную таблицу.',
+        en: 'Open Google Picker and choose the spreadsheet you need.',
+        kk: 'Google Picker ашып, қажетті кестені таңдаңыз.',
+      }),
+      chooseSpreadsheetButton: t({
+        ru: 'Выбрать таблицу',
+        en: 'Choose spreadsheet',
+        kk: 'Кестені таңдау',
+      }),
+      chooseSpreadsheetLoading: t({
+        ru: 'Открываем Picker…',
+        en: 'Opening Picker…',
+        kk: 'Picker ашылуда…',
+      }),
+      openSpreadsheet: t({
+        ru: 'Открыть таблицу',
+        en: 'Open spreadsheet',
+        kk: 'Кестені ашу',
       }),
       nameLabel: t({ ru: 'Название в системе', en: 'Name in system', kk: 'Жүйедегі атауы' }),
       namePlaceholder: t({
@@ -105,24 +160,29 @@ const content = {
         kk: 'Бос қалдырсаңыз — Google Sheets атауы қолданылады.',
       }),
       worksheetLabel: t({
-        ru: 'Имя листа (опционально, если не Sheet1)',
-        en: 'Worksheet name (optional, if not Sheet1)',
-        kk: 'Парақ атауы (міндетті емес, Sheet1 болмаса)',
+        ru: 'Лист',
+        en: 'Worksheet',
+        kk: 'Парақ',
       }),
-      worksheetPlaceholder: t({
-        ru: 'Например: Отгрузки',
-        en: 'e.g. Shipments',
-        kk: 'Мысалы: Жөнелтулер',
+      selectWorksheet: t({
+        ru: 'Выберите лист',
+        en: 'Choose worksheet',
+        kk: 'Парақты таңдаңыз',
+      }),
+      loadingWorksheets: t({
+        ru: 'Загружаем листы…',
+        en: 'Loading worksheets…',
+        kk: 'Парақтар жүктелуде…',
       }),
       connectButton: t({
-        ru: 'Подключить',
-        en: 'Connect',
-        kk: 'Қосу',
+        ru: 'Импортировать из таблицы',
+        en: 'Import from spreadsheet',
+        kk: 'Кестеден импорттау',
       }),
       successText: t({
-        ru: 'После подключения новые транзакции будут автоматически появляться в этой таблице.',
-        en: 'After connecting, new transactions will appear in this sheet automatically.',
-        kk: 'Қосылғаннан кейін жаңа транзакциялар осы кестеде автоматты түрде пайда болады.',
+        ru: 'После выбора таблицы Lumio сохранит подключение и сможет использовать лист для импорта и дальнейшей синхронизации.',
+        en: 'After selection, Lumio saves the connection and can use the worksheet for import and future sync.',
+        kk: 'Таңдаудан кейін Lumio қосылымды сақтап, парақты импорт пен кейінгі синхрон үшін қолдана алады.',
       }),
     },
     step2: {

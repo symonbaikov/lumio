@@ -73,17 +73,32 @@ const content = {
         kk: 'Google Sheet қосылымы',
       }),
       selectPlaceholder: t({ ru: '— выберите —', en: '— select —', kk: '— таңдаңыз —' }),
+      emptyHint: t({
+        ru: 'Сначала подключите Google аккаунт и выберите таблицу в интеграции Google Sheets.',
+        en: 'First connect your Google account and choose a spreadsheet in Google Sheets integration.',
+        kk: 'Алдымен Google аккаунтын қосып, Google Sheets интеграциясында кестені таңдаңыз.',
+      }),
+      emptyAction: t({
+        ru: 'Открыть интеграцию',
+        en: 'Open integration',
+        kk: 'Интеграцияны ашу',
+      }),
       oauthNeededSuffix: t({ ru: ' (нужна OAuth)', en: ' (OAuth required)', kk: ' (OAuth қажет)' }),
       worksheetLabel: t({ ru: 'Лист (worksheet)', en: 'Worksheet', kk: 'Парақ (worksheet)' }),
       worksheetPlaceholder: t({
-        ru: 'Например: Реестр платежей',
-        en: 'e.g. Payments registry',
-        kk: 'Мысалы: Төлемдер тізілімі',
+        ru: 'Выберите лист',
+        en: 'Choose worksheet',
+        kk: 'Парақты таңдаңыз',
+      }),
+      worksheetLoading: t({
+        ru: 'Загружаем листы…',
+        en: 'Loading worksheets…',
+        kk: 'Парақтар жүктелуде…',
       }),
       worksheetHelp: t({
-        ru: 'Если не указать — используем лист из подключения или первый лист.',
-        en: 'If empty, we will use the worksheet from the connection or the first sheet.',
-        kk: 'Бос болса — қосылымдағы парақты немесе бірінші парақты қолданамыз.',
+        ru: 'Если список пустой, будет использован лист из подключения или первый лист таблицы.',
+        en: 'If the list is empty, Lumio uses the worksheet from the connection or the first sheet.',
+        kk: 'Тізім бос болса, Lumio қосылымдағы парақты немесе кестенің бірінші парағын қолданады.',
       }),
       rangeLabel: t({
         ru: 'Range (опционально)',

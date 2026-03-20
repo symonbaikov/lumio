@@ -36,7 +36,9 @@ export class GoogleSheetsApiService {
   constructor(private configService: ConfigService) {
     const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
     const clientSecret = this.configService.get<string>('GOOGLE_CLIENT_SECRET');
-    const redirectUri = this.configService.get<string>('GOOGLE_REDIRECT_URI');
+    const redirectUri =
+      this.configService.get<string>('GOOGLE_SHEETS_REDIRECT_URI') ||
+      this.configService.get<string>('GOOGLE_REDIRECT_URI');
 
     if (!clientId || !clientSecret) {
       this.logger.warn('Google OAuth credentials not configured');
@@ -135,6 +137,45 @@ export class GoogleSheetsApiService {
     } catch (error) {
       this.logger.error('Failed to read spreadsheet info:', error);
       throw new BadRequestException('Не удалось прочитать Google Sheet. Проверьте права доступа.');
+    }
+  }
+
+  async getUserInfo(accessToken: string): Promise<{ email: string | null }> {
+    this.oauth2Client.setCredentials({ access_token: accessToken });
+
+    try {
+      const oauth2 = google.oauth2({ version: 'v2', auth: this.oauth2Client });
+      const response = await oauth2.userinfo.get();
+      return {
+        email: response.data.email || null,
+      };
+    } catch (error) {
+      this.logger.warn('Failed to read Google account info', error);
+      return { email: null };
+    }
+  }
+
+  async listWorksheets(
+    accessToken: string,
+    spreadsheetId: string,
+  ): Promise<Array<{ title: string; index: number; rowCount: number; columnCount: number }>> {
+    const sheets = this.getSheetsClient(accessToken);
+
+    try {
+      const response = await sheets.spreadsheets.get({
+        spreadsheetId,
+        fields: 'sheets(properties(title,index,gridProperties(rowCount,columnCount)))',
+      });
+
+      return (response.data.sheets || []).map(sheet => ({
+        title: sheet.properties?.title || 'Sheet1',
+        index: sheet.properties?.index || 0,
+        rowCount: sheet.properties?.gridProperties?.rowCount || 0,
+        columnCount: sheet.properties?.gridProperties?.columnCount || 0,
+      }));
+    } catch (error) {
+      this.logger.error('Failed to list worksheets:', error);
+      throw new BadRequestException('Не удалось получить список листов Google Sheets.');
     }
   }
 

@@ -1,8 +1,16 @@
 'use client';
 
+import { GoogleSheetsPickerButton } from '@/app/components/GoogleSheetsPickerButton';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
+import { getGoogleSheetsIntegrationCopy } from '@/app/lib/googleSheetsIntegrationCopy';
+import { getGoogleSheetsPickerState } from '@/app/lib/googleSheetsPickerState';
+import {
+  type SpreadsheetSelection,
+  type WorksheetOption,
+  getDefaultWorksheetName,
+} from '@/app/lib/googleSheetsSelection';
 import {
   AlertCircle,
   CheckCircle2,
@@ -29,37 +37,32 @@ interface GoogleSheetConnection {
   createdAt?: string;
 }
 
-const parseSpreadsheetId = (input: string): string | null => {
-  const trimmed = input.trim();
-  if (!trimmed) return null;
-
-  const match = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  if (match?.[1]) {
-    return match[1];
-  }
-
-  return trimmed;
+type AuthStatus = {
+  connected: boolean;
+  email?: string | null;
 };
 
-const encodeOauthState = (payload: Record<string, unknown>): string | null => {
-  try {
-    const json = JSON.stringify(payload);
-    const base64 = btoa(unescape(encodeURIComponent(json)));
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-  } catch {
-    return null;
-  }
+type PickerTokenResponse = {
+  accessToken: string;
+  apiKey?: string;
 };
 
 export default function GoogleSheetsIntegrationPage() {
   const { user, loading: authLoading } = useAuth();
   const t = useIntlayer('googleSheetsIntegrationPage');
+  const copy = getGoogleSheetsIntegrationCopy(t);
   const { locale } = useLocale();
-  const [sheetUrl, setSheetUrl] = useState('');
-  const [sheetName, setSheetName] = useState('');
+  const [authStatus, setAuthStatus] = useState<AuthStatus>({ connected: false, email: null });
+  const [pickerAccessToken, setPickerAccessToken] = useState('');
+  const [pickerApiKey, setPickerApiKey] = useState('');
+  const [selectedSpreadsheet, setSelectedSpreadsheet] = useState<SpreadsheetSelection | null>(null);
+  const [worksheets, setWorksheets] = useState<WorksheetOption[]>([]);
   const [worksheetName, setWorksheetName] = useState('');
+  const [sheetName, setSheetName] = useState('');
   const [connections, setConnections] = useState<GoogleSheetConnection[]>([]);
   const [loadingList, setLoadingList] = useState(false);
+  const [connectingAccount, setConnectingAccount] = useState(false);
+  const [loadingWorksheets, setLoadingWorksheets] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -67,53 +70,107 @@ export default function GoogleSheetsIntegrationPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadConnections();
-    }
-  }, [user]);
+  const pickerState = getGoogleSheetsPickerState({
+    connected: authStatus.connected,
+    accessToken: pickerAccessToken,
+    apiKey: pickerApiKey,
+  });
 
   const loadConnections = async () => {
     try {
       setLoadingList(true);
-      setError(null);
       const response = await apiClient.get('/google-sheets');
       const items: GoogleSheetConnection[] = response.data?.data || response.data || [];
       setConnections(items);
-    } catch (err) {
-      console.error('Failed to load google sheets', err);
+    } catch {
       setError(t.errors.loadConnections.value);
     } finally {
       setLoadingList(false);
     }
   };
 
-  const startOauth = async (payload: {
-    sheetId: string;
-    sheetName?: string;
-    worksheetName?: string;
-  }) => {
-    const state = encodeOauthState({
-      sheetId: payload.sheetId,
-      sheetName: payload.sheetName?.trim() || undefined,
-      worksheetName: payload.worksheetName?.trim() || undefined,
-      from: 'integrations/google-sheets',
-    });
-    const resp = await apiClient.get('/google-sheets/oauth/url', {
-      params: { state: state || undefined },
-    });
-    const url = resp.data?.url;
-    if (!url) {
-      throw new Error(t.errors.missingAuthUrl.value);
+  const loadAuthStatus = async () => {
+    try {
+      const response = await apiClient.get('/google-sheets/oauth/status');
+      const status: AuthStatus = response.data?.data || response.data || { connected: false };
+      setAuthStatus(status);
+
+      if (status.connected) {
+        const tokenResponse = await apiClient.get('/google-sheets/picker-token');
+        const picker: PickerTokenResponse = tokenResponse.data?.data || tokenResponse.data || {};
+        setPickerAccessToken(picker.accessToken || '');
+        setPickerApiKey(picker.apiKey || '');
+      } else {
+        setPickerAccessToken('');
+        setPickerApiKey('');
+      }
+    } catch {
+      setAuthStatus({ connected: false, email: null });
+      setPickerAccessToken('');
+      setPickerApiKey('');
     }
-    window.location.href = url;
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    void loadConnections();
+    void loadAuthStatus();
+  }, [user]);
+
+  const startOauth = async () => {
+    try {
+      setConnectingAccount(true);
+      setError(null);
+      const resp = await apiClient.get('/google-sheets/oauth/url', {
+        params: { state: 'integrations/google-sheets' },
+      });
+      const url = resp.data?.url;
+      if (!url) {
+        throw new Error(t.errors.missingAuthUrl.value);
+      }
+      toast.success(t.toasts.openingAuth.value);
+      window.location.href = url;
+    } catch (err: any) {
+      const message = err?.response?.data?.message || t.errors.connectFailed.value;
+      setError(message);
+      toast.error(message);
+    } finally {
+      setConnectingAccount(false);
+    }
+  };
+
+  const loadWorksheets = async (spreadsheetId: string) => {
+    try {
+      setLoadingWorksheets(true);
+      const response = await apiClient.get(
+        `/google-sheets/spreadsheets/${spreadsheetId}/worksheets`,
+      );
+      const items: WorksheetOption[] = response.data?.data || response.data || [];
+      setWorksheets(items);
+      setWorksheetName(current => getDefaultWorksheetName(current, items));
+    } catch (err: any) {
+      const message = err?.response?.data?.message || copy.errors.loadWorksheets;
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoadingWorksheets(false);
+    }
+  };
+
+  const handleSpreadsheetPick = async (selection: SpreadsheetSelection) => {
+    setSelectedSpreadsheet(selection);
+    setSheetName(selection.name);
+    setWorksheetName('');
+    setWorksheets([]);
+    setSuccess(null);
+    setError(null);
+    await loadWorksheets(selection.spreadsheetId);
   };
 
   const handleConnect = async () => {
-    const parsedId = parseSpreadsheetId(sheetUrl);
-    if (!parsedId) {
-      setError(t.errors.sheetIdMissing.value);
-      toast.error(t.errors.sheetIdMissing.value);
+    if (!selectedSpreadsheet) {
+      setError(copy.errors.spreadsheetRequired);
+      toast.error(copy.errors.spreadsheetRequired);
       return;
     }
 
@@ -121,12 +178,14 @@ export default function GoogleSheetsIntegrationPage() {
       setSubmitting(true);
       setError(null);
       setSuccess(null);
-      toast.success(t.toasts.openingAuth.value);
-      await startOauth({
-        sheetId: parsedId,
-        sheetName,
-        worksheetName,
+      await apiClient.post('/google-sheets/connect-with-picker', {
+        spreadsheetId: selectedSpreadsheet.spreadsheetId,
+        sheetName: sheetName.trim() || undefined,
+        worksheetName: worksheetName.trim() || undefined,
       });
+      setSuccess(copy.toasts.connected);
+      toast.success(copy.toasts.connected);
+      await loadConnections();
     } catch (err: any) {
       const message = err?.response?.data?.message || t.errors.connectFailed.value;
       setError(message);
@@ -210,18 +269,18 @@ export default function GoogleSheetsIntegrationPage() {
 
       {(error || success) && (
         <div className="mb-4 space-y-2">
-          {success && (
+          {success ? (
             <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">
               <CheckCircle2 className="h-4 w-4" />
               <span>{success}</span>
             </div>
-          )}
-          {error && (
+          ) : null}
+          {error ? (
             <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-800">
               <AlertCircle className="h-4 w-4" />
               <span>{error}</span>
             </div>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -241,17 +300,103 @@ export default function GoogleSheetsIntegrationPage() {
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
+              <div
+                className="rounded-lg border border-gray-200 bg-gray-50 p-3"
+                data-tour-id="gs-integration-account"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {copy.step1.accountLabel}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {authStatus.connected
+                        ? copy.step1.connectedAs.replace('{email}', authStatus.email || 'Google')
+                        : copy.step1.accountHelp}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={startOauth}
+                    disabled={connectingAccount}
+                    data-tour-id="gs-integration-connect-account"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {connectingAccount ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    {authStatus.connected
+                      ? copy.step1.reconnectButton
+                      : copy.step1.connectAccountButton}
+                  </button>
+                </div>
+              </div>
+
+              <div
+                className="rounded-lg border border-gray-200 p-3"
+                data-tour-id="gs-integration-picker"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {copy.step1.spreadsheetLabel}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {selectedSpreadsheet?.name || copy.step1.spreadsheetHelp}
+                    </div>
+                  </div>
+                  <GoogleSheetsPickerButton
+                    accessToken={pickerAccessToken}
+                    apiKey={pickerApiKey}
+                    disabled={!pickerState.canOpen}
+                    onPick={handleSpreadsheetPick}
+                    onError={message => {
+                      setError(message);
+                      toast.error(message);
+                    }}
+                    label={copy.step1.chooseSpreadsheetButton}
+                    loadingLabel={copy.step1.chooseSpreadsheetLoading}
+                  />
+                </div>
+                {!pickerState.canOpen ? (
+                  <div className="mt-2 text-xs text-amber-700">
+                    {pickerState.reason === 'missing_api_key'
+                      ? 'Google Picker API key is missing. Add NEXT_PUBLIC_GOOGLE_API_KEY to your frontend env and restart the frontend.'
+                      : pickerState.reason === 'missing_access_token'
+                        ? 'Google Picker access token is missing. Reconnect Google account or reload the page after backend restart.'
+                        : 'Connect a Google account first.'}
+                  </div>
+                ) : null}
+                {selectedSpreadsheet?.url ? (
+                  <a
+                    href={selectedSpreadsheet.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    {copy.step1.openSpreadsheet}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : null}
+              </div>
+
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">{t.step1.sheetUrlLabel}</span>
-                <input
-                  type="text"
-                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  placeholder={t.step1.sheetUrlPlaceholder.value}
-                  value={sheetUrl}
-                  onChange={e => setSheetUrl(e.target.value)}
-                  data-tour-id="gs-integration-sheet-url"
-                />
+                <span className="text-sm font-medium text-gray-700">{t.step1.worksheetLabel}</span>
+                <select
+                  value={worksheetName}
+                  onChange={e => setWorksheetName(e.target.value)}
+                  data-tour-id="gs-integration-worksheet"
+                  disabled={!selectedSpreadsheet || loadingWorksheets}
+                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+                >
+                  <option value="">
+                    {loadingWorksheets ? copy.step1.loadingWorksheets : copy.step1.selectWorksheet}
+                  </option>
+                  {worksheets.map(item => (
+                    <option key={item.title} value={item.title}>
+                      {item.title}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className="block">
@@ -267,26 +412,14 @@ export default function GoogleSheetsIntegrationPage() {
                 <div className="mt-1 text-xs text-gray-500">{t.step1.nameHelp}</div>
               </label>
 
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">{t.step1.worksheetLabel}</span>
-                <input
-                  type="text"
-                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  placeholder={t.step1.worksheetPlaceholder.value}
-                  value={worksheetName}
-                  onChange={e => setWorksheetName(e.target.value)}
-                  data-tour-id="gs-integration-worksheet"
-                />
-              </label>
-
               <button
                 type="button"
                 onClick={handleConnect}
-                disabled={submitting}
+                disabled={submitting || !selectedSpreadsheet}
                 data-tour-id="gs-integration-connect"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70 w-fit"
               >
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {t.step1.connectButton}
               </button>
 
@@ -344,17 +477,17 @@ export default function GoogleSheetsIntegrationPage() {
                   <ChevronDown className="h-4 w-4" />
                 )}
               </button>
-              {showTechnicalDetails && (
+              {showTechnicalDetails ? (
                 <div className="mt-3 rounded-lg bg-gray-50 border border-dashed border-gray-200 px-3 py-2 text-xs text-gray-600">
                   {t.step2.webhookEndpointLabel.value}:{' '}
-                  <code className="font-mono">/api/v1/integrations/google-sheets/update</code>{' '}
+                  <code className="font-mono">/api/v1/integrations/google-sheets/update</code>
                   <br />
                   {t.step2.webhookHeaderLabel.value}:{' '}
                   <code className="font-mono">
                     X-Webhook-Token: &lt;{t.step2.webhookTokenHint.value}&gt;
                   </code>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -406,11 +539,11 @@ export default function GoogleSheetsIntegrationPage() {
                             )}
                           </div>
                           <p className="text-xs text-gray-500 mt-1 break-all">ID: {item.sheetId}</p>
-                          {item.worksheetName && (
+                          {item.worksheetName ? (
                             <p className="text-xs text-gray-500">
                               {t.list.fields.worksheetPrefix.value}: {item.worksheetName}
                             </p>
-                          )}
+                          ) : null}
                           <p className="text-xs text-gray-500">
                             {t.list.fields.lastSyncPrefix.value}:{' '}
                             {item.lastSync
@@ -422,23 +555,17 @@ export default function GoogleSheetsIntegrationPage() {
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {item.oauthConnected === false && (
+                        {item.oauthConnected === false ? (
                           <button
                             type="button"
-                            onClick={() =>
-                              startOauth({
-                                sheetId: item.sheetId,
-                                sheetName: item.sheetName,
-                                worksheetName: item.worksheetName || undefined,
-                              })
-                            }
+                            onClick={startOauth}
                             data-tour-id={index === 0 ? 'gs-integration-authorize' : undefined}
                             className="inline-flex items-center justify-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100"
                           >
                             <Plug className="h-4 w-4" />
                             {t.list.actions.authorize}
                           </button>
-                        )}
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => handleSync(item.id)}

@@ -1,12 +1,8 @@
 import { IsOptional, IsString } from 'class-validator';
 
-export class OAuthCallbackDto {
+export class ConnectPickerSheetDto {
   @IsString()
-  code: string;
-
-  @IsString()
-  @IsOptional()
-  sheetId?: string;
+  spreadsheetId: string;
 
   @IsString()
   @IsOptional()

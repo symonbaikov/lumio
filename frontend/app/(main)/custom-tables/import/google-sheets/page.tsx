@@ -4,6 +4,7 @@ import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
+import { type WorksheetOption, getDefaultWorksheetName } from '@/app/lib/googleSheetsSelection';
 import { Icon } from '@iconify/react';
 import { Loader2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
@@ -64,6 +65,8 @@ export default function GoogleSheetsImportPage() {
 
   const [googleSheetId, setGoogleSheetId] = useState('');
   const [worksheetName, setWorksheetName] = useState('');
+  const [worksheetOptions, setWorksheetOptions] = useState<WorksheetOption[]>([]);
+  const [loadingWorksheets, setLoadingWorksheets] = useState(false);
   const [range, setRange] = useState('');
   const [layoutType, setLayoutType] = useState<LayoutType>('auto');
   const [headerRowIndex, setHeaderRowIndex] = useState(0);
@@ -127,6 +130,33 @@ export default function GoogleSheetsImportPage() {
     const nextWorksheet = selectedConnection.worksheetName || '';
     setWorksheetName(prev => prev || nextWorksheet);
     setTableName(prev => prev || selectedConnection.sheetName || t.defaults.tableName.value);
+  }, [selectedConnection]);
+
+  useEffect(() => {
+    const loadWorksheets = async () => {
+      if (!selectedConnection?.sheetId || selectedConnection.oauthConnected === false) {
+        setWorksheetOptions([]);
+        return;
+      }
+
+      try {
+        setLoadingWorksheets(true);
+        const response = await apiClient.get(
+          `/google-sheets/spreadsheets/${selectedConnection.sheetId}/worksheets`,
+        );
+        const items: WorksheetOption[] = response.data?.data || response.data || [];
+        setWorksheetOptions(items);
+        setWorksheetName(current =>
+          getDefaultWorksheetName(current || selectedConnection.worksheetName || '', items),
+        );
+      } catch (error) {
+        setWorksheetOptions([]);
+      } finally {
+        setLoadingWorksheets(false);
+      }
+    };
+
+    void loadWorksheets();
   }, [selectedConnection]);
 
   const handlePreview = async () => {
@@ -310,6 +340,8 @@ export default function GoogleSheetsImportPage() {
                   setGoogleSheetId(e.target.value);
                   setPreview(null);
                   setColumns([]);
+                  setWorksheetOptions([]);
+                  setWorksheetName('');
                 }}
                 data-tour-id="gs-import-connection"
                 className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
@@ -324,15 +356,33 @@ export default function GoogleSheetsImportPage() {
               </select>
             </label>
 
+            {!connections.length && !loadingConnections ? (
+              <div className="mb-3 rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+                {t.source.emptyHint}{' '}
+                <Link href="/integrations/google-sheets" className="text-primary hover:underline">
+                  {t.source.emptyAction}
+                </Link>
+              </div>
+            ) : null}
+
             <label className="block mb-3">
               <span className="text-sm font-medium text-gray-700">{t.source.worksheetLabel}</span>
-              <input
+              <select
                 value={worksheetName}
                 onChange={e => setWorksheetName(e.target.value)}
                 data-tour-id="gs-import-worksheet"
                 className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
-                placeholder={t.source.worksheetPlaceholder.value}
-              />
+                disabled={!selectedConnection || loadingWorksheets}
+              >
+                <option value="">
+                  {loadingWorksheets ? t.source.worksheetLoading : t.source.worksheetPlaceholder}
+                </option>
+                {worksheetOptions.map(item => (
+                  <option key={item.title} value={item.title}>
+                    {item.title}
+                  </option>
+                ))}
+              </select>
               <div className="mt-1 text-xs text-gray-500">{t.source.worksheetHelp}</div>
             </label>
 

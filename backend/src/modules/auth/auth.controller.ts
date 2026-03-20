@@ -6,6 +6,8 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
+  Redirect,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -24,6 +26,10 @@ import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  private getFrontendBaseUrl() {
+    return process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
+  }
 
   private extractSessionContext(req: any): SessionContext {
     const forwardedForHeader = req?.headers?.['x-forwarded-for'];
@@ -60,6 +66,40 @@ export class AuthController {
     @Req() req: any,
   ): Promise<AuthResponseDto> {
     return this.authService.loginWithGoogle(googleLoginDto, this.extractSessionContext(req));
+  }
+
+  @Public()
+  @Get('google/callback')
+  @Redirect()
+  handleGoogleCallback(
+    @Query('state') state?: string,
+    @Query('code') code?: string,
+    @Query('error') error?: string,
+  ) {
+    if (state === 'integrations/google-sheets') {
+      const frontendBaseUrl = this.getFrontendBaseUrl();
+      const params = new URLSearchParams();
+
+      if (code) {
+        params.set('code', code);
+      }
+      if (state) {
+        params.set('state', state);
+      }
+      if (error) {
+        params.set('error', error);
+      }
+
+      return {
+        statusCode: 302,
+        url: `${frontendBaseUrl}/google-sheets/callback?${params.toString()}`,
+      };
+    }
+
+    return {
+      statusCode: 302,
+      url: `${this.getFrontendBaseUrl()}/login?google_callback=unsupported`,
+    };
   }
 
   @Public()
