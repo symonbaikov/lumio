@@ -93,7 +93,7 @@
     "swagger-ui-express": "^5.0.1",
     "tesseract.js": "^5.1.1",
     "typeorm": "^0.3.27",
-    "uuid": "^9.0.1",
+    "uuid": "^13.0.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
