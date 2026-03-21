@@ -30,7 +30,7 @@
     "@dicebear/core": "^9.3.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@heroui/breadcrumbs": "^2.2.24",
+    "@heroui/breadcrumbs": "^2.2.25",
     "@heroui/checkbox": "^2.3.31",
     "@heroui/pagination": "^2.2.26",
     "@heroui/system": "^2.4.27",
