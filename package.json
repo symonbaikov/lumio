@@ -38,7 +38,7 @@
     "@joeattardi/emoji-button": "^4.6.4",
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.7",
-    "@react-email/components": "^1.0.4",
+    "@react-email/components": "^1.0.9",
     "driver.js": "^1.4.0",
     "echarts": "^6.0.0",
     "framer-motion": "^12.34.3",
