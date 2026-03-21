@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@dicebear/collection": "^9.3.1",
-    "@dicebear/core": "^9.3.1",
+    "@dicebear/core": "^9.4.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@heroui/breadcrumbs": "^2.2.24",
