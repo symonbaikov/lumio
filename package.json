@@ -36,7 +36,7 @@
     "@heroui/system": "^2.4.27",
     "@heroui/theme": "^2.4.26",
     "@joeattardi/emoji-button": "^4.6.4",
-    "@mui/icons-material": "^7.3.7",
+    "@mui/icons-material": "^7.3.9",
     "@mui/material": "^7.3.7",
     "@react-email/components": "^1.0.4",
     "driver.js": "^1.4.0",
