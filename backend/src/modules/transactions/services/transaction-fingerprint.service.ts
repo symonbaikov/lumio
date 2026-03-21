@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, IsNull, Repository } from 'typeorm';
+import { Brackets, IsNull, Repository } from 'typeorm';
 import { generateTransactionFingerprint } from '../../../common/utils/fingerprint.util';
 import { Transaction, TransactionType } from '../../../entities/transaction.entity';
 
@@ -161,26 +161,25 @@ export class TransactionFingerprintService {
       return [];
     }
 
-    const candidates = new Map<string, Transaction>();
-
-    for (const range of amountRanges) {
-      if (candidates.size >= limit) break;
-      const found = await this.transactionRepository.find({
-        where: {
-          workspaceId,
-          transactionDate: Between(dateRange.start, dateRange.end),
-          amount: Between(range.min, range.max),
-        },
-        take: Math.min(limit - candidates.size, 250),
-      });
-
-      for (const tx of found) {
-        candidates.set(tx.id, tx);
-        if (candidates.size >= limit) break;
-      }
-    }
-
-    return Array.from(candidates.values());
+    return this.transactionRepository
+      .createQueryBuilder('transaction')
+      .where('transaction.workspaceId = :workspaceId', { workspaceId })
+      .andWhere('transaction.transactionDate BETWEEN :start AND :end', {
+        start: dateRange.start,
+        end: dateRange.end,
+      })
+      .andWhere(
+        new Brackets(qb => {
+          amountRanges.forEach((range, i) => {
+            qb.orWhere(`transaction.amount BETWEEN :min${i} AND :max${i}`, {
+              [`min${i}`]: range.min,
+              [`max${i}`]: range.max,
+            });
+          });
+        }),
+      )
+      .take(limit)
+      .getMany();
   }
 
   /**

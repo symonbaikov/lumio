@@ -188,6 +188,40 @@ export class IntelligentDeduplicationService {
 
   private customRules: DeduplicationRule[] = [];
 
+  private readonly stopWords = new Set([
+    'the',
+    'and',
+    'or',
+    'but',
+    'in',
+    'on',
+    'at',
+    'to',
+    'for',
+    'of',
+    'with',
+    'by',
+    'и',
+    'в',
+    'на',
+    'с',
+    'по',
+    'для',
+    'от',
+    'к',
+    'у',
+    'за',
+    'через',
+    'да',
+    'нет',
+    'или',
+    'но',
+    'если',
+    'потому',
+    'также',
+    'еще',
+  ]);
+
   async deduplicateTransactions(
     transactions: ParsedTransaction[],
     customRules?: DeduplicationRule[],
@@ -338,40 +372,7 @@ export class IntelligentDeduplicationService {
   }
 
   private isStopWord(word: string): boolean {
-    const stopWords = new Set([
-      'the',
-      'and',
-      'or',
-      'but',
-      'in',
-      'on',
-      'at',
-      'to',
-      'for',
-      'of',
-      'with',
-      'by',
-      'и',
-      'в',
-      'на',
-      'с',
-      'по',
-      'для',
-      'от',
-      'к',
-      'у',
-      'за',
-      'через',
-      'да',
-      'нет',
-      'или',
-      'но',
-      'если',
-      'потому',
-      'также',
-      'еще',
-    ]);
-    return stopWords.has(word);
+    return this.stopWords.has(word);
   }
 
   private categorizeAmount(amount: number): string {
@@ -402,6 +403,7 @@ export class IntelligentDeduplicationService {
   ): Promise<DuplicateGroup[]> {
     const duplicateGroups: DuplicateGroup[] = [];
     const processed = new Set<number>();
+    const enabledRules = rules.filter(r => r.enabled);
 
     for (let i = 0; i < preprocessedTransactions.length; i++) {
       if (processed.has(i)) continue;
@@ -421,7 +423,7 @@ export class IntelligentDeduplicationService {
         const other = preprocessedTransactions[j];
 
         // Apply each enabled rule
-        for (const rule of rules.filter(r => r.enabled)) {
+        for (const rule of enabledRules) {
           const matchResult = await this.applyRule(current, other, rule);
           if (matchResult.score >= rule.threshold) {
             potentialDuplicates.push({
