@@ -193,9 +193,11 @@ export abstract class BaseParser implements IParser {
     // Check if bank profiles are enabled
     if (this.featureFlagService.shouldUseBankProfiles()) {
       const profiles = this.bankProfileService.findProfilesByLanguage(language);
+      const allProfilesMap = new Map(
+        this.bankProfileService.getAllProfiles().map(p => [p.profile, p.id]),
+      );
       for (const profile of profiles) {
-        const profileId =
-          this.bankProfileService.getAllProfiles().find(p => p.profile === profile)?.id || '';
+        const profileId = allProfilesMap.get(profile) || '';
         if (profileId) {
           const fieldType = this.bankProfileService.matchColumnHeader(profileId, header);
           if (fieldType) {
