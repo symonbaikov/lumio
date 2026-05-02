@@ -9,6 +9,8 @@ interface LumioDesktopAPI {
   showNotification: (title: string, body: string) => void;
   /** Trigger a manual check for app updates */
   checkForUpdates: () => void;
+  /** Resize the desktop window for onboarding integration setup */
+  resizeForOnboardingIntegration: () => Promise<boolean>;
 }
 
 interface Window {

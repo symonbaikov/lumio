@@ -26,7 +26,7 @@ type ProtocolFile = {
   modifiedAt: string | null;
 };
 
-type ProtocolIntegrationPageProps = {
+export type ProtocolIntegrationPageProps = {
   title: string;
   description: string;
   statusPath: string;
@@ -39,9 +39,15 @@ type ProtocolIntegrationPageProps = {
   filesPath?: string;
   importPath?: string;
   syncPath?: string;
+  embedded?: boolean;
+  onStatusChange?: (connected: boolean) => void;
 };
 
-type ConfigField = {
+function isProtocolConnected(status: ProtocolStatus): boolean {
+  return Boolean(status.connected) || status.status === 'connected';
+}
+
+export type ConfigField = {
   name: string;
   label: string;
   type?: 'text' | 'password' | 'number' | 'checkbox';
@@ -62,6 +68,8 @@ export function ProtocolIntegrationPage({
   filesPath,
   importPath,
   syncPath,
+  embedded = false,
+  onStatusChange,
 }: ProtocolIntegrationPageProps): React.JSX.Element {
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
@@ -81,6 +89,7 @@ export function ProtocolIntegrationPage({
         if (mounted) {
           setStatus(response.data);
           setForm(buildInitialForm(fields, response.data.settings || {}));
+          onStatusChange?.(isProtocolConnected(response.data));
         }
       })
       .catch(() => {
@@ -93,9 +102,9 @@ export function ProtocolIntegrationPage({
     return () => {
       mounted = false;
     };
-  }, [fields, statusPath]);
+  }, [fields, onStatusChange, statusPath]);
 
-  const connected = Boolean(status?.connected);
+  const connected = status ? isProtocolConnected(status) : false;
   const canDisconnect = connected && status?.source !== 'env';
 
   const saveSettings = async (): Promise<void> => {
@@ -108,6 +117,7 @@ export function ProtocolIntegrationPage({
           : await apiClient.post<ProtocolStatus>(settingsPath, form);
       setStatus(response.data);
       setForm(buildInitialForm(fields, response.data.settings || {}));
+      onStatusChange?.(isProtocolConnected(response.data));
       setActionMessage('Connected');
     } catch {
       setActionMessage('Connection failed. Check the fields and try again.');
@@ -123,6 +133,7 @@ export function ProtocolIntegrationPage({
       await apiClient.delete(disconnectPath);
       const response = await apiClient.get<ProtocolStatus>(statusPath);
       setStatus(response.data);
+      onStatusChange?.(isProtocolConnected(response.data));
       setActionMessage('Disconnected');
     } catch {
       setActionMessage('Unable to disconnect');
@@ -169,43 +180,54 @@ export function ProtocolIntegrationPage({
   };
 
   return (
-    <Box sx={{ maxWidth: 960, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 } }}>
+    <Box
+      sx={{
+        maxWidth: embedded ? 'none' : 960,
+        mx: 'auto',
+        px: embedded ? 0 : { xs: 2, md: 4 },
+        py: embedded ? 0 : { xs: 3, md: 5 },
+      }}
+    >
       <Stack spacing={3}>
-        <Link
-          href="/integrations"
-          style={{ color: c.ink600, fontSize: 14, textDecoration: 'none' }}
-        >
-          Back to integrations
-        </Link>
-
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: tokens.radius.md,
-              bgcolor: connected ? c.successSoft : c.ink100,
-              color: connected ? c.success : c.ink600,
-              display: 'grid',
-              placeItems: 'center',
-              flexShrink: 0,
-            }}
+        {!embedded ? (
+          <Link
+            href="/integrations"
+            style={{ color: c.ink600, fontSize: 14, textDecoration: 'none' }}
           >
-            {connected ? (
-              <CheckCircleOutlineOutlinedIcon sx={{ fontSize: 24 }} aria-hidden="true" />
-            ) : (
-              icon ?? <ExtensionOutlinedIcon sx={{ fontSize: 24 }} aria-hidden="true" />
-            )}
+            Back to integrations
+          </Link>
+        ) : null}
+
+        {!embedded ? (
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: tokens.radius.md,
+                bgcolor: connected ? c.successSoft : c.ink100,
+                color: connected ? c.success : c.ink600,
+                display: 'grid',
+                placeItems: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {connected ? (
+                <CheckCircleOutlineOutlinedIcon sx={{ fontSize: 24 }} aria-hidden="true" />
+              ) : (
+                (icon ?? <ExtensionOutlinedIcon sx={{ fontSize: 24 }} aria-hidden="true" />)
+              )}
+            </Box>
+            <Stack spacing={0.75}>
+              <Typography component="h1" sx={{ color: c.ink900, fontSize: 28, fontWeight: 700 }}>
+                {title}
+              </Typography>
+              <Typography sx={{ color: c.ink600, fontSize: 15, lineHeight: 1.6 }}>
+                {description}
+              </Typography>
+            </Stack>
           </Box>
-          <Stack spacing={0.75}>
-            <Typography component="h1" sx={{ color: c.ink900, fontSize: 28, fontWeight: 700 }}>
-              {title}
-            </Typography>
-            <Typography sx={{ color: c.ink600, fontSize: 15, lineHeight: 1.6 }}>
-              {description}
-            </Typography>
-          </Stack>
-        </Box>
+        ) : null}
 
         <Box
           sx={{
@@ -217,7 +239,9 @@ export function ProtocolIntegrationPage({
         >
           <Stack spacing={2}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography sx={{ color: c.ink900, fontSize: 18, fontWeight: 650 }}>Status</Typography>
+              <Typography sx={{ color: c.ink900, fontSize: 18, fontWeight: 650 }}>
+                Status
+              </Typography>
               <Typography
                 sx={{
                   color: connected ? c.success : c.ink600,
@@ -278,7 +302,9 @@ export function ProtocolIntegrationPage({
               </Box>
             </Box>
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}>
+            <Box
+              sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}
+            >
               {fields.map(field => (
                 <label key={field.name} style={{ display: 'grid', gap: 6 }}>
                   <Typography sx={{ color: c.ink700, fontSize: 13, fontWeight: 600 }}>
@@ -304,7 +330,9 @@ export function ProtocolIntegrationPage({
                         setForm(prev => ({
                           ...prev,
                           [field.name]:
-                            field.type === 'number' ? Number(event.target.value) : event.target.value,
+                            field.type === 'number'
+                              ? Number(event.target.value)
+                              : event.target.value,
                         }))
                       }
                       style={inputStyle(c)}
@@ -405,7 +433,6 @@ export function ProtocolIntegrationPage({
             </Stack>
           </Box>
         )}
-
       </Stack>
     </Box>
   );

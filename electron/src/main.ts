@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain, dialog, Notification, Menu } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, dialog, Notification, Menu, screen } from 'electron';
 import * as path from 'path';
 import { getLoadURL, isDev } from './config';
 import { getSavedWindowState, trackWindowState } from './window-state';
@@ -175,6 +175,23 @@ function createApplicationMenu(): void {
 
 function registerIpcHandlers(): void {
   ipcMain.handle('get-app-version', () => app.getVersion());
+
+  ipcMain.handle('resize-for-onboarding-integration', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win || win.isDestroyed() || win.isMaximized() || win.isFullScreen()) {
+      return false;
+    }
+
+    const bounds = win.getBounds();
+    const workArea = screen.getDisplayMatching(bounds).workArea;
+    const width = Math.min(1280, workArea.width);
+    const height = Math.min(900, workArea.height);
+    const x = Math.round(workArea.x + (workArea.width - width) / 2);
+    const y = Math.round(workArea.y + (workArea.height - height) / 2);
+
+    win.setBounds({ x, y, width, height }, true);
+    return true;
+  });
 
   ipcMain.on('show-notification', (_event, { title, body }: { title: string; body: string }) => {
     new Notification({ title, body }).show();

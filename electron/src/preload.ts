@@ -10,4 +10,6 @@ contextBridge.exposeInMainWorld('lumioDesktop', {
   checkForUpdates: (): void => {
     ipcRenderer.send('check-for-updates');
   },
+  resizeForOnboardingIntegration: (): Promise<boolean> =>
+    ipcRenderer.invoke('resize-for-onboarding-integration'),
 });

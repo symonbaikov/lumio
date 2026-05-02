@@ -1,11 +1,10 @@
 'use client';
 
 import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
+import { Check, Receipt } from '@/app/components/icons';
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
-import Box from '@mui/material/Box';
-import { Receipt } from '@/app/components/icons';
-import { Check } from '@/app/components/icons';
 import { tokens } from '@/lib/theme-tokens';
+import Box from '@mui/material/Box';
 
 type FilterOptionRowProps = {
   label: string;
@@ -42,7 +41,7 @@ export function FilterOptionRow({
         justifyContent: 'center',
         width: 24,
         height: 24,
-        borderRadius: variant === 'checkbox' ? 0 : '50%',
+        borderRadius: variant === 'checkbox' ? tokens.radius.full : '50%',
         bgcolor: selected ? 'primary.main' : 'grey.100',
         color: selected ? 'primary.contrastText' : 'transparent',
         flexShrink: 0,

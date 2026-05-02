@@ -1,5 +1,6 @@
-import { type ThemeOptions, alpha, createTheme } from '@mui/material/styles';
 import { tokens } from '@/lib/theme-tokens';
+import { type ThemeOptions, alpha, createTheme } from '@mui/material/styles';
+import React from 'react';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -7,10 +8,22 @@ type AppSurfaceTokens = {
   primary: string;
 };
 
+type CircularCheckboxIconProps = {
+  iconClassName: string;
+  fontSize?: string;
+};
+
 const SURFACE_TOKENS: Record<ThemeMode, AppSurfaceTokens> = {
   light: { primary: '#168118' },
   dark: { primary: '#5cc462' },
 };
+
+function CircularCheckboxIcon({ iconClassName }: CircularCheckboxIconProps): React.ReactElement {
+  return React.createElement('span', { className: iconClassName });
+}
+
+const createCircularCheckboxIcon = (className: string): React.ReactElement =>
+  React.createElement(CircularCheckboxIcon, { iconClassName: className });
 
 const getSharedOptions = (mode: ThemeMode): Pick<ThemeOptions, 'shape' | 'typography' | 'components'> => {
   const c = mode === 'dark' ? tokens.dark.color : tokens.color;
@@ -62,6 +75,67 @@ const getSharedOptions = (mode: ThemeMode): Pick<ThemeOptions, 'shape' | 'typogr
         root: {
           borderRadius: tokens.radius.sm,
           '&:hover': { backgroundColor: c.ink100 },
+        },
+      },
+    },
+    MuiCheckbox: {
+      defaultProps: {
+        icon: createCircularCheckboxIcon('lumio-checkbox-icon'),
+        checkedIcon: createCircularCheckboxIcon('lumio-checkbox-icon lumio-checkbox-icon--checked'),
+        indeterminateIcon: createCircularCheckboxIcon('lumio-checkbox-icon lumio-checkbox-icon--indeterminate'),
+      },
+      styleOverrides: {
+        root: {
+          borderRadius: tokens.radius.full,
+          padding: 6,
+          '& .lumio-checkbox-icon': {
+            position: 'relative',
+            display: 'inline-flex',
+            width: 20,
+            height: 20,
+            boxSizing: 'border-box',
+            borderRadius: tokens.radius.full,
+            border: `1px solid ${mode === 'dark' ? 'rgba(255, 255, 255, 0.86)' : c.ink300}`,
+            backgroundColor: mode === 'dark' ? '#ffffff' : c.surface,
+            transition: 'background-color .12s, border-color .12s, box-shadow .12s',
+          },
+          '&.MuiCheckbox-sizeSmall .lumio-checkbox-icon': {
+            width: 18,
+            height: 18,
+          },
+          '&.Mui-checked .lumio-checkbox-icon, &.MuiCheckbox-indeterminate .lumio-checkbox-icon': {
+            borderColor: 'currentColor',
+            backgroundColor: 'currentColor',
+          },
+          '& .lumio-checkbox-icon--checked::after': {
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: 5,
+            height: 9,
+            border: 'solid #ffffff',
+            borderWidth: '0 2px 2px 0',
+            content: '""',
+            transform: 'translate(-50%, -58%) rotate(45deg)',
+          },
+          '& .lumio-checkbox-icon--indeterminate::after': {
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: 10,
+            height: 2,
+            borderRadius: tokens.radius.full,
+            backgroundColor: '#ffffff',
+            content: '""',
+            transform: 'translate(-50%, -50%)',
+          },
+          '&.Mui-focusVisible .lumio-checkbox-icon': {
+            boxShadow: `0 0 0 3px ${c.primary50}`,
+          },
+          '&.Mui-disabled .lumio-checkbox-icon': {
+            borderColor: mode === 'dark' ? c.ink300 : c.ink200,
+            backgroundColor: mode === 'dark' ? c.ink200 : c.ink100,
+          },
         },
       },
     },

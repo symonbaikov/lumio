@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { OnboardingNavigation } from './components/OnboardingNavigation';
 import { OnboardingProgress } from './components/OnboardingProgress';
+import { IntegrationConnectDialog } from './components/IntegrationConnectDialog';
 import {
   EMPTY_INTEGRATION_STATE,
   INTEGRATION_DESCRIPTION_FALLBACK,
@@ -78,12 +79,13 @@ export default function OnboardingPage() {
   const [isStepTransitioning, setIsStepTransitioning] = useState(false);
   const stepBlockRef = useRef<HTMLDivElement | null>(null);
   const hasStepMountedRef = useRef(false);
-  const [integrationStatuses, setIntegrationStatuses] = useState<
-    Record<OnboardingIntegrationKey, boolean>
-  >(EMPTY_INTEGRATION_STATE);
-  const [integrationLoading, setIntegrationLoading] = useState<
-    Record<OnboardingIntegrationKey, boolean>
-  >(EMPTY_INTEGRATION_STATE);
+  const [integrationStatuses, setIntegrationStatuses] =
+    useState<Record<OnboardingIntegrationKey, boolean>>(EMPTY_INTEGRATION_STATE);
+  const [integrationLoading, setIntegrationLoading] =
+    useState<Record<OnboardingIntegrationKey, boolean>>(EMPTY_INTEGRATION_STATE);
+  const [activeIntegrationKey, setActiveIntegrationKey] = useState<OnboardingIntegrationKey | null>(
+    null,
+  );
   const tx = useCallback(
     (path: string[], fallback = '', localeOverride?: string) =>
       resolveOnboardingText(
@@ -359,20 +361,46 @@ export default function OnboardingPage() {
     [integrationCards],
   );
 
+  const activeIntegration = useMemo(
+    () => ONBOARDING_INTEGRATIONS.find(item => item.key === activeIntegrationKey) ?? null,
+    [activeIntegrationKey],
+  );
+
   const handleConnectIntegration = async (integrationKey: string) => {
-    const integration = ONBOARDING_INTEGRATIONS.find(item => item.key === integrationKey);
+    const integration = ONBOARDING_INTEGRATIONS.find(
+      (item): item is (typeof ONBOARDING_INTEGRATIONS)[number] => item.key === integrationKey,
+    );
     if (!integration) {
       return;
     }
 
     setIntegrationLoading(prev => ({ ...prev, [integration.key]: true }));
     try {
-      window.open(integration.path, '_blank', 'noopener,noreferrer');
-      await refreshIntegrationStatuses();
+      await window.lumioDesktop?.resizeForOnboardingIntegration?.();
+      setActiveIntegrationKey(integration.key);
     } finally {
       setIntegrationLoading(prev => ({ ...prev, [integration.key]: false }));
     }
   };
+
+  const handleCloseIntegrationDialog = () => {
+    setActiveIntegrationKey(null);
+    void refreshIntegrationStatuses();
+  };
+
+  const handleIntegrationStatusChange = useCallback(
+    (connected: boolean) => {
+      if (!activeIntegrationKey) {
+        return;
+      }
+
+      setIntegrationStatuses(prev => ({
+        ...prev,
+        [activeIntegrationKey]: connected,
+      }));
+    },
+    [activeIntegrationKey],
+  );
 
   const completeOnboarding = async () => {
     setError('');
@@ -539,7 +567,12 @@ export default function OnboardingPage() {
           }}
         >
           <Typography
-            style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em' }}
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.18em',
+            }}
             sx={{ color: 'primary.main' }}
           >
             LUMIO
@@ -565,10 +598,7 @@ export default function OnboardingPage() {
           <OnboardingProgress currentStep={currentStep} stepLabels={stepLabels} />
 
           {error ? (
-            <Alert
-              severity="error"
-              sx={{ mt: 2 }}
-            >
+            <Alert severity="error" sx={{ mt: 2 }}>
               {error}
             </Alert>
           ) : null}
@@ -671,6 +701,12 @@ export default function OnboardingPage() {
           </Box>
         </Box>
       </Box>
+      <IntegrationConnectDialog
+        open={activeIntegration != null}
+        integration={activeIntegration}
+        onClose={handleCloseIntegrationDialog}
+        onStatusChange={handleIntegrationStatusChange}
+      />
     </Box>
   );
 }
