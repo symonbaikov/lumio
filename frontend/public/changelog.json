@@ -1,13 +1,359 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "74a9b7523eb4040f99819b753fbfa9fe7c6ea0bc"
+      "main": "31b698137a907fd1d61f6da937f91c74243f2f6f"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-04-29T15:14:38.676Z",
+    "lastGeneratedAt": "2026-05-03T18:27:44.938Z",
     "minCommits": 5
   },
   "entries": [
+    {
+      "id": "changelog-2026-05-03-31b6981",
+      "version": "main-31b6981",
+      "branch": "main",
+      "date": "2026-05-03T18:27:44.938Z",
+      "title": "Release update - May 3, 2026",
+      "summary": "This release includes 14 features, 1 improvement, and 8 fixes.",
+      "markdown": "## Features\n- **webhooks**: Add WebhookEndpoint, WebhookSubscription, WebhookDelivery entities\n- **webhooks**: Add migration for webhook tables\n- **webhooks**: Add receipt.approved event emission and event interfaces\n- **webhooks**: Add webhook DTOs\n- **webhooks**: Add core webhook services (endpoints, subscriptions, delivery, dispatcher)\n- **webhooks**: Add WebhookEventsListener bridging EventEmitter2 to outbound queue\n- **webhooks**: Add WebhookProcessorService with retry/backoff queue\n- **webhooks**: Add WebhookTokenGuard and WebhookInboundService\n- **webhooks**: Add all webhook controllers\n- **webhooks**: Wire WebhooksModule into app\n- **frontend**: Add Webhooks plugin to Plugins tab\n- **shortcuts**: Add tinykeys and keyboard shortcuts infrastructure\n- **shortcuts**: Add help modal and global shortcuts provider\n- **shortcuts**: Wire page-level shortcuts on statements page\n\n## Improvements\n- **webhooks**: Expand imports and @Column decorators to match codebase convention\n\n## Fixes\n- Polish workspace card UI\n- **webhooks**: Use emitAsync with error logging and add bulkApprove event emission\n- **webhooks**: Use @nestjs/swagger PartialType and add Swagger decorators to payload DTOs\n- **webhooks**: Use entity property names in QueryBuilder (workspaceId, isActive)\n- **webhooks**: Add error handling to WebhookEventsListener handlers\n- **webhooks**: Fix processor runtime issues and stale lock recovery\n- **webhooks**: Fix inbound service issues (unused repo, mime type, size limit, cleanup)\n- **webhooks**: Fix token leak in update, add scope check in retry, remove any cast",
+      "commits": [
+        {
+          "sha": "7d17e9cc86590e8b68070b68ec97d985951f8434",
+          "shortSha": "7d17e9cc",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-04-29T15:14:39Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "7923e42e537392a769a29d27685dc21b7dabb926",
+          "shortSha": "7923e42e",
+          "subject": "fix: polish workspace card UI",
+          "author": "symonbaikov",
+          "date": "2026-04-29T20:40:04+03:00",
+          "files": [
+            "frontend/app/(main)/workspaces/components/CategoryTree.tsx",
+            "frontend/app/(main)/workspaces/components/CurrencySelector.tsx",
+            "frontend/app/(main)/workspaces/components/InviteForm.tsx",
+            "frontend/app/(main)/workspaces/components/MemberRow.tsx",
+            "frontend/app/(main)/workspaces/components/MembersList.tsx",
+            "frontend/app/(main)/workspaces/components/MembersSearchBar.tsx",
+            "frontend/app/(main)/workspaces/components/PendingInvitations.tsx",
+            "frontend/app/(main)/workspaces/components/ServiceIntegrationSuggestions.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceCard.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceCategoriesView.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceGridView.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceListFilters.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceListView.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceMembersView.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceOverviewView.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspacesListContent.tsx"
+          ]
+        },
+        {
+          "sha": "f962f96cc0dc9d1b90d89d3827f9bc6773ab3760",
+          "shortSha": "f962f96c",
+          "subject": "Merge pull request #72 from symonbaikov/fix/dark-mode-remaining-light-areas",
+          "author": "Symon Baikov",
+          "date": "2026-04-29T22:06:54+03:00",
+          "files": []
+        },
+        {
+          "sha": "3c6eb384c0472081f7c147f94630ee6afa574e71",
+          "shortSha": "3c6eb384",
+          "subject": "feat(webhooks): add WebhookEndpoint, WebhookSubscription, WebhookDelivery entities",
+          "author": "symonbaikov",
+          "date": "2026-05-03T13:31:46+03:00",
+          "files": [
+            "backend/src/entities/index.ts",
+            "backend/src/entities/webhook-delivery.entity.ts",
+            "backend/src/entities/webhook-endpoint.entity.ts",
+            "backend/src/entities/webhook-subscription.entity.ts"
+          ]
+        },
+        {
+          "sha": "5b29531730237875c734025ba4894444d789c69c",
+          "shortSha": "5b295317",
+          "subject": "style(webhooks): expand imports and @Column decorators to match codebase convention",
+          "author": "symonbaikov",
+          "date": "2026-05-03T13:35:01+03:00",
+          "files": [
+            "backend/src/entities/webhook-delivery.entity.ts",
+            "backend/src/entities/webhook-endpoint.entity.ts",
+            "backend/src/entities/webhook-subscription.entity.ts"
+          ]
+        },
+        {
+          "sha": "adafe3540a55735b628dc491f568933b1282fcd3",
+          "shortSha": "adafe354",
+          "subject": "feat(webhooks): add migration for webhook tables",
+          "author": "symonbaikov",
+          "date": "2026-05-03T13:37:22+03:00",
+          "files": [
+            "backend/src/app.module.ts",
+            "backend/src/migrations/1777804560237-AddWebhookTables.ts"
+          ]
+        },
+        {
+          "sha": "75a8f8d934c7ee402e53614857631c857b3af8cc",
+          "shortSha": "75a8f8d9",
+          "subject": "feat(webhooks): add receipt.approved event emission and event interfaces",
+          "author": "symonbaikov",
+          "date": "2026-05-03T13:43:02+03:00",
+          "files": [
+            "backend/@tests/unit/modules/receipts/receipts.service.spec.ts",
+            "backend/src/modules/notifications/events/notification-events.ts",
+            "backend/src/modules/receipts/receipts.service.ts"
+          ]
+        },
+        {
+          "sha": "8812cc1267cc1e56fe1df6eb13ab7171bddb2a40",
+          "shortSha": "8812cc12",
+          "subject": "fix(webhooks): use emitAsync with error logging and add bulkApprove event emission",
+          "author": "symonbaikov",
+          "date": "2026-05-03T13:46:14+03:00",
+          "files": [
+            "backend/@tests/unit/modules/receipts/receipts.service.spec.ts",
+            "backend/src/modules/receipts/receipts.service.ts"
+          ]
+        },
+        {
+          "sha": "7956e7bba78efa4b40ff199c67b13fc0895f2e0f",
+          "shortSha": "7956e7bb",
+          "subject": "feat(webhooks): add webhook DTOs",
+          "author": "symonbaikov",
+          "date": "2026-05-03T13:48:30+03:00",
+          "files": [
+            "backend/src/modules/webhooks/dto/create-webhook-endpoint.dto.ts",
+            "backend/src/modules/webhooks/dto/create-webhook-subscription.dto.ts",
+            "backend/src/modules/webhooks/dto/update-webhook-endpoint.dto.ts",
+            "backend/src/modules/webhooks/dto/update-webhook-subscription.dto.ts",
+            "backend/src/modules/webhooks/dto/webhook-receipt-upload.dto.ts",
+            "backend/src/modules/webhooks/dto/webhook-statement-upload.dto.ts",
+            "backend/src/modules/webhooks/dto/webhook-transaction-create.dto.ts"
+          ]
+        },
+        {
+          "sha": "f46e4b3d589a4ab930ac3fa618d733e4aa23c4d7",
+          "shortSha": "f46e4b3d",
+          "subject": "feat(webhooks): add core webhook services (endpoints, subscriptions, delivery, dispatcher)",
+          "author": "symonbaikov",
+          "date": "2026-05-03T13:49:17+03:00",
+          "files": [
+            "backend/@tests/unit/modules/webhooks/webhook-endpoints.service.spec.ts",
+            "backend/src/modules/webhooks/services/webhook-delivery.service.ts",
+            "backend/src/modules/webhooks/services/webhook-dispatcher.service.ts",
+            "backend/src/modules/webhooks/services/webhook-endpoints.service.ts",
+            "backend/src/modules/webhooks/services/webhook-subscriptions.service.ts"
+          ]
+        },
+        {
+          "sha": "d044dc440c2d2914c8f7516cc3f1ebf8860b556c",
+          "shortSha": "d044dc44",
+          "subject": "fix(webhooks): use @nestjs/swagger PartialType and add Swagger decorators to payload DTOs",
+          "author": "symonbaikov",
+          "date": "2026-05-03T13:51:33+03:00",
+          "files": [
+            "backend/src/modules/webhooks/dto/update-webhook-endpoint.dto.ts",
+            "backend/src/modules/webhooks/dto/update-webhook-subscription.dto.ts",
+            "backend/src/modules/webhooks/dto/webhook-receipt-upload.dto.ts",
+            "backend/src/modules/webhooks/dto/webhook-statement-upload.dto.ts",
+            "backend/src/modules/webhooks/dto/webhook-transaction-create.dto.ts"
+          ]
+        },
+        {
+          "sha": "1c61df60811b395bf95ea60fb5ea9179ec39ac21",
+          "shortSha": "1c61df60",
+          "subject": "fix(webhooks): use entity property names in QueryBuilder (workspaceId, isActive)",
+          "author": "symonbaikov",
+          "date": "2026-05-03T13:52:16+03:00",
+          "files": [
+            "backend/src/modules/webhooks/services/webhook-subscriptions.service.ts"
+          ]
+        },
+        {
+          "sha": "07c55528eedfac1a06695465b0d6785a28ed4f2a",
+          "shortSha": "07c55528",
+          "subject": "feat(webhooks): add WebhookEventsListener bridging EventEmitter2 to outbound queue",
+          "author": "symonbaikov",
+          "date": "2026-05-03T13:56:03+03:00",
+          "files": [
+            "backend/src/modules/webhooks/webhook-events.listener.ts"
+          ]
+        },
+        {
+          "sha": "d1d9974088b173175ab36b95235eb7596c943d22",
+          "shortSha": "d1d99740",
+          "subject": "feat(webhooks): add WebhookProcessorService with retry/backoff queue",
+          "author": "symonbaikov",
+          "date": "2026-05-03T13:56:29+03:00",
+          "files": [
+            "backend/@tests/unit/modules/webhooks/webhook-processor.service.spec.ts",
+            "backend/src/modules/webhooks/services/webhook-processor.service.ts"
+          ]
+        },
+        {
+          "sha": "0746de493f14d005e7c891a2a800976d9acc2865",
+          "shortSha": "0746de49",
+          "subject": "fix(webhooks): add error handling to WebhookEventsListener handlers",
+          "author": "symonbaikov",
+          "date": "2026-05-03T14:00:16+03:00",
+          "files": [
+            "backend/src/modules/webhooks/webhook-events.listener.ts"
+          ]
+        },
+        {
+          "sha": "d2a108691d897e0f8c57b7c48bc77850b10fb906",
+          "shortSha": "d2a10869",
+          "subject": "fix(webhooks): fix processor runtime issues and stale lock recovery",
+          "author": "symonbaikov",
+          "date": "2026-05-03T14:03:17+03:00",
+          "files": [
+            "backend/src/modules/webhooks/services/webhook-processor.service.ts"
+          ]
+        },
+        {
+          "sha": "92727a9f13c6d7f9721f7402c4938365a8e3bd18",
+          "shortSha": "92727a9f",
+          "subject": "feat(webhooks): add WebhookTokenGuard and WebhookInboundService",
+          "author": "symonbaikov",
+          "date": "2026-05-03T14:04:58+03:00",
+          "files": [
+            "backend/src/modules/webhooks/guards/webhook-token.guard.ts",
+            "backend/src/modules/webhooks/webhook-inbound.service.ts"
+          ]
+        },
+        {
+          "sha": "f3420d091a8d28a03f744b11c25bf6331a4bfa10",
+          "shortSha": "f3420d09",
+          "subject": "fix(webhooks): fix inbound service issues (unused repo, mime type, size limit, cleanup)",
+          "author": "symonbaikov",
+          "date": "2026-05-03T14:09:34+03:00",
+          "files": [
+            "backend/src/modules/webhooks/webhook-inbound.service.ts"
+          ]
+        },
+        {
+          "sha": "5066ad709f2034e02b908d697a4c0c70e7d4cf18",
+          "shortSha": "5066ad70",
+          "subject": "feat(webhooks): add all webhook controllers",
+          "author": "symonbaikov",
+          "date": "2026-05-03T14:29:20+03:00",
+          "files": [
+            "backend/src/modules/webhooks/webhook-deliveries.controller.ts",
+            "backend/src/modules/webhooks/webhook-endpoints.controller.ts",
+            "backend/src/modules/webhooks/webhook-inbound.controller.ts",
+            "backend/src/modules/webhooks/webhook-subscriptions.controller.ts"
+          ]
+        },
+        {
+          "sha": "3e5ece37f10bf44196472a66b53a9df8d4d17a58",
+          "shortSha": "3e5ece37",
+          "subject": "fix(webhooks): fix token leak in update, add scope check in retry, remove any cast",
+          "author": "symonbaikov",
+          "date": "2026-05-03T14:48:35+03:00",
+          "files": [
+            "backend/src/modules/webhooks/services/webhook-delivery.service.ts",
+            "backend/src/modules/webhooks/webhook-deliveries.controller.ts",
+            "backend/src/modules/webhooks/webhook-endpoints.controller.ts",
+            "backend/src/modules/webhooks/webhook-inbound.controller.ts"
+          ]
+        },
+        {
+          "sha": "e931ed5eda1c21abe0ada91628cd0454cdaef977",
+          "shortSha": "e931ed5e",
+          "subject": "feat(webhooks): wire WebhooksModule into app",
+          "author": "symonbaikov",
+          "date": "2026-05-03T14:50:28+03:00",
+          "files": [
+            "backend/src/app.module.ts",
+            "backend/src/modules/webhooks/webhooks.module.ts"
+          ]
+        },
+        {
+          "sha": "8cfdb90eb71440c8204316eed5824f813c87a918",
+          "shortSha": "8cfdb90e",
+          "subject": "chore(webhooks): remove redundant entity registrations from AppModule",
+          "author": "symonbaikov",
+          "date": "2026-05-03T14:52:58+03:00",
+          "files": [
+            "backend/src/app.module.ts",
+            "backend/src/modules/webhooks/webhooks.module.ts"
+          ]
+        },
+        {
+          "sha": "9518e2c1a9acb7a3d4e2c0ae403ebf9d0cf2ce13",
+          "shortSha": "9518e2c1",
+          "subject": "test(webhooks): add unit tests for guard and event listener",
+          "author": "symonbaikov",
+          "date": "2026-05-03T14:56:44+03:00",
+          "files": [
+            "backend/@tests/unit/modules/webhooks/webhook-events.listener.spec.ts",
+            "backend/@tests/unit/modules/webhooks/webhook-token.guard.spec.ts"
+          ]
+        },
+        {
+          "sha": "e399b9c27ad597f6436ff51a56efa58c432369c3",
+          "shortSha": "e399b9c2",
+          "subject": "feat(frontend): add Webhooks plugin to Plugins tab",
+          "author": "symonbaikov",
+          "date": "2026-05-03T15:21:31+03:00",
+          "files": [
+            "frontend/app/plugins/components/PluginCard.tsx",
+            "frontend/app/plugins/page.tsx",
+            "frontend/app/plugins/types.ts",
+            "frontend/app/plugins/webhooks/WebhooksDrawer.tsx",
+            "frontend/app/plugins/webhooks/useWebhooks.ts"
+          ]
+        },
+        {
+          "sha": "335f5b88ea82dfc46472e02c76a75dd38f37b25f",
+          "shortSha": "335f5b88",
+          "subject": "feat(shortcuts): add tinykeys and keyboard shortcuts infrastructure",
+          "author": "symonbaikov",
+          "date": "2026-05-03T21:26:17+03:00",
+          "files": [
+            "frontend/app/hooks/use-keyboard-shortcuts.ts",
+            "frontend/app/lib/keyboard-shortcuts.ts",
+            "frontend/package-lock.json",
+            "frontend/package.json"
+          ]
+        },
+        {
+          "sha": "699ed6903c3dec55f9997b06e4aca01596b967f7",
+          "shortSha": "699ed690",
+          "subject": "feat(shortcuts): add help modal and global shortcuts provider",
+          "author": "symonbaikov",
+          "date": "2026-05-03T21:26:26+03:00",
+          "files": [
+            "frontend/app/components/keyboard-shortcuts-modal.tsx",
+            "frontend/app/components/keyboard-shortcuts-provider.tsx",
+            "frontend/app/providers.tsx"
+          ]
+        },
+        {
+          "sha": "84136d8bde7f11872b04309513e30fe12f817544",
+          "shortSha": "84136d8b",
+          "subject": "feat(shortcuts): wire page-level shortcuts on statements page",
+          "author": "symonbaikov",
+          "date": "2026-05-03T21:26:35+03:00",
+          "files": [
+            "frontend/app/(main)/statements/components/StatementsListHeader.tsx",
+            "frontend/app/(main)/statements/components/StatementsListView.tsx"
+          ]
+        },
+        {
+          "sha": "31b698137a907fd1d61f6da937f91c74243f2f6f",
+          "shortSha": "31b69813",
+          "subject": "Merge pull request #79 from symonbaikov/feat/webhook-system",
+          "author": "Symon Baikov",
+          "date": "2026-05-03T21:27:22+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-04-29-74a9b75",
       "version": "main-74a9b75",
