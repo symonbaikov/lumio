@@ -1,16 +1,20 @@
 'use client';
 
 import type React from 'react';
+import { useState } from 'react';
 import { useIntlayer } from '@/app/i18n';
 import { Box, Typography } from '@mui/material';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
+import WebhookIcon from '@mui/icons-material/Webhook';
 import { Puzzle } from '@/app/components/icons';
 import { PluginCard } from './components/PluginCard';
 import { usePluginState } from './hooks/usePluginState';
+import { WebhooksDrawer } from './webhooks/WebhooksDrawer';
 
 export default function PluginsPage(): React.JSX.Element {
   const t = useIntlayer('pluginsPage');
   const { isEnabled, toggle } = usePluginState();
+  const [webhooksOpen, setWebhooksOpen] = useState(false);
 
   const plugins = [
     {
@@ -18,6 +22,13 @@ export default function PluginsPage(): React.JSX.Element {
       name: t.cards.aiAssistant.name,
       description: t.cards.aiAssistant.description,
       icon: <SmartToyIcon sx={{ fontSize: 22 }} />,
+    },
+    {
+      key: 'webhooks' as const,
+      name: 'Webhooks',
+      description: 'Connect external tools via inbound webhooks for uploads and outbound notifications for events.',
+      icon: <WebhookIcon sx={{ fontSize: 22 }} />,
+      onConfigure: () => setWebhooksOpen(true),
     },
   ];
 
@@ -61,6 +72,7 @@ export default function PluginsPage(): React.JSX.Element {
                 enableLabel={t.enable}
                 disableLabel={t.disable}
                 onToggle={() => toggle(p.key)}
+                onConfigure={'onConfigure' in p ? p.onConfigure : undefined}
               />
             ))}
           </Box>
@@ -95,6 +107,7 @@ export default function PluginsPage(): React.JSX.Element {
           </Box>
         </>
       )}
+      <WebhooksDrawer isOpen={webhooksOpen} onClose={() => setWebhooksOpen(false)} />
     </Box>
   );
 }

@@ -13,9 +13,10 @@ interface PluginCardProps {
   enableLabel: React.ReactNode;
   disableLabel: React.ReactNode;
   onToggle: () => void;
+  onConfigure?: () => void;
 }
 
-export function PluginCard({ icon, name, description, enabled, enableLabel, disableLabel, onToggle }: PluginCardProps) {
+export function PluginCard({ icon, name, description, enabled, enableLabel, disableLabel, onToggle, onConfigure }: PluginCardProps) {
   return (
     <Box
       sx={{
@@ -77,25 +78,54 @@ export function PluginCard({ icon, name, description, enabled, enableLabel, disa
         {description}
       </Typography>
 
-      <button
-        type="button"
-        onClick={onToggle}
-        style={{
-          marginTop: 'auto',
-          padding: '8px 16px',
-          borderRadius: tokens.radius.md,
-          border: enabled ? '1px solid #dc2626' : '1px solid var(--primary, #059669)',
-          background: enabled ? 'transparent' : 'var(--primary, #059669)',
-          color: enabled ? '#dc2626' : '#fff',
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: 'pointer',
-          transition: 'opacity 0.15s',
-          alignSelf: 'flex-start',
-        }}
-      >
-        {enabled ? disableLabel : enableLabel}
-      </button>
+      {enabled && onConfigure ? (
+        <Box sx={{ display: 'flex', gap: 1, mt: 'auto' }}>
+          <button type="button" onClick={onConfigure} style={{
+            padding: '8px 12px',
+            borderRadius: tokens.radius.md,
+            border: '1px solid var(--border-color, #e5e7eb)',
+            background: 'transparent',
+            color: 'var(--text-secondary)',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}>
+            Configure
+          </button>
+          <button type="button" onClick={onToggle} style={{
+            padding: '8px 16px',
+            borderRadius: tokens.radius.md,
+            border: '1px solid #dc2626',
+            background: 'transparent',
+            color: '#dc2626',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}>
+            {disableLabel}
+          </button>
+        </Box>
+      ) : (
+        <button
+          type="button"
+          onClick={onToggle}
+          style={{
+            marginTop: 'auto',
+            padding: '8px 16px',
+            borderRadius: tokens.radius.md,
+            border: enabled ? '1px solid #dc2626' : '1px solid var(--primary, #059669)',
+            background: enabled ? 'transparent' : 'var(--primary, #059669)',
+            color: enabled ? '#dc2626' : '#fff',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'opacity 0.15s',
+            alignSelf: 'flex-start',
+          }}
+        >
+          {enabled ? disableLabel : enableLabel}
+        </button>
+      )}
     </Box>
   );
 }

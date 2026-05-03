@@ -13,6 +13,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { IntlayerProviderContent } from 'react-intlayer';
 import { type AppLocale, isSupportedLocale, persistLocaleToCookie, readLocaleFromCookie } from '@/app/lib/locale';
+import { KeyboardShortcutsProvider } from './components/keyboard-shortcuts-provider';
 import { SidePanelProvider } from './components/side-panel';
 import { CurrencyDisplayProvider } from './contexts/CurrencyDisplayContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -57,8 +58,10 @@ function WorkspaceScopedProviders({ children, mounted }: { children: React.React
       <CurrencyDisplayProvider>
         <NotificationProvider>
           <SidePanelProvider {...SIDE_PANEL_PROPS}>
-            {mounted ? <Toaster position="top-center" toastOptions={TOASTER_OPTS} /> : null}
-            {children}
+            <KeyboardShortcutsProvider>
+              {mounted ? <Toaster position="top-center" toastOptions={TOASTER_OPTS} /> : null}
+              {children}
+            </KeyboardShortcutsProvider>
           </SidePanelProvider>
         </NotificationProvider>
       </CurrencyDisplayProvider>

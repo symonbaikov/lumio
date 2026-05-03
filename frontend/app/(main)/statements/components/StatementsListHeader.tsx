@@ -11,7 +11,8 @@ import type { StatementFilters } from '@/app/(main)/statements/components/filter
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { Spinner } from '@/app/components/ui/spinner';
 import { ChevronDown, Columns2, Copy, Search, SlidersHorizontal } from '@/app/components/icons';
-import type { ComponentPropsWithoutRef, JSX } from 'react';
+import { SHORTCUT_FOCUS_SEARCH, SHORTCUT_OPEN_FILTERS } from '@/app/lib/keyboard-shortcuts';
+import { type ComponentPropsWithoutRef, type JSX, useEffect, useRef } from 'react';
 import { StatementsBulkActions } from './StatementsBulkActions';
 import { tokens } from '@/lib/theme-tokens';
 
@@ -269,6 +270,19 @@ export function StatementsListHeader({
   onColumnsReorder,
   onColumnsSave,
 }: Props): React.JSX.Element {
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleFocusSearch = (): void => { searchRef.current?.focus(); };
+    const handleOpenFilters = (): void => { onFiltersDrawerOpen(); };
+    window.addEventListener(SHORTCUT_FOCUS_SEARCH, handleFocusSearch);
+    window.addEventListener(SHORTCUT_OPEN_FILTERS, handleOpenFilters);
+    return () => {
+      window.removeEventListener(SHORTCUT_FOCUS_SEARCH, handleFocusSearch);
+      window.removeEventListener(SHORTCUT_OPEN_FILTERS, handleOpenFilters);
+    };
+  }, [onFiltersDrawerOpen]);
+
   return (
     <div
       className="lumio-stmt-list-view__header"
@@ -278,6 +292,7 @@ export function StatementsListHeader({
         <div className="lumio-stmt-list-view__search" data-tour-id="search-bar">
           <Search className="lumio-stmt-list-view__search-icon" size={16} />
           <input
+            ref={searchRef}
             type="text"
             value={searchInput}
             onChange={e => onSearchChange(e.target.value)}

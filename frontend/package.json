@@ -52,6 +52,7 @@
     "react-markdown": "^10.1.0",
     "react-pdf": "^10.3.0",
     "socket.io-client": "^4.8.3",
+    "tinykeys": "^3.0.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

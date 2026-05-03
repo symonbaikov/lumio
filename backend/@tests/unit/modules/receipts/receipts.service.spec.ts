@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   Receipt,
   ReceiptProcessingJob,
@@ -24,6 +25,7 @@ describe('ReceiptsService', () => {
   let transactionRepository: { create: jest.Mock; save: jest.Mock };
   let statementRepository: { findOne: jest.Mock; save: jest.Mock; remove: jest.Mock };
   let processorService: { processReceipt: jest.Mock };
+  let mockEventEmitter: { emit: jest.Mock; emitAsync: jest.Mock };
 
   beforeEach(async () => {
     receiptRepository = {
@@ -66,6 +68,10 @@ describe('ReceiptsService', () => {
         { provide: getRepositoryToken(Transaction), useValue: transactionRepository },
         { provide: getRepositoryToken(Statement), useValue: statementRepository },
         { provide: ReceiptProcessorService, useValue: processorService },
+        {
+          provide: EventEmitter2,
+          useValue: (mockEventEmitter = { emit: jest.fn(), emitAsync: jest.fn().mockResolvedValue([]) }),
+        },
       ],
     }).compile();
 
@@ -195,6 +201,10 @@ describe('ReceiptsService', () => {
       }),
     );
     expect(result).toMatchObject({ transaction: { id: 'tx-1' } });
+    expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
+      'receipt.approved',
+      expect.objectContaining({ receiptId: expect.any(String) }),
+    );
   });
 
   it('bulk approves receipts and reports missing items', async () => {

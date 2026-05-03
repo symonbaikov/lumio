@@ -2,11 +2,16 @@
 
 import CreateExpenseDrawer from '@/app/(main)/statements/components/CreateExpenseDrawer';
 import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
+import { useKeyboardShortcuts } from '@/app/hooks/use-keyboard-shortcuts';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import apiClient from '@/app/lib/api';
 import { getApiErrorStatus } from '@/app/lib/api-error';
 import { resolveLabel } from '@/app/lib/side-panel-utils';
 import type { ManualExpenseDraft } from '@/app/lib/statement-expense-drawer';
+import {
+  SHORTCUT_DELETE_SELECTED,
+  SHORTCUT_SELECT_ALL,
+} from '@/app/lib/keyboard-shortcuts';
 import type { StatementStage } from '@/app/lib/statement-workflow';
 import { RefreshCcw } from '@/app/components/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -125,6 +130,11 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
   const v = useStatementsView({ stage, router, searchParams });
 
   useLockBodyScroll(v.expenseDrawerOpen);
+
+  useKeyboardShortcuts({
+    'Shift+x': () => v.handleToggleSelectAll(true),
+    'Shift+Delete': () => { void v.handleDeleteSelected(); },
+  });
 
   const { t, filterState, listHeaderLabels, paginationLabels, uploadLabels } = v;
 

@@ -71,3 +71,19 @@ export interface ReceiptUncategorizedEvent {
   receiptId?: string;
   receiptName?: string;
 }
+
+export interface ReceiptApprovedEvent {
+  workspaceId: string;
+  receiptId: string;
+  transactionId: string;
+}
+
+export interface TransactionCreatedEvent {
+  workspaceId: string;
+  transactionId: string;
+  amount: number | null;
+  currency: string;
+  transactionDate: Date;
+  counterpartyName: string;
+  transactionType: string;
+}
