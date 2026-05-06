@@ -1,0 +1,54 @@
+// app/styles/utils/_focus.scss
+// Keyboard accessibility: ensure focus rings are visible everywhere.
+//
+// This file loads AFTER all component styles (globals.scss import order:
+// base → themes → layout → components → vendors → utils), so its rules
+// win the CSS cascade.
+//
+// Specificity strategy:
+//   html :focus-visible        → 0,1,1 — beats single-class outline:none rules (0,1,0)
+//   .MuiButtonBase-root:focus-visible → 0,2,0 — beats MUI's own outline:0 (0,1,0)
+//     regardless of emotion injection order.
+@use '../abstracts' as *;
+
+// ── Universal keyboard focus ring ─────────────────────────────────────────────
+// Overrides component-level `outline: none` on inputs, selects, and other
+// interactive elements that only suppress the browser default without providing
+// an alternative focus indicator.
+html :focus-visible {
+  outline: 2px solid $color-primary;
+  outline-offset: 2px;
+  border-radius: $lumio-radius-xs;
+
+  @include dark { outline-color: $color-primary-dk; }
+}
+
+// ── MUI interactive elements ──────────────────────────────────────────────────
+// MUI ButtonBase (Checkbox, IconButton, Button, etc.) injects
+// `.MuiButtonBase-root { outline: 0 }` via emotion at runtime.
+// A class+pseudo selector (0,2,0) reliably beats that (0,1,0).
+.MuiButtonBase-root:focus-visible {
+  outline: 2px solid $color-primary;
+  outline-offset: 2px;
+  border-radius: $lumio-radius-xs;
+
+  @include dark { outline-color: $color-primary-dk; }
+}
+
+// ── Statement & transaction card rows ─────────────────────────────────────────
+// These cards have `overflow: hidden` which clips any outline on child buttons,
+// making focus rings appear as a blurry inner glow instead of a crisp ring.
+// Fix: suppress the outline on the child overlay button, and use :has(:focus-visible)
+// to show a clean outline on the parent card (which is not clipped).
+
+.lumio-stmt-list-item:has(.lumio-stmt-list-item__desktop-overlay:focus-visible) {
+  outline: 2px solid $color-primary;
+  outline-offset: 1px;
+  border-radius: $lumio-radius-lg;
+
+  @include dark { outline-color: $color-primary-dk; }
+}
+
+.lumio-stmt-list-item__desktop-overlay:focus-visible {
+  outline: none;
+}

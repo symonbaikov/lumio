@@ -11,6 +11,7 @@ import { Category } from '../../../../src/entities/category.entity';
 import { TaxRate } from '../../../../src/entities/tax-rate.entity';
 import { AuditService } from '../../../../src/modules/audit/audit.service';
 import { StatementProcessingService } from '../../../../src/modules/parsing/services/statement-processing.service';
+import { ReceiptStatementService } from '../../../../src/modules/statements/services/receipt-statement.service';
 import { StatementsService } from '../../../../src/modules/statements/statements.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -95,6 +96,10 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
         {
           provide: StatementProcessingService,
           useValue: { processStatement: jest.fn() },
+        },
+        {
+          provide: ReceiptStatementService,
+          useValue: { createFromReceiptScan: jest.fn() },
         },
         {
           provide: 'CACHE_MANAGER',

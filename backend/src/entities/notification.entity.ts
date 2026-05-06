@@ -27,6 +27,10 @@ export enum NotificationType {
   PAYABLE_DUE_SOON = 'payable.due_soon',
   PAYABLE_OVERDUE = 'payable.overdue',
   PAYABLE_MARKED_PAID = 'payable.marked_paid',
+  BUDGET_WARNING = 'budget.warning',
+  BUDGET_EXCEEDED = 'budget.exceeded',
+  SUBSCRIPTION_DETECTED = 'subscription.detected',
+  SUBSCRIPTION_UPCOMING = 'subscription.upcoming',
 }
 
 export enum NotificationCategory {

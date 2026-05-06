@@ -16,11 +16,13 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { getDatabaseConfig } from './config/database.config';
 import {
+  ApiKey,
   AuditEvent,
   AuthSession,
   BalanceAccount,
   BalanceSnapshot,
   Branch,
+  Budget,
   ExchangeRate,
   Category,
   CategoryLearning,
@@ -55,14 +57,17 @@ import {
   Workspace,
   WorkspaceServiceSettings,
   WorkspaceInvitation,
+  Subscription,
   WorkspaceMember,
 } from './entities';
+import { ApiKeysModule } from './modules/api-keys/api-keys.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ApplicationSettingsModule } from './modules/application-settings/application-settings.module';
 import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor';
 import { AuthModule } from './modules/auth/auth.module';
 import { BalanceModule } from './modules/balance/balance.module';
 import { BranchesModule } from './modules/branches/branches.module';
+import { BudgetsModule } from './modules/budgets/budgets.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ClassificationModule } from './modules/classification/classification.module';
 import { CustomTablesModule } from './modules/custom-tables/custom-tables.module';
@@ -89,6 +94,7 @@ import { TelegramModule } from './modules/telegram/telegram.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
 import { UsersModule } from './modules/users/users.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 
@@ -122,6 +128,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
       inject: [ConfigService],
     }),
     TypeOrmModule.forFeature([
+      ApiKey,
       User,
       Statement,
       Transaction,
@@ -162,6 +169,8 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
       ReceiptProcessingJob,
       TaxRate,
       ExchangeRate,
+      Budget,
+      Subscription,
     ]),
     CommonModule,
     ApplicationSettingsModule,
@@ -179,6 +188,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     ReceiptsModule,
     CategoriesModule,
     BranchesModule,
+    BudgetsModule,
     WalletsModule,
     TransactionsModule,
     ReportsModule,
@@ -195,7 +205,9 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     DashboardModule,
     PayablesModule,
     ExchangeRatesModule,
+    SubscriptionsModule,
     WebhooksModule,
+    ApiKeysModule,
   ],
   controllers: [AppController],
   providers: [

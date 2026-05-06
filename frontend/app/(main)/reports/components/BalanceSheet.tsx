@@ -331,7 +331,6 @@ function BalanceSheet(): React.JSX.Element {
                       textAlign: 'right',
                       fontSize: 14,
                       color: 'var(--foreground)',
-                      outline: 'none',
                       }}
                     value={editableValues[account.id] ?? '0.00'}
                     onChange={event =>
@@ -406,7 +405,7 @@ function BalanceSheet(): React.JSX.Element {
             >
               <CalendarDays size={16} style={{ color: 'var(--muted-foreground)' }} />
               <select
-                style={{ border: 'none', background: 'transparent', fontSize: 14, color: 'var(--foreground)', outline: 'none' }}
+                style={{ border: 'none', background: 'transparent', fontSize: 14, color: 'var(--foreground)' }}
                 value={filterMode}
                 onChange={event => setFilterMode(event.target.value as 'now' | 'date')}
               >

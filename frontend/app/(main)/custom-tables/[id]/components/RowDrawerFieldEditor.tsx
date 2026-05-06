@@ -13,7 +13,6 @@ const INPUT_SX: React.CSSProperties = {
   border: '1px solid var(--border-color)',
   padding: '8px 12px',
   fontSize: 14,
-  outline: 'none',
   marginTop: 8,
   boxSizing: 'border-box',
 };

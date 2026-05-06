@@ -27,6 +27,9 @@ describe('StatementsService', () => {
   const statementProcessingService = {
     processStatement: jest.fn().mockResolvedValue(undefined),
   };
+  const receiptStatementService = {
+    createFromReceiptScan: jest.fn(),
+  };
   const fileStorageService = {};
   const transactionRepository = {};
   const categoryRepository = {};
@@ -62,6 +65,7 @@ describe('StatementsService', () => {
       workspaceMemberRepository as any,
       fileStorageService as any,
       statementProcessingService as any,
+      receiptStatementService as any,
       cacheManager as any,
       auditService as any,
       eventEmitter as any,

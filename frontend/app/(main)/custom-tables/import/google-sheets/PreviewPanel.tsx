@@ -110,11 +110,11 @@ const ColumnRow = ({ col, isLast, onUpdate, t }: ColumnRowProps): React.JSX.Elem
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   const cellInputStyle: CSSProperties = {
     width: '100%', border: `1px solid ${c.ink150}`, background: 'var(--card-bg)',
-    padding: '8px 12px', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+    padding: '8px 12px', fontSize: 14, boxSizing: 'border-box',
   };
   const cellSelectStyle: CSSProperties = {
     width: '100%', border: `1px solid ${c.ink150}`, background: 'var(--card-bg)',
-    padding: '8px 12px', fontSize: 14, outline: 'none',
+    padding: '8px 12px', fontSize: 14,
   };
   return (
     <tr style={{ borderBottom: isLast ? 'none' : `1px solid ${c.ink50}` }}>

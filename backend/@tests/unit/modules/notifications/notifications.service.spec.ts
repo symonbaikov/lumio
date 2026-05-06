@@ -4,6 +4,7 @@ import {
   NotificationPreference,
   NotificationSeverity,
   NotificationType,
+  User,
   WorkspaceMember,
 } from '../../../../src/entities';
 import { NotificationsService } from '../../../../src/modules/notifications/notifications.service';
@@ -39,6 +40,7 @@ function createQueryBuilderMock() {
 describe('NotificationsService', () => {
   const notificationRepository = createRepoMock<Notification>();
   const preferenceRepository = createRepoMock<NotificationPreference>();
+  const userRepository = createRepoMock<User>();
   const workspaceMemberRepository = createRepoMock<WorkspaceMember>();
   const eventEmitter = { emit: jest.fn() };
 
@@ -46,9 +48,11 @@ describe('NotificationsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    userRepository.findOne.mockResolvedValue({ id: 'user-1', locale: 'en' } as User);
     service = new NotificationsService(
       notificationRepository,
       preferenceRepository,
+      userRepository,
       workspaceMemberRepository,
       eventEmitter as any,
     );
@@ -72,15 +76,47 @@ describe('NotificationsService', () => {
       type: NotificationType.STATEMENT_UPLOADED,
       category: NotificationCategory.WORKSPACE_ACTIVITY,
       severity: NotificationSeverity.INFO,
-      title: 'Uploaded',
-      message: 'Statement uploaded',
+      messageKey: 'statement.uploaded',
+      messageParams: { actorName: 'Alice', statementName: 'Jan 2026' },
     });
 
     expect(result?.id).toBe('notification-1');
     expect(notificationRepository.save).toHaveBeenCalledTimes(1);
+    expect(notificationRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Statement uploaded',
+        message: 'Alice uploaded statement "Jan 2026"',
+      }),
+    );
     expect(eventEmitter.emit).toHaveBeenCalledWith(
       'notification.created',
       expect.objectContaining({ id: 'notification-1' }),
+    );
+  });
+
+  it('renders notification in user locale (ru)', async () => {
+    userRepository.findOne.mockResolvedValue({ id: 'user-1', locale: 'ru' } as User);
+    preferenceRepository.findOne.mockResolvedValue({
+      userId: 'user-1',
+      statementUploaded: true,
+    } as NotificationPreference);
+
+    notificationRepository.save.mockResolvedValue({ id: 'n-1' } as Notification);
+
+    await service.create({
+      recipientId: 'user-1',
+      workspaceId: 'workspace-1',
+      type: NotificationType.STATEMENT_UPLOADED,
+      category: NotificationCategory.WORKSPACE_ACTIVITY,
+      messageKey: 'statement.uploaded',
+      messageParams: { actorName: 'Алиса', statementName: 'Январь' },
+    });
+
+    expect(notificationRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Загружена выписка',
+        message: 'Алиса загрузил(а) выписку "Январь"',
+      }),
     );
   });
 
@@ -94,8 +130,8 @@ describe('NotificationsService', () => {
       recipientId: 'user-1',
       type: NotificationType.STATEMENT_UPLOADED,
       category: NotificationCategory.WORKSPACE_ACTIVITY,
-      title: 'Uploaded',
-      message: 'Statement uploaded',
+      messageKey: 'statement.uploaded',
+      messageParams: { actorName: 'Alice', statementName: 'test' },
     });
 
     expect(result).toBeNull();
@@ -141,8 +177,8 @@ describe('NotificationsService', () => {
       actorName: 'Alice',
       type: NotificationType.CATEGORY_UPDATED,
       category: NotificationCategory.WORKSPACE_ACTIVITY,
-      title: 'Category updated',
-      message: 'A category was updated',
+      messageKey: 'category.updated',
+      messageParams: { actorName: 'Alice', categoryName: 'Food' },
     });
 
     expect(count).toBe(2);

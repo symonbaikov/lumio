@@ -10,7 +10,7 @@ import type { Category, PreviewResponse } from './types';
 
 const inputStyle: CSSProperties = {
   marginTop: 4, width: '100%', border: '1px solid var(--border-color)', background: 'var(--card-bg)',
-  padding: '8px 12px', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+  padding: '8px 12px', fontSize: 14, boxSizing: 'border-box',
 };
 
 type T = {

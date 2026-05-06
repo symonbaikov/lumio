@@ -10,8 +10,10 @@ import {
   NotificationSeverity,
   NotificationType,
 } from '../../entities/notification.entity';
+import { User } from '../../entities/user.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import type { UpdateNotificationPreferencesDto } from './dto/update-notification-preferences.dto';
+import { type NotificationMessageKey, renderNotification } from './notification-translations';
 
 type NotificationPreferenceKey =
   | 'statementUploaded'
@@ -41,6 +43,10 @@ const NOTIFICATION_PREFERENCE_MAP: Record<NotificationType, NotificationPreferen
   [NotificationType.PAYABLE_DUE_SOON]: 'workspaceUpdated',
   [NotificationType.PAYABLE_OVERDUE]: 'workspaceUpdated',
   [NotificationType.PAYABLE_MARKED_PAID]: 'workspaceUpdated',
+  [NotificationType.BUDGET_WARNING]: 'workspaceUpdated',
+  [NotificationType.BUDGET_EXCEEDED]: 'workspaceUpdated',
+  [NotificationType.SUBSCRIPTION_DETECTED]: 'workspaceUpdated',
+  [NotificationType.SUBSCRIPTION_UPCOMING]: 'workspaceUpdated',
 };
 
 export interface CreateNotificationPayload {
@@ -49,8 +55,8 @@ export interface CreateNotificationPayload {
   type: NotificationType;
   category: NotificationCategory;
   severity?: NotificationSeverity;
-  title: string;
-  message: string;
+  messageKey: NotificationMessageKey;
+  messageParams: Record<string, string | number>;
   actorId?: string | null;
   actorName?: string | null;
   entityType?: string | null;
@@ -64,8 +70,8 @@ export interface WorkspaceNotificationPayload {
   type: NotificationType;
   category: NotificationCategory;
   severity?: NotificationSeverity;
-  title: string;
-  message: string;
+  messageKey: NotificationMessageKey;
+  messageParams: Record<string, string | number>;
   actorName?: string | null;
   entityType?: string | null;
   entityId?: string | null;
@@ -81,6 +87,8 @@ export class NotificationsService {
     private readonly notificationRepository: Repository<Notification>,
     @InjectRepository(NotificationPreference)
     private readonly preferenceRepository: Repository<NotificationPreference>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly eventEmitter: EventEmitter2,
@@ -92,14 +100,24 @@ export class NotificationsService {
       return null;
     }
 
+    const user = await this.userRepository.findOne({
+      where: { id: payload.recipientId },
+      select: ['id', 'locale'],
+    });
+    const { title, message } = renderNotification(
+      user?.locale ?? 'ru',
+      payload.messageKey,
+      payload.messageParams,
+    );
+
     const notification = this.notificationRepository.create({
       recipientId: payload.recipientId,
       workspaceId: payload.workspaceId ?? null,
       type: payload.type,
       category: payload.category,
       severity: payload.severity ?? NotificationSeverity.INFO,
-      title: payload.title,
-      message: payload.message,
+      title,
+      message,
       actorId: payload.actorId ?? null,
       actorName: payload.actorName ?? null,
       entityType: payload.entityType ?? null,
@@ -134,8 +152,8 @@ export class NotificationsService {
           type: payload.type,
           category: payload.category,
           severity: payload.severity,
-          title: payload.title,
-          message: payload.message,
+          messageKey: payload.messageKey,
+          messageParams: payload.messageParams,
           actorId: payload.actorId ?? null,
           actorName: payload.actorName ?? null,
           entityType: payload.entityType ?? null,

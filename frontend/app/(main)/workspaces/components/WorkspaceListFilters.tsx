@@ -73,7 +73,7 @@ export function WorkspaceListFilters({ searchQuery, searchPlaceholder, embedded,
       <Box sx={{ position: 'relative', flex: 1 }} data-tour-id="search-bar">
         <Search size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
         <input type="text" value={searchQuery} onChange={e => onSearchChange(e.target.value)} placeholder={searchPlaceholder} aria-label={searchPlaceholder}
-          style={{ width: '100%', border: '1px solid var(--border-color)', background: 'var(--card-bg)', padding: '12px 16px 12px 44px', fontSize: 14, color: 'var(--foreground)', outline: 'none', borderRadius: tokens.radius.md, boxSizing: 'border-box' }} />
+          style={{ width: '100%', border: '1px solid var(--border-color)', background: 'var(--card-bg)', padding: '12px 16px 12px 44px', fontSize: 14, color: 'var(--foreground)', borderRadius: tokens.radius.md, boxSizing: 'border-box' }} />
       </Box>
       {!embedded && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>

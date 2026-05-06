@@ -5,6 +5,7 @@ import { BerekeOldParser } from '@/modules/parsing/parsers/bereke-old.parser';
 import { CsvParser } from '@/modules/parsing/parsers/csv.parser';
 import { ExcelParser } from '@/modules/parsing/parsers/excel.parser';
 import { GenericPdfParser } from '@/modules/parsing/parsers/generic-pdf.parser';
+import { HapoalimParser } from '@/modules/parsing/parsers/hapoalim.parser';
 import { KaspiParser } from '@/modules/parsing/parsers/kaspi.parser';
 import { ParserFactoryService } from '@/modules/parsing/services/parser-factory.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -39,6 +40,7 @@ describe('ParserFactoryService', () => {
     jest.spyOn(BerekeNewParser.prototype, 'canParse').mockResolvedValue(false);
     jest.spyOn(BerekeOldParser.prototype, 'canParse').mockResolvedValue(false);
     jest.spyOn(KaspiParser.prototype, 'canParse').mockResolvedValue(false);
+    jest.spyOn(HapoalimParser.prototype, 'canParse').mockResolvedValue(false);
     jest.spyOn(ExcelParser.prototype, 'canParse').mockResolvedValue(false);
     jest.spyOn(CsvParser.prototype, 'canParse').mockResolvedValue(false);
   });
@@ -167,6 +169,7 @@ describe('ParserFactoryService', () => {
       'BerekeNewParser',
       'BerekeOldParser',
       'KaspiParser',
+      'HapoalimParser',
       'GenericPdfParser',
       'ExcelParser',
       'CsvParser',

@@ -283,6 +283,62 @@ describe('StatementsListItem', () => {
     expect(document.body.querySelector('[data-testid="statement-hover-preview"]')).toBeTruthy();
   });
 
+  it('dismisses hover preview when the list scrolls', async () => {
+    const root = createRoot(container);
+
+    const statement: Statement = {
+      id: 'statement-hover-scroll',
+      source: 'statement',
+      fileName: 'Preview.pdf',
+      status: 'parsed',
+      totalDebit: 1200,
+      totalCredit: 0,
+      createdAt: '2026-02-01T00:00:00Z',
+      statementDateFrom: '2026-01-01',
+      statementDateTo: '2026-01-31',
+      bankName: 'kaspi',
+      fileType: 'pdf',
+      currency: 'KZT',
+    };
+
+    act(() => {
+      root.render(
+        <StatementsListItem
+          statement={statement}
+          viewLabel="View"
+          isReceipt={false}
+          isProcessing={false}
+          merchantLabel="Kaspi"
+          amountLabel="1,200 KZT"
+          dateLabel="01/31/2026"
+          onView={() => undefined}
+          onIconClick={() => undefined}
+          onToggleSelect={() => undefined}
+          typeLabel="PDF"
+        />,
+      );
+    });
+
+    const previewTrigger = container.querySelector(
+      '[data-testid="statement-thumbnail-trigger-statement-hover-scroll"]',
+    ) as HTMLButtonElement | null;
+    expect(previewTrigger).toBeTruthy();
+
+    await act(async () => {
+      previewTrigger?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(document.body.querySelector('[data-testid="statement-hover-preview"]')).toBeTruthy();
+
+    await act(async () => {
+      window.dispatchEvent(new Event('scroll'));
+      await Promise.resolve();
+    });
+
+    expect(document.body.querySelector('[data-testid="statement-hover-preview"]')).toBeNull();
+  });
+
   it('opens from the unified column row overlay', () => {
     const root = createRoot(container);
     const onView = vi.fn();
@@ -637,6 +693,12 @@ describe('StatementsListItem', () => {
 
     expect(container.textContent).toContain('PRIMARY #1/2');
     expect(container.textContent).toContain('Review');
+    const duplicateRow = container.querySelector('.lumio-stmt-list-item') as HTMLElement | null;
+    const duplicateAccent = container.querySelector('.lumio-stmt-list-item__accent') as HTMLElement | null;
+
+    expect(duplicateRow?.style.backgroundColor).toBe('rgb(255, 255, 255)');
+    expect(duplicateRow?.style.boxShadow).toContain('inset 0 0 0 1px');
+    expect(duplicateAccent?.style.width).toBe('4px');
   });
 
   it('honors desktop column visibility and keeps hidden action rows clickable', () => {

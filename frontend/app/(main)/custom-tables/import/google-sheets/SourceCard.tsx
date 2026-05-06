@@ -14,7 +14,6 @@ const inputStyle: CSSProperties = {
   background: 'var(--card-bg)',
   padding: '8px 12px',
   fontSize: 14,
-  outline: 'none',
   boxSizing: 'border-box',
 };
 

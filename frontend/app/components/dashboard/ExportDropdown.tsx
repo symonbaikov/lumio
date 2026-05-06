@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
-import apiClient from '@/app/lib/api';
-import { Button, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material';
 import { Download, FileSpreadsheet, FileText, FileType2 } from '@/app/components/icons';
+import apiClient from '@/app/lib/api';
+import { tokens } from '@/lib/theme-tokens';
+import { Button, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material';
+import React from 'react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -114,8 +115,30 @@ export function ExportDropdown({ t }: ExportDropdownProps): React.JSX.Element {
 
   return (
     <>
-      <Button variant="outlined" disabled={isLoading} onClick={event => setAnchorEl(event.currentTarget)} startIcon={<Download size={14} style={{ opacity: isLoading ? 0.6 : 1 }} />} sx={{ fontFamily: 'var(--font-dashboard-mono)', fontSize: 13, fontWeight: 500, px: 2.5, py: 1.25, borderColor: 'var(--border-color)', color: 'var(--foreground)', '&:hover': { backgroundColor: 'var(--muted)' }, '&.Mui-disabled': { opacity: 0.6 } }}>
-        {isLoading ? resolveText(t?.downloading, 'Downloading...') : resolveText(t?.button, 'Export')}
+      <Button
+        variant="outlined"
+        disabled={isLoading}
+        onClick={event => setAnchorEl(event.currentTarget)}
+        startIcon={<Download size={18} style={{ opacity: isLoading ? 0.6 : 1 }} />}
+        sx={{
+          height: 48,
+          fontFamily: 'var(--font-dashboard-mono)',
+          fontSize: 14,
+          fontWeight: 600,
+          lineHeight: 1,
+          px: 2.5,
+          py: 0,
+          borderColor: 'var(--border-color)',
+          borderRadius: tokens.radius.md,
+          color: 'var(--foreground)',
+          textTransform: 'none',
+          '&:hover': { backgroundColor: 'var(--muted)' },
+          '&.Mui-disabled': { opacity: 0.6 },
+        }}
+      >
+        {isLoading
+          ? resolveText(t?.downloading, 'Downloading...')
+          : resolveText(t?.button, 'Export')}
       </Button>
       <Menu anchorEl={anchorEl} open={open} onClose={() => setAnchorEl(null)} aria-label={resolveText(t?.title, 'Export data')} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} transformOrigin={{ vertical: 'top', horizontal: 'left' }}>
         <ExportMenuItems t={t} onExport={handleExport} />

@@ -33,10 +33,10 @@ type BalanceFilterBarProps = {
   onDownloadExport: (format: BalanceExportFormat) => void;
 };
 
-const filterSelectStyle = { border: 'none', background: 'transparent', fontSize: 14, color: 'var(--foreground)', outline: 'none' };
+const filterSelectStyle = { border: 'none', background: 'transparent', fontSize: 14, color: 'var(--foreground)' };
 const buttonBase = { display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid var(--border)', background: 'var(--card)', padding: '8px 12px', fontSize: 14, cursor: 'pointer', borderRadius: tokens.radius.md };
 const menuBtnStyle = { display: 'block', width: '100%', padding: '8px 12px', textAlign: 'left' as const, fontSize: 14, color: 'var(--foreground)', background: 'none', border: 'none', cursor: 'pointer' };
-const dateInputStyle = { border: '1px solid var(--border)', padding: '8px 12px', fontSize: 14, color: 'var(--foreground)', outline: 'none', background: 'var(--card)' };
+const dateInputStyle = { border: '1px solid var(--border)', padding: '8px 12px', fontSize: 14, color: 'var(--foreground)', background: 'var(--card)' };
 
 type ExportMenuProps = { labels: BalanceFilterLabels; onDownloadExport: (format: BalanceExportFormat) => void };
 function ExportMenu({ labels, onDownloadExport }: ExportMenuProps): React.ReactElement {

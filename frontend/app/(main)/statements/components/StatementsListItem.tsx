@@ -336,6 +336,11 @@ export function StatementsListItem({
     null,
   );
 
+  const closePreview = useCallback(() => {
+    setPreviewVisible(false);
+    setPreviewPosition(null);
+  }, []);
+
   const resolvedTypeLabel = typeLabel || statement.fileType;
   const isGmailReceipt = statement.source === 'gmail';
   const isLocalReceipt = statement.source === 'scan';
@@ -351,7 +356,10 @@ export function StatementsListItem({
 
   const updatePreviewPosition = useCallback(() => {
     const trigger = thumbnailButtonRef.current;
-    if (!trigger || typeof window === 'undefined') return;
+    if (!trigger || !trigger.isConnected || typeof window === 'undefined') {
+      closePreview();
+      return;
+    }
 
     const triggerRect = trigger.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
@@ -367,24 +375,38 @@ export function StatementsListItem({
     const left = fitsOnRight ? rightSideLeft : Math.max(12, triggerRect.left - PREVIEW_WIDTH - gap);
 
     setPreviewPosition({ top, left });
-  }, []);
+  }, [closePreview]);
 
   useEffect(() => {
     if (!previewVisible) return;
 
     updatePreviewPosition();
 
-    const handleReposition = () => {
-      updatePreviewPosition();
+    const handleDismiss = () => {
+      closePreview();
     };
 
-    window.addEventListener('scroll', handleReposition, true);
-    window.addEventListener('resize', handleReposition);
-    return () => {
-      window.removeEventListener('scroll', handleReposition, true);
-      window.removeEventListener('resize', handleReposition);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closePreview();
+      }
     };
-  }, [previewVisible, updatePreviewPosition]);
+
+    window.addEventListener('scroll', handleDismiss, true);
+    window.addEventListener('wheel', handleDismiss, { capture: true, passive: true });
+    window.addEventListener('touchmove', handleDismiss, { capture: true, passive: true });
+    window.addEventListener('resize', handleDismiss);
+    window.addEventListener('blur', handleDismiss);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('scroll', handleDismiss, true);
+      window.removeEventListener('wheel', handleDismiss, true);
+      window.removeEventListener('touchmove', handleDismiss, true);
+      window.removeEventListener('resize', handleDismiss);
+      window.removeEventListener('blur', handleDismiss);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [closePreview, previewVisible, updatePreviewPosition]);
 
   const hasError = !!statement.errorMessage || statement.status === 'error';
   const isPendingStatement = statement.status === 'uploaded' || statement.status === 'processing';
@@ -413,6 +435,18 @@ export function StatementsListItem({
     resolvedDuplicateRole === 'primary'
       ? { fontWeight: 600, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }
       : { fontWeight: 500, borderStyle: 'dashed', opacity: 0.9 };
+  const duplicateCardStyle: React.CSSProperties =
+    resolvedTheme === 'dark'
+      ? {
+          borderColor: duplicateStyle.lineColor,
+          background: `linear-gradient(90deg, color-mix(in srgb, ${duplicateStyle.lineColor} 14%, ${c.surface}) 0%, ${c.surface} 42%)`,
+          boxShadow: `inset 0 0 0 1px ${duplicateStyle.rowBorderColor}, 0 10px 28px rgba(0,0,0,0.26)`,
+        }
+      : {
+          borderColor: duplicateStyle.rowBorderColor,
+          backgroundColor: c.surface,
+          boxShadow: `inset 0 0 0 1px ${duplicateStyle.rowBorderColor}, 0 8px 20px rgba(15,23,42,0.05)`,
+        };
   const handleView = () => {
     if (viewDisabled) {
       return;
@@ -477,7 +511,7 @@ export function StatementsListItem({
           onIconClick();
         }}
         onMouseEnter={() => setPreviewVisible(true)}
-        onMouseLeave={() => setPreviewVisible(false)}
+        onMouseLeave={closePreview}
         aria-label={statement.fileName}
       >
         <span style={{ color: c.ink400, opacity: 0.6, transition: 'opacity 0.15s', display: 'contents' }}>
@@ -672,7 +706,7 @@ export function StatementsListItem({
 
   // Row styles based on duplicate/error/selected state
   const rowStyle: React.CSSProperties = isPossibleDuplicate
-    ? { borderColor: duplicateStyle.rowBorderColor, backgroundColor: duplicateStyle.rowBg }
+    ? duplicateCardStyle
     : hasError
       ? { borderColor: '#fecaca', backgroundColor: 'rgba(255,241,242,0.4)' }
       : selected
@@ -690,7 +724,11 @@ export function StatementsListItem({
         <span
           aria-hidden
           className="lumio-stmt-list-item__accent"
-          style={{ backgroundColor: duplicateStyle.lineColor }}
+          style={{
+            width: 4,
+            backgroundColor: duplicateStyle.lineColor,
+            boxShadow: `0 0 12px ${duplicateStyle.lineColor}`,
+          }}
         />
       ) : null}
 

@@ -58,29 +58,17 @@
 .lumio-sidebar__brand {
   display: flex;
   align-items: center;
-  gap: 12px;
   padding: 18px 16px 14px;
   flex-shrink: 0;
   width: 100%;
   text-decoration: none;
 
-  &-mark {
-    width: 36px;
-    height: 36px;
-    border-radius: $lumio-radius-md;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    overflow: hidden;
-  }
-
   &-name {
     flex: 1 1 auto;
     min-width: 0;
     font-family: var(--font-manrope), 'Manrope', sans-serif;
-    font-size: 22px;
-    font-weight: 400;
+    font-size: 20px;
+    font-weight: 700;
     color: $lumio-color-text-primary;
     letter-spacing: 0.32em;
     text-transform: uppercase;
@@ -478,6 +466,7 @@
 
   &__breadcrumbs {
     flex: 1;
+    margin-left: -20px;
     min-width: 0;
   }
 

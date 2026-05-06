@@ -5,18 +5,23 @@ import type { PluginKey } from '../types';
 
 const STORAGE_KEY = 'LUMIO_PLUGINS_STATE';
 const EVENT_NAME = 'lumio-plugin-state-change';
+const EMPTY_PLUGIN_STATE = {} as Record<PluginKey, boolean>;
 
 function readState(): Record<PluginKey, boolean> {
+  if (typeof window === 'undefined') {
+    return EMPTY_PLUGIN_STATE;
+  }
+
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Record<PluginKey, boolean>) : ({} as Record<PluginKey, boolean>);
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Record<PluginKey, boolean>) : EMPTY_PLUGIN_STATE;
   } catch {
-    return {} as Record<PluginKey, boolean>;
+    return EMPTY_PLUGIN_STATE;
   }
 }
 
 function writeState(state: Record<PluginKey, boolean>): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   window.dispatchEvent(new CustomEvent(EVENT_NAME));
 }
 
@@ -36,16 +41,13 @@ function getSnapshot(): Record<PluginKey, boolean> {
 }
 
 function getServerSnapshot(): Record<PluginKey, boolean> {
-  return {} as Record<PluginKey, boolean>;
+  return EMPTY_PLUGIN_STATE;
 }
 
 export function usePluginState() {
   const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  const isEnabled = useCallback(
-    (key: PluginKey): boolean => Boolean(state[key]),
-    [state],
-  );
+  const isEnabled = useCallback((key: PluginKey): boolean => Boolean(state[key]), [state]);
 
   const toggle = useCallback((key: PluginKey): void => {
     const current = readState();

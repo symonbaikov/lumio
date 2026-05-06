@@ -330,7 +330,6 @@ export default function TransactionsView({ transactions }: TransactionsViewProps
                 border: '1px solid var(--border-color)',
                 padding: '2px 8px',
                 fontSize: 14,
-                outline: 'none',
               }}
             >
               <option value={10}>10</option>

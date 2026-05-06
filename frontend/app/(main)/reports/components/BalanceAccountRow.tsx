@@ -15,7 +15,7 @@ export type BalanceAccountNode = {
 export type EditableChangeArgs = { id: string; value: string };
 
 type EditableAmountProps = { accountId: string; accountName: string; value: string; isSaving: boolean; onChange: (args: EditableChangeArgs) => void; onBlur: (id: string) => void };
-const inputStyle: React.CSSProperties = { width: 112, border: '1px solid var(--border)', background: 'var(--muted)', padding: '4px 8px', textAlign: 'right', fontSize: 14, color: 'var(--foreground)', outline: 'none' };
+const inputStyle: React.CSSProperties = { width: 112, border: '1px solid var(--border)', background: 'var(--muted)', padding: '4px 8px', textAlign: 'right', fontSize: 14, color: 'var(--foreground)' };
 export function EditableAmount({ accountId, accountName, value, isSaving, onChange, onBlur }: EditableAmountProps): React.ReactElement {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => onChange({ id: accountId, value: e.target.value });
   const handleBlur = (): void => onBlur(accountId);

@@ -12,13 +12,7 @@
     list-style: none;
     align-items: center;
     gap: 0.25rem;
-    background-color: rgba($color-muted, 0.7);
     font-size: 0.875rem;
-    border-radius: $lumio-radius-sm;
-
-    @include dark {
-      background-color: rgba($color-muted-dk, 0.7);
-    }
   }
 
   &__item {
@@ -58,11 +52,11 @@
     }
 
     &:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 2px rgba($color-ring, 0.5);
+      outline: 2px solid $color-primary;
+      outline-offset: 2px;
 
       @include dark {
-        box-shadow: 0 0 0 2px rgba($color-ring-dk, 0.5);
+        outline-color: $color-primary-dk;
       }
     }
   }

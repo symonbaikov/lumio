@@ -38,6 +38,10 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'telegram.view',
     'telegram.connect',
     'telegram.send',
+    'subscription.view',
+    'subscription.create',
+    'subscription.edit',
+    'subscription.delete',
   ],
   user: [
     // View-only permissions for regular users
@@ -52,6 +56,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'telegram.view',
     'telegram.connect',
     'telegram.send',
+    'budget.view',
+    'subscription.view',
   ],
   viewer: [
     // Read-only permissions
@@ -63,6 +69,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'wallet.view',
     'report.view',
     'telegram.view',
+    'budget.view',
+    'subscription.view',
   ],
 };
 

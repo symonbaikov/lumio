@@ -129,8 +129,8 @@ export class PayablesService {
         type: NotificationType.PAYABLE_MARKED_PAID,
         category: NotificationCategory.WORKSPACE_ACTIVITY,
         severity: NotificationSeverity.INFO,
-        title: 'Payable marked as paid',
-        message: `${saved.vendor} was marked as paid`,
+        messageKey: 'payable.marked_paid',
+        messageParams: { vendor: saved.vendor },
         entityType: EntityType.PAYABLE,
         entityId: saved.id,
         meta: {

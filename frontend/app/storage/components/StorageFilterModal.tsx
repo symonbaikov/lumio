@@ -10,7 +10,7 @@ import { tokens } from '@/lib/theme-tokens';
 
 const filterSelectStyle: React.CSSProperties = {
   width: '100%', border: '1px solid var(--border-color)', background: 'rgba(249,250,251,0.5)',
-  padding: '10px 12px', fontSize: 14, color: 'var(--foreground)', outline: 'none',
+  padding: '10px 12px', fontSize: 14, color: 'var(--foreground)',
 };
 const filterLabelStyle: React.CSSProperties = {
   fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)',

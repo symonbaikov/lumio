@@ -21,6 +21,8 @@ const ENTITY_LABELS: Record<EntityType, string> = {
   [EntityType.WALLET]: 'кошелек',
   [EntityType.CUSTOM_TABLE]: 'таблица',
   [EntityType.CUSTOM_TABLE_COLUMN]: 'колонка таблицы',
+  [EntityType.BUDGET]: 'бюджет',
+  [EntityType.SUBSCRIPTION]: 'подписка',
 };
 
 const ENTITY_GENITIVE_LABELS: Partial<Record<EntityType, string>> = {

@@ -1,4 +1,5 @@
 export * from './user.entity';
+export * from '../modules/api-keys/entities/api-key.entity';
 export * from './statement.entity';
 export * from './transaction.entity';
 export * from './category.entity';
@@ -54,3 +55,5 @@ export * from './exchange-rate.entity';
 export * from './webhook-endpoint.entity';
 export * from './webhook-subscription.entity';
 export * from './webhook-delivery.entity';
+export * from './budget.entity';
+export * from './subscription.entity';

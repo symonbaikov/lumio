@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Notification, NotificationPreference, WorkspaceMember } from '../../entities';
+import { Notification, NotificationPreference, User, WorkspaceMember } from '../../entities';
 import { NotificationEventsListener } from './notification-events.listener';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsGateway } from './notifications.gateway';
@@ -10,7 +10,7 @@ import { NotificationsService } from './notifications.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Notification, NotificationPreference, WorkspaceMember]),
+    TypeOrmModule.forFeature([Notification, NotificationPreference, User, WorkspaceMember]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {

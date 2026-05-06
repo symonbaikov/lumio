@@ -49,7 +49,7 @@ function EmailRoleFields({
   onEmailChange,
   onRoleChange,
 }: EmailRoleFieldsProps): React.ReactElement {
-  const inputStyle: React.CSSProperties = { width: '100%', border: '1px solid var(--border-color)', background: 'var(--card)', padding: '8px 12px', fontSize: 14, color: 'var(--foreground)', outline: 'none', borderRadius: tokens.radius.md, boxSizing: 'border-box', ...disabledStyle };
+  const inputStyle: React.CSSProperties = { width: '100%', border: '1px solid var(--border-color)', background: 'var(--card)', padding: '8px 12px', fontSize: 14, color: 'var(--foreground)', borderRadius: tokens.radius.md, boxSizing: 'border-box', ...disabledStyle };
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
       <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: 6 }}>

@@ -26,7 +26,7 @@ type ProtocolFile = {
   modifiedAt: string | null;
 };
 
-type ProtocolIntegrationPageProps = {
+export type ProtocolIntegrationPageProps = {
   title: string;
   description: string;
   statusPath: string;
@@ -39,9 +39,11 @@ type ProtocolIntegrationPageProps = {
   filesPath?: string;
   importPath?: string;
   syncPath?: string;
+  embedded?: boolean;
+  onConnectionStatusChange?: (connected: boolean) => void | Promise<void>;
 };
 
-type ConfigField = {
+export type ConfigField = {
   name: string;
   label: string;
   type?: 'text' | 'password' | 'number' | 'checkbox';
@@ -62,6 +64,8 @@ export function ProtocolIntegrationPage({
   filesPath,
   importPath,
   syncPath,
+  embedded = false,
+  onConnectionStatusChange,
 }: ProtocolIntegrationPageProps): React.JSX.Element {
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
@@ -81,6 +85,7 @@ export function ProtocolIntegrationPage({
         if (mounted) {
           setStatus(response.data);
           setForm(buildInitialForm(fields, response.data.settings || {}));
+          void onConnectionStatusChange?.(Boolean(response.data.connected));
         }
       })
       .catch(() => {
@@ -93,7 +98,7 @@ export function ProtocolIntegrationPage({
     return () => {
       mounted = false;
     };
-  }, [fields, statusPath]);
+  }, [fields, onConnectionStatusChange, statusPath]);
 
   const connected = Boolean(status?.connected);
   const canDisconnect = connected && status?.source !== 'env';
@@ -108,6 +113,7 @@ export function ProtocolIntegrationPage({
           : await apiClient.post<ProtocolStatus>(settingsPath, form);
       setStatus(response.data);
       setForm(buildInitialForm(fields, response.data.settings || {}));
+      void onConnectionStatusChange?.(Boolean(response.data.connected));
       setActionMessage('Connected');
     } catch {
       setActionMessage('Connection failed. Check the fields and try again.');
@@ -123,6 +129,7 @@ export function ProtocolIntegrationPage({
       await apiClient.delete(disconnectPath);
       const response = await apiClient.get<ProtocolStatus>(statusPath);
       setStatus(response.data);
+      void onConnectionStatusChange?.(Boolean(response.data.connected));
       setActionMessage('Disconnected');
     } catch {
       setActionMessage('Unable to disconnect');
@@ -169,14 +176,16 @@ export function ProtocolIntegrationPage({
   };
 
   return (
-    <Box sx={{ maxWidth: 960, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 } }}>
+    <Box sx={{ maxWidth: 960, mx: 'auto', px: embedded ? 0 : { xs: 2, md: 4 }, py: embedded ? 0 : { xs: 3, md: 5 } }}>
       <Stack spacing={3}>
-        <Link
-          href="/integrations"
-          style={{ color: c.ink600, fontSize: 14, textDecoration: 'none' }}
-        >
-          Back to integrations
-        </Link>
+        {!embedded ? (
+          <Link
+            href="/integrations"
+            style={{ color: c.ink600, fontSize: 14, textDecoration: 'none' }}
+          >
+            Back to integrations
+          </Link>
+        ) : null}
 
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
           <Box

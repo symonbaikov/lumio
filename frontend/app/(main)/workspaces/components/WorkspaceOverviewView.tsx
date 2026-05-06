@@ -365,7 +365,6 @@ export default function WorkspaceOverviewView() {
                   padding: '8px 12px',
                   fontSize: 14,
                   color: 'var(--foreground)',
-                  outline: 'none',
                   borderRadius: tokens.radius.md,
                   boxSizing: 'border-box',
                 }}
@@ -393,7 +392,6 @@ export default function WorkspaceOverviewView() {
                   padding: '8px 12px',
                   fontSize: 14,
                   color: 'var(--foreground)',
-                  outline: 'none',
                   borderRadius: tokens.radius.md,
                   boxSizing: 'border-box',
                   resize: 'vertical',
@@ -613,7 +611,6 @@ export default function WorkspaceOverviewView() {
                   padding: '10px 16px 10px 40px',
                   fontSize: 14,
                   color: 'var(--foreground)',
-                  outline: 'none',
                   borderRadius: tokens.radius.md,
                   boxSizing: 'border-box',
                 }}
@@ -817,7 +814,6 @@ export default function WorkspaceOverviewView() {
                 padding: '10px 12px',
                 fontSize: 14,
                 color: 'var(--foreground)',
-                outline: 'none',
                 borderRadius: tokens.radius.md,
                 boxSizing: 'border-box',
               }}

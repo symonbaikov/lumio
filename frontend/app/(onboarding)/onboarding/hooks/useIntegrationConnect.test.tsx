@@ -8,7 +8,7 @@ describe('useIntegrationConnect', () => {
     vi.restoreAllMocks();
   });
 
-  it('opens integration settings pages instead of external auth windows', async () => {
+  it('selects integration connection views instead of opening settings pages', async () => {
     const openMock = vi.spyOn(window, 'open').mockImplementation(() => null);
     const refreshIntegrationStatuses = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>
@@ -27,15 +27,15 @@ describe('useIntegrationConnect', () => {
       await result.current.handleConnectIntegration('appUrl');
     });
 
-    expect(openMock.mock.calls).toEqual([
-      ['/integrations/s3-compatible', '_blank', 'noopener,noreferrer'],
-      ['/integrations/webdav', '_blank', 'noopener,noreferrer'],
-      ['/integrations/imap', '_blank', 'noopener,noreferrer'],
-      ['/integrations/smtp', '_blank', 'noopener,noreferrer'],
-      ['/integrations/ai-compatible', '_blank', 'noopener,noreferrer'],
-      ['/settings/telegram', '_blank', 'noopener,noreferrer'],
-      ['/integrations/app-url', '_blank', 'noopener,noreferrer'],
-    ]);
+    expect(openMock).not.toHaveBeenCalled();
+    expect(result.current.activeIntegrationKey).toBe('appUrl');
     expect(refreshIntegrationStatuses).toHaveBeenCalledTimes(7);
+
+    await act(async () => {
+      await result.current.handleCloseIntegration();
+    });
+
+    expect(result.current.activeIntegrationKey).toBeNull();
+    expect(refreshIntegrationStatuses).toHaveBeenCalledTimes(8);
   });
 });

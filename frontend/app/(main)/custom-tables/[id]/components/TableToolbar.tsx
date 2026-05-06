@@ -75,7 +75,7 @@ function SearchBox({ t, searchQuery, setSearchQuery }: SearchBoxProps): React.JS
   return (
     <Box sx={{ position: 'relative' }}>
       <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--muted-foreground)' }} />
-      <input placeholder={tx(t, ['actions', 'searchPlaceholder'], 'Search')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ paddingLeft: 36, paddingRight: 16, paddingTop: 8, paddingBottom: 8, fontSize: 14, width: 192, border: '1px solid var(--border-color)', background: 'var(--card-bg)', outline: 'none' }} />
+      <input placeholder={tx(t, ['actions', 'searchPlaceholder'], 'Search')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ paddingLeft: 36, paddingRight: 16, paddingTop: 8, paddingBottom: 8, fontSize: 14, width: 192, border: '1px solid var(--border-color)', background: 'var(--card-bg)' }} />
     </Box>
   );
 }

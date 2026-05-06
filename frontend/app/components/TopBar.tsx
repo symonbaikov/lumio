@@ -10,6 +10,7 @@ import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
 import { getRecord, resolveLabel } from '@/app/lib/side-panel-utils';
 import { canAccessWorkspaceActivity } from '@/app/lib/workspace-activity-access';
 import { AiAssistantTopBarButton } from '@/app/plugins/ai-assistant/AiAssistantTopBarButton';
+import { McpServerTopBarButton } from '@/app/plugins/mcp-server/McpServerTopBarButton';
 import { TourMenu } from '@/app/tours/components/TourMenu';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
@@ -149,6 +150,7 @@ export default function TopBar() {
 
         <div className="lumio-topbar__right">
           <AiAssistantTopBarButton />
+          <McpServerTopBarButton />
           <NotificationDropdown iconSize={18} />
           <TourMenu
             trigger={

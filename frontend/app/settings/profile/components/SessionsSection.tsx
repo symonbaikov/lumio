@@ -125,8 +125,8 @@ export function SessionsSection({
                         width: 40,
                         alignItems: 'center',
                         justifyContent: 'center',
-                        borderRadius: tokens.radius.sm,
-                        bgcolor: 'primary.light',
+                        borderRadius: 0,
+                        bgcolor: 'transparent',
                         color: 'primary.main',
                         flexShrink: 0,
                       }}

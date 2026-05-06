@@ -18,6 +18,7 @@ import type {
   TransactionsUncategorizedEvent,
   WorkspaceUpdatedEvent,
 } from './events/notification-events';
+import type { NotificationMessageKey } from './notification-translations';
 import { NotificationsService } from './notifications.service';
 
 @Injectable()
@@ -33,8 +34,8 @@ export class NotificationEventsListener {
       type: NotificationType.STATEMENT_UPLOADED,
       category: NotificationCategory.WORKSPACE_ACTIVITY,
       severity: NotificationSeverity.INFO,
-      title: 'Загружена выписка',
-      message: `${event.actorName} загрузил(а) выписку "${event.statementName}"`,
+      messageKey: 'statement.uploaded',
+      messageParams: { actorName: event.actorName, statementName: event.statementName },
       entityType: 'statement',
       entityId: event.statementId,
       meta: { bankName: event.bankName ?? null },
@@ -50,8 +51,8 @@ export class NotificationEventsListener {
       type: NotificationType.IMPORT_COMMITTED,
       category: NotificationCategory.WORKSPACE_ACTIVITY,
       severity: NotificationSeverity.INFO,
-      title: 'Импорт завершен',
-      message: `${event.actorName} импортировал(а) ${event.transactionCount} транзакций`,
+      messageKey: 'import.committed',
+      messageParams: { actorName: event.actorName, transactionCount: event.transactionCount },
       entityType: 'statement',
       entityId: event.statementId,
       meta: { transactionCount: event.transactionCount },
@@ -64,27 +65,23 @@ export class NotificationEventsListener {
       CategoryChangedEvent['action'],
       {
         type: NotificationType;
-        title: string;
-        verb: string;
+        messageKey: NotificationMessageKey;
         severity: NotificationSeverity;
       }
     > = {
       created: {
         type: NotificationType.CATEGORY_CREATED,
-        title: 'Создана категория',
-        verb: 'создал(а)',
+        messageKey: 'category.created',
         severity: NotificationSeverity.INFO,
       },
       updated: {
         type: NotificationType.CATEGORY_UPDATED,
-        title: 'Изменена категория',
-        verb: 'изменил(а)',
+        messageKey: 'category.updated',
         severity: NotificationSeverity.INFO,
       },
       deleted: {
         type: NotificationType.CATEGORY_DELETED,
-        title: 'Удалена категория',
-        verb: 'удалил(а)',
+        messageKey: 'category.deleted',
         severity: NotificationSeverity.WARN,
       },
     };
@@ -97,8 +94,8 @@ export class NotificationEventsListener {
       type: config.type,
       category: NotificationCategory.WORKSPACE_ACTIVITY,
       severity: config.severity,
-      title: config.title,
-      message: `${event.actorName} ${config.verb} категорию "${event.categoryName}"`,
+      messageKey: config.messageKey,
+      messageParams: { actorName: event.actorName, categoryName: event.categoryName },
       entityType: 'category',
       entityId: event.categoryId,
     });
@@ -113,8 +110,8 @@ export class NotificationEventsListener {
       type: NotificationType.MEMBER_INVITED,
       category: NotificationCategory.WORKSPACE_ACTIVITY,
       severity: NotificationSeverity.INFO,
-      title: 'Приглашен новый участник',
-      message: `${event.actorName} пригласил(а) ${event.invitedEmail}`,
+      messageKey: 'member.invited',
+      messageParams: { actorName: event.actorName, invitedEmail: event.invitedEmail },
       meta: {
         invitedEmail: event.invitedEmail,
         role: event.role,
@@ -131,8 +128,8 @@ export class NotificationEventsListener {
       type: NotificationType.MEMBER_JOINED,
       category: NotificationCategory.WORKSPACE_ACTIVITY,
       severity: NotificationSeverity.INFO,
-      title: 'Участник присоединился',
-      message: `${event.memberName} присоединился(ась) к workspace`,
+      messageKey: 'member.joined',
+      messageParams: { memberName: event.memberName },
     });
   }
 
@@ -145,8 +142,8 @@ export class NotificationEventsListener {
       type: NotificationType.DATA_DELETED,
       category: NotificationCategory.WORKSPACE_ACTIVITY,
       severity: NotificationSeverity.WARN,
-      title: 'Удалены данные',
-      message: `${event.actorName} удалил(а) ${event.count} записей`,
+      messageKey: 'data.deleted',
+      messageParams: { actorName: event.actorName, count: event.count },
       entityType: event.entityType,
       meta: {
         count: event.count,
@@ -164,8 +161,8 @@ export class NotificationEventsListener {
       type: NotificationType.WORKSPACE_UPDATED,
       category: NotificationCategory.WORKSPACE_ACTIVITY,
       severity: NotificationSeverity.INFO,
-      title: 'Изменены настройки workspace',
-      message: `${event.actorName} обновил(а) настройки workspace`,
+      messageKey: 'workspace.updated',
+      messageParams: { actorName: event.actorName },
       entityType: 'workspace',
       entityId: event.workspaceId,
       meta: {
@@ -182,10 +179,8 @@ export class NotificationEventsListener {
       type: NotificationType.PARSING_ERROR,
       category: NotificationCategory.SYSTEM,
       severity: NotificationSeverity.ERROR,
-      title: 'Ошибка парсинга выписки',
-      message: event.statementName
-        ? `Не удалось обработать выписку "${event.statementName}"`
-        : 'Не удалось обработать выписку',
+      messageKey: event.statementName ? 'parsing.error.named' : 'parsing.error',
+      messageParams: { statementName: event.statementName ?? '' },
       entityType: 'statement',
       entityId: event.statementId ?? null,
       meta: {
@@ -202,10 +197,8 @@ export class NotificationEventsListener {
       type: NotificationType.IMPORT_FAILED,
       category: NotificationCategory.SYSTEM,
       severity: NotificationSeverity.ERROR,
-      title: 'Ошибка импорта',
-      message: event.statementName
-        ? `Импорт выписки "${event.statementName}" завершился с ошибкой`
-        : 'Импорт завершился с ошибкой',
+      messageKey: event.statementName ? 'import.failed.named' : 'import.failed',
+      messageParams: { statementName: event.statementName ?? '' },
       entityType: 'statement',
       entityId: event.statementId ?? null,
       meta: {
@@ -222,8 +215,8 @@ export class NotificationEventsListener {
       type: NotificationType.TRANSACTION_UNCATEGORIZED,
       category: NotificationCategory.SYSTEM,
       severity: NotificationSeverity.WARN,
-      title: 'Транзакции без категории',
-      message: `${event.count} транзакций требуют выбора категории`,
+      messageKey: 'transactions.uncategorized',
+      messageParams: { count: event.count },
       entityType: 'statement',
       entityId: event.statementId ?? null,
       meta: {
@@ -240,10 +233,8 @@ export class NotificationEventsListener {
       type: NotificationType.RECEIPT_UNCATEGORIZED,
       category: NotificationCategory.SYSTEM,
       severity: NotificationSeverity.WARN,
-      title: 'Чек без категории',
-      message: event.receiptName
-        ? `Чек "${event.receiptName}" не имеет категории`
-        : 'Найден чек без категории',
+      messageKey: event.receiptName ? 'receipt.uncategorized.named' : 'receipt.uncategorized',
+      messageParams: { receiptName: event.receiptName ?? '' },
       entityType: 'receipt',
       entityId: event.receiptId ?? null,
     });

@@ -3,6 +3,7 @@
 import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
 import Box from '@mui/material/Box';
+import type { JSX } from 'react';
 import { Receipt } from '@/app/components/icons';
 import { Check } from '@/app/components/icons';
 import { tokens } from '@/lib/theme-tokens';
@@ -24,13 +25,12 @@ export function FilterOptionRow({
   label,
   selected,
   onClick,
-  variant = 'radio',
   className,
   description,
   avatarUrl,
   iconUrl,
   bankName,
-}: FilterOptionRowProps) {
+}: FilterOptionRowProps): JSX.Element {
   const hasAvatar = avatarUrl != null || iconUrl != null || bankName != null;
 
   const checkIndicator = (
@@ -42,8 +42,13 @@ export function FilterOptionRow({
         justifyContent: 'center',
         width: 24,
         height: 24,
-        borderRadius: variant === 'checkbox' ? 0 : '50%',
-        bgcolor: selected ? 'primary.main' : 'grey.100',
+        borderRadius: 0,
+        bgcolor: theme =>
+          selected
+            ? theme.palette.primary.main
+            : theme.palette.mode === 'dark'
+              ? 'rgba(232, 232, 240, 0.18)'
+              : theme.palette.grey[100],
         color: selected ? 'primary.contrastText' : 'transparent',
         flexShrink: 0,
       }}

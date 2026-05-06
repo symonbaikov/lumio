@@ -326,7 +326,6 @@ export default function GoogleSheetsImportPage() {
     background: 'var(--card-bg)',
     padding: '8px 12px',
     fontSize: 14,
-    outline: 'none',
     boxSizing: 'border-box',
   };
 
@@ -802,7 +801,7 @@ export default function GoogleSheetsImportPage() {
                                 ),
                               )
                             }
-                            style={{ width: '100%', border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', padding: '8px 12px', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                            style={{ width: '100%', border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', padding: '8px 12px', fontSize: 14, boxSizing: 'border-box' }}
                           />
                         </td>
                         <td style={{ padding: '8px 12px' }}>
@@ -820,7 +819,7 @@ export default function GoogleSheetsImportPage() {
                                 ),
                               )
                             }
-                            style={{ width: '100%', border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', padding: '8px 12px', fontSize: 14, outline: 'none' }}
+                            style={{ width: '100%', border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', padding: '8px 12px', fontSize: 14 }}
                           >
                             <option value="text">{t.columns.types.text}</option>
                             <option value="number">{t.columns.types.number}</option>

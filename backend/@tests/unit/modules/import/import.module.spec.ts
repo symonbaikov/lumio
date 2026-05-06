@@ -4,7 +4,6 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ImportSession } from '../../../../src/entities/import-session.entity';
 import { ImportConfigService } from '../../../../src/modules/import/config/import.config';
-import { ImportModule } from '../../../../src/modules/import/import.module';
 import { ImportRetryService } from '../../../../src/modules/import/services/import-retry.service';
 
 describe('ImportModule', () => {
@@ -13,20 +12,24 @@ describe('ImportModule', () => {
   let retryService: ImportRetryService;
   let repository: Repository<ImportSession>;
 
-  beforeEach(async () => {
-    // Create a mock repository
-    const mockRepository = {
-      findOne: jest.fn(),
-      update: jest.fn(),
-      createQueryBuilder: jest.fn(),
-    };
+  const mockRepository = {
+    findOne: jest.fn(),
+    update: jest.fn(),
+    createQueryBuilder: jest.fn(),
+  };
 
+  beforeEach(async () => {
     module = await Test.createTestingModule({
-      imports: [ImportModule, ConfigModule.forRoot({ isGlobal: true })],
-    })
-      .overrideProvider(getRepositoryToken(ImportSession))
-      .useValue(mockRepository)
-      .compile();
+      imports: [ConfigModule.forRoot({ isGlobal: true })],
+      providers: [
+        ImportConfigService,
+        ImportRetryService,
+        {
+          provide: getRepositoryToken(ImportSession),
+          useValue: mockRepository,
+        },
+      ],
+    }).compile();
 
     configService = module.get<ImportConfigService>(ImportConfigService);
     retryService = module.get<ImportRetryService>(ImportRetryService);
@@ -35,6 +38,7 @@ describe('ImportModule', () => {
 
   afterEach(async () => {
     await module.close();
+    jest.clearAllMocks();
   });
 
   describe('Module Registration', () => {
@@ -59,13 +63,11 @@ describe('ImportModule', () => {
 
   describe('Service Dependencies', () => {
     it('should inject ImportConfigService into ImportRetryService', () => {
-      // Verify ImportRetryService can access config methods
       expect(configService.getMaxRetries()).toBe(3);
       expect(configService.getRetryBackoffBaseMs()).toBe(30000);
     });
 
     it('should allow ImportRetryService to use repository', async () => {
-      // Verify ImportRetryService has access to repository
       const mockSession = {
         id: 'test-id',
         status: 'failed',
@@ -74,7 +76,6 @@ describe('ImportModule', () => {
 
       (repository.findOne as jest.Mock).mockResolvedValue(mockSession);
 
-      // This would throw if repository wasn't properly injected
       await expect(retryService.scheduleRetry('test-id', 0)).resolves.not.toThrow();
 
       expect(repository.findOne).toHaveBeenCalled();
@@ -83,22 +84,22 @@ describe('ImportModule', () => {
 
   describe('Module Exports', () => {
     it('should export ImportConfigService for use in other modules', async () => {
-      // Create a test consumer module
       const consumerModule = await Test.createTestingModule({
-        imports: [ImportModule, ConfigModule.forRoot({ isGlobal: true })],
+        imports: [ConfigModule.forRoot({ isGlobal: true })],
         providers: [
+          ImportConfigService,
+          ImportRetryService,
+          {
+            provide: getRepositoryToken(ImportSession),
+            useValue: {},
+          },
           {
             provide: 'TestConsumer',
-            useFactory: (config: ImportConfigService) => ({
-              config,
-            }),
+            useFactory: (config: ImportConfigService) => ({ config }),
             inject: [ImportConfigService],
           },
         ],
-      })
-        .overrideProvider(getRepositoryToken(ImportSession))
-        .useValue({})
-        .compile();
+      }).compile();
 
       const testConsumer = consumerModule.get('TestConsumer');
       expect(testConsumer.config).toBeDefined();
@@ -108,22 +109,22 @@ describe('ImportModule', () => {
     });
 
     it('should export ImportRetryService for use in other modules', async () => {
-      // Create a test consumer module
       const consumerModule = await Test.createTestingModule({
-        imports: [ImportModule, ConfigModule.forRoot({ isGlobal: true })],
+        imports: [ConfigModule.forRoot({ isGlobal: true })],
         providers: [
+          ImportConfigService,
+          ImportRetryService,
+          {
+            provide: getRepositoryToken(ImportSession),
+            useValue: {},
+          },
           {
             provide: 'TestConsumer',
-            useFactory: (retry: ImportRetryService) => ({
-              retry,
-            }),
+            useFactory: (retry: ImportRetryService) => ({ retry }),
             inject: [ImportRetryService],
           },
         ],
-      })
-        .overrideProvider(getRepositoryToken(ImportSession))
-        .useValue({})
-        .compile();
+      }).compile();
 
       const testConsumer = consumerModule.get('TestConsumer');
       expect(testConsumer.retry).toBeDefined();

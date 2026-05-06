@@ -20,6 +20,10 @@ import { multerConfig } from '../../../config/multer.config';
 import { ParseDocumentDto } from '../dto/parse-document.dto';
 import { UniversalExtractorService } from '../services/universal-extractor.service';
 
+// Local type alias prevents babel-plugin-transform-typescript-metadata from emitting
+// the ambient `Express` namespace as a runtime expression in decorator metadata.
+type MulterFile = Express.Multer.File;
+
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.webp']);
 
 @ApiTags('Documents')
@@ -35,7 +39,7 @@ export class ParsingController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', multerConfig))
   async parseDocument(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: MulterFile,
     @Body() payload: ParseDocumentDto,
   ) {
     if (!file) {

@@ -85,7 +85,6 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
     fontSize: 14,
     textDecoration: 'none',
     transition: 'background-color 200ms',
-    outline: 'none',
     border: 'none',
     cursor: item.disabled ? 'not-allowed' : 'pointer',
     opacity: item.disabled ? 0.5 : 1,

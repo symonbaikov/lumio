@@ -18,6 +18,7 @@ import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import type React from 'react';
 import { Spinner } from '../ui/spinner';
+import { BudgetSummaryWidget } from '@/app/(main)/dashboard/components/BudgetSummaryWidget';
 import { CashFlowMini } from './CashFlowMini';
 import { RecentActivity } from './RecentActivity';
 import { TopCategoriesCard } from './TopCategoriesCard';
@@ -397,6 +398,9 @@ export function OverviewTab({
             />
           </div>
         </div>
+
+        {/* ── Budget summary ── */}
+        <BudgetSummaryWidget />
 
         {/* ── Quick actions ── */}
         <QuickActionsCard actions={s.mappedActions} emptyColor={c.ink400} />

@@ -11,7 +11,9 @@ type UseIntegrationConnectParams = {
 
 type UseIntegrationConnectResult = {
   integrationLoading: Record<OnboardingIntegrationKey, boolean>;
+  activeIntegrationKey: OnboardingIntegrationKey | null;
   handleConnectIntegration: (integrationKey: string) => Promise<void>;
+  handleCloseIntegration: () => Promise<void>;
 };
 
 export function useIntegrationConnect({
@@ -19,6 +21,7 @@ export function useIntegrationConnect({
 }: UseIntegrationConnectParams): UseIntegrationConnectResult {
   const [integrationLoading, setIntegrationLoading] =
     useState<Record<OnboardingIntegrationKey, boolean>>(EMPTY_INTEGRATION_STATE);
+  const [activeIntegrationKey, setActiveIntegrationKey] = useState<OnboardingIntegrationKey | null>(null);
 
   const handleConnectIntegration = useCallback(async (integrationKey: string): Promise<void> => {
     const integration = ONBOARDING_INTEGRATIONS.find(item => item.key === integrationKey);
@@ -26,12 +29,22 @@ export function useIntegrationConnect({
 
     setIntegrationLoading(prev => ({ ...prev, [integration.key]: true }));
     try {
-      window.open(integration.path, '_blank', 'noopener,noreferrer');
+      setActiveIntegrationKey(integration.key);
       await refreshIntegrationStatuses();
     } finally {
       setIntegrationLoading(prev => ({ ...prev, [integration.key]: false }));
     }
   }, [refreshIntegrationStatuses]);
 
-  return { integrationLoading, handleConnectIntegration };
+  const handleCloseIntegration = useCallback(async (): Promise<void> => {
+    setActiveIntegrationKey(null);
+    await refreshIntegrationStatuses();
+  }, [refreshIntegrationStatuses]);
+
+  return {
+    integrationLoading,
+    activeIntegrationKey,
+    handleConnectIntegration,
+    handleCloseIntegration,
+  };
 }

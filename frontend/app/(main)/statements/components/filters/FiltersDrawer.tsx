@@ -602,7 +602,6 @@ export function FiltersDrawer({
     padding: '8px 12px',
     fontSize: 14,
     color: 'var(--foreground)',
-    outline: 'none',
     boxSizing: 'border-box',
   };
 

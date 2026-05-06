@@ -83,7 +83,7 @@ export function AddColumnModal({
               }
             }}
             placeholder={tx(t, ['addColumn', 'titlePlaceholder'], '')}
-            style={{ width: '100%', border: '1px solid var(--border-color)', background: 'var(--card-bg)', padding: '12px 16px', fontSize: 14, color: 'var(--foreground)', outline: 'none', boxSizing: 'border-box' }}
+            style={{ width: '100%', border: '1px solid var(--border-color)', background: 'var(--card-bg)', padding: '12px 16px', fontSize: 14, color: 'var(--foreground)', boxSizing: 'border-box' }}
           />
         </Box>
         <Box>
@@ -102,7 +102,7 @@ export function AddColumnModal({
                 type: e.target.value as ColumnType,
               }))
             }
-            style={{ width: '100%', border: '1px solid var(--border-color)', background: 'var(--card-bg)', padding: '12px 16px', fontSize: 14, color: 'var(--foreground)', outline: 'none' }}
+            style={{ width: '100%', border: '1px solid var(--border-color)', background: 'var(--card-bg)', padding: '12px 16px', fontSize: 14, color: 'var(--foreground)' }}
           >
             {columnTypes.map(typeItem => (
               <option key={typeItem.value} value={typeItem.value}>

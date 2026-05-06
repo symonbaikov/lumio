@@ -1,12 +1,12 @@
 'use client';
 
 import { ExportDropdown } from '@/app/components/dashboard/ExportDropdown';
+import { tokens } from '@/lib/theme-tokens';
+import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import type React from 'react';
-import { useTheme } from 'next-themes';
 import type { DashboardTabId } from '../hooks/useDashboardPage';
 import { DashboardTabs } from './DashboardTabs';
-import { tokens } from '@/lib/theme-tokens';
 
 type DashboardHeaderProps = {
   statusHeading: string;
@@ -37,11 +37,13 @@ export function DashboardHeader({ statusHeading, greetingSubtitle, activeTab, on
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
+              height: 48,
               backgroundColor: c.primary,
               color: '#fff',
-              padding: '10px 20px',
+              padding: '0 20px',
               fontSize: 14,
               fontWeight: 600,
+              lineHeight: 1,
               borderRadius: tokens.radius.md,
               textDecoration: 'none',
               transition: 'background-color 150ms',

@@ -627,8 +627,8 @@ export default function ProfileSettingsPage() {
                   width: 44,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  borderRadius: tokens.radius.sm,
-                  bgcolor: 'primary.light',
+                  borderRadius: 0,
+                  bgcolor: 'transparent',
                   color: 'primary.main',
                   flexShrink: 0,
                 }}
@@ -695,7 +695,6 @@ export default function ProfileSettingsPage() {
                   pr: 2,
                   fontSize: 14,
                   color: 'text.primary',
-                  outline: 'none',
                   '&:focus': { borderColor: 'primary.main' },
                   boxSizing: 'border-box',
                 }}

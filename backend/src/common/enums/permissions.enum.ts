@@ -54,11 +54,27 @@ export enum Permission {
   USER_VIEW_ALL = 'user.view_all',
   AUDIT_VIEW = 'audit_view',
   AUDIT_LOG_VIEW = 'audit_log.view',
+
+  // Budgets
+  BUDGET_VIEW = 'budget.view',
+  BUDGET_CREATE = 'budget.create',
+  BUDGET_EDIT = 'budget.edit',
+  BUDGET_DELETE = 'budget.delete',
+
+  // Subscriptions
+  SUBSCRIPTION_VIEW = 'subscription.view',
+  SUBSCRIPTION_CREATE = 'subscription.create',
+  SUBSCRIPTION_EDIT = 'subscription.edit',
+  SUBSCRIPTION_DELETE = 'subscription.delete',
+
+  // API Keys
+  API_KEY_MANAGE = 'api_key.manage',
 }
 
 // Default permissions for each role
 export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   admin: Object.values(Permission), // Admin has all permissions
+  // Note: API_KEY_MANAGE is intentionally NOT in user/viewer roles
   user: [
     // View-only permissions
     Permission.STATEMENT_VIEW,
@@ -72,6 +88,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     Permission.TELEGRAM_VIEW,
     Permission.TELEGRAM_CONNECT,
     Permission.TELEGRAM_SEND,
+    Permission.BUDGET_VIEW,
+    Permission.SUBSCRIPTION_VIEW,
   ],
   viewer: [
     // Read-only permissions
@@ -83,5 +101,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     Permission.PAYABLE_VIEW,
     Permission.REPORT_VIEW,
     Permission.TELEGRAM_VIEW,
+    Permission.BUDGET_VIEW,
+    Permission.SUBSCRIPTION_VIEW,
   ],
 };

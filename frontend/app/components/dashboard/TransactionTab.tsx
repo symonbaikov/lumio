@@ -164,7 +164,7 @@ export function TransactionTab() {
             <select
               value={bulkCategoryId}
               onChange={e => setBulkCategoryId(e.target.value)}
-              style={{ flex: 1, maxWidth: 320, border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', padding: '8px 12px', fontSize: 14, outline: 'none' }}
+              style={{ flex: 1, maxWidth: 320, border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', padding: '8px 12px', fontSize: 14 }}
             >
               <option value="">{t.selectCategory?.value || 'Select category...'}</option>
               {categories

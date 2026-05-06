@@ -316,7 +316,7 @@ export default function TablesReportsView() {
             value={searchInput}
             onChange={event => setSearchInput(event.target.value)}
             placeholder="Search counterparties, categories, tables..."
-            style={{ width: '100%', border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', padding: '8px 16px', fontSize: 14, color: c.ink900, outline: 'none', borderRadius: tokens.radius.md }}
+            style={{ width: '100%', border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', padding: '8px 16px', fontSize: 14, color: c.ink900, borderRadius: tokens.radius.md }}
           />
           <div style={{ position: 'relative' }} ref={tableDropdownRef}>
             <button

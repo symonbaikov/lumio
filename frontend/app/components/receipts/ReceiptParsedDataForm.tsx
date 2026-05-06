@@ -360,7 +360,6 @@ export function ReceiptParsedDataForm({
                   background: 'var(--card-bg)',
                   padding: '12px 16px 12px 40px',
                   fontSize: 14,
-                  outline: 'none',
                 }}
               />
             </Box>

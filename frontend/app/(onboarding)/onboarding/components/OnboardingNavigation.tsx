@@ -8,6 +8,7 @@ interface OnboardingNavigationProps {
   totalSteps: number;
   isSubmitting: boolean;
   showSkip: boolean;
+  showSkipAll?: boolean;
   canExitOnBack?: boolean;
   onBack: () => void;
   onNext: () => void;
@@ -28,6 +29,7 @@ export function OnboardingNavigation({
   totalSteps,
   isSubmitting,
   showSkip,
+  showSkipAll = true,
   canExitOnBack = false,
   onBack,
   onNext,
@@ -104,7 +106,7 @@ export function OnboardingNavigation({
         </Box>
       </Box>
 
-      {!isLastStep ? (
+      {!isLastStep && showSkipAll ? (
         <button
           type="button"
           onClick={onSkipAll}

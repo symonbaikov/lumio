@@ -5,6 +5,7 @@ import { User, UserRole } from '@/entities/user.entity';
 import { WorkspaceMember, WorkspaceRole } from '@/entities/workspace-member.entity';
 import { AuditService } from '@/modules/audit/audit.service';
 import { ClassificationService } from '@/modules/classification/services/classification.service';
+import { ExchangeRatesService } from '@/modules/exchange-rates/exchange-rates.service';
 import { TransactionsService } from '@/modules/transactions/transactions.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
@@ -92,6 +93,12 @@ describe('TransactionsService', () => {
           provide: ClassificationService,
           useValue: {
             learnFromCorrection: jest.fn(),
+          },
+        },
+        {
+          provide: ExchangeRatesService,
+          useValue: {
+            bulkConvert: jest.fn().mockResolvedValue([]),
           },
         },
         {

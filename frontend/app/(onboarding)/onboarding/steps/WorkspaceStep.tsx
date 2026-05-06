@@ -152,7 +152,6 @@ export function WorkspaceStep({
                 padding: '10px 12px',
                 fontSize: 14,
                 color: 'var(--mui-palette-text-primary)',
-                outline: 'none',
               }}
             />
           </Stack>
@@ -217,7 +216,6 @@ export function WorkspaceStep({
                 padding: '10px 12px',
                 fontSize: 14,
                 color: 'var(--mui-palette-text-primary)',
-                outline: 'none',
               }}
             />
             <Typography style={{ fontSize: 12 }} sx={{ color: 'text.secondary' }}>

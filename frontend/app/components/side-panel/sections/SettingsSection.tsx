@@ -107,7 +107,6 @@ function SettingsSelectComponent({ item }: { item: SettingsSelectItem }) {
           border: '1px solid var(--border-color)',
           backgroundColor: 'var(--card-bg)',
           color: 'var(--foreground)',
-          outline: 'none',
           opacity: item.disabled ? 0.5 : 1,
         }}
       >

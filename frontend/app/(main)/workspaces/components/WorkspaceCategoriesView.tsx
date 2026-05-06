@@ -460,7 +460,6 @@ export default function WorkspaceCategoriesView() {
                 padding: '10px 16px 10px 40px',
                 fontSize: 14,
                 color: 'var(--foreground)',
-                outline: 'none',
                 borderRadius: tokens.radius.md,
                 boxSizing: 'border-box',
               }}

@@ -89,7 +89,7 @@ export function EditableHeader({
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
         disabled={isSaving}
-        style={{ width: '100%', padding: '4px 8px', fontSize: 14, border: '1px solid #3b82f6', background: 'var(--card-bg)', outline: 'none', boxSizing: 'border-box' }}
+        style={{ width: '100%', padding: '4px 8px', fontSize: 14, border: '1px solid #3b82f6', background: 'var(--card-bg)', boxSizing: 'border-box' }}
       />
     );
   }

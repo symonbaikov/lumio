@@ -65,6 +65,20 @@ const getSharedOptions = (mode: ThemeMode): Pick<ThemeOptions, 'shape' | 'typogr
         },
       },
     },
+    MuiCheckbox: {
+      styleOverrides: {
+        root: {
+          borderRadius: 0,
+          padding: 0,
+          '& .MuiSvgIcon-root': {
+            fontSize: 20,
+          },
+          '&.MuiCheckbox-sizeSmall .MuiSvgIcon-root': {
+            fontSize: 16,
+          },
+        },
+      },
+    },
     MuiCard: {
       styleOverrides: {
         root: {

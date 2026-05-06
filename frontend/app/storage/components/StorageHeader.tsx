@@ -258,7 +258,7 @@ function StorageSortSelect({
       <select
         value={sortKey}
         onChange={(e) => onSortChange(e.target.value)}
-        style={{ width: '100%', border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', padding: '8px 40px 8px 12px', fontSize: 14, color: c.ink900, outline: 'none', appearance: 'auto' }}
+        style={{ width: '100%', border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', padding: '8px 40px 8px 12px', fontSize: 14, color: c.ink900, appearance: 'auto' }}
       >
         <option value="createdAt:desc">{sortNewest}</option>
         <option value="createdAt:asc">{sortOldest}</option>

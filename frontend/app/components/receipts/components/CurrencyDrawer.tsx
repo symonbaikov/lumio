@@ -1,10 +1,10 @@
 'use client';
 
+import { Check, ChevronLeft, Search } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import type { CurrencySearchItem } from '@/app/lib/statement-expense-drawer';
-import { Box, IconButton, Typography } from '@mui/material';
-import { Check, ChevronLeft, Search } from '@/app/components/icons';
 import { tokens } from '@/lib/theme-tokens';
+import { Box, IconButton, Typography } from '@mui/material';
 
 interface CurrencyDrawerProps {
   isOpen: boolean;
@@ -17,6 +17,7 @@ interface CurrencyDrawerProps {
   recentCurrencyItems: CurrencySearchItem[];
   allCurrencyItems: CurrencySearchItem[];
   handleSelectCurrency: (code: string) => void;
+  zIndex?: number;
 }
 
 export function CurrencyDrawer({
@@ -30,6 +31,7 @@ export function CurrencyDrawer({
   recentCurrencyItems,
   allCurrencyItems,
   handleSelectCurrency,
+  zIndex,
 }: CurrencyDrawerProps) {
   return (
     <DrawerShell
@@ -38,6 +40,7 @@ export function CurrencyDrawer({
       position="right"
       width="lg"
       showCloseButton={false}
+      zIndex={zIndex}
       title={
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <IconButton
@@ -53,9 +56,29 @@ export function CurrencyDrawer({
       }
     >
       <Box sx={{ display: 'flex', height: '100%', flexDirection: 'column' }}>
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5, overflowY: 'auto', pb: 2 }}>
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5,
+            overflowY: 'auto',
+            pb: 2,
+          }}
+        >
           <Box sx={{ position: 'relative' }}>
-            <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--muted-foreground)', pointerEvents: 'none' }} />
+            <Search
+              style={{
+                position: 'absolute',
+                left: 12,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 16,
+                height: 16,
+                color: 'var(--muted-foreground)',
+                pointerEvents: 'none',
+              }}
+            />
             <input
               type="text"
               value={currencySearch}
@@ -99,7 +122,11 @@ export function CurrencyDrawer({
 
           {currencyQuery.length === 0 && recentCurrencyItems.length > 0 ? (
             <Box>
-              <Typography style={{ paddingLeft: 4, fontSize: 14, color: 'var(--muted-foreground)' }}>Recents</Typography>
+              <Typography
+                style={{ paddingLeft: 4, fontSize: 14, color: 'var(--muted-foreground)' }}
+              >
+                Recents
+              </Typography>
               <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {recentCurrencyItems.map(item => (
                   <Box
@@ -129,7 +156,9 @@ export function CurrencyDrawer({
           ) : null}
 
           <Box>
-            <Typography style={{ paddingLeft: 4, fontSize: 14, color: 'var(--muted-foreground)' }}>All</Typography>
+            <Typography style={{ paddingLeft: 4, fontSize: 14, color: 'var(--muted-foreground)' }}>
+              All
+            </Typography>
             <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {allCurrencyItems.length > 0 ? (
                 allCurrencyItems.map(item => (
@@ -156,7 +185,14 @@ export function CurrencyDrawer({
                   </Box>
                 ))
               ) : (
-                <Typography sx={{ bgcolor: 'var(--muted)', p: 1.5, fontSize: 14, color: 'var(--muted-foreground)' }}>
+                <Typography
+                  sx={{
+                    bgcolor: 'var(--muted)',
+                    p: 1.5,
+                    fontSize: 14,
+                    color: 'var(--muted-foreground)',
+                  }}
+                >
                   No currencies found
                 </Typography>
               )}

@@ -1,6 +1,6 @@
 import type React from 'react';
 
-export type PluginKey = 'ai-assistant' | 'webhooks';
+export type PluginKey = 'ai-assistant' | 'webhooks' | 'mcp-server';
 
 export interface PluginMeta {
   key: PluginKey;

@@ -302,7 +302,7 @@ function TableActionToolbar({
               placeholder={labels.searchPlaceholder}
               value={searchQuery}
               onChange={e => onSearchChange(e.target.value)}
-              style={{ paddingLeft: 36, paddingRight: 16, paddingTop: 8, paddingBottom: 8, fontSize: 14, width: 192, border: '1px solid var(--border-color)', background: 'var(--card-bg)', outline: 'none' }}
+              style={{ paddingLeft: 36, paddingRight: 16, paddingTop: 8, paddingBottom: 8, fontSize: 14, width: 192, border: '1px solid var(--border-color)', background: 'var(--card-bg)' }}
             />
           </Box>
         </Box>

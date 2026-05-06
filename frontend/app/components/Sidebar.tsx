@@ -4,7 +4,6 @@ import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer } from '@/app/i18n';
 import { Check, ChevronDown, Plus } from '@/app/components/icons';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -89,15 +88,6 @@ export function SidebarContent({ onNavClick }: SidebarProps) {
     <>
       {/* Brand */}
       <Link href="/" className="lumio-sidebar__brand" onClick={onNavClick} aria-label="Lumio home">
-        <div className="lumio-sidebar__brand-mark">
-          <Image
-            src="/images/logo.jpg"
-            alt="Lumio"
-            width={36}
-            height={36}
-            style={{ display: 'block', borderRadius: tokens.radius.md }}
-          />
-        </div>
         <div className="lumio-sidebar__brand-name">LUMIO</div>
       </Link>
 

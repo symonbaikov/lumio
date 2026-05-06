@@ -64,7 +64,7 @@ export default function GlobalBreadcrumbs({ variant = 'topbar' }: GlobalBreadcru
 
   return (
     <div data-global-breadcrumbs>
-      <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, py: 1 }}>
+      <Box sx={{ py: 1 }}>
         <Breadcrumbs items={items} />
       </Box>
     </div>

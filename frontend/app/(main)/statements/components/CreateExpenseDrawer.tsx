@@ -373,7 +373,7 @@ export default function CreateExpenseDrawer({
                           }))
                         }
                         placeholder="0"
-                        style={{ minWidth: 0, flex: 1, border: 0, background: 'transparent', padding: 0, lineHeight: 1, fontWeight: 600, color: 'var(--foreground)', outline: 'none', fontSize: manualAmountFontSize }}
+                        style={{ minWidth: 0, flex: 1, border: 0, background: 'transparent', padding: 0, lineHeight: 1, fontWeight: 600, color: 'var(--foreground)', fontSize: manualAmountFontSize }}
                       />
                     </div>
 
@@ -445,7 +445,7 @@ export default function CreateExpenseDrawer({
                         }))
                       }
                       placeholder="Optional"
-                      style={{ marginTop: 6, width: '100%', border: 0, background: 'transparent', padding: 0, fontSize: 24, lineHeight: 1, color: 'var(--foreground)', outline: 'none' }}
+                      style={{ marginTop: 6, width: '100%', border: 0, background: 'transparent', padding: 0, fontSize: 24, lineHeight: 1, color: 'var(--foreground)' }}
                     />
                   </div>
 
@@ -471,7 +471,7 @@ export default function CreateExpenseDrawer({
                         }))
                       }
                       placeholder="Required"
-                      style={{ marginTop: 6, width: '100%', border: 0, background: 'transparent', padding: 0, fontSize: 24, lineHeight: 1, color: 'var(--foreground)', outline: 'none' }}
+                      style={{ marginTop: 6, width: '100%', border: 0, background: 'transparent', padding: 0, fontSize: 24, lineHeight: 1, color: 'var(--foreground)' }}
                     />
                     {!manualValidation.merchant ? (
                       <p style={{ marginTop: 4, fontSize: 12, color: 'var(--destructive)' }}>This field is required</p>

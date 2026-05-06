@@ -32,7 +32,6 @@ const INPUT_STYLE: React.CSSProperties = {
   padding: '8px 12px',
   fontSize: 14,
   color: 'var(--foreground)',
-  outline: 'none',
   borderRadius: tokens.radius.md,
 };
 

@@ -601,6 +601,15 @@ export default function CustomTablesPage() {
     drawerTitle: resolveLabel(filtersT.drawerTitle, 'Filters'),
     drawerGeneral: resolveLabel(filtersT.drawerGeneral, 'General'),
   };
+  const tableFilterChipStyle = {
+    height: 38,
+    borderColor: c.ink200,
+    borderRadius: tokens.radius.full,
+    backgroundColor: c.surface,
+    color: c.ink900,
+    fontSize: 14,
+    fontWeight: 600,
+  };
   const paginationLabels = {
     shown: tx(t, ['pagination', 'shown'], 'Showing {from}–{to} of {count}'),
     previous: tx(t, ['pagination', 'previous'], 'Previous'),
@@ -899,7 +908,7 @@ export default function CustomTablesPage() {
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={searchPlaceholder}
               aria-label={searchPlaceholder}
-              style={{ width: '100%', border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.md, background: 'var(--card-bg)', padding: '12px 16px 12px 44px', fontSize: 14, color: c.ink900, outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.md, background: 'var(--card-bg)', padding: '12px 16px 12px 44px', fontSize: 14, color: c.ink900, boxSizing: 'border-box' }}
             />
           </Box>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
@@ -910,12 +919,15 @@ export default function CustomTablesPage() {
                 <FilterChipButton
                   active={filterSource !== 'all'}
                   data-tour-id="custom-tables-source-filter"
+                  style={tableFilterChipStyle}
                 >
-                  {filterSource !== 'all'
-                    ? sourceOptions.find(option => option.value === filterSource)?.label ||
-                      filterLabels.all
-                    : filterLabels.all}
-                  <ChevronDown className="h-3.5 w-3.5" />
+                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                    {filterSource !== 'all'
+                      ? sourceOptions.find(option => option.value === filterSource)?.label ||
+                        filterLabels.all
+                      : filterLabels.all}
+                    <ChevronDown size={16} />
+                  </Box>
                 </FilterChipButton>
               }
             >
@@ -942,9 +954,11 @@ export default function CustomTablesPage() {
               open={sortDropdownOpen}
               onOpenChange={setSortDropdownOpen}
               trigger={
-                <FilterChipButton active={sortOrder !== 'updated_desc'}>
-                  {sortOrder === 'updated_desc' ? filterLabels.sortUpdated : filterLabels.sortName}
-                  <ChevronDown className="h-3.5 w-3.5" />
+                <FilterChipButton active={sortOrder !== 'updated_desc'} style={tableFilterChipStyle}>
+                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                    {sortOrder === 'updated_desc' ? filterLabels.sortUpdated : filterLabels.sortName}
+                    <ChevronDown size={16} />
+                  </Box>
                 </FilterChipButton>
               }
             >
@@ -971,9 +985,9 @@ export default function CustomTablesPage() {
               component="button"
               type="button"
               onClick={handleOpenFiltersDrawer}
-              sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.md, bgcolor: 'background.paper', px: 1.5, py: 0.75, fontSize: 13, fontWeight: 500, color: c.ink800, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+              sx={{ height: 38, display: 'inline-flex', alignItems: 'center', gap: 1, border: `1px solid ${c.ink200}`, borderRadius: tokens.radius.full, bgcolor: 'background.paper', px: 2, py: 0, fontSize: 14, fontWeight: 600, color: c.ink900, cursor: 'pointer', '&:hover': { borderColor: c.ink300, bgcolor: c.ink50 } }}
             >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <SlidersHorizontal size={18} />
               {filterLabels.filters}
               {activeFilterCount > 0 ? (
                 <Box component="span" sx={{ ml: 0.5, display: 'inline-flex', width: 20, height: 20, alignItems: 'center', justifyContent: 'center', borderRadius: tokens.radius.full, bgcolor: 'rgba(22,129,24,0.1)', fontSize: 12, fontWeight: 600, color: 'primary.main' }}>

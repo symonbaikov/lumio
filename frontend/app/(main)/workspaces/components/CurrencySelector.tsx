@@ -117,7 +117,7 @@ function CurrencyPanel({ minimal, showPanelHeader, title, search, selectedCurren
       )}
       <Box sx={{ position: 'relative', mb: minimal ? 1 : 1.5, mt: minimal ? 1 : 0 }}>
         <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)', pointerEvents: 'none' }} />
-        <input type="text" value={search} onChange={e => onSearchChange(e.target.value)} placeholder="Search" style={{ width: '100%', border: minimal ? '1px solid transparent' : '1px solid var(--border)', background: minimal ? 'var(--card-bg)' : 'var(--card)', padding: '10px 12px 10px 40px', fontSize: 14, color: 'var(--foreground)', outline: 'none', borderRadius: tokens.radius.md, boxSizing: 'border-box' }} />
+        <input type="text" value={search} onChange={e => onSearchChange(e.target.value)} placeholder="Search" style={{ width: '100%', border: minimal ? '1px solid transparent' : '1px solid var(--border)', background: minimal ? 'var(--card-bg)' : 'var(--card)', padding: '10px 12px 10px 40px', fontSize: 14, color: 'var(--foreground)', borderRadius: tokens.radius.md, boxSizing: 'border-box' }} />
       </Box>
       <Box sx={{ overflowY: 'auto', pr: 0.5, maxHeight: minimal ? '34vh' : '72vh', display: 'flex', flexDirection: 'column', gap: minimal ? 0.75 : 1.5 }}>
         {selectedCurrencyItem && selectedMatchesSearch && <CurrencyItemButton item={selectedCurrencyItem} minimal={minimal} onSelect={onSelect} isSelected />}
