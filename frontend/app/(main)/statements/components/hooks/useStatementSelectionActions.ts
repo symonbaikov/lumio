@@ -45,12 +45,8 @@ export const runExportSelected = async (params: ExportParams): Promise<void> => 
   const { selectedStatementIds, displayStatements, setSelectedActionsOpen } = params;
   if (selectedStatementIds.length === 0) return;
   try {
-    const exportable = displayStatements.filter(s => selectedStatementIds.includes(s.id)).filter(s => !isGmailStatement(s));
-    if (exportable.length === 0) {
-      setSelectedActionsOpen(false);
-      toast.error('Selected receipts cannot be exported from this menu', getBulkActionErrorOptions('statements-bulk-export-unsupported'));
-      return;
-    }
+    const exportable = displayStatements.filter(s => selectedStatementIds.includes(s.id));
+    if (exportable.length === 0) return;
     const results = await Promise.allSettled(exportable.map(downloadStatement));
     const exportedCount = results.filter(r => r.status === 'fulfilled' && r.value === 'ok').length;
     const failedCount = results.filter(r => r.status === 'fulfilled' && r.value === 'fail').length;
@@ -93,13 +89,9 @@ const executeDeleteStatements = async (deletable: StatementLike[], deleteParams:
 export const runDeleteSelected = async (deleteParams: DeleteParams): Promise<void> => {
   const { selectedStatementIds, displayStatements, setSelectedActionsOpen } = deleteParams;
   if (selectedStatementIds.length === 0) return;
-  const deletable = displayStatements.filter(s => selectedStatementIds.includes(s.id)).filter(s => !isGmailStatement(s));
-  if (deletable.length === 0) {
-    setSelectedActionsOpen(false);
-    toast.error('Selected receipts cannot be deleted from this menu', getBulkActionErrorOptions('statements-bulk-delete-unsupported'));
-    return;
-  }
-  if (!window.confirm(`Move ${deletable.length} selected statement(s) to trash?`)) return;
+  const deletable = displayStatements.filter(s => selectedStatementIds.includes(s.id));
+  if (deletable.length === 0) return;
+  if (!window.confirm(`Move ${deletable.length} selected item(s) to trash?`)) return;
   try {
     await executeDeleteStatements(deletable, deleteParams);
   } catch {

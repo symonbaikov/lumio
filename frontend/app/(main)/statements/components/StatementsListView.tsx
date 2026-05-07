@@ -143,6 +143,9 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
     try {
       const ok = await v.loadStatements({ search: v.search, notifyOnCompletion: false, showErrorToast: false });
       if (!ok) throw new Error('refresh-failed');
+      if (stage === 'submit') {
+        await v.loadGmailReceipts({ silent: true, showErrorToast: false });
+      }
     } catch (err) {
       console.error('Failed to refresh statements:', err);
       toast.error(resolveLabel(t.refreshFailed, 'Failed to refresh statements'));

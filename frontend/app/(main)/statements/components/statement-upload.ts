@@ -124,26 +124,10 @@ export const uploadScanDrawerFiles = async ({
     throw new Error(labels.pickAtLeastOne);
   }
 
-  const statementFiles = payload.files.filter(file => file.type === 'application/pdf');
-  const receiptFiles = payload.files.filter(file => file.type !== 'application/pdf');
-
-  if (statementFiles.length > 0) {
-    await uploadStatementFiles({
-      files: statementFiles,
-      allowDuplicates: payload.allowDuplicates,
-      requireManualCategorySelection: payload.requireManualCategorySelection,
-      labels,
-      onUploadSuccess,
-      refreshAfterCreate,
-    });
-  }
-
-  if (receiptFiles.length > 0) {
-    await uploadReceiptScanFiles({
-      files: receiptFiles,
-      labels,
-      onUploadSuccess,
-      refreshAfterCreate,
-    });
-  }
+  await uploadReceiptScanFiles({
+    files: payload.files,
+    labels,
+    onUploadSuccess,
+    refreshAfterCreate,
+  });
 };

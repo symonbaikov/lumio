@@ -159,11 +159,20 @@ export const formatStatementAmount = (statement: StatementLike): string => {
   return `${formatted}${currency || ''}`;
 };
 
+const resolveReceiptDateValue = (statement: StatementLike): string => {
+  // Scan receipts: use upload time so newly uploaded items appear at the top.
+  // Gmail receipts: use parsed transaction date (close to received date).
+  if (statement.source === 'scan') {
+    return statement.receivedAt || statement.createdAt || statement.parsedData?.date || '';
+  }
+  return statement.parsedData?.date || statement.receivedAt || statement.createdAt || '';
+};
+
 // eslint-disable-next-line complexity
 export const formatStatementDate = (statement: StatementLike): string => {
   const dateValue =
     statement.source === 'gmail' || statement.source === 'scan'
-      ? statement.parsedData?.date || statement.receivedAt || statement.createdAt
+      ? resolveReceiptDateValue(statement)
       : statement.statementDateTo || statement.statementDateFrom || statement.createdAt || '';
   if (!dateValue) return '—';
   const date = new Date(dateValue);
@@ -175,7 +184,7 @@ export const formatStatementDate = (statement: StatementLike): string => {
 export const resolveStatementSortDate = (statement: StatementLike): number => {
   const dateValue =
     statement.source === 'gmail' || statement.source === 'scan'
-      ? statement.parsedData?.date || statement.receivedAt || statement.createdAt
+      ? resolveReceiptDateValue(statement)
       : statement.statementDateTo || statement.statementDateFrom || statement.createdAt || '';
   const date = dateValue ? new Date(dateValue) : null;
   if (!date || Number.isNaN(date.getTime())) return 0;
@@ -221,14 +230,16 @@ export const getBulkActionErrorOptions = (id: string): { id: string } => ({ id }
 export const getExportEndpoint = (
   statement: Pick<StatementLike, 'id' | 'source' | 'receiptSource'>,
 ): string =>
-  isScanReceiptStatement(statement)
+  statement.source === 'gmail' || isScanReceiptStatement(statement)
     ? `/receipts/${statement.id}/file`
     : `/statements/${statement.id}/file`;
 
 export const getDeleteEndpoint = (
   statement: Pick<StatementLike, 'id' | 'source' | 'receiptSource'>,
 ): string =>
-  isScanReceiptStatement(statement) ? `/receipts/${statement.id}` : `/statements/${statement.id}`;
+  statement.source === 'gmail' || isScanReceiptStatement(statement)
+    ? `/receipts/${statement.id}`
+    : `/statements/${statement.id}`;
 
 // ---------------------------------------------------------------------------
 // Category helpers
@@ -582,7 +593,8 @@ export const buildFromOptions = (
       const key = `bank:${statement.bankName}`;
       if (!seen.has(key)) {
         const isGmail = statement.source === 'gmail';
-        const isStore = statement.source === 'scan' && statement.receiptSource !== 'gmail';
+        const hasRealBank = statement.bankName !== 'other';
+        const isStore = statement.source === 'scan' && statement.receiptSource !== 'gmail' && !hasRealBank;
         seen.set(key, {
           id: key,
           label: isGmail ? 'Gmail' : isStore ? 'Receipt' : getBankDisplayName(statement.bankName),

@@ -58,6 +58,24 @@ export interface GmailMappedStatement {
   parsedData?: GmailMappedParsedData;
 }
 
+const VENDOR_BANK_PATTERNS: { pattern: RegExp; bankName: string }[] = [
+  { pattern: /\bkaspi\b/i, bankName: 'kaspi' },
+  { pattern: /каспи/i, bankName: 'kaspi' },
+  { pattern: /\bbereke\b/i, bankName: 'bereke_new' },
+  { pattern: /береке/i, bankName: 'bereke_new' },
+  { pattern: /\bhalyk\b/i, bankName: 'halyk' },
+  { pattern: /халык/i, bankName: 'halyk' },
+  { pattern: /\bhapoalim\b/i, bankName: 'hapoalim' },
+];
+
+const detectBankFromVendor = (vendor?: string | null): string | null => {
+  if (!vendor) return null;
+  for (const { pattern, bankName } of VENDOR_BANK_PATTERNS) {
+    if (pattern.test(vendor)) return bankName;
+  }
+  return null;
+};
+
 const parseAmountValue = (value?: number | string | null) => {
   if (value === null || value === undefined || value === '') {
     return null;
@@ -68,12 +86,16 @@ const parseAmountValue = (value?: number | string | null) => {
 };
 
 export const hasGmailReceiptAmount = (receipt: GmailReceipt): boolean => {
-  return parseAmountValue(receipt.parsedData?.amount ?? null) !== null;
+  if (parseAmountValue(receipt.parsedData?.amount ?? null) !== null) return true;
+  // Scan receipts with a linked statement (e.g. bank statement PDFs uploaded via scan)
+  // should be shown even without a parsed receipt amount.
+  return receipt.source === 'scan' && !!receipt.statementId;
 };
 
 export const mapGmailReceiptToStatement = (receipt: GmailReceipt): GmailMappedStatement | null => {
   const amount = parseAmountValue(receipt.parsedData?.amount ?? null);
-  if (amount === null) {
+  // Allow scan receipts with a linked statement even without a parsed amount
+  if (amount === null && !(receipt.source === 'scan' && receipt.statementId)) {
     return null;
   }
 
@@ -95,7 +117,7 @@ export const mapGmailReceiptToStatement = (receipt: GmailReceipt): GmailMappedSt
     sender: receipt.sender,
     status: receipt.status,
     totalTransactions: 0,
-    totalDebit: amount,
+    totalDebit: amount ?? 0,
     totalCredit: null,
     exported: null,
     paid: null,
@@ -103,7 +125,9 @@ export const mapGmailReceiptToStatement = (receipt: GmailReceipt): GmailMappedSt
     processedAt: undefined,
     statementDateFrom: receipt.parsedData?.date || receipt.receivedAt,
     statementDateTo: null,
-    bankName: isLocalReceipt ? 'receipt' : 'gmail',
+    bankName: isLocalReceipt
+      ? (detectBankFromVendor(receipt.parsedData?.vendor) ?? 'receipt')
+      : 'gmail',
     fileType: isLocalReceipt ? 'receipt' : 'gmail',
     currency: receipt.parsedData?.currency || 'KZT',
     user: null,
@@ -111,7 +135,7 @@ export const mapGmailReceiptToStatement = (receipt: GmailReceipt): GmailMappedSt
     gmailMessageId: receipt.gmailMessageId,
     receivedAt: receipt.receivedAt,
     parsedData: {
-      amount,
+      amount: amount ?? undefined,
       currency: receipt.parsedData?.currency,
       vendor: receipt.parsedData?.vendor,
       date: receipt.parsedData?.date,

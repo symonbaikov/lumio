@@ -216,18 +216,6 @@ export function useExpenseForm({
     setManualDraft(createDefaultManualDraft(resolvedDefaultCurrency));
   }, [open, initialMode, resolvedDefaultCurrency]);
 
-  useEffect(() => {
-    if (!open || mode !== 'manual' || manualStep !== 'amount' || currencyPickerOpen) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      manualAmountInputRef.current?.focus();
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [open, mode, manualStep, currencyPickerOpen]);
-
   const pushRecentCurrency = (currencyCode: string): void => {
     setManualRecentCurrencies(prev => [
       currencyCode,

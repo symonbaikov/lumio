@@ -152,7 +152,8 @@ export function useStatementsListData<T extends StatementRecord = StatementRecor
         includeInvalid: false,
       });
       const receipts = Array.isArray(response.data?.receipts) ? response.data.receipts : [];
-      setGmailReceipts(receipts.filter(hasGmailReceiptAmount));
+      const filtered = receipts.filter(hasGmailReceiptAmount);
+      setGmailReceipts(filtered);
     } catch (error) {
       console.error('Failed to load Gmail receipts:', error);
       if (showErrorToast !== false) {

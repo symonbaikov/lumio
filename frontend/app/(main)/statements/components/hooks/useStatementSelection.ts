@@ -250,21 +250,11 @@ export function useStatementSelection({
     if (selectedStatementIds.length === 0) return;
 
     try {
-      const selectedStatements = displayStatements.filter(statement =>
+      const exportableStatements = displayStatements.filter(statement =>
         selectedStatementIds.includes(statement.id),
       );
-      const exportableStatements = selectedStatements.filter(
-        statement => !isGmailStatement(statement),
-      );
 
-      if (exportableStatements.length === 0) {
-        setSelectedActionsOpen(false);
-        toast.error(
-          'Selected receipts cannot be exported from this menu',
-          getBulkActionErrorOptions('statements-bulk-export-unsupported'),
-        );
-        return;
-      }
+      if (exportableStatements.length === 0) return;
 
       const results = await Promise.all(
         exportableStatements.map(statement => triggerDownload(statement)),
@@ -292,24 +282,14 @@ export function useStatementSelection({
   const handleDeleteSelected = async () => {
     if (selectedStatementIds.length === 0) return;
 
-    const selectedStatements = displayStatements.filter(statement =>
+    const deletableStatements = displayStatements.filter(statement =>
       selectedStatementIds.includes(statement.id),
     );
-    const deletableStatements = selectedStatements.filter(
-      statement => !isGmailStatement(statement),
-    );
 
-    if (deletableStatements.length === 0) {
-      setSelectedActionsOpen(false);
-      toast.error(
-        'Selected receipts cannot be deleted from this menu',
-        getBulkActionErrorOptions('statements-bulk-delete-unsupported'),
-      );
-      return;
-    }
+    if (deletableStatements.length === 0) return;
 
     const confirmed = window.confirm(
-      `Move ${deletableStatements.length} selected statement(s) to trash?`,
+      `Move ${deletableStatements.length} selected item(s) to trash?`,
     );
     if (!confirmed) return;
 

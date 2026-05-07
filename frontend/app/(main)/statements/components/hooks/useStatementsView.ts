@@ -381,7 +381,8 @@ export function useStatementsView({ stage, router, searchParams }: UseStatements
 
   const receiptStatements = useMemo<Statement[]>(() => {
     if (stage !== 'submit') return [];
-    return mapGmailReceiptsToStatements(gmailReceipts);
+    const mapped = mapGmailReceiptsToStatements(gmailReceipts);
+    return mapped;
   }, [gmailReceipts, stage]);
 
   const stagedStatements = useMemo(
