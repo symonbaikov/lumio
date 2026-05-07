@@ -1,6 +1,6 @@
+import apiClient from '@/app/lib/api';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import apiClient from '@/app/lib/api';
 
 export interface SubscriptionItem {
   id: string;
@@ -158,6 +158,19 @@ export function useSubscriptionsPage() {
     }
   }, [load]);
 
+  const handleRestore = useCallback(
+    async (id: string) => {
+      try {
+        await apiClient.put(`/subscriptions/${id}`, { status: 'active' });
+        toast.success('Subscription restored');
+        await load();
+      } catch {
+        toast.error('Failed to restore subscription');
+      }
+    },
+    [load],
+  );
+
   return {
     subscriptions,
     summary,
@@ -177,5 +190,6 @@ export function useSubscriptionsPage() {
     handleDelete,
     handleConfirm,
     handleDismiss,
+    handleRestore,
   };
 }

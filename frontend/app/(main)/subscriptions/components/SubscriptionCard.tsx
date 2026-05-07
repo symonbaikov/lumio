@@ -1,7 +1,7 @@
 'use client';
 
+import { Pencil, RotateCcw, Trash2 } from '@/app/components/icons';
 import { Box, Button, Card, CardContent, Chip, IconButton, Typography } from '@mui/material';
-import { Pencil, Trash2 } from '@/app/components/icons';
 import type { SubscriptionItem } from '../hooks/useSubscriptionsPage';
 
 interface SubscriptionCardProps {
@@ -10,6 +10,7 @@ interface SubscriptionCardProps {
   onDelete: () => void;
   onConfirm: () => void;
   onDismiss: () => void;
+  onRestore: () => void;
 }
 
 const STATUS_COLORS: Record<string, 'warning' | 'success' | 'default' | 'error'> = {
@@ -26,7 +27,14 @@ const FREQUENCY_LABELS: Record<string, string> = {
   annual: '/year',
 };
 
-export function SubscriptionCard({ subscription, onEdit, onDelete, onConfirm, onDismiss }: SubscriptionCardProps) {
+export function SubscriptionCard({
+  subscription,
+  onEdit,
+  onDelete,
+  onConfirm,
+  onDismiss,
+  onRestore,
+}: SubscriptionCardProps) {
   const formatAmount = (amount: number, currency: string) =>
     new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(amount) + ' ' + currency;
 
@@ -39,7 +47,9 @@ export function SubscriptionCard({ subscription, onEdit, onDelete, onConfirm, on
     <Card variant="outlined" sx={{ position: 'relative' }}>
       <CardContent sx={{ pb: 1.5, '&:last-child': { pb: 1.5 } }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+        <Box
+          sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}
+        >
           <Box>
             <Typography variant="subtitle1" fontWeight={600} noWrap>
               {subscription.vendorName}
@@ -88,6 +98,16 @@ export function SubscriptionCard({ subscription, onEdit, onDelete, onConfirm, on
             <Box />
           )}
           <Box>
+            {subscription.status === 'cancelled' && (
+              <IconButton
+                size="small"
+                color="success"
+                onClick={onRestore}
+                aria-label="Restore subscription"
+              >
+                <RotateCcw size={16} />
+              </IconButton>
+            )}
             <IconButton size="small" onClick={onEdit}>
               <Pencil size={16} />
             </IconButton>
