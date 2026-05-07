@@ -96,7 +96,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
   if (dataHealth.receiptsPendingReview > 0) {
     quickLinks.push({
       label: `Review ${dataHealth.receiptsPendingReview} receipt${dataHealth.receiptsPendingReview !== 1 ? 's' : ''}`,
-      href: '/statements?missingCategory=true',
+      href: '/statements/submit',
     });
   }
 
@@ -336,7 +336,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
           >
             {quickLinks.map(({ label, href }) => (
               <Link
-                key={href}
+                key={`${href}:${label}`}
                 href={href}
                 className="ff-dashboard-sans"
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', fontSize: 14, fontWeight: 500, color: 'var(--foreground)', transition: 'background-color 150ms', textDecoration: 'none' }}

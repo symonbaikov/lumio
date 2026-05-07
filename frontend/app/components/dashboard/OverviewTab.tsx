@@ -42,8 +42,13 @@ interface SparkProps {
 }
 
 function Spark({ points, color = tokens.color.primary, fill = true, h = 38, w = 120 }: SparkProps) {
-  if (points.length < 2) {
-    return null;
+  if (points.length === 0) return null;
+  if (points.length === 1) {
+    return (
+      <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} preserveAspectRatio="none" aria-hidden="true">
+        <circle cx={w / 2} cy={h / 2} r={3} fill={color} />
+      </svg>
+    );
   }
   const max = Math.max(...points);
   const min = Math.min(...points);
@@ -122,7 +127,7 @@ function StatCard({
 
 const ACTION_ICON_MAP: Record<string, React.ComponentType<{ size: number }>> = {
   payments_overdue: AlertTriangle,
-  uncategorized_transactions: Tag,
+  transactions_uncategorized: Tag,
   parsing_warnings: Flag,
   receipts_pending_review: Receipt,
 };
@@ -229,7 +234,9 @@ function computeOverviewState(data: DashboardData, range: DashboardRange, isLoad
   }
 
   const hasNoData =
-    data.cashFlow.length === 0 && mappedActions.length === 0 && data.snapshot.totalBalance === 0;
+    (data.cashFlow ?? []).every(point => point.income === 0 && point.expense === 0) &&
+    mappedActions.length === 0 &&
+    data.snapshot.totalBalance === 0;
 
   const rangeLabel = RANGE_LABELS[range] || '30 days';
 
@@ -253,9 +260,9 @@ function computeOverviewState(data: DashboardData, range: DashboardRange, isLoad
     balanceDeltaDir: isNegativeBalance ? ('down' as const) : undefined,
     uncatDelta: uncatCount > 0 ? 'Needs review' : 'All clear',
     uncatDeltaDir: uncatCount > 0 ? ('flat' as const) : ('up' as const),
-    netSpark: netPoints.length >= 2 ? netPoints : undefined,
-    incomeSpark: incomePoints.length >= 2 ? incomePoints : undefined,
-    expenseSpark: expensePoints.length >= 2 ? expensePoints : undefined,
+    netSpark: netPoints.length >= 1 ? netPoints : undefined,
+    incomeSpark: incomePoints.length >= 1 ? incomePoints : undefined,
+    expenseSpark: expensePoints.length >= 1 ? expensePoints : undefined,
   };
 }
 
@@ -307,7 +314,7 @@ export function OverviewTab({
       <div className="lumio-dashboard__stat-grid">
         <StatCard
           label="Net balance"
-          value={s.loadingSpinner || formatAmount(Math.abs(data.snapshot.totalBalance))}
+          value={s.loadingSpinner || formatAmount(data.snapshot.totalBalance)}
           delta={s.balanceDelta}
           deltaDir={s.balanceDeltaDir}
           sub={data.snapshot.currency}
@@ -374,7 +381,7 @@ export function OverviewTab({
             </Link>
           </div>
           <div className="lumio-dashboard__cat-chart">
-            <TopCategoriesCard categories={data.topCategories ?? []} />
+            <TopCategoriesCard categories={data.topCategories ?? []} formatAmount={formatAmount} />
           </div>
         </div>
 

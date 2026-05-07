@@ -21,6 +21,10 @@ import type {
 } from './interfaces/dashboard-response.interface';
 import type { DashboardTrendsResponse } from './interfaces/dashboard-trends.interface';
 
+type RawTrendAmountRow = { currency: string; income: string; expense: string };
+type RawTrendCategoryRow = { name: string; currency: string; amount: string; count: string };
+type RawTrendCounterpartyRow = { name: string; currency: string; amount: string; count: string };
+
 @Injectable()
 export class DashboardService {
   constructor(
@@ -118,22 +122,19 @@ export class DashboardService {
     const targetCurrency = this.normalizeCurrency(workspace?.currency);
 
     // Group income/expense by currency so we can convert each group
-    const txRows = await this.transactionRepo
+    const txQuery = this.transactionRepo
       .createQueryBuilder('t')
-      .innerJoin('t.statement', 's')
+      .leftJoin('t.statement', 's');
+    this.applyWorkspaceStatementFilters(txQuery, workspaceId, true);
+
+    const txRows = await txQuery
       .select([
         't.currency AS currency',
         'COALESCE(SUM(CASE WHEN t.transactionType = :income THEN t.credit ELSE 0 END), 0) AS income',
         'COALESCE(SUM(CASE WHEN t.transactionType = :expense THEN t.debit ELSE 0 END), 0) AS expense',
         'COALESCE(SUM(CASE WHEN s.status IN (:...unapprovedStatuses) THEN (CASE WHEN t.transactionType = :income THEN t.credit ELSE -t.debit END) ELSE 0 END), 0) AS "unapprovedCash"',
       ])
-      .where('s.workspaceId = :workspaceId', { workspaceId })
       .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
-      .andWhere('s.deletedAt IS NULL')
-      .andWhere('t.isDuplicate = false')
-      .andWhere('s.status NOT IN (:...excludedStatuses)', {
-        excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
-      })
       .setParameter('income', TransactionType.INCOME)
       .setParameter('expense', TransactionType.EXPENSE)
       .setParameter('unapprovedStatuses', [
@@ -154,7 +155,7 @@ export class DashboardService {
     }
 
     // All-time balance grouped by currency
-    const balanceQuery = this.transactionRepo.createQueryBuilder('t').innerJoin('t.statement', 's');
+    const balanceQuery = this.transactionRepo.createQueryBuilder('t').leftJoin('t.statement', 's');
     this.applyWorkspaceStatementFilters(balanceQuery, workspaceId, true);
 
     const balanceRows = await balanceQuery
@@ -291,18 +292,17 @@ export class DashboardService {
 
     const uncategorized = await this.transactionRepo
       .createQueryBuilder('t')
-      .innerJoin('t.statement', 's')
-      .where('s.workspaceId = :workspaceId', { workspaceId })
+      .leftJoin('t.statement', 's');
+    this.applyWorkspaceStatementFilters(uncategorized, workspaceId, true);
+    const uncategorizedCount = await uncategorized
       .andWhere('t.categoryId IS NULL')
-      .andWhere('s.deletedAt IS NULL')
-      .andWhere('t.isDuplicate = false')
       .getCount();
 
-    if (uncategorized > 0) {
+    if (uncategorizedCount > 0) {
       actions.push({
         type: 'transactions_uncategorized',
-        count: uncategorized,
-        label: `${uncategorized} transaction${uncategorized > 1 ? 's' : ''} uncategorized`,
+        count: uncategorizedCount,
+        label: `${uncategorizedCount} transaction${uncategorizedCount > 1 ? 's' : ''} uncategorized`,
         href: '/statements?missingCategory=true',
       });
     }
@@ -311,6 +311,7 @@ export class DashboardService {
       where: {
         workspaceId,
         status: In([ReceiptStatus.NEW, ReceiptStatus.NEEDS_REVIEW]),
+        isDuplicate: false,
       },
     });
 
@@ -319,7 +320,7 @@ export class DashboardService {
         type: 'receipts_pending_review',
         count: pendingReceipts,
         label: `${pendingReceipts} receipt${pendingReceipts > 1 ? 's' : ''} need review`,
-        href: '/statements?missingCategory=true',
+        href: '/statements/submit',
       });
     }
 
@@ -335,7 +336,7 @@ export class DashboardService {
     const groupFormat = this.getTransactionGroupFormat(days);
     const targetCurrency = await this.getWorkspaceCurrency(workspaceId);
 
-    const query = this.transactionRepo.createQueryBuilder('t').innerJoin('t.statement', 's');
+    const query = this.transactionRepo.createQueryBuilder('t').leftJoin('t.statement', 's');
 
     this.applyActiveStatementTransactionFilters(query, workspaceId, since, endDate);
 
@@ -365,7 +366,7 @@ export class DashboardService {
       points.set(row.date, point);
     }
 
-    return Array.from(points.values()).sort((a, b) => a.date.localeCompare(b.date));
+    return this.fillCashFlowBuckets(Array.from(points.values()), since, endDate, days);
   }
 
   private async getTopMerchants(
@@ -374,7 +375,7 @@ export class DashboardService {
     endDate: Date,
   ): Promise<DashboardTopMerchant[]> {
     const targetCurrency = await this.getWorkspaceCurrency(workspaceId);
-    const query = this.transactionRepo.createQueryBuilder('t').innerJoin('t.statement', 's');
+    const query = this.transactionRepo.createQueryBuilder('t').leftJoin('t.statement', 's');
 
     this.applyActiveStatementTransactionFilters(query, workspaceId, since, endDate);
 
@@ -413,7 +414,7 @@ export class DashboardService {
     const targetCurrency = await this.getWorkspaceCurrency(workspaceId);
     const query = this.transactionRepo
       .createQueryBuilder('t')
-      .innerJoin('t.statement', 's')
+      .leftJoin('t.statement', 's')
       .leftJoin('t.category', 'c');
 
     this.applyActiveStatementTransactionFilters(query, workspaceId, since, endDate);
@@ -509,7 +510,7 @@ export class DashboardService {
 
     const recentTransactions = await this.transactionRepo
       .createQueryBuilder('t')
-      .innerJoin('t.statement', 's')
+      .leftJoin('t.statement', 's')
       .leftJoinAndSelect('t.category', 'c')
       .select([
         't.id',
@@ -521,8 +522,12 @@ export class DashboardService {
         'c.id',
         'c.name',
       ])
-      .where('s.workspaceId = :workspaceId', { workspaceId })
-      .andWhere('s.deletedAt IS NULL')
+      .where('t.workspaceId = :workspaceId', { workspaceId })
+      .andWhere('(s.id IS NULL OR s.deletedAt IS NULL)')
+      .andWhere('t.isDuplicate = false')
+      .andWhere('(s.id IS NULL OR s.status NOT IN (:...excludedStatuses))', {
+        excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
+      })
       .orderBy('t.updatedAt', 'DESC')
       .take(5)
       .getMany();
@@ -576,6 +581,7 @@ export class DashboardService {
   }
 
   private async getDataHealth(workspaceId: string): Promise<DashboardDataHealth> {
+    const targetCurrency = await this.getWorkspaceCurrency(workspaceId);
     const [
       uncategorizedTransactions,
       statementsWithErrors,
@@ -587,14 +593,7 @@ export class DashboardService {
       unapprovedCashResult,
     ] = await Promise.all([
       // uncategorized transactions (non-duplicate)
-      this.transactionRepo
-        .createQueryBuilder('t')
-        .innerJoin('t.statement', 's')
-        .where('s.workspaceId = :workspaceId', { workspaceId })
-        .andWhere('t.categoryId IS NULL')
-        .andWhere('s.deletedAt IS NULL')
-        .andWhere('t.isDuplicate = false')
-        .getCount(),
+      this.countUncategorizedTransactions(workspaceId),
       // statements with errors
       this.statementRepo.count({
         where: { workspaceId, status: StatementStatus.ERROR, deletedAt: IsNull() },
@@ -620,6 +619,7 @@ export class DashboardService {
         where: {
           workspaceId,
           status: In([ReceiptStatus.NEW, ReceiptStatus.NEEDS_REVIEW]),
+          isDuplicate: false,
         },
       }),
       // parsing warnings: actual warnings captured in parsing details
@@ -640,6 +640,10 @@ export class DashboardService {
         .createQueryBuilder('t')
         .innerJoin('t.statement', 's')
         .select(
+          't.currency',
+          'currency',
+        )
+        .addSelect(
           'COALESCE(SUM(CASE WHEN t.transactionType = :income THEN t.credit ELSE -t.debit END), 0)',
           'unapprovedCash',
         )
@@ -652,9 +656,25 @@ export class DashboardService {
           ],
         })
         .andWhere('s.deletedAt IS NULL')
+        .andWhere('t.isDuplicate = false')
         .setParameter('income', TransactionType.INCOME)
-        .getRawOne<{ unapprovedCash: string }>(),
+        .groupBy('t.currency')
+        .getRawMany<{ currency: string; unapprovedCash: string }>(),
     ]);
+
+    const unapprovedCashRows = Array.isArray(unapprovedCashResult)
+      ? unapprovedCashResult
+      : unapprovedCashResult
+        ? [unapprovedCashResult]
+        : [];
+    let unapprovedCash = 0;
+    for (const row of unapprovedCashRows) {
+      unapprovedCash += await this.convertDashboardAmount(
+        row.unapprovedCash,
+        row.currency,
+        targetCurrency,
+      );
+    }
 
     return {
       uncategorizedTransactions,
@@ -662,13 +682,14 @@ export class DashboardService {
       statementsPendingReview,
       statementsPendingSubmit,
       receiptsPendingReview,
-      unapprovedCash: Number.parseFloat(unapprovedCashResult?.unapprovedCash ?? '') || 0,
+      unapprovedCash,
       lastUploadDate: latestStatement?.createdAt?.toISOString() ?? null,
       parsingWarnings,
     };
   }
 
   async getTrends(workspaceId: string, days = 30): Promise<DashboardTrendsResponse> {
+    const targetCurrency = await this.getWorkspaceCurrency(workspaceId);
     const requestedWindow = this.getWindowBounds(days, new Date());
     let effectiveWindow = requestedWindow;
     let trendData = await this.getTrendData(
@@ -676,6 +697,7 @@ export class DashboardService {
       requestedWindow.since,
       requestedWindow.endDate,
       days,
+      targetCurrency,
     );
     let autoShifted = false;
 
@@ -689,33 +711,23 @@ export class DashboardService {
           effectiveWindow.since,
           effectiveWindow.endDate,
           days,
+          targetCurrency,
         );
         autoShifted = true;
       }
     }
 
     const response: DashboardTrendsResponse = {
-      dailyTrend: trendData.dailyRows.map(row => ({
-        date: row.date,
-        income: Number.parseFloat(row.income) || 0,
-        expense: Number.parseFloat(row.expense) || 0,
-      })),
-      categories: trendData.categoryRows.map(row => ({
-        name: row.name,
-        amount: Number.parseFloat(row.amount) || 0,
-        count: Number.parseInt(row.count, 10) || 0,
-      })),
-      counterparties: trendData.counterpartyRows.map(row => ({
-        name: row.name,
-        amount: Number.parseFloat(row.amount) || 0,
-        count: Number.parseInt(row.count, 10) || 0,
-      })),
+      dailyTrend: this.fillCashFlowBuckets(
+        trendData.dailyRows,
+        effectiveWindow.since,
+        effectiveWindow.endDate,
+        days,
+      ),
+      categories: trendData.categoryRows,
+      counterparties: trendData.counterpartyRows,
       sources: {
-        statements: {
-          income: Number.parseFloat(trendData.sourceRows?.income ?? '') || 0,
-          expense: Number.parseFloat(trendData.sourceRows?.expense ?? '') || 0,
-          rows: Number.parseInt(trendData.sourceRows?.rows ?? '0', 10) || 0,
-        },
+        statements: trendData.sourceRows,
       },
     };
 
@@ -739,7 +751,7 @@ export class DashboardService {
   }
 
   private async getLatestTransactionDate(workspaceId: string): Promise<Date | null> {
-    const query = this.transactionRepo.createQueryBuilder('t').innerJoin('t.statement', 's');
+    const query = this.transactionRepo.createQueryBuilder('t').leftJoin('t.statement', 's');
     this.applyWorkspaceStatementFilters(query, workspaceId, true);
 
     const result = await query
@@ -753,12 +765,25 @@ export class DashboardService {
     return date.toISOString().slice(0, 10);
   }
 
-  private async getTrendData(workspaceId: string, since: Date, endDate: Date, days: number) {
+  private async countUncategorizedTransactions(workspaceId: string): Promise<number> {
+    const query = this.transactionRepo.createQueryBuilder('t').leftJoin('t.statement', 's');
+    this.applyWorkspaceStatementFilters(query, workspaceId, true);
+    return query.andWhere('t.categoryId IS NULL').getCount();
+  }
+
+  private async getTrendData(
+    workspaceId: string,
+    since: Date,
+    endDate: Date,
+    days: number,
+    targetCurrency: string,
+  ) {
     const groupFormat = this.getTransactionGroupFormat(days);
 
-    const [dailyRows, categoryRows, counterpartyRows, sourceRows] = await Promise.all([
+    const [rawDailyRows, rawCategoryRows, rawCounterpartyRows, rawSourceRows] = await Promise.all([
       this.createTrendBaseQuery(workspaceId, since, endDate)
         .select(`TO_CHAR(t.transactionDate, ${groupFormat})`, 'date')
+        .addSelect('t.currency', 'currency')
         .addSelect(
           'COALESCE(SUM(CASE WHEN t.transactionType = :income THEN t.credit ELSE 0 END), 0)',
           'income',
@@ -768,33 +793,39 @@ export class DashboardService {
           'expense',
         )
         .groupBy(`TO_CHAR(t.transactionDate, ${groupFormat})`)
+        .addGroupBy('t.currency')
         .orderBy(`TO_CHAR(t.transactionDate, ${groupFormat})`, 'ASC')
         .setParameter('income', TransactionType.INCOME)
         .setParameter('expense', TransactionType.EXPENSE)
-        .getRawMany<{ date: string; income: string; expense: string }>(),
+        .getRawMany<{ date: string } & RawTrendAmountRow>(),
       this.createTrendBaseQuery(workspaceId, since, endDate)
         .leftJoin('t.category', 'c')
         .select("COALESCE(c.name, 'Uncategorized')", 'name')
+        .addSelect('t.currency', 'currency')
         .addSelect('COALESCE(SUM(t.debit), 0)', 'amount')
         .addSelect('COUNT(t.id)', 'count')
         .andWhere('t.transactionType = :expense', { expense: TransactionType.EXPENSE })
         .groupBy('c.name')
+        .addGroupBy('t.currency')
         .orderBy('amount', 'DESC')
         .limit(10)
-        .getRawMany<{ name: string; amount: string; count: string }>(),
+        .getRawMany<RawTrendCategoryRow>(),
       this.createTrendBaseQuery(workspaceId, since, endDate)
         .select('t.counterpartyName', 'name')
+        .addSelect('t.currency', 'currency')
         .addSelect('COALESCE(SUM(t.credit), 0)', 'amount')
         .addSelect('COUNT(t.id)', 'count')
         .andWhere('t.transactionType = :income', { income: TransactionType.INCOME })
         .andWhere('t.counterpartyName IS NOT NULL')
         .andWhere("t.counterpartyName != ''")
         .groupBy('t.counterpartyName')
+        .addGroupBy('t.currency')
         .orderBy('amount', 'DESC')
         .limit(10)
-        .getRawMany<{ name: string; amount: string; count: string }>(),
+        .getRawMany<RawTrendCounterpartyRow>(),
       this.createTrendBaseQuery(workspaceId, since, endDate)
-        .select(
+        .select('t.currency', 'currency')
+        .addSelect(
           'COALESCE(SUM(CASE WHEN t.transactionType = :income THEN t.credit ELSE 0 END), 0)',
           'income',
         )
@@ -805,20 +836,112 @@ export class DashboardService {
         .addSelect('COUNT(DISTINCT t.id)', 'rows')
         .setParameter('income', TransactionType.INCOME)
         .setParameter('expense', TransactionType.EXPENSE)
-        .getRawOne<{ income: string; expense: string; rows: string }>(),
+        .groupBy('t.currency')
+        .getRawMany<RawTrendAmountRow & { rows: string }>(),
     ]);
+
+    const dailyRows = await this.convertDailyTrendRows(rawDailyRows, targetCurrency);
+    const categoryRows = await this.convertNamedAmountRows(rawCategoryRows, targetCurrency);
+    const counterpartyRows = await this.convertNamedAmountRows(rawCounterpartyRows, targetCurrency);
+    const sourceRows = await this.convertSourceRows(
+      Array.isArray(rawSourceRows) ? rawSourceRows : rawSourceRows ? [rawSourceRows] : [],
+      targetCurrency,
+    );
 
     return { dailyRows, categoryRows, counterpartyRows, sourceRows };
   }
 
+  private async convertDailyTrendRows(
+    rows: Array<{ date: string } & RawTrendAmountRow>,
+    targetCurrency: string,
+  ): Promise<DashboardCashFlowPoint[]> {
+    const points = new Map<string, DashboardCashFlowPoint>();
+    for (const row of rows) {
+      const point = points.get(row.date) ?? { date: row.date, income: 0, expense: 0 };
+      point.income += await this.convertDashboardAmount(row.income, row.currency, targetCurrency);
+      point.expense += await this.convertDashboardAmount(row.expense, row.currency, targetCurrency);
+      points.set(row.date, point);
+    }
+    return Array.from(points.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  private async convertNamedAmountRows(
+    rows: Array<RawTrendCategoryRow | RawTrendCounterpartyRow>,
+    targetCurrency: string,
+  ): Promise<Array<{ name: string; amount: number; count: number }>> {
+    const grouped = new Map<string, { name: string; amount: number; count: number }>();
+    for (const row of rows) {
+      const existing = grouped.get(row.name) ?? { name: row.name, amount: 0, count: 0 };
+      existing.amount += await this.convertDashboardAmount(row.amount, row.currency, targetCurrency);
+      existing.count += Number.parseInt(row.count, 10) || 0;
+      grouped.set(row.name, existing);
+    }
+    return Array.from(grouped.values())
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 10);
+  }
+
+  private async convertSourceRows(
+    rows: Array<RawTrendAmountRow & { rows: string }>,
+    targetCurrency: string,
+  ): Promise<{ income: number; expense: number; rows: number }> {
+    const totals = { income: 0, expense: 0, rows: 0 };
+    for (const row of rows) {
+      totals.income += await this.convertDashboardAmount(row.income, row.currency, targetCurrency);
+      totals.expense += await this.convertDashboardAmount(row.expense, row.currency, targetCurrency);
+      totals.rows += Number.parseInt(row.rows, 10) || 0;
+    }
+    return totals;
+  }
+
+  private fillCashFlowBuckets(
+    rows: DashboardCashFlowPoint[],
+    since: Date,
+    endDate: Date,
+    days: number,
+  ): DashboardCashFlowPoint[] {
+    const points = new Map(rows.map(row => [row.date, { ...row }]));
+    const cursor = new Date(since);
+
+    while (cursor <= endDate) {
+      const key = this.formatTransactionBucket(cursor, days);
+      if (!points.has(key)) {
+        points.set(key, { date: key, income: 0, expense: 0 });
+      }
+      cursor.setDate(cursor.getDate() + (days >= 90 ? 7 : 1));
+    }
+
+    return Array.from(points.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
   private createTrendBaseQuery(workspaceId: string, since: Date, endDate: Date) {
-    const query = this.transactionRepo.createQueryBuilder('t').innerJoin('t.statement', 's');
+    const query = this.transactionRepo.createQueryBuilder('t').leftJoin('t.statement', 's');
     this.applyActiveStatementTransactionFilters(query, workspaceId, since, endDate);
     return query;
   }
 
   private getTransactionGroupFormat(days: number): string {
     return days >= 90 ? "'IYYY-IW'" : "'YYYY-MM-DD'";
+  }
+
+  private formatTransactionBucket(date: Date, days: number): string {
+    if (days < 90) {
+      return this.formatDateOnly(date);
+    }
+    return `${this.getISOWeekYear(date)}-${String(this.getISOWeek(date)).padStart(2, '0')}`;
+  }
+
+  private getISOWeekYear(date: Date): number {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    return d.getUTCFullYear();
+  }
+
+  private getISOWeek(date: Date): number {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   }
 
   private applyActiveStatementTransactionFilters(
@@ -842,12 +965,13 @@ export class DashboardService {
     workspaceId: string,
     excludeDuplicates: boolean,
   ) {
-    query.where('s.workspaceId = :workspaceId', { workspaceId });
-    query.andWhere('s.deletedAt IS NULL');
+    query.where('t.workspaceId = :workspaceId', { workspaceId });
+    query.andWhere('(s.id IS NULL OR s.workspaceId = :workspaceId)', { workspaceId });
+    query.andWhere('(s.id IS NULL OR s.deletedAt IS NULL)');
     if (excludeDuplicates) {
       query.andWhere('t.isDuplicate = false');
     }
-    query.andWhere('s.status NOT IN (:...excludedStatuses)', {
+    query.andWhere('(s.id IS NULL OR s.status NOT IN (:...excludedStatuses))', {
       excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
     });
   }

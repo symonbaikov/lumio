@@ -32,6 +32,7 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
   const [days, setDays] = useState<number>(30);
   const { resolvedTheme } = useTheme();
   const { data: trendsData, loading, error } = useDashboardTrends(days);
+  const hasTrendRows = (trendsData?.sources?.statements?.rows ?? 0) > 0;
   const effectivePeriod = resolveDashboardEffectivePeriod(
     trendsData?.effectiveSince,
     trendsData?.effectiveEndDate,
@@ -39,7 +40,7 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
 
   // eslint-disable-next-line max-lines-per-function, complexity
   const dailyTrendOption = useMemo(() => {
-    if (!trendsData?.dailyTrend?.length) return null;
+    if (!trendsData?.dailyTrend?.length || !hasTrendRows) return null;
     const isDark = resolvedTheme === 'dark';
     return {
       backgroundColor: 'transparent',
@@ -93,7 +94,7 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
         },
       ],
     };
-  }, [resolvedTheme, trendsData]);
+  }, [hasTrendRows, resolvedTheme, trendsData]);
 
   // eslint-disable-next-line max-lines-per-function, complexity
   const rosePieOption = useMemo(() => {
@@ -281,10 +282,8 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
                     <Typography sx={{ fontSize: 14, color: 'text.secondary', fontFamily: 'var(--font-dashboard-sans)' }}>Net</Typography>
                     <Typography sx={{ fontSize: 14, color: 'text.secondary', fontFamily: 'var(--font-dashboard-sans)' }}>
                       {formatAmount(
-                        Math.abs(
-                          trendsData.sources.statements.income -
-                            trendsData.sources.statements.expense,
-                        ),
+                        trendsData.sources.statements.income -
+                          trendsData.sources.statements.expense,
                       )}
                     </Typography>
                   </Box>

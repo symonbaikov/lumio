@@ -10,9 +10,15 @@ const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 interface TopCategoriesCardProps {
   categories: NonNullable<DashboardData['topCategories']>;
+  formatAmount: (value: number) => string;
 }
 
-export function TopCategoriesCard({ categories }: TopCategoriesCardProps) {
+export function TopCategoriesCard({ categories, formatAmount }: TopCategoriesCardProps) {
+  const totalAmount = useMemo(
+    () => categories.reduce((sum, category) => sum + Number(category.amount || 0), 0),
+    [categories],
+  );
+
   const option = useMemo(() => {
     if (!categories.length) return null;
 
@@ -75,16 +81,21 @@ export function TopCategoriesCard({ categories }: TopCategoriesCardProps) {
     <Box sx={{ display: 'flex', height: '100%', width: '100%', position: 'relative' }}>
       <ReactECharts style={{ height: '100%', width: '100%' }} option={option} notMerge lazyUpdate />
       <Box sx={{ pointerEvents: 'none', position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Box sx={{ textAlign: 'center', pb: 0.5, pr: '80px' }}>
+        <Box sx={{ textAlign: 'center', pb: 0.5, pr: { xs: 0, sm: '80px' }, maxWidth: 140 }}>
           <Typography
             sx={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--muted-foreground)', fontFamily: 'var(--font-dashboard-mono)' }}
           >
             TOTAL
           </Typography>
           <Typography
-            sx={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)', fontFamily: 'var(--font-dashboard-sans)' }}
+            sx={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)', fontFamily: 'var(--font-dashboard-sans)', overflowWrap: 'anywhere', lineHeight: 1.15 }}
           >
-            Categories
+            {formatAmount(totalAmount)}
+          </Typography>
+          <Typography
+            sx={{ mt: 0.5, fontSize: 11, color: 'var(--muted-foreground)', fontFamily: 'var(--font-dashboard-sans)' }}
+          >
+            {categories.length} categor{categories.length === 1 ? 'y' : 'ies'}
           </Typography>
         </Box>
       </Box>
