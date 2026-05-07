@@ -1,13 +1,141 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "ca4e0c9e0e50baa265df66950d2ec0e43bc70d52"
+      "main": "97a933f3006965c4eea7f2bbc7ed8bbbbdc2dd4d"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-05-06T10:45:21.614Z",
+    "lastGeneratedAt": "2026-05-07T12:38:36.582Z",
     "minCommits": 5
   },
   "entries": [
+    {
+      "id": "changelog-2026-05-07-97a933f",
+      "version": "main-97a933f",
+      "branch": "main",
+      "date": "2026-05-07T12:38:36.582Z",
+      "title": "Release update - May 7, 2026",
+      "summary": "This release includes 4 features and 1 fix.",
+      "markdown": "## Features\n- **backend**: Improve parsing, receipts, and statement services\n- **statements**: Update statements page, hooks, and upload logic\n- **budgets**: Refactor budget components and inline form dialog\n- **subscriptions**: Update subscription card and content components\n\n## Fixes\n- **dashboard**: Fill missing dates in cash flow chart and fix sparkline rendering",
+      "commits": [
+        {
+          "sha": "737ef4862f6e59bf8aa9b91894cc4b740bbdd642",
+          "shortSha": "737ef486",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-05-06T10:45:22Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "4246cddaa41968d71301fb102693ed27e130b555",
+          "shortSha": "4246cdda",
+          "subject": "fix(dashboard): fill missing dates in cash flow chart and fix sparkline rendering",
+          "author": "symonbaikov",
+          "date": "2026-05-07T14:08:07+03:00",
+          "files": [
+            "backend/src/modules/dashboard/dashboard.service.ts",
+            "frontend/app/components/dashboard/CashFlowMini.tsx",
+            "frontend/app/components/dashboard/DataHealthTab.tsx",
+            "frontend/app/components/dashboard/OverviewTab.tsx",
+            "frontend/app/components/dashboard/TopCategoriesCard.tsx",
+            "frontend/app/components/dashboard/TrendsTab.tsx"
+          ]
+        },
+        {
+          "sha": "b53d84814b6e1950d6f1bf8216b058dcb39d7927",
+          "shortSha": "b53d8481",
+          "subject": "feat(backend): improve parsing, receipts, and statement services",
+          "author": "symonbaikov",
+          "date": "2026-05-07T14:08:21+03:00",
+          "files": [
+            "backend/src/modules/parsing/services/universal-extractor.service.ts",
+            "backend/src/modules/receipts/receipts.service.ts",
+            "backend/src/modules/statements/services/receipt-statement.service.ts",
+            "backend/src/modules/statements/statements.service.ts"
+          ]
+        },
+        {
+          "sha": "fc8e86bda393e749a8031bf85e14ddb79f6635cc",
+          "shortSha": "fc8e86bd",
+          "subject": "feat(statements): update statements page, hooks, and upload logic",
+          "author": "symonbaikov",
+          "date": "2026-05-07T14:08:40+03:00",
+          "files": [
+            "frontend/app/(main)/statements/components/StatementsListView.tsx",
+            "frontend/app/(main)/statements/components/StatementsListView.utils.ts",
+            "frontend/app/(main)/statements/components/gmail-receipt-mapping.ts",
+            "frontend/app/(main)/statements/components/hooks/useExpenseForm.ts",
+            "frontend/app/(main)/statements/components/hooks/useStatementSelection.ts",
+            "frontend/app/(main)/statements/components/hooks/useStatementSelectionActions.ts",
+            "frontend/app/(main)/statements/components/hooks/useStatementsListData.ts",
+            "frontend/app/(main)/statements/components/hooks/useStatementsView.ts",
+            "frontend/app/(main)/statements/components/statement-upload.ts",
+            "frontend/app/(main)/statements/page.tsx"
+          ]
+        },
+        {
+          "sha": "f8371b79242e94bb0defa5be5ad4f4c8bc817d51",
+          "shortSha": "f8371b79",
+          "subject": "feat(budgets): refactor budget components and inline form dialog",
+          "author": "symonbaikov",
+          "date": "2026-05-07T14:08:56+03:00",
+          "files": [
+            "frontend/app/(main)/budgets/components/BudgetCard.tsx",
+            "frontend/app/(main)/budgets/components/BudgetFormDialog.tsx",
+            "frontend/app/(main)/budgets/components/BudgetsContent.tsx",
+            "frontend/app/(main)/budgets/page.tsx"
+          ]
+        },
+        {
+          "sha": "3e5acf6e7b39c638245226c4379f447b67e76a45",
+          "shortSha": "3e5acf6e",
+          "subject": "feat(subscriptions): update subscription card and content components",
+          "author": "symonbaikov",
+          "date": "2026-05-07T14:09:06+03:00",
+          "files": [
+            "frontend/app/(main)/subscriptions/components/SubscriptionCard.tsx",
+            "frontend/app/(main)/subscriptions/components/SubscriptionsContent.tsx",
+            "frontend/app/(main)/subscriptions/hooks/useSubscriptionsPage.ts",
+            "frontend/app/(main)/subscriptions/page.tsx"
+          ]
+        },
+        {
+          "sha": "a5938035e2c5772f718e8e8b7b6defd65112c282",
+          "shortSha": "a5938035",
+          "subject": "test: update unit tests for dashboard, receipts, statements, and uploads",
+          "author": "symonbaikov",
+          "date": "2026-05-07T14:09:21+03:00",
+          "files": [
+            "backend/@tests/unit/modules/dashboard/dashboard.service.spec.ts",
+            "backend/@tests/unit/modules/receipts/receipts.service.spec.ts",
+            "backend/@tests/unit/modules/statements/receipt-statement.service.spec.ts",
+            "frontend/app/(main)/statements/components/gmail-receipt-mapping.test.ts",
+            "frontend/app/(main)/statements/components/statement-upload.test.ts",
+            "frontend/app/(main)/statements/page.test.tsx",
+            "frontend/app/components/dashboard/__tests__/DataHealthTab.test.tsx",
+            "frontend/app/components/dashboard/__tests__/OverviewTab.test.tsx",
+            "frontend/app/components/dashboard/__tests__/TrendsTab.test.tsx"
+          ]
+        },
+        {
+          "sha": "97a933f3006965c4eea7f2bbc7ed8bbbbdc2dd4d",
+          "shortSha": "97a933f3",
+          "subject": "chore(frontend): update sidebar, receipts form, permissions, and styles",
+          "author": "symonbaikov",
+          "date": "2026-05-07T14:09:31+03:00",
+          "files": [
+            "frontend/app/components/Sidebar.tsx",
+            "frontend/app/components/receipts/ReceiptParsedDataForm.tsx",
+            "frontend/app/components/receipts/components/CurrencyDrawer.tsx",
+            "frontend/app/hooks/usePermissions.ts",
+            "frontend/app/styles/components/_statements.scss",
+            "frontend/app/styles/components/_transaction-table.scss",
+            "package.json"
+          ]
+        }
+      ]
+    },
     {
       "id": "changelog-2026-05-06-ca4e0c9",
       "version": "main-ca4e0c9",
