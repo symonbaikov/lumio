@@ -238,6 +238,59 @@
   }
 }
 
+/* ── Statement view ──────────────────────────────── */
+.lumio-stmt-view {
+  &__back-btn,
+  &__back-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-md;
+    background: $lumio-color-surface;
+    color: $lumio-color-ink-700;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 16px;
+    transition: border-color 150ms, color 150ms, background-color 150ms;
+
+    @include dark {
+      border-color: $lumio-color-ink-150-dk;
+      background: $lumio-color-surface-dk;
+      color: $lumio-color-ink-700-dk;
+    }
+
+    &:hover {
+      border-color: $color-primary;
+      color: $color-primary;
+
+      @include dark {
+        border-color: $color-primary-dk;
+        color: $color-primary-dk;
+      }
+    }
+  }
+
+  &__back-btn-primary {
+    margin-top: 16px;
+  }
+
+  &__error-box {
+    border: 1px solid rgba($lumio-color-danger, 0.35);
+    border-radius: $lumio-radius-lg;
+    background: $lumio-color-surface-error;
+    color: $lumio-color-danger;
+    padding: 16px;
+
+    @include dark {
+      border-color: rgba($lumio-color-danger-dk, 0.4);
+      background: $lumio-color-danger-soft-dk;
+      color: $lumio-color-danger-dk;
+    }
+  }
+}
+
 /* ── Statements list view ──────────────────────────────── */
 .lumio-stmt-list {
   display: flex;

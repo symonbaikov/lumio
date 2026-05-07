@@ -5,6 +5,7 @@ import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import type { CurrencySearchItem } from '@/app/lib/statement-expense-drawer';
 import { tokens } from '@/lib/theme-tokens';
 import { Box, IconButton, Typography } from '@mui/material';
+import type React from 'react';
 
 interface CurrencyDrawerProps {
   isOpen: boolean;
@@ -32,7 +33,7 @@ export function CurrencyDrawer({
   allCurrencyItems,
   handleSelectCurrency,
   zIndex,
-}: CurrencyDrawerProps) {
+}: CurrencyDrawerProps): React.JSX.Element {
   return (
     <DrawerShell
       isOpen={isOpen}
@@ -87,6 +88,7 @@ export function CurrencyDrawer({
               style={{
                 width: '100%',
                 border: '1px solid var(--border-color)',
+                borderRadius: tokens.radius.md,
                 background: 'var(--card-bg)',
                 padding: '12px 16px 12px 40px',
                 fontSize: 14,
@@ -110,6 +112,7 @@ export function CurrencyDrawer({
                 py: 2,
                 textAlign: 'left',
                 border: 'none',
+                borderRadius: tokens.radius.md,
                 cursor: 'pointer',
               }}
             >
@@ -143,6 +146,7 @@ export function CurrencyDrawer({
                       py: 1.5,
                       textAlign: 'left',
                       border: 'none',
+                      borderRadius: tokens.radius.md,
                       bgcolor: 'transparent',
                       cursor: 'pointer',
                       '&:hover': { bgcolor: 'action.hover' },
@@ -176,6 +180,7 @@ export function CurrencyDrawer({
                       py: 1.5,
                       textAlign: 'left',
                       border: 'none',
+                      borderRadius: tokens.radius.md,
                       bgcolor: 'transparent',
                       cursor: 'pointer',
                       '&:hover': { bgcolor: 'action.hover' },

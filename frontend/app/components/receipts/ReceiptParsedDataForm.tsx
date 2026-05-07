@@ -107,10 +107,12 @@ export function ReceiptParsedDataForm({
           </Box>
 
           <Box>
+            <label htmlFor="receipt-date-picker" style={{ fontSize: 14, fontWeight: 500, color: c.ink700 }}>
+              Date
+            </label>
             <CustomDatePicker
               value={value.date}
               onChange={date => onChange({ ...value, date })}
-              label="Date"
               containerTestId="receipt-date-picker"
             />
           </Box>
@@ -145,17 +147,23 @@ export function ReceiptParsedDataForm({
               onClick={() => setCurrencyDrawerOpen(true)}
               sx={{
                 display: 'flex',
-                height: 40,
+                height: 36,
                 width: '100%',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                border: `1px solid ${c.ink150}`,
-                bgcolor: 'background.paper',
+                border: '1px solid rgba(0, 0, 0, 0.23)',
+                borderRadius: tokens.radius.md,
+                bgcolor: 'transparent',
                 px: 1.5,
                 py: 1,
-                fontSize: 14,
+                fontSize: 13,
                 cursor: 'pointer',
-                '&:hover': { bgcolor: 'action.hover' },
+                '&:hover': { borderColor: 'text.primary' },
+                '&:focus-visible': {
+                  borderColor: 'primary.main',
+                  boxShadow: `0 0 0 3px ${c.primary50}`,
+                  outline: 'none',
+                },
               }}
             >
               <Box component="span" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -357,6 +365,7 @@ export function ReceiptParsedDataForm({
                 style={{
                   width: '100%',
                   border: `1px solid ${c.ink150}`,
+                  borderRadius: tokens.radius.md,
                   background: 'var(--card-bg)',
                   padding: '12px 16px 12px 40px',
                   fontSize: 14,
@@ -379,6 +388,7 @@ export function ReceiptParsedDataForm({
                   py: 2,
                   textAlign: 'left',
                   border: 'none',
+                  borderRadius: tokens.radius.md,
                   cursor: 'pointer',
                 }}
               >
@@ -408,6 +418,7 @@ export function ReceiptParsedDataForm({
                         py: 1.5,
                         textAlign: 'left',
                         border: 'none',
+                        borderRadius: tokens.radius.md,
                         bgcolor: 'transparent',
                         cursor: 'pointer',
                         '&:hover': { bgcolor: 'action.hover' },
@@ -439,6 +450,7 @@ export function ReceiptParsedDataForm({
                         py: 1.5,
                         textAlign: 'left',
                         border: 'none',
+                        borderRadius: tokens.radius.md,
                         bgcolor: 'transparent',
                         cursor: 'pointer',
                         '&:hover': { bgcolor: 'action.hover' },

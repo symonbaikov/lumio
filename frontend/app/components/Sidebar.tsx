@@ -96,7 +96,7 @@ export function SidebarContent({ onNavClick }: SidebarProps) {
 
       {/* CTA */}
       <Link
-        href="/statements?upload=1"
+        href="/statements/submit?openExpenseDrawer=scan"
         className="lumio-sidebar__cta"
         onClick={onNavClick}
       >

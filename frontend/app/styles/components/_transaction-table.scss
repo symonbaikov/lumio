@@ -5,6 +5,7 @@
 .lumio-tx-table {
   overflow: hidden;
   border: 1px solid $lumio-color-ink-150;
+  border-radius: $lumio-radius-lg;
   background-color: $lumio-color-surface;
 
   @include dark {
@@ -487,6 +488,7 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
     border: 1px solid $lumio-color-ink-100;
+    border-radius: $lumio-radius-md;
     background-color: $lumio-color-ink-50;
     padding: 12px;
     font-size: 12px;
@@ -503,12 +505,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid $lumio-color-ink-150;
+  border: 1px solid $lumio-color-ink-150;
+  border-radius: $lumio-radius-lg;
   background-color: $lumio-color-surface;
   padding: 12px 16px;
 
   @include dark {
-    border-top-color: $lumio-color-ink-150-dk;
+    border-color: $lumio-color-ink-150-dk;
     background-color: $lumio-color-surface-dk;
   }
 
@@ -526,6 +529,7 @@
 
   &__select {
     border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-md;
     padding: 4px 8px;
     font-size: 14px;
     outline: none;
@@ -585,6 +589,7 @@
   &__search {
     width: 100%;
     border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-md;
     background-color: $lumio-color-surface;
     padding: 8px 16px 8px 40px;
     font-size: 14px;
@@ -634,6 +639,7 @@
     align-items: center;
     gap: 8px;
     border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-md;
     padding: 8px 16px;
     font-size: 14px;
     font-weight: 600;
@@ -690,6 +696,7 @@
 
   &__panel {
     border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-lg;
     background-color: rgba($lumio-color-ink-50, 0.6);
     padding: 16px;
 
@@ -726,6 +733,7 @@
   &__select {
     width: 100%;
     border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-md;
     background-color: $lumio-color-surface;
     padding: 8px 12px;
     font-size: 14px;
@@ -749,6 +757,7 @@
   &__clear-btn {
     margin-top: auto;
     border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-md;
     background-color: $lumio-color-surface;
     padding: 8px 16px;
     font-size: 14px;
@@ -778,6 +787,7 @@
 // Summary bar
 .lumio-tx-summary {
   border: 1px solid $lumio-color-ink-150;
+  border-radius: $lumio-radius-lg;
   background-color: $lumio-color-surface;
   padding: 24px;
 
@@ -849,6 +859,7 @@
     align-items: center;
     gap: 6px;
     border: 1px solid;
+    border-radius: $lumio-radius-full;
     padding: 2px 10px;
     font-size: 12px;
     font-weight: 500;
@@ -948,6 +959,7 @@
 
   &__total-card {
     border: 1px solid;
+    border-radius: $lumio-radius-md;
     padding: 12px;
 
     &--debit {
@@ -1031,6 +1043,7 @@
   max-width: 100%;
   align-items: center;
   gap: 4px;
+  border-radius: $lumio-radius-md;
   padding: 4px 10px;
   font-size: 12px;
   font-weight: 600;
