@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapGmailReceiptsToStatements } from './gmail-receipt-mapping';
+import { hasGmailReceiptAmount, mapGmailReceiptsToStatements } from './gmail-receipt-mapping';
 
 describe('mapGmailReceiptsToStatements', () => {
   it('skips receipts without amount', () => {
@@ -70,6 +70,55 @@ describe('mapGmailReceiptsToStatements', () => {
     expect(result[0].statementId).toBe('statement-scan-1');
     expect(result[1].source).toBe('gmail');
     expect(result[1].receiptSource).toBe('gmail');
+  });
+
+  it('includes scan receipts with linked statement even without amount', () => {
+    const result = mapGmailReceiptsToStatements([
+      {
+        id: 'scan-bank-1',
+        source: 'scan',
+        statementId: 'stmt-1',
+        subject: 'Bank_statement.pdf',
+        sender: 'camera-scan',
+        receivedAt: '2026-05-06T00:00:00.000Z',
+        status: 'draft',
+        parsedData: {
+          vendor: 'Bank',
+        },
+      },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('scan-bank-1');
+    expect(result[0].source).toBe('scan');
+    expect(result[0].totalDebit).toBe(0);
+  });
+
+  it('hasGmailReceiptAmount returns true for scan receipts with linked statement', () => {
+    expect(
+      hasGmailReceiptAmount({
+        id: 'scan-1',
+        source: 'scan',
+        statementId: 'stmt-1',
+        subject: 'test',
+        sender: 'test',
+        receivedAt: '2026-01-01',
+        status: 'draft',
+      }),
+    ).toBe(true);
+  });
+
+  it('hasGmailReceiptAmount returns false for gmail receipts without amount', () => {
+    expect(
+      hasGmailReceiptAmount({
+        id: 'gmail-1',
+        source: 'gmail',
+        subject: 'test',
+        sender: 'test',
+        receivedAt: '2026-01-01',
+        status: 'draft',
+      }),
+    ).toBe(false);
   });
 
   it('treats uploaded store receipts as local receipts instead of gmail', () => {

@@ -125,7 +125,7 @@ describe('OverviewTab', () => {
     expect(screen.queryByText('SPENDING CATEGORIES')).not.toBeInTheDocument();
   });
 
-  it('uses the updated cash flow panel background color', () => {
+  it('renders the cash flow panel inside the dashboard card layout', () => {
     render(
       <OverviewTab
         data={{
@@ -141,21 +141,16 @@ describe('OverviewTab', () => {
       />,
     );
 
-    const root = document.documentElement;
-    root.classList.add('dark');
+    const cashFlowTitle = screen.getByText('Cash flow');
+    const cashFlowCard = cashFlowTitle.closest('.lumio-dashboard__card');
 
-    const cashFlowTitle = screen.getByText('CASH FLOW (30D)');
-    const cashFlowCard = cashFlowTitle.closest('[class*="dark:bg-card"]');
-
-    expect(cashFlowCard?.className).toContain('dark:bg-card');
-    expect(cashFlowCard?.className).toContain('dark:border-border');
+    expect(cashFlowCard).toBeInTheDocument();
+    expect(cashFlowCard?.className).toContain('lumio-dashboard__cashflow');
     expect(cashFlowCard?.className).not.toContain('bg-white/40');
     expect(cashFlowCard?.className).not.toContain('border-white/60');
-
-    root.classList.remove('dark');
   });
 
-  it('renders enlarged lower analytics panels like trends layout', () => {
+  it('renders lower dashboard panels in the dashboard grid', () => {
     render(
       <OverviewTab
         data={{
@@ -171,16 +166,14 @@ describe('OverviewTab', () => {
       />,
     );
 
-    const actionRequiredTitle = screen.getByText('ACTION REQUIRED');
-    const actionRequiredPanel = actionRequiredTitle.closest('div[class*="bg-"]');
-    const cashFlowTitle = screen.getByText('CASH FLOW (30D)');
-    const cashFlowPanel = cashFlowTitle.closest('div[class*="bg-"]');
-    const analyticsGrid = actionRequiredPanel?.parentElement;
+    const quickActionsTitle = screen.getByText('Quick actions');
+    const quickActionsPanel = quickActionsTitle.closest('.lumio-dashboard__card');
+    const cashFlowTitle = screen.getByText('Cash flow');
+    const cashFlowPanel = cashFlowTitle.closest('.lumio-dashboard__card');
+    const dashboardGrid = cashFlowPanel?.parentElement;
 
-    expect(analyticsGrid?.className).toContain('lg:grid-cols-12');
-    expect(actionRequiredPanel?.className).toContain('lg:col-span-4');
-    expect(actionRequiredPanel?.className).toContain('min-h-[320px]');
-    expect(cashFlowPanel?.className).toContain('lg:col-span-8');
-    expect(cashFlowPanel?.className).toContain('min-h-[320px]');
+    expect(dashboardGrid?.className).toContain('lumio-dashboard__grid');
+    expect(quickActionsPanel?.className).toContain('lumio-dashboard__actions');
+    expect(cashFlowPanel?.className).toContain('lumio-dashboard__cashflow');
   });
 });

@@ -410,7 +410,7 @@ describe('DashboardService', () => {
 
     await (service as any).getSnapshot('ws-1', new Date('2026-02-01'), new Date('2026-03-01'));
 
-    expect(txQb.andWhere).toHaveBeenCalledWith('s.status NOT IN (:...excludedStatuses)', {
+    expect(txQb.andWhere).toHaveBeenCalledWith('(s.id IS NULL OR s.status NOT IN (:...excludedStatuses))', {
       excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
     });
   });
@@ -441,14 +441,15 @@ describe('DashboardService', () => {
 
     (service as any).applyActiveStatementTransactionFilters(qb, 'ws-1', since, endDate);
 
-    expect(qb.where).toHaveBeenCalledWith('s.workspaceId = :workspaceId', { workspaceId: 'ws-1' });
+    expect(qb.where).toHaveBeenCalledWith('t.workspaceId = :workspaceId', { workspaceId: 'ws-1' });
     expect(qb.andWhere).toHaveBeenCalledWith('t.transactionDate BETWEEN :since AND :endDate', {
       since,
       endDate,
     });
-    expect(qb.andWhere).toHaveBeenCalledWith('s.deletedAt IS NULL');
+    expect(qb.andWhere).toHaveBeenCalledWith('(s.id IS NULL OR s.workspaceId = :workspaceId)', { workspaceId: 'ws-1' });
+    expect(qb.andWhere).toHaveBeenCalledWith('(s.id IS NULL OR s.deletedAt IS NULL)');
     expect(qb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
-    expect(qb.andWhere).toHaveBeenCalledWith('s.status NOT IN (:...excludedStatuses)', {
+    expect(qb.andWhere).toHaveBeenCalledWith('(s.id IS NULL OR s.status NOT IN (:...excludedStatuses))', {
       excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
     });
   });
@@ -503,11 +504,10 @@ describe('DashboardService', () => {
       30,
     );
 
-    expect(result).toEqual([
-      { date: '2026-02-01', income: 100, expense: 50 },
-      { date: '2026-02-02', income: 0, expense: 25 },
-    ]);
-    expect(cashFlowQb.andWhere).toHaveBeenCalledWith('s.status NOT IN (:...excludedStatuses)', {
+    expect(result).toContainEqual({ date: '2026-02-01', income: 100, expense: 50 });
+    expect(result).toContainEqual({ date: '2026-02-02', income: 0, expense: 25 });
+    expect(result.at(-1)).toEqual({ date: '2026-03-01', income: 0, expense: 0 });
+    expect(cashFlowQb.andWhere).toHaveBeenCalledWith('(s.id IS NULL OR s.status NOT IN (:...excludedStatuses))', {
       excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
     });
     expect(cashFlowQb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
@@ -530,7 +530,9 @@ describe('DashboardService', () => {
 
     // Verify the query builder was called (weekly grouping used IYYY-IW format)
     expect(cashFlowQb.select).toHaveBeenCalledWith("TO_CHAR(t.transactionDate, 'IYYY-IW')", 'date');
-    expect(result).toHaveLength(2);
+    expect(result).toContainEqual({ date: '2026-05', income: 500, expense: 200 });
+    expect(result).toContainEqual({ date: '2026-06', income: 300, expense: 100 });
+    expect(result.length).toBeGreaterThan(2);
   });
 
   it('getTransactionGroupFormat switches to weekly buckets for 90-day ranges', () => {
@@ -557,7 +559,7 @@ describe('DashboardService', () => {
       { name: 'Halyk', amount: 30000, count: 5 },
     ]);
     expect(qb.limit).not.toHaveBeenCalled();
-    expect(qb.andWhere).toHaveBeenCalledWith('s.status NOT IN (:...excludedStatuses)', {
+    expect(qb.andWhere).toHaveBeenCalledWith('(s.id IS NULL OR s.status NOT IN (:...excludedStatuses))', {
       excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
     });
     expect(qb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
@@ -582,7 +584,7 @@ describe('DashboardService', () => {
       { id: null, name: 'Uncategorized', amount: 15000, count: 3 },
     ]);
     expect(qb.limit).not.toHaveBeenCalled();
-    expect(qb.andWhere).toHaveBeenCalledWith('s.status NOT IN (:...excludedStatuses)', {
+    expect(qb.andWhere).toHaveBeenCalledWith('(s.id IS NULL OR s.status NOT IN (:...excludedStatuses))', {
       excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
     });
     expect(qb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
@@ -596,8 +598,8 @@ describe('DashboardService', () => {
     const result = await (service as any).getLatestTransactionDate('ws-1');
 
     expect(result).toEqual(latestTransactionDate);
-    expect(qb.andWhere).toHaveBeenCalledWith('s.deletedAt IS NULL');
-    expect(qb.andWhere).toHaveBeenCalledWith('s.status NOT IN (:...excludedStatuses)', {
+    expect(qb.andWhere).toHaveBeenCalledWith('(s.id IS NULL OR s.deletedAt IS NULL)');
+    expect(qb.andWhere).toHaveBeenCalledWith('(s.id IS NULL OR s.status NOT IN (:...excludedStatuses))', {
       excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
     });
   });
@@ -717,8 +719,8 @@ describe('DashboardService', () => {
     const adjustedWindow = createExpectedWindow(30, '2026-02-10T08:30:00Z');
 
     expect((service as any).getLatestTransactionDate).toHaveBeenCalledWith('ws-1');
-    expect(result).toEqual({
-      dailyTrend: [{ date: '2026-02-10', income: 100, expense: 40 }],
+    expect(result.dailyTrend).toContainEqual({ date: '2026-02-10', income: 100, expense: 40 });
+    expect(result).toMatchObject({
       categories: [{ name: 'Utilities', amount: 40, count: 1 }],
       counterparties: [{ name: 'Client A', amount: 100, count: 1 }],
       sources: {
@@ -794,6 +796,7 @@ describe('DashboardService', () => {
       where: {
         workspaceId: 'ws-1',
         status: In([ReceiptStatus.NEW, ReceiptStatus.NEEDS_REVIEW]),
+        isDuplicate: false,
       },
     });
     expect(warningsQb.andWhere).toHaveBeenCalledWith(

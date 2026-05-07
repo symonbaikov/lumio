@@ -213,6 +213,52 @@ describe('ReceiptStatementService', () => {
     expect(result).toEqual([expect.objectContaining({ id: 'stmt-ocr-1' })]);
   });
 
+  it('creates an uploaded statement without transaction when amount is missing', async () => {
+    const file = {
+      path: '/tmp/receipt.pdf',
+      originalname: 'receipt.pdf',
+      mimetype: 'application/pdf',
+      size: 2048,
+    } as Express.Multer.File;
+
+    jest.spyOn(statementRepository, 'create').mockImplementation((input: any) => input);
+    jest
+      .spyOn(statementRepository, 'save')
+      .mockImplementation(async (input: any) => ({ id: 'stmt-noamt-1', ...input }));
+    jest.spyOn(statementRepository, 'update').mockResolvedValue({ affected: 1 } as any);
+    jest.spyOn(transactionRepository, 'create').mockImplementation((input: any) => input);
+    jest.spyOn(receiptsService, 'createFromScan').mockResolvedValue({
+      id: 'receipt-2',
+      status: ReceiptStatus.DRAFT,
+      subject: 'receipt.pdf',
+      parsedData: {
+        vendor: 'Some Store',
+        date: '2026-05-06',
+        currency: 'KZT',
+        confidence: 0.3,
+        validationIssues: [],
+      },
+      extractionMethod: 'regex',
+      metadata: {},
+    } as any);
+
+    const result = await service.createFromReceiptScan({
+      user: mockUser as User,
+      workspaceId: 'ws-1',
+      files: [file],
+    });
+
+    expect(statementRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: StatementStatus.UPLOADED,
+        totalTransactions: 0,
+        totalDebit: 0,
+      }),
+    );
+    expect(transactionRepository.create).not.toHaveBeenCalled();
+    expect(result).toEqual([expect.objectContaining({ id: 'stmt-noamt-1' })]);
+  });
+
   it('surfaces receipt processing errors from OCR metadata', async () => {
     const file = {
       path: '/tmp/receipt.jpg',

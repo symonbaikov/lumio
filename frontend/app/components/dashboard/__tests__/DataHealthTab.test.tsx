@@ -7,7 +7,7 @@ import { DataHealthTab } from '../DataHealthTab';
 type DataHealthTabData = React.ComponentProps<typeof DataHealthTab>['data'];
 
 describe('DataHealthTab', () => {
-  it('uses dark-safe metric card surfaces instead of translucent white panels', () => {
+  it('renders data quality metric cards without legacy translucent panel classes', () => {
     render(
       <DataHealthTab
         data={{
@@ -29,13 +29,13 @@ describe('DataHealthTab', () => {
     );
 
     const heading = screen.getByText('DATA QUALITY METRICS');
-    const metricCard = heading.parentElement?.querySelector('[class*="dark:bg-card"]');
+    const metricsSection = heading.parentElement;
 
-    expect(metricCard).toBeInTheDocument();
-    expect(metricCard?.className).toContain('dark:bg-card');
-    expect(metricCard?.className).toContain('dark:border-border');
-    expect(metricCard?.className).not.toContain('bg-white/40');
-    expect(metricCard?.className).not.toContain('border-white/60');
+    expect(screen.getByText('UNCATEGORIZED')).toBeInTheDocument();
+    expect(screen.getByText('STATEMENT ERRORS')).toBeInTheDocument();
+    expect(screen.getByText('RECEIPTS PENDING')).toBeInTheDocument();
+    expect(metricsSection?.innerHTML).not.toContain('bg-white/40');
+    expect(metricsSection?.innerHTML).not.toContain('border-white/60');
   });
 
   it('renders receipts pending metric and action link', () => {

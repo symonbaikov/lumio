@@ -66,7 +66,7 @@ describe('statement-upload helpers', () => {
     expect(refreshAfterCreate).not.toHaveBeenCalled();
   });
 
-  it('splits mixed scan uploads between statement and receipt endpoints', async () => {
+  it('routes all scan drawer files through the receipt endpoint', async () => {
     const onUploadSuccess = vi.fn();
     const refreshAfterCreate = vi.fn().mockResolvedValue(undefined);
     apiMocks.post.mockResolvedValue({ data: {} });
@@ -85,17 +85,8 @@ describe('statement-upload helpers', () => {
       refreshAfterCreate,
     });
 
-    expect(apiMocks.post).toHaveBeenCalledTimes(2);
-    expect(apiMocks.post).toHaveBeenNthCalledWith(
-      1,
-      '/statements/upload',
-      expect.any(FormData),
-      expect.objectContaining({
-        headers: { 'Content-Type': 'multipart/form-data' },
-      }),
-    );
-    expect(apiMocks.post).toHaveBeenNthCalledWith(
-      2,
+    expect(apiMocks.post).toHaveBeenCalledTimes(1);
+    expect(apiMocks.post).toHaveBeenCalledWith(
       '/statements/upload-receipt',
       expect.any(FormData),
       expect.objectContaining({
