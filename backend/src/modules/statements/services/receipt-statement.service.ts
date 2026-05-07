@@ -93,6 +93,21 @@ export class ReceiptStatementService {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
 
+  private static readonly VENDOR_TO_BANK: { pattern: RegExp; bank: BankName }[] = [
+    { pattern: /\bkaspi\b/i, bank: BankName.KASPI },
+    { pattern: /\bкаспи/i, bank: BankName.KASPI },
+    { pattern: /\bbereke\b/i, bank: BankName.BEREKE_NEW },
+    { pattern: /\bбереке/i, bank: BankName.BEREKE_NEW },
+    { pattern: /\bhapoalim\b/i, bank: BankName.HAPOALIM },
+  ];
+
+  private static detectBankFromVendor(vendor: string): BankName {
+    for (const { pattern, bank } of ReceiptStatementService.VENDOR_TO_BANK) {
+      if (pattern.test(vendor)) return bank;
+    }
+    return BankName.OTHER;
+  }
+
   private resolveReceiptFailureMessage(receipt: {
     metadata?: Record<string, unknown> | null;
     parsedData?: Record<string, unknown> | null;
@@ -137,12 +152,10 @@ export class ReceiptStatementService {
 
     const parsed = receipt.parsedData ?? {};
     const amountValue = this.normalizePositiveAmount(parsed.amount);
-    if (!amountValue) {
-      throw new BadRequestException('Receipt amount could not be determined');
-    }
 
     const merchant =
       String(parsed.vendor || receipt.subject || fileName).trim() || 'Unknown merchant';
+    const detectedBankName = ReceiptStatementService.detectBankFromVendor(merchant);
     const currency = String(parsed.currency || 'KZT')
       .trim()
       .toUpperCase();
@@ -180,6 +193,12 @@ export class ReceiptStatementService {
       },
     });
 
+    const hasAmount = amountValue !== null;
+    const validationWarnings = [...(parsed.validationIssues ?? [])];
+    if (!hasAmount) {
+      validationWarnings.push('missing_amount');
+    }
+
     const statement = this.statementRepository.create({
       userId: user.id,
       workspaceId,
@@ -188,13 +207,13 @@ export class ReceiptStatementService {
       fileType,
       fileSize: file.size,
       fileHash,
-      bankName: BankName.OTHER,
-      status: StatementStatus.COMPLETED,
+      bankName: detectedBankName,
+      status: hasAmount ? StatementStatus.COMPLETED : StatementStatus.UPLOADED,
       processedAt: new Date(),
       statementDateFrom: transactionDate,
       statementDateTo: transactionDate,
-      totalTransactions: 1,
-      totalDebit: amountValue,
+      totalTransactions: hasAmount ? 1 : 0,
+      totalDebit: amountValue ?? 0,
       totalCredit: 0,
       currency,
       categoryId: fallbackCategory.id,
@@ -202,16 +221,16 @@ export class ReceiptStatementService {
         detectedBy: 'receipt-scan',
         parserUsed: 'receipt-scan',
         parserVersion: '1',
-        transactionsFound: 1,
-        transactionsCreated: 1,
+        transactionsFound: hasAmount ? 1 : 0,
+        transactionsCreated: hasAmount ? 1 : 0,
         metadataExtracted: {
           dateFrom: transactionDate.toISOString().slice(0, 10),
           dateTo: transactionDate.toISOString().slice(0, 10),
           currency,
         },
         validation: {
-          passed: (parsed.validationIssues ?? []).length === 0,
-          warnings: parsed.validationIssues ?? [],
+          passed: validationWarnings.length === 0,
+          warnings: validationWarnings,
         },
         importPreview: {
           source: 'receipt-scan',
@@ -243,27 +262,29 @@ export class ReceiptStatementService {
       );
     }
 
-    const transactionType =
-      parsed.transactionType === 'income' ? TransactionType.INCOME : TransactionType.EXPENSE;
-    const isExpense = transactionType === TransactionType.EXPENSE;
+    if (hasAmount) {
+      const transactionType =
+        parsed.transactionType === 'income' ? TransactionType.INCOME : TransactionType.EXPENSE;
+      const isExpense = transactionType === TransactionType.EXPENSE;
 
-    const transaction = this.transactionRepository.create({
-      workspaceId,
-      statementId: savedStatement.id,
-      transactionDate,
-      counterpartyName: merchant,
-      paymentPurpose: merchant,
-      debit: isExpense ? amountValue : null,
-      credit: isExpense ? null : amountValue,
-      amount: amountValue,
-      currency,
-      transactionType,
-      categoryId: fallbackCategory.id,
-      taxRateId: taxRate?.id || null,
-      isVerified: true,
-    });
+      const transaction = this.transactionRepository.create({
+        workspaceId,
+        statementId: savedStatement.id,
+        transactionDate,
+        counterpartyName: merchant,
+        paymentPurpose: merchant,
+        debit: isExpense ? amountValue : null,
+        credit: isExpense ? null : amountValue,
+        amount: amountValue,
+        currency,
+        transactionType,
+        categoryId: fallbackCategory.id,
+        taxRateId: taxRate?.id || null,
+        isVerified: true,
+      });
 
-    await this.transactionRepository.save(transaction);
+      await this.transactionRepository.save(transaction);
+    }
 
     await this.auditService.createEvent({
       workspaceId,

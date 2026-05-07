@@ -13,6 +13,7 @@ import {
   Transaction,
   TransactionType,
 } from '../../entities';
+import { normalizeFilename } from '../../common/utils/filename.util';
 import { normalizePagination } from '../../common/utils/pagination.util';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
 import { ReceiptProcessorService } from './services/receipt-processor.service';
@@ -305,7 +306,7 @@ export class ReceiptsService {
       source: params.source,
       gmailMessageId: null,
       gmailThreadId: null,
-      subject: params.file.originalname,
+      subject: normalizeFilename(params.file.originalname),
       sender: params.source === ReceiptSource.SCAN ? 'camera-scan' : 'manual-upload',
       receivedAt: new Date(),
       status: ReceiptStatus.NEW,
@@ -314,7 +315,7 @@ export class ReceiptsService {
         attachments: [
           {
             id: params.file.filename,
-            filename: params.file.originalname,
+            filename: normalizeFilename(params.file.originalname),
             mimeType: params.file.mimetype,
             size: params.file.size,
           },
@@ -334,6 +335,8 @@ export class ReceiptsService {
   ) {
     const transactionType =
       receipt.parsedData?.transactionType === 'income' ? TransactionType.INCOME : TransactionType.EXPENSE;
+    const amount = receipt.parsedData?.amount ?? null;
+    const isExpense = transactionType === TransactionType.EXPENSE;
 
     const transaction = this.transactionRepository.create({
       statementId: null,
@@ -341,7 +344,9 @@ export class ReceiptsService {
       transactionDate: receipt.parsedData?.date ? new Date(receipt.parsedData.date) : new Date(),
       counterpartyName: receipt.parsedData?.vendor || receipt.subject || 'Unknown',
       paymentPurpose: receipt.parsedData?.vendor || receipt.subject || '',
-      amount: receipt.parsedData?.amount ?? null,
+      debit: isExpense ? amount : null,
+      credit: isExpense ? null : amount,
+      amount,
       currency: receipt.parsedData?.currency || 'KZT',
       categoryId: categoryId ?? (receipt.parsedData?.categoryId || null),
       transactionType,

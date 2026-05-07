@@ -754,7 +754,7 @@ export class StatementsService {
       action: AuditAction.IMPORT,
       diff: { before: null, after: savedStatement },
       meta: {
-        fileName: file.originalname,
+        fileName: normalizeFilename(file.originalname),
         fileSize: file.size,
       },
       severity: Severity.INFO,
