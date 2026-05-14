@@ -32,7 +32,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@commitlint/cli": "^19.8.1",
+    "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@types/node": "^25.5.0",
     "concurrently": "^8.2.2",
