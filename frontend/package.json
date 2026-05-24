@@ -33,7 +33,7 @@
     "@mui/x-date-pickers": "^9.0.0",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.18",
-    "axios": "^1.13.2",
+    "axios": "^1.14.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "driver.js": "^1.4.0",
