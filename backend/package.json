@@ -106,7 +106,7 @@
     "@babel/preset-env": "^7.28.6",
     "@babel/preset-typescript": "^7.28.5",
     "@biomejs/biome": "^1.9.4",
-    "@nestjs/cli": "^11.0.14",
+    "@nestjs/cli": "^11.0.21",
     "@nestjs/schematics": "^11.0.9",
     "@nestjs/testing": "^11.1.11",
     "@types/adm-zip": "^0.5.8",
