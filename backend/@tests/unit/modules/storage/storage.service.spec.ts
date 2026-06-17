@@ -262,6 +262,18 @@ describe('StorageService', () => {
     });
   });
 
+  describe('accessSharedLink', () => {
+    it('rejects public access when allowAnonymous is false', async () => {
+      jest.spyOn(sharedLinkRepository, 'findOne').mockResolvedValue({
+        ...mockSharedLink,
+        allowAnonymous: false,
+        status: ShareLinkStatus.ACTIVE,
+      } as SharedLink);
+
+      await expect(service.accessSharedLink('abc123')).rejects.toThrow(ForbiddenException);
+    });
+  });
+
   describe('createSharedLink', () => {
     const createDto: CreateSharedLinkDto = {
       permission: SharePermissionLevel.VIEW,

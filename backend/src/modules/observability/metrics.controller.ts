@@ -11,6 +11,9 @@ export class MetricsController {
   @Get()
   async getMetrics(@Res() res: Response, @Headers('authorization') authorization?: string) {
     const token = process.env.METRICS_AUTH_TOKEN;
+    if (!token && process.env.NODE_ENV === 'production') {
+      throw new ForbiddenException('Metrics token is required');
+    }
     if (token) {
       const expected = `Bearer ${token}`;
       if ((authorization || '').trim() !== expected) {

@@ -5,6 +5,7 @@ import { getSavedWindowState, trackWindowState } from './window-state';
 import { createTray, destroyTray } from './tray';
 import { initAutoUpdater, checkForUpdates } from './updater';
 import { getOfflineHTML } from './offline';
+import { canOpenExternalUrl } from './external-url-policy';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -82,7 +83,7 @@ function createWindow(): void {
 
   // Open external links in the system browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (canOpenExternalUrl(url)) {
       shell.openExternal(url);
     }
     return { action: 'deny' };
@@ -93,7 +94,9 @@ function createWindow(): void {
     const appURL = getLoadURL();
     if (!url.startsWith(appURL)) {
       event.preventDefault();
-      shell.openExternal(url);
+      if (canOpenExternalUrl(url)) {
+        shell.openExternal(url);
+      }
     }
   });
 

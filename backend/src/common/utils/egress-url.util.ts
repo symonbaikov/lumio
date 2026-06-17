@@ -1,9 +1,12 @@
 import { promises as dns } from 'node:dns';
+import { Agent as HttpAgent } from 'node:http';
+import { Agent as HttpsAgent } from 'node:https';
 import * as net from 'node:net';
 import { BadRequestException } from '@nestjs/common';
 
 type LookupResult = Array<{ address: string }>;
 type LookupFn = (host: string) => Promise<LookupResult>;
+type NodeLookupCallback = (err: NodeJS.ErrnoException | null, address: string, family: 4 | 6) => void;
 
 type EgressValidationOptions = {
   lookup?: LookupFn;
@@ -101,4 +104,31 @@ export async function assertPublicEgressUrl(
 
   await assertPublicEgressHost(parsed.hostname, options);
   return parsed;
+}
+
+export function createPublicEgressLookup() {
+  return (hostname: string, _options: unknown, callback: NodeLookupCallback): void => {
+    dns
+      .lookup(hostname, { all: true })
+      .then(records => {
+        if (records.length === 0 || records.some(record => isBlockedEgressAddress(record.address))) {
+          const error = new Error('Destination resolves to a blocked address') as NodeJS.ErrnoException;
+          error.code = 'EHOSTUNREACH';
+          callback(error, '', 4);
+          return;
+        }
+        const record = records[0];
+        callback(null, record.address, record.family as 4 | 6);
+      })
+      .catch(error => callback(error as NodeJS.ErrnoException, '', 4));
+  };
+}
+
+export function createPublicEgressHttpAgents() {
+  const lookup = createPublicEgressLookup();
+  return {
+    lookup,
+    httpAgent: new HttpAgent({ lookup }),
+    httpsAgent: new HttpsAgent({ lookup }),
+  };
 }
