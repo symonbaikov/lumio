@@ -90,7 +90,7 @@ jobs:
           echo "blockers=$blockers" >> "$GITHUB_OUTPUT"
 
       - name: Publish Codex check and comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           CODEX_SUMMARY: ${{ steps.parse.outputs.summary }}
           CODEX_BLOCKERS: ${{ steps.parse.outputs.blockers }}
