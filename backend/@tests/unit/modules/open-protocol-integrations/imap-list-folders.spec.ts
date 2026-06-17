@@ -3,6 +3,11 @@ jest.mock('webdav', () => ({ createClient: jest.fn() }));
 jest.mock('../../../../src/common/utils/egress-url.util', () => ({
   assertPublicEgressHost: jest.fn(),
   assertPublicEgressUrl: jest.fn(),
+  createPublicEgressHttpAgents: jest.fn(() => ({
+    lookup: jest.fn(),
+    httpAgent: {},
+    httpsAgent: {},
+  })),
 }));
 jest.mock('@aws-sdk/client-s3', () => ({
   S3Client: jest.fn(),

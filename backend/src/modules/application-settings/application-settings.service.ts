@@ -8,6 +8,7 @@ import AdmZip from 'adm-zip';
 import nodemailer from 'nodemailer';
 import type { Repository } from 'typeorm';
 import { decryptText, encryptText } from '../../common/utils/encryption.util';
+import { assertPublicEgressHost, assertPublicEgressUrl } from '../../common/utils/egress-url.util';
 import { User, WorkspaceServiceSettings, WorkspaceServiceSettingsKey } from '../../entities';
 import { TransactionCategorizer } from '../classification/helpers/transaction-categorizer';
 
@@ -100,6 +101,7 @@ export class ApplicationSettingsService {
     };
     const secrets = this.mergeSecrets(existing, ['apiKey'], input);
     const runtime = this.aiRuntimeFromParts(config, secrets, 'workspace');
+    await assertPublicEgressUrl(runtime.baseUrl);
     await this.assertAiConnection(runtime);
     await this.saveSettings(user, WorkspaceServiceSettingsKey.AI, config, secrets);
     return this.getAiStatus(user);
@@ -138,6 +140,7 @@ export class ApplicationSettingsService {
     };
     const secrets = this.mergeSecrets(existing, ['pass'], input);
     const runtime = this.smtpRuntimeFromParts(config, secrets, 'workspace');
+    await assertPublicEgressHost(runtime.host);
     await this.assertSmtpConnection(runtime);
     await this.saveSettings(user, WorkspaceServiceSettingsKey.SMTP, config, secrets);
     return this.getSmtpStatus(user);

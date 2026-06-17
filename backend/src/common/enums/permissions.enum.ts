@@ -69,6 +69,10 @@ export enum Permission {
 
   // API Keys
   API_KEY_MANAGE = 'api_key.manage',
+
+  // Workspace configuration
+  WORKSPACE_SETTINGS_MANAGE = 'workspace_settings.manage',
+  INTEGRATION_MANAGE = 'integration.manage',
 }
 
 // Default permissions for each role

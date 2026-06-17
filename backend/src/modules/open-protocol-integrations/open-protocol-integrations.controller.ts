@@ -1,12 +1,12 @@
-import { Body, Controller, Delete, Get, Post, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Body, Controller, Delete, Get, Post } from '@nestjs/common';
+import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
+import { Permission } from '../../common/enums/permissions.enum';
 import { IntegrationProvider } from '../../entities';
 import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { OpenProtocolIntegrationsService } from './open-protocol-integrations.service';
 
 @Controller('integrations')
-@UseGuards(JwtAuthGuard)
 export class OpenProtocolIntegrationsController {
   constructor(private readonly openProtocolIntegrationsService: OpenProtocolIntegrationsService) {}
 
@@ -16,6 +16,7 @@ export class OpenProtocolIntegrationsController {
   }
 
   @Post('s3-compatible/settings')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   saveS3Settings(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
     return this.openProtocolIntegrationsService.saveS3Settings(user, {
       endpoint: this.stringValue(body.endpoint),
@@ -35,16 +36,19 @@ export class OpenProtocolIntegrationsController {
   }
 
   @Post('s3-compatible/import')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   importS3Files(@CurrentUser() user: User, @Body() body: { fileIds?: string[] }) {
     return this.openProtocolIntegrationsService.importS3Files(user, this.getFileIds(body));
   }
 
   @Post('s3-compatible/sync')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   syncS3(@CurrentUser() user: User) {
     return this.openProtocolIntegrationsService.syncS3(user);
   }
 
   @Delete('s3-compatible')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   disconnectS3(@CurrentUser() user: User) {
     return this.openProtocolIntegrationsService.disconnect(user, IntegrationProvider.S3_COMPATIBLE);
   }
@@ -55,6 +59,7 @@ export class OpenProtocolIntegrationsController {
   }
 
   @Post('webdav/settings')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   saveWebdavSettings(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
     return this.openProtocolIntegrationsService.saveWebdavSettings(user, {
       url: this.stringValue(body.url),
@@ -70,16 +75,19 @@ export class OpenProtocolIntegrationsController {
   }
 
   @Post('webdav/import')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   importWebdavFiles(@CurrentUser() user: User, @Body() body: { fileIds?: string[] }) {
     return this.openProtocolIntegrationsService.importWebdavFiles(user, this.getFileIds(body));
   }
 
   @Post('webdav/sync')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   syncWebdav(@CurrentUser() user: User) {
     return this.openProtocolIntegrationsService.syncWebdav(user);
   }
 
   @Delete('webdav')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   disconnectWebdav(@CurrentUser() user: User) {
     return this.openProtocolIntegrationsService.disconnect(user, IntegrationProvider.WEBDAV);
   }
@@ -90,6 +98,7 @@ export class OpenProtocolIntegrationsController {
   }
 
   @Post('imap/settings')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   saveImapSettings(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
     return this.openProtocolIntegrationsService.saveImapSettings(user, {
       host: this.stringValue(body.host),
@@ -102,6 +111,7 @@ export class OpenProtocolIntegrationsController {
   }
 
   @Post('imap/folders')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   listImapFolders(@Body() body: Record<string, unknown>) {
     return this.openProtocolIntegrationsService.listImapFolders({
       host: this.stringValue(body.host) ?? '',
@@ -113,11 +123,13 @@ export class OpenProtocolIntegrationsController {
   }
 
   @Post('imap/sync')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   syncImap(@CurrentUser() user: User) {
     return this.openProtocolIntegrationsService.syncImap(user);
   }
 
   @Delete('imap')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   disconnectImap(@CurrentUser() user: User) {
     return this.openProtocolIntegrationsService.disconnect(user, IntegrationProvider.IMAP);
   }

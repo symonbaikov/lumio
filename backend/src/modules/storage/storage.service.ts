@@ -1149,6 +1149,10 @@ export class StorageService {
       throw new ForbiddenException('Shared link has expired');
     }
 
+    if (link.allowAnonymous === false) {
+      throw new ForbiddenException('Shared link requires authenticated access');
+    }
+
     // Check password if required
     if (link.password) {
       if (!password) {

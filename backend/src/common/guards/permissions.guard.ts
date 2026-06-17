@@ -107,6 +107,18 @@ export class PermissionsGuard implements CanActivate {
       return [WorkspaceRole.ADMIN, WorkspaceRole.OWNER].includes(workspaceRole);
     }
 
+    const workspaceAdminPermissions = new Set<Permission>([
+      PermissionEnum.WORKSPACE_SETTINGS_MANAGE,
+      PermissionEnum.INTEGRATION_MANAGE,
+    ]);
+    const isWorkspaceAdminPermission = requiredPermissions.every(permission =>
+      workspaceAdminPermissions.has(permission),
+    );
+
+    if (isWorkspaceAdminPermission) {
+      return [WorkspaceRole.ADMIN, WorkspaceRole.OWNER].includes(workspaceRole);
+    }
+
     const statementPermissions = new Set<Permission>([
       PermissionEnum.STATEMENT_UPLOAD,
       PermissionEnum.STATEMENT_EDIT,

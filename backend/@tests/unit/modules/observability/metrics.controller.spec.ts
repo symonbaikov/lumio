@@ -9,6 +9,7 @@ describe('MetricsController', () => {
 
   afterEach(() => {
     process.env.METRICS_AUTH_TOKEN = '';
+    process.env.NODE_ENV = 'test';
   });
 
   it('rejects when METRICS_AUTH_TOKEN is set and header mismatches', async () => {
@@ -19,8 +20,9 @@ describe('MetricsController', () => {
     );
   });
 
-  it('returns metrics when token is absent', async () => {
+  it('returns metrics when token is absent outside production', async () => {
     process.env.METRICS_AUTH_TOKEN = '';
+    process.env.NODE_ENV = 'test';
     const res = { setHeader: jest.fn(), send: jest.fn() } as any;
     const controller = new MetricsController(metricsService as any);
 
@@ -28,5 +30,13 @@ describe('MetricsController', () => {
 
     expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/plain');
     expect(res.send).toHaveBeenCalledWith('ok');
+  });
+
+  it('rejects in production when METRICS_AUTH_TOKEN is unset', async () => {
+    process.env.METRICS_AUTH_TOKEN = '';
+    process.env.NODE_ENV = 'production';
+    const controller = new MetricsController(metricsService as any);
+
+    await expect(controller.getMetrics({} as any, undefined)).rejects.toThrow(ForbiddenException);
   });
 });

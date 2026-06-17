@@ -8,6 +8,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AppLogger } from './common/observability/app-logger.service';
 import { requestContextMiddleware } from './common/observability/request-context.middleware';
+import { resolveStaticAssetMounts } from './common/utils/static-assets.util';
 import { resolveUploadsDir } from './common/utils/uploads.util';
 
 function requireEnv(name: string): string {
@@ -37,12 +38,13 @@ async function bootstrap() {
     logger: new AppLogger(),
   });
 
-  // Serve static files from public folder (frontend assets)
+  // Serve only public frontend assets and explicitly public upload subtrees.
   const publicPath = path.join(__dirname, 'public');
-  if (fs.existsSync(publicPath)) {
-    app.useStaticAssets(publicPath);
+  for (const mount of resolveStaticAssetMounts(uploadsDir, publicPath)) {
+    if (fs.existsSync(mount.root)) {
+      app.useStaticAssets(mount.root, mount.prefix ? { prefix: mount.prefix } : undefined);
+    }
   }
-  app.useStaticAssets(uploadsDir, { prefix: '/uploads' });
 
   // Request context & correlation IDs
   app.use(requestContextMiddleware);

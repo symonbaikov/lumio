@@ -22,6 +22,10 @@ import { diskStorage } from 'multer';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
+import {
+  isAllowedCustomIconMime,
+  sanitizePublicUploadFilename,
+} from '../../common/utils/public-upload.util';
 import { DataEntryType } from '../../entities/data-entry.entity';
 import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -121,13 +125,16 @@ export class DataEntryController {
           cb(null, targetDir);
         },
         filename: (_req, file, cb) => {
-          const safeName = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
-          cb(null, safeName);
+          try {
+            cb(null, sanitizePublicUploadFilename(file));
+          } catch (error) {
+            cb(error as Error, '');
+          }
         },
       }),
       fileFilter: (_req, file, cb) => {
-        if (!file.mimetype.startsWith('image/')) {
-          return cb(new Error('Only images allowed'), false);
+        if (!isAllowedCustomIconMime(file.mimetype)) {
+          return cb(new Error('Only PNG, JPEG, WEBP, or GIF images allowed'), false);
         }
         cb(null, true);
       },

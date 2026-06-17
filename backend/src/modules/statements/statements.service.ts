@@ -20,7 +20,7 @@ import { FileStorageService } from '../../common/services/file-storage.service';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { calculateFileHash } from '../../common/utils/file-hash.util';
 import { getFileTypeFromMime, validateFile } from '../../common/utils/file-validator.util';
-import { normalizeFilename } from '../../common/utils/filename.util';
+import { normalizeFilename, sanitizeArchiveEntryName } from '../../common/utils/filename.util';
 import { runExecutable } from '../../common/utils/thumbnail-command.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import { Category, WorkspaceMember, WorkspaceRole } from '../../entities';
@@ -1570,7 +1570,9 @@ export class StatementsService {
         const isReceipt = statement.fileType === FileType.IMAGE || !statement.bankName;
         const folder = isReceipt ? 'receipts' : (statement.bankName ?? 'other');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        archive.append(stream as any, { name: `${folder}/${fileName}` });
+        const safeFolder = sanitizeArchiveEntryName(folder);
+        const safeFileName = sanitizeArchiveEntryName(fileName);
+        archive.append(stream as any, { name: `${safeFolder}/${safeFileName}` });
       } catch {
         // Skip files that cannot be retrieved
       }
