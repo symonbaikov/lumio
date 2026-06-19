@@ -1,14 +1,147 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "55819a6281e95ca3b82a8c0cb59ee0ba7c77d715"
+      "main": "4b2d32fa04f2b6f6d6be4969a135d1be6b5ed661"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-05-28T17:15:09.177Z",
+    "lastGeneratedAt": "2026-06-19T10:14:09.380Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-06-19-4b2d32f",
+      "version": "main-4b2d32f",
+      "branch": "main",
+      "date": "2026-06-19T10:14:09.380Z",
+      "title": "Release update - June 19, 2026",
+      "summary": "This release includes 1 feature and 1 other update.",
+      "markdown": "## Features\n- **dev**: Add one-command bootstrap\n\n## Other\n- Harden integrations and redirects against security issues",
+      "commits": [
+        {
+          "sha": "231b8b7a9cdda8a41dd5c9d1b97a94c5b219375a",
+          "shortSha": "231b8b7a",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-05-28T17:15:09Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "488af7561feb4476d42e825570d58d1d906d4404",
+          "shortSha": "488af756",
+          "subject": "Harden integrations and redirects against security issues",
+          "author": "Symon",
+          "date": "2026-06-12T21:59:04+03:00",
+          "files": [
+            ".env.example",
+            ".gitignore",
+            "backend/.env.example",
+            "backend/@tests/unit/common/utils/egress-url.util.spec.ts",
+            "backend/@tests/unit/common/utils/spreadsheet-formula.util.spec.ts",
+            "backend/@tests/unit/common/utils/thumbnail-command.util.spec.ts",
+            "backend/@tests/unit/config/multer.config.security.spec.ts",
+            "backend/@tests/unit/modules/auth/guards/jwt-auth.guard.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-oauth.service.spec.ts",
+            "backend/@tests/unit/modules/google-sheets/google-sheets.service.spec.ts",
+            "backend/@tests/unit/modules/open-protocol-integrations/imap-list-folders.spec.ts",
+            "backend/@tests/unit/modules/open-protocol-integrations/s3-auto-backup.spec.ts",
+            "backend/@tests/unit/modules/telegram/telegram-webhook.guard.spec.ts",
+            "backend/package-lock.json",
+            "backend/src/common/guards/jwt-auth.guard.ts",
+            "backend/src/common/interfaces/authenticated-request.interface.ts",
+            "backend/src/common/utils/egress-url.util.ts",
+            "backend/src/common/utils/encryption.util.ts",
+            "backend/src/common/utils/spreadsheet-formula.util.ts",
+            "backend/src/common/utils/thumbnail-command.util.ts",
+            "backend/src/config/multer.config.ts",
+            "backend/src/main.ts",
+            "backend/src/migrations/1778190000000-EncryptIntegrationTokens.ts",
+            "backend/src/modules/gmail/gmail.controller.ts",
+            "backend/src/modules/gmail/services/gmail-oauth.service.ts",
+            "backend/src/modules/google-sheets/google-sheets.service.ts",
+            "backend/src/modules/open-protocol-integrations/open-protocol-integrations.service.ts",
+            "backend/src/modules/statements/statements.service.ts",
+            "backend/src/modules/storage/storage.service.ts",
+            "backend/src/modules/telegram/telegram-webhook.controller.ts",
+            "backend/src/modules/telegram/telegram-webhook.guard.ts",
+            "backend/src/modules/telegram/telegram.module.ts",
+            "backend/src/modules/webhooks/services/webhook-processor.service.ts",
+            "backend/src/modules/webhooks/services/webhook-subscriptions.service.ts",
+            "docker-compose.observability.yml",
+            "docker-compose.yml",
+            "docs/security/dependency-follow-up.md",
+            "docs/security/secret-rotation-checklist.md",
+            "frontend/app/lib/safe-path.test.ts",
+            "frontend/app/lib/safe-path.ts",
+            "frontend/app/styles/vendors/_tour-theme.scss",
+            "frontend/app/tours/TourPopoverPositioning.test.ts",
+            "frontend/app/tours/TourPopoverPositioning.ts",
+            "frontend/app/tours/tour-theme.test.ts",
+            "frontend/package-lock.json"
+          ]
+        },
+        {
+          "sha": "f6f2c89cb28f6798d41ed5edb4d69afc86c06425",
+          "shortSha": "f6f2c89c",
+          "subject": "Merge pull request #93 from symonbaikov/codex/security-findings-55819a62",
+          "author": "Symon Baikov",
+          "date": "2026-06-13T08:16:30+03:00",
+          "files": []
+        },
+        {
+          "sha": "49dcb7ce642f1345efee560ae2a38e3a4c1d6b1f",
+          "shortSha": "49dcb7ce",
+          "subject": "feat(dev): add one-command bootstrap",
+          "author": "Symon",
+          "date": "2026-06-19T12:50:56+03:00",
+          "files": [
+            ".env.example",
+            "Makefile",
+            "README.md",
+            "backend/.env.example",
+            "backend/Dockerfile",
+            "backend/package-lock.json",
+            "backend/package.json",
+            "package.json",
+            "scripts/generate-env.sh",
+            "scripts/setup-dev.mjs",
+            "scripts/setup-dev.test.mjs"
+          ]
+        },
+        {
+          "sha": "b2cfddc13f1bbd49cf5339557b06282b3c18030e",
+          "shortSha": "b2cfddc1",
+          "subject": "ci: remove unused codex review",
+          "author": "Symon",
+          "date": "2026-06-19T13:07:05+03:00",
+          "files": [
+            ".github/prompts/codex-review.md",
+            ".github/workflows/codex-review.yml",
+            ".github/workflows/makefile.yml"
+          ]
+        },
+        {
+          "sha": "28c55f3ffaf86426cbbc4df65ec664b72e60d488",
+          "shortSha": "28c55f3f",
+          "subject": "ci: prepare env for compose validation",
+          "author": "Symon",
+          "date": "2026-06-19T13:09:38+03:00",
+          "files": [
+            ".github/workflows/makefile.yml"
+          ]
+        },
+        {
+          "sha": "4b2d32fa04f2b6f6d6be4969a135d1be6b5ed661",
+          "shortSha": "4b2d32fa",
+          "subject": "Merge pull request #94 from symonbaikov/codex/dev-bootstrap",
+          "author": "Symon Baikov",
+          "date": "2026-06-19T13:13:43+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-05-28-55819a6",
       "version": "main-55819a6",
