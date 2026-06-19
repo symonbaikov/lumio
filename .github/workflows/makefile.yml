@@ -41,6 +41,7 @@ jobs:
           node scripts/setup-dev.mjs --help
           node scripts/setup-dev.mjs --env-only --dry-run
           npm run test:setup-dev
+          npm run setup:env
           docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
 
       - name: Make build
