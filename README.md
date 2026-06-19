@@ -35,7 +35,7 @@
 >
 > - Upload bank statements (PDF / CSV / XLSX / image) → auto-parse → deduplicate → AI-categorize
 > - Multi-tenant workspaces with RBAC, audit log, and one-click rollback
-> - Full stack running locally in one command: `make quick-dev`
+> - Full stack running locally in one command: `npm run setup:dev`
 >
 > Built for finance teams, accountants, and developers who need to process and analyze bank statement data without proprietary SaaS lock-in.
 
@@ -309,18 +309,27 @@ lumio/
 
 ### Prerequisites
 
-- [Docker](https://www.docker.com/get-started) and Docker Compose (for Docker mode)
-- [Node.js 20+](https://nodejs.org/) (only required for local mode without Docker)
+Choose the startup mode that matches your machine:
 
-### Option 1: Docker (Recommended)
+| Mode | Command | Requirements | Best for |
+|---|---|---|---|
+| Interactive | `npm run setup:dev` | Node.js 20+; Docker optional depending on selected mode | First run; lets you choose a mode |
+| Docker full-stack | `npm run setup:dev:docker` | Docker Desktop or Docker Engine with Compose | Fastest fresh-clone path |
+| Local app + Docker infra | `npm run setup:dev:local` | Node.js 20+, npm, Docker Compose | Running backend/frontend on your host |
+| Native no-Docker | `npm run setup:dev:native` | Node.js 20+, npm, local PostgreSQL, local Redis, `psql`, `redis-cli` | Contributors who do not want Docker |
+| Env only | `npm run setup:env` | Node.js 20+ | Preparing `.env` files without starting services |
+
+### One-command development startup
 
 ```bash
 git clone https://github.com/symonbaikov/lumio.git
 cd lumio
-make quick-dev
+npm run setup:dev
 ```
 
-`make quick-dev` does everything: copies env files, generates JWT secrets, starts all Docker services (postgres, redis, backend, frontend), runs database migrations, and seeds a demo user. Then open your browser:
+`npm run setup:dev` asks which development mode you want, then prepares env files, starts PostgreSQL and Redis, runs database migrations, seeds a demo user, and starts the app.
+
+For a new contributor, Docker full-stack is the recommended path. It builds and runs PostgreSQL, Redis, backend, and frontend, waits for backend readiness, seeds the demo account, and prints the URLs and login credentials.
 
 - **Frontend:** http://localhost:3000
 - **Backend API:** http://localhost:3001/api/v1
@@ -330,28 +339,48 @@ Demo credentials:
 - **Email:** `demo@lumio.dev`
 - **Password:** `demo123`
 
-### Option 2: Local Development (no Docker)
+### Non-interactive startup
 
 ```bash
-git clone https://github.com/symonbaikov/lumio.git
-cd lumio
-
-# Start only PostgreSQL and Redis via Docker
-make db-start
-
-# Install dependencies
-npm install --prefix backend
-npm install --prefix frontend
-
-# Apply migrations and seed demo data
-cd backend && npm run migration:run && npm run seed:demo
-
-# Start backend and frontend in separate terminals
-cd backend && npm run start:dev    # Terminal 1 — http://localhost:3001
-cd frontend && npm run dev          # Terminal 2 — http://localhost:3000
+npm run setup:dev:docker  # Full Docker dev stack
+npm run setup:dev:local   # Local backend/frontend + Docker PostgreSQL/Redis
+npm run setup:dev:native  # Local backend/frontend + local PostgreSQL/Redis, no Docker
+npm run setup:env         # Only create or complete local env files
 ```
 
-No `.env` files are required in development. For production and optional integrations, see [Configuration](#configuration).
+`make quick-dev` remains available as a compatibility alias for `npm run setup:dev:docker`.
+
+Development env files are generated locally and ignored by git. Existing values are preserved; missing defaults are appended. For production and optional integrations, see [Configuration](#configuration).
+
+What the bootstrap script handles:
+
+- Detects `docker compose` vs `docker-compose`.
+- Creates missing `.env`, `backend/.env`, and `frontend/.env.local` values without overwriting existing local values.
+- Uses development defaults: PostgreSQL user/password/database `finflow`, PostgreSQL port `5434`, Redis port `6379`, and generated JWT/encryption secrets.
+- Runs migrations and demo seed automatically.
+- Prints actionable errors for missing Docker daemon, missing native tools, and occupied ports.
+
+### Native Development Without Docker
+
+Native mode does not use Docker. It expects local PostgreSQL and Redis to be installed and running, with `psql` and `redis-cli` available on `PATH`.
+
+```bash
+npm run setup:dev:native
+```
+
+The command prepares env files, creates the configured PostgreSQL role/database when your local Postgres user has permission, verifies Redis, installs missing npm dependencies, runs migrations, seeds the demo user, and starts backend/frontend in the foreground.
+
+By default, generated development env points PostgreSQL to `localhost:5434` and Redis to `localhost:6379`. If your local PostgreSQL uses the standard port, set `POSTGRES_PORT=5432` in `.env` and update `backend/.env` `DATABASE_URL` before running native mode.
+
+If native prerequisites are missing, the command stops before starting the app and reports the missing tool, for example `redis-cli`.
+
+### Verified Startup Paths
+
+The development bootstrap supports and tests these paths:
+
+- `npm run setup:dev:docker` — full Docker stack, including backend readiness and demo seed.
+- `npm run setup:dev:local` — local backend/frontend with Docker PostgreSQL and Redis.
+- `npm run setup:dev:native` — local backend/frontend with local PostgreSQL and Redis; requires native database/cache tools installed first.
 
 ---
 
@@ -372,21 +401,22 @@ No `.env` files are required in development. For production and optional integra
 
 ### Development Defaults
 
-No environment variables are required in development mode. The backend uses sensible defaults.
+No manual environment setup is required for development. `npm run setup:dev` creates ignored local env files and preserves any values you already set.
 
 | Setting | Default Value |
 |---|---|
-| `DATABASE_URL` | `postgresql://finflow:finflow@localhost:5432/finflow` |
-| `REDIS_HOST` | `localhost` |
+| `DATABASE_URL` | `postgresql://finflow:finflow@localhost:5434/finflow` |
+| `POSTGRES_PORT` | `5434` |
+| `REDIS_URL` | `redis://localhost:6379` |
 | `REDIS_PORT` | `6379` |
 | `PORT` | `3001` |
-| `JWT_SECRET` | Built-in dev default (disabled in production) |
-| `JWT_REFRESH_SECRET` | Built-in dev default (disabled in production) |
+| `JWT_SECRET` | Generated local dev secret |
+| `JWT_REFRESH_SECRET` | Generated local dev secret |
+| `INTEGRATIONS_ENCRYPTION_KEY` | Generated local dev secret |
 | `JWT_EXPIRES_IN` | `30d` |
 | `JWT_REFRESH_EXPIRES_IN` | `30d` |
 
-To override any value, create `backend/.env`. A minimal template is available in `backend/.env.example`.
-Frontend overrides go in `frontend/.env.local` (`frontend/.env.local.example` for the template).
+To override backend values, edit `backend/.env`. Frontend overrides go in `frontend/.env.local`.
 
 ### Production Required Variables
 
@@ -477,8 +507,13 @@ All common tasks are available via `make`. Run `make help` to see the full list 
 **Setup & Services**
 
 ```bash
-make quick-dev         # Zero-config startup: dev mode + seed demo user (recommended entry point)
-make setup             # Copy env files and generate JWT secrets only
+npm run setup:dev      # Interactive one-command development startup (recommended entry point)
+npm run setup:dev:docker # Non-interactive full Docker development startup
+npm run setup:dev:local  # Non-interactive local app + Docker infra startup
+npm run setup:dev:native # Non-interactive local app + local infra startup, no Docker
+npm run setup:env      # Create or complete ignored local env files only
+make quick-dev         # Compatibility alias for npm run setup:dev:docker
+make setup             # Compatibility alias for npm run setup:env
 make install           # Install npm dependencies locally (no Docker)
 make dev               # Start all services in development mode (hot reload)
 make start             # Start all services in production mode
@@ -610,12 +645,20 @@ npm run cleanup:gmail-receipts
 ### Hot Reload
 
 ```bash
-make dev
-# equivalent to:
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+npm run setup:dev:docker
+# uses:
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
 
 Source file changes automatically reload both backend (ts-node watch) and frontend (Next.js HMR).
+
+### Startup Troubleshooting
+
+- **Docker daemon unavailable:** start Docker Desktop or Docker Engine, then rerun `npm run setup:dev`. The bootstrap script checks daemon reachability before running Compose.
+- **Docker Compose command not found:** install Docker Compose v2. The bootstrap script prefers `docker compose` and falls back to `docker-compose` when available.
+- **No Docker wanted:** run `npm run setup:dev:native` with local PostgreSQL and Redis already running. The script checks `psql` and `redis-cli` before touching the app.
+- **Port already in use:** free ports `3000` and `3001` for local app mode. For PostgreSQL or Redis conflicts, change `POSTGRES_PORT` or `REDIS_PORT` in `.env`.
+- **Reset local Docker data:** run `make clean`, then rerun `npm run setup:dev`.
 
 ---
 
