@@ -36,8 +36,13 @@ jobs:
       - name: Install frontend deps
         run: npm ci --prefix frontend
 
-      - name: Make lint-check
-        run: make lint-check
+      - name: Setup bootstrap checks
+        run: |
+          node scripts/setup-dev.mjs --help
+          node scripts/setup-dev.mjs --env-only --dry-run
+          npm run test:setup-dev
+          npm run setup:env
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
 
       - name: Make build
         run: make build

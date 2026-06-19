@@ -1,8 +1,8 @@
 .PHONY: help setup start stop restart logs clean test build migrate admin seed-demo quick-dev quick-start
 
 # Variables
-DOCKER_COMPOSE = docker-compose
-DOCKER_COMPOSE_DEV = docker-compose -f docker-compose.yml -f docker-compose.dev.yml
+DOCKER_COMPOSE = docker compose
+DOCKER_COMPOSE_DEV = docker compose -f docker-compose.yml -f docker-compose.dev.yml
 DOCKER_EXEC_BACKEND = docker exec finflow-backend
 DOCKER_EXEC_FRONTEND = docker exec -it finflow-frontend
 DOCKER_EXEC_DB = docker exec -it finflow-postgres
@@ -26,7 +26,7 @@ help: ## Display this help message
 
 setup: ## Initial setup - copy env files and generate secrets
 	@echo "🚀 Setting up Lumio..."
-	@bash scripts/generate-env.sh
+	@npm run setup:env
 	@echo "✅ Setup complete!"
 
 install: ## Install dependencies (local development)
@@ -271,14 +271,14 @@ build-docker: ## Build Docker images
 
 observability: ## Start Prometheus and Grafana
 	@echo "📊 Starting observability stack..."
-	@docker-compose -f docker-compose.observability.yml up -d
+	@docker compose -f docker-compose.observability.yml up -d
 	@echo "✅ Observability stack started!"
 	@echo "Prometheus: http://localhost:9090"
 	@echo "Grafana:    http://localhost:3002 (admin/admin)"
 
 observability-stop: ## Stop Prometheus and Grafana
 	@echo "🛑 Stopping observability stack..."
-	@docker-compose -f docker-compose.observability.yml down
+	@docker compose -f docker-compose.observability.yml down
 	@echo "✅ Observability stack stopped!"
 
 ##@ Utilities
@@ -327,18 +327,7 @@ storybook-download: ## Download Storybook from CI
 ##@ Quick Actions
 
 quick-dev: ## Zero-config startup: dev containers + demo user
-	@$(MAKE) dev
-	@echo "⏳ Waiting for backend readiness..."
-	@for i in $$(seq 1 30); do \
-		curl -sf http://localhost:3001/api/v1/health/ready >/dev/null 2>&1 && break; \
-		sleep 2; \
-	done
-	$(call wait_for_users_table)
-	@$(MAKE) seed-demo
-	@echo "🎉 Lumio is ready!"
-	@echo "   Frontend: http://localhost:3000"
-	@echo "   Backend:  http://localhost:3001/api/v1"
-	@echo "   Login:    demo@lumio.dev / demo123"
+	@npm run setup:dev:docker
 
 quick-start: ## Legacy alias for quick-dev
 	@$(MAKE) quick-dev

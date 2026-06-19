@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -26,14 +26,15 @@ FROM builder AS dev
 CMD ["npm", "run", "start:dev"]
 
 # --- Production stage ---
-FROM node:20-alpine
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
 # Install Python + pdfplumber for PDF parsing + pdf2image for thumbnails
-ENV PIP_BREAK_SYSTEM_PACKAGES=1
-RUN apk add --no-cache python3 py3-pip py3-pillow poppler-utils && \
-  pip3 install --no-cache-dir --break-system-packages pdfplumber==0.11.4 pdf2image==1.17.0
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends python3 python3-pip python3-pil poppler-utils && \
+  pip3 install --no-cache-dir --break-system-packages pdfplumber==0.11.4 pdf2image==1.17.0 && \
+  rm -rf /var/lib/apt/lists/*
 
 # Runtime dependencies from builder (pruned)
 COPY --from=builder /app/package*.json ./
@@ -47,7 +48,7 @@ COPY --from=builder /app/scripts ./scripts
 RUN npm prune --omit=dev
 
 # Create uploads directory and reports subdirectory
-RUN addgroup -S app && adduser -S app -G app && \
+RUN groupadd --system app && useradd --system --gid app app && \
   mkdir -p uploads/reports && \
   chown -R app:app /app
 
