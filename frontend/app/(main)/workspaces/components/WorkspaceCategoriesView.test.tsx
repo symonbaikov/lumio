@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/app/components/dashboard/test-setup';
 
@@ -169,18 +169,33 @@ describe('WorkspaceCategoriesView', () => {
       expect(screen.getByText('Kaspi Delivery')).toBeInTheDocument();
     });
 
-    const darkSurface = Array.from(container.querySelectorAll('[class]')).find(
-      node =>
-        typeof node.className === 'string' &&
-        (node.className.includes('bg-card') || node.className.includes('bg-muted')),
-    );
-    const whiteSurface = Array.from(container.querySelectorAll('[class]')).find(
-      node =>
-        typeof node.className === 'string' &&
-        (node.className.includes('bg-white') || node.className.includes('bg-slate-50')),
-    );
+    expect(container.innerHTML).not.toContain('bg-white');
+    expect(container.innerHTML).not.toContain('bg-slate-50');
+  });
 
-    expect(darkSurface).toBeTruthy();
-    expect(whiteSurface).toBeUndefined();
+  it('renders category enabled controls as switches', async () => {
+    const { default: WorkspaceCategoriesView } = await import('./WorkspaceCategoriesView');
+
+    render(<WorkspaceCategoriesView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Kaspi Delivery')).toBeInTheDocument();
+    });
+
+    expect(screen.getAllByRole('switch', { name: /enabled/i })).toHaveLength(2);
+  });
+
+  it('does not render ripple feedback for category enabled switches', async () => {
+    const { default: WorkspaceCategoriesView } = await import('./WorkspaceCategoriesView');
+
+    const { container } = render(<WorkspaceCategoriesView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Kaspi Delivery')).toBeInTheDocument();
+    });
+
+    fireEvent.mouseDown(screen.getAllByRole('switch', { name: /enabled/i })[0]);
+
+    expect(container.querySelector('.MuiTouchRipple-root')).toBeNull();
   });
 });

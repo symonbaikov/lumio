@@ -2,18 +2,6 @@
 
 import StatementCategoryDrawer from '@/app/(main)/statements/[id]/edit/StatementCategoryDrawer';
 import { useExpenseForm } from '@/app/(main)/statements/components/hooks/useExpenseForm';
-import { Button } from '@/app/components/ui/button';
-import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import { useIsMobile } from '@/app/hooks/useIsMobile';
-import { type StatementCategoryNode } from '@/app/lib/statement-categories';
-import {
-  type ManualExpenseDraft,
-  type StatementExpenseMode,
-  type TaxRateOption,
-  sanitizeManualAmountInput,
-} from '@/app/lib/statement-expense-drawer';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { format, isValid, parseISO } from 'date-fns';
 import {
   Camera,
   Check,
@@ -28,8 +16,21 @@ import {
   ScanLine,
   Search,
 } from '@/app/components/icons';
-import { useRef } from 'react';
+import { Button } from '@/app/components/ui/button';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useIsMobile } from '@/app/hooks/useIsMobile';
+import { type StatementCategoryNode } from '@/app/lib/statement-categories';
+import {
+  type CreateTaxRatePayload,
+  type ManualExpenseDraft,
+  type StatementExpenseMode,
+  type TaxRateOption,
+  sanitizeManualAmountInput,
+} from '@/app/lib/statement-expense-drawer';
 import { tokens } from '@/lib/theme-tokens';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { format, isValid, parseISO } from 'date-fns';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type Props = {
   open: boolean;
@@ -49,6 +50,7 @@ type Props = {
     files: File[];
     allowDuplicates: boolean;
   }) => Promise<void>;
+  onCreateTaxRate?: (payload: CreateTaxRatePayload) => Promise<TaxRateOption>;
 };
 
 function ReceiptProcessingSkeleton({ fileCount }: { fileCount: number }) {
@@ -83,10 +85,16 @@ export default function CreateExpenseDrawer({
   onClose,
   onSubmitScan,
   onSubmitManual,
+  onCreateTaxRate,
 }: Props) {
   const isMobile = useIsMobile();
   const scanCameraInputRef = useRef<HTMLInputElement>(null);
   const scanGalleryInputRef = useRef<HTMLInputElement>(null);
+  const [createdTaxRates, setCreatedTaxRates] = useState<TaxRateOption[]>([]);
+  const mergedTaxRates = useMemo(() => {
+    const existingIds = new Set(taxRates.map(taxRate => taxRate.id));
+    return [...taxRates, ...createdTaxRates.filter(taxRate => !existingIds.has(taxRate.id))];
+  }, [taxRates, createdTaxRates]);
   const {
     mode,
     setMode,
@@ -113,7 +121,6 @@ export default function CreateExpenseDrawer({
     selectedCurrencyItem,
     selectedCurrencySymbol,
     manualAmountFontSize,
-    flatCategories,
     selectedCategoryName,
     defaultTaxRate,
     selectedTaxRate,
@@ -135,13 +142,76 @@ export default function CreateExpenseDrawer({
     initialMode,
     defaultCurrency,
     categories,
-    taxRates,
+    taxRates: mergedTaxRates,
     onClose,
     onSubmitScan,
     onSubmitManual,
   });
+  const [taxRateName, setTaxRateName] = useState('');
+  const [taxRateValue, setTaxRateValue] = useState('');
+  const [taxRateSaving, setTaxRateSaving] = useState(false);
+  const [taxRateError, setTaxRateError] = useState<string | null>(null);
 
   const currencyQuery = currencySearch.trim().toLowerCase();
+
+  useEffect(() => {
+    if (!taxRateDrawerOpen) {
+      setTaxRateName('');
+      setTaxRateValue('');
+      setTaxRateError(null);
+      setTaxRateSaving(false);
+    }
+  }, [taxRateDrawerOpen]);
+
+  useEffect(() => {
+    if (!open) {
+      setCreatedTaxRates([]);
+    }
+  }, [open]);
+
+  const handleCreateTaxRate = async (): Promise<void> => {
+    const name = taxRateName.trim();
+    const rate = Number(taxRateValue);
+
+    if (!name) {
+      setTaxRateError('Tax rate name is required');
+      return;
+    }
+
+    if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+      setTaxRateError('Tax percentage must be between 0 and 100');
+      return;
+    }
+
+    if (!onCreateTaxRate) {
+      setTaxRateError('Tax rate creation is unavailable');
+      return;
+    }
+
+    setTaxRateSaving(true);
+    setTaxRateError(null);
+
+    try {
+      const created = await onCreateTaxRate({ name, rate, isEnabled: true });
+      const normalizedCreated = {
+        ...created,
+        rate: Number(created.rate ?? rate),
+        isEnabled: created.isEnabled !== false,
+      };
+      setCreatedTaxRates(prev => [normalizedCreated, ...prev]);
+      setManualDraft(prev => ({
+        ...prev,
+        taxRateId: normalizedCreated.id,
+      }));
+      setTaxRateDrawerOpen(false);
+    } catch (createError: unknown) {
+      const message =
+        createError instanceof Error ? createError.message : 'Failed to save tax rate';
+      setTaxRateError(message);
+    } finally {
+      setTaxRateSaving(false);
+    }
+  };
 
   return (
     <>
@@ -669,6 +739,40 @@ export default function CreateExpenseDrawer({
         }
       >
         <div className="lumio-cat-drawer">
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color, var(--border-color))' }}>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--muted-foreground)' }}>
+                <span>Tax rate name</span>
+                <input
+                  value={taxRateName}
+                  onChange={event => setTaxRateName(event.target.value)}
+                  placeholder="VAT 12%"
+                  style={{ height: 42, borderRadius: tokens.radius.sm, border: '1px solid var(--border-color, var(--border-color))', background: 'var(--card-bg, #fff)', padding: '0 12px', fontSize: 16, color: 'var(--foreground)' }}
+                />
+              </label>
+              <label style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--muted-foreground)' }}>
+                <span>Tax percentage</span>
+                <input
+                  value={taxRateValue}
+                  onChange={event => setTaxRateValue(event.target.value)}
+                  inputMode="decimal"
+                  placeholder="12"
+                  style={{ height: 42, borderRadius: tokens.radius.sm, border: '1px solid var(--border-color, var(--border-color))', background: 'var(--card-bg, #fff)', padding: '0 12px', fontSize: 16, color: 'var(--foreground)' }}
+                />
+              </label>
+              {taxRateError ? (
+                <p style={{ fontSize: 12, color: 'var(--destructive)' }}>{taxRateError}</p>
+              ) : null}
+              <Button
+                type="button"
+                disabled={taxRateSaving}
+                onClick={() => void handleCreateTaxRate()}
+                style={{ width: '100%', borderRadius: tokens.radius.md }}
+              >
+                {taxRateSaving ? 'Saving...' : 'Save tax rate'}
+              </Button>
+            </div>
+          </div>
           <div className="lumio-cat-drawer__list">
             {enabledTaxRates.map(taxRate => {
               const isSelected = manualDraft.taxRateId

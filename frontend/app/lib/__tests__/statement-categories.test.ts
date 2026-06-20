@@ -71,6 +71,11 @@ describe('statement categories helpers', () => {
     expect(getCategoryDisplayName({ name: 'Аренда', source: 'parsing' }, 'en')).toBe('Аренда');
   });
 
+  it('localizes known default categories when legacy rows have no source marker', () => {
+    expect(getCategoryDisplayName({ name: 'Аренда' }, 'en')).toBe('Rent');
+    expect(getCategoryDisplayName({ name: 'Командировки' }, 'en')).toBe('Travel');
+  });
+
   it('flattens categories with localized system names and raw parsing names', () => {
     expect(
       flattenStatementCategories(

@@ -26,6 +26,12 @@ export type TaxRateOption = {
   isEnabled: boolean;
 };
 
+export type CreateTaxRatePayload = {
+  name: string;
+  rate: number;
+  isEnabled: true;
+};
+
 export type CurrencySearchItem = {
   code: string;
   symbol: string;
