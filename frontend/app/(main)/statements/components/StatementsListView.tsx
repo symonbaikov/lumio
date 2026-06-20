@@ -2,26 +2,25 @@
 
 import CreateExpenseDrawer from '@/app/(main)/statements/components/CreateExpenseDrawer';
 import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
+import { RefreshCcw } from '@/app/components/icons';
 import { useKeyboardShortcuts } from '@/app/hooks/use-keyboard-shortcuts';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import apiClient from '@/app/lib/api';
 import { getApiErrorStatus } from '@/app/lib/api-error';
 import { resolveLabel } from '@/app/lib/side-panel-utils';
-import type { ManualExpenseDraft } from '@/app/lib/statement-expense-drawer';
-import {
-  SHORTCUT_DELETE_SELECTED,
-  SHORTCUT_SELECT_ALL,
-} from '@/app/lib/keyboard-shortcuts';
+import type {
+  CreateTaxRatePayload,
+  ManualExpenseDraft,
+  TaxRateOption,
+} from '@/app/lib/statement-expense-drawer';
 import type { StatementStage } from '@/app/lib/statement-workflow';
-import { RefreshCcw } from '@/app/components/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { JSX } from 'react';
 import toast from 'react-hot-toast';
 import { StatementsListHeader } from './StatementsListHeader';
 import { StatementsListTable } from './StatementsListTable';
 import { isGmailStatement, resolveStatementViewAction } from './StatementsListView.utils';
-import { uploadScanDrawerFiles as runUploadScanDrawerFiles } from './statement-upload';
 import { useStatementsView } from './hooks/useStatementsView';
+import { uploadScanDrawerFiles as runUploadScanDrawerFiles } from './statement-upload';
 
 type Props = { stage: StatementStage };
 
@@ -170,6 +169,17 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
   const handleCreateManualExpense = async (payload: ManualExpensePayload): Promise<void> => {
     const fallbackId = v.manualExpenseTaxRates.find(tr => tr.isEnabled && tr.isDefault)?.id ?? '';
     await submitManualExpense(payload, payload.draft.taxRateId ?? fallbackId, refreshAfterCreate);
+  };
+
+  const handleCreateTaxRate = async (payload: CreateTaxRatePayload): Promise<TaxRateOption> => {
+    const response = await apiClient.post('/tax-rates', payload);
+    const created = response.data as TaxRateOption & { rate: number | string };
+    await v.loadManualExpenseOptions();
+    return {
+      ...created,
+      rate: Number(created.rate ?? payload.rate),
+      isEnabled: created.isEnabled !== false,
+    };
   };
 
   const handleView = (statement: Parameters<typeof resolveStatementViewAction>[0]): void => {
@@ -352,6 +362,7 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
         onClose={() => v.setExpenseDrawerOpen(false)}
         onSubmitScan={uploadScanDrawerFiles}
         onSubmitManual={handleCreateManualExpense}
+        onCreateTaxRate={handleCreateTaxRate}
       />
     </div>
   );

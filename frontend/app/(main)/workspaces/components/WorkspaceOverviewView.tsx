@@ -27,8 +27,6 @@ import toast from 'react-hot-toast';
 import { AVAILABLE_BACKGROUNDS } from '../constants';
 import { BackgroundSelector } from './BackgroundSelector';
 
-const DEFAULT_RECENT_CURRENCIES = ['KZT', 'USD', 'EUR', 'RUB'] as const;
-
 const resolveBackgroundSrc = (backgroundImage: string | null) => {
   if (!backgroundImage) {
     return null;
@@ -69,9 +67,7 @@ export default function WorkspaceOverviewView() {
   const [currencySearch, setCurrencySearch] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmationName, setDeleteConfirmationName] = useState('');
-  const [recentCurrencies, setRecentCurrencies] = useState<string[]>([
-    ...DEFAULT_RECENT_CURRENCIES,
-  ]);
+  const [recentCurrencies, setRecentCurrencies] = useState<string[]>([]);
 
   useEffect(() => {
     if (!currentWorkspace) {
@@ -198,9 +194,10 @@ export default function WorkspaceOverviewView() {
   };
 
   const handleSelectCurrency = (currencyCode: string) => {
+    const previousCurrency = currency;
     setCurrency(currencyCode);
-    if (currencyCode) {
-      pushRecentCurrency(currencyCode);
+    if (previousCurrency && previousCurrency !== currencyCode) {
+      pushRecentCurrency(previousCurrency);
     }
     setCurrencySearch('');
     setCurrencyDrawerOpen(false);
@@ -212,7 +209,10 @@ export default function WorkspaceOverviewView() {
     }
     setSavingBackground(true);
     try {
-      await updateWorkspaceBackground(currentWorkspace.id, background);
+      await updateWorkspaceBackground({
+        workspaceId: currentWorkspace.id,
+        backgroundImage: background,
+      });
       toast.success('Background updated');
       setShowBackgroundPicker(false);
     } catch {

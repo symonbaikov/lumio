@@ -143,8 +143,19 @@ const resolveSupportedLocale = (locale: string): SupportedLocale => {
   return 'ru';
 };
 
-const shouldLocalizeCategory = (category: Pick<StatementCategoryNode, 'source' | 'isSystem'>) =>
-  category.isSystem === true || category.source === 'system';
+const shouldLocalizeCategory = (
+  category: Pick<StatementCategoryNode, 'name' | 'source' | 'isSystem'>,
+) => {
+  if (category.isSystem === true || category.source === 'system') {
+    return true;
+  }
+
+  if (category.source === 'user' || category.source === 'parsing') {
+    return false;
+  }
+
+  return TRANSLATION_LOOKUP.has(category.name.trim().toLowerCase());
+};
 
 export const localizeStatementCategoryName = (name: string, locale: string): string => {
   const normalized = name.trim().toLowerCase();

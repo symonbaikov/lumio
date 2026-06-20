@@ -7,6 +7,16 @@ const deleteMock = vi.hoisted(() => vi.fn());
 const replaceMock = vi.hoisted(() => vi.fn());
 const refreshWorkspacesMock = vi.hoisted(() => vi.fn());
 const clearWorkspaceMock = vi.hoisted(() => vi.fn());
+const updateWorkspaceBackgroundMock = vi.hoisted(() => vi.fn());
+const currentWorkspaceMock = vi.hoisted(() => ({
+  id: 'ws-1',
+  name: 'Denis workspace',
+  description: 'Workspace description',
+  currency: 'EUR',
+  backgroundImage: null,
+  settings: {},
+  memberRole: 'owner',
+}));
 
 vi.mock('next/image', () => ({
   default: ({
@@ -30,18 +40,10 @@ vi.mock('@/app/lib/api', () => ({
 
 vi.mock('@/app/contexts/WorkspaceContext', () => ({
   useWorkspace: () => ({
-    currentWorkspace: {
-      id: 'ws-1',
-      name: 'Denis workspace',
-      description: 'Workspace description',
-      currency: 'EUR',
-      backgroundImage: null,
-      settings: {},
-      memberRole: 'owner',
-    },
+    currentWorkspace: currentWorkspaceMock,
     refreshWorkspaces: refreshWorkspacesMock,
     clearWorkspace: clearWorkspaceMock,
-    updateWorkspaceBackground: vi.fn(),
+    updateWorkspaceBackground: updateWorkspaceBackgroundMock,
   }),
 }));
 
@@ -58,8 +60,10 @@ describe('WorkspaceOverviewView', () => {
     replaceMock.mockReset();
     refreshWorkspacesMock.mockReset();
     clearWorkspaceMock.mockReset();
+    updateWorkspaceBackgroundMock.mockReset();
     deleteMock.mockResolvedValue(undefined);
     refreshWorkspacesMock.mockResolvedValue(undefined);
+    updateWorkspaceBackgroundMock.mockResolvedValue(undefined);
   });
 
   it('renders currency picker trigger instead of native select', async () => {
@@ -105,6 +109,22 @@ describe('WorkspaceOverviewView', () => {
     expect(screen.getByAltText('ferdinand-stohr-W1FIkdPAB7E-unsplash.jpg')).toBeTruthy();
   });
 
+  it('updates the current workspace background by id', async () => {
+    const { default: WorkspaceOverviewView } = await import('./WorkspaceOverviewView');
+
+    render(<WorkspaceOverviewView />);
+
+    fireEvent.click(screen.getByTestId('workspace-background-trigger'));
+    fireEvent.click(await screen.findByAltText('ferdinand-stohr-W1FIkdPAB7E-unsplash.jpg'));
+
+    await waitFor(() => {
+      expect(updateWorkspaceBackgroundMock).toHaveBeenCalledWith({
+        workspaceId: 'ws-1',
+        backgroundImage: 'ferdinand-stohr-W1FIkdPAB7E-unsplash.jpg',
+      });
+    });
+  });
+
   it('uses dark-safe text styles in the workspace background drawer', async () => {
     const { default: WorkspaceOverviewView } = await import('./WorkspaceOverviewView');
 
@@ -130,7 +150,6 @@ describe('WorkspaceOverviewView', () => {
 
     const title = await screen.findByText('Select a currency');
     const searchInput = screen.getByPlaceholderText('Search') as HTMLInputElement;
-    const recentsLabel = screen.getByText('Recents');
     const selectedButton = screen
       .getAllByRole('button')
       .find(
@@ -149,9 +168,37 @@ describe('WorkspaceOverviewView', () => {
     expect(selectedButton.className).toContain('bg-muted');
     expect(selectedButton.className).not.toContain('bg-[#ebe8e2]');
     expect(selectedButton.textContent).toContain('EUR - €');
+  });
 
-    expect(recentsLabel.className).toContain('text-muted-foreground');
-    expect(recentsLabel.className).not.toContain('text-gray-500');
+  it('does not show recents before a currency was selected in this session', async () => {
+    const { default: WorkspaceOverviewView } = await import('./WorkspaceOverviewView');
+
+    render(<WorkspaceOverviewView />);
+
+    fireEvent.click(screen.getByTestId('workspace-currency-trigger'));
+
+    await screen.findByText('Select a currency');
+
+    expect(screen.queryByText('Recents')).toBeNull();
+  });
+
+  it('shows the previous currency in recents after changing currency', async () => {
+    const { default: WorkspaceOverviewView } = await import('./WorkspaceOverviewView');
+
+    render(<WorkspaceOverviewView />);
+
+    fireEvent.click(screen.getByTestId('workspace-currency-trigger'));
+    const usdOption = await screen.findByText('USD - $');
+    fireEvent.click(usdOption.closest('button') as HTMLButtonElement);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('workspace-currency-trigger').textContent).toContain('USD - $');
+    });
+
+    fireEvent.click(screen.getByTestId('workspace-currency-trigger'));
+
+    expect(await screen.findByText('Recents')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'EUR - €' }).length).toBeGreaterThan(0);
   });
 
   it('requires typing the workspace name before enabling delete confirmation', async () => {

@@ -28,6 +28,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  Switch,
   TextField,
   Typography,
   alpha,
@@ -779,45 +780,57 @@ export default function WorkspaceCategoriesView() {
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      {/* Toggle switch */}
-                      <button
-                        type="button"
+                      <Switch
                         data-tour-id={index === 0 ? 'category-toggle' : undefined}
-                        onClick={event => {
-                          event.stopPropagation();
-                          handleToggleEnabled(category);
-                        }}
+                        checked={isEnabled}
+                        disableRipple
                         disabled={isToggling}
-                        style={{
-                          position: 'relative',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          width: 54,
-                          height: 32,
-                          borderRadius: tokens.radius.full,
-                          border: 'none',
-                          background: isEnabled ? 'var(--primary)' : 'rgba(107,114,128,0.4)',
-                          cursor: isToggling ? 'default' : 'pointer',
-                          opacity: isToggling ? 0.6 : 1,
-                          transition: 'background 0.2s',
-                          padding: 0,
+                        onClick={event => event.stopPropagation()}
+                        onChange={() => handleToggleEnabled(category)}
+                        size="medium"
+                        slotProps={{
+                          input: {
+                            'aria-label': `${getCategoryDisplayName(category, locale)} enabled`,
+                            role: 'switch',
+                          },
                         }}
-                      >
-                        <span
-                          style={{
-                            position: 'absolute',
-                            display: 'inline-block',
+                        sx={{
+                          width: 52,
+                          height: 32,
+                          p: 0,
+                          '& .MuiSwitch-switchBase': {
+                            p: '4px',
+                            transitionDuration: '180ms',
+                            '&:hover': {
+                              bgcolor: 'transparent',
+                            },
+                            '&.Mui-checked': {
+                              transform: 'translateX(20px)',
+                              color: 'var(--card)',
+                              '&:hover': {
+                                bgcolor: 'transparent',
+                              },
+                              '& + .MuiSwitch-track': {
+                                bgcolor: 'var(--primary)',
+                                opacity: 1,
+                              },
+                            },
+                            '&.Mui-disabled': {
+                              opacity: 0.55,
+                            },
+                          },
+                          '& .MuiSwitch-thumb': {
                             width: 24,
                             height: 24,
+                            boxShadow: '0 2px 6px rgba(15, 23, 42, 0.24)',
+                          },
+                          '& .MuiSwitch-track': {
                             borderRadius: tokens.radius.full,
-                            background: 'var(--card)',
-                            boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                            transition: 'transform 0.2s',
-                            transform: isEnabled ? 'translateX(28px)' : 'translateX(4px)',
-                          }}
-                        />
-                      </button>
-
+                            bgcolor: 'rgba(107,114,128,0.4)',
+                            opacity: 1,
+                          },
+                        }}
+                      />
                       {category.isSystem ? (
                         <Box
                           sx={{

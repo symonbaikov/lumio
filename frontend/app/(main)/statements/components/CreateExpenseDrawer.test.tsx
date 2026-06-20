@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -221,6 +221,71 @@ describe('CreateExpenseDrawer mobile uploads', () => {
     await act(async () => {
       finishUpload?.();
     });
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it('creates and selects a tax rate from the manual tax drawer', async () => {
+    const container = document.createElement('div');
+    document.body.innerHTML = '';
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const onCreateTaxRate = vi.fn().mockResolvedValue({
+      id: 'tax-vat-12',
+      name: 'VAT 12%',
+      rate: 12,
+      isDefault: false,
+      isEnabled: true,
+    });
+
+    await act(async () => {
+      root.render(
+        <CreateExpenseDrawer
+          open
+          initialMode="manual"
+          categories={[]}
+          taxRates={[]}
+          onClose={() => undefined}
+          onSubmitScan={async () => undefined}
+          onSubmitManual={async () => undefined}
+          onCreateTaxRate={onCreateTaxRate}
+        />,
+      );
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '20' } });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /tax optional/i }));
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText(/tax rate name/i), {
+        target: { value: 'VAT 12%' },
+      });
+      fireEvent.change(screen.getByLabelText(/tax percentage/i), { target: { value: '12' } });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save tax rate/i }));
+    });
+
+    await waitFor(() => {
+      expect(onCreateTaxRate).toHaveBeenCalledWith({
+        name: 'VAT 12%',
+        rate: 12,
+        isEnabled: true,
+      });
+    });
+    expect(screen.getAllByText('VAT 12% (12%)').length).toBeGreaterThan(0);
 
     await act(async () => {
       root.unmount();
