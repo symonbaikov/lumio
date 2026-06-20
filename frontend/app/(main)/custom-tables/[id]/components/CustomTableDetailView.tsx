@@ -139,6 +139,8 @@ export function CustomTableDetailView(p: P): React.JSX.Element {
         selectedRowIds={p.selectedRowIds}
         bulkMarking={p.bulkMarking}
         markSelectedRowsPaid={p.markSelectedRowsPaid}
+        convertingToStatement={p.convertingToStatement}
+        onConvertToStatement={p.convertToStatement}
         handlePrintTable={p.handlePrintTable}
         openBulkDeleteModal={p.openBulkDeleteModal}
         searchQuery={p.searchQuery}

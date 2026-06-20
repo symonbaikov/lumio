@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import type { Locale } from 'date-fns';
 import { enUS, kk, ru } from 'date-fns/locale';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -13,6 +14,7 @@ import { useBulkRowActions } from './useBulkRowActions';
 import type { ColumnFilterState } from './useColumnConfig';
 import { useColumnConfig } from './useColumnConfig';
 import { useColumnLayout } from './useColumnLayout';
+import { useConvertToStatement } from './useConvertToStatement';
 import { useColumnManagement } from './useColumnManagement';
 import { useDeleteModals } from './useDeleteModals';
 import { useFullscreenMode } from './useFullscreenMode';
@@ -402,6 +404,11 @@ export function useCustomTablePage() {
   const handleBackNavigation = useCallback((): void => {
     router.push('/custom-tables');
   }, [router]);
+  const { convertingToStatement, convertToStatement } = useConvertToStatement({
+    tableId,
+    router,
+    t,
+  });
   const dateFnsLocale = useMemo(() => buildDateFnsLocale(locale), [locale]);
   const columnsTabId = '__columns__';
   useEffect(() => {
@@ -473,6 +480,12 @@ export function useCustomTablePage() {
     [t, tOps, tModals],
   );
   return {
+    ...init,
+    ...col,
+    ...grid,
+    ...modal,
+    ...pasteRow,
+    ...bulkCol,
     t,
     tFull,
     tableId,
@@ -483,6 +496,8 @@ export function useCustomTablePage() {
     mounted,
     isFullscreen,
     isPrintMode,
+    convertingToStatement,
+    convertToStatement,
     handlePrintTable,
     handleBackNavigation,
     columnsTabId,
@@ -491,12 +506,6 @@ export function useCustomTablePage() {
     loadRows: grid.loadRows,
     loadingRows: grid.loadingRows,
     hasMore: grid.hasMore,
-    ...init,
-    ...col,
-    ...grid,
-    ...modal,
-    ...pasteRow,
-    ...bulkCol,
   };
 }
 

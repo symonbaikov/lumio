@@ -1,8 +1,13 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, QueryFailedError, type Repository } from 'typeorm';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
+import { generateTransactionFingerprint } from '../../common/utils/fingerprint.util';
+import { normalizeFilename } from '../../common/utils/filename.util';
+import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import {
   ActorType,
   AuditAction,
@@ -21,7 +26,7 @@ import { CustomTableRow } from '../../entities/custom-table-row.entity';
 import { CustomTable, CustomTableSource } from '../../entities/custom-table.entity';
 import { DataEntryCustomField } from '../../entities/data-entry-custom-field.entity';
 import { DataEntry, DataEntryType } from '../../entities/data-entry.entity';
-import { Statement } from '../../entities/statement.entity';
+import { BankName, FileType, Statement, StatementStatus } from '../../entities/statement.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
@@ -63,6 +68,17 @@ type ColumnDefinitionConfig = JsonObject | null;
 type RowInsertData = Record<string, string | number | null>;
 type ViewSettingsColumns = Record<string, { width?: number }>;
 type QueryParams = Record<string, string | number | boolean | string[] | number[] | null>;
+type ConversionField = 'date' | 'amount' | 'merchant' | 'purpose' | 'article' | 'currency';
+type ConversionMapping = Partial<Record<ConversionField, string>>;
+type ConvertedTransactionInput = {
+  rowNumber: number;
+  transactionDate: Date;
+  merchant: string;
+  purpose: string;
+  amount: number;
+  currency: string;
+  article: string | null;
+};
 
 @Injectable()
 export class CustomTablesService {
@@ -196,6 +212,170 @@ export class CustomTablesService {
       'canEditCustomTables',
       'Недостаточно прав для редактирования таблиц',
     );
+  }
+
+  private async ensureCanEditStatements(userId: string, workspaceId: string): Promise<void> {
+    await ensureCanEdit(
+      this.workspaceMemberRepository,
+      workspaceId,
+      userId,
+      'canEditStatements',
+      'Недостаточно прав для редактирования выписок',
+    );
+  }
+
+  private normalizeColumnText(value: string | null | undefined): string {
+    return (value || '').trim().toLowerCase();
+  }
+
+  private getColumnSearchText(column: CustomTableColumn): string {
+    const source = this.getColumnSourceConfig(column.config);
+    return [
+      column.title,
+      column.key,
+      source?.field,
+      source?.name,
+      source?.kind,
+    ]
+      .map(value => this.normalizeColumnText(value))
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  private findConversionColumnKey(
+    columns: CustomTableColumn[],
+    tokens: string[],
+  ): string | undefined {
+    const normalizedTokens = tokens.map(token => token.toLowerCase());
+    const exact = columns.find(column => {
+      const source = this.getColumnSourceConfig(column.config);
+      const sourceField = this.normalizeColumnText(source?.field);
+      return sourceField && normalizedTokens.includes(sourceField);
+    });
+    if (exact) {
+      return exact.key;
+    }
+    return columns.find(column => {
+      const haystack = this.getColumnSearchText(column);
+      return normalizedTokens.some(token => haystack.includes(token));
+    })?.key;
+  }
+
+  private buildConversionMapping(columns: CustomTableColumn[]): ConversionMapping {
+    return {
+      date: this.findConversionColumnKey(columns, ['date', 'дата']),
+      amount: this.findConversionColumnKey(columns, ['amount', 'сумма', 'debit', 'расход']),
+      merchant: this.findConversionColumnKey(columns, [
+        'merchant',
+        'counterparty',
+        'контрагент',
+        'поставщик',
+      ]),
+      purpose: this.findConversionColumnKey(columns, [
+        'purpose',
+        'description',
+        'назначение',
+        'описание',
+      ]),
+      article: this.findConversionColumnKey(columns, ['article', 'статья']),
+      currency: this.findConversionColumnKey(columns, ['currency', 'валюта']),
+    };
+  }
+
+  private readScalarString(data: RowDataRecord, key?: string): string {
+    if (!key) {
+      return '';
+    }
+    const value = this.getRowDataValue(data, key);
+    if (value === null || value === undefined || Array.isArray(value) || typeof value === 'object') {
+      return '';
+    }
+    return String(value).trim();
+  }
+
+  private parseConversionDate(value: unknown): Date | null {
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value;
+    }
+    if (value === null || value === undefined) {
+      return null;
+    }
+    const raw = String(value).trim();
+    if (!raw) {
+      return null;
+    }
+    const dateOnly = raw.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+    const parsed = new Date(dateOnly ? `${dateOnly}T00:00:00.000Z` : raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  private parsePositiveAmount(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    const normalized =
+      typeof value === 'number'
+        ? value
+        : Number(
+            String(value)
+              .trim()
+              .replace(/\s+/g, '')
+              .replace(',', '.')
+              .replace(/[^\d.-]/g, ''),
+          );
+    if (!Number.isFinite(normalized) || normalized <= 0) {
+      return null;
+    }
+    return Number(normalized.toFixed(2));
+  }
+
+  private toDateOnly(value: Date): string {
+    return value.toISOString().slice(0, 10);
+  }
+
+  private escapeCsvValue(value: string): string {
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replaceAll('"', '""')}"`;
+    }
+    return value;
+  }
+
+  private buildConvertedCsv(rows: ConvertedTransactionInput[]): Buffer {
+    const lines = [
+      'date,merchant,purpose,article,amount,currency',
+      ...rows.map(row =>
+        [
+          this.toDateOnly(row.transactionDate),
+          this.escapeCsvValue(row.merchant),
+          this.escapeCsvValue(row.purpose),
+          this.escapeCsvValue(row.article || ''),
+          row.amount.toFixed(2),
+          row.currency,
+        ].join(','),
+      ),
+    ];
+    return Buffer.from(lines.join('\n'), 'utf8');
+  }
+
+  private async findConvertedStatement(
+    workspaceId: string,
+    tableId: string,
+  ): Promise<Statement | null> {
+    try {
+      return await this.statementRepository
+        .createQueryBuilder('statement')
+        .where('statement.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('statement.deletedAt IS NULL')
+        .andWhere("statement.parsingDetails -> 'importPreview' ->> 'source' = :source", {
+          source: 'custom-table-conversion',
+        })
+        .andWhere("statement.parsingDetails -> 'importPreview' ->> 'customTableId' = :tableId", {
+          tableId,
+        })
+        .getOne();
+    } catch (error) {
+      this.throwHelpfulSchemaError(error);
+    }
   }
 
   private async resolveCategoryId(workspaceId: string, categoryId: string): Promise<string> {
@@ -1458,6 +1638,223 @@ export class CustomTablesService {
       tableId: table.id,
       columnsCreated: createdColumns.length,
       rowsCreated: rowsToInsert.length,
+    };
+  }
+
+  async convertToStatement(
+    userId: string,
+    workspaceId: string,
+    tableId: string,
+  ): Promise<{ statementId: string; importedRows: number; skippedRows: number; warnings: string[] }> {
+    await this.ensureCanEditCustomTables(userId, workspaceId);
+    await this.ensureCanEditStatements(userId, workspaceId);
+    const table = await this.requireTable(workspaceId, tableId);
+
+    let columns: CustomTableColumn[];
+    let rows: CustomTableRow[];
+    try {
+      [columns, rows] = await Promise.all([
+        this.customTableColumnRepository.find({
+          where: { tableId },
+          order: { position: 'ASC' },
+        }),
+        this.customTableRowRepository.find({
+          where: { tableId },
+          order: { rowNumber: 'ASC' },
+        }),
+      ]);
+    } catch (error) {
+      this.throwHelpfulSchemaError(error);
+    }
+
+    if (!columns.length) {
+      throw new BadRequestException('В таблице нет колонок для конвертации');
+    }
+    if (!rows.length) {
+      throw new BadRequestException('В таблице нет строк для конвертации');
+    }
+
+    const mapping = this.buildConversionMapping(columns);
+    const missingRequired = [
+      !mapping.date ? 'date' : null,
+      !mapping.amount ? 'amount' : null,
+    ].filter((value): value is string => Boolean(value));
+
+    if (missingRequired.length) {
+      throw new BadRequestException(
+        `Не удалось определить обязательные колонки: ${missingRequired.join(', ')}`,
+      );
+    }
+
+    const converted: ConvertedTransactionInput[] = [];
+    const warnings: string[] = [];
+
+    for (const row of rows) {
+      const data = this.toRowDataRecord(row.data);
+      const transactionDate = this.parseConversionDate(
+        mapping.date ? this.getRowDataValue(data, mapping.date) : null,
+      );
+      const amount = this.parsePositiveAmount(
+        mapping.amount ? this.getRowDataValue(data, mapping.amount) : null,
+      );
+
+      if (!transactionDate) {
+        warnings.push(`row ${row.rowNumber} skipped: invalid date`);
+        continue;
+      }
+      if (!amount) {
+        warnings.push(`row ${row.rowNumber} skipped: invalid amount`);
+        continue;
+      }
+
+      const merchant = this.readScalarString(data, mapping.merchant) || table.name;
+      const purpose = this.readScalarString(data, mapping.purpose) || merchant;
+      const currency = (this.readScalarString(data, mapping.currency) || 'KZT')
+        .trim()
+        .toUpperCase();
+      const article = this.readScalarString(data, mapping.article) || null;
+
+      converted.push({
+        rowNumber: row.rowNumber,
+        transactionDate,
+        merchant,
+        purpose,
+        amount,
+        currency,
+        article,
+      });
+    }
+
+    if (!converted.length) {
+      throw new BadRequestException('В таблице нет валидных строк для конвертации');
+    }
+
+    const existingStatement = await this.findConvertedStatement(workspaceId, tableId);
+    const csv = this.buildConvertedCsv(converted);
+    const fileName = normalizeFilename(`${table.name}-expenses.csv`);
+    const filePath =
+      existingStatement?.filePath || path.join(resolveUploadsDir(), `${randomUUID()}.csv`);
+    await fs.promises.writeFile(filePath, csv);
+
+    const statementDateFrom = new Date(
+      Math.min(...converted.map(row => row.transactionDate.getTime())),
+    );
+    const statementDateTo = new Date(
+      Math.max(...converted.map(row => row.transactionDate.getTime())),
+    );
+    const totalDebit = converted.reduce((sum, row) => sum + row.amount, 0);
+    const currency = converted[0]?.currency || 'KZT';
+    const fileHash = createHash('sha256').update(csv).digest('hex');
+
+    const statementPayload: Partial<Statement> = {
+      userId,
+      workspaceId,
+      fileName,
+      filePath,
+      fileType: FileType.CSV,
+      fileSize: csv.length,
+      fileHash,
+      bankName: BankName.OTHER,
+      status: StatementStatus.COMPLETED,
+      processedAt: new Date(),
+      statementDateFrom,
+      statementDateTo,
+      totalTransactions: converted.length,
+      totalDebit,
+      totalCredit: 0,
+      currency,
+      categoryId: table.categoryId ?? null,
+      deletedAt: null,
+      parsingDetails: {
+        detectedBy: 'custom-table-conversion',
+        parserUsed: 'custom-table-conversion',
+        parserVersion: '1',
+        transactionsFound: rows.length,
+        transactionsCreated: converted.length,
+        warnings,
+        metadataExtracted: {
+          dateFrom: this.toDateOnly(statementDateFrom),
+          dateTo: this.toDateOnly(statementDateTo),
+          currency,
+        },
+        importPreview: {
+          source: 'custom-table-conversion',
+          customTableId: table.id,
+          tableName: table.name,
+          rowsImported: converted.length,
+          rowsSkipped: rows.length - converted.length,
+        },
+      },
+    };
+
+    const beforeStatement = existingStatement ? { ...existingStatement } : null;
+    const statement = existingStatement
+      ? Object.assign(existingStatement, statementPayload)
+      : this.statementRepository.create(statementPayload);
+    const savedStatement = await this.statementRepository.save(statement);
+
+    try {
+      await this.statementRepository.update(savedStatement.id, { fileData: csv });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to persist converted table file in DB: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    if (existingStatement) {
+      await this.transactionRepository.delete({ statementId: savedStatement.id });
+    }
+
+    const transactions = converted.map(row =>
+      this.transactionRepository.create({
+        workspaceId,
+        statementId: savedStatement.id,
+        transactionDate: new Date(this.toDateOnly(row.transactionDate)),
+        counterpartyName: row.merchant,
+        paymentPurpose: row.purpose,
+        debit: row.amount,
+        credit: null,
+        amount: row.amount,
+        currency: row.currency,
+        article: row.article,
+        transactionType: TransactionType.EXPENSE,
+        categoryId: table.categoryId ?? null,
+        isVerified: true,
+        fingerprint: generateTransactionFingerprint({
+          workspaceId,
+          accountNumber: '',
+          date: row.transactionDate,
+          amount: row.amount,
+          currency: row.currency,
+          direction: 'debit',
+          merchant: row.merchant,
+        }),
+      }),
+    );
+
+    await this.transactionRepository.save(transactions);
+
+    await this.logEvent({
+      userId,
+      workspaceId,
+      entityType: EntityType.STATEMENT,
+      entityId: savedStatement.id,
+      action: AuditAction.IMPORT,
+      diff: { before: beforeStatement, after: savedStatement },
+      meta: {
+        source: 'custom-table-conversion',
+        customTableId: table.id,
+        rowsImported: converted.length,
+        rowsSkipped: rows.length - converted.length,
+      },
+      isUndoable: false,
+    });
+
+    return {
+      statementId: savedStatement.id,
+      importedRows: converted.length,
+      skippedRows: rows.length - converted.length,
+      warnings,
     };
   }
 
