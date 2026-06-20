@@ -1,14 +1,133 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "4b2d32fa04f2b6f6d6be4969a135d1be6b5ed661"
+      "main": "63e599813e90b44940f4ae7f32c77e40d649afad"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-06-19T10:14:09.380Z",
+    "lastGeneratedAt": "2026-06-20T08:47:50.673Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-06-20-63e5998",
+      "version": "main-63e5998",
+      "branch": "main",
+      "date": "2026-06-20T08:47:50.673Z",
+      "title": "Release update - June 20, 2026",
+      "summary": "This release includes 1 feature and 1 other update.",
+      "markdown": "## Features\n- **custom-tables**: Convert tables to statements\n\n## Other\n- Fix workspace drawer selections",
+      "commits": [
+        {
+          "sha": "ee0c01d1872581ffbb4b699bf680a9c9191ca0a4",
+          "shortSha": "ee0c01d1",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-06-19T10:14:09Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "9f93b51269548445d654f051b8b06b7f6c28a99d",
+          "shortSha": "9f93b512",
+          "subject": "Update image source in README.md",
+          "author": "Symon Baikov",
+          "date": "2026-06-20T11:02:53+03:00",
+          "files": [
+            "README.md"
+          ]
+        },
+        {
+          "sha": "b72283b0e0d2d7e7245d081027ecb012a14374be",
+          "shortSha": "b72283b0",
+          "subject": "chore(i18n): enforce locale coverage in content keys",
+          "author": "Symon",
+          "date": "2026-06-20T11:16:41+03:00",
+          "files": [
+            "frontend/app/(main)/custom-tables/[id]/page.content-modals.ts",
+            "frontend/app/(main)/custom-tables/[id]/page.content-operations.ts",
+            "frontend/app/(main)/custom-tables/[id]/page.content.ts",
+            "frontend/app/(main)/statements/page.content.ts",
+            "frontend/app/components/notificationDropdown.content.ts",
+            "frontend/app/components/ui/currencyDisplayToggle.content.ts",
+            "frontend/app/integrations/shared/make-cloud-storage-content.ts",
+            "frontend/app/invite/[token]/page.content.ts",
+            "frontend/app/page.content.ts",
+            "frontend/app/settings/telegram/page.content.ts",
+            "frontend/app/shared/[token]/page.content.ts",
+            "frontend/app/storage/[id]/page.content.ts",
+            "frontend/app/storage/page.content.ts",
+            "frontend/app/tours/admin-tour.content.ts",
+            "frontend/app/tours/categories-tour.content.ts",
+            "frontend/app/tours/custom-tables-tour.content.ts",
+            "frontend/app/tours/google-sheets-import-tour.content.ts",
+            "frontend/app/tours/google-sheets-integration-tour.content.ts",
+            "frontend/app/tours/integrations-tour.content.ts",
+            "frontend/app/tours/reports-tour.content.ts",
+            "frontend/app/tours/settings-tour.content.ts",
+            "frontend/app/tours/statements-tour.content.ts",
+            "frontend/app/upload/page.content.ts",
+            "package.json",
+            "scripts/fix-intlayer-locales.mjs",
+            "scripts/intlayer-locales-check.mjs"
+          ]
+        },
+        {
+          "sha": "0ee72648312fc64734e677bdcc6c251c63ff7eff",
+          "shortSha": "0ee72648",
+          "subject": "feat(custom-tables): convert tables to statements",
+          "author": "Symon",
+          "date": "2026-06-20T11:17:11+03:00",
+          "files": [
+            "backend/@tests/unit/custom-tables/custom-tables.service.spec.ts",
+            "backend/src/modules/custom-tables/custom-tables.controller.ts",
+            "backend/src/modules/custom-tables/custom-tables.service.ts",
+            "frontend/app/(main)/custom-tables/[id]/components/CustomTableDetailView.tsx",
+            "frontend/app/(main)/custom-tables/[id]/components/TableToolbar.test.tsx",
+            "frontend/app/(main)/custom-tables/[id]/components/TableToolbar.tsx",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useConvertToStatement.test.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useConvertToStatement.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useCustomTablePage.ts"
+          ]
+        },
+        {
+          "sha": "e3108fab1cdfbf9c259623def2d64d8e2b01d875",
+          "shortSha": "e3108fab",
+          "subject": "Fix workspace drawer selections",
+          "author": "Symon",
+          "date": "2026-06-20T11:19:57+03:00",
+          "files": [
+            "frontend/app/(main)/statements/components/CreateExpenseDrawer.test.tsx",
+            "frontend/app/(main)/statements/components/CreateExpenseDrawer.tsx",
+            "frontend/app/(main)/statements/components/StatementsListView.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceCategoriesView.test.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceCategoriesView.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceOverviewView.test.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceOverviewView.tsx",
+            "frontend/app/lib/__tests__/statement-categories.test.ts",
+            "frontend/app/lib/statement-categories.ts",
+            "frontend/app/lib/statement-expense-drawer.ts"
+          ]
+        },
+        {
+          "sha": "411cd73bb701d2ca63f09e4f164cd7098bdf766e",
+          "shortSha": "411cd73b",
+          "subject": "Merge pull request #95 from symonbaikov/codex/workspace-ui-fixes",
+          "author": "Symon Baikov",
+          "date": "2026-06-20T11:47:11+03:00",
+          "files": []
+        },
+        {
+          "sha": "63e599813e90b44940f4ae7f32c77e40d649afad",
+          "shortSha": "63e59981",
+          "subject": "Merge pull request #96 from symonbaikov/codex/custom-table-to-statement",
+          "author": "Symon Baikov",
+          "date": "2026-06-20T11:47:20+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-06-19-4b2d32f",
       "version": "main-4b2d32f",
