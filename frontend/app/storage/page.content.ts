@@ -112,6 +112,13 @@ const content = {
         pl: 'Ostatnia synchronizacja: {time}',
         it: 'Ultima sincronizzazione: {time}',
         sk: 'Ostatnia synchronizacja: {time}',
+        ja: 'Last sync: {time}',
+        ko: 'Last sync: {time}',
+        hi: 'Last sync: {time}',
+        nl: 'Last sync: {time}',
+        sv: 'Last sync: {time}',
+        vi: 'Last sync: {time}',
+        id: 'Last sync: {time}',
       }),
       status: {
         connected: t({
@@ -506,6 +513,13 @@ const content = {
         pl: 'Ostatnia synchronizacja: {time}',
         it: 'Ultima sincronizzazione: {time}',
         sk: 'Ostatnia synchronizacja: {time}',
+        ja: 'Last sync: {time}',
+        ko: 'Last sync: {time}',
+        hi: 'Last sync: {time}',
+        nl: 'Last sync: {time}',
+        sv: 'Last sync: {time}',
+        vi: 'Last sync: {time}',
+        id: 'Last sync: {time}',
       }),
       status: {
         connected: t({

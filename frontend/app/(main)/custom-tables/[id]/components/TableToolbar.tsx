@@ -1,7 +1,8 @@
 'use client';
 
 import { Box } from '@mui/material';
-import { ArrowLeft as ArrowBackIcon, CheckCircle, Printer, Search, Trash2, XCircle } from '@/app/components/icons';
+import type { SxProps, Theme } from '@mui/material/styles';
+import { ArrowLeft as ArrowBackIcon, CheckCircle, Printer, Receipt, Search, Trash2, XCircle } from '@/app/components/icons';
 import type React from 'react';
 import type { QuickTab } from '../utils/quickTabs';
 import type { ColumnType } from '../utils/stylingUtils';
@@ -19,6 +20,8 @@ export interface TableToolbarProps {
   setActiveTabId: (id: string) => void; handleBackNavigation: () => void;
   selectedRowIds: string[]; bulkMarking: string | null;
   markSelectedRowsPaid: (paid: boolean) => void | Promise<void>;
+  convertingToStatement: boolean;
+  onConvertToStatement: () => void | Promise<void>;
   handlePrintTable: () => void; openBulkDeleteModal: (ids: string[]) => void;
   searchQuery: string; setSearchQuery: (q: string) => void;
   columnOrder: string[]; orderedColumns: CustomTablePageColumn[];
@@ -96,6 +99,9 @@ function BulkActionsRow(p: P): React.JSX.Element {
         <Box component="button" type="button" onClick={() => p.markSelectedRowsPaid(false)} disabled={!can} sx={{ ...BTN_BASE_SX, color: btnColor, '&:hover': { bgcolor: 'var(--muted)' } }}>
           <XCircle style={{ width: 14, height: 14, color: unpaidColor }} /><span>{markUnpaidLabel}</span>
         </Box>
+        <Box component="button" onClick={p.onConvertToStatement} disabled={p.convertingToStatement} sx={{ ...BTN_BASE_SX, color: 'var(--text-secondary)', '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' } }}>
+          <Receipt className="h-3.5 w-3.5" /><span>{p.convertingToStatement ? tx(p.t, ['actions', 'convertingToStatement'], 'Converting...') : tx(p.t, ['actions', 'convertToStatement'], 'Convert to statement')}</span>
+        </Box>
         <Box component="button" onClick={p.handlePrintTable} sx={{ ...BTN_BASE_SX, color: 'var(--text-secondary)', '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' } }}>
           <Printer className="h-3.5 w-3.5" /><span>{tx(p.t, ['actions', 'print'], 'Print')}</span>
         </Box>
@@ -112,7 +118,7 @@ function BulkActionsRow(p: P): React.JSX.Element {
 
 export function TableToolbar(p: P): React.JSX.Element {
   const isColTab = p.normalizedActiveTabId === p.columnsTabId;
-  const containerSx = p.isFullscreen ? { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, bgcolor: 'background.paper', px: { xs: 2, sm: 3 }, pt: 2.5, borderLeft: '1px solid var(--border-color)', borderRight: '1px solid var(--border-color)', borderTop: '1px solid var(--border-color)', ...(isColTab ? { bottom: 0, overflowY: 'auto', pb: 3 } : { pb: 0 }) } : { mb: 0, display: 'flex', flexDirection: 'column', gap: 0 };
+  const containerSx: SxProps<Theme> = p.isFullscreen ? { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, bgcolor: 'background.paper', px: { xs: 2, sm: 3 }, pt: 2.5, borderLeft: '1px solid var(--border-color)', borderRight: '1px solid var(--border-color)', borderTop: '1px solid var(--border-color)', ...(isColTab ? { bottom: 0, overflowY: 'auto', pb: 3 } : { pb: 0 }) } : { mb: 0, display: 'flex', flexDirection: 'column', gap: 0 };
   return (
     <Box sx={containerSx} className={p.isPrintMode ? 'custom-table-print-controls' : undefined}>
       <TabsRow {...p} />

@@ -14,6 +14,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
+import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
+import { Permission } from '../../common/enums/permissions.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
 import { EntityType } from '../../entities/audit-event.entity';
@@ -176,6 +178,16 @@ export class CustomTablesController {
     const table = await this.customTablesService.createFromStatements(user.id, workspaceId, dto);
     await this.customTablesCache.bumpList(workspaceId);
     return table;
+  }
+
+  @Post(':id/convert-to-statement')
+  @WorkspaceAuth(Permission.STATEMENT_UPLOAD, Permission.STATEMENT_EDIT)
+  async convertToStatement(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.customTablesService.convertToStatement(user.id, workspaceId, id);
   }
 
   @Get(':id')

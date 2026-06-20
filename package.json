@@ -17,6 +17,7 @@
     "test:setup-dev": "node --test scripts/setup-dev.test.mjs",
     "backend:build": "npm --prefix backend run build",
     "backend:start": "npm --prefix backend run start",
+    "i18n:check-locales": "node scripts/intlayer-locales-check.mjs",
     "backend:dev": "npm --prefix backend run start:dev",
     "frontend:build": "npm --prefix frontend run build",
     "frontend:start": "npm --prefix frontend run start",
