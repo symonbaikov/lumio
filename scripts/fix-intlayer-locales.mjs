@@ -5,32 +5,34 @@
  * Preserves quote style of the source `en` value to avoid escaping issues.
  */
 
-import { readFileSync, readdirSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const REQUIRED_LOCALES = [
-  'ru',
-  'en',
-  'kk',
-  'de',
-  'fr',
-  'es',
-  'pt',
-  'tr',
-  'uk',
-  'zh',
-  'ar',
-  'pl',
-  'it',
-  'sk',
-  'ja',
-  'ko',
-  'hi',
-  'nl',
-  'sv',
-  'vi',
-  'id',
-];
+const Dirname = dirname(fileURLToPath(import.meta.url));
+const rootDir = join(Dirname, '..');
+
+const LOCALE_FILE = join(rootDir, 'frontend/app/lib/locale.ts');
+const LOCALES_RE = /export const SUPPORTED_LOCALES\s*=\s*\[([\s\S]*?)\]/;
+
+function getRequiredLocales() {
+  const localeSource = readFileSync(LOCALE_FILE, 'utf8');
+  const match = localeSource.match(LOCALES_RE);
+  if (!match) {
+    throw new Error(`Unable to parse SUPPORTED_LOCALES from ${LOCALE_FILE}`);
+  }
+
+  const raw = match[1];
+  const locales = [...raw.matchAll(/'([^']+)'/g)].map(([, value]) => value);
+
+  if (locales.length === 0) {
+    throw new Error(`No locales found in ${LOCALE_FILE}`);
+  }
+
+  return locales;
+}
+
+const REQUIRED_LOCALES = getRequiredLocales();
 
 function walkDir(dir, results = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -77,10 +79,6 @@ function extractEnRawSnippet(objStr) {
   return null;
 }
 
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-const Dirname = dirname(fileURLToPath(import.meta.url));
-const rootDir = join(Dirname, '..');
 const allFiles = walkDir(join(rootDir, 'frontend/app'));
 let totalFixed = 0;
 let filesModified = 0;
