@@ -26,18 +26,12 @@ vi.mock('@/app/i18n', () => ({
     rightTitle: 'Join Lumio',
     rightTagline: 'Automate your finances today',
     registerFailed: { value: 'Failed to sign up. Please try again.' },
-    googleRegisterFailed: { value: 'Failed to sign up with Google. Please try again.' },
     inviteLoadFailed: { value: 'Failed to load invitation.' },
-    orLabel: 'or',
   }),
 }));
 
 vi.mock('@/app/components/AuthLanguageSwitcher', () => ({
   AuthLanguageSwitcher: () => <div data-testid="auth-language-switcher" />,
-}));
-
-vi.mock('@/app/components/GoogleAuthButton', () => ({
-  GoogleAuthButton: () => null,
 }));
 
 vi.mock('next/navigation', () => ({

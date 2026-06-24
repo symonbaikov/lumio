@@ -20,7 +20,6 @@ import { AuthService, type SessionContext } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import type { AuthResponseDto } from './dto/auth-response.dto';
-import { GoogleLoginDto } from './dto/google-login.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
@@ -58,16 +57,6 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto, @Req() req: Request): Promise<AuthResponseDto> {
     return this.authService.login(loginDto, this.extractSessionContext(req));
-  }
-
-  @Public()
-  @Post('google')
-  @HttpCode(HttpStatus.OK)
-  async loginWithGoogle(
-    @Body() googleLoginDto: GoogleLoginDto,
-    @Req() req: Request,
-  ): Promise<AuthResponseDto> {
-    return this.authService.loginWithGoogle(googleLoginDto, this.extractSessionContext(req));
   }
 
   @Public()

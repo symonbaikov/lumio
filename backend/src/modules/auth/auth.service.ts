@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, randomUUID } from 'crypto';
+import { createHmac, randomUUID } from 'crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -25,7 +25,6 @@ import {
 } from '../../entities';
 import { CategoriesService } from '../categories/categories.service';
 import type { AuthResponseDto } from './dto/auth-response.dto';
-import type { GoogleLoginDto } from './dto/google-login.dto';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
 import type { JwtRefreshPayload } from './strategies/jwt-refresh.strategy';
@@ -46,16 +45,6 @@ export interface UserSessionDto {
   lastUsedAt: Date;
   isCurrent: boolean;
 }
-
-type GoogleTokenInfo = {
-  aud?: string;
-  email?: string;
-  email_verified?: boolean | 'true' | 'false';
-  sub?: string;
-  name?: string;
-  given_name?: string;
-  picture?: string;
-};
 
 const toJwtExpiresIn = (value: string | undefined, fallback: StringValue): StringValue =>
   (value || fallback) as StringValue;
@@ -265,96 +254,6 @@ export class AuthService {
 
     // Update last login
     await this.userRepository.update(user.id, { lastLogin: new Date() });
-
-    return this.generateTokens(user, sessionContext);
-  }
-
-  async loginWithGoogle(
-    dto: GoogleLoginDto,
-    sessionContext?: SessionContext,
-  ): Promise<AuthResponseDto> {
-    const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
-    if (!clientId) {
-      throw new BadRequestException('Google login is not configured');
-    }
-
-    const tokenInfoResponse = await fetch(
-      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(dto.credential)}`,
-    );
-    if (!tokenInfoResponse.ok) {
-      throw new UnauthorizedException('Invalid Google credential');
-    }
-
-    const payload = (await tokenInfoResponse.json()) as GoogleTokenInfo;
-    if (payload.aud !== clientId) {
-      throw new UnauthorizedException('Google credential audience mismatch');
-    }
-
-    const email = payload?.email?.trim().toLowerCase();
-    const googleId = payload?.sub;
-
-    if (!(email && googleId)) {
-      throw new UnauthorizedException('Google account data is incomplete');
-    }
-
-    if (payload?.email_verified === false || payload?.email_verified === 'false') {
-      throw new UnauthorizedException('Google account email is not verified');
-    }
-
-    const invitationToken = dto.invitationToken?.trim() || null;
-
-    await this.validateInvitationForEmail(invitationToken, email);
-
-    let user = await this.userRepository.findOne({
-      where: [{ email }, { googleId }],
-    });
-
-    if (user && !user.isActive) {
-      throw new UnauthorizedException('User account is inactive');
-    }
-
-    if (!user) {
-      const randomPassword = randomBytes(32).toString('hex');
-      const passwordHash = await bcrypt.hash(randomPassword, 10);
-      const displayName =
-        payload?.name?.trim() || payload?.given_name?.trim() || email.split('@')[0];
-
-      user = this.userRepository.create({
-        email,
-        passwordHash,
-        name: displayName,
-        company: null,
-        role: UserRole.USER,
-        isActive: true,
-        permissions: null,
-        googleId,
-        avatarUrl: payload?.picture || null,
-        onboardingCompletedAt: invitationToken ? new Date() : null,
-      });
-
-      const savedUser = await this.userRepository.save(user);
-
-      if (invitationToken) {
-        return this.generateTokens(savedUser, sessionContext);
-      }
-
-      await this.createOwnedWorkspaceForUser(savedUser, `${displayName || email} workspace`);
-
-      user = savedUser;
-    } else {
-      const updates: Partial<User> = {
-        googleId: user.googleId || googleId,
-        avatarUrl: payload?.picture || user.avatarUrl || null,
-        lastLogin: new Date(),
-      };
-
-      if (!user.name && payload?.name) {
-        updates.name = payload.name;
-      }
-
-      await this.userRepository.update(user.id, updates);
-      user = { ...user, ...updates };
-    }
 
     return this.generateTokens(user, sessionContext);
   }

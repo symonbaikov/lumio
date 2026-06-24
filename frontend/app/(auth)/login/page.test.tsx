@@ -21,17 +21,11 @@ vi.mock('@/app/i18n', () => ({
     submit: 'Log in',
     noAccount: "Don't have an account? Sign up",
     loginFailed: { value: 'Failed to log in. Please try again.' },
-    googleLoginFailed: { value: 'Failed to sign in with Google. Please try again.' },
-    orLabel: 'or',
   }),
 }));
 
 vi.mock('@/app/components/AuthLanguageSwitcher', () => ({
   AuthLanguageSwitcher: () => <div data-testid="auth-language-switcher" />,
-}));
-
-vi.mock('@/app/components/GoogleAuthButton', () => ({
-  GoogleAuthButton: () => null,
 }));
 
 vi.mock('next/navigation', () => ({
