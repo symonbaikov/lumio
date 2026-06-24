@@ -329,6 +329,49 @@ npm run setup:dev
 
 `npm run setup:dev` asks which development mode you want, then prepares env files, starts PostgreSQL and Redis, runs database migrations, seeds a demo user, and starts the app.
 
+### Fast bootstrap checklist (new contributor flow)
+
+1. Install Node.js 20+ and Docker (with Compose) before you start.
+2. Ensure ports are free: `3000` (frontend), `3001` (backend).
+3. Prepare environment files once:
+
+```bash
+npm run setup:env
+```
+
+4. Start using one of the non-interactive modes:
+
+```bash
+npm run setup:dev:docker  # full Docker stack (recommended for first run)
+npm run setup:dev:local   # local app + Docker infra
+```
+
+5. Verify availability:
+
+```bash
+curl -sS http://localhost:3001/api/v1/health/ready
+open http://localhost:3000
+```
+
+Expected output from step 5 health check:
+
+```json
+{"status":"ok","checks":{"db":"ok"}}
+```
+
+Default demo login is printed after startup in the terminal:
+
+- **Email:** `demo@lumio.dev`
+- **Password:** `demo123`
+
+To stop Docker mode cleanly:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+```
+
+To stop local mode, press `Ctrl + C` in the terminal running `npm run setup:dev:local`.
+
 For a new contributor, Docker full-stack is the recommended path. It builds and runs PostgreSQL, Redis, backend, and frontend, waits for backend readiness, seeds the demo account, and prints the URLs and login credentials.
 
 - **Frontend:** http://localhost:3000
