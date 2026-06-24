@@ -1,14 +1,99 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "63e599813e90b44940f4ae7f32c77e40d649afad"
+      "main": "c37e1080f2580c12aec2f5ea43641058c0f5ae4f"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-06-20T08:47:50.673Z",
+    "lastGeneratedAt": "2026-06-24T14:08:08.521Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-06-24-c37e108",
+      "version": "main-c37e108",
+      "branch": "main",
+      "date": "2026-06-24T14:08:08.521Z",
+      "title": "Release update - June 24, 2026",
+      "summary": "This release includes 1 feature.",
+      "markdown": "## Features\n- **auth**: Remove Google sign-in capability",
+      "commits": [
+        {
+          "sha": "3daf9d6edfa62ea982ead33ccd1553beccdc6763",
+          "shortSha": "3daf9d6e",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-06-20T08:47:50Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "389b3781161d0ec5f8b6b9055fc6bdaafe1db082",
+          "shortSha": "389b3781",
+          "subject": "test(frontend): translate remaining hardcoded russian in checks",
+          "author": "Symon",
+          "date": "2026-06-24T16:54:26+03:00",
+          "files": [
+            "frontend/app/(main)/statements/[id]/edit/ParsingWarningsPanel.test.tsx",
+            "frontend/app/(main)/statements/[id]/edit/page.test.tsx",
+            "frontend/app/(onboarding)/onboarding/steps/WorkspaceStep.test.tsx",
+            "frontend/app/components/NotificationDropdown.test.tsx"
+          ]
+        },
+        {
+          "sha": "ef55a5a290a8526566e4f03c90d90571e8e15f63",
+          "shortSha": "ef55a5a2",
+          "subject": "docs: add quick start bootstrap checklist",
+          "author": "Symon",
+          "date": "2026-06-24T16:54:40+03:00",
+          "files": [
+            "README.md"
+          ]
+        },
+        {
+          "sha": "c7b49c5246dfa2e30bd0957cb3112b8777834b98",
+          "shortSha": "c7b49c52",
+          "subject": "feat(auth): remove Google sign-in capability",
+          "author": "Symon",
+          "date": "2026-06-24T16:54:54+03:00",
+          "files": [
+            "backend/@tests/unit/modules/auth/auth.controller.spec.ts",
+            "backend/src/modules/auth/auth.controller.ts",
+            "backend/src/modules/auth/auth.service.ts",
+            "backend/src/modules/auth/dto/google-login.dto.ts",
+            "frontend/app/(auth)/login/page.content.ts",
+            "frontend/app/(auth)/login/page.test.tsx",
+            "frontend/app/(auth)/login/page.tsx",
+            "frontend/app/(auth)/register/page.content.ts",
+            "frontend/app/(auth)/register/page.test.tsx",
+            "frontend/app/(auth)/register/page.tsx",
+            "frontend/app/components/GoogleAuthButton.test.tsx",
+            "frontend/app/components/GoogleAuthButton.tsx",
+            "frontend/app/lib/api.ts",
+            "frontend/types/google-apis.d.ts"
+          ]
+        },
+        {
+          "sha": "4fa55e23bc8493de8a4fb64ab6b70fd42198f439",
+          "shortSha": "4fa55e23",
+          "subject": "Merge pull request #97 from symonbaikov/codex/custom-table-to-statement",
+          "author": "Symon Baikov",
+          "date": "2026-06-24T17:07:13+03:00",
+          "files": [
+            "README.md"
+          ]
+        },
+        {
+          "sha": "c37e1080f2580c12aec2f5ea43641058c0f5ae4f",
+          "shortSha": "c37e1080",
+          "subject": "Merge pull request #98 from symonbaikov/feat/remove-google-auth",
+          "author": "Symon Baikov",
+          "date": "2026-06-24T17:07:36+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-06-20-63e5998",
       "version": "main-63e5998",
