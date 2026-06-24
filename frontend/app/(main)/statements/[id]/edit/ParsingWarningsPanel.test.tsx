@@ -165,7 +165,7 @@ describe('ParsingWarningsPanel', () => {
               },
             },
           ]}
-          fixTooltipLabel="Исправить"
+          fixTooltipLabel="Fix"
         />,
       );
     });
@@ -253,7 +253,7 @@ describe('ParsingWarningsPanel', () => {
               },
             },
           ]}
-          fixTooltipLabel="Исправить"
+          fixTooltipLabel="Fix"
         />,
       );
     });
@@ -279,7 +279,7 @@ describe('ParsingWarningsPanel', () => {
             'tx#243: skipped (negative amount)',
             'tx#245: skipped (no debit/credit amount)',
           ]}
-          fixTooltipLabel="Исправить"
+          fixTooltipLabel="Fix"
         />,
       );
     });
@@ -302,7 +302,7 @@ describe('ParsingWarningsPanel', () => {
       root.render(
         <ParsingWarningsPanel
           warnings={['Balance mismatch: expected 1000.00 got 800.00 (diff 200.00)']}
-          fixTooltipLabel="Исправить"
+          fixTooltipLabel="Fix"
         />,
       );
     });
@@ -319,7 +319,7 @@ describe('ParsingWarningsPanel', () => {
       root.render(
         <ParsingWarningsPanel
           warnings={['Balance mismatch: expected 1000.00 got 800.00 (diff 200.00)']}
-          resolveBalanceTooltipLabel="Проверить баланс"
+          resolveBalanceTooltipLabel="Check balance"
         />,
       );
     });
@@ -330,7 +330,7 @@ describe('ParsingWarningsPanel', () => {
     ) as HTMLElement | undefined;
 
     expect(tooltipHost).toBeTruthy();
-    expect(tooltipHost?.getAttribute('data-tooltip-content')).toBe('Проверить баланс');
+    expect(tooltipHost?.getAttribute('data-tooltip-content')).toBe('Check balance');
   });
 
   it('shows localized fix tooltip on hoverable dropped warning rows', async () => {
@@ -348,7 +348,7 @@ describe('ParsingWarningsPanel', () => {
               },
             },
           ]}
-          fixTooltipLabel="Исправить"
+          fixTooltipLabel="Fix"
         />,
       );
     });
@@ -358,7 +358,7 @@ describe('ParsingWarningsPanel', () => {
     ) as HTMLElement | undefined;
 
     expect(tooltipHost).toBeTruthy();
-    expect(tooltipHost?.getAttribute('data-tooltip-content')).toBe('Исправить');
+    expect(tooltipHost?.getAttribute('data-tooltip-content')).toBe('Fix');
   });
 
   it('does not render a separate dropped-rows list under warnings', async () => {
@@ -376,7 +376,7 @@ describe('ParsingWarningsPanel', () => {
               },
             },
           ]}
-          fixTooltipLabel="Исправить"
+          fixTooltipLabel="Fix"
         />,
       );
     });

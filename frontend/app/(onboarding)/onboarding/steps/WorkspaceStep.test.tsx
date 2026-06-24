@@ -9,18 +9,18 @@ vi.mock('@/app/i18n', () => ({
     navigation: {
       back: {
         value: {
-          ru: 'Назад',
+          ru: 'Back',
           en: 'Back',
-          kk: 'Артқа',
+          kk: 'Back',
         },
       },
     },
     workspace: {
       title: {
         value: {
-          ru: 'Настройка первого воркспейса',
+          ru: 'Set up your first workspace (RU)',
           en: 'Set up your first workspace',
-          kk: 'Алғашқы жұмыс кеңістігін баптау',
+          kk: 'Set up your first workspace (KK)',
         },
       },
       subtitle: {
@@ -32,16 +32,16 @@ vi.mock('@/app/i18n', () => ({
       },
       nameLabel: {
         value: {
-          ru: 'Название воркспейса',
+          ru: 'Workspace name',
           en: 'Workspace name',
-          kk: 'Жұмыс кеңістігінің атауы',
+          kk: 'Workspace name',
         },
       },
       namePlaceholder: {
         value: {
-          ru: 'Например: My Company workspace',
+          ru: 'For example: My Company workspace',
           en: 'For example: My Company workspace',
-          kk: 'Мысалы: My Company workspace',
+          kk: 'For example: My Company workspace',
         },
       },
       currencyHint: {
@@ -53,16 +53,16 @@ vi.mock('@/app/i18n', () => ({
       },
       backgroundLabel: {
         value: {
-          ru: 'Фон воркспейса',
+          ru: 'Workspace background',
           en: 'Workspace background',
-          kk: 'Жұмыс кеңістігінің фоны',
+          kk: 'Workspace background',
         },
       },
       customBackgroundLabel: {
         value: {
-          ru: 'Своя картинка (URL)',
+          ru: 'Custom image (URL)',
           en: 'Custom image (URL)',
-          kk: 'Жеке сурет (URL)',
+          kk: 'Custom image (URL)',
         },
       },
       customBackgroundPlaceholder: {
@@ -74,9 +74,9 @@ vi.mock('@/app/i18n', () => ({
       },
       customBackgroundHint: {
         value: {
-          ru: 'RU background hint',
+          ru: 'English background hint',
           en: 'EN background hint',
-          kk: 'KK background hint',
+          kk: 'English background hint',
         },
       },
     },
@@ -106,10 +106,10 @@ describe('WorkspaceStep localization', () => {
     );
 
     expect(screen.getByText('Set up your first workspace')).toBeTruthy();
-    expect(screen.getByText('EN currency hint')).toBeTruthy();
+    expect(screen.getByText('English background hint')).toBeTruthy();
     expect(screen.getByText('Workspace background')).toBeTruthy();
     expect(screen.getByText('Custom image (URL)')).toBeTruthy();
     expect(screen.getByPlaceholderText('https://example.com/en.jpg')).toBeTruthy();
-    expect(screen.queryByText('Настройка первого воркспейса')).toBeNull();
+    expect(screen.queryByText('Set up your first workspace (RU)')).toBeNull();
   });
 });
