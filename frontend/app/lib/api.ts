@@ -89,7 +89,6 @@ async function refreshAccessToken(originalRequest: Record<string, unknown>): Pro
 const AUTH_RETRY_EXCLUDED_PATHS = new Set([
   '/auth/login',
   '/auth/register',
-  '/auth/google',
   '/auth/refresh',
 ]);
 

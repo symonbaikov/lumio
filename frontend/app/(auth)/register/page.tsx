@@ -3,7 +3,6 @@
 
 import { AuthGreeting } from '@/app/components/AuthGreeting';
 import { AuthLanguageSwitcher } from '@/app/components/AuthLanguageSwitcher';
-import { GoogleAuthButton } from '@/app/components/GoogleAuthButton';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
@@ -11,7 +10,7 @@ import { DEFAULT_APP_ROUTE } from '@/app/lib/default-app-route';
 import { syncLocaleFromUser } from '@/app/lib/locale';
 import { safeInternalPath } from '@/app/lib/safe-path';
 import { tokens } from '@/lib/theme-tokens';
-import { Alert, Box, Button, Divider, Link, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Link, TextField, Typography } from '@mui/material';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useSearchParams } from 'next/navigation';
 import React, { Suspense, useEffect, useState } from 'react';
@@ -34,7 +33,6 @@ function RegisterPageContent(): React.JSX.Element {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
   const [emailLocked, setEmailLocked] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
 
@@ -187,18 +185,6 @@ function RegisterPageContent(): React.JSX.Element {
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
-      )}
-
-      {googleEnabled && (
-        <>
-          <GoogleAuthButton
-            inviteToken={inviteToken}
-            nextPath={nextPath}
-            onError={setError}
-            errorFallback={t.googleRegisterFailed.value}
-          />
-          <Divider sx={{ my: 3, width: '100%', color: 'text.secondary' }}>{t.orLabel}</Divider>
-        </>
       )}
 
       <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>

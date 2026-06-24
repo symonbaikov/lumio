@@ -5,7 +5,6 @@ describe('AuthController', () => {
     const authService = {
       register: jest.fn(async () => ({ access_token: 'a', refresh_token: 'r' })),
       login: jest.fn(async () => ({ access_token: 'a', refresh_token: 'r' })),
-      loginWithGoogle: jest.fn(async () => ({ access_token: 'a', refresh_token: 'r' })),
       refreshToken: jest.fn(async () => ({ access_token: 'new' })),
       logout: jest.fn(async () => ({ message: 'ok' })),
       logoutAll: jest.fn(async () => ({ message: 'ok-all' })),
@@ -28,11 +27,6 @@ describe('AuthController', () => {
     });
     await expect(
       controller.login({ email: 'a@b.com', password: 'x' } as any, req),
-    ).resolves.toMatchObject({
-      refresh_token: 'r',
-    });
-    await expect(
-      controller.loginWithGoogle({ credential: 'google' } as any, req),
     ).resolves.toMatchObject({
       refresh_token: 'r',
     });

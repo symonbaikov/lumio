@@ -3,7 +3,6 @@
 
 import { AuthGreeting } from '@/app/components/AuthGreeting';
 import { AuthLanguageSwitcher } from '@/app/components/AuthLanguageSwitcher';
-import { GoogleAuthButton } from '@/app/components/GoogleAuthButton';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
@@ -11,7 +10,7 @@ import { DEFAULT_APP_ROUTE } from '@/app/lib/default-app-route';
 import { syncLocaleFromUser } from '@/app/lib/locale';
 import { safeInternalPath } from '@/app/lib/safe-path';
 import { tokens } from '@/lib/theme-tokens';
-import { Alert, Box, Button, Divider, Link, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Link, TextField, Typography } from '@mui/material';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useSearchParams } from 'next/navigation';
 import React, { Suspense, useState } from 'react';
@@ -50,7 +49,6 @@ function LoginPageContent(): React.JSX.Element {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 
   // eslint-disable-next-line max-lines-per-function, complexity
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
@@ -173,18 +171,6 @@ function LoginPageContent(): React.JSX.Element {
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
-      )}
-
-      {googleEnabled && (
-        <>
-          <GoogleAuthButton
-            inviteToken={inviteToken}
-            nextPath={nextPath}
-            onError={setError}
-            errorFallback={t.googleLoginFailed.value}
-          />
-          <Divider sx={{ my: 3, width: '100%', color: 'text.secondary' }}>{t.orLabel}</Divider>
-        </>
       )}
 
       <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
