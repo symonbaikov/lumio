@@ -257,9 +257,7 @@ describe('EditStatementPage locale', () => {
     expect(container.textContent).toContain('Category');
     expect(container.textContent).toContain('Actions');
 
-    expect(container.textContent).not.toContain('ДАТА');
-    expect(container.textContent).not.toContain('КОНТРАГЕНТ');
-    expect(container.textContent).not.toContain('НАЗНАЧЕНИЕ ПЛАТЕЖА');
+    expect(/[\u0400-\u04FF]/.test(container.textContent || '')).toBe(false);
   });
 
   it('centers the loading spinner while statement details are loading', async () => {

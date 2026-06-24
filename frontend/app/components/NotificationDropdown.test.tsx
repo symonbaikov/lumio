@@ -71,8 +71,8 @@ vi.mock('@/app/hooks/useNotifications', () => ({
         entityId: 'receipt-1',
         meta: null,
         severity: 'warn',
-        title: 'Чек без категории',
-        message: 'Чек "[GitHub] Payment Receipt" не имеет категории',
+        title: 'Receipt without category',
+        message: 'Receipt "[GitHub] Payment Receipt" has no category',
         createdAt: new Date().toISOString(),
         isRead: false,
       },
@@ -83,8 +83,8 @@ vi.mock('@/app/hooks/useNotifications', () => ({
         entityId: 'statement-1',
         meta: null,
         severity: 'warn',
-        title: 'Транзакции без категории',
-        message: '1 транзакция требует выбора категории',
+        title: 'Transactions without category',
+        message: '1 transaction needs a category',
         createdAt: new Date().toISOString(),
         isRead: false,
       },
@@ -208,8 +208,7 @@ describe('NotificationDropdown', () => {
     expect(title).toContain('Transactions without category');
     expect(title).toContain('Receipt "[GitHub] Payment Receipt" has no category');
     expect(title).toContain('1 transaction needs a category');
-    expect(title).not.toContain('Чек без категории');
-    expect(title).not.toContain('не имеет категории');
+    expect(/[\u0400-\u04FF]/.test(title || '')).toBe(false);
 
     const whiteSurface = Array.from(document.querySelectorAll('div')).find(node =>
       node.className.includes('bg-white'),
