@@ -8,6 +8,7 @@ import { registerClassificationTools } from './tools/classification.js';
 import { registerDashboardTools } from './tools/dashboard.js';
 import { registerDataEntryTools } from './tools/data-entry.js';
 import { registerWebhookTools } from './tools/webhooks.js';
+import { registerCodeGraphTools } from './tools/code-graph.js';
 
 import { registerTransactionResources } from './resources/transactions.js';
 import { registerCategoryResources } from './resources/categories.js';
@@ -26,6 +27,7 @@ registerClassificationTools(server);
 registerDashboardTools(server);
 registerDataEntryTools(server);
 registerWebhookTools(server);
+registerCodeGraphTools(server);
 
 // Register resources
 registerTransactionResources(server);
