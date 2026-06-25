@@ -4,7 +4,7 @@
 ---
   
 <p align="center">
-  :globe_with_meridians: <a href="https://lumio-app-production-627d.up.railway.app">Open Web App</a> or :computer: <a href="#quick-start">Download</a>
+  :globe_with_meridians:<a href="#quick-start">Download</a>
 </p>
 ---
 
