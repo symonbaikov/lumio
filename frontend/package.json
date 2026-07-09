@@ -59,7 +59,7 @@
     "@babel/plugin-transform-runtime": "^7.28.5",
     "@babel/preset-react": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.4.10",
     "@eslint/js": "^9.39.4",
     "@next/bundle-analyzer": "^16.2.4",
     "@storybook/addon-a11y": "^8.6.14",
