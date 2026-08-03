@@ -1,4 +1,5 @@
 'use client';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 
 type Props = {
   titleLabel: string;
@@ -19,6 +20,7 @@ export function SpendOverTimeEmptyState({
 }: Props): React.JSX.Element {
   return (
     <div className="lumio-view-page__empty">
+      <EmptyStateIllustration name="spend-over-time" size="lg" />
       <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--foreground)' }}>{titleLabel}</p>
       <p style={{ marginTop: 4, fontSize: 14, color: 'var(--muted-foreground)' }}>
         {descriptionLabel}

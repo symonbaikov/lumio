@@ -1,0 +1,26 @@
+@use '../abstracts' as *;
+
+/* ── Empty-state illustrations (EmptyStateIllustration.tsx) ───── */
+.lumio-empty-illustration {
+  display: block;
+  margin: 0 auto 20px;
+  width: 100%;
+  height: auto;
+  opacity: 0.95;
+
+  @include dark {
+    opacity: 0.8;
+  }
+
+  &--sm {
+    max-width: 120px;
+  }
+
+  &--md {
+    max-width: 180px;
+  }
+
+  &--lg {
+    max-width: 240px;
+  }
+}

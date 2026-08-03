@@ -11,7 +11,8 @@ import {
   isStatementParsingInProgress,
 } from '@/app/(main)/statements/components/StatementsListView.utils';
 import type { DuplicateMeta } from '@/app/(main)/statements/components/hooks/useStatementSelection';
-import { ArrowDown, File } from '@/app/components/icons';
+import { ArrowDown } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { Spinner } from '@/app/components/ui/spinner';
@@ -21,7 +22,6 @@ import {
   getStatementMerchantLabel,
   isManualExpenseStatement,
 } from '@/app/lib/statement-status';
-import { tokens } from '@/lib/theme-tokens';
 import { StatementsGmailSync } from './StatementsGmailSync';
 
 // ---------------------------------------------------------------------------
@@ -152,21 +152,7 @@ function EmptyState({
 }): React.JSX.Element {
   return (
     <div className="lumio-stmt-list-view__empty">
-      <div
-        style={{
-          margin: '0 auto 16px',
-          display: 'flex',
-          height: 64,
-          width: 64,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: tokens.radius.full,
-          background: 'var(--muted)',
-          color: 'var(--border-color)',
-        }}
-      >
-        <File size={32} />
-      </div>
+      <EmptyStateIllustration name="statements" size="lg" />
       <h3 style={{ fontSize: 18, fontWeight: 500, color: 'var(--foreground)' }}>
         {emptyLabels.title}
       </h3>

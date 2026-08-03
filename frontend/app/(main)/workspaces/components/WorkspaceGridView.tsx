@@ -1,6 +1,7 @@
 'use client';
 
-import { Building2, Plus, Search } from '@/app/components/icons';
+import { Plus } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -29,9 +30,7 @@ function EmptyWorkspacesState({
 }: EmptyStateProps): React.JSX.Element {
   return (
     <Box sx={{ textAlign: 'center', py: 6 }}>
-      <Box sx={{ fontSize: 48, mb: 2 }}>
-        <Building2 size={48} />
-      </Box>
+      <EmptyStateIllustration name="workspaces" size="lg" />
       <Typography variant="h6" fontWeight={600} sx={{ mb: 1, color: 'var(--foreground)' }}>
         {noWorkspacesLabel}
       </Typography>
@@ -61,9 +60,7 @@ function EmptyWorkspacesState({
 function NoResultsState(): React.JSX.Element {
   return (
     <Box sx={{ textAlign: 'center', py: 6 }}>
-      <Box sx={{ mb: 2 }}>
-        <Search size={48} />
-      </Box>
+      <EmptyStateIllustration name="no-results" size="md" />
       <Typography variant="h6" fontWeight={600} sx={{ mb: 1, color: 'var(--foreground)' }}>
         No workspaces found
       </Typography>

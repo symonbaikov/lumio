@@ -1,6 +1,7 @@
 'use client';
 
-import { GripVertical, Plus } from '@/app/components/icons';
+import { Plus } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
 import { Popover } from '@mui/material';
@@ -518,7 +519,7 @@ function DesktopEmptyState({
         color: 'var(--muted-foreground)',
       }}
     >
-      <GripVertical size={48} style={{ marginBottom: 16, opacity: 0.2 }} />
+      <EmptyStateIllustration name="tables" size="lg" />
       <p style={{ fontSize: '1.125rem', fontWeight: 500 }}>{labels.emptyTitle}</p>
       <p style={{ fontSize: '0.875rem' }}>{labels.emptySubtitle}</p>
     </div>

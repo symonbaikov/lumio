@@ -9,6 +9,7 @@ import {
   Trash2,
 } from '@/app/components/icons';
 import { Tag as CategoryIcon } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import {
   DropdownMenu,
@@ -225,21 +226,7 @@ function EmptyState({
         py: { xs: 5, sm: 6 },
       }}
     >
-      <Box
-        sx={{
-          mx: 'auto',
-          mb: 2,
-          display: 'flex',
-          width: 64,
-          height: 64,
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: 'action.hover',
-          color: 'var(--muted-foreground)',
-        }}
-      >
-        <TableIcon className="h-8 w-8" />
-      </Box>
+      <EmptyStateIllustration name="tables" size="lg" />
       <Typography
         style={{ textAlign: 'center', fontSize: 18, fontWeight: 600, color: 'var(--foreground)' }}
       >

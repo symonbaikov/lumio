@@ -6,6 +6,7 @@ import type {
   TopMerchantAggregateRow,
   TopMerchantSourceChannel,
 } from '@/app/(main)/statements/components/top-merchants/top-merchants.types';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { formatMoney } from '@/app/lib/analytics-common';
 import { tokens } from '@/lib/theme-tokens';
 
@@ -30,6 +31,7 @@ type Props = {
   sourceLabels: SourceLabels;
   sortLabels: SortLabels;
   columnLabels: ColumnLabels;
+  emptyLabel: string;
 };
 
 const SORT_KEYS: AggregateSortKey[] = ['amount', 'average', 'operations'];
@@ -124,6 +126,7 @@ export function TopMerchantsLeaderboard({
   sourceLabels,
   sortLabels,
   columnLabels,
+  emptyLabel,
 }: Props): React.JSX.Element {
   const sortKeyLabels: Record<AggregateSortKey, string> = {
     amount: sortLabels.sortByAmount,
@@ -199,6 +202,14 @@ export function TopMerchantsLeaderboard({
             </tr>
           </thead>
           <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ padding: '32px 0', textAlign: 'center' }}>
+                  <EmptyStateIllustration name="top-merchants" size="md" />
+                  <span style={{ color: 'var(--muted-foreground)' }}>{emptyLabel}</span>
+                </td>
+              </tr>
+            ) : null}
             {rows.slice(0, 60).map(row => (
               <LeaderboardRow
                 key={row.id}

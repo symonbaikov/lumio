@@ -67,6 +67,7 @@ import {
   groupStatementSelectionOptions,
 } from './create-from-statements-utils';
 import { useCustomTablesData } from './hooks/useCustomTablesData';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 
 interface Category {
   id: string;
@@ -1005,9 +1006,7 @@ export default function CustomTablesPage() {
             </Box>
           ) : filteredCount === 0 ? (
             <Box sx={{ border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.lg, bgcolor: 'background.paper', px: { xs: 3, sm: 5 }, py: { xs: 5, sm: 6 } }}>
-              <Box sx={{ mx: 'auto', mb: 2, display: 'flex', width: 64, height: 64, alignItems: 'center', justifyContent: 'center', borderRadius: tokens.radius.full, bgcolor: 'action.hover', color: c.ink400 }}>
-                <TableIcon className="h-8 w-8" />
-              </Box>
+              <EmptyStateIllustration name="tables" size="lg" />
               <Typography style={{ textAlign: 'center', fontSize: 18, fontWeight: 600, color: c.ink900 }}>
                 {emptyLabels.title}
               </Typography>

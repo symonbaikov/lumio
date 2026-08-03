@@ -1,5 +1,6 @@
 'use client';
 
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '../ui/checkbox';
 import { TransactionMobileCard } from './TransactionMobileCard';
 import type { TransactionRowFormatters, TransactionRowHandlers } from './TransactionRow';
@@ -68,7 +69,10 @@ export function TransactionMobileList({
       </div>
       <div className="lumio-tx-mobile__list">
         {transactions.length === 0 ? (
-          <div className="lumio-tx-mobile__empty">{noResultsLabel}</div>
+          <div className="lumio-tx-mobile__empty">
+            <EmptyStateIllustration name="transactions" size="md" />
+            {noResultsLabel}
+          </div>
         ) : (
           transactions.map(tx => (
             <TransactionMobileCard

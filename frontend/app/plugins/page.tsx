@@ -1,6 +1,7 @@
 'use client';
 
 import { Cpu, Search } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import ExtensionOutlinedIcon from '@mui/icons-material/ExtensionOutlined';
@@ -147,7 +148,10 @@ export default function PluginsPage(): React.JSX.Element {
         p: 2,
       }}
     >
-      <Typography style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{message}</Typography>
+      <EmptyStateIllustration name="plugins" size="sm" />
+      <Typography style={{ fontSize: 14, color: 'var(--text-secondary)', textAlign: 'center' }}>
+        {message}
+      </Typography>
     </Box>
   );
 
