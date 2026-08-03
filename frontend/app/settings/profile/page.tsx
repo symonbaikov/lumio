@@ -661,7 +661,7 @@ export default function ProfileSettingsPage() {
                   width: 44,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  borderRadius: 0,
+                  borderRadius: tokens.radius.sm,
                   bgcolor: 'transparent',
                   color: 'primary.main',
                   flexShrink: 0,

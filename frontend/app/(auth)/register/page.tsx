@@ -199,9 +199,6 @@ function RegisterPageContent(): React.JSX.Element {
           autoFocus
           value={formData.name}
           onChange={handleChange}
-          InputProps={{
-            sx: { borderRadius: 0 },
-          }}
           sx={{ mb: 2 }}
         />
         <TextField
@@ -215,9 +212,6 @@ function RegisterPageContent(): React.JSX.Element {
           value={formData.email}
           onChange={handleChange}
           disabled={emailLocked || inviteLoading}
-          InputProps={{
-            sx: { borderRadius: 0 },
-          }}
           sx={{ mb: 2 }}
         />
         <TextField
@@ -233,9 +227,6 @@ function RegisterPageContent(): React.JSX.Element {
           onChange={handleChange}
           helperText={t.passwordHelper.value}
           inputProps={{ minLength: MIN_PASSWORD_LENGTH }}
-          InputProps={{
-            sx: { borderRadius: 0 },
-          }}
           sx={{ mb: 2 }}
         />
         <TextField
@@ -246,9 +237,6 @@ function RegisterPageContent(): React.JSX.Element {
           name="company"
           value={formData.company}
           onChange={handleChange}
-          InputProps={{
-            sx: { borderRadius: 0 },
-          }}
           sx={{ mb: 3 }}
         />
         <Button
@@ -258,16 +246,15 @@ function RegisterPageContent(): React.JSX.Element {
           size="large"
           sx={{
             py: 1.5,
-            borderRadius: 0,
+            borderRadius: tokens.radius.full,
             fontSize: '1rem',
-            fontWeight: 'bold',
+            fontWeight: 700,
             textTransform: 'none',
-            boxShadow: '0 4px 14px 0 rgba(5,150,105,0.45)',
-            background: 'linear-gradient(45deg, #059669 30%, var(--color-info-soft-text) 90%)',
-            transition: 'transform 0.2s',
+            boxShadow: 'none',
+            bgcolor: 'primary.main',
             '&:hover': {
-              transform: 'scale(1.02)',
-              boxShadow: '0 6px 20px rgba(5,150,105,0.3)',
+              bgcolor: 'primary.dark',
+              boxShadow: 'none',
             },
           }}
           disabled={loading || inviteLoading}

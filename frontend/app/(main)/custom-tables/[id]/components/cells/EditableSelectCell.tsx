@@ -129,7 +129,7 @@ export function EditableSelectCell({
             minWidth: 200,
             background: 'var(--card-bg)',
             border: '1px solid var(--border-color)',
-            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+            boxShadow: '0 4px 16px -4px rgba(12,12,20,0.08)',
             zIndex: 20,
             maxHeight: 240,
             overflowY: 'auto',

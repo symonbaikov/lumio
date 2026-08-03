@@ -10,6 +10,8 @@ $lumio-color-primary-50:       #edf7ed;
 $lumio-color-primary-100:      #d4edd4;
 $lumio-color-primary-200:      #a8d5a8;
 $lumio-color-primary-contrast: #ffffff;
+$lumio-color-forest:           #0e2a10;
+$lumio-color-lime:             #9fe870;
 
 // ── Ink neutrals ─────────────────────────────────────────────
 $lumio-color-ink-900: #0b0b10;
@@ -49,7 +51,7 @@ $lumio-color-cat-income:    #10b981;
 $lumio-color-cat-other:     #64748b;
 
 // ── Surface / background ──────────────────────────────────────
-$lumio-color-bg:              #f8f8f9;
+$lumio-color-bg:              #f7f8f7;
 $lumio-color-surface:         #ffffff;
 $lumio-color-surface-muted:   #f2f2f4;
 $lumio-color-surface-warning: #fffbeb;
@@ -93,11 +95,11 @@ $lumio-line-height-normal: 1.5;
 
 // ── Shape / border-radius ─────────────────────────────────────
 $lumio-radius-none: 0;
-$lumio-radius-xs:   3px;
-$lumio-radius-sm:   3px;
-$lumio-radius-md:   3px;
-$lumio-radius-lg:   3px;
-$lumio-radius-xl:   3px;
+$lumio-radius-xs:   6px;
+$lumio-radius-sm:   8px;
+$lumio-radius-md:   12px;
+$lumio-radius-lg:   16px;
+$lumio-radius-xl:   20px;
 $lumio-radius-full: 999px;
 
 // ── Shadows ───────────────────────────────────────────────────
@@ -113,7 +115,7 @@ $lumio-z-popover:  1400;
 $lumio-z-tooltip:  1500;
 
 // ── Theme tokens (globals / Tailwind layer) ───────────────────
-$color-background:           #f8f8f9;
+$color-background:           #f7f8f7;
 $color-foreground:           #0b0b10;
 $color-primary:              #168118;
 $color-primary-hover:        #157811;

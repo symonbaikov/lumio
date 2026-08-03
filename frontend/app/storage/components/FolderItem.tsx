@@ -49,7 +49,7 @@ const pickedButtonStyle: React.CSSProperties = {
   borderColor: 'var(--primary)',
   background: 'rgba(22,129,24,0.05)',
   cursor: 'ns-resize',
-  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+  boxShadow: '0 4px 16px -4px rgba(12,12,20,0.08)',
   zIndex: 10,
 };
 const activeButtonStyle: React.CSSProperties = {

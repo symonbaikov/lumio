@@ -3728,14 +3728,8 @@
       display: block;
       height: 10px;
       border-radius: 999px;
-      background: linear-gradient(
-        90deg,
-        rgba(148, 163, 184, 0.16) 0%,
-        rgba(148, 163, 184, 0.34) 45%,
-        rgba(148, 163, 184, 0.16) 100%
-      );
-      background-size: 200% 100%;
-      animation: lumio-expense-processing-shimmer 1.2s linear infinite;
+      background: rgba(148, 163, 184, 0.24);
+      animation: lumio-expense-processing-fade 1.2s ease-in-out infinite;
 
       &:nth-child(2) {
         width: 78%;
@@ -3748,13 +3742,14 @@
   }
 }
 
-@keyframes lumio-expense-processing-shimmer {
-  from {
-    background-position: 100% 0;
+@keyframes lumio-expense-processing-fade {
+  0%,
+  100% {
+    opacity: 0.55;
   }
 
-  to {
-    background-position: -100% 0;
+  50% {
+    opacity: 1;
   }
 }
 

@@ -6,11 +6,11 @@
 
 export const tokens = {
   radius: {
-    xs: '3px',
-    sm: '3px',
-    md: '3px',
-    lg: '3px',
-    xl: '3px',
+    xs: '6px',
+    sm: '8px',
+    md: '12px',
+    lg: '16px',
+    xl: '20px',
     full: '999px',
   },
 

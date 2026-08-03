@@ -42,9 +42,9 @@ export function ReportTemplateCard({
         display: 'flex',
         flexDirection: 'column',
         gap: 1.5,
-        transition: 'box-shadow 0.2s',
+        transition: 'border-color 0.2s',
         '&:hover': {
-          boxShadow: 3,
+          borderColor: 'var(--primary)',
         },
       }}
     >

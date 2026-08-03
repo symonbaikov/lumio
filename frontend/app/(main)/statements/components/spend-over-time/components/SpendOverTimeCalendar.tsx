@@ -262,7 +262,7 @@ export function SpendOverTimeCalendar({
                   ? '1px solid var(--border-color)'
                   : '1px dashed rgba(255,255,255,0.06)',
                 background: hasItems
-                  ? 'linear-gradient(180deg, rgba(92,196,98,0.12) 0%, rgba(92,196,98,0.04) 100%)'
+                  ? 'rgba(92,196,98,0.1)'
                   : day.inCurrentMonth
                     ? 'rgba(255,255,255,0.02)'
                     : 'rgba(255,255,255,0.01)',

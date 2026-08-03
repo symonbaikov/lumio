@@ -86,7 +86,7 @@ export function EditableDateCell({ row, column, onUpdateCell, style }: EditableD
             border: '1px solid var(--border-color)',
             background: 'var(--card-bg)',
             padding: 8,
-            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+            boxShadow: '0 4px 16px -4px rgba(12,12,20,0.08)',
           }}
         >
           <DatePicker

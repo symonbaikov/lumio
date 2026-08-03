@@ -3,7 +3,7 @@
 import { CheckCircle2, Link2Off, RefreshCcw, XCircle } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, Button, Stack, Typography } from '@mui/material';
+import { Box, Button, Stack, Typography, useTheme } from '@mui/material';
 import type { ReactNode } from 'react';
 import type { IntegrationStatus } from '../types';
 
@@ -43,6 +43,7 @@ export function IntegrationStatusCard({
   disconnectedHint,
   extraActions,
 }: IntegrationStatusCardProps) {
+  const theme = useTheme();
   return (
     <Box
       sx={{
@@ -56,7 +57,7 @@ export function IntegrationStatusCard({
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           {status?.connected ? (
-            <CheckCircle2 style={{ height: 24, width: 24, color: '#10b981' }} />
+            <CheckCircle2 style={{ height: 24, width: 24, color: theme.palette.success.main }} />
           ) : (
             <XCircle style={{ height: 24, width: 24, color: 'var(--destructive)' }} />
           )}

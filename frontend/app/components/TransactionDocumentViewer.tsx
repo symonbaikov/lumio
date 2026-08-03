@@ -14,9 +14,11 @@ import {
   TableHead,
   TableRow,
   Typography,
+  alpha,
 } from '@mui/material';
 
 import { useIntlayer } from '@/app/i18n';
+import { tokens } from '@/lib/theme-tokens';
 
 export interface Transaction {
   id: string;
@@ -172,23 +174,12 @@ export default function TransactionDocumentViewer({
           sx={{
             p: 4,
             mb: 4,
-            bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            bgcolor: tokens.color.forest,
             color: 'white',
             position: 'relative',
             overflow: 'hidden',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background:
-                'radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%)',
-            },
             '@media print': {
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important',
+              background: `${tokens.color.forest} !important`,
               WebkitPrintColorAdjust: 'exact',
               printColorAdjust: 'exact',
             },
@@ -278,7 +269,7 @@ export default function TransactionDocumentViewer({
               borderColor: 'grey.200',
               transition: 'all 0.2s',
               '&:hover': {
-                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                boxShadow: '0 4px 16px -4px rgba(12,12,20,0.08)',
                 transform: 'translateY(-2px)',
               },
               '@media print': {
@@ -308,7 +299,7 @@ export default function TransactionDocumentViewer({
               bgcolor: 'success.50',
               transition: 'all 0.2s',
               '&:hover': {
-                boxShadow: '0 4px 12px rgba(76, 175, 80, 0.15)',
+                boxShadow: theme => `0 4px 16px -4px ${alpha(theme.palette.success.main, 0.15)}`,
                 transform: 'translateY(-2px)',
               },
               '@media print': {
@@ -343,7 +334,7 @@ export default function TransactionDocumentViewer({
               bgcolor: 'error.50',
               transition: 'all 0.2s',
               '&:hover': {
-                boxShadow: '0 4px 12px rgba(244, 67, 54, 0.15)',
+                boxShadow: theme => `0 4px 16px -4px ${alpha(theme.palette.error.main, 0.15)}`,
                 transform: 'translateY(-2px)',
               },
               '@media print': {
@@ -377,7 +368,7 @@ export default function TransactionDocumentViewer({
               borderColor: 'grey.200',
               transition: 'all 0.2s',
               '&:hover': {
-                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                boxShadow: '0 4px 16px -4px rgba(12,12,20,0.08)',
                 transform: 'translateY(-2px)',
               },
               '@media print': {

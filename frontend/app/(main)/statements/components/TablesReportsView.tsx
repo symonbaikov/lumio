@@ -1,16 +1,16 @@
 'use client';
 
 import apiClient from '@/app/lib/api';
-import dynamic from 'next/dynamic';
+import { tokens } from '@/lib/theme-tokens';
 import { useTheme } from 'next-themes';
+import dynamic from 'next/dynamic';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type AvailableTable,
-  DEFAULT_TABLES_REPORTS_FILTERS,
   type TablesReportDrillDownResponse,
+  type TablesReportFlowType,
   type TablesReportResponse,
   type TablesReportSortKey,
-  type TablesReportFlowType,
   formatAmount,
   getComparisonArrow,
   getComparisonColor,
@@ -19,7 +19,6 @@ import {
   resolveDays,
   saveTablesReportsFilters,
 } from './tables-reports.utils';
-import { tokens } from '@/lib/theme-tokens';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
@@ -239,13 +238,33 @@ export default function TablesReportsView() {
   const selectedTablesCount = selectedTableIds.length;
   const chartTheme = resolvedTheme === 'dark' ? 'dark' : 'light';
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
-  const panelStyle: React.CSSProperties = { border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', padding: 16, borderRadius: tokens.radius.lg };
-  const subtlePanelStyle: React.CSSProperties = { border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', padding: '8px 16px', fontSize: 14, color: c.ink800, borderRadius: tokens.radius.md, cursor: 'pointer' };
+  const panelStyle: React.CSSProperties = {
+    border: `1px solid ${c.ink150}`,
+    background: 'var(--card-bg)',
+    padding: 16,
+    borderRadius: tokens.radius.lg,
+  };
+  const subtlePanelStyle: React.CSSProperties = {
+    border: `1px solid ${c.ink150}`,
+    background: 'var(--card-bg)',
+    padding: '8px 16px',
+    fontSize: 14,
+    color: c.ink800,
+    borderRadius: tokens.radius.md,
+    cursor: 'pointer',
+  };
 
   return (
     <div
       className="container-shared"
-      style={{ display: 'flex', height: 'calc(100vh - var(--global-nav-height,0px))', minHeight: 0, flexDirection: 'column', overflow: 'hidden', padding: '24px 16px' }}
+      style={{
+        display: 'flex',
+        height: 'calc(100vh - var(--global-nav-height,0px))',
+        minHeight: 0,
+        flexDirection: 'column',
+        overflow: 'hidden',
+        padding: '24px 16px',
+      }}
     >
       <div style={{ marginBottom: 20, flexShrink: 0 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -255,7 +274,17 @@ export default function TablesReportsView() {
               Aggregated insights from your custom tables
             </p>
           </div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${c.ink150}`, background: c.ink50, padding: 4, borderRadius: tokens.radius.md }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              border: `1px solid ${c.ink150}`,
+              background: c.ink50,
+              padding: 4,
+              borderRadius: tokens.radius.md,
+            }}
+          >
             <button
               type="button"
               onClick={() => setActiveFlowType('all')}
@@ -316,7 +345,15 @@ export default function TablesReportsView() {
             value={searchInput}
             onChange={event => setSearchInput(event.target.value)}
             placeholder="Search counterparties, categories, tables..."
-            style={{ width: '100%', border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', padding: '8px 16px', fontSize: 14, color: c.ink900, borderRadius: tokens.radius.md }}
+            style={{
+              width: '100%',
+              border: `1px solid ${c.ink150}`,
+              background: 'var(--card-bg)',
+              padding: '8px 16px',
+              fontSize: 14,
+              color: c.ink900,
+              borderRadius: tokens.radius.md,
+            }}
           />
           <div style={{ position: 'relative' }} ref={tableDropdownRef}>
             <button
@@ -329,11 +366,35 @@ export default function TablesReportsView() {
             </button>
 
             {tableDropdownOpen ? (
-              <div style={{ position: 'absolute', right: 0, zIndex: 20, marginTop: 8, width: 288, border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', padding: 8, boxShadow: '0 10px 25px rgba(0,0,0,0.1)', borderRadius: tokens.radius.lg }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  zIndex: 20,
+                  marginTop: 8,
+                  width: 288,
+                  border: `1px solid ${c.ink150}`,
+                  background: 'var(--card-bg)',
+                  padding: 8,
+                  boxShadow: tokens.shadow.lg,
+                  borderRadius: tokens.radius.lg,
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => setSelectedTableIds([])}
-                  style={{ marginBottom: 4, width: '100%', padding: '8px 12px', textAlign: 'left', fontSize: 14, color: 'var(--color-info-soft-text)', background: 'none', border: 'none', cursor: 'pointer', borderRadius: tokens.radius.sm }}
+                  style={{
+                    marginBottom: 4,
+                    width: '100%',
+                    padding: '8px 12px',
+                    textAlign: 'left',
+                    fontSize: 14,
+                    color: 'var(--color-info-soft-text)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    borderRadius: tokens.radius.sm,
+                  }}
                 >
                   All tables
                 </button>
@@ -342,7 +403,16 @@ export default function TablesReportsView() {
                   return (
                     <label
                       key={table.id}
-                      style={{ display: 'flex', cursor: 'pointer', alignItems: 'center', gap: 8, padding: '8px 12px', fontSize: 14, color: c.ink800, borderRadius: tokens.radius.sm }}
+                      style={{
+                        display: 'flex',
+                        cursor: 'pointer',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '8px 12px',
+                        fontSize: 14,
+                        color: c.ink800,
+                        borderRadius: tokens.radius.sm,
+                      }}
                     >
                       <input
                         type="checkbox"
@@ -356,7 +426,16 @@ export default function TablesReportsView() {
                           )
                         }
                       />
-                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{table.name}</span>
+                      <span
+                        style={{
+                          flex: 1,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {table.name}
+                      </span>
                       <span style={{ fontSize: 12, color: c.ink400 }}>
                         {getSourceLabel(table.source)}
                       </span>
@@ -379,7 +458,16 @@ export default function TablesReportsView() {
           </select>
         </div>
 
-        <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 12, color: c.ink500 }}>
+        <div
+          style={{
+            marginTop: 12,
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 8,
+            fontSize: 12,
+            color: c.ink500,
+          }}
+        >
           {availableTables.map(table => (
             <button
               key={table.id}
@@ -393,9 +481,13 @@ export default function TablesReportsView() {
               }
               style={{
                 borderRadius: tokens.radius.full,
-                background: selectedTableIds.includes(table.id) ? 'var(--color-info-soft-bg)' : c.ink50,
+                background: selectedTableIds.includes(table.id)
+                  ? 'var(--color-info-soft-bg)'
+                  : c.ink50,
                 padding: '4px 12px',
-                color: selectedTableIds.includes(table.id) ? 'var(--color-info-soft-text)' : c.ink500,
+                color: selectedTableIds.includes(table.id)
+                  ? 'var(--color-info-soft-text)'
+                  : c.ink500,
                 border: 'none',
                 cursor: 'pointer',
                 fontSize: 12,
@@ -422,8 +514,19 @@ export default function TablesReportsView() {
                 <div style={{ marginTop: 4, fontSize: 20, fontWeight: 600, color: c.ink900 }}>
                   {formatAmount(report.totals.total)}
                 </div>
-                <div style={{ marginTop: 4, fontSize: 12, color: getComparisonColor(report.comparison.totalTrend).includes('emerald') ? '#059669' : getComparisonColor(report.comparison.totalTrend).includes('red') ? c.danger : c.ink500 }}>
-                  {getComparisonArrow(report.comparison.totalTrend)} {report.comparison.totalPercentage}%
+                <div
+                  style={{
+                    marginTop: 4,
+                    fontSize: 12,
+                    color: getComparisonColor(report.comparison.totalTrend).includes('emerald')
+                      ? c.success
+                      : getComparisonColor(report.comparison.totalTrend).includes('red')
+                        ? c.danger
+                        : c.ink500,
+                  }}
+                >
+                  {getComparisonArrow(report.comparison.totalTrend)}{' '}
+                  {report.comparison.totalPercentage}%
                 </div>
               </div>
               <div style={panelStyle}>
@@ -448,9 +551,15 @@ export default function TablesReportsView() {
 
             <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
               <div style={{ ...panelStyle, gridColumn: 'span 2' }}>
-                <div style={{ marginBottom: 12, fontSize: 14, fontWeight: 500, color: c.ink800 }}>Trend</div>
+                <div style={{ marginBottom: 12, fontSize: 14, fontWeight: 500, color: c.ink800 }}>
+                  Trend
+                </div>
                 {trendChartOption ? (
-                  <ReactECharts option={trendChartOption} style={{ height: 220 }} theme={chartTheme} />
+                  <ReactECharts
+                    option={trendChartOption}
+                    style={{ height: 220 }}
+                    theme={chartTheme}
+                  />
                 ) : null}
               </div>
               <div style={panelStyle}>
@@ -458,7 +567,11 @@ export default function TablesReportsView() {
                   Source split
                 </div>
                 {sourceSplitOption ? (
-                  <ReactECharts option={sourceSplitOption} style={{ height: 220 }} theme={chartTheme} />
+                  <ReactECharts
+                    option={sourceSplitOption}
+                    style={{ height: 220 }}
+                    theme={chartTheme}
+                  />
                 ) : null}
               </div>
             </div>
@@ -468,7 +581,11 @@ export default function TablesReportsView() {
                 <div style={{ marginBottom: 12, fontSize: 14, fontWeight: 500, color: c.ink800 }}>
                   Top counterparties
                 </div>
-                <ReactECharts option={topRowsBarOption} style={{ height: 320 }} theme={chartTheme} />
+                <ReactECharts
+                  option={topRowsBarOption}
+                  style={{ height: 320 }}
+                  theme={chartTheme}
+                />
               </div>
             ) : null}
 
@@ -494,10 +611,25 @@ export default function TablesReportsView() {
               ))}
             </div>
 
-            <div style={{ marginTop: 16, overflow: 'hidden', border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', borderRadius: tokens.radius.lg }}>
+            <div
+              style={{
+                marginTop: 16,
+                overflow: 'hidden',
+                border: `1px solid ${c.ink150}`,
+                background: 'var(--card-bg)',
+                borderRadius: tokens.radius.lg,
+              }}
+            >
               <table style={{ width: '100%', fontSize: 14, borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: `1px solid ${c.ink150}`, textAlign: 'left', fontSize: 12, color: c.ink500 }}>
+                  <tr
+                    style={{
+                      borderBottom: `1px solid ${c.ink150}`,
+                      textAlign: 'left',
+                      fontSize: 12,
+                      color: c.ink500,
+                    }}
+                  >
                     <th style={{ padding: '12px 16px' }}>Counterparty</th>
                     <th style={{ padding: '12px 16px' }}>Source</th>
                     <th style={{ padding: '12px 16px' }}>Table</th>
@@ -511,7 +643,11 @@ export default function TablesReportsView() {
                   {report.aggregatedRows.map((row, index) => (
                     <tr
                       key={`${row.counterparty}-${row.source}-${index}`}
-                      style={{ cursor: 'pointer', borderBottom: `1px solid ${c.ink50}`, color: c.ink800 }}
+                      style={{
+                        cursor: 'pointer',
+                        borderBottom: `1px solid ${c.ink50}`,
+                        color: c.ink800,
+                      }}
                       tabIndex={0}
                       onClick={() => void handleDrillDown(row.counterparty)}
                       onKeyDown={event => {
@@ -529,11 +665,17 @@ export default function TablesReportsView() {
                           style={{
                             display: 'inline-flex',
                             borderRadius: tokens.radius.sm,
-                            background: row.source === 'google_sheets_import' ? 'var(--color-success-soft-bg)' : c.ink50,
+                            background:
+                              row.source === 'google_sheets_import'
+                                ? 'var(--color-success-soft-bg)'
+                                : c.ink50,
                             padding: '2px 8px',
                             fontSize: 12,
                             fontWeight: 500,
-                            color: row.source === 'google_sheets_import' ? 'var(--color-success-soft-text)' : c.ink700,
+                            color:
+                              row.source === 'google_sheets_import'
+                                ? 'var(--color-success-soft-text)'
+                                : c.ink700,
                           }}
                         >
                           {getSourceLabel(row.source)}
@@ -541,8 +683,17 @@ export default function TablesReportsView() {
                       </td>
                       <td style={{ padding: '12px 16px', color: c.ink500 }}>{row.tableName}</td>
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>{row.count}</td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>{formatAmount(row.average, row.currency)}</td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 500, color: c.ink900 }}>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        {formatAmount(row.average, row.currency)}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          textAlign: 'right',
+                          fontWeight: 500,
+                          color: c.ink900,
+                        }}
+                      >
                         {formatAmount(row.total, row.currency)}
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'right', color: c.ink500 }}>
@@ -556,16 +707,41 @@ export default function TablesReportsView() {
 
             {selectedCounterparty ? (
               <div
-                style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', padding: '0 16px' }}
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  zIndex: 50,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(0,0,0,0.4)',
+                  padding: '0 16px',
+                }}
                 aria-hidden="true"
               >
                 <div
-                  style={{ maxHeight: '80vh', width: '100%', maxWidth: 768, overflow: 'hidden', background: 'var(--card-bg)', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', borderRadius: tokens.radius.xl }}
+                  style={{
+                    maxHeight: '80vh',
+                    width: '100%',
+                    maxWidth: 768,
+                    overflow: 'hidden',
+                    background: 'var(--card-bg)',
+                    boxShadow: tokens.shadow.lg,
+                    borderRadius: tokens.radius.xl,
+                  }}
                   aria-modal="true"
                   onClick={event => event.stopPropagation()}
                   onKeyDown={event => event.stopPropagation()}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${c.ink150}`, padding: '16px 24px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      borderBottom: `1px solid ${c.ink150}`,
+                      padding: '16px 24px',
+                    }}
+                  >
                     <h2 style={{ fontSize: 18, fontWeight: 600, color: c.ink900 }}>
                       {`${drillDown?.counterparty || selectedCounterparty} — Drill-down`}
                     </h2>
@@ -575,7 +751,13 @@ export default function TablesReportsView() {
                         setSelectedCounterparty(null);
                         setDrillDown(null);
                       }}
-                      style={{ color: c.ink500, background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}
+                      style={{
+                        color: c.ink500,
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                      }}
                     >
                       Close
                     </button>
@@ -585,7 +767,14 @@ export default function TablesReportsView() {
                     {drillDown?.items?.length ? (
                       <table style={{ width: '100%', fontSize: 14, borderCollapse: 'collapse' }}>
                         <thead>
-                          <tr style={{ borderBottom: `1px solid ${c.ink150}`, textAlign: 'left', fontSize: 12, color: c.ink500 }}>
+                          <tr
+                            style={{
+                              borderBottom: `1px solid ${c.ink150}`,
+                              textAlign: 'left',
+                              fontSize: 12,
+                              color: c.ink500,
+                            }}
+                          >
                             <th style={{ padding: '12px 16px' }}>Date</th>
                             <th style={{ padding: '12px 16px' }}>Source</th>
                             <th style={{ padding: '12px 16px' }}>Table</th>
@@ -605,11 +794,17 @@ export default function TablesReportsView() {
                                   style={{
                                     display: 'inline-flex',
                                     borderRadius: tokens.radius.sm,
-                                    background: item.source === 'google_sheets_import' ? 'var(--color-success-soft-bg)' : c.ink50,
+                                    background:
+                                      item.source === 'google_sheets_import'
+                                        ? 'var(--color-success-soft-bg)'
+                                        : c.ink50,
                                     padding: '2px 8px',
                                     fontSize: 12,
                                     fontWeight: 500,
-                                    color: item.source === 'google_sheets_import' ? 'var(--color-success-soft-text)' : c.ink700,
+                                    color:
+                                      item.source === 'google_sheets_import'
+                                        ? 'var(--color-success-soft-text)'
+                                        : c.ink700,
                                   }}
                                 >
                                   {getSourceLabel(item.source)}

@@ -180,8 +180,6 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
                   borderRadius: tokens.radius.sm,
                   bgcolor: 'var(--card)',
                   p: '14px',
-                  backdropFilter: 'blur(24px)',
-                  boxShadow: '0 8px 32px 0 rgba(0,0,0,0.04)',
                   transition: 'transform 200ms',
                   '&:hover': { transform: 'translateY(-2px)' },
                 }}
@@ -245,8 +243,6 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
             borderRadius: tokens.radius.sm,
             bgcolor: 'var(--card)',
             p: '16px',
-            backdropFilter: 'blur(24px)',
-            boxShadow: '0 8px 32px 0 rgba(0,0,0,0.04)',
           }}
         >
           <Typography
@@ -327,8 +323,6 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
             bgcolor: 'rgba(0,0,0,0.4)',
             border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: tokens.radius.sm,
-            backdropFilter: 'blur(24px)',
-            boxShadow: '0 8px 32px 0 rgba(0,0,0,0.2)',
             p: '16px',
             height: 340,
             display: 'flex',
@@ -414,8 +408,6 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
               border: '1px solid var(--border)',
               borderRadius: tokens.radius.sm,
               bgcolor: 'var(--card)',
-              backdropFilter: 'blur(24px)',
-              boxShadow: '0 8px 32px 0 rgba(0,0,0,0.04)',
               '& > a + a': { borderTop: '1px solid var(--border)' },
             }}
           >

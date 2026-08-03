@@ -2,6 +2,7 @@
 
 import { Info } from '@/app/components/icons';
 import type { DashboardCashFlowPoint, DashboardRange } from '@/app/hooks/useDashboard';
+import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import dynamic from 'next/dynamic';
@@ -89,7 +90,7 @@ export function FinlabBalanceStatCard({
           name: 'Expense',
           type: 'bar',
           data: chartData.map(d => d.expense),
-          itemStyle: { color: '#10b981' },
+          itemStyle: { color: tokens.color.success },
           barWidth: '25%',
         },
       ],

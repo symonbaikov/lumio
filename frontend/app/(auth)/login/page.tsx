@@ -213,16 +213,15 @@ function LoginPageContent(): React.JSX.Element {
           size="large"
           sx={{
             py: 1.5,
-            borderRadius: tokens.radius.md,
+            borderRadius: tokens.radius.full,
             fontSize: '1rem',
-            fontWeight: 'bold',
+            fontWeight: 700,
             textTransform: 'none',
-            boxShadow: '0 4px 14px 0 rgba(5,150,105,0.45)',
-            background: 'linear-gradient(45deg, #059669 30%, var(--color-info-soft-text) 90%)',
-            transition: 'transform 0.2s',
+            boxShadow: 'none',
+            bgcolor: 'primary.main',
             '&:hover': {
-              transform: 'scale(1.02)',
-              boxShadow: '0 6px 20px rgba(5,150,105,0.3)',
+              bgcolor: 'primary.dark',
+              boxShadow: 'none',
             },
           }}
           disabled={loading}

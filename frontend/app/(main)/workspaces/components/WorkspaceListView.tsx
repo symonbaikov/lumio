@@ -3,6 +3,7 @@
 import { ChevronRight, MoreVertical, Plus } from '@/app/components/icons';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
+import { alpha } from '@mui/material/styles';
 import React from 'react';
 
 type WorkspaceItem = { id: string; name: string; memberRole?: string };
@@ -75,21 +76,23 @@ function WorkspaceListRow({ workspace, isDefault, onClick }: ListRowProps): Reac
           {workspace.memberRole || 'Workspace'}
         </p>
         {isDefault && (
-          <span
-            style={{
+          <Box
+            component="span"
+            sx={theme => ({
               display: 'inline-flex',
-              marginTop: 4,
-              border: '1px solid rgba(16,185,129,0.7)',
-              background: 'rgba(16,185,129,0.1)',
-              padding: '2px 8px',
+              mt: 0.5,
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.4)}`,
+              bgcolor: alpha(theme.palette.primary.main, 0.08),
+              px: 1,
+              py: '2px',
               fontSize: 12,
               fontWeight: 600,
-              color: '#047857',
-              borderRadius: tokens.radius.sm,
-            }}
+              color: 'primary.dark',
+              borderRadius: `${tokens.radius.sm}px`,
+            })}
           >
             Default
-          </span>
+          </Box>
         )}
       </Box>
       <Box

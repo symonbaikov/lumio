@@ -1,6 +1,7 @@
 'use client';
 
 import type { DashboardCashFlowPoint } from '@/app/hooks/useDashboard';
+import { tokens } from '@/lib/theme-tokens';
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 
@@ -48,8 +49,8 @@ export function CashFlowChart({ data, emptyLabel }: CashFlowChartProps) {
           smooth: true,
           data: data.map(point => point.income),
           areaStyle: { color: 'rgba(16, 185, 129, 0.12)' },
-          lineStyle: { color: '#10b981', width: 2 },
-          itemStyle: { color: '#10b981' },
+          lineStyle: { color: tokens.color.success, width: 2 },
+          itemStyle: { color: tokens.color.success },
         },
         {
           name: 'Expense',

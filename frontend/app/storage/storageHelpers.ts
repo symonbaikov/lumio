@@ -125,7 +125,7 @@ export const colorPickerPopoverSlotProps: PopoverProps['slotProps'] = {
       mt: 1,
       border: '1px solid',
       borderColor: 'divider',
-      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+      boxShadow: '0 4px 16px -4px rgba(12,12,20,0.08)',
       overflow: 'visible',
       '&::before': {
         content: '""',

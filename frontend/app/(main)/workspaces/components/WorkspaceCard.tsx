@@ -191,7 +191,6 @@ export function WorkspaceCard({ workspace, onClick, onFavoriteToggle }: Workspac
           transition: 'opacity 0.2s',
           opacity: isHovered || isFavorite ? 1 : 0,
           bgcolor: 'transparent',
-          backdropFilter: undefined,
           color: '#ffffff',
           '&:hover': {
             bgcolor: 'transparent',

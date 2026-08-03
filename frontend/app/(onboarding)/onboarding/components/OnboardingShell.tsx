@@ -108,7 +108,6 @@ export function OnboardingShell({
             borderColor: 'divider',
             bgcolor: 'background.paper',
             boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)',
-            backdropFilter: 'blur(8px)',
             p: isWorkspaceCurrencyPickerView ? { xs: 2, sm: 2.5 } : { xs: 2.5, sm: 3 },
           }}
         >

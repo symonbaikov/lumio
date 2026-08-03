@@ -309,7 +309,7 @@ export default function IntegrationsPage(): React.JSX.Element {
         boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)',
         cursor: item.primaryAction?.href && !item.primaryAction.external ? 'pointer' : 'default',
         '&:hover': {
-          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+          boxShadow: '0 4px 16px -4px rgba(12,12,20,0.08)',
         },
         '&:focus-visible': {
           outline: '2px solid var(--color-primary)',

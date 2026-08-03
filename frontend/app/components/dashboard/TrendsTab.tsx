@@ -236,7 +236,6 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
             py: 1.5,
             fontSize: 12,
             color: 'text.secondary',
-            backdropFilter: 'blur(12px)',
             fontFamily: 'var(--font-dashboard-sans)',
           }}
         >
@@ -292,7 +291,7 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
       {!loading && error && (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 6 }}>
           <Typography
-            sx={{ fontSize: 13, color: '#D13D56', fontFamily: 'var(--font-dashboard-sans)' }}
+            sx={{ fontSize: 13, color: 'error.main', fontFamily: 'var(--font-dashboard-sans)' }}
           >
             {error}
           </Typography>
@@ -344,8 +343,6 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
                   borderRadius: tokens.radius.sm,
                   bgcolor: 'var(--card)',
                   p: 3,
-                  backdropFilter: 'blur(24px)',
-                  boxShadow: '0 8px 32px 0 rgba(0,0,0,0.04)',
                 }}
               >
                 <Typography
@@ -431,8 +428,6 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
                   borderRadius: tokens.radius.sm,
                   bgcolor: 'var(--card)',
                   p: 3,
-                  backdropFilter: 'blur(24px)',
-                  boxShadow: '0 8px 32px 0 rgba(0,0,0,0.04)',
                 }}
               >
                 <Typography
@@ -523,8 +518,6 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
                   borderRadius: tokens.radius.sm,
                   bgcolor: 'var(--card)',
                   p: 3,
-                  backdropFilter: 'blur(24px)',
-                  boxShadow: '0 8px 32px 0 rgba(0,0,0,0.04)',
                 }}
               >
                 <Typography
@@ -601,8 +594,6 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
                 border: '1px solid var(--border)',
                 bgcolor: 'var(--card)',
                 p: 3,
-                backdropFilter: 'blur(24px)',
-                boxShadow: '0 8px 32px 0 rgba(0,0,0,0.04)',
               }}
             >
               <Typography
@@ -658,8 +649,6 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
                 border: '1px solid var(--border)',
                 bgcolor: 'var(--card)',
                 p: 3,
-                backdropFilter: 'blur(24px)',
-                boxShadow: '0 8px 32px 0 rgba(0,0,0,0.04)',
               }}
             >
               <Typography

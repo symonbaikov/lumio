@@ -12,6 +12,7 @@ import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import { Box, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -130,29 +131,28 @@ export function AiAssistantDrawer({ isOpen, onClose }: AiAssistantDrawerProps) {
                   p: 2,
                   cursor: isLoading ? 'wait' : 'pointer',
                   opacity: isLoading ? 0.6 : 1,
-                  transition: 'box-shadow 0.2s, border-color 0.2s',
+                  transition: 'border-color 0.2s',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 1,
                   '&:hover': isLoading
                     ? {}
                     : {
-                        borderColor: 'var(--primary, #059669)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                        borderColor: 'primary.main',
                       },
                 }}
               >
                 <Box
-                  sx={{
+                  sx={theme => ({
                     width: 36,
                     height: 36,
                     borderRadius: tokens.radius.md,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: 'rgba(5,150,105,0.08)',
-                    color: 'var(--primary, #059669)',
-                  }}
+                    backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                    color: 'primary.main',
+                  })}
                 >
                   {card.icon}
                 </Box>
@@ -166,7 +166,7 @@ export function AiAssistantDrawer({ isOpen, onClose }: AiAssistantDrawerProps) {
                   sx={{
                     fontSize: 11,
                     fontWeight: 600,
-                    color: 'var(--primary, #059669)',
+                    color: 'primary.main',
                     mt: 'auto',
                     pt: 0.5,
                   }}

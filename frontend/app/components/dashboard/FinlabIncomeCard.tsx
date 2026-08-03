@@ -59,7 +59,7 @@ export function FinlabIncomeCard({
         {
           type: 'bar',
           data: chartData.map(d => d.income),
-          itemStyle: { color: '#f97316', borderRadius: [0, 0, 0, 0] },
+          itemStyle: { color: '#f97316', borderRadius: [4, 4, 0, 0] },
           barWidth: '35%',
         },
       ],

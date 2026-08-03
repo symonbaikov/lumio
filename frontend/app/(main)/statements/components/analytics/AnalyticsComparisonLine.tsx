@@ -15,8 +15,8 @@ type Props = {
 };
 
 const TREND_COLORS: Record<string, string> = {
-  up: '#059669',
-  down: '#dc2626',
+  up: 'var(--ff-dash-success)',
+  down: 'var(--ff-dash-critical)',
   flat: 'var(--muted-foreground)',
 };
 
