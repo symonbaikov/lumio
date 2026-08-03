@@ -2,6 +2,7 @@
 
 import ConfirmModal from '@/app/components/ConfirmModal';
 import { RotateCcw, Search, Trash2 } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { Spinner } from '@/app/components/ui/spinner';
@@ -510,9 +511,7 @@ export default function TrashListView({ onCountChange }: Props) {
           </div>
         ) : filteredFiles.length === 0 ? (
           <div className="lumio-trash-list__empty-state">
-            <div className="lumio-trash-list__empty-icon">
-              <Trash2 size={32} />
-            </div>
+            <EmptyStateIllustration name="trash" size="lg" />
             <h3 style={{ fontSize: 18, fontWeight: 500, color: c.ink900 }}>{labels.emptyTitle}</h3>
             <p style={{ marginTop: 4, color: c.ink500 }}>{labels.emptyDescription}</p>
           </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '../ui/checkbox';
 import { SortIcon, TransactionRow } from './TransactionRow';
 import type { TransactionRowFormatters, TransactionRowHandlers } from './TransactionRow';
@@ -127,6 +128,7 @@ export function TransactionDesktopTable({
             {transactions.length === 0 ? (
               <tr>
                 <td colSpan={9} className="lumio-tx-table__no-results">
+                  <EmptyStateIllustration name="transactions" size="md" />
                   {noResultsLabel}
                 </td>
               </tr>

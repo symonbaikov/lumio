@@ -1,6 +1,7 @@
 'use client';
 
 import { Edit3, MoreHorizontal } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 import {
@@ -88,6 +89,7 @@ function PayablesList({
   if (items.length === 0) {
     return (
       <div className="lumio-payable-list__empty">
+        <EmptyStateIllustration name="payables" size="md" />
         <h3 style={{ fontSize: 18, fontWeight: 600, color: c.ink900 }}>{emptyTitle}</h3>
         <p style={{ marginTop: 8, fontSize: 14, color: c.ink500 }}>{emptyDescription}</p>
       </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronDown, ChevronRight, Layers } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { AppPagination } from '@/app/components/ui/pagination';
 import type { AuditEvent } from '@/lib/api/audit';
 import { useMemo, useState } from 'react';
@@ -159,7 +160,12 @@ export function AuditTimeline({
   const totalPages = Math.max(Math.ceil(total / limit), 1);
 
   if (rows.length === 0) {
-    return <div className="audit-empty">No events found.</div>;
+    return (
+      <div className="audit-empty">
+        <EmptyStateIllustration name="activity" size="md" />
+        No events found.
+      </div>
+    );
   }
 
   return (

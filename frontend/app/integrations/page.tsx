@@ -2,6 +2,7 @@
 'use client';
 
 import { CheckCircle2, ExternalLink, Search, Star } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
@@ -612,7 +613,8 @@ export default function IntegrationsPage(): React.JSX.Element {
                   p: 2,
                 }}
               >
-                <Typography style={{ fontSize: 14, color: c.ink700 }}>
+                <EmptyStateIllustration name="integrations" size="sm" />
+                <Typography style={{ fontSize: 14, color: c.ink700, textAlign: 'center' }}>
                   {t.empty.connected}
                 </Typography>
               </Box>

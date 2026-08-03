@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types, complexity, max-lines, max-lines-per-function */
 'use client';
 
+import { BudgetSummaryWidget } from '@/app/(main)/dashboard/components/BudgetSummaryWidget';
 import {
   AlertTriangle,
   ArrowRight,
@@ -12,13 +13,13 @@ import {
   Receipt,
   Tag,
 } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import type { DashboardData, DashboardRange } from '@/app/hooks/useDashboard';
 import { tokens } from '@/lib/theme-tokens';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import type React from 'react';
 import { Spinner } from '../ui/spinner';
-import { BudgetSummaryWidget } from '@/app/(main)/dashboard/components/BudgetSummaryWidget';
 import { CashFlowMini } from './CashFlowMini';
 import { RecentActivity } from './RecentActivity';
 import { TopCategoriesCard } from './TopCategoriesCard';
@@ -277,9 +278,7 @@ export function OverviewTab({
   if (s.hasNoData) {
     return (
       <div className="lumio-dashboard__empty">
-        <div className="lumio-dashboard__empty-icon">
-          <FileUp size={40} color={c.ink400} />
-        </div>
+        <EmptyStateIllustration name="dashboard" size="lg" />
         <h2 className="lumio-dashboard__empty-title">Upload your first statement</h2>
         <p className="lumio-dashboard__empty-desc">
           Start tracking your finances by uploading a bank statement. We&apos;ll parse it

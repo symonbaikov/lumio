@@ -6,6 +6,7 @@ import type {
   TopCategoryAggregateRow,
   TopCategorySourceChannel,
 } from '@/app/(main)/statements/components/top-categories.utils';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { formatMoney } from '@/app/lib/analytics-common';
 import { tokens } from '@/lib/theme-tokens';
 
@@ -30,6 +31,7 @@ type Props = {
   sourceLabels: SourceLabels;
   sortLabels: SortLabels;
   columnLabels: ColumnLabels;
+  emptyLabel: string;
 };
 
 const SORT_KEYS: CategorySortKey[] = ['amount', 'average', 'operations'];
@@ -128,6 +130,7 @@ export function TopCategoriesLeaderboard({
   sourceLabels,
   sortLabels,
   columnLabels,
+  emptyLabel,
 }: Props): React.JSX.Element {
   const sortKeyLabels: Record<CategorySortKey, string> = {
     amount: sortLabels.sortByAmount,
@@ -203,6 +206,14 @@ export function TopCategoriesLeaderboard({
             </tr>
           </thead>
           <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ padding: '32px 0', textAlign: 'center' }}>
+                  <EmptyStateIllustration name="top-categories" size="md" />
+                  <span style={{ color: 'var(--muted-foreground)' }}>{emptyLabel}</span>
+                </td>
+              </tr>
+            ) : null}
             {rows.slice(0, 60).map(row => (
               <LeaderboardRow
                 key={row.id}

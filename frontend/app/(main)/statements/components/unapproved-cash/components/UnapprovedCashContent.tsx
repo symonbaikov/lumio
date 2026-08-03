@@ -1,4 +1,4 @@
-import { Check } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
@@ -142,16 +142,7 @@ export function UnapprovedCashContent({
           textAlign: 'center',
         }}
       >
-        <div
-          style={{
-            borderRadius: tokens.radius.full,
-            background: 'var(--color-success-soft-bg)',
-            padding: 8,
-            color: 'var(--color-success-soft-text)',
-          }}
-        >
-          <Check style={{ width: 20, height: 20 }} />
-        </div>
+        <EmptyStateIllustration name="unapproved-cash" size="md" />
         <h2 style={{ marginTop: 12, fontSize: 14, fontWeight: 600, color: 'var(--foreground)' }}>
           {labels.empty.title}
         </h2>

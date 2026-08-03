@@ -38,6 +38,7 @@ function TopSpendersLeaderboardSection({ vm }: Props): React.JSX.Element {
       sourceLabels={sourceLabels}
       sortLabels={sortLabels}
       columnLabels={columnLabels}
+      emptyLabel={labels.comparisonNoData}
     />
   );
 }
