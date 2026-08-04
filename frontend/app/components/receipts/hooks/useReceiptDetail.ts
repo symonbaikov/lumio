@@ -1,6 +1,8 @@
 'use client';
 
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import apiClient, { type ReceiptRecord } from '@/app/lib/api';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import { useEffect, useMemo, useState } from 'react';
 import { buildInitialForm, buildParsedDataPayload } from '../helpers/receipt-builders';
 import type { EditableReceiptParsedData, ReceiptCategoryOption } from '../receipt-types';
@@ -32,13 +34,17 @@ export function useReceiptDetail({
   onClose,
   onUpdated,
 }: UseReceiptDetailParams): UseReceiptDetailReturn {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
   const [categories, setCategories] = useState<ReceiptCategoryOption[]>([]);
-  const [formValue, setFormValue] = useState<EditableReceiptParsedData>(buildInitialForm(receipt));
+  const [formValue, setFormValue] = useState<EditableReceiptParsedData>(() =>
+    buildInitialForm(receipt, workspaceCurrency),
+  );
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setFormValue(buildInitialForm(receipt));
-  }, [receipt]);
+    setFormValue(buildInitialForm(receipt, workspaceCurrency));
+  }, [receipt, workspaceCurrency]);
 
   const previewUrl = useReceiptPreview({ isOpen, receipt });
 

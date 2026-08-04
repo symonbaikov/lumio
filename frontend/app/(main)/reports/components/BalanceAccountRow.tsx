@@ -14,22 +14,22 @@ export type BalanceAccountNode = {
 
 export type EditableChangeArgs = { id: string; value: string };
 
-type EditableAmountProps = { accountId: string; accountName: string; value: string; isSaving: boolean; onChange: (args: EditableChangeArgs) => void; onBlur: (id: string) => void };
+type EditableAmountProps = { accountId: string; accountName: string; value: string; currencyCode: string; isSaving: boolean; onChange: (args: EditableChangeArgs) => void; onBlur: (id: string) => void };
 const inputStyle: React.CSSProperties = { width: 112, border: '1px solid var(--border)', background: 'var(--muted)', padding: '4px 8px', textAlign: 'right', fontSize: 14, color: 'var(--foreground)' };
-export function EditableAmount({ accountId, accountName, value, isSaving, onChange, onBlur }: EditableAmountProps): React.ReactElement {
+export function EditableAmount({ accountId, accountName, value, currencyCode, isSaving, onChange, onBlur }: EditableAmountProps): React.ReactElement {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => onChange({ id: accountId, value: e.target.value });
   const handleBlur = (): void => onBlur(accountId);
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => { if (e.key === 'Enter') e.currentTarget.blur(); };
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
       <input type="number" step="0.01" style={inputStyle} value={value} onChange={handleChange} onBlur={handleBlur} onKeyDown={handleKeyDown} disabled={isSaving} aria-label={accountName} />
-      <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted-foreground)' }}>₸</span>
+      <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted-foreground)' }}>{currencyCode}</span>
       {isSaving && <CircularProgress size={16} sx={{ color: 'var(--primary)' }} />}
     </Box>
   );
 }
 
-export type AccountRowProps = { account: BalanceAccountNode; level: number; expanded: Record<string, boolean>; editableValues: Record<string, string>; savingAccountId: string | null; formatCurrency: (value: number) => string; onToggleExpanded: (id: string) => void; onEditableChange: (args: EditableChangeArgs) => void; onBlur: (id: string) => void };
+export type AccountRowProps = { account: BalanceAccountNode; level: number; expanded: Record<string, boolean>; editableValues: Record<string, string>; savingAccountId: string | null; currencyCode: string; formatCurrency: (value: number) => string; onToggleExpanded: (id: string) => void; onEditableChange: (args: EditableChangeArgs) => void; onBlur: (id: string) => void };
 const toggleBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', flexShrink: 0 };
 
 type RowLabelProps = { account: BalanceAccountNode; level: number; isSection: boolean; isExpanded: boolean; canToggle: boolean; onToggleExpanded: (id: string) => void };
@@ -46,15 +46,15 @@ function RowLabel({ account, level, isSection, isExpanded, canToggle, onToggleEx
   );
 }
 
-type RowAmountProps = { account: BalanceAccountNode; isSection: boolean; editableValues: Record<string, string>; savingAccountId: string | null; formatCurrency: (v: number) => string; onEditableChange: (args: EditableChangeArgs) => void; onBlur: (id: string) => void };
-function RowAmount({ account, isSection, editableValues, savingAccountId, formatCurrency, onEditableChange, onBlur }: RowAmountProps): React.ReactElement {
+type RowAmountProps = { account: BalanceAccountNode; isSection: boolean; editableValues: Record<string, string>; savingAccountId: string | null; currencyCode: string; formatCurrency: (v: number) => string; onEditableChange: (args: EditableChangeArgs) => void; onBlur: (id: string) => void };
+function RowAmount({ account, isSection, editableValues, savingAccountId, currencyCode, formatCurrency, onEditableChange, onBlur }: RowAmountProps): React.ReactElement {
   if (account.isEditable) {
-    return <EditableAmount accountId={account.id} accountName={account.name} value={editableValues[account.id] ?? '0.00'} isSaving={savingAccountId === account.id} onChange={onEditableChange} onBlur={onBlur} />;
+    return <EditableAmount accountId={account.id} accountName={account.name} value={editableValues[account.id] ?? '0.00'} currencyCode={currencyCode} isSaving={savingAccountId === account.id} onChange={onEditableChange} onBlur={onBlur} />;
   }
   return <span style={{ fontSize: 14, fontWeight: isSection ? 600 : 500, color: 'var(--foreground)' }}>{formatCurrency(account.amount)}</span>;
 }
 
-export function AccountRow({ account, level, expanded, editableValues, savingAccountId, formatCurrency, onToggleExpanded, onEditableChange, onBlur }: AccountRowProps): React.ReactElement {
+export function AccountRow({ account, level, expanded, editableValues, savingAccountId, currencyCode, formatCurrency, onToggleExpanded, onEditableChange, onBlur }: AccountRowProps): React.ReactElement {
   const hasChildren = account.children.length > 0;
   const isExpanded = expanded[account.id] ?? true;
   const canToggle = account.isExpandable || hasChildren;
@@ -64,11 +64,11 @@ export function AccountRow({ account, level, expanded, editableValues, savingAcc
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5, py: 1.5 }}>
         <RowLabel account={account} level={level} isSection={isSection} isExpanded={isExpanded} canToggle={canToggle} onToggleExpanded={onToggleExpanded} />
         <Box sx={{ flexShrink: 0 }}>
-          <RowAmount account={account} isSection={isSection} editableValues={editableValues} savingAccountId={savingAccountId} formatCurrency={formatCurrency} onEditableChange={onEditableChange} onBlur={onBlur} />
+          <RowAmount account={account} isSection={isSection} editableValues={editableValues} savingAccountId={savingAccountId} currencyCode={currencyCode} formatCurrency={formatCurrency} onEditableChange={onEditableChange} onBlur={onBlur} />
         </Box>
       </Box>
       {hasChildren && isExpanded && (
-        <Box>{sortedByPosition(account.children).map(child => <AccountRow key={child.id} account={child} level={level + 1} expanded={expanded} editableValues={editableValues} savingAccountId={savingAccountId} formatCurrency={formatCurrency} onToggleExpanded={onToggleExpanded} onEditableChange={onEditableChange} onBlur={onBlur} />)}</Box>
+        <Box>{sortedByPosition(account.children).map(child => <AccountRow key={child.id} account={child} level={level + 1} expanded={expanded} editableValues={editableValues} savingAccountId={savingAccountId} currencyCode={currencyCode} formatCurrency={formatCurrency} onToggleExpanded={onToggleExpanded} onEditableChange={onEditableChange} onBlur={onBlur} />)}</Box>
       )}
     </Box>
   );

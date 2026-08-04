@@ -7,6 +7,7 @@ import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
 import { useIntlayer } from '@/app/i18n';
 import { api } from '@/app/lib/api';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import {
   type OpenExpenseDrawerEventDetail,
@@ -550,7 +551,8 @@ export function useStatementsView({ stage, router, searchParams }: UseStatements
   const exchangeRateColumnVisible = appliedColumnsWithLabels.some(
     column => column.id === 'exchangeRate' && column.visible,
   );
-  const exchangeRateTargetCurrency = normalizeCurrencyCode(currentWorkspace?.currency) ?? 'KZT';
+  const exchangeRateTargetCurrency =
+    normalizeCurrencyCode(currentWorkspace?.currency) ?? DEFAULT_CURRENCY;
   const exchangeRateSourceCurrencies = useMemo(() => {
     if (!exchangeRateColumnVisible) {
       return [];

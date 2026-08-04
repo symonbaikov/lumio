@@ -9,6 +9,7 @@ import {
   NotificationSeverity,
   NotificationType,
 } from '../../entities/notification.entity';
+import { WorkspaceCurrencyService } from '../../common/services/workspace-currency.service';
 import { assertFound } from '../../common/utils/assert-found.util';
 import { NotificationsService } from '../notifications/notifications.service';
 import type { CreateBudgetDto } from './dto/create-budget.dto';
@@ -29,6 +30,7 @@ export class BudgetsService {
     @InjectRepository(Transaction)
     private readonly transactionRepository: Repository<Transaction>,
     private readonly notificationsService: NotificationsService,
+    private readonly workspaceCurrencyService: WorkspaceCurrencyService,
   ) {}
 
   async create(workspaceId: string, userId: string, dto: CreateBudgetDto): Promise<Budget> {
@@ -54,7 +56,7 @@ export class BudgetsService {
       name: dto.name,
       categoryId: dto.categoryId,
       limitAmount: dto.limitAmount,
-      currency: dto.currency || 'KZT',
+      currency: dto.currency || (await this.workspaceCurrencyService.resolve(workspaceId)),
       periodType: dto.periodType,
       currentPeriodStart: start,
     });

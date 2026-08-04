@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import { Between, In, MoreThanOrEqual, type Repository } from 'typeorm';
 import * as xlsx from 'xlsx';
+import { normalizeCurrency } from '../../common/constants/currency.constants';
 import { formatMoney } from '../../common/utils/format-money.util';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { Branch } from '../../entities/branch.entity';
@@ -1764,7 +1765,7 @@ export class ReportsService {
       debit: transaction.debit != null ? Number(transaction.debit) : null,
       credit: transaction.credit != null ? Number(transaction.credit) : null,
       amount: transaction.amount != null ? Number(transaction.amount) : null,
-      currency: transaction.currency || 'KZT',
+      currency: normalizeCurrency(transaction.currency),
       category: transaction.category?.name || 'Без категории',
       branch: transaction.branch?.name || '',
       wallet: transaction.wallet?.name || '',

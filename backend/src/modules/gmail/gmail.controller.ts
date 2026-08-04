@@ -22,6 +22,7 @@ import { Cache } from 'cache-manager';
 import { Response } from 'express';
 import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { WorkspaceCurrencyService } from '../../common/services/workspace-currency.service';
 import { runExecutable } from '../../common/utils/thumbnail-command.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import {
@@ -118,6 +119,7 @@ export class GmailController {
     private readonly categoryService: GmailReceiptCategoryService,
     private readonly exportService: GmailReceiptExportService,
     private readonly merchantReparseService: GmailMerchantReparseService,
+    private readonly workspaceCurrencyService: WorkspaceCurrencyService,
   ) {}
 
   private resolveAttachmentPath(storedPath: string): string {
@@ -445,7 +447,7 @@ export class GmailController {
       counterpartyName: dto.description || receipt.parsedData?.vendor || 'Unknown',
       paymentPurpose: dto.description || receipt.parsedData?.vendor || '',
       amount: dto.amount,
-      currency: dto.currency || 'KZT',
+      currency: dto.currency || (await this.workspaceCurrencyService.resolve(user.workspaceId)),
       categoryId: dto.categoryId || receipt.parsedData?.categoryId || null,
       transactionType: TransactionType.EXPENSE,
     });
@@ -599,6 +601,8 @@ export class GmailController {
       errors: [],
     };
 
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(user.workspaceId);
+
     for (const receiptId of dto.receiptIds) {
       try {
         const receipt = await this.receiptRepository.findOne({
@@ -625,7 +629,7 @@ export class GmailController {
           counterpartyName: receipt.parsedData.vendor || receipt.subject || 'Unknown',
           paymentPurpose: receipt.parsedData.vendor || receipt.subject || '',
           amount: receipt.parsedData.amount,
-          currency: receipt.parsedData.currency || 'KZT',
+          currency: receipt.parsedData.currency || workspaceCurrency,
           categoryId: dto.categoryId || receipt.parsedData.categoryId || null,
           transactionType: TransactionType.EXPENSE,
         });

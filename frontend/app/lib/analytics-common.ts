@@ -13,19 +13,11 @@ import type {
   StatementMeta,
   Transaction,
 } from '@/app/(main)/statements/types/statement-types';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
 
-/** Normalizes a raw currency string to a 3-letter ISO code, falling back to KZT. */
-export const resolveCurrencyCode = (
-  currency: string | null | undefined,
-  fallback = 'KZT',
-): string => {
-  const normalized = String(currency || '')
-    .trim()
-    .toUpperCase();
-  if (/^[A-Z]{3}$/.test(normalized)) return normalized;
-  return fallback;
-};
+/** Normalizes a raw currency string to a 3-letter ISO code. Re-exported from format-money. */
+export { resolveCurrencyCode };
 
 /** Maps an Intlayer locale code to a BCP 47 locale string for Intl APIs. */
 export const resolveLocale = (locale?: string): string => {

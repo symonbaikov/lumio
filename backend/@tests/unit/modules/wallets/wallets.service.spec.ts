@@ -1,4 +1,5 @@
 import { createRepoMock } from '../../../helpers/create-repo-mock';
+import { WorkspaceCurrencyService } from '@/common/services/workspace-currency.service';
 import { Wallet } from '@/entities/wallet.entity';
 import { WalletsService } from '@/modules/wallets/wallets.service';
 import { NotFoundException } from '@nestjs/common';
@@ -10,6 +11,7 @@ describe('WalletsService', () => {
   let testingModule: TestingModule;
   let service: WalletsService;
   let walletRepository: Repository<Wallet>;
+  let workspaceCurrencyService: { resolve: jest.Mock };
 
   const mockWallet: Partial<Wallet> = {
     id: 'wallet-1',
@@ -27,6 +29,10 @@ describe('WalletsService', () => {
       providers: [
         WalletsService,
         {
+          provide: WorkspaceCurrencyService,
+          useValue: { resolve: jest.fn().mockResolvedValue('USD') },
+        },
+        {
           provide: getRepositoryToken(Wallet),
           useValue: createRepoMock<Wallet>(),
         },
@@ -35,6 +41,7 @@ describe('WalletsService', () => {
 
     service = testingModule.get<WalletsService>(WalletsService);
     walletRepository = testingModule.get<Repository<Wallet>>(getRepositoryToken(Wallet));
+    workspaceCurrencyService = testingModule.get(WorkspaceCurrencyService);
   });
 
   beforeEach(() => {
@@ -67,11 +74,12 @@ describe('WalletsService', () => {
       expect(walletRepository.save).toHaveBeenCalled();
     });
 
-    it('should set default currency to KZT', async () => {
+    it("should default the currency to the workspace's currency", async () => {
       const dtoWithoutCurrency = {
         name: 'Wallet',
       };
 
+      workspaceCurrencyService.resolve.mockResolvedValue('EUR');
       const createSpy = jest
         .spyOn(walletRepository, 'create')
         .mockReturnValue(mockWallet as Wallet);
@@ -79,9 +87,10 @@ describe('WalletsService', () => {
 
       await service.create('ws-1', dtoWithoutCurrency);
 
+      expect(workspaceCurrencyService.resolve).toHaveBeenCalledWith('ws-1');
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          currency: 'KZT',
+          currency: 'EUR',
         }),
       );
     });

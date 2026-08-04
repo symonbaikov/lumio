@@ -5,6 +5,8 @@ import { Inject, Injectable, Logger, Optional, forwardRef } from '@nestjs/common
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { normalizeCurrency } from '../../../common/constants/currency.constants';
+import { WorkspaceCurrencyService } from '../../../common/services/workspace-currency.service';
 import { extractTextFromPdf } from '../../../common/utils/pdf-parser.util';
 import { Semaphore } from '../../../common/utils/semaphore.util';
 import { ImportSessionMode } from '../../../entities/import-session.entity';
@@ -73,6 +75,7 @@ export class StatementProcessingService {
     private metadataExtractionService: MetadataExtractionService,
     private importSessionService: ImportSessionService,
     private transactionFingerprintService: TransactionFingerprintService,
+    private readonly workspaceCurrencyService: WorkspaceCurrencyService,
     @Optional()
     @Inject(forwardRef(() => GoogleSheetsService))
     private googleSheetsService?: GoogleSheetsService,
@@ -266,7 +269,7 @@ export class StatementProcessingService {
   ): { valid: ParsedTransaction[]; warnings: string[] } {
     const valid: ParsedTransaction[] = [];
     const warnings: string[] = [];
-    const currencyFallback = (defaultCurrency || '').trim() || 'KZT';
+    const currencyFallback = normalizeCurrency(defaultCurrency);
 
     transactions.forEach((tx, index) => {
       const prefix = `tx#${index + 1}`;
@@ -297,7 +300,7 @@ export class StatementProcessingService {
         return;
       }
 
-      const currency = (tx.currency || currencyFallback).trim() || currencyFallback;
+      const currency = normalizeCurrency(tx.currency, currencyFallback);
       const sanitized: ParsedTransaction = {
         ...tx,
         transactionDate: tx.transactionDate,
@@ -451,7 +454,7 @@ export class StatementProcessingService {
       throw new Error(`Statement ${statementId} not found`);
     }
 
-    const workspaceCurrency = statement.workspace?.currency || null;
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(statement.workspaceId);
 
     const manualCategorySelectionRequired =
       statement.parsingDetails?.manualCategorySelectionRequired === true;
@@ -670,7 +673,7 @@ export class StatementProcessingService {
       }> = [];
       const schemaResult = this.enforceTransactionSchema(
         parsedStatement.transactions,
-        parsedStatement.metadata?.currency || statement.currency || workspaceCurrency || 'KZT',
+        parsedStatement.metadata?.currency || statement.currency || workspaceCurrency,
         addLog,
         droppedSamples,
       );
@@ -879,6 +882,10 @@ export class StatementProcessingService {
       addLog ||
       ((level: string, msg: string) => this.logger[level === 'error' ? 'error' : 'log'](msg));
 
+    // Resolved once for the whole batch: the per-transaction fallback when
+    // neither the transaction nor the statement carries a detected currency.
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(statement.workspaceId);
+
     const seen = new Set<string>();
     const deduped: ParsedTransaction[] = [];
     parsedTransactions.forEach(tx => {
@@ -973,7 +980,7 @@ export class StatementProcessingService {
           debit: parsed.debit ?? null,
           credit: parsed.credit ?? null,
           amount,
-          currency: parsed.currency || statement.currency || statement.workspace?.currency || 'KZT',
+          currency: normalizeCurrency(parsed.currency || statement.currency, workspaceCurrency),
           paymentPurpose,
           transactionType,
           workspaceId: statement.workspaceId,
@@ -993,8 +1000,10 @@ export class StatementProcessingService {
           classification.categoryId = aiBatchResult.categoryId;
         }
 
-        const currency =
-          parsed.currency || statement.currency || statement.workspace?.currency || 'KZT';
+        const currency = normalizeCurrency(
+          parsed.currency || statement.currency,
+          workspaceCurrency,
+        );
         const exchangeRate = parsed.exchangeRate ?? null;
         const amountForeign = parsed.amountForeign ?? null;
 
@@ -1144,7 +1153,7 @@ export class StatementProcessingService {
   private buildCompleteMetadata(
     parsed: ParsedStatement,
     transactions: ParsedTransaction[],
-    workspaceCurrency?: string | null,
+    workspaceCurrency: string,
   ): {
     accountNumber: string;
     dateFrom: Date;
@@ -1176,8 +1185,10 @@ export class StatementProcessingService {
     const dateTo = parsed.metadata.dateTo || maxDate || dateFrom;
     const balanceStart = parsed.metadata.balanceStart ?? null;
     const balanceEnd = parsed.metadata.balanceEnd ?? null;
-    const currency =
-      parsed.metadata.currency || currencyFromTransactions || workspaceCurrency || 'KZT';
+    const currency = normalizeCurrency(
+      parsed.metadata.currency || currencyFromTransactions,
+      workspaceCurrency,
+    );
 
     return {
       accountNumber,

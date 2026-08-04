@@ -445,7 +445,7 @@ function buildTransactionFromRow(
   const account = valueAt(row, columnMap.account) || extractAccount(row);
   const bank = valueAt(row, columnMap.bank) || extractBank(row);
   const knp = valueAt(row, columnMap.knp);
-  const currency = detectCurrency(row, columnMap) || options?.defaultCurrency || 'KZT';
+  const currency = detectCurrency(row, columnMap) || options?.defaultCurrency;
 
   const counterpartyName =
     valueAt(row, columnMap.counterparty) || collectName(row, columnMap) || 'Неизвестный контрагент';

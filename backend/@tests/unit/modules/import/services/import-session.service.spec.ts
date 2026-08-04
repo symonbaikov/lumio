@@ -25,6 +25,7 @@ import {
 import { TransactionFingerprintService } from '../../../../../src/modules/transactions/services/transaction-fingerprint.service';
 import { ImportConfigService } from '../../../../../src/modules/import/config/import.config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { WorkspaceCurrencyService } from '../../../../../src/common/services/workspace-currency.service';
 
 describe('ImportSessionService', () => {
   let service: ImportSessionService;
@@ -95,6 +96,10 @@ describe('ImportSessionService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ImportSessionService,
+        {
+          provide: WorkspaceCurrencyService,
+          useValue: { resolve: jest.fn().mockResolvedValue('USD') },
+        },
         {
           provide: getRepositoryToken(ImportSession),
           useValue: createMockRepository(),

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/app/lib/api';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import toast from 'react-hot-toast';
 
 export interface BudgetItem {
@@ -25,21 +27,24 @@ export interface BudgetFormData {
   currency: string;
 }
 
-const EMPTY_FORM: BudgetFormData = {
+const makeEmptyForm = (currency: string): BudgetFormData => ({
   name: '',
   categoryId: '',
   limitAmount: 0,
   periodType: 'monthly',
-  currency: 'KZT',
-};
+  currency,
+});
 
 export function useBudgetsPage() {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
+
   const [budgets, setBudgets] = useState<BudgetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<BudgetItem | null>(null);
-  const [formData, setFormData] = useState<BudgetFormData>(EMPTY_FORM);
+  const [formData, setFormData] = useState<BudgetFormData>(() => makeEmptyForm(workspaceCurrency));
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -61,9 +66,9 @@ export function useBudgetsPage() {
 
   const openCreate = useCallback(() => {
     setEditingBudget(null);
-    setFormData(EMPTY_FORM);
+    setFormData(makeEmptyForm(workspaceCurrency));
     setDialogOpen(true);
-  }, []);
+  }, [workspaceCurrency]);
 
   const openEdit = useCallback((budget: BudgetItem) => {
     setEditingBudget(budget);
@@ -80,8 +85,8 @@ export function useBudgetsPage() {
   const closeDialog = useCallback(() => {
     setDialogOpen(false);
     setEditingBudget(null);
-    setFormData(EMPTY_FORM);
-  }, []);
+    setFormData(makeEmptyForm(workspaceCurrency));
+  }, [workspaceCurrency]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);

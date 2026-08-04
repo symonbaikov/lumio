@@ -1,9 +1,10 @@
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import type { Transaction } from '../types';
 
 export function formatNumber(
   value: number | undefined | null,
   locale: string,
-  currency = 'KZT',
+  currency = DEFAULT_CURRENCY,
 ): string {
   if (value === undefined || value === null) return '—';
   return `${new Intl.NumberFormat(locale, {

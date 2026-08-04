@@ -9,6 +9,7 @@ import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { resolveDashboardEffectivePeriod } from '@/app/lib/dashboard-effective-window';
 import { resolveDashboardStatusHeading } from '@/app/lib/dashboard-status-heading';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import { useCallback, useMemo, useState } from 'react';
 import {
   fillTemplate,
@@ -54,15 +55,18 @@ export function useDashboardPage() {
       void refresh();
     },
   });
+  const snapshotCurrency = resolveCurrencyCode(
+    data?.snapshot?.currency ?? currentWorkspace?.currency,
+  );
   const formatAmount = useCallback(
     (value: number): string =>
       new Intl.NumberFormat(resolveLocale(locale), {
         style: 'currency',
-        currency: data?.snapshot?.currency ?? 'KZT',
+        currency: snapshotCurrency,
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       }).format(value),
-    [locale, data?.snapshot?.currency],
+    [locale, snapshotCurrency],
   );
   // eslint-disable-next-line complexity
   const { statusHeading, greetingSubtitle, effectivePeriod } = useMemo(() => {

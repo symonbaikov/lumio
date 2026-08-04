@@ -3,6 +3,7 @@
 import { Search as SearchIcon } from '@/app/components/icons';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import { tokens } from '@/lib/theme-tokens';
 import {
   Box,
@@ -41,6 +42,8 @@ export interface Transaction {
 
 interface TransactionsViewProps {
   transactions: Transaction[];
+  /** Fallback currency for rows that carry no currency of their own. */
+  currency?: string;
 }
 
 type ColumnDef = {
@@ -62,7 +65,10 @@ const getNamedObjectLabel = (value: object): string | null => {
 /**
  * Component for displaying transactions list with search and pagination
  */
-export default function TransactionsView({ transactions }: TransactionsViewProps) {
+export default function TransactionsView({
+  transactions,
+  currency: fallbackCurrency = DEFAULT_CURRENCY,
+}: TransactionsViewProps) {
   const t = useIntlayer('transactionsView');
   const { locale } = useLocale();
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,7 +83,7 @@ export default function TransactionsView({ transactions }: TransactionsViewProps
   const formatAmount = (amount: number, currency?: string): string => {
     return new Intl.NumberFormat(locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US', {
       style: 'currency',
-      currency: currency || 'KZT',
+      currency: currency || fallbackCurrency,
       minimumFractionDigits: 2,
     }).format(amount);
   };
@@ -171,7 +177,7 @@ export default function TransactionsView({ transactions }: TransactionsViewProps
       transactionDate: tx => formatDate(tx.transactionDate),
       debit: tx => (tx.debit > 0 ? formatAmount(tx.debit, tx.currency) : t.dash),
       credit: tx => (tx.credit > 0 ? formatAmount(tx.credit, tx.currency) : t.dash),
-      currency: tx => tx.currency || 'KZT',
+      currency: tx => tx.currency || fallbackCurrency,
       exchangeRate: tx =>
         tx.exchangeRate
           ? tx.exchangeRate.toLocaleString(
@@ -253,7 +259,7 @@ export default function TransactionsView({ transactions }: TransactionsViewProps
     });
 
     return columns;
-  }, [transactions, locale, t]);
+  }, [transactions, locale, t, fallbackCurrency]);
 
   return (
     <Box>

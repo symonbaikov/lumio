@@ -11,8 +11,10 @@ import {
   ShieldCheck,
 } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { getApiErrorMessage, getApiErrorStatus } from '@/app/lib/api-error';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import { tokens } from '@/lib/theme-tokens';
 import { resolveBankLogo } from '@bank-logos';
 import { Box, Chip, Typography } from '@mui/material';
@@ -112,6 +114,8 @@ export default function FileDetailsPage() {
   const initialTab = searchParams.get('tab') || 'transactions';
   const t = useIntlayer('storageDetailsPage');
   const { locale } = useLocale();
+  const { currentWorkspace } = useWorkspace();
+  const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
 
   const [details, setDetails] = useState<FileDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -870,7 +874,7 @@ export default function FileDetailsPage() {
         <Box sx={{ p: 2 }}>
           {currentTab === 'transactions' && (
             <Box sx={{ border: '1px solid var(--muted)', bgcolor: 'background.paper' }}>
-              <TransactionsView transactions={transactions} />
+              <TransactionsView transactions={transactions} currency={workspaceCurrency} />
             </Box>
           )}
 

@@ -33,6 +33,7 @@ describe('BudgetsService', () => {
       budgetRepository as any,
       transactionRepository as any,
       notificationsService as any,
+      { resolve: jest.fn().mockResolvedValue('USD') } as any,
     );
   });
 

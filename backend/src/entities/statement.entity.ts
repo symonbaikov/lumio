@@ -11,6 +11,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { DEFAULT_CURRENCY } from '../common/constants/currency.constants';
 
 type JsonObject = Record<string, unknown>;
 import { normalizeFilename } from '../common/utils/filename.util';
@@ -174,7 +175,7 @@ export class Statement {
   })
   balanceEnd: number | null;
 
-  @Column({ default: 'KZT' })
+  @Column({ default: DEFAULT_CURRENCY })
   currency: string;
 
   @ManyToOne(() => Category, { nullable: true })

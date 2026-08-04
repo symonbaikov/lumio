@@ -68,6 +68,7 @@ describe('StatementsService', () => {
       receiptStatementService as any,
       cacheManager as any,
       auditService as any,
+      { resolve: jest.fn().mockResolvedValue('USD') } as any,
       eventEmitter as any,
     );
     jest.spyOn(service as any, 'ensureCanEditStatements').mockResolvedValue(undefined);

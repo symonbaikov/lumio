@@ -38,6 +38,9 @@ describe('TransactionsService', () => {
       workspaceMemberRepository as any,
       cacheManager as any,
       auditService as any,
+      {} as any,
+      {} as any,
+      { resolve: jest.fn().mockResolvedValue('USD') } as any,
     );
   });
 

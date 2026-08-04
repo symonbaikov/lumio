@@ -414,7 +414,7 @@ export class MetadataExtractionService {
       .trim();
   }
 
-  private fillMissingMetadata(metadata: Partial<ExtractedMetadata>, locale?: string): void {
+  private fillMissingMetadata(metadata: Partial<ExtractedMetadata>, _locale?: string): void {
     // Set defaults if not extracted
     if (!metadata.currency && metadata.institution) {
       const profile = this.findInstitutionProfile(metadata.institution.name);
@@ -430,12 +430,8 @@ export class MetadataExtractionService {
       }
     }
 
-    // Default currency
-    if (!metadata.currency) {
-      metadata.currency = {
-        code: locale === 'ru' ? 'RUB' : 'KZT',
-      };
-    }
+    // No blanket currency default here: an undetected currency stays undefined
+    // so the workspace currency can be applied downstream.
 
     // Default period if not found
     if (!metadata.period) {
@@ -533,7 +529,7 @@ export class MetadataExtractionService {
   private mapCurrencyCode(code: string): { code: string; symbol?: string } {
     const currencyMap: { [key: string]: { code: string; symbol?: string } } = {
       // ISO codes
-      KZT: { code: 'KZT', symbol: '₽' },
+      KZT: { code: 'KZT', symbol: '₸' },
       USD: { code: 'USD', symbol: '$' },
       EUR: { code: 'EUR', symbol: '€' },
       RUB: { code: 'RUB', symbol: '₽' },
@@ -758,7 +754,9 @@ export class MetadataExtractionService {
       accountNumber: extracted.account?.number || '',
       dateFrom: extracted.period?.dateFrom || new Date(),
       dateTo: extracted.period?.dateTo || new Date(),
-      currency: extracted.currency?.code || 'KZT',
+      // Only emitted when actually detected: this object is spread over the
+      // parser's own metadata, so an invented default would clobber it.
+      ...(extracted.currency?.code ? { currency: extracted.currency.code } : {}),
       rawHeader: extracted.rawHeader,
       normalizedHeader: extracted.normalizedHeader,
       periodLabel: extracted.period?.label,

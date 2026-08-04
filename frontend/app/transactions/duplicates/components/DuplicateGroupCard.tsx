@@ -1,6 +1,7 @@
 'use client';
 
 import { Calendar, DollarSign, User } from '@/app/components/icons';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
@@ -30,9 +31,16 @@ interface DuplicateGroupCardProps {
   group: DuplicateGroup;
   selected: boolean;
   onToggle: () => void;
+  /** Currency the group's amounts are denominated in. */
+  currency?: string;
 }
 
-export default function DuplicateGroupCard({ group, selected, onToggle }: DuplicateGroupCardProps) {
+export default function DuplicateGroupCard({
+  group,
+  selected,
+  onToggle,
+  currency = DEFAULT_CURRENCY,
+}: DuplicateGroupCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   const formatDate = (dateString: string) => {
@@ -46,7 +54,7 @@ export default function DuplicateGroupCard({ group, selected, onToggle }: Duplic
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'KZT',
+      currency,
       minimumFractionDigits: 2,
     }).format(amount);
   };

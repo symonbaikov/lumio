@@ -323,7 +323,7 @@ export function GmailReceiptDetails({
                     <Typography variant="caption" sx={{ color: 'warning.800' }}>
                       {new Date(dup.parsedData?.date || dup.receivedAt).toLocaleDateString()} ·{' '}
                       {(dup.parsedData?.amount || 0).toLocaleString()}{' '}
-                      {dup.parsedData?.currency || 'KZT'}
+                      {dup.parsedData?.currency || currency}
                     </Typography>
                     <Box sx={{ mt: 1 }}>
                       <Button

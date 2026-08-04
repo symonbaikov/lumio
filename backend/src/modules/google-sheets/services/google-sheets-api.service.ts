@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DEFAULT_CURRENCY } from '../../../common/constants/currency.constants';
 import type { Branch } from '../../../entities/branch.entity';
 import type { Category } from '../../../entities/category.entity';
 import type { Transaction } from '../../../entities/transaction.entity';
@@ -15,7 +16,7 @@ interface SheetRow {
   year: number; // Year
   monthNumber: number; // Month (numeric representation)
   transactionDate: string; // Transaction date
-  amountKZT: number; // Amount in KZT
+  amount: number; // Transaction amount
   amountForeign: number | null; // Amount in foreign currency
   currencyCode: string; // Currency code
   exchangeRate: number | null; // Exchange rate
@@ -391,8 +392,8 @@ export class GoogleSheetsApiService {
       'Декабрь',
     ];
 
-    // Determine amount in KZT
-    const amountKzt = transaction.amount || transaction.debit || transaction.credit || 0;
+    // Determine the transaction amount
+    const amount = transaction.amount || transaction.debit || transaction.credit || 0;
 
     // Format date as DD.MM.YYYY
     const formattedDate = `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
@@ -402,9 +403,9 @@ export class GoogleSheetsApiService {
       year: date.getFullYear(),
       monthNumber: date.getMonth() + 1,
       transactionDate: formattedDate,
-      amountKZT: amountKzt,
+      amount,
       amountForeign: transaction.amountForeign,
-      currencyCode: transaction.currency || 'KZT',
+      currencyCode: transaction.currency || DEFAULT_CURRENCY,
       exchangeRate: transaction.exchangeRate,
       wallet: wallet?.name || null,
       branch: branch?.name || null,
@@ -428,7 +429,7 @@ export class GoogleSheetsApiService {
       row.year,
       row.monthNumber,
       row.transactionDate,
-      row.amountKZT,
+      row.amount,
       row.amountForeign,
       row.currencyCode,
       row.exchangeRate,

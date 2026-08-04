@@ -36,7 +36,7 @@ export function TransactionDetailsTab({
 }: TransactionDetailsTabProps) {
   const { locale } = useLocale();
   const t = useIntlayer('transactionsDrawer');
-  const { showConverted } = useCurrencyDisplay();
+  const { showConverted, workspaceCurrency } = useCurrencyDisplay();
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
@@ -139,10 +139,14 @@ export function TransactionDetailsTab({
                 {showConverted && transaction.convertedAmount !== undefined
                   ? formatAmount(
                       transaction.convertedAmount,
-                      transaction.convertedCurrency ?? 'KZT',
+                      transaction.convertedCurrency ?? workspaceCurrency,
                       locale,
                     )
-                  : formatAmount(transaction.debit, transaction.currency ?? 'KZT', locale)}
+                  : formatAmount(
+                      transaction.debit,
+                      transaction.currency ?? workspaceCurrency,
+                      locale,
+                    )}
                 {showConverted && transaction.convertedAmount !== undefined && (
                   <div
                     style={{
@@ -152,7 +156,11 @@ export function TransactionDetailsTab({
                       color: 'var(--color-error-soft-border)',
                     }}
                   >
-                    {formatAmount(transaction.debit, transaction.currency ?? 'KZT', locale)}
+                    {formatAmount(
+                      transaction.debit,
+                      transaction.currency ?? workspaceCurrency,
+                      locale,
+                    )}
                   </div>
                 )}
               </>
@@ -173,10 +181,14 @@ export function TransactionDetailsTab({
                 {showConverted && transaction.convertedAmount !== undefined
                   ? formatAmount(
                       transaction.convertedAmount,
-                      transaction.convertedCurrency ?? 'KZT',
+                      transaction.convertedCurrency ?? workspaceCurrency,
                       locale,
                     )
-                  : formatAmount(transaction.credit, transaction.currency ?? 'KZT', locale)}
+                  : formatAmount(
+                      transaction.credit,
+                      transaction.currency ?? workspaceCurrency,
+                      locale,
+                    )}
                 {showConverted && transaction.convertedAmount !== undefined && (
                   <div
                     style={{
@@ -186,7 +198,11 @@ export function TransactionDetailsTab({
                       color: 'var(--color-success-soft-border)',
                     }}
                   >
-                    {formatAmount(transaction.credit, transaction.currency ?? 'KZT', locale)}
+                    {formatAmount(
+                      transaction.credit,
+                      transaction.currency ?? workspaceCurrency,
+                      locale,
+                    )}
                   </div>
                 )}
               </>

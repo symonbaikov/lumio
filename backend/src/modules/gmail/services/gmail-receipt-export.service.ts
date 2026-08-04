@@ -4,6 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import * as xlsx from 'xlsx';
+import { WorkspaceCurrencyService } from '../../../common/services/workspace-currency.service';
 import { resolveUploadsDir } from '../../../common/utils/uploads.util';
 import { Category, Receipt } from '../../../entities';
 import { GmailOAuthService } from './gmail-oauth.service';
@@ -32,6 +33,7 @@ export class GmailReceiptExportService {
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
     private readonly gmailOAuthService: GmailOAuthService,
+    private readonly workspaceCurrencyService: WorkspaceCurrencyService,
   ) {}
 
   private getParsedData(receipt: Receipt): ReceiptParsedData {
@@ -76,7 +78,9 @@ export class GmailReceiptExportService {
       // Prepare data rows
       const rows: ReceiptRow[] = [headers];
       for (const receipt of receipts) {
-        rows.push(this.formatReceiptRow(receipt));
+        // Receipts are filtered by user only, so they can span workspaces.
+        const fallbackCurrency = await this.workspaceCurrencyService.resolve(receipt.workspaceId);
+        rows.push(this.formatReceiptRow(receipt, fallbackCurrency));
       }
 
       const finalSpreadsheetId = spreadsheetId || `receipts-${Date.now()}`;
@@ -101,7 +105,7 @@ export class GmailReceiptExportService {
     }
   }
 
-  formatReceiptRow(receipt: Receipt): ReceiptRow {
+  formatReceiptRow(receipt: Receipt, fallbackCurrency: string): ReceiptRow {
     const parsedData = this.getParsedData(receipt);
     const gmailLink = `https://mail.google.com/mail/u/0/#all/${receipt.gmailMessageId}`;
 
@@ -109,7 +113,7 @@ export class GmailReceiptExportService {
       parsedData.date || receipt.receivedAt.toISOString().split('T')[0],
       parsedData.vendor || receipt.sender,
       parsedData.amount || '',
-      parsedData.currency || 'KZT',
+      parsedData.currency || fallbackCurrency,
       parsedData.tax || '',
       parsedData.subtotal || '',
       parsedData.category || '',
@@ -147,7 +151,8 @@ export class GmailReceiptExportService {
     const parsedData = this.getParsedData(receipt);
     const vendor = parsedData.vendor || receipt.sender || 'Unknown';
     const amount = parsedData.amount ?? '';
-    const currency = parsedData.currency || 'KZT';
+    const currency =
+      parsedData.currency || (await this.workspaceCurrencyService.resolve(receipt.workspaceId));
     const date = parsedData.date || receipt.receivedAt?.toISOString().split('T')[0] || '';
 
     const subject = amount

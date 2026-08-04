@@ -165,7 +165,9 @@ export class UniversalExtractorService {
       .filter(Boolean);
 
     const amount = await this.extractAmountWithCurrency(lines, text);
-    const currency = amount?.currency || this.extractCurrency(text) || 'KZT';
+    // Left undefined when the document carries no currency, so the workspace
+    // currency is applied downstream instead of a global default overriding it.
+    const currency = amount?.currency || this.extractCurrency(text);
     const date = this.extractDate(text);
     const vendor = this.extractVendor(lines, context.sender, text);
     const tax = this.extractNumberByPatterns(text, TAX_PATTERNS);

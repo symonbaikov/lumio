@@ -1,5 +1,6 @@
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import { useCallback, useState } from 'react';
 import type { EditableChangeArgs } from './BalanceAccountRow';
 import {
@@ -150,7 +151,7 @@ function useSaveSnapshot(opts: SaveSnapshotOpts): (accountId: string) => Promise
           accountId,
           amount: parsed,
           date: effectiveDate,
-          currency: sheet?.currency || 'KZT',
+          currency: resolveCurrencyCode(sheet?.currency),
         });
         setters.setSaveHint(text('balanceSaved', 'Balance saved'));
         await loadSheet(effectiveDate);

@@ -32,8 +32,14 @@ export function truncateText(text: string, maxLength = 60): string {
   return `${text.substring(0, maxLength)}…`;
 }
 
-export function resolveDisplayCurrency(tx: Transaction, showConverted: boolean): string {
-  return showConverted && tx.convertedCurrency ? tx.convertedCurrency : (tx.currency ?? 'KZT');
+export function resolveDisplayCurrency(
+  tx: Transaction,
+  showConverted: boolean,
+  fallbackCurrency: string,
+): string {
+  return showConverted && tx.convertedCurrency
+    ? tx.convertedCurrency
+    : (tx.currency ?? fallbackCurrency);
 }
 
 export interface CategoryStyleOptions {

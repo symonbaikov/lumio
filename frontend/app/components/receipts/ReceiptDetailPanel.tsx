@@ -4,8 +4,10 @@ import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { FileImage, FileText } from '@/app/components/icons';
 import { Button } from '@/app/components/ui/button';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import apiClient, { apiBaseUrl, receiptsApi, type ReceiptRecord } from '@/app/lib/api';
 import { normalizeReceiptLineItems } from '@/app/lib/financial-document';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { Box, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
@@ -32,11 +34,14 @@ function buildLineItems(receipt: ReceiptRecord | null): EditableReceiptLineItem[
   }));
 }
 
-function buildInitialForm(receipt: ReceiptRecord | null): EditableReceiptParsedData {
+function buildInitialForm(
+  receipt: ReceiptRecord | null,
+  fallbackCurrency: string,
+): EditableReceiptParsedData {
   return {
     vendor: receipt?.parsedData?.vendor ?? '',
     amount: receipt?.parsedData?.amount ?? '',
-    currency: receipt?.parsedData?.currency ?? 'KZT',
+    currency: receipt?.parsedData?.currency ?? fallbackCurrency,
     date: receipt?.parsedData?.date?.split('T')[0] ?? '',
     tax: receipt?.parsedData?.tax ?? '',
     paymentMethod: receipt?.parsedData?.paymentMethod ?? '',
@@ -70,14 +75,18 @@ export function ReceiptDetailPanel({
   onClose,
   onUpdated,
 }: ReceiptDetailPanelProps) {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
   const [categories, setCategories] = useState<ReceiptCategoryOption[]>([]);
-  const [formValue, setFormValue] = useState<EditableReceiptParsedData>(buildInitialForm(receipt));
+  const [formValue, setFormValue] = useState<EditableReceiptParsedData>(() =>
+    buildInitialForm(receipt, workspaceCurrency),
+  );
   const [saving, setSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    setFormValue(buildInitialForm(receipt));
-  }, [receipt]);
+    setFormValue(buildInitialForm(receipt, workspaceCurrency));
+  }, [receipt, workspaceCurrency]);
 
   useEffect(() => {
     if (!isOpen || !receipt) {

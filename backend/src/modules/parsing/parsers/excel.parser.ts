@@ -38,7 +38,7 @@ export class ExcelParser extends BaseTabularParser {
       .slice(0, 5)
       .map(r => (r || []).join(' '))
       .join(' ');
-    const detectedCurrency = this.detectCurrency(headerSample) || 'KZT';
+    const detectedCurrency = this.detectCurrency(headerSample) || undefined;
 
     // Extract metadata from first few rows or filename
     const metadata = this.extractMetadata(filePath, data, detectedCurrency);
@@ -71,7 +71,7 @@ export class ExcelParser extends BaseTabularParser {
   private extractMetadata(
     _filePath: string,
     data: ExcelRow[],
-    detectedCurrency = 'KZT',
+    detectedCurrency?: string,
   ): ParsedStatement['metadata'] {
     // Try to extract from first rows or use defaults
     const accountNumber = this.extractAccountNumberFromData(data) || 'Unknown';

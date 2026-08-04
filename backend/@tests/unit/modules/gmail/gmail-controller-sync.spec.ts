@@ -1,6 +1,7 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { WorkspaceCurrencyService } from '../../../../src/common/services/workspace-currency.service';
 import { Category, GmailSettings, Receipt, Transaction, User } from '../../../../src/entities';
 import { GmailController } from '../../../../src/modules/gmail/gmail.controller';
 import { GmailMerchantReparseService } from '../../../../src/modules/gmail/services/gmail-merchant-reparse.service';
@@ -49,6 +50,10 @@ describe('GmailController - Sync Endpoint', () => {
         { provide: GmailReceiptCategoryService, useValue: {} },
         { provide: GmailReceiptExportService, useValue: {} },
         { provide: GmailMerchantReparseService, useValue: {} },
+        {
+          provide: WorkspaceCurrencyService,
+          useValue: { resolve: jest.fn().mockResolvedValue('USD') },
+        },
         {
           provide: CACHE_MANAGER,
           useValue: {

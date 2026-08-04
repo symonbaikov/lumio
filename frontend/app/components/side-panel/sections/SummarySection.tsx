@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowDown, ArrowUp, Minus } from '@/app/components/icons';
+import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
 import { tokens } from '@/lib/theme-tokens';
 import React, { useMemo } from 'react';
 import type { SummaryItem, SummarySection } from '../types';
@@ -9,6 +10,8 @@ import { SectionWrapper } from './components/SectionWrapper';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types, max-lines-per-function, complexity
 export function SummaryItemComponent({ item }: { item: SummaryItem }) {
+  const { workspaceCurrency } = useCurrencyDisplay();
+
   // eslint-disable-next-line complexity
   const formattedValue = useMemo(() => {
     if (typeof item.value === 'string') return item.value;
@@ -18,7 +21,7 @@ export function SummaryItemComponent({ item }: { item: SummaryItem }) {
       case 'currency':
         formatted = new Intl.NumberFormat('ru-RU', {
           style: 'currency',
-          currency: 'KZT',
+          currency: workspaceCurrency,
           minimumFractionDigits: 0,
         }).format(item.value);
         break;
@@ -33,7 +36,7 @@ export function SummaryItemComponent({ item }: { item: SummaryItem }) {
     }
 
     return `${item.prefix || ''}${formatted}${item.suffix || ''}`;
-  }, [item]);
+  }, [item, workspaceCurrency]);
 
   return (
     <div style={{ padding: 12, backgroundColor: 'var(--muted)', borderRadius: tokens.radius.lg }}>

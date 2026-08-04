@@ -110,9 +110,13 @@ function ReceiptPageContent({
   const payablePrefill = useMemo(
     () =>
       data.receipt
-        ? buildPayablePrefillFromReceipt({ receipt: data.receipt, editedData: data.editedData })
+        ? buildPayablePrefillFromReceipt({
+            receipt: data.receipt,
+            editedData: data.editedData,
+            fallbackCurrency: data.currency,
+          })
         : null,
-    [data.receipt, data.editedData],
+    [data.receipt, data.editedData, data.currency],
   );
   const statusLabel = getFinancialDocumentStatusLabel(
     toFinancialDocumentStatus(data.receipt?.status),

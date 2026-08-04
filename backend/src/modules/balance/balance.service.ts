@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { In, type Repository } from 'typeorm';
 import * as xlsx from 'xlsx';
+import { WorkspaceCurrencyService } from '../../common/services/workspace-currency.service';
 import {
   ActorType,
   AuditAction,
@@ -67,6 +68,7 @@ export class BalanceService {
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly auditService: AuditService,
+    private readonly workspaceCurrencyService: WorkspaceCurrencyService,
   ) {}
 
   private resolveDate(date?: string): string {
@@ -341,7 +343,7 @@ export class BalanceService {
 
     const snapshotDate = this.resolveDate(date);
 
-    const [accounts, snapshotsMap, cashBalance, retainedEarnings] = await Promise.all([
+    const [accounts, snapshotsMap, cashBalance, retainedEarnings, currency] = await Promise.all([
       this.balanceAccountRepository.find({
         where: { workspaceId },
         order: {
@@ -352,6 +354,7 @@ export class BalanceService {
       this.getLatestSnapshotMap(workspaceId, snapshotDate),
       this.getAutoComputedCashBalance(workspaceId, snapshotDate),
       this.getRetainedEarnings(workspaceId, snapshotDate),
+      this.workspaceCurrencyService.resolve(workspaceId),
     ]);
 
     const autoAmountsByCode = new Map<string, number>([
@@ -436,7 +439,7 @@ export class BalanceService {
 
     return {
       date: snapshotDate,
-      currency: 'KZT',
+      currency,
       assets: {
         total: assetsTotal,
         sections: assets,
@@ -478,7 +481,7 @@ export class BalanceService {
     }
 
     const amount = this.round(dto.amount);
-    const currency = dto.currency || 'KZT';
+    const currency = dto.currency || (await this.workspaceCurrencyService.resolve(workspaceId));
 
     const existingSnapshot = await this.balanceSnapshotRepository.findOne({
       where: {

@@ -73,7 +73,7 @@ export class ExchangeRatesService {
       return invertedRate;
     }
 
-    // 3. Try to compute via USD base (e.g., EUR→KZT = (1/USD→EUR) * USD→KZT)
+    // 3. Try to compute via USD base (e.g., EUR→GBP = (1/USD→EUR) * USD→GBP)
     if (normalizedFrom !== 'USD' && normalizedTo !== 'USD') {
       const rateFromUsd = await this.getRateFromApi('USD', normalizedFrom, rateDate);
       const rateToUsd = await this.getRateFromApi('USD', normalizedTo, rateDate);

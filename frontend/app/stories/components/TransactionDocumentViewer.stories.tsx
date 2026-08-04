@@ -12,7 +12,7 @@ const mockTransactions: Transaction[] = [
     debit: 10000,
     credit: 0,
     paymentPurpose: 'Payment for services rendered',
-    currency: 'KZT',
+    currency: 'USD',
     transactionType: 'expense',
     category: { id: 'cat1', name: 'Services' },
   },
@@ -25,7 +25,7 @@ const mockTransactions: Transaction[] = [
     debit: 0,
     credit: 15000,
     paymentPurpose: 'Income from product sales',
-    currency: 'KZT',
+    currency: 'USD',
     transactionType: 'income',
     category: { id: 'cat2', name: 'Sales' },
   },
@@ -38,7 +38,7 @@ const mockTransactions: Transaction[] = [
     debit: 5000,
     credit: 0,
     paymentPurpose: 'Purchase of office equipment',
-    currency: 'KZT',
+    currency: 'USD',
     transactionType: 'expense',
     category: { id: 'cat3', name: 'Office Supplies' },
   },
@@ -68,7 +68,7 @@ const mockStatement: Statement = {
         periodDisplay: 'Январь 2024',
         accountDisplay: 'KZ1234****5678',
         institutionDisplay: 'Kaspi Bank',
-        currencyDisplay: 'KZT',
+        currencyDisplay: 'USD',
       },
     },
   },
@@ -81,6 +81,10 @@ const meta: Meta<typeof TransactionDocumentViewer> = {
     layout: 'fullscreen',
   },
   tags: ['autodocs'],
+  args: {
+    // Fallback currency for rows that carry no currency of their own.
+    currency: 'USD',
+  },
   argTypes: {
     locale: {
       control: 'select',

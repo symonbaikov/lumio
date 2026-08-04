@@ -3,6 +3,7 @@ import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import { format as formatDate, isValid as isValidDate, parseISO } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -325,7 +326,7 @@ export const useUnapprovedCashViewModel = (): UnapprovedCashViewModel => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const t = useIntlayer('statementsPage');
-  const workspaceCurrency = (currentWorkspace?.currency || 'KZT').toUpperCase();
+  const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
 
   const tx = useCallback(
     (path: string[], fallback: string): string => resolveLabel(getNestedValue(t, path), fallback),
@@ -542,7 +543,7 @@ export const useUnapprovedCashViewModel = (): UnapprovedCashViewModel => {
     if (item.amount === null) {
       return '—';
     }
-    const currency = (item.statement.currency || workspaceCurrency).toUpperCase();
+    const currency = resolveCurrencyCode(item.statement.currency, workspaceCurrency);
     const value = new Intl.NumberFormat('ru', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,

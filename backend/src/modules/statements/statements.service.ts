@@ -17,6 +17,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
 import { FileStorageService } from '../../common/services/file-storage.service';
+import { WorkspaceCurrencyService } from '../../common/services/workspace-currency.service';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { calculateFileHash } from '../../common/utils/file-hash.util';
 import { getFileTypeFromMime, validateFile } from '../../common/utils/file-validator.util';
@@ -153,6 +154,7 @@ export class StatementsService {
     private readonly receiptStatementService: ReceiptStatementService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly auditService: AuditService,
+    private readonly workspaceCurrencyService: WorkspaceCurrencyService,
     private readonly eventEmitter?: EventEmitter2,
   ) {}
 
@@ -325,7 +327,8 @@ export class StatementsService {
       throw new BadRequestException('Merchant is required');
     }
 
-    const currency = (payload.currency || 'KZT').trim().toUpperCase();
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(workspaceId);
+    const currency = (payload.currency || workspaceCurrency).trim().toUpperCase();
     if (!currency) {
       throw new BadRequestException('Currency is required');
     }
@@ -585,6 +588,7 @@ export class StatementsService {
     const originalTransaction = sample?.transaction as
       | Record<string, string | number | null | undefined>
       | undefined;
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(workspaceId);
 
     const transaction = this.transactionRepository.create({
       workspaceId,
@@ -617,7 +621,7 @@ export class StatementsService {
         payload.transaction.currency?.trim() ||
         String(originalTransaction?.currency || '').trim() ||
         statement.currency ||
-        'KZT',
+        workspaceCurrency,
       paymentPurpose:
         payload.transaction.paymentPurpose?.trim() ||
         String(originalTransaction?.paymentPurpose || '').trim() ||

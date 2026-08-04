@@ -6,6 +6,7 @@ import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { DEFAULT_APP_ROUTE } from '@/app/lib/default-app-route';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import { normalizeLocale, syncLocaleFromUser } from '@/app/lib/locale';
 import { tokens } from '@/lib/theme-tokens';
 import { Alert, Box, CircularProgress, Typography } from '@mui/material';
@@ -31,8 +32,6 @@ import { LanguageStep } from './steps/LanguageStep';
 import { WelcomeStep } from './steps/WelcomeStep';
 import { WorkspaceStep } from './steps/WorkspaceStep';
 import { type OnboardingData, useOnboardingWizard } from './useOnboardingWizard';
-
-const DEFAULT_CURRENCY = 'USD';
 
 function detectTimeZone(): string | null {
   try {

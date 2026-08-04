@@ -10,7 +10,7 @@ import Box from '@mui/material/Box';
 import { useEffect, useState } from 'react';
 
 interface CurrencyFilterDropdownProps {
-  /** All currency codes present in the current dataset (e.g. ['KZT', 'USD', 'EUR']). */
+  /** All currency codes present in the current dataset (e.g. ['USD', 'EUR', 'GBP']). */
   currencies: string[];
   /** Currently selected currency code, or null for "all". */
   value: string | null;

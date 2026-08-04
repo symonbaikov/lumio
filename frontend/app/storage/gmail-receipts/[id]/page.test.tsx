@@ -26,6 +26,12 @@ vi.mock('@/app/lib/api', () => ({
   },
 }));
 
+vi.mock('@/app/contexts/WorkspaceContext', () => ({
+  useWorkspace: () => ({
+    currentWorkspace: { id: 'ws-1', name: 'Main workspace', currency: 'USD' },
+  }),
+}));
+
 vi.mock('@/lib/api/audit', () => ({
   fetchEntityHistory: vi.fn().mockResolvedValue([]),
 }));

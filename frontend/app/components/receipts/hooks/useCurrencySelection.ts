@@ -7,7 +7,7 @@ import {
 import { useMemo, useState } from 'react';
 import type { EditableReceiptParsedData } from '../receipt-types';
 
-const DEFAULT_RECENT_CURRENCIES = ['KZT', 'USD', 'EUR', 'RUB'] as const;
+const DEFAULT_RECENT_CURRENCIES = ['USD', 'EUR', 'GBP', 'RUB'] as const;
 
 interface UseCurrencySelectionParams {
   value: EditableReceiptParsedData;

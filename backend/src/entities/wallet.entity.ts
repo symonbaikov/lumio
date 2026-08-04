@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { DEFAULT_CURRENCY } from '../common/constants/currency.constants';
 import { Transaction } from './transaction.entity';
 import { User } from './user.entity';
 import { Workspace } from './workspace.entity';
@@ -43,7 +44,7 @@ export class Wallet {
   @Column({ name: 'bank_name', nullable: true })
   bankName: string | null;
 
-  @Column({ default: 'KZT' })
+  @Column({ default: DEFAULT_CURRENCY })
   currency: string;
 
   @Column({ name: 'initial_balance', type: 'decimal', precision: 15, scale: 2, default: 0 })

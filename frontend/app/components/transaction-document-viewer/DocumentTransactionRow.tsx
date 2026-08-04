@@ -1,6 +1,7 @@
 'use client';
 
 import { Calendar } from '@/app/components/icons';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import { Box, Chip, TableCell, TableRow, Typography } from '@mui/material';
 import React from 'react';
 import type { Transaction } from './types';
@@ -9,6 +10,8 @@ type DocumentTransactionRowProps = {
   transaction: Transaction;
   formatDate: (d: string | null | undefined) => string;
   formatNumber: (v: number | undefined | null, currency?: string) => string;
+  /** Fallback currency for rows that carry no currency of their own. */
+  fallbackCurrency?: string;
 };
 
 // eslint-disable-next-line max-lines-per-function, complexity
@@ -16,6 +19,7 @@ export function DocumentTransactionRow({
   transaction,
   formatDate,
   formatNumber,
+  fallbackCurrency = DEFAULT_CURRENCY,
 }: DocumentTransactionRowProps): React.JSX.Element {
   return (
     <TableRow
@@ -118,7 +122,7 @@ export function DocumentTransactionRow({
       </TableCell>
       <TableCell>
         <Typography variant="body2" color="text.secondary" fontFamily="monospace">
-          {transaction.currency || 'KZT'}
+          {transaction.currency || fallbackCurrency}
         </Typography>
       </TableCell>
     </TableRow>

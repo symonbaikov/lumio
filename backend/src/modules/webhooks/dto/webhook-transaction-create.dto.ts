@@ -6,7 +6,7 @@ export class WebhookTransactionCreateDto {
   @IsNumber()
   amount: number;
 
-  @ApiProperty({ example: 'KZT' })
+  @ApiProperty({ example: 'USD' })
   @IsString()
   @IsNotEmpty()
   currency: string;

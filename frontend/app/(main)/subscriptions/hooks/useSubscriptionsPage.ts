@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import apiClient from '@/app/lib/api';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 
 export interface SubscriptionItem {
   id: string;
@@ -34,8 +35,6 @@ export interface SubscriptionFormData {
   categoryId: string;
   nextChargeDate: string;
 }
-
-const DEFAULT_CURRENCY = 'USD';
 
 const makeEmptyForm = (currency: string): SubscriptionFormData => ({
   vendorName: '',

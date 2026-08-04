@@ -1,5 +1,6 @@
 import { DEFAULT_BACKGROUND } from '@/app/(main)/workspaces/constants';
 import type { User } from '@/app/hooks/useAuth';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import { useEffect, useRef, useState } from 'react';
 import { resolveOnboardingBootstrapLocale } from '../lib/locale-bootstrap';
 import type { OnboardingData } from '../useOnboardingWizard';
@@ -10,8 +11,6 @@ import {
   fetchWorkspaceInitialData,
   refreshAllIntegrationStatuses,
 } from './useOnboardingActions';
-
-const DEFAULT_CURRENCY = 'USD';
 
 type OnboardingFlow = {
   shouldRedirectCompletedUser: boolean;

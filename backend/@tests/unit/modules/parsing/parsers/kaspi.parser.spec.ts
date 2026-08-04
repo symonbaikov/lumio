@@ -198,8 +198,36 @@ describe('KaspiParser', () => {
         counterpartyBank: 'KZKOKZKX',
         debit: 1500,
         paymentPurpose: 'ТОО Ромашка БИН/ИИН 123456789012 Оплата услуг',
-        currency: 'KZT',
+        // Nothing in the statement text names a currency, so none is inferred.
+        currency: undefined,
       });
+      expect(result.metadata.currency).toBeUndefined();
+    });
+
+    it('reports the detected currency on the metadata when the statement uses ₸', async () => {
+      const parser = new KaspiParser();
+      const text = [
+        'Kaspi Bank',
+        'Период: 01.01.2024 - 31.01.2024',
+        'Входящий остаток 1 000,00 ₸',
+        'Исходящий остаток 2 000,00 ₸',
+        'KZ12722S123456789012',
+        '80000001',
+        '01.01.2024',
+        '1 500,00',
+        'ТОО Ромашка БИН/ИИН 123456789012',
+        'KZ127220000000000000',
+        'KZKOKZKX',
+        '101',
+        'Оплата услуг',
+      ].join('\n');
+
+      (extractTextFromPdf as jest.Mock).mockResolvedValue(text);
+      (extractTablesFromPdf as jest.Mock).mockResolvedValue({ rows: [] });
+
+      const result = await parser.parse('/tmp/mock.pdf');
+
+      expect(result.metadata.currency).toBe('KZT');
     });
   });
 });

@@ -1,3 +1,4 @@
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import type { Meta, StoryObj } from '@storybook/react';
 import { Download, FileText, Share2, TrendingDown, TrendingUp } from '@/app/components/icons';
 
@@ -37,7 +38,7 @@ function SummaryBarContent({
   const formatAmount = (amount: number, currency: string) => {
     return new Intl.NumberFormat('ru-RU', {
       style: 'currency',
-      currency: currency || 'KZT',
+      currency: currency || DEFAULT_CURRENCY,
       minimumFractionDigits: 2,
     }).format(amount);
   };
@@ -176,7 +177,7 @@ export const Default: Story = {
       uncategorized: 0,
       debitTotal: 2500000,
       creditTotal: 3200000,
-      currency: 'KZT',
+      currency: 'USD',
     },
     onExport: () => alert('Export clicked'),
     onShare: () => alert('Share clicked'),
@@ -196,7 +197,7 @@ export const WithWarnings: Story = {
       uncategorized: 12,
       debitTotal: 1800000,
       creditTotal: 2100000,
-      currency: 'KZT',
+      currency: 'USD',
     },
     onExport: () => alert('Export clicked'),
     onShare: () => alert('Share clicked'),
@@ -216,7 +217,7 @@ export const WithErrors: Story = {
       uncategorized: 20,
       debitTotal: 500000,
       creditTotal: 750000,
-      currency: 'KZT',
+      currency: 'USD',
     },
     onExport: () => alert('Export clicked'),
     onShare: () => alert('Share clicked'),
@@ -236,7 +237,7 @@ export const Empty: Story = {
       uncategorized: 0,
       debitTotal: 0,
       creditTotal: 0,
-      currency: 'KZT',
+      currency: 'USD',
     },
     onExport: () => alert('Export clicked'),
     onShare: () => alert('Share clicked'),
@@ -281,7 +282,7 @@ export const Mobile: Story = {
       uncategorized: 5,
       debitTotal: 2500000,
       creditTotal: 3200000,
-      currency: 'KZT',
+      currency: 'USD',
     },
     onExport: () => alert('Export clicked'),
     onShare: () => alert('Share clicked'),

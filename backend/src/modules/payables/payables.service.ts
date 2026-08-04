@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
+import { normalizeCurrency } from '../../common/constants/currency.constants';
+import { WorkspaceCurrencyService } from '../../common/services/workspace-currency.service';
 import { normalizePagination } from '../../common/utils/pagination.util';
 import { EntityType } from '../../entities/audit-event.entity';
 import {
@@ -35,6 +37,7 @@ export class PayablesService {
     private readonly exchangeRatesService: ExchangeRatesService,
     private readonly notificationsService: NotificationsService,
     private readonly payablesExportService: PayablesExportService,
+    private readonly workspaceCurrencyService: WorkspaceCurrencyService,
   ) {}
 
   async create(workspaceId: string, userId: string, dto: CreatePayableDto): Promise<Payable> {
@@ -49,7 +52,7 @@ export class PayablesService {
       createdById: userId,
       vendor: dto.vendor,
       amount: dto.amount,
-      currency: dto.currency || 'KZT',
+      currency: dto.currency || (await this.workspaceCurrencyService.resolve(workspaceId)),
       dueDate: this.parseDate(dto.dueDate),
       status: dto.status || PayableStatus.TO_PAY,
       linkedTransactionId: dto.linkedTransactionId || null,
@@ -188,7 +191,7 @@ export class PayablesService {
       where: { id: workspaceId },
       select: ['currency'],
     });
-    const targetCurrency = this.normalizeCurrency(workspace?.currency);
+    const targetCurrency = normalizeCurrency(workspace?.currency);
     const rateCache = new Map<string, number>();
 
     const now = new Date();
@@ -500,13 +503,6 @@ export class PayablesService {
     return copy;
   }
 
-  private normalizeCurrency(currency: string | null | undefined): string {
-    const normalized = String(currency || '')
-      .trim()
-      .toUpperCase();
-    return /^[A-Z]{3}$/.test(normalized) ? normalized : 'KZT';
-  }
-
   private async convertSummaryAmount(
     amount: number,
     sourceCurrency: string | null | undefined,
@@ -517,7 +513,7 @@ export class PayablesService {
       return 0;
     }
 
-    const source = this.normalizeCurrency(sourceCurrency);
+    const source = normalizeCurrency(sourceCurrency);
     if (source === targetCurrency) {
       return amount;
     }

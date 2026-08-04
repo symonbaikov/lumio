@@ -9,8 +9,10 @@ import type {
 } from '@/app/components/receipts/receipt-types';
 import { DetailActionButton } from '@/app/components/ui/detail-action-button';
 import { Spinner } from '@/app/components/ui/spinner';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import apiClient, { apiBaseUrl, receiptsApi, type ReceiptRecord } from '@/app/lib/api';
 import { normalizeReceiptLineItems } from '@/app/lib/financial-document';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { tokens } from '@/lib/theme-tokens';
 import { Box, Typography } from '@mui/material';
@@ -38,11 +40,14 @@ function buildLineItems(receipt: ReceiptRecord | null): EditableReceiptLineItem[
   }));
 }
 
-function buildInitialForm(receipt: ReceiptRecord | null): EditableReceiptParsedData {
+function buildInitialForm(
+  receipt: ReceiptRecord | null,
+  fallbackCurrency: string,
+): EditableReceiptParsedData {
   return {
     vendor: receipt?.parsedData?.vendor ?? '',
     amount: receipt?.parsedData?.amount ?? '',
-    currency: receipt?.parsedData?.currency ?? 'KZT',
+    currency: receipt?.parsedData?.currency ?? fallbackCurrency,
     date: receipt?.parsedData?.date?.split('T')[0] ?? '',
     tax: receipt?.parsedData?.tax ?? '',
     paymentMethod: receipt?.parsedData?.paymentMethod ?? '',
@@ -229,10 +234,14 @@ export default function ReceiptDocumentPage() {
   const receiptId = params.id;
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
+  const { currentWorkspace } = useWorkspace();
+  const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
 
   const [receipt, setReceipt] = useState<ReceiptRecord | null>(null);
   const [categories, setCategories] = useState<ReceiptCategoryOption[]>([]);
-  const [formValue, setFormValue] = useState<EditableReceiptParsedData>(buildInitialForm(null));
+  const [formValue, setFormValue] = useState<EditableReceiptParsedData>(() =>
+    buildInitialForm(null, workspaceCurrency),
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exportingToTable, setExportingToTable] = useState(false);
@@ -259,7 +268,7 @@ export default function ReceiptDocumentPage() {
         []) as ReceiptCategoryOption[];
 
       setReceipt(nextReceipt);
-      setFormValue(buildInitialForm(nextReceipt));
+      setFormValue(buildInitialForm(nextReceipt, workspaceCurrency));
       setCategories(nextCategories);
     } catch (loadError) {
       console.error('Failed to load receipt details:', loadError);
@@ -268,7 +277,7 @@ export default function ReceiptDocumentPage() {
     } finally {
       setLoading(false);
     }
-  }, [receiptId]);
+  }, [receiptId, workspaceCurrency]);
 
   useEffect(() => {
     void loadData();
@@ -335,8 +344,10 @@ export default function ReceiptDocumentPage() {
       return;
     }
 
-    lastSavedPayloadRef.current = JSON.stringify(buildParsedDataPayload(buildInitialForm(receipt)));
-  }, [receipt]);
+    lastSavedPayloadRef.current = JSON.stringify(
+      buildParsedDataPayload(buildInitialForm(receipt, workspaceCurrency)),
+    );
+  }, [receipt, workspaceCurrency]);
 
   useEffect(() => {
     return () => {

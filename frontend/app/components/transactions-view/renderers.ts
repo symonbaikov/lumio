@@ -6,6 +6,8 @@ import { getNamedObjectLabel, getTransactionValue, resolveLocale } from './colum
 
 export interface RendererConfig {
   locale: string;
+  /** Fallback currency for rows that carry no currency of their own. */
+  fallbackCurrency: string;
   formatDate: (d: string) => string;
   formatAmount: (params: { amount: number; currency?: string }) => string;
   t: Record<string, unknown>;
@@ -39,9 +41,9 @@ export const buildCreditRenderer =
       : getDashValue(cfg);
 
 export const buildCurrencyRenderer =
-  () =>
+  (cfg: RendererConfig) =>
   (tx: Transaction): React.ReactNode =>
-    tx.currency ?? 'KZT';
+    tx.currency ?? cfg.fallbackCurrency;
 
 export const buildExchangeRateRenderer =
   (cfg: RendererConfig) =>

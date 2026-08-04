@@ -14,7 +14,7 @@ const mockTransactions: Transaction[] = [
     credit: 0,
     amount: 10000,
     transactionType: 'EXPENSE',
-    currency: 'KZT',
+    currency: 'USD',
     category: { name: 'Services' },
   },
   {
@@ -28,7 +28,7 @@ const mockTransactions: Transaction[] = [
     credit: 15000,
     amount: 15000,
     transactionType: 'INCOME',
-    currency: 'KZT',
+    currency: 'USD',
     category: { name: 'Sales' },
   },
   {
@@ -41,7 +41,7 @@ const mockTransactions: Transaction[] = [
     credit: 5000,
     amount: 5000,
     transactionType: 'TRANSFER',
-    currency: 'KZT',
+    currency: 'USD',
   },
   {
     id: '4',
@@ -68,6 +68,10 @@ const meta: Meta<typeof TransactionsView> = {
     layout: 'fullscreen',
   },
   tags: ['autodocs'],
+  args: {
+    // Fallback currency for rows that carry no currency of their own.
+    currency: 'USD',
+  },
 };
 
 export default meta;
@@ -98,7 +102,7 @@ export const ManyTransactions: Story = {
       credit: i % 2 === 1 ? (i + 1) * 1500 : 0,
       amount: (i + 1) * 1000,
       transactionType: i % 2 === 0 ? 'EXPENSE' : i % 3 === 0 ? 'INCOME' : 'TRANSFER',
-      currency: 'KZT',
+      currency: 'USD',
       category:
         i % 3 === 0 ? { name: 'Category A' } : i % 3 === 1 ? { name: 'Category B' } : undefined,
     })),

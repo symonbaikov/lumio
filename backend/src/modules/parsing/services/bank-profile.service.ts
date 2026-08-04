@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from 'fs';
 import { basename, extname, join, resolve } from 'path';
 import { Injectable, Logger } from '@nestjs/common';
 import * as yaml from 'js-yaml';
+import { DEFAULT_CURRENCY } from '../../../common/constants/currency.constants';
 import {
   createAmountFormat,
   createSharedProfileSections,
@@ -185,7 +186,7 @@ export class BankProfileService {
       return isoCurrency;
     }
 
-    return profile.country === 'US' ? 'USD' : 'KZT';
+    return DEFAULT_CURRENCY;
   }
 
   private normalizeColumnType(name: string): ColumnDefinition['type'] {

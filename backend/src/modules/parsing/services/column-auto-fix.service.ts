@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { DEFAULT_CURRENCY } from '../../../common/constants/currency.constants';
 import { ParsedTransaction } from '../interfaces/parsed-statement.interface';
 import { forEachIssueRowWithSchema } from './column-auto-fix.util';
 
@@ -475,7 +476,7 @@ export class ColumnAutoFixService {
     });
 
     // Determine default currency
-    let defaultCurrency = 'KZT'; // Default fallback
+    let defaultCurrency: string = DEFAULT_CURRENCY; // Default fallback
     let maxCount = 0;
     for (const [currency, count] of commonCurrencies.entries()) {
       if (count > maxCount) {
@@ -629,7 +630,7 @@ export class ColumnAutoFixService {
 
   private extractCurrencyFromText(text: string): string | null {
     const currencyPatterns = {
-      KZT: /(?:KZT|₽|тенге|тг)/gi,
+      KZT: /(?:KZT|₸|тенге|тг)/gi,
       USD: /(?:USD|\$|доллар)/gi,
       EUR: /(?:EUR|€|евро)/gi,
       RUB: /(?:RUB|₽|рубль)/gi,
@@ -694,7 +695,7 @@ export class ColumnAutoFixService {
       case 'paymentPurpose':
         return 'Use "Transaction"';
       case 'currency':
-        return 'Use default currency (KZT)';
+        return `Use default currency (${DEFAULT_CURRENCY})`;
       default:
         return 'Use empty string';
     }
@@ -712,7 +713,7 @@ export class ColumnAutoFixService {
       case 'paymentPurpose':
         return 'Transaction';
       case 'currency':
-        return 'KZT';
+        return DEFAULT_CURRENCY;
       case 'exchangeRate':
         return 1;
       case 'debit':

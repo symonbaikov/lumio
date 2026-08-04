@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { DEFAULT_CURRENCY } from '../common/constants/currency.constants';
 import { Branch } from './branch.entity';
 import { Category } from './category.entity';
 import { ImportSession } from './import-session.entity';
@@ -72,7 +73,7 @@ export class Transaction {
   @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
   amount: number | null;
 
-  @Column({ default: 'KZT' })
+  @Column({ default: DEFAULT_CURRENCY })
   currency: string;
 
   @Column({ name: 'exchange_rate', type: 'decimal', precision: 10, scale: 4, nullable: true })

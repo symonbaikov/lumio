@@ -1,8 +1,15 @@
+import { CurrencyDisplayProvider } from '@/app/contexts/CurrencyDisplayContext';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TransactionsTable from './TransactionsTable';
 import type { Category, FilterState, Transaction } from './types';
+
+vi.mock('@/app/contexts/WorkspaceContext', () => ({
+  useWorkspace: () => ({
+    currentWorkspace: { id: 'ws-1', name: 'Main workspace', currency: 'USD' },
+  }),
+}));
 
 const viewportState = vi.hoisted(() => ({ isMobile: true }));
 
@@ -50,7 +57,7 @@ const transactions: Transaction[] = [
     credit: 0,
     amount: 450,
     transactionType: 'expense',
-    currency: 'KZT',
+    currency: 'USD',
     category: {
       id: 'food',
       name: 'Food',
@@ -88,15 +95,17 @@ describe('TransactionsTable mobile view', () => {
 
     await act(async () => {
       root.render(
-        <TransactionsTable
-          transactions={transactions}
-          categories={categories}
-          selectedIds={[]}
-          onSelectRows={() => undefined}
-          onRowClick={() => undefined}
-          filters={filters}
-          onFilterChange={() => undefined}
-        />,
+        <CurrencyDisplayProvider>
+          <TransactionsTable
+            transactions={transactions}
+            categories={categories}
+            selectedIds={[]}
+            onSelectRows={() => undefined}
+            onRowClick={() => undefined}
+            filters={filters}
+            onFilterChange={() => undefined}
+          />
+        </CurrencyDisplayProvider>,
       );
     });
 
@@ -111,15 +120,17 @@ describe('TransactionsTable mobile view', () => {
 
     await act(async () => {
       root.render(
-        <TransactionsTable
-          transactions={transactions}
-          categories={categories}
-          selectedIds={[]}
-          onSelectRows={() => undefined}
-          onRowClick={() => undefined}
-          filters={filters}
-          onFilterChange={() => undefined}
-        />,
+        <CurrencyDisplayProvider>
+          <TransactionsTable
+            transactions={transactions}
+            categories={categories}
+            selectedIds={[]}
+            onSelectRows={() => undefined}
+            onRowClick={() => undefined}
+            filters={filters}
+            onFilterChange={() => undefined}
+          />
+        </CurrencyDisplayProvider>,
       );
     });
 

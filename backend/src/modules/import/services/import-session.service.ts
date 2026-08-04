@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, type QueryRunner, Repository } from 'typeorm';
+import { normalizeCurrency } from '../../../common/constants/currency.constants';
+import { WorkspaceCurrencyService } from '../../../common/services/workspace-currency.service';
 import {
   type ImportConflictResolution,
   ImportSession,
@@ -115,6 +117,7 @@ export class ImportSessionService {
     private readonly deduplicationService: IntelligentDeduplicationService,
     private readonly importConfigService: ImportConfigService,
     private readonly retryService: ImportRetryService,
+    private readonly workspaceCurrencyService: WorkspaceCurrencyService,
     private readonly eventEmitter?: EventEmitter2,
   ) {}
 
@@ -361,6 +364,8 @@ export class ImportSessionService {
 
     // Get statement account number if available
     const accountNumber = session.statement?.accountNumber || '';
+    // Resolved once, outside the row loop, so it never becomes a per-row query.
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(session.workspaceId);
 
     // Step 1: Generate fingerprints for all new transactions
     const classifications: TransactionClassification[] = [];
@@ -375,7 +380,10 @@ export class ImportSessionService {
             ...tx,
             workspaceId: session.workspaceId,
             amount: tx.debit || tx.credit || null,
-            currency: tx.currency || session.statement?.currency || 'KZT',
+            currency: normalizeCurrency(
+              tx.currency || session.statement?.currency,
+              workspaceCurrency,
+            ),
           },
           accountNumber,
         );
@@ -572,6 +580,10 @@ export class ImportSessionService {
       );
     }
 
+    // Resolved once for the whole commit, outside the row loop and outside the
+    // database transaction, so it never becomes a per-row query.
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(session.workspaceId);
+
     // Use database transaction for atomicity
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -640,6 +652,7 @@ export class ImportSessionService {
               session,
               accountNumber,
               queryRunner,
+              workspaceCurrency,
             );
             const existing = await loadExisting(previewData.existingTransactionId);
             if (existing) {
@@ -668,6 +681,7 @@ export class ImportSessionService {
               session,
               accountNumber,
               queryRunner,
+              workspaceCurrency,
             );
             const existing = await loadExisting(previewData.existingTransactionId);
             if (existing) {
@@ -692,6 +706,7 @@ export class ImportSessionService {
             session,
             accountNumber,
             queryRunner,
+            workspaceCurrency,
           );
           const saved = await queryRunner.manager.save(newTransaction);
           savedTransactions.push(saved);
@@ -769,13 +784,19 @@ export class ImportSessionService {
     session: ImportSession,
     accountNumber: string,
     queryRunner: QueryRunner,
+    workspaceCurrency: string,
   ): Promise<Transaction> {
+    const currency = normalizeCurrency(
+      parsed.currency || session.statement?.currency,
+      workspaceCurrency,
+    );
+
     const fingerprint = this.fingerprintService.generateFingerprint(
       {
         ...parsed,
         workspaceId: session.workspaceId,
         amount: parsed.debit || parsed.credit || null,
-        currency: parsed.currency || session.statement?.currency || 'KZT',
+        currency,
       },
       accountNumber,
     );
@@ -796,7 +817,7 @@ export class ImportSessionService {
       debit: parsed.debit || null,
       credit: parsed.credit || null,
       amount: parsed.debit || parsed.credit || null,
-      currency: parsed.currency || 'KZT',
+      currency,
       exchangeRate: parsed.exchangeRate || null,
       amountForeign: parsed.amountForeign || null,
       paymentPurpose: parsed.paymentPurpose,

@@ -1,3 +1,4 @@
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import React from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -157,9 +158,7 @@ describe('StatementsListItem', () => {
       );
     });
 
-    expect(
-      container.querySelector('[data-testid="statement-item-mobile-statement-1"]'),
-    ).toBeNull();
+    expect(container.querySelector('[data-testid="statement-item-mobile-statement-1"]')).toBeNull();
     expect(
       container.querySelector('[data-testid="statement-item-desktop-statement-1"]'),
     ).toBeTruthy();
@@ -211,9 +210,9 @@ describe('StatementsListItem', () => {
     });
 
     expect(documentTypeIconSpy).toHaveBeenCalled();
-    expect(
-      documentTypeIconSpy.mock.calls.every(([props]) => props.source === 'receipt'),
-    ).toBe(true);
+    expect(documentTypeIconSpy.mock.calls.every(([props]) => props.source === 'receipt')).toBe(
+      true,
+    );
 
     const previewTrigger = container.querySelector(
       '[data-testid="statement-thumbnail-trigger-receipt-local-1"]',
@@ -694,7 +693,9 @@ describe('StatementsListItem', () => {
     expect(container.textContent).toContain('PRIMARY #1/2');
     expect(container.textContent).toContain('Review');
     const duplicateRow = container.querySelector('.lumio-stmt-list-item') as HTMLElement | null;
-    const duplicateAccent = container.querySelector('.lumio-stmt-list-item__accent') as HTMLElement | null;
+    const duplicateAccent = container.querySelector(
+      '.lumio-stmt-list-item__accent',
+    ) as HTMLElement | null;
 
     expect(duplicateRow?.style.backgroundColor).toBe('rgb(255, 255, 255)');
     expect(duplicateRow?.style.boxShadow).toContain('inset 0 0 0 1px');
@@ -859,9 +860,7 @@ describe('StatementsListItem', () => {
           onToggleSelect={() => undefined}
           currentExchangeRateLabels={{ 'USD:KZT': '1 USD = 512.34 KZT' }}
           workspaceCurrency="KZT"
-          columns={[
-            { id: 'exchangeRate', label: 'Exchange rate', visible: true, order: 0 },
-          ]}
+          columns={[{ id: 'exchangeRate', label: 'Exchange rate', visible: true, order: 0 }]}
         />,
       );
     });
@@ -872,7 +871,7 @@ describe('StatementsListItem', () => {
     expect(desktopContainer?.textContent).toContain('1 USD = 512.34 KZT');
   });
 
-  it('uses the current USD exchange rate when workspace currency is missing', () => {
+  it('falls back to the default currency for the USD exchange rate when workspace currency is missing', () => {
     const root = createRoot(container);
 
     const statement = {
@@ -901,11 +900,11 @@ describe('StatementsListItem', () => {
           onView={() => undefined}
           onIconClick={() => undefined}
           onToggleSelect={() => undefined}
-          currentExchangeRateLabels={{ 'USD:KZT': '1 USD = 512.34 KZT' }}
+          currentExchangeRateLabels={{
+            [`USD:${DEFAULT_CURRENCY}`]: `1 USD = 1.00 ${DEFAULT_CURRENCY}`,
+          }}
           workspaceCurrency={null}
-          columns={[
-            { id: 'exchangeRate', label: 'Exchange rate', visible: true, order: 0 },
-          ]}
+          columns={[{ id: 'exchangeRate', label: 'Exchange rate', visible: true, order: 0 }]}
         />,
       );
     });
@@ -913,7 +912,7 @@ describe('StatementsListItem', () => {
     const desktopContainer = container.querySelector(
       '[data-testid="statement-item-desktop-column-usd-rate-default-currency"]',
     ) as HTMLDivElement | null;
-    expect(desktopContainer?.textContent).toContain('1 USD = 512.34 KZT');
+    expect(desktopContainer?.textContent).toContain(`1 USD = 1.00 ${DEFAULT_CURRENCY}`);
   });
 
   it('normalizes NIS workspace currency to ILS for current exchange rates', () => {
@@ -947,9 +946,7 @@ describe('StatementsListItem', () => {
           onToggleSelect={() => undefined}
           currentExchangeRateLabels={{ 'USD:ILS': '1 USD = 3.72 ILS' }}
           workspaceCurrency="NIS"
-          columns={[
-            { id: 'exchangeRate', label: 'Exchange rate', visible: true, order: 0 },
-          ]}
+          columns={[{ id: 'exchangeRate', label: 'Exchange rate', visible: true, order: 0 }]}
         />,
       );
     });

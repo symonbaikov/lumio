@@ -15,6 +15,7 @@ import { Transaction } from '@/entities/transaction.entity';
 import { User, UserRole } from '@/entities/user.entity';
 import { WorkspaceMember, WorkspaceRole } from '@/entities/workspace-member.entity';
 import { FileStorageService } from '@/common/services/file-storage.service';
+import { WorkspaceCurrencyService } from '../../../../src/common/services/workspace-currency.service';
 
 jest.mock('@/common/utils/file-hash.util');
 jest.mock('@/common/utils/file-validator.util');
@@ -59,6 +60,10 @@ describe('StatementsService — business logic', () => {
     module = await Test.createTestingModule({
       providers: [
         StatementsService,
+        {
+          provide: WorkspaceCurrencyService,
+          useValue: { resolve: jest.fn().mockResolvedValue('USD') },
+        },
         {
           provide: getRepositoryToken(Statement),
           useValue: {

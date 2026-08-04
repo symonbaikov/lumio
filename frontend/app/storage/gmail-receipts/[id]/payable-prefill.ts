@@ -1,3 +1,4 @@
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import type { CreatePayableInput } from '@/app/lib/payables-api';
 
 type ReceiptLike = {
@@ -49,9 +50,12 @@ const toDateOnly = (value?: string | null) => {
 export const buildPayablePrefillFromReceipt = ({
   receipt,
   editedData,
+  fallbackCurrency = DEFAULT_CURRENCY,
 }: {
   receipt: ReceiptLike;
   editedData: EditableReceiptDataLike;
+  /** Workspace currency, used when neither the edit form nor the receipt carries one. */
+  fallbackCurrency?: string;
 }): CreatePayableInput | null => {
   const transactionType = receipt.parsedData?.transactionType || 'expense';
   if (transactionType === 'income') {
@@ -71,7 +75,7 @@ export const buildPayablePrefillFromReceipt = ({
   return {
     vendor: editedData.vendor || receipt.parsedData?.vendor || receipt.subject,
     amount,
-    currency: editedData.currency || receipt.parsedData?.currency || 'KZT',
+    currency: editedData.currency || receipt.parsedData?.currency || fallbackCurrency,
     dueDate: toDateOnly(editedData.date || receipt.parsedData?.date || receipt.receivedAt),
     source: 'invoice',
     comment: `Created from Gmail receipt ${receipt.subject}`,

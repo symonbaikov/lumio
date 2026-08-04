@@ -11,6 +11,7 @@ import {
 } from '../../../../src/entities';
 import { ReceiptsService } from '../../../../src/modules/receipts/receipts.service';
 import { ReceiptProcessorService } from '../../../../src/modules/receipts/services/receipt-processor.service';
+import { WorkspaceCurrencyService } from '../../../../src/common/services/workspace-currency.service';
 
 describe('ReceiptsService', () => {
   let service: ReceiptsService;
@@ -63,6 +64,10 @@ describe('ReceiptsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReceiptsService,
+        {
+          provide: WorkspaceCurrencyService,
+          useValue: { resolve: jest.fn().mockResolvedValue('USD') },
+        },
         { provide: getRepositoryToken(Receipt), useValue: receiptRepository },
         { provide: getRepositoryToken(ReceiptProcessingJob), useValue: jobRepository },
         { provide: getRepositoryToken(Transaction), useValue: transactionRepository },

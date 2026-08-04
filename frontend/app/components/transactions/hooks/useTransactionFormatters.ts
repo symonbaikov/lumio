@@ -10,6 +10,7 @@ import type { Transaction, TransactionRowFormatters } from '../types';
 export function useTransactionFormatters(
   locale: string,
   showConverted: boolean,
+  fallbackCurrency: string,
 ): TransactionRowFormatters {
   return useMemo(
     () => ({
@@ -19,8 +20,8 @@ export function useTransactionFormatters(
       resolveDisplayAmount: (tx: Transaction, raw: number): number =>
         resolveDisplayAmount(tx, raw, showConverted),
       resolveDisplayCurrency: (tx: Transaction): string =>
-        resolveDisplayCurrency(tx, showConverted),
+        resolveDisplayCurrency(tx, showConverted, fallbackCurrency),
     }),
-    [locale, showConverted],
+    [locale, showConverted, fallbackCurrency],
   );
 }

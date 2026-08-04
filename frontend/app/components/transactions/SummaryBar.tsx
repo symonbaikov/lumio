@@ -7,6 +7,7 @@ import {
 } from '@/app/components/transactions/helpers/transactionFormatters';
 import { Button } from '@/app/components/ui/button';
 import { Spinner } from '@/app/components/ui/spinner';
+import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { resolveBankLogo } from '@bank-logos';
 import { useMemo } from 'react';
@@ -42,6 +43,7 @@ export default function SummaryBar({
 }: SummaryBarProps) {
   const { locale } = useLocale();
   const t = useIntlayer('transactionsSummaryBar');
+  const { workspaceCurrency } = useCurrencyDisplay();
 
   const stats = useMemo(() => {
     const totalParsed = transactions.length;
@@ -61,7 +63,7 @@ export default function SummaryBar({
       return sum + (Number.isNaN(creditValue) ? 0 : creditValue);
     }, 0);
 
-    const currency = transactions[0]?.currency || 'KZT';
+    const currency = transactions[0]?.currency || workspaceCurrency;
 
     return {
       totalParsed,
@@ -72,7 +74,7 @@ export default function SummaryBar({
       creditTotal,
       currency,
     };
-  }, [transactions]);
+  }, [transactions, workspaceCurrency]);
 
   return (
     <div className="lumio-tx-summary">

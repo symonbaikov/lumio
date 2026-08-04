@@ -102,6 +102,8 @@ export function mapParsedTransaction(
       (raw?.purpose || raw?.payment_purpose || raw?.description || raw?.comment || '')
         .toString()
         .trim() || 'Не указано',
-    currency: optionalStringValue(raw.currency) || 'KZT',
+    // Left undefined when the model did not report one — the statement/workspace
+    // currency is applied downstream.
+    currency: optionalStringValue(raw.currency),
   };
 }

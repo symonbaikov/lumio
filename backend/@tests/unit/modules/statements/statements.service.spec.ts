@@ -23,6 +23,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { WorkspaceCurrencyService } from '../../../../src/common/services/workspace-currency.service';
 jest.mock('@/common/utils/file-hash.util');
 jest.mock('@/common/utils/file-validator.util');
 jest.mock('@/common/utils/filename.util');
@@ -74,6 +75,10 @@ describe('StatementsService', () => {
     testingModule = await Test.createTestingModule({
       providers: [
         StatementsService,
+        {
+          provide: WorkspaceCurrencyService,
+          useValue: { resolve: jest.fn().mockResolvedValue('USD') },
+        },
         {
           provide: getRepositoryToken(Statement),
           useValue: {

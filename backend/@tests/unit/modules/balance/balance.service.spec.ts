@@ -23,6 +23,7 @@ describe('BalanceService', () => {
   const statementRepository = createRepoMock();
   const workspaceMemberRepository = createRepoMock();
   const auditService = { createEvent: jest.fn() } as any;
+  const workspaceCurrencyService = { resolve: jest.fn().mockResolvedValue('USD') } as any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -35,6 +36,7 @@ describe('BalanceService', () => {
       statementRepository,
       workspaceMemberRepository,
       auditService,
+      workspaceCurrencyService,
     );
   });
 

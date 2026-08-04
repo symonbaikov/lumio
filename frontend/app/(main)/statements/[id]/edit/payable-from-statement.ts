@@ -1,3 +1,4 @@
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import type { CreatePayableInput } from '@/app/lib/payables-api';
 
 type StatementLike = {
@@ -61,7 +62,8 @@ export const buildPayableFromStatement = ({
 
   const vendor = expenseTransactions[0]?.counterpartyName?.trim() || statement.fileName;
   const currency =
-    statement.parsingDetails?.metadataExtracted?.headerDisplay?.currencyDisplay?.trim() || 'KZT';
+    statement.parsingDetails?.metadataExtracted?.headerDisplay?.currencyDisplay?.trim() ||
+    DEFAULT_CURRENCY;
 
   return {
     vendor,

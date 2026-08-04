@@ -9,7 +9,11 @@ export function registerDataEntryTools(server: McpServer): void {
     {
       type: z.enum(['income', 'expense']).describe('Entry type'),
       amount: z.number().positive().describe('Amount (positive number)'),
-      currency: z.string().length(3).optional().default('KZT').describe('ISO 4217 currency code'),
+      currency: z
+        .string()
+        .length(3)
+        .optional()
+        .describe('ISO 4217 currency code (defaults to the workspace currency)'),
       description: z.string().describe('Description of the entry'),
       date: z.string().describe('Entry date (YYYY-MM-DD)'),
       categoryId: z.string().uuid().optional().describe('Category ID'),

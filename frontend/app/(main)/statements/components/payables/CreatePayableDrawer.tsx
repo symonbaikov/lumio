@@ -6,6 +6,8 @@ import { ChevronLeft } from '@/app/components/icons';
 import { CurrencyDrawer } from '@/app/components/receipts/components/CurrencyDrawer';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { Input } from '@/app/components/ui/input';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import type {
   CreatePayableInput,
   Payable,
@@ -56,10 +58,10 @@ interface PayableFormState {
   comment: string;
 }
 
-const createEmptyState = (): PayableFormState => ({
+const createEmptyState = (defaultCurrency: string): PayableFormState => ({
   vendor: '',
   amount: '',
-  currency: 'KZT',
+  currency: defaultCurrency,
   dueDate: '',
   source: 'manual',
   status: 'to_pay',
@@ -132,18 +134,19 @@ function useCurrencyPickerState(currency: string): {
 
 // eslint-disable-next-line max-params
 const toFormState = (
-  payable?: Payable | null,
-  initialValues?: CreatePayableInput | null,
+  payable: Payable | null | undefined,
+  initialValues: CreatePayableInput | null | undefined,
+  defaultCurrency: string,
 ): PayableFormState => {
   if (!(payable || initialValues)) {
-    return createEmptyState();
+    return createEmptyState(defaultCurrency);
   }
 
   if (!payable && initialValues) {
     return {
       vendor: initialValues.vendor || '',
       amount: String(initialValues.amount ?? ''),
-      currency: initialValues.currency || 'KZT',
+      currency: initialValues.currency || defaultCurrency,
       dueDate: initialValues.dueDate ? initialValues.dueDate.slice(0, 10) : '',
       source: initialValues.source || 'manual',
       status: initialValues.status || 'to_pay',
@@ -154,7 +157,7 @@ const toFormState = (
   return {
     vendor: payable?.vendor || '',
     amount: String(payable?.amount ?? ''),
-    currency: payable?.currency || 'KZT',
+    currency: payable?.currency || defaultCurrency,
     dueDate: payable?.dueDate ? payable.dueDate.slice(0, 10) : '',
     source: payable?.source || 'manual',
     status: payable?.status || 'to_pay',
@@ -172,8 +175,12 @@ export function CreatePayableDrawer({
   onSubmit,
   labels,
 }: CreatePayableDrawerProps): React.JSX.Element {
-  const [form, setForm] = useState<PayableFormState>(() => toFormState(payable, initialValues));
-  const currencyPicker = useCurrencyPickerState(form.currency || 'KZT');
+  const { currentWorkspace } = useWorkspace();
+  const defaultCurrency = resolveCurrencyCode(currentWorkspace?.currency);
+  const [form, setForm] = useState<PayableFormState>(() =>
+    toFormState(payable, initialValues, defaultCurrency),
+  );
+  const currencyPicker = useCurrencyPickerState(form.currency || defaultCurrency);
   const {
     currencyDrawerOpen,
     setCurrencyDrawerOpen,
@@ -193,8 +200,8 @@ export function CreatePayableDrawer({
       setCurrencySearch('');
       return;
     }
-    setForm(toFormState(payable, initialValues));
-  }, [initialValues, open, payable, setCurrencyDrawerOpen, setCurrencySearch]);
+    setForm(toFormState(payable, initialValues, defaultCurrency));
+  }, [defaultCurrency, initialValues, open, payable, setCurrencyDrawerOpen, setCurrencySearch]);
 
   const canSubmit = useMemo(() => form.vendor.trim().length > 0 && Number(form.amount) > 0, [form]);
 
@@ -206,7 +213,7 @@ export function CreatePayableDrawer({
     await onSubmit({
       vendor: form.vendor.trim(),
       amount: Number(form.amount),
-      currency: form.currency.trim().toUpperCase() || 'KZT',
+      currency: resolveCurrencyCode(form.currency, defaultCurrency),
       dueDate: form.dueDate || undefined,
       source: form.source,
       status: form.status,

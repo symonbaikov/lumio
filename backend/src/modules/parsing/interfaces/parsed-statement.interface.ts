@@ -19,7 +19,13 @@ export interface ParsedStatementMetadata {
   dateTo: Date;
   balanceStart?: number;
   balanceEnd?: number;
-  currency: string;
+  /**
+   * Currency detected in the statement itself. Left `undefined` when the parser
+   * could not detect one — parsers must not invent a default. The workspace
+   * currency is applied downstream (see `StatementProcessingService`), which is
+   * the only layer that knows the workspace context.
+   */
+  currency?: string;
   rawHeader?: string;
   normalizedHeader?: string;
   periodLabel?: string;

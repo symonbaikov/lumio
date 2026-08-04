@@ -5,8 +5,10 @@ import type {
   EditableReceiptParsedData,
   ReceiptCategoryOption,
 } from '@/app/components/receipts/receipt-types';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import apiClient, { apiBaseUrl, receiptsApi, type ReceiptRecord } from '@/app/lib/api';
 import { normalizeReceiptLineItems } from '@/app/lib/financial-document';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -21,12 +23,13 @@ function buildLineItems(receipt: ReceiptRecord | null): EditableReceiptLineItem[
 
 function extractParsedFields(
   receipt: ReceiptRecord | null,
+  fallbackCurrency: string,
 ): Omit<EditableReceiptParsedData, 'lineItems'> {
   if (!receipt?.parsedData) {
     return {
       vendor: '',
       amount: '',
-      currency: 'KZT',
+      currency: fallbackCurrency,
       date: '',
       tax: '',
       paymentMethod: '',
@@ -38,7 +41,7 @@ function extractParsedFields(
   return {
     vendor: pd.vendor ?? '',
     amount: pd.amount ?? '',
-    currency: pd.currency ?? 'KZT',
+    currency: pd.currency ?? fallbackCurrency,
     date: pd.date ? pd.date.split('T')[0] : '',
     tax: pd.tax ?? '',
     paymentMethod: pd.paymentMethod ?? '',
@@ -47,8 +50,14 @@ function extractParsedFields(
   };
 }
 
-function buildInitialForm(receipt: ReceiptRecord | null): EditableReceiptParsedData {
-  return { ...extractParsedFields(receipt), lineItems: buildLineItems(receipt) };
+function buildInitialForm(
+  receipt: ReceiptRecord | null,
+  fallbackCurrency: string,
+): EditableReceiptParsedData {
+  return {
+    ...extractParsedFields(receipt, fallbackCurrency),
+    lineItems: buildLineItems(receipt),
+  };
 }
 
 export function buildParsedDataPayload(
@@ -193,6 +202,7 @@ function extractApiData(
 
 function useLoadData(
   receiptId: string,
+  fallbackCurrency: string,
   setters: {
     setReceipt: (v: ReceiptRecord) => void;
     setFormValue: (v: EditableReceiptParsedData) => void;
@@ -211,7 +221,7 @@ function useLoadData(
       ]);
       const { receipt, categories } = extractApiData(rr, cr);
       setters.setReceipt(receipt);
-      setters.setFormValue(buildInitialForm(receipt));
+      setters.setFormValue(buildInitialForm(receipt, fallbackCurrency));
       setters.setCategories(categories);
     } catch (err) {
       console.error('Failed to load receipt details:', err);
@@ -221,7 +231,7 @@ function useLoadData(
       setters.setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [receiptId]);
+  }, [receiptId, fallbackCurrency]);
 }
 
 function usePersistParsedData(
@@ -282,9 +292,13 @@ function useApproveReceipt(
 }
 
 export function useReceiptData({ receiptId }: { receiptId: string }): UseReceiptDataReturn {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
   const [receipt, setReceipt] = useState<ReceiptRecord | null>(null);
   const [categories, setCategories] = useState<ReceiptCategoryOption[]>([]);
-  const [formValue, setFormValue] = useState<EditableReceiptParsedData>(buildInitialForm(null));
+  const [formValue, setFormValue] = useState<EditableReceiptParsedData>(() =>
+    buildInitialForm(null, workspaceCurrency),
+  );
   const [loading, setLoading] = useState(true);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -294,7 +308,7 @@ export function useReceiptData({ receiptId }: { receiptId: string }): UseReceipt
   const lastSavedRef = useRef<string | null>(null);
   const autosaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadData = useLoadData(receiptId, {
+  const loadData = useLoadData(receiptId, workspaceCurrency, {
     setReceipt: r => setReceipt(r),
     setFormValue,
     setCategories,
@@ -309,8 +323,10 @@ export function useReceiptData({ receiptId }: { receiptId: string }): UseReceipt
       lastSavedRef.current = null;
       return;
     }
-    lastSavedRef.current = JSON.stringify(buildParsedDataPayload(buildInitialForm(receipt)));
-  }, [receipt]);
+    lastSavedRef.current = JSON.stringify(
+      buildParsedDataPayload(buildInitialForm(receipt, workspaceCurrency)),
+    );
+  }, [receipt, workspaceCurrency]);
   useEffect(
     () => () => {
       if (autosaveRef.current) {

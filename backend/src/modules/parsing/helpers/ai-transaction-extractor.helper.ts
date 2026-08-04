@@ -5,7 +5,12 @@ import type { ParsedTransaction } from '../interfaces/parsed-statement.interface
 import { isAiCircuitOpen, redactSensitive } from './ai-runtime.util';
 
 export class AiTransactionExtractor extends BaseAiHelper {
-  async extractTransactions(text: string): Promise<ParsedTransaction[]> {
+  /**
+   * @param defaultCurrency Currency detected in the statement, when the caller
+   *   found one. Left undefined the model is told to use whatever the statement
+   *   shows rather than being nudged towards a specific currency.
+   */
+  async extractTransactions(text: string, defaultCurrency?: string): Promise<ParsedTransaction[]> {
     if (!this.isAvailable()) {
       return [];
     }
@@ -16,6 +21,9 @@ export class AiTransactionExtractor extends BaseAiHelper {
 
     const statementText = text.length > 20000 ? text.substring(0, 20000) : text;
     const redactedText = redactSensitive(statementText);
+    const currencyInstruction = defaultCurrency
+      ? `Default currency ${defaultCurrency}.`
+      : 'For currency, use the currency shown in the statement.';
 
     try {
       const timeoutMs = Number.parseInt(process.env.AI_TIMEOUT_MS || '20000', 10);
@@ -25,7 +33,7 @@ export class AiTransactionExtractor extends BaseAiHelper {
             role: 'user',
             parts: [
               {
-                text: `Extract ALL transactions from this bank statement text (could be Kaspi Bank, Bereke Bank, or other Kazakhstan banks). Each transaction typically has: document number, date, debit amount, credit amount, counterparty name, account numbers, payment purpose. Return ONLY JSON with the shape {"transactions":[{date,document_number,counterparty_name,counterparty_bin,counterparty_account,counterparty_bank,debit,credit,purpose,currency}]}. Use ISO dates (YYYY-MM-DD). Numbers must be decimal (dot). Default currency KZT. Preserve full payment purpose. Extract ALL transactions you can find.
+                text: `Extract ALL transactions from this bank statement text (could be Kaspi Bank, Bereke Bank, or other Kazakhstan banks). Each transaction typically has: document number, date, debit amount, credit amount, counterparty name, account numbers, payment purpose. Return ONLY JSON with the shape {"transactions":[{date,document_number,counterparty_name,counterparty_bin,counterparty_account,counterparty_bank,debit,credit,purpose,currency}]}. Use ISO dates (YYYY-MM-DD). Numbers must be decimal (dot). ${currencyInstruction} Preserve full payment purpose. Extract ALL transactions you can find.
 
 ${redactedText}`,
               },

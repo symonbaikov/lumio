@@ -35,7 +35,7 @@ export default function TransactionsTable({
   const { locale } = useLocale();
   const t = useIntlayer('transactionsTable');
   const isMobile = useIsMobile();
-  const { showConverted } = useCurrencyDisplay();
+  const { showConverted, workspaceCurrency } = useCurrencyDisplay();
   const state = useTransactionsTable({
     transactions,
     filters,
@@ -43,7 +43,7 @@ export default function TransactionsTable({
     onSelectRows,
     onFilterChange,
   });
-  const formatters = useTransactionFormatters(locale, showConverted);
+  const formatters = useTransactionFormatters(locale, showConverted, workspaceCurrency);
   const handlers = {
     onRowClick,
     onToggleExpansion: state.toggleExpansion,

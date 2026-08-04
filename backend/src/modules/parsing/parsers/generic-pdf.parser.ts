@@ -37,7 +37,7 @@ export class GenericPdfParser extends BaseParser {
 
     const headerInfo = this.extractHeaderFromText(text);
     const localeInfo = this.detectLocale(text);
-    const detectedCurrency = this.detectCurrency(text) || 'KZT';
+    const detectedCurrency = this.detectCurrency(text) || undefined;
     const tableTransactions = mapPdfTableRowsToTransactions(tableRows, {
       defaultCurrency: detectedCurrency,
       stopWords: ['итого', 'оборот', 'остаток'],
@@ -47,7 +47,7 @@ export class GenericPdfParser extends BaseParser {
 
     if (!transactions.length && this.aiExtractor.isAvailable() && text.trim().length) {
       try {
-        transactions = await this.aiExtractor.extractTransactions(text);
+        transactions = await this.aiExtractor.extractTransactions(text, detectedCurrency);
       } catch (error) {
         console.warn('[GenericPdfParser] AI extraction failed:', (error as Error)?.message);
       }

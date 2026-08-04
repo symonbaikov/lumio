@@ -100,7 +100,7 @@ export abstract class BaseTabularParser extends BaseParser {
     columnMapping: TabularColumnMapping,
     getValue: (index: number) => unknown,
     sourceLabel = 'tabular',
-    defaultCurrency = 'KZT',
+    defaultCurrency?: string,
   ): ParsedTransaction | null {
     try {
       const dateIndex = columnMapping.date;

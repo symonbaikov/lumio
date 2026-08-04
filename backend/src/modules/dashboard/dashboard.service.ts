@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, type Repository } from 'typeorm';
+import { normalizeCurrency } from '../../common/constants/currency.constants';
 import { AuditEvent, EntityType } from '../../entities/audit-event.entity';
 import { Payable, PayableStatus } from '../../entities/payable.entity';
 import { Receipt, ReceiptStatus } from '../../entities/receipt.entity';
@@ -115,7 +116,7 @@ export class DashboardService {
       where: { id: workspaceId },
       select: ['currency'],
     });
-    const targetCurrency = this.normalizeCurrency(workspace?.currency);
+    const targetCurrency = normalizeCurrency(workspace?.currency);
 
     // Group income/expense by currency so we can convert each group
     const txRows = await this.transactionRepo
@@ -217,13 +218,6 @@ export class DashboardService {
     };
   }
 
-  private normalizeCurrency(currency: string | null | undefined): string {
-    const normalized = String(currency || '')
-      .trim()
-      .toUpperCase();
-    return /^[A-Z]{3}$/.test(normalized) ? normalized : 'KZT';
-  }
-
   private async convertDashboardAmount(
     amount: string | number | null | undefined,
     sourceCurrency: string | null | undefined,
@@ -233,7 +227,7 @@ export class DashboardService {
     if (!Number.isFinite(value) || value === 0) {
       return 0;
     }
-    const source = this.normalizeCurrency(sourceCurrency);
+    const source = normalizeCurrency(sourceCurrency);
     if (source === targetCurrency) {
       return value;
     }
@@ -246,7 +240,7 @@ export class DashboardService {
       where: { id: workspaceId },
       select: ['currency'],
     });
-    return this.normalizeCurrency(workspace?.currency);
+    return normalizeCurrency(workspace?.currency);
   }
 
   private async getActions(_userId: string, workspaceId: string): Promise<DashboardActionItem[]> {

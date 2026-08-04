@@ -1,3 +1,4 @@
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import type {
   Payable,
   PayableSource,
@@ -62,7 +63,7 @@ export const toNumber = (value: number | string | null | undefined): number => {
 
 export const formatMoney = (
   value: number | string | null | undefined,
-  currency = 'KZT',
+  currency = DEFAULT_CURRENCY,
   locale = 'en',
 ): string =>
   new Intl.NumberFormat(resolveLocale(locale), {

@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { DEFAULT_CURRENCY } from '../common/constants/currency.constants';
 import { DataEntryCustomField } from './data-entry-custom-field.entity';
 import { User } from './user.entity';
 import { Workspace } from './workspace.entity';
@@ -55,7 +56,7 @@ export class DataEntry {
   @Column({ type: 'text', nullable: true })
   note: string | null;
 
-  @Column({ type: 'varchar', length: 10, default: 'KZT' })
+  @Column({ type: 'varchar', length: 10, default: DEFAULT_CURRENCY })
   currency: string;
 
   @Column({ name: 'custom_field_name', type: 'varchar', length: 120, nullable: true })

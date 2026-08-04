@@ -7,6 +7,7 @@ import { CreditCard, Receipt } from '@/app/components/icons';
 import { AlertCircle, CheckCircle2, CircleHelp } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Spinner } from '@/app/components/ui/spinner';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import { tokens } from '@/lib/theme-tokens';
 import MuiTooltip from '@mui/material/Tooltip';
 import { useTheme } from 'next-themes';
@@ -493,7 +494,7 @@ export function StatementsListItem({
     statement.parsingDetails?.metadataExtracted?.currency,
     statement.parsingDetails?.metadataExtracted?.headerDisplay?.currencyDisplay,
   );
-  const targetCurrency = normalizeExchangeRateCurrency(workspaceCurrency) ?? 'KZT';
+  const targetCurrency = normalizeExchangeRateCurrency(workspaceCurrency) ?? DEFAULT_CURRENCY;
   const usdExchangeRateLabel = targetCurrency
     ? currentExchangeRateLabels?.[`USD:${targetCurrency}`]
     : null;

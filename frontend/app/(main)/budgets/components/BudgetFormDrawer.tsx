@@ -4,6 +4,7 @@ import { ChevronLeft } from '@/app/components/icons';
 import { CurrencyDrawer } from '@/app/components/receipts/components/CurrencyDrawer';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import apiClient from '@/app/lib/api';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import {
   type CurrencySearchItem,
   DEFAULT_RECENT_CURRENCIES,
@@ -387,7 +388,7 @@ function DrawerBody({
 
 export function BudgetFormDrawer(props: BudgetFormDrawerProps): React.JSX.Element {
   const categories = useExpenseCategories(props.open);
-  const currencyPicker = useCurrencyPickerState(props.formData.currency || 'KZT');
+  const currencyPicker = useCurrencyPickerState(props.formData.currency || DEFAULT_CURRENCY);
   const {
     currencyDrawerOpen,
     setCurrencyDrawerOpen,

@@ -27,6 +27,7 @@ const createService = (rows: unknown[] = []) => {
     {} as never,
     {} as never,
     {} as never,
+    { resolve: jest.fn().mockResolvedValue('USD') } as never,
   );
 
   return { service, transactionRepository, queryBuilder };

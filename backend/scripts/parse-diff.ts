@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import * as fs from 'fs';
 import * as path from 'path';
+import { DEFAULT_CURRENCY } from '../src/common/constants/currency.constants';
 import { FileType } from '../src/entities/statement.entity';
 import type {
   ParsedStatement,
@@ -29,7 +30,7 @@ function loadExpected(filePath: string): ParsedStatement {
   return {
     metadata: {
       accountNumber: metadata.accountNumber || '',
-      currency: metadata.currency || 'KZT',
+      currency: metadata.currency || DEFAULT_CURRENCY,
       dateFrom: new Date(metadata.dateFrom || metadata.date_from || Date.now()),
       dateTo: new Date(metadata.dateTo || metadata.date_to || metadata.dateFrom || Date.now()),
       balanceStart: metadata.balanceStart ?? metadata.balance_start,

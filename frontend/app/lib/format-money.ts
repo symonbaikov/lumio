@@ -10,12 +10,20 @@ export const resolveLocale = (locale?: string): string => {
 };
 
 /**
+ * Fallback currency used when a workspace has no explicit currency configured.
+ *
+ * Prefer the workspace's own `currency` (via `useWorkspace()` / the currency
+ * display context) — this constant is only the last resort.
+ */
+export const DEFAULT_CURRENCY = 'USD';
+
+/**
  * Validates and normalises a currency code to a 3-letter ISO 4217 uppercase string.
  * Returns `fallback` if the input is empty or invalid.
  */
 export const resolveCurrencyCode = (
   currency: string | null | undefined,
-  fallback = 'KZT',
+  fallback: string = DEFAULT_CURRENCY,
 ): string => {
   const normalized = String(currency ?? '')
     .trim()
@@ -27,7 +35,7 @@ export const resolveCurrencyCode = (
  * Formats a numeric `value` as a localised currency string.
  *
  * @param value     - Numeric amount to format.
- * @param currency  - ISO 4217 currency code (e.g. 'KZT', 'USD').
+ * @param currency  - ISO 4217 currency code (e.g. 'USD', 'EUR').
  * @param locale    - App locale key ('en' | 'ru' | 'kk').  Defaults to 'en'.
  */
 export const formatMoney = (value: number, currency: string, locale = 'en'): string => {

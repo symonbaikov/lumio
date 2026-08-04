@@ -23,7 +23,7 @@ export const mockTransaction: Transaction = {
   paymentPurpose: 'Оплата за услуги по договору №123 от 01.01.2024',
   debit: 150000,
   credit: 0,
-  currency: 'KZT',
+  currency: 'USD',
   transactionType: 'EXPENSE',
   category: mockCategory,
   hasWarnings: false,
@@ -53,7 +53,7 @@ export const mockTransactionIncome: Transaction = {
   paymentPurpose: 'Оплата по счету №456',
   debit: 0,
   credit: 500000,
-  currency: 'KZT',
+  currency: 'USD',
   transactionType: 'INCOME',
   category: mockCategories[1],
   hasWarnings: false,
@@ -72,7 +72,7 @@ export const mockTransactionLongContent: Transaction = {
   counterpartyName:
     'ТОО "Очень Длинное Название Компании Которое Может Не Поместиться В Одну Строку И Требует Переноса"',
   paymentPurpose:
-    'Оплата за оказанные услуги согласно Договору возмездного оказания услуг №12345/2024 от 15 января 2024 года, включая НДС 12%, сумма НДС составляет 16071.43 тенге. Назначение платежа очень длинное и содержит много деталей.',
+    'Оплата за оказанные услуги согласно Договору возмездного оказания услуг №12345/2024 от 15 января 2024 года, включая НДС 12%, сумма НДС составляет 16071.43 долларов. Назначение платежа очень длинное и содержит много деталей.',
 };
 
 export const mockTransactions: Transaction[] = [

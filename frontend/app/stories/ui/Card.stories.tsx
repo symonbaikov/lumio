@@ -77,19 +77,19 @@ export const CardGrid: Story = {
       <Card>
         <CardHeader className="pb-2">
           <CardDescription>Расходы</CardDescription>
-          <CardTitle className="text-2xl text-red-600">₸ 1,500,000</CardTitle>
+          <CardTitle className="text-2xl text-red-600">$1,500,000</CardTitle>
         </CardHeader>
       </Card>
       <Card>
         <CardHeader className="pb-2">
           <CardDescription>Доходы</CardDescription>
-          <CardTitle className="text-2xl text-green-600">₸ 2,300,000</CardTitle>
+          <CardTitle className="text-2xl text-green-600">$2,300,000</CardTitle>
         </CardHeader>
       </Card>
       <Card>
         <CardHeader className="pb-2">
           <CardDescription>Баланс</CardDescription>
-          <CardTitle className="text-2xl">₸ 800,000</CardTitle>
+          <CardTitle className="text-2xl">$800,000</CardTitle>
         </CardHeader>
       </Card>
     </div>

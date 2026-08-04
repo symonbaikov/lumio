@@ -1,7 +1,14 @@
 import * as fs from 'fs';
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { normalizeCurrency } from '../../../common/constants/currency.constants';
+import { WorkspaceCurrencyService } from '../../../common/services/workspace-currency.service';
 import { calculateFileHash } from '../../../common/utils/file-hash.util';
 import { getFileTypeFromMime } from '../../../common/utils/file-validator.util';
 import { normalizeFilename } from '../../../common/utils/filename.util';
@@ -18,6 +25,9 @@ import { ReceiptsService } from '../../receipts/receipts.service';
 
 @Injectable()
 export class ReceiptStatementService {
+  private static readonly AMOUNT_NOT_RECOGNIZED_MESSAGE =
+    'Не удалось распознать сумму на чеке. Проверьте качество снимка или добавьте расход вручную.';
+
   constructor(
     @InjectRepository(Statement)
     private readonly statementRepository: Repository<Statement>,
@@ -31,6 +41,7 @@ export class ReceiptStatementService {
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly receiptsService: ReceiptsService,
     private readonly auditService: AuditService,
+    private readonly workspaceCurrencyService: WorkspaceCurrencyService,
   ) {}
 
   async createFromReceiptScan(params: {
@@ -93,6 +104,30 @@ export class ReceiptStatementService {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
 
+  /**
+   * Receipt OCR does not always report a grand total. When it is missing, fall back
+   * to the sum of the extracted line items so the upload still yields a usable
+   * expense. Such a total is reported as `derived` because it can omit tax, and the
+   * resulting transaction is left unverified for the user to confirm.
+   */
+  private resolveReceiptAmount(parsed: {
+    amount?: number;
+    lineItems?: Array<{ description: string; amount: number }>;
+  }): { amount: number | null; derived: boolean } {
+    const reported = this.normalizePositiveAmount(parsed.amount);
+    if (reported !== null) {
+      return { amount: reported, derived: false };
+    }
+
+    const lineItemsTotal = (parsed.lineItems ?? []).reduce((sum, item) => {
+      const itemAmount = this.normalizePositiveAmount(item?.amount);
+      return itemAmount === null ? sum : sum + itemAmount;
+    }, 0);
+
+    const derivedAmount = this.normalizePositiveAmount(lineItemsTotal);
+    return { amount: derivedAmount, derived: derivedAmount !== null };
+  }
+
   private static readonly VENDOR_TO_BANK: { pattern: RegExp; bank: BankName }[] = [
     { pattern: /\bkaspi\b/i, bank: BankName.KASPI },
     { pattern: /\bкаспи/i, bank: BankName.KASPI },
@@ -140,7 +175,76 @@ export class ReceiptStatementService {
     const fileName = normalizeFilename(file.originalname);
     const fileType = getFileTypeFromMime(file.mimetype) as FileType;
     const fileHash = await calculateFileHash(file.path);
-    const fileData = await fs.promises.readFile(file.path);
+
+    const hashDuplicate = await this.statementRepository.findOne({
+      where: { workspaceId, fileHash },
+    });
+
+    if (hashDuplicate) {
+      throw new ConflictException({
+        message: 'Такой чек уже загружен (дубликат файла)',
+        duplicateStatementId: hashDuplicate.id,
+      });
+    }
+
+    const fallbackCategory = await this.categoryRepository.findOne({
+      where: {
+        workspaceId,
+        type: CategoryType.EXPENSE,
+        isEnabled: true,
+      },
+    });
+
+    if (!fallbackCategory) {
+      throw new BadRequestException('No enabled expense category available for receipt scan');
+    }
+
+    const statement = this.statementRepository.create({
+      userId: user.id,
+      workspaceId,
+      fileName,
+      filePath: file.path,
+      fileType,
+      fileSize: file.size,
+      fileHash,
+      bankName: BankName.OTHER,
+      status: StatementStatus.UPLOADED,
+      currency: await this.workspaceCurrencyService.resolve(workspaceId),
+      categoryId: fallbackCategory.id,
+      parsingDetails: {
+        detectedBy: 'receipt-scan',
+        parserUsed: 'receipt-scan',
+        parserVersion: '1',
+      },
+    });
+
+    const savedStatement = (await this.statementRepository.save(statement)) as Statement;
+
+    // OCR takes tens of seconds — far longer than the proxy/browser will wait. Run it
+    // detached so the upload returns at once; the client polls the statement status.
+    void this.processReceiptScan({
+      statementId: savedStatement.id,
+      user,
+      workspaceId,
+      file,
+      language,
+      fallbackCategoryId: fallbackCategory.id,
+    }).catch((error: unknown) => this.markStatementFailed(savedStatement.id, error));
+
+    return savedStatement;
+  }
+
+  private async processReceiptScan(params: {
+    statementId: string;
+    user: User;
+    workspaceId: string;
+    file: Express.Multer.File;
+    language?: string;
+    fallbackCategoryId: string;
+  }): Promise<void> {
+    const { statementId, user, workspaceId, file, language, fallbackCategoryId } = params;
+    const fileName = normalizeFilename(file.originalname);
+
     const receipt = await this.receiptsService.createFromScan({
       userId: user.id,
       workspaceId,
@@ -153,14 +257,17 @@ export class ReceiptStatementService {
     }
 
     const parsed = receipt.parsedData ?? {};
-    const amountValue = this.normalizePositiveAmount(parsed.amount);
+    const { amount: amountValue, derived: amountDerived } = this.resolveReceiptAmount(parsed);
+
+    if (amountValue === null) {
+      throw new BadRequestException(ReceiptStatementService.AMOUNT_NOT_RECOGNIZED_MESSAGE);
+    }
 
     const merchant =
       String(parsed.vendor || receipt.subject || fileName).trim() || 'Unknown merchant';
     const detectedBankName = ReceiptStatementService.detectBankFromVendor(merchant);
-    const currency = String(parsed.currency || 'KZT')
-      .trim()
-      .toUpperCase();
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(workspaceId);
+    const currency = normalizeCurrency(parsed.currency, workspaceCurrency);
     const parsedDate = parsed.date ? new Date(parsed.date) : new Date();
     const transactionDate = new Date(parsedDate.toISOString().slice(0, 10));
 
@@ -173,19 +280,7 @@ export class ReceiptStatementService {
         })
       : null;
 
-    const fallbackCategory =
-      category ??
-      (await this.categoryRepository.findOne({
-        where: {
-          workspaceId,
-          type: CategoryType.EXPENSE,
-          isEnabled: true,
-        },
-      }));
-
-    if (!fallbackCategory) {
-      throw new BadRequestException('No enabled expense category available for receipt scan');
-    }
+    const categoryId = category?.id ?? fallbackCategoryId;
 
     const taxRate = await this.taxRateRepository.findOne({
       where: {
@@ -195,36 +290,29 @@ export class ReceiptStatementService {
       },
     });
 
-    const hasAmount = amountValue !== null;
     const validationWarnings = [...(parsed.validationIssues ?? [])];
-    if (!hasAmount) {
-      validationWarnings.push('missing_amount');
+    if (amountDerived) {
+      validationWarnings.push('amount_derived_from_line_items');
     }
 
-    const statement = this.statementRepository.create({
-      userId: user.id,
-      workspaceId,
-      fileName,
-      filePath: file.path,
-      fileType,
-      fileSize: file.size,
-      fileHash,
+    await this.statementRepository.update(statementId, {
       bankName: detectedBankName,
-      status: hasAmount ? StatementStatus.COMPLETED : StatementStatus.UPLOADED,
+      status: StatementStatus.COMPLETED,
+      errorMessage: null,
       processedAt: new Date(),
       statementDateFrom: transactionDate,
       statementDateTo: transactionDate,
-      totalTransactions: hasAmount ? 1 : 0,
-      totalDebit: amountValue ?? 0,
+      totalTransactions: 1,
+      totalDebit: amountValue,
       totalCredit: 0,
       currency,
-      categoryId: fallbackCategory.id,
+      categoryId,
       parsingDetails: {
         detectedBy: 'receipt-scan',
         parserUsed: 'receipt-scan',
         parserVersion: '1',
-        transactionsFound: hasAmount ? 1 : 0,
-        transactionsCreated: hasAmount ? 1 : 0,
+        transactionsFound: 1,
+        transactionsCreated: 1,
         metadataExtracted: {
           dateFrom: transactionDate.toISOString().slice(0, 10),
           dateTo: transactionDate.toISOString().slice(0, 10),
@@ -239,7 +327,7 @@ export class ReceiptStatementService {
           merchant,
           description: merchant,
           attachments: 1,
-          categoryId: fallbackCategory.id,
+          categoryId,
           taxRateId: taxRate?.id || null,
           taxRateLabel: taxRate
             ? `${taxRate.name} (${Number(taxRate.rate || 0).toFixed(0)}%)`
@@ -250,43 +338,43 @@ export class ReceiptStatementService {
       },
     });
 
-    const savedStatement = (await this.statementRepository.save(statement)) as Statement;
-
-    await this.receiptsService.update(receipt.id, workspaceId, {
-      statementId: savedStatement.id,
-    });
+    await this.receiptsService.update(receipt.id, workspaceId, { statementId });
 
     try {
-      await this.statementRepository.update(savedStatement.id, { fileData });
+      const fileData = await fs.promises.readFile(file.path);
+      await this.statementRepository.update(statementId, { fileData });
     } catch (error) {
       console.warn(
         `[Statements] Failed to persist receipt scan file in DB: ${(error as Error)?.message}`,
       );
     }
 
-    if (hasAmount) {
-      const transactionType =
-        parsed.transactionType === 'income' ? TransactionType.INCOME : TransactionType.EXPENSE;
-      const isExpense = transactionType === TransactionType.EXPENSE;
+    const transactionType =
+      parsed.transactionType === 'income' ? TransactionType.INCOME : TransactionType.EXPENSE;
+    const isExpense = transactionType === TransactionType.EXPENSE;
 
-      const transaction = this.transactionRepository.create({
-        workspaceId,
-        statementId: savedStatement.id,
-        transactionDate,
-        counterpartyName: merchant,
-        paymentPurpose: merchant,
-        debit: isExpense ? amountValue : null,
-        credit: isExpense ? null : amountValue,
-        amount: amountValue,
-        currency,
-        transactionType,
-        categoryId: fallbackCategory.id,
-        taxRateId: taxRate?.id || null,
-        isVerified: true,
-      });
+    const transaction = this.transactionRepository.create({
+      workspaceId,
+      statementId,
+      transactionDate,
+      counterpartyName: merchant,
+      paymentPurpose: merchant,
+      debit: isExpense ? amountValue : null,
+      credit: isExpense ? null : amountValue,
+      amount: amountValue,
+      currency,
+      transactionType,
+      categoryId,
+      taxRateId: taxRate?.id || null,
+      // A total summed from line items can omit tax — leave it for the user to confirm.
+      isVerified: !amountDerived,
+    });
 
-      await this.transactionRepository.save(transaction);
-    }
+    await this.transactionRepository.save(transaction);
+
+    const processedStatement = await this.statementRepository.findOne({
+      where: { id: statementId },
+    });
 
     await this.auditService.createEvent({
       workspaceId,
@@ -294,21 +382,38 @@ export class ReceiptStatementService {
       actorId: user.id,
       actorLabel: user.email || user.name || 'User',
       entityType: EntityType.STATEMENT,
-      entityId: savedStatement.id,
+      entityId: statementId,
       action: AuditAction.IMPORT,
-      diff: { before: null, after: savedStatement },
+      diff: { before: null, after: processedStatement },
       meta: {
         source: 'receipt-scan',
         amount: amountValue,
         currency,
         merchant,
-        categoryId: fallbackCategory.id,
+        categoryId,
         taxRateId: taxRate?.id || null,
       },
       severity: Severity.INFO,
       isUndoable: false,
     });
+  }
 
-    return savedStatement;
+  /** Records a background scan failure on the statement so the client stops polling. */
+  private async markStatementFailed(statementId: string, error: unknown): Promise<void> {
+    const message = error instanceof Error ? error.message : 'Receipt scan could not be processed';
+
+    try {
+      await this.statementRepository.update(statementId, {
+        status: StatementStatus.ERROR,
+        errorMessage: message,
+        processedAt: new Date(),
+      });
+    } catch (updateError) {
+      console.error(
+        `[Statements] Failed to mark receipt statement ${statementId} as failed: ${
+          (updateError as Error)?.message
+        }`,
+      );
+    }
   }
 }

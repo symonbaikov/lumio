@@ -17,7 +17,7 @@ import { useTheme } from 'next-themes';
 import { useMemo, useState } from 'react';
 import type { EditableReceiptParsedData, ReceiptCategoryOption } from './receipt-types';
 
-const DEFAULT_RECENT_CURRENCIES = ['KZT', 'USD', 'EUR', 'RUB'] as const;
+const DEFAULT_RECENT_CURRENCIES = ['USD', 'EUR', 'GBP', 'RUB'] as const;
 
 export interface ReceiptParsedDataFormProps {
   value: EditableReceiptParsedData;

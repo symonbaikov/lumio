@@ -1,3 +1,4 @@
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import { Button } from '@/app/components/ui/button';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import type { Meta, StoryObj } from '@storybook/react';
@@ -62,7 +63,7 @@ function DetailsDrawerContent({
   const formatAmount = (amount: number, currency?: string) => {
     return new Intl.NumberFormat('ru-RU', {
       style: 'currency',
-      currency: currency || 'KZT',
+      currency: currency || DEFAULT_CURRENCY,
       minimumFractionDigits: 2,
     }).format(amount);
   };
@@ -281,7 +282,7 @@ const mockTransaction: Transaction = {
   paymentPurpose: 'Оплата за услуги по договору №123 от 01.01.2024',
   debit: 150000,
   credit: 0,
-  currency: 'KZT',
+  currency: 'USD',
   category: { id: 'cat-1', name: 'Операционные расходы', color: '#3b82f6' },
 };
 
@@ -381,7 +382,7 @@ export const LongContent: Story = {
               counterpartyName:
                 'ТОО "Очень Длинное Название Компании Которое Может Не Поместиться В Одну Строку"',
               paymentPurpose:
-                'Оплата за оказанные услуги согласно Договору возмездного оказания услуг №12345/2024 от 15 января 2024 года, включая НДС 12%, сумма НДС составляет 16071.43 тенге. Назначение платежа содержит много деталей о транзакции и её целях. Также в назначении может быть указана дополнительная информация о контрагенте и условиях договора.',
+                'Оплата за оказанные услуги согласно Договору возмездного оказания услуг №12345/2024 от 15 января 2024 года, включая НДС 12%, сумма НДС составляет 16071.43 долларов. Назначение платежа содержит много деталей о транзакции и её целях. Также в назначении может быть указана дополнительная информация о контрагенте и условиях договора.',
               article: 'Услуги консалтинга',
               branch: { name: 'Алматинский филиал' },
               wallet: { name: 'Основной счёт' },

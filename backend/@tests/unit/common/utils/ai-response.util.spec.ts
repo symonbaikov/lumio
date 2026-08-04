@@ -37,7 +37,8 @@ describe('AI response utilities', () => {
       debit: 1200.5,
       credit: undefined,
       paymentPurpose: 'Invoice payment',
-      currency: 'KZT',
+      // The AI payload reported no currency, so none is inferred here.
+      currency: undefined,
     });
   });
 

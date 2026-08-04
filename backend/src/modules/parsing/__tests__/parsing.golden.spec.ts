@@ -35,7 +35,9 @@ function loadExpected(filePath: string): ParsedStatement {
   return {
     metadata: {
       accountNumber: metadata.accountNumber || '',
-      currency: metadata.currency || 'KZT',
+      // Left undefined when the fixture omits it, so a missing expected currency
+      // stays visible instead of being silently defaulted.
+      currency: metadata.currency,
       dateFrom: new Date(metadata.dateFrom || metadata.date_from || Date.now()),
       dateTo: new Date(metadata.dateTo || metadata.date_to || metadata.dateFrom || Date.now()),
       balanceStart: metadata.balanceStart ?? metadata.balance_start,

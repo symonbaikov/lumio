@@ -2,6 +2,7 @@
 
 import { Banknote, CalendarClock, CheckCircle2, Clock3 } from '@/app/components/icons';
 import { Card } from '@/app/components/ui/card';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import type { PayablesSummary } from '@/app/lib/payables-api';
 import React from 'react';
 import { formatMoney, getSummaryCardItems } from './payables-utils';
@@ -30,7 +31,7 @@ const cardIcons = {
 function PayableSummaryCards({
   summary,
   locale = 'en',
-  currency = 'KZT',
+  currency = DEFAULT_CURRENCY,
   labels,
 }: PayableSummaryCardsProps): React.JSX.Element {
   const items = getSummaryCardItems(summary).map(item => ({

@@ -2,6 +2,7 @@ import { DEFAULT_BACKGROUND } from '@/app/(main)/workspaces/constants';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import { normalizeLocale } from '@/app/lib/locale';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -12,8 +13,6 @@ import { useIntegrationConnect } from './useIntegrationConnect';
 import { buildIntegrationCards, completeOnboarding, detectTimeZone } from './useOnboardingActions';
 import { useOnboardingInit } from './useOnboardingInit';
 import { useStepAnimation } from './useStepAnimation';
-
-const DEFAULT_CURRENCY = 'USD';
 
 function makeTxFn({ t, locale }: { t: unknown; locale: string }): (path: string[]) => string {
   return (path: string[]): string =>

@@ -1,4 +1,5 @@
 import type { DashboardActionItem, DashboardData } from '@/app/hooks/useDashboard';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 
 export type FinanceOpsFeatureStatus = 'ready' | 'review' | 'blocked';
 
@@ -58,7 +59,7 @@ export function buildFinanceOpsModel(
     totalPayable: data.snapshot?.totalPayable ?? 0,
     totalOverdue: data.snapshot?.totalOverdue ?? 0,
     unapprovedCash: data.snapshot?.unapprovedCash ?? 0,
-    currency: data.snapshot?.currency ?? 'KZT',
+    currency: data.snapshot?.currency ?? DEFAULT_CURRENCY,
   };
   const actions = data.actions ?? [];
   const topCategories = data.topCategories ?? [];
@@ -71,7 +72,8 @@ export function buildFinanceOpsModel(
   const triagePending = dataHealth.uncategorizedTransactions;
   const receiptPending = dataHealth.receiptsPendingReview;
   const reconciliationPending = Math.abs(snapshot.unapprovedCash) > 0 ? 1 : 0;
-  const anomalyPending = snapshot.totalOverdue > 0 || snapshot.expense30d > snapshot.income30d ? 1 : 0;
+  const anomalyPending =
+    snapshot.totalOverdue > 0 || snapshot.expense30d > snapshot.income30d ? 1 : 0;
 
   const closeChecklist: FinanceOpsChecklistItem[] = [
     {
@@ -154,7 +156,8 @@ export function buildFinanceOpsModel(
     {
       id: 'transaction-triage',
       title: 'Transaction Triage Mode',
-      summary: 'Process uncategorized transactions as an approval queue instead of hunting in tables.',
+      summary:
+        'Process uncategorized transactions as an approval queue instead of hunting in tables.',
       pendingCount: triagePending,
       status: statusFor(triagePending),
       href: '/statements/submit?categoryId=uncategorized',
@@ -176,7 +179,8 @@ export function buildFinanceOpsModel(
     {
       id: 'period-close-checklist',
       title: 'Period Close Checklist',
-      summary: 'Make month close explicit: imports, review, categories, receipts, and cash approval.',
+      summary:
+        'Make month close explicit: imports, review, categories, receipts, and cash approval.',
       pendingCount: closePending,
       status: statusFor(closePending, closePending > 0),
       href: '/reports',
@@ -239,7 +243,8 @@ export function buildFinanceOpsModel(
     {
       id: 'explain-number',
       title: 'Explain This Number',
-      summary: 'Connect every headline number to source transactions, categories, and period changes.',
+      summary:
+        'Connect every headline number to source transactions, categories, and period changes.',
       pendingCount: 0,
       status: 'ready',
       href: '/reports',

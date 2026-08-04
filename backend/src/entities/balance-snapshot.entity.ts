@@ -8,6 +8,7 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
+import { DEFAULT_CURRENCY } from '../common/constants/currency.constants';
 import { BalanceAccount } from './balance-account.entity';
 import { User } from './user.entity';
 import { Workspace } from './workspace.entity';
@@ -38,7 +39,7 @@ export class BalanceSnapshot {
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
   amount: number;
 
-  @Column({ default: 'KZT' })
+  @Column({ default: DEFAULT_CURRENCY })
   currency: string;
 
   @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })

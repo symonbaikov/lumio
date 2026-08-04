@@ -9,6 +9,7 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
+import { DEFAULT_CURRENCY } from '../common/constants/currency.constants';
 import { Category } from './category.entity';
 import { User } from './user.entity';
 import { Workspace } from './workspace.entity';
@@ -51,7 +52,7 @@ export class Subscription {
   @Column({ type: 'decimal', precision: 15, scale: 2 })
   amount: number;
 
-  @Column({ default: 'USD' })
+  @Column({ default: DEFAULT_CURRENCY })
   currency: string;
 
   @Column({ type: 'enum', enum: SubscriptionFrequency })

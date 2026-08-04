@@ -9,6 +9,7 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
+import { DEFAULT_CURRENCY } from '../common/constants/currency.constants';
 import { Category } from './category.entity';
 import { User } from './user.entity';
 import { Workspace } from './workspace.entity';
@@ -47,7 +48,7 @@ export class Budget {
   @Column({ name: 'limit_amount', type: 'decimal', precision: 15, scale: 2 })
   limitAmount: number;
 
-  @Column({ default: 'KZT' })
+  @Column({ default: DEFAULT_CURRENCY })
   currency: string;
 
   @Column({

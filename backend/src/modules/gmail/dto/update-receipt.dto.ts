@@ -26,7 +26,7 @@ export class ApproveReceiptDto {
   @IsNumber()
   amount: number;
 
-  @ApiProperty({ description: 'Transaction currency', default: 'KZT' })
+  @ApiProperty({ description: 'Transaction currency', default: 'USD' })
   @IsString()
   @IsOptional()
   currency?: string;

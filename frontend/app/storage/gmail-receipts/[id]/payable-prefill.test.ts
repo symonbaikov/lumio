@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import { buildPayablePrefillFromReceipt } from './payable-prefill';
 
 describe('buildPayablePrefillFromReceipt', () => {
@@ -77,5 +78,40 @@ describe('buildPayablePrefillFromReceipt', () => {
       source: 'invoice',
       comment: 'Created from Gmail receipt OpenAI Invoice',
     });
+  });
+
+  it('uses the supplied workspace currency when neither the form nor the receipt has one', () => {
+    const result = buildPayablePrefillFromReceipt({
+      receipt: {
+        subject: 'Unlabelled Invoice',
+        receivedAt: '2026-03-05T09:00:00Z',
+        parsedData: {
+          amount: 75,
+          vendor: 'Acme',
+          transactionType: 'expense',
+        },
+      },
+      editedData: { lineItems: [] },
+      fallbackCurrency: 'GBP',
+    });
+
+    expect(result?.currency).toBe('GBP');
+  });
+
+  it('falls back to the default currency when no workspace currency is supplied', () => {
+    const result = buildPayablePrefillFromReceipt({
+      receipt: {
+        subject: 'Unlabelled Invoice',
+        receivedAt: '2026-03-05T09:00:00Z',
+        parsedData: {
+          amount: 75,
+          vendor: 'Acme',
+          transactionType: 'expense',
+        },
+      },
+      editedData: { lineItems: [] },
+    });
+
+    expect(result?.currency).toBe(DEFAULT_CURRENCY);
   });
 });

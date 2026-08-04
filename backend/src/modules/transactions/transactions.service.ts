@@ -5,6 +5,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
+import { WorkspaceCurrencyService } from '../../common/services/workspace-currency.service';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { Statement } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
@@ -39,6 +40,7 @@ export class TransactionsService {
     private readonly auditService: AuditService,
     private readonly classificationService: ClassificationService,
     private readonly exchangeRatesService: ExchangeRatesService,
+    private readonly workspaceCurrencyService: WorkspaceCurrencyService,
     private readonly eventEmitter?: EventEmitter2,
   ) {}
 
@@ -152,9 +154,10 @@ export class TransactionsService {
     }
 
     const targetCurrency = filters.convertTo.toUpperCase();
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(workspaceId);
     const items = rawData.map(tx => ({
       amount: Number(tx.amount) || Number(tx.debit) || Number(tx.credit) || 0,
-      currency: tx.currency || 'KZT',
+      currency: tx.currency || workspaceCurrency,
       date: tx.transactionDate,
     }));
     const conversions = await this.exchangeRatesService.bulkConvert(items, targetCurrency);

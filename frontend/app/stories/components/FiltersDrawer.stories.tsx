@@ -118,7 +118,7 @@ const FiltersDrawerStory = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
     { value: 'currency', label: 'Currency' },
   ];
 
-  const currencyOptions = useMemo(() => ['KZT', 'USD', 'EUR'], []);
+  const currencyOptions = useMemo(() => ['USD', 'EUR', 'KZT'], []);
 
   return (
     <FiltersDrawer

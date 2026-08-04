@@ -11,6 +11,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { WorkspaceCurrencyService } from '../../../../src/common/services/workspace-currency.service';
 
 function createRepositoryMock<T extends object>() {
   return {
@@ -67,6 +68,10 @@ describe('PayablesService', () => {
     testingModule = await Test.createTestingModule({
       providers: [
         PayablesService,
+        {
+          provide: WorkspaceCurrencyService,
+          useValue: { resolve: jest.fn().mockResolvedValue('USD') },
+        },
         {
           provide: getRepositoryToken(Payable),
           useValue: createRepositoryMock<Payable>(),

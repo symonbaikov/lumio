@@ -95,6 +95,10 @@ describe('StatementProcessingService', () => {
     bulkGenerateFingerprints: jest.fn(() => new Map()),
   };
 
+  const workspaceCurrencyService = {
+    resolve: jest.fn().mockResolvedValue('USD'),
+  };
+
   const parsedStatement: ParsedStatement = {
     metadata: {
       accountNumber: '',
@@ -167,6 +171,7 @@ describe('StatementProcessingService', () => {
       metadataExtractionService as any,
       importSessionService as any,
       transactionFingerprintService as any,
+      workspaceCurrencyService as any,
     );
 
     // Disable AI reconciliation for deterministic tests

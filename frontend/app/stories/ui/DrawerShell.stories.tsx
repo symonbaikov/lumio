@@ -159,7 +159,7 @@ export const TransactionDetails: Story = {
                 <div className="flex items-center gap-2 text-xs font-semibold text-red-600">
                   Расход
                 </div>
-                <div className="mt-2 text-lg font-bold text-red-700">₸ 150,000.00</div>
+                <div className="mt-2 text-lg font-bold text-red-700">$150,000.00</div>
               </div>
               <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">

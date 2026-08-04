@@ -142,7 +142,7 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
       }`,
     );
 
-    const detectedCurrency = this.detectCurrency(normalizedText) || 'KZT';
+    const detectedCurrency = this.detectCurrency(normalizedText) || undefined;
 
     const transactionStartTime = Date.now();
     console.log(`[${this.parserName}] Extracting transactions from pdf2table rows...`);
@@ -170,7 +170,10 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
       console.log(
         `[${this.parserName}] Structured parsing incomplete (${transactions.length}/${detectedGroups}), trying AI extraction...`,
       );
-      const aiTransactions = await this.aiExtractor.extractTransactions(normalizedText);
+      const aiTransactions = await this.aiExtractor.extractTransactions(
+        normalizedText,
+        detectedCurrency,
+      );
       if (aiTransactions.length) {
         transactions =
           transactions.length > 0
@@ -428,7 +431,8 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
       debit: debit || undefined,
       credit: credit || undefined,
       paymentPurpose: purpose.trim(),
-      currency: 'KZT',
+      // Currency is resolved at statement level (detected header currency, else
+      // the workspace currency) — no per-row default here.
     };
   }
 

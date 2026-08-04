@@ -23,12 +23,13 @@ import { AiMerchantExtractor } from '../helpers/ai-merchant-extractor.helper';
 
 type AmountExtractionResult = {
   amount: number;
-  currency: string;
+  /** Undefined when no currency could be detected in the document. */
+  currency?: string;
 };
 
 type AmountCandidate = {
   amount: number;
-  currency: string;
+  currency?: string;
   hasTotalKeyword: boolean;
   explicitCurrency: boolean;
   lineIndex: number;
@@ -139,7 +140,7 @@ export class GmailReceiptParserService {
 
     return {
       amount: amountWithCurrency?.amount,
-      currency: amountWithCurrency?.currency || 'KZT',
+      currency: amountWithCurrency?.currency,
       date: context.dateHeader,
       vendor,
       confidence: vendor ? 0.6 : 0.3,
@@ -183,7 +184,7 @@ export class GmailReceiptParserService {
           ) {
             return {
               amount: universal.totalAmount,
-              currency: universal.currency || 'KZT',
+              currency: universal.currency,
               date: universal.date ? universal.date.toISOString().split('T')[0] : undefined,
               vendor: universal.vendor,
               tax: universal.tax,
@@ -201,7 +202,7 @@ export class GmailReceiptParserService {
 
       const amountWithCurrency = await this.extractAmountWithCurrency(text);
       const amount = amountWithCurrency?.amount;
-      const currency = amountWithCurrency?.currency || this.extractCurrency(text) || 'KZT';
+      const currency = amountWithCurrency?.currency || this.extractCurrency(text);
       const date = this.extractDate(text);
       const vendor = await this.extractVendorWithAi(text, context);
       const tax = this.extractTax(text);
@@ -274,8 +275,7 @@ export class GmailReceiptParserService {
 
         const fragmentCurrency = this.amountHelpers.extractCurrency(fragment);
         const lineCurrency = this.amountHelpers.extractCurrency(line);
-        const currency =
-          parsed.currency || fragmentCurrency || lineCurrency || documentCurrency || 'KZT';
+        const currency = parsed.currency || fragmentCurrency || lineCurrency || documentCurrency;
         const explicitCurrency = Boolean(parsed.currency || fragmentCurrency);
 
         candidates.push({

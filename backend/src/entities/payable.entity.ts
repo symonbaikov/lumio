@@ -9,6 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { DEFAULT_CURRENCY } from '../common/constants/currency.constants';
 import { Transaction } from './transaction.entity';
 import { User } from './user.entity';
 import { Workspace } from './workspace.entity';
@@ -54,7 +55,7 @@ export class Payable {
   @Column({ type: 'decimal', precision: 15, scale: 2 })
   amount: number;
 
-  @Column({ type: 'varchar', length: 3, default: 'KZT' })
+  @Column({ type: 'varchar', length: 3, default: DEFAULT_CURRENCY })
   currency: string;
 
   @Column({ name: 'due_date', type: 'date', nullable: true })

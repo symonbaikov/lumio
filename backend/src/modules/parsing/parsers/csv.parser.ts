@@ -17,7 +17,7 @@ export class CsvParser extends BaseTabularParser {
   async parse(filePath: string, cachedText?: string): Promise<ParsedStatement> {
     // Detect currency from raw file content before streaming rows
     const rawContent = fs.readFileSync(filePath, 'utf-8').slice(0, 4096);
-    const detectedCurrency = this.detectCurrency(rawContent) || 'KZT';
+    const detectedCurrency = this.detectCurrency(rawContent) || undefined;
 
     return new Promise((resolve, reject) => {
       const transactions: ParsedTransaction[] = [];

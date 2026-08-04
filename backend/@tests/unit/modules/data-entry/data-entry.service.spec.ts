@@ -53,6 +53,7 @@ describe('DataEntryService', () => {
       dataEntryCustomFieldRepository as any,
       userRepository as any,
       workspaceMemberRepository as any,
+      { resolve: jest.fn().mockResolvedValue('USD') } as any,
     );
   });
 

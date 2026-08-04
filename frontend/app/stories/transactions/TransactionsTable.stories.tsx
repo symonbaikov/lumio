@@ -1,3 +1,4 @@
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
 
@@ -41,7 +42,7 @@ function TransactionsTableContent({
   const formatAmount = (amount: number, currency?: string) => {
     return new Intl.NumberFormat('ru-RU', {
       style: 'currency',
-      currency: currency || 'KZT',
+      currency: currency || DEFAULT_CURRENCY,
       minimumFractionDigits: 2,
     }).format(amount);
   };
@@ -229,7 +230,7 @@ const mockTransactions: Transaction[] = [
     paymentPurpose: 'Оплата за услуги по договору №123',
     debit: 150000,
     credit: 0,
-    currency: 'KZT',
+    currency: 'USD',
     transactionType: 'EXPENSE',
     category: { name: 'Операционные расходы', color: '#3b82f6' },
   },
@@ -240,7 +241,7 @@ const mockTransactions: Transaction[] = [
     paymentPurpose: 'Оплата по счету №456',
     debit: 0,
     credit: 500000,
-    currency: 'KZT',
+    currency: 'USD',
     transactionType: 'INCOME',
     category: { name: 'Доход', color: '#10b981' },
   },
@@ -251,7 +252,7 @@ const mockTransactions: Transaction[] = [
     paymentPurpose: 'Перевод между счетами',
     debit: 0,
     credit: 100000,
-    currency: 'KZT',
+    currency: 'USD',
     transactionType: 'TRANSFER',
   },
   {
@@ -261,7 +262,7 @@ const mockTransactions: Transaction[] = [
     paymentPurpose: 'Закупка товаров',
     debit: 250000,
     credit: 0,
-    currency: 'KZT',
+    currency: 'USD',
     transactionType: 'EXPENSE',
     hasWarnings: true,
   },
@@ -272,7 +273,7 @@ const mockTransactions: Transaction[] = [
     paymentPurpose: 'Неизвестная операция',
     debit: 50000,
     credit: 0,
-    currency: 'KZT',
+    currency: 'USD',
     transactionType: 'EXPENSE',
     hasErrors: true,
   },
@@ -314,7 +315,7 @@ export const ManyTransactions: Story = {
         paymentPurpose: `Платёж №${i + 1}`,
         debit: Math.random() > 0.5 ? Math.floor(Math.random() * 500000) : 0,
         credit: Math.random() > 0.5 ? Math.floor(Math.random() * 500000) : 0,
-        currency: 'KZT',
+        currency: 'USD',
         transactionType: (['INCOME', 'EXPENSE', 'TRANSFER'] as const)[i % 3],
       })),
     ],

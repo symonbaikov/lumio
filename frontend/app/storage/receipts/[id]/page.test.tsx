@@ -30,6 +30,12 @@ vi.mock('@/app/lib/workspace-headers', () => ({
   getWorkspaceHeaders: () => ({ Authorization: 'Bearer test-token' }),
 }));
 
+vi.mock('@/app/contexts/WorkspaceContext', () => ({
+  useWorkspace: () => ({
+    currentWorkspace: { id: 'ws-1', name: 'Main workspace', currency: 'USD' },
+  }),
+}));
+
 vi.mock('react-hot-toast', () => ({
   default: {
     success: vi.fn(),

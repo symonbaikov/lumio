@@ -70,7 +70,8 @@ describe('AiTransactionExtractor', () => {
       counterpartyName: 'Acme',
       debit: 1200.5,
       paymentPurpose: 'Invoice payment',
-      currency: 'KZT',
+      // The AI payload reported no currency, so none is inferred here.
+      currency: undefined,
     });
     expect(mockRecordAiSuccess).toHaveBeenCalled();
   });

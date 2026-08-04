@@ -7,6 +7,7 @@ import { Spinner } from '@/app/components/ui/spinner';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import {
   type CreatePayableInput,
   type Payable,
@@ -599,7 +600,7 @@ export function PayablesView(): React.JSX.Element {
           <PayableSummaryCards
             summary={summary}
             locale={locale}
-            currency={(currentWorkspace.currency || 'KZT').toUpperCase()}
+            currency={resolveCurrencyCode(currentWorkspace.currency)}
             labels={labels.summary}
           />
 

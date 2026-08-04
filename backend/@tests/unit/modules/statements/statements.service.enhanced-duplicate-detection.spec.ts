@@ -14,6 +14,7 @@ import { StatementProcessingService } from '../../../../src/modules/parsing/serv
 import { ReceiptStatementService } from '../../../../src/modules/statements/services/receipt-statement.service';
 import { StatementsService } from '../../../../src/modules/statements/statements.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { WorkspaceCurrencyService } from '../../../../src/common/services/workspace-currency.service';
 
 // Mock the file hash calculation
 jest.mock('../../../../src/common/utils/file-hash.util', () => ({
@@ -61,6 +62,10 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StatementsService,
+        {
+          provide: WorkspaceCurrencyService,
+          useValue: { resolve: jest.fn().mockResolvedValue('USD') },
+        },
         {
           provide: getRepositoryToken(Statement),
           useValue: mockRepositories.statement,

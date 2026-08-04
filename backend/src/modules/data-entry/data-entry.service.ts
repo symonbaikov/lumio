@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, QueryFailedError, type Repository } from 'typeorm';
+import { WorkspaceCurrencyService } from '../../common/services/workspace-currency.service';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { User, WorkspaceMember } from '../../entities';
 import { DataEntryCustomField } from '../../entities/data-entry-custom-field.entity';
@@ -45,6 +46,7 @@ export class DataEntryService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
+    private readonly workspaceCurrencyService: WorkspaceCurrencyService,
   ) {}
 
   private async ensureCanEditDataEntry(workspaceId: string, userId: string): Promise<void> {
@@ -85,7 +87,7 @@ export class DataEntryService {
       date: dto.date,
       amount: dto.amount,
       note: dto.note || null,
-      currency: dto.currency || 'KZT',
+      currency: dto.currency || (await this.workspaceCurrencyService.resolve(workspaceId)),
       customFieldName,
       customFieldIcon,
       customFieldValue,

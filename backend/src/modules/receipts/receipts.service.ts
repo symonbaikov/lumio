@@ -13,6 +13,7 @@ import {
   Transaction,
   TransactionType,
 } from '../../entities';
+import { WorkspaceCurrencyService } from '../../common/services/workspace-currency.service';
 import { normalizePagination } from '../../common/utils/pagination.util';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
 import { ReceiptProcessorService } from './services/receipt-processor.service';
@@ -49,6 +50,7 @@ export class ReceiptsService {
     private readonly statementRepository: Repository<Statement>,
     private readonly receiptProcessor: ReceiptProcessorService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly workspaceCurrencyService: WorkspaceCurrencyService,
   ) {}
 
   async createFromUpload(params: UploadParams): Promise<Receipt> {
@@ -335,6 +337,9 @@ export class ReceiptsService {
     const transactionType =
       receipt.parsedData?.transactionType === 'income' ? TransactionType.INCOME : TransactionType.EXPENSE;
 
+    const currency =
+      receipt.parsedData?.currency || (await this.workspaceCurrencyService.resolve(workspaceId));
+
     const transaction = this.transactionRepository.create({
       statementId: null,
       workspaceId,
@@ -342,7 +347,7 @@ export class ReceiptsService {
       counterpartyName: receipt.parsedData?.vendor || receipt.subject || 'Unknown',
       paymentPurpose: receipt.parsedData?.vendor || receipt.subject || '',
       amount: receipt.parsedData?.amount ?? null,
-      currency: receipt.parsedData?.currency || 'KZT',
+      currency,
       categoryId: categoryId ?? (receipt.parsedData?.categoryId || null),
       transactionType,
     });

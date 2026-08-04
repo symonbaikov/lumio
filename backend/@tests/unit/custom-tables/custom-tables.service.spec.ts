@@ -79,6 +79,8 @@ describe('CustomTablesService.createFromStatements', () => {
     customTableColumnRepository.save.mockImplementation(async values => values);
     customTableRowRepository.save.mockImplementation(async values => values);
 
+    const workspaceCurrencyService = { resolve: jest.fn().mockResolvedValue('USD') };
+
     const service = new CustomTablesService(
       customTableRepository as never,
       categoryRepository as never,
@@ -93,6 +95,7 @@ describe('CustomTablesService.createFromStatements', () => {
       userRepository as never,
       workspaceMemberRepository as never,
       auditService as never,
+      workspaceCurrencyService as never,
     );
 
     const result = await service.createFromStatements('user-1', 'workspace-1', {
@@ -166,6 +169,7 @@ const buildCustomTablesService = () => {
     createEvent: jest.fn().mockResolvedValue(undefined),
     createBatchEvents: jest.fn().mockResolvedValue(undefined),
   };
+  const workspaceCurrencyService = { resolve: jest.fn().mockResolvedValue('USD') };
 
   const service = new CustomTablesService(
     customTableRepository as never,
@@ -181,6 +185,7 @@ const buildCustomTablesService = () => {
     userRepository as never,
     workspaceMemberRepository as never,
     auditService as never,
+    workspaceCurrencyService as never,
   );
 
   return {
@@ -503,7 +508,8 @@ describe('CustomTablesService.convertToStatement', () => {
         paymentPurpose: 'Hosting',
         debit: 1234.5,
         amount: 1234.5,
-        currency: 'KZT',
+        // No currency column in this table, so the workspace currency is used.
+        currency: 'USD',
         transactionType: TransactionType.EXPENSE,
         article: 'Infrastructure',
       }),

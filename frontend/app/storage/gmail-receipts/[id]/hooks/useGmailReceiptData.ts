@@ -1,7 +1,9 @@
 'use client';
 
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import apiClient, { gmailReceiptsApi } from '@/app/lib/api';
 import { isLowConfidenceDocument, normalizeReceiptLineItems } from '@/app/lib/financial-document';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import type { AuditEvent } from '@/lib/api/audit';
 import { fetchEntityHistory } from '@/lib/api/audit';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -125,6 +127,8 @@ export function useGmailReceiptData({
 }: {
   receiptId: string;
 }): UseGmailReceiptDataReturn {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
   const [receipt, setReceipt] = useState<GmailReceipt | null>(null);
   const [potentialDuplicates, setPotentialDuplicates] = useState<GmailReceipt[]>([]);
   const [categories, setCategories] = useState<ReceiptCategoryOption[]>([]);
@@ -167,7 +171,7 @@ export function useGmailReceiptData({
       setCategories(categoriesResponse.data || []);
       setEditedData({
         amount: parsedAmount || undefined,
-        currency: nextReceipt.parsedData?.currency || 'KZT',
+        currency: nextReceipt.parsedData?.currency || workspaceCurrency,
         vendor: nextReceipt.parsedData?.vendor || '',
         date: nextReceipt.parsedData?.date || '',
         tax: nextReceipt.parsedData?.tax,
@@ -181,7 +185,7 @@ export function useGmailReceiptData({
     } finally {
       setLoading(false);
     }
-  }, [receiptId]);
+  }, [receiptId, workspaceCurrency]);
 
   useEffect(() => {
     void loadData();
@@ -207,7 +211,7 @@ export function useGmailReceiptData({
   const hasDisabledCategory = selectedCategory?.isEnabled === false;
   const hasCategoryIssues = !hasCategory || hasDisabledCategory;
 
-  const currency = editedData.currency || receipt?.parsedData?.currency || 'KZT';
+  const currency = editedData.currency || receipt?.parsedData?.currency || workspaceCurrency;
   const lineItemsTotal = editedData.lineItems.reduce((sum, item) => sum + (item.amount || 0), 0);
   const amount =
     editedData.lineItems.length > 0

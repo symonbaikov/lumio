@@ -27,7 +27,7 @@ export interface SelectedWarning {
 const isCurrencySearchItem = (item: CurrencySearchItem | undefined): item is CurrencySearchItem =>
   item !== undefined;
 
-const DEFAULT_RECENT_CURRENCIES = ['KZT', 'USD', 'EUR', 'RUB'] as const;
+const DEFAULT_RECENT_CURRENCIES = ['USD', 'EUR', 'KZT', 'RUB'] as const;
 
 interface EntryMaps {
   byKey: Map<string, EditableWarningEntry>;

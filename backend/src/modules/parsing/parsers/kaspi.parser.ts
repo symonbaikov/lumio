@@ -48,7 +48,7 @@ export class KaspiParser extends BaseParser {
     console.log(`[KaspiParser] Balances: start=${balances.start}, end=${balances.end}`);
     console.log(`[KaspiParser] Period: ${dateRange.from?.toISOString().split('T')[0] || 'N/A'}`);
 
-    const detectedCurrency = this.detectCurrency(text) || 'KZT';
+    const detectedCurrency = this.detectCurrency(text) || undefined;
 
     const tableTransactions = mapPdfTableRowsToTransactions(tableRows, {
       defaultCurrency: detectedCurrency,
@@ -63,7 +63,7 @@ export class KaspiParser extends BaseParser {
     }
 
     // Parse transactions from the structured text
-    const parsedFromText = await this.parseTransactionsFromText(text);
+    const parsedFromText = await this.parseTransactionsFromText(text, detectedCurrency);
     const transactions = combinedTableTx.length
       ? mergeTransactions(combinedTableTx, parsedFromText)
       : parsedFromText;
@@ -136,7 +136,10 @@ export class KaspiParser extends BaseParser {
     return { from: null, to: null };
   }
 
-  private async parseTransactionsFromText(text: string): Promise<ParsedTransaction[]> {
+  private async parseTransactionsFromText(
+    text: string,
+    detectedCurrency?: string,
+  ): Promise<ParsedTransaction[]> {
     const transactions: ParsedTransaction[] = [];
     const lines = text.split('\n');
     let currentTransaction: Partial<ParsedTransaction> | null = null;
@@ -259,7 +262,7 @@ export class KaspiParser extends BaseParser {
     if (transactions.length === 0 && this.aiExtractor.isAvailable()) {
       console.log('[KaspiParser] No transactions parsed, trying AI...');
       try {
-        const aiTransactions = await this.aiExtractor.extractTransactions(text);
+        const aiTransactions = await this.aiExtractor.extractTransactions(text, detectedCurrency);
         return aiTransactions;
       } catch (error) {
         console.error('[KaspiParser] AI extraction failed:', error);
@@ -272,7 +275,7 @@ export class KaspiParser extends BaseParser {
 
   private extractKaspiTableTransactions(
     tableRows: string[][],
-    defaultCurrency = 'KZT',
+    defaultCurrency?: string,
   ): ParsedTransaction[] {
     if (!tableRows.length) {
       return [];
@@ -429,7 +432,7 @@ export class KaspiParser extends BaseParser {
     }
 
     const currencyFromBlock = this.detectCurrency(combinedBlock);
-    const currency = currencyFromBlock || currentTransaction.currency || 'KZT';
+    const currency = currencyFromBlock || currentTransaction.currency;
 
     return {
       transactionDate: currentTransaction.transactionDate ?? new Date(),
@@ -441,7 +444,7 @@ export class KaspiParser extends BaseParser {
       debit: currentTransaction.debit,
       credit: currentTransaction.credit,
       paymentPurpose: paymentPurpose?.trim() || 'Не указано',
-      currency: currency || 'KZT',
+      currency: currency || undefined,
       exchangeRate: currentTransaction.exchangeRate,
       amountForeign: currentTransaction.amountForeign,
     };

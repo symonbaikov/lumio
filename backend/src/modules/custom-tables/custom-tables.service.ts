@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, QueryFailedError, type Repository } from 'typeorm';
+import { WorkspaceCurrencyService } from '../../common/services/workspace-currency.service';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { generateTransactionFingerprint } from '../../common/utils/fingerprint.util';
 import { normalizeFilename } from '../../common/utils/filename.util';
@@ -110,6 +111,7 @@ export class CustomTablesService {
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly auditService: AuditService,
+    private readonly workspaceCurrencyService: WorkspaceCurrencyService,
   ) {}
 
   private getDriverErrorCode(error: unknown): string | undefined {
@@ -991,11 +993,12 @@ export class CustomTablesService {
       throw new BadRequestException('Не удалось сформировать колонки таблицы');
     }
 
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(workspaceId);
     const rowsToInsert = entries.map((entry, idx) => {
       const data: RowInsertData = {};
       data[dateKey] = entry.date;
       data[amountKey] = entry.amount;
-      data[currencyKey] = entry.currency || 'KZT';
+      data[currencyKey] = entry.currency || workspaceCurrency;
       data[noteKey] = entry.note || null;
 
       if (dto.scope === DataEntryToCustomTableScope.ALL && typeKey) {
@@ -1219,11 +1222,12 @@ export class CustomTablesService {
       throw new BadRequestException('Не удалось сформировать колонки таблицы');
     }
 
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(workspaceId);
     const rowsToInsert = entries.map((entry, idx) => {
       const data: RowInsertData = {};
       data[dateKey] = entry.date;
       data[amountKey] = entry.amount;
-      data[currencyKey] = entry.currency || 'KZT';
+      data[currencyKey] = entry.currency || workspaceCurrency;
       data[noteKey] = entry.note || null;
       return this.customTableRowRepository.create({
         tableId: table.id,
@@ -1342,6 +1346,7 @@ export class CustomTablesService {
       [DataEntryType.CREDIT]: 'Кредит',
     };
 
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(workspaceId);
     const rowsToInsert = entries.map((entry, idx) => {
       const data: RowInsertData = {};
       const dateKey = fieldKeyByName.date;
@@ -1357,7 +1362,7 @@ export class CustomTablesService {
         data[amountKey] = entry.amount;
       }
       if (currencyKey) {
-        data[currencyKey] = entry.currency || 'KZT';
+        data[currencyKey] = entry.currency || workspaceCurrency;
       }
       if (noteKey) {
         data[noteKey] = entry.note || null;
@@ -1577,6 +1582,7 @@ export class CustomTablesService {
       [TransactionType.EXPENSE]: 'Списание',
     };
 
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(workspaceId);
     const rowsToInsert = transactions.map((tx, idx) => {
       const data: RowInsertData = {};
 
@@ -1602,7 +1608,7 @@ export class CustomTablesService {
 
       data[debitKey] = asNumberOrNull(tx.debit);
       data[creditKey] = asNumberOrNull(tx.credit);
-      data[currencyKey] = tx.currency || 'KZT';
+      data[currencyKey] = tx.currency || workspaceCurrency;
       data[typeKey] = typeLabel[tx.transactionType] || tx.transactionType;
 
       return this.customTableRowRepository.create({
@@ -1686,6 +1692,7 @@ export class CustomTablesService {
       );
     }
 
+    const workspaceCurrency = await this.workspaceCurrencyService.resolve(workspaceId);
     const converted: ConvertedTransactionInput[] = [];
     const warnings: string[] = [];
 
@@ -1709,7 +1716,7 @@ export class CustomTablesService {
 
       const merchant = this.readScalarString(data, mapping.merchant) || table.name;
       const purpose = this.readScalarString(data, mapping.purpose) || merchant;
-      const currency = (this.readScalarString(data, mapping.currency) || 'KZT')
+      const currency = (this.readScalarString(data, mapping.currency) || workspaceCurrency)
         .trim()
         .toUpperCase();
       const article = this.readScalarString(data, mapping.article) || null;
@@ -1743,7 +1750,7 @@ export class CustomTablesService {
       Math.max(...converted.map(row => row.transactionDate.getTime())),
     );
     const totalDebit = converted.reduce((sum, row) => sum + row.amount, 0);
-    const currency = converted[0]?.currency || 'KZT';
+    const currency = converted[0]?.currency || workspaceCurrency;
     const fileHash = createHash('sha256').update(csv).digest('hex');
 
     const statementPayload: Partial<Statement> = {

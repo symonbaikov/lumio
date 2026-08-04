@@ -26,6 +26,10 @@ export class AiParseValidator extends BaseAiHelper {
     const parsedPreview = JSON.stringify(parsed.transactions.slice(0, 20));
     const redactedPdf = redactSensitive(pdfText);
     const redactedPreview = redactSensitive(parsedPreview);
+    const detectedCurrency = parsed.metadata?.currency;
+    const currencyInstruction = detectedCurrency
+      ? `Use ${detectedCurrency} currency.`
+      : 'For currency, use the currency shown in the statement.';
 
     try {
       const timeoutMs = Number.parseInt(process.env.AI_TIMEOUT_MS || '20000', 10);
@@ -35,7 +39,7 @@ export class AiParseValidator extends BaseAiHelper {
             role: 'user',
             parts: [
               {
-                text: `You are an auditor for Bereke Bank statements. Compare PDF text with parsed transactions and correct mistakes or missing rows. Return ONLY JSON with shape {"transactions":[...],"notes":[...],"metadata":{...}}. Dates must be ISO (YYYY-MM-DD). Numbers should be decimal (dot). Use KZT currency.
+                text: `You are an auditor for Bereke Bank statements. Compare PDF text with parsed transactions and correct mistakes or missing rows. Return ONLY JSON with shape {"transactions":[...],"notes":[...],"metadata":{...}}. Dates must be ISO (YYYY-MM-DD). Numbers should be decimal (dot). ${currencyInstruction}
 
 PDF text snippet (redacted):
 ${redactedPdf}
@@ -87,7 +91,7 @@ ${redactedPreview}`,
             parsed.metadata.balanceStart,
           balanceEnd:
             normalizeNumber(meta.balanceEnd || meta.balance_end) ?? parsed.metadata.balanceEnd,
-          currency: meta.currency || parsed.metadata.currency || 'KZT',
+          currency: meta.currency || parsed.metadata.currency,
         },
         transactions: mapped.length ? mapped : parsed.transactions,
       };

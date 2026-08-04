@@ -10,11 +10,14 @@ export function buildLineItems(receipt: ReceiptRecord | null): EditableReceiptLi
   }));
 }
 
-export function buildInitialForm(receipt: ReceiptRecord | null): EditableReceiptParsedData {
+export function buildInitialForm(
+  receipt: ReceiptRecord | null,
+  fallbackCurrency: string,
+): EditableReceiptParsedData {
   return {
     vendor: receipt?.parsedData?.vendor ?? '',
     amount: receipt?.parsedData?.amount ?? '',
-    currency: receipt?.parsedData?.currency ?? 'KZT',
+    currency: receipt?.parsedData?.currency ?? fallbackCurrency,
     date: receipt?.parsedData?.date?.split('T')[0] ?? '',
     tax: receipt?.parsedData?.tax ?? '',
     paymentMethod: receipt?.parsedData?.paymentMethod ?? '',

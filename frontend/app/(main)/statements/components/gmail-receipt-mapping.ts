@@ -1,3 +1,4 @@
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
 
 export interface GmailReceipt {
@@ -135,7 +136,7 @@ export const mapGmailReceiptToStatement = (receipt: GmailReceipt): GmailMappedSt
       ? (detectBankFromVendor(receipt.parsedData?.vendor) ?? 'receipt')
       : 'gmail',
     fileType: isLocalReceipt ? 'receipt' : 'gmail',
-    currency: receipt.parsedData?.currency || 'KZT',
+    currency: receipt.parsedData?.currency || DEFAULT_CURRENCY,
     user: null,
     errorMessage: receipt.status === 'failed' ? 'Failed to parse' : null,
     gmailMessageId: receipt.gmailMessageId,

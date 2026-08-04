@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 
 import { useIntlayer } from '@/app/i18n';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import { tokens } from '@/lib/theme-tokens';
 
 export interface Transaction {
@@ -79,16 +80,19 @@ interface TransactionDocumentViewerProps {
   statement: Statement;
   transactions: Transaction[];
   locale?: string;
+  /** Fallback currency for rows that carry no currency of their own. */
+  currency?: string;
 }
 
 export default function TransactionDocumentViewer({
   statement,
   transactions,
   locale = 'ru',
+  currency: fallbackCurrency = DEFAULT_CURRENCY,
 }: TransactionDocumentViewerProps) {
   const t = useIntlayer('transactionDocumentViewer');
 
-  const formatNumber = (value: number | undefined | null, currency = 'KZT') => {
+  const formatNumber = (value: number | undefined | null, currency = fallbackCurrency) => {
     if (value === undefined || value === null) {
       return '—';
     }
@@ -711,7 +715,7 @@ export default function TransactionDocumentViewer({
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary" fontFamily="monospace">
-                        {transaction.currency || 'KZT'}
+                        {transaction.currency || fallbackCurrency}
                       </Typography>
                     </TableCell>
                   </TableRow>

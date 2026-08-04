@@ -65,7 +65,8 @@ describe('BaseTabularParser', () => {
       debit: 1200.5,
       credit: undefined,
       paymentPurpose: 'Invoice payment',
-      currency: 'KZT',
+      // No currency column and no defaultCurrency argument, so none is inferred.
+      currency: undefined,
     });
   });
 });

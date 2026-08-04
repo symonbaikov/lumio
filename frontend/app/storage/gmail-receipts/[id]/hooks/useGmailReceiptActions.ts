@@ -1,6 +1,8 @@
 'use client';
 
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { gmailReceiptsApi } from '@/app/lib/api';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -52,6 +54,8 @@ export function useGmailReceiptActions({
   setEditedData,
 }: UseGmailReceiptActionsProps): UseGmailReceiptActionsReturn {
   const router = useRouter();
+  const { currentWorkspace } = useWorkspace();
+  const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -103,7 +107,7 @@ export function useGmailReceiptActions({
       await gmailReceiptsApi.approveReceipt(receipt.id, {
         description: editedData.vendor || receipt.parsedData?.vendor || receipt.subject,
         amount,
-        currency: editedData.currency || receipt.parsedData?.currency || 'KZT',
+        currency: editedData.currency || receipt.parsedData?.currency || workspaceCurrency,
         date: editedData.date || receipt.parsedData?.date || receipt.receivedAt,
       });
       toast.success('Receipt submitted');

@@ -11,11 +11,10 @@ import {
 } from '@/app/components/icons';
 import type { User } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import { syncLocaleFromUser } from '@/app/lib/locale';
 import { resolveOnboardingBootstrapLocale } from '../lib/locale-bootstrap';
 import type { OnboardingData } from '../useOnboardingWizard';
-
-const DEFAULT_CURRENCY = 'USD';
 
 export type OnboardingIntegrationKey =
   | 's3Compatible'

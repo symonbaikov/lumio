@@ -1,3 +1,4 @@
+import { DEFAULT_CURRENCY } from '@/app/lib/format-money';
 import type { Meta, StoryObj } from '@storybook/react';
 import { ChevronLeft, ChevronRight, Search } from '@/app/components/icons';
 import { useState } from 'react';
@@ -48,7 +49,7 @@ function TransactionsViewContent({
   const formatAmount = (amount: number, currency?: string) => {
     return new Intl.NumberFormat('ru-RU', {
       style: 'currency',
-      currency: currency || 'KZT',
+      currency: currency || DEFAULT_CURRENCY,
       minimumFractionDigits: 2,
     }).format(amount);
   };
@@ -222,7 +223,7 @@ const mockTransactions: Transaction[] = Array.from({ length: 25 }, (_, i) => ({
   paymentPurpose: `Платёж по договору №${i + 1}`,
   debit: i % 2 === 0 ? Math.floor(Math.random() * 500000) : 0,
   credit: i % 2 !== 0 ? Math.floor(Math.random() * 500000) : 0,
-  currency: 'KZT',
+  currency: 'USD',
   transactionType: (['INCOME', 'EXPENSE', 'TRANSFER'] as const)[i % 3],
   category: i % 4 !== 0 ? { name: `Категория ${(i % 5) + 1}` } : undefined,
 }));
