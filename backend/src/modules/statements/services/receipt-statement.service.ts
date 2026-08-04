@@ -93,6 +93,22 @@ export class ReceiptStatementService {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
 
+  /** Best-effort fallback when OCR could not detect a total: sum the recognized line items. */
+  private estimateAmountFromLineItems(
+    lineItems: Array<{ description: string; amount: number }> | undefined,
+  ): number | null {
+    if (!Array.isArray(lineItems) || lineItems.length === 0) {
+      return null;
+    }
+
+    const sum = lineItems.reduce((total, item) => {
+      const amount = Number(item?.amount);
+      return Number.isFinite(amount) && amount > 0 ? total + amount : total;
+    }, 0);
+
+    return sum > 0 ? sum : null;
+  }
+
   private static readonly VENDOR_TO_BANK: { pattern: RegExp; bank: BankName }[] = [
     { pattern: /\bkaspi\b/i, bank: BankName.KASPI },
     { pattern: /\bкаспи/i, bank: BankName.KASPI },
@@ -153,7 +169,11 @@ export class ReceiptStatementService {
     }
 
     const parsed = receipt.parsedData ?? {};
-    const amountValue = this.normalizePositiveAmount(parsed.amount);
+    const detectedAmount = this.normalizePositiveAmount(parsed.amount);
+    const estimatedAmount =
+      detectedAmount === null ? this.estimateAmountFromLineItems(parsed.lineItems) : null;
+    const amountValue = detectedAmount ?? estimatedAmount;
+    const amountEstimated = detectedAmount === null && estimatedAmount !== null;
 
     const merchant =
       String(parsed.vendor || receipt.subject || fileName).trim() || 'Unknown merchant';
@@ -197,9 +217,14 @@ export class ReceiptStatementService {
 
     const hasAmount = amountValue !== null;
     const validationWarnings = [...(parsed.validationIssues ?? [])];
-    if (!hasAmount) {
-      validationWarnings.push('missing_amount');
+    if (amountEstimated) {
+      validationWarnings.push(
+        'Сумма не была явно указана на чеке — оценена по распознанным позициям. Проверьте и при необходимости исправьте.',
+      );
     }
+
+    const missingAmountMessage =
+      'Не удалось автоматически распознать сумму чека. Откройте выписку и добавьте транзакцию вручную.';
 
     const statement = this.statementRepository.create({
       userId: user.id,
@@ -210,7 +235,8 @@ export class ReceiptStatementService {
       fileSize: file.size,
       fileHash,
       bankName: detectedBankName,
-      status: hasAmount ? StatementStatus.COMPLETED : StatementStatus.UPLOADED,
+      status: hasAmount ? StatementStatus.COMPLETED : StatementStatus.ERROR,
+      errorMessage: hasAmount ? null : missingAmountMessage,
       processedAt: new Date(),
       statementDateFrom: transactionDate,
       statementDateTo: transactionDate,
@@ -230,9 +256,11 @@ export class ReceiptStatementService {
           dateTo: transactionDate.toISOString().slice(0, 10),
           currency,
         },
+        errors: hasAmount ? undefined : [missingAmountMessage],
+        warnings: validationWarnings.length ? validationWarnings : undefined,
         validation: {
-          passed: validationWarnings.length === 0,
-          warnings: validationWarnings,
+          passed: validationWarnings.length === 0 && hasAmount,
+          warnings: hasAmount ? validationWarnings : [missingAmountMessage, ...validationWarnings],
         },
         importPreview: {
           source: 'receipt-scan',
@@ -282,7 +310,7 @@ export class ReceiptStatementService {
         transactionType,
         categoryId: fallbackCategory.id,
         taxRateId: taxRate?.id || null,
-        isVerified: true,
+        isVerified: !amountEstimated,
       });
 
       await this.transactionRepository.save(transaction);

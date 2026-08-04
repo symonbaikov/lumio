@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -19,6 +20,7 @@ import { Audit } from '../audit/decorators/audit.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { BulkUpdateItemDto } from './dto/bulk-update-transaction.dto';
 import { BulkUpdateTransactionDto } from './dto/bulk-update-transaction.dto';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { CrossStatementDeduplicationService } from './services/cross-statement-deduplication.service';
 import { TransactionsService } from './transactions.service';
@@ -90,7 +92,19 @@ export class TransactionsController {
     return this.transactionsService.findOne(id, workspaceId);
   }
 
+  @Post()
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  @Audit({ entityType: EntityType.TRANSACTION, includeDiff: true, isUndoable: true })
+  async create(
+    @Body() createDto: CreateTransactionDto,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.transactionsService.create(workspaceId, user.id, createDto);
+  }
+
   @Put(':id')
+  @Patch(':id')
   @WorkspaceAuth(Permission.TRANSACTION_EDIT)
   @Audit({ entityType: EntityType.TRANSACTION, includeDiff: true, isUndoable: true })
   async update(

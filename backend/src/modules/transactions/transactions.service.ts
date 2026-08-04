@@ -1,12 +1,18 @@
 import { randomUUID } from 'node:crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
-import { Statement } from '../../entities/statement.entity';
+import { Statement, StatementStatus } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { TransactionType } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
@@ -16,6 +22,7 @@ import { ClassificationService } from '../classification/services/classification
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import type { DataDeletedEvent } from '../notifications/events/notification-events';
 import type { BulkUpdateItemDto } from './dto/bulk-update-transaction.dto';
+import type { CreateTransactionDto } from './dto/create-transaction.dto';
 import type { UpdateTransactionDto } from './dto/update-transaction.dto';
 
 export type TransactionWithConversion = Transaction & {
@@ -182,6 +189,85 @@ export class TransactionsService {
     }
 
     return transaction;
+  }
+
+  private applyManualTransactionToStatement(
+    statement: Statement,
+    debit: number,
+    credit: number,
+  ): void {
+    statement.totalTransactions = (statement.totalTransactions ?? 0) + 1;
+    statement.totalDebit = Number(statement.totalDebit ?? 0) + debit;
+    statement.totalCredit = Number(statement.totalCredit ?? 0) + credit;
+    if (
+      statement.status === StatementStatus.ERROR ||
+      statement.status === StatementStatus.UPLOADED
+    ) {
+      statement.status = StatementStatus.COMPLETED;
+      statement.errorMessage = null;
+    }
+  }
+
+  async create(
+    workspaceId: string,
+    userId: string,
+    createDto: CreateTransactionDto,
+  ): Promise<Transaction> {
+    await this.ensureCanEditStatements(userId);
+
+    const debit = Number(createDto.debit) > 0 ? Number(createDto.debit) : 0;
+    const credit = Number(createDto.credit) > 0 ? Number(createDto.credit) : 0;
+    if (debit <= 0 && credit <= 0) {
+      throw new BadRequestException('Укажите сумму расхода или дохода');
+    }
+
+    const statement = await this.statementRepository.findOne({
+      where: { id: createDto.statementId, workspaceId },
+    });
+    if (!statement) {
+      throw new NotFoundException('Statement not found');
+    }
+
+    const transactionType = credit > 0 ? TransactionType.INCOME : TransactionType.EXPENSE;
+
+    const transaction = this.transactionRepository.create({
+      workspaceId,
+      statementId: statement.id,
+      transactionDate: createDto.transactionDate,
+      counterpartyName: createDto.counterpartyName,
+      paymentPurpose: createDto.paymentPurpose,
+      debit: debit > 0 ? debit : null,
+      credit: credit > 0 ? credit : null,
+      amount: debit > 0 ? debit : credit,
+      currency: createDto.currency || statement.currency || 'KZT',
+      transactionType,
+      categoryId: createDto.categoryId ?? null,
+      branchId: createDto.branchId ?? null,
+      walletId: createDto.walletId ?? null,
+      comments: createDto.comments ?? null,
+      isVerified: true,
+    });
+
+    const saved = await this.transactionRepository.save(transaction);
+
+    this.applyManualTransactionToStatement(statement, debit, credit);
+    await this.statementRepository.save(statement);
+
+    await this.invalidateReports(userId);
+
+    await this.auditService.createEvent({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.TRANSACTION,
+      entityId: saved.id,
+      action: AuditAction.CREATE,
+      diff: { before: null, after: saved },
+      meta: { statementId: statement.id, source: 'manual' },
+      isUndoable: true,
+    });
+
+    return saved;
   }
 
   async update(

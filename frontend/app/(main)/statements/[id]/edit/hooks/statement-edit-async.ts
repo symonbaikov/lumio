@@ -191,6 +191,72 @@ function extractDroppedSampleResult(data: SampleResult): {
   };
 }
 
+const NEW_TRANSACTION_ID_PREFIX = 'new-';
+
+export function isNewTransactionId(id: string): boolean {
+  return id.startsWith(NEW_TRANSACTION_ID_PREFIX);
+}
+
+export function createDraftTransaction(): Transaction {
+  return {
+    id: `${NEW_TRANSACTION_ID_PREFIX}${Math.random().toString(36).slice(2)}`,
+    transactionDate: new Date().toISOString().slice(0, 10),
+    counterpartyName: '',
+    paymentPurpose: '',
+    debit: undefined,
+    credit: undefined,
+    transactionType: 'expense',
+  };
+}
+
+type CreateArgs = {
+  statementId: string;
+  draft: Partial<Transaction>;
+  loadData: () => Promise<void>;
+  setEditingRow: (v: string | null) => void;
+  setSuccess: (v: boolean) => void;
+  setError: (v: string) => void;
+  messages: { saveTransactionError: string };
+};
+
+function buildCreateTransactionPayload(
+  statementId: string,
+  draft: Partial<Transaction>,
+): Record<string, unknown> {
+  return {
+    statementId,
+    transactionDate: draft.transactionDate,
+    counterpartyName: draft.counterpartyName,
+    paymentPurpose: draft.paymentPurpose,
+    debit: draft.debit ? Number(draft.debit) : undefined,
+    credit: draft.credit ? Number(draft.credit) : undefined,
+    categoryId: draft.categoryId || undefined,
+    branchId: draft.branchId || undefined,
+    walletId: draft.walletId || undefined,
+    comments: draft.comments || undefined,
+  };
+}
+
+export async function createTransactionAction({
+  statementId,
+  draft,
+  loadData,
+  setEditingRow,
+  setSuccess,
+  setError,
+  messages,
+}: CreateArgs): Promise<void> {
+  try {
+    await apiClient.post('/transactions', buildCreateTransactionPayload(statementId, draft));
+    setEditingRow(null);
+    await loadData();
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 3000);
+  } catch (err: unknown) {
+    setError(getApiErrorMessage(err, messages.saveTransactionError));
+  }
+}
+
 type ConvertArgs = {
   statementId: string;
   sample: { transaction?: unknown };

@@ -11,9 +11,22 @@ type SaveCtx = {
   messages: { saveTransactionError: string };
 };
 
+const NUMERIC_FIELDS = ['debit', 'credit', 'amountForeign', 'exchangeRate'] as const;
+
+function normalizeNumericFields(updates: Partial<Transaction>): Partial<Transaction> {
+  const normalized: Record<string, unknown> = { ...updates };
+  for (const field of NUMERIC_FIELDS) {
+    const value = normalized[field];
+    if (typeof value === 'string') {
+      normalized[field] = value.trim() === '' ? undefined : Number(value);
+    }
+  }
+  return normalized as Partial<Transaction>;
+}
+
 export async function saveTransactionAction(txId: string, ctx: SaveCtx): Promise<void> {
   try {
-    const updates = ctx.editedData[txId];
+    const updates = normalizeNumericFields(ctx.editedData[txId]);
     await apiClient.patch(`/transactions/${txId}`, updates);
     ctx.setTransactions(prev => prev.map(t => (t.id === txId ? { ...t, ...updates } : t)));
     ctx.setEditingRow(null);

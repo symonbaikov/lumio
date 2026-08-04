@@ -60,6 +60,7 @@ export interface UseStatementEditFormReturn {
   handleRowSelect: (id: string) => void;
   handleSelectAll: () => void;
   handleEdit: (transaction: Transaction) => void;
+  handleAddTransaction: () => void;
   handleFieldChange: (
     transactionId: string,
     field: keyof Transaction,

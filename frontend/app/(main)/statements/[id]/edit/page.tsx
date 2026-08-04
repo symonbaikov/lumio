@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Layers,
   Pencil,
+  Plus,
   Receipt,
   Save,
   Table2,
@@ -123,6 +124,7 @@ export default function EditStatementPage(): React.JSX.Element {
     handleRowSelect,
     handleSelectAll,
     handleEdit,
+    handleAddTransaction,
     handleFieldChange,
     handleSave,
     handleCancel,
@@ -348,11 +350,12 @@ export default function EditStatementPage(): React.JSX.Element {
   const parsingWarningCount = statement?.parsingDetails?.warnings?.length || 0;
   const hasCategoryIssues =
     !hasStatementCategory || hasDisabledStatementCategory || missingCategoryCount > 0;
-  const readinessSeverity: 'success' | 'warning' | 'error' = hasCategoryIssues
-    ? 'error'
-    : parsingErrorCount > 0 || parsingWarningCount > 0
-      ? 'warning'
-      : 'success';
+  const readinessSeverity: 'success' | 'warning' | 'error' =
+    hasCategoryIssues || Boolean(statement?.errorMessage)
+      ? 'error'
+      : parsingErrorCount > 0 || parsingWarningCount > 0
+        ? 'warning'
+        : 'success';
 
   const readinessTitle =
     readinessSeverity === 'error'
@@ -362,6 +365,10 @@ export default function EditStatementPage(): React.JSX.Element {
         : labels.alertReadyTitle?.value || 'Statement is ready to submit';
 
   const readinessDetails: string[] = [];
+
+  if (statement?.errorMessage) {
+    readinessDetails.push(statement.errorMessage);
+  }
 
   if (!hasStatementCategory) {
     readinessDetails.push(
@@ -1123,6 +1130,12 @@ export default function EditStatementPage(): React.JSX.Element {
       )}
 
       {/* Transactions Table */}
+      <Box sx={{ mb: 1.5, display: 'flex', justifyContent: 'flex-end' }}>
+        <DetailActionButton onClick={handleAddTransaction} disabled={Boolean(editingRow)}>
+          <Plus size={18} />
+          {labels.addTransaction?.value || 'Add transaction'}
+        </DetailActionButton>
+      </Box>
       <TableContainer
         component={Paper}
         elevation={0}

@@ -7,7 +7,10 @@ import { useCallback, useEffect } from 'react';
 import type { Transaction } from '../editHelpers';
 import {
   convertDroppedSampleAction,
+  createDraftTransaction,
+  createTransactionAction,
   exportToCustomTable,
+  isNewTransactionId,
   loadStatementData,
   metadataAutoSave,
   processStageAction,
@@ -130,6 +133,13 @@ export function useStatementEditForm({
     s.setEditedData({ [transaction.id]: { ...transaction } });
   };
 
+  const handleAddTransaction = (): void => {
+    const draft = createDraftTransaction();
+    s.setTransactions(prev => [draft, ...prev]);
+    s.setEditingRow(draft.id);
+    s.setEditedData({ [draft.id]: { ...draft } });
+  };
+
   const handleFieldChange = (
     transactionId: string,
     field: keyof Transaction,
@@ -142,6 +152,19 @@ export function useStatementEditForm({
   };
 
   const handleSave = async (transactionId: string): Promise<void> => {
+    if (isNewTransactionId(transactionId)) {
+      await createTransactionAction({
+        statementId,
+        draft: s.editedData[transactionId] || {},
+        loadData,
+        setEditingRow: s.setEditingRow,
+        setSuccess: s.setSuccess,
+        setError: s.setError,
+        messages: { saveTransactionError: messages.saveTransactionError },
+      });
+      s.setEditedData({});
+      return;
+    }
     await saveTransactionAction(transactionId, {
       setTransactions: s.setTransactions,
       setEditingRow: s.setEditingRow,
@@ -153,6 +176,10 @@ export function useStatementEditForm({
   };
 
   const handleCancel = (): void => {
+    if (s.editingRow && isNewTransactionId(s.editingRow)) {
+      const cancelledId = s.editingRow;
+      s.setTransactions(prev => prev.filter(t => t.id !== cancelledId));
+    }
     s.setEditingRow(null);
     s.setEditedData({});
   };
@@ -326,6 +353,7 @@ export function useStatementEditForm({
     handleRowSelect,
     handleSelectAll,
     handleEdit,
+    handleAddTransaction,
     handleFieldChange,
     handleSave,
     handleCancel,

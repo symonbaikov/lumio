@@ -91,6 +91,7 @@ export interface Statement {
   id: string;
   fileName: string;
   status: string;
+  errorMessage?: string | null;
   totalTransactions: number;
   categoryId?: string | null;
   category?: {
