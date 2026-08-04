@@ -1,12 +1,20 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
+import { In, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
+import { SubscriptionCharge, SubscriptionChargeMatchStatus } from '../../entities/subscription-charge.entity';
 import {
   Subscription,
   SubscriptionFrequency,
+  SubscriptionRiskStatus,
+  SubscriptionReviewStatus,
   SubscriptionStatus,
 } from '../../entities/subscription.entity';
+import { SubscriptionDecision, SubscriptionDecisionType } from '../../entities/subscription-decision.entity';
+import { WorkspaceMember } from '../../entities/workspace-member.entity';
+import { Transaction } from '../../entities/transaction.entity';
+import { Workspace } from '../../entities/workspace.entity';
+import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import {
   NotificationCategory,
   NotificationSeverity,
@@ -15,6 +23,7 @@ import {
 import { NotificationsService } from '../notifications/notifications.service';
 import type { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import type { UpdateSubscriptionDto } from './dto/update-subscription.dto';
+import type { RecordSubscriptionDecisionDto } from './dto/record-subscription-decision.dto';
 
 @Injectable()
 export class SubscriptionsService {
@@ -24,6 +33,17 @@ export class SubscriptionsService {
     @InjectRepository(Subscription)
     private readonly subscriptionRepository: Repository<Subscription>,
     private readonly notificationsService: NotificationsService,
+    @InjectRepository(WorkspaceMember)
+    private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
+    @InjectRepository(SubscriptionDecision)
+    private readonly decisionRepository: Repository<SubscriptionDecision>,
+    @InjectRepository(Transaction)
+    private readonly transactionRepository: Repository<Transaction>,
+    @InjectRepository(SubscriptionCharge)
+    private readonly chargeRepository: Repository<SubscriptionCharge>,
+    @InjectRepository(Workspace)
+    private readonly workspaceRepository: Repository<Workspace>,
+    private readonly exchangeRatesService: ExchangeRatesService,
   ) {}
 
   async create(workspaceId: string, userId: string, dto: CreateSubscriptionDto): Promise<Subscription> {
@@ -60,6 +80,22 @@ export class SubscriptionsService {
     return subscription;
   }
 
+  async getDetails(id: string, workspaceId: string) {
+    const subscription = await this.findOne(id, workspaceId);
+    const [charges, decisions] = await Promise.all([
+      this.chargeRepository.find({
+        where: { workspaceId, subscriptionId: id },
+        relations: ['transaction'],
+        order: { chargeDate: 'DESC' },
+      }),
+      this.decisionRepository.find({
+        where: { workspaceId, subscriptionId: id },
+        order: { createdAt: 'DESC' },
+      }),
+    ]);
+    return { subscription, charges, decisions };
+  }
+
   async update(id: string, workspaceId: string, dto: UpdateSubscriptionDto): Promise<Subscription> {
     const subscription = await this.findOne(id, workspaceId);
     if (dto.vendorName !== undefined) subscription.vendorName = dto.vendorName;
@@ -81,7 +117,9 @@ export class SubscriptionsService {
   async confirm(id: string, workspaceId: string): Promise<Subscription> {
     const subscription = await this.findOne(id, workspaceId);
     subscription.status = SubscriptionStatus.ACTIVE;
-    return this.subscriptionRepository.save(subscription);
+    const saved = await this.subscriptionRepository.save(subscription);
+    await this.recordDetectedCharges(saved);
+    return saved;
   }
 
   async dismiss(id: string, workspaceId: string): Promise<void> {
@@ -89,22 +127,96 @@ export class SubscriptionsService {
     await this.subscriptionRepository.remove(subscription);
   }
 
+  async assignOwner(id: string, workspaceId: string, ownerId: string, actorId: string): Promise<Subscription> {
+    const membership = await this.workspaceMemberRepository.findOne({
+      where: { workspaceId, userId: ownerId },
+    });
+    if (!membership) {
+      throw new BadRequestException('Subscription owner must be a workspace member');
+    }
+
+    const subscription = await this.findOne(id, workspaceId);
+    subscription.ownerId = ownerId;
+    const saved = await this.subscriptionRepository.save(subscription);
+    await this.decisionRepository.save(
+      this.decisionRepository.create({
+        workspaceId,
+        subscriptionId: id,
+        actorId,
+        ownerId,
+        decision: SubscriptionDecisionType.OWNER_ASSIGNED,
+      }),
+    );
+    return saved;
+  }
+
+  async recordDecision(
+    id: string,
+    workspaceId: string,
+    actorId: string,
+    dto: RecordSubscriptionDecisionDto,
+  ): Promise<Subscription> {
+    const subscription = await this.findOne(id, workspaceId);
+    if (dto.decision === SubscriptionDecisionType.KEEP) {
+      subscription.reviewStatus = SubscriptionReviewStatus.CURRENT;
+      subscription.reviewAt = dto.reviewAt ? new Date(dto.reviewAt) : subscription.reviewAt;
+    }
+    if (dto.decision === SubscriptionDecisionType.REVIEW) {
+      subscription.reviewStatus = SubscriptionReviewStatus.NEEDS_REVIEW;
+      subscription.reviewAt = dto.reviewAt ? new Date(dto.reviewAt) : subscription.reviewAt;
+    }
+    if (dto.decision === SubscriptionDecisionType.CANCELLED) {
+      subscription.status = SubscriptionStatus.CANCELLED;
+      subscription.cancellationReason = dto.note ?? null;
+      subscription.realizedAnnualSavings = dto.realizedAnnualSavings ?? 0;
+    }
+    if (dto.decision === SubscriptionDecisionType.PRICE_REDUCED) {
+      subscription.realizedAnnualSavings = dto.realizedAnnualSavings ?? 0;
+      subscription.reviewStatus = SubscriptionReviewStatus.CURRENT;
+    }
+
+    const saved = await this.subscriptionRepository.save(subscription);
+    await this.decisionRepository.save(
+      this.decisionRepository.create({
+        workspaceId,
+        subscriptionId: id,
+        actorId,
+        decision: dto.decision,
+        note: dto.note ?? null,
+        savingsAmount: dto.realizedAnnualSavings ?? null,
+      }),
+    );
+    return saved;
+  }
+
   async getSummary(workspaceId: string): Promise<{
     totalMonthlyCost: number;
     activeCount: number;
     upcomingCount: number;
+    upcoming30DaysCount: number;
+    priceChangeCount: number;
+    overdueReviewCount: number;
+    realizedAnnualSavings: number;
   }> {
     const active = await this.subscriptionRepository.find({
       where: { workspaceId, status: SubscriptionStatus.ACTIVE },
     });
 
-    const totalMonthlyCost = active.reduce((sum, sub) => {
-      return sum + this.normalizeToMonthly(Number(sub.amount), sub.frequency);
-    }, 0);
+    const workspace = await this.workspaceRepository.findOne({ where: { id: workspaceId } });
+    const workspaceCurrency = workspace?.currency?.toUpperCase();
+    const normalizedMonthlyCosts = await Promise.all(active.map(async sub => {
+      const amount = this.normalizeToMonthly(Number(sub.amount), sub.frequency);
+      if (!workspaceCurrency || sub.currency.toUpperCase() === workspaceCurrency) return amount;
+      const converted = await this.exchangeRatesService.convert(amount, sub.currency, workspaceCurrency, new Date());
+      return converted.converted;
+    }));
+    const totalMonthlyCost = normalizedMonthlyCosts.reduce((sum, amount) => sum + amount, 0);
 
     const now = new Date();
     const weekAhead = new Date(now);
     weekAhead.setDate(weekAhead.getDate() + 7);
+    const monthAhead = new Date(now);
+    monthAhead.setDate(monthAhead.getDate() + 30);
 
     const upcomingCount = await this.subscriptionRepository.count({
       where: {
@@ -114,10 +226,26 @@ export class SubscriptionsService {
       },
     });
 
+    const upcoming30DaysCount = active.filter(sub => {
+      const chargeDate = sub.nextChargeDate ? new Date(sub.nextChargeDate) : null;
+      return chargeDate !== null && chargeDate >= now && chargeDate <= monthAhead;
+    }).length;
+
+    const priceChangeCount = active.filter(sub => sub.riskStatus === 'price_changed').length;
+    const overdueReviewCount = active.filter(sub => sub.reviewAt && new Date(sub.reviewAt) < now).length;
+    const realizedAnnualSavings = active.reduce(
+      (sum, sub) => sum + Number(sub.realizedAnnualSavings ?? 0),
+      0,
+    );
+
     return {
       totalMonthlyCost: Math.round(totalMonthlyCost * 100) / 100,
       activeCount: active.length,
       upcomingCount,
+      upcoming30DaysCount,
+      priceChangeCount,
+      overdueReviewCount,
+      realizedAnnualSavings: Math.round(realizedAnnualSavings * 100) / 100,
     };
   }
 
@@ -191,6 +319,7 @@ export class SubscriptionsService {
     for (const sub of pastDue) {
       sub.lastChargeDate = sub.nextChargeDate;
       sub.nextChargeDate = this.addInterval(new Date(sub.nextChargeDate!), sub.frequency);
+      sub.riskStatus = SubscriptionRiskStatus.MISSING_CHARGE;
       await this.subscriptionRepository.save(sub);
     }
 
@@ -229,5 +358,38 @@ export class SubscriptionsService {
         break;
     }
     return d;
+  }
+
+  private async recordDetectedCharges(subscription: Subscription): Promise<void> {
+    const transactionIds = subscription.detectionMeta?.transactionIds;
+    if (!Array.isArray(transactionIds) || transactionIds.some(id => typeof id !== 'string')) return;
+
+    const transactions = await this.transactionRepository.find({
+      where: { workspaceId: subscription.workspaceId, id: In(transactionIds) },
+    });
+    for (const transaction of transactions) {
+      const existing = await this.chargeRepository.findOne({ where: { transactionId: transaction.id } });
+      if (existing) continue;
+      const amount = Math.abs(Number(transaction.amount));
+      const variance = subscription.amount ? Math.abs(amount - Number(subscription.amount)) / Number(subscription.amount) : 0;
+      const matchStatus = variance > 0.05
+        ? SubscriptionChargeMatchStatus.PRICE_CHANGED
+        : SubscriptionChargeMatchStatus.MATCHED;
+      await this.chargeRepository.save(this.chargeRepository.create({
+        workspaceId: subscription.workspaceId,
+        subscriptionId: subscription.id,
+        transactionId: transaction.id,
+        amount,
+        currency: transaction.currency,
+        chargeDate: transaction.transactionDate,
+        expectedAmount: subscription.amount,
+        expectedDate: subscription.nextChargeDate,
+        matchStatus,
+      }));
+      if (matchStatus === SubscriptionChargeMatchStatus.PRICE_CHANGED) {
+        subscription.riskStatus = SubscriptionRiskStatus.PRICE_CHANGED;
+        await this.subscriptionRepository.save(subscription);
+      }
+    }
   }
 }

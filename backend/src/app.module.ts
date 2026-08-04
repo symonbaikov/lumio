@@ -58,6 +58,8 @@ import {
   WorkspaceServiceSettings,
   WorkspaceInvitation,
   Subscription,
+  SubscriptionCharge,
+  SubscriptionDecision,
   WorkspaceMember,
 } from './entities';
 import { ApiKeysModule } from './modules/api-keys/api-keys.module';
@@ -171,6 +173,8 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
       ExchangeRate,
       Budget,
       Subscription,
+      SubscriptionCharge,
+      SubscriptionDecision,
     ]),
     CommonModule,
     ApplicationSettingsModule,

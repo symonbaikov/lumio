@@ -1,0 +1,60 @@
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Subscription } from './subscription.entity';
+import { Transaction } from './transaction.entity';
+import { Workspace } from './workspace.entity';
+
+export enum SubscriptionChargeMatchStatus {
+  MATCHED = 'matched',
+  PRICE_CHANGED = 'price_changed',
+  DATE_SHIFTED = 'date_shifted',
+}
+
+@Entity('subscription_charges')
+@Unique('UQ_subscription_charges_transaction', ['transactionId'])
+@Index('IDX_subscription_charges_subscription_date', ['subscriptionId', 'chargeDate'])
+export class SubscriptionCharge {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @ManyToOne(() => Workspace, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'workspace_id' })
+  workspace: Workspace;
+
+  @Column({ name: 'workspace_id' })
+  workspaceId: string;
+
+  @ManyToOne(() => Subscription, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'subscription_id' })
+  subscription: Subscription;
+
+  @Column({ name: 'subscription_id' })
+  subscriptionId: string;
+
+  @ManyToOne(() => Transaction, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'transaction_id' })
+  transaction: Transaction;
+
+  @Column({ name: 'transaction_id' })
+  transactionId: string;
+
+  @Column({ type: 'decimal', precision: 15, scale: 2 })
+  amount: number;
+
+  @Column({ length: 10 })
+  currency: string;
+
+  @Column({ name: 'charge_date', type: 'date' })
+  chargeDate: Date;
+
+  @Column({ name: 'expected_amount', type: 'decimal', precision: 15, scale: 2 })
+  expectedAmount: number;
+
+  @Column({ name: 'expected_date', type: 'date', nullable: true })
+  expectedDate: Date | null;
+
+  @Column({ type: 'enum', enum: SubscriptionChargeMatchStatus })
+  matchStatus: SubscriptionChargeMatchStatus;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  createdAt: Date;
+}

@@ -11,6 +11,13 @@ export interface SubscriptionItem {
   currency: string;
   frequency: 'weekly' | 'monthly' | 'quarterly' | 'annual';
   status: 'detected' | 'active' | 'paused' | 'cancelled';
+  ownerId: string | null;
+  owner: { id: string; name: string | null; email: string | null } | null;
+  reviewAt: string | null;
+  reviewStatus: 'current' | 'needs_review';
+  riskStatus: 'none' | 'price_changed' | 'date_shifted' | 'missing_charge';
+  cancellationReason: string | null;
+  realizedAnnualSavings: number;
   confidence: number | null;
   nextChargeDate: string | null;
   lastChargeDate: string | null;
@@ -24,6 +31,16 @@ export interface SubscriptionSummary {
   totalMonthlyCost: number;
   activeCount: number;
   upcomingCount: number;
+  upcoming30DaysCount: number;
+  priceChangeCount: number;
+  overdueReviewCount: number;
+  realizedAnnualSavings: number;
+}
+
+export interface SubscriptionWorkspaceMember {
+  id: string;
+  name?: string | null;
+  email?: string | null;
 }
 
 export interface SubscriptionFormData {
@@ -51,7 +68,16 @@ export function useSubscriptionsPage() {
   const workspaceCurrency = currentWorkspace?.currency ?? DEFAULT_CURRENCY;
 
   const [subscriptions, setSubscriptions] = useState<SubscriptionItem[]>([]);
-  const [summary, setSummary] = useState<SubscriptionSummary>({ totalMonthlyCost: 0, activeCount: 0, upcomingCount: 0 });
+  const [summary, setSummary] = useState<SubscriptionSummary>({
+    totalMonthlyCost: 0,
+    activeCount: 0,
+    upcomingCount: 0,
+    upcoming30DaysCount: 0,
+    priceChangeCount: 0,
+    overdueReviewCount: 0,
+    realizedAnnualSavings: 0,
+  });
+  const [workspaceMembers, setWorkspaceMembers] = useState<SubscriptionWorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -70,7 +96,15 @@ export function useSubscriptionsPage() {
         apiClient.get('/subscriptions/summary'),
       ]);
       setSubscriptions(subsRes.data?.data ?? subsRes.data ?? []);
-      setSummary(summaryRes.data?.data ?? summaryRes.data ?? { totalMonthlyCost: 0, activeCount: 0, upcomingCount: 0 });
+      setSummary(summaryRes.data?.data ?? summaryRes.data ?? {
+        totalMonthlyCost: 0,
+        activeCount: 0,
+        upcomingCount: 0,
+        upcoming30DaysCount: 0,
+        priceChangeCount: 0,
+        overdueReviewCount: 0,
+        realizedAnnualSavings: 0,
+      });
     } catch {
       setError('Failed to load subscriptions');
     } finally {
@@ -79,8 +113,15 @@ export function useSubscriptionsPage() {
   }, [statusFilter]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!currentWorkspace?.id) return;
+    void apiClient.get(`/workspaces/${currentWorkspace.id}`).then(res => {
+      setWorkspaceMembers(res.data?.members ?? []);
+    }).catch(() => setWorkspaceMembers([]));
+  }, [currentWorkspace?.id]);
 
   const openCreate = useCallback(() => {
     setEditingSubscription(null);
@@ -132,7 +173,7 @@ export function useSubscriptionsPage() {
     } finally {
       setSaving(false);
     }
-  }, [formData, editingSubscription, closeDialog, load]);
+  }, [formData, editingSubscription, closeDialog, load, workspaceCurrency]);
 
   const handleDelete = useCallback(async (id: string) => {
     try {
@@ -164,9 +205,34 @@ export function useSubscriptionsPage() {
     }
   }, [load]);
 
+  const assignOwner = useCallback(async (id: string, ownerId: string) => {
+    try {
+      await apiClient.patch(`/subscriptions/${id}/owner`, { ownerId });
+      toast.success('Owner assigned');
+      await load();
+    } catch {
+      toast.error('Failed to assign owner');
+    }
+  }, [load]);
+
+  const recordDecision = useCallback(async (
+    id: string,
+    decision: 'keep' | 'review' | 'cancelled' | 'price_reduced',
+    values: { note?: string; reviewAt?: string; realizedAnnualSavings?: number } = {},
+  ) => {
+    try {
+      await apiClient.post(`/subscriptions/${id}/decisions`, { decision, ...values });
+      toast.success('Subscription decision saved');
+      await load();
+    } catch {
+      toast.error('Failed to save subscription decision');
+    }
+  }, [load]);
+
   return {
     subscriptions,
     summary,
+    workspaceMembers,
     workspaceCurrency,
     loading,
     error,
@@ -184,5 +250,7 @@ export function useSubscriptionsPage() {
     handleDelete,
     handleConfirm,
     handleDismiss,
+    assignOwner,
+    recordDecision,
   };
 }
