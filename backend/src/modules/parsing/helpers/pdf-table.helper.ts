@@ -173,8 +173,40 @@ function findHeaderIndex(rows: string[][]): number {
   return bestIndex;
 }
 
-function buildColumnMap(_header: string[]): Partial<Record<TableColumnKey, number>> {
+function buildColumnMap(header: string[]): Partial<Record<TableColumnKey, number>> {
   const map: Partial<Record<TableColumnKey, number>> = {};
+
+  const definitions: Array<{ key: TableColumnKey; patterns: RegExp[] }> = [
+    { key: 'date', patterns: [/\bdate\b/i, /дата/i, /күні|күн/i] },
+    { key: 'document', patterns: [/документ/i, /номер/i, /\bnumber\b/i, /\bno\.?\b/i] },
+    {
+      key: 'counterparty',
+      patterns: [/контрагент/i, /получател/i, /плательщ/i, /beneficiar/i, /payer/i, /payee/i],
+    },
+    { key: 'bin', patterns: [/\bбин\b/i, /\biin\b/i, /\bиин\b/i] },
+    { key: 'account', patterns: [/сч[её]т/i, /account/i, /iban/i] },
+    { key: 'bank', patterns: [/\bбанк/i, /\bbank\b/i, /\bbic\b/i, /бик/i] },
+    { key: 'debit', patterns: [/\bdebit\b/i, /дебет/i, /списан/i, /расход/i] },
+    { key: 'credit', patterns: [/\bcredit\b/i, /кредит/i, /поступ/i, /зачисл/i, /доход/i] },
+    { key: 'purpose', patterns: [/назначени/i, /основани/i, /purpose/i, /description/i, /детал/i] },
+    { key: 'currency', patterns: [/валют/i, /currency/i, /\bcurrency\b/i] },
+    { key: 'knp', patterns: [/\bкнп\b/i, /\bknp\b/i] },
+  ];
+
+  header.forEach((cell, index) => {
+    const value = sanitizeCell(cell);
+    if (!value) {
+      return;
+    }
+
+    const match = definitions.find(
+      definition => map[definition.key] === undefined && definition.patterns.some(pattern => pattern.test(value)),
+    );
+    if (match) {
+      map[match.key] = index;
+    }
+  });
+
   return map;
 }
 
