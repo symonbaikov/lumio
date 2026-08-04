@@ -1,0 +1,228 @@
+import * as crypto from 'node:crypto';
+import { randomUUID } from 'node:crypto';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import type { Repository } from 'typeorm';
+import {
+  BackupConfiguration,
+  BackupDestinationKind,
+  BackupRun,
+  BackupRunStatus,
+  BackupRunTrigger,
+  Workspace,
+} from '../../entities';
+import type { User } from '../../entities/user.entity';
+import { BackupArchiveService } from './backup-archive.service';
+import { BackupDataService } from './backup-data.service';
+import { BackupDestinationService } from './backup-destination.service';
+import { BackupKeyService } from './backup-key.service';
+
+export type UpdateBackupConfiguration = {
+  destinationKind: BackupDestinationKind;
+  destinationPath?: string;
+  dailyTime?: string;
+  timeZone?: string;
+  retentionCount?: number;
+  enabled?: boolean;
+  password?: string;
+};
+
+@Injectable()
+export class BackupsService {
+  constructor(
+    @InjectRepository(BackupConfiguration)
+    private readonly configurationRepository: Repository<BackupConfiguration>,
+    @InjectRepository(BackupRun)
+    private readonly runRepository: Repository<BackupRun>,
+    @InjectRepository(Workspace)
+    private readonly workspaceRepository: Repository<Workspace>,
+    private readonly archiveService: BackupArchiveService,
+    private readonly keyService: BackupKeyService,
+    private readonly dataService: BackupDataService,
+    private readonly destinationService: BackupDestinationService,
+  ) {}
+
+  async getConfiguration(user: User) {
+    const workspace = await this.requireOwner(user);
+    const configuration = await this.configurationRepository.findOne({
+      where: { workspaceId: workspace.id },
+    });
+    return configuration ? this.publicConfiguration(configuration) : null;
+  }
+
+  async configure(user: User, input: UpdateBackupConfiguration) {
+    const workspace = await this.requireOwner(user);
+    this.validateConfiguration(input);
+    const existing = await this.configurationRepository.findOne({
+      where: { workspaceId: workspace.id },
+    });
+    if (!existing && !input.password) {
+      throw new BadRequestException('A backup password is required for the first configuration');
+    }
+
+    const configuration = existing || this.configurationRepository.create({ workspaceId: workspace.id });
+    configuration.destinationKind = input.destinationKind;
+    configuration.destinationPath = input.destinationPath || 'lumio-backups';
+    configuration.dailyTime = input.dailyTime || existing?.dailyTime || '03:00';
+    configuration.timeZone = input.timeZone || existing?.timeZone || 'UTC';
+    configuration.retentionCount = input.retentionCount ?? existing?.retentionCount ?? 7;
+    configuration.enabled = input.enabled ?? existing?.enabled ?? true;
+    configuration.lastSuccessfulAt = existing?.lastSuccessfulAt ?? null;
+
+    if (input.password) {
+      const encryption = await this.archiveService.initializeEncryption(input.password);
+      configuration.encryptedDataKey = this.keyService.encryptDataKey(encryption.dataKey);
+      configuration.passwordEnvelope = encryption.passwordEnvelope;
+    } else if (existing) {
+      configuration.encryptedDataKey = existing.encryptedDataKey;
+      configuration.passwordEnvelope = existing.passwordEnvelope;
+    }
+
+    const saved = await this.configurationRepository.save(configuration);
+    return this.publicConfiguration(saved);
+  }
+
+  async listRuns(user: User): Promise<BackupRun[]> {
+    const workspace = await this.requireOwner(user);
+    return this.runRepository.find({
+      where: { workspaceId: workspace.id },
+      order: { createdAt: 'DESC' },
+      take: 30,
+    });
+  }
+
+  async createRun(user: User, trigger: BackupRunTrigger = BackupRunTrigger.MANUAL): Promise<BackupRun> {
+    const workspace = await this.requireOwner(user);
+    const configuration = await this.configurationRepository.findOne({
+      where: { workspaceId: workspace.id },
+    });
+    if (!configuration) {
+      throw new BadRequestException('Backup is not configured');
+    }
+    return this.runConfiguration(workspace, configuration, trigger);
+  }
+
+  async downloadRun(user: User, runId: string): Promise<{ fileName: string; contents: Buffer }> {
+    const workspace = await this.requireOwner(user);
+    const run = await this.runRepository.findOne({ where: { id: runId, workspaceId: workspace.id } });
+    if (!run?.destinationFile || run.status !== BackupRunStatus.SUCCEEDED) {
+      throw new NotFoundException('Backup run was not found');
+    }
+    const configuration = await this.configurationRepository.findOne({ where: { id: run.configurationId, workspaceId: workspace.id } });
+    if (!configuration) throw new NotFoundException('Backup configuration was not found');
+
+    return {
+      fileName: run.destinationFile.split('/').pop() || 'backup.lumio-backup',
+      contents: await this.destinationService.load(configuration, run.destinationFile),
+    };
+  }
+
+  async runConfiguration(
+    workspace: Workspace,
+    configuration: BackupConfiguration,
+    trigger: BackupRunTrigger,
+  ): Promise<BackupRun> {
+    const run = this.runRepository.create({
+      workspaceId: workspace.id,
+      configurationId: configuration.id,
+      trigger,
+      status: BackupRunStatus.RUNNING,
+      startedAt: new Date(),
+      finishedAt: null,
+      destinationFile: null,
+      payloadSha256: null,
+      sizeBytes: null,
+      errorMessage: null,
+    });
+    const savedRun = await this.runRepository.save(run);
+
+    try {
+      const snapshot = await this.dataService.collect(workspace.id);
+      const collections = {
+        workspace: [
+          {
+            id: workspace.id,
+            name: workspace.name,
+            description: workspace.description,
+            icon: workspace.icon,
+            color: workspace.color,
+            backgroundImage: workspace.backgroundImage,
+            currency: workspace.currency,
+            settings: workspace.settings,
+          },
+        ],
+        ...snapshot.collections,
+      };
+      const archive = await this.archiveService.create({
+        workspace: { id: workspace.id, name: workspace.name },
+        collections,
+        files: snapshot.files || [],
+        encryption: {
+          dataKey: this.keyService.decryptDataKey(configuration.encryptedDataKey),
+          passwordEnvelope: configuration.passwordEnvelope,
+        },
+      });
+      const fileName = `backup-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.lumio-backup`;
+      savedRun.destinationFile = await this.destinationService.store(configuration, fileName, archive);
+      savedRun.payloadSha256 = crypto.createHash('sha256').update(archive).digest('hex');
+      savedRun.sizeBytes = String(archive.length);
+      savedRun.status = BackupRunStatus.SUCCEEDED;
+      savedRun.finishedAt = new Date();
+      configuration.lastSuccessfulAt = savedRun.finishedAt;
+      await this.configurationRepository.save(configuration);
+      return this.runRepository.save(savedRun);
+    } catch (error) {
+      savedRun.status = BackupRunStatus.FAILED;
+      savedRun.finishedAt = new Date();
+      savedRun.errorMessage = error instanceof Error ? error.message : 'Backup failed';
+      await this.runRepository.save(savedRun);
+      throw error;
+    }
+  }
+
+  private async requireOwner(user: User): Promise<Workspace> {
+    if (!user.workspaceId) throw new BadRequestException('User workspace is required');
+    const workspace = await this.workspaceRepository.findOne({ where: { id: user.workspaceId } });
+    if (!workspace) throw new NotFoundException('Workspace not found');
+    if (workspace.ownerId !== user.id) {
+      throw new ForbiddenException('Only the workspace owner can manage backups');
+    }
+    return workspace;
+  }
+
+  private validateConfiguration(input: UpdateBackupConfiguration): void {
+    if (!Object.values(BackupDestinationKind).includes(input.destinationKind)) {
+      throw new BadRequestException('Unsupported backup destination');
+    }
+    if (input.dailyTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.dailyTime)) {
+      throw new BadRequestException('Daily backup time must be HH:mm');
+    }
+    if (input.timeZone) {
+      try {
+        Intl.DateTimeFormat(undefined, { timeZone: input.timeZone });
+      } catch {
+        throw new BadRequestException('Invalid backup time zone');
+      }
+    }
+    if (input.retentionCount !== undefined && (!Number.isInteger(input.retentionCount) || input.retentionCount < 1)) {
+      throw new BadRequestException('Retention count must be at least one');
+    }
+    if (input.destinationPath && !/^[a-zA-Z0-9_-]+$/.test(input.destinationPath)) {
+      throw new BadRequestException('Invalid backup destination path');
+    }
+  }
+
+  private publicConfiguration(configuration: BackupConfiguration) {
+    return {
+      id: configuration.id,
+      destinationKind: configuration.destinationKind,
+      destinationPath: configuration.destinationPath,
+      dailyTime: configuration.dailyTime,
+      timeZone: configuration.timeZone,
+      retentionCount: configuration.retentionCount,
+      enabled: configuration.enabled,
+      lastSuccessfulAt: configuration.lastSuccessfulAt,
+      passwordConfigured: Boolean(configuration.encryptedDataKey && configuration.passwordEnvelope),
+    };
+  }
+}

@@ -1,0 +1,291 @@
+import { randomUUID } from 'node:crypto';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import type { DataSource, EntityMetadata } from 'typeorm';
+import { WorkspaceRole } from '../../entities';
+import { resolveUploadsDir } from '../../common/utils/uploads.util';
+import type { User } from '../../entities/user.entity';
+import { Workspace } from '../../entities/workspace.entity';
+import { WorkspaceMember } from '../../entities/workspace-member.entity';
+import type { Repository } from 'typeorm';
+import { BackupArchiveService, type OpenedBackup } from './backup-archive.service';
+
+const RESTORE_ORDER = [
+  'categories',
+  'branches',
+  'wallets',
+  'tax_rates',
+  'folders',
+  'tags',
+  'balance_accounts',
+  'google_sheets',
+  'custom_tables',
+  'statements',
+  'file_versions',
+  'transactions',
+  'receipts',
+  'data_entries',
+  'custom_table_columns',
+  'custom_table_rows',
+  'custom_table_column_styles',
+  'custom_table_cell_styles',
+  'google_sheet_rows',
+];
+
+const USER_REFERENCE_PROPERTIES = new Set([
+  'userId',
+  'ownerId',
+  'createdById',
+  'createdBy',
+  'updatedByUserId',
+  'connectedByUserId',
+  'invitedById',
+]);
+
+@Injectable()
+export class BackupRestoreService {
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    @InjectRepository(Workspace) private readonly workspaceRepository: Repository<Workspace>,
+    @InjectRepository(WorkspaceMember)
+    private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
+    private readonly archiveService: BackupArchiveService,
+  ) {}
+
+  async preview(archive: Buffer, password: string) {
+    const opened = await this.archiveService.open(archive, password);
+    return {
+      workspaceName: this.sourceWorkspace(opened).name,
+      createdAt: opened.manifest.createdAt,
+      collections: opened.manifest.collections,
+      fileCount: opened.manifest.files.length,
+    };
+  }
+
+  async restore(archive: Buffer, password: string, user: User, workspaceName?: string): Promise<Workspace> {
+    const opened = await this.archiveService.open(archive, password);
+    const sourceWorkspace = this.sourceWorkspace(opened);
+    const workspace = await this.workspaceRepository.save(
+      this.workspaceRepository.create({
+        name: workspaceName?.trim() || `Restored ${sourceWorkspace.name}`,
+        description: this.stringOrNull(sourceWorkspace.description),
+        icon: this.stringOrNull(sourceWorkspace.icon),
+        color: this.stringOrNull(sourceWorkspace.color),
+        backgroundImage: this.stringOrNull(sourceWorkspace.backgroundImage),
+        currency: this.stringOrNull(sourceWorkspace.currency),
+        settings: this.objectOrNull(sourceWorkspace.settings),
+        ownerId: user.id,
+        isFavorite: false,
+      }),
+    );
+    const stagedFiles: Array<{ stagedPath: string; targetPath: string }> = [];
+    const restoreDirectory = await fs.mkdtemp(path.join(resolveUploadsDir(), '.restore-'));
+
+    try {
+      await this.workspaceMemberRepository.save(
+        this.workspaceMemberRepository.create({
+          workspaceId: workspace.id,
+          userId: user.id,
+          role: WorkspaceRole.OWNER,
+          permissions: null,
+          invitedById: user.id,
+        }),
+      );
+      const idMap = this.buildIdMap(opened, sourceWorkspace.id, workspace.id);
+      const prepared = await this.prepareCollections(opened, idMap, workspace.id, user.id, restoreDirectory, stagedFiles);
+      await this.dataSource.transaction(async manager => {
+        for (const { metadata, values } of prepared) {
+          if (values.length > 0) {
+            await manager.getRepository(metadata.target).insert(values);
+          }
+        }
+      });
+      await Promise.all(
+        stagedFiles.map(async file => {
+          await fs.mkdir(path.dirname(file.targetPath), { recursive: true });
+          await fs.rename(file.stagedPath, file.targetPath);
+        }),
+      );
+      await fs.rm(restoreDirectory, { recursive: true, force: true });
+      return workspace;
+    } catch (error) {
+      await fs.rm(restoreDirectory, { recursive: true, force: true }).catch(() => undefined);
+      await Promise.all(stagedFiles.map(file => fs.rm(file.targetPath, { force: true }).catch(() => undefined)));
+      await this.workspaceRepository.delete(workspace.id).catch(() => undefined);
+      throw error;
+    }
+  }
+
+  private sourceWorkspace(opened: OpenedBackup): Record<string, unknown> {
+    const workspace = opened.collections.workspace?.[0];
+    if (workspace && typeof workspace === 'object') return workspace as Record<string, unknown>;
+    throw new BadRequestException('Backup does not contain workspace data');
+  }
+
+  private buildIdMap(opened: OpenedBackup, sourceWorkspaceId: unknown, workspaceId: string): Map<string, string> {
+    const map = new Map<string, string>();
+    if (typeof sourceWorkspaceId === 'string') map.set(sourceWorkspaceId, workspaceId);
+    for (const [tableName, rows] of Object.entries(opened.collections)) {
+      if (tableName === 'workspace') continue;
+      for (const row of rows) {
+        const id = (row as Record<string, unknown>).id;
+        if (typeof id === 'string') map.set(id, randomUUID());
+      }
+    }
+    return map;
+  }
+
+  private sortedCollections(collections: Record<string, unknown[]>): Array<[string, Record<string, unknown>[]]> {
+    const entries = Object.entries(collections)
+      .filter(([tableName]) => tableName !== 'workspace')
+      .map(([tableName, rows]) => [tableName, rows as Record<string, unknown>[]] as [string, Record<string, unknown>[]]);
+    return entries.sort(([left], [right]) => this.order(left) - this.order(right));
+  }
+
+  private order(tableName: string): number {
+    const index = RESTORE_ORDER.indexOf(tableName);
+    return index === -1 ? RESTORE_ORDER.length : index;
+  }
+
+  private mapRecord(
+    metadata: EntityMetadata,
+    source: Record<string, unknown>,
+    idMap: Map<string, string>,
+    workspaceId: string,
+    userId: string,
+  ): Record<string, unknown> {
+    const mapped = metadata.columns.reduce<Record<string, unknown>>((record, column) => {
+      const property = column.propertyName;
+      if (source[property] === undefined) return record;
+      if (property === 'workspaceId') {
+        record[property] = workspaceId;
+      } else if (property === 'id') {
+        record[property] = idMap.get(String(source[property])) || randomUUID();
+      } else if (USER_REFERENCE_PROPERTIES.has(property)) {
+        record[property] = source[property] === null ? null : userId;
+      } else if (property.endsWith('Id') && typeof source[property] === 'string') {
+        record[property] = idMap.get(source[property] as string) || source[property];
+      } else {
+        record[property] = this.mapNestedIds(source[property], idMap);
+      }
+      return record;
+    }, {});
+    if (metadata.tableName === 'file_versions' && this.isBase64FileData(source.fileData)) {
+      mapped.fileData = Buffer.from(source.fileData.value, 'base64');
+    }
+    return mapped;
+  }
+
+  private async prepareCollections(
+    opened: OpenedBackup,
+    idMap: Map<string, string>,
+    workspaceId: string,
+    userId: string,
+    restoreDirectory: string,
+    stagedFiles: Array<{ stagedPath: string; targetPath: string }>,
+  ): Promise<Array<{ metadata: EntityMetadata; values: Record<string, unknown>[] }>> {
+    const prepared: Array<{ metadata: EntityMetadata; values: Record<string, unknown>[] }> = [];
+    for (const [tableName, rows] of this.sortedCollections(opened.collections)) {
+      const metadata = this.dataSource.entityMetadatas.find(item => item.tableName === tableName);
+      if (!metadata) throw new BadRequestException(`Backup contains unsupported collection: ${tableName}`);
+      const values: Record<string, unknown>[] = [];
+      for (const row of rows) {
+        const mapped = this.mapRecord(metadata, row, idMap, workspaceId, userId);
+        await this.prepareDocumentPaths(
+          tableName,
+          row,
+          mapped,
+          opened.files,
+          restoreDirectory,
+          stagedFiles,
+        );
+        values.push(mapped);
+      }
+      prepared.push({ metadata, values });
+    }
+    return prepared;
+  }
+
+  private async prepareDocumentPaths(
+    tableName: string,
+    source: Record<string, unknown>,
+    mapped: Record<string, unknown>,
+    files: Map<string, Buffer>,
+    restoreDirectory: string,
+    stagedFiles: Array<{ stagedPath: string; targetPath: string }>,
+  ): Promise<void> {
+    if (tableName === 'statements' || tableName === 'report_history') {
+      if (typeof source.filePath === 'string') {
+        mapped.filePath = await this.stageDocument(
+          source.filePath,
+          String(mapped.id),
+          files,
+          restoreDirectory,
+          stagedFiles,
+        );
+      }
+      return;
+    }
+    if (tableName === 'receipts' && Array.isArray(source.attachmentPaths)) {
+      mapped.attachmentPaths = await Promise.all(
+        source.attachmentPaths
+          .filter((value): value is string => typeof value === 'string')
+          .map(portablePath =>
+            this.stageDocument(portablePath, String(mapped.id), files, restoreDirectory, stagedFiles),
+          ),
+      );
+    }
+  }
+
+  private async stageDocument(
+    portablePath: string,
+    restoredId: string,
+    files: Map<string, Buffer>,
+    restoreDirectory: string,
+    stagedFiles: Array<{ stagedPath: string; targetPath: string }>,
+  ): Promise<string> {
+    const contents = files.get(portablePath);
+    if (!contents) throw new BadRequestException(`Backup document is missing: ${portablePath}`);
+    const safeName = path.basename(portablePath);
+    const targetPath = path.join(resolveUploadsDir(), `restored-${restoredId}-${safeName}`);
+    const stagedPath = path.join(restoreDirectory, `${randomUUID()}-${safeName}`);
+    await fs.writeFile(stagedPath, contents, { flag: 'wx' });
+    stagedFiles.push({ stagedPath, targetPath });
+    return targetPath;
+  }
+
+  private mapNestedIds(value: unknown, idMap: Map<string, string>): unknown {
+    if (typeof value === 'string') return idMap.get(value) || value;
+    if (Array.isArray(value)) return value.map(item => this.mapNestedIds(item, idMap));
+    if (value && typeof value === 'object' && !(value instanceof Date)) {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([key, nested]) => [
+          key,
+          this.mapNestedIds(nested, idMap),
+        ]),
+      );
+    }
+    return value;
+  }
+
+  private isBase64FileData(value: unknown): value is { encoding: 'base64'; value: string } {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      (value as Record<string, unknown>).encoding === 'base64' &&
+      typeof (value as Record<string, unknown>).value === 'string'
+    );
+  }
+
+  private stringOrNull(value: unknown): string | null {
+    return typeof value === 'string' ? value : null;
+  }
+
+  private objectOrNull(value: unknown): Record<string, unknown> | null {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  }
+}

@@ -3,6 +3,7 @@
 import { Cloud, Download, Folder } from '@/app/components/icons';
 import { Alert } from '@/app/components/ui/alert';
 import { Spinner } from '@/app/components/ui/spinner';
+import { BackupSection } from '@/app/settings/profile/components/BackupSection';
 import type { BankStat } from '@/app/settings/profile/hooks/useSync';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
@@ -125,6 +126,7 @@ export function SyncSection({
           </Box>
         </CardContent>
       </Card>
+      <BackupSection />
     </Stack>
   );
 }

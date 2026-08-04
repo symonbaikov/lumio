@@ -14,5 +14,7 @@ describe('Entities barrel exports', () => {
     expect(source).toContain("export * from './custom-table-cell-style.entity'");
     expect(source).toContain("export * from './custom-table-import-job.entity'");
     expect(source).toContain("export * from './file-version.entity'");
+    expect(source).toContain("export * from './backup-configuration.entity'");
+    expect(source).toContain("export * from './backup-run.entity'");
   });
 });
