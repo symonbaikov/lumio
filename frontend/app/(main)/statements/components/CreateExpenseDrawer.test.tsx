@@ -174,7 +174,7 @@ describe('CreateExpenseDrawer mobile uploads', () => {
     });
   });
 
-  it('shows a processing skeleton while scan uploads are being submitted', async () => {
+  it('closes immediately on submit, letting the scan upload continue in the background', async () => {
     let finishUpload: (() => void) | undefined;
     const onSubmitScan = vi.fn(
       () =>
@@ -182,6 +182,7 @@ describe('CreateExpenseDrawer mobile uploads', () => {
           finishUpload = resolve;
         }),
     );
+    const onClose = vi.fn();
     const container = document.createElement('div');
     document.body.innerHTML = '';
     document.body.appendChild(container);
@@ -194,7 +195,7 @@ describe('CreateExpenseDrawer mobile uploads', () => {
           initialMode="scan"
           categories={[]}
           taxRates={[]}
-          onClose={() => undefined}
+          onClose={onClose}
           onSubmitScan={onSubmitScan}
           onSubmitManual={async () => undefined}
         />,
@@ -215,8 +216,12 @@ describe('CreateExpenseDrawer mobile uploads', () => {
       fireEvent.click(screen.getByRole('button', { name: /upload receipt/i }));
     });
 
-    expect(screen.getByTestId('receipt-upload-processing-skeleton')).toBeInTheDocument();
-    expect(screen.getByText(/processing 2 receipts/i)).toBeInTheDocument();
+    expect(onClose).toHaveBeenCalled();
+    expect(onSubmitScan).toHaveBeenCalledWith({
+      files,
+      allowDuplicates: true,
+      requireManualCategorySelection: false,
+    });
 
     await act(async () => {
       finishUpload?.();

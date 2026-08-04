@@ -158,13 +158,20 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
     files: File[];
     allowDuplicates: boolean;
     requireManualCategorySelection: boolean;
-  }): Promise<void> =>
-    runUploadScanDrawerFiles({
-      payload,
-      labels: uploadLabels,
-      onUploadSuccess: onUploadSuccess,
-      refreshAfterCreate: refreshAfterCreate,
-    });
+  }): Promise<void> => {
+    const skeletonKeys = payload.files.map((_, index) => `local-upload-${Date.now()}-${index}`);
+    v.setGmailSyncSkeletonKeys(prev => [...prev, ...skeletonKeys]);
+    try {
+      await runUploadScanDrawerFiles({
+        payload,
+        labels: uploadLabels,
+        onUploadSuccess: onUploadSuccess,
+        refreshAfterCreate: refreshAfterCreate,
+      });
+    } finally {
+      v.setGmailSyncSkeletonKeys(prev => prev.filter(key => !skeletonKeys.includes(key)));
+    }
+  };
 
   const handleCreateManualExpense = async (payload: ManualExpensePayload): Promise<void> => {
     const fallbackId = v.manualExpenseTaxRates.find(tr => tr.isEnabled && tr.isDefault)?.id ?? '';

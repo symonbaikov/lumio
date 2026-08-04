@@ -119,14 +119,16 @@ function BalanceSheet(): React.JSX.Element {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<BalanceExportFormat | null>(null);
 
+  const currencyCode = sheet?.currency || 'KZT';
+
   const formatCurrency = useCallback(
     (value: number) =>
       new Intl.NumberFormat(resolveLocale(locale), {
         style: 'currency',
-        currency: sheet?.currency || 'KZT',
+        currency: currencyCode,
         minimumFractionDigits: 2,
       }).format(value),
-    [locale, sheet?.currency],
+    [locale, currencyCode],
   );
 
   const effectiveDate = filterMode === 'date' ? selectedDate : undefined;
@@ -348,7 +350,9 @@ function BalanceSheet(): React.JSX.Element {
                     disabled={savingAccountId === account.id}
                     aria-label={account.name}
                   />
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted-foreground)' }}>₸</span>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted-foreground)' }}>
+                    {currencyCode}
+                  </span>
                   {savingAccountId === account.id && <CircularProgress size={16} sx={{ color: 'var(--primary)' }} />}
                 </Box>
               ) : (
@@ -376,7 +380,7 @@ function BalanceSheet(): React.JSX.Element {
         </Box>
       );
     },
-    [editableValues, expanded, formatCurrency, saveSnapshot, savingAccountId, toggleExpanded],
+    [currencyCode, editableValues, expanded, formatCurrency, saveSnapshot, savingAccountId, toggleExpanded],
   );
 
   const balanceWarning = useMemo(() => {

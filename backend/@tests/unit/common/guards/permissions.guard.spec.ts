@@ -95,6 +95,34 @@ describe('PermissionsGuard', () => {
 
     expect(result).toBe(true);
   });
+
+  it('allows workspace owner to create a budget', () => {
+    const context = createMockExecutionContext({
+      user: { id: 'user-5', role: UserRole.USER, permissions: null },
+      workspaceRole: WorkspaceRole.OWNER,
+      workspaceMemberPermissions: null,
+    });
+    jest
+      .spyOn(reflector, 'getAllAndOverride')
+      .mockReturnValue([PermissionEnum.BUDGET_CREATE] as Permission[]);
+
+    const result = guard.canActivate(context);
+
+    expect(result).toBe(true);
+  });
+
+  it('denies plain member from creating a budget', () => {
+    const context = createMockExecutionContext({
+      user: { id: 'user-6', role: UserRole.USER, permissions: null },
+      workspaceRole: WorkspaceRole.MEMBER,
+      workspaceMemberPermissions: null,
+    });
+    jest
+      .spyOn(reflector, 'getAllAndOverride')
+      .mockReturnValue([PermissionEnum.BUDGET_CREATE] as Permission[]);
+
+    expect(() => guard.canActivate(context)).toThrow();
+  });
 });
 
 function createMockExecutionContext(request: Record<string, unknown>): ExecutionContext {

@@ -229,6 +229,7 @@ export function useStatementsView({ stage, router, searchParams }: UseStatements
   // data
   loading: boolean;
   gmailSyncSkeletonKeys: string[];
+  setGmailSyncSkeletonKeys: React.Dispatch<React.SetStateAction<string[]>>;
   loadStatements: ReturnType<typeof useStatementsListData>['loadStatements'];
   loadGmailReceipts: ReturnType<typeof useStatementsListData>['loadGmailReceipts'];
   refreshActiveStatements: ReturnType<typeof useStatementsListData>['refreshActiveStatements'];
@@ -653,6 +654,7 @@ export function useStatementsView({ stage, router, searchParams }: UseStatements
     closePreview,
     loading,
     gmailSyncSkeletonKeys,
+    setGmailSyncSkeletonKeys,
     loadStatements,
     loadGmailReceipts,
     refreshActiveStatements,

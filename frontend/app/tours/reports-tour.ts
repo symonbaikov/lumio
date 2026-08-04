@@ -56,7 +56,6 @@ export function createReportsTour(texts: {
         selector: '[data-tour-id="reports-template-pnl"]',
         side: 'bottom',
         align: 'start',
-        showButtons: ['close', 'previous'],
         advanceOn: {
           selector: '[data-tour-id="reports-template-pnl"]',
           event: 'click',

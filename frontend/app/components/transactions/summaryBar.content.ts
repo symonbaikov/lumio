@@ -159,7 +159,7 @@ const content = {
       ja: '貸方',
       ko: '대변',
       hi: 'क्रेडिट',
-      nl: 'Credit',
+      nl: 'Krediet',
       sv: 'Kredit',
       vi: 'Ghi có',
       id: 'Kredit',
