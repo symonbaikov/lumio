@@ -95,6 +95,36 @@ export class StatementProcessingService {
     return this.isRecord(importPreview) ? (importPreview as StatementImportPreview) : undefined;
   }
 
+  private isValidDate(value: unknown): value is Date {
+    return value instanceof Date && !Number.isNaN(value.getTime());
+  }
+
+  private mergeParserMetadata(
+    parserMetadata: ParsedStatement['metadata'],
+    enrichedMetadata: ParsedStatement['metadata'],
+  ): ParsedStatement['metadata'] {
+    return {
+      ...parserMetadata,
+      accountNumber: parserMetadata.accountNumber?.trim() || enrichedMetadata.accountNumber || '',
+      dateFrom: this.isValidDate(parserMetadata.dateFrom)
+        ? parserMetadata.dateFrom
+        : enrichedMetadata.dateFrom,
+      dateTo: this.isValidDate(parserMetadata.dateTo) ? parserMetadata.dateTo : enrichedMetadata.dateTo,
+      balanceStart: parserMetadata.balanceStart ?? enrichedMetadata.balanceStart,
+      balanceEnd: parserMetadata.balanceEnd ?? enrichedMetadata.balanceEnd,
+      currency: parserMetadata.currency?.trim() || enrichedMetadata.currency || 'KZT',
+      rawHeader: enrichedMetadata.rawHeader || parserMetadata.rawHeader,
+      normalizedHeader: enrichedMetadata.normalizedHeader || parserMetadata.normalizedHeader,
+      periodLabel: enrichedMetadata.periodLabel || parserMetadata.periodLabel,
+      institution: parserMetadata.institution || enrichedMetadata.institution,
+      locale: parserMetadata.locale || enrichedMetadata.locale,
+      headerDisplay: {
+        ...enrichedMetadata.headerDisplay,
+        ...parserMetadata.headerDisplay,
+      },
+    };
+  }
+
   private async resolveActorName(userId: string): Promise<string> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
@@ -578,19 +608,7 @@ export class StatementProcessingService {
       addLog('info', 'Extracting statement headers and metadata...');
       const metadataStartTime = Date.now();
       try {
-        // Read raw text for metadata extraction
-        let rawText = '';
-        if (statement.fileType === 'pdf') {
-          // For PDF, we might need to extract raw text
-          const fs = require('fs');
-          if (fs.existsSync(processingFilePath)) {
-            // This is a simplified approach - in production, you'd use a PDF text extractor
-            rawText = `Extracted from ${statement.fileName}`;
-          }
-        } else if (statement.fileType === 'csv' || statement.fileType === 'xlsx') {
-          // For structured files, we can use the existing data
-          rawText = JSON.stringify(parsedStatement);
-        }
+        const rawText = cachedText || JSON.stringify(parsedStatement);
 
         // Extract metadata
         const extractedMetadata = await this.metadataExtractionService.extractMetadata(
@@ -604,8 +622,7 @@ export class StatementProcessingService {
           this.metadataExtractionService.convertToParsedStatementMetadata(extractedMetadata);
 
         // Update parsed statement with enhanced metadata
-        parsedStatement.metadata = {
-          ...parsedStatement.metadata,
+        parsedStatement.metadata = this.mergeParserMetadata(parsedStatement.metadata, {
           ...enhancedMetadata,
           rawHeader: extractedMetadata.rawHeader,
           normalizedHeader: extractedMetadata.normalizedHeader,
@@ -617,7 +634,7 @@ export class StatementProcessingService {
             institutionDisplay: displayInfo.institutionDisplay,
             currencyDisplay: displayInfo.currencyDisplay,
           },
-        };
+        });
 
         addLog('info', `Metadata extraction completed in ${Date.now() - metadataStartTime}ms`);
         addLog('info', `Extracted title: "${displayInfo.title}"`);
