@@ -354,7 +354,7 @@ export default function StatementsCircularUploadMenu({
           border: '1px solid var(--border-color, #e5e7eb)',
           background: 'var(--card-bg, #fff)',
           color: 'var(--muted-foreground)',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+          boxShadow: tokens.shadow.sm,
           cursor: 'pointer',
           left: styles.buttonLeftPx,
           bottom: styles.bottomPx,

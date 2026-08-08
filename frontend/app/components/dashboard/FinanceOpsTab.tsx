@@ -1,13 +1,13 @@
 'use client';
 
-import type { DashboardData } from '@/app/hooks/useDashboard';
 import { CheckCircle2, CircleAlert, ExternalLink, ListChecks } from '@/app/components/icons';
+import type { DashboardData } from '@/app/hooks/useDashboard';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Link from 'next/link';
 import type React from 'react';
-import { buildFinanceOpsModel, type FinanceOpsFeatureStatus } from './finance-ops-model';
+import { type FinanceOpsFeatureStatus, buildFinanceOpsModel } from './finance-ops-model';
 
 type FinanceOpsTabProps = {
   data: DashboardData;
@@ -150,7 +150,6 @@ export function FinanceOpsTab({ data, formatAmount }: FinanceOpsTabProps): React
                 borderRadius: tokens.radius.sm,
                 bgcolor: 'var(--card)',
                 p: 2,
-                boxShadow: '0 8px 32px rgba(0,0,0,0.04)',
               }}
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>

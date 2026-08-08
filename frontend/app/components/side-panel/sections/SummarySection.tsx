@@ -72,7 +72,7 @@ export function SummaryItemComponent({ item }: { item: SummaryItem }) {
           {item.change && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
               {item.change.type === 'increase' && (
-                <ArrowUp size={12} style={{ color: '#10b981' }} />
+                <ArrowUp size={12} style={{ color: tokens.color.success }} />
               )}
               {item.change.type === 'decrease' && (
                 <ArrowDown size={12} style={{ color: 'var(--destructive)' }} />
@@ -86,9 +86,9 @@ export function SummaryItemComponent({ item }: { item: SummaryItem }) {
                   fontWeight: 500,
                   color:
                     item.change.type === 'increase'
-                      ? '#059669'
+                      ? tokens.color.success
                       : item.change.type === 'decrease'
-                        ? '#dc2626'
+                        ? tokens.color.danger
                         : 'var(--muted-foreground)',
                 }}
               >

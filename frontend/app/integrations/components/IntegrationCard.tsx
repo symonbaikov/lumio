@@ -267,7 +267,7 @@ function makeCardSx(clickable: boolean): object {
     bgcolor: 'background.paper',
     boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)',
     cursor: clickable ? 'pointer' : 'default',
-    '&:hover': { boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' },
+    '&:hover': { boxShadow: '0 4px 16px -4px rgba(12,12,20,0.08)' },
     '&:focus-visible': { outline: '2px solid var(--color-primary)', outlineOffset: 2 },
   };
 }

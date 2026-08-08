@@ -2,6 +2,7 @@
 'use client';
 
 import { CheckCircle2, ExternalLink, Search, Star } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
@@ -309,7 +310,7 @@ export default function IntegrationsPage(): React.JSX.Element {
         boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)',
         cursor: item.primaryAction?.href && !item.primaryAction.external ? 'pointer' : 'default',
         '&:hover': {
-          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+          boxShadow: '0 4px 16px -4px rgba(12,12,20,0.08)',
         },
         '&:focus-visible': {
           outline: '2px solid var(--color-primary)',
@@ -612,7 +613,8 @@ export default function IntegrationsPage(): React.JSX.Element {
                   p: 2,
                 }}
               >
-                <Typography style={{ fontSize: 14, color: c.ink700 }}>
+                <EmptyStateIllustration name="integrations" size="sm" />
+                <Typography style={{ fontSize: 14, color: c.ink700, textAlign: 'center' }}>
                   {t.empty.connected}
                 </Typography>
               </Box>

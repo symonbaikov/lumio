@@ -76,7 +76,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.375rem 0.75rem;
-    border-radius: $lumio-radius-sm;
+    border-radius: $lumio-radius-full;
     font-size: 13px;
     font-weight: 500;
     text-decoration: none;
@@ -139,7 +139,7 @@
   &__icon-btn {
     height: 2rem;
     width: 2rem;
-    border-radius: $lumio-radius-sm;
+    border-radius: $lumio-radius-full;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -174,7 +174,7 @@
     background-color: $color-card-bg;
     color: $color-foreground;
     border: none;
-    border-radius: $lumio-radius-sm;
+    border-radius: $lumio-radius-full;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -183,17 +183,13 @@
       background-color: $color-card-bg-dk;
       color: $color-foreground-dk;
     }
-
-    &:active {
-      transform: scale(0.95);
-    }
   }
 
   &__trigger-avatar {
     width: 28px;
     height: 28px;
     flex-shrink: 0;
-    border-radius: $lumio-radius-sm;
+    border-radius: $lumio-radius-full;
     overflow: hidden;
     background-color: $color-muted;
     color: $color-muted-foreground;

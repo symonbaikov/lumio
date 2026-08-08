@@ -1,6 +1,7 @@
 'use client';
 
-import { GripVertical, Plus, Trash2 } from '@/app/components/icons';
+import { Plus, Trash2 } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
@@ -223,7 +224,7 @@ function MobileEmptyState({
         color: 'var(--muted-foreground)',
       }}
     >
-      <GripVertical size={48} style={{ marginBottom: 16, opacity: 0.2 }} />
+      <EmptyStateIllustration name="tables" size="lg" />
       <p style={{ fontSize: '1.125rem', fontWeight: 500 }}>{labels.emptyTitle}</p>
       <p style={{ fontSize: '0.875rem' }}>{labels.emptySubtitle}</p>
     </div>

@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useState } from 'react';
 import { Cpu } from '@/app/components/icons';
+import { tokens } from '@/lib/theme-tokens';
+import { useCallback, useState } from 'react';
 import { usePluginState } from '../hooks/usePluginState';
-import { useApiKeys } from './useApiKeys';
 import { McpServerDrawer } from './McpServerDrawer';
+import { useApiKeys } from './useApiKeys';
 
 export function McpServerTopBarButton() {
   const { isEnabled } = usePluginState();
@@ -33,8 +34,8 @@ export function McpServerTopBarButton() {
             right: 2,
             width: 8,
             height: 8,
-            borderRadius: '50%',
-            background: isActive ? '#059669' : '#dc2626',
+            borderRadius: tokens.radius.full,
+            background: isActive ? tokens.color.success : tokens.color.danger,
             border: '1.5px solid var(--background, #fff)',
           }}
         />

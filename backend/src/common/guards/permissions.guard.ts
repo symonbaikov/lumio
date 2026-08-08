@@ -120,15 +120,48 @@ export class PermissionsGuard implements CanActivate {
       statementPermissions.has(permission),
     );
 
-    if (!isStatementPermission) {
-      return false;
-    }
-    if ([WorkspaceRole.ADMIN, WorkspaceRole.OWNER].includes(workspaceRole)) {
+    if (isStatementPermission) {
+      if ([WorkspaceRole.ADMIN, WorkspaceRole.OWNER].includes(workspaceRole)) {
+        return true;
+      }
+      if (workspaceMemberPermissions?.canEditStatements === false) {
+        return false;
+      }
       return true;
     }
-    if (workspaceMemberPermissions?.canEditStatements === false) {
-      return false;
+
+    // Workspace owners/admins manage these workspace-scoped resources
+    // (budgets, wallets, payables, categories, branches, subscriptions)
+    // even if their global user role only grants view access.
+    const workspaceManagedPermissions = new Set<Permission>([
+      PermissionEnum.BUDGET_CREATE,
+      PermissionEnum.BUDGET_EDIT,
+      PermissionEnum.BUDGET_DELETE,
+      PermissionEnum.WALLET_CREATE,
+      PermissionEnum.WALLET_EDIT,
+      PermissionEnum.WALLET_DELETE,
+      PermissionEnum.PAYABLE_CREATE,
+      PermissionEnum.PAYABLE_EDIT,
+      PermissionEnum.PAYABLE_DELETE,
+      PermissionEnum.CATEGORY_CREATE,
+      PermissionEnum.CATEGORY_EDIT,
+      PermissionEnum.CATEGORY_DELETE,
+      PermissionEnum.BRANCH_CREATE,
+      PermissionEnum.BRANCH_EDIT,
+      PermissionEnum.BRANCH_DELETE,
+      PermissionEnum.SUBSCRIPTION_CREATE,
+      PermissionEnum.SUBSCRIPTION_EDIT,
+      PermissionEnum.SUBSCRIPTION_DELETE,
+    ]);
+
+    const isWorkspaceManagedPermission = requiredPermissions.every(permission =>
+      workspaceManagedPermissions.has(permission),
+    );
+
+    if (isWorkspaceManagedPermission) {
+      return [WorkspaceRole.ADMIN, WorkspaceRole.OWNER].includes(workspaceRole);
     }
-    return true;
+
+    return false;
   }
 }

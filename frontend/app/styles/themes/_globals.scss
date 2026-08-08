@@ -243,11 +243,13 @@ input[type='checkbox']:not(.PrivateSwitchBase-input) {
 .bg-white { background-color: $color-card-bg !important; }
 
 // ── Radius normalization for rectangular controls ────────────
+// Soft default for bare elements only; MUI components are styled by the
+// theme (app/theme.ts) and must not be overridden here.
 button,
 select,
 textarea,
 input:not([type='checkbox']):not([type='radio']) {
-  border-radius: $lumio-radius-md !important;
+  border-radius: $lumio-radius-md;
 }
 
 .rounded,
@@ -257,16 +259,6 @@ input:not([type='checkbox']):not([type='radio']) {
 .rounded-xl,
 .rounded-2xl,
 .rounded-3xl {
-  border-radius: $lumio-radius-md !important;
-}
-
-.MuiButton-root,
-.MuiIconButton-root,
-.MuiOutlinedInput-root,
-.MuiFilledInput-root,
-.MuiInputBase-root,
-.MuiTextField-root,
-.MuiSelect-root {
   border-radius: $lumio-radius-md !important;
 }
 

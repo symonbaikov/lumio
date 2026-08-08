@@ -1,12 +1,12 @@
 'use client';
 
 import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
-import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
-import Box from '@mui/material/Box';
-import type { JSX } from 'react';
 import { Receipt } from '@/app/components/icons';
 import { Check } from '@/app/components/icons';
+import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
 import { tokens } from '@/lib/theme-tokens';
+import Box from '@mui/material/Box';
+import type { JSX } from 'react';
 
 type FilterOptionRowProps = {
   label: string;
@@ -42,7 +42,7 @@ export function FilterOptionRow({
         justifyContent: 'center',
         width: 24,
         height: 24,
-        borderRadius: 0,
+        borderRadius: tokens.radius.xs,
         bgcolor: theme =>
           selected
             ? theme.palette.primary.main
@@ -81,12 +81,25 @@ export function FilterOptionRow({
           borderRadius: tokens.radius.md,
           transition: 'background 0.15s',
         }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--muted)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLButtonElement).style.background = 'var(--muted)';
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLButtonElement).style.background = 'none';
+        }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           {iconUrl ? (
-            <img src={iconUrl} alt={label} style={{ width: 32, height: 32, borderRadius: tokens.radius.full, objectFit: 'contain' }} />
+            <img
+              src={iconUrl}
+              alt={label}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: tokens.radius.full,
+                objectFit: 'contain',
+              }}
+            />
           ) : normalizedBankName === 'receipt' ? (
             <Box
               component="span"
@@ -111,7 +124,12 @@ export function FilterOptionRow({
             <img
               src={resolvedAvatarUrl}
               alt={label}
-              style={{ width: 32, height: 32, borderRadius: tokens.radius.full, objectFit: 'cover' }}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: tokens.radius.full,
+                objectFit: 'cover',
+              }}
             />
           ) : (
             <Box
@@ -133,7 +151,9 @@ export function FilterOptionRow({
           )}
           <Box>
             <Box sx={{ fontSize: 16, fontWeight: 600, color: 'text.primary' }}>{label}</Box>
-            {description ? <Box sx={{ fontSize: 14, color: 'text.secondary' }}>{description}</Box> : null}
+            {description ? (
+              <Box sx={{ fontSize: 14, color: 'text.secondary' }}>{description}</Box>
+            ) : null}
           </Box>
         </Box>
         {checkIndicator}
@@ -162,8 +182,12 @@ export function FilterOptionRow({
         cursor: 'pointer',
         transition: 'background 0.15s',
       }}
-      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--muted)'; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLButtonElement).style.background = 'var(--muted)';
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLButtonElement).style.background = 'none';
+      }}
     >
       <span>{label}</span>
       {checkIndicator}

@@ -1,6 +1,7 @@
 'use client';
 
 import { Pencil, Trash2 } from '@/app/components/icons';
+import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import LinearProgress from '@mui/material/LinearProgress';
@@ -21,11 +22,13 @@ function getProgressColor(percent: number): 'success' | 'warning' | 'error' {
 }
 
 function formatAmount(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'decimal',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount) + ` ${currency}`;
+  return (
+    new Intl.NumberFormat('en-US', {
+      style: 'decimal',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount) + ` ${currency}`
+  );
 }
 
 interface BudgetCardProps {
@@ -42,14 +45,16 @@ export function BudgetCard({ budget, onEdit, onDelete }: BudgetCardProps) {
     <Box
       sx={{
         p: 2.5,
-        borderRadius: 2,
+        borderRadius: tokens.radius.lg,
         border: '1px solid',
         borderColor: 'divider',
         bgcolor: 'background.paper',
         '&:hover': { borderColor: 'action.hover' },
       }}
     >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
+      <Box
+        sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}
+      >
         <Box>
           <Typography variant="subtitle1" fontWeight={600}>
             {budget.name}
@@ -77,7 +82,8 @@ export function BudgetCard({ budget, onEdit, onDelete }: BudgetCardProps) {
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          {formatAmount(budget.spentAmount, budget.currency)} / {formatAmount(budget.limitAmount, budget.currency)}
+          {formatAmount(budget.spentAmount, budget.currency)} /{' '}
+          {formatAmount(budget.limitAmount, budget.currency)}
         </Typography>
         <Typography variant="body2" fontWeight={600} color={`${color}.main`}>
           {Math.round(budget.percentUsed)}%

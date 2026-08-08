@@ -1,10 +1,9 @@
 /* eslint-disable max-lines */
 'use client';
 
-import { Search, Trash2 } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { Spinner } from '@/app/components/ui/spinner';
-import { tokens } from '@/lib/theme-tokens';
 import { Box, Chip, Typography } from '@mui/material';
 import React from 'react';
 import { Checkbox } from '../../components/ui/checkbox';
@@ -242,26 +241,7 @@ interface EmptyStateProps {
 function EmptyState({ isTrashView, title, subtitle }: EmptyStateProps): React.JSX.Element {
   return (
     <Box sx={{ textAlign: 'center', py: 8, px: 3 }}>
-      <Box
-        sx={{
-          mx: 'auto',
-          width: 64,
-          height: 64,
-          color: 'var(--muted-foreground)',
-          mb: 2,
-          bgcolor: 'var(--muted)',
-          borderRadius: tokens.radius.full,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {isTrashView ? (
-          <Trash2 style={{ width: 32, height: 32 }} />
-        ) : (
-          <Search style={{ width: 32, height: 32 }} />
-        )}
-      </Box>
+      <EmptyStateIllustration name={isTrashView ? 'trash' : 'storage'} size="lg" />
       <Typography style={{ fontSize: 18, fontWeight: 500, color: 'var(--foreground)' }}>
         {title}
       </Typography>

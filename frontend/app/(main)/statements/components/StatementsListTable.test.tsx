@@ -68,6 +68,52 @@ const renderTable = (columns: React.ComponentProps<typeof StatementsListTable>['
     />,
   );
 
+describe('StatementsListTable upload skeleton', () => {
+  it('shows skeleton rows instead of the empty state while a local file upload is pending', () => {
+    render(
+      <StatementsListTable
+        loading={false}
+        displayStatements={[]}
+        paginatedStatements={[]}
+        gmailSyncSkeletonKeys={['local-upload-123-0']}
+        allVisibleSelected={false}
+        selectedCount={0}
+        selectedStatementIds={[]}
+        dateSortDirection="desc"
+        page={1}
+        totalPagesCount={1}
+        rangeStart={0}
+        rangeEnd={0}
+        total={0}
+        duplicateMetaById={new Map()}
+        viewLabel="View"
+        reviewDuplicateLabel="Review"
+        labels={{
+          merchant: 'Merchant',
+          date: 'Date',
+          amount: 'Amount',
+          action: 'Action',
+          receipt: 'Receipt',
+          scanning: 'Scanning...',
+          emptyTitle: 'No statements',
+          emptyDescription: 'Upload one',
+          paginationShown: 'Showing {from}-{to} of {count}',
+          paginationPageOf: 'Page {page} of {count}',
+        }}
+        onToggleSelectAll={vi.fn()}
+        onToggleSortDirection={vi.fn()}
+        onToggleStatement={vi.fn()}
+        onView={vi.fn()}
+        onIconClick={vi.fn()}
+        onPageChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('No statements')).toBeNull();
+    expect(screen.getAllByTestId('gmail-sync-skeleton-row')).toHaveLength(1);
+  });
+});
+
 describe('StatementsListTable columns', () => {
   it('renders desktop header and row from visible columns in order', () => {
     const { container } = renderTable([

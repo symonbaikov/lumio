@@ -22,7 +22,7 @@ export function TopCategoriesCard({ categories }: TopCategoriesCardProps) {
         trigger: 'item',
         backgroundColor: '#1a1a1a',
         textStyle: { color: '#F5F3EF', fontSize: 12 },
-        borderRadius: 3,
+        borderRadius: 8,
         padding: [10, 12],
       },
       legend: {

@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import {
   Box,
   Button,
@@ -139,6 +140,7 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
         </Typography>
       ) : subscriptions.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 6 }}>
+          <EmptyStateIllustration name="subscriptions" size="lg" />
           <Typography color="text.secondary" sx={{ mb: 2 }}>
             No subscriptions found
           </Typography>

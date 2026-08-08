@@ -14,6 +14,7 @@ import {
   StatementStatus,
   Transaction,
   Wallet,
+  Workspace,
   WorkspaceMember,
 } from '../../entities';
 import { AuditService } from '../audit/audit.service';
@@ -66,8 +67,25 @@ export class BalanceService {
     private readonly statementRepository: Repository<Statement>,
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
+    @InjectRepository(Workspace)
+    private readonly workspaceRepository: Repository<Workspace>,
     private readonly auditService: AuditService,
   ) {}
+
+  private normalizeCurrency(currency: string | null | undefined): string {
+    const normalized = String(currency || '')
+      .trim()
+      .toUpperCase();
+    return /^[A-Z]{3}$/.test(normalized) ? normalized : 'KZT';
+  }
+
+  private async getWorkspaceCurrency(workspaceId: string): Promise<string> {
+    const workspace = await this.workspaceRepository.findOne({
+      where: { id: workspaceId },
+      select: ['currency'],
+    });
+    return this.normalizeCurrency(workspace?.currency);
+  }
 
   private resolveDate(date?: string): string {
     if (!date) {
@@ -97,8 +115,8 @@ export class BalanceService {
     return Math.round(value * 100) / 100;
   }
 
-  private formatAmount(value: number): string {
-    return `${this.round(value).toFixed(2)} ₸`;
+  private formatAmount(value: number, currency: string): string {
+    return `${this.round(value).toFixed(2)} ${currency}`;
   }
 
   private resolveAccountName(node: BalanceAccountNode, locale?: string): string {
@@ -341,7 +359,7 @@ export class BalanceService {
 
     const snapshotDate = this.resolveDate(date);
 
-    const [accounts, snapshotsMap, cashBalance, retainedEarnings] = await Promise.all([
+    const [accounts, snapshotsMap, cashBalance, retainedEarnings, currency] = await Promise.all([
       this.balanceAccountRepository.find({
         where: { workspaceId },
         order: {
@@ -352,6 +370,7 @@ export class BalanceService {
       this.getLatestSnapshotMap(workspaceId, snapshotDate),
       this.getAutoComputedCashBalance(workspaceId, snapshotDate),
       this.getRetainedEarnings(workspaceId, snapshotDate),
+      this.getWorkspaceCurrency(workspaceId),
     ]);
 
     const autoAmountsByCode = new Map<string, number>([
@@ -436,7 +455,7 @@ export class BalanceService {
 
     return {
       date: snapshotDate,
-      currency: 'KZT',
+      currency,
       assets: {
         total: assetsTotal,
         sections: assets,
@@ -478,7 +497,7 @@ export class BalanceService {
     }
 
     const amount = this.round(dto.amount);
-    const currency = dto.currency || 'KZT';
+    const currency = dto.currency || (await this.getWorkspaceCurrency(workspaceId));
 
     const existingSnapshot = await this.balanceSnapshotRepository.findOne({
       where: {
@@ -544,9 +563,9 @@ export class BalanceService {
       [`${labels.balanceAsOf} ${data.date}`, '', '', ''],
       ['', '', '', ''],
       [
-        `${labels.assets} (${this.formatAmount(data.assets.total)})`,
+        `${labels.assets} (${this.formatAmount(data.assets.total, data.currency)})`,
         '',
-        `${labels.liabilities} (${this.formatAmount(data.liabilities.total)})`,
+        `${labels.liabilities} (${this.formatAmount(data.liabilities.total, data.currency)})`,
         '',
       ],
       ['', '', '', ''],
@@ -610,7 +629,8 @@ export class BalanceService {
       color: rgb(0.1, 0.1, 0.1),
     });
 
-    page.drawText(`${labels.assets}: ${this.formatAmount(data.assets.total)}`, {
+    const assetsTotalAmount = this.formatAmount(data.assets.total, data.currency);
+    page.drawText(`${labels.assets}: ${assetsTotalAmount}`, {
       x: margin,
       y: top - 32,
       size: 12,
@@ -618,7 +638,8 @@ export class BalanceService {
       color: rgb(0.1, 0.1, 0.1),
     });
 
-    page.drawText(`${labels.liabilities}: ${this.formatAmount(data.liabilities.total)}`, {
+    const liabilitiesTotalAmount = this.formatAmount(data.liabilities.total, data.currency);
+    page.drawText(`${labels.liabilities}: ${liabilitiesTotalAmount}`, {
       x: mid + 10,
       y: top - 32,
       size: 12,
@@ -639,7 +660,7 @@ export class BalanceService {
           font: regularFont,
           color: rgb(0.15, 0.15, 0.15),
         });
-        page.drawText(this.formatAmount(left.amount), {
+        page.drawText(this.formatAmount(left.amount, data.currency), {
           x: mid - 120,
           y,
           size: 10,
@@ -656,7 +677,7 @@ export class BalanceService {
           font: regularFont,
           color: rgb(0.15, 0.15, 0.15),
         });
-        page.drawText(this.formatAmount(right.amount), {
+        page.drawText(this.formatAmount(right.amount, data.currency), {
           x: page.getWidth() - margin - 120,
           y,
           size: 10,
@@ -671,16 +692,15 @@ export class BalanceService {
       }
     }
 
-    page.drawText(
-      `${labels.difference}: ${this.formatAmount(data.difference)} (${data.isBalanced ? labels.balanced : labels.notBalanced})`,
-      {
-        x: margin,
-        y: margin,
-        size: 11,
-        font: boldFont,
-        color: data.isBalanced ? rgb(0.12, 0.5, 0.2) : rgb(0.7, 0.2, 0.2),
-      },
-    );
+    const differenceAmount = this.formatAmount(data.difference, data.currency);
+    const balancedLabel = data.isBalanced ? labels.balanced : labels.notBalanced;
+    page.drawText(`${labels.difference}: ${differenceAmount} (${balancedLabel})`, {
+      x: margin,
+      y: margin,
+      size: 11,
+      font: boldFont,
+      color: data.isBalanced ? rgb(0.12, 0.5, 0.2) : rgb(0.7, 0.2, 0.2),
+    });
 
     const bytes = await pdfDoc.save();
     return Buffer.from(bytes);

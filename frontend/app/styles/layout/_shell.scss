@@ -242,20 +242,20 @@
   align-items: center;
   gap: 6px;
   margin: 0 10px 12px;
-  padding: 7px 10px;
-  border-radius: $lumio-radius-md;
-  background: $lumio-color-ink-900;
+  padding: 9px 14px;
+  border-radius: $lumio-radius-full;
+  background: $lumio-color-forest;
   color: #fff;
   border: none;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   font-family: inherit;
-  transition: background 0.12s, transform 0.06s;
-  box-shadow: $lumio-shadow-xs;
+  transition: background 0.15s, transform 0.06s;
+  box-shadow: none;
 
   &:hover {
-    background: $lumio-color-ink-800;
+    background: $lumio-color-primary-dark;
   }
 
   &:active {
@@ -313,14 +313,14 @@
 .lumio-sidebar__nav-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 7px 8px;
-  border-radius: $lumio-radius-sm;
+  padding: 8px 14px;
+  border-radius: $lumio-radius-full;
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
   color: $lumio-color-text-secondary;
   text-align: left;
@@ -390,10 +390,10 @@
   gap: 8px;
   width: 100%;
   padding: 10px 14px;
-  border-radius: $lumio-radius-md;
-  border: 1px solid rgba(5, 150, 105, 0.25);
-  background: linear-gradient(135deg, rgba(5, 150, 105, 0.12) 0%, rgba(8, 145, 178, 0.12) 100%);
-  color: var(--primary);
+  border-radius: $lumio-radius-full;
+  border: 1px solid $lumio-color-primary-100;
+  background: $lumio-color-primary-50;
+  color: $lumio-color-primary-dark;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
@@ -401,8 +401,8 @@
   transition: background 0.2s, border-color 0.2s;
 
   &:hover {
-    border-color: rgba(5, 150, 105, 0.45);
-    background: linear-gradient(135deg, rgba(5, 150, 105, 0.22) 0%, rgba(8, 145, 178, 0.22) 100%);
+    border-color: $lumio-color-primary-200;
+    background: $lumio-color-primary-100;
   }
 }
 
@@ -509,7 +509,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: $lumio-radius-sm;
+    border-radius: $lumio-radius-full;
     border: none;
     background: transparent;
     color: $lumio-color-ink-500;

@@ -134,8 +134,22 @@ function alignBlock(targetRect: DOMRect, popoverRect: DOMRect, align: Alignment)
 }
 
 function setPopoverPosition(wrapper: HTMLElement, left: number, top: number): void {
-  wrapper.style.left = `${Math.round(left)}px`;
-  wrapper.style.top = `${Math.round(top)}px`;
+  const roundedLeft = Math.round(left);
+  const roundedTop = Math.round(top);
+
+  // The rAF follow loop in stabilizeTourPopover calls this every frame even when
+  // nothing moved. Comparing against the previously *specified* style (not the
+  // rendered rect, which is mid-transition) avoids re-triggering the left/top
+  // transition on every frame, which otherwise reads as constant jitter.
+  if (
+    Number.parseFloat(wrapper.style.left) === roundedLeft &&
+    Number.parseFloat(wrapper.style.top) === roundedTop
+  ) {
+    return;
+  }
+
+  wrapper.style.left = `${roundedLeft}px`;
+  wrapper.style.top = `${roundedTop}px`;
   wrapper.style.right = 'auto';
   wrapper.style.bottom = 'auto';
   wrapper.style.transform = 'none';

@@ -6,6 +6,7 @@ import {
   Statement,
   Transaction,
   Wallet,
+  Workspace,
   WorkspaceMember,
 } from '../../entities';
 import { AuditModule } from '../audit/audit.module';
@@ -20,6 +21,7 @@ import { BalanceService } from './balance.service';
       Wallet,
       Transaction,
       Statement,
+      Workspace,
       WorkspaceMember,
     ]),
     AuditModule,

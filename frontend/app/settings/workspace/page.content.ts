@@ -39,7 +39,7 @@ const content = {
       zh: '工作空间',
       ar: 'مساحة العمل',
       pl: 'Obszar roboczy',
-      it: 'Workspace',
+      it: 'Spazio di lavoro',
       sk: 'Obszar roboczy',
       ja: 'ワークスペース',
       ko: '워크스페이스',

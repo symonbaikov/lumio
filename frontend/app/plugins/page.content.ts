@@ -10,7 +10,7 @@ const content = {
       de: 'Plugins',
       fr: 'Plugins',
       es: 'Complementos',
-      pt: 'Plugins',
+      pt: 'Plug-ins',
       tr: 'Eklentiler',
       uk: 'Плагіни',
       zh: '插件',

@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertTriangle, Bell, CircleAlert, Info } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useNotifications } from '@/app/hooks/useNotifications';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -285,7 +286,10 @@ export function NotificationDropdown({
           ) : null}
 
           {!loading && notifications.length === 0 ? (
-            <div className="lumio-notification-dropdown__empty">{t.empty.value}</div>
+            <div className="lumio-notification-dropdown__empty">
+              <EmptyStateIllustration name="notifications" size="sm" />
+              {t.empty.value}
+            </div>
           ) : null}
 
           {notifications.map(notification => {

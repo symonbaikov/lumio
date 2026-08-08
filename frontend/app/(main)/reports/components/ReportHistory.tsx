@@ -1,6 +1,7 @@
 'use client';
 
-import { Download, FileText } from '@/app/components/icons';
+import { Download } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
@@ -129,7 +130,7 @@ export function ReportHistory(): React.JSX.Element {
           gap: 1.5,
         }}
       >
-        <FileText size={40} style={{ color: 'var(--muted-foreground)', opacity: 0.4 }} />
+        <EmptyStateIllustration name="reports" size="md" />
         <Typography variant="body2" fontWeight={600} sx={{ color: 'var(--muted-foreground)' }}>
           {text('historyEmpty', 'No reports generated yet')}
         </Typography>

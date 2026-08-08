@@ -24,6 +24,7 @@ import {
   validateManualExpenseDraft,
 } from '@/app/lib/statement-expense-drawer';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 
 type SubmitScanPayload = {
   files: File[];
@@ -296,20 +297,18 @@ export function useExpenseForm({
       return;
     }
 
-    setSubmitting(true);
+    const filesToUpload = files;
     setError(null);
+    handleClose();
 
     try {
       await onSubmitScan({
-        files,
+        files: filesToUpload,
         allowDuplicates: ALWAYS_ALLOW_STATEMENT_DUPLICATES,
         requireManualCategorySelection: false,
       });
-      handleClose();
     } catch (submitError: unknown) {
-      setError(getApiErrorMessage(submitError, 'Failed to upload files'));
-    } finally {
-      setSubmitting(false);
+      toast.error(getApiErrorMessage(submitError, 'Failed to upload files'));
     }
   };
 
