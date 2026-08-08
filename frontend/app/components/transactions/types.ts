@@ -24,6 +24,9 @@ export interface Transaction {
   convertedAmount?: number;
   conversionRate?: number;
   convertedCurrency?: string;
+  // Split transactions
+  splitGroupId?: string | null;
+  splitIndex?: number | null;
   // Parsing metadata (optional, might not exist yet)
   parsingConfidence?: number;
   rawExtract?: string;
