@@ -22,7 +22,7 @@ import { ClassificationService } from '../classification/services/classification
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import type { DataDeletedEvent } from '../notifications/events/notification-events';
 import type { BulkUpdateItemDto } from './dto/bulk-update-transaction.dto';
-import type { SplitTransactionDto } from './dto/split-transaction.dto';
+import type { SplitPartDto, SplitTransactionDto } from './dto/split-transaction.dto';
 import type { UpdateTransactionDto } from './dto/update-transaction.dto';
 
 export type TransactionWithConversion = Transaction & {
@@ -290,9 +290,16 @@ export class TransactionsService {
   }
 
   /**
-   * Fields a split part inherits verbatim from the transaction being split.
-   * Deliberately excludes id/createdAt/updatedAt and every loaded relation
-   * object, so saving a part never cascades into categories or wallets.
+   * Builds the sibling template: every column a split part inherits verbatim from
+   * the row it was split from. An allowlist, so a newly added column is inherited
+   * only once someone decides it should be.
+   *
+   * Excluded on purpose: `id` and the createdAt/updatedAt timestamps; the loaded
+   * relation objects (category, wallet, branch, ...), so saving a part never
+   * cascades into them; the per-part money columns (amount/debit/credit/
+   * amountForeign) and the split markers, which `split()` assigns itself;
+   * `fingerprint`, which backfill recomputes from the post-split amount; and the
+   * duplicate-flag columns, unreachable because a flagged row cannot be split.
    */
   private cloneForSplit(source: Transaction): Partial<Transaction> {
     return {
@@ -314,11 +321,81 @@ export class TransactionsService {
       article: source.article,
       activityType: source.activityType,
       vendorNormalized: source.vendorNormalized,
+      categoryHint: source.categoryHint,
+      transactionNature: source.transactionNature,
+      taxDetected: source.taxDetected,
+      enrichmentConfidence: source.enrichmentConfidence,
       transactionType: source.transactionType,
       comments: source.comments,
       isVerified: source.isVerified,
       importSessionId: source.importSessionId,
     };
+  }
+
+  /**
+   * Guards that a transaction may be split, and returns its authoritative amount.
+   *
+   * Called twice: once outside the DB transaction as a cheap fast path, and again
+   * on the locked row, which is the read the parts are actually derived from.
+   */
+  private assertSplittable(transaction: Transaction, dto: SplitTransactionDto): number {
+    if (transaction.splitGroupId) {
+      throw new BadRequestException('Transaction is already part of a split');
+    }
+
+    // A duplicate-flagged row is excluded from dashboards and reports. Splitting it
+    // would produce siblings that default to isDuplicate=false, so the sibling
+    // amounts would reappear in those totals. Refuse instead.
+    if (transaction.isDuplicate) {
+      throw new BadRequestException('Cannot split a transaction marked as a duplicate');
+    }
+
+    const total = Number(
+      transaction.amount ?? transaction.debit ?? transaction.credit ?? Number.NaN,
+    );
+    if (!Number.isFinite(total) || total <= 0) {
+      throw new BadRequestException('Cannot split a transaction without a positive amount');
+    }
+
+    const partsTotal = this.round2(dto.parts.reduce((sum, part) => sum + Number(part.amount), 0));
+    // Round the drift too: |99.99 - 100| is 0.010000000000005 in binary floating
+    // point, which would reject the very boundary the tolerance exists to accept.
+    if (this.round2(Math.abs(partsTotal - total)) > 0.01) {
+      throw new BadRequestException(`Split parts must sum to ${total}, received ${partsTotal}`);
+    }
+
+    return total;
+  }
+
+  /**
+   * Divides a transaction's money across its parts.
+   *
+   * The requested amounts are rounded to cents and the LAST part absorbs the
+   * residual, so the parts sum to `total` (and `foreignTotal`) exactly rather than
+   * drifting by the cent the validation tolerance permits.
+   */
+  private allocateParts(
+    total: number,
+    foreignTotal: number | null,
+    parts: SplitPartDto[],
+  ): { amounts: number[]; foreignAmounts: (number | null)[] } {
+    const amounts = parts.map(part => this.round2(Number(part.amount)));
+    const lastIndex = amounts.length - 1;
+    amounts[lastIndex] = this.round2(
+      total - amounts.slice(0, lastIndex).reduce((sum, value) => sum + value, 0),
+    );
+
+    const foreignAmounts: (number | null)[] = amounts.map(amount =>
+      foreignTotal === null ? null : this.round2((foreignTotal * amount) / total),
+    );
+    if (foreignTotal !== null) {
+      foreignAmounts[lastIndex] = this.round2(
+        foreignTotal -
+          foreignAmounts.slice(0, lastIndex).reduce((sum, value) => sum + (value ?? 0), 0),
+      );
+    }
+
+    return { amounts, foreignAmounts };
   }
 
   /**
@@ -336,60 +413,20 @@ export class TransactionsService {
   ): Promise<Transaction[]> {
     await this.ensureCanEditStatements(userId);
     const original = await this.findOne(id, workspaceId);
-
-    if (original.splitGroupId) {
-      throw new BadRequestException('Transaction is already part of a split');
-    }
-
-    // A duplicate-flagged row is excluded from dashboards and reports. Splitting it
-    // would produce siblings that default to isDuplicate=false, so the sibling
-    // amounts would reappear in those totals. Refuse instead.
-    if (original.isDuplicate) {
-      throw new BadRequestException('Cannot split a transaction marked as a duplicate');
-    }
-
-    const originalAmount = Number(original.amount ?? original.debit ?? original.credit ?? 0);
-    if (!(originalAmount > 0)) {
-      throw new BadRequestException('Cannot split a transaction without a positive amount');
-    }
-
-    const partsTotal = this.round2(dto.parts.reduce((sum, part) => sum + Number(part.amount), 0));
-    // Round the drift too: |99.99 - 100| is 0.010000000000005 in binary floating
-    // point, which would reject the very boundary the tolerance exists to accept.
-    if (this.round2(Math.abs(partsTotal - originalAmount)) > 0.01) {
-      throw new BadRequestException(
-        `Split parts must sum to ${originalAmount}, received ${partsTotal}`,
-      );
-    }
+    // Fast path only: reject an obviously invalid request before opening a DB
+    // transaction and taking a row lock. The authoritative check is the one below.
+    this.assertSplittable(original, dto);
 
     const before = { ...original };
     const splitGroupId = randomUUID();
-    const isExpense = original.transactionType === TransactionType.EXPENSE;
-    const originalForeign = original.amountForeign ? Number(original.amountForeign) : null;
-
-    // The accepted 0.01 tolerance would otherwise persist as drift, so the last
-    // part absorbs the residual and the parts sum to the original exactly.
-    const amounts = dto.parts.map(part => this.round2(Number(part.amount)));
-    const lastIndex = amounts.length - 1;
-    amounts[lastIndex] = this.round2(
-      originalAmount - amounts.slice(0, lastIndex).reduce((sum, value) => sum + value, 0),
-    );
-
-    const foreignAmounts = amounts.map(amount =>
-      originalForeign === null ? null : this.round2((originalForeign * amount) / originalAmount),
-    );
-    if (originalForeign !== null) {
-      foreignAmounts[lastIndex] = this.round2(
-        originalForeign -
-          foreignAmounts.slice(0, lastIndex).reduce((sum, value) => sum + (value ?? 0), 0),
-      );
-    }
 
     const saved = await this.transactionRepository.manager.transaction(async manager => {
       const repo = manager.getRepository(Transaction);
 
-      // Re-read under a write lock: the checks above ran outside this transaction,
-      // so two concurrent splits of the same row could both have passed them.
+      // Re-read under a write lock: the fast-path check ran outside this
+      // transaction, so a concurrent split — or an update() changing the amount or
+      // the type — may have landed since. Everything below therefore derives from
+      // `locked`, never from the stale `original`.
       const locked = await repo.findOne({
         where: { id, workspaceId },
         lock: { mode: 'pessimistic_write' },
@@ -397,9 +434,15 @@ export class TransactionsService {
       if (!locked) {
         throw new NotFoundException('Transaction not found');
       }
-      if (locked.splitGroupId) {
-        throw new BadRequestException('Transaction is already part of a split');
-      }
+
+      const total = this.assertSplittable(locked, dto);
+      const isExpense = locked.transactionType === TransactionType.EXPENSE;
+      const rawForeign = locked.amountForeign ?? null;
+      const { amounts, foreignAmounts } = this.allocateParts(
+        total,
+        rawForeign === null ? null : Number(rawForeign),
+        dto.parts,
+      );
 
       const template = this.cloneForSplit(locked);
       const rows: Transaction[] = [];
@@ -418,15 +461,10 @@ export class TransactionsService {
         // amount. Null on every part so backfillFingerprints recomputes them all.
         row.fingerprint = null;
 
-        if (part.categoryId !== undefined) {
-          row.categoryId = part.categoryId;
-        }
-        if (part.paymentPurpose !== undefined) {
-          row.paymentPurpose = part.paymentPurpose;
-        }
-        if (part.comments !== undefined) {
-          row.comments = part.comments;
-        }
+        // Per-part override, else keep what the row already inherited.
+        row.categoryId = part.categoryId ?? row.categoryId;
+        row.paymentPurpose = part.paymentPurpose ?? row.paymentPurpose;
+        row.comments = part.comments ?? row.comments;
 
         rows.push(await repo.save(row));
       }
