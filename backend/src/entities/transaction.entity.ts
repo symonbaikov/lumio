@@ -23,6 +23,7 @@ export enum TransactionType {
 
 @Entity('transactions')
 @Index('IDX_transactions_workspace_date_amount', ['workspaceId', 'transactionDate', 'amount'])
+@Index('IDX_transactions_workspace_split_group', ['workspaceId', 'splitGroupId'])
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -167,6 +168,18 @@ export class Transaction {
 
   @Column({ name: 'duplicate_match_type', length: 50, nullable: true })
   duplicateMatchType: string | null;
+
+  /**
+   * Groups the parts of a split transaction. All parts of one split share this id.
+   * There is no parent row — the parts ARE the transaction, and their amounts sum
+   * to the original amount, so all existing aggregates stay correct.
+   */
+  @Column({ name: 'split_group_id', type: 'uuid', nullable: true })
+  splitGroupId: string | null;
+
+  /** Position within the split group. Index 0 is the original row. */
+  @Column({ name: 'split_index', type: 'smallint', nullable: true })
+  splitIndex: number | null;
 
   @Column({ name: 'fingerprint', length: 64, nullable: true })
   fingerprint: string | null;
