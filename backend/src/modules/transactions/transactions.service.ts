@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
@@ -16,6 +22,7 @@ import { ClassificationService } from '../classification/services/classification
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import type { DataDeletedEvent } from '../notifications/events/notification-events';
 import type { BulkUpdateItemDto } from './dto/bulk-update-transaction.dto';
+import type { SplitTransactionDto } from './dto/split-transaction.dto';
 import type { UpdateTransactionDto } from './dto/update-transaction.dto';
 
 export type TransactionWithConversion = Transaction & {
@@ -276,6 +283,131 @@ export class TransactionsService {
     }
 
     return updatedTransactions;
+  }
+
+  private round2(value: number): number {
+    return Math.round(value * 100) / 100;
+  }
+
+  /**
+   * Fields a split part inherits verbatim from the transaction being split.
+   * Deliberately excludes id/createdAt/updatedAt and every loaded relation
+   * object, so saving a part never cascades into categories or wallets.
+   */
+  private cloneForSplit(source: Transaction): Partial<Transaction> {
+    return {
+      workspaceId: source.workspaceId,
+      statementId: source.statementId,
+      transactionDate: source.transactionDate,
+      documentNumber: source.documentNumber,
+      counterpartyName: source.counterpartyName,
+      counterpartyBin: source.counterpartyBin,
+      counterpartyAccount: source.counterpartyAccount,
+      counterpartyBank: source.counterpartyBank,
+      currency: source.currency,
+      exchangeRate: source.exchangeRate,
+      paymentPurpose: source.paymentPurpose,
+      categoryId: source.categoryId,
+      taxRateId: source.taxRateId,
+      branchId: source.branchId,
+      walletId: source.walletId,
+      article: source.article,
+      activityType: source.activityType,
+      vendorNormalized: source.vendorNormalized,
+      transactionType: source.transactionType,
+      comments: source.comments,
+      isVerified: source.isVerified,
+      importSessionId: source.importSessionId,
+    };
+  }
+
+  /**
+   * Splits one transaction into N parts in place.
+   *
+   * The original row becomes part 0 and N-1 siblings are inserted; the parts sum
+   * to the original amount, so balance/dashboard/reports/budgets aggregates need
+   * no awareness of splits at all.
+   */
+  async split(
+    id: string,
+    workspaceId: string,
+    userId: string,
+    dto: SplitTransactionDto,
+  ): Promise<Transaction[]> {
+    await this.ensureCanEditStatements(userId);
+    const original = await this.findOne(id, workspaceId);
+
+    if (original.splitGroupId) {
+      throw new BadRequestException('Transaction is already part of a split');
+    }
+
+    const originalAmount = Number(original.amount ?? original.debit ?? original.credit ?? 0);
+    if (!(originalAmount > 0)) {
+      throw new BadRequestException('Cannot split a transaction without a positive amount');
+    }
+
+    const partsTotal = this.round2(dto.parts.reduce((sum, part) => sum + Number(part.amount), 0));
+    if (Math.abs(partsTotal - originalAmount) > 0.01) {
+      throw new BadRequestException(
+        `Split parts must sum to ${originalAmount}, received ${partsTotal}`,
+      );
+    }
+
+    const before = { ...original };
+    const splitGroupId = randomUUID();
+    const isExpense = original.transactionType === TransactionType.EXPENSE;
+    const originalForeign = original.amountForeign ? Number(original.amountForeign) : null;
+    const template = this.cloneForSplit(original);
+
+    const saved = await this.transactionRepository.manager.transaction(async manager => {
+      const repo = manager.getRepository(Transaction);
+      const rows: Transaction[] = [];
+
+      for (const [index, part] of dto.parts.entries()) {
+        const amount = this.round2(Number(part.amount));
+        const row = index === 0 ? original : repo.create(template as Transaction);
+
+        row.amount = amount;
+        row.debit = isExpense ? amount : null;
+        row.credit = isExpense ? null : amount;
+        row.amountForeign =
+          originalForeign === null
+            ? null
+            : this.round2((originalForeign * amount) / originalAmount);
+        row.splitGroupId = splitGroupId;
+        row.splitIndex = index;
+
+        if (part.categoryId !== undefined) {
+          row.categoryId = part.categoryId;
+        }
+        if (part.paymentPurpose !== undefined) {
+          row.paymentPurpose = part.paymentPurpose;
+        }
+        if (part.comments !== undefined) {
+          row.comments = part.comments;
+        }
+
+        rows.push(await repo.save(row));
+      }
+
+      return rows;
+    });
+
+    await this.invalidateReports(userId);
+
+    await this.auditService.createEvent({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.TRANSACTION,
+      entityId: id,
+      action: AuditAction.UPDATE,
+      diff: { before, after: saved },
+      meta: { operation: 'split', splitGroupId, partCount: saved.length },
+      isUndoable: false,
+    });
+
+    return saved;
   }
 
   async remove(id: string, workspaceId: string, userId: string): Promise<void> {
