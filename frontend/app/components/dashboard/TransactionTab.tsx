@@ -84,6 +84,12 @@ export function TransactionTab() {
   };
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  const handleSplitDone = async () => {
+    handleCloseDrawer();
+    await refetch();
+  };
+
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   const handleBulkAssignCategory = async () => {
     if (!bulkCategoryId || selectedIds.length === 0) return;
     try {
@@ -225,6 +231,7 @@ export function TransactionTab() {
         categories={categories}
         onClose={handleCloseDrawer}
         onUpdateCategory={handleSingleUpdateCategory}
+        onSplitDone={handleSplitDone}
       />
     </Box>
   );
