@@ -341,13 +341,22 @@ export class TransactionsService {
       throw new BadRequestException('Transaction is already part of a split');
     }
 
+    // A duplicate-flagged row is excluded from dashboards and reports. Splitting it
+    // would produce siblings that default to isDuplicate=false, so the sibling
+    // amounts would reappear in those totals. Refuse instead.
+    if (original.isDuplicate) {
+      throw new BadRequestException('Cannot split a transaction marked as a duplicate');
+    }
+
     const originalAmount = Number(original.amount ?? original.debit ?? original.credit ?? 0);
     if (!(originalAmount > 0)) {
       throw new BadRequestException('Cannot split a transaction without a positive amount');
     }
 
     const partsTotal = this.round2(dto.parts.reduce((sum, part) => sum + Number(part.amount), 0));
-    if (Math.abs(partsTotal - originalAmount) > 0.01) {
+    // Round the drift too: |99.99 - 100| is 0.010000000000005 in binary floating
+    // point, which would reject the very boundary the tolerance exists to accept.
+    if (this.round2(Math.abs(partsTotal - originalAmount)) > 0.01) {
       throw new BadRequestException(
         `Split parts must sum to ${originalAmount}, received ${partsTotal}`,
       );
@@ -357,25 +366,57 @@ export class TransactionsService {
     const splitGroupId = randomUUID();
     const isExpense = original.transactionType === TransactionType.EXPENSE;
     const originalForeign = original.amountForeign ? Number(original.amountForeign) : null;
-    const template = this.cloneForSplit(original);
+
+    // The accepted 0.01 tolerance would otherwise persist as drift, so the last
+    // part absorbs the residual and the parts sum to the original exactly.
+    const amounts = dto.parts.map(part => this.round2(Number(part.amount)));
+    const lastIndex = amounts.length - 1;
+    amounts[lastIndex] = this.round2(
+      originalAmount - amounts.slice(0, lastIndex).reduce((sum, value) => sum + value, 0),
+    );
+
+    const foreignAmounts = amounts.map(amount =>
+      originalForeign === null ? null : this.round2((originalForeign * amount) / originalAmount),
+    );
+    if (originalForeign !== null) {
+      foreignAmounts[lastIndex] = this.round2(
+        originalForeign -
+          foreignAmounts.slice(0, lastIndex).reduce((sum, value) => sum + (value ?? 0), 0),
+      );
+    }
 
     const saved = await this.transactionRepository.manager.transaction(async manager => {
       const repo = manager.getRepository(Transaction);
+
+      // Re-read under a write lock: the checks above ran outside this transaction,
+      // so two concurrent splits of the same row could both have passed them.
+      const locked = await repo.findOne({
+        where: { id, workspaceId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!locked) {
+        throw new NotFoundException('Transaction not found');
+      }
+      if (locked.splitGroupId) {
+        throw new BadRequestException('Transaction is already part of a split');
+      }
+
+      const template = this.cloneForSplit(locked);
       const rows: Transaction[] = [];
 
       for (const [index, part] of dto.parts.entries()) {
-        const amount = this.round2(Number(part.amount));
-        const row = index === 0 ? original : repo.create(template as Transaction);
+        const amount = amounts[index];
+        const row = index === 0 ? locked : repo.create(template as Transaction);
 
         row.amount = amount;
         row.debit = isExpense ? amount : null;
         row.credit = isExpense ? null : amount;
-        row.amountForeign =
-          originalForeign === null
-            ? null
-            : this.round2((originalForeign * amount) / originalAmount);
+        row.amountForeign = foreignAmounts[index];
         row.splitGroupId = splitGroupId;
         row.splitIndex = index;
+        // Part 0 would otherwise keep a fingerprint hashed from the pre-split
+        // amount. Null on every part so backfillFingerprints recomputes them all.
+        row.fingerprint = null;
 
         if (part.categoryId !== undefined) {
           row.categoryId = part.categoryId;

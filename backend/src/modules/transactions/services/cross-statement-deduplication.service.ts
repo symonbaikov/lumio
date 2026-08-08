@@ -83,7 +83,13 @@ export class CrossStatementDeduplicationService {
       }
 
       const candidates = potentialDuplicates
-        .filter(t => t.id !== transaction.id && !processedIds.has(t.id) && !t.isDuplicate)
+        .filter(
+          t =>
+            t.id !== transaction.id &&
+            !processedIds.has(t.id) &&
+            !t.isDuplicate &&
+            !this.isSameSplitGroup(transaction, t),
+        )
         .map(candidate => ({
           candidate,
           ...this.calculateSimilarity(transaction, candidate),
@@ -215,6 +221,15 @@ export class CrossStatementDeduplicationService {
         createdAt: 'ASC',
       },
     });
+  }
+
+  /**
+   * Parts of the same split share date, counterparty and purpose by construction,
+   * and an even split makes them identical — an exact 1.0 match. They are never
+   * duplicates of each other, but they stay comparable against unrelated rows.
+   */
+  private isSameSplitGroup(t1: Transaction, t2: Transaction): boolean {
+    return Boolean(t1.splitGroupId) && t1.splitGroupId === t2.splitGroupId;
   }
 
   /**
