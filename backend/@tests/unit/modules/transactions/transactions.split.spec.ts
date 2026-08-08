@@ -391,6 +391,318 @@ describe('TransactionsService.split', () => {
   });
 });
 
+describe('TransactionsService.unsplit', () => {
+  const PART_0 = {
+    ...ORIGINAL,
+    id: 'tx-1',
+    amount: 8000,
+    debit: 8000,
+    credit: null,
+    fingerprint: 'fp-of-8000',
+    splitGroupId: 'grp-1',
+    splitIndex: 0,
+  };
+  const PART_1 = {
+    ...ORIGINAL,
+    id: 'tx-2',
+    amount: 4000,
+    debit: 4000,
+    credit: null,
+    fingerprint: 'fp-of-4000',
+    splitGroupId: 'grp-1',
+    splitIndex: 1,
+    categoryId: 'cat-household',
+    paymentPurpose: 'Cleaning supplies',
+    comments: 'part two',
+  };
+
+  let service: TransactionsService;
+  // In-memory row store. Every read hands back a COPY, so the unlocked read and
+  // the locked read can never alias — a bug that derives from the stale read has
+  // to show up rather than hide behind a shared object instance.
+  let store: Map<string, any>;
+  let removedBatches: any[][];
+  let lockedFind: jest.Mock;
+  // When set, the in-transaction locked read returns this instead of the current
+  // store contents. Lets a test simulate a writer landing between the two reads.
+  let lockedParts: any[] | undefined;
+  let transactionRepository: any;
+  let auditService: any;
+  let cacheManager: any;
+  let newIdCounter: number;
+
+  const groupRows = (workspaceId: string, splitGroupId: string) =>
+    [...store.values()]
+      .filter(row => row.workspaceId === workspaceId && row.splitGroupId === splitGroupId)
+      .sort((a, b) => a.splitIndex - b.splitIndex)
+      .map(row => ({ ...row }));
+
+  const readOne = async ({ where }: any) => {
+    const row = store.get(where.id);
+    return row && row.workspaceId === where.workspaceId ? { ...row } : null;
+  };
+
+  const makeManager = () => {
+    const repo = {
+      findOne: jest.fn(readOne),
+      find: lockedFind,
+      create: jest.fn((data: any) => ({ ...data })),
+      save: jest.fn(async (row: any) => {
+        const stored = { ...row, id: row.id ?? `new-${newIdCounter++}` };
+        store.set(stored.id, { ...stored });
+        return stored;
+      }),
+      remove: jest.fn(async (rows: any[]) => {
+        removedBatches.push(rows);
+        for (const row of rows) {
+          store.delete(row.id);
+        }
+        return rows;
+      }),
+    };
+    return { transaction: jest.fn(async (cb: any) => cb({ getRepository: () => repo })) };
+  };
+
+  beforeEach(() => {
+    store = new Map([
+      ['tx-1', { ...PART_0 }],
+      ['tx-2', { ...PART_1 }],
+    ]);
+    removedBatches = [];
+    lockedParts = undefined;
+    newIdCounter = 0;
+    auditService = { createEvent: jest.fn() };
+    cacheManager = { set: jest.fn() };
+    lockedFind = jest.fn(async (options: any) =>
+      lockedParts
+        ? lockedParts.map(part => ({ ...part }))
+        : groupRows(options.where.workspaceId, options.where.splitGroupId),
+    );
+    transactionRepository = {
+      findOne: jest.fn(readOne),
+      find: jest.fn(async ({ where }: any) => groupRows(where.workspaceId, where.splitGroupId)),
+      manager: makeManager(),
+    };
+    service = new TransactionsService(
+      transactionRepository,
+      {} as any,
+      { findOne: jest.fn(async () => ({ id: 'u-1', role: 'admin' })) } as any,
+      { findOne: jest.fn(async () => ({ permissions: { canEditStatements: true } })) } as any,
+      cacheManager as any,
+      auditService as any,
+      { learnFromCorrection: jest.fn() } as any,
+      { bulkConvert: jest.fn() } as any,
+    );
+    (service as any).ensureCanEditStatements = jest.fn();
+  });
+
+  it('collapses the group into one row carrying the exact total', async () => {
+    const merged = await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(merged.id).toBe('tx-1');
+    expect(Number(merged.amount)).toBe(12000);
+    expect(Number(merged.debit)).toBe(12000);
+    expect(merged.credit).toBeNull();
+  });
+
+  it('clears splitGroupId and splitIndex on the survivor', async () => {
+    const merged = await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(merged.splitGroupId).toBeNull();
+    expect(merged.splitIndex).toBeNull();
+  });
+
+  it('deletes the non-surviving parts', async () => {
+    await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(removedBatches).toHaveLength(1);
+    expect(removedBatches[0].map((row: any) => row.id)).toEqual(['tx-2']);
+    expect(store.has('tx-2')).toBe(false);
+    expect(store.has('tx-1')).toBe(true);
+  });
+
+  it('nulls the survivor fingerprint so backfill recomputes it from the merged amount', async () => {
+    const merged = await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(merged.fingerprint).toBeNull();
+  });
+
+  it('rejects a transaction that is not part of a split', async () => {
+    store.set('tx-1', { ...ORIGINAL });
+
+    await expect(service.unsplit('tx-1', 'ws-1', 'u-1')).rejects.toThrow(/not part of a split/i);
+    expect(removedBatches).toHaveLength(0);
+  });
+
+  it('takes the group lock scoped to the workspace and ordered by splitIndex', async () => {
+    await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(lockedFind).toHaveBeenCalledWith({
+      where: { workspaceId: 'ws-1', splitGroupId: 'grp-1' },
+      order: { splitIndex: 'ASC' },
+      lock: { mode: 'pessimistic_write' },
+    });
+  });
+
+  it('rejects when a concurrent unsplit already merged the group', async () => {
+    // Outer read still sees the group; by the time the lock is granted the other
+    // request has committed, so the locked read comes back empty.
+    lockedParts = [];
+
+    await expect(service.unsplit('tx-1', 'ws-1', 'u-1')).rejects.toThrow(/not part of a split/i);
+    expect(removedBatches).toHaveLength(0);
+  });
+
+  it('derives the total from the locked rows, not the stale unlocked read', async () => {
+    // A third part landed between the two reads. Totalling the stale read would
+    // lose 3000 and leave the ledger short.
+    lockedParts = [
+      { ...PART_0 },
+      { ...PART_1 },
+      { ...PART_1, id: 'tx-3', amount: 3000, debit: 3000, splitIndex: 2 },
+    ];
+
+    const merged = await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(Number(merged.amount)).toBe(15000);
+    expect(removedBatches[0].map((row: any) => row.id)).toEqual(['tx-2', 'tx-3']);
+  });
+
+  it('sums decimal columns returned by Postgres as strings', async () => {
+    lockedParts = [
+      { ...PART_0, amount: '8000.00', debit: '8000.00', amountForeign: '16.00' },
+      { ...PART_1, amount: '4000.00', debit: '4000.00', amountForeign: '8.00' },
+    ];
+
+    const merged = await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(Number(merged.amount)).toBe(12000);
+    expect(Number(merged.debit)).toBe(12000);
+    expect(Number(merged.amountForeign)).toBe(24);
+  });
+
+  it('writes credit instead of debit for an income group', async () => {
+    lockedParts = [
+      { ...PART_0, transactionType: TransactionType.INCOME, debit: null, credit: 8000 },
+      { ...PART_1, transactionType: TransactionType.INCOME, debit: null, credit: 4000 },
+    ];
+
+    const merged = await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(Number(merged.credit)).toBe(12000);
+    expect(merged.debit).toBeNull();
+  });
+
+  it('leaves amountForeign null when no part carries one', async () => {
+    const merged = await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(merged.amountForeign).toBeNull();
+  });
+
+  it('keeps a present-but-zero foreign total as 0 rather than nulling it', async () => {
+    lockedParts = [
+      { ...PART_0, amountForeign: 0 },
+      { ...PART_1, amountForeign: 0 },
+    ];
+
+    const merged = await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(merged.amountForeign).toBe(0);
+  });
+
+  it('records an audit event with the pre-merge parts and invalidates the reports cache', async () => {
+    await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(cacheManager.set).toHaveBeenCalledWith('reports:version:u-1', expect.any(String), 0);
+    expect(auditService.createEvent).toHaveBeenCalledTimes(1);
+    const event = auditService.createEvent.mock.calls[0][0];
+    expect(event).toEqual(
+      expect.objectContaining({
+        workspaceId: 'ws-1',
+        entityId: 'tx-1',
+        meta: expect.objectContaining({
+          operation: 'unsplit',
+          splitGroupId: 'grp-1',
+          partCount: 2,
+        }),
+      }),
+    );
+    // The `before` snapshot must show the parts as they were, not the mutated
+    // survivor carrying the merged total.
+    expect(event.diff.before.map((row: any) => Number(row.amount))).toEqual([8000, 4000]);
+    expect(event.diff.before[0].splitGroupId).toBe('grp-1');
+  });
+
+  it('round-trips: split then unsplit restores the original amount exactly', async () => {
+    store = new Map([['tx-1', { ...ORIGINAL }]]);
+
+    const parts = await service.split('tx-1', 'ws-1', 'u-1', {
+      parts: [{ amount: 7999.99 }, { amount: 4000.01 }],
+    });
+    expect(parts).toHaveLength(2);
+
+    const merged = await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(Number(merged.amount)).toBe(Number(ORIGINAL.amount));
+    expect(merged.splitGroupId).toBeNull();
+    expect(merged.splitIndex).toBeNull();
+    expect(store.size).toBe(1);
+  });
+});
+
+describe('TransactionsService.getSplitParts', () => {
+  let service: TransactionsService;
+  let transactionRepository: any;
+  let row: any;
+  let group: any[];
+
+  beforeEach(() => {
+    row = { ...ORIGINAL };
+    group = [];
+    transactionRepository = {
+      findOne: jest.fn(async () => ({ ...row })),
+      find: jest.fn(async () => group.map(part => ({ ...part }))),
+      manager: { transaction: jest.fn() },
+    };
+    service = new TransactionsService(
+      transactionRepository,
+      {} as any,
+      { findOne: jest.fn() } as any,
+      { findOne: jest.fn() } as any,
+      { set: jest.fn() } as any,
+      { createEvent: jest.fn() } as any,
+      { learnFromCorrection: jest.fn() } as any,
+      { bulkConvert: jest.fn() } as any,
+    );
+  });
+
+  it('returns just the transaction when it is not part of a split', async () => {
+    const parts = await service.getSplitParts('tx-1', 'ws-1');
+
+    expect(parts).toHaveLength(1);
+    expect(parts[0].id).toBe('tx-1');
+    expect(transactionRepository.find).not.toHaveBeenCalled();
+  });
+
+  it('returns the whole group ordered by splitIndex, scoped to the workspace', async () => {
+    row = { ...ORIGINAL, splitGroupId: 'grp-1', splitIndex: 1 };
+    group = [
+      { ...ORIGINAL, id: 'tx-1', splitGroupId: 'grp-1', splitIndex: 0, amount: 8000 },
+      { ...ORIGINAL, id: 'tx-2', splitGroupId: 'grp-1', splitIndex: 1, amount: 4000 },
+    ];
+
+    const parts = await service.getSplitParts('tx-1', 'ws-1');
+
+    expect(parts.map(p => p.id)).toEqual(['tx-1', 'tx-2']);
+    expect(transactionRepository.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { workspaceId: 'ws-1', splitGroupId: 'grp-1' },
+        order: { splitIndex: 'ASC' },
+      }),
+    );
+  });
+});
+
 describe('TransactionsService.allocateParts', () => {
   // The highest-risk arithmetic in split(), exercised directly rather than
   // through eight mocked constructor dependencies.

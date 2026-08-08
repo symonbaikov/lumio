@@ -489,6 +489,118 @@ export class TransactionsService {
     return saved;
   }
 
+  /**
+   * Returns every part of the split group the given transaction belongs to,
+   * ordered as the split created them. An unsplit transaction is a group of one.
+   */
+  async getSplitParts(id: string, workspaceId: string): Promise<Transaction[]> {
+    const transaction = await this.findOne(id, workspaceId);
+    if (!transaction.splitGroupId) {
+      return [transaction];
+    }
+
+    return this.transactionRepository.find({
+      // Same relations as findOne, so a caller gets one shape either way.
+      where: { workspaceId, splitGroupId: transaction.splitGroupId },
+      relations: ['category', 'branch', 'wallet'],
+      order: { splitIndex: 'ASC' },
+    });
+  }
+
+  /**
+   * Merges a split group back into a single row: the lowest splitIndex survives
+   * carrying the group's total, the other parts are deleted. The inverse of
+   * split(), and like it invisible to every aggregate, since the total is unchanged.
+   *
+   * The survivor keeps its own categoryId, paymentPurpose and comments — i.e.
+   * part 0's, which may be a per-part override rather than what the row held
+   * before it was split. Those pre-split values are not stored anywhere, so they
+   * cannot be restored; that loss is accepted, not an oversight.
+   */
+  async unsplit(id: string, workspaceId: string, userId: string): Promise<Transaction> {
+    await this.ensureCanEditStatements(userId);
+
+    // Fast path only: reject an obviously invalid request before opening a DB
+    // transaction and taking row locks. The authoritative read is the locked one.
+    const target = await this.findOne(id, workspaceId);
+    if (!target.splitGroupId) {
+      throw new BadRequestException('Transaction is not part of a split');
+    }
+    const splitGroupId = target.splitGroupId;
+
+    let before: Transaction[] = [];
+
+    const merged = await this.transactionRepository.manager.transaction(async manager => {
+      const repo = manager.getRepository(Transaction);
+
+      // Lock the whole group in one ordered statement. A concurrent unsplit of the
+      // same group queues here instead of double-counting the total or deleting
+      // rows this one already folded in, and the shared ORDER BY gives both
+      // statements the same lock order, so they queue rather than deadlock.
+      // No relations: Postgres cannot lock the nullable side of an outer join.
+      const parts = await repo.find({
+        where: { workspaceId, splitGroupId },
+        order: { splitIndex: 'ASC' },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      // Empty means the group is gone — another request unsplit it while this one
+      // waited for the lock. A single part is a group that lost its siblings some
+      // other way; clearing its markers below is the right repair either way.
+      if (parts.length === 0) {
+        throw new BadRequestException('Transaction is not part of a split');
+      }
+
+      before = parts.map(part => ({ ...part }));
+
+      const [survivor, ...rest] = parts;
+      const total = this.round2(parts.reduce((sum, part) => sum + Number(part.amount ?? 0), 0));
+      // Null only when no part carries a foreign amount at all. A group whose
+      // foreign amounts genuinely total 0 keeps the 0, mirroring split(), which
+      // passes a present-but-zero amountForeign through as a number rather than
+      // treating it as absent.
+      const hasForeign = parts.some(part => part.amountForeign !== null);
+      const foreignTotal = hasForeign
+        ? this.round2(parts.reduce((sum, part) => sum + Number(part.amountForeign ?? 0), 0))
+        : null;
+      const isExpense = survivor.transactionType === TransactionType.EXPENSE;
+
+      survivor.amount = total;
+      survivor.debit = isExpense ? total : null;
+      survivor.credit = isExpense ? null : total;
+      survivor.amountForeign = foreignTotal;
+      survivor.splitGroupId = null;
+      survivor.splitIndex = null;
+      // The stored hash was computed from the part amount, which just changed.
+      // A stale hash makes a later import treat a genuine transaction as a
+      // duplicate and drop it; null lets backfillFingerprints recompute it.
+      survivor.fingerprint = null;
+
+      const saved = await repo.save(survivor);
+      if (rest.length > 0) {
+        await repo.remove(rest);
+      }
+
+      return saved;
+    });
+
+    await this.invalidateReports(userId);
+
+    await this.auditService.createEvent({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.TRANSACTION,
+      entityId: merged.id,
+      action: AuditAction.UPDATE,
+      diff: { before, after: merged },
+      meta: { operation: 'unsplit', splitGroupId, partCount: before.length },
+      isUndoable: false,
+    });
+
+    return merged;
+  }
+
   async remove(id: string, workspaceId: string, userId: string): Promise<void> {
     await this.ensureCanEditStatements(userId);
     const transaction = await this.findOne(id, workspaceId);
