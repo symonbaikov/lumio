@@ -19,6 +19,7 @@ import { Audit } from '../audit/decorators/audit.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { BulkUpdateItemDto } from './dto/bulk-update-transaction.dto';
 import { BulkUpdateTransactionDto } from './dto/bulk-update-transaction.dto';
+import { SplitTransactionDto } from './dto/split-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { CrossStatementDeduplicationService } from './services/cross-statement-deduplication.service';
 import { TransactionsService } from './transactions.service';
@@ -100,6 +101,38 @@ export class TransactionsController {
     @WorkspaceId() workspaceId: string,
   ) {
     return this.transactionsService.update(id, workspaceId, user.id, updateDto);
+  }
+
+  @Get(':id/split')
+  @WorkspaceAuth(Permission.TRANSACTION_VIEW)
+  async getSplitParts(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
+    return this.transactionsService.getSplitParts(id, workspaceId);
+  }
+
+  // No @Audit here: TransactionsService.split writes its own richer audit event
+  // (operation/splitGroupId/counts in meta). Stacking the decorator would double-log.
+  @Post(':id/split')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  async split(
+    @Param('id') id: string,
+    @Body() splitDto: SplitTransactionDto,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.transactionsService.split(id, workspaceId, user.id, splitDto);
+  }
+
+  // No @Audit here: see the note on split() above — unsplit audits itself too.
+  @Post(':id/unsplit')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  async unsplit(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.transactionsService.unsplit(id, workspaceId, user.id);
   }
 
   @Post('bulk-update')
