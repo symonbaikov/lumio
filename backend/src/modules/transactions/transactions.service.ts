@@ -10,8 +10,10 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
-import type { Repository } from 'typeorm';
+import { In, type Repository } from 'typeorm';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
+import { Payable } from '../../entities/payable.entity';
+import { Receipt } from '../../entities/receipt.entity';
 import { Statement } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { TransactionType } from '../../entities/transaction.entity';
@@ -529,6 +531,7 @@ export class TransactionsService {
     const splitGroupId = target.splitGroupId;
 
     let before: Transaction[] = [];
+    let repointed = { duplicates: 0, receipts: 0, payables: 0 };
 
     const merged = await this.transactionRepository.manager.transaction(async manager => {
       const repo = manager.getRepository(Transaction);
@@ -553,13 +556,33 @@ export class TransactionsService {
 
       before = parts.map(part => ({ ...part }));
 
+      // A part can be flagged as a duplicate AFTER the split: isSameSplitGroup only
+      // excludes pairs sharing a splitGroupId, so a part stays comparable against
+      // rows in other statements and markDuplicates can flag it at any time. A
+      // flagged row is excluded from reports, so merging would either inflate
+      // reported spend (a flagged sibling folded into the unflagged survivor) or
+      // erase the whole charge (part 0 flagged, survivor keeps isDuplicate). Refuse,
+      // as assertSplittable does on the way in — with its own message, so the two
+      // sides are distinguishable. Checked on the locked rows: the flag may have
+      // landed after the unlocked read.
+      if (parts.some(part => part.isDuplicate)) {
+        throw new BadRequestException(
+          'Cannot unsplit a group containing a transaction marked as a duplicate',
+        );
+      }
+
       const [survivor, ...rest] = parts;
-      const total = this.round2(parts.reduce((sum, part) => sum + Number(part.amount ?? 0), 0));
+      // Falls back the same way assertSplittable reads an amount. Unreachable while
+      // split() always writes `amount`, but the two sides should not disagree about
+      // where a part's money lives.
+      const total = this.round2(
+        parts.reduce((sum, part) => sum + Number(part.amount ?? part.debit ?? part.credit ?? 0), 0),
+      );
       // Null only when no part carries a foreign amount at all. A group whose
       // foreign amounts genuinely total 0 keeps the 0, mirroring split(), which
       // passes a present-but-zero amountForeign through as a number rather than
       // treating it as absent.
-      const hasForeign = parts.some(part => part.amountForeign !== null);
+      const hasForeign = parts.some(part => (part.amountForeign ?? null) !== null);
       const foreignTotal = hasForeign
         ? this.round2(parts.reduce((sum, part) => sum + Number(part.amountForeign ?? 0), 0))
         : null;
@@ -577,7 +600,41 @@ export class TransactionsService {
       survivor.fingerprint = null;
 
       const saved = await repo.save(survivor);
+
       if (rest.length > 0) {
+        // Every FK pointing at transactions.id is ON DELETE SET NULL, so deleting a
+        // part silently unlinks whatever referenced it. Repoint at the survivor
+        // FIRST — after the delete the FK has already been nulled and the link is
+        // unrecoverable. The survivor represents the whole charge again, so it is
+        // the right target for all three.
+        const removedIds = rest.map(part => part.id);
+
+        // Without this, a transaction whose master was a deleted part is left
+        // isDuplicate=true with duplicateOfId=null: excluded from reports forever,
+        // with no master and no UI path to unflag it. The survivor cannot be
+        // repointed at itself here — a row with duplicateOfId set always has
+        // isDuplicate set too, which the guard above already rejected.
+        const duplicates = await manager
+          .getRepository(Transaction)
+          .update({ workspaceId, duplicateOfId: In(removedIds) }, { duplicateOfId: survivor.id });
+
+        const receipts = await manager
+          .getRepository(Receipt)
+          .update({ workspaceId, transactionId: In(removedIds) }, { transactionId: survivor.id });
+
+        const payables = await manager
+          .getRepository(Payable)
+          .update(
+            { workspaceId, linkedTransactionId: In(removedIds) },
+            { linkedTransactionId: survivor.id },
+          );
+
+        repointed = {
+          duplicates: duplicates.affected ?? 0,
+          receipts: receipts.affected ?? 0,
+          payables: payables.affected ?? 0,
+        };
+
         await repo.remove(rest);
       }
 
@@ -594,7 +651,14 @@ export class TransactionsService {
       entityId: merged.id,
       action: AuditAction.UPDATE,
       diff: { before, after: merged },
-      meta: { operation: 'unsplit', splitGroupId, partCount: before.length },
+      meta: {
+        operation: 'unsplit',
+        splitGroupId,
+        partCount: before.length,
+        duplicatesRepointed: repointed.duplicates,
+        receiptsRepointed: repointed.receipts,
+        payablesRepointed: repointed.payables,
+      },
       isUndoable: false,
     });
 

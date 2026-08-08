@@ -422,6 +422,11 @@ describe('TransactionsService.unsplit', () => {
   // to show up rather than hide behind a shared object instance.
   let store: Map<string, any>;
   let removedBatches: any[][];
+  // Per-entity repos handed out by manager.getRepository, plus an ordered log of
+  // the writes, so a test can assert the FK repoints happen BEFORE the delete —
+  // afterwards the ON DELETE SET NULL has already fired and the link is gone.
+  let repos: Record<string, any>;
+  let opsLog: string[];
   let lockedFind: jest.Mock;
   // When set, the in-transaction locked read returns this instead of the current
   // store contents. Lets a test simulate a writer landing between the two reads.
@@ -443,7 +448,7 @@ describe('TransactionsService.unsplit', () => {
   };
 
   const makeManager = () => {
-    const repo = {
+    const txRepo = {
       findOne: jest.fn(readOne),
       find: lockedFind,
       create: jest.fn((data: any) => ({ ...data })),
@@ -452,7 +457,12 @@ describe('TransactionsService.unsplit', () => {
         store.set(stored.id, { ...stored });
         return stored;
       }),
+      update: jest.fn(async () => {
+        opsLog.push('update:Transaction');
+        return { affected: 0 };
+      }),
       remove: jest.fn(async (rows: any[]) => {
+        opsLog.push('remove');
         removedBatches.push(rows);
         for (const row of rows) {
           store.delete(row.id);
@@ -460,7 +470,26 @@ describe('TransactionsService.unsplit', () => {
         return rows;
       }),
     };
-    return { transaction: jest.fn(async (cb: any) => cb({ getRepository: () => repo })) };
+    repos = {
+      Transaction: txRepo,
+      Receipt: {
+        update: jest.fn(async () => {
+          opsLog.push('update:Receipt');
+          return { affected: 0 };
+        }),
+      },
+      Payable: {
+        update: jest.fn(async () => {
+          opsLog.push('update:Payable');
+          return { affected: 0 };
+        }),
+      },
+    };
+    return {
+      transaction: jest.fn(async (cb: any) =>
+        cb({ getRepository: (entity: any) => repos[entity?.name] ?? txRepo }),
+      ),
+    };
   };
 
   beforeEach(() => {
@@ -469,6 +498,7 @@ describe('TransactionsService.unsplit', () => {
       ['tx-2', { ...PART_1 }],
     ]);
     removedBatches = [];
+    opsLog = [];
     lockedParts = undefined;
     newIdCounter = 0;
     auditService = { createEvent: jest.fn() };
@@ -631,6 +661,117 @@ describe('TransactionsService.unsplit', () => {
     // survivor carrying the merged total.
     expect(event.diff.before.map((row: any) => Number(row.amount))).toEqual([8000, 4000]);
     expect(event.diff.before[0].splitGroupId).toBe('grp-1');
+  });
+
+  it('checks edit permission before merging', async () => {
+    await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect((service as any).ensureCanEditStatements).toHaveBeenCalledWith('u-1');
+  });
+
+  it('merges into part 0 even when called with a non-part-0 id', async () => {
+    const merged = await service.unsplit('tx-2', 'ws-1', 'u-1');
+
+    expect(merged.id).toBe('tx-1');
+    expect(Number(merged.amount)).toBe(12000);
+    expect(removedBatches[0].map((row: any) => row.id)).toEqual(['tx-2']);
+    expect(store.has('tx-1')).toBe(true);
+  });
+
+  it('refuses to merge a group whose non-surviving part is flagged as a duplicate', async () => {
+    // A part can be flagged AFTER the split: isSameSplitGroup only excludes pairs
+    // that share a splitGroupId, so a part still matches rows in other statements.
+    // Folding a flagged (report-excluded) amount into the unflagged survivor would
+    // make reported spend jump with no visible cause.
+    lockedParts = [{ ...PART_0 }, { ...PART_1, isDuplicate: true }];
+
+    await expect(service.unsplit('tx-1', 'ws-1', 'u-1')).rejects.toThrow(
+      /unsplit .*marked as a duplicate/i,
+    );
+    expect(removedBatches).toHaveLength(0);
+  });
+
+  it('refuses to merge when part 0 itself is flagged as a duplicate', async () => {
+    // Worse case: the survivor stays isDuplicate=true and the whole original
+    // amount disappears from reports.
+    lockedParts = [{ ...PART_0, isDuplicate: true }, { ...PART_1 }];
+
+    await expect(service.unsplit('tx-1', 'ws-1', 'u-1')).rejects.toThrow(
+      /unsplit .*marked as a duplicate/i,
+    );
+    expect(removedBatches).toHaveLength(0);
+  });
+
+  it('ignores a duplicate flag on the stale unlocked read, checking the locked rows', async () => {
+    store.set('tx-1', { ...PART_0, isDuplicate: true });
+    lockedParts = [{ ...PART_0 }, { ...PART_1 }];
+
+    const merged = await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(Number(merged.amount)).toBe(12000);
+  });
+
+  it('repoints another row duplicate_of_id at the survivor before deleting the part', async () => {
+    // duplicate_of_id is ON DELETE SET NULL: a row whose master is a deleted part
+    // would be left isDuplicate=true with a null master — excluded from reports
+    // forever, with no UI path to unflag it.
+    await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    const [where, patch] = repos.Transaction.update.mock.calls[0];
+    expect(where.workspaceId).toBe('ws-1');
+    expect(where.duplicateOfId.value).toEqual(['tx-2']);
+    expect(patch).toEqual({ duplicateOfId: 'tx-1' });
+    expect(opsLog.indexOf('update:Transaction')).toBeLessThan(opsLog.indexOf('remove'));
+  });
+
+  it('repoints receipts and payables at the survivor before deleting the part', async () => {
+    // Both FKs are ON DELETE SET NULL too: a receipt documents the whole charge,
+    // which the survivor represents again once the group is merged.
+    await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    const [receiptWhere, receiptPatch] = repos.Receipt.update.mock.calls[0];
+    expect(receiptWhere.workspaceId).toBe('ws-1');
+    expect(receiptWhere.transactionId.value).toEqual(['tx-2']);
+    expect(receiptPatch).toEqual({ transactionId: 'tx-1' });
+
+    const [payableWhere, payablePatch] = repos.Payable.update.mock.calls[0];
+    expect(payableWhere.workspaceId).toBe('ws-1');
+    expect(payableWhere.linkedTransactionId.value).toEqual(['tx-2']);
+    expect(payablePatch).toEqual({ linkedTransactionId: 'tx-1' });
+
+    expect(opsLog.indexOf('update:Receipt')).toBeLessThan(opsLog.indexOf('remove'));
+    expect(opsLog.indexOf('update:Payable')).toBeLessThan(opsLog.indexOf('remove'));
+  });
+
+  it('records the repointed counts in the audit meta so the relinking is traceable', async () => {
+    repos.Transaction.update.mockResolvedValue({ affected: 1 });
+    repos.Receipt.update.mockResolvedValue({ affected: 2 });
+    repos.Payable.update.mockResolvedValue({ affected: 3 });
+
+    await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(auditService.createEvent.mock.calls[0][0].meta).toEqual(
+      expect.objectContaining({
+        operation: 'unsplit',
+        duplicatesRepointed: 1,
+        receiptsRepointed: 2,
+        payablesRepointed: 3,
+      }),
+    );
+  });
+
+  it('clears the markers without deleting or repointing when the group has one part', async () => {
+    lockedParts = [{ ...PART_0 }];
+
+    const merged = await service.unsplit('tx-1', 'ws-1', 'u-1');
+
+    expect(merged.splitGroupId).toBeNull();
+    expect(merged.splitIndex).toBeNull();
+    expect(Number(merged.amount)).toBe(8000);
+    expect(removedBatches).toHaveLength(0);
+    expect(repos.Transaction.update).not.toHaveBeenCalled();
+    expect(repos.Receipt.update).not.toHaveBeenCalled();
+    expect(repos.Payable.update).not.toHaveBeenCalled();
   });
 
   it('round-trips: split then unsplit restores the original amount exactly', async () => {
