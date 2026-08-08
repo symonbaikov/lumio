@@ -1,6 +1,18 @@
-import { BarChart2, Building2, CreditCard, FileText, LayoutDashboard, PiggyBank, Plug, Puzzle, ScrollText, Table } from '@/app/components/icons';
-import React, { type ReactNode } from 'react';
+import {
+  BarChart2,
+  Building2,
+  CreditCard,
+  FileText,
+  LayoutDashboard,
+  PiggyBank,
+  Plug,
+  Puzzle,
+  ScrollText,
+  Sparkles,
+  Table,
+} from '@/app/components/icons';
 import { DEFAULT_APP_ROUTE } from '@/app/lib/default-app-route';
+import React, { type ReactNode } from 'react';
 export const MOBILE_MENU_VISIBILITY_EVENT = 'lumio-mobile-menu-visibility';
 
 export type { AppLocale as AppLanguage } from '@/app/lib/locale';
@@ -23,6 +35,7 @@ export function buildNavItems(nav: {
   activityLog: unknown;
   integrations: unknown;
   plugins: unknown;
+  aiAnalysis: unknown;
 }): NavItem[] {
   return [
     {
@@ -84,6 +97,12 @@ export function buildNavItems(nav: {
       path: '/admin',
       icon: React.createElement(ScrollText, { size: 18 }),
       permission: 'audit_log.view',
+    },
+    {
+      label: nav.aiAnalysis as ReactNode,
+      path: '/ai-analysis',
+      icon: React.createElement(Sparkles, { size: 18 }),
+      permission: 'statement.view',
     },
   ];
 }

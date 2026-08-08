@@ -27,6 +27,8 @@ export enum InsightType {
   UNUSED_RULES = 'workflow.unused_rules',
   CLASSIFICATION_ACCURACY = 'workflow.classification_accuracy',
   WORKFLOW_TIP = 'workflow.tip',
+  /** Written by the local model on the AI analysis page, not by a server analyzer. */
+  AI_SUMMARY = 'ai.summary',
 }
 
 export enum InsightCategory {

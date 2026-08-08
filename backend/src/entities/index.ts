@@ -59,3 +59,6 @@ export * from './budget.entity';
 export * from './subscription.entity';
 export * from './backup-configuration.entity';
 export * from './backup-run.entity';
+export * from './ai-chat.entity';
+export * from './ai-chat-message.entity';
+export * from './transaction-embedding.entity';

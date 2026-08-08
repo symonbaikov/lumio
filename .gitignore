@@ -67,6 +67,9 @@ docker-compose.override.yml
 # Git worktrees
 .worktrees/
 
+# Locally downloaded ML models (embeddings + LLM weight cache)
+.local-models/
+
 # Graphify
 graphify-out/*
 !graphify-out/

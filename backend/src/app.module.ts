@@ -63,6 +63,7 @@ import {
 import { ApiKeysModule } from './modules/api-keys/api-keys.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ApplicationSettingsModule } from './modules/application-settings/application-settings.module';
+import { AiAnalysisModule } from './modules/ai-analysis/ai-analysis.module';
 import { BackupsModule } from './modules/backups/backups.module';
 import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor';
 import { AuthModule } from './modules/auth/auth.module';
@@ -175,6 +176,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     ]),
     CommonModule,
     ApplicationSettingsModule,
+    AiAnalysisModule,
     BackupsModule,
     AuthModule,
     AuditModule,
