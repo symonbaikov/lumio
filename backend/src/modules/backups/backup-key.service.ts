@@ -1,11 +1,19 @@
 import * as crypto from 'node:crypto';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 const PREFIX = 'backup-key:';
 
 @Injectable()
 export class BackupKeyService {
-  constructor(private readonly masterSecret = process.env.BACKUP_MASTER_KEY || process.env.INTEGRATIONS_ENCRYPTION_KEY || '') {
+  // @Optional() so Nest passes undefined instead of trying to resolve a
+  // provider for a plain string, which fails at boot. Tests still construct
+  // the service with an explicit secret.
+  constructor(
+    @Optional()
+    private readonly masterSecret = process.env.BACKUP_MASTER_KEY ||
+      process.env.INTEGRATIONS_ENCRYPTION_KEY ||
+      '',
+  ) {
     if (!this.masterSecret && process.env.NODE_ENV === 'production') {
       throw new Error('BACKUP_MASTER_KEY is required in production');
     }
