@@ -28,6 +28,7 @@ import {
   parseA1Range,
   quoteSheetName,
 } from '../google-sheets/services/sheet-source-loader.service';
+import { detectLayout } from '../import/sheets/detect-layout.util';
 import type {
   GoogleSheetsImportColumnDto,
   GoogleSheetsImportCommitDto,
@@ -570,32 +571,6 @@ export class CustomTablesImportService {
     return `${sheetRef}!${range}`;
   }
 
-  private detectLayout(values: unknown[][], headerRowIndex: number): GoogleSheetsImportLayoutType {
-    const header = (values[headerRowIndex] || [])
-      .map(v => normalizeCellValue(v))
-      .filter(Boolean) as string[];
-    const data = values.slice(headerRowIndex + 1, headerRowIndex + 1 + 20);
-
-    const headerDateLikeCount = header.filter(v => isDateLike(v)).length;
-    const wide = header.length >= 12;
-
-    let firstColNonEmpty = 0;
-    for (const row of data) {
-      const first = normalizeCellValue(row?.[0]);
-      if (first) firstColNonEmpty += 1;
-    }
-
-    if (
-      wide &&
-      headerDateLikeCount >= Math.max(5, Math.floor(header.length * 0.4)) &&
-      firstColNonEmpty >= 8
-    ) {
-      return GoogleSheetsImportLayoutType.MATRIX;
-    }
-
-    return GoogleSheetsImportLayoutType.FLAT;
-  }
-
   private buildPreviewFromValues(params: {
     spreadsheetId: string;
     worksheetName: string;
@@ -612,7 +587,7 @@ export class CustomTablesImportService {
     const layout =
       dto.layoutType && dto.layoutType !== GoogleSheetsImportLayoutType.AUTO
         ? dto.layoutType
-        : this.detectLayout(values, safeHeaderIndex);
+        : detectLayout(values, safeHeaderIndex);
 
     const sampleRowCount = 10;
     const sample = values.slice(safeHeaderIndex + 1, safeHeaderIndex + 1 + sampleRowCount);
@@ -891,7 +866,7 @@ export class CustomTablesImportService {
     const layout =
       dto.layoutType && dto.layoutType !== GoogleSheetsImportLayoutType.AUTO
         ? dto.layoutType
-        : this.detectLayout(values, safeHeaderIndex);
+        : detectLayout(values, safeHeaderIndex);
 
     const sampleRowCount = 10;
     const sample = values.slice(safeHeaderIndex + 1, safeHeaderIndex + 1 + sampleRowCount);

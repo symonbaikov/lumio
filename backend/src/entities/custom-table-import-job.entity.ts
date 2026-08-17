@@ -11,6 +11,7 @@ type JsonObject = Record<string, unknown>;
 
 export enum CustomTableImportJobType {
   GOOGLE_SHEETS = 'google_sheets',
+  SHEET_TRANSACTIONS = 'sheet_transactions',
 }
 
 export enum CustomTableImportJobStatus {

@@ -1,0 +1,681 @@
+import { createHash } from 'node:crypto';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { CategoryType } from '../../../entities/category.entity';
+import { ImportSessionMode } from '../../../entities/import-session.entity';
+import { BankName, FileType, Statement, StatementStatus } from '../../../entities/statement.entity';
+import { Transaction, TransactionType } from '../../../entities/transaction.entity';
+import { Wallet } from '../../../entities/wallet.entity';
+import { ClassificationService } from '../../classification/services/classification.service';
+import { CustomTableImportJobsService } from '../../custom-tables/custom-table-import-jobs.service';
+import { GoogleSheetsImportLayoutType } from '../../custom-tables/dto/google-sheets-import-preview.dto';
+import {
+  type LoadedSheetSource,
+  SheetSourceLoaderService,
+  numberToColumnLetters,
+} from '../../google-sheets/services/sheet-source-loader.service';
+import type { ParsedTransaction } from '../../parsing/interfaces/parsed-statement.interface';
+import { TransactionFingerprintService } from '../../transactions/services/transaction-fingerprint.service';
+import type { SheetColumnRole } from '../sheets/column-roles';
+import { detectColumnRoles } from '../sheets/detect-column-roles.util';
+import { detectLayout } from '../sheets/detect-layout.util';
+import { type MappedSheetRow, type SheetMapping, mapSheetRows } from '../sheets/map-sheet-rows';
+import { SheetCurrencyService } from '../sheets/sheet-currency.service';
+import { SheetReferenceResolverService } from '../sheets/sheet-reference-resolver.service';
+import type { ImportSessionService } from './import-session.service';
+
+/** Input shared by preview and commit: identifies the sheet and how to map it. */
+export interface SheetTransactionPreviewInput {
+  googleSheetId?: string;
+  sourceUrl?: string;
+  worksheetName?: string;
+  range?: string;
+  headerRowIndex?: number;
+  /** Explicit column roles, overriding auto-detection. Must match the sheet's column count. */
+  roles?: SheetColumnRole[];
+  defaultCurrency: string;
+  skipRowNumbers?: number[];
+  invertSign?: boolean;
+  /** Display name used for the session's fileName; defaults to a generic label. */
+  name?: string;
+}
+
+export interface SheetTransactionCommitInput extends SheetTransactionPreviewInput {
+  /** Used to build the synthetic Statement's fileName. */
+  name: string;
+  /** Whether unresolved category names should be created rather than left unset. */
+  categoryCreateMissing?: boolean;
+  /** Wallet name to resolve for currency + (future) wallet assignment. */
+  walletName?: string;
+}
+
+export interface SheetTransactionColumnPreview {
+  index: number;
+  a1: string;
+  title: string;
+  suggestedRole: SheetColumnRole;
+  samples: string[];
+}
+
+export interface SheetTransactionPreviewRow extends MappedSheetRow {
+  /** Per-row classification merged in from ImportSessionService's preview pass, `ok` rows only. */
+  sessionStatus?: 'new' | 'matched' | 'conflicted' | 'failed';
+}
+
+export interface SheetTransactionPreviewResult {
+  sessionId: string;
+  suggestedMapping: SheetMapping;
+  columns: SheetTransactionColumnPreview[];
+  rows: SheetTransactionPreviewRow[];
+  summary: {
+    total: number;
+    ok: number;
+    invalid: number;
+    skipped: number;
+    newCount: number;
+    duplicateCount: number;
+    warnings: string[];
+    dateRange: { from: string; to: string } | null;
+    totals: { debit: number; credit: number; currency: string };
+  };
+}
+
+export interface SheetTransactionCommitResult {
+  statementId: string;
+  imported: number;
+  skipped: number;
+  duplicates: number;
+  warnings: string[];
+}
+
+/** Result of loading + mapping a sheet, shared by preview() and runCommit(). */
+interface LoadedAndMappedSheet {
+  loaded: LoadedSheetSource;
+  columns: SheetTransactionColumnPreview[];
+  mapping: SheetMapping;
+  mapped: { rows: MappedSheetRow[]; summary: { ok: number; invalid: number; skipped: number } };
+  fileHash: string;
+}
+
+const SAMPLE_ROW_COUNT = 5;
+const PREVIEW_ROW_LIMIT = 100;
+
+/** A row's transaction type for AI classification: credit present -> income, else expense. */
+const buildBatchClassificationType = (transaction: ParsedTransaction): TransactionType =>
+  (transaction.credit ?? 0) > 0 ? TransactionType.INCOME : TransactionType.EXPENSE;
+
+/**
+ * Orchestrates the Google Sheets -> transactions import: loads the sheet,
+ * maps rows, resolves category/wallet references and FX, and delegates
+ * duplicate detection + persistence to `ImportSessionService`. Does not
+ * reimplement fingerprinting or dedup — those live in `ImportSessionService`
+ * / `TransactionFingerprintService`.
+ */
+@Injectable()
+export class SheetTransactionImportService {
+  constructor(
+    @InjectRepository(Transaction)
+    private readonly transactionRepository: Repository<Transaction>,
+    @InjectRepository(Wallet)
+    private readonly walletRepository: Repository<Wallet>,
+    private readonly dataSource: DataSource,
+    private readonly sheetSourceLoader: SheetSourceLoaderService,
+    private readonly importSessionService: ImportSessionService,
+    private readonly sheetReferenceResolver: SheetReferenceResolverService,
+    private readonly sheetCurrencyService: SheetCurrencyService,
+    private readonly classificationService: ClassificationService,
+    private readonly customTableImportJobsService: CustomTableImportJobsService,
+    private readonly fingerprintService: TransactionFingerprintService,
+  ) {}
+
+  /**
+   * Loads the sheet, rejects matrix layouts, detects/applies column roles,
+   * and maps rows. Shared by `preview()` and `runCommit()` so the two never
+   * drift apart on how a sheet is interpreted.
+   */
+  private async loadAndMapSheet(
+    dto: SheetTransactionPreviewInput,
+    workspaceId: string,
+  ): Promise<LoadedAndMappedSheet> {
+    const loaded = await this.sheetSourceLoader.load({
+      googleSheetId: dto.googleSheetId,
+      sourceUrl: dto.sourceUrl,
+      worksheetName: dto.worksheetName,
+      range: dto.range,
+      workspaceId,
+    });
+
+    const headerRowIndex = dto.headerRowIndex ?? 0;
+    const layout = detectLayout(loaded.values, headerRowIndex);
+    if (layout === GoogleSheetsImportLayoutType.MATRIX) {
+      throw new BadRequestException(
+        'Матричные листы пока не поддерживаются для импорта транзакций',
+      );
+    }
+
+    const headerRow = loaded.values[headerRowIndex] ?? [];
+    const dataRows = loaded.values.slice(headerRowIndex + 1);
+
+    const columnInputs = headerRow.map((cell, index) => ({
+      title: cell === null || cell === undefined ? '' : String(cell).trim(),
+      samples: dataRows.slice(0, SAMPLE_ROW_COUNT).map(row => row[index]),
+    }));
+
+    const detectedRoles = detectColumnRoles(columnInputs);
+    const effectiveRoles = dto.roles ?? detectedRoles;
+
+    const columns: SheetTransactionColumnPreview[] = columnInputs.map((column, index) => ({
+      index,
+      a1: numberToColumnLetters(index + 1),
+      title: column.title,
+      suggestedRole: detectedRoles[index] ?? 'ignore',
+      samples: column.samples.map(sample =>
+        sample === null || sample === undefined ? '' : String(sample),
+      ),
+    }));
+
+    const mapping: SheetMapping = {
+      roles: effectiveRoles,
+      defaultCurrency: dto.defaultCurrency,
+      skipRowNumbers: dto.skipRowNumbers,
+      invertSign: dto.invertSign,
+    };
+
+    const mapped = mapSheetRows(dataRows, mapping);
+
+    const fileHash = createHash('sha256')
+      .update(loaded.spreadsheetId + loaded.worksheetName + loaded.effectiveRange)
+      .update(JSON.stringify(loaded.values))
+      .digest('hex');
+
+    return { loaded, columns, mapping, mapped, fileHash };
+  }
+
+  /** `ok` rows + a parallel index back into `rows` for each transaction, in the same order. */
+  private buildOkTransactions(rows: MappedSheetRow[]): {
+    transactions: ParsedTransaction[];
+    rowIndexes: number[];
+  } {
+    const transactions: ParsedTransaction[] = [];
+    const rowIndexes: number[] = [];
+    rows.forEach((row, index) => {
+      if (row.status === 'ok' && row.transaction) {
+        transactions.push(row.transaction);
+        rowIndexes.push(index);
+      }
+    });
+    return { transactions, rowIndexes };
+  }
+
+  async preview(
+    workspaceId: string,
+    userId: string,
+    dto: SheetTransactionPreviewInput,
+  ): Promise<SheetTransactionPreviewResult> {
+    const { columns, mapping, mapped, fileHash } = await this.loadAndMapSheet(dto, workspaceId);
+
+    const session = await this.importSessionService.createSession(
+      workspaceId,
+      userId,
+      null,
+      ImportSessionMode.PREVIEW,
+      fileHash,
+      dto.name ?? 'Google Sheet import',
+      0,
+    );
+
+    const { transactions: okTransactions, rowIndexes } = this.buildOkTransactions(mapped.rows);
+    const processResult = await this.importSessionService.processImport(
+      session.id,
+      okTransactions,
+      ImportSessionMode.PREVIEW,
+    );
+
+    const rows = await this.mergeSessionClassifications(session.id, mapped.rows, rowIndexes);
+
+    const summary = this.buildPreviewSummary(mapped, okTransactions, processResult, mapping);
+
+    return {
+      sessionId: session.id,
+      suggestedMapping: mapping,
+      columns,
+      rows: rows.slice(0, PREVIEW_ROW_LIMIT),
+      summary,
+    };
+  }
+
+  /** Fetches the session's per-index preview classifications and merges them onto ok rows. */
+  private async mergeSessionClassifications(
+    sessionId: string,
+    rows: MappedSheetRow[],
+    rowIndexes: number[],
+  ): Promise<SheetTransactionPreviewRow[]> {
+    const session = await this.importSessionService.getSession(sessionId);
+    const classifications = session.sessionMetadata?.previewData?.classifications ?? [];
+    const statusByOkIndex = new Map(classifications.map(c => [c.index, c.status]));
+
+    const merged: SheetTransactionPreviewRow[] = rows.map(row => ({ ...row }));
+    rowIndexes.forEach((rowIndex, okIndex) => {
+      const status = statusByOkIndex.get(okIndex);
+      if (status && status !== 'skipped') {
+        merged[rowIndex].sessionStatus = status;
+      }
+    });
+    return merged;
+  }
+
+  private buildPreviewSummary(
+    mapped: LoadedAndMappedSheet['mapped'],
+    okTransactions: ParsedTransaction[],
+    processResult: Awaited<ReturnType<ImportSessionService['processImport']>>,
+    mapping: SheetMapping,
+  ): SheetTransactionPreviewResult['summary'] {
+    const total = mapped.summary.ok + mapped.summary.invalid + mapped.summary.skipped;
+    const dateRange = this.computeDateRange(okTransactions);
+    const totals = this.computeTotals(okTransactions, mapping.defaultCurrency);
+
+    return {
+      total,
+      ok: mapped.summary.ok,
+      invalid: mapped.summary.invalid,
+      skipped: mapped.summary.skipped,
+      newCount: processResult.summary.newCount,
+      duplicateCount: processResult.summary.matchedCount + processResult.summary.conflictedCount,
+      warnings: processResult.summary.warnings,
+      dateRange,
+      totals,
+    };
+  }
+
+  private computeDateRange(transactions: ParsedTransaction[]): { from: string; to: string } | null {
+    if (transactions.length === 0) {
+      return null;
+    }
+    const times = transactions.map(t => t.transactionDate.getTime());
+    return {
+      from: new Date(Math.min(...times)).toISOString().slice(0, 10),
+      to: new Date(Math.max(...times)).toISOString().slice(0, 10),
+    };
+  }
+
+  private computeTotals(
+    transactions: ParsedTransaction[],
+    currency: string,
+  ): { debit: number; credit: number; currency: string } {
+    let debit = 0;
+    let credit = 0;
+    for (const t of transactions) {
+      debit += t.debit ?? 0;
+      credit += t.credit ?? 0;
+    }
+    return { debit, credit, currency };
+  }
+
+  /**
+   * Thin: builds a job payload and enqueues it. The actual import work
+   * happens in `runCommit()`, invoked later by the queued job's processor.
+   */
+  async commit(
+    workspaceId: string,
+    userId: string,
+    dto: SheetTransactionCommitInput,
+  ): Promise<{ jobId: string }> {
+    const job = await this.customTableImportJobsService.createSheetTransactionsJob(userId, {
+      ...dto,
+      workspaceId,
+    });
+    return { jobId: job.id };
+  }
+
+  async runCommit(
+    workspaceId: string,
+    userId: string,
+    dto: SheetTransactionCommitInput,
+  ): Promise<SheetTransactionCommitResult> {
+    const { loaded, mapping, mapped, fileHash } = await this.loadAndMapSheet(dto, workspaceId);
+    const { transactions: okTransactions, rowIndexes } = this.buildOkTransactions(mapped.rows);
+
+    if (okTransactions.length === 0) {
+      throw new BadRequestException('Нет строк для импорта');
+    }
+
+    const walletCurrency = await this.resolveWalletCurrency(workspaceId, dto);
+    const categoryResolution = await this.resolveRowCategories(
+      workspaceId,
+      userId,
+      mapped.rows,
+      rowIndexes,
+      mapping,
+      dto.categoryCreateMissing ?? false,
+    );
+    const fxResult = await this.sheetCurrencyService.convertRows(mapped.rows, walletCurrency);
+
+    const { statement, processResult } = await this.commitInTransaction(
+      workspaceId,
+      userId,
+      dto,
+      loaded,
+      okTransactions,
+      fileHash,
+      walletCurrency,
+    );
+
+    await this.applyPostCommitCategorization(
+      workspaceId,
+      userId,
+      statement,
+      okTransactions,
+      rowIndexes,
+      categoryResolution,
+    );
+
+    const skipped =
+      mapped.summary.invalid + mapped.summary.skipped + processResult.summary.skippedCount;
+    const duplicates = processResult.summary.matchedCount + processResult.summary.conflictedCount;
+    const warnings = [...processResult.summary.warnings, ...fxResult.warnings];
+
+    return {
+      statementId: statement.id,
+      imported: processResult.summary.newCount,
+      skipped,
+      duplicates,
+      warnings,
+    };
+  }
+
+  /** Resolves the target currency for FX conversion: the named wallet's currency, or the default. */
+  private async resolveWalletCurrency(
+    workspaceId: string,
+    dto: SheetTransactionCommitInput,
+  ): Promise<string> {
+    if (!dto.walletName?.trim()) {
+      return dto.defaultCurrency;
+    }
+
+    const { resolved } = await this.sheetReferenceResolver.resolveWallets({
+      workspaceId,
+      names: [dto.walletName],
+    });
+    const walletId = resolved.get(dto.walletName.trim().toLowerCase());
+    if (!walletId) {
+      return dto.defaultCurrency;
+    }
+
+    const wallet = await this.walletRepository.findOne({ where: { id: walletId, workspaceId } });
+    return wallet?.currency ?? dto.defaultCurrency;
+  }
+
+  /**
+   * Resolves category names from the sheet's `category` column (if mapped) to
+   * category ids, keyed by row index. `ParsedTransaction` carries no category
+   * field, so this can't be threaded into `processImport` — it's applied as
+   * a follow-up update after commit, in `applyPostCommitCategorization`.
+   */
+  private async resolveRowCategories(
+    workspaceId: string,
+    userId: string,
+    rows: MappedSheetRow[],
+    rowIndexes: number[],
+    mapping: SheetMapping,
+    createMissing: boolean,
+  ): Promise<Map<number, string>> {
+    const resolvedByRowIndex = new Map<number, string>();
+    const categoryColumnIndex = mapping.roles.indexOf('category');
+    if (categoryColumnIndex < 0) {
+      return resolvedByRowIndex;
+    }
+
+    const namesByRowIndex = new Map<number, { name: string; type: CategoryType }>();
+    for (const rowIndex of rowIndexes) {
+      const row = rows[rowIndex];
+      const rawName = row.raw[categoryColumnIndex];
+      if (!rawName?.trim()) {
+        continue;
+      }
+      const type = (row.transaction?.credit ?? 0) > 0 ? CategoryType.INCOME : CategoryType.EXPENSE;
+      namesByRowIndex.set(rowIndex, { name: rawName.trim(), type });
+    }
+
+    if (namesByRowIndex.size === 0) {
+      return resolvedByRowIndex;
+    }
+
+    const resolved = await this.sheetReferenceResolver.resolveCategories({
+      workspaceId,
+      userId,
+      names: Array.from(namesByRowIndex.values()),
+      createMissing,
+    });
+
+    for (const [rowIndex, { name, type }] of namesByRowIndex) {
+      const key = `${type}:${name.trim().toLowerCase()}`;
+      const categoryId = resolved.get(key);
+      if (categoryId) {
+        resolvedByRowIndex.set(rowIndex, categoryId);
+      }
+    }
+
+    return resolvedByRowIndex;
+  }
+
+  /**
+   * Creates the synthetic Statement and runs the import session inside one
+   * transaction, so a failure in `processImport` rolls back the statement
+   * too (no orphan statement left behind).
+   */
+  private async commitInTransaction(
+    workspaceId: string,
+    userId: string,
+    dto: SheetTransactionCommitInput,
+    loaded: LoadedSheetSource,
+    okTransactions: ParsedTransaction[],
+    fileHash: string,
+    currency: string,
+  ): Promise<{
+    statement: Statement;
+    processResult: Awaited<ReturnType<ImportSessionService['processImport']>>;
+  }> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const dateRange = this.computeDateRange(okTransactions);
+      const statement = queryRunner.manager.create(Statement, {
+        userId,
+        workspaceId,
+        googleSheetId: dto.googleSheetId ?? null,
+        fileName: `${dto.name} · ${loaded.worksheetName}`,
+        filePath: dto.sourceUrl ?? `gsheet://${loaded.spreadsheetId}/${loaded.worksheetName}`,
+        fileType: FileType.XLSX,
+        fileSize: 0,
+        fileHash,
+        bankName: BankName.OTHER,
+        accountNumber: null,
+        statementDateFrom: dateRange ? new Date(dateRange.from) : null,
+        statementDateTo: dateRange ? new Date(dateRange.to) : null,
+        status: StatementStatus.COMPLETED,
+        currency,
+      });
+      const savedStatement = await queryRunner.manager.save(statement);
+
+      const session = await this.importSessionService.createSession(
+        workspaceId,
+        userId,
+        savedStatement.id,
+        ImportSessionMode.COMMIT,
+        fileHash,
+        savedStatement.fileName,
+        0,
+      );
+
+      const processResult = await this.importSessionService.processImport(
+        session.id,
+        okTransactions,
+        ImportSessionMode.COMMIT,
+      );
+
+      await queryRunner.commitTransaction();
+      return { statement: savedStatement, processResult };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /** Same deterministic fingerprint `ImportSessionService` computed at insert time. */
+  private computeFingerprint(
+    workspaceId: string,
+    transaction: ParsedTransaction,
+    accountNumber: string,
+  ): string {
+    return this.fingerprintService.generateFingerprint(
+      {
+        ...transaction,
+        workspaceId,
+        amount: transaction.debit || transaction.credit || null,
+        currency: transaction.currency || 'KZT',
+      },
+      accountNumber,
+    );
+  }
+
+  /**
+   * Applies resolved sheet categories, then AI-classifies the remainder,
+   * matching persisted transactions to original rows by fingerprint. Runs
+   * after the commit transaction — enrichment is not critical-path for the
+   * ledger write itself.
+   */
+  private async applyPostCommitCategorization(
+    workspaceId: string,
+    userId: string,
+    statement: Statement,
+    okTransactions: ParsedTransaction[],
+    rowIndexes: number[],
+    categoryByRowIndex: Map<number, string>,
+  ): Promise<void> {
+    const accountNumber = statement.accountNumber || '';
+    const persisted = await this.transactionRepository.find({
+      where: { statementId: statement.id, workspaceId },
+    });
+    const persistedByFingerprint = new Map(persisted.map(t => [t.fingerprint, t]));
+
+    const needsClassification = await this.applyResolvedSheetCategories(
+      workspaceId,
+      accountNumber,
+      okTransactions,
+      rowIndexes,
+      categoryByRowIndex,
+      persistedByFingerprint,
+    );
+
+    if (needsClassification.length === 0) {
+      return;
+    }
+
+    await this.classifyAndApplyRemaining(
+      workspaceId,
+      userId,
+      accountNumber,
+      okTransactions,
+      rowIndexes,
+      needsClassification,
+      persistedByFingerprint,
+    );
+  }
+
+  /** Applies sheet-resolved categories; returns the AI-classification batch input for the rest. */
+  private async applyResolvedSheetCategories(
+    workspaceId: string,
+    accountNumber: string,
+    okTransactions: ParsedTransaction[],
+    rowIndexes: number[],
+    categoryByRowIndex: Map<number, string>,
+    persistedByFingerprint: Map<string | null, Transaction>,
+  ): Promise<
+    Array<{
+      index: number;
+      counterpartyName: string;
+      paymentPurpose: string;
+      transactionType: TransactionType;
+    }>
+  > {
+    const needsClassification: Array<{
+      index: number;
+      counterpartyName: string;
+      paymentPurpose: string;
+      transactionType: TransactionType;
+    }> = [];
+
+    for (let i = 0; i < okTransactions.length; i++) {
+      const transaction = okTransactions[i];
+      const rowIndex = rowIndexes[i];
+      const fingerprint = this.computeFingerprint(workspaceId, transaction, accountNumber);
+      const persistedTransaction = persistedByFingerprint.get(fingerprint);
+      if (!persistedTransaction) {
+        continue;
+      }
+
+      const resolvedCategoryId = categoryByRowIndex.get(rowIndex);
+      if (resolvedCategoryId) {
+        await this.transactionRepository.update(
+          { id: persistedTransaction.id },
+          { categoryId: resolvedCategoryId },
+        );
+        continue;
+      }
+
+      needsClassification.push({
+        index: rowIndex,
+        counterpartyName: transaction.counterpartyName,
+        paymentPurpose: transaction.paymentPurpose,
+        transactionType: buildBatchClassificationType(transaction),
+      });
+    }
+
+    return needsClassification;
+  }
+
+  /** Runs AI classification for the rows the sheet didn't resolve, and applies the results. */
+  private async classifyAndApplyRemaining(
+    workspaceId: string,
+    userId: string,
+    accountNumber: string,
+    okTransactions: ParsedTransaction[],
+    rowIndexes: number[],
+    needsClassification: Array<{
+      index: number;
+      counterpartyName: string;
+      paymentPurpose: string;
+      transactionType: TransactionType;
+    }>,
+    persistedByFingerprint: Map<string | null, Transaction>,
+  ): Promise<void> {
+    const aiResults = await this.classificationService.classifyTransactionsBatch(
+      needsClassification,
+      workspaceId,
+      userId,
+    );
+
+    for (let i = 0; i < okTransactions.length; i++) {
+      const rowIndex = rowIndexes[i];
+      const aiResult = aiResults.get(rowIndex);
+      if (!aiResult) {
+        continue;
+      }
+      const transaction = okTransactions[i];
+      const fingerprint = this.computeFingerprint(workspaceId, transaction, accountNumber);
+      const persistedTransaction = persistedByFingerprint.get(fingerprint);
+      if (!persistedTransaction) {
+        continue;
+      }
+      await this.transactionRepository.update(
+        { id: persistedTransaction.id },
+        { categoryId: aiResult.categoryId },
+      );
+    }
+  }
+}
