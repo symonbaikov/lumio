@@ -76,9 +76,11 @@ export interface TransactionPreviewTableContent {
   filterLabel: { value: string };
   filterOptions: { all: ReactNode; issues: ReactNode; duplicates: ReactNode };
   statusChips: { new: ReactNode; duplicate: ReactNode; error: ReactNode; skipped: ReactNode };
-  issueLabels: Record<SheetRowIssue, ReactNode>;
+  // Joined via .join(', ') and interpolated into a template literal below, so
+  // (like `filterLabel`) these need `.value` rather than the raw intlayer node.
+  issueLabels: Record<SheetRowIssue, { value: string }>;
   sessionFailedLabel: ReactNode;
-  existingTransactionPrefix: ReactNode;
+  existingTransactionPrefix: { value: string };
   columnHeaders: { row: ReactNode; details: ReactNode; status: ReactNode };
   noRowsForFilter: ReactNode;
   /** Template with `{skipped}`/`{importing}` placeholders, e.g. "{skipped} rows will be skipped, the remaining {importing} will be imported". */
@@ -154,12 +156,12 @@ export function TransactionPreviewTable({ rows, summary, t }: TransactionPreview
     const displayStatus = getDisplayStatus(row);
     if (displayStatus === 'error') {
       if (row.status === 'invalid' && row.issues.length > 0) {
-        return row.issues.map(issue => t.issueLabels[issue]).join(', ');
+        return row.issues.map(issue => t.issueLabels[issue].value).join(', ');
       }
       return t.sessionFailedLabel;
     }
     if (displayStatus === 'duplicate' && row.existingTransactionId) {
-      return `${t.existingTransactionPrefix} ${row.existingTransactionId}`;
+      return `${t.existingTransactionPrefix.value} ${row.existingTransactionId}`;
     }
     return null;
   };

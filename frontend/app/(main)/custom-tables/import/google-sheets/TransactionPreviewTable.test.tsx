@@ -18,16 +18,20 @@ const t: TransactionPreviewTableContent = {
   filterLabel: { value: 'Filter' },
   filterOptions: { all: 'All', issues: 'Issues only', duplicates: 'Duplicates only' },
   statusChips: { new: 'new', duplicate: 'duplicate', error: 'error', skipped: 'skipped' },
+  // Real intlayer leaves are `{ value: string }`, not plain strings -- mocking them
+  // as plain strings would let `.join(', ')`/template-literal interpolation bugs
+  // (accidentally using the raw node instead of `.value`) pass here while actually
+  // rendering "[object Object]" live. See TransactionPreviewTable.tsx's own comment.
   issueLabels: {
-    invalid_date: 'Invalid date',
-    invalid_amount: 'Invalid amount',
-    zero_amount: 'Zero amount',
-    missing_required: 'Missing required field',
-    duplicate_in_file: 'Duplicate within file',
-    unknown_currency: 'Unknown currency',
+    invalid_date: { value: 'Invalid date' },
+    invalid_amount: { value: 'Invalid amount' },
+    zero_amount: { value: 'Zero amount' },
+    missing_required: { value: 'Missing required field' },
+    duplicate_in_file: { value: 'Duplicate within file' },
+    unknown_currency: { value: 'Unknown currency' },
   },
   sessionFailedLabel: 'Failed to process row',
-  existingTransactionPrefix: 'Existing transaction:',
+  existingTransactionPrefix: { value: 'Existing transaction:' },
   columnHeaders: { row: 'Row', details: 'Details', status: 'Status' },
   noRowsForFilter: 'No rows match this filter',
   summaryTemplate: {
