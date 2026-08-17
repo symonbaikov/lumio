@@ -75,6 +75,31 @@ describe('mapSheetRows', () => {
     expect(rows[0]).toMatchObject({ status: 'invalid', issues: ['zero_amount'] });
   });
 
+  it('flags zero_amount when both debit and credit columns are unparseable garbage text', () => {
+    // Consistent with the "both empty" case: unparseable debit/credit text is
+    // treated the same as "no genuine amount present" rather than as
+    // rejection-worthy garbage, so this also resolves to zero_amount.
+    const m = { roles: ['date', 'debit', 'credit'] as SheetColumnRole[], defaultCurrency: 'KZT' };
+    const { rows } = mapSheetRows([['01.02.2024', 'abc', 'xyz']], m);
+    expect(rows[0]).toMatchObject({ status: 'invalid', issues: ['zero_amount'] });
+  });
+
+  it('inverts the sign interpretation of a bare amount column when invertSign is true', () => {
+    const m = { ...mapping, invertSign: true };
+    const { rows } = mapSheetRows(
+      [['01.02.2024', 'Магнит', '100'], ['02.02.2024', 'Возврат', '-50']],
+      m,
+    );
+    expect(rows[0].transaction).toMatchObject({ debit: 100, credit: undefined });
+    expect(rows[1].transaction).toMatchObject({ credit: 50, debit: undefined });
+  });
+
+  it('defaults paymentPurpose and counterpartyName when neither description nor counterparty roles are mapped', () => {
+    const m = { roles: ['date', 'amount'] as SheetColumnRole[], defaultCurrency: 'KZT' };
+    const { rows } = mapSheetRows([['01.02.2024', '-100']], m);
+    expect(rows[0].transaction).toMatchObject({ paymentPurpose: '', counterpartyName: '—' });
+  });
+
   it('flags unknown_currency and falls back to defaultCurrency for a non-ISO code', () => {
     const m = {
       roles: ['date', 'description', 'amount', 'currency'] as SheetColumnRole[],
