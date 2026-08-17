@@ -344,5 +344,69 @@ describe('SheetTransactionImportService', () => {
         { categoryId: 'cat-groceries' },
       );
     });
+
+    it('does not misapply a category across two rows that collide on fingerprint', async () => {
+      // TransactionFingerprintService normalizes counterparty case-insensitively, but
+      // mapSheetRows' in-file dedup key is case-sensitive on counterpartyName -- so two
+      // rows differing only by counterparty casing both survive as distinct 'ok' rows,
+      // yet collide on fingerprint once persisted. Realistic scenario: inconsistent
+      // casing for the same merchant across two same-day, same-amount sheet rows.
+      const collidingValues = [
+        ['Date', 'Counterparty', 'Amount', 'Category'],
+        ['2026-01-01', 'Магнит', '-450', 'Groceries'],
+        ['2026-01-01', 'МАГНИТ', '-450', 'Transport'],
+      ];
+      sheetSourceLoader.load = jest.fn(async () => buildLoadedSheet({ values: collidingValues }));
+      fingerprintService.generateFingerprint = jest.fn(
+        (tx: any) => `${tx.counterpartyName.toLowerCase()}-${tx.transactionDate.getTime()}`,
+      );
+      sheetReferenceResolver.resolveCategories = jest.fn(
+        async () =>
+          new Map([
+            ['expense:groceries', 'cat-groceries'],
+            ['expense:transport', 'cat-transport'],
+          ]),
+      );
+      // Both persisted rows genuinely share the same fingerprint in the DB too (same
+      // algorithm, same collision), which is exactly what makes them unattributable.
+      transactionRepository.find = jest.fn(async () => [
+        { id: 'tx-1', fingerprint: 'магнит-1767225600000', categoryId: null },
+        { id: 'tx-2', fingerprint: 'магнит-1767225600000', categoryId: null },
+      ]);
+
+      await service.runCommit(workspaceId, userId, {
+        ...commitDto,
+        roles: ['date', 'counterparty', 'amount', 'category'],
+      });
+
+      expect(transactionRepository.update).not.toHaveBeenCalledWith(
+        { id: 'tx-1' },
+        expect.objectContaining({ categoryId: expect.anything() }),
+      );
+      expect(transactionRepository.update).not.toHaveBeenCalledWith(
+        { id: 'tx-2' },
+        expect.objectContaining({ categoryId: expect.anything() }),
+      );
+      // Queuing them for AI classification and applying results by fingerprint later
+      // would reintroduce the exact same ambiguity, so they're excluded up front.
+      expect(classificationService.classifyTransactionsBatch).not.toHaveBeenCalled();
+    });
+
+    it('isolates a post-commit classification failure: runCommit still resolves with a warning, no compensating rollback', async () => {
+      transactionRepository.find = jest.fn(async () => [
+        { id: 'tx-1', fingerprint: 'Groceries-1767225600000', categoryId: null },
+        { id: 'tx-2', fingerprint: 'Salary-1767312000000', categoryId: null },
+      ]);
+      classificationService.classifyTransactionsBatch = jest.fn(async () => {
+        throw new Error('AI outage');
+      });
+
+      const result = await service.runCommit(workspaceId, userId, commitDto);
+
+      expect(result.statementId).toBe('stmt-1');
+      expect(result.warnings).toContain('category_classification_failed');
+      expect(statementRepository.delete).not.toHaveBeenCalled();
+      expect(importSessionRepository.update).not.toHaveBeenCalled();
+    });
   });
 });

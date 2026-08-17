@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { CategoryType } from '../../../entities/category.entity';
@@ -114,6 +114,8 @@ const buildBatchClassificationType = (transaction: ParsedTransaction): Transacti
  */
 @Injectable()
 export class SheetTransactionImportService {
+  private readonly logger = new Logger(SheetTransactionImportService.name);
+
   constructor(
     @InjectRepository(Transaction)
     private readonly transactionRepository: Repository<Transaction>,
@@ -364,7 +366,11 @@ export class SheetTransactionImportService {
       walletCurrency,
     );
 
-    await this.applyPostCommitCategorization(
+    // Statement + Transaction rows are already durably committed at this point
+    // (commitStatementAndSession resolved successfully above). Categorization is
+    // best-effort enrichment, not critical-path for the ledger write — a failure
+    // here must never fail the whole commit or trigger any compensating rollback.
+    const categorizationWarnings = await this.runPostCommitCategorization(
       workspaceId,
       userId,
       statement,
@@ -376,7 +382,11 @@ export class SheetTransactionImportService {
     const skipped =
       mapped.summary.invalid + mapped.summary.skipped + processResult.summary.skippedCount;
     const duplicates = processResult.summary.matchedCount + processResult.summary.conflictedCount;
-    const warnings = [...processResult.summary.warnings, ...fxResult.warnings];
+    const warnings = [
+      ...processResult.summary.warnings,
+      ...fxResult.warnings,
+      ...categorizationWarnings,
+    ];
 
     return {
       statementId: statement.id,
@@ -571,10 +581,66 @@ export class SheetTransactionImportService {
   }
 
   /**
+   * `applyPostCommitCategorization` (best-effort enrichment) can throw — a
+   * classifier outage or an unexpected shape from `classifyTransactionsBatch`
+   * must never fail an already-successful commit, and must never be allowed
+   * to reach `commitStatementAndSession`'s compensating-rollback path (that
+   * path is only for a failed `processImport`, not for enrichment run after
+   * the commit already succeeded). Caught here, logged, and surfaced as a
+   * warning instead of an exception.
+   */
+  private async runPostCommitCategorization(
+    workspaceId: string,
+    userId: string,
+    statement: Statement,
+    okTransactions: ParsedTransaction[],
+    rowIndexes: number[],
+    categoryByRowIndex: Map<number, string>,
+  ): Promise<string[]> {
+    try {
+      await this.applyPostCommitCategorization(
+        workspaceId,
+        userId,
+        statement,
+        okTransactions,
+        rowIndexes,
+        categoryByRowIndex,
+      );
+      return [];
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Post-commit categorization failed for statement ${statement.id}: ${message}`,
+      );
+      return ['category_classification_failed'];
+    }
+  }
+
+  /** Fingerprints shared by 2+ `okTransactions` — see `applyResolvedSheetCategories`. */
+  private findAmbiguousFingerprints(
+    workspaceId: string,
+    accountNumber: string,
+    transactions: ParsedTransaction[],
+  ): Set<string> {
+    const counts = new Map<string, number>();
+    for (const transaction of transactions) {
+      const fingerprint = this.computeFingerprint(workspaceId, transaction, accountNumber);
+      counts.set(fingerprint, (counts.get(fingerprint) ?? 0) + 1);
+    }
+    const ambiguous = new Set<string>();
+    for (const [fingerprint, count] of counts) {
+      if (count > 1) {
+        ambiguous.add(fingerprint);
+      }
+    }
+    return ambiguous;
+  }
+
+  /**
    * Applies resolved sheet categories, then AI-classifies the remainder,
    * matching persisted transactions to original rows by fingerprint. Runs
-   * after the commit transaction — enrichment is not critical-path for the
-   * ledger write itself.
+   * after the commit — enrichment is not critical-path for the ledger write
+   * itself (see `runPostCommitCategorization`, which isolates failures here).
    */
   private async applyPostCommitCategorization(
     workspaceId: string,
@@ -590,6 +656,19 @@ export class SheetTransactionImportService {
     });
     const persistedByFingerprint = new Map(persisted.map(t => [t.fingerprint, t]));
 
+    // TransactionFingerprintService hashes only (workspace, account, date, amount,
+    // currency, direction, counterparty) — no row/document identifier. Two distinct
+    // sheet rows that are content-identical (e.g. two separate same-day, same-amount
+    // purchases at the same merchant) collide on fingerprint, so the map above can't
+    // tell them apart. Applying a category by fingerprint match for those rows risks
+    // silently categorizing the WRONG persisted transaction — skip categorization for
+    // any row whose fingerprint is ambiguous entirely, rather than risk that.
+    const ambiguousFingerprints = this.findAmbiguousFingerprints(
+      workspaceId,
+      accountNumber,
+      okTransactions,
+    );
+
     const needsClassification = await this.applyResolvedSheetCategories(
       workspaceId,
       accountNumber,
@@ -597,6 +676,7 @@ export class SheetTransactionImportService {
       rowIndexes,
       categoryByRowIndex,
       persistedByFingerprint,
+      ambiguousFingerprints,
     );
 
     if (needsClassification.length === 0) {
@@ -622,6 +702,7 @@ export class SheetTransactionImportService {
     rowIndexes: number[],
     categoryByRowIndex: Map<number, string>,
     persistedByFingerprint: Map<string | null, Transaction>,
+    ambiguousFingerprints: Set<string>,
   ): Promise<
     Array<{
       index: number;
@@ -641,6 +722,13 @@ export class SheetTransactionImportService {
       const transaction = okTransactions[i];
       const rowIndex = rowIndexes[i];
       const fingerprint = this.computeFingerprint(workspaceId, transaction, accountNumber);
+
+      if (ambiguousFingerprints.has(fingerprint)) {
+        // Can't safely tell which persisted row this is among its fingerprint
+        // collision group — no category application (sheet-resolved or AI) for it.
+        continue;
+      }
+
       const persistedTransaction = persistedByFingerprint.get(fingerprint);
       if (!persistedTransaction) {
         continue;
