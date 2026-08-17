@@ -36,21 +36,43 @@ const HEADER_KEYWORDS: Record<SingleSlotRole, string[]> = {
   externalId: ['id', 'идентификатор', 'uuid', 'ref'],
 };
 
+/**
+ * A candidate's `pass` determines resolution priority: header keyword matches
+ * (`'header'`) always outrank content-inferred matches (`'content'`) for the
+ * same role — a column with an explicit keyword header is trusted over a
+ * column that merely "looks like" that role's data. `score` only breaks ties
+ * within the same pass; scores are never compared across passes, so it
+ * doesn't matter that Pass A scores (keyword length) and Pass B scores (match
+ * ratio / constant) live on different scales.
+ */
 interface RoleCandidate {
   role: SingleSlotRole;
+  pass: 'header' | 'content';
   score: number;
 }
 
-const normalizeHeader = (title: string): string => title.toLowerCase().replace(/\s+/g, '');
+const PASS_PRIORITY: Record<RoleCandidate['pass'], number> = { header: 1, content: 0 };
 
-/** Pass A: the best header-keyword match for a single column, if any. */
+const normalizeHeader = (title: string): string => title.toLowerCase();
+
+/** Splits a normalized header into word tokens so keywords match whole words only. */
+const tokenize = (normalized: string): string[] =>
+  normalized.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+
+/**
+ * Pass A: the best header-keyword match for a single column, if any. Keywords
+ * must match a whole token, not an arbitrary substring — otherwise short
+ * keywords like `in`, `out`, `id`, `cur`, `ref` would false-positive on
+ * unrelated words (e.g. "Recurring" contains "cur", "About Payment" contains
+ * "out").
+ */
 const matchHeaderRole = (title: string): RoleCandidate | null => {
-  const normalized = normalizeHeader(title);
+  const tokens = tokenize(normalizeHeader(title));
   let best: RoleCandidate | null = null;
   for (const role of SINGLE_SLOT_ROLES) {
     for (const keyword of HEADER_KEYWORDS[role]) {
-      if (normalized.includes(keyword) && (!best || keyword.length > best.score)) {
-        best = { role, score: keyword.length };
+      if (tokens.includes(keyword) && (!best || keyword.length > best.score)) {
+        best = { role, pass: 'header', score: keyword.length };
       }
     }
   }
@@ -59,6 +81,9 @@ const matchHeaderRole = (title: string): RoleCandidate | null => {
 
 const CONTENT_SAMPLE_THRESHOLD = 0.8;
 const MAX_CATEGORY_DISTINCT_VALUES = 20;
+// "short strings" per the spec: a category enumerates short labels (e.g. "Еда",
+// "Транспорт"), not long free-text notes that merely happen to repeat.
+const MAX_CATEGORY_VALUE_LENGTH = 50;
 
 /** Pass B: content-based inference for a column the header pass couldn't score. */
 const inferContentRole = (samples: unknown[]): RoleCandidate | null => {
@@ -69,31 +94,38 @@ const inferContentRole = (samples: unknown[]): RoleCandidate | null => {
 
   const dateRatio = nonEmpty.filter(s => parseSheetDate(s) !== null).length / nonEmpty.length;
   if (dateRatio >= CONTENT_SAMPLE_THRESHOLD) {
-    return { role: 'date', score: dateRatio };
+    return { role: 'date', pass: 'content', score: dateRatio };
   }
 
   const amountRatio = nonEmpty.filter(s => parseSheetAmount(s) !== null).length / nonEmpty.length;
   if (amountRatio >= CONTENT_SAMPLE_THRESHOLD) {
-    return { role: 'amount', score: amountRatio };
+    return { role: 'amount', pass: 'content', score: amountRatio };
   }
 
-  // A category column enumerates a small set of repeated values; if every
-  // sample is distinct there's no repetition evidence, so it reads as free
-  // text (`description`) even when the raw distinct count is small.
+  // A category column enumerates a small set of short, repeated values; if
+  // every sample is distinct there's no repetition evidence, and if values
+  // run long they read as free text, so both cases fall through to
+  // `description` even when the raw distinct count is small.
   const distinctCount = new Set(nonEmpty).size;
-  if (distinctCount <= MAX_CATEGORY_DISTINCT_VALUES && distinctCount < nonEmpty.length) {
-    return { role: 'category', score: 1 };
+  const allShort = nonEmpty.every(s => s.length <= MAX_CATEGORY_VALUE_LENGTH);
+  if (
+    distinctCount <= MAX_CATEGORY_DISTINCT_VALUES &&
+    distinctCount < nonEmpty.length &&
+    allShort
+  ) {
+    return { role: 'category', pass: 'content', score: 1 };
   }
 
-  return { role: 'description', score: 1 };
+  return { role: 'description', pass: 'content', score: 1 };
 };
 
 /**
  * Detects the semantic role of each column of a sheet, using header keywords
  * (ru/en/kk) first and falling back to content inference for columns whose
  * header didn't match. Every role except `ignore` is single-slot: at most one
- * column in the sheet can win it, with the highest score taking it and any
- * other candidates for that role falling back to `ignore`.
+ * column in the sheet can win it. Resolution ranks candidates by pass first
+ * (header beats content), then by score as a tiebreaker; any other candidate
+ * for that role falls back to `ignore`.
  */
 export const detectColumnRoles = (columns: SheetColumnInput[]): SheetColumnRole[] => {
   const candidatesByColumn: (RoleCandidate | null)[] = columns.map(column => {
@@ -105,11 +137,19 @@ export const detectColumnRoles = (columns: SheetColumnInput[]): SheetColumnRole[
 
   for (const role of SINGLE_SLOT_ROLES) {
     let winnerIndex = -1;
-    let winnerScore = Number.NEGATIVE_INFINITY;
+    let winner: RoleCandidate | null = null;
     candidatesByColumn.forEach((candidate, index) => {
-      if (candidate?.role === role && candidate.score > winnerScore) {
+      if (candidate?.role !== role) {
+        return;
+      }
+      const isBetter =
+        !winner ||
+        PASS_PRIORITY[candidate.pass] > PASS_PRIORITY[winner.pass] ||
+        (PASS_PRIORITY[candidate.pass] === PASS_PRIORITY[winner.pass] &&
+          candidate.score > winner.score);
+      if (isBetter) {
+        winner = candidate;
         winnerIndex = index;
-        winnerScore = candidate.score;
       }
     });
     if (winnerIndex >= 0) {
