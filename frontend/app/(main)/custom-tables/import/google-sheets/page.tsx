@@ -16,6 +16,7 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast';
 import { useTheme } from 'next-themes';
 import { tokens } from '@/lib/theme-tokens';
+import { type SheetColumnRole, TransactionMappingCard } from './TransactionMappingCard';
 
 type ColumnType = 'text' | 'number' | 'date' | 'boolean' | 'select' | 'multi_select';
 type LayoutType = 'auto' | 'flat' | 'matrix';
@@ -56,6 +57,38 @@ interface PreviewResponse {
     values: Array<string | null>;
     styles?: Array<SheetCellStyle | null>;
   }>;
+}
+
+interface SheetTransactionPreviewColumn {
+  index: number;
+  a1: string;
+  title: string;
+  suggestedRole: SheetColumnRole;
+  samples: string[];
+}
+
+interface SheetTransactionPreviewSummary {
+  total: number;
+  ok: number;
+  invalid: number;
+  skipped: number;
+  newCount: number;
+  duplicateCount: number;
+  warnings: string[];
+  dateRange: { from: string; to: string } | null;
+  totals: { debit: number; credit: number; currency: string };
+}
+
+interface SheetTransactionPreviewResponse {
+  sessionId: string;
+  suggestedMapping: { roles: SheetColumnRole[]; defaultCurrency: string };
+  columns: SheetTransactionPreviewColumn[];
+  summary: SheetTransactionPreviewSummary;
+}
+
+interface WalletOption {
+  id: string;
+  name: string;
 }
 
 type SheetTextFormat = {
@@ -126,6 +159,16 @@ export default function GoogleSheetsImportPage() {
   const [importTarget, setImportTarget] = useState<ImportTarget>('table');
   const importTargetTouchedRef = useRef(false);
 
+  const [wallets, setWallets] = useState<WalletOption[]>([]);
+  const [transactionRoles, setTransactionRoles] = useState<SheetColumnRole[]>([]);
+  const [transactionDefaultCurrency, setTransactionDefaultCurrency] = useState('KZT');
+  const [createMissingCategories, setCreateMissingCategories] = useState(false);
+  const [walletName, setWalletName] = useState('');
+  const [transactionPreview, setTransactionPreview] = useState<SheetTransactionPreviewResponse | null>(null);
+  const [transactionPreviewLoading, setTransactionPreviewLoading] = useState(false);
+  const rolesInitializedRef = useRef(false);
+  const transactionPreviewTimerRef = useRef<number | null>(null);
+
   const [tableName, setTableName] = useState('');
   const [tableDescription, setTableDescription] = useState('');
   const [importData, setImportData] = useState(true);
@@ -170,12 +213,33 @@ export default function GoogleSheetsImportPage() {
     }
   };
 
+  const loadWallets = async () => {
+    try {
+      const response = await apiClient.get('/wallets');
+      const payload = response.data?.data || response.data || [];
+      setWallets(Array.isArray(payload) ? payload.map((w: WalletOption) => ({ id: w.id, name: w.name })) : []);
+    } catch (error) {
+      console.error('Failed to load wallets:', error);
+    }
+  };
+
   useEffect(() => {
     if (!authLoading && user) {
       loadConnections();
       loadCategories();
+      loadWallets();
     }
   }, [authLoading, user]);
+
+  const resetTransactionPreview = () => {
+    setTransactionPreview(null);
+    setTransactionRoles([]);
+    rolesInitializedRef.current = false;
+    if (transactionPreviewTimerRef.current) {
+      window.clearTimeout(transactionPreviewTimerRef.current);
+      transactionPreviewTimerRef.current = null;
+    }
+  };
 
   useEffect(() => {
     if (!selectedConnection) return;
@@ -254,6 +318,72 @@ export default function GoogleSheetsImportPage() {
       setLoadingPreview(false);
     }
   };
+
+  const runTransactionPreview = async (overrideRoles?: SheetColumnRole[]) => {
+    if (!hasSourceUrl && (!googleSheetId || selectedConnection?.oauthConnected === false)) {
+      return;
+    }
+    setTransactionPreviewLoading(true);
+    try {
+      const response = await apiClient.post('/import/google-sheets/transactions/preview', {
+        sourceUrl: hasSourceUrl ? sourceUrl.trim() : undefined,
+        googleSheetId: hasSourceUrl ? undefined : googleSheetId,
+        worksheetName: worksheetName.trim() || undefined,
+        range: range.trim() || undefined,
+        headerRowIndex,
+        roles: overrideRoles,
+        defaultCurrency: transactionDefaultCurrency,
+      });
+      const data: SheetTransactionPreviewResponse = response.data?.data || response.data;
+      setTransactionPreview(data);
+      if (!overrideRoles) {
+        setTransactionRoles(data.suggestedMapping.roles);
+      }
+    } catch (error: unknown) {
+      console.error('Transaction preview failed:', error);
+      toast.error(getApiErrorMessage(error, t.toasts.previewFailed.value));
+    } finally {
+      setTransactionPreviewLoading(false);
+    }
+  };
+
+  // Seeds the transactions mapping card with real backend-detected columns/roles
+  // the first time the user lands on the 'transactions' target (either by explicit
+  // toggle or via the heuristic default below), independent of the table-import
+  // preview call above (different endpoint, different response shape).
+  useEffect(() => {
+    if (importTarget !== 'transactions') return;
+    if (transactionPreview || transactionPreviewLoading) return;
+    if (!canPreview) return;
+    void runTransactionPreview();
+  }, [importTarget, canPreview, transactionPreview, transactionPreviewLoading]);
+
+  // Live re-preview: a role change re-posts /preview (debounced 400ms) so the
+  // validation counters stay in sync. Skips the run caused by the initial seed
+  // above (rolesInitializedRef), and cancels any pending call on a fast second
+  // change so only the latest roles are ever sent.
+  useEffect(() => {
+    if (importTarget !== 'transactions') return;
+    if (transactionRoles.length === 0) return;
+    if (!rolesInitializedRef.current) {
+      rolesInitializedRef.current = true;
+      return;
+    }
+    if (transactionPreviewTimerRef.current) {
+      window.clearTimeout(transactionPreviewTimerRef.current);
+    }
+    transactionPreviewTimerRef.current = window.setTimeout(() => {
+      transactionPreviewTimerRef.current = null;
+      void runTransactionPreview(transactionRoles);
+    }, 400);
+    return () => {
+      if (transactionPreviewTimerRef.current) {
+        window.clearTimeout(transactionPreviewTimerRef.current);
+        transactionPreviewTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactionRoles]);
 
   const handleCommit = async () => {
     if (!preview || !canCommit) return;
@@ -405,6 +535,7 @@ export default function GoogleSheetsImportPage() {
                   setSourceUrl(e.target.value);
                   setPreview(null);
                   setColumns([]);
+                  resetTransactionPreview();
                 }}
                 data-tour-id="gs-import-source-url"
                 style={inputStyle}
@@ -427,6 +558,7 @@ export default function GoogleSheetsImportPage() {
                     setColumns([]);
                     setWorksheetOptions([]);
                     setWorksheetName('');
+                    resetTransactionPreview();
                   }}
                   data-tour-id="gs-import-connection"
                   style={inputStyle}
@@ -694,11 +826,36 @@ export default function GoogleSheetsImportPage() {
                 )}
               </>
             ) : (
-              <Box
-                sx={{ border: `1px dashed ${c.ink150}`, bgcolor: c.ink50, p: 3, fontSize: 14, color: c.ink700 }}
-                data-tour-id="gs-import-transactions-placeholder"
-              >
-                {t.targetSelector.transactionsPlaceholder}
+              <Box data-tour-id="gs-import-transactions-mapping">
+                <TransactionMappingCard
+                  columns={transactionPreview?.columns ?? []}
+                  roles={transactionRoles}
+                  onRolesChange={setTransactionRoles}
+                  defaultCurrency={transactionDefaultCurrency}
+                  onDefaultCurrencyChange={setTransactionDefaultCurrency}
+                  createMissingCategories={createMissingCategories}
+                  onCreateMissingCategoriesChange={setCreateMissingCategories}
+                  wallets={wallets}
+                  walletName={walletName}
+                  onWalletNameChange={setWalletName}
+                  summary={
+                    transactionPreview
+                      ? {
+                          total: transactionPreview.summary.total,
+                          ok: transactionPreview.summary.ok,
+                          invalid: transactionPreview.summary.invalid,
+                          duplicateCount: transactionPreview.summary.duplicateCount,
+                        }
+                      : null
+                  }
+                  t={t.mapping}
+                />
+                {transactionPreviewLoading && (
+                  <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 1, fontSize: 12, color: c.ink500 }}>
+                    <Spinner className="h-4 w-4" />
+                    {t.source.previewButtonLoading}
+                  </Box>
+                )}
               </Box>
             )}
           </Box>

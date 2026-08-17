@@ -113,6 +113,30 @@ vi.mock('@/app/i18n', () => ({
       tableLabel: 'Таблица',
       transactionsPlaceholder: 'Transaction import: column mapping will appear here',
     },
+    mapping: {
+      title: 'Column mapping',
+      subtitle: 'Assign a role to each column',
+      emptyHint: 'Run a preview to see columns',
+      columnHeaders: { letter: 'Col', header: 'Header', samples: 'Samples', role: 'Role' },
+      roles: {
+        ignore: 'Ignore',
+        date: 'Date',
+        amount: 'Amount',
+        debit: 'Debit',
+        credit: 'Credit',
+        description: 'Description',
+        counterparty: 'Counterparty',
+        category: 'Category',
+        wallet: 'Wallet',
+        currency: 'Currency',
+        externalId: 'External id',
+      },
+      defaultCurrencyLabel: 'Default currency',
+      createMissingCategoriesLabel: 'Create missing categories',
+      walletLabel: 'Target wallet',
+      walletNone: 'None',
+      summary: { total: 'rows', ok: 'to import', duplicates: 'duplicates', errors: 'with errors' },
+    },
     toasts: {
       loadConnectionsFailed: { value: 'Failed to load connections' },
       oauthRequired: { value: 'OAuth required' },
@@ -141,6 +165,32 @@ const financialPreviewResponse = {
         { index: 2, a1: 'C', title: 'Note', suggestedType: 'text', include: true },
       ],
       sampleRows: [{ rowNumber: 2, values: ['2024-01-01', '10.5', 'coffee'] }],
+    },
+  },
+};
+
+const transactionsPreviewResponse = {
+  data: {
+    data: {
+      sessionId: 'session-1',
+      suggestedMapping: { roles: ['date', 'amount', 'ignore'], defaultCurrency: 'KZT' },
+      columns: [
+        { index: 0, a1: 'A', title: 'Date', suggestedRole: 'date', samples: ['2024-01-01'] },
+        { index: 1, a1: 'B', title: 'Amount', suggestedRole: 'amount', samples: ['10.5'] },
+        { index: 2, a1: 'C', title: 'Note', suggestedRole: 'ignore', samples: ['coffee'] },
+      ],
+      rows: [],
+      summary: {
+        total: 10,
+        ok: 8,
+        invalid: 1,
+        skipped: 1,
+        newCount: 6,
+        duplicateCount: 2,
+        warnings: [],
+        dateRange: null,
+        totals: { debit: 0, credit: 0, currency: 'KZT' },
+      },
     },
   },
 };
@@ -209,6 +259,9 @@ describe('GoogleSheetsImportPage target selector', () => {
       if (url === '/custom-tables/import/google-sheets/preview') {
         return Promise.resolve(financialPreviewResponse);
       }
+      if (url === '/import/google-sheets/transactions/preview') {
+        return Promise.resolve(transactionsPreviewResponse);
+      }
       return Promise.resolve({ data: { data: {} } });
     });
 
@@ -250,6 +303,9 @@ describe('GoogleSheetsImportPage target selector', () => {
       if (url === '/custom-tables/import/google-sheets/commit') {
         return Promise.resolve({ data: { data: { jobId: 'job-1' } } });
       }
+      if (url === '/import/google-sheets/transactions/preview') {
+        return Promise.resolve(transactionsPreviewResponse);
+      }
       return Promise.resolve({ data: { data: {} } });
     });
 
@@ -280,12 +336,75 @@ describe('GoogleSheetsImportPage target selector', () => {
 
     // No commit-equivalent surface is wired up for the transactions target yet (Task 12/13).
     expect(screen.queryByText('Start import')).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Transaction import: column mapping will appear here'),
-    ).toBeInTheDocument();
+
+    // Switching to 'transactions' seeds the mapping card via its own preview call
+    // (different endpoint/shape than the table-import preview above).
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledWith(
+        '/import/google-sheets/transactions/preview',
+        expect.objectContaining({ defaultCurrency: 'KZT' }),
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Column mapping')).toBeInTheDocument();
+    });
     expect(apiPost).not.toHaveBeenCalledWith(
       '/custom-tables/import/google-sheets/commit',
       expect.anything(),
+    );
+  });
+
+  it('debounces a role change into exactly one preview call, cancelling a superseded pending call', async () => {
+    apiPost.mockImplementation((url: string) => {
+      if (url === '/custom-tables/import/google-sheets/preview') {
+        return Promise.resolve(financialPreviewResponse);
+      }
+      if (url === '/import/google-sheets/transactions/preview') {
+        return Promise.resolve(transactionsPreviewResponse);
+      }
+      return Promise.resolve({ data: { data: {} } });
+    });
+
+    await renderPage();
+    fillSourceUrl();
+    await act(async () => {
+      fireEvent.click(screen.getByText('Run preview'));
+    });
+
+    // Financial preview defaults the target to 'transactions', which triggers the
+    // (undebounced) seed call for the mapping card.
+    await waitFor(() => {
+      expect(screen.getByText('Column mapping')).toBeInTheDocument();
+    });
+
+    apiPost.mockClear();
+
+    // Switch to fake timers only for the debounce window itself, so React's own
+    // internals (and the async work already settled above) aren't affected.
+    vi.useFakeTimers();
+    try {
+      const roleSelectA = screen.getByLabelText('Role A');
+      act(() => {
+        fireEvent.change(roleSelectA, { target: { value: 'amount' } });
+      });
+      // A second, fast change should cancel the first pending debounce timer.
+      act(() => {
+        fireEvent.change(roleSelectA, { target: { value: 'debit' } });
+      });
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const transactionsPreviewCalls = apiPost.mock.calls.filter(
+      call => call[0] === '/import/google-sheets/transactions/preview',
+    );
+    expect(transactionsPreviewCalls).toHaveLength(1);
+    expect(transactionsPreviewCalls[0][1]).toEqual(
+      expect.objectContaining({ roles: ['debit', 'ignore', 'ignore'] }),
     );
   });
 });
