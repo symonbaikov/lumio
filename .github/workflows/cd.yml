@@ -258,6 +258,11 @@ jobs:
       id-token: write
     environment:
       name: ${{ needs.build-and-publish.outputs.target_env == 'production' && 'production' || 'staging' }}
+    # The secrets context is not available in `if:`, so the Vault settings are
+    # surfaced as env vars the conditional can read.
+    env:
+      VAULT_URL: ${{ secrets.VAULT_URL }}
+      VAULT_JWT_ROLE: ${{ secrets.VAULT_JWT_ROLE }}
     steps:
       - name: Harden runner (audit egress)
         uses: step-security/harden-runner@v2
@@ -265,7 +270,7 @@ jobs:
           egress-policy: audit
 
       - name: Import smoke URL from Vault (OIDC, optional)
-        if: ${{ secrets.VAULT_URL != '' && secrets.VAULT_JWT_ROLE != '' }}
+        if: ${{ env.VAULT_URL != '' && env.VAULT_JWT_ROLE != '' }}
         uses: hashicorp/vault-action@v3.0.0
         with:
           url: ${{ secrets.VAULT_URL }}
