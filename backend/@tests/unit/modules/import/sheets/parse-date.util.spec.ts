@@ -44,4 +44,25 @@ describe('parseSheetDate', () => {
   ])('returns null for impossible date %p (no rollover)', input => {
     expect(parseSheetDate(input)).toBeNull();
   });
+
+  it.each([-1, 0, 100000, 100001])('returns null for out-of-range Excel serial %p', input => {
+    expect(parseSheetDate(input)).toBeNull();
+  });
+
+  it('parses month names case-insensitively', () => {
+    expect(parseSheetDate('15 March 2024')?.toISOString().slice(0, 10)).toBe('2024-03-15');
+    expect(parseSheetDate('15 МАРТА 2024')?.toISOString().slice(0, 10)).toBe('2024-03-15');
+  });
+
+  // There is deliberately no locale-guessing Date.parse fallback: it is
+  // implementation-defined and typically resolves non-ISO strings in the
+  // server's local timezone, which could silently shift the calendar day.
+  // Inputs that don't match one of the explicit formats must return null.
+  it.each([
+    'March 15, 2024',
+    '2024/03/15',
+    'March 15 2024', // no day-before-month order supported outside dd-first formats
+  ])('returns null for unsupported format %p (no timezone-dependent fallback)', input => {
+    expect(parseSheetDate(input)).toBeNull();
+  });
 });

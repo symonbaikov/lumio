@@ -10,6 +10,7 @@ const MONTHS: Record<string, number> = {
   mar: 3,
   march: 3,
   мар: 3,
+  март: 3,
   марта: 3,
   apr: 4,
   april: 4,
@@ -21,10 +22,12 @@ const MONTHS: Record<string, number> = {
   jun: 6,
   june: 6,
   июн: 6,
+  июнь: 6,
   июня: 6,
   jul: 7,
   july: 7,
   июл: 7,
+  июль: 7,
   июля: 7,
   aug: 8,
   august: 8,
@@ -34,6 +37,8 @@ const MONTHS: Record<string, number> = {
   sept: 9,
   september: 9,
   сен: 9,
+  сент: 9,
+  сентябрь: 9,
   сентября: 9,
   oct: 10,
   october: 10,
@@ -69,8 +74,11 @@ const buildUtcDate = (year: number, month: number, day: number): Date | null => 
  * Parses a spreadsheet cell into a UTC-midnight Date.
  * Accepts a `Date` instance unchanged, an Excel serial number (1900 epoch),
  * an ISO `yyyy-mm-dd`(`Thh:mm:ss`) string, a day-first `dd[./-]mm[./-]yyyy`
- * string, a `dd <ru|en month name> yyyy` string, and falls back to
- * `Date.parse`. Returns null when the cell holds no parseable date.
+ * string, or a `dd <ru|en month name> yyyy` string. There is deliberately no
+ * `Date.parse` fallback: it is implementation-defined and typically resolves
+ * non-ISO strings in the server's local timezone, which would silently
+ * violate the UTC-midnight contract for inputs near a day boundary. Returns
+ * null when the cell doesn't match one of the explicit formats above.
  */
 export const parseSheetDate = (raw: unknown): Date | null => {
   if (raw instanceof Date) {
@@ -117,9 +125,5 @@ export const parseSheetDate = (raw: unknown): Date | null => {
     return buildUtcDate(Number(y), month, Number(d));
   }
 
-  const parsed = Date.parse(s);
-  if (Number.isNaN(parsed)) {
-    return null;
-  }
-  return new Date(parsed);
+  return null;
 };
