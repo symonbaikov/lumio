@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiPost = vi.fn();
 const toastLoading = vi.fn();
@@ -26,8 +26,10 @@ describe('ExportDropdown', () => {
   const revokeObjectUrl = vi.fn();
   const originalCreateElement = document.createElement.bind(document);
   let anchorElement: HTMLAnchorElement | null = null;
-  let clickSpy: ReturnType<typeof vi.fn>;
-  let removeSpy: ReturnType<typeof vi.fn>;
+  // Typed explicitly: since vitest 4 a bare vi.fn() is Mock<Procedure | Constructable>,
+  // which no longer assigns to the () => void slots on HTMLAnchorElement below.
+  let clickSpy: Mock<() => void>;
+  let removeSpy: Mock<() => void>;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
