@@ -19,7 +19,7 @@
     "test:unit": "jest --config jest.unit.config.ts",
     "test:golden": "GOLDEN_ENABLED=1 jest --config jest.unit.config.ts src/modules/parsing/__tests__/parsing.golden.spec.ts",
     "test:parsing": "jest --config jest.unit.config.ts @tests/unit/test/parsing-regression.spec.ts",
-    "test:e2e": "jest --config jest.e2e.config.ts",
+    "test:e2e": "jest --config jest.e2e.config.ts --forceExit",
     "test:ci": "npm run test:unit -- --runInBand && npm run test:e2e",
     "test:watch": "jest --config jest.unit.config.ts --watch",
     "test:cov": "jest --config jest.unit.config.ts --coverage",

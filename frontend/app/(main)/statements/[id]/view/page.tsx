@@ -46,6 +46,8 @@ interface RawTransaction {
   category?: Transaction['category'];
   branch?: Transaction['branch'];
   wallet?: Transaction['wallet'];
+  splitGroupId?: string | null;
+  splitIndex?: number | null;
 }
 
 interface StatementViewResponse {
@@ -122,6 +124,8 @@ export default function ViewStatementPage({
         category: tx.category,
         branch: tx.branch,
         wallet: tx.wallet,
+        splitGroupId: tx.splitGroupId,
+        splitIndex: tx.splitIndex,
       }));
 
       setStatement(transformedStatement);

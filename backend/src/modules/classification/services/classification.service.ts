@@ -743,7 +743,7 @@ export class ClassificationService {
       .map(category => ({ id: category.id, name: category.name }));
   }
 
-  private async ensureCategory(
+  async ensureCategory(
     userId: string,
     categoryName: string,
     type: CategoryType = CategoryType.EXPENSE,

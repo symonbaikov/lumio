@@ -18,6 +18,7 @@ interface DetailsDrawerProps {
   onClose: () => void;
   onUpdateCategory?: (txId: string, categoryId: string) => Promise<void>;
   onMarkIgnored?: (txId: string) => Promise<void>;
+  onSplitDone?: () => void | Promise<void>;
 }
 
 /**
@@ -31,6 +32,7 @@ export default function DetailsDrawer({
   onClose,
   onUpdateCategory,
   onMarkIgnored,
+  onSplitDone,
 }: DetailsDrawerProps) {
   const t = useIntlayer('transactionsDrawer');
   const [activeTab, setActiveTab] = useState<'details' | 'history'>('details');
@@ -78,6 +80,7 @@ export default function DetailsDrawer({
             categories={categories}
             onUpdateCategory={onUpdateCategory}
             onMarkIgnored={onMarkIgnored}
+            onSplitDone={onSplitDone}
           />
         ) : (
           <TransactionHistoryTab

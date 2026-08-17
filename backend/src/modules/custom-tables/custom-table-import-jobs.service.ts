@@ -57,6 +57,23 @@ export class CustomTableImportJobsService {
     return this.jobRepository.save(job);
   }
 
+  async createSheetTransactionsJob(
+    userId: string,
+    payload: Record<string, unknown>,
+  ): Promise<CustomTableImportJob> {
+    const job = this.jobRepository.create({
+      userId,
+      type: CustomTableImportJobType.SHEET_TRANSACTIONS,
+      status: CustomTableImportJobStatus.PENDING,
+      progress: 0,
+      stage: 'queued',
+      payload,
+      result: null,
+      error: null,
+    });
+    return this.jobRepository.save(job);
+  }
+
   async getJobForUser(userId: string, jobId: string): Promise<CustomTableImportJob> {
     const job = await this.jobRepository.findOne({ where: { id: jobId, userId } });
     if (!job) {

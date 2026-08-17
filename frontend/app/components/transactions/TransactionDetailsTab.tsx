@@ -9,14 +9,16 @@ import {
   TrendingDown,
   TrendingUp,
 } from '@/app/components/icons';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
 import { useIntlayer, useLocale } from '@/app/i18n';
 
 import { tokens } from '@/lib/theme-tokens';
 import { useTheme } from 'next-themes';
+import { SplitTransactionDialog } from './SplitTransactionDialog';
 import { formatAmount, formatDate } from './helpers/transactionFormatters';
+import { useTransactionSplit } from './hooks/useTransactionSplit';
 import type { Category, Transaction } from './types';
 
 interface TransactionDetailsTabProps {
@@ -25,6 +27,8 @@ interface TransactionDetailsTabProps {
   // eslint-disable-next-line max-params
   onUpdateCategory?: (txId: string, categoryId: string) => Promise<void>;
   onMarkIgnored?: (txId: string) => Promise<void>;
+  /** Refreshes the transaction list (and closes the drawer) after a split/unsplit. */
+  onSplitDone?: () => void | Promise<void>;
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types, max-lines-per-function, complexity
@@ -33,6 +37,7 @@ export function TransactionDetailsTab({
   categories,
   onUpdateCategory,
   onMarkIgnored,
+  onSplitDone,
 }: TransactionDetailsTabProps) {
   const { locale } = useLocale();
   const t = useIntlayer('transactionsDrawer');
@@ -41,6 +46,20 @@ export function TransactionDetailsTab({
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [updating, setUpdating] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
+
+  // The list refresh (and drawer close) is owned by the container — a split turns
+  // one row into several, so the drawer must not keep showing the stale original.
+  const handleSplitDone = useCallback(async () => {
+    setSplitOpen(false);
+    await onSplitDone?.();
+  }, [onSplitDone]);
+  const { split, unsplit, saving: splitSaving } = useTransactionSplit(handleSplitDone);
+
+  // The pre-split total the backend validates against: the positive side of the
+  // row, not `transaction.amount`, which the mappers sign for display.
+  const splitTotal = transaction.debit > 0 ? Number(transaction.debit) : Number(transaction.credit);
+  const splitCategories = categories.filter(cat => cat.isEnabled !== false);
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   const handleUpdateCategory = async () => {
@@ -360,6 +379,28 @@ export function TransactionDetailsTab({
           </div>
         )}
 
+        {/* Split / Undo split */}
+        {onSplitDone &&
+          (transaction.splitGroupId ? (
+            <button
+              type="button"
+              onClick={() => unsplit(transaction.id)}
+              disabled={splitSaving}
+              className="lumio-tx-detail__ignore-btn"
+            >
+              {splitSaving ? 'Undoing split...' : 'Undo split'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSplitOpen(true)}
+              disabled={splitSaving || splitTotal <= 0}
+              className="lumio-tx-detail__ignore-btn"
+            >
+              Split
+            </button>
+          ))}
+
         {/* Mark as Ignored */}
         {onMarkIgnored && (
           <button type="button" onClick={handleMarkIgnored} className="lumio-tx-detail__ignore-btn">
@@ -367,6 +408,21 @@ export function TransactionDetailsTab({
           </button>
         )}
       </div>
+
+      {onSplitDone && !transaction.splitGroupId && (
+        <SplitTransactionDialog
+          open={splitOpen}
+          transactionId={transaction.id}
+          totalAmount={splitTotal}
+          currency={transaction.currency ?? 'KZT'}
+          categories={splitCategories}
+          saving={splitSaving}
+          onClose={() => setSplitOpen(false)}
+          onSubmit={parts => {
+            void split(transaction.id, parts);
+          }}
+        />
+      )}
     </div>
   );
 }

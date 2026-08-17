@@ -1,11 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
-import type { Repository } from 'typeorm';
+import { In, type Repository } from 'typeorm';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
+import { Payable } from '../../entities/payable.entity';
+import { Receipt } from '../../entities/receipt.entity';
 import { Statement } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { TransactionType } from '../../entities/transaction.entity';
@@ -16,6 +24,7 @@ import { ClassificationService } from '../classification/services/classification
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import type { DataDeletedEvent } from '../notifications/events/notification-events';
 import type { BulkUpdateItemDto } from './dto/bulk-update-transaction.dto';
+import type { SplitPartDto, SplitTransactionDto } from './dto/split-transaction.dto';
 import type { UpdateTransactionDto } from './dto/update-transaction.dto';
 
 export type TransactionWithConversion = Transaction & {
@@ -276,6 +285,384 @@ export class TransactionsService {
     }
 
     return updatedTransactions;
+  }
+
+  private round2(value: number): number {
+    return Math.round(value * 100) / 100;
+  }
+
+  /**
+   * Builds the sibling template: every column a split part inherits verbatim from
+   * the row it was split from. An allowlist, so a newly added column is inherited
+   * only once someone decides it should be.
+   *
+   * Excluded on purpose: `id` and the createdAt/updatedAt timestamps; the loaded
+   * relation objects (category, wallet, branch, ...), so saving a part never
+   * cascades into them; the per-part money columns (amount/debit/credit/
+   * amountForeign) and the split markers, which `split()` assigns itself;
+   * `fingerprint`, which backfill recomputes from the post-split amount; and the
+   * duplicate-flag columns, unreachable because a flagged row cannot be split.
+   */
+  private cloneForSplit(source: Transaction): Partial<Transaction> {
+    return {
+      workspaceId: source.workspaceId,
+      statementId: source.statementId,
+      transactionDate: source.transactionDate,
+      documentNumber: source.documentNumber,
+      counterpartyName: source.counterpartyName,
+      counterpartyBin: source.counterpartyBin,
+      counterpartyAccount: source.counterpartyAccount,
+      counterpartyBank: source.counterpartyBank,
+      currency: source.currency,
+      exchangeRate: source.exchangeRate,
+      paymentPurpose: source.paymentPurpose,
+      categoryId: source.categoryId,
+      taxRateId: source.taxRateId,
+      branchId: source.branchId,
+      walletId: source.walletId,
+      article: source.article,
+      activityType: source.activityType,
+      vendorNormalized: source.vendorNormalized,
+      categoryHint: source.categoryHint,
+      transactionNature: source.transactionNature,
+      taxDetected: source.taxDetected,
+      enrichmentConfidence: source.enrichmentConfidence,
+      transactionType: source.transactionType,
+      comments: source.comments,
+      isVerified: source.isVerified,
+      importSessionId: source.importSessionId,
+    };
+  }
+
+  /**
+   * Guards that a transaction may be split, and returns its authoritative amount.
+   *
+   * Called twice: once outside the DB transaction as a cheap fast path, and again
+   * on the locked row, which is the read the parts are actually derived from.
+   */
+  private assertSplittable(transaction: Transaction, dto: SplitTransactionDto): number {
+    if (transaction.splitGroupId) {
+      throw new BadRequestException('Transaction is already part of a split');
+    }
+
+    // A duplicate-flagged row is excluded from dashboards and reports. Splitting it
+    // would produce siblings that default to isDuplicate=false, so the sibling
+    // amounts would reappear in those totals. Refuse instead.
+    if (transaction.isDuplicate) {
+      throw new BadRequestException('Cannot split a transaction marked as a duplicate');
+    }
+
+    const total = Number(
+      transaction.amount ?? transaction.debit ?? transaction.credit ?? Number.NaN,
+    );
+    if (!Number.isFinite(total) || total <= 0) {
+      throw new BadRequestException('Cannot split a transaction without a positive amount');
+    }
+
+    const partsTotal = this.round2(dto.parts.reduce((sum, part) => sum + Number(part.amount), 0));
+    // Round the drift too: |99.99 - 100| is 0.010000000000005 in binary floating
+    // point, which would reject the very boundary the tolerance exists to accept.
+    if (this.round2(Math.abs(partsTotal - total)) > 0.01) {
+      throw new BadRequestException(`Split parts must sum to ${total}, received ${partsTotal}`);
+    }
+
+    return total;
+  }
+
+  /**
+   * Divides a transaction's money across its parts.
+   *
+   * The requested amounts are rounded to cents and the LAST part absorbs the
+   * residual, so the parts sum to `total` (and `foreignTotal`) exactly rather than
+   * drifting by the cent the validation tolerance permits.
+   */
+  private allocateParts(
+    total: number,
+    foreignTotal: number | null,
+    parts: SplitPartDto[],
+  ): { amounts: number[]; foreignAmounts: (number | null)[] } {
+    const amounts = parts.map(part => this.round2(Number(part.amount)));
+    const lastIndex = amounts.length - 1;
+    amounts[lastIndex] = this.round2(
+      total - amounts.slice(0, lastIndex).reduce((sum, value) => sum + value, 0),
+    );
+
+    const foreignAmounts: (number | null)[] = amounts.map(amount =>
+      foreignTotal === null ? null : this.round2((foreignTotal * amount) / total),
+    );
+    if (foreignTotal !== null) {
+      foreignAmounts[lastIndex] = this.round2(
+        foreignTotal -
+          foreignAmounts.slice(0, lastIndex).reduce((sum, value) => sum + (value ?? 0), 0),
+      );
+    }
+
+    return { amounts, foreignAmounts };
+  }
+
+  /**
+   * Splits one transaction into N parts in place.
+   *
+   * The original row becomes part 0 and N-1 siblings are inserted; the parts sum
+   * to the original amount, so balance/dashboard/reports/budgets aggregates need
+   * no awareness of splits at all.
+   */
+  async split(
+    id: string,
+    workspaceId: string,
+    userId: string,
+    dto: SplitTransactionDto,
+  ): Promise<Transaction[]> {
+    await this.ensureCanEditStatements(userId);
+    const original = await this.findOne(id, workspaceId);
+    // Fast path only: reject an obviously invalid request before opening a DB
+    // transaction and taking a row lock. The authoritative check is the one below.
+    this.assertSplittable(original, dto);
+
+    const before = { ...original };
+    const splitGroupId = randomUUID();
+
+    const saved = await this.transactionRepository.manager.transaction(async manager => {
+      const repo = manager.getRepository(Transaction);
+
+      // Re-read under a write lock: the fast-path check ran outside this
+      // transaction, so a concurrent split — or an update() changing the amount or
+      // the type — may have landed since. Everything below therefore derives from
+      // `locked`, never from the stale `original`.
+      const locked = await repo.findOne({
+        where: { id, workspaceId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!locked) {
+        throw new NotFoundException('Transaction not found');
+      }
+
+      const total = this.assertSplittable(locked, dto);
+      const isExpense = locked.transactionType === TransactionType.EXPENSE;
+      const rawForeign = locked.amountForeign ?? null;
+      const { amounts, foreignAmounts } = this.allocateParts(
+        total,
+        rawForeign === null ? null : Number(rawForeign),
+        dto.parts,
+      );
+
+      const template = this.cloneForSplit(locked);
+      const rows: Transaction[] = [];
+
+      for (const [index, part] of dto.parts.entries()) {
+        const amount = amounts[index];
+        const row = index === 0 ? locked : repo.create(template as Transaction);
+
+        row.amount = amount;
+        row.debit = isExpense ? amount : null;
+        row.credit = isExpense ? null : amount;
+        row.amountForeign = foreignAmounts[index];
+        row.splitGroupId = splitGroupId;
+        row.splitIndex = index;
+        // Part 0 would otherwise keep a fingerprint hashed from the pre-split
+        // amount. Null on every part so backfillFingerprints recomputes them all.
+        row.fingerprint = null;
+
+        // Per-part override, else keep what the row already inherited.
+        row.categoryId = part.categoryId ?? row.categoryId;
+        row.paymentPurpose = part.paymentPurpose ?? row.paymentPurpose;
+        row.comments = part.comments ?? row.comments;
+
+        rows.push(await repo.save(row));
+      }
+
+      return rows;
+    });
+
+    await this.invalidateReports(userId);
+
+    await this.auditService.createEvent({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.TRANSACTION,
+      entityId: id,
+      action: AuditAction.UPDATE,
+      diff: { before, after: saved },
+      meta: { operation: 'split', splitGroupId, partCount: saved.length },
+      isUndoable: false,
+    });
+
+    return saved;
+  }
+
+  /**
+   * Returns every part of the split group the given transaction belongs to,
+   * ordered as the split created them. An unsplit transaction is a group of one.
+   */
+  async getSplitParts(id: string, workspaceId: string): Promise<Transaction[]> {
+    const transaction = await this.findOne(id, workspaceId);
+    if (!transaction.splitGroupId) {
+      return [transaction];
+    }
+
+    return this.transactionRepository.find({
+      // Same relations as findOne, so a caller gets one shape either way.
+      where: { workspaceId, splitGroupId: transaction.splitGroupId },
+      relations: ['category', 'branch', 'wallet'],
+      order: { splitIndex: 'ASC' },
+    });
+  }
+
+  /**
+   * Merges a split group back into a single row: the lowest splitIndex survives
+   * carrying the group's total, the other parts are deleted. The inverse of
+   * split(), and like it invisible to every aggregate, since the total is unchanged.
+   *
+   * The survivor keeps its own categoryId, paymentPurpose and comments — i.e.
+   * part 0's, which may be a per-part override rather than what the row held
+   * before it was split. Those pre-split values are not stored anywhere, so they
+   * cannot be restored; that loss is accepted, not an oversight.
+   */
+  async unsplit(id: string, workspaceId: string, userId: string): Promise<Transaction> {
+    await this.ensureCanEditStatements(userId);
+
+    // Fast path only: reject an obviously invalid request before opening a DB
+    // transaction and taking row locks. The authoritative read is the locked one.
+    const target = await this.findOne(id, workspaceId);
+    if (!target.splitGroupId) {
+      throw new BadRequestException('Transaction is not part of a split');
+    }
+    const splitGroupId = target.splitGroupId;
+
+    let before: Transaction[] = [];
+    let repointed = { duplicates: 0, receipts: 0, payables: 0 };
+
+    const merged = await this.transactionRepository.manager.transaction(async manager => {
+      const repo = manager.getRepository(Transaction);
+
+      // Lock the whole group in one ordered statement. A concurrent unsplit of the
+      // same group queues here instead of double-counting the total or deleting
+      // rows this one already folded in, and the shared ORDER BY gives both
+      // statements the same lock order, so they queue rather than deadlock.
+      // No relations: Postgres cannot lock the nullable side of an outer join.
+      const parts = await repo.find({
+        where: { workspaceId, splitGroupId },
+        order: { splitIndex: 'ASC' },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      // Empty means the group is gone — another request unsplit it while this one
+      // waited for the lock. A single part is a group that lost its siblings some
+      // other way; clearing its markers below is the right repair either way.
+      if (parts.length === 0) {
+        throw new BadRequestException('Transaction is not part of a split');
+      }
+
+      before = parts.map(part => ({ ...part }));
+
+      // A part can be flagged as a duplicate AFTER the split: isSameSplitGroup only
+      // excludes pairs sharing a splitGroupId, so a part stays comparable against
+      // rows in other statements and markDuplicates can flag it at any time. A
+      // flagged row is excluded from reports, so merging would either inflate
+      // reported spend (a flagged sibling folded into the unflagged survivor) or
+      // erase the whole charge (part 0 flagged, survivor keeps isDuplicate). Refuse,
+      // as assertSplittable does on the way in — with its own message, so the two
+      // sides are distinguishable. Checked on the locked rows: the flag may have
+      // landed after the unlocked read.
+      if (parts.some(part => part.isDuplicate)) {
+        throw new BadRequestException(
+          'Cannot unsplit a group containing a transaction marked as a duplicate',
+        );
+      }
+
+      const [survivor, ...rest] = parts;
+      // Falls back the same way assertSplittable reads an amount. Unreachable while
+      // split() always writes `amount`, but the two sides should not disagree about
+      // where a part's money lives.
+      const total = this.round2(
+        parts.reduce((sum, part) => sum + Number(part.amount ?? part.debit ?? part.credit ?? 0), 0),
+      );
+      // Null only when no part carries a foreign amount at all. A group whose
+      // foreign amounts genuinely total 0 keeps the 0, mirroring split(), which
+      // passes a present-but-zero amountForeign through as a number rather than
+      // treating it as absent.
+      const hasForeign = parts.some(part => (part.amountForeign ?? null) !== null);
+      const foreignTotal = hasForeign
+        ? this.round2(parts.reduce((sum, part) => sum + Number(part.amountForeign ?? 0), 0))
+        : null;
+      const isExpense = survivor.transactionType === TransactionType.EXPENSE;
+
+      survivor.amount = total;
+      survivor.debit = isExpense ? total : null;
+      survivor.credit = isExpense ? null : total;
+      survivor.amountForeign = foreignTotal;
+      survivor.splitGroupId = null;
+      survivor.splitIndex = null;
+      // The stored hash was computed from the part amount, which just changed.
+      // A stale hash makes a later import treat a genuine transaction as a
+      // duplicate and drop it; null lets backfillFingerprints recompute it.
+      survivor.fingerprint = null;
+
+      const saved = await repo.save(survivor);
+
+      if (rest.length > 0) {
+        // Every FK pointing at transactions.id is ON DELETE SET NULL, so deleting a
+        // part silently unlinks whatever referenced it. Repoint at the survivor
+        // FIRST — after the delete the FK has already been nulled and the link is
+        // unrecoverable. The survivor represents the whole charge again, so it is
+        // the right target for all three.
+        const removedIds = rest.map(part => part.id);
+
+        // Without this, a transaction whose master was a deleted part is left
+        // isDuplicate=true with duplicateOfId=null: excluded from reports forever,
+        // with no master and no UI path to unflag it. The survivor cannot be
+        // repointed at itself here — a row with duplicateOfId set always has
+        // isDuplicate set too, which the guard above already rejected.
+        const duplicates = await manager
+          .getRepository(Transaction)
+          .update({ workspaceId, duplicateOfId: In(removedIds) }, { duplicateOfId: survivor.id });
+
+        const receipts = await manager
+          .getRepository(Receipt)
+          .update({ workspaceId, transactionId: In(removedIds) }, { transactionId: survivor.id });
+
+        const payables = await manager
+          .getRepository(Payable)
+          .update(
+            { workspaceId, linkedTransactionId: In(removedIds) },
+            { linkedTransactionId: survivor.id },
+          );
+
+        repointed = {
+          duplicates: duplicates.affected ?? 0,
+          receipts: receipts.affected ?? 0,
+          payables: payables.affected ?? 0,
+        };
+
+        await repo.remove(rest);
+      }
+
+      return saved;
+    });
+
+    await this.invalidateReports(userId);
+
+    await this.auditService.createEvent({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.TRANSACTION,
+      entityId: merged.id,
+      action: AuditAction.UPDATE,
+      diff: { before, after: merged },
+      meta: {
+        operation: 'unsplit',
+        splitGroupId,
+        partCount: before.length,
+        duplicatesRepointed: repointed.duplicates,
+        receiptsRepointed: repointed.receipts,
+        payablesRepointed: repointed.payables,
+      },
+      isUndoable: false,
+    });
+
+    return merged;
   }
 
   async remove(id: string, workspaceId: string, userId: string): Promise<void> {

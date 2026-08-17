@@ -31,5 +31,7 @@ export function mapApiRecordToTransaction(tx: TransactionApiRecord): Transaction
     category: tx.category,
     branch: tx.branch,
     wallet: tx.wallet,
+    splitGroupId: tx.splitGroupId,
+    splitIndex: tx.splitIndex,
   };
 }

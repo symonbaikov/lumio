@@ -17,6 +17,7 @@ import { GoogleSheetsAnalyticsService } from './services/google-sheets-analytics
 import { GoogleSheetsApiService } from './services/google-sheets-api.service';
 import { GoogleSheetsRealtimeService } from './services/google-sheets-realtime.service';
 import { GoogleSheetsUpdatesService } from './services/google-sheets-updates.service';
+import { SheetSourceLoaderService } from './services/sheet-source-loader.service';
 
 @Module({
   imports: [
@@ -42,7 +43,13 @@ import { GoogleSheetsUpdatesService } from './services/google-sheets-updates.ser
     GoogleSheetsRealtimeService,
     GoogleSheetsAnalyticsService,
     GoogleSheetsWebhookGuard,
+    SheetSourceLoaderService,
   ],
-  exports: [GoogleSheetsService, GoogleSheetsApiService, GoogleSheetsUpdatesService],
+  exports: [
+    GoogleSheetsService,
+    GoogleSheetsApiService,
+    GoogleSheetsUpdatesService,
+    SheetSourceLoaderService,
+  ],
 })
 export class GoogleSheetsModule {}
