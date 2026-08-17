@@ -22,10 +22,13 @@ describe('BalanceService', () => {
   const transactionRepository = createRepoMock();
   const statementRepository = createRepoMock();
   const workspaceMemberRepository = createRepoMock();
+  const workspaceRepository = createRepoMock();
   const auditService = { createEvent: jest.fn() } as any;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // getWorkspaceCurrency() reads the workspace on every balance sheet build.
+    workspaceRepository.findOne.mockResolvedValue({ currency: 'KZT' });
 
     service = new BalanceService(
       balanceAccountRepository,
@@ -34,6 +37,7 @@ describe('BalanceService', () => {
       transactionRepository,
       statementRepository,
       workspaceMemberRepository,
+      workspaceRepository,
       auditService,
     );
   });
