@@ -11,6 +11,8 @@ describe('parseSheetAmount', () => {
     ['(1 200)', -1200], // accounting negative
     ['$1,200', 1200],
     ['12 345,67 ₸', 12345.67],
+    ['1,200,300', 1200300], // en: multiple thousands groups, no decimal
+    ['1.200.300', 1200300], // de: multiple thousands groups, no decimal
     ['  1 000 ', 1000], // nbsp
   ])('parses %p as %p', (input, expected) => {
     expect(parseSheetAmount(input)).toBe(expected);

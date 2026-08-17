@@ -14,16 +14,16 @@ const normalizeSeparators = (s: string): string => {
     return s.split(thousandSep).join('').replace(decimalSep, '.');
   }
 
-  // a single separator is decimal, unless it is a lone thousands group
-  // (i.e. followed by exactly 3 digits, e.g. "1,200" or "1.200")
+  // only one kind of separator is present: it's a thousands separator if the
+  // whole string is grouped in 3s around it (e.g. "1,200" or "1,200,300"),
+  // otherwise it's a decimal separator (e.g. "1,20" or "1.5")
   const sep = lastComma >= 0 ? ',' : lastDot >= 0 ? '.' : '';
   if (!sep) {
     return s;
   }
 
-  const lastIndex = sep === ',' ? lastComma : lastDot;
-  const isThousandsGroup = s.length - lastIndex - 1 === 3 && s.indexOf(sep) === lastIndex;
-  return isThousandsGroup ? s.split(sep).join('') : s.replace(sep, '.');
+  const thousandsPattern = new RegExp(`^\\d{1,3}(\\${sep}\\d{3})+$`);
+  return thousandsPattern.test(s) ? s.split(sep).join('') : s.replace(sep, '.');
 };
 
 /**
@@ -40,7 +40,10 @@ export const parseSheetAmount = (raw: unknown): number | null => {
     return null;
   }
 
-  let s = String(raw).replace(/ /g, ' ').trim();
+  // NBSP/narrow-NBSP thousand separators are handled incidentally below by
+  // the allowlist strip (they get removed along with other non-numeric
+  // characters); .trim() also strips them from the string's edges.
+  let s = String(raw).trim();
   if (!s) {
     return null;
   }
