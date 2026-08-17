@@ -22,6 +22,13 @@ import { CustomTable, CustomTableSource } from '../../entities/custom-table.enti
 import { GoogleSheet } from '../../entities/google-sheet.entity';
 import { AuditService } from '../audit/audit.service';
 import { GoogleSheetsApiService } from '../google-sheets/services/google-sheets-api.service';
+import {
+  type A1RangeBounds,
+  SheetSourceLoaderService,
+  numberToColumnLetters,
+  parseA1Range,
+  quoteSheetName,
+} from '../google-sheets/services/sheet-source-loader.service';
 import type {
   GoogleSheetsImportColumnDto,
   GoogleSheetsImportCommitDto,
@@ -93,76 +100,6 @@ type RowInsertPayload = Pick<CustomTableRow, 'tableId' | 'rowNumber' | 'data'> &
   styles?: Record<string, unknown>;
 };
 type RowInsertQueryPayload = QueryDeepPartialEntity<CustomTableRow>;
-
-interface A1RangeBounds {
-  sheetName: string;
-  startRow: number;
-  startCol: number;
-  endRow: number;
-  endCol: number;
-}
-
-interface PublicWorkbookData {
-  spreadsheetId: string;
-  worksheetName: string;
-  values: unknown[][];
-  effectiveRange: string;
-  bounds: A1RangeBounds;
-  sourceUrl: string;
-}
-
-const MAX_PUBLIC_WORKBOOK_BYTES = 25 * 1024 * 1024;
-
-const columnLettersToNumber = (lettersRaw: string): number => {
-  const letters = lettersRaw.toUpperCase();
-  let num = 0;
-  for (let i = 0; i < letters.length; i += 1) {
-    const code = letters.charCodeAt(i);
-    if (code < 65 || code > 90) continue;
-    num = num * 26 + (code - 64);
-  }
-  return num;
-};
-
-const numberToColumnLetters = (numRaw: number): string => {
-  let num = numRaw;
-  if (num <= 0) return 'A';
-  let letters = '';
-  while (num > 0) {
-    const rem = (num - 1) % 26;
-    letters = String.fromCharCode(65 + rem) + letters;
-    num = Math.floor((num - 1) / 26);
-  }
-  return letters;
-};
-
-const unquoteSheetName = (value: string): string => {
-  const trimmed = value.trim();
-  if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
-    return trimmed.slice(1, -1).replace(/''/g, "'");
-  }
-  return trimmed;
-};
-
-const quoteSheetName = (value: string): string => {
-  const escaped = value.replace(/'/g, "''");
-  return `'${escaped}'`;
-};
-
-const parseA1Range = (rangeRaw: string): A1RangeBounds => {
-  const match = rangeRaw.match(/^(.*?)!(\$?[A-Z]+)(\$?\d+)(?::(\$?[A-Z]+)(\$?\d+))?$/);
-  if (!match) {
-    throw new BadRequestException('Не удалось распарсить A1 range Google Sheets');
-  }
-
-  const sheetName = unquoteSheetName(match[1]);
-  const startCol = columnLettersToNumber(match[2].replace(/\$/g, ''));
-  const startRow = Number(match[3].replace(/\$/g, ''));
-  const endCol = columnLettersToNumber((match[4] || match[2]).replace(/\$/g, ''));
-  const endRow = Number((match[5] || match[3]).replace(/\$/g, ''));
-
-  return { sheetName, startRow, startCol, endRow, endCol };
-};
 
 const normalizeCellValue = (value: unknown): string | null => {
   if (value === undefined || value === null) return null;
@@ -453,6 +390,7 @@ export class CustomTablesImportService {
     private readonly customTableCellStyleRepository: Repository<CustomTableCellStyle>,
     private readonly googleSheetsApiService: GoogleSheetsApiService,
     private readonly auditService: AuditService,
+    private readonly sheetSourceLoader: SheetSourceLoaderService,
   ) {}
 
   private getDriverErrorCode(error: unknown): string | undefined {
@@ -659,165 +597,6 @@ export class CustomTablesImportService {
     return GoogleSheetsImportLayoutType.FLAT;
   }
 
-  private buildPublicGoogleSheetsExportUrl(rawUrl: string): {
-    exportUrl: string;
-    spreadsheetId: string;
-  } {
-    let url: URL;
-    try {
-      url = new URL(rawUrl.trim());
-    } catch {
-      throw new BadRequestException('Укажите корректную ссылку Google Sheets');
-    }
-
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-      throw new BadRequestException('Поддерживаются только http/https ссылки Google Sheets');
-    }
-
-    if (url.hostname !== 'docs.google.com') {
-      throw new BadRequestException('Для импорта по ссылке поддерживается только docs.google.com');
-    }
-
-    const publishedMatch = url.pathname.match(/^\/spreadsheets\/d\/e\/([^/]+)/);
-    if (publishedMatch) {
-      if (!url.searchParams.get('output')) {
-        url.searchParams.set('output', 'xlsx');
-      }
-      return { exportUrl: url.toString(), spreadsheetId: publishedMatch[1] };
-    }
-
-    const standardMatch = url.pathname.match(/^\/spreadsheets\/d\/([^/]+)/);
-    if (!standardMatch) {
-      throw new BadRequestException('Не удалось найти spreadsheet id в ссылке Google Sheets');
-    }
-
-    const spreadsheetId = standardMatch[1];
-    const exportUrl = new URL(`https://docs.google.com/spreadsheets/d/${spreadsheetId}/export`);
-    exportUrl.searchParams.set('format', 'xlsx');
-    const gid = url.searchParams.get('gid') || url.hash.match(/gid=(\d+)/)?.[1];
-    if (gid) {
-      exportUrl.searchParams.set('gid', gid);
-    }
-    return { exportUrl: exportUrl.toString(), spreadsheetId };
-  }
-
-  private async fetchPublicWorkbook(rawUrl: string): Promise<Buffer> {
-    const { exportUrl } = this.buildPublicGoogleSheetsExportUrl(rawUrl);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-
-    try {
-      const response = await fetch(exportUrl, { signal: controller.signal });
-      if (!response.ok) {
-        throw new BadRequestException(
-          'Не удалось скачать Google Sheet. Откройте доступ по ссылке или опубликуйте таблицу.',
-        );
-      }
-
-      const contentLength = Number(response.headers.get('content-length') || 0);
-      if (contentLength > MAX_PUBLIC_WORKBOOK_BYTES) {
-        throw new BadRequestException('Файл Google Sheets слишком большой для импорта');
-      }
-
-      const buffer = Buffer.from(await response.arrayBuffer());
-      if (buffer.length > MAX_PUBLIC_WORKBOOK_BYTES) {
-        throw new BadRequestException('Файл Google Sheets слишком большой для импорта');
-      }
-      return buffer;
-    } catch (error) {
-      if (error instanceof BadRequestException) throw error;
-      throw new BadRequestException(
-        'Не удалось скачать Google Sheet. Проверьте, что доступ по ссылке включен.',
-      );
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-
-  private getWorkbookRangeBounds(
-    worksheetName: string,
-    range: string | undefined,
-    values: unknown[][],
-  ): A1RangeBounds {
-    if (range?.trim()) {
-      return parseA1Range(
-        range.includes('!') ? range.trim() : `${quoteSheetName(worksheetName)}!${range.trim()}`,
-      );
-    }
-
-    const rows = Math.max(values.length, 1);
-    const cols = Math.max(...values.map(row => (Array.isArray(row) ? row.length : 0)), 1);
-    return {
-      sheetName: worksheetName,
-      startRow: 1,
-      startCol: 1,
-      endRow: rows,
-      endCol: cols,
-    };
-  }
-
-  private cropWorkbookValues(values: unknown[][], bounds: A1RangeBounds): unknown[][] {
-    const startRow = Math.max(bounds.startRow - 1, 0);
-    const endRow = Math.max(bounds.endRow, bounds.startRow);
-    const startCol = Math.max(bounds.startCol - 1, 0);
-    const endCol = Math.max(bounds.endCol, bounds.startCol);
-
-    return values.slice(startRow, endRow).map(row => {
-      const source = Array.isArray(row) ? row : [];
-      return source.slice(startCol, endCol);
-    });
-  }
-
-  private async loadPublicWorkbookSource(dto: {
-    sourceUrl?: string;
-    worksheetName?: string;
-    range?: string;
-  }): Promise<PublicWorkbookData> {
-    if (!dto.sourceUrl?.trim()) {
-      throw new BadRequestException('Укажите ссылку Google Sheets для импорта');
-    }
-
-    const { spreadsheetId } = this.buildPublicGoogleSheetsExportUrl(dto.sourceUrl);
-    const buffer = await this.fetchPublicWorkbook(dto.sourceUrl);
-    let workbook: xlsx.WorkBook;
-    try {
-      workbook = xlsx.read(buffer, { type: 'buffer', raw: false });
-    } catch {
-      throw new BadRequestException('Не удалось прочитать экспорт Google Sheets');
-    }
-
-    if (!workbook.SheetNames.length) {
-      throw new BadRequestException('В Google Sheet не найдено листов для импорта');
-    }
-
-    const rangeSheet = dto.range?.includes('!') ? parseA1Range(dto.range).sheetName : '';
-    const requestedWorksheet = rangeSheet || dto.worksheetName?.trim() || workbook.SheetNames[0];
-    if (!workbook.SheetNames.includes(requestedWorksheet)) {
-      throw new BadRequestException(`Лист "${requestedWorksheet}" не найден в Google Sheet`);
-    }
-
-    const worksheet = workbook.Sheets[requestedWorksheet];
-    const rawValues = xlsx.utils.sheet_to_json(worksheet, {
-      header: 1,
-      raw: false,
-      defval: null,
-      blankrows: false,
-    }) as unknown[][];
-    const normalizedValues = rawValues.map(row => (Array.isArray(row) ? row : []));
-    const bounds = this.getWorkbookRangeBounds(requestedWorksheet, dto.range, normalizedValues);
-    const values = this.cropWorkbookValues(normalizedValues, bounds);
-    const effectiveRange = `${quoteSheetName(bounds.sheetName)}!${numberToColumnLetters(bounds.startCol)}${bounds.startRow}:${numberToColumnLetters(bounds.endCol)}${bounds.endRow}`;
-
-    return {
-      spreadsheetId,
-      worksheetName: bounds.sheetName,
-      values,
-      effectiveRange,
-      bounds,
-      sourceUrl: dto.sourceUrl.trim(),
-    };
-  }
-
   private buildPreviewFromValues(params: {
     spreadsheetId: string;
     worksheetName: string;
@@ -897,7 +676,12 @@ export class CustomTablesImportService {
     }
 
     await report(1, 'reading_values');
-    const source = await this.loadPublicWorkbookSource(dto);
+    const source = await this.sheetSourceLoader.load({
+      sourceUrl: dto.sourceUrl,
+      worksheetName: dto.worksheetName,
+      range: dto.range,
+      workspaceId,
+    });
     const { values, bounds, effectiveRange, worksheetName } = source;
     const rowsCount = Math.max(bounds.endRow - bounds.startRow + 1, 0);
     const colsCount = Math.max(bounds.endCol - bounds.startCol + 1, 0);
@@ -1056,7 +840,12 @@ export class CustomTablesImportService {
 
   async previewGoogleSheets(workspaceId: string, dto: GoogleSheetsImportPreviewDto) {
     if (dto.sourceUrl?.trim()) {
-      const source = await this.loadPublicWorkbookSource(dto);
+      const source = await this.sheetSourceLoader.load({
+        sourceUrl: dto.sourceUrl,
+        worksheetName: dto.worksheetName,
+        range: dto.range,
+        workspaceId,
+      });
       return this.buildPreviewFromValues({
         spreadsheetId: source.spreadsheetId,
         worksheetName: source.worksheetName,
