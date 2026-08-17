@@ -66,12 +66,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
 
 ## Project Context (Lumio)
 
-Monorepo:
-- `backend/` — NestJS 11 + TypeORM + Postgres + S3 + Tesseract OCR. Bank statement parsing & ledger.
-- `frontend/` — Next.js + MUI + intlayer (i18n) + Vitest + Storybook.
-- `electron/` — Desktop wrapper for the frontend.
-- `mcp-server/`, `observability/`, `policy/`, `website/` — supporting packages.
-- Detailed policy lives in `.claude/rules/*.md` (security, database, idempotency, api-standards, clean-architecture, frontend-perf, observability, best-practices). Read those before changes in those domains.
+Detailed policy lives in `.claude/rules/*.md` (security, database, idempotency, api-standards, clean-architecture, frontend-perf, observability, best-practices). Read those before changes in those domains.
 
 ## Quick Commands
 
@@ -80,14 +75,7 @@ Monorepo:
 make quick-dev                    # one-shot dev bring-up
 make dev                          # docker compose dev with hot reload
 
-# Dev (local processes)
-npm run dev                       # concurrently runs backend + frontend
-npm run backend:dev               # NestJS with nodemon
-npm run frontend:dev              # Next.js dev server
-
 # Build / test / lint
-npm run build                     # frontend then backend
-npm test                          # backend unit + frontend vitest
 npm --prefix backend run test:e2e
 npm --prefix backend run test:golden   # parsing golden tests (GOLDEN_ENABLED=1)
 npm --prefix backend run lint:fix      # Biome only

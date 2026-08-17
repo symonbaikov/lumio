@@ -1,3 +1,9 @@
+---
+paths:
+  - "frontend/**"
+  - "electron/**"
+---
+
 # Frontend Performance & State Management
 
 ## 1. State Management (Next.js/React)

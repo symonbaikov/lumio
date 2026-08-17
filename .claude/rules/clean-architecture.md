@@ -1,3 +1,8 @@
+---
+paths:
+  - "backend/**"
+---
+
 # Clean Architecture Standards
 
 ## Separation of Concerns
