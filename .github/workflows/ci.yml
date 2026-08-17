@@ -260,6 +260,9 @@ jobs:
       NODE_ENV: test
       RUN_MIGRATIONS: "true"
       CI: true
+      # The secrets context is not available in `if:`, so the token is surfaced
+      # as an env var the coverage-upload step's conditional can read.
+      QLTY_COVERAGE_TOKEN: ${{ secrets.QLTY_COVERAGE_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -297,7 +300,7 @@ jobs:
         run: npm --prefix backend run test:ci
 
       - name: Upload coverage to Qlty
-        if: success() && secrets.QLTY_COVERAGE_TOKEN != ''
+        if: success() && env.QLTY_COVERAGE_TOKEN != ''
         uses: qltysh/qlty-action/coverage@v2
         with:
           token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
