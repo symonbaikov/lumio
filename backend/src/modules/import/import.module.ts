@@ -41,7 +41,7 @@ import { SheetReferenceResolverService } from './sheets/sheet-reference-resolver
     ]),
     forwardRef(() => ParsingModule),
     GoogleSheetsModule,
-    CustomTablesModule,
+    forwardRef(() => CustomTablesModule),
     ClassificationModule,
     ExchangeRatesModule,
   ],

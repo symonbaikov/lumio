@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Category } from '../../entities/category.entity';
 import { CustomTableCellStyle } from '../../entities/custom-table-cell-style.entity';
@@ -16,6 +16,7 @@ import { User } from '../../entities/user.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { AuditModule } from '../audit/audit.module';
 import { GoogleSheetsModule } from '../google-sheets/google-sheets.module';
+import { ImportModule } from '../import/import.module';
 import { CustomTableImportJobsProcessor } from './custom-table-import-jobs.processor';
 import { CustomTableImportJobsService } from './custom-table-import-jobs.service';
 import { CustomTablesCacheService } from './custom-tables-cache.service';
@@ -43,6 +44,7 @@ import { CustomTablesService } from './custom-tables.service';
     ]),
     AuditModule,
     GoogleSheetsModule,
+    forwardRef(() => ImportModule),
   ],
   controllers: [CustomTablesController],
   providers: [
