@@ -1,3 +1,8 @@
+---
+paths:
+  - "backend/**"
+---
+
 # Idempotency Standards for Financial Integrity
 
 All critical write operations (Transactions, Transfers, Settings changes) must be idempotent to prevent duplicate data in case of network retries or client errors.

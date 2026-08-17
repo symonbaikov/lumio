@@ -1,3 +1,8 @@
+---
+paths:
+  - "backend/**"
+---
+
 # API & Communication Standards
 
 ## 1. RESTful Design

@@ -7,6 +7,7 @@ import {
   DefaultValuePipe,
   Delete,
   Get,
+  Headers,
   Param,
   ParseEnumPipe,
   ParseIntPipe,
@@ -22,6 +23,7 @@ import { diskStorage } from 'multer';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
+import { IdempotencyService } from '../../common/services/idempotency.service';
 import { DataEntryType } from '../../entities/data-entry.entity';
 import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -33,15 +35,31 @@ import { UpdateDataEntryCustomFieldDto } from './dto/update-data-entry-custom-fi
 @Controller('data-entry')
 @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
 export class DataEntryController {
-  constructor(private readonly dataEntryService: DataEntryService) {}
+  constructor(
+    private readonly dataEntryService: DataEntryService,
+    private readonly idempotencyService: IdempotencyService,
+  ) {}
 
   @Post()
   async create(
     @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
     @Body() dto: CreateDataEntryDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
+    if (idempotencyKey) {
+      const cached = await this.idempotencyService.checkKey(idempotencyKey, user.id, workspaceId);
+      if (cached) {
+        return cached.data;
+      }
+    }
+
     const entry = await this.dataEntryService.create(workspaceId, user.id, dto);
+
+    if (idempotencyKey) {
+      await this.idempotencyService.storeKey(idempotencyKey, user.id, workspaceId, entry);
+    }
+
     return entry;
   }
 

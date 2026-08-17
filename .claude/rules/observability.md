@@ -1,3 +1,8 @@
+---
+paths:
+  - "backend/**"
+---
+
 # Observability & Reliability Standards
 
 ## 1. Structured Logging

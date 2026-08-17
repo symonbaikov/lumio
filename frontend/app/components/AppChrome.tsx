@@ -15,7 +15,8 @@ function shouldHideChrome(pathname: string | null) {
     pathname.startsWith('/login') ||
     pathname.startsWith('/register') ||
     pathname.startsWith('/shared') ||
-    pathname.startsWith('/invite')
+    pathname.startsWith('/invite') ||
+    pathname.startsWith('/chat')
   );
 }
 
