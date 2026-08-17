@@ -49,7 +49,13 @@ export class AiChatController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: AppendAiChatMessageDto,
   ) {
-    return this.aiChatService.appendMessage(workspaceId, id, body.role, body.content);
+    return this.aiChatService.appendMessage(
+      workspaceId,
+      id,
+      body.role,
+      body.content,
+      body.actionPayload,
+    );
   }
 
   @Patch(':id')

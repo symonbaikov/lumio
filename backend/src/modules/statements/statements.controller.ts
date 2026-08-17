@@ -120,13 +120,30 @@ export class StatementsController {
     @Body() payload: CreateManualExpenseDto,
     @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return this.statementsService.createManualExpense({
+    if (idempotencyKey) {
+      const cached = await this.idempotencyService.checkKey(idempotencyKey, user.id, workspaceId);
+      if (cached) {
+        return {
+          ...this.toObjectRecord(cached.data),
+          cached: true,
+        };
+      }
+    }
+
+    const result = await this.statementsService.createManualExpense({
       user,
       workspaceId,
       files: files || [],
       payload,
     });
+
+    if (idempotencyKey) {
+      await this.idempotencyService.storeKey(idempotencyKey, user.id, workspaceId, result);
+    }
+
+    return result;
   }
 
   @Post('upload-receipt')

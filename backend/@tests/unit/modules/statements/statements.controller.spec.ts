@@ -27,6 +27,7 @@ describe('StatementsController', () => {
   const statementsService = {
     create: jest.fn(),
     createFromReceiptScan: jest.fn(),
+    createManualExpense: jest.fn(),
     findAll: jest.fn(),
     convertDroppedSampleToTransaction: jest.fn(),
     getFileStream: jest.fn(),
@@ -87,6 +88,33 @@ describe('StatementsController', () => {
         },
       ],
     });
+  });
+
+  it('manual expense with a repeated idempotency key returns the cached result once', async () => {
+    const created = { id: 'stmt-manual-1', status: StatementStatus.PROCESSED };
+    statementsService.createManualExpense.mockResolvedValue(created);
+    const currentUser = { id: 'user-1' } as User;
+    const payload = { amount: 5000, description: 'Такси' } as any;
+
+    const first = await controller.createManualExpense([], payload, currentUser, 'ws-1', 'key-1');
+    expect(first).toEqual(created);
+    expect(idempotencyService.checkKey).toHaveBeenCalledWith('key-1', 'user-1', 'ws-1');
+    expect(idempotencyService.storeKey).toHaveBeenCalledWith('key-1', 'user-1', 'ws-1', created);
+
+    idempotencyService.checkKey.mockResolvedValueOnce({ data: created, cached: true });
+    const second = await controller.createManualExpense([], payload, currentUser, 'ws-1', 'key-1');
+    expect(second).toMatchObject({ id: 'stmt-manual-1', cached: true });
+    expect(statementsService.createManualExpense).toHaveBeenCalledTimes(1);
+  });
+
+  it('manual expense without a key never touches the idempotency service', async () => {
+    statementsService.createManualExpense.mockResolvedValue({ id: 'stmt-manual-2' });
+    const currentUser = { id: 'user-1' } as User;
+
+    await controller.createManualExpense([], {} as any, currentUser, 'ws-1');
+
+    expect(idempotencyService.checkKey).not.toHaveBeenCalled();
+    expect(idempotencyService.storeKey).not.toHaveBeenCalled();
   });
 
   it('passes filter dto to findAll and keeps items alias', async () => {

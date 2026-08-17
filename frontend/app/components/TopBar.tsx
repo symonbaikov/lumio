@@ -26,7 +26,7 @@ import { useLanguageSelection } from './navigation/hooks/useLanguageSelection';
 import { useThemePreference } from './navigation/hooks/useThemePreference';
 
 const SIDEBAR_OPEN_EVENT = 'lumio-sidebar-open';
-const HIDDEN_PATHS = ['/onboarding', '/login', '/register', '/shared', '/invite'];
+const HIDDEN_PATHS = ['/onboarding', '/login', '/register', '/shared', '/invite', '/chat'];
 
 export default function TopBar() {
   const pathname = usePathname();

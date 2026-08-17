@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { isNavItemActive } from '../navigation/helpers/navigation-config';
 import { MobileMenuDrawer } from './MobileMenuDrawer';
 
-const HIDDEN_PATHS = ['/onboarding', '/login', '/register', '/shared', '/invite'];
+const HIDDEN_PATHS = ['/onboarding', '/login', '/register', '/shared', '/invite', '/chat'];
 
 const FAB_ACTIONS = [
   {

@@ -13,15 +13,21 @@ const nav = {
   integrations: 'Integrations',
   plugins: 'Plugins',
   aiAnalysis: 'AI analysis',
+  chatMode: 'Chat mode',
 };
 
 describe('buildNavItems', () => {
-  it('places AI analysis last so it renders at the bottom of the sidebar', () => {
+  it('places chat mode last, right after AI analysis', () => {
     const items = buildNavItems(nav);
 
-    expect(items.at(-1)).toMatchObject({
+    expect(items.at(-2)).toMatchObject({
       label: 'AI analysis',
       path: '/ai-analysis',
+      permission: 'statement.view',
+    });
+    expect(items.at(-1)).toMatchObject({
+      label: 'Chat mode',
+      path: '/chat',
       permission: 'statement.view',
     });
   });

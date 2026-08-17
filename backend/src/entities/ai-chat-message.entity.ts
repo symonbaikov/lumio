@@ -13,6 +13,7 @@ import { Workspace } from './workspace.entity';
 export enum AiChatRole {
   USER = 'user',
   ASSISTANT = 'assistant',
+  TOOL = 'tool',
 }
 
 /**
@@ -47,6 +48,13 @@ export class AiChatMessage {
 
   @Column({ type: 'text' })
   content: string;
+
+  /**
+   * Structured record of a chat-mode action turn (intent name, params, outcome).
+   * Null for plain user/assistant text messages.
+   */
+  @Column({ name: 'action_payload', type: 'jsonb', nullable: true })
+  actionPayload: Record<string, unknown> | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
