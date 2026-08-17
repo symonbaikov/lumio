@@ -57,6 +57,9 @@
     "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
+  "overrides": {
+    "simple-git": ">=3.32.3"
+  },
   "devDependencies": {
     "@babel/plugin-transform-runtime": "^7.28.5",
     "@babel/preset-react": "^7.28.5",
