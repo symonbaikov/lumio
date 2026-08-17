@@ -104,7 +104,7 @@ describe('SheetTransactionImportService', () => {
           previewData: {
             classifications: [
               { index: 0, status: 'new' },
-              { index: 1, status: 'matched' },
+              { index: 1, status: 'matched', existingTransactionId: 'existing-txn-1' },
             ],
           },
         },
@@ -180,6 +180,13 @@ describe('SheetTransactionImportService', () => {
       expect(result.rows[0].status).toBe('ok');
       expect((result.rows[0] as any).sessionStatus).toBe('new');
       expect((result.rows[1] as any).sessionStatus).toBe('matched');
+    });
+
+    it('threads existingTransactionId onto a matched/conflicted row from its classification', async () => {
+      const result = await service.preview(workspaceId, userId, basePreviewDto);
+
+      expect(result.rows[0].existingTransactionId).toBeUndefined();
+      expect(result.rows[1].existingTransactionId).toBe('existing-txn-1');
     });
 
     it('builds summary totals and date range from the ok rows', async () => {

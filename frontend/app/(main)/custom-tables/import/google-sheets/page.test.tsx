@@ -143,6 +143,28 @@ vi.mock('@/app/i18n', () => ({
       walletNone: 'None',
       summary: { total: 'rows', ok: 'to import', duplicates: 'duplicates', errors: 'with errors' },
     },
+    rowsPreview: {
+      title: 'Row validation',
+      emptyHint: 'Rows will appear after preview',
+      filterLabel: { value: 'Filter' },
+      filterOptions: { all: 'All', issues: 'Issues only', duplicates: 'Duplicates only' },
+      statusChips: { new: 'new', duplicate: 'duplicate', error: 'error', skipped: 'skipped' },
+      issueLabels: {
+        invalid_date: 'Invalid date',
+        invalid_amount: 'Invalid amount',
+        zero_amount: 'Zero amount',
+        missing_required: 'Missing required field',
+        duplicate_in_file: 'Duplicate within file',
+        unknown_currency: 'Unknown currency',
+      },
+      sessionFailedLabel: 'Failed to process row',
+      existingTransactionPrefix: 'Existing transaction:',
+      columnHeaders: { row: 'Row', details: 'Details', status: 'Status' },
+      noRowsForFilter: 'No rows match this filter',
+      summaryTemplate: {
+        value: '{skipped} rows will be skipped, the remaining {importing} will be imported',
+      },
+    },
     toasts: {
       loadConnectionsFailed: { value: 'Failed to load connections' },
       oauthRequired: { value: 'OAuth required' },

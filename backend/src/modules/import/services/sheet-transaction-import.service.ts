@@ -61,6 +61,8 @@ export interface SheetTransactionColumnPreview {
 export interface SheetTransactionPreviewRow extends MappedSheetRow {
   /** Per-row classification merged in from ImportSessionService's preview pass, `ok` rows only. */
   sessionStatus?: 'new' | 'matched' | 'conflicted' | 'failed';
+  /** Id of the pre-existing transaction this row matched/conflicted against, `matched`/`conflicted` rows only. */
+  existingTransactionId?: string;
 }
 
 export interface SheetTransactionPreviewResult {
@@ -258,13 +260,14 @@ export class SheetTransactionImportService {
   ): Promise<SheetTransactionPreviewRow[]> {
     const session = await this.importSessionService.getSession(sessionId);
     const classifications = session.sessionMetadata?.previewData?.classifications ?? [];
-    const statusByOkIndex = new Map(classifications.map(c => [c.index, c.status]));
+    const classificationByOkIndex = new Map(classifications.map(c => [c.index, c]));
 
     const merged: SheetTransactionPreviewRow[] = rows.map(row => ({ ...row }));
     rowIndexes.forEach((rowIndex, okIndex) => {
-      const status = statusByOkIndex.get(okIndex);
-      if (status && status !== 'skipped') {
-        merged[rowIndex].sessionStatus = status;
+      const classification = classificationByOkIndex.get(okIndex);
+      if (classification && classification.status !== 'skipped') {
+        merged[rowIndex].sessionStatus = classification.status;
+        merged[rowIndex].existingTransactionId = classification.existingTransactionId;
       }
     });
     return merged;
