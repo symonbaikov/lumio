@@ -1,4 +1,4 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -68,7 +68,7 @@ export class SheetTransactionPreviewDto {
   @IsIn(SHEET_COLUMN_ROLES, { each: true })
   roles?: SheetColumnRole[];
 
-  @ApiPropertyOptional({ description: 'ISO 4217 currency code used when a row has none' })
+  @ApiProperty({ description: 'ISO 4217 currency code used when a row has none' })
   @IsString()
   @Length(3, 3)
   defaultCurrency: string;
