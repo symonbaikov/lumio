@@ -1,11 +1,15 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
 import type { PromptMessage } from '@/app/(main)/ai-analysis/chat/build-prompt';
 import * as chatsApi from '@/app/(main)/ai-analysis/chat/chats-api';
+import { useCallback, useRef, useState } from 'react';
 import { parseIntent } from '../tools/registry';
 import type { ChatTool } from '../tools/types';
-import { buildAgentSystemPrompt, buildRetryMessage, buildToolResultMessage } from './build-agent-prompt';
+import {
+  buildAgentSystemPrompt,
+  buildRetryMessage,
+  buildToolResultMessage,
+} from './build-agent-prompt';
 
 /**
  * The narrow slice of the WebLLM engine the agent loop needs. Kept minimal so
@@ -89,7 +93,11 @@ export function useAgentChat(engine: AgentEngine | null, modelId: string) {
   const persist = useCallback(
     async (
       firstQuestion: string,
-      messages: Array<{ role: 'user' | 'assistant' | 'tool'; content: string; actionPayload?: Record<string, unknown> }>,
+      messages: Array<{
+        role: 'user' | 'assistant' | 'tool';
+        content: string;
+        actionPayload?: Record<string, unknown>;
+      }>,
     ): Promise<void> => {
       try {
         let targetId = chatId;
@@ -99,7 +107,12 @@ export function useAgentChat(engine: AgentEngine | null, modelId: string) {
           setChatId(created.id);
         }
         for (const message of messages) {
-          await chatsApi.appendMessage(targetId, message.role, message.content, message.actionPayload);
+          await chatsApi.appendMessage(
+            targetId,
+            message.role,
+            message.content,
+            message.actionPayload,
+          );
         }
         setUnsaved(false);
       } catch {
@@ -176,7 +189,11 @@ export function useAgentChat(engine: AgentEngine | null, modelId: string) {
             toSave.push({
               role: 'tool',
               content: parsed.reply,
-              actionPayload: { name: tool.name, params: params as Record<string, unknown>, status: 'pending' },
+              actionPayload: {
+                name: tool.name,
+                params: params as Record<string, unknown>,
+                status: 'pending',
+              },
             });
             break;
           }
@@ -217,7 +234,10 @@ export function useAgentChat(engine: AgentEngine | null, modelId: string) {
           }
 
           messages.push(
-            { role: 'assistant', content: JSON.stringify({ reply: parsed.reply, action: { name: tool.name, params } }) },
+            {
+              role: 'assistant',
+              content: JSON.stringify({ reply: parsed.reply, action: { name: tool.name, params } }),
+            },
             buildToolResultMessage(tool.name, result),
           );
         }
@@ -225,7 +245,9 @@ export function useAgentChat(engine: AgentEngine | null, modelId: string) {
         await persist(question, toSave);
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'generation failed');
-        setTurns(previous => previous.filter(turn => turn.id !== userTurn.id || turn.role === 'user'));
+        setTurns(previous =>
+          previous.filter(turn => turn.id !== userTurn.id || turn.role === 'user'),
+        );
       } finally {
         setBusy(false);
       }

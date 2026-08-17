@@ -10,8 +10,8 @@ vi.mock('@/app/(main)/ai-analysis/chat/chats-api', () => ({
   appendMessage: vi.fn(async () => undefined),
 }));
 
-import apiClient from '@/app/lib/api';
 import * as chatsApi from '@/app/(main)/ai-analysis/chat/chats-api';
+import apiClient from '@/app/lib/api';
 import type { AgentEngine } from './useAgentChat';
 import { useAgentChat } from './useAgentChat';
 

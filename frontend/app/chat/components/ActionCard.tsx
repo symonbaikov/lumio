@@ -19,15 +19,26 @@ export interface ActionCardProps {
  * with Confirm/Cancel — the only path to executing a write tool. Read/ui
  * actions reuse the same card in its running/done states.
  */
-export function ActionCard({ action, reply, onConfirm, onCancel }: ActionCardProps): React.JSX.Element {
+export function ActionCard({
+  action,
+  reply,
+  onConfirm,
+  onCancel,
+}: ActionCardProps): React.JSX.Element {
   const t = useIntlayer('chatMode');
 
   const statusLine = (): React.ReactNode => {
     switch (action.status) {
       case 'running':
-        return <Typography sx={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t.working}</Typography>;
+        return (
+          <Typography sx={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t.working}</Typography>
+        );
       case 'done':
-        return <Typography sx={{ fontSize: 12, color: 'var(--success, #2e7d32)' }}>{t.actionDone}</Typography>;
+        return (
+          <Typography sx={{ fontSize: 12, color: 'var(--success, #2e7d32)' }}>
+            {t.actionDone}
+          </Typography>
+        );
       case 'error':
         return (
           <Typography sx={{ fontSize: 12, color: 'var(--error, #d32f2f)' }}>
@@ -36,7 +47,11 @@ export function ActionCard({ action, reply, onConfirm, onCancel }: ActionCardPro
           </Typography>
         );
       case 'cancelled':
-        return <Typography sx={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t.actionCancelled}</Typography>;
+        return (
+          <Typography sx={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            {t.actionCancelled}
+          </Typography>
+        );
       default:
         return null;
     }
@@ -54,9 +69,13 @@ export function ActionCard({ action, reply, onConfirm, onCancel }: ActionCardPro
       }}
     >
       <Stack spacing={0.75}>
-        {reply !== '' ? <Typography sx={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>{reply}</Typography> : null}
+        {reply !== '' ? (
+          <Typography sx={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>{reply}</Typography>
+        ) : null}
         {action.status === 'pending' ? (
-          <Typography sx={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t.confirmPrompt}</Typography>
+          <Typography sx={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            {t.confirmPrompt}
+          </Typography>
         ) : null}
         <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{action.summary}</Typography>
         {action.status === 'pending' ? (

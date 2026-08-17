@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { STATEMENTS_OPEN_UPLOAD_MODAL_EVENT } from '@/app/lib/statement-upload-actions';
+import { z } from 'zod';
 import type { ChatTool } from './types';
 
 /**

@@ -1,5 +1,5 @@
-import type { MLCEngineInterface } from '@mlc-ai/web-llm';
 import type { PromptMessage } from '@/app/(main)/ai-analysis/chat/build-prompt';
+import type { MLCEngineInterface } from '@mlc-ai/web-llm';
 import type { AgentEngine } from './useAgentChat';
 
 /**

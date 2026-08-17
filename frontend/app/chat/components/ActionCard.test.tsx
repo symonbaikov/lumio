@@ -48,7 +48,12 @@ describe('ActionCard', () => {
 
   it('done state hides the buttons', () => {
     render(
-      <ActionCard action={makeAction({ status: 'done' })} reply="" onConfirm={vi.fn()} onCancel={vi.fn()} />,
+      <ActionCard
+        action={makeAction({ status: 'done' })}
+        reply=""
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />,
     );
     expect(screen.getByText('Готово')).toBeInTheDocument();
     expect(screen.queryByText('Подтвердить')).not.toBeInTheDocument();
@@ -68,7 +73,12 @@ describe('ActionCard', () => {
 
   it('cancelled state shows the cancelled label', () => {
     render(
-      <ActionCard action={makeAction({ status: 'cancelled' })} reply="" onConfirm={vi.fn()} onCancel={vi.fn()} />,
+      <ActionCard
+        action={makeAction({ status: 'cancelled' })}
+        reply=""
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />,
     );
     expect(screen.getByText('Отменено')).toBeInTheDocument();
   });

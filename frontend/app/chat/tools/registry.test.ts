@@ -57,7 +57,7 @@ describe('parseIntent', () => {
     if (parsed.ok && parsed.action) {
       expect(parsed.action.tool.name).toBe('create_expense');
       // toLocaleString('ru-RU') separates thousands with a non-breaking space.
-      expect(parsed.action.summary.replace(/[  ]/g, ' ')).toContain('5 000');
+      expect(parsed.action.summary.replace(/[\u00a0\u202f]/g, ' ')).toContain('5 000');
       expect(parsed.action.summary).toContain('Такси');
     } else {
       throw new Error('expected an action');
@@ -77,7 +77,9 @@ describe('parseIntent', () => {
   });
 
   it('rejects unknown action names', () => {
-    const parsed = parseIntent('{"reply": "", "action": {"name": "delete_everything", "params": {}}}');
+    const parsed = parseIntent(
+      '{"reply": "", "action": {"name": "delete_everything", "params": {}}}',
+    );
     expect(parsed.ok).toBe(false);
     if (!parsed.ok) {
       expect(parsed.error).toContain('delete_everything');
