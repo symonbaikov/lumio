@@ -29,7 +29,9 @@ export type ParsedIntent =
  * unknown action names and schema violations are errors, not best guesses.
  */
 export function parseIntent(rawText: string): ParsedIntent {
-  let raw = rawText.trim();
+  // Reasoning models (Qwen 3.5) may prepend a <think> block; its free-form
+  // text can contain braces, so it must go before the JSON is located.
+  let raw = rawText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
   const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fence) {
     raw = fence[1].trim();

@@ -76,6 +76,18 @@ describe('parseIntent', () => {
     }
   });
 
+  it('strips reasoning blocks before locating the JSON', () => {
+    const parsed = parseIntent(
+      '<think>Надо вызвать {get_dashboard}, подумаем…</think>\n{"reply": "ок", "action": {"name": "get_dashboard", "params": {}}}',
+    );
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok && parsed.action) {
+      expect(parsed.action.tool.name).toBe('get_dashboard');
+    } else {
+      throw new Error('expected an action');
+    }
+  });
+
   it('rejects unknown action names', () => {
     const parsed = parseIntent(
       '{"reply": "", "action": {"name": "delete_everything", "params": {}}}',
