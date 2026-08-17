@@ -1,3 +1,8 @@
+---
+paths:
+  - "backend/**"
+---
+
 # Database & Ledger Integrity Standards
 
 ## 1. Schema Management

@@ -74,3 +74,6 @@ docker-compose.override.yml
 graphify-out/*
 !graphify-out/
 !graphify-out/graph.json
+
+# Claude Code
+.claude/settings.local.json
