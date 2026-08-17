@@ -23,7 +23,7 @@ import { detectLayout } from '../sheets/detect-layout.util';
 import { type MappedSheetRow, type SheetMapping, mapSheetRows } from '../sheets/map-sheet-rows';
 import { SheetCurrencyService } from '../sheets/sheet-currency.service';
 import { SheetReferenceResolverService } from '../sheets/sheet-reference-resolver.service';
-import type { ImportSessionService } from './import-session.service';
+import { ImportSessionService } from './import-session.service';
 
 /** Input shared by preview and commit: identifies the sheet and how to map it. */
 export interface SheetTransactionPreviewInput {
