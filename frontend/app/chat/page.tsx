@@ -10,6 +10,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type CloudProviderStatus,
+  createCloudAgentEngine,
+  fetchCloudProviderStatus,
+} from './agent/cloud-engine';
 import { useAgentChat } from './agent/useAgentChat';
 import { createWebLlmAgentEngine } from './agent/webllm-engine';
 import { setChatModePreferred } from './chat-mode-preference';
@@ -20,13 +25,29 @@ export default function ChatModePage(): React.JSX.Element {
   const router = useRouter();
   const { load, engine, ...modelState } = useLocalModel();
 
-  const activeModel = resolveCatalog().find(entry => entry.modelId === modelState.activeModelId);
-  const ready = modelState.status === 'ready' && engine !== null && activeModel !== undefined;
+  // Cloud-first: a configured BYO-key provider serves the chat without any
+  // local download; the local WebGPU model remains the fallback.
+  const [cloud, setCloud] = useState<CloudProviderStatus | null>(null);
+  useEffect(() => {
+    fetchCloudProviderStatus()
+      .then(setCloud)
+      .catch(() => setCloud({ configured: false, model: null }));
+  }, []);
 
-  const agentEngine = useMemo(() => (engine ? createWebLlmAgentEngine(engine) : null), [engine]);
+  const activeModel = resolveCatalog().find(entry => entry.modelId === modelState.activeModelId);
+  const localReady = modelState.status === 'ready' && engine !== null && activeModel !== undefined;
+  const cloudReady = cloud?.configured === true;
+  const ready = cloudReady || localReady;
+
+  const agentEngine = useMemo(() => {
+    if (cloudReady) {
+      return createCloudAgentEngine();
+    }
+    return engine ? createWebLlmAgentEngine(engine) : null;
+  }, [cloudReady, engine]);
   const { turns, busy, send, stop, confirmAction, cancelAction, startNew } = useAgentChat(
     agentEngine,
-    activeModel?.modelId ?? RECOMMENDED_MODEL_ID,
+    cloudReady ? (cloud?.model ?? 'cloud') : (activeModel?.modelId ?? RECOMMENDED_MODEL_ID),
   );
 
   const [draft, setDraft] = useState('');
@@ -107,18 +128,26 @@ export default function ChatModePage(): React.JSX.Element {
               ) : null}
             </Box>
           ) : (
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               <Button variant="contained" onClick={() => void load(RECOMMENDED_MODEL_ID)}>
                 {t.loadModel}
               </Button>
               <Button variant="outlined" component={Link} href="/ai-analysis">
                 {t.manageModels}
               </Button>
+              <Button variant="outlined" component={Link} href="/integrations/ai-compatible">
+                {t.configureCloud}
+              </Button>
             </Stack>
           )}
         </Stack>
       ) : (
         <>
+          {cloudReady ? (
+            <Typography sx={{ fontSize: 12, color: 'var(--text-secondary)', mb: 1 }}>
+              {t.cloudModel}: {cloud?.model} · {t.cloudNotice}
+            </Typography>
+          ) : null}
           <Box sx={{ flexGrow: 1, overflowY: 'auto', mb: 2 }}>
             {turns.length === 0 ? (
               <Stack spacing={2} sx={{ mt: 4 }}>
