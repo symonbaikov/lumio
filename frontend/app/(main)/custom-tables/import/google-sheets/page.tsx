@@ -168,6 +168,12 @@ export default function GoogleSheetsImportPage() {
   const [transactionPreviewLoading, setTransactionPreviewLoading] = useState(false);
   const rolesInitializedRef = useRef(false);
   const transactionPreviewTimerRef = useRef<number | null>(null);
+  // Guards the seed effect below against retrying forever: a failed seed call
+  // resets transactionPreview to null and transactionPreviewLoading to false,
+  // which (without this) satisfies the effect's guard again on any unrelated
+  // re-render and re-fires the request in a loop. Reset alongside the rest of
+  // the transactions-preview state in resetTransactionPreview().
+  const transactionPreviewAttemptedRef = useRef(false);
 
   const [tableName, setTableName] = useState('');
   const [tableDescription, setTableDescription] = useState('');
@@ -235,6 +241,7 @@ export default function GoogleSheetsImportPage() {
     setTransactionPreview(null);
     setTransactionRoles([]);
     rolesInitializedRef.current = false;
+    transactionPreviewAttemptedRef.current = false;
     if (transactionPreviewTimerRef.current) {
       window.clearTimeout(transactionPreviewTimerRef.current);
       transactionPreviewTimerRef.current = null;
@@ -354,8 +361,15 @@ export default function GoogleSheetsImportPage() {
   useEffect(() => {
     if (importTarget !== 'transactions') return;
     if (transactionPreview || transactionPreviewLoading) return;
+    if (transactionPreviewAttemptedRef.current) return;
     if (!canPreview) return;
+    transactionPreviewAttemptedRef.current = true;
     void runTransactionPreview();
+    // `runTransactionPreview` is intentionally omitted: it closes over sourceUrl/
+    // googleSheetId/worksheetName/etc. and is redefined every render, so adding it
+    // here would re-run this effect (and re-fetch) on every keystroke in those
+    // fields instead of only when the guarded conditions above actually change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [importTarget, canPreview, transactionPreview, transactionPreviewLoading]);
 
   // Live re-preview: a role change re-posts /preview (debounced 400ms) so the

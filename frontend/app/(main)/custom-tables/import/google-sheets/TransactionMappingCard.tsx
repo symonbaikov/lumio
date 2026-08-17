@@ -51,7 +51,16 @@ export interface TransactionMappingCardContent {
   title: ReactNode;
   subtitle: ReactNode;
   emptyHint: ReactNode;
-  columnHeaders: { letter: ReactNode; header: ReactNode; samples: ReactNode; role: ReactNode };
+  columnHeaders: {
+    letter: ReactNode;
+    header: ReactNode;
+    samples: ReactNode;
+    // Interpolated into the per-row aria-label below (and rendered via `.value`
+    // in the <th> too) — template-literal interpolation of an intlayer node
+    // renders "[object Object]" instead of the localized text unless `.value`
+    // is used explicitly.
+    role: { value: string };
+  };
   roles: Record<SheetColumnRole, ReactNode>;
   defaultCurrencyLabel: ReactNode;
   createMissingCategoriesLabel: ReactNode;
@@ -163,7 +172,7 @@ export function TransactionMappingCard({
                   {t.columnHeaders.samples}
                 </th>
                 <th style={{ padding: '8px 12px', textAlign: 'left', width: 200 }}>
-                  {t.columnHeaders.role}
+                  {t.columnHeaders.role.value}
                 </th>
               </tr>
             </thead>
@@ -177,7 +186,7 @@ export function TransactionMappingCard({
                   </td>
                   <td style={{ padding: '8px 12px' }}>
                     <select
-                      aria-label={`${t.columnHeaders.role} ${column.a1}`}
+                      aria-label={`${t.columnHeaders.role.value} ${column.a1}`}
                       value={roles[column.index] ?? 'ignore'}
                       onChange={e =>
                         handleRoleChange(column.index, e.target.value as SheetColumnRole)

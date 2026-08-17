@@ -12,7 +12,11 @@ const t: TransactionMappingCardContent = {
   title: 'Column mapping',
   subtitle: 'Assign a role to each column',
   emptyHint: 'Run a preview to see columns',
-  columnHeaders: { letter: 'Col', header: 'Header', samples: 'Samples', role: 'Role' },
+  // `role` mirrors the shape of a real intlayer leaf node (an object with a
+  // `.value` string, not a plain string) so that interpolating it into a
+  // template literal without `.value` would render "[object Object]" here
+  // too, the same way it silently would in production.
+  columnHeaders: { letter: 'Col', header: 'Header', samples: 'Samples', role: { value: 'Role' } },
   roles: {
     ignore: 'Ignore',
     date: 'Date',
@@ -76,6 +80,18 @@ describe('TransactionMappingCard', () => {
     expect(dateSelect.value).toBe('date');
     const amountSelect = screen.getByLabelText('Role B') as HTMLSelectElement;
     expect(amountSelect.value).toBe('amount');
+  });
+
+  it('interpolates the localized role label (not the raw intlayer node) into each aria-label', () => {
+    const { container } = render(<TransactionMappingCard {...baseProps()} />);
+
+    const selects = container.querySelectorAll('select[aria-label]');
+    const ariaLabels = Array.from(selects).map(el => el.getAttribute('aria-label'));
+
+    expect(ariaLabels).toEqual(['Role A', 'Role B', 'Role C']);
+    // Regression guard: interpolating the raw intlayer node (instead of its
+    // `.value`) coerces via Object.prototype.toString and renders this.
+    expect(ariaLabels).not.toContain('[object Object] A');
   });
 
   it('fires onRolesChange with the updated array when a role select changes', () => {

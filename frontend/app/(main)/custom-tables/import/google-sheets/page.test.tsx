@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const push = vi.hoisted(() => vi.fn());
 const apiGet = vi.hoisted(() => vi.fn());
 const apiPost = vi.hoisted(() => vi.fn());
+const toastError = vi.hoisted(() => vi.fn());
 // Stable object references: a mock hook that returns fresh literals on every render
 // makes any effect depending on that value re-fire forever (this page's auth effect
 // depends on `user`), so keep these module-level constants instead of inlining them.
@@ -40,7 +41,7 @@ vi.mock('@/app/lib/api', () => ({
 
 vi.mock('react-hot-toast', () => ({
   default: {
-    error: vi.fn(),
+    error: toastError,
     success: vi.fn(),
     loading: vi.fn(),
   },
@@ -117,7 +118,12 @@ vi.mock('@/app/i18n', () => ({
       title: 'Column mapping',
       subtitle: 'Assign a role to each column',
       emptyHint: 'Run a preview to see columns',
-      columnHeaders: { letter: 'Col', header: 'Header', samples: 'Samples', role: 'Role' },
+      columnHeaders: {
+        letter: 'Col',
+        header: 'Header',
+        samples: 'Samples',
+        role: { value: 'Role' },
+      },
       roles: {
         ignore: 'Ignore',
         date: 'Date',
@@ -237,6 +243,7 @@ describe('GoogleSheetsImportPage target selector', () => {
     apiGet.mockReset();
     apiPost.mockReset();
     push.mockReset();
+    toastError.mockReset();
     apiGet.mockImplementation((url: string) => {
       if (url === '/google-sheets') {
         return Promise.resolve({ data: { data: [] } });
@@ -406,5 +413,37 @@ describe('GoogleSheetsImportPage target selector', () => {
     expect(transactionsPreviewCalls[0][1]).toEqual(
       expect.objectContaining({ roles: ['debit', 'ignore', 'ignore'] }),
     );
+  });
+
+  it('shows an error toast and leaves the mapping card empty when the transactions preview call fails', async () => {
+    apiPost.mockImplementation((url: string) => {
+      if (url === '/custom-tables/import/google-sheets/preview') {
+        return Promise.resolve(financialPreviewResponse);
+      }
+      if (url === '/import/google-sheets/transactions/preview') {
+        return Promise.reject(new Error('network down'));
+      }
+      return Promise.resolve({ data: { data: {} } });
+    });
+
+    await renderPage();
+    fillSourceUrl();
+    await act(async () => {
+      fireEvent.click(screen.getByText('Run preview'));
+    });
+
+    // The financial preview defaults the target to 'transactions', which triggers
+    // the (rejected) seed call.
+    await waitFor(() => {
+      expect(toastError).toHaveBeenCalledTimes(1);
+    });
+
+    // No columns were seeded, so the mapping card stays in its empty state rather
+    // than rendering role selects for data it never received.
+    expect(screen.getByText('Run a preview to see columns')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Role A')).not.toBeInTheDocument();
+
+    // Loading resets so the page doesn't get stuck showing a spinner forever.
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
   });
 });
