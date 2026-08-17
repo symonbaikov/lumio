@@ -85,6 +85,7 @@ describe('SheetTransactionImportService', () => {
       manager: {
         create: jest.fn((_entity: unknown, data: unknown) => data),
         save: jest.fn(async (data: any) => ({ ...data, id: 'stmt-1' }) as Statement),
+        update: jest.fn(async () => ({ affected: 1 })),
       },
     };
     dataSource = { createQueryRunner: jest.fn(() => queryRunner) };
@@ -234,6 +235,40 @@ describe('SheetTransactionImportService', () => {
       );
       expect(result.statementId).toBe('stmt-1');
       expect(queryRunner.commitTransaction).toHaveBeenCalled();
+    });
+
+    it('reassociates a reused (preview) session with the new statement before committing', async () => {
+      // Simulates ImportSessionService.createSession's real idempotent-reuse behavior:
+      // when a session already exists for this fileHash (created during a prior preview()
+      // call), it is returned UNCHANGED — the statementId argument passed here is ignored.
+      // See import-session.service.ts:188-221.
+      importSessionService.createSession = jest.fn(async () => ({
+        id: 'session-1',
+        statementId: null,
+      }));
+
+      const callOrder: string[] = [];
+      queryRunner.manager.update = jest.fn(async () => {
+        callOrder.push('update');
+        return { affected: 1 };
+      });
+      importSessionService.processImport = jest.fn(async () => {
+        callOrder.push('processImport');
+        return {
+          sessionId: 'session-1',
+          status: 'completed',
+          summary: { ...emptyImportSummary(), newCount: 2 },
+        };
+      });
+
+      await service.runCommit(workspaceId, userId, commitDto);
+
+      expect(queryRunner.manager.update).toHaveBeenCalledWith(
+        expect.anything(),
+        { id: 'session-1' },
+        { statementId: 'stmt-1' },
+      );
+      expect(callOrder).toEqual(['update', 'processImport']);
     });
 
     it('throws BadRequestException and creates no statement when there are zero valid rows', async () => {

@@ -3,7 +3,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CategoryType } from '../../../entities/category.entity';
-import { ImportSessionMode } from '../../../entities/import-session.entity';
+import { ImportSession, ImportSessionMode } from '../../../entities/import-session.entity';
 import { BankName, FileType, Statement, StatementStatus } from '../../../entities/statement.entity';
 import { Transaction, TransactionType } from '../../../entities/transaction.entity';
 import { Wallet } from '../../../entities/wallet.entity';
@@ -508,6 +508,18 @@ export class SheetTransactionImportService {
         fileHash,
         savedStatement.fileName,
         0,
+      );
+
+      // createSession() is idempotent by fileHash: if preview() already created a session
+      // for this exact sheet content, that PREVIEW-status session is returned unchanged —
+      // savedStatement.id above is silently discarded, leaving session.statementId at
+      // whatever it was (null, from preview()'s createSession(..., null, ...) call).
+      // Explicitly reassociate it here so processImport persists transactions against the
+      // statement actually created in this commit, not an orphaned null.
+      await queryRunner.manager.update(
+        ImportSession,
+        { id: session.id },
+        { statementId: savedStatement.id },
       );
 
       const processResult = await this.importSessionService.processImport(
