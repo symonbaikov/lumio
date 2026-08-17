@@ -15,7 +15,7 @@ describe('DataEntryController', () => {
       updateCustomField: jest.fn(),
       removeCustomField: jest.fn(),
     };
-    const controller = new DataEntryController(dataEntryService as any);
+    const controller = new DataEntryController(dataEntryService as any, {} as any);
     const workspaceId = 'ws-1';
 
     const result = await controller.list(
@@ -56,7 +56,7 @@ describe('DataEntryController', () => {
       updateCustomField: jest.fn(async () => ({ id: 'f1' })),
       removeCustomField: jest.fn(async () => undefined),
     };
-    const controller = new DataEntryController(dataEntryService as any);
+    const controller = new DataEntryController(dataEntryService as any, {} as any);
     const user = { id: 'u1' } as any;
     const workspaceId = 'ws-1';
 
@@ -88,15 +88,61 @@ describe('DataEntryController', () => {
     expect(dataEntryService.removeCustomField).toHaveBeenCalledWith(workspaceId, user.id, 'f1');
   });
 
+  it('returns cached response for a repeated idempotency key without creating a duplicate', async () => {
+    const dataEntryService = {
+      create: jest.fn(async () => ({ id: 'e1' })),
+    };
+    const idempotencyService = {
+      checkKey: jest.fn(async () => null),
+      storeKey: jest.fn(async () => undefined),
+    };
+    const controller = new DataEntryController(
+      dataEntryService as any,
+      idempotencyService as any,
+    );
+    const user = { id: 'u1' } as any;
+    const workspaceId = 'ws-1';
+    const dto = { type: DataEntryType.CASH } as any;
+
+    const first = await controller.create(user, workspaceId, dto, 'key-1');
+    expect(first).toEqual({ id: 'e1' });
+    expect(idempotencyService.checkKey).toHaveBeenCalledWith('key-1', 'u1', 'ws-1');
+    expect(idempotencyService.storeKey).toHaveBeenCalledWith('key-1', 'u1', 'ws-1', { id: 'e1' });
+
+    idempotencyService.checkKey.mockResolvedValueOnce({ data: { id: 'e1' }, cached: true } as any);
+    const second = await controller.create(user, workspaceId, dto, 'key-1');
+    expect(second).toEqual({ id: 'e1' });
+    expect(dataEntryService.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips idempotency machinery when no key is provided', async () => {
+    const dataEntryService = {
+      create: jest.fn(async () => ({ id: 'e1' })),
+    };
+    const idempotencyService = {
+      checkKey: jest.fn(),
+      storeKey: jest.fn(),
+    };
+    const controller = new DataEntryController(
+      dataEntryService as any,
+      idempotencyService as any,
+    );
+
+    await controller.create({ id: 'u1' } as any, 'ws-1', { type: DataEntryType.CASH } as any);
+
+    expect(idempotencyService.checkKey).not.toHaveBeenCalled();
+    expect(idempotencyService.storeKey).not.toHaveBeenCalled();
+  });
+
   it('uploadCustomIcon throws when file is missing', async () => {
-    const controller = new DataEntryController({} as any);
+    const controller = new DataEntryController({} as any, {} as any);
     await expect(controller.uploadCustomIcon(undefined as any)).rejects.toThrow(
       BadRequestException,
     );
   });
 
   it('uploadCustomIcon returns url for uploaded file', async () => {
-    const controller = new DataEntryController({} as any);
+    const controller = new DataEntryController({} as any, {} as any);
     const res = await controller.uploadCustomIcon({
       filename: 'icon.png',
     } as any);

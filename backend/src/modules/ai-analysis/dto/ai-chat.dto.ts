@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
 import { AiChatRole } from '../../../entities';
 
 /** Transcripts are long-form text; this caps a single turn at a sane size. */
@@ -26,6 +26,11 @@ export class AppendAiChatMessageDto {
   @IsNotEmpty()
   @MaxLength(MESSAGE_MAX_LENGTH)
   content: string;
+
+  /** Structured action record for tool turns; absent on plain text messages. */
+  @IsOptional()
+  @IsObject()
+  actionPayload?: Record<string, unknown>;
 }
 
 export class RenameAiChatDto {
