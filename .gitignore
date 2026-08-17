@@ -58,6 +58,12 @@ temp/
 uploads/
 !uploads/.gitkeep
 
+# Statement uploads land in the backend's working directory when UPLOADS_DIR is
+# unset, which is the default in local dev. Parsing fixtures are kept on purpose
+# and live in backend/golden/ and docs/statements-examples/.
+backend/*-statement.pdf
+backend/*-receipt.pdf
+
 # TypeScript
 *.tsbuildinfo
 
