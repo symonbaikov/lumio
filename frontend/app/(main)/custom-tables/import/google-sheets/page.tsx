@@ -7,18 +7,19 @@ import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import { type WorksheetOption, getDefaultWorksheetName } from '@/app/lib/googleSheetsSelection';
-import { Box, Typography } from '@mui/material';
+import { Box, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { Sparkles, Tag as CategoryIconFallback } from '@/app/components/icons';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type CSSProperties, useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTheme } from 'next-themes';
 import { tokens } from '@/lib/theme-tokens';
 
 type ColumnType = 'text' | 'number' | 'date' | 'boolean' | 'select' | 'multi_select';
 type LayoutType = 'auto' | 'flat' | 'matrix';
+type ImportTarget = 'transactions' | 'table';
 interface GoogleSheetConnection {
   id: string;
   sheetId: string;
@@ -122,6 +123,9 @@ export default function GoogleSheetsImportPage() {
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [columns, setColumns] = useState<PreviewColumn[]>([]);
 
+  const [importTarget, setImportTarget] = useState<ImportTarget>('table');
+  const importTargetTouchedRef = useRef(false);
+
   const [tableName, setTableName] = useState('');
   const [tableDescription, setTableDescription] = useState('');
   const [importData, setImportData] = useState(true);
@@ -204,6 +208,20 @@ export default function GoogleSheetsImportPage() {
 
     void loadWorksheets();
   }, [selectedConnection]);
+
+  // Default the import target once a preview loads. This page cannot call the real
+  // backend `detectColumnRoles` util (Task 4) which drives the actual role-detection
+  // logic for transaction imports, so as a proxy heuristic we look at the existing
+  // table-import preview's suggested column types: if it found both a date column and
+  // a number column, a "transactions" target is a reasonable default, otherwise "table".
+  // Guarded so re-previewing never clobbers a target the user picked explicitly.
+  useEffect(() => {
+    if (!preview) return;
+    if (importTargetTouchedRef.current) return;
+    const hasDateColumn = preview.columns.some(col => col.suggestedType === 'date');
+    const hasNumberColumn = preview.columns.some(col => col.suggestedType === 'number');
+    setImportTarget(hasDateColumn && hasNumberColumn ? 'transactions' : 'table');
+  }, [preview]);
 
   const handlePreview = async () => {
     if (!hasSourceUrl && (!googleSheetId || selectedConnection?.oauthConnected === false)) {
@@ -533,126 +551,155 @@ export default function GoogleSheetsImportPage() {
             data-tour-id="gs-import-result-card"
           >
             <Typography style={{ fontSize: 14, fontWeight: 600, color: c.ink900, marginBottom: 12 }}>{t.result.title}</Typography>
-            <label style={{ display: 'block', marginBottom: 12 }}>
-              <span style={{ fontSize: 14, fontWeight: 500, color: c.ink800 }}>{t.result.tableNameLabel}</span>
-              <input
-                value={tableName}
-                onChange={e => setTableName(e.target.value)}
-                data-tour-id="gs-import-table-name"
-                style={inputStyle}
-                placeholder={t.result.tableNamePlaceholder.value}
-              />
-            </label>
-            <label style={{ display: 'block', marginBottom: 12 }}>
-              <span style={{ fontSize: 14, fontWeight: 500, color: c.ink800 }}>{t.result.descriptionLabel}</span>
-              <input
-                value={tableDescription}
-                onChange={e => setTableDescription(e.target.value)}
-                style={inputStyle}
-              />
-            </label>
 
-            <label style={{ display: 'block', marginBottom: 12 }}>
-              <span style={{ fontSize: 14, fontWeight: 500, color: c.ink800 }}>{t.result.categoryLabel}</span>
-              <select
-                value={categoryId}
-                onChange={e => setCategoryId(e.target.value)}
-                data-tour-id="gs-import-category"
-                style={inputStyle}
-              >
-                <option value="">{t.result.noCategory}</option>
-                {categories.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              {categoryId && (
-                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, fontSize: 12, color: c.ink700 }}>
-                  <Box
-                    sx={{ display: 'inline-flex', width: 24, height: 24, alignItems: 'center', justifyContent: 'center', border: `1px solid ${c.ink150}`, bgcolor: categories.find(cat => cat.id === categoryId)?.color || c.ink50 }}
-                  >
-                    {(() => {
-                      const selected = categories.find(cat => cat.id === categoryId);
-                      return selected?.icon ? (
-                        <CategoryIconFallback size={16} />
-                      ) : (
-                        <Image
-                          src="/icons/icons8-google-sheets-48.png"
-                          alt="Google Sheets"
-                          width={16}
-                          height={16}
-                          className="h-4 w-4"
-                        />
-                      );
-                    })()}
-                  </Box>
-                  <span>{t.result.categoryHint}</span>
-                </Box>
-              )}
-            </label>
-
-            <Box
-              sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 14, color: c.ink800, mb: 2 }}
-              data-tour-id="gs-import-import-data"
-            >
-              <Checkbox checked={importData} onCheckedChange={setImportData} className="h-5 w-5" />
-              {t.result.importDataCheckbox}
-            </Box>
-
-            <Box
-              component="button"
-              onClick={handleCommit}
-              disabled={!canCommit || committing || Boolean(jobId)}
-              data-tour-id="gs-import-commit-button"
-              sx={{
-                display: 'inline-flex',
-                width: '100%',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 1,
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
-                px: 2,
-                py: 1,
-                fontSize: 14,
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-                '&:hover': { bgcolor: 'primary.dark' },
-                '&:disabled': { opacity: 0.7, cursor: 'not-allowed' },
+            <ToggleButtonGroup
+              value={importTarget}
+              exclusive
+              onChange={(_e, value: ImportTarget | null) => {
+                if (!value) return;
+                importTargetTouchedRef.current = true;
+                setImportTarget(value);
               }}
+              data-tour-id="gs-import-target-selector"
+              size="small"
+              sx={{ mb: 2 }}
+              fullWidth
             >
-              {committing ? <Spinner className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-              {jobId ? t.result.importRunning : t.result.importButton}
-            </Box>
-            {jobId ? (
-              <Box sx={{ mt: 1.5, border: `1px solid ${c.ink150}`, bgcolor: 'background.paper', p: 1.5 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                  <Typography style={{ fontSize: 14, fontWeight: 600, color: c.ink900 }}>
-                    {t.result.progressTitle}
-                  </Typography>
-                  <Typography style={{ fontSize: 14, fontWeight: 600, color: c.ink800 }}>
-                    {Math.round(jobProgress)}%
-                  </Typography>
-                </Box>
-                <Box sx={{ mt: 1, height: 8, width: '100%', bgcolor: 'action.hover', overflow: 'hidden' }}>
-                  <Box
-                    sx={{ height: '100%', bgcolor: 'primary.main', width: `${Math.max(0, Math.min(100, jobProgress))}%` }}
+              <ToggleButton value="transactions">{t.targetSelector.transactionsLabel}</ToggleButton>
+              <ToggleButton value="table">{t.targetSelector.tableLabel}</ToggleButton>
+            </ToggleButtonGroup>
+
+            {importTarget === 'table' ? (
+              <>
+                <label style={{ display: 'block', marginBottom: 12 }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: c.ink800 }}>{t.result.tableNameLabel}</span>
+                  <input
+                    value={tableName}
+                    onChange={e => setTableName(e.target.value)}
+                    data-tour-id="gs-import-table-name"
+                    style={inputStyle}
+                    placeholder={t.result.tableNamePlaceholder.value}
                   />
+                </label>
+                <label style={{ display: 'block', marginBottom: 12 }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: c.ink800 }}>{t.result.descriptionLabel}</span>
+                  <input
+                    value={tableDescription}
+                    onChange={e => setTableDescription(e.target.value)}
+                    style={inputStyle}
+                  />
+                </label>
+
+                <label style={{ display: 'block', marginBottom: 12 }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: c.ink800 }}>{t.result.categoryLabel}</span>
+                  <select
+                    value={categoryId}
+                    onChange={e => setCategoryId(e.target.value)}
+                    data-tour-id="gs-import-category"
+                    style={inputStyle}
+                  >
+                    <option value="">{t.result.noCategory}</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  {categoryId && (
+                    <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, fontSize: 12, color: c.ink700 }}>
+                      <Box
+                        sx={{ display: 'inline-flex', width: 24, height: 24, alignItems: 'center', justifyContent: 'center', border: `1px solid ${c.ink150}`, bgcolor: categories.find(cat => cat.id === categoryId)?.color || c.ink50 }}
+                      >
+                        {(() => {
+                          const selected = categories.find(cat => cat.id === categoryId);
+                          return selected?.icon ? (
+                            <CategoryIconFallback size={16} />
+                          ) : (
+                            <Image
+                              src="/icons/icons8-google-sheets-48.png"
+                              alt="Google Sheets"
+                              width={16}
+                              height={16}
+                              className="h-4 w-4"
+                            />
+                          );
+                        })()}
+                      </Box>
+                      <span>{t.result.categoryHint}</span>
+                    </Box>
+                  )}
+                </label>
+
+                <Box
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 14, color: c.ink800, mb: 2 }}
+                  data-tour-id="gs-import-import-data"
+                >
+                  <Checkbox checked={importData} onCheckedChange={setImportData} className="h-5 w-5" />
+                  {t.result.importDataCheckbox}
                 </Box>
-                <Typography style={{ marginTop: 8, fontSize: 12, color: c.ink700 }}>
-                  {t.result.statusLabel.value}:{' '}
-                  <span style={{ fontWeight: 500 }}>{jobStatus || t.result.dash.value}</span>{' '}
-                  {jobStage ? <span style={{ color: c.ink500 }}>({jobStage})</span> : null}
-                </Typography>
-                {jobError ? (
-                  <Typography style={{ marginTop: 8, fontSize: 12, color: c.danger, overflowWrap: 'break-word' }}>{jobError}</Typography>
+
+                <Box
+                  component="button"
+                  onClick={handleCommit}
+                  disabled={!canCommit || committing || Boolean(jobId)}
+                  data-tour-id="gs-import-commit-button"
+                  sx={{
+                    display: 'inline-flex',
+                    width: '100%',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 1,
+                    bgcolor: 'primary.main',
+                    color: 'primary.contrastText',
+                    px: 2,
+                    py: 1,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: 'primary.dark' },
+                    '&:disabled': { opacity: 0.7, cursor: 'not-allowed' },
+                  }}
+                >
+                  {committing ? <Spinner className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                  {jobId ? t.result.importRunning : t.result.importButton}
+                </Box>
+                {jobId ? (
+                  <Box sx={{ mt: 1.5, border: `1px solid ${c.ink150}`, bgcolor: 'background.paper', p: 1.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                      <Typography style={{ fontSize: 14, fontWeight: 600, color: c.ink900 }}>
+                        {t.result.progressTitle}
+                      </Typography>
+                      <Typography style={{ fontSize: 14, fontWeight: 600, color: c.ink800 }}>
+                        {Math.round(jobProgress)}%
+                      </Typography>
+                    </Box>
+                    <Box sx={{ mt: 1, height: 8, width: '100%', bgcolor: 'action.hover', overflow: 'hidden' }}>
+                      <Box
+                        sx={{ height: '100%', bgcolor: 'primary.main', width: `${Math.max(0, Math.min(100, jobProgress))}%` }}
+                      />
+                    </Box>
+                    <Typography style={{ marginTop: 8, fontSize: 12, color: c.ink700 }}>
+                      {t.result.statusLabel.value}:{' '}
+                      <span style={{ fontWeight: 500 }}>{jobStatus || t.result.dash.value}</span>{' '}
+                      {jobStage ? <span style={{ color: c.ink500 }}>({jobStage})</span> : null}
+                    </Typography>
+                    {jobError ? (
+                      <Typography style={{ marginTop: 8, fontSize: 12, color: c.danger, overflowWrap: 'break-word' }}>{jobError}</Typography>
+                    ) : null}
+                  </Box>
                 ) : null}
+                {!preview && (
+                  <Typography style={{ marginTop: 8, fontSize: 12, color: c.ink500 }}>{t.result.needPreviewHint}</Typography>
+                )}
+              </>
+            ) : (
+              <Box
+                sx={{ border: `1px dashed ${c.ink150}`, bgcolor: c.ink50, p: 3, fontSize: 14, color: c.ink700 }}
+                data-tour-id="gs-import-transactions-placeholder"
+              >
+                {t.targetSelector.transactionsPlaceholder}
               </Box>
-            ) : null}
-            {!preview && (
-              <Typography style={{ marginTop: 8, fontSize: 12, color: c.ink500 }}>{t.result.needPreviewHint}</Typography>
             )}
           </Box>
         </Box>

@@ -1,0 +1,291 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+// @vitest-environment jsdom
+import { act } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const push = vi.hoisted(() => vi.fn());
+const apiGet = vi.hoisted(() => vi.fn());
+const apiPost = vi.hoisted(() => vi.fn());
+// Stable object references: a mock hook that returns fresh literals on every render
+// makes any effect depending on that value re-fire forever (this page's auth effect
+// depends on `user`), so keep these module-level constants instead of inlining them.
+const mockUser = vi.hoisted(() => ({ id: 'user-1' }));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push }),
+}));
+
+vi.mock('next/image', () => ({
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
+    const { alt = '', ...rest } = props;
+    // biome-ignore lint/a11y/useAltText: alt is destructured from props above and always passed through.
+    return <img alt={alt} {...rest} />;
+  },
+}));
+
+vi.mock('next-themes', () => ({
+  useTheme: () => ({ resolvedTheme: 'light' }),
+}));
+
+vi.mock('@/app/hooks/useAuth', () => ({
+  useAuth: () => ({ user: mockUser, loading: false }),
+}));
+
+vi.mock('@/app/lib/api', () => ({
+  default: {
+    get: apiGet,
+    post: apiPost,
+  },
+}));
+
+vi.mock('react-hot-toast', () => ({
+  default: {
+    error: vi.fn(),
+    success: vi.fn(),
+    loading: vi.fn(),
+  },
+}));
+
+vi.mock('@/app/i18n', () => ({
+  useIntlayer: () => ({
+    auth: { loginRequired: 'Login required' },
+    header: { title: 'Import from Google Sheets', subtitle: 'subtitle', back: 'Back' },
+    defaults: { tableName: { value: 'Untitled table' } },
+    source: {
+      title: 'Source',
+      oauthNeededSuffix: { value: ' (needs OAuth)' },
+      worksheetLabel: 'Worksheet',
+      worksheetHelp: 'worksheet help',
+      worksheetLoading: 'Loading worksheets...',
+      worksheetPlaceholder: 'Select worksheet',
+      rangeLabel: 'Range',
+      rangePlaceholder: { value: 'e.g. A1:D20' },
+      headerOffsetLabel: 'Header offset',
+      headerOffsetHelp: 'header offset help',
+      layoutLabel: 'Layout',
+      layoutAuto: 'Auto',
+      layoutFlat: 'Flat',
+      layoutMatrix: 'Matrix',
+      previewButton: 'Run preview',
+      previewButtonLoading: 'Loading...',
+      loadingConnections: 'Loading connections...',
+    },
+    result: {
+      title: 'Result',
+      tableNameLabel: 'Table name',
+      tableNamePlaceholder: { value: 'e.g. Payments' },
+      descriptionLabel: 'Description',
+      categoryLabel: 'Category',
+      noCategory: 'No category',
+      categoryHint: 'category hint',
+      importDataCheckbox: 'Import data',
+      importButton: 'Start import',
+      importRunning: 'Importing...',
+      progressTitle: 'Progress',
+      statusLabel: { value: 'Status' },
+      dash: { value: '-' },
+      needPreviewHint: 'Run a preview first',
+    },
+    preview: {
+      title: 'Sheet preview',
+      subtitle: 'preview subtitle',
+      hint: 'preview hint',
+      rowHeader: 'Row',
+      layoutPrefix: { value: 'Layout' },
+    },
+    columns: {
+      title: 'Columns',
+      subtitle: 'columns subtitle',
+      enableAll: 'Enable all',
+      appearAfterPreview: 'Columns appear after preview',
+      tableHeaders: { enabled: 'Enabled', name: 'Name', type: 'Type' },
+      types: {
+        text: 'Text',
+        number: 'Number',
+        date: 'Date',
+        boolean: 'Boolean',
+        select: 'Select',
+        multiSelect: 'Multi-select',
+      },
+    },
+    targetSelector: {
+      transactionsLabel: 'Транзакции',
+      tableLabel: 'Таблица',
+      transactionsPlaceholder: 'Transaction import: column mapping will appear here',
+    },
+    toasts: {
+      loadConnectionsFailed: { value: 'Failed to load connections' },
+      oauthRequired: { value: 'OAuth required' },
+      previewReady: { value: 'Preview ready' },
+      previewFailed: { value: 'Preview failed' },
+      importStartFailed: { value: 'Import start failed' },
+      importStarted: { value: 'Import started' },
+      importFailed: { value: 'Import failed' },
+      importDone: { value: 'Import done' },
+      importError: { value: 'Import error' },
+    },
+  }),
+}));
+
+const financialPreviewResponse = {
+  data: {
+    data: {
+      spreadsheetId: 'sheet-1',
+      worksheetName: 'Sheet1',
+      usedRange: { a1: 'A1:C10', rowsCount: 10, colsCount: 3 },
+      layoutSuggested: 'flat',
+      headerRowIndex: 0,
+      columns: [
+        { index: 0, a1: 'A', title: 'Date', suggestedType: 'date', include: true },
+        { index: 1, a1: 'B', title: 'Amount', suggestedType: 'number', include: true },
+        { index: 2, a1: 'C', title: 'Note', suggestedType: 'text', include: true },
+      ],
+      sampleRows: [{ rowNumber: 2, values: ['2024-01-01', '10.5', 'coffee'] }],
+    },
+  },
+};
+
+const nonFinancialPreviewResponse = {
+  data: {
+    data: {
+      spreadsheetId: 'sheet-2',
+      worksheetName: 'Sheet1',
+      usedRange: { a1: 'A1:B10', rowsCount: 10, colsCount: 2 },
+      layoutSuggested: 'flat',
+      headerRowIndex: 0,
+      columns: [
+        { index: 0, a1: 'A', title: 'Name', suggestedType: 'text', include: true },
+        { index: 1, a1: 'B', title: 'Created', suggestedType: 'date', include: true },
+      ],
+      sampleRows: [{ rowNumber: 2, values: ['Alice', '2024-01-01'] }],
+    },
+  },
+};
+
+async function renderPage() {
+  const { default: GoogleSheetsImportPage } = await import('./page');
+  await act(async () => {
+    render(<GoogleSheetsImportPage />);
+  });
+}
+
+function fillSourceUrl() {
+  const input = screen.getByPlaceholderText('https://docs.google.com/spreadsheets/d/...');
+  fireEvent.change(input, { target: { value: 'https://docs.google.com/spreadsheets/d/abc123' } });
+}
+
+async function runPreview() {
+  fillSourceUrl();
+  const previewButton = screen.getByText('Run preview');
+  await act(async () => {
+    fireEvent.click(previewButton);
+  });
+}
+
+describe('GoogleSheetsImportPage target selector', () => {
+  beforeEach(() => {
+    apiGet.mockReset();
+    apiPost.mockReset();
+    push.mockReset();
+    apiGet.mockImplementation((url: string) => {
+      if (url === '/google-sheets') {
+        return Promise.resolve({ data: { data: [] } });
+      }
+      if (url === '/categories') {
+        return Promise.resolve({ data: { data: [] } });
+      }
+      return Promise.resolve({ data: { data: [] } });
+    });
+  });
+
+  it('renders both toggle options', async () => {
+    await renderPage();
+    expect(screen.getByText('Транзакции')).toBeInTheDocument();
+    expect(screen.getByText('Таблица')).toBeInTheDocument();
+  });
+
+  it('defaults to transactions for a financial preview (date + amount columns)', async () => {
+    apiPost.mockImplementation((url: string) => {
+      if (url === '/custom-tables/import/google-sheets/preview') {
+        return Promise.resolve(financialPreviewResponse);
+      }
+      return Promise.resolve({ data: { data: {} } });
+    });
+
+    await renderPage();
+    await runPreview();
+
+    await waitFor(() => {
+      const transactionsButton = screen.getByText('Транзакции').closest('button');
+      expect(transactionsButton).toHaveAttribute('aria-pressed', 'true');
+    });
+    const tableButton = screen.getByText('Таблица').closest('button');
+    expect(tableButton).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('defaults to table when no amount column was detected', async () => {
+    apiPost.mockImplementation((url: string) => {
+      if (url === '/custom-tables/import/google-sheets/preview') {
+        return Promise.resolve(nonFinancialPreviewResponse);
+      }
+      return Promise.resolve({ data: { data: {} } });
+    });
+
+    await renderPage();
+    await runPreview();
+
+    await waitFor(() => {
+      const tableButton = screen.getByText('Таблица').closest('button');
+      expect(tableButton).toHaveAttribute('aria-pressed', 'true');
+    });
+    const transactionsButton = screen.getByText('Транзакции').closest('button');
+    expect(transactionsButton).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('switching target changes which submit handler fires', async () => {
+    apiPost.mockImplementation((url: string) => {
+      if (url === '/custom-tables/import/google-sheets/preview') {
+        return Promise.resolve(nonFinancialPreviewResponse);
+      }
+      if (url === '/custom-tables/import/google-sheets/commit') {
+        return Promise.resolve({ data: { data: { jobId: 'job-1' } } });
+      }
+      return Promise.resolve({ data: { data: {} } });
+    });
+
+    await renderPage();
+    await runPreview();
+
+    // Table is the default target here (no amount column detected).
+    const commitButton = screen.getByText('Start import').closest('button') as HTMLButtonElement;
+    expect(commitButton).not.toBeNull();
+    await act(async () => {
+      fireEvent.click(commitButton);
+    });
+
+    expect(apiPost).toHaveBeenCalledWith(
+      '/custom-tables/import/google-sheets/commit',
+      expect.anything(),
+    );
+
+    apiPost.mockClear();
+
+    // Switch to the transactions target.
+    const transactionsButton = screen
+      .getByText('Транзакции')
+      .closest('button') as HTMLButtonElement;
+    await act(async () => {
+      fireEvent.click(transactionsButton);
+    });
+
+    // No commit-equivalent surface is wired up for the transactions target yet (Task 12/13).
+    expect(screen.queryByText('Start import')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Transaction import: column mapping will appear here'),
+    ).toBeInTheDocument();
+    expect(apiPost).not.toHaveBeenCalledWith(
+      '/custom-tables/import/google-sheets/commit',
+      expect.anything(),
+    );
+  });
+});
