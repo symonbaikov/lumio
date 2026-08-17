@@ -1,5 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
 
 export interface ChatCompletionMessage {
@@ -17,6 +22,20 @@ const ANTHROPIC_HOST = 'api.anthropic.com';
 
 interface OpenAiChatResponse {
   choices?: Array<{ message?: { content?: string | null } }>;
+}
+
+/**
+ * Compares the parsed host, not a substring: `https://evil.test/api.anthropic.com`
+ * and `https://api.anthropic.com.evil.test` both contain the literal but are
+ * neither of them Anthropic, and routing them to the SDK would send the
+ * workspace's key to whoever owns that host.
+ */
+function isAnthropicBaseUrl(baseUrl: string): boolean {
+  try {
+    return new URL(baseUrl).hostname.toLowerCase() === ANTHROPIC_HOST;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -49,8 +68,9 @@ export class ChatCompletionService {
       throw new ServiceUnavailableException('Cloud AI provider is not configured');
     }
 
-    const isAnthropic = runtime.baseUrl.includes(ANTHROPIC_HOST);
-    if (isAnthropic) {
+    this.assertSingleLeadingSystemMessage(messages);
+
+    if (isAnthropicBaseUrl(runtime.baseUrl)) {
       return this.completeViaAnthropic(runtime.apiKey, runtime.model, messages);
     }
     return this.completeViaOpenAiCompatible(
@@ -60,6 +80,26 @@ export class ChatCompletionService {
       runtime.timeoutMs,
       messages,
     );
+  }
+
+  /**
+   * The client assembles the prompt, so the request body decides what carries
+   * system authority. Workspace data — merchant names, tool results — is fenced
+   * and travels in user turns; allowing a second system turn after it would let
+   * that data be re-labelled as an operator instruction. One system message, and
+   * only as the opening turn.
+   */
+  private assertSingleLeadingSystemMessage(messages: ChatCompletionMessage[]): void {
+    const systemIndexes = messages
+      .map((message, index) => (message.role === 'system' ? index : -1))
+      .filter(index => index !== -1);
+
+    if (systemIndexes.length > 1) {
+      throw new BadRequestException('Only one system message is allowed');
+    }
+    if (systemIndexes.length === 1 && systemIndexes[0] !== 0) {
+      throw new BadRequestException('The system message must be the first message');
+    }
   }
 
   private async completeViaAnthropic(
