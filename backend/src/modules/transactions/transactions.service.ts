@@ -10,14 +10,17 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
-import { In, type Repository } from 'typeorm';
+import { type EntityTarget, In, type Repository } from 'typeorm';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
+import { Branch } from '../../entities/branch.entity';
+import { Category } from '../../entities/category.entity';
 import { Payable } from '../../entities/payable.entity';
 import { Receipt } from '../../entities/receipt.entity';
 import { Statement } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { TransactionType } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
+import { Wallet } from '../../entities/wallet.entity';
 import { WorkspaceMember, WorkspaceRole } from '../../entities/workspace-member.entity';
 import { AuditService } from '../audit/audit.service';
 import { ClassificationService } from '../classification/services/classification.service';
@@ -202,6 +205,7 @@ export class TransactionsService {
   ): Promise<Transaction> {
     await this.ensureCanEditStatements(userId);
     const transaction = await this.findOne(id, workspaceId);
+    await this.assertWorkspaceOwnedRefs(updateDto, workspaceId);
     const before = { ...transaction };
     const previousCategoryId = transaction.categoryId;
 
@@ -289,6 +293,47 @@ export class TransactionsService {
 
   private round2(value: number): number {
     return Math.round(value * 100) / 100;
+  }
+
+  /**
+   * Rejects an id that belongs to another workspace before it is written onto a
+   * transaction. `@IsUUID()` on the DTO only proves the shape of the string, so
+   * without this a caller can point their own row at another tenant's category,
+   * branch or wallet — whose name then comes back to them through the
+   * `relations` loads in `findOne` / `getSplitParts`.
+   *
+   * ponytail: app-level check; a composite FK on (id, workspace_id) would
+   * enforce it in the database, but that needs a migration over existing rows.
+   */
+  private async assertWorkspaceOwned(
+    entity: EntityTarget<{ id: string; workspaceId: string }>,
+    ids: Array<string | null | undefined>,
+    workspaceId: string,
+  ): Promise<void> {
+    const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))];
+    if (unique.length === 0) {
+      return;
+    }
+
+    const found = await this.transactionRepository.manager
+      .getRepository(entity)
+      .countBy({ id: In(unique), workspaceId });
+
+    if (found !== unique.length) {
+      throw new NotFoundException('Referenced record not found in this workspace');
+    }
+  }
+
+  /** Every workspace-scoped reference an update body can carry. */
+  private assertWorkspaceOwnedRefs(
+    updateDto: Pick<UpdateTransactionDto, 'categoryId' | 'branchId' | 'walletId'>,
+    workspaceId: string,
+  ): Promise<unknown> {
+    return Promise.all([
+      this.assertWorkspaceOwned(Category, [updateDto.categoryId], workspaceId),
+      this.assertWorkspaceOwned(Branch, [updateDto.branchId], workspaceId),
+      this.assertWorkspaceOwned(Wallet, [updateDto.walletId], workspaceId),
+    ]);
   }
 
   /**
@@ -415,6 +460,11 @@ export class TransactionsService {
   ): Promise<Transaction[]> {
     await this.ensureCanEditStatements(userId);
     const original = await this.findOne(id, workspaceId);
+    await this.assertWorkspaceOwned(
+      Category,
+      dto.parts.map(part => part.categoryId),
+      workspaceId,
+    );
     // Fast path only: reject an obviously invalid request before opening a DB
     // transaction and taking a row lock. The authoritative check is the one below.
     this.assertSplittable(original, dto);

@@ -113,6 +113,23 @@ describe('ModelProxyService.fetchUpstream', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  // Two allowed origins pointing at each other used to recurse until the stack
+  // blew — a self-inflicted crash reachable from one authenticated request.
+  it('gives up on a redirect loop instead of recursing', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { location: 'https://huggingface.co/mlc-ai/x/y.bin' },
+      }),
+    );
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(service.fetchUpstream('https://huggingface.co/mlc-ai/x/y.bin')).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(fetchMock.mock.calls.length).toBeLessThanOrEqual(6);
+  });
+
   it('never sends the request with automatic redirect following', async () => {
     const fetchMock = jest.fn().mockResolvedValue(new Response('ok', { status: 200 }));
     global.fetch = fetchMock as unknown as typeof fetch;
