@@ -1,6 +1,6 @@
+import { Injectable } from '@nestjs/common';
 import { ExchangeRatesService } from '../../exchange-rates/exchange-rates.service';
 import type { MappedSheetRow } from './map-sheet-rows';
-import { Injectable } from '@nestjs/common';
 
 export interface CurrencyConversionResult {
   rows: MappedSheetRow[];
@@ -20,10 +20,14 @@ interface ConvertibleRow {
   row: MappedSheetRow;
   currency: string;
   dateKey: string;
+  transactionDate: Date;
 }
 
 /** Rows with `status === 'ok'` and a currency differing from `workspaceCurrency`. */
-const findConvertibleRows = (rows: MappedSheetRow[], workspaceCurrency: string): ConvertibleRow[] => {
+const findConvertibleRows = (
+  rows: MappedSheetRow[],
+  workspaceCurrency: string,
+): ConvertibleRow[] => {
   const normalizedWorkspaceCurrency = workspaceCurrency.trim().toUpperCase();
   const convertible: ConvertibleRow[] = [];
 
@@ -39,6 +43,7 @@ const findConvertibleRows = (rows: MappedSheetRow[], workspaceCurrency: string):
       row,
       currency,
       dateKey: dateOnlyKey(row.transaction.transactionDate),
+      transactionDate: row.transaction.transactionDate,
     });
   }
 
@@ -77,7 +82,10 @@ export class SheetCurrencyService {
    * resolved, every row sharing that pair is left untouched and a single
    * `fx_unavailable:<CUR>:<date>` warning is added for that pair.
    */
-  async convertRows(rows: MappedSheetRow[], workspaceCurrency: string): Promise<CurrencyConversionResult> {
+  async convertRows(
+    rows: MappedSheetRow[],
+    workspaceCurrency: string,
+  ): Promise<CurrencyConversionResult> {
     const convertible = findConvertibleRows(rows, workspaceCurrency);
     const normalizedWorkspaceCurrency = workspaceCurrency.trim().toUpperCase();
 
@@ -88,7 +96,7 @@ export class SheetCurrencyService {
         uniqueKeys.set(key, {
           currency: entry.currency,
           dateKey: entry.dateKey,
-          date: entry.row.transaction!.transactionDate,
+          date: entry.transactionDate,
         });
       }
     }
@@ -98,7 +106,11 @@ export class SheetCurrencyService {
 
     for (const [key, { currency, dateKey, date }] of uniqueKeys) {
       try {
-        const rate = await this.exchangeRatesService.getRate(currency, normalizedWorkspaceCurrency, date);
+        const rate = await this.exchangeRatesService.getRate(
+          currency,
+          normalizedWorkspaceCurrency,
+          date,
+        );
         rates.set(key, rate);
       } catch {
         warnings.push(`fx_unavailable:${currency}:${dateKey}`);

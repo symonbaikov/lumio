@@ -1,9 +1,9 @@
-import { Category, CategoryType } from '../../../entities/category.entity';
-import { Wallet } from '../../../entities/wallet.entity';
-import { ClassificationService } from '../../classification/services/classification.service';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { Category, CategoryType } from '../../../entities/category.entity';
+import { Wallet } from '../../../entities/wallet.entity';
+import { ClassificationService } from '../../classification/services/classification.service';
 
 /** Trims and lowercases a sheet cell name for case-insensitive matching. */
 const normalizeName = (name: string): string => name.trim().toLowerCase();
