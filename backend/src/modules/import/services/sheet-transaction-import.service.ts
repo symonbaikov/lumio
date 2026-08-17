@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 import { CategoryType } from '../../../entities/category.entity';
 import { ImportSession, ImportSessionMode } from '../../../entities/import-session.entity';
 import { BankName, FileType, Statement, StatementStatus } from '../../../entities/statement.entity';
@@ -119,7 +119,10 @@ export class SheetTransactionImportService {
     private readonly transactionRepository: Repository<Transaction>,
     @InjectRepository(Wallet)
     private readonly walletRepository: Repository<Wallet>,
-    private readonly dataSource: DataSource,
+    @InjectRepository(Statement)
+    private readonly statementRepository: Repository<Statement>,
+    @InjectRepository(ImportSession)
+    private readonly importSessionRepository: Repository<ImportSession>,
     private readonly sheetSourceLoader: SheetSourceLoaderService,
     private readonly importSessionService: ImportSessionService,
     private readonly sheetReferenceResolver: SheetReferenceResolverService,
@@ -351,7 +354,7 @@ export class SheetTransactionImportService {
     );
     const fxResult = await this.sheetCurrencyService.convertRows(mapped.rows, walletCurrency);
 
-    const { statement, processResult } = await this.commitInTransaction(
+    const { statement, processResult } = await this.commitStatementAndSession(
       workspaceId,
       userId,
       dto,
@@ -460,11 +463,26 @@ export class SheetTransactionImportService {
   }
 
   /**
-   * Creates the synthetic Statement and runs the import session inside one
-   * transaction, so a failure in `processImport` rolls back the statement
-   * too (no orphan statement left behind).
+   * Creates the synthetic Statement and runs the import session, then
+   * compensates (deletes the statement, resets the session) if
+   * `processImport` fails.
+   *
+   * This is NOT a spanning DB transaction: `ImportSessionService.processCommit`
+   * always opens its own independent `QueryRunner` for inserting `Transaction`
+   * rows (see import-session.service.ts:576), and reads the session via its
+   * own plain repository — never a queryRunner a caller supplies. A write made
+   * on our own queryRunner's uncommitted connection would be invisible to that
+   * read (different pooled connection, READ COMMITTED isolation), so a
+   * spanning transaction here couldn't work correctly even if we tried it.
+   * `processImport` already guarantees its own `Transaction` inserts are
+   * all-or-nothing internally, so the only thing left for us to guarantee is:
+   * no orphan Statement (and no session left pointing at one with zero
+   * imported transactions) if `processImport` fails. Plain committed writes +
+   * an explicit compensating delete/reset achieve that, at the cost of a
+   * narrow crash window between the failure and the compensation completing
+   * — an acceptable, detectable leftover row, not corrupted ledger data.
    */
-  private async commitInTransaction(
+  private async commitStatementAndSession(
     workspaceId: string,
     userId: string,
     dto: SheetTransactionCommitInput,
@@ -476,65 +494,62 @@ export class SheetTransactionImportService {
     statement: Statement;
     processResult: Awaited<ReturnType<ImportSessionService['processImport']>>;
   }> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    const dateRange = this.computeDateRange(okTransactions);
+    const statement = this.statementRepository.create({
+      userId,
+      workspaceId,
+      googleSheetId: dto.googleSheetId ?? null,
+      fileName: `${dto.name} · ${loaded.worksheetName}`,
+      filePath: dto.sourceUrl ?? `gsheet://${loaded.spreadsheetId}/${loaded.worksheetName}`,
+      fileType: FileType.XLSX,
+      fileSize: 0,
+      fileHash,
+      bankName: BankName.OTHER,
+      accountNumber: null,
+      statementDateFrom: dateRange ? new Date(dateRange.from) : null,
+      statementDateTo: dateRange ? new Date(dateRange.to) : null,
+      status: StatementStatus.COMPLETED,
+      currency,
+    });
+    const savedStatement = await this.statementRepository.save(statement);
 
-    try {
-      const dateRange = this.computeDateRange(okTransactions);
-      const statement = queryRunner.manager.create(Statement, {
-        userId,
-        workspaceId,
-        googleSheetId: dto.googleSheetId ?? null,
-        fileName: `${dto.name} · ${loaded.worksheetName}`,
-        filePath: dto.sourceUrl ?? `gsheet://${loaded.spreadsheetId}/${loaded.worksheetName}`,
-        fileType: FileType.XLSX,
-        fileSize: 0,
-        fileHash,
-        bankName: BankName.OTHER,
-        accountNumber: null,
-        statementDateFrom: dateRange ? new Date(dateRange.from) : null,
-        statementDateTo: dateRange ? new Date(dateRange.to) : null,
-        status: StatementStatus.COMPLETED,
-        currency,
-      });
-      const savedStatement = await queryRunner.manager.save(statement);
+    const session = await this.importSessionService.createSession(
+      workspaceId,
+      userId,
+      savedStatement.id,
+      ImportSessionMode.COMMIT,
+      fileHash,
+      savedStatement.fileName,
+      0,
+    );
 
-      const session = await this.importSessionService.createSession(
-        workspaceId,
-        userId,
-        savedStatement.id,
-        ImportSessionMode.COMMIT,
-        fileHash,
-        savedStatement.fileName,
-        0,
-      );
-
-      // createSession() is idempotent by fileHash: if preview() already created a session
-      // for this exact sheet content, that PREVIEW-status session is returned unchanged —
-      // savedStatement.id above is silently discarded, leaving session.statementId at
-      // whatever it was (null, from preview()'s createSession(..., null, ...) call).
-      // Explicitly reassociate it here so processImport persists transactions against the
-      // statement actually created in this commit, not an orphaned null.
-      await queryRunner.manager.update(
-        ImportSession,
+    // createSession() is idempotent by fileHash: if preview() already created a session
+    // for this exact sheet content, that PREVIEW-status session is returned unchanged —
+    // savedStatement.id above is silently discarded, leaving session.statementId at
+    // whatever it was (null, from preview()'s createSession(..., null, ...) call).
+    // Explicitly reassociate it here so processImport persists transactions against the
+    // statement actually created in this commit, not an orphaned null.
+    const statementIdNeedsFixup = session.statementId !== savedStatement.id;
+    if (statementIdNeedsFixup) {
+      await this.importSessionRepository.update(
         { id: session.id },
         { statementId: savedStatement.id },
       );
+    }
 
+    try {
       const processResult = await this.importSessionService.processImport(
         session.id,
         okTransactions,
         ImportSessionMode.COMMIT,
       );
-
-      await queryRunner.commitTransaction();
       return { statement: savedStatement, processResult };
     } catch (error) {
-      await queryRunner.rollbackTransaction();
+      await this.statementRepository.delete(savedStatement.id);
+      if (statementIdNeedsFixup) {
+        await this.importSessionRepository.update({ id: session.id }, { statementId: null });
+      }
       throw error;
-    } finally {
-      await queryRunner.release();
     }
   }
 

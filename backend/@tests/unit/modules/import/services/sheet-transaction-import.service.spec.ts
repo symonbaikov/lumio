@@ -14,7 +14,10 @@ function createRepoMock<T>() {
   return {
     find: jest.fn(async () => []),
     findOne: jest.fn(),
+    create: jest.fn((data: unknown) => data),
+    save: jest.fn(async (data: any) => ({ ...data, id: 'stmt-1' })),
     update: jest.fn(async () => ({ affected: 1 })),
+    delete: jest.fn(async () => ({ affected: 1 })),
   } as unknown as Repository<T> & Record<string, any>;
 }
 
@@ -49,8 +52,8 @@ const emptyImportSummary = () => ({
 describe('SheetTransactionImportService', () => {
   let transactionRepository: ReturnType<typeof createRepoMock<Transaction>>;
   let walletRepository: ReturnType<typeof createRepoMock<Wallet>>;
-  let queryRunner: any;
-  let dataSource: any;
+  let statementRepository: ReturnType<typeof createRepoMock<Statement>>;
+  let importSessionRepository: ReturnType<typeof createRepoMock<unknown>>;
   let sheetSourceLoader: any;
   let importSessionService: any;
   let sheetReferenceResolver: any;
@@ -75,27 +78,19 @@ describe('SheetTransactionImportService', () => {
 
     transactionRepository = createRepoMock<Transaction>();
     walletRepository = createRepoMock<Wallet>();
-
-    queryRunner = {
-      connect: jest.fn(async () => undefined),
-      startTransaction: jest.fn(async () => undefined),
-      commitTransaction: jest.fn(async () => undefined),
-      rollbackTransaction: jest.fn(async () => undefined),
-      release: jest.fn(async () => undefined),
-      manager: {
-        create: jest.fn((_entity: unknown, data: unknown) => data),
-        save: jest.fn(async (data: any) => ({ ...data, id: 'stmt-1' }) as Statement),
-        update: jest.fn(async () => ({ affected: 1 })),
-      },
-    };
-    dataSource = { createQueryRunner: jest.fn(() => queryRunner) };
+    statementRepository = createRepoMock<Statement>();
+    importSessionRepository = createRepoMock<unknown>();
 
     sheetSourceLoader = { load: jest.fn(async () => buildLoadedSheet()) };
 
     importSessionService = {
-      createSession: jest.fn(async (_ws, _u, _statementId, _mode, fileHash) => ({
+      // Mirrors ImportSessionService.createSession's real contract: it returns the
+      // statementId it was actually given (the "brand-new session" case). Tests that
+      // need to exercise the idempotent-reuse case override this per-test.
+      createSession: jest.fn(async (_ws, _u, statementId, _mode, fileHash) => ({
         id: 'session-1',
         fileHash,
+        statementId,
       })),
       processImport: jest.fn(async () => ({
         sessionId: 'session-1',
@@ -136,7 +131,8 @@ describe('SheetTransactionImportService', () => {
     service = new SheetTransactionImportService(
       transactionRepository as any,
       walletRepository as any,
-      dataSource,
+      statementRepository as any,
+      importSessionRepository as any,
       sheetSourceLoader,
       importSessionService,
       sheetReferenceResolver,
@@ -205,7 +201,7 @@ describe('SheetTransactionImportService', () => {
 
       expect(result).toEqual({ jobId: 'job-1' });
       expect(sheetSourceLoader.load).not.toHaveBeenCalled();
-      expect(dataSource.createQueryRunner).not.toHaveBeenCalled();
+      expect(statementRepository.save).not.toHaveBeenCalled();
       expect(customTableImportJobsService.createSheetTransactionsJob).toHaveBeenCalledWith(
         userId,
         expect.objectContaining({ workspaceId }),
@@ -222,7 +218,7 @@ describe('SheetTransactionImportService', () => {
     it('creates exactly one statement and passes its id into createSession', async () => {
       const result = await service.runCommit(workspaceId, userId, commitDto);
 
-      expect(queryRunner.manager.save).toHaveBeenCalledTimes(1);
+      expect(statementRepository.save).toHaveBeenCalledTimes(1);
       expect(importSessionService.createSession).toHaveBeenCalledTimes(1);
       expect(importSessionService.createSession).toHaveBeenCalledWith(
         workspaceId,
@@ -234,7 +230,9 @@ describe('SheetTransactionImportService', () => {
         0,
       );
       expect(result.statementId).toBe('stmt-1');
-      expect(queryRunner.commitTransaction).toHaveBeenCalled();
+      // Default createSession mock echoes back the statementId it was given, so this
+      // is the "brand-new session" path — no fixup update should have been needed.
+      expect(importSessionRepository.update).not.toHaveBeenCalled();
     });
 
     it('reassociates a reused (preview) session with the new statement before committing', async () => {
@@ -248,7 +246,7 @@ describe('SheetTransactionImportService', () => {
       }));
 
       const callOrder: string[] = [];
-      queryRunner.manager.update = jest.fn(async () => {
+      importSessionRepository.update = jest.fn(async () => {
         callOrder.push('update');
         return { affected: 1 };
       });
@@ -263,8 +261,7 @@ describe('SheetTransactionImportService', () => {
 
       await service.runCommit(workspaceId, userId, commitDto);
 
-      expect(queryRunner.manager.update).toHaveBeenCalledWith(
-        expect.anything(),
+      expect(importSessionRepository.update).toHaveBeenCalledWith(
         { id: 'session-1' },
         { statementId: 'stmt-1' },
       );
@@ -279,20 +276,39 @@ describe('SheetTransactionImportService', () => {
       await expect(service.runCommit(workspaceId, userId, commitDto)).rejects.toThrow(
         BadRequestException,
       );
-      expect(dataSource.createQueryRunner).not.toHaveBeenCalled();
-      expect(queryRunner.startTransaction).not.toHaveBeenCalled();
-      expect(queryRunner.manager.save).not.toHaveBeenCalled();
+      expect(statementRepository.save).not.toHaveBeenCalled();
+      expect(importSessionService.createSession).not.toHaveBeenCalled();
     });
 
-    it('rolls back the transaction (not commits) when processImport throws', async () => {
+    it('compensates by deleting the statement (and does not swallow the error) when processImport throws', async () => {
       importSessionService.processImport = jest.fn(async () => {
         throw new Error('boom');
       });
 
       await expect(service.runCommit(workspaceId, userId, commitDto)).rejects.toThrow('boom');
-      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
-      expect(queryRunner.commitTransaction).not.toHaveBeenCalled();
-      expect(queryRunner.release).toHaveBeenCalled();
+      expect(statementRepository.delete).toHaveBeenCalledWith('stmt-1');
+    });
+
+    it('resets the session statementId back to null on failure, only if it had been fixed up', async () => {
+      importSessionService.createSession = jest.fn(async () => ({
+        id: 'session-1',
+        statementId: null,
+      }));
+      importSessionService.processImport = jest.fn(async () => {
+        throw new Error('boom');
+      });
+
+      await expect(service.runCommit(workspaceId, userId, commitDto)).rejects.toThrow('boom');
+
+      expect(importSessionRepository.update).toHaveBeenCalledWith(
+        { id: 'session-1' },
+        { statementId: 'stmt-1' },
+      );
+      expect(importSessionRepository.update).toHaveBeenCalledWith(
+        { id: 'session-1' },
+        { statementId: null },
+      );
+      expect(statementRepository.delete).toHaveBeenCalledWith('stmt-1');
     });
 
     it('resolves wallet currency for FX conversion when walletName is provided', async () => {
