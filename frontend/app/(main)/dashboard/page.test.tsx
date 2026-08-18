@@ -31,6 +31,7 @@ vi.mock('@/app/components/icons', () => ({
   ExternalLink: () => <span data-testid="external-link-icon" />,
   ListChecks: () => <span data-testid="list-checks-icon" />,
   RefreshCcw: () => <span data-testid="refresh-icon" />,
+  Plus: () => <span data-testid="plus-icon" />,
 }));
 
 vi.mock('@/app/components/ui/spinner', () => ({
