@@ -15,9 +15,9 @@ import LinkOutlinedIcon from '@mui/icons-material/LinkOutlined';
 import MarkEmailUnreadOutlinedIcon from '@mui/icons-material/MarkEmailUnreadOutlined';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
+import TelegramIcon from '@mui/icons-material/Telegram';
 import { Box, Stack, Typography } from '@mui/material';
 import { useTheme } from 'next-themes';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
@@ -164,15 +164,11 @@ export default function IntegrationsPage(): React.JSX.Element {
         badge: t.cards.telegram.badge,
         category: 'messaging',
         recommended: false,
-        icon: (
-          <Image
-            src="/icons/icons8-telegram-48.png"
-            alt="Telegram"
-            width={32}
-            height={32}
-            style={{ borderRadius: tokens.radius.md }}
-          />
-        ),
+        // A brand glyph, not a UI action icon, so it stays as MUI's own
+        // Telegram mark rather than an OutlinedIcon variant — matching how
+        // the other cards render at fontSize 32 with no colored badge, unlike
+        // the raster icon this replaced.
+        icon: <TelegramIcon sx={{ fontSize: 32 }} aria-hidden="true" />,
         statusPath: '/settings/notifications/telegram',
         actions: [
           { label: t.cards.telegram.actions.setup, href: '/settings/telegram', primary: true },

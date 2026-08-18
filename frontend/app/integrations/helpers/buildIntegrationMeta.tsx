@@ -7,8 +7,8 @@ import LinkOutlinedIcon from '@mui/icons-material/LinkOutlined';
 import MarkEmailUnreadOutlinedIcon from '@mui/icons-material/MarkEmailUnreadOutlined';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
+import TelegramIcon from '@mui/icons-material/Telegram';
 import type React from 'react';
-import { IntegrationIcon } from '../components/IntegrationCard';
 import type { IntegrationAction } from '../components/IntegrationCard';
 
 export interface IntegrationMeta {
@@ -94,7 +94,7 @@ function makeTelegram(card: CardT): IntegrationMeta {
     badge: card.badge,
     category: 'messaging',
     recommended: false,
-    icon: <IntegrationIcon src="/icons/icons8-telegram-48.png" alt="Telegram" />,
+    icon: <TelegramIcon sx={muiIconSx} aria-hidden="true" />,
     actions: [
       { label: card.actions.setup, href: '/settings/telegram', primary: true },
       { label: card.actions.guide, href: 'https://core.telegram.org/bots', external: true },
