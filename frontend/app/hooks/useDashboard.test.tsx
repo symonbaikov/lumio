@@ -58,7 +58,7 @@ function createDashboardPayload(balance: number) {
     cashFlow: [],
     topMerchants: [],
     topCategories: [],
-    recentActivity: [],
+    recentTransactions: [],
     role: 'owner' as const,
     range: '30d' as const,
     dataHealth: {

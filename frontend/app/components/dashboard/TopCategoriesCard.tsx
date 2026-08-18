@@ -1,65 +1,87 @@
 'use client';
 
 import type { DashboardData } from '@/app/hooks/useDashboard';
+import { useIntlayer } from '@/app/i18n';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
+import { CategoryIconBadge } from './CategoryIconBadge';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
+type TopCategory = NonNullable<DashboardData['topCategories']>[number];
+
 interface TopCategoriesCardProps {
   categories: NonNullable<DashboardData['topCategories']>;
+  formatAmount: (value: number) => string;
 }
 
-export function TopCategoriesCard({ categories }: TopCategoriesCardProps) {
+function categoryDisplayName(
+  cat: TopCategory,
+  labels: { uncategorized: string; other: string },
+): string {
+  if (cat.isOther) {
+    return labels.other;
+  }
+  return cat.name ?? labels.uncategorized;
+}
+
+function categoryKey(cat: TopCategory): string {
+  if (cat.isOther) {
+    return '__other__';
+  }
+  return cat.id ?? '__uncategorized__';
+}
+
+export function TopCategoriesCard({ categories, formatAmount }: TopCategoriesCardProps) {
+  const t = useIntlayer('topCategoriesCard');
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const labels = useMemo(
+    () => ({ uncategorized: t.uncategorized.value, other: t.other.value }),
+    [t.uncategorized, t.other],
+  );
+
   const option = useMemo(() => {
-    if (!categories.length) return null;
+    if (!categories.length) {
+      return null;
+    }
 
     return {
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'item',
-        backgroundColor: '#1a1a1a',
-        textStyle: { color: '#F5F3EF', fontSize: 12 },
+        backgroundColor: isDark ? '#151C24' : '#1a1a1a',
+        textStyle: { color: isDark ? '#E2E8F0' : '#F5F3EF', fontSize: 12 },
         borderRadius: 8,
         padding: [10, 12],
-      },
-      legend: {
-        orient: 'vertical',
-        right: 0,
-        top: 'middle',
-        itemWidth: 10,
-        itemHeight: 10,
-        textStyle: {
-          color: 'var(--muted-foreground)',
-          fontSize: 12,
-          fontWeight: 600,
-          fontFamily: 'var(--font-dashboard-sans)',
-        },
+        formatter: (params: { name: string; value: number; percent: number }) =>
+          `${params.name}: ${formatAmount(params.value)} (${params.percent}%)`,
       },
       series: [
         {
           name: 'Categories',
           type: 'pie',
-          radius: ['45%', '68%'],
+          radius: ['62%', '85%'],
           avoidLabelOverlap: false,
-          itemStyle: { borderColor: '#F5F3EF', borderWidth: 2 },
+          itemStyle: { borderColor: isDark ? '#151C24' : '#ffffff', borderWidth: 2 },
           label: { show: false },
           emphasis: {
             label: { show: true, fontSize: 14, fontWeight: 'bold' },
           },
           data: categories.map(cat => ({
             value: cat.amount,
-            name: cat.name ?? 'Uncategorized',
+            name: categoryDisplayName(cat, labels),
+            itemStyle: { color: cat.color },
           })),
         },
       ],
-      color: ['#0584C7', '#0D9568', '#D13D56', '#F5A623', '#2A364E', '#7A869B'],
       animationDuration: 1400,
       animationEasing: 'cubicOut',
     };
-  }, [categories]);
+  }, [categories, labels, isDark, formatAmount]);
 
   if (!option) {
     return (
@@ -75,48 +97,43 @@ export function TopCategoriesCard({ categories }: TopCategoriesCardProps) {
           fontFamily: 'var(--font-dashboard-sans)',
         }}
       >
-        No category data
+        {t.noCategoryData}
       </Box>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', height: '100%', width: '100%', position: 'relative' }}>
-      <ReactECharts style={{ height: '100%', width: '100%' }} option={option} notMerge lazyUpdate />
+    <Box sx={{ display: 'flex', height: '100%', width: '100%', gap: 2 }}>
+      <Box sx={{ flex: '0 0 140px', minWidth: 0, height: '100%' }}>
+        <ReactECharts style={{ height: '100%', width: '100%' }} option={option} notMerge lazyUpdate />
+      </Box>
       <Box
         sx={{
-          pointerEvents: 'none',
-          position: 'absolute',
-          inset: 0,
+          flex: 1,
+          minWidth: 0,
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 1,
+          overflowY: 'auto',
         }}
       >
-        <Box sx={{ textAlign: 'center', pb: 0.5, pr: '80px' }}>
-          <Typography
-            sx={{
-              fontSize: 10,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '2px',
-              color: 'var(--muted-foreground)',
-              fontFamily: 'var(--font-dashboard-mono)',
-            }}
-          >
-            TOTAL
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: 'var(--foreground)',
-              fontFamily: 'var(--font-dashboard-sans)',
-            }}
-          >
-            Categories
-          </Typography>
-        </Box>
+        {categories.map(cat => (
+          <Box key={categoryKey(cat)} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CategoryIconBadge color={cat.color} icon={cat.icon} isOther={cat.isOther} />
+            <Typography variant="body2" noWrap sx={{ flex: 1, minWidth: 0 }}>
+              {categoryDisplayName(cat, labels)}
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', flexShrink: 0 }}>
+              {cat.percent}%
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, flexShrink: 0, minWidth: 90, textAlign: 'right' }}
+            >
+              {formatAmount(cat.amount)}
+            </Typography>
+          </Box>
+        ))}
       </Box>
     </Box>
   );

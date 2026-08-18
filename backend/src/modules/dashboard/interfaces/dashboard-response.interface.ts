@@ -27,15 +27,22 @@ export interface DashboardCashFlowPoint {
   expense: number;
 }
 
-export interface DashboardRecentActivity {
+export interface DashboardRecentTransaction {
   id: string;
-  entityId?: string;
-  type: 'statement_upload' | 'payment' | 'categorization' | 'transaction';
-  title: string;
-  description: string | null;
-  amount: number | null;
-  timestamp: string;
-  href: string;
+  description: string;
+  /** Signed: positive for income, negative for expense. */
+  amount: number;
+  currency: string;
+  /** Calendar date (YYYY-MM-DD), no time component. */
+  date: string;
+  /** e.g. "Kaspi •••• 4821" — bank name plus masked account number. */
+  account: string;
+  categoryId: string | null;
+  /** `null` means uncategorized — the client supplies the localized label. */
+  categoryName: string | null;
+  /** Always a concrete color — falls back to a neutral swatch when unset. */
+  categoryColor: string;
+  categoryIcon: string | null;
 }
 
 export interface DashboardTopMerchant {
@@ -46,8 +53,16 @@ export interface DashboardTopMerchant {
 
 export interface DashboardTopCategory {
   id: string | null;
-  name: string;
+  /** `null` means uncategorized — the client supplies the localized label. */
+  name: string | null;
+  /** True only for the synthetic rollup of everything past the top categories. */
+  isOther?: boolean;
+  /** Always a concrete color — falls back to a neutral swatch when unset. */
+  color: string;
+  icon: string | null;
   amount: number;
+  /** Share of total spend for the period, 0-100. Always sums to 100 across the array. */
+  percent: number;
   count: number;
 }
 
@@ -68,9 +83,9 @@ export interface DashboardResponse {
   cashFlow: DashboardCashFlowPoint[];
   topMerchants: DashboardTopMerchant[];
   topCategories: DashboardTopCategory[];
-  recentActivity: DashboardRecentActivity[];
+  recentTransactions: DashboardRecentTransaction[];
   role: 'owner' | 'admin' | 'member' | 'viewer';
-  range: '7d' | '30d' | '90d';
+  range: '7d' | '30d' | '90d' | 'month';
   dataHealth: DashboardDataHealth;
   effectiveEndDate?: string;
   effectiveSince?: string;

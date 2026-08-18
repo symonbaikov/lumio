@@ -10,10 +10,18 @@ const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 interface CashFlowMiniProps {
   data: DashboardCashFlowPoint[];
   emptyLabel: string;
+  incomeLabel: string;
+  expenseLabel: string;
   onUploadClick?: () => void;
 }
 
-export function CashFlowMini({ data, emptyLabel, onUploadClick }: CashFlowMiniProps) {
+export function CashFlowMini({
+  data,
+  emptyLabel,
+  incomeLabel,
+  expenseLabel,
+  onUploadClick,
+}: CashFlowMiniProps) {
   const { resolvedTheme } = useTheme();
   const option = useMemo(() => {
     if (!data || data.length === 0) return null;
@@ -42,7 +50,7 @@ export function CashFlowMini({ data, emptyLabel, onUploadClick }: CashFlowMiniPr
           params.map(p => `${p.seriesName}: ${fmt(p.value)}`).join('<br/>'),
       },
       legend: {
-        data: ['Income', 'Expense'],
+        data: [incomeLabel, expenseLabel],
         top: 0,
         right: 0,
         textStyle: { color: mutedText, fontSize: 11, fontFamily: 'var(--font-dashboard-sans)' },
@@ -75,7 +83,7 @@ export function CashFlowMini({ data, emptyLabel, onUploadClick }: CashFlowMiniPr
       },
       series: [
         {
-          name: 'Income',
+          name: incomeLabel,
           type: 'line',
           smooth: true,
           symbol: showPointSymbols ? 'circle' : 'none',
@@ -87,7 +95,7 @@ export function CashFlowMini({ data, emptyLabel, onUploadClick }: CashFlowMiniPr
           itemStyle: { color: incomeLine },
         },
         {
-          name: 'Expense',
+          name: expenseLabel,
           type: 'line',
           smooth: true,
           symbol: showPointSymbols ? 'circle' : 'none',
@@ -100,7 +108,7 @@ export function CashFlowMini({ data, emptyLabel, onUploadClick }: CashFlowMiniPr
         },
       ],
     };
-  }, [data, resolvedTheme]);
+  }, [data, resolvedTheme, incomeLabel, expenseLabel]);
 
   return (
     <div

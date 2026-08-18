@@ -1,9 +1,54 @@
 import type { DashboardData } from '@/app/hooks/useDashboard';
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import '../test-setup';
 import { OverviewTab } from '../OverviewTab';
+
+// Mirrors react-intlayer's renderIntlayerNode: a Proxy over a rendered
+// Fragment whose `.value` is intercepted to return the plain string, so the
+// mock is usable both as a JSX child and via `.value` string access.
+const value = (v: string) =>
+  // biome-ignore lint/complexity/noUselessFragments: Proxy needs an object target — a bare string can't be proxied
+  new Proxy(<>{v}</>, {
+    get(target, prop, receiver) {
+      if (prop === 'value') return v;
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+
+vi.mock('@/app/i18n', () => ({
+  useIntlayer: () => ({
+    emptyTitle: value('Upload your first statement'),
+    emptyDescription: value(
+      "Start tracking your finances by uploading a bank statement. We'll parse it automatically and show your cash flow, categories, and insights.",
+    ),
+    emptyCta: value('Parse statement'),
+    periodBanner: value('Showing latest available period: {period}'),
+    cashFlowTitle: value('Cash flow'),
+    cashFlowSubtitle: value('Income vs. expenses · {range}'),
+    cashFlowEmpty: value('No cash flow data yet'),
+    income: value('Income'),
+    expense: value('Expense'),
+    spentLabel: value('Spent'),
+    netLabel: value('Net'),
+    savingsRateLabel: value('Savings rate'),
+    topCategoriesTitle: value('Top categories'),
+    viewAll: value('View all'),
+    quickActionsTitle: value('Quick actions'),
+    noActionsNeeded: value('No actions needed'),
+    itemsToReview: value('{count} items to review'),
+    parsingIssuesFound: value('Parsing issues found'),
+    uploadDropTitle: value('Drop a statement here'),
+    uploadDropSub: value('PDF, CSV, XLSX up to 10 MB'),
+    noCategoryData: value('No category data'),
+    uncategorized: value('Uncategorized'),
+    other: value('Other'),
+    title: value('Recent transactions'),
+    empty: value('No transactions this period'),
+  }),
+  useLocale: () => ({ locale: 'en' }),
+}));
 
 const emptyDashboardData: DashboardData = {
   snapshot: {
@@ -20,7 +65,7 @@ const emptyDashboardData: DashboardData = {
   cashFlow: [],
   topMerchants: [],
   topCategories: [],
-  recentActivity: [],
+  recentTransactions: [],
   role: 'owner',
   range: '30d',
   dataHealth: {
@@ -49,6 +94,8 @@ describe('OverviewTab', () => {
         formatAmount={() => 'KZT 1,025,215'}
         range="30d"
         isLoading={false}
+        displayMonth={new Date('2026-03-15')}
+        changeMonth={() => {}}
       />,
     );
 
@@ -63,6 +110,8 @@ describe('OverviewTab', () => {
         formatAmount={value => String(value)}
         range="30d"
         isLoading={false}
+        displayMonth={new Date('2026-03-15')}
+        changeMonth={() => {}}
       />,
     );
 
@@ -87,6 +136,8 @@ describe('OverviewTab', () => {
         formatAmount={value => String(value)}
         range="30d"
         isLoading={false}
+        displayMonth={new Date('2026-03-15')}
+        changeMonth={() => {}}
         effectivePeriod="2025-05-01 - 2025-05-31"
       />,
     );
@@ -109,9 +160,10 @@ describe('OverviewTab', () => {
             {
               id: 'cat-1',
               name: 'Office',
+              color: '#3b82f6',
+              icon: null,
               amount: 100,
-              transactions: 1,
-              percentage: 100,
+              percent: 100,
               count: 1,
             },
           ],
@@ -119,6 +171,8 @@ describe('OverviewTab', () => {
         formatAmount={value => String(value)}
         range="30d"
         isLoading={false}
+        displayMonth={new Date('2026-03-15')}
+        changeMonth={() => {}}
       />,
     );
 
@@ -138,6 +192,8 @@ describe('OverviewTab', () => {
         formatAmount={value => String(value)}
         range="30d"
         isLoading={false}
+        displayMonth={new Date('2026-03-15')}
+        changeMonth={() => {}}
       />,
     );
 
@@ -168,6 +224,8 @@ describe('OverviewTab', () => {
         formatAmount={value => String(value)}
         range="30d"
         isLoading={false}
+        displayMonth={new Date('2026-03-15')}
+        changeMonth={() => {}}
       />,
     );
 
@@ -182,5 +240,29 @@ describe('OverviewTab', () => {
     expect(actionRequiredPanel?.className).toContain('min-h-[320px]');
     expect(cashFlowPanel?.className).toContain('lg:col-span-8');
     expect(cashFlowPanel?.className).toContain('min-h-[320px]');
+  });
+
+  it('deep-links the recent-transactions "view all" link to the selected month, not today', () => {
+    render(
+      <OverviewTab
+        data={{
+          ...emptyDashboardData,
+          snapshot: { ...emptyDashboardData.snapshot, totalBalance: 100 },
+        }}
+        formatAmount={value => String(value)}
+        range="month"
+        isLoading={false}
+        displayMonth={new Date('2026-02-15')}
+        changeMonth={() => {}}
+      />,
+    );
+
+    const links = screen.getAllByRole('link', { name: /view all/i });
+    const recentTransactionsLink = links.find(link =>
+      link.getAttribute('href')?.startsWith('/statements/transactions'),
+    );
+    expect(recentTransactionsLink?.getAttribute('href')).toBe(
+      '/statements/transactions?startDate=2026-02-01&endDate=2026-02-28',
+    );
   });
 });

@@ -1,25 +1,55 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, type Repository } from 'typeorm';
-import { AuditEvent, EntityType } from '../../entities/audit-event.entity';
+import { BankName, Statement, StatementStatus } from '../../entities/statement.entity';
 import { Payable, PayableStatus } from '../../entities/payable.entity';
 import { Receipt, ReceiptStatus } from '../../entities/receipt.entity';
-import { Statement, StatementStatus } from '../../entities/statement.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
+import { daysInMonth, getMonthWindowBounds, getWindowBounds } from './dashboard-window.util';
 import type {
   DashboardActionItem,
   DashboardCashFlowPoint,
   DashboardDataHealth,
   DashboardFinancialSnapshot,
-  DashboardRecentActivity,
+  DashboardRecentTransaction,
   DashboardResponse,
   DashboardTopCategory,
   DashboardTopMerchant,
 } from './interfaces/dashboard-response.interface';
 import type { DashboardTrendsResponse } from './interfaces/dashboard-trends.interface';
+
+/** How many individual categories the donut shows before folding the rest into "Other". */
+const TOP_CATEGORIES_LIMIT = 8;
+/** Neutral swatch for categories with no color set and for the "Other" bucket. */
+const OTHER_CATEGORY_COLOR = '#898781';
+/** Internal grouping key for transactions with no category — never sent to the client. */
+const UNCATEGORIZED_KEY = '__uncategorized__';
+/** How many rows the dashboard's recent-transactions card shows. */
+const RECENT_TRANSACTIONS_LIMIT = 6;
+/** Bank names are proper nouns and aren't translated per locale. */
+const BANK_DISPLAY_NAMES: Record<BankName, string> = {
+  [BankName.KASPI]: 'Kaspi',
+  [BankName.BEREKE_NEW]: 'Bereke Bank',
+  [BankName.BEREKE_OLD]: 'Bereke Bank',
+  [BankName.HAPOALIM]: 'Bank Hapoalim',
+  [BankName.OTHER]: 'Bank',
+};
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function maskAccountNumber(accountNumber: string | null): string | null {
+  if (!accountNumber) {
+    return null;
+  }
+  const digitsOnly = accountNumber.replace(/\D/g, '');
+  const last4 = digitsOnly.slice(-4) || accountNumber.slice(-4);
+  return `•••• ${last4}`;
+}
 
 @Injectable()
 export class DashboardService {
@@ -36,28 +66,26 @@ export class DashboardService {
     private readonly memberRepo: Repository<WorkspaceMember>,
     @InjectRepository(Workspace)
     private readonly workspaceRepo: Repository<Workspace>,
-    @InjectRepository(AuditEvent)
-    private readonly auditRepo: Repository<AuditEvent>,
     private readonly exchangeRatesService: ExchangeRatesService,
   ) {}
 
   async getDashboard(
     userId: string,
     workspaceId: string,
-    range: '7d' | '30d' | '90d' = '30d',
+    range: '7d' | '30d' | '90d' | 'month' = '30d',
     endDateParam?: string,
   ): Promise<DashboardResponse> {
+    const isMonth = range === 'month';
     const days = range === '7d' ? 7 : range === '90d' ? 90 : 30;
+    const anchorDate = endDateParam ? new Date(endDateParam) : new Date();
 
-    const requestedWindow = this.getWindowBounds(
-      days,
-      endDateParam ? new Date(endDateParam) : new Date(),
-    );
+    const requestedWindow = isMonth
+      ? getMonthWindowBounds(anchorDate)
+      : getWindowBounds(days, anchorDate);
 
-    const [initialSnapshot, actions, recentActivity, memberRole, dataHealth] = await Promise.all([
+    const [initialSnapshot, actions, memberRole, dataHealth] = await Promise.all([
       this.getSnapshot(workspaceId, requestedWindow.since, requestedWindow.endDate),
       this.getActions(userId, workspaceId),
-      this.getRecentActivity(workspaceId),
       this.getMemberRole(userId, workspaceId),
       this.getDataHealth(workspaceId),
     ]);
@@ -70,7 +98,9 @@ export class DashboardService {
       const latestTransactionDate = await this.getLatestTransactionDate(workspaceId);
 
       if (latestTransactionDate) {
-        effectiveWindow = this.getWindowBounds(days, latestTransactionDate);
+        effectiveWindow = isMonth
+          ? getMonthWindowBounds(latestTransactionDate)
+          : getWindowBounds(days, latestTransactionDate);
         snapshot = await this.getSnapshot(
           workspaceId,
           effectiveWindow.since,
@@ -80,10 +110,15 @@ export class DashboardService {
       }
     }
 
-    const [cashFlow, topMerchants, topCategories] = await Promise.all([
-      this.getCashFlow(workspaceId, effectiveWindow.since, effectiveWindow.endDate, days),
+    // A calendar month is always under 90 days, so this naturally keeps
+    // cash-flow buckets daily (see getTransactionGroupFormat) for month mode.
+    const bucketDays = isMonth ? daysInMonth(effectiveWindow.since) : days;
+
+    const [cashFlow, topMerchants, topCategories, recentTransactions] = await Promise.all([
+      this.getCashFlow(workspaceId, effectiveWindow.since, effectiveWindow.endDate, bucketDays),
       this.getTopMerchants(workspaceId, effectiveWindow.since, effectiveWindow.endDate),
       this.getTopCategories(workspaceId, effectiveWindow.since, effectiveWindow.endDate),
+      this.getRecentTransactions(workspaceId, effectiveWindow.since, effectiveWindow.endDate),
     ]);
 
     const response: DashboardResponse = {
@@ -92,7 +127,7 @@ export class DashboardService {
       cashFlow,
       topMerchants,
       topCategories,
-      recentActivity,
+      recentTransactions,
       role: memberRole,
       range,
       dataHealth,
@@ -431,27 +466,41 @@ export class DashboardService {
 
     const result = await query
       .select('c.id', 'id')
-      .addSelect("COALESCE(c.name, 'Uncategorized')", 'name')
+      .addSelect('c.name', 'name')
+      .addSelect('c.color', 'color')
+      .addSelect('c.icon', 'icon')
       .addSelect('t.currency', 'currency')
       .addSelect('COALESCE(SUM(t.debit), 0)', 'amount')
       .addSelect('COUNT(t.id)', 'count')
       .andWhere('t.transactionType = :expense', { expense: TransactionType.EXPENSE })
       .groupBy('c.id')
       .addGroupBy('c.name')
+      .addGroupBy('c.color')
+      .addGroupBy('c.icon')
       .addGroupBy('t.currency')
       .orderBy('amount', 'DESC')
       .getRawMany<{
         id: string | null;
-        name: string;
+        name: string | null;
+        color: string | null;
+        icon: string | null;
         currency: string;
         amount: string;
         count: string;
       }>();
 
-    const rows = new Map<string, DashboardTopCategory>();
+    type Aggregate = Omit<DashboardTopCategory, 'percent'>;
+    const rows = new Map<string, Aggregate>();
     for (const row of result) {
-      const key = row.id || row.name;
-      const existing = rows.get(key) ?? { id: row.id || null, name: row.name, amount: 0, count: 0 };
+      const key = row.id || UNCATEGORIZED_KEY;
+      const existing = rows.get(key) ?? {
+        id: row.id || null,
+        name: row.name,
+        color: row.color || OTHER_CATEGORY_COLOR,
+        icon: row.icon || null,
+        amount: 0,
+        count: 0,
+      };
       existing.amount += await this.convertDashboardAmount(
         row.amount,
         row.currency,
@@ -461,127 +510,114 @@ export class DashboardService {
       rows.set(key, existing);
     }
 
-    return Array.from(rows.values())
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 5);
-  }
-
-  private async getRecentActivity(workspaceId: string): Promise<DashboardRecentActivity[]> {
-    const auditEvents = await this.auditRepo.find({
-      where: {
-        workspaceId,
-        entityType: In([
-          EntityType.STATEMENT,
-          EntityType.TRANSACTION,
-          EntityType.PAYABLE,
-          EntityType.CATEGORY,
-        ]),
-      },
-      order: { createdAt: 'DESC' },
-      take: 10,
-    });
-
-    // Fallback to statement/transaction query if no audit events yet
-    if (auditEvents.length === 0) {
-      return this.getRecentActivityFallback(workspaceId);
+    const sorted = Array.from(rows.values()).sort((a, b) => b.amount - a.amount);
+    const total = sorted.reduce((sum, row) => sum + row.amount, 0);
+    if (total <= 0) {
+      return [];
     }
 
-    return auditEvents.map(event => {
-      let type: DashboardRecentActivity['type'] = 'transaction';
-      let href = '/statements';
+    const top = sorted.slice(0, TOP_CATEGORIES_LIMIT);
+    const rest = sorted.slice(TOP_CATEGORIES_LIMIT);
 
-      if (event.entityType === EntityType.STATEMENT) {
-        type = 'statement_upload';
-        href = `/statements/${event.entityId}/view`;
-      } else if (event.entityType === EntityType.PAYABLE) {
-        type = 'payment';
-        href = '/statements/pay';
-      } else if (event.entityType === EntityType.CATEGORY) {
-        type = 'categorization';
-        href = '/statements';
-      }
+    const withPercent: DashboardTopCategory[] = top.map(row => ({
+      ...row,
+      percent: round2((row.amount / total) * 100),
+    }));
 
-      const meta = event.meta as Record<string, unknown> | null;
+    if (rest.length > 0) {
+      const otherAmount = rest.reduce((sum, row) => sum + row.amount, 0);
+      const otherCount = rest.reduce((sum, row) => sum + row.count, 0);
+      // Absorbing the rounding remainder here (rather than computing this
+      // bucket's percent from its own amount) guarantees the displayed
+      // percentages always sum to exactly 100.
+      const otherPercent = round2(
+        100 - withPercent.reduce((sum, row) => sum + row.percent, 0),
+      );
+      withPercent.push({
+        id: null,
+        name: null,
+        isOther: true,
+        color: OTHER_CATEGORY_COLOR,
+        icon: null,
+        amount: otherAmount,
+        count: otherCount,
+        percent: otherPercent,
+      });
+    }
 
-      return {
-        id: event.id,
-        entityId: event.entityId,
-        type,
-        title:
-          (meta?.fileName as string) ||
-          (meta?.counterpartyName as string) ||
-          (meta?.name as string) ||
-          event.entityId,
-        description: `${event.action} · ${event.actorLabel}`,
-        amount: (meta?.amount as number) ?? null,
-        timestamp: event.createdAt.toISOString(),
-        href,
-      };
-    });
+    return withPercent;
   }
 
-  private async getRecentActivityFallback(workspaceId: string): Promise<DashboardRecentActivity[]> {
-    const recentStatements = await this.statementRepo.find({
-      where: { workspaceId, deletedAt: IsNull() },
-      order: { createdAt: 'DESC' },
-      take: 3,
-      select: ['id', 'fileName', 'status', 'totalTransactions', 'createdAt'],
-    });
-
-    const recentTransactions = await this.transactionRepo
+  private async getRecentTransactions(
+    workspaceId: string,
+    since: Date,
+    endDate: Date,
+  ): Promise<DashboardRecentTransaction[]> {
+    const targetCurrency = await this.getWorkspaceCurrency(workspaceId);
+    const query = this.transactionRepo
       .createQueryBuilder('t')
       .innerJoin('t.statement', 's')
-      .leftJoinAndSelect('t.category', 'c')
-      .select([
-        't.id',
-        't.counterpartyName',
-        't.debit',
-        't.credit',
-        't.transactionType',
-        't.updatedAt',
-        'c.id',
-        'c.name',
-      ])
-      .where('s.workspaceId = :workspaceId', { workspaceId })
-      .andWhere('s.deletedAt IS NULL')
-      .orderBy('t.updatedAt', 'DESC')
-      .take(5)
-      .getMany();
+      .leftJoin('t.category', 'c');
 
-    const activities: DashboardRecentActivity[] = [];
+    this.applyActiveStatementTransactionFilters(query, workspaceId, since, endDate);
 
-    for (const stmt of recentStatements) {
-      activities.push({
-        id: stmt.id,
-        entityId: stmt.id,
-        type: 'statement_upload',
-        title: stmt.fileName,
-        description: `${stmt.totalTransactions} transactions · ${stmt.status}`,
-        amount: null,
-        timestamp: stmt.createdAt.toISOString(),
-        href: `/statements/${stmt.id}/view`,
-      });
-    }
+    const rows = await query
+      .select('t.id', 'id')
+      .addSelect('t.counterpartyName', 'description')
+      .addSelect('t.debit', 'debit')
+      .addSelect('t.credit', 'credit')
+      .addSelect('t.transactionType', 'transactionType')
+      .addSelect('t.currency', 'currency')
+      .addSelect('t.transactionDate', 'date')
+      .addSelect('c.id', 'categoryId')
+      .addSelect('c.name', 'categoryName')
+      .addSelect('c.color', 'categoryColor')
+      .addSelect('c.icon', 'categoryIcon')
+      .addSelect('s.bankName', 'bankName')
+      .addSelect('s.accountNumber', 'accountNumber')
+      .orderBy('t.transactionDate', 'DESC')
+      .addOrderBy('t.createdAt', 'DESC')
+      .limit(RECENT_TRANSACTIONS_LIMIT)
+      .getRawMany<{
+        id: string;
+        description: string;
+        debit: string | null;
+        credit: string | null;
+        transactionType: TransactionType;
+        currency: string;
+        date: string;
+        categoryId: string | null;
+        categoryName: string | null;
+        categoryColor: string | null;
+        categoryIcon: string | null;
+        bankName: BankName;
+        accountNumber: string | null;
+      }>();
 
-    for (const tx of recentTransactions) {
-      const credit = Number(tx.credit ?? 0);
-      const debit = Number(tx.debit ?? 0);
-      const amount = tx.transactionType === TransactionType.INCOME ? credit : -debit;
+    return Promise.all(
+      rows.map(async row => {
+        const magnitude = row.transactionType === TransactionType.INCOME ? row.credit : row.debit;
+        const converted = await this.convertDashboardAmount(magnitude, row.currency, targetCurrency);
+        const amount = row.transactionType === TransactionType.INCOME ? converted : -converted;
 
-      activities.push({
-        id: tx.id,
-        type: tx.category ? 'categorization' : 'transaction',
-        title: tx.counterpartyName || 'Unknown',
-        description: tx.category?.name || null,
-        amount,
-        timestamp: tx.updatedAt.toISOString(),
-        href: '/statements',
-      });
-    }
+        const bankLabel = BANK_DISPLAY_NAMES[row.bankName] ?? BANK_DISPLAY_NAMES[BankName.OTHER];
+        const maskedAccount = maskAccountNumber(row.accountNumber);
+        const account = maskedAccount ? `${bankLabel} ${maskedAccount}` : bankLabel;
 
-    return activities
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 8);
+        return {
+          id: row.id,
+          description: row.description,
+          amount,
+          currency: targetCurrency,
+          date: row.date,
+          account,
+          categoryId: row.categoryId,
+          categoryName: row.categoryName,
+          categoryColor: row.categoryColor || OTHER_CATEGORY_COLOR,
+          categoryIcon: row.categoryIcon,
+        };
+      }),
+    );
   }
 
   private async getMemberRole(
@@ -713,7 +749,7 @@ export class DashboardService {
   }
 
   async getTrends(workspaceId: string, days = 30): Promise<DashboardTrendsResponse> {
-    const requestedWindow = this.getWindowBounds(days, new Date());
+    const requestedWindow = getWindowBounds(days, new Date());
     let effectiveWindow = requestedWindow;
     let trendData = await this.getTrendData(
       workspaceId,
@@ -727,7 +763,7 @@ export class DashboardService {
       const latestTransactionDate = await this.getLatestTransactionDate(workspaceId);
 
       if (latestTransactionDate) {
-        effectiveWindow = this.getWindowBounds(days, latestTransactionDate);
+        effectiveWindow = getWindowBounds(days, latestTransactionDate);
         trendData = await this.getTrendData(
           workspaceId,
           effectiveWindow.since,
@@ -784,17 +820,6 @@ export class DashboardService {
     }
 
     return response;
-  }
-
-  private getWindowBounds(days: number, targetDate: Date): { since: Date; endDate: Date } {
-    const endDate = new Date(targetDate);
-    endDate.setHours(23, 59, 59, 999);
-
-    const since = new Date(endDate);
-    since.setDate(since.getDate() - days);
-    since.setHours(0, 0, 0, 0);
-
-    return { since, endDate };
   }
 
   private async getLatestTransactionDate(workspaceId: string): Promise<Date | null> {

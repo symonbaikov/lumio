@@ -59,6 +59,22 @@
     @include dark {
       color: $lumio-color-ink-900-dk;
     }
+
+    &--positive {
+      color: $lumio-color-success;
+
+      @include dark {
+        color: $lumio-color-success-dk;
+      }
+    }
+
+    &--negative {
+      color: $lumio-color-danger;
+
+      @include dark {
+        color: $lumio-color-danger-dk;
+      }
+    }
   }
 
   &__stat-row {
@@ -67,43 +83,6 @@
     gap: 8px;
     margin-top: 6px;
     font-size: 12px;
-  }
-
-  &__stat-delta {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    padding: 2px 6px;
-    border-radius: $lumio-radius-xs;
-    font-weight: 500;
-
-    &--up {
-      background: $lumio-color-success-soft;
-      color: #047857;
-
-      @include dark {
-        background: $lumio-color-success-soft-dk;
-      }
-    }
-
-    &--down {
-      background: $lumio-color-danger-soft;
-      color: #be123c;
-
-      @include dark {
-        background: $lumio-color-danger-soft-dk;
-      }
-    }
-
-    &--flat {
-      background: $lumio-color-ink-100;
-      color: $lumio-color-ink-600;
-
-      @include dark {
-        background: $lumio-color-ink-100-dk;
-        color: $lumio-color-ink-600-dk;
-      }
-    }
   }
 
   &__stat-sub {
@@ -587,6 +566,36 @@
       @include dark {
         background-color: $lumio-color-primary-fill-hover-dk;
       }
+    }
+  }
+
+  /* ── Month/year picker ── */
+  &__month-picker {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  &__month-picker-select {
+    appearance: none;
+    padding: 8px 32px 8px 12px;
+    background: $lumio-color-surface url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238e8e9a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")
+      no-repeat right 8px center;
+    border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-md;
+    font-size: 13px;
+    font-weight: 500;
+    color: $lumio-color-ink-900;
+    cursor: pointer;
+
+    &--year {
+      min-width: 92px;
+    }
+
+    @include dark {
+      background-color: $lumio-color-surface-dk;
+      border-color: $lumio-color-border-dk;
+      color: $lumio-color-ink-900-dk;
     }
   }
 

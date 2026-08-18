@@ -1,7 +1,97 @@
 import { describe, expect, it } from 'vitest';
 import type { DashboardData } from '@/app/hooks/useDashboard';
 
-import { buildFinanceOpsModel } from './finance-ops-model';
+import { type FinanceOpsLabels, buildFinanceOpsModel } from './finance-ops-model';
+
+const labels: FinanceOpsLabels = {
+  checklist: {
+    statementsImported: 'Statements imported and submitted',
+    reviewQueueClear: 'Statement review queue is clear',
+    categoriesResolved: 'Uncategorized transactions are resolved',
+    receiptsMatched: 'Receipts are matched or reviewed',
+    cashReconciled: 'Unapproved cash is reconciled',
+  },
+  savedViews: {
+    uncategorized: 'Uncategorized',
+    needsReceipt: 'Needs receipt',
+    statementReview: 'Statement review',
+    largeExpenses: 'Large expenses',
+    monthClose: 'This month close',
+  },
+  pluralStatement: '{count} statements',
+  pluralWarning: '{count} warnings',
+  pluralTransaction: '{count} transactions',
+  pluralReceipt: '{count} receipts',
+  features: {
+    importReviewInbox: {
+      title: 'Import Review Inbox',
+      summary: 'One queue for submitted statements, parse warnings, errors, and pending review.',
+      primaryActionOpen: 'Open review queue',
+      primaryActionImport: 'Import statement',
+      evidence: '{statements} in review, {warnings}',
+    },
+    transactionTriageMode: {
+      title: 'Transaction Triage Mode',
+      summary: 'Process uncategorized transactions as an approval queue instead of hunting in tables.',
+      primaryAction: 'Start triage',
+      evidence: '{transactions}',
+    },
+    smartCategorySuggestions: {
+      title: 'Smart Category Suggestions',
+      summary: 'Explain category work with merchant history, team rules, and high-volume patterns.',
+      primaryAction: 'Review category rules',
+      evidenceTopCategory: 'Top category: {name}',
+      evidenceNoPressure: 'No category pressure detected',
+    },
+    periodCloseChecklistFeature: {
+      title: 'Period Close Checklist',
+      summary: 'Make month close explicit: imports, review, categories, receipts, and cash approval.',
+      primaryActionResolve: 'Resolve blockers',
+      primaryActionExport: 'Export reports',
+      evidence: '{done}/{total} checks complete',
+    },
+    anomalyDetectionFeed: {
+      title: 'Anomaly Detection Feed',
+      summary: 'Surface unusual spend, overdue payables, new merchants, and concentration risk.',
+      primaryAction: 'Inspect anomalies',
+      evidenceOverdue: '{amount} overdue',
+      evidenceTopMerchant: 'Top merchant: {name}',
+      evidenceNone: 'none',
+    },
+    reconciliationDashboard: {
+      title: 'Reconciliation Dashboard',
+      summary: 'Show income minus expenses, unapproved cash, and balance confidence in one place.',
+      primaryAction: 'Open reconciliation',
+      evidence: 'Net flow: {netFlow}; unapproved: {unapproved}',
+    },
+    savedViewsTeamFilters: {
+      title: 'Saved Views & Team Filters',
+      summary: 'Give the team stable operational views for daily review and month close.',
+      primaryAction: 'Open saved views',
+      evidence: '{count} team views ready',
+    },
+    receiptMatchingAssistant: {
+      title: 'Receipt Matching Assistant',
+      summary: 'Keep unmatched receipts visible until they are linked, approved, or dismissed.',
+      primaryAction: 'Match receipts',
+      evidence: '{receipts}',
+    },
+    actionableNotifications: {
+      title: 'Actionable Notifications',
+      summary: 'Turn dashboard action items into direct links to the work that remains.',
+      primaryActionOpen: 'Open first action',
+      primaryActionNone: 'No action needed',
+      evidenceAllClear: 'All operational actions are clear',
+    },
+    explainThisNumber: {
+      title: 'Explain This Number',
+      summary: 'Connect every headline number to source transactions, categories, and period changes.',
+      primaryAction: 'Explain report numbers',
+      evidenceTopCategoryAmount: '{name}: {amount}',
+      evidenceBalance: 'Balance: {amount}',
+    },
+  },
+};
 
 const baseData: DashboardData = {
   snapshot: {
@@ -30,8 +120,10 @@ const baseData: DashboardData = {
   ],
   cashFlow: [],
   topMerchants: [{ name: 'Acme Ltd', amount: 42000, count: 3 }],
-  topCategories: [{ id: 'cat-1', name: 'Operations', amount: 33000, transactions: 4, percentage: 40 }],
-  recentActivity: [],
+  topCategories: [
+    { id: 'cat-1', name: 'Operations', color: '#3b82f6', icon: null, amount: 33000, count: 4, percent: 40 },
+  ],
+  recentTransactions: [],
   role: 'owner',
   range: '30d',
   dataHealth: {
@@ -48,7 +140,7 @@ const baseData: DashboardData = {
 
 describe('buildFinanceOpsModel', () => {
   it('builds ten workflow features with pending counters from dashboard data', () => {
-    const model = buildFinanceOpsModel(baseData, value => `${value} KZT`);
+    const model = buildFinanceOpsModel(baseData, value => `${value} KZT`, labels);
 
     expect(model.features).toHaveLength(10);
     expect(model.totalPending).toBeGreaterThan(0);
@@ -87,6 +179,7 @@ describe('buildFinanceOpsModel', () => {
         },
       },
       value => `${value} KZT`,
+      labels,
     );
 
     expect(model.totalPending).toBe(0);

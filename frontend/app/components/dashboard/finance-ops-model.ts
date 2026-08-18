@@ -1,3 +1,4 @@
+import { fillTemplate } from '@/app/(main)/dashboard/helpers/dashboard-helpers';
 import type { DashboardActionItem, DashboardData } from '@/app/hooks/useDashboard';
 
 export type FinanceOpsFeatureStatus = 'ready' | 'review' | 'blocked';
@@ -28,17 +29,105 @@ export type FinanceOpsModel = {
   features: FinanceOpsFeature[];
 };
 
+export type FinanceOpsLabels = {
+  checklist: {
+    statementsImported: string;
+    reviewQueueClear: string;
+    categoriesResolved: string;
+    receiptsMatched: string;
+    cashReconciled: string;
+  };
+  savedViews: {
+    uncategorized: string;
+    needsReceipt: string;
+    statementReview: string;
+    largeExpenses: string;
+    monthClose: string;
+  };
+  pluralStatement: string;
+  pluralWarning: string;
+  pluralTransaction: string;
+  pluralReceipt: string;
+  features: {
+    importReviewInbox: {
+      title: string;
+      summary: string;
+      primaryActionOpen: string;
+      primaryActionImport: string;
+      evidence: string;
+    };
+    transactionTriageMode: {
+      title: string;
+      summary: string;
+      primaryAction: string;
+      evidence: string;
+    };
+    smartCategorySuggestions: {
+      title: string;
+      summary: string;
+      primaryAction: string;
+      evidenceTopCategory: string;
+      evidenceNoPressure: string;
+    };
+    periodCloseChecklistFeature: {
+      title: string;
+      summary: string;
+      primaryActionResolve: string;
+      primaryActionExport: string;
+      evidence: string;
+    };
+    anomalyDetectionFeed: {
+      title: string;
+      summary: string;
+      primaryAction: string;
+      evidenceOverdue: string;
+      evidenceTopMerchant: string;
+      evidenceNone: string;
+    };
+    reconciliationDashboard: {
+      title: string;
+      summary: string;
+      primaryAction: string;
+      evidence: string;
+    };
+    savedViewsTeamFilters: {
+      title: string;
+      summary: string;
+      primaryAction: string;
+      evidence: string;
+    };
+    receiptMatchingAssistant: {
+      title: string;
+      summary: string;
+      primaryAction: string;
+      evidence: string;
+    };
+    actionableNotifications: {
+      title: string;
+      summary: string;
+      primaryActionOpen: string;
+      primaryActionNone: string;
+      evidenceAllClear: string;
+    };
+    explainThisNumber: {
+      title: string;
+      summary: string;
+      primaryAction: string;
+      evidenceTopCategoryAmount: string;
+      evidenceBalance: string;
+    };
+  };
+};
+
 const statusFor = (count: number, blocked = false): FinanceOpsFeatureStatus => {
   if (blocked) return 'blocked';
   return count > 0 ? 'review' : 'ready';
 };
 
-const plural = (count: number, singular: string, pluralLabel = `${singular}s`): string =>
-  `${count} ${count === 1 ? singular : pluralLabel}`;
-
 export function buildFinanceOpsModel(
   data: DashboardData,
   formatAmount: (value: number) => string,
+  labels: FinanceOpsLabels,
 ): FinanceOpsModel {
   const dataHealth = {
     uncategorizedTransactions: data.dataHealth?.uncategorizedTransactions ?? 0,
@@ -76,31 +165,31 @@ export function buildFinanceOpsModel(
   const closeChecklist: FinanceOpsChecklistItem[] = [
     {
       id: 'statements-loaded',
-      label: 'Statements imported and submitted',
+      label: labels.checklist.statementsImported,
       done: dataHealth.statementsPendingSubmit === 0,
       href: '/statements/submit',
     },
     {
       id: 'review-clear',
-      label: 'Statement review queue is clear',
+      label: labels.checklist.reviewQueueClear,
       done: dataHealth.statementsPendingReview === 0 && dataHealth.statementsWithErrors === 0,
       href: '/statements/approve',
     },
     {
       id: 'categories-clear',
-      label: 'Uncategorized transactions are resolved',
+      label: labels.checklist.categoriesResolved,
       done: dataHealth.uncategorizedTransactions === 0,
       href: '/statements/submit?categoryId=uncategorized',
     },
     {
       id: 'receipts-clear',
-      label: 'Receipts are matched or reviewed',
+      label: labels.checklist.receiptsMatched,
       done: dataHealth.receiptsPendingReview === 0,
       href: '/statements/submit?status=needs_review',
     },
     {
       id: 'cash-approved',
-      label: 'Unapproved cash is reconciled',
+      label: labels.checklist.cashReconciled,
       done: Math.abs(snapshot.unapprovedCash) === 0,
       href: '/statements/approve',
     },
@@ -110,31 +199,31 @@ export function buildFinanceOpsModel(
   const savedViews = [
     {
       id: 'uncategorized',
-      label: 'Uncategorized',
+      label: labels.savedViews.uncategorized,
       href: '/statements/submit?categoryId=uncategorized',
       count: dataHealth.uncategorizedTransactions,
     },
     {
       id: 'needs-receipt',
-      label: 'Needs receipt',
+      label: labels.savedViews.needsReceipt,
       href: '/statements/submit?status=needs_review',
       count: dataHealth.receiptsPendingReview,
     },
     {
       id: 'review-statements',
-      label: 'Statement review',
+      label: labels.savedViews.statementReview,
       href: '/statements/approve',
       count: dataHealth.statementsPendingReview,
     },
     {
       id: 'large-expenses',
-      label: 'Large expenses',
+      label: labels.savedViews.largeExpenses,
       href: '/statements/transactions?sort=amount-desc&type=expense',
       count: 0,
     },
     {
       id: 'month-close',
-      label: 'This month close',
+      label: labels.savedViews.monthClose,
       href: '/reports',
       count: closePending,
     },
@@ -143,110 +232,146 @@ export function buildFinanceOpsModel(
   const features: FinanceOpsFeature[] = [
     {
       id: 'import-review-inbox',
-      title: 'Import Review Inbox',
-      summary: 'One queue for submitted statements, parse warnings, errors, and pending review.',
+      title: labels.features.importReviewInbox.title,
+      summary: labels.features.importReviewInbox.summary,
       pendingCount: importPending,
       status: statusFor(importPending, dataHealth.statementsWithErrors > 0),
       href: importPending > 0 ? '/statements/approve' : '/statements/submit',
-      primaryAction: importPending > 0 ? 'Open review queue' : 'Import statement',
-      evidence: `${plural(dataHealth.statementsPendingReview, 'statement')} in review, ${plural(dataHealth.parsingWarnings, 'warning')}`,
+      primaryAction:
+        importPending > 0
+          ? labels.features.importReviewInbox.primaryActionOpen
+          : labels.features.importReviewInbox.primaryActionImport,
+      evidence: fillTemplate(labels.features.importReviewInbox.evidence, {
+        statements: fillTemplate(labels.pluralStatement, {
+          count: String(dataHealth.statementsPendingReview),
+        }),
+        warnings: fillTemplate(labels.pluralWarning, { count: String(dataHealth.parsingWarnings) }),
+      }),
     },
     {
       id: 'transaction-triage',
-      title: 'Transaction Triage Mode',
-      summary: 'Process uncategorized transactions as an approval queue instead of hunting in tables.',
+      title: labels.features.transactionTriageMode.title,
+      summary: labels.features.transactionTriageMode.summary,
       pendingCount: triagePending,
       status: statusFor(triagePending),
       href: '/statements/submit?categoryId=uncategorized',
-      primaryAction: 'Start triage',
-      evidence: plural(triagePending, 'transaction'),
+      primaryAction: labels.features.transactionTriageMode.primaryAction,
+      evidence: fillTemplate(labels.features.transactionTriageMode.evidence, {
+        transactions: fillTemplate(labels.pluralTransaction, { count: String(triagePending) }),
+      }),
     },
     {
       id: 'smart-category-suggestions',
-      title: 'Smart Category Suggestions',
-      summary: 'Explain category work with merchant history, team rules, and high-volume patterns.',
+      title: labels.features.smartCategorySuggestions.title,
+      summary: labels.features.smartCategorySuggestions.summary,
       pendingCount: triagePending,
       status: statusFor(triagePending),
       href: '/categories',
-      primaryAction: 'Review category rules',
+      primaryAction: labels.features.smartCategorySuggestions.primaryAction,
       evidence: topCategories[0]
-        ? `Top category: ${topCategories[0].name}`
-        : 'No category pressure detected',
+        ? fillTemplate(labels.features.smartCategorySuggestions.evidenceTopCategory, {
+            name: topCategories[0].name ?? labels.savedViews.uncategorized,
+          })
+        : labels.features.smartCategorySuggestions.evidenceNoPressure,
     },
     {
       id: 'period-close-checklist',
-      title: 'Period Close Checklist',
-      summary: 'Make month close explicit: imports, review, categories, receipts, and cash approval.',
+      title: labels.features.periodCloseChecklistFeature.title,
+      summary: labels.features.periodCloseChecklistFeature.summary,
       pendingCount: closePending,
       status: statusFor(closePending, closePending > 0),
       href: '/reports',
-      primaryAction: closePending > 0 ? 'Resolve blockers' : 'Export reports',
-      evidence: `${closeChecklist.length - closePending}/${closeChecklist.length} checks complete`,
+      primaryAction:
+        closePending > 0
+          ? labels.features.periodCloseChecklistFeature.primaryActionResolve
+          : labels.features.periodCloseChecklistFeature.primaryActionExport,
+      evidence: fillTemplate(labels.features.periodCloseChecklistFeature.evidence, {
+        done: String(closeChecklist.length - closePending),
+        total: String(closeChecklist.length),
+      }),
     },
     {
       id: 'anomaly-feed',
-      title: 'Anomaly Detection Feed',
-      summary: 'Surface unusual spend, overdue payables, new merchants, and concentration risk.',
+      title: labels.features.anomalyDetectionFeed.title,
+      summary: labels.features.anomalyDetectionFeed.summary,
       pendingCount: anomalyPending,
       status: statusFor(anomalyPending),
       href: '/dashboard',
-      primaryAction: 'Inspect anomalies',
+      primaryAction: labels.features.anomalyDetectionFeed.primaryAction,
       evidence:
         snapshot.totalOverdue > 0
-          ? `${formatAmount(snapshot.totalOverdue)} overdue`
-          : `Top merchant: ${topMerchants[0]?.name ?? 'none'}`,
+          ? fillTemplate(labels.features.anomalyDetectionFeed.evidenceOverdue, {
+              amount: formatAmount(snapshot.totalOverdue),
+            })
+          : fillTemplate(labels.features.anomalyDetectionFeed.evidenceTopMerchant, {
+              name: topMerchants[0]?.name ?? labels.features.anomalyDetectionFeed.evidenceNone,
+            }),
     },
     {
       id: 'reconciliation-dashboard',
-      title: 'Reconciliation Dashboard',
-      summary: 'Show income minus expenses, unapproved cash, and balance confidence in one place.',
+      title: labels.features.reconciliationDashboard.title,
+      summary: labels.features.reconciliationDashboard.summary,
       pendingCount: reconciliationPending,
       status: statusFor(reconciliationPending),
       href: '/reports',
-      primaryAction: 'Open reconciliation',
-      evidence: `Net flow: ${formatAmount(snapshot.netFlow30d)}; unapproved: ${formatAmount(snapshot.unapprovedCash)}`,
+      primaryAction: labels.features.reconciliationDashboard.primaryAction,
+      evidence: fillTemplate(labels.features.reconciliationDashboard.evidence, {
+        netFlow: formatAmount(snapshot.netFlow30d),
+        unapproved: formatAmount(snapshot.unapprovedCash),
+      }),
     },
     {
       id: 'saved-views',
-      title: 'Saved Views & Team Filters',
-      summary: 'Give the team stable operational views for daily review and month close.',
+      title: labels.features.savedViewsTeamFilters.title,
+      summary: labels.features.savedViewsTeamFilters.summary,
       pendingCount: savedViews.reduce((sum, view) => sum + view.count, 0),
       status: statusFor(savedViews.reduce((sum, view) => sum + view.count, 0)),
       href: '/statements/transactions',
-      primaryAction: 'Open saved views',
-      evidence: `${savedViews.length} team views ready`,
+      primaryAction: labels.features.savedViewsTeamFilters.primaryAction,
+      evidence: fillTemplate(labels.features.savedViewsTeamFilters.evidence, {
+        count: String(savedViews.length),
+      }),
     },
     {
       id: 'receipt-matching',
-      title: 'Receipt Matching Assistant',
-      summary: 'Keep unmatched receipts visible until they are linked, approved, or dismissed.',
+      title: labels.features.receiptMatchingAssistant.title,
+      summary: labels.features.receiptMatchingAssistant.summary,
       pendingCount: receiptPending,
       status: statusFor(receiptPending),
       href: '/statements/submit?status=needs_review',
-      primaryAction: 'Match receipts',
-      evidence: plural(receiptPending, 'receipt'),
+      primaryAction: labels.features.receiptMatchingAssistant.primaryAction,
+      evidence: fillTemplate(labels.features.receiptMatchingAssistant.evidence, {
+        receipts: fillTemplate(labels.pluralReceipt, { count: String(receiptPending) }),
+      }),
     },
     {
       id: 'actionable-notifications',
-      title: 'Actionable Notifications',
-      summary: 'Turn dashboard action items into direct links to the work that remains.',
+      title: labels.features.actionableNotifications.title,
+      summary: labels.features.actionableNotifications.summary,
       pendingCount: actions.reduce((sum, action) => sum + action.count, 0),
       status: statusFor(actions.reduce((sum, action) => sum + action.count, 0)),
       href: actions[0]?.href ?? '/dashboard',
-      primaryAction: actions[0] ? 'Open first action' : 'No action needed',
-      evidence: actions[0]?.label ?? 'All operational actions are clear',
+      primaryAction: actions[0]
+        ? labels.features.actionableNotifications.primaryActionOpen
+        : labels.features.actionableNotifications.primaryActionNone,
+      evidence: actions[0]?.label ?? labels.features.actionableNotifications.evidenceAllClear,
     },
     {
       id: 'explain-number',
-      title: 'Explain This Number',
-      summary: 'Connect every headline number to source transactions, categories, and period changes.',
+      title: labels.features.explainThisNumber.title,
+      summary: labels.features.explainThisNumber.summary,
       pendingCount: 0,
       status: 'ready',
       href: '/reports',
-      primaryAction: 'Explain report numbers',
+      primaryAction: labels.features.explainThisNumber.primaryAction,
       evidence: topCategories[0]
-        ? `${topCategories[0].name}: ${formatAmount(topCategories[0].amount)}`
-        : `Balance: ${formatAmount(snapshot.totalBalance)}`,
+        ? fillTemplate(labels.features.explainThisNumber.evidenceTopCategoryAmount, {
+            name: topCategories[0].name ?? labels.savedViews.uncategorized,
+            amount: formatAmount(topCategories[0].amount),
+          })
+        : fillTemplate(labels.features.explainThisNumber.evidenceBalance, {
+            amount: formatAmount(snapshot.totalBalance),
+          }),
     },
   ];
 

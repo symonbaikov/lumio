@@ -49,7 +49,7 @@ export function NetWorthContent() {
           exclusive
           value={range}
           onChange={(_event, next: NetWorthRange | null) => next && setRange(next)}
-          aria-label={String(t.title)}
+          aria-label={t.title.value}
         >
           {NET_WORTH_RANGES.map(option => (
             <ToggleButton key={option} value={option} sx={{ px: 1.5, textTransform: 'none' }}>
@@ -140,7 +140,7 @@ export function NetWorthContent() {
           </Box>
 
           <AllocationCard
-            title={String(t.allocation)}
+            title={t.allocation.value}
             items={data.breakdown}
             currency={currency}
             locale={locale}
@@ -154,19 +154,21 @@ export function NetWorthContent() {
             currency={currency}
             locale={locale}
             labels={{
-              title: String(t.riskTitle),
-              riskyShare: String(t.riskyShare),
-              riskyHint: String(t.riskyHint),
-              unclassified: String(t.unclassified),
+              title: t.riskTitle.value,
+              riskyShare: t.riskyShare.value,
+              riskyHint: t.riskyHint.value,
+              unclassified: t.unclassified.value,
+              riskColumn: t.riskColumn.value,
+              roleColumn: t.roleColumn.value,
               risk: {
-                low: String(t.riskLow),
-                medium: String(t.riskMedium),
-                high: String(t.riskHigh),
+                low: t.riskLow.value,
+                medium: t.riskMedium.value,
+                high: t.riskHigh.value,
               },
               role: {
-                income: String(t.roleIncome),
-                neutral: String(t.roleNeutral),
-                drain: String(t.roleDrain),
+                income: t.roleIncome.value,
+                neutral: t.roleNeutral.value,
+                drain: t.roleDrain.value,
               },
             }}
             onClassify={(accountId, patch) => void classify(accountId, patch)}

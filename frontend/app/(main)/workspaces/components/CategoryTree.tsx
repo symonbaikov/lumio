@@ -2,6 +2,7 @@
 
 import { ChevronRight, Lock, Plus, Search as SearchIcon, Tag } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
+import { resolveCategoryIconUrl } from '@/app/lib/category-icon-url';
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
@@ -25,21 +26,6 @@ const SOURCE_BADGE_COLORS: Record<
     border: 'var(--color-warning-soft-border)',
   },
   user: { bg: 'var(--muted)', color: 'var(--text-secondary)', border: 'var(--border-color)' },
-};
-
-const resolveIconUrl = (iconValue?: string): string | null => {
-  if (!iconValue) {
-    return null;
-  }
-  if (iconValue.startsWith('http')) {
-    return iconValue;
-  }
-  if (iconValue.startsWith('/uploads')) {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-    const base = apiUrl.replace(/\/api\/v1$/, '') || '';
-    return `${base}${iconValue}`;
-  }
-  return null;
 };
 
 const getBadgeSource = (category: Category): NonNullable<Category['source']> | null => {
@@ -187,7 +173,7 @@ export function CategoryTree({
           {categories.map((category, index) => {
             const categoryColor = category.color || '#2196F3';
             const hasIcon = Boolean(category.icon?.trim());
-            const iconUrl = resolveIconUrl(category.icon);
+            const iconUrl = resolveCategoryIconUrl(category.icon);
             const isEnabled = category.isEnabled !== false;
             const isToggling = togglingIds.has(category.id);
             const iconTint = alpha(categoryColor, isEnabled ? 0.16 : 0.12);

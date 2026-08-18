@@ -9,12 +9,18 @@ import type React from 'react';
 import type { DashboardTabId } from '../hooks/useDashboardPage';
 import { DashboardTabs } from './DashboardTabs';
 
+type DashboardHeaderLabels = {
+  tabs: { financeOps: string; overview: string; trends: string; dataHealth: string };
+  uploadStatement: string;
+};
+
 type DashboardHeaderProps = {
   statusHeading: string;
   greetingSubtitle: string;
   activeTab: DashboardTabId;
   onTabChange: (tab: DashboardTabId) => void;
   exportMenu: unknown;
+  labels: DashboardHeaderLabels;
 };
 
 export function DashboardHeader({
@@ -23,6 +29,7 @@ export function DashboardHeader({
   activeTab,
   onTabChange,
   exportMenu,
+  labels,
 }: DashboardHeaderProps): React.JSX.Element {
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
@@ -57,12 +64,12 @@ export function DashboardHeader({
             }}
           >
             <Plus size={16} />
-            Upload statement
+            {labels.uploadStatement}
           </Link>
         </div>
       </div>
       <div style={{ marginTop: 24, borderBottom: `1px solid ${c.border}` }}>
-        <DashboardTabs activeTab={activeTab} onTabChange={onTabChange} />
+        <DashboardTabs activeTab={activeTab} onTabChange={onTabChange} labels={labels.tabs} />
       </div>
     </div>
   );

@@ -12,6 +12,8 @@ import { resolveDashboardStatusHeading } from '@/app/lib/dashboard-status-headin
 import { useCallback, useMemo, useState } from 'react';
 import {
   fillTemplate,
+  formatDateOnly,
+  parseDateOnly,
   resolveDashboardGreetingData,
   resolveGreetingState,
   resolveLocale,
@@ -33,10 +35,28 @@ export function useDashboardPage() {
   const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
   const { locale } = useLocale();
   const t = useIntlayer('dashboardPage');
+  const headerT = useIntlayer('dashboardHeader');
   const dashboardText = t as unknown as DashboardPageText;
   const isMobile = useIsMobile();
-  const { data, loading, error, refresh, range } = useDashboard('30d');
-  const [activeTab, setActiveTab] = useState<DashboardTabId>('finance-ops');
+  // `null` means "no explicit month picked yet" — the backend defaults to the
+  // current month and auto-shifts to the latest month with data. Once the
+  // user picks a month, auto-shift is disabled for good (see changeMonth).
+  const [pickedMonth, setPickedMonth] = useState<Date | null>(null);
+  const targetDateParam = pickedMonth ? formatDateOnly(pickedMonth) : undefined;
+  const { data, loading, error, refresh, range } = useDashboard('month', targetDateParam);
+  const displayMonth = useMemo(() => {
+    if (pickedMonth) {
+      return pickedMonth;
+    }
+    if (data?.effectiveSince) {
+      return parseDateOnly(data.effectiveSince);
+    }
+    return new Date();
+  }, [pickedMonth, data?.effectiveSince]);
+  const changeMonth = useCallback((year: number, month: number): void => {
+    setPickedMonth(new Date(year, month, 1));
+  }, []);
+  const [activeTab, setActiveTab] = useState<DashboardTabId>('overview');
   const isRedirecting = useDashboardRedirect({
     user,
     authLoading,
@@ -88,6 +108,15 @@ export function useDashboardPage() {
     const period = resolveDashboardEffectivePeriod(data?.effectiveSince, data?.effectiveEndDate);
     return { statusHeading: heading, greetingSubtitle: subtitle, effectivePeriod: period };
   }, [dashboardText.greeting, dashboardText.statusHeading, data, error, loading, user?.name]);
+  const headerLabels = {
+    tabs: {
+      financeOps: t.tabs.financeOps.value,
+      overview: t.tabs.overview.value,
+      trends: t.tabs.trends.value,
+      dataHealth: t.tabs.dataHealth.value,
+    },
+    uploadStatement: headerT.uploadStatement.value,
+  };
   return {
     data,
     loading,
@@ -106,6 +135,9 @@ export function useDashboardPage() {
     statusHeading,
     greetingSubtitle,
     effectivePeriod,
+    displayMonth,
+    changeMonth,
+    headerLabels,
     t,
   };
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { PiggyBank } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -26,6 +27,7 @@ function getColor(percent: number): 'success' | 'warning' | 'error' {
 }
 
 export function BudgetSummaryWidget() {
+  const t = useIntlayer('budgetSummaryWidget');
   const [budgets, setBudgets] = useState<BudgetSummary[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -48,13 +50,13 @@ export function BudgetSummaryWidget() {
       <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
           <PiggyBank size={18} />
-          <Typography variant="subtitle2" fontWeight={600}>Budgets</Typography>
+          <Typography variant="subtitle2" fontWeight={600}>{t.title}</Typography>
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-          Set up budgets to track spending by category.
+          {t.emptyDescription}
         </Typography>
         <Button component={Link} href="/budgets" size="small" variant="text">
-          Set up budgets
+          {t.setUpBudgets}
         </Button>
       </Box>
     );
@@ -65,10 +67,10 @@ export function BudgetSummaryWidget() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <PiggyBank size={18} />
-          <Typography variant="subtitle2" fontWeight={600}>Budgets</Typography>
+          <Typography variant="subtitle2" fontWeight={600}>{t.title}</Typography>
         </Box>
         <Button component={Link} href="/budgets" size="small" variant="text">
-          View all
+          {t.viewAll}
         </Button>
       </Box>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>

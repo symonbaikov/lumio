@@ -34,6 +34,8 @@ describe('CashFlowMini', () => {
     render(
       <CashFlowMini
         emptyLabel="No data"
+        incomeLabel="Income"
+        expenseLabel="Expense"
         data={[
           { date: '2025-12-08', income: 500000, expense: 300000 },
           { date: '2025-12-09', income: 320000, expense: 180000 },
@@ -54,6 +56,8 @@ describe('CashFlowMini', () => {
     const { container } = render(
       <CashFlowMini
         emptyLabel="No data"
+        incomeLabel="Income"
+        expenseLabel="Expense"
         data={[
           { date: '2025-12-08', income: 500000, expense: 300000 },
           { date: '2025-12-09', income: 320000, expense: 180000 },
@@ -70,6 +74,8 @@ describe('CashFlowMini', () => {
     render(
       <CashFlowMini
         emptyLabel="No data"
+        incomeLabel="Income"
+        expenseLabel="Expense"
         data={[
           { date: '2025-12-08', income: 500000, expense: 300000 },
           { date: '2025-12-09', income: 320000, expense: 180000 },
@@ -100,6 +106,8 @@ describe('CashFlowMini', () => {
     render(
       <CashFlowMini
         emptyLabel="No data"
+        incomeLabel="Income"
+        expenseLabel="Expense"
         data={[{ date: '2026-05-06', income: 0, expense: 100 }]}
       />,
     );

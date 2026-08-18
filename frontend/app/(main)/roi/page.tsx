@@ -52,7 +52,7 @@ export default function RoiPage() {
       >
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <TextField
-            label={String(t.investmentLabel)}
+            label={t.investmentLabel.value}
             type="number"
             size="small"
             value={investment}
@@ -61,7 +61,7 @@ export default function RoiPage() {
             slotProps={{ htmlInput: { min: 0, step: '0.01' } }}
           />
           <TextField
-            label={String(t.monthlyIncomeLabel)}
+            label={t.monthlyIncomeLabel.value}
             type="number"
             size="small"
             value={monthlyIncome}
@@ -96,7 +96,7 @@ export default function RoiPage() {
               <Typography variant="h5" fontWeight={700}>
                 {result.paybackYears === null
                   ? t.neverPaysBack
-                  : formatPayback(result.paybackYears, String(t.years), String(t.months))}
+                  : formatPayback(result.paybackYears, t.years.value, t.months.value)}
               </Typography>
             </Box>
           </Box>
@@ -123,8 +123,8 @@ export default function RoiPage() {
 
           <RoiProjectionChart
             points={projection}
-            compoundLabel={String(t.compoundLabel)}
-            simpleLabel={String(t.simpleLabel)}
+            compoundLabel={t.compoundLabel.value}
+            simpleLabel={t.simpleLabel.value}
           />
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>

@@ -22,6 +22,46 @@ vi.mock('@/app/hooks/useDashboard', async () => {
   };
 });
 
+// Mirrors react-intlayer's renderIntlayerNode: a Proxy over a rendered
+// Fragment whose `.value` is intercepted to return the plain string, so the
+// mock is usable both as a JSX child and via `.value` string access.
+const value = (v: string) =>
+  // biome-ignore lint/complexity/noUselessFragments: Proxy needs an object target — a bare string can't be proxied
+  new Proxy(<>{v}</>, {
+    get(target, prop, receiver) {
+      if (prop === 'value') return v;
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+
+vi.mock('@/app/i18n', () => ({
+  useIntlayer: () => ({
+    title: value('TRENDS DASHBOARD'),
+    showingPeriodPrefix: value('Showing latest available period:'),
+    noTrendDataForPeriod: value('No trend data available for this period.'),
+    dataSourcesTitle: value('Data sources'),
+    statementsTitle: value('STATEMENTS'),
+    netFlowTitle: value('NET FLOW'),
+    counterpartiesTitle: value('COUNTERPARTIES'),
+    income: value('Income'),
+    expense: value('Expense'),
+    net: value('Net'),
+    categories: value('Categories'),
+    totalFound: value('Total found'),
+    syncedBadge: value('Synced'),
+    activeBadge: value('Active'),
+    readyBadge: value('Ready'),
+    spendTrendTitle: value('Spend trend'),
+    categoryBreakdownTitle: value('Category breakdown'),
+    noTrendDataForRange: value('No trend data available for selected range'),
+    noCategorizedTransactions: value('No categorized transactions to visualize'),
+    forecastSuffix: value(' (forecast)'),
+    forecastLabel: value('Forecast →'),
+    expenseCategoriesSeriesName: value('Expense categories'),
+  }),
+  useLocale: () => ({ locale: 'en' }),
+}));
+
 describe('TrendsTab', () => {
   it('shows the effective period banner when trends use an auto-shifted window', () => {
     hooksMock.useDashboardTrends.mockReturnValue({
@@ -82,7 +122,7 @@ describe('TrendsTab', () => {
       />,
     );
 
-    const spendTrendHeading = screen.getByText('SPEND TREND');
+    const spendTrendHeading = screen.getByText(/spend trend/i);
     const spendTrendCard = spendTrendHeading.parentElement;
     const className = String(spendTrendCard?.className ?? '');
 

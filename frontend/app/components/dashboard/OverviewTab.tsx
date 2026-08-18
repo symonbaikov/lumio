@@ -3,9 +3,13 @@
 
 import { BudgetSummaryWidget } from '@/app/(main)/dashboard/components/BudgetSummaryWidget';
 import {
+  fillTemplate,
+  formatDateOnly,
+  resolveLocale,
+} from '@/app/(main)/dashboard/helpers/dashboard-helpers';
+import {
   AlertTriangle,
   ArrowRight,
-  ArrowUp,
   ChevronRight,
   FileUp,
   Flag,
@@ -15,14 +19,17 @@ import {
 } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import type { DashboardData, DashboardRange } from '@/app/hooks/useDashboard';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import type React from 'react';
+import { useMemo } from 'react';
 import { Spinner } from '../ui/spinner';
 import { CashFlowMini } from './CashFlowMini';
-import { RecentActivity } from './RecentActivity';
+import { RecentTransactionsCard } from './RecentTransactionsCard';
 import { TopCategoriesCard } from './TopCategoriesCard';
+import { computeNet, computeSavingsRate } from './dashboard-stats.util';
 
 interface OverviewTabProps {
   data: DashboardData;
@@ -30,6 +37,69 @@ interface OverviewTabProps {
   range: DashboardRange;
   isLoading?: boolean;
   effectivePeriod?: string | null;
+  displayMonth: Date;
+  changeMonth: (year: number, month: number) => void;
+}
+
+// ── Month/year picker ─────────────────────────────────────────────────────────
+
+interface MonthYearPickerProps {
+  displayMonth: Date;
+  changeMonth: (year: number, month: number) => void;
+  locale: string;
+}
+
+const YEAR_LOOKBACK = 6;
+
+function MonthYearPicker({ displayMonth, changeMonth, locale }: MonthYearPickerProps) {
+  const year = displayMonth.getFullYear();
+  const month = displayMonth.getMonth();
+  const intlLocale = resolveLocale(locale);
+
+  const monthNames = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, i) =>
+        new Intl.DateTimeFormat(intlLocale, { month: 'long' }).format(new Date(2000, i, 1)),
+      ),
+    [intlLocale],
+  );
+
+  const years = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const earliest = Math.min(year, currentYear - YEAR_LOOKBACK);
+    const list: number[] = [];
+    for (let y = currentYear; y >= earliest; y--) {
+      list.push(y);
+    }
+    return list;
+  }, [year]);
+
+  return (
+    <div className="lumio-dashboard__month-picker">
+      <select
+        className="lumio-dashboard__month-picker-select"
+        value={month}
+        onChange={event => changeMonth(year, Number(event.target.value))}
+      >
+        {monthNames.map((name, i) => (
+          <option key={name} value={i}>
+            {name}
+          </option>
+        ))}
+      </select>
+      <select
+        className="lumio-dashboard__month-picker-select lumio-dashboard__month-picker-select--year"
+        value={year}
+        onChange={event => changeMonth(Number(event.target.value), month)}
+      >
+        {years.map(y => (
+          <option key={y} value={y}>
+            {y}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 }
 
 // ── Inline SVG sparkline ──────────────────────────────────────────────────────
@@ -81,35 +151,25 @@ function Spark({ points, color = tokens.color.primary, fill = true, h = 38, w = 
 interface StatCardProps {
   label: string;
   value: React.ReactNode;
-  delta?: string;
-  deltaDir?: 'up' | 'down' | 'flat';
+  valueTone?: 'positive' | 'negative';
   sub?: string;
   sparkPoints?: number[];
   sparkColor?: string;
 }
 
-function StatCard({
-  label,
-  value,
-  delta,
-  deltaDir = 'flat',
-  sub,
-  sparkPoints,
-  sparkColor,
-}: StatCardProps) {
+function StatCard({ label, value, valueTone, sub, sparkPoints, sparkColor }: StatCardProps) {
+  const valueClass = valueTone
+    ? `lumio-dashboard__stat-value lumio-dashboard__stat-value--${valueTone}`
+    : 'lumio-dashboard__stat-value';
   return (
     <div className="lumio-dashboard__stat">
       <div className="lumio-dashboard__stat-label">{label}</div>
-      <div className="lumio-dashboard__stat-value">{value}</div>
-      <div className="lumio-dashboard__stat-row">
-        {delta && (
-          <span className={`lumio-dashboard__stat-delta lumio-dashboard__stat-delta--${deltaDir}`}>
-            {deltaDir === 'up' && <ArrowUp size={12} />}
-            {delta}
-          </span>
-        )}
-        {sub && <span className="lumio-dashboard__stat-sub">{sub}</span>}
-      </div>
+      <div className={valueClass}>{value}</div>
+      {sub && (
+        <div className="lumio-dashboard__stat-row">
+          <span className="lumio-dashboard__stat-sub">{sub}</span>
+        </div>
+      )}
       {sparkPoints && sparkPoints.length >= 2 && (
         <div className="lumio-dashboard__stat-spark" aria-hidden="true">
           <Spark points={sparkPoints} color={sparkColor} />
@@ -156,11 +216,6 @@ function resolveActionPriority(type: string): 'critical' | 'warning' | 'info' | 
   return ACTION_PRIORITY_MAP[type] || 'info';
 }
 
-const RANGE_LABELS: Record<string, string> = {
-  '7d': '7 days',
-  '90d': '90 days',
-};
-
 // ── Quick actions card ───────────────────────────────────────────────────────
 
 interface MappedAction {
@@ -178,14 +233,15 @@ function QuickActionsCard({
   actions: MappedAction[];
   emptyColor: string;
 }) {
+  const t = useIntlayer('overviewTab');
   return (
     <div className="lumio-dashboard__card lumio-dashboard__actions">
       <div className="lumio-dashboard__card-title" style={{ marginBottom: 16 }}>
-        Quick actions
+        {t.quickActionsTitle}
       </div>
       {actions.length === 0 ? (
         <div style={{ fontSize: 13, color: emptyColor, textAlign: 'center', padding: '24px 0' }}>
-          No actions needed
+          {t.noActionsNeeded}
         </div>
       ) : (
         <div className="lumio-dashboard__action-list">
@@ -198,7 +254,7 @@ function QuickActionsCard({
                 <div className="lumio-dashboard__action-title">{action.label}</div>
                 {action.count > 0 && (
                   <div className="lumio-dashboard__action-sub">
-                    {action.count} item{action.count !== 1 ? 's' : ''} to review
+                    {fillTemplate(t.itemsToReview.value, { count: String(action.count) })}
                   </div>
                 )}
               </div>
@@ -213,7 +269,7 @@ function QuickActionsCard({
 
 // ── Overview state computation ───────────────────────────────────────────────
 
-function computeOverviewState(data: DashboardData, range: DashboardRange, isLoading?: boolean) {
+function computeOverviewState(data: DashboardData, parsingIssuesLabel: string, isLoading?: boolean) {
   const mappedActions: MappedAction[] = (data.actions || []).map(a => ({
     ...a,
     priority: resolveActionPriority(a.type),
@@ -223,7 +279,7 @@ function computeOverviewState(data: DashboardData, range: DashboardRange, isLoad
     mappedActions.push({
       type: 'parsing_warnings',
       count: data.dataHealth.parsingWarnings,
-      label: 'Parsing issues found',
+      label: parsingIssuesLabel,
       href: '/statements?filter=has_errors',
       priority: 'warning' as const,
     });
@@ -232,28 +288,22 @@ function computeOverviewState(data: DashboardData, range: DashboardRange, isLoad
   const hasNoData =
     data.cashFlow.length === 0 && mappedActions.length === 0 && data.snapshot.totalBalance === 0;
 
-  const rangeLabel = RANGE_LABELS[range] || '30 days';
-
   const cfPoints = data.cashFlow.slice(-10);
   const incomePoints = cfPoints.map(p => p.income);
   const expensePoints = cfPoints.map(p => p.expense);
   const netPoints = cfPoints.map(p => p.income - p.expense);
 
-  const uncatCount = data.dataHealth?.uncategorizedTransactions ?? 0;
-
   const loadingSpinner = isLoading ? <Spinner size={12} /> : null;
-  const isNegativeBalance = data.snapshot.totalBalance < 0;
+
+  const net = computeNet(data.snapshot.income30d, data.snapshot.expense30d);
+  const savingsRate = computeSavingsRate(data.snapshot.income30d, data.snapshot.expense30d);
 
   return {
     mappedActions,
     hasNoData,
-    rangeLabel,
-    uncatCount,
     loadingSpinner,
-    balanceDelta: isNegativeBalance ? ('Negative' as const) : undefined,
-    balanceDeltaDir: isNegativeBalance ? ('down' as const) : undefined,
-    uncatDelta: uncatCount > 0 ? 'Needs review' : 'All clear',
-    uncatDeltaDir: uncatCount > 0 ? ('flat' as const) : ('up' as const),
+    net,
+    savingsRate,
     netSpark: netPoints.length >= 2 ? netPoints : undefined,
     incomeSpark: incomePoints.length >= 2 ? incomePoints : undefined,
     expenseSpark: expensePoints.length >= 2 ? expensePoints : undefined,
@@ -265,13 +315,28 @@ function computeOverviewState(data: DashboardData, range: DashboardRange, isLoad
 export function OverviewTab({
   data,
   formatAmount,
-  range,
   isLoading,
   effectivePeriod,
+  displayMonth,
+  changeMonth,
 }: OverviewTabProps) {
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
-  const s = computeOverviewState(data, range, isLoading);
+  const { locale } = useLocale();
+  const t = useIntlayer('overviewTab');
+  const s = computeOverviewState(data, t.parsingIssuesFound.value, isLoading);
+  const monthLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat(resolveLocale(locale), { month: 'long', year: 'numeric' }).format(
+        displayMonth,
+      ),
+    [locale, displayMonth],
+  );
+  const viewAllHref = useMemo(() => {
+    const monthStart = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
+    const monthEnd = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 0);
+    return `/statements/transactions?startDate=${formatDateOnly(monthStart)}&endDate=${formatDateOnly(monthEnd)}`;
+  }, [displayMonth]);
 
   // ── Empty state ────────────────────────────────────────────────────────────
 
@@ -279,14 +344,11 @@ export function OverviewTab({
     return (
       <div className="lumio-dashboard__empty">
         <EmptyStateIllustration name="dashboard" size="lg" />
-        <h2 className="lumio-dashboard__empty-title">Upload your first statement</h2>
-        <p className="lumio-dashboard__empty-desc">
-          Start tracking your finances by uploading a bank statement. We&apos;ll parse it
-          automatically and show your cash flow, categories, and insights.
-        </p>
+        <h2 className="lumio-dashboard__empty-title">{t.emptyTitle}</h2>
+        <p className="lumio-dashboard__empty-desc">{t.emptyDescription}</p>
         <Link href="/statements?openExpenseDrawer=scan" className="lumio-dashboard__empty-cta">
           <FileUp size={16} />
-          Parse statement
+          {t.emptyCta}
         </Link>
       </div>
     );
@@ -296,43 +358,47 @@ export function OverviewTab({
 
   return (
     <div style={{ paddingBottom: 40 }}>
+      <MonthYearPicker displayMonth={displayMonth} changeMonth={changeMonth} locale={locale} />
+
       {effectivePeriod && (
         <div className="lumio-dashboard__period-banner">
-          Showing latest available period: {effectivePeriod}
+          {fillTemplate(t.periodBanner.value, { period: effectivePeriod })}
         </div>
       )}
 
       {/* Stat row — 4 cards */}
       <div className="lumio-dashboard__stat-grid">
         <StatCard
-          label="Net balance"
-          value={s.loadingSpinner || formatAmount(Math.abs(data.snapshot.totalBalance))}
-          delta={s.balanceDelta}
-          deltaDir={s.balanceDeltaDir}
-          sub={data.snapshot.currency}
-          sparkPoints={s.netSpark}
+          label={t.income.value}
+          value={s.loadingSpinner || formatAmount(data.snapshot.income30d)}
+          sub={monthLabel}
+          sparkPoints={s.incomeSpark}
           sparkColor={c.success}
         />
         <StatCard
-          label="Income"
-          value={s.loadingSpinner || formatAmount(data.snapshot.income30d)}
-          sub={s.rangeLabel}
-          sparkPoints={s.incomeSpark}
-          sparkColor={c.primary}
-        />
-        <StatCard
-          label="Expenses"
+          label={t.spentLabel.value}
           value={s.loadingSpinner || formatAmount(data.snapshot.expense30d)}
-          sub={s.rangeLabel}
+          sub={monthLabel}
           sparkPoints={s.expenseSpark}
-          sparkColor={c.warning}
+          sparkColor={c.danger}
         />
         <StatCard
-          label="Uncategorized"
-          value={s.loadingSpinner || String(s.uncatCount)}
-          delta={s.uncatDelta}
-          deltaDir={s.uncatDeltaDir}
-          sparkColor={c.danger}
+          label={t.netLabel.value}
+          value={s.loadingSpinner || `${s.net >= 0 ? '+' : '−'}${formatAmount(Math.abs(s.net))}`}
+          valueTone={s.net >= 0 ? 'positive' : 'negative'}
+          sub={monthLabel}
+          sparkPoints={s.netSpark}
+          sparkColor={s.net >= 0 ? c.success : c.danger}
+        />
+        <StatCard
+          label={t.savingsRateLabel.value}
+          value={
+            s.loadingSpinner || (s.savingsRate === null ? '—' : `${Math.round(s.savingsRate)}%`)
+          }
+          valueTone={
+            s.savingsRate === null ? undefined : s.savingsRate >= 0 ? 'positive' : 'negative'
+          }
+          sub={monthLabel}
         />
       </div>
 
@@ -342,22 +408,29 @@ export function OverviewTab({
         <div className="lumio-dashboard__card lumio-dashboard__cashflow">
           <div className="lumio-dashboard__card-head">
             <div>
-              <div className="lumio-dashboard__card-title">Cash flow</div>
-              <div className="lumio-dashboard__card-sub">Income vs. expenses · {s.rangeLabel}</div>
+              <div className="lumio-dashboard__card-title">{t.cashFlowTitle}</div>
+              <div className="lumio-dashboard__card-sub">
+                {fillTemplate(t.cashFlowSubtitle.value, { range: monthLabel })}
+              </div>
             </div>
             <div className="lumio-dashboard__card-head-actions">
               <span className="lumio-dashboard__legend">
                 <span className="lumio-dashboard__legend-dot" style={{ background: c.primary }} />
-                Income
+                {t.income}
               </span>
               <span className="lumio-dashboard__legend">
                 <span className="lumio-dashboard__legend-dot" style={{ background: c.ink300 }} />
-                Expense
+                {t.expense}
               </span>
             </div>
           </div>
           <div className="lumio-dashboard__cf-chart">
-            <CashFlowMini data={data.cashFlow} emptyLabel="No cash flow data yet" />
+            <CashFlowMini
+              data={data.cashFlow}
+              emptyLabel={t.cashFlowEmpty.value}
+              incomeLabel={t.income.value}
+              expenseLabel={t.expense.value}
+            />
           </div>
         </div>
 
@@ -365,38 +438,24 @@ export function OverviewTab({
         <div className="lumio-dashboard__card lumio-dashboard__categories">
           <div className="lumio-dashboard__card-head">
             <div>
-              <div className="lumio-dashboard__card-title">Top categories</div>
-              <div className="lumio-dashboard__card-sub">{s.rangeLabel}</div>
+              <div className="lumio-dashboard__card-title">{t.topCategoriesTitle}</div>
+              <div className="lumio-dashboard__card-sub">{monthLabel}</div>
             </div>
             <Link href="/reports" className="lumio-dashboard__card-link-btn">
-              View all <ArrowRight size={13} />
+              {t.viewAll} <ArrowRight size={13} />
             </Link>
           </div>
           <div className="lumio-dashboard__cat-chart">
-            <TopCategoriesCard categories={data.topCategories ?? []} />
+            <TopCategoriesCard categories={data.topCategories ?? []} formatAmount={formatAmount} />
           </div>
         </div>
 
-        {/* ── Recent activity ── */}
-        <div className="lumio-dashboard__card-shell lumio-dashboard__activity">
-          <div className="lumio-dashboard__card-shell-head">
-            <div>
-              <div className="lumio-dashboard__card-title">Recent activity</div>
-              <div className="lumio-dashboard__card-sub">Across all connected accounts</div>
-            </div>
-            <Link href="/statements" className="lumio-dashboard__card-link-btn">
-              All transactions <ArrowRight size={13} />
-            </Link>
-          </div>
-          <div className="lumio-dashboard__card-shell-body">
-            <RecentActivity
-              activities={data.recentActivity ?? []}
-              formatAmount={formatAmount}
-              title="Recent activity"
-              emptyLabel="No recent activity yet"
-            />
-          </div>
-        </div>
+        {/* ── Recent transactions ── */}
+        <RecentTransactionsCard
+          transactions={data.recentTransactions ?? []}
+          formatAmount={formatAmount}
+          viewAllHref={viewAllHref}
+        />
 
         {/* ── Budget summary ── */}
         <BudgetSummaryWidget />
@@ -410,8 +469,8 @@ export function OverviewTab({
             <div className="lumio-dashboard__upload-ico">
               <FileUp size={20} />
             </div>
-            <div className="lumio-dashboard__upload-title">Drop a statement here</div>
-            <div className="lumio-dashboard__upload-sub">PDF, CSV, XLSX up to 10 MB</div>
+            <div className="lumio-dashboard__upload-title">{t.uploadDropTitle}</div>
+            <div className="lumio-dashboard__upload-sub">{t.uploadDropSub}</div>
             <div className="lumio-dashboard__upload-formats">
               <span className="lumio-dashboard__format-tag">PDF</span>
               <span className="lumio-dashboard__format-tag">CSV</span>

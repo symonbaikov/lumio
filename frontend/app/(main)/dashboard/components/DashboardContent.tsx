@@ -21,7 +21,10 @@ type DashboardContentProps = {
   statusHeading: string;
   greetingSubtitle: string;
   effectivePeriod: string | null;
+  displayMonth: Date;
+  changeMonth: (year: number, month: number) => void;
   exportMenu: unknown;
+  headerLabels: React.ComponentProps<typeof DashboardHeader>['labels'];
 };
 
 export function DashboardContent({
@@ -36,7 +39,10 @@ export function DashboardContent({
   statusHeading,
   greetingSubtitle,
   effectivePeriod,
+  displayMonth,
+  changeMonth,
   exportMenu,
+  headerLabels,
 }: DashboardContentProps): React.JSX.Element {
   if (error) {
     return <DashboardErrorBanner error={error} onRefresh={onRefresh} />;
@@ -68,6 +74,7 @@ export function DashboardContent({
         activeTab={activeTab}
         onTabChange={setActiveTab}
         exportMenu={exportMenu}
+        labels={headerLabels}
       />
       <DashboardTabContent
         activeTab={activeTab}
@@ -76,6 +83,8 @@ export function DashboardContent({
         range={range}
         isLoading={loading}
         effectivePeriod={effectivePeriod}
+        displayMonth={displayMonth}
+        changeMonth={changeMonth}
       />
     </>
   );

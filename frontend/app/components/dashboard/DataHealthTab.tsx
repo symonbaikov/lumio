@@ -1,6 +1,8 @@
 'use client';
 
+import { fillTemplate, resolveLocale } from '@/app/(main)/dashboard/helpers/dashboard-helpers';
 import type { DashboardData, DashboardRange } from '@/app/hooks/useDashboard';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -13,19 +15,30 @@ interface DataHealthTabProps {
   isLoading?: boolean;
 }
 
-function getRelativeTime(isoDate: string): string {
+interface RelativeTimeLabels {
+  today: string;
+  yesterday: string;
+  daysAgo: string;
+  oneWeekAgo: string;
+  weeksAgo: string;
+  oneMonthAgo: string;
+  monthsAgo: string;
+}
+
+function getRelativeTime(isoDate: string, labels: RelativeTimeLabels): string {
   const date = new Date(isoDate);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 14) return '1 week ago';
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  if (diffDays < 60) return '1 month ago';
-  return `${Math.floor(diffDays / 30)} months ago`;
+  if (diffDays === 0) return labels.today;
+  if (diffDays === 1) return labels.yesterday;
+  if (diffDays < 7) return fillTemplate(labels.daysAgo, { n: String(diffDays) });
+  if (diffDays < 14) return labels.oneWeekAgo;
+  if (diffDays < 30)
+    return fillTemplate(labels.weeksAgo, { n: String(Math.floor(diffDays / 7)) });
+  if (diffDays < 60) return labels.oneMonthAgo;
+  return fillTemplate(labels.monthsAgo, { n: String(Math.floor(diffDays / 30)) });
 }
 
 type SeverityKey = 'green' | 'amber' | 'red' | 'blue';
@@ -39,35 +52,47 @@ const severityTextColor: Record<SeverityKey, string> = {
 
 export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabProps) {
   const { dataHealth } = data;
+  const t = useIntlayer('dataHealthTab');
+  const { locale } = useLocale();
+
+  const relativeTimeLabels: RelativeTimeLabels = {
+    today: t.relativeToday.value,
+    yesterday: t.relativeYesterday.value,
+    daysAgo: t.relativeDaysAgo.value,
+    oneWeekAgo: t.relativeOneWeekAgo.value,
+    weeksAgo: t.relativeWeeksAgo.value,
+    oneMonthAgo: t.relativeOneMonthAgo.value,
+    monthsAgo: t.relativeMonthsAgo.value,
+  };
 
   const metricCards = [
     {
       key: 'uncategorizedTransactions',
-      label: 'UNCATEGORIZED',
+      label: t.uncategorizedLabel,
       value: dataHealth.uncategorizedTransactions,
       severity: (dataHealth.uncategorizedTransactions > 0 ? 'amber' : 'green') as SeverityKey,
     },
     {
       key: 'statementsWithErrors',
-      label: 'STATEMENT ERRORS',
+      label: t.statementErrorsLabel,
       value: dataHealth.statementsWithErrors,
       severity: (dataHealth.statementsWithErrors > 0 ? 'red' : 'green') as SeverityKey,
     },
     {
       key: 'statementsPendingReview',
-      label: 'PENDING REVIEW',
+      label: t.pendingReviewLabel,
       value: dataHealth.statementsPendingReview,
       severity: (dataHealth.statementsPendingReview > 0 ? 'blue' : 'green') as SeverityKey,
     },
     {
       key: 'receiptsPendingReview',
-      label: 'RECEIPTS PENDING',
+      label: t.receiptsPendingLabel,
       value: dataHealth.receiptsPendingReview,
       severity: (dataHealth.receiptsPendingReview > 0 ? 'amber' : 'green') as SeverityKey,
     },
     {
       key: 'parsingWarnings',
-      label: 'PARSING WARNINGS',
+      label: t.parsingWarningsLabel,
       value: dataHealth.parsingWarnings,
       severity: (dataHealth.parsingWarnings > 0 ? 'amber' : 'green') as SeverityKey,
     },
@@ -77,28 +102,36 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
   if (dataHealth.uncategorizedTransactions > 0) {
     quickLinks.push({
       id: 'uncategorized-transactions',
-      label: `Review ${dataHealth.uncategorizedTransactions} uncategorized transaction${dataHealth.uncategorizedTransactions !== 1 ? 's' : ''}`,
+      label: fillTemplate(t.quickLinkUncategorized.value, {
+        count: String(dataHealth.uncategorizedTransactions),
+      }),
       href: '/statements/submit?categoryId=uncategorized',
     });
   }
   if (dataHealth.statementsWithErrors > 0) {
     quickLinks.push({
       id: 'statement-errors',
-      label: `Fix ${dataHealth.statementsWithErrors} statement error${dataHealth.statementsWithErrors !== 1 ? 's' : ''}`,
+      label: fillTemplate(t.quickLinkStatementErrors.value, {
+        count: String(dataHealth.statementsWithErrors),
+      }),
       href: '/statements?status=error',
     });
   }
   if (dataHealth.statementsPendingReview > 0) {
     quickLinks.push({
       id: 'pending-statements',
-      label: `Review ${dataHealth.statementsPendingReview} pending statement${dataHealth.statementsPendingReview !== 1 ? 's' : ''}`,
+      label: fillTemplate(t.quickLinkPendingStatements.value, {
+        count: String(dataHealth.statementsPendingReview),
+      }),
       href: '/statements/approve',
     });
   }
   if (dataHealth.receiptsPendingReview > 0) {
     quickLinks.push({
       id: 'pending-receipts',
-      label: `Review ${dataHealth.receiptsPendingReview} receipt${dataHealth.receiptsPendingReview !== 1 ? 's' : ''}`,
+      label: fillTemplate(t.quickLinkReceipts.value, {
+        count: String(dataHealth.receiptsPendingReview),
+      }),
       href: '/statements/submit?status=needs_review',
     });
   }
@@ -118,7 +151,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
             textDecoration: 'none',
           }}
         >
-          Upload / Parse
+          {t.uploadParse}
         </Link>
         <Link
           href="/statements/approve"
@@ -131,7 +164,9 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
             textDecoration: 'none',
           }}
         >
-          Review Queue ({dataHealth.statementsPendingReview})
+          {fillTemplate(t.reviewQueue.value, {
+            count: String(dataHealth.statementsPendingReview),
+          })}
         </Link>
         <button
           type="button"
@@ -147,7 +182,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
             padding: 0,
           }}
         >
-          Export
+          {t.exportButton}
         </button>
       </Box>
 
@@ -158,7 +193,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
           className="ff-dashboard-mono"
           sx={{ mb: 2, color: 'text.primary', fontSize: 24, fontWeight: 700 }}
         >
-          DATA QUALITY METRICS
+          {t.dataQualityMetrics}
         </Typography>
         <Box
           sx={{
@@ -218,7 +253,9 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
                     className="ff-dashboard-sans"
                     sx={{ fontSize: 13, fontWeight: 500, color: textColor }}
                   >
-                    {value === 0 ? 'All good' : `${value} need${value === 1 ? 's' : ''} attention`}
+                    {value === 0
+                      ? t.allGood
+                      : fillTemplate(t.metricNeedsAttention.value, { value: String(value) })}
                   </Typography>
                 </Box>
               </Box>
@@ -257,7 +294,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
               lineHeight: 1,
             }}
           >
-            LAST UPLOAD
+            {t.lastUpload}
           </Typography>
 
           {dataHealth.lastUploadDate ? (
@@ -273,7 +310,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
                   letterSpacing: '-0.02em',
                 }}
               >
-                {getRelativeTime(dataHealth.lastUploadDate)}
+                {getRelativeTime(dataHealth.lastUploadDate, relativeTimeLabels)}
               </Typography>
               <Typography
                 className="ff-dashboard-sans"
@@ -285,7 +322,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
                   pb: '20px',
                 }}
               >
-                {new Date(dataHealth.lastUploadDate).toLocaleDateString('en-US', {
+                {new Date(dataHealth.lastUploadDate).toLocaleDateString(resolveLocale(locale), {
                   year: 'numeric',
                   month: 'short',
                   day: 'numeric',
@@ -298,7 +335,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
                 className="ff-dashboard-mono"
                 sx={{ color: 'text.primary', fontSize: 32, fontWeight: 700 }}
               >
-                No data yet
+                {t.noDataYet}
               </Typography>
               <Link
                 href="/statements/submit"
@@ -311,7 +348,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
                   textDecoration: 'none',
                 }}
               >
-                Upload your first statement →
+                {t.uploadFirstStatement}
               </Link>
             </Box>
           )}
@@ -342,7 +379,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
               lineHeight: 1,
             }}
           >
-            UNAPPROVED CASH
+            {t.unapprovedCash}
           </Typography>
 
           <Typography
@@ -360,7 +397,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
               ? '—'
               : dataHealth.unapprovedCash > 0
                 ? formatAmount(dataHealth.unapprovedCash)
-                : 'ALL CASH APPROVED'}
+                : t.allCashApproved}
           </Typography>
 
           {dataHealth.unapprovedCash > 0 && (
@@ -377,7 +414,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
                 textDecoration: 'none',
               }}
             >
-              Review &amp; approve cash →
+              {t.reviewApproveCash}
             </Link>
           )}
         </Box>
@@ -398,7 +435,7 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
               letterSpacing: '0.05em',
             }}
           >
-            ACTION REQUIRED
+            {t.actionRequired}
           </Typography>
           <Box
             sx={{

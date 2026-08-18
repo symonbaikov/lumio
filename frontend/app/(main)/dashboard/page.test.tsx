@@ -31,10 +31,15 @@ vi.mock('@/app/components/icons', () => ({
   ExternalLink: () => <span data-testid="external-link-icon" />,
   ListChecks: () => <span data-testid="list-checks-icon" />,
   RefreshCcw: () => <span data-testid="refresh-icon" />,
+  Plus: () => <span data-testid="plus-icon" />,
 }));
 
 vi.mock('@/app/components/ui/spinner', () => ({
   Spinner: () => <div>spinner</div>,
+}));
+
+vi.mock('@/app/components/dashboard/FinanceOpsTab', () => ({
+  FinanceOpsTab: () => <div>Finance ops tab</div>,
 }));
 
 vi.mock('@/app/components/dashboard/OverviewTab', () => ({
@@ -47,10 +52,6 @@ vi.mock('@/app/components/dashboard/TrendsTab', () => ({
 
 vi.mock('@/app/components/dashboard/DataHealthTab', () => ({
   DataHealthTab: () => <div>Data health tab</div>,
-}));
-
-vi.mock('@/app/components/dashboard/QuickActionsBar', () => ({
-  QuickActionsBar: () => <div>Quick actions</div>,
 }));
 
 vi.mock('@/app/components/dashboard/ExportDropdown', () => ({
@@ -129,6 +130,13 @@ vi.mock('@/app/i18n', () => ({
     exportMenu: {
       button: { value: 'Export' },
     },
+    tabs: {
+      financeOps: { value: 'Finance Ops' },
+      overview: { value: 'Overview' },
+      trends: { value: 'Trends' },
+      dataHealth: { value: 'Data Health' },
+    },
+    uploadStatement: { value: 'Upload statement' },
   }),
   useLocale: () => ({ locale: 'en' }),
 }));
