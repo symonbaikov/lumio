@@ -130,6 +130,7 @@ function RegisterPageContent(): React.JSX.Element {
         <Box
           sx={{
             p: 2,
+            borderRadius: tokens.radius.md,
             bgcolor: 'rgba(255,255,255,0.1)',
             backdropFilter: 'blur(10px)',
             border: '1px solid rgba(255,255,255,0.2)',
@@ -142,6 +143,7 @@ function RegisterPageContent(): React.JSX.Element {
         <Box
           sx={{
             p: 2,
+            borderRadius: tokens.radius.md,
             bgcolor: 'rgba(255,255,255,0.1)',
             backdropFilter: 'blur(10px)',
             border: '1px solid rgba(255,255,255,0.2)',
