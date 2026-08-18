@@ -38,6 +38,9 @@ export default function DashboardPage(): React.JSX.Element {
     statusHeading,
     greetingSubtitle,
     effectivePeriod,
+    displayMonth,
+    changeMonth,
+    headerLabels,
     t,
   } = useDashboardPage();
 
@@ -73,7 +76,10 @@ export default function DashboardPage(): React.JSX.Element {
           statusHeading={statusHeading}
           greetingSubtitle={greetingSubtitle}
           effectivePeriod={effectivePeriod}
+          displayMonth={displayMonth}
+          changeMonth={changeMonth}
           exportMenu={t.exportMenu}
+          headerLabels={headerLabels}
         />
       </Box>
     </Box>

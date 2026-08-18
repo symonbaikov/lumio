@@ -37,6 +37,10 @@ vi.mock('@/app/components/ui/spinner', () => ({
   Spinner: () => <div>spinner</div>,
 }));
 
+vi.mock('@/app/components/dashboard/FinanceOpsTab', () => ({
+  FinanceOpsTab: () => <div>Finance ops tab</div>,
+}));
+
 vi.mock('@/app/components/dashboard/OverviewTab', () => ({
   OverviewTab: () => <div>Overview tab</div>,
 }));
@@ -47,10 +51,6 @@ vi.mock('@/app/components/dashboard/TrendsTab', () => ({
 
 vi.mock('@/app/components/dashboard/DataHealthTab', () => ({
   DataHealthTab: () => <div>Data health tab</div>,
-}));
-
-vi.mock('@/app/components/dashboard/QuickActionsBar', () => ({
-  QuickActionsBar: () => <div>Quick actions</div>,
 }));
 
 vi.mock('@/app/components/dashboard/ExportDropdown', () => ({
@@ -129,6 +129,13 @@ vi.mock('@/app/i18n', () => ({
     exportMenu: {
       button: { value: 'Export' },
     },
+    tabs: {
+      financeOps: { value: 'Finance Ops' },
+      overview: { value: 'Overview' },
+      trends: { value: 'Trends' },
+      dataHealth: { value: 'Data Health' },
+    },
+    uploadStatement: { value: 'Upload statement' },
   }),
   useLocale: () => ({ locale: 'en' }),
 }));

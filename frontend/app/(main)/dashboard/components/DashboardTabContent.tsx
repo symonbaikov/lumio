@@ -16,6 +16,8 @@ type DashboardTabContentProps = {
   range: DashboardRange;
   isLoading: boolean;
   effectivePeriod: string | null;
+  displayMonth: Date;
+  changeMonth: (year: number, month: number) => void;
 };
 
 export function DashboardTabContent({
@@ -25,6 +27,8 @@ export function DashboardTabContent({
   range,
   isLoading,
   effectivePeriod,
+  displayMonth,
+  changeMonth,
 }: DashboardTabContentProps): React.JSX.Element {
   return (
     <Box sx={{ width: '100%', px: { xs: 2, md: 4 }, py: 4, flex: 1, pb: 6 }}>
@@ -36,6 +40,8 @@ export function DashboardTabContent({
           range={range}
           isLoading={isLoading}
           effectivePeriod={effectivePeriod}
+          displayMonth={displayMonth}
+          changeMonth={changeMonth}
         />
       )}
       {activeTab === 'trends' && (
