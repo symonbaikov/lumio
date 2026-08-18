@@ -4,7 +4,7 @@ import apiClient from '@/app/lib/api';
 import { type MutableRefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 
-export type DashboardRange = '7d' | '30d' | '90d';
+export type DashboardRange = '7d' | '30d' | '90d' | 'month';
 
 export interface DashboardFinancialSnapshot {
   totalBalance: number;
@@ -30,31 +30,35 @@ export interface DashboardCashFlowPoint {
   expense: number;
 }
 
-export interface DashboardRecentActivity {
+export interface DashboardRecentTransaction {
   id: string;
-  entityId?: string;
-  type:
-    | 'statement_upload'
-    | 'payment'
-    | 'categorization'
-    | 'transaction'
-    | 'import'
-    | 'delete'
-    | 'update';
-  title: string;
-  description: string | null;
-  amount: number | null;
-  timestamp: string;
-  href: string;
+  description: string;
+  /** Signed: positive for income, negative for expense. */
+  amount: number;
+  currency: string;
+  /** Calendar date (YYYY-MM-DD), no time component. */
+  date: string;
+  /** e.g. "Kaspi •••• 4821" — bank name plus masked account number. */
+  account: string;
+  categoryId: string | null;
+  /** `null` means uncategorized — render the localized "Uncategorized" label. */
+  categoryName: string | null;
+  categoryColor: string;
+  categoryIcon: string | null;
 }
 
 export interface DashboardTopCategory {
   id: string | null;
-  name: string;
+  /** `null` means uncategorized — render the localized "Uncategorized" label. */
+  name: string | null;
+  /** True only for the synthetic rollup of everything past the top categories. */
+  isOther?: boolean;
+  color: string;
+  icon: string | null;
   amount: number;
-  transactions: number;
-  percentage: number;
-  count?: number;
+  /** Share of total spend for the period, 0-100. Sums to 100 across the array. */
+  percent: number;
+  count: number;
 }
 
 export interface DashboardTopMerchant {
@@ -80,7 +84,7 @@ export interface DashboardData {
   cashFlow: DashboardCashFlowPoint[];
   topMerchants: DashboardTopMerchant[];
   topCategories: DashboardTopCategory[];
-  recentActivity: DashboardRecentActivity[];
+  recentTransactions: DashboardRecentTransaction[];
   role: 'owner' | 'admin' | 'member' | 'viewer';
   range: DashboardRange;
   dataHealth: DashboardDataHealth;

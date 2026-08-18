@@ -18,7 +18,7 @@ const createDashboardData = (overrides?: Partial<DashboardData>): DashboardData 
   cashFlow: overrides?.cashFlow ?? [],
   topMerchants: overrides?.topMerchants ?? [],
   topCategories: overrides?.topCategories ?? [],
-  recentActivity: overrides?.recentActivity ?? [],
+  recentTransactions: overrides?.recentTransactions ?? [],
   role: overrides?.role ?? 'owner',
   range: overrides?.range ?? '30d',
   dataHealth: {
