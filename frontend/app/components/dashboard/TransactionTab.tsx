@@ -181,7 +181,7 @@ export function TransactionTab() {
               onClick={handleBulkAssignCategory}
               disabled={!bulkCategoryId}
               style={{
-                backgroundColor: 'var(--primary)',
+                backgroundColor: 'var(--primary-fill)',
                 padding: '8px 16px',
                 fontSize: 14,
                 fontWeight: 600,

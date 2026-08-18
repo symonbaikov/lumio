@@ -595,7 +595,7 @@ export function RowDrawer({
                     onClick={() => applySave('save')}
                     disabled={saving || !isDirty}
                     sx={{
-                      bgcolor: 'primary.main',
+                      bgcolor: 'var(--primary-fill)',
                       color: '#fff',
                       px: 2,
                       py: 1,

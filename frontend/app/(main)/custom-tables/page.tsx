@@ -869,7 +869,7 @@ export default function CustomTablesPage() {
                   type="button"
                   onClick={() => void openCreateFromStatements()}
                   data-tour-id="custom-tables-create-export"
-                  sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: 'primary.main', color: '#fff', px: 2.5, py: 1.25, fontSize: 14, fontWeight: 600, border: 'none', borderRadius: tokens.radius.md, cursor: 'pointer', '&:hover': { bgcolor: 'primary.dark' } }}
+                  sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: 'var(--primary-fill)', color: '#fff', px: 2.5, py: 1.25, fontSize: 14, fontWeight: 600, border: 'none', borderRadius: tokens.radius.md, cursor: 'pointer', '&:hover': { bgcolor: 'primary.dark' } }}
                 >
                   <FileSpreadsheet className="h-4 w-4" />
                   {createExportTableLabel}
@@ -1026,7 +1026,7 @@ export default function CustomTablesPage() {
                   component="button"
                   type="button"
                   onClick={() => void openCreateFromStatements()}
-                  sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: 'primary.main', color: '#fff', px: 2.5, py: 1.25, fontSize: 14, fontWeight: 600, border: 'none', borderRadius: tokens.radius.md, cursor: 'pointer', '&:hover': { bgcolor: 'primary.dark' } }}
+                  sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: 'var(--primary-fill)', color: '#fff', px: 2.5, py: 1.25, fontSize: 14, fontWeight: 600, border: 'none', borderRadius: tokens.radius.md, cursor: 'pointer', '&:hover': { bgcolor: 'primary.dark' } }}
                 >
                   <FileSpreadsheet className="h-4 w-4" />
                   {createFirstExportTableLabel}
@@ -1129,7 +1129,7 @@ export default function CustomTablesPage() {
                             type="button"
                             disabled={exportingTableId === table.id}
                             onClick={event => event.stopPropagation()}
-                            sx={{ display: 'inline-flex', alignItems: 'center', bgcolor: 'primary.main', color: '#fff', px: 1.5, py: 0.75, fontSize: 14, fontWeight: 500, border: 'none', borderRadius: tokens.radius.md, cursor: 'pointer', '&:hover': { bgcolor: 'primary.dark' }, '&:disabled': { opacity: 0.5 } }}
+                            sx={{ display: 'inline-flex', alignItems: 'center', bgcolor: 'var(--primary-fill)', color: '#fff', px: 1.5, py: 0.75, fontSize: 14, fontWeight: 500, border: 'none', borderRadius: tokens.radius.md, cursor: 'pointer', '&:hover': { bgcolor: 'primary.dark' }, '&:disabled': { opacity: 0.5 } }}
                           >
                             {exportLabel}
                           </Box>

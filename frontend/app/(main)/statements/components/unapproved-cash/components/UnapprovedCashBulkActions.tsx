@@ -42,7 +42,7 @@ export function UnapprovedCashBulkActions({
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            background: 'var(--primary)',
+            background: 'var(--primary-fill)',
             padding: '4px 10px',
             fontSize: 12,
             fontWeight: 600,

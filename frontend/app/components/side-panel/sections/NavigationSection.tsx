@@ -51,7 +51,7 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
               fontSize: 10,
               fontWeight: 600,
               borderRadius: tokens.radius.full,
-              backgroundColor: 'var(--primary)',
+              backgroundColor: 'var(--primary-fill)',
               color: 'white',
             }}
           >

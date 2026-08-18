@@ -56,7 +56,7 @@ export function AddColumnModal({
             type="button"
             onClick={createColumn}
             disabled={!newColumn.title.trim()}
-            sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: 'primary.main', color: '#fff', px: 2, py: 1, fontSize: 14, fontWeight: 500, border: 'none', cursor: 'pointer', '&:hover': { bgcolor: 'primary.dark' }, '&:disabled': { opacity: 0.5, cursor: 'not-allowed' } }}
+            sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: 'var(--primary-fill)', color: '#fff', px: 2, py: 1, fontSize: 14, fontWeight: 500, border: 'none', cursor: 'pointer', '&:hover': { bgcolor: 'primary.dark' }, '&:disabled': { opacity: 0.5, cursor: 'not-allowed' } }}
           >
             <Save className="h-4 w-4" />
             {tx(t, ['addColumn', 'save'], 'Save')}

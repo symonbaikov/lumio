@@ -44,7 +44,7 @@ export function DashboardHeader({
               alignItems: 'center',
               gap: 8,
               height: 48,
-              backgroundColor: c.primary,
+              backgroundColor: c.primaryFill,
               color: '#fff',
               padding: '0 20px',
               fontSize: 14,

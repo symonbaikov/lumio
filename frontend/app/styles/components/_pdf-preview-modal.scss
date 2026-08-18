@@ -355,14 +355,14 @@
     transition: background-color 200ms;
 
     @include dark {
-      background-color: $color-primary-dk;
+      background-color: $lumio-color-primary-fill-dk;
     }
 
     &:hover {
       background-color: $color-primary-hover;
 
       @include dark {
-        background-color: $color-primary-hover-dk;
+        background-color: $lumio-color-primary-fill-hover-dk;
       }
     }
 

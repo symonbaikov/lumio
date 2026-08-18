@@ -279,7 +279,7 @@ function EmptyState({
             display: 'inline-flex',
             alignItems: 'center',
             gap: 1,
-            bgcolor: 'primary.main',
+            bgcolor: 'var(--primary-fill)',
             color: '#fff',
             px: 2.5,
             py: 1.25,
@@ -542,7 +542,7 @@ function TableListRow({
               sx={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                bgcolor: 'primary.main',
+                bgcolor: 'var(--primary-fill)',
                 color: '#fff',
                 px: 1.5,
                 py: 0.75,

@@ -24,7 +24,7 @@ const tabBtnStyle = (active: boolean) => ({
   padding: '6px 16px',
   borderRadius: tokens.radius.full,
   border: 'none',
-  background: active ? 'var(--primary)' : 'transparent',
+  background: active ? 'var(--primary-fill)' : 'transparent',
   color: active ? tokens.color.primaryContrast : 'var(--text-secondary)',
   fontSize: 13,
   fontWeight: 600,
@@ -41,7 +41,7 @@ const actionBtnStyle = (variant: 'danger' | 'default' | 'primary') => ({
       : variant === 'primary'
         ? 'none'
         : '1px solid var(--border-color)',
-  background: variant === 'primary' ? 'var(--primary)' : 'transparent',
+  background: variant === 'primary' ? 'var(--primary-fill)' : 'transparent',
   color:
     variant === 'danger'
       ? tokens.color.danger

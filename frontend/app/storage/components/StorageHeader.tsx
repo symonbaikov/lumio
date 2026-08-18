@@ -298,7 +298,7 @@ function StorageFilterButton({
           fontSize: 14,
           fontWeight: 500,
           color: '#fff',
-          bgcolor: 'primary.main',
+          bgcolor: 'var(--primary-fill)',
           cursor: 'pointer',
           gap: 1,
           '&:hover': { bgcolor: 'primary.dark' },

@@ -3,9 +3,21 @@
 // Used inside @include dark { } blocks.
 
 // ── Brand / Primary ──────────────────────────────────────────
+// Two roles, deliberately different values.
+//
+// `primary-dk` is the accent for text, icons, links and active states drawn
+// *on* a dark surface. It has to be light to be legible there.
+//
+// `primary-fill-dk` is the background of a filled control with white text on
+// it. The accent green fails badly in that role — #5cc462 under white text is
+// 2.2:1, well under the 4.5:1 minimum — and reads as a glaring lime patch
+// against the near-black shell. The fill is the brand green instead, which
+// clears 5.2:1. Never swap the two.
 $lumio-color-primary-dk:       #5cc462;
 $lumio-color-primary-hover-dk: #3e9c35;
 $lumio-color-primary-dark-dk:  #168118;
+$lumio-color-primary-fill-dk:       #168118;
+$lumio-color-primary-fill-hover-dk: #1c9c22;
 $lumio-color-primary-50-dk:    rgba(62, 156, 53, 0.1);
 $lumio-color-primary-100-dk:   rgba(62, 156, 53, 0.2);
 $lumio-color-primary-200-dk:   rgba(62, 156, 53, 0.35);

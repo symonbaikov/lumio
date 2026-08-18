@@ -18,7 +18,7 @@ export interface NewFolderInputProps {
 }
 
 const addBtnSx = {
-  bgcolor: 'primary.main',
+  bgcolor: 'var(--primary-fill)',
   color: '#fff',
   borderRadius: tokens.radius.full,
   '&:hover': { bgcolor: 'primary.dark' },

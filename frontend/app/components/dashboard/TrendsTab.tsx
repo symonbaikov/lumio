@@ -272,7 +272,7 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
               cursor: 'pointer',
               border: days === opt.value ? 'none' : '1px solid var(--border)',
               borderRadius: tokens.radius.xs,
-              backgroundColor: days === opt.value ? 'var(--primary)' : 'var(--card)',
+              backgroundColor: days === opt.value ? 'var(--primary-fill)' : 'var(--card)',
               color: days === opt.value ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
               fontFamily: 'var(--font-dashboard-mono)',
             }}

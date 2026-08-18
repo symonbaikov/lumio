@@ -172,7 +172,7 @@ const CONFIRM_STYLE = {
   display: 'inline-flex',
   alignItems: 'center',
   gap: 8,
-  background: 'var(--primary)',
+  background: 'var(--primary-fill)',
   color: '#fff',
   border: 'none',
 } as const;

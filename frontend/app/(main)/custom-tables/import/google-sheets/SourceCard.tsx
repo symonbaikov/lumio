@@ -180,7 +180,7 @@ const PreviewButton = ({
           alignItems: 'center',
           justifyContent: 'center',
           gap: 1,
-          bgcolor: 'primary.main',
+          bgcolor: 'var(--primary-fill)',
           color: '#fff',
           px: 2,
           py: 1,

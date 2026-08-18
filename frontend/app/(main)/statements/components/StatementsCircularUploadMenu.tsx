@@ -320,7 +320,9 @@ export default function StatementsCircularUploadMenu({
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: tokens.radius.full,
-          background: 'var(--primary)',
+          // --primary-fill, not --primary: this is a filled control with white
+          // text, and the accent green is unreadable in that role on dark.
+          background: 'var(--primary-fill)',
           color: '#fff',
           transition: 'all 0.2s',
           border: 'none',

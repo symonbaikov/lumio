@@ -13,7 +13,7 @@ interface RowDrawerActionsProps {
 }
 
 const PRIMARY_SX = {
-  bgcolor: 'primary.main',
+  bgcolor: 'var(--primary-fill)',
   color: '#fff',
   px: 2,
   py: 1,

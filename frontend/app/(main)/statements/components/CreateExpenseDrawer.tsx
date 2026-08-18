@@ -345,7 +345,7 @@ export default function CreateExpenseDrawer({
                         gap: 12,
                         borderRadius: tokens.radius.md,
                         border: 'none',
-                        background: 'var(--primary)',
+                        background: 'var(--primary-fill)',
                         padding: '16px 20px',
                         fontSize: 18,
                         fontWeight: 700,
@@ -403,7 +403,7 @@ export default function CreateExpenseDrawer({
                       Upload receipts
                     </p>
                     <p style={{ marginTop: 8, fontSize: 14, color: 'var(--muted-foreground)' }}>or drag and drop them here</p>
-                    <span style={{ marginTop: 24, display: 'inline-flex', borderRadius: tokens.radius.md, background: 'var(--primary)', padding: '10px 28px', fontSize: 14, fontWeight: 600, color: '#fff' }}>
+                    <span style={{ marginTop: 24, display: 'inline-flex', borderRadius: tokens.radius.md, background: 'var(--primary-fill)', padding: '10px 28px', fontSize: 14, fontWeight: 600, color: '#fff' }}>
                       Choose files
                     </span>
                     <input
@@ -462,7 +462,7 @@ export default function CreateExpenseDrawer({
               <>
                 <label style={{ position: 'relative', display: 'flex', cursor: 'pointer', alignItems: 'center', justifyContent: 'center', borderRadius: tokens.radius.lg, border: '1px solid var(--border-color, var(--border-color))', background: 'rgba(0,0,0,0.04)', padding: '32px 24px', textAlign: 'center' }}>
                   <FileText size={56} style={{ color: 'color-mix(in srgb, var(--muted-foreground) 60%, transparent)' }} />
-                  <span style={{ position: 'absolute', left: '50%', top: '50%', display: 'flex', height: 40, width: 40, transform: 'translate(8px, 4px)', alignItems: 'center', justifyContent: 'center', borderRadius: tokens.radius.full, background: 'var(--primary)', color: '#fff' }}>
+                  <span style={{ position: 'absolute', left: '50%', top: '50%', display: 'flex', height: 40, width: 40, transform: 'translate(8px, 4px)', alignItems: 'center', justifyContent: 'center', borderRadius: tokens.radius.full, background: 'var(--primary-fill)', color: '#fff' }}>
                     <Plus size={20} />
                   </span>
                   <input

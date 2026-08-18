@@ -408,7 +408,7 @@ export function SidePanel({
                         borderRadius: tokens.radius.md,
                         opacity: action.disabled || action.loading ? 0.5 : 1,
                         ...(action.variant === 'primary'
-                          ? { backgroundColor: 'var(--primary)', color: 'white' }
+                          ? { backgroundColor: 'var(--primary-fill)', color: 'white' }
                           : { backgroundColor: 'var(--muted)', color: 'var(--foreground)' }),
                       }}
                     >

@@ -174,7 +174,7 @@ export function WorkspaceListView({
             alignItems: 'center',
             gap: 8,
             padding: '12px 24px',
-            background: 'var(--primary)',
+            background: 'var(--primary-fill)',
             color: '#fff',
             fontWeight: 500,
             fontSize: 14,

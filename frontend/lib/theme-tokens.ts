@@ -61,6 +61,10 @@ export const tokens = {
   // ── Light theme colors (default) ────────────────────────────
   color: {
     primary: '#168118',
+    // Background of a filled control carrying white text. Same as `primary`
+    // here; deliberately different in `dark` below — see the note there.
+    primaryFill: '#168118',
+    primaryFillHover: '#157811',
     primaryHover: '#157811',
     primaryDark: '#036704',
     forest: '#0e2a10',
@@ -117,6 +121,12 @@ export const tokens = {
   dark: {
     color: {
       primary: '#5cc462',
+      // Not `primary`: white text on #5cc462 is 2.2:1, well under the 4.5:1
+      // minimum. Filled controls (buttons, badges) use this instead — same
+      // brand green as the light theme, 5.2:1 with white text. Mirrors
+      // --primary-fill in styles/themes/_globals.scss; keep both in step.
+      primaryFill: '#168118',
+      primaryFillHover: '#1c9c22',
       primaryHover: '#3e9c35',
       primaryDark: '#168118',
       forest: '#0e2a10',

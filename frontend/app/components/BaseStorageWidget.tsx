@@ -157,7 +157,7 @@ export function BaseStorageWidget({ provider, locale }: BaseStorageWidgetProps) 
     cursor: working ? 'not-allowed' : 'pointer',
     opacity: working ? 0.7 : 1,
   } as const;
-  const primaryBtn = { ...btnBase, background: c.primary, color: '#fff', border: 'none' };
+  const primaryBtn = { ...btnBase, background: c.primaryFill, color: '#fff', border: 'none' };
   const outlineBtn = {
     ...btnBase,
     background: 'transparent',
