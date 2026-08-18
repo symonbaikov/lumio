@@ -6,15 +6,23 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { TimeoutError, retry } from '../../common/utils/async.util';
 import { formatMoney } from '../../common/utils/format-money.util';
+import type { Insight } from '../../entities/insight.entity';
 import { ReportStatus, ReportType, TelegramReport } from '../../entities/telegram-report.entity';
 import { User } from '../../entities/user.entity';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
+import { GoalsService } from '../goals/goals.service';
+import { NetWorthService } from '../net-worth/net-worth.service';
 import type { DailyReport } from '../reports/interfaces/daily-report.interface';
 import type { MonthlyReport } from '../reports/interfaces/monthly-report.interface';
 import { ReportsService } from '../reports/reports.service';
 import { StatementsService } from '../statements/statements.service';
 import type { ConnectTelegramDto } from './dto/connect-telegram.dto';
 import type { SendTelegramReportDto } from './dto/send-report.dto';
+import {
+  type TelegramMessageKey,
+  renderTelegramMessage,
+  resolveTelegramLocale,
+} from './telegram-translations';
 
 interface TelegramSendResult {
   messageId: string;
@@ -26,10 +34,15 @@ interface TelegramDocumentPayload {
   mime_type?: string;
 }
 
+interface TelegramFromPayload {
+  id?: number | string;
+  language_code?: string;
+}
+
 interface TelegramMessagePayload {
   chat?: { id?: number | string };
   text?: string;
-  from?: { id?: number | string };
+  from?: TelegramFromPayload;
   document?: TelegramDocumentPayload;
 }
 
@@ -83,6 +96,8 @@ export class TelegramService {
     private readonly telegramReportRepository: Repository<TelegramReport>,
     private readonly reportsService: ReportsService,
     private readonly statementsService: StatementsService,
+    private readonly goalsService: GoalsService,
+    private readonly netWorthService: NetWorthService,
     @Optional()
     private readonly applicationSettingsService?: ApplicationSettingsService,
   ) {
@@ -118,11 +133,7 @@ export class TelegramService {
 
     if (await this.isEnabled(user)) {
       try {
-        await this.sendMessage(
-          dto.chatId,
-          '✅ Telegram подключен. Мы будем отправлять отчёты в этот чат.',
-          user,
-        );
+        await this.send(dto.chatId, user, 'connected');
       } catch (error: unknown) {
         this.logger.warn(`Failed to send confirmation message: ${getErrorMessage(error)}`);
       }
@@ -135,7 +146,7 @@ export class TelegramService {
     const chatId = dto.chatId || user.telegramChatId;
     if (!chatId) {
       throw new BadRequestException(
-        'Telegram chat is not connected. Укажите chatId или подключите Telegram.',
+        'Telegram chat is not connected. Provide chatId or connect Telegram first.',
       );
     }
 
@@ -170,6 +181,39 @@ export class TelegramService {
     return { data, total, page, limit };
   }
 
+  /**
+   * One message per newly-created warning, sent to a connected user's chat.
+   * Called by TelegramScheduler right after InsightsService.refresh(), which
+   * only returns rows it just created — so an insight that is still true
+   * tomorrow does not page the user again, but one that reappears after
+   * being dismissed does.
+   */
+  async pushInsightDigest(user: User, insights: Insight[]): Promise<void> {
+    if (!user.telegramChatId || insights.length === 0) {
+      return;
+    }
+    if (!(await this.isEnabled(user))) {
+      return;
+    }
+
+    const locale = user.locale || 'ru';
+    const header = renderTelegramMessage(locale, 'insight_digest_header');
+
+    for (const insight of insights) {
+      try {
+        await this.sendMessage(
+          user.telegramChatId,
+          `${header}\n\n${insight.title}\n${insight.message}`,
+          user,
+        );
+      } catch (error: unknown) {
+        this.logger.warn(
+          `Failed to push insight digest to user ${user.id}: ${getErrorMessage(error)}`,
+        );
+      }
+    }
+  }
+
   private async handleDailyReport(user: User, chatId: string, date: string) {
     const reportDate = this.toDateOnly(date);
     const existing = await this.findExisting(user.id, ReportType.DAILY, reportDate);
@@ -179,9 +223,9 @@ export class TelegramService {
     }
 
     const dailyReport = await this.reportsService.generateDailyReport(user.id, date);
-    const message = this.formatDailyReportMessage(date, dailyReport);
+    const message = this.formatDailyReportMessage(user.locale || 'ru', date, dailyReport);
 
-    return this.persistAndSend(user.id, chatId, ReportType.DAILY, reportDate, message, existing);
+    return this.persistAndSend(user, chatId, ReportType.DAILY, reportDate, message, existing);
   }
 
   private async handleMonthlyReport(user: User, chatId: string, year: number, month: number) {
@@ -193,13 +237,18 @@ export class TelegramService {
     }
 
     const monthlyReport = await this.reportsService.generateMonthlyReport(user.id, year, month);
-    const message = this.formatMonthlyReportMessage(year, month, monthlyReport);
+    const message = this.formatMonthlyReportMessage(
+      user.locale || 'ru',
+      year,
+      month,
+      monthlyReport,
+    );
 
-    return this.persistAndSend(user.id, chatId, ReportType.MONTHLY, reportDate, message, existing);
+    return this.persistAndSend(user, chatId, ReportType.MONTHLY, reportDate, message, existing);
   }
 
   private async persistAndSend(
-    userId: string,
+    user: User,
     chatId: string,
     reportType: ReportType,
     reportDate: Date,
@@ -209,7 +258,7 @@ export class TelegramService {
     const record =
       existing ||
       this.telegramReportRepository.create({
-        userId,
+        userId: user.id,
         chatId,
         reportType,
         reportDate,
@@ -223,7 +272,6 @@ export class TelegramService {
     const savedRecord = await this.telegramReportRepository.save(record);
 
     try {
-      const user = await this.userRepository.findOne({ where: { id: userId } });
       const result = await this.sendMessage(chatId, message, user);
       savedRecord.status = ReportStatus.SENT;
       savedRecord.sentAt = new Date();
@@ -250,6 +298,17 @@ export class TelegramService {
       .andWhere('report.reportType = :reportType', { reportType })
       .andWhere('report.reportDate = :reportDate', { reportDate: reportDateStr })
       .getOne();
+  }
+
+  /** Renders `key` in `user`'s locale (or `ru` if unset) and sends it. */
+  private async send(
+    chatId: string,
+    user: User | null,
+    key: TelegramMessageKey,
+    params?: Record<string, string | number>,
+  ): Promise<TelegramSendResult> {
+    const text = renderTelegramMessage(user?.locale || 'ru', key, params);
+    return this.sendMessage(chatId, text, user);
   }
 
   private async sendMessage(
@@ -341,31 +400,51 @@ export class TelegramService {
       return;
     }
 
+    // Telegram's own client language is the only signal available before a
+    // user is matched to an account — once matched, their in-app locale
+    // choice (User.locale) always wins, see resolveLocale().
+    const fallbackLocale = resolveTelegramLocale(message.from?.language_code);
+    const knownUser = telegramId ? await this.findUserByTelegram(telegramId, chatId) : null;
+    const locale = knownUser?.locale || fallbackLocale;
+
     if (text?.startsWith('/start')) {
       await this.sendMessage(
         chatId,
-        `👋 Привет! Твой Telegram ID: ${telegramId || 'не определён'}. Добавь его в настройках профиля, чтобы получать отчёты.`,
+        renderTelegramMessage(locale, 'start_greeting', {
+          telegramId: telegramId || '—',
+        }),
+        knownUser,
       );
       return;
     }
 
     if (text?.startsWith('/help')) {
-      await this.sendHelpMessage(chatId);
+      await this.sendMessage(chatId, renderTelegramMessage(locale, 'help'), knownUser);
       return;
     }
 
     if (text?.startsWith('/report')) {
-      await this.handleReportCommand(chatId, telegramId, text);
+      await this.handleReportCommand(chatId, telegramId, text, locale);
+      return;
+    }
+
+    if (text?.startsWith('/goals')) {
+      await this.handleGoalsCommand(chatId, telegramId, locale);
+      return;
+    }
+
+    if (text?.startsWith('/networth')) {
+      await this.handleNetWorthCommand(chatId, telegramId, locale);
       return;
     }
 
     if (message.document) {
-      await this.handleDocumentUpload(chatId, telegramId, message.document);
+      await this.handleDocumentUpload(chatId, telegramId, message.document, locale);
       return;
     }
 
     if (text?.startsWith('/')) {
-      await this.sendMessage(chatId, 'Неизвестная команда. Используйте /help для списка команд.');
+      await this.sendMessage(chatId, renderTelegramMessage(locale, 'unknown_command'), knownUser);
     }
   }
 
@@ -373,9 +452,10 @@ export class TelegramService {
     chatId: string,
     telegramId: string | null,
     text: string,
+    fallbackLocale: string,
   ): Promise<void> {
     if (!telegramId) {
-      await this.sendMessage(chatId, 'Не удалось определить ваш Telegram ID. Попробуйте позже.');
+      await this.sendMessage(chatId, renderTelegramMessage(fallbackLocale, 'telegram_id_unknown'));
       return;
     }
 
@@ -384,7 +464,7 @@ export class TelegramService {
     if (!user) {
       await this.sendMessage(
         chatId,
-        `Пользователь с Telegram ID ${telegramId} не подключён. Укажите этот ID в настройках аккаунта.`,
+        renderTelegramMessage(fallbackLocale, 'user_not_connected', { telegramId }),
       );
       return;
     }
@@ -417,19 +497,127 @@ export class TelegramService {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Error handling /report command: ${message}`);
-      await this.sendMessage(chatId, 'Не удалось отправить отчёт. Попробуйте позже.');
+      await this.sendMessage(
+        chatId,
+        renderTelegramMessage(user.locale || 'ru', 'report_failed'),
+        user,
+      );
     }
+  }
+
+  private async handleGoalsCommand(
+    chatId: string,
+    telegramId: string | null,
+    fallbackLocale: string,
+  ): Promise<void> {
+    if (!telegramId) {
+      await this.sendMessage(chatId, renderTelegramMessage(fallbackLocale, 'telegram_id_unknown'));
+      return;
+    }
+
+    const user = await this.findUserByTelegram(telegramId, chatId);
+    if (!user) {
+      await this.sendMessage(
+        chatId,
+        renderTelegramMessage(fallbackLocale, 'user_not_connected', { telegramId }),
+      );
+      return;
+    }
+
+    const locale = user.locale || 'ru';
+    const goals = await this.goalsService.findAll(user.workspaceId);
+
+    if (goals.length === 0) {
+      await this.sendMessage(chatId, renderTelegramMessage(locale, 'goals_empty'), user);
+      return;
+    }
+
+    const lines = [renderTelegramMessage(locale, 'goals_header'), ''];
+    for (const goal of goals) {
+      lines.push(
+        renderTelegramMessage(locale, 'goal_item', {
+          name: goal.name,
+          current: formatMoney(goal.currentAmount, locale),
+          target: formatMoney(goal.targetAmount, locale),
+          currency: goal.currency,
+          percent: Math.round(goal.percent),
+        }),
+      );
+    }
+
+    await this.sendMessage(chatId, lines.join('\n'), user);
+  }
+
+  private async handleNetWorthCommand(
+    chatId: string,
+    telegramId: string | null,
+    fallbackLocale: string,
+  ): Promise<void> {
+    if (!telegramId) {
+      await this.sendMessage(chatId, renderTelegramMessage(fallbackLocale, 'telegram_id_unknown'));
+      return;
+    }
+
+    const user = await this.findUserByTelegram(telegramId, chatId);
+    if (!user) {
+      await this.sendMessage(
+        chatId,
+        renderTelegramMessage(fallbackLocale, 'user_not_connected', { telegramId }),
+      );
+      return;
+    }
+
+    const locale = user.locale || 'ru';
+    const netWorth = await this.netWorthService.getNetWorth(user.workspaceId, '30d', locale);
+
+    const lines = [
+      renderTelegramMessage(locale, 'networth_header', {
+        value: formatMoney(netWorth.current, locale),
+        currency: netWorth.currency,
+      }),
+    ];
+
+    if (netWorth.changePercent !== null) {
+      const key = netWorth.change >= 0 ? 'networth_change_up' : 'networth_change_down';
+      lines.push(
+        renderTelegramMessage(locale, key, {
+          amount: formatMoney(Math.abs(netWorth.change), locale),
+          percent: Math.abs(netWorth.changePercent),
+          currency: netWorth.currency,
+        }),
+      );
+    } else if (netWorth.change !== 0) {
+      lines.push(
+        renderTelegramMessage(locale, 'networth_change_no_percent', {
+          amount: formatMoney(netWorth.change, locale),
+          currency: netWorth.currency,
+        }),
+      );
+    }
+
+    if (netWorth.riskyPercent > 20) {
+      lines.push(
+        '',
+        renderTelegramMessage(locale, 'networth_risky_warning', {
+          percent: Math.round(netWorth.riskyPercent),
+          threshold: 20,
+        }),
+      );
+    }
+
+    await this.sendMessage(chatId, lines.join('\n'), user);
   }
 
   private async handleDocumentUpload(
     chatId: string,
     telegramId: string | null,
     document: TelegramDocumentPayload,
+    fallbackLocale: string,
   ): Promise<void> {
     if (!telegramId) {
       await this.sendMessage(
         chatId,
-        '⚠️ Не удалось определить ваш Telegram ID. Отправьте /start и повторите.',
+        renderTelegramMessage(fallbackLocale, 'document_telegram_id_unknown'),
       );
       return;
     }
@@ -438,22 +626,23 @@ export class TelegramService {
     if (!user) {
       await this.sendMessage(
         chatId,
-        `Пользователь с Telegram ID ${telegramId} не подключён. Укажите ID и chatId в настройках или вызовите /start, чтобы увидеть свой ID.`,
+        renderTelegramMessage(fallbackLocale, 'document_user_not_connected', { telegramId }),
       );
       return;
     }
 
+    const locale = user.locale || 'ru';
     const fileName = this.sanitizeFileName(
       document.file_name || `statement-${document.file_id}.pdf`,
     );
     const mimeType: string = document.mime_type || 'application/pdf';
 
     if (mimeType !== 'application/pdf' && !fileName.toLowerCase().endsWith('.pdf')) {
-      await this.sendMessage(chatId, 'Поддерживаются только PDF-файлы выписок.');
+      await this.sendMessage(chatId, renderTelegramMessage(locale, 'document_pdf_only'), user);
       return;
     }
 
-    await this.sendMessage(chatId, '📥 Файл получен, начинаем обработку...');
+    await this.sendMessage(chatId, renderTelegramMessage(locale, 'document_received'), user);
 
     try {
       const multerFile = await this.downloadTelegramFile(document.file_id, fileName, mimeType);
@@ -464,15 +653,13 @@ export class TelegramService {
       );
       await this.sendMessage(
         chatId,
-        `✅ Файл принят и отправлен в обработку. Статус: ${statement.status}. Проверить результат можно в веб-интерфейсе Lumio.`,
+        renderTelegramMessage(locale, 'document_processed', { status: statement.status }),
+        user,
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Failed to handle Telegram document: ${message}`);
-      await this.sendMessage(
-        chatId,
-        'Не удалось обработать файл. Попробуйте позже или загрузите через веб-интерфейс.',
-      );
+      await this.sendMessage(chatId, renderTelegramMessage(locale, 'document_failed'), user);
     }
   }
 
@@ -524,7 +711,7 @@ export class TelegramService {
 
     const response = await fetch(downloadUrl);
     if (!response.ok) {
-      throw new BadRequestException('Не удалось скачать файл из Telegram');
+      throw new BadRequestException('Failed to download the file from Telegram');
     }
 
     const arrayBuffer = await response.arrayBuffer();
@@ -577,42 +764,51 @@ export class TelegramService {
     return payload.result?.file_path || '';
   }
 
-  private async sendHelpMessage(chatId: string): Promise<void> {
-    const help = [
-      'Доступные команды:',
-      '/start — показать ваш Telegram ID и приветствие',
-      '/help — эта подсказка',
-      '/report — ежедневный отчёт за сегодня',
-      '/report YYYY-MM-DD — отчёт за указанную дату',
-      '/report monthly — отчёт за текущий месяц',
-    ].join('\n');
-
-    await this.sendMessage(chatId, help);
-  }
-
-  private formatDailyReportMessage(date: string, report: DailyReport): string {
+  private formatDailyReportMessage(locale: string, date: string, report: DailyReport): string {
     const lines: string[] = [];
-    lines.push(`📅 Ежедневный отчёт — ${date}`);
+    lines.push(renderTelegramMessage(locale, 'daily_header', { date }));
     lines.push(
-      `➕ Приход: ${this.formatAmount(report.income.totalAmount)} (${report.income.transactionCount})`,
+      renderTelegramMessage(locale, 'income_line', {
+        amount: this.formatAmount(report.income.totalAmount, locale),
+        count: report.income.transactionCount,
+      }),
     );
     lines.push(
-      `➖ Расход: ${this.formatAmount(report.expense.totalAmount)} (${report.expense.transactionCount})`,
+      renderTelegramMessage(locale, 'expense_line', {
+        amount: this.formatAmount(report.expense.totalAmount, locale),
+        count: report.expense.transactionCount,
+      }),
     );
-    lines.push(`📊 Итог дня: ${this.formatAmount(report.summary.difference)}`);
+    lines.push(
+      renderTelegramMessage(locale, 'daily_total', {
+        amount: this.formatAmount(report.summary.difference, locale),
+      }),
+    );
 
     if (report.income.topCounterparties.length > 0) {
-      lines.push('\nТоп контрагентов по приходу:');
+      lines.push('', renderTelegramMessage(locale, 'top_income_header'));
       report.income.topCounterparties.slice(0, 5).forEach((item, idx) => {
-        lines.push(`${idx + 1}. ${item.name} — ${this.formatAmount(item.amount)} (${item.count})`);
+        lines.push(
+          renderTelegramMessage(locale, 'list_item', {
+            index: idx + 1,
+            name: item.name,
+            amount: this.formatAmount(item.amount, locale),
+            count: item.count,
+          }),
+        );
       });
     }
 
     if (report.expense.topCategories.length > 0) {
-      lines.push('\nТоп категорий по расходу:');
+      lines.push('', renderTelegramMessage(locale, 'top_expense_header'));
       report.expense.topCategories.slice(0, 5).forEach((item, idx) => {
         lines.push(
-          `${idx + 1}. ${item.categoryName} — ${this.formatAmount(item.amount)} (${item.count})`,
+          renderTelegramMessage(locale, 'list_item', {
+            index: idx + 1,
+            name: item.categoryName,
+            amount: this.formatAmount(item.amount, locale),
+            count: item.count,
+          }),
         );
       });
     }
@@ -620,29 +816,56 @@ export class TelegramService {
     return lines.join('\n');
   }
 
-  private formatMonthlyReportMessage(year: number, month: number, report: MonthlyReport): string {
+  private formatMonthlyReportMessage(
+    locale: string,
+    year: number,
+    month: number,
+    report: MonthlyReport,
+  ): string {
     const lines: string[] = [];
-    lines.push(`🗓️ Отчёт за ${String(month).padStart(2, '0')}.${year}`);
-    lines.push(`➕ Приход: ${this.formatAmount(report.summary.totalIncome)}`);
-    lines.push(`➖ Расход: ${this.formatAmount(report.summary.totalExpense)}`);
+    const period = `${String(month).padStart(2, '0')}.${year}`;
+    lines.push(renderTelegramMessage(locale, 'monthly_header', { period }));
     lines.push(
-      `📊 Разница: ${this.formatAmount(report.summary.difference)} (операций: ${report.summary.transactionCount})`,
+      renderTelegramMessage(locale, 'monthly_income', {
+        amount: this.formatAmount(report.summary.totalIncome, locale),
+      }),
+    );
+    lines.push(
+      renderTelegramMessage(locale, 'monthly_expense', {
+        amount: this.formatAmount(report.summary.totalExpense, locale),
+      }),
+    );
+    lines.push(
+      renderTelegramMessage(locale, 'monthly_diff', {
+        amount: this.formatAmount(report.summary.difference, locale),
+        count: report.summary.transactionCount,
+      }),
     );
 
     if (report.categoryDistribution.length > 0) {
-      lines.push('\nТоп категорий расходов:');
+      lines.push('', renderTelegramMessage(locale, 'top_categories_header'));
       report.categoryDistribution.slice(0, 5).forEach((item, idx) => {
         lines.push(
-          `${idx + 1}. ${item.categoryName} — ${this.formatAmount(item.amount)} (${item.percentage.toFixed(1)}%)`,
+          renderTelegramMessage(locale, 'category_item', {
+            index: idx + 1,
+            name: item.categoryName,
+            amount: this.formatAmount(item.amount, locale),
+            percent: item.percentage.toFixed(1),
+          }),
         );
       });
     }
 
     if (report.counterpartyDistribution.length > 0) {
-      lines.push('\nТоп контрагентов:');
+      lines.push('', renderTelegramMessage(locale, 'top_counterparties_header'));
       report.counterpartyDistribution.slice(0, 5).forEach((item, idx) => {
         lines.push(
-          `${idx + 1}. ${item.counterpartyName} — ${this.formatAmount(item.amount)} (${item.percentage.toFixed(1)}%)`,
+          renderTelegramMessage(locale, 'counterparty_item', {
+            index: idx + 1,
+            name: item.counterpartyName,
+            amount: this.formatAmount(item.amount, locale),
+            percent: item.percentage.toFixed(1),
+          }),
         );
       });
     }
@@ -650,8 +873,8 @@ export class TelegramService {
     return lines.join('\n');
   }
 
-  private formatAmount(value: number | null | undefined): string {
-    return formatMoney(value || 0);
+  private formatAmount(value: number | null | undefined, locale: string): string {
+    return formatMoney(value || 0, locale);
   }
 
   private toDateOnly(dateLike: string | Date): Date {

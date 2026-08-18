@@ -3,9 +3,11 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, type Repository } from 'typeorm';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
+import { InsightSeverity } from '../../entities/insight.entity';
 import { ReportType } from '../../entities/telegram-report.entity';
 import { User } from '../../entities/user.entity';
 import { AuditService } from '../audit/audit.service';
+import { InsightsService } from '../insights/insights.service';
 import { TelegramService } from './telegram.service';
 
 @Injectable()
@@ -14,6 +16,7 @@ export class TelegramScheduler {
 
   constructor(
     private readonly telegramService: TelegramService,
+    private readonly insightsService: InsightsService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly auditService: AuditService,
@@ -104,6 +107,43 @@ export class TelegramScheduler {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         this.logger.error(`Failed to send monthly report for user ${user.id}: ${message}`);
+      }
+    }
+  }
+
+  /**
+   * Refreshes each connected user's insights and pushes only the ones that
+   * are newly created and urgent (warn/critical) — the same 80/20-style
+   * warnings and category/savings-rate signals the Advice/Alerts pages show,
+   * now reaching a channel the user doesn't have to remember to open.
+   *
+   * Runs after the daily report so a user who has both connected gets one
+   * digest of updates per morning rather than a message the moment each
+   * signal happens to compute.
+   */
+  @Cron('15 8 * * *')
+  async pushInsightDigests(): Promise<void> {
+    const users = await this.loadUsersWithTelegram();
+
+    for (const user of users) {
+      if (!user.workspaceId) {
+        continue;
+      }
+
+      try {
+        const { newInsights } = await this.insightsService.refresh(user.id, user.workspaceId);
+        const urgent = newInsights.filter(
+          insight =>
+            insight.severity === InsightSeverity.WARN ||
+            insight.severity === InsightSeverity.CRITICAL,
+        );
+
+        if (urgent.length > 0) {
+          await this.telegramService.pushInsightDigest(user, urgent);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Failed to push insight digest for user ${user.id}: ${message}`);
       }
     }
   }
