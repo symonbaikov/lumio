@@ -1,10 +1,57 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import '../test-setup';
 import { DataHealthTab } from '../DataHealthTab';
 
 type DataHealthTabData = React.ComponentProps<typeof DataHealthTab>['data'];
+
+// Mirrors react-intlayer's renderIntlayerNode: a Proxy over a rendered
+// Fragment whose `.value` is intercepted to return the plain string, so the
+// mock is usable both as a JSX child and via `.value` string access.
+const value = (v: string) =>
+  // biome-ignore lint/complexity/noUselessFragments: Proxy needs an object target — a bare string can't be proxied
+  new Proxy(<>{v}</>, {
+    get(target, prop, receiver) {
+      if (prop === 'value') return v;
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+
+vi.mock('@/app/i18n', () => ({
+  useIntlayer: () => ({
+    uploadParse: value('Upload / Parse'),
+    reviewQueue: value('Review Queue ({count})'),
+    exportButton: value('Export'),
+    dataQualityMetrics: value('DATA QUALITY METRICS'),
+    uncategorizedLabel: value('Uncategorized'),
+    statementErrorsLabel: value('Statement errors'),
+    pendingReviewLabel: value('Pending review'),
+    receiptsPendingLabel: value('Receipts pending'),
+    parsingWarningsLabel: value('Parsing warnings'),
+    allGood: value('All good'),
+    metricNeedsAttention: value('{value} need attention'),
+    lastUpload: value('Last upload'),
+    relativeToday: value('Today'),
+    relativeYesterday: value('Yesterday'),
+    relativeDaysAgo: value('{n} days ago'),
+    relativeOneWeekAgo: value('1 week ago'),
+    relativeWeeksAgo: value('{n} weeks ago'),
+    relativeOneMonthAgo: value('1 month ago'),
+    relativeMonthsAgo: value('{n} months ago'),
+    noDataYet: value('No data yet'),
+    uploadFirstStatement: value('Upload your first statement →'),
+    unapprovedCash: value('Unapproved cash'),
+    allCashApproved: value('ALL CASH APPROVED'),
+    reviewApproveCash: value('Review & approve cash →'),
+    actionRequired: value('Action required'),
+    quickLinkUncategorized: value('Review {count} uncategorized transactions'),
+    quickLinkStatementErrors: value('Fix {count} statement errors'),
+    quickLinkPendingStatements: value('Review {count} pending statements'),
+    quickLinkReceipts: value('Review {count} receipts'),
+  }),
+  useLocale: () => ({ locale: 'en' }),
+}));
 
 describe('DataHealthTab', () => {
   it('uses dark-safe metric card surfaces instead of translucent white panels', () => {
@@ -63,7 +110,7 @@ describe('DataHealthTab', () => {
       />,
     );
 
-    expect(screen.getByText('RECEIPTS PENDING')).toBeInTheDocument();
+    expect(screen.getByText(/receipts pending/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Review 2 receipts/i })).toBeInTheDocument();
   });
 });
