@@ -57,6 +57,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'telegram.connect',
     'telegram.send',
     'budget.view',
+    'goal.view',
     'subscription.view',
   ],
   viewer: [
@@ -70,6 +71,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'report.view',
     'telegram.view',
     'budget.view',
+    'goal.view',
     'subscription.view',
   ],
 };
