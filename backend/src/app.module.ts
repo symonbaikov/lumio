@@ -70,6 +70,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { BalanceModule } from './modules/balance/balance.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { BudgetsModule } from './modules/budgets/budgets.module';
+import { GoalsModule } from './modules/goals/goals.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ClassificationModule } from './modules/classification/classification.module';
 import { CustomTablesModule } from './modules/custom-tables/custom-tables.module';
@@ -81,6 +82,7 @@ import { GmailModule } from './modules/gmail/gmail.module';
 import { GoogleDriveModule } from './modules/google-drive/google-drive.module';
 import { GoogleSheetsModule } from './modules/google-sheets/google-sheets.module';
 import { InsightsModule } from './modules/insights/insights.module';
+import { NetWorthModule } from './modules/net-worth/net-worth.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { HttpMetricsInterceptor } from './modules/observability/http-metrics.interceptor';
 import { ObservabilityModule } from './modules/observability/observability.module';
@@ -181,6 +183,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     AuthModule,
     AuditModule,
     BalanceModule,
+    NetWorthModule,
     UsersModule,
     StatementsModule,
     GoogleSheetsModule,
@@ -193,6 +196,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     CategoriesModule,
     BranchesModule,
     BudgetsModule,
+    GoalsModule,
     WalletsModule,
     TransactionsModule,
     ReportsModule,
