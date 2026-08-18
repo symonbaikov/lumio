@@ -2,6 +2,48 @@ import { TransactionType } from '@/entities/transaction.entity';
 import { TransactionsService } from '@/modules/transactions/transactions.service';
 import { NotFoundException } from '@nestjs/common';
 
+const ORIGINAL = {
+  id: 'tx-1',
+  workspaceId: 'ws-1',
+  statementId: 'stmt-1',
+  walletId: 'wallet-1',
+  transactionDate: new Date('2026-08-01'),
+  counterpartyName: 'Magnum',
+  paymentPurpose: 'Groceries',
+  comments: 'original note',
+  currency: 'KZT',
+  transactionType: TransactionType.EXPENSE,
+  amount: 12000,
+  debit: 12000,
+  credit: null,
+  amountForeign: null,
+  exchangeRate: null,
+  categoryId: 'cat-food',
+  categoryHint: 'groceries',
+  transactionNature: 'operational',
+  taxDetected: true,
+  enrichmentConfidence: 0.9,
+  isDuplicate: false,
+  fingerprint: 'fp-of-12000',
+  splitGroupId: null,
+  splitIndex: null,
+};
+
+describe('TransactionsService.split', () => {
+  let service: TransactionsService;
+  let savedRows: any[];
+  let transactionRepository: any;
+  let auditService: any;
+  let cacheManager: any;
+  let lockedFindOne: jest.Mock;
+  // When set, the in-transaction locked re-read returns this instead of a fresh
+  // copy of the outer findOne result. Lets a test simulate a concurrent writer
+  // landing between the two reads.
+  let lockedRow: any;
+  // Category ids this workspace owns, counted by the cross-tenant guard.
+  // `null` means "every id asked about is owned", the case for most tests.
+  let ownedCategoryIds: Set<string> | null;
+
   const makeManager = () => {
     const repo = {
       findOne: lockedFindOne,
@@ -28,6 +70,65 @@ import { NotFoundException } from '@nestjs/common';
     savedRows = [];
     lockedRow = undefined;
     ownedCategoryIds = null;
+    auditService = { createEvent: jest.fn() };
+    cacheManager = { set: jest.fn() };
+    // Always a FRESH object, never the same instance twice: the unlocked read and
+    // the locked read must not alias, or a bug that derives from the stale read
+    // would pass unnoticed.
+    lockedFindOne = jest.fn(
+      async () => lockedRow ?? { ...(await transactionRepository.findOne()) },
+    );
+    transactionRepository = {
+      findOne: jest.fn(async () => ({ ...ORIGINAL })),
+      manager: makeManager(),
+    };
+    service = new TransactionsService(
+      transactionRepository,
+      {} as any,
+      { findOne: jest.fn(async () => ({ id: 'u-1', role: 'admin' })) } as any,
+      { findOne: jest.fn(async () => ({ permissions: { canEditStatements: true } })) } as any,
+      cacheManager as any,
+      auditService as any,
+      { learnFromCorrection: jest.fn() } as any,
+      { bulkConvert: jest.fn() } as any,
+    );
+    // ensureCanEditStatements is a private permission check with its own coverage;
+    // stub it so these tests stay focused on split arithmetic.
+    (service as any).ensureCanEditStatements = jest.fn();
+  });
+
+  it('splits an expense into parts whose amounts sum to the original', async () => {
+    const parts = await service.split('tx-1', 'ws-1', 'u-1', {
+      parts: [
+        { amount: 8000, categoryId: 'cat-food' },
+        { amount: 4000, categoryId: 'cat-household' },
+      ],
+    });
+
+    expect(parts).toHaveLength(2);
+    expect(parts.map(p => Number(p.amount))).toEqual([8000, 4000]);
+    // Must equal the ORIGINAL row's amount, not merely the DTO echoed back.
+    expect(parts.reduce((s, p) => s + Number(p.amount), 0)).toBe(Number(ORIGINAL.amount));
+  });
+
+  // The DTO only validates that categoryId is a UUID. Without the workspace
+  // check a part could be pointed at another tenant's category, whose name then
+  // comes back through the `category` relation loaded by getSplitParts.
+  it('refuses a part pointing at a category from another workspace', async () => {
+    ownedCategoryIds = new Set(['cat-food']);
+
+    await expect(
+      service.split('tx-1', 'ws-1', 'u-1', {
+        parts: [
+          { amount: 8000, categoryId: 'cat-food' },
+          { amount: 4000, categoryId: 'cat-of-other-workspace' },
+        ],
+      }),
+    ).rejects.toThrow(NotFoundException);
+
+    expect(savedRows).toHaveLength(0);
+  });
+
   it('writes amount, debit and credit consistently for an expense', async () => {
     const parts = await service.split('tx-1', 'ws-1', 'u-1', {
       parts: [{ amount: 8000 }, { amount: 4000 }],
