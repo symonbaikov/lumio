@@ -34,6 +34,18 @@ describe('CustomTableImportJobsService', () => {
     expect(job.payload).toEqual({ sheetId: 's1' });
   });
 
+  it('createSheetTransactionsJob creates a pending job', async () => {
+    const job = await service.createSheetTransactionsJob('u1', {
+      workspaceId: 'w1',
+      googleSheetId: 'gs1',
+    });
+
+    expect(job.type).toBe(CustomTableImportJobType.SHEET_TRANSACTIONS);
+    expect(job.status).toBe(CustomTableImportJobStatus.PENDING);
+    expect(job.progress).toBe(0);
+    expect(job.payload).toEqual({ workspaceId: 'w1', googleSheetId: 'gs1' });
+  });
+
   it('getJobForUser throws NotFoundException when missing', async () => {
     jobRepository.findOne = jest.fn(async () => null);
     await expect(service.getJobForUser('u1', 'missing')).rejects.toThrow(NotFoundException);

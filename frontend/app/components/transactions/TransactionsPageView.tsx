@@ -71,6 +71,11 @@ export default function TransactionsPageView({
     }
   };
 
+  const handleSplitDone = async () => {
+    handleCloseDrawer();
+    if (onReload) await onReload();
+  };
+
   const handleBulkAssignCategory = async () => {
     if (!bulkCategoryId || selectedIds.length === 0 || !onUpdateCategory) return;
 
@@ -232,6 +237,7 @@ export default function TransactionsPageView({
         categories={categories}
         onClose={handleCloseDrawer}
         onUpdateCategory={handleSingleUpdateCategory}
+        onSplitDone={onReload ? handleSplitDone : undefined}
       />
 
       {/* Export Modal */}

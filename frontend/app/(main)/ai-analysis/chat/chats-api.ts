@@ -9,7 +9,13 @@ export interface ChatSummary {
 }
 
 export interface ChatTranscript extends ChatSummary {
-  messages: Array<{ id: string; role: ChatMessage['role']; content: string; createdAt: string }>;
+  messages: Array<{
+    id: string;
+    role: ChatMessage['role'] | 'tool';
+    content: string;
+    actionPayload?: Record<string, unknown> | null;
+    createdAt: string;
+  }>;
 }
 
 export async function listChats(): Promise<ChatSummary[]> {
@@ -32,10 +38,15 @@ export async function getChat(id: string): Promise<ChatTranscript> {
 
 export async function appendMessage(
   chatId: string,
-  role: ChatMessage['role'],
+  role: ChatMessage['role'] | 'tool',
   content: string,
+  actionPayload?: Record<string, unknown>,
 ): Promise<void> {
-  await apiClient.post(`/ai-analysis/chats/${chatId}/messages`, { role, content });
+  await apiClient.post(`/ai-analysis/chats/${chatId}/messages`, {
+    role,
+    content,
+    ...(actionPayload ? { actionPayload } : {}),
+  });
 }
 
 export async function deleteChat(id: string): Promise<void> {

@@ -80,6 +80,51 @@ describe('CrossStatementDeduplicationService', () => {
       expect(groups[0].duplicates[0].matchType).toBe('exact');
     });
 
+    it('should not treat two parts of the same split as duplicates of each other', async () => {
+      const date = new Date('2024-01-15');
+      // An even split produces rows identical in date, amount, counterparty and
+      // purpose — otherwise an exact (1.0) match.
+      const transactions = [
+        {
+          ...createMockTransaction('tx1', date, 6000, 'Magnum', 'Groceries', 'stmt1'),
+          splitGroupId: 'grp-1',
+          splitIndex: 0,
+        },
+        {
+          ...createMockTransaction('tx2', date, 6000, 'Magnum', 'Groceries', 'stmt1'),
+          splitGroupId: 'grp-1',
+          splitIndex: 1,
+        },
+      ];
+
+      mockRepository.find.mockResolvedValueOnce(transactions.slice(0, 1));
+      mockRepository.find.mockResolvedValueOnce(transactions);
+
+      const groups = await service.findDuplicates('workspace-123');
+
+      expect(groups).toEqual([]);
+    });
+
+    it('should still flag a split part against an unrelated identical transaction', async () => {
+      const date = new Date('2024-01-15');
+      const transactions = [
+        {
+          ...createMockTransaction('tx1', date, 6000, 'Magnum', 'Groceries', 'stmt1'),
+          splitGroupId: 'grp-1',
+          splitIndex: 0,
+        },
+        createMockTransaction('tx2', date, 6000, 'Magnum', 'Groceries', 'stmt2'),
+      ];
+
+      mockRepository.find.mockResolvedValueOnce(transactions.slice(0, 1));
+      mockRepository.find.mockResolvedValueOnce(transactions);
+
+      const groups = await service.findDuplicates('workspace-123');
+
+      expect(groups.length).toBe(1);
+      expect(groups[0].duplicates[0].transaction.id).toBe('tx2');
+    });
+
     it('should find fuzzy duplicates with similar counterparty names', async () => {
       const date = new Date('2024-01-15');
       const transactions = [

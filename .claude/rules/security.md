@@ -1,3 +1,8 @@
+---
+paths:
+  - "backend/**"
+---
+
 # Security & Privacy Standards
 
 ## 1. Authentication & Session Management

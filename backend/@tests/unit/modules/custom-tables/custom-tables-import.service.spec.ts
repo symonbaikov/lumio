@@ -39,6 +39,9 @@ describe('CustomTablesImportService', () => {
     getGridData: jest.fn(),
     getSpreadsheetInfo: jest.fn(),
   };
+  const sheetSourceLoader = {
+    load: jest.fn(),
+  };
 
   let service: CustomTablesImportService;
 
@@ -54,6 +57,7 @@ describe('CustomTablesImportService', () => {
       customTableCellStyleRepository as any,
       googleSheetsApiService as any,
       auditService as any,
+      sheetSourceLoader as any,
     );
   });
 

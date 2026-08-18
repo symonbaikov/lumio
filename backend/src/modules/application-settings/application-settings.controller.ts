@@ -16,6 +16,8 @@ import { User, WorkspaceServiceSettingsKey } from '../../entities';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApplicationSettingsService } from './application-settings.service';
 
+type MulterFile = Express.Multer.File;
+
 @Controller('settings')
 @UseGuards(JwtAuthGuard)
 export class ApplicationSettingsController {
@@ -60,7 +62,7 @@ export class ApplicationSettingsController {
   )
   uploadLocalCategorizationModel(
     @CurrentUser() user: User,
-    @UploadedFile() file: Express.Multer.File | undefined,
+    @UploadedFile() file: MulterFile | undefined,
   ) {
     return this.applicationSettingsService.installLocalCategorizationModel(user, file);
   }

@@ -54,7 +54,8 @@
     "react-pdf": "^10.3.0",
     "socket.io-client": "^4.8.3",
     "tinykeys": "^3.0.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@babel/plugin-transform-runtime": "^7.28.5",

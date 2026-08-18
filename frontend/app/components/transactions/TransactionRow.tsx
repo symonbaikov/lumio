@@ -135,6 +135,21 @@ export function TransactionRow({
         >
           <div style={{ maxWidth: 200 }} title={tx.counterpartyName}>
             {tx.counterpartyName}
+            {tx.splitGroupId && (
+              <span
+                style={{
+                  marginLeft: 8,
+                  border: '1px solid var(--border-color)',
+                  padding: '1px 6px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: 'var(--muted-foreground)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Split
+              </span>
+            )}
           </div>
         </td>
         <td

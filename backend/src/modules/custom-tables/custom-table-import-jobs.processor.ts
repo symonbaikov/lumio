@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
@@ -8,11 +8,14 @@ import {
   CustomTableImportJobStatus,
   CustomTableImportJobType,
 } from '../../entities/custom-table-import-job.entity';
+import type { SheetTransactionCommitInput } from '../import/services/sheet-transaction-import.service';
+import { SheetTransactionImportService } from '../import/services/sheet-transaction-import.service';
 import { CustomTableImportJobsService } from './custom-table-import-jobs.service';
 import { CustomTablesImportService } from './custom-tables-import.service';
 import type { GoogleSheetsImportCommitDto } from './dto/google-sheets-import-commit.dto';
 
 type GoogleSheetsCommitJobPayload = GoogleSheetsImportCommitDto;
+type SheetTransactionsJobPayload = SheetTransactionCommitInput & { workspaceId: string };
 type JobUnlockUpdate = { lockedAt: null; lockedBy: null };
 
 @Injectable()
@@ -30,6 +33,8 @@ export class CustomTableImportJobsProcessor {
     private readonly jobRepository: Repository<CustomTableImportJob>,
     private readonly importService: CustomTablesImportService,
     private readonly jobsService: CustomTableImportJobsService,
+    @Inject(forwardRef(() => SheetTransactionImportService))
+    private readonly sheetTransactionImportService: SheetTransactionImportService,
   ) {}
 
   private toRecord(value: unknown): Record<string, unknown> | null {
@@ -190,6 +195,16 @@ export class CustomTableImportJobsProcessor {
           },
         });
         await this.jobsService.markDone(job.id, result);
+        return;
+      }
+      if (job.type === CustomTableImportJobType.SHEET_TRANSACTIONS) {
+        const { workspaceId, ...dto } = job.payload as unknown as SheetTransactionsJobPayload;
+        const result = await this.sheetTransactionImportService.runCommit(
+          workspaceId,
+          job.userId,
+          dto,
+        );
+        await this.jobsService.markDone(job.id, result as unknown as Record<string, unknown>);
         return;
       }
       throw new Error(`Unsupported job type: ${job.type}`);

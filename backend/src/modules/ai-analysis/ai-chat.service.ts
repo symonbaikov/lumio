@@ -11,7 +11,13 @@ export interface ChatSummary {
 }
 
 export interface ChatTranscript extends ChatSummary {
-  messages: Array<{ id: string; role: AiChatRole; content: string; createdAt: Date }>;
+  messages: Array<{
+    id: string;
+    role: AiChatRole;
+    content: string;
+    actionPayload: Record<string, unknown> | null;
+    createdAt: Date;
+  }>;
 }
 
 const TITLE_MAX_LENGTH = 255;
@@ -68,6 +74,7 @@ export class AiChatService {
         id: message.id,
         role: message.role,
         content: message.content,
+        actionPayload: message.actionPayload ?? null,
         createdAt: message.createdAt,
       })),
     };
@@ -78,11 +85,18 @@ export class AiChatService {
     chatId: string,
     role: AiChatRole,
     content: string,
+    actionPayload?: Record<string, unknown>,
   ): Promise<{ id: string }> {
     const chat = await this.requireChat(workspaceId, chatId);
 
     const message = await this.messages.save(
-      this.messages.create({ chatId: chat.id, workspaceId, role, content }),
+      this.messages.create({
+        chatId: chat.id,
+        workspaceId,
+        role,
+        content,
+        actionPayload: actionPayload ?? null,
+      }),
     );
 
     // Keeps the list ordered by real activity rather than by creation.

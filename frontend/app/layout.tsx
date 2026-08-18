@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { getLocale } from 'next-intlayer/server';
 import { getIntlayer } from 'react-intlayer';
 import { IntlayerServerProvider } from 'react-intlayer/server';
+import { ChatModeRedirect } from './chat/ChatModeRedirect';
 import AppChrome from './components/AppChrome';
 import DynamicPageTitle from './components/DynamicPageTitle';
 import TopBar from './components/TopBar';
@@ -76,6 +77,7 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <Providers initialLocale={resolvedLocale as 'en' | 'ru' | 'kk'}>
+              <ChatModeRedirect />
               <DynamicPageTitle />
               <div className="lumio-shell">
                 <AppChrome />
