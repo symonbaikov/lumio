@@ -664,10 +664,49 @@
   &__actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
 
     @media (max-width: 640px) {
       flex-wrap: wrap;
+    }
+  }
+
+  &__icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    transition: transform 150ms ease, box-shadow 150ms ease;
+
+    &:hover {
+      transform: translateY(-2px) scale(1.05);
+    }
+
+    &:active {
+      transform: translateY(0) scale(0.97);
+    }
+
+    &--export {
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+
+      &:hover {
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.5);
+      }
+    }
+
+    &--upload {
+      background: linear-gradient(135deg, #22c55e, #15803d);
+      box-shadow: 0 6px 16px rgba(21, 128, 61, 0.4);
+
+      &:hover {
+        box-shadow: 0 8px 20px rgba(21, 128, 61, 0.5);
+      }
     }
   }
 
