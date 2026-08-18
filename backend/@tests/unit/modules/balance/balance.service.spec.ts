@@ -27,6 +27,7 @@ describe('BalanceService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // getWorkspaceCurrency() reads the workspace on every balance sheet build.
     workspaceRepository.findOne.mockResolvedValue({ currency: 'KZT' });
 
     service = new BalanceService(

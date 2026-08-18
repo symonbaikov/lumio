@@ -1,5 +1,6 @@
 const CYRILLIC_RE = /[\u0400-\u04FF]/;
 const MOJIBAKE_HINT_RE = /[ÐÑÃÂ]/;
+const UNSAFE_ARCHIVE_CHARS_RE = /[\x00-\x1f\x7f]/g;
 
 function scoreCyrillic(value: string): number {
   const matches = value.match(/[\u0400-\u04FF]/g);
@@ -41,4 +42,11 @@ export function normalizeFilename(input: string): string {
   }
 
   return name;
+}
+
+export function sanitizeArchiveEntryName(input: string): string {
+  const normalized = normalizeFilename(input || '');
+  const basename = normalized.replace(/\\/g, '/').split('/').filter(Boolean).pop() || 'file';
+  const sanitized = basename.replace(UNSAFE_ARCHIVE_CHARS_RE, '_').trim();
+  return sanitized || 'file';
 }

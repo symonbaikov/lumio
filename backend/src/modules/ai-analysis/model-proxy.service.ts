@@ -12,6 +12,9 @@ import {
   expectedPathPrefix,
 } from './model-proxy.constants';
 
+/** Upstream hops followed before a request is treated as a redirect loop. */
+const MAX_UPSTREAM_REDIRECTS = 5;
+
 export interface ResolvedAsset {
   /** Absolute path of the cached file, once it exists. */
   cachePath: string;
@@ -99,7 +102,10 @@ export class ModelProxyService {
    * Returns the response so the caller can stream it to the client while
    * `cacheStream` writes the same bytes to disk.
    */
-  async fetchUpstream(upstreamUrl: string): Promise<Response> {
+  async fetchUpstream(
+    upstreamUrl: string,
+    redirectsLeft = MAX_UPSTREAM_REDIRECTS,
+  ): Promise<Response> {
     const response = await fetch(upstreamUrl, { redirect: 'manual' });
 
     if (response.status >= 300 && response.status < 400) {
@@ -107,6 +113,13 @@ export class ModelProxyService {
       const target = location ? new URL(location, upstreamUrl) : null;
       const originAllowed =
         target !== null && Object.values(UPSTREAM_ORIGIN).includes(target.origin);
+
+      // A loop between two allowed origins would otherwise recurse until the
+      // stack blows, taking the process with it.
+      if (redirectsLeft <= 0) {
+        this.logger.warn({ type: 'model_proxy_redirect_limit', upstreamUrl });
+        throw new NotFoundException('Asset unavailable');
+      }
 
       if (!(target && originAllowed)) {
         this.logger.warn({
@@ -117,7 +130,7 @@ export class ModelProxyService {
         throw new NotFoundException('Asset unavailable');
       }
 
-      return this.fetchUpstream(target.toString());
+      return this.fetchUpstream(target.toString(), redirectsLeft - 1);
     }
 
     if (!response.ok) {

@@ -29,6 +29,7 @@ import { QualityLoggingService } from './services/quality-logging.service';
 import { QualityMetricsService } from './services/quality-metrics.service';
 import { StatementNormalizationService } from './services/statement-normalization.service';
 import { StatementProcessingService } from './services/statement-processing.service';
+import { StatementQualityGate } from './services/statement-quality-gate.service';
 import { TextCleaningService } from './services/text-cleaning.service';
 import { TransactionNormalizer } from './services/transaction-normalizer.service';
 import { TransactionTypeDetectorService } from './services/transaction-type-detector.service';
@@ -49,6 +50,7 @@ import { UniversalExtractorService } from './services/universal-extractor.servic
   providers: [
     ParserFactoryService,
     StatementProcessingService,
+    StatementQualityGate,
     ParsingRulesService,
     StatementNormalizationService,
     TransactionNormalizer,
@@ -79,6 +81,7 @@ import { UniversalExtractorService } from './services/universal-extractor.servic
   exports: [
     ParserFactoryService,
     StatementProcessingService,
+    StatementQualityGate,
     ParsingRulesService,
     StatementNormalizationService,
     TransactionNormalizer,

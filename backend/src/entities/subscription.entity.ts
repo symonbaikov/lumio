@@ -27,6 +27,18 @@ export enum SubscriptionStatus {
   CANCELLED = 'cancelled',
 }
 
+export enum SubscriptionReviewStatus {
+  CURRENT = 'current',
+  NEEDS_REVIEW = 'needs_review',
+}
+
+export enum SubscriptionRiskStatus {
+  NONE = 'none',
+  PRICE_CHANGED = 'price_changed',
+  DATE_SHIFTED = 'date_shifted',
+  MISSING_CHARGE = 'missing_charge',
+}
+
 @Entity('subscriptions')
 @Unique('UQ_subscriptions_workspace_vendor_frequency', ['workspaceId', 'vendorName', 'frequency'])
 @Index('IDX_subscriptions_workspace_status', ['workspaceId', 'status'])
@@ -59,6 +71,38 @@ export class Subscription {
 
   @Column({ type: 'enum', enum: SubscriptionStatus, default: SubscriptionStatus.DETECTED })
   status: SubscriptionStatus;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'owner_id' })
+  owner: User | null;
+
+  @Column({ name: 'owner_id', nullable: true })
+  ownerId: string | null;
+
+  @Column({ name: 'review_at', type: 'date', nullable: true })
+  reviewAt: Date | null;
+
+  @Column({
+    name: 'review_status',
+    type: 'enum',
+    enum: SubscriptionReviewStatus,
+    default: SubscriptionReviewStatus.CURRENT,
+  })
+  reviewStatus: SubscriptionReviewStatus;
+
+  @Column({
+    name: 'risk_status',
+    type: 'enum',
+    enum: SubscriptionRiskStatus,
+    default: SubscriptionRiskStatus.NONE,
+  })
+  riskStatus: SubscriptionRiskStatus;
+
+  @Column({ name: 'cancellation_reason', type: 'text', nullable: true })
+  cancellationReason: string | null;
+
+  @Column({ name: 'realized_annual_savings', type: 'decimal', precision: 15, scale: 2, default: 0 })
+  realizedAnnualSavings: number;
 
   @Column({ type: 'decimal', precision: 3, scale: 2, nullable: true })
   confidence: number | null;

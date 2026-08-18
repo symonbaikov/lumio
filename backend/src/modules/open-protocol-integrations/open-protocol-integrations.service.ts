@@ -8,6 +8,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ImapFlow } from 'imapflow';
@@ -16,7 +17,11 @@ import type { Repository } from 'typeorm';
 import type { FileStat, WebDAVClient } from 'webdav';
 import { FileStorageService } from '../../common/services/file-storage.service';
 import { decryptText, encryptText } from '../../common/utils/encryption.util';
-import { assertPublicEgressHost, assertPublicEgressUrl } from '../../common/utils/egress-url.util';
+import {
+  assertPublicEgressHost,
+  assertPublicEgressUrl,
+  createPublicEgressHttpAgents,
+} from '../../common/utils/egress-url.util';
 import { validateFile } from '../../common/utils/file-validator.util';
 import { normalizeFilename } from '../../common/utils/filename.util';
 import { buildContentDisposition } from '../../common/utils/http-file.util';
@@ -264,12 +269,13 @@ export class OpenProtocolIntegrationsService {
     pass: string;
   }): Promise<string[]> {
     await assertPublicEgressHost(input.host);
+    const { lookup } = createPublicEgressHttpAgents();
     const client = new ImapFlow({
       host: input.host,
       port: input.port,
       secure: input.secure,
       auth: { user: input.user, pass: input.pass },
-      tls: { rejectUnauthorized: false },
+      tls: { lookup, rejectUnauthorized: true },
       logger: false,
     });
     await client.connect();
@@ -476,6 +482,7 @@ export class OpenProtocolIntegrationsService {
 
   async syncImap(user: User): Promise<{ ok: true; scanned: number; imported: number }> {
     const config = await this.getImapConfig(user);
+    const { lookup } = createPublicEgressHttpAgents();
     const client = new ImapFlow({
       host: config.host,
       port: config.port,
@@ -484,7 +491,7 @@ export class OpenProtocolIntegrationsService {
         user: config.user,
         pass: config.pass,
       },
-      tls: { rejectUnauthorized: false },
+      tls: { lookup, rejectUnauthorized: true },
       logger: false,
     });
 
@@ -705,11 +712,13 @@ export class OpenProtocolIntegrationsService {
   }
 
   private createS3ClientFromConfig(config: S3Config): { client: S3Client } {
+    const { httpAgent, httpsAgent } = createPublicEgressHttpAgents();
     return {
       client: new S3Client({
         endpoint: config.endpoint,
         region: config.region,
         forcePathStyle: config.forcePathStyle,
+        requestHandler: new NodeHttpHandler({ httpAgent, httpsAgent }),
         credentials:
           config.accessKeyId && config.secretAccessKey
             ? { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey }
@@ -1063,16 +1072,20 @@ export class OpenProtocolIntegrationsService {
       modulePath: string,
     ) => Promise<typeof import('webdav')>;
     const { createClient } = await loadWebdav('webdav');
+    const { httpAgent, httpsAgent } = createPublicEgressHttpAgents();
     return {
       config,
       client: createClient(config.url, {
         username: config.username,
         password: config.password,
+        httpAgent,
+        httpsAgent,
       }),
     };
   }
 
   private async assertImapConnection(config: ImapConfig): Promise<void> {
+    const { lookup } = createPublicEgressHttpAgents();
     const client = new ImapFlow({
       host: config.host,
       port: config.port,
@@ -1081,7 +1094,7 @@ export class OpenProtocolIntegrationsService {
         user: config.user,
         pass: config.pass,
       },
-      tls: { rejectUnauthorized: false },
+      tls: { lookup, rejectUnauthorized: true },
       logger: false,
     });
     try {

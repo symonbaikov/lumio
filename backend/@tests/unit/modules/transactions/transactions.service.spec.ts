@@ -55,6 +55,13 @@ describe('TransactionsService', () => {
             update: jest.fn(),
             delete: jest.fn(),
             createQueryBuilder: jest.fn(),
+            // The cross-tenant guard counts referenced category/branch/wallet ids
+            // through the manager; here every referenced id belongs to the workspace.
+            manager: {
+              getRepository: () => ({
+                countBy: jest.fn(async ({ id }: any) => (id?.value as string[]).length),
+              }),
+            },
           },
         },
         {

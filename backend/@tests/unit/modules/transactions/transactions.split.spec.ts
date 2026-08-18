@@ -1,5 +1,6 @@
 import { TransactionType } from '@/entities/transaction.entity';
 import { TransactionsService } from '@/modules/transactions/transactions.service';
+import { NotFoundException } from '@nestjs/common';
 
 const ORIGINAL = {
   id: 'tx-1',
@@ -39,6 +40,9 @@ describe('TransactionsService.split', () => {
   // copy of the outer findOne result. Lets a test simulate a concurrent writer
   // landing between the two reads.
   let lockedRow: any;
+  // Category ids this workspace owns, counted by the cross-tenant guard.
+  // `null` means "every id asked about is owned", the case for most tests.
+  let ownedCategoryIds: Set<string> | null;
 
   const makeManager = () => {
     const repo = {
@@ -50,12 +54,22 @@ describe('TransactionsService.split', () => {
         return stored;
       }),
     };
-    return { transaction: jest.fn(async (cb: any) => cb({ getRepository: () => repo })) };
+    return {
+      transaction: jest.fn(async (cb: any) => cb({ getRepository: () => repo })),
+      // Used by the guard that rejects another workspace's category ids.
+      getRepository: () => ({
+        countBy: jest.fn(async ({ id }: any) => {
+          const ids: string[] = id.value;
+          return ownedCategoryIds ? ids.filter(one => ownedCategoryIds?.has(one)).length : ids.length;
+        }),
+      }),
+    };
   };
 
   beforeEach(() => {
     savedRows = [];
     lockedRow = undefined;
+    ownedCategoryIds = null;
     auditService = { createEvent: jest.fn() };
     cacheManager = { set: jest.fn() };
     // Always a FRESH object, never the same instance twice: the unlocked read and
@@ -95,6 +109,24 @@ describe('TransactionsService.split', () => {
     expect(parts.map(p => Number(p.amount))).toEqual([8000, 4000]);
     // Must equal the ORIGINAL row's amount, not merely the DTO echoed back.
     expect(parts.reduce((s, p) => s + Number(p.amount), 0)).toBe(Number(ORIGINAL.amount));
+  });
+
+  // The DTO only validates that categoryId is a UUID. Without the workspace
+  // check a part could be pointed at another tenant's category, whose name then
+  // comes back through the `category` relation loaded by getSplitParts.
+  it('refuses a part pointing at a category from another workspace', async () => {
+    ownedCategoryIds = new Set(['cat-food']);
+
+    await expect(
+      service.split('tx-1', 'ws-1', 'u-1', {
+        parts: [
+          { amount: 8000, categoryId: 'cat-food' },
+          { amount: 4000, categoryId: 'cat-of-other-workspace' },
+        ],
+      }),
+    ).rejects.toThrow(NotFoundException);
+
+    expect(savedRows).toHaveLength(0);
   });
 
   it('writes amount, debit and credit consistently for an expense', async () => {

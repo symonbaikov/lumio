@@ -3,6 +3,10 @@ jest.mock('nodemailer', () => ({
     verify: jest.fn().mockResolvedValue(true),
   })),
 }));
+jest.mock('../../../../src/common/utils/egress-url.util', () => ({
+  assertPublicEgressHost: jest.fn().mockResolvedValue(undefined),
+  assertPublicEgressUrl: jest.fn().mockResolvedValue(new URL('https://example.com')),
+}));
 
 const mockCategorize = jest.fn();
 const mockGetModelLoadError = jest.fn();
@@ -20,6 +24,10 @@ jest.mock('../../../../src/modules/classification/helpers/transaction-categorize
 
 import { ApplicationSettingsService } from '../../../../src/modules/application-settings/application-settings.service';
 import { WorkspaceServiceSettingsKey } from '../../../../src/entities';
+import {
+  assertPublicEgressHost,
+  assertPublicEgressUrl,
+} from '../../../../src/common/utils/egress-url.util';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -51,6 +59,10 @@ describe('ApplicationSettingsService', () => {
     mockCategorize.mockReset();
     mockGetModelLoadError.mockReset();
     mockTransactionCategorizerConstructor.mockClear();
+    (assertPublicEgressHost as jest.Mock).mockResolvedValue(undefined);
+    (assertPublicEgressUrl as jest.Mock).mockResolvedValue(new URL('https://example.com'));
+    (assertPublicEgressHost as jest.Mock).mockClear();
+    (assertPublicEgressUrl as jest.Mock).mockClear();
     Object.keys(saved).forEach(key => delete saved[key]);
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -77,6 +89,7 @@ describe('ApplicationSettingsService', () => {
       apiKeyConfigured: true,
     });
     expect(result.settings).not.toHaveProperty('apiKey');
+    expect(assertPublicEgressUrl).toHaveBeenCalledWith('http://localhost:11434');
     expect(saved[WorkspaceServiceSettingsKey.AI]).toMatchObject({
       workspaceId: 'workspace-1',
       key: WorkspaceServiceSettingsKey.AI,
@@ -102,6 +115,7 @@ describe('ApplicationSettingsService', () => {
 
     expect(result.settings.passConfigured).toBe(true);
     expect(result.settings).not.toHaveProperty('pass');
+    expect(assertPublicEgressHost).toHaveBeenCalledWith('mail.example.com');
   });
 
   it('deletes workspace settings on disconnect', async () => {

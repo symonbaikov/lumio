@@ -325,4 +325,33 @@ describe('StatementProcessingService', () => {
     expect(statement.parsingDetails?.warnings).toHaveLength(12);
     expect(statement.parsingDetails?.droppedSamples).toHaveLength(12);
   });
+
+  it('keeps parser metadata when enrichment only has fallback values', async () => {
+    parserFactory.getParser.mockResolvedValueOnce({
+      parse: jest.fn().mockResolvedValue({
+        ...parsedStatement,
+        metadata: {
+          ...parsedStatement.metadata,
+          accountNumber: 'PARSER-ACCOUNT',
+          dateFrom: new Date('2024-01-01'),
+          dateTo: new Date('2024-01-31'),
+          currency: 'USD',
+        },
+      }),
+      constructor: { name: 'FakeParser' },
+    });
+    metadataExtractionService.extractMetadata.mockResolvedValueOnce({} as any);
+    metadataExtractionService.convertToParsedStatementMetadata.mockReturnValueOnce({
+      accountNumber: '',
+      dateFrom: new Date('2026-08-01'),
+      dateTo: new Date('2026-08-03'),
+      currency: 'KZT',
+    });
+
+    await service.processStatement(statement.id);
+
+    expect(statement.accountNumber).toBe('PARSER-ACCOUNT');
+    expect(statement.currency).toBe('USD');
+    expect(statement.statementDateFrom?.toISOString()).toContain('2024-01-01');
+  });
 });

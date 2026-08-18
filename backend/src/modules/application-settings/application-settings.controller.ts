@@ -11,15 +11,18 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
+import { Permission } from '../../common/enums/permissions.enum';
 import { User, WorkspaceServiceSettingsKey } from '../../entities';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApplicationSettingsService } from './application-settings.service';
 
-type MulterFile = Express.Multer.File;
+type UploadedModelArchive = {
+  originalname?: string;
+  buffer?: Buffer;
+};
 
 @Controller('settings')
-@UseGuards(JwtAuthGuard)
 export class ApplicationSettingsController {
   constructor(private readonly applicationSettingsService: ApplicationSettingsService) {}
 
@@ -29,11 +32,13 @@ export class ApplicationSettingsController {
   }
 
   @Put('integrations/ai')
+  @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
   saveAi(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
     return this.applicationSettingsService.saveAiSettings(user, body);
   }
 
   @Delete('integrations/ai')
+  @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
   disconnectAi(@CurrentUser() user: User) {
     return this.applicationSettingsService.disconnect(user, WorkspaceServiceSettingsKey.AI);
   }
@@ -44,6 +49,7 @@ export class ApplicationSettingsController {
   }
 
   @Put('local-categorization')
+  @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
   saveLocalCategorization(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
     return this.applicationSettingsService.saveLocalCategorizationSettings(user, body);
   }
@@ -54,6 +60,7 @@ export class ApplicationSettingsController {
   }
 
   @Post('local-categorization/model')
+  @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
   @UseInterceptors(
     FileInterceptor('model', {
       storage: memoryStorage(),
@@ -62,7 +69,7 @@ export class ApplicationSettingsController {
   )
   uploadLocalCategorizationModel(
     @CurrentUser() user: User,
-    @UploadedFile() file: MulterFile | undefined,
+    @UploadedFile() file: UploadedModelArchive | undefined,
   ) {
     return this.applicationSettingsService.installLocalCategorizationModel(user, file);
   }
@@ -73,11 +80,13 @@ export class ApplicationSettingsController {
   }
 
   @Put('email/smtp')
+  @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
   saveSmtp(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
     return this.applicationSettingsService.saveSmtpSettings(user, body);
   }
 
   @Delete('email/smtp')
+  @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
   disconnectSmtp(@CurrentUser() user: User) {
     return this.applicationSettingsService.disconnect(user, WorkspaceServiceSettingsKey.SMTP);
   }
@@ -88,11 +97,13 @@ export class ApplicationSettingsController {
   }
 
   @Put('notifications/telegram')
+  @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
   saveTelegram(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
     return this.applicationSettingsService.saveTelegramSettings(user, body);
   }
 
   @Delete('notifications/telegram')
+  @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
   disconnectTelegram(@CurrentUser() user: User) {
     return this.applicationSettingsService.disconnect(user, WorkspaceServiceSettingsKey.TELEGRAM);
   }
@@ -103,11 +114,13 @@ export class ApplicationSettingsController {
   }
 
   @Put('app')
+  @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
   saveApp(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
     return this.applicationSettingsService.saveAppSettings(user, body);
   }
 
   @Delete('app')
+  @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
   disconnectApp(@CurrentUser() user: User) {
     return this.applicationSettingsService.disconnect(user, WorkspaceServiceSettingsKey.APP);
   }

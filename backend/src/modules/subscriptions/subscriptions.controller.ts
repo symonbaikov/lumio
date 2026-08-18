@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
@@ -8,6 +8,8 @@ import type { User } from '../../entities/user.entity';
 import { SubscriptionsService } from './subscriptions.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
+import { AssignSubscriptionOwnerDto } from './dto/assign-subscription-owner.dto';
+import { RecordSubscriptionDecisionDto } from './dto/record-subscription-decision.dto';
 
 @Controller('subscriptions')
 export class SubscriptionsController {
@@ -37,7 +39,7 @@ export class SubscriptionsController {
   @Get(':id')
   @WorkspaceAuth(Permission.SUBSCRIPTION_VIEW)
   async findOne(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    return this.subscriptionsService.findOne(id, workspaceId);
+    return this.subscriptionsService.getDetails(id, workspaceId);
   }
 
   @Post()
@@ -58,6 +60,28 @@ export class SubscriptionsController {
     @WorkspaceId() workspaceId: string,
   ) {
     return this.subscriptionsService.update(id, workspaceId, dto);
+  }
+
+  @Patch(':id/owner')
+  @WorkspaceAuth(Permission.SUBSCRIPTION_EDIT)
+  async assignOwner(
+    @Param('id') id: string,
+    @Body() dto: AssignSubscriptionOwnerDto,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.subscriptionsService.assignOwner(id, workspaceId, dto.ownerId, user.id);
+  }
+
+  @Post(':id/decisions')
+  @WorkspaceAuth(Permission.SUBSCRIPTION_EDIT)
+  async recordDecision(
+    @Param('id') id: string,
+    @Body() dto: RecordSubscriptionDecisionDto,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.subscriptionsService.recordDecision(id, workspaceId, user.id, dto);
   }
 
   @Post(':id/confirm')

@@ -1,3 +1,6 @@
+import { PERMISSIONS_KEY } from '@/common/decorators/require-permission.decorator';
+import { Permission } from '@/common/enums/permissions.enum';
+import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import { SheetTransactionImportController } from '@/modules/import/sheet-transaction-import.controller';
 
 describe('SheetTransactionImportController', () => {
@@ -33,6 +36,33 @@ describe('SheetTransactionImportController', () => {
     );
     return { controller, sheetTransactionImportService, customTableImportJobsService };
   }
+
+  // These endpoints write a Statement and ledger Transactions. Without a
+  // PermissionsGuard any workspace member — including a read-only one — could
+  // import, so the wiring itself is asserted, not just the handler bodies.
+  describe('authorization metadata', () => {
+    const guardsOf = (handler: (...args: never[]) => unknown) =>
+      (Reflect.getMetadata('__guards__', handler) ?? []) as unknown[];
+    const permissionsOf = (handler: (...args: never[]) => unknown) =>
+      (Reflect.getMetadata(PERMISSIONS_KEY, handler) ?? []) as Permission[];
+
+    it.each([
+      ['preview', SheetTransactionImportController.prototype.preview],
+      ['commit', SheetTransactionImportController.prototype.commit],
+    ])('gates %s behind PermissionsGuard with write permissions', (_name, handler) => {
+      expect(guardsOf(handler)).toContain(PermissionsGuard);
+      expect(permissionsOf(handler)).toEqual([
+        Permission.STATEMENT_UPLOAD,
+        Permission.TRANSACTION_EDIT,
+      ]);
+    });
+
+    it('gates the job status endpoint behind a view permission', () => {
+      const handler = SheetTransactionImportController.prototype.getJob;
+      expect(guardsOf(handler)).toContain(PermissionsGuard);
+      expect(permissionsOf(handler)).toEqual([Permission.STATEMENT_VIEW]);
+    });
+  });
 
   describe('preview', () => {
     it('calls the service with the decorator-supplied workspaceId, not a body-supplied one', async () => {

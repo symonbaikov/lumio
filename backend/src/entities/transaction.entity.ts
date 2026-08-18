@@ -23,7 +23,10 @@ export enum TransactionType {
 
 @Entity('transactions')
 @Index('IDX_transactions_workspace_date_amount', ['workspaceId', 'transactionDate', 'amount'])
-@Index('IDX_transactions_workspace_split_group', ['workspaceId', 'splitGroupId'])
+// Partial, matching the migration: only split rows are ever looked up by group.
+@Index('IDX_transactions_workspace_split_group', ['workspaceId', 'splitGroupId'], {
+  where: '"split_group_id" IS NOT NULL',
+})
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
   id: string;

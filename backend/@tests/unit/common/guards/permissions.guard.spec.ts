@@ -123,6 +123,22 @@ describe('PermissionsGuard', () => {
 
     expect(() => guard.canActivate(context)).toThrow();
   });
+
+  it.each([PermissionEnum.WORKSPACE_SETTINGS_MANAGE, PermissionEnum.INTEGRATION_MANAGE])(
+    'allows workspace owner to use workspace admin permission %s',
+    permission => {
+      const context = createMockExecutionContext({
+        user: { id: 'user-5', role: UserRole.USER, permissions: null },
+        workspaceRole: WorkspaceRole.OWNER,
+        workspaceMemberPermissions: null,
+      });
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([permission] as Permission[]);
+
+      const result = guard.canActivate(context);
+
+      expect(result).toBe(true);
+    },
+  );
 });
 
 function createMockExecutionContext(request: Record<string, unknown>): ExecutionContext {
