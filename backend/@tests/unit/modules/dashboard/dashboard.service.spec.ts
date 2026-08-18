@@ -1,7 +1,6 @@
 import { In, IsNull } from 'typeorm';
-import { ActorType, AuditAction, EntityType } from '../../../../src/entities/audit-event.entity';
 import { ReceiptStatus } from '../../../../src/entities/receipt.entity';
-import { StatementStatus } from '../../../../src/entities/statement.entity';
+import { BankName, StatementStatus } from '../../../../src/entities/statement.entity';
 import { TransactionType } from '../../../../src/entities/transaction.entity';
 import { WorkspaceRole } from '../../../../src/entities/workspace-member.entity';
 import { DashboardService } from '../../../../src/modules/dashboard/dashboard.service';
@@ -25,6 +24,7 @@ const createQueryBuilderMock = (result: unknown) => ({
   groupBy: jest.fn().mockReturnThis(),
   addGroupBy: jest.fn().mockReturnThis(),
   orderBy: jest.fn().mockReturnThis(),
+  addOrderBy: jest.fn().mockReturnThis(),
   take: jest.fn().mockReturnThis(),
   limit: jest.fn().mockReturnThis(),
   setParameter: jest.fn().mockReturnThis(),
@@ -45,6 +45,13 @@ const createExpectedWindow = (days: number, targetDate: string | Date) => {
   return { since, endDate };
 };
 
+const createExpectedMonthWindow = (targetDate: string | Date) => {
+  const anchor = new Date(targetDate);
+  const since = new Date(anchor.getFullYear(), anchor.getMonth(), 1, 0, 0, 0, 0);
+  const endDate = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0, 23, 59, 59, 999);
+  return { since, endDate };
+};
+
 const formatDateOnly = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -61,7 +68,6 @@ describe('DashboardService', () => {
   const receiptRepo = createRepoMock();
   const memberRepo = createRepoMock();
   const workspaceRepo = createRepoMock();
-  const auditRepo = createRepoMock();
   const exchangeRatesService = {
     getRate: jest.fn(),
   };
@@ -77,7 +83,6 @@ describe('DashboardService', () => {
       receiptRepo,
       memberRepo,
       workspaceRepo,
-      auditRepo,
       exchangeRatesService as any,
     );
   });
@@ -96,15 +101,18 @@ describe('DashboardService', () => {
     const cashFlow = [{ date: '2026-02-01', income: 100, expense: 40 }];
     const topMerchants = [{ name: 'Kaspi', amount: 50000, count: 10 }];
     const topCategories = [{ id: 'cat-1', name: 'Utilities', amount: 30000, count: 5 }];
-    const recentActivity = [
+    const recentTransactions = [
       {
-        id: 'a1',
-        type: 'statement_upload',
-        title: 'Statement',
-        description: null,
-        amount: null,
-        timestamp: new Date('2026-02-01T10:00:00Z').toISOString(),
-        href: '/statements/a1',
+        id: 'tx-1',
+        description: 'Kaspi Zolotoy',
+        amount: -5000,
+        currency: 'USD',
+        date: '2026-02-01',
+        account: 'Kaspi •••• 4821',
+        categoryId: 'cat-1',
+        categoryName: 'Utilities',
+        categoryColor: '#0584C7',
+        categoryIcon: null,
       },
     ];
     const dataHealth = {
@@ -123,7 +131,7 @@ describe('DashboardService', () => {
     jest.spyOn(service as any, 'getCashFlow').mockResolvedValue(cashFlow);
     jest.spyOn(service as any, 'getTopMerchants').mockResolvedValue(topMerchants);
     jest.spyOn(service as any, 'getTopCategories').mockResolvedValue(topCategories);
-    jest.spyOn(service as any, 'getRecentActivity').mockResolvedValue(recentActivity);
+    jest.spyOn(service as any, 'getRecentTransactions').mockResolvedValue(recentTransactions);
     jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('admin');
     jest.spyOn(service as any, 'getDataHealth').mockResolvedValue(dataHealth);
 
@@ -135,7 +143,7 @@ describe('DashboardService', () => {
       cashFlow,
       topMerchants,
       topCategories,
-      recentActivity,
+      recentTransactions,
       role: 'admin',
       range: '30d',
       dataHealth,
@@ -166,7 +174,7 @@ describe('DashboardService', () => {
     jest.spyOn(service as any, 'getCashFlow').mockResolvedValue([]);
     jest.spyOn(service as any, 'getTopMerchants').mockResolvedValue([]);
     jest.spyOn(service as any, 'getTopCategories').mockResolvedValue([]);
-    jest.spyOn(service as any, 'getRecentActivity').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getRecentTransactions').mockResolvedValue([]);
     jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('member');
     jest.spyOn(service as any, 'getDataHealth').mockResolvedValue({} as any);
 
@@ -189,7 +197,7 @@ describe('DashboardService', () => {
     jest.spyOn(service as any, 'getCashFlow').mockResolvedValue([]);
     jest.spyOn(service as any, 'getTopMerchants').mockResolvedValue([]);
     jest.spyOn(service as any, 'getTopCategories').mockResolvedValue([]);
-    jest.spyOn(service as any, 'getRecentActivity').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getRecentTransactions').mockResolvedValue([]);
     jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('member');
     jest.spyOn(service as any, 'getDataHealth').mockResolvedValue({} as any);
 
@@ -201,6 +209,141 @@ describe('DashboardService', () => {
     expect(snapshotCall[2]).toEqual(expectedWindow.endDate);
 
     jest.useRealTimers();
+  });
+
+  it('getDashboard uses the calendar month window for range=month', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-19T12:00:00Z'));
+
+    jest.spyOn(service as any, 'getSnapshot').mockResolvedValue({} as any);
+    jest.spyOn(service as any, 'getActions').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getCashFlow').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getTopMerchants').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getTopCategories').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getRecentTransactions').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('member');
+    jest.spyOn(service as any, 'getDataHealth').mockResolvedValue({} as any);
+
+    await service.getDashboard('user-1', 'ws-1', 'month');
+
+    const snapshotCall = (service as any).getSnapshot.mock.calls[0];
+    const expectedWindow = createExpectedMonthWindow('2026-03-19T12:00:00Z');
+    expect(snapshotCall[1]).toEqual(expectedWindow.since);
+    expect(snapshotCall[2]).toEqual(expectedWindow.endDate);
+
+    // A calendar month is always under 90 days, so cash flow buckets stay daily.
+    expect((service as any).getCashFlow).toHaveBeenCalledWith(
+      'ws-1',
+      expectedWindow.since,
+      expectedWindow.endDate,
+      31,
+    );
+
+    jest.useRealTimers();
+  });
+
+  it('getDashboard resolves an explicit date=YYYY-MM-DD to that date’s calendar month', async () => {
+    jest.spyOn(service as any, 'getSnapshot').mockResolvedValue({} as any);
+    jest.spyOn(service as any, 'getActions').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getCashFlow').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getTopMerchants').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getTopCategories').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getRecentTransactions').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('member');
+    jest.spyOn(service as any, 'getDataHealth').mockResolvedValue({} as any);
+
+    await service.getDashboard('user-1', 'ws-1', 'month', '2026-02-15');
+
+    const snapshotCall = (service as any).getSnapshot.mock.calls[0];
+    const expectedWindow = createExpectedMonthWindow('2026-02-15');
+    expect(snapshotCall[1]).toEqual(expectedWindow.since);
+    expect(snapshotCall[2]).toEqual(expectedWindow.endDate);
+    expect((service as any).getCashFlow).toHaveBeenCalledWith(
+      'ws-1',
+      expectedWindow.since,
+      expectedWindow.endDate,
+      28,
+    );
+  });
+
+  it('getDashboard auto-shifts to the latest transaction’s month when the current month is empty and no date is given', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-19T12:00:00Z'));
+
+    const emptySnapshot = {
+      totalBalance: 0,
+      income30d: 0,
+      expense30d: 0,
+      netFlow30d: 0,
+      totalPayable: 0,
+      totalOverdue: 0,
+      unapprovedCash: 0,
+      currency: 'USD',
+    };
+    const shiftedSnapshot = { ...emptySnapshot, income30d: 200, expense30d: 50, netFlow30d: 150 };
+    const latestTransactionDate = new Date('2026-01-10T08:30:00Z');
+
+    jest
+      .spyOn(service as any, 'getSnapshot')
+      .mockResolvedValueOnce(emptySnapshot)
+      .mockResolvedValueOnce(shiftedSnapshot);
+    jest.spyOn(service as any, 'getLatestTransactionDate').mockResolvedValue(latestTransactionDate);
+    jest.spyOn(service as any, 'getActions').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getCashFlow').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getTopMerchants').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getTopCategories').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getRecentTransactions').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('member');
+    jest.spyOn(service as any, 'getDataHealth').mockResolvedValue({} as any);
+
+    const result = await service.getDashboard('user-1', 'ws-1', 'month');
+
+    const adjustedWindow = createExpectedMonthWindow(latestTransactionDate);
+    expect((service as any).getSnapshot).toHaveBeenNthCalledWith(
+      2,
+      'ws-1',
+      adjustedWindow.since,
+      adjustedWindow.endDate,
+    );
+    expect(result).toMatchObject({
+      snapshot: shiftedSnapshot,
+      effectiveEndDate: formatDateOnly(adjustedWindow.endDate),
+      effectiveSince: formatDateOnly(adjustedWindow.since),
+    });
+
+    jest.useRealTimers();
+  });
+
+  it('getDashboard does not auto-shift for range=month when an explicit date is provided', async () => {
+    const emptySnapshot = {
+      totalBalance: 0,
+      income30d: 0,
+      expense30d: 0,
+      netFlow30d: 0,
+      totalPayable: 0,
+      totalOverdue: 0,
+      unapprovedCash: 0,
+      currency: 'USD',
+    };
+
+    jest.spyOn(service as any, 'getSnapshot').mockResolvedValue(emptySnapshot);
+    jest
+      .spyOn(service as any, 'getLatestTransactionDate')
+      .mockResolvedValue(new Date('2026-01-10T08:30:00Z'));
+    jest.spyOn(service as any, 'getActions').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getCashFlow').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getTopMerchants').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getTopCategories').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getRecentTransactions').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('member');
+    jest.spyOn(service as any, 'getDataHealth').mockResolvedValue({} as any);
+
+    const result = await service.getDashboard('user-1', 'ws-1', 'month', '2026-03-01');
+
+    expect((service as any).getSnapshot).toHaveBeenCalledTimes(1);
+    expect((service as any).getLatestTransactionDate).not.toHaveBeenCalled();
+    expect(result).not.toHaveProperty('effectiveEndDate');
+    expect(result).not.toHaveProperty('effectiveSince');
   });
 
   it('getDashboard auto-shifts to the latest transaction window when current window is empty', async () => {
@@ -227,7 +370,7 @@ describe('DashboardService', () => {
     const cashFlow = [{ date: '2026-02-10', income: 200, expense: 50 }];
     const topMerchants = [{ name: 'Kaspi', amount: 50000, count: 10 }];
     const topCategories = [{ id: 'cat-1', name: 'Utilities', amount: 30000, count: 5 }];
-    const recentActivity: any[] = [];
+    const recentTransactions: any[] = [];
     const dataHealth = {
       uncategorizedTransactions: 0,
       statementsWithErrors: 0,
@@ -246,7 +389,7 @@ describe('DashboardService', () => {
     jest.spyOn(service as any, 'getCashFlow').mockResolvedValue(cashFlow);
     jest.spyOn(service as any, 'getTopMerchants').mockResolvedValue(topMerchants);
     jest.spyOn(service as any, 'getTopCategories').mockResolvedValue(topCategories);
-    jest.spyOn(service as any, 'getRecentActivity').mockResolvedValue(recentActivity);
+    jest.spyOn(service as any, 'getRecentTransactions').mockResolvedValue(recentTransactions);
     jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('admin');
     jest.spyOn(service as any, 'getDataHealth').mockResolvedValue(dataHealth);
 
@@ -316,7 +459,7 @@ describe('DashboardService', () => {
     jest.spyOn(service as any, 'getCashFlow').mockResolvedValue([]);
     jest.spyOn(service as any, 'getTopMerchants').mockResolvedValue([]);
     jest.spyOn(service as any, 'getTopCategories').mockResolvedValue([]);
-    jest.spyOn(service as any, 'getRecentActivity').mockResolvedValue([]);
+    jest.spyOn(service as any, 'getRecentTransactions').mockResolvedValue([]);
     jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('admin');
     jest.spyOn(service as any, 'getDataHealth').mockResolvedValue({} as any);
 
@@ -583,10 +726,18 @@ describe('DashboardService', () => {
     expect(qb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
   });
 
-  it('getTopCategories returns top 5 categories sorted by amount', async () => {
+  it('getTopCategories returns categories sorted by amount, with color, icon and percent', async () => {
     const rows = [
-      { id: 'cat-1', name: 'Utilities', currency: 'KZT', amount: '40000', count: '8' },
-      { id: null, name: 'Uncategorized', currency: 'KZT', amount: '15000', count: '3' },
+      {
+        id: 'cat-1',
+        name: 'Utilities',
+        color: '#0584C7',
+        icon: '/uploads/utilities.png',
+        currency: 'KZT',
+        amount: '40000',
+        count: '8',
+      },
+      { id: null, name: null, color: null, icon: null, currency: 'KZT', amount: '15000', count: '3' },
     ];
     const qb = createQueryBuilderMock(rows);
     transactionRepo.createQueryBuilder.mockReturnValue(qb);
@@ -598,14 +749,81 @@ describe('DashboardService', () => {
     );
 
     expect(result).toEqual([
-      { id: 'cat-1', name: 'Utilities', amount: 40000, count: 8 },
-      { id: null, name: 'Uncategorized', amount: 15000, count: 3 },
+      {
+        id: 'cat-1',
+        name: 'Utilities',
+        color: '#0584C7',
+        icon: '/uploads/utilities.png',
+        amount: 40000,
+        count: 8,
+        percent: 72.73,
+      },
+      {
+        id: null,
+        name: null,
+        color: '#898781',
+        icon: null,
+        amount: 15000,
+        count: 3,
+        percent: 27.27,
+      },
     ]);
     expect(qb.limit).not.toHaveBeenCalled();
     expect(qb.andWhere).toHaveBeenCalledWith('s.status NOT IN (:...excludedStatuses)', {
       excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
     });
     expect(qb.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
+  });
+
+  it('getTopCategories folds a category with no spend out of the results entirely', async () => {
+    const qb = createQueryBuilderMock([]);
+    transactionRepo.createQueryBuilder.mockReturnValue(qb);
+
+    const result = await (service as any).getTopCategories(
+      'ws-1',
+      new Date('2026-02-01'),
+      new Date('2026-03-01'),
+    );
+
+    expect(result).toEqual([]);
+  });
+
+  it('getTopCategories collapses categories past the top 8 into a single Other bucket, with percentages summing to exactly 100', async () => {
+    // 9 categories, amounts 900..100 (descending), each on its own currency row
+    // to also exercise the per-currency aggregation path.
+    const rows = Array.from({ length: 9 }, (_, i) => ({
+      id: `cat-${i + 1}`,
+      name: `Category ${i + 1}`,
+      color: `#00000${i}`,
+      icon: null,
+      currency: 'KZT',
+      amount: String(900 - i * 100),
+      count: '1',
+    }));
+    const qb = createQueryBuilderMock(rows);
+    transactionRepo.createQueryBuilder.mockReturnValue(qb);
+
+    const result = await (service as any).getTopCategories(
+      'ws-1',
+      new Date('2026-02-01'),
+      new Date('2026-03-01'),
+    );
+
+    expect(result).toHaveLength(9);
+    const other = result[8];
+    expect(other).toMatchObject({
+      id: null,
+      name: null,
+      isOther: true,
+      color: '#898781',
+      icon: null,
+      amount: 100,
+      count: 1,
+    });
+    // The 9th category (amount 100) is the only one folded in.
+    const totalPercent = result.reduce((sum: number, row: any) => sum + row.percent, 0);
+    expect(totalPercent).toBeCloseTo(100, 2);
+    expect(result.slice(0, 8).every((row: any) => row.isOther === undefined)).toBe(true);
   });
 
   it('getLatestTransactionDate returns the latest valid transaction date', async () => {
@@ -622,81 +840,75 @@ describe('DashboardService', () => {
     });
   });
 
-  it('getRecentActivity uses AuditEvent when available', async () => {
-    const auditEvents = [
+  it('getRecentTransactions returns signed amounts and a masked bank/account label', async () => {
+    const rows = [
       {
-        id: 'evt-1',
-        entityType: EntityType.STATEMENT,
-        entityId: 'stmt-1',
-        action: AuditAction.CREATE,
-        actorLabel: 'John',
-        actorType: ActorType.USER,
-        meta: { fileName: 'Feb_2026.pdf' },
-        createdAt: new Date('2026-02-10T10:00:00Z'),
+        id: 'tx-income',
+        description: 'Salary',
+        debit: null,
+        credit: '150000',
+        transactionType: TransactionType.INCOME,
+        currency: 'KZT',
+        date: '2026-02-10',
+        categoryId: 'cat-1',
+        categoryName: 'Salary',
+        categoryColor: '#10b981',
+        categoryIcon: null,
+        bankName: BankName.KASPI,
+        accountNumber: 'KZ1234567890124821',
       },
       {
-        id: 'evt-2',
-        entityType: EntityType.TRANSACTION,
-        entityId: 'tx-1',
-        action: AuditAction.UPDATE,
-        actorLabel: 'System',
-        actorType: ActorType.SYSTEM,
-        meta: { counterpartyName: 'Kaspi', amount: -5000 },
-        createdAt: new Date('2026-02-09T08:00:00Z'),
-      },
-    ];
-
-    auditRepo.find.mockResolvedValue(auditEvents);
-
-    const result = await (service as any).getRecentActivity('ws-1');
-
-    expect(result).toHaveLength(2);
-    expect(result[0]).toMatchObject({
-      id: 'evt-1',
-      type: 'statement_upload',
-      title: 'Feb_2026.pdf',
-      href: '/statements/stmt-1/view',
-    });
-    expect(result[1]).toMatchObject({
-      id: 'evt-2',
-      type: 'transaction',
-      title: 'Kaspi',
-    });
-  });
-
-  it('getRecentActivity falls back to statements+transactions when no audit events', async () => {
-    auditRepo.find.mockResolvedValue([]);
-
-    statementRepo.find.mockResolvedValue([
-      {
-        id: 's1',
-        fileName: 'Feb statement',
-        status: StatementStatus.UPLOADED,
-        totalTransactions: 3,
-        createdAt: new Date('2026-02-05T09:00:00Z'),
-      },
-    ]);
-
-    const recentTx = [
-      {
-        id: 't1',
-        counterpartyName: 'Acme',
-        debit: 50,
+        id: 'tx-expense',
+        description: 'Grocery Store',
+        debit: '5000',
         credit: null,
         transactionType: TransactionType.EXPENSE,
-        updatedAt: new Date('2026-02-03T10:00:00Z'),
-        category: { name: 'Office' },
+        currency: 'KZT',
+        date: '2026-02-09',
+        categoryId: null,
+        categoryName: null,
+        categoryColor: null,
+        categoryIcon: null,
+        bankName: BankName.OTHER,
+        accountNumber: null,
       },
     ];
-    const txQb = createQueryBuilderMock(recentTx);
-    transactionRepo.createQueryBuilder.mockReturnValue(txQb);
+    const qb = createQueryBuilderMock(rows);
+    transactionRepo.createQueryBuilder.mockReturnValue(qb);
 
-    const result = await (service as any).getRecentActivity('ws-1');
+    const result = await (service as any).getRecentTransactions(
+      'ws-1',
+      new Date('2026-02-01'),
+      new Date('2026-02-28'),
+    );
 
-    expect(result.length).toBeGreaterThan(0);
-    const ids = result.map((a: any) => a.id);
-    expect(ids).toContain('s1');
-    expect(ids).toContain('t1');
+    expect(qb.limit).toHaveBeenCalledWith(6);
+    expect(result).toEqual([
+      {
+        id: 'tx-income',
+        description: 'Salary',
+        amount: 150000,
+        currency: 'KZT',
+        date: '2026-02-10',
+        account: 'Kaspi •••• 4821',
+        categoryId: 'cat-1',
+        categoryName: 'Salary',
+        categoryColor: '#10b981',
+        categoryIcon: null,
+      },
+      {
+        id: 'tx-expense',
+        description: 'Grocery Store',
+        amount: -5000,
+        currency: 'KZT',
+        date: '2026-02-09',
+        account: 'Bank',
+        categoryId: null,
+        categoryName: null,
+        categoryColor: '#898781',
+        categoryIcon: null,
+      },
+    ]);
   });
 
   it('getMemberRole returns correct role', async () => {

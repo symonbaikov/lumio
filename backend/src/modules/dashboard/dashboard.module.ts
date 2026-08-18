@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuditEvent } from '../../entities/audit-event.entity';
 import { Payable } from '../../entities/payable.entity';
 import { Receipt } from '../../entities/receipt.entity';
 import { Statement } from '../../entities/statement.entity';
@@ -13,15 +12,7 @@ import { DashboardService } from './dashboard.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Transaction,
-      Statement,
-      Payable,
-      Receipt,
-      WorkspaceMember,
-      Workspace,
-      AuditEvent,
-    ]),
+    TypeOrmModule.forFeature([Transaction, Statement, Payable, Receipt, WorkspaceMember, Workspace]),
     ExchangeRatesModule,
   ],
   controllers: [DashboardController],
