@@ -1,17 +1,20 @@
 'use client';
 
+import { Check, ChevronDown, Plus } from '@/app/components/icons';
+import { useMenuClickOutside } from '@/app/components/pdf-preview/hooks/useMenuClickOutside';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer } from '@/app/i18n';
-import { Check, ChevronDown, Plus } from '@/app/components/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { buildNavItems, isNavItemActive } from './navigation/helpers/navigation-config';
 
 function WorkspaceSwitcher() {
   const { currentWorkspace, workspaces, switchWorkspace } = useWorkspace();
   const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+  const switcherRef = useMenuClickOutside({ menuOpen: open, onClose: close });
 
   if (!currentWorkspace) return null;
 
@@ -21,6 +24,7 @@ function WorkspaceSwitcher() {
 
   return (
     <div
+      ref={switcherRef}
       className="lumio-sidebar__ws-switcher"
       onClick={() => setOpen(prev => !prev)}
       role="button"
