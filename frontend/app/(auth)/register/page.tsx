@@ -162,7 +162,7 @@ function RegisterPageContent(): React.JSX.Element {
           width: 60,
           height: 60,
           borderRadius: tokens.radius.full,
-          bgcolor: 'primary.main',
+          bgcolor: 'var(--primary-fill)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -251,11 +251,7 @@ function RegisterPageContent(): React.JSX.Element {
             fontWeight: 700,
             textTransform: 'none',
             boxShadow: 'none',
-            bgcolor: 'primary.main',
-            '&:hover': {
-              bgcolor: 'primary.dark',
-              boxShadow: 'none',
-            },
+            '&:hover': { boxShadow: 'none' },
           }}
           disabled={loading || inviteLoading}
         >
