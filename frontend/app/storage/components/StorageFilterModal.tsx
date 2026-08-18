@@ -201,7 +201,7 @@ function FilterLeftPanel({
       </Box>
       <Box sx={{ mt: 'auto', pt: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box component="button" onClick={onResetFilters} sx={{ fontSize: 14, fontWeight: 500, color: 'var(--muted-foreground)', bgcolor: 'transparent', border: 'none', cursor: 'pointer', px: 1, py: 0.5, '&:hover': { color: 'var(--foreground)' } }}>{filtersReset}</Box>
-        <Box component="button" onClick={onApplyFilters} sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'primary.main', color: '#fff', px: 4, py: 1.25, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer', '&:hover': { bgcolor: 'primary.dark' } }}>{filtersApply}</Box>
+        <Box component="button" onClick={onApplyFilters} sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'var(--primary-fill)', color: '#fff', px: 4, py: 1.25, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer', '&:hover': { bgcolor: 'primary.dark' } }}>{filtersApply}</Box>
       </Box>
     </Box>
   );
@@ -240,7 +240,7 @@ function SavedViewsPanel({
         </Box>
         <Box sx={{ mb: 3, display: 'flex', gap: 1 }}>
           <TextField size="small" value={viewName} onChange={(e) => onSetViewName(e.target.value)} placeholder={viewNamePlaceholder} sx={{ flex: 1 }} />
-          <IconButton size="small" onClick={() => onSaveView(viewPayload)} disabled={viewSaving || !viewName.trim()} title={viewSaveTooltip} sx={{ border: '1px solid var(--border-color)', borderRadius: tokens.radius.sm, color: 'primary.main', bgcolor: 'background.paper', '&:hover': { bgcolor: 'primary.main', color: '#fff' }, '&:disabled': { opacity: 0.5 } }}>
+          <IconButton size="small" onClick={() => onSaveView(viewPayload)} disabled={viewSaving || !viewName.trim()} title={viewSaveTooltip} sx={{ border: '1px solid var(--border-color)', borderRadius: tokens.radius.sm, color: 'primary.main', bgcolor: 'background.paper', '&:hover': { bgcolor: 'var(--primary-fill)', color: '#fff' }, '&:disabled': { opacity: 0.5 } }}>
             <Save size={18} />
           </IconButton>
         </Box>

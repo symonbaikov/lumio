@@ -263,10 +263,10 @@
   }
 
   @include dark {
-    background: $lumio-color-primary-dk;
+    background: $lumio-color-primary-fill-dk;
 
     &:hover {
-      background: $lumio-color-primary-hover-dk;
+      background: $lumio-color-primary-fill-hover-dk;
     }
   }
 

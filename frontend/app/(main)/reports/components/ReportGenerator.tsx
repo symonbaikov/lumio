@@ -143,7 +143,7 @@ export function ReportGenerator({
                   height: 36,
                   border:
                     format === opt.value ? '1px solid var(--primary)' : '1px solid var(--border)',
-                  background: format === opt.value ? 'var(--primary)' : 'var(--card)',
+                  background: format === opt.value ? 'var(--primary-fill)' : 'var(--card)',
                   color: format === opt.value ? '#fff' : 'var(--muted-foreground)',
                   fontSize: 11,
                   fontWeight: 600,

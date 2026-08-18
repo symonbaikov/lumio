@@ -92,7 +92,7 @@
     z-index: 2;
 
     @include dark {
-      background: $lumio-color-primary-dk;
+      background: $lumio-color-primary-fill-dk;
     }
 
     &:active {

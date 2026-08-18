@@ -42,7 +42,7 @@ function EmptyWorkspacesState({
         onClick={onCreateClick}
         style={{
           padding: '12px 24px',
-          background: 'var(--primary)',
+          background: 'var(--primary-fill)',
           color: '#fff',
           fontWeight: 500,
           fontSize: 14,

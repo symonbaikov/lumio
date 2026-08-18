@@ -13,6 +13,11 @@
   --foreground:         #{$color-foreground};
   --primary:            #{$color-primary};
   --primary-hover:      #{$color-primary-hover};
+  // Background of a filled control carrying --primary-foreground text. Same
+  // as --primary in light mode; deliberately different in dark, see the dark
+  // block below.
+  --primary-fill:       #{$color-primary};
+  --primary-fill-hover: #{$color-primary-hover};
   --primary-foreground: #{$lumio-color-primary-contrast};
   --primary-light:      #{$lumio-color-primary-100};
   --primary-rgb:        22, 129, 24;
@@ -84,6 +89,10 @@
   --foreground:         #{$color-foreground-dk};
   --primary:            #{$lumio-color-primary-dk};
   --primary-hover:      #{$lumio-color-primary-hover-dk};
+  // Not --primary: the accent green under white text is 2.2:1. See the note
+  // in abstracts/_variables-dark.scss.
+  --primary-fill:       #{$lumio-color-primary-fill-dk};
+  --primary-fill-hover: #{$lumio-color-primary-fill-hover-dk};
   --primary-foreground: #{$lumio-color-primary-contrast};
   --primary-light:      #{$lumio-color-primary-100-dk};
   --primary-rgb:        92, 196, 98;

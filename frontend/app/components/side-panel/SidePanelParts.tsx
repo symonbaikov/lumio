@@ -29,7 +29,7 @@ const BTN_FOOTER: React.CSSProperties = {
   cursor: 'pointer',
   borderRadius: tokens.radius.md,
 };
-const STYLE_PRIMARY = { backgroundColor: 'var(--primary)', color: 'white' };
+const STYLE_PRIMARY = { backgroundColor: 'var(--primary-fill)', color: 'white' };
 const STYLE_SECONDARY = { backgroundColor: 'var(--muted)', color: 'var(--foreground)' };
 
 type ToggleProps = { position: string; onToggle: () => void; label: string; size?: number };

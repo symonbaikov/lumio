@@ -20,7 +20,11 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { DEFAULT_BALANCE_ACCOUNTS } from './balance-default-accounts';
 import { BalanceExportFormat, type ExportBalanceDto } from './dto/export-balance.dto';
+import type { UpdateAccountClassificationDto } from './dto/update-account-classification.dto';
 import type { UpdateBalanceSnapshotDto } from './dto/update-balance-snapshot.dto';
+
+/** The one line whose risk is fixed rather than chosen. */
+export const CASH_ACCOUNT_CODE = 'ASSET_CASH';
 
 type BalanceAccountNode = {
   id: string;
@@ -313,6 +317,81 @@ export class BalanceService {
     }
 
     return this.round(statementBalance);
+  }
+
+  /**
+   * Cash on a given date, by the same rules the balance sheet uses. Exposed so
+   * the net worth report agrees with the balance sheet line for line instead
+   * of reimplementing the wallet/statement fallback.
+   */
+  async getCashBalance(workspaceId: string, date?: string): Promise<number> {
+    return this.getAutoComputedCashBalance(workspaceId, this.resolveDate(date));
+  }
+
+  /**
+   * Sets how a balance line behaves and how risky it is. Both are the user's
+   * judgement, so this only records what they chose — nothing is inferred
+   * from the account's type or sub-type.
+   *
+   * Cash is refused: it is the zero-risk anchor the allocation rule measures
+   * everything else against, and letting it be labelled anything else would
+   * make the rule meaningless.
+   */
+  async updateAccountClassification(
+    userId: string,
+    workspaceId: string,
+    accountId: string,
+    dto: UpdateAccountClassificationDto,
+  ) {
+    const account = await this.balanceAccountRepository.findOne({
+      where: { id: accountId, workspaceId },
+    });
+
+    if (!account) {
+      throw new NotFoundException('Balance account not found');
+    }
+
+    if (account.code === CASH_ACCOUNT_CODE) {
+      throw new BadRequestException('Cash is always low risk and cannot be classified');
+    }
+
+    const before = { capitalRole: account.capitalRole, riskLevel: account.riskLevel };
+
+    if (dto.capitalRole !== undefined) {
+      account.capitalRole = dto.capitalRole;
+    }
+    if (dto.riskLevel !== undefined) {
+      account.riskLevel = dto.riskLevel;
+    }
+
+    await this.balanceAccountRepository.save(account);
+
+    // Risk classification decides whether the 80/20 warning fires, so a change
+    // to it is audited the same way a snapshot edit is.
+    await this.auditService.createEvent({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.WORKSPACE,
+      entityId: workspaceId,
+      action: AuditAction.UPDATE,
+      meta: {
+        kind: 'balance_account_classification',
+        accountId: account.id,
+        accountCode: account.code,
+      },
+      diff: {
+        before,
+        after: { capitalRole: account.capitalRole, riskLevel: account.riskLevel },
+      },
+    });
+
+    return {
+      id: account.id,
+      code: account.code,
+      capitalRole: account.capitalRole,
+      riskLevel: account.riskLevel,
+    };
   }
 
   async seedDefaultAccounts(workspaceId: string): Promise<void> {

@@ -24,7 +24,7 @@ const doneBtnSx = {
   display: 'inline-flex',
   alignItems: 'center',
   gap: 0.5,
-  bgcolor: 'primary.main',
+  bgcolor: 'var(--primary-fill)',
   color: '#fff',
   px: 1.5,
   py: 0.5,

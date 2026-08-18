@@ -94,7 +94,7 @@ export function IntegrationStatusCard({
                     fontWeight: 600,
                     fontSize: 14,
                     textTransform: 'none',
-                    '&:hover': { bgcolor: 'primary.main', color: '#fff' },
+                    '&:hover': { bgcolor: 'var(--primary-fill)', color: '#fff' },
                   }}
                 >
                   {syncLabel}

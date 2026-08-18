@@ -23,6 +23,8 @@ export enum InsightType {
   DUPLICATE_DETECTED = 'operational.duplicate_detected',
   SPENDING_TREND_UP = 'trend.spending_up',
   SPENDING_TREND_DOWN = 'trend.spending_down',
+  SAVINGS_RATE_TREND = 'trend.savings_rate',
+  RISKY_ALLOCATION = 'pattern.risky_allocation',
   MONTHLY_FORECAST = 'forecast.monthly',
   UNUSED_RULES = 'workflow.unused_rules',
   CLASSIFICATION_ACCURACY = 'workflow.classification_accuracy',
@@ -75,11 +77,22 @@ export class Insight {
   @Column({ type: 'varchar', length: 16, default: InsightSeverity.INFO })
   severity: InsightSeverity;
 
+  /** Rendered in the recipient's locale when the insight is written, so
+   * existing consumers keep reading plain text. */
   @Column({ type: 'varchar', length: 255 })
   title: string;
 
   @Column({ type: 'text' })
   message: string;
+
+  /** Source of `title`/`message` — kept so the client can re-render the text
+   * when the user switches language. Null for insights written before this
+   * column existed, and for AI summaries, which are free-form. */
+  @Column({ name: 'message_key', type: 'varchar', length: 64, nullable: true })
+  messageKey: string | null;
+
+  @Column({ name: 'message_params', type: 'jsonb', nullable: true })
+  messageParams: Record<string, string | number> | null;
 
   @Column({ type: 'jsonb', nullable: true })
   data: Record<string, unknown> | null;

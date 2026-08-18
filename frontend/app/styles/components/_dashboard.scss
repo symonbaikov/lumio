@@ -578,14 +578,14 @@
     transition: background-color 150ms;
 
     @include dark {
-      background-color: $lumio-color-primary-dk;
+      background-color: $lumio-color-primary-fill-dk;
     }
 
     &:hover {
       background-color: $lumio-color-primary-hover;
 
       @include dark {
-        background-color: $lumio-color-primary-hover-dk;
+        background-color: $lumio-color-primary-fill-hover-dk;
       }
     }
   }

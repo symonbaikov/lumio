@@ -25,6 +25,29 @@ export enum BalanceAccountSubType {
   BORROWED_CAPITAL = 'borrowed_capital',
 }
 
+/**
+ * How a holding behaves month to month. Assigned by the user, never inferred:
+ * the same car is a work tool for one workspace and dead weight for another,
+ * and nothing in the stored data can tell the two apart.
+ */
+export enum CapitalRole {
+  INCOME = 'income',
+  NEUTRAL = 'neutral',
+  DRAIN = 'drain',
+}
+
+/**
+ * Risk of losing value — not asset class. Also user-assigned: property can be
+ * a paid-off office (LOW) or a leveraged rental (HIGH), and `subType` does not
+ * say which. Cash is always LOW, forced rather than stored: it is the
+ * zero-risk anchor an 80/20 allocation is measured against.
+ */
+export enum RiskLevel {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+}
+
 export enum BalanceAutoSource {
   WALLETS = 'wallets',
   STATEMENTS = 'statements',
@@ -101,6 +124,28 @@ export class BalanceAccount {
     nullable: true,
   })
   autoSource: BalanceAutoSource | null;
+
+  /**
+   * Null means the user has not classified this line yet. Unclassified is
+   * deliberately not the same as "neutral" or "low": the allocation rule
+   * counts only what was actually labelled, so an untouched workspace raises
+   * no alarms about data nobody has looked at.
+   */
+  @Column({
+    name: 'capital_role',
+    type: 'enum',
+    enum: CapitalRole,
+    nullable: true,
+  })
+  capitalRole: CapitalRole | null;
+
+  @Column({
+    name: 'risk_level',
+    type: 'enum',
+    enum: RiskLevel,
+    nullable: true,
+  })
+  riskLevel: RiskLevel | null;
 
   @Column({ default: 0 })
   position: number;

@@ -61,6 +61,12 @@ export enum Permission {
   BUDGET_EDIT = 'budget.edit',
   BUDGET_DELETE = 'budget.delete',
 
+  // Goals
+  GOAL_VIEW = 'goal.view',
+  GOAL_CREATE = 'goal.create',
+  GOAL_EDIT = 'goal.edit',
+  GOAL_DELETE = 'goal.delete',
+
   // Subscriptions
   SUBSCRIPTION_VIEW = 'subscription.view',
   SUBSCRIPTION_CREATE = 'subscription.create',
@@ -93,6 +99,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     Permission.TELEGRAM_CONNECT,
     Permission.TELEGRAM_SEND,
     Permission.BUDGET_VIEW,
+    Permission.GOAL_VIEW,
     Permission.SUBSCRIPTION_VIEW,
   ],
   viewer: [
@@ -106,6 +113,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     Permission.REPORT_VIEW,
     Permission.TELEGRAM_VIEW,
     Permission.BUDGET_VIEW,
+    Permission.GOAL_VIEW,
     Permission.SUBSCRIPTION_VIEW,
   ],
 };

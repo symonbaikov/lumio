@@ -1002,7 +1002,7 @@ export default function EditStatementPage(): React.JSX.Element {
               alignItems: 'center',
               gap: 8,
               borderRadius: tokens.radius.md,
-              background: 'var(--primary)',
+              background: 'var(--primary-fill)',
               padding: '10px 24px',
               fontSize: 16,
               fontWeight: 500,

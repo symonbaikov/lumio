@@ -56,6 +56,7 @@ export * from './webhook-endpoint.entity';
 export * from './webhook-subscription.entity';
 export * from './webhook-delivery.entity';
 export * from './budget.entity';
+export * from './goal.entity';
 export * from './subscription.entity';
 export * from './backup-configuration.entity';
 export * from './backup-run.entity';

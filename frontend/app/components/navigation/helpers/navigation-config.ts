@@ -1,9 +1,12 @@
 import {
   BarChart2,
   Building2,
+  Calculator,
   CreditCard,
   FileText,
+  Flag,
   LayoutDashboard,
+  Lightbulb,
   MessageCircle,
   PiggyBank,
   Plug,
@@ -11,6 +14,7 @@ import {
   ScrollText,
   Sparkles,
   Table,
+  TrendingUp,
 } from '@/app/components/icons';
 import { DEFAULT_APP_ROUTE } from '@/app/lib/default-app-route';
 import React, { type ReactNode } from 'react';
@@ -31,7 +35,11 @@ export function buildNavItems(nav: {
   tables: unknown;
   workspaces: unknown;
   reports: unknown;
+  netWorth: unknown;
+  advice: unknown;
   budgets: unknown;
+  goals: unknown;
+  roi: unknown;
   subscriptions: unknown;
   activityLog: unknown;
   integrations: unknown;
@@ -71,10 +79,38 @@ export function buildNavItems(nav: {
       permission: 'statement.view',
     },
     {
+      label: nav.netWorth as ReactNode,
+      path: '/net-worth',
+      icon: React.createElement(TrendingUp, { size: 18 }),
+      // Matches the endpoint's own guard (Permission.REPORT_VIEW) so the item
+      // is not offered to roles that would only get a 403 from it.
+      permission: 'report.view',
+    },
+    {
       label: nav.budgets as ReactNode,
       path: '/budgets',
       icon: React.createElement(PiggyBank, { size: 18 }),
       permission: 'budget.view',
+    },
+    {
+      label: nav.advice as ReactNode,
+      path: '/advice',
+      icon: React.createElement(Lightbulb, { size: 18 }),
+      permission: 'statement.view',
+    },
+    {
+      label: nav.goals as ReactNode,
+      path: '/goals',
+      icon: React.createElement(Flag, { size: 18 }),
+      permission: 'goal.view',
+    },
+    {
+      label: nav.roi as ReactNode,
+      path: '/roi',
+      icon: React.createElement(Calculator, { size: 18 }),
+      // A standalone calculator that reads nothing of the workspace's data,
+      // so being a member is enough to open it.
+      permission: 'statement.view',
     },
     {
       label: nav.subscriptions as ReactNode,

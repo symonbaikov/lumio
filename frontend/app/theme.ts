@@ -12,6 +12,14 @@ const SURFACE_TOKENS: Record<ThemeMode, AppSurfaceTokens> = {
   dark: { primary: '#5cc462' },
 };
 
+/**
+ * Background of a filled control on a dark surface. Mirrors
+ * `$lumio-color-primary-fill-dk` in styles/abstracts/_variables-dark.scss —
+ * keep the two in step.
+ */
+const DARK_PRIMARY_FILL = '#168118';
+const DARK_PRIMARY_FILL_HOVER = '#1c9c22';
+
 const getSharedOptions = (
   mode: ThemeMode,
 ): Pick<ThemeOptions, 'shape' | 'typography' | 'components'> => {
@@ -59,11 +67,21 @@ const getSharedOptions = (
               boxShadow: 'none',
             },
           },
-          containedPrimary: ({ theme }: { theme: import('@mui/material/styles').Theme }) => ({
-            '&:hover': {
-              backgroundColor: theme.palette.primary.dark,
-            },
-          }),
+          // In dark mode the palette's primary is the light accent used for
+          // text, icons and outlined variants, where it has to stay bright to
+          // be legible. As a filled background under white text it is only
+          // 2.2:1, so contained buttons take the deeper brand green instead
+          // (5.2:1). Keep both roles — swapping the palette value would fix
+          // the buttons and break every primary-coloured label.
+          containedPrimary: ({ theme }: { theme: import('@mui/material/styles').Theme }) =>
+            theme.palette.mode === 'dark'
+              ? {
+                  backgroundColor: DARK_PRIMARY_FILL,
+                  '&:hover': { backgroundColor: DARK_PRIMARY_FILL_HOVER },
+                }
+              : {
+                  '&:hover': { backgroundColor: theme.palette.primary.dark },
+                },
           outlined: {
             boxShadow: 'none',
           },

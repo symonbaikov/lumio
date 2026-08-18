@@ -510,7 +510,7 @@ export default function WorkspaceOverviewView() {
                   alignItems: 'center',
                   gap: 8,
                   border: 'none',
-                  background: 'var(--primary)',
+                  background: 'var(--primary-fill)',
                   padding: '8px 16px',
                   fontSize: 14,
                   fontWeight: 500,

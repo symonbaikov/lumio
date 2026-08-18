@@ -16,7 +16,7 @@ export interface FolderEditRowProps {
 }
 
 const confirmBtnSx = {
-  bgcolor: 'primary.main',
+  bgcolor: 'var(--primary-fill)',
   color: '#fff',
   borderRadius: tokens.radius.full,
   '&:hover': { bgcolor: 'primary.dark' },

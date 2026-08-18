@@ -45,7 +45,7 @@ export class InsightsController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(@CurrentUser() user: User, @WorkspaceId() workspaceId: string) {
-    return this.insightsService.refreshOperational(user.id, workspaceId);
+    return this.insightsService.refresh(user.id, workspaceId);
   }
 
   @Post('dismiss-all')

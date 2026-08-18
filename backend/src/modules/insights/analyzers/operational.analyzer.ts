@@ -27,14 +27,13 @@ export class OperationalAnalyzer implements InsightAnalyzer {
         type: InsightType.UNAPPROVED_COUNT,
         category: InsightCategory.OPERATIONAL,
         severity: InsightSeverity.WARN,
-        title: 'Есть неподтвержденные операции',
-        message: `Есть ${unapprovedCount} неподтвержденных операций`,
+        messageKey: 'operational.unapproved',
+        messageParams: { count: unapprovedCount },
         deduplicationKey: this.makeDeduplicationKey('unapproved', context.workspaceId),
         data: { count: unapprovedCount },
         actions: [
           {
             type: 'GO_TO_UNAPPROVED',
-            label: 'Проверить',
             payload: {
               workspaceId: context.workspaceId,
             },
@@ -49,14 +48,13 @@ export class OperationalAnalyzer implements InsightAnalyzer {
         type: InsightType.UNCATEGORIZED_COUNT,
         category: InsightCategory.OPERATIONAL,
         severity: InsightSeverity.WARN,
-        title: 'Есть транзакции без категории',
-        message: `Есть ${uncategorizedCount} транзакций без категории`,
+        messageKey: 'operational.uncategorized',
+        messageParams: { count: uncategorizedCount },
         deduplicationKey: this.makeDeduplicationKey('uncategorized', context.workspaceId),
         data: { count: uncategorizedCount },
         actions: [
           {
             type: 'GO_TO_UNAPPROVED',
-            label: 'Разобрать',
             payload: {
               workspaceId: context.workspaceId,
             },
@@ -71,14 +69,13 @@ export class OperationalAnalyzer implements InsightAnalyzer {
         type: InsightType.DUPLICATE_DETECTED,
         category: InsightCategory.OPERATIONAL,
         severity: InsightSeverity.WARN,
-        title: 'Найдены возможные дубликаты',
-        message: `Обнаружено ${duplicateCount} потенциальных дубликатов`,
+        messageKey: 'operational.duplicates',
+        messageParams: { count: duplicateCount },
         deduplicationKey: this.makeDeduplicationKey('duplicates', context.workspaceId),
         data: { count: duplicateCount },
         actions: [
           {
             type: 'GO_TO_UNAPPROVED',
-            label: 'Открыть',
             payload: {
               workspaceId: context.workspaceId,
             },

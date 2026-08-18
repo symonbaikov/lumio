@@ -828,7 +828,7 @@ export default function ReceiptDocumentPage() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 1,
-              bgcolor: 'primary.main',
+              bgcolor: 'var(--primary-fill)',
               px: 3,
               py: 1.25,
               fontSize: 16,
