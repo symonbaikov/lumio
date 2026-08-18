@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildNavItems, isNavItemActive } from './navigation-config';
+import { buildNavItems, buildUserMenuNavItems, isNavItemActive } from './navigation-config';
 
 const nav = {
   dashboard: 'Dashboard',
@@ -13,6 +13,9 @@ const nav = {
   goals: 'Goals',
   roi: 'Returns',
   subscriptions: 'Subscriptions',
+};
+
+const userMenuNav = {
   activityLog: 'Activity log',
   integrations: 'Integrations',
   plugins: 'Plugins',
@@ -21,19 +24,14 @@ const nav = {
 };
 
 describe('buildNavItems', () => {
-  it('places chat mode last, right after AI analysis', () => {
+  it('does not include the items that moved into the user menu', () => {
     const items = buildNavItems(nav);
 
-    expect(items.at(-2)).toMatchObject({
-      label: 'AI analysis',
-      path: '/ai-analysis',
-      permission: 'statement.view',
-    });
-    expect(items.at(-1)).toMatchObject({
-      label: 'Chat mode',
-      path: '/chat',
-      permission: 'statement.view',
-    });
+    expect(items.map(item => item.path)).not.toContain('/integrations');
+    expect(items.map(item => item.path)).not.toContain('/plugins');
+    expect(items.map(item => item.path)).not.toContain('/admin');
+    expect(items.map(item => item.path)).not.toContain('/ai-analysis');
+    expect(items.map(item => item.path)).not.toContain('/chat');
   });
 
   it('gates goals behind their own permission and leaves the calculator open', () => {
@@ -50,6 +48,29 @@ describe('buildNavItems', () => {
     expect(items.findIndex(item => item.path === '/net-worth')).toBe(
       items.findIndex(item => item.path === '/budgets') - 1,
     );
+  });
+});
+
+describe('buildUserMenuNavItems', () => {
+  it('places chat mode last, right after AI analysis', () => {
+    const items = buildUserMenuNavItems(userMenuNav);
+
+    expect(items.at(-2)).toMatchObject({
+      label: 'AI analysis',
+      path: '/ai-analysis',
+      permission: 'statement.view',
+    });
+    expect(items.at(-1)).toMatchObject({
+      label: 'Chat mode',
+      path: '/chat',
+      permission: 'statement.view',
+    });
+  });
+
+  it('gates activity log behind the audit log permission', () => {
+    const items = buildUserMenuNavItems(userMenuNav);
+
+    expect(items.find(item => item.path === '/admin')?.permission).toBe('audit_log.view');
   });
 });
 

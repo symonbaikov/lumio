@@ -4,6 +4,7 @@ import { BookOpen, Globe, LogOut, Settings, Trash2, User } from '@/app/component
 import { getRecord, resolveLabel } from '@/app/lib/side-panel-utils';
 import { Divider, ListItemIcon, ListItemText, MenuItem, Menu as MuiMenu } from '@mui/material';
 import React from 'react';
+import type { NavItem } from './helpers/navigation-config';
 
 type UserMenuProps = {
   user: { name?: string | null; email?: string | null; avatarUrl?: string | null };
@@ -16,9 +17,11 @@ type UserMenuProps = {
   trashLabel: string;
   languageLabel: string;
   userMenu: Record<string, unknown>;
+  extraNavItems?: NavItem[];
   onOpen: (e: React.MouseEvent<HTMLElement>) => void;
   onClose: () => void;
   onAction: (key: string) => void;
+  onNavigate?: (path: string) => void;
 };
 
 // eslint-disable-next-line max-lines-per-function, complexity
@@ -33,9 +36,11 @@ export function UserMenuTriggerAndDropdown({
   trashLabel,
   languageLabel,
   userMenu,
+  extraNavItems = [],
   onOpen,
   onClose,
   onAction,
+  onNavigate,
 }: UserMenuProps): React.JSX.Element {
   return (
     <>
@@ -72,6 +77,18 @@ export function UserMenuTriggerAndDropdown({
         </div>
 
         <Divider />
+
+        {extraNavItems.map(item => (
+          <MenuItem
+            key={item.path}
+            onClick={() => {
+              onNavigate?.(item.path);
+            }}
+          >
+            <ListItemIcon>{item.icon}</ListItemIcon>
+            <ListItemText>{item.label}</ListItemText>
+          </MenuItem>
+        ))}
 
         <MenuItem
           onClick={() => {
