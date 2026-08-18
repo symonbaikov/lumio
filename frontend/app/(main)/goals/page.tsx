@@ -115,11 +115,11 @@ export default function GoalsPage() {
             goal={goal}
             locale={locale}
             labels={{
-              addContribution: String(t.addContribution),
-              edit: String(t.edit),
-              remove: String(t.remove),
-              reached: String(t.reached),
-              remaining: String(t.remaining),
+              addContribution: t.addContribution.value,
+              edit: t.edit.value,
+              remove: t.remove.value,
+              reached: t.reached.value,
+              remaining: t.remaining.value,
             }}
             onContribute={openContribution}
             onEdit={openEdit}
@@ -130,15 +130,15 @@ export default function GoalsPage() {
 
       <GoalFormDialog
         open={formOpen}
-        title={String(editing ? t.edit : t.newGoal)}
+        title={editing ? t.edit.value : t.newGoal.value}
         form={form}
         saving={saving}
         labels={{
-          name: String(t.nameLabel),
-          target: String(t.targetLabel),
-          date: String(t.dateLabel),
-          save: String(t.save),
-          cancel: String(t.cancel),
+          name: t.nameLabel.value,
+          target: t.targetLabel.value,
+          date: t.dateLabel.value,
+          save: t.save.value,
+          cancel: t.cancel.value,
         }}
         onChange={setForm}
         onClose={() => setFormOpen(false)}
@@ -152,10 +152,10 @@ export default function GoalsPage() {
         note={note}
         saving={saving}
         labels={{
-          amount: String(t.amountLabel),
-          note: String(t.noteLabel),
-          save: String(t.save),
-          cancel: String(t.cancel),
+          amount: t.amountLabel.value,
+          note: t.noteLabel.value,
+          save: t.save.value,
+          cancel: t.cancel.value,
         }}
         onAmountChange={setAmount}
         onNoteChange={setNote}

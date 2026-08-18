@@ -53,7 +53,7 @@ export function AlertBanner() {
           </Box>
           <IconButton
             size="small"
-            aria-label={String(t.dismiss)}
+            aria-label={t.dismiss.value}
             onClick={() => void dismiss(item.id)}
           >
             <X size={16} />

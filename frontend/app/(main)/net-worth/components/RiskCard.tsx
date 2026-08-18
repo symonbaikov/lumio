@@ -21,6 +21,8 @@ interface RiskCardLabels {
   riskyShare: string;
   riskyHint: string;
   unclassified: string;
+  riskColumn: string;
+  roleColumn: string;
   risk: Record<RiskLevel, string>;
   role: Record<CapitalRole, string>;
 }
@@ -125,6 +127,7 @@ export function RiskCard({
             <TextField
               select
               size="small"
+              label={labels.riskColumn}
               // Cash is the zero-risk anchor, so its risk is shown but locked.
               disabled={!line.isClassifiable}
               value={line.riskLevel ?? ''}
@@ -144,6 +147,7 @@ export function RiskCard({
             <TextField
               select
               size="small"
+              label={labels.roleColumn}
               disabled={!line.isClassifiable}
               value={line.capitalRole ?? ''}
               onChange={event =>
