@@ -1,8 +1,9 @@
 'use client';
 
+import { useIntlayer } from '@/app/i18n';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { useIntlayer } from '@/app/i18n';
+import { useSearchParams } from 'next/navigation';
 import React, { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -21,12 +22,17 @@ import { tokens } from '@/lib/theme-tokens';
 export function TransactionTab() {
   const t = useIntlayer('transactionsPageView');
   const { showConverted, workspaceCurrency } = useCurrencyDisplay();
+  const searchParams = useSearchParams();
+  const startDate = searchParams.get('startDate');
+  const endDate = searchParams.get('endDate');
 
   const [currencyFilter, setCurrencyFilter] = useState<string | null>(null);
   const { transactions, categories, loading, error, refetch } = useTransactionData({
     showConverted,
     workspaceCurrency,
     currencyFilter,
+    startDate,
+    endDate,
   });
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);

@@ -12,6 +12,10 @@ export interface UseTransactionDataOptions {
   showConverted: boolean;
   workspaceCurrency: string;
   currencyFilter: string | null;
+  /** YYYY-MM-DD, inclusive. */
+  startDate?: string | null;
+  /** YYYY-MM-DD, inclusive. */
+  endDate?: string | null;
 }
 
 export interface UseTransactionDataResult {
@@ -26,6 +30,8 @@ export function useTransactionData({
   showConverted,
   workspaceCurrency,
   currencyFilter,
+  startDate,
+  endDate,
 }: UseTransactionDataOptions): UseTransactionDataResult {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -48,6 +54,8 @@ export function useTransactionData({
       const params: Record<string, string | number> = { limit: 500 };
       if (showConverted) params.convert_to = workspaceCurrency;
       if (currencyFilter) params.currency = currencyFilter;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
 
       const [txResponse, catResponse] = await Promise.all([
         api.get('/transactions', { params }),
@@ -72,7 +80,7 @@ export function useTransactionData({
         setLoading(false);
       }
     }
-  }, [showConverted, workspaceCurrency, currencyFilter]);
+  }, [showConverted, workspaceCurrency, currencyFilter, startDate, endDate]);
 
   useEffect(() => {
     isMountedRef.current = true;
