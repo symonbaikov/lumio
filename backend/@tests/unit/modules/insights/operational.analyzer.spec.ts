@@ -42,9 +42,9 @@ describe('OperationalAnalyzer', () => {
       InsightType.UNCATEGORIZED_COUNT,
       InsightType.DUPLICATE_DETECTED,
     ]);
-    expect(results[0].message).toContain('64');
-    expect(results[1].message).toContain('12');
-    expect(results[2].message).toContain('3');
+    expect(results.map(item => 'messageParams' in item && item.messageParams.count)).toEqual([
+      64, 12, 3,
+    ]);
   });
 
   it('returns no candidates when counts do not pass thresholds', async () => {

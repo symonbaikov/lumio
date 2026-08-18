@@ -5,7 +5,7 @@ describe('InsightsController', () => {
     const insightsService = {
       list: jest.fn(async () => ({ items: [], total: 0, limit: 30, offset: 0 })),
       getSummary: jest.fn(async () => ({ total: 0, byCategory: {} })),
-      refreshOperational: jest.fn(async () => ({ created: 1, updated: 0, total: 1 })),
+      refresh: jest.fn(async () => ({ created: 1, updated: 0, total: 1 })),
       dismissAll: jest.fn(async () => ({ updated: 3 })),
       dismiss: jest.fn(async () => ({ updated: 1 })),
     };
@@ -36,7 +36,7 @@ describe('InsightsController', () => {
       offset: 5,
     });
     expect(insightsService.getSummary).toHaveBeenCalledWith('u1', workspaceId);
-    expect(insightsService.refreshOperational).toHaveBeenCalledWith('u1', workspaceId);
+    expect(insightsService.refresh).toHaveBeenCalledWith('u1', workspaceId);
     expect(insightsService.dismissAll).toHaveBeenCalledWith('u1', workspaceId, 'ops');
     expect(insightsService.dismiss).toHaveBeenCalledWith('u1', workspaceId, 'i1');
   });
