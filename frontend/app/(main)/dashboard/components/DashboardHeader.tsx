@@ -47,24 +47,11 @@ export function DashboardHeader({
           <ExportDropdown t={exportMenu} />
           <Link
             href="/statements?openExpenseDrawer=scan"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              height: 48,
-              backgroundColor: c.primaryFill,
-              color: '#fff',
-              padding: '0 20px',
-              fontSize: 14,
-              fontWeight: 600,
-              lineHeight: 1,
-              borderRadius: tokens.radius.md,
-              textDecoration: 'none',
-              transition: 'background-color 150ms',
-            }}
+            className="lumio-dashboard-header__icon-btn lumio-dashboard-header__icon-btn--upload"
+            aria-label={labels.uploadStatement}
+            title={labels.uploadStatement}
           >
-            <Plus size={16} />
-            {labels.uploadStatement}
+            <Plus size={22} />
           </Link>
         </div>
       </div>

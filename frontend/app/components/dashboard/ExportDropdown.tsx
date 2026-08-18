@@ -2,8 +2,7 @@
 
 import { Download, FileSpreadsheet, FileText, FileType2 } from '@/app/components/icons';
 import apiClient from '@/app/lib/api';
-import { tokens } from '@/lib/theme-tokens';
-import { Button, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material';
+import { ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
 import React from 'react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -135,33 +134,26 @@ export function ExportDropdown({ t }: ExportDropdownProps): React.JSX.Element {
     void runExport(format, t).finally(() => setIsLoading(false));
   };
 
+  const buttonLabel = isLoading
+    ? resolveText(t?.downloading, 'Downloading...')
+    : resolveText(t?.button, 'Export');
+
   return (
     <>
-      <Button
-        variant="outlined"
-        disabled={isLoading}
-        onClick={event => setAnchorEl(event.currentTarget)}
-        startIcon={<Download size={18} style={{ opacity: isLoading ? 0.6 : 1 }} />}
-        sx={{
-          height: 48,
-          fontFamily: 'var(--font-dashboard-mono)',
-          fontSize: 14,
-          fontWeight: 600,
-          lineHeight: 1,
-          px: 2.5,
-          py: 0,
-          borderColor: 'var(--border-color)',
-          borderRadius: tokens.radius.md,
-          color: 'var(--foreground)',
-          textTransform: 'none',
-          '&:hover': { backgroundColor: 'var(--muted)' },
-          '&.Mui-disabled': { opacity: 0.6 },
-        }}
-      >
-        {isLoading
-          ? resolveText(t?.downloading, 'Downloading...')
-          : resolveText(t?.button, 'Export')}
-      </Button>
+      <Tooltip title={buttonLabel}>
+        <span>
+          <button
+            type="button"
+            disabled={isLoading}
+            aria-label={buttonLabel}
+            onClick={event => setAnchorEl(event.currentTarget)}
+            className="lumio-dashboard-header__icon-btn lumio-dashboard-header__icon-btn--export"
+            style={{ opacity: isLoading ? 0.6 : 1 }}
+          >
+            <Download size={20} />
+          </button>
+        </span>
+      </Tooltip>
       <Menu
         anchorEl={anchorEl}
         open={open}

@@ -164,11 +164,11 @@ describe('DashboardPage', () => {
     expect(link.getAttribute('href')).toBe('/statements?openExpenseDrawer=scan');
   });
 
-  it('renders the Upload statement action with rounded corners', () => {
+  it('renders the Upload statement action as a circular icon button', () => {
     render(<DashboardPage />);
 
     const link = screen.getByRole('link', { name: /upload statement/i });
 
-    expect(link.getAttribute('style')).toContain('border-radius');
+    expect(link.className).toContain('lumio-dashboard-header__icon-btn');
   });
 });

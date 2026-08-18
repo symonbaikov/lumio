@@ -22,6 +22,7 @@ import toast from 'react-hot-toast';
 import GlobalBreadcrumbs from './GlobalBreadcrumbs';
 import { LanguageDrawer } from './navigation/LanguageDrawer';
 import { UserMenuTriggerAndDropdown } from './navigation/UserMenu';
+import { buildUserMenuNavItems } from './navigation/helpers/navigation-config';
 import { useLanguageSelection } from './navigation/hooks/useLanguageSelection';
 import { useThemePreference } from './navigation/hooks/useThemePreference';
 
@@ -31,11 +32,11 @@ const HIDDEN_PATHS = ['/onboarding', '/login', '/register', '/shared', '/invite'
 export default function TopBar() {
   const pathname = usePathname();
   const { user, logout, setUser } = useAuth();
-  const { isAdmin } = usePermissions();
+  const { isAdmin, hasPermission } = usePermissions();
   const { currentWorkspace } = useWorkspace();
   const { setTheme } = useTheme();
   const { locale, availableLocales, setLocale } = useLocale();
-  const { userMenu, languageModal, languages: languageNames } = useIntlayer('navigation');
+  const { nav, userMenu, languageModal, languages: languageNames } = useIntlayer('navigation');
   const router = useRouter();
   const [avatarError, setAvatarError] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -97,6 +98,10 @@ export default function TopBar() {
     return null;
   }
 
+  const extraNavItems = buildUserMenuNavItems(
+    nav as Parameters<typeof buildUserMenuNavItems>[0],
+  ).filter(item => hasPermission(item.permission));
+
   const userMenuProps = {
     user,
     normalizedAvatarUrl: normalizeAvatarUrl(user?.avatarUrl),
@@ -109,6 +114,7 @@ export default function TopBar() {
     canAccessActivity: canAccessWorkspaceActivity(currentWorkspace?.memberRole),
     languageLabel: langProps.languageLabel,
     userMenu: userMenu as Record<string, unknown>,
+    extraNavItems,
     onOpen: (e: React.MouseEvent<HTMLElement>): void => {
       setAnchorEl(e.currentTarget);
     },
@@ -118,6 +124,10 @@ export default function TopBar() {
     onAction: (key: string): void => {
       setAnchorEl(null);
       handleAction(key);
+    },
+    onNavigate: (path: string): void => {
+      setAnchorEl(null);
+      navigateFromUserMenu(path);
     },
   };
 

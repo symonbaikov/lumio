@@ -41,11 +41,6 @@ export function buildNavItems(nav: {
   goals: unknown;
   roi: unknown;
   subscriptions: unknown;
-  activityLog: unknown;
-  integrations: unknown;
-  plugins: unknown;
-  aiAnalysis: unknown;
-  chatMode: unknown;
 }): NavItem[] {
   return [
     {
@@ -118,6 +113,17 @@ export function buildNavItems(nav: {
       icon: React.createElement(CreditCard, { size: 18 }),
       permission: 'subscription.view',
     },
+  ];
+}
+
+export function buildUserMenuNavItems(nav: {
+  activityLog: unknown;
+  integrations: unknown;
+  plugins: unknown;
+  aiAnalysis: unknown;
+  chatMode: unknown;
+}): NavItem[] {
+  return [
     {
       label: nav.integrations as ReactNode,
       path: '/integrations',
