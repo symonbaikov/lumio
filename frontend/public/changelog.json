@@ -1,14 +1,158 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "0e9c1e35c237f5753113566f1dafd9321bd06541"
+      "main": "f96310f3588e82be64e092771225cbf40cc5fcce"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-08-18T12:50:39.917Z",
+    "lastGeneratedAt": "2026-08-19T08:42:48.164Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-08-19-f96310f",
+      "version": "main-f96310f",
+      "branch": "main",
+      "date": "2026-08-19T08:42:48.164Z",
+      "title": "Release update - August 19, 2026",
+      "summary": "This release includes 1 feature, 1 fix, and 2 other updates.",
+      "markdown": "## Features\n- **balance**: Allow custom accounts under expandable sections (#113)\n\n## Fixes\n- **dashboard**: Replace hand-drawn plus icon with shared icon component (#110)\n\n## Other\n- Aurum-parity dashboard: month scoping, category donut, recent transactions (#111)\n- Move secondary nav into user menu, icon-only header actions (#112)",
+      "commits": [
+        {
+          "sha": "418cb19a81b71ff4b19305b8b7943bfbb16bbbe6",
+          "shortSha": "418cb19a",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-08-18T12:50:40Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "67c8249d283b17e70d020c5432cf8b0536efb3d1",
+          "shortSha": "67c8249d",
+          "subject": "fix(dashboard): replace hand-drawn plus icon with shared icon component (#110)",
+          "author": "Symon Baikov",
+          "date": "2026-08-18T17:07:21+03:00",
+          "files": [
+            "frontend/app/(main)/dashboard/components/DashboardHeader.tsx"
+          ]
+        },
+        {
+          "sha": "c8a633ed1c1e8cdb8fec26df93135363051a851e",
+          "shortSha": "c8a633ed",
+          "subject": "Aurum-parity dashboard: month scoping, category donut, recent transactions (#111)",
+          "author": "Symon Baikov",
+          "date": "2026-08-18T19:54:16+03:00",
+          "files": [
+            "backend/@tests/unit/modules/dashboard/dashboard-window.util.spec.ts",
+            "backend/@tests/unit/modules/dashboard/dashboard.controller.spec.ts",
+            "backend/@tests/unit/modules/dashboard/dashboard.service.spec.ts",
+            "backend/src/modules/dashboard/dashboard-window.util.ts",
+            "backend/src/modules/dashboard/dashboard.controller.ts",
+            "backend/src/modules/dashboard/dashboard.module.ts",
+            "backend/src/modules/dashboard/dashboard.service.ts",
+            "backend/src/modules/dashboard/interfaces/dashboard-response.interface.ts",
+            "frontend/app/(main)/dashboard/components/BudgetSummaryWidget.tsx",
+            "frontend/app/(main)/dashboard/components/DashboardContent.tsx",
+            "frontend/app/(main)/dashboard/components/DashboardHeader.tsx",
+            "frontend/app/(main)/dashboard/components/DashboardTabContent.tsx",
+            "frontend/app/(main)/dashboard/components/DashboardTabs.tsx",
+            "frontend/app/(main)/dashboard/components/budgetSummaryWidget.content.ts",
+            "frontend/app/(main)/dashboard/components/dashboardHeader.content.ts",
+            "frontend/app/(main)/dashboard/helpers/dashboard-helpers.ts",
+            "frontend/app/(main)/dashboard/hooks/useDashboardPage.ts",
+            "frontend/app/(main)/dashboard/page.test.tsx",
+            "frontend/app/(main)/dashboard/page.tsx",
+            "frontend/app/(main)/goals/page.tsx",
+            "frontend/app/(main)/net-worth/components/NetWorthContent.tsx",
+            "frontend/app/(main)/net-worth/components/RiskCard.tsx",
+            "frontend/app/(main)/net-worth/page.content.ts",
+            "frontend/app/(main)/roi/page.tsx",
+            "frontend/app/(main)/workspaces/components/CategoryTree.tsx",
+            "frontend/app/components/dashboard/ActionRequired.test.tsx",
+            "frontend/app/components/dashboard/ActionRequired.tsx",
+            "frontend/app/components/dashboard/CashFlowChart.tsx",
+            "frontend/app/components/dashboard/CashFlowMini.test.tsx",
+            "frontend/app/components/dashboard/CashFlowMini.tsx",
+            "frontend/app/components/dashboard/CategoryIconBadge.tsx",
+            "frontend/app/components/dashboard/DataHealthTab.tsx",
+            "frontend/app/components/dashboard/FinanceOpsTab.tsx",
+            "frontend/app/components/dashboard/FinancialSnapshot.tsx",
+            "frontend/app/components/dashboard/FinlabBalanceStatCard.tsx",
+            "frontend/app/components/dashboard/FinlabExpenseCard.tsx",
+            "frontend/app/components/dashboard/FinlabExpenseCategoryCard.tsx",
+            "frontend/app/components/dashboard/FinlabIncomeCard.tsx",
+            "frontend/app/components/dashboard/FinlabTransactionCard.tsx",
+            "frontend/app/components/dashboard/OverviewTab.tsx",
+            "frontend/app/components/dashboard/PeriodDropdown.tsx",
+            "frontend/app/components/dashboard/QuickActionsBar.tsx",
+            "frontend/app/components/dashboard/RecentActivity.test.tsx",
+            "frontend/app/components/dashboard/RecentActivity.tsx",
+            "frontend/app/components/dashboard/RecentTransactionsCard.tsx",
+            "frontend/app/components/dashboard/TopCategoriesCard.tsx",
+            "frontend/app/components/dashboard/TopMerchantsCard.tsx",
+            "frontend/app/components/dashboard/TransactionTab.tsx",
+            "frontend/app/components/dashboard/TrendsTab.tsx",
+            "frontend/app/components/dashboard/__tests__/ActionRequired.test.tsx",
+            "frontend/app/components/dashboard/__tests__/DataHealthTab.test.tsx",
+            "frontend/app/components/dashboard/__tests__/FinancialSnapshot.test.tsx",
+            "frontend/app/components/dashboard/__tests__/OverviewTab.test.tsx",
+            "frontend/app/components/dashboard/__tests__/RecentTransactionsCard.test.tsx",
+            "frontend/app/components/dashboard/__tests__/TopCategoriesCard.test.tsx",
+            "frontend/app/components/dashboard/__tests__/TopMerchantsCard.test.tsx",
+            "frontend/app/components/dashboard/__tests__/TrendsTab.test.tsx",
+            "frontend/app/components/dashboard/dashboard-stats.util.test.ts",
+            "frontend/app/components/dashboard/dashboard-stats.util.ts",
+            "frontend/app/components/dashboard/dataHealthTab.content.ts",
+            "frontend/app/components/dashboard/finance-ops-model.test.ts",
+            "frontend/app/components/dashboard/finance-ops-model.ts",
+            "frontend/app/components/dashboard/financeOpsTab.content.ts",
+            "frontend/app/components/dashboard/overviewTab.content.ts",
+            "frontend/app/components/dashboard/recentTransactionsCard.content.ts",
+            "frontend/app/components/dashboard/topCategoriesCard.content.ts",
+            "frontend/app/components/dashboard/trendsTab.content.ts",
+            "frontend/app/components/insights/AlertBanner.tsx",
+            "frontend/app/components/transactions/hooks/useTransactionData.ts",
+            "frontend/app/hooks/useDashboard.test.tsx",
+            "frontend/app/hooks/useDashboard.ts",
+            "frontend/app/lib/category-icon-url.ts",
+            "frontend/app/lib/dashboard-status-heading.test.ts",
+            "frontend/app/page.content.ts",
+            "frontend/app/styles/components/_dashboard.scss"
+          ]
+        },
+        {
+          "sha": "e50352f0188d54c073472df9b5efed5cfd5ecec2",
+          "shortSha": "e50352f0",
+          "subject": "Move secondary nav into user menu, icon-only header actions (#112)",
+          "author": "Symon Baikov",
+          "date": "2026-08-18T23:48:04+03:00",
+          "files": [
+            "frontend/app/(main)/dashboard/components/DashboardHeader.tsx",
+            "frontend/app/(main)/dashboard/page.test.tsx",
+            "frontend/app/components/TopBar.tsx",
+            "frontend/app/components/dashboard/ExportDropdown.tsx",
+            "frontend/app/components/navigation/UserMenu.tsx",
+            "frontend/app/components/navigation/helpers/navigation-config.test.ts",
+            "frontend/app/components/navigation/helpers/navigation-config.ts",
+            "frontend/app/styles/components/_dashboard.scss"
+          ]
+        },
+        {
+          "sha": "f96310f3588e82be64e092771225cbf40cc5fcce",
+          "shortSha": "f96310f3",
+          "subject": "feat(balance): allow custom accounts under expandable sections (#113)",
+          "author": "Symon Baikov",
+          "date": "2026-08-19T11:42:20+03:00",
+          "files": [
+            "backend/src/modules/balance/balance.controller.ts",
+            "backend/src/modules/balance/balance.service.ts",
+            "backend/src/modules/balance/dto/create-balance-account.dto.ts"
+          ]
+        }
+      ]
+    },
     {
       "id": "changelog-2026-08-18-0e9c1e3",
       "version": "main-0e9c1e3",
