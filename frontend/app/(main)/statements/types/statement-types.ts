@@ -62,6 +62,8 @@ export type GmailReceipt = {
   sender: string;
   receivedAt: string;
   status: string;
+  /** 'gmail' | 'upload' | 'telegram' | 'scan' | 'imap' — where the receipt originated. */
+  source?: string;
   /** Present in category-aware views */
   transactionId?: string | null;
   parsedData?: {

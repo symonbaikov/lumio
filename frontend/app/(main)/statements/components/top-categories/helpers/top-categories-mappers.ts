@@ -238,11 +238,11 @@ const buildGmailCategoryRecord = ({
   subject: receipt.subject,
   sender: receipt.sender,
   status: receipt.status,
-  fileType: 'gmail',
+  fileType: ch === 'gmail' ? 'gmail' : 'receipt',
   createdAt: receipt.receivedAt,
   statementDateFrom: parsedDate ?? receipt.receivedAt,
   statementDateTo: null,
-  bankName: 'gmail',
+  bankName: ch === 'gmail' ? 'gmail' : 'receipt',
   totalDebit: amount,
   totalCredit: null,
   currency,
@@ -297,7 +297,8 @@ export const mapGmailReceiptToCategoryRecord = (
     fallback: categoryName,
   });
   const currency = resolveCurrencyCode(parsedCurrency, workspaceCurrency);
-  const ch = resolveCategorySourceChannel({ sourceType: 'gmail', fileType: 'gmail' });
+  const isLocalReceipt = !!receipt.source && receipt.source !== 'gmail';
+  const ch: TopCategorySourceChannel = isLocalReceipt ? 'receipt' : 'gmail';
   return buildGmailCategoryRecord({
     receipt,
     categoryName,
