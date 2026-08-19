@@ -92,37 +92,40 @@ export const mapGmailReceiptToStatement = (
   receipt: GmailReceipt,
   fallbackCurrency: string,
   fileName?: string,
-): StatementFilterItem => ({
-  id: receipt.id,
-  source: 'gmail',
-  fileName:
-    fileName ??
-    resolveGmailMerchantLabel({
+): StatementFilterItem => {
+  const isLocalReceipt = !!receipt.source && receipt.source !== 'gmail';
+  return {
+    id: receipt.id,
+    source: 'gmail',
+    fileName:
+      fileName ??
+      resolveGmailMerchantLabel({
+        vendor: receipt.parsedData?.vendor,
+        sender: receipt.sender,
+        subject: receipt.subject,
+        fallback: 'Gmail receipt',
+      }),
+    subject: receipt.subject,
+    sender: receipt.sender,
+    status: receipt.status,
+    totalDebit: receipt.parsedData?.amount ?? null,
+    totalCredit: null,
+    exported: null,
+    paid: null,
+    createdAt: receipt.receivedAt,
+    statementDateFrom: receipt.parsedData?.date || receipt.receivedAt,
+    statementDateTo: null,
+    bankName: isLocalReceipt ? 'receipt' : 'gmail',
+    fileType: isLocalReceipt ? 'receipt' : 'gmail',
+    currency: resolveCurrencyCode(receipt.parsedData?.currency, fallbackCurrency),
+    user: null,
+    receivedAt: receipt.receivedAt,
+    parsedData: {
       vendor: receipt.parsedData?.vendor,
-      sender: receipt.sender,
-      subject: receipt.subject,
-      fallback: 'Gmail receipt',
-    }),
-  subject: receipt.subject,
-  sender: receipt.sender,
-  status: receipt.status,
-  totalDebit: receipt.parsedData?.amount ?? null,
-  totalCredit: null,
-  exported: null,
-  paid: null,
-  createdAt: receipt.receivedAt,
-  statementDateFrom: receipt.parsedData?.date || receipt.receivedAt,
-  statementDateTo: null,
-  bankName: 'gmail',
-  fileType: 'gmail',
-  currency: resolveCurrencyCode(receipt.parsedData?.currency, fallbackCurrency),
-  user: null,
-  receivedAt: receipt.receivedAt,
-  parsedData: {
-    vendor: receipt.parsedData?.vendor,
-    date: receipt.parsedData?.date,
-  },
-});
+      date: receipt.parsedData?.date,
+    },
+  };
+};
 
 /**
  * Resolves the display label for a source channel.

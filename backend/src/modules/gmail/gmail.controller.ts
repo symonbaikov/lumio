@@ -418,6 +418,9 @@ export class GmailController {
     }
 
     await this.receiptRepository.save(receipt);
+    if (dto.parsedData) {
+      await this.syncLinkedTransaction(receipt);
+    }
 
     return receipt;
   }
@@ -541,6 +544,7 @@ export class GmailController {
     }
 
     await this.receiptRepository.save(receipt);
+    await this.syncLinkedTransaction(receipt);
 
     return receipt;
   }
@@ -908,6 +912,37 @@ export class GmailController {
       return undefined;
     }
     return this.parseBooleanQuery(value, false);
+  }
+
+  /** Keeps the transaction created on approve in sync with later receipt edits. */
+  private async syncLinkedTransaction(receipt: Receipt): Promise<void> {
+    if (!receipt.transactionId) {
+      return;
+    }
+    const transaction = await this.transactionRepository.findOne({
+      where: { id: receipt.transactionId },
+    });
+    if (!transaction) {
+      return;
+    }
+    const { amount, currency, vendor, date, categoryId } = receipt.parsedData ?? {};
+    if (amount !== undefined) {
+      transaction.amount = amount;
+    }
+    if (currency) {
+      transaction.currency = currency;
+    }
+    if (vendor) {
+      transaction.counterpartyName = vendor;
+      transaction.paymentPurpose = vendor;
+    }
+    if (date) {
+      transaction.transactionDate = new Date(date);
+    }
+    if (categoryId) {
+      transaction.categoryId = categoryId;
+    }
+    await this.transactionRepository.save(transaction);
   }
 
   private hasReceiptAmount(value: unknown): boolean {

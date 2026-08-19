@@ -197,7 +197,7 @@ export const mapGmailReceiptToMerchantRecord = (
     currencyValue: currency,
     dateValue,
     sourceType: 'gmail',
-    sourceChannel: resolveSourceChannel({ sourceType: 'gmail', fileType: 'gmail' }),
+    sourceChannel: mapped.fileType === 'gmail' ? 'gmail' : 'receipt',
     flowType: flow.flowType,
     workspaceId: receipt.workspaceId,
     workspaceName: receipt.workspaceName,
