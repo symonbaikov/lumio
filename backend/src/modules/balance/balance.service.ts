@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
@@ -19,6 +20,7 @@ import {
 } from '../../entities';
 import { AuditService } from '../audit/audit.service';
 import { DEFAULT_BALANCE_ACCOUNTS } from './balance-default-accounts';
+import type { CreateBalanceAccountDto } from './dto/create-balance-account.dto';
 import { BalanceExportFormat, type ExportBalanceDto } from './dto/export-balance.dto';
 import type { UpdateAccountClassificationDto } from './dto/update-account-classification.dto';
 import type { UpdateBalanceSnapshotDto } from './dto/update-balance-snapshot.dto';
@@ -392,6 +394,107 @@ export class BalanceService {
       capitalRole: account.capitalRole,
       riskLevel: account.riskLevel,
     };
+  }
+
+  /**
+   * Adds a custom line (e.g. a specific loan) under a section the user is
+   * allowed to expand. Type/sub-type are inherited from the parent so the
+   * new line lands on the correct side of the sheet automatically — only
+   * `LIABILITY_BORROWED` is seeded as expandable today, which is what scopes
+   * this to debts without hardcoding a debt-specific concept.
+   */
+  async createCustomAccount(userId: string, workspaceId: string, dto: CreateBalanceAccountDto) {
+    const parent = await this.balanceAccountRepository.findOne({
+      where: { id: dto.parentId, workspaceId },
+    });
+
+    if (!parent) {
+      throw new NotFoundException('Balance account not found');
+    }
+
+    if (!parent.isExpandable) {
+      throw new BadRequestException('This balance section does not accept custom accounts');
+    }
+
+    const siblingCount = await this.balanceAccountRepository.count({
+      where: { workspaceId, parentId: parent.id },
+    });
+
+    const account = this.balanceAccountRepository.create({
+      workspaceId,
+      parentId: parent.id,
+      code: `CUSTOM_${randomUUID()}`,
+      name: dto.name,
+      nameEn: dto.nameEn ?? null,
+      nameKk: dto.nameKk ?? null,
+      accountType: parent.accountType,
+      subType: parent.subType,
+      isEditable: true,
+      isAutoComputed: false,
+      isSystem: false,
+      isExpandable: false,
+      position: siblingCount,
+    });
+
+    const saved = await this.balanceAccountRepository.save(account);
+
+    await this.auditService.createEvent({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.WORKSPACE,
+      entityId: workspaceId,
+      action: AuditAction.CREATE,
+      meta: {
+        kind: 'balance_account',
+        accountId: saved.id,
+        parentId: parent.id,
+      },
+      diff: { before: null, after: { name: saved.name, parentId: parent.id } },
+    });
+
+    return {
+      id: saved.id,
+      code: saved.code,
+      name: saved.name,
+      nameEn: saved.nameEn,
+      nameKk: saved.nameKk,
+      parentId: saved.parentId,
+      accountType: saved.accountType,
+      subType: saved.subType,
+      position: saved.position,
+    };
+  }
+
+  /** System accounts (the seeded sheet structure) can never be removed. */
+  async deleteCustomAccount(userId: string, workspaceId: string, accountId: string): Promise<void> {
+    const account = await this.balanceAccountRepository.findOne({
+      where: { id: accountId, workspaceId },
+    });
+
+    if (!account) {
+      return;
+    }
+
+    if (account.isSystem) {
+      throw new BadRequestException('System accounts cannot be deleted');
+    }
+
+    await this.balanceAccountRepository.remove(account);
+
+    await this.auditService.createEvent({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.WORKSPACE,
+      entityId: workspaceId,
+      action: AuditAction.DELETE,
+      meta: {
+        kind: 'balance_account',
+        accountId,
+      },
+      diff: { before: { name: account.name, parentId: account.parentId }, after: null },
+    });
   }
 
   async seedDefaultAccounts(workspaceId: string): Promise<void> {

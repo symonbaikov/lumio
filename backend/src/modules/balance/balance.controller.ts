@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Param, Patch, Put, Query, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Res,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
@@ -8,6 +20,7 @@ import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { BalanceService } from './balance.service';
 import { BalanceQueryDto } from './dto/balance-query.dto';
+import { CreateBalanceAccountDto } from './dto/create-balance-account.dto';
 import { ExportBalanceDto } from './dto/export-balance.dto';
 import { UpdateAccountClassificationDto } from './dto/update-account-classification.dto';
 import { UpdateBalanceSnapshotDto } from './dto/update-balance-snapshot.dto';
@@ -52,6 +65,27 @@ export class BalanceController {
     @Body() dto: UpdateBalanceSnapshotDto,
   ) {
     return this.balanceService.updateSnapshot(user.id, workspaceId, dto);
+  }
+
+  @Post('accounts')
+  @WorkspaceAuth(Permission.REPORT_VIEW)
+  async createAccount(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: CreateBalanceAccountDto,
+  ) {
+    return this.balanceService.createCustomAccount(user.id, workspaceId, dto);
+  }
+
+  @Delete('accounts/:id')
+  @HttpCode(204)
+  @WorkspaceAuth(Permission.REPORT_VIEW)
+  async deleteAccount(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.balanceService.deleteCustomAccount(user.id, workspaceId, id);
   }
 
   @Patch('accounts/:id/classification')
