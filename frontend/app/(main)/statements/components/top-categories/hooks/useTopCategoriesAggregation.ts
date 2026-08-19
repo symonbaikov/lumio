@@ -18,6 +18,7 @@ import type {
   TopCategoryRecord,
 } from '@/app/(main)/statements/components/top-categories.utils';
 import { getRecordDate, resolveCurrencyCode } from '@/app/lib/analytics-common';
+import { useCurrencyConversion } from '@/app/lib/useCurrencyConversion';
 import { useMemo } from 'react';
 
 type Params = {
@@ -118,14 +119,24 @@ export const useTopCategoriesAggregation = ({
     () => sortCategoryRows(aggregatedRows, sortKey),
     [aggregatedRows, sortKey],
   );
-  const totals = useMemo(() => buildTotals(flowFilteredRecords), [flowFilteredRecords]);
+  const { convert } = useCurrencyConversion(flowRecordsWithoutDateFilter, workspaceCurrency);
+  const convertedFlowRecords = useMemo(
+    () => flowFilteredRecords.map(r => ({ ...r, amount: convert(r.amount, r.currencyValue) })),
+    [flowFilteredRecords, convert],
+  );
+  const convertedRecordsWithoutDateFilter = useMemo(
+    () =>
+      flowRecordsWithoutDateFilter.map(r => ({ ...r, amount: convert(r.amount, r.currencyValue) })),
+    [flowRecordsWithoutDateFilter, convert],
+  );
+  const totals = useMemo(() => buildTotals(convertedFlowRecords), [convertedFlowRecords]);
   const currentPeriodRange = useMemo(
-    () => computePeriodRange(flowFilteredRecords),
-    [flowFilteredRecords],
+    () => computePeriodRange(convertedFlowRecords),
+    [convertedFlowRecords],
   );
   const previousPeriodTotals = useMemo(
-    () => computePreviousTotals(currentPeriodRange, flowRecordsWithoutDateFilter),
-    [currentPeriodRange, flowRecordsWithoutDateFilter],
+    () => computePreviousTotals(currentPeriodRange, convertedRecordsWithoutDateFilter),
+    [currentPeriodRange, convertedRecordsWithoutDateFilter],
   );
   const comparison = useMemo(() => {
     if (!previousPeriodTotals) {
@@ -156,12 +167,12 @@ export const useTopCategoriesAggregation = ({
   const trendChart = useMemo(
     () =>
       buildTopCategoriesTrendChart(
-        flowFilteredRecords,
+        convertedFlowRecords,
         activeFlowType,
         { totalIncome: totalIncomeLabel, totalSpend: totalSpendLabel },
         resolvedTheme,
       ),
-    [flowFilteredRecords, activeFlowType, totalIncomeLabel, totalSpendLabel, resolvedTheme],
+    [convertedFlowRecords, activeFlowType, totalIncomeLabel, totalSpendLabel, resolvedTheme],
   );
   return { sortedAggregatedRows, totals, comparison, topCategoriesChart, sourceChart, trendChart };
 };

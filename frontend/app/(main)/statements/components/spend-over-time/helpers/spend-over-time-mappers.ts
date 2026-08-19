@@ -206,6 +206,7 @@ const buildGmailSpendRecord = ({
 }: GmailSpendRecordInput): SpendOverTimeRecord => {
   const fa = getFlowAmounts(flow);
   const dateValue = resolveGmailDateValue(parsedDate, receipt.receivedAt);
+  const isLocalReceipt = !!receipt.source && receipt.source !== 'gmail';
   return {
     id: receipt.id,
     source: 'gmail',
@@ -213,11 +214,11 @@ const buildGmailSpendRecord = ({
     subject: receipt.subject,
     sender: receipt.sender,
     status: receipt.status,
-    fileType: 'gmail',
+    fileType: isLocalReceipt ? 'receipt' : 'gmail',
     createdAt: receipt.receivedAt,
     statementDateFrom: parsedDate ?? receipt.receivedAt,
     statementDateTo: null,
-    bankName: 'gmail',
+    bankName: isLocalReceipt ? 'receipt' : 'gmail',
     totalDebit: fa.totalDebit,
     totalCredit: fa.totalCredit,
     currency,
@@ -228,7 +229,7 @@ const buildGmailSpendRecord = ({
     receivedAt: receipt.receivedAt,
     parsedData: { vendor: merchant, date: parsedDate ?? receipt.receivedAt },
     sourceType: 'gmail',
-    sourceChannel: 'gmail',
+    sourceChannel: isLocalReceipt ? 'receipt' : 'gmail',
     flowType: flow.flowType,
     amount: flow.amount,
     currencyValue: currency,
