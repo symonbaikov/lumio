@@ -9,6 +9,8 @@ import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import {
   type CreatePayableInput,
+  type ExportPayablesParams,
+  type ListPayablesParams,
   type Payable,
   type PayablesExportFormat,
   type PayablesSummary,
@@ -309,7 +311,9 @@ export function PayablesView(): React.JSX.Element {
       try {
         const [summaryResponse, listResponse] = await Promise.all([
           payablesApi.getSummary(),
-          payablesApi.list(buildPayablesListParams(filters, { page: queryPage, limit: PAGE_SIZE })),
+          payablesApi.list(
+            buildPayablesListParams(filters, { page: queryPage, limit: PAGE_SIZE }) as ListPayablesParams,
+          ),
         ]);
 
         if (requestVersion !== requestVersionRef.current) {
@@ -454,7 +458,7 @@ export function PayablesView(): React.JSX.Element {
       const result = await payablesApi.exportList({
         ...buildPayablesListParams(filters),
         format,
-      });
+      } as ExportPayablesParams);
       triggerBlobDownload(
         result.blob,
         result.fileName || `payables.${format === 'csv' ? 'csv' : 'xlsx'}`,

@@ -24,7 +24,11 @@ import { usePermissions } from '../hooks/usePermissions';
 import { LanguageDrawer } from './navigation/LanguageDrawer';
 import { MobileDrawer } from './navigation/MobileDrawer';
 import { UserMenuTriggerAndDropdown } from './navigation/UserMenu';
-import { buildNavItems, isNavItemActive } from './navigation/helpers/navigation-config';
+import {
+  type AppLanguage,
+  buildNavItems,
+  isNavItemActive,
+} from './navigation/helpers/navigation-config';
 import { useLanguageSelection } from './navigation/hooks/useLanguageSelection';
 import { useMobileMenu } from './navigation/hooks/useMobileMenu';
 import { useNavigationTour } from './navigation/hooks/useNavigationTour';
@@ -249,7 +253,9 @@ export default function Navigation() {
           setLanguageSearch={langProps.setLanguageSearch}
           filteredLanguages={langProps.filteredLanguages}
           normalizedLocale={langProps.normalizedLocale}
-          handleLanguageSelect={langProps.handleLanguageSelect}
+          handleLanguageSelect={(code: string): void =>
+            langProps.handleLanguageSelect(code as AppLanguage)
+          }
         />
       )}
     </header>

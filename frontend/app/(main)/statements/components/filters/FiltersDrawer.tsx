@@ -18,7 +18,7 @@ import type {
   StatementFilters,
 } from './statement-filters';
 
-type FiltersDrawerLabels = {
+export type FiltersDrawerLabels = {
   title: string;
   viewResults: string;
   saveSearch: string;
@@ -47,22 +47,22 @@ type FiltersDrawerLabels = {
   no: string;
 };
 
-type FilterOption = {
+export type FilterOption = {
   value: string;
   label: string;
 };
 
-type FilterDatePresetOption = {
+export type FilterDatePresetOption = {
   value: StatementFilterDatePreset;
   label: string;
 };
 
-type FilterDateModeOption = {
+export type FilterDateModeOption = {
   value: StatementFilterDateMode;
   label: string;
 };
 
-type FilterAvatarOption = {
+export type FilterAvatarOption = {
   id: string;
   label: string;
   description?: string | null;
@@ -842,7 +842,7 @@ const SCREEN_TITLE_MAP: Record<string, keyof FiltersDrawerLabels> = {
 
 function getScreenTitle(screen: string, labels: FiltersDrawerLabels): string {
   const key = SCREEN_TITLE_MAP[screen];
-  return key ? labels[key] : labels.title;
+  return key ? labels[key]! : labels.title;
 }
 
 export function FiltersDrawer({

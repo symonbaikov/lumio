@@ -10,7 +10,11 @@ import {
   isEditableTarget,
   parseClipboardRows,
 } from '../utils/pasteUtils';
-import type { CustomTableGridRow, CustomTableRowPatch } from '../utils/stylingUtils';
+import type {
+  CustomTableCellValue,
+  CustomTableGridRow,
+  CustomTableRowPatch,
+} from '../utils/stylingUtils';
 import { getResponseItems } from '../utils/tableHelpers';
 import type { CustomTablePageColumn } from '../utils/tableTypes';
 
@@ -307,7 +311,7 @@ export function usePasteImport({
     dataRows.map(row => {
       const data: CustomTableRowPatch = {};
       for (const [key, value] of Object.entries(row)) {
-        data[keyMap.get(key) || key] = value;
+        data[keyMap.get(key) || key] = value as CustomTableCellValue;
       }
       return { data };
     });

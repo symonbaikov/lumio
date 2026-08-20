@@ -41,6 +41,7 @@ import {
   getActiveTabFilter,
   normalizeActiveTabId,
 } from './utils/quickTabs';
+import type { CustomTableColumn } from './utils/stylingUtils';
 import { isContentEditableTarget, tx } from './utils/tableHelpers';
 import type { CustomTablePageColumn } from './utils/tableTypes';
 
@@ -132,11 +133,11 @@ function buildVisibleColumns(
   const hiddenSet = new Set(hiddenColumnKeys);
   return orderedKeys
     .map(key => columnsByKey.get(key))
-    .filter((c): c is CustomTablePageColumn => Boolean(c) && !hiddenSet.has(c.key));
+    .filter((c): c is CustomTablePageColumn => c !== undefined && !hiddenSet.has(c.key));
 }
 
 function getDeleteColumnMessage(
-  target: CustomTablePageColumn | null,
+  target: CustomTableColumn | null,
   prefix: string,
   suffix: string,
   noName: string,
@@ -147,12 +148,18 @@ function getDeleteColumnMessage(
 function getLoadButtonLabel(
   loadingRows: boolean,
   hasMore: boolean,
-  t: ReturnType<typeof useIntlayer>,
-) {
+  t: {
+    grid: {
+      loadingMore: { value: string };
+      loadMore: { value: string };
+      noMore: { value: string };
+    };
+  },
+): string {
   if (loadingRows) {
-    return t.grid.loadingMore;
+    return t.grid.loadingMore.value;
   }
-  return hasMore ? t.grid.loadMore : t.grid.noMore;
+  return hasMore ? t.grid.loadMore.value : t.grid.noMore.value;
 }
 
 function buildDeleteRowMessage(

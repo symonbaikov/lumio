@@ -11,6 +11,7 @@ import { Box, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import type {
   ColumnType,
+  CustomTableCellValue,
   CustomTableColumn,
   CustomTableGridRow,
   CustomTableRowPatch,
@@ -49,7 +50,7 @@ function shallowEqual(a: unknown, b: unknown): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
 }
 
-const normalizers: Record<ColumnType, (v: unknown) => unknown> = {
+const normalizers: Record<ColumnType, (v: unknown) => CustomTableCellValue> = {
   boolean: v => Boolean(v),
   number: v => (isNullish(v) ? null : Number(v)),
   multi_select: v => {
@@ -61,10 +62,9 @@ const normalizers: Record<ColumnType, (v: unknown) => unknown> = {
   date: v => (isNullish(v) ? null : String(v)),
   select: v => (v === null || v === undefined ? '' : String(v)),
   text: v => (v === null || v === undefined ? '' : String(v)),
-  url: v => (v === null || v === undefined ? '' : String(v)),
 };
 
-const normalizeValue = (type: ColumnType, value: unknown): unknown => {
+const normalizeValue = (type: ColumnType, value: unknown): CustomTableCellValue => {
   const fn = normalizers[type];
   return fn ? fn(value) : value === null || value === undefined ? '' : String(value);
 };
@@ -137,7 +137,7 @@ function ColumnFieldEditor({
   inputSx: React.CSSProperties;
   setDraft: React.Dispatch<React.SetStateAction<CustomTableRowPatch>>;
 }) {
-  const updateField = (v: unknown) => setDraft(prev => ({ ...prev, [col.key]: v }));
+  const updateField = (v: CustomTableCellValue) => setDraft(prev => ({ ...prev, [col.key]: v }));
 
   if (col.type === 'boolean') {
     return (
@@ -307,20 +307,26 @@ export function RowDrawer({
   const title = row ? `Row #${row.rowNumber}` : 'Row';
 
   const handleNonDirtySave = (intent: string) => {
+    if (!row) {
+      return;
+    }
     if (intent === 'close') {
       onClose();
     }
     if (intent === 'next') {
-      void onSaveAndNext?.(row?.id, {});
+      void onSaveAndNext?.(row.id, {});
     }
   };
 
   const getSaveHandler = (intent: string): (() => Promise<void>) | null => {
+    if (!row) {
+      return null;
+    }
     if (intent === 'close' && onSaveAndClose) {
-      return () => onSaveAndClose(row?.id, patch);
+      return () => onSaveAndClose(row.id, patch);
     }
     if (intent === 'next' && onSaveAndNext) {
-      return () => onSaveAndNext(row?.id, patch);
+      return () => onSaveAndNext(row.id, patch);
     }
     return null;
   };

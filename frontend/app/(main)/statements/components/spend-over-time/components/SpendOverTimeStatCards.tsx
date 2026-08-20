@@ -60,7 +60,7 @@ function StatCard({
   noDataLabel,
   vsPreviousPeriodLabel,
   isMoney = true,
-}: CardProps): React.React.JSX.Element {
+}: CardProps): React.JSX.Element {
   return (
     <div className="lumio-view-page__stat-card">
       <div className="lumio-view-page__stat-header">
@@ -91,7 +91,7 @@ export function SpendOverTimeStatCards({
   currency,
   noDataLabel,
   vsPreviousPeriodLabel,
-}: Props): React.React.JSX.Element {
+}: Props): React.JSX.Element {
   const cp = { currency, noDataLabel, vsPreviousPeriodLabel };
   const primaryValue = formatMoney(isIncomeView ? totals.income : totals.expense, currency);
   const primaryIcon = isIncomeView ? (

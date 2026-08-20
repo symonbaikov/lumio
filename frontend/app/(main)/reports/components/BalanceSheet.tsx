@@ -253,7 +253,8 @@ function BalanceSheet(): React.JSX.Element {
           parseContentDispositionFileName(response.headers['content-disposition']) || fallbackName;
 
         const blob = new Blob([response.data], {
-          type: response.headers['content-type'] || 'application/octet-stream',
+          type:
+            (response.headers['content-type'] as string | undefined) || 'application/octet-stream',
         });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');

@@ -9,6 +9,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import { useEffect, useState } from 'react';
+import DuplicateGroupCard from './components/DuplicateGroupCard';
 
 interface DuplicateTransaction {
   id: string;
@@ -31,6 +32,41 @@ interface DuplicateGroup {
 interface DuplicatesResponse {
   totalGroups: number;
   groups: DuplicateGroup[];
+}
+
+function DuplicateGroupsContent({
+  loading,
+  duplicateGroups,
+  selectedGroups,
+  onToggleGroup,
+}: {
+  loading: boolean;
+  duplicateGroups: DuplicateGroup[];
+  selectedGroups: Set<string>;
+  onToggleGroup: (masterId: string) => void;
+}) {
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <Spinner size={32} />
+        </Box>
+      ) : duplicateGroups.length === 0 ? (
+        <Typography variant="body2" sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
+          No duplicate groups found
+        </Typography>
+      ) : (
+        duplicateGroups.map(group => (
+          <DuplicateGroupCard
+            key={group.master.id}
+            group={group}
+            selected={selectedGroups.has(group.master.id)}
+            onToggle={() => onToggleGroup(group.master.id)}
+          />
+        ))
+      )}
+    </Box>
+  );
 }
 
 export default function TransactionDuplicatesPage() {

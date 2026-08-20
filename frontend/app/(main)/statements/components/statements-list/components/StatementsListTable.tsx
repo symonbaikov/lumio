@@ -30,13 +30,14 @@ import { StatementsGmailSync } from './StatementsGmailSync';
 
 export interface StatementForTable {
   id: string;
-  source?: string;
+  source?: 'statement' | 'gmail' | 'scan';
   status: string;
   bankName: string;
   fileName: string;
   fileType: string;
   subject?: string;
   sender?: string;
+  createdAt: string;
   parsedData?: {
     vendor?: string;
     amount?: number;

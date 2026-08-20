@@ -10,12 +10,24 @@ import React, { useMemo, useState } from 'react';
 import { WorkspaceGridView } from './WorkspaceGridView';
 import { type ViewMode, WorkspaceListFilters } from './WorkspaceListFilters';
 import { WorkspaceListView } from './WorkspaceListView';
-import { SORT_FNS, type SortOption, type SortableWorkspace } from './workspace-list.helpers';
+import { SORT_FNS, type SortOption } from './workspace-list.helpers';
 
 type TranslationValue = string | { value?: string };
 
 const resolveTranslation = (value: TranslationValue | undefined, fallback: string): string =>
   typeof value === 'string' ? value : (value?.value ?? fallback);
+
+/** Workspace shape shared by the list views (grid + list). */
+type WorkspaceListItem = {
+  id: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  backgroundImage: string | null;
+  isFavorite: boolean;
+  createdAt: Date;
+  memberRole?: string;
+};
 
 type Props = {
   embedded?: boolean;
@@ -24,9 +36,7 @@ type Props = {
   onCloseEmbedded?: () => void;
 };
 
-function useWorkspaceListState({
-  workspaces,
-}: { workspaces: (SortableWorkspace & { name: string; description?: string | null })[] }): {
+function useWorkspaceListState({ workspaces }: { workspaces: WorkspaceListItem[] }): {
   searchQuery: string;
   viewMode: ViewMode;
   sortOption: SortOption;

@@ -41,7 +41,7 @@ export interface TourTextsMap {
 
 export function buildAllTours(texts: TourTextsMap, statementsTexts: unknown): TourConfig[] {
   return [
-    createStatementsTour(statementsTexts),
+    createStatementsTour(statementsTexts as Parameters<typeof createStatementsTour>[0]),
     createCustomTablesTour(getTypedTourInput<CreateCustomTablesTourInput>(texts.customTables)),
     createReportsTour(getTypedTourInput<CreateReportsTourInput>(texts.reports)),
     createCategoriesTour(getTypedTourInput<CreateCategoriesTourInput>(texts.categories)),

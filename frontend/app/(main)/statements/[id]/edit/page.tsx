@@ -265,7 +265,7 @@ export default function EditStatementPage(): React.JSX.Element {
     if (field === 'walletId') {
       return transaction.wallet?.name || '—';
     }
-    return transaction[field] || '—';
+    return (transaction[field] || '—') as unknown as React.ReactNode;
   };
 
   const stageActionLabels: Record<StatementStageActionId, string> = {
@@ -941,8 +941,10 @@ export default function EditStatementPage(): React.JSX.Element {
                 <ParsingWarningsPanel
                   warnings={statement.parsingDetails.warnings || []}
                   droppedSamples={statement.parsingDetails.droppedSamples || []}
-                  onConvertDroppedSample={handleConvertDroppedSample}
-                  onResolveWarning={handleResolveParsingWarning}
+                  onConvertDroppedSample={({ sample, index, warning }) =>
+                    handleConvertDroppedSample(sample, index, warning)
+                  }
+                  onResolveWarning={({ warning }) => handleResolveParsingWarning(warning)}
                   fixTooltipLabel={labels.fixDroppedRow?.value || 'Fix'}
                   resolveBalanceTooltipLabel={labels.balanceEnd?.value || 'Review balances'}
                   title={labels.warnings?.value || 'Warnings'}

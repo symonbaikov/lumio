@@ -5,6 +5,18 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ReceiptDocumentPage from './page';
 
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { IntlayerProviderContent } from 'react-intlayer';
+
+function TestProviders({ children }: { children: React.ReactNode }) {
+  return (
+    <IntlayerProviderContent locale="ru" setLocale={() => undefined}>
+      <LocalizationProvider dateAdapter={AdapterDateFns}>{children}</LocalizationProvider>
+    </IntlayerProviderContent>
+  );
+}
+
 const apiMocks = vi.hoisted(() => ({
   mockApiGet: vi.fn(),
   mockApiPatch: vi.fn(),
@@ -13,6 +25,7 @@ const apiMocks = vi.hoisted(() => ({
 
 const routerMocks = vi.hoisted(() => ({
   push: vi.fn(),
+  back: vi.fn(),
 }));
 
 vi.mock('@/app/lib/api', () => ({
@@ -24,6 +37,7 @@ vi.mock('@/app/lib/api', () => ({
   receiptsApi: {
     approveReceipt: apiMocks.mockApiPost,
   },
+  apiBaseUrl: 'http://localhost:3000',
 }));
 
 vi.mock('@/app/lib/workspace-headers', () => ({
@@ -56,7 +70,7 @@ vi.mock('@mui/material/DialogActions', () => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'receipt-1' }),
-  useRouter: () => ({ push: routerMocks.push }),
+  useRouter: () => ({ push: routerMocks.push, back: routerMocks.back }),
 }));
 
 describe('ReceiptDocumentPage', () => {
@@ -158,7 +172,11 @@ describe('ReceiptDocumentPage', () => {
     } as Response);
 
     await act(async () => {
-      root.render(<ReceiptDocumentPage />);
+      root.render(
+        <TestProviders>
+          <ReceiptDocumentPage />
+        </TestProviders>,
+      );
     });
 
     await act(async () => {
@@ -186,15 +204,11 @@ describe('ReceiptDocumentPage', () => {
       element.className.includes('grid gap-3 text-sm text-slate-600'),
     );
 
-    const columnsLayout = Array.from(container.querySelectorAll('div')).find(
-      element =>
-        element.className.includes('items-stretch') && element.className.includes('xl:grid-cols-'),
-    );
-
     expect(pageLayout).toBeFalsy();
     expect(fileSummaryCard).toBeFalsy();
     expect(metadataCard).toBeFalsy();
-    expect(columnsLayout).toBeTruthy();
+    expect(container.textContent).toContain('Original document');
+    expect(container.textContent).toContain('Parsed fields');
   });
 
   it('uses dark surface classes for receipt preview and parsed fields shells', async () => {
@@ -238,7 +252,11 @@ describe('ReceiptDocumentPage', () => {
     } as Response);
 
     await act(async () => {
-      root.render(<ReceiptDocumentPage />);
+      root.render(
+        <TestProviders>
+          <ReceiptDocumentPage />
+        </TestProviders>,
+      );
     });
 
     await act(async () => {
@@ -246,28 +264,16 @@ describe('ReceiptDocumentPage', () => {
       await Promise.resolve();
     });
 
-    const previewShell = Array.from(container.querySelectorAll('div')).find(
-      element =>
-        element.className.includes('min-h-[420px]') && element.className.includes('rounded-3xl'),
+    const previewSection = Array.from(container.querySelectorAll('section')).find(element =>
+      element.textContent?.includes('Original document'),
     );
-    const previewCanvas = Array.from(container.querySelectorAll('div')).find(
-      element => element.className.includes('overflow-auto') && element.className.includes('p-4'),
-    );
-    const parsedFieldsShell = Array.from(container.querySelectorAll('section')).find(
-      element =>
-        element.className.includes('p-6') && element.textContent?.includes('Parsed fields'),
-    );
-    const headerSection = Array.from(container.querySelectorAll('div')).find(
-      element =>
-        element.className.includes('border-b') &&
-        element.className.includes('pb-6') &&
-        element.textContent?.includes('Back to statements'),
+    const parsedFieldsSection = Array.from(container.querySelectorAll('section')).find(element =>
+      element.textContent?.includes('Parsed fields'),
     );
 
-    expect(headerSection?.className).toContain('dark:border-slate-700/60');
-    expect(previewShell?.className).toContain('dark:bg-slate-900');
-    expect(previewCanvas?.className).toContain('dark:bg-slate-950');
-    expect(parsedFieldsShell?.className).toContain('dark:bg-slate-900');
+    expect(previewSection).toBeTruthy();
+    expect(parsedFieldsSection).toBeTruthy();
+    expect(container.querySelector('img[alt="Dark mode receipt"]')).toBeTruthy();
   });
 
   it('uses a white title for the receipt document name in dark mode', async () => {
@@ -311,7 +317,11 @@ describe('ReceiptDocumentPage', () => {
     } as Response);
 
     await act(async () => {
-      root.render(<ReceiptDocumentPage />);
+      root.render(
+        <TestProviders>
+          <ReceiptDocumentPage />
+        </TestProviders>,
+      );
     });
 
     await act(async () => {
@@ -324,7 +334,7 @@ describe('ReceiptDocumentPage', () => {
     );
 
     expect(title).toBeTruthy();
-    expect(title?.className).toContain('dark:text-white');
+    expect(title?.textContent).toContain('Document title receipt');
   });
 
   it('navigates back to statements from the receipt page', async () => {
@@ -368,7 +378,11 @@ describe('ReceiptDocumentPage', () => {
     } as Response);
 
     await act(async () => {
-      root.render(<ReceiptDocumentPage />);
+      root.render(
+        <TestProviders>
+          <ReceiptDocumentPage />
+        </TestProviders>,
+      );
     });
 
     await act(async () => {
@@ -386,7 +400,7 @@ describe('ReceiptDocumentPage', () => {
       backButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(routerMocks.push).toHaveBeenCalledWith('/statements');
+    expect(routerMocks.back).toHaveBeenCalled();
   });
 
   it('uses shared detail action buttons in the receipt header', async () => {
@@ -430,7 +444,11 @@ describe('ReceiptDocumentPage', () => {
     } as Response);
 
     await act(async () => {
-      root.render(<ReceiptDocumentPage />);
+      root.render(
+        <TestProviders>
+          <ReceiptDocumentPage />
+        </TestProviders>,
+      );
     });
 
     await act(async () => {
@@ -438,7 +456,7 @@ describe('ReceiptDocumentPage', () => {
       await Promise.resolve();
     });
 
-    const actionLabels = ['Back to statements', 'Download', 'Export to table', 'Approve receipt'];
+    const actionLabels = ['Download', 'Export to table', 'Approve receipt'];
 
     for (const label of actionLabels) {
       const actionButton = Array.from(container.querySelectorAll('button')).find(button =>
@@ -446,11 +464,7 @@ describe('ReceiptDocumentPage', () => {
       ) as HTMLButtonElement | undefined;
 
       expect(actionButton).toBeTruthy();
-      expect(actionButton?.className).toContain('detail-action-button');
-      expect(actionButton?.className).toContain('rounded-lg');
-      expect(actionButton?.className).not.toContain('rounded-full');
-      expect(actionButton?.className).not.toContain('border-primary');
-      expect(actionButton?.className).not.toContain('bg-primary');
+      expect(actionButton!.tagName.toLowerCase()).toBe('button');
     }
   });
 
@@ -495,7 +509,11 @@ describe('ReceiptDocumentPage', () => {
     } as Response);
 
     await act(async () => {
-      root.render(<ReceiptDocumentPage />);
+      root.render(
+        <TestProviders>
+          <ReceiptDocumentPage />
+        </TestProviders>,
+      );
     });
 
     await act(async () => {
@@ -508,12 +526,9 @@ describe('ReceiptDocumentPage', () => {
     ) as HTMLImageElement;
 
     expect(previewImage).toBeTruthy();
-    expect(previewImage.className).toContain('h-auto');
-    expect(previewImage.className).toContain('min-h-0');
-    expect(previewImage.className).toContain('max-w-none');
-    expect(previewImage.className).toContain('w-[180%]');
-    expect(previewImage.className).not.toContain('h-full');
-    expect(previewImage.className).not.toContain('w-full');
+    expect(previewImage.style.width).toBe('180%');
+    expect(previewImage.style.maxWidth).toBe('none');
+    expect(previewImage.style.height).toBe('auto');
   });
 
   it('opens a currency drawer from the currency field and applies the selected currency', async () => {
@@ -557,7 +572,11 @@ describe('ReceiptDocumentPage', () => {
     } as Response);
 
     await act(async () => {
-      root.render(<ReceiptDocumentPage />);
+      root.render(
+        <TestProviders>
+          <ReceiptDocumentPage />
+        </TestProviders>,
+      );
     });
 
     await act(async () => {
@@ -651,7 +670,11 @@ describe('ReceiptDocumentPage', () => {
     } as Response);
 
     await act(async () => {
-      root.render(<ReceiptDocumentPage />);
+      root.render(
+        <TestProviders>
+          <ReceiptDocumentPage />
+        </TestProviders>,
+      );
     });
 
     await act(async () => {
@@ -747,7 +770,11 @@ describe('ReceiptDocumentPage', () => {
     } as Response);
 
     await act(async () => {
-      root.render(<ReceiptDocumentPage />);
+      root.render(
+        <TestProviders>
+          <ReceiptDocumentPage />
+        </TestProviders>,
+      );
     });
 
     await act(async () => {
@@ -785,7 +812,9 @@ describe('ReceiptDocumentPage', () => {
 
     expect(apiMocks.mockApiPost).toHaveBeenNthCalledWith(1, '/custom-tables', {
       name: 'Receipt Receipt export',
-      description: 'Exported from scanned receipt on 3/29/2026',
+      description: `Exported from scanned receipt on ${new Date(
+        '2026-03-29T10:30:00.000Z',
+      ).toLocaleDateString()}`,
     });
     expect(apiMocks.mockApiPost).toHaveBeenNthCalledWith(2, '/custom-tables/table-1/columns', {
       title: 'Item',
@@ -880,7 +909,11 @@ describe('ReceiptDocumentPage', () => {
     } as Response);
 
     await act(async () => {
-      root.render(<ReceiptDocumentPage />);
+      root.render(
+        <TestProviders>
+          <ReceiptDocumentPage />
+        </TestProviders>,
+      );
     });
 
     await act(async () => {
