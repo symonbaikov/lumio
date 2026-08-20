@@ -380,7 +380,7 @@ const customTablesTourContent = {
           ja: 'リストが大きくなった場合は、ページネーションを使用して結果ページ間を移動し、表示範囲を追跡します。',
           ko: '목록이 커지면 페이지 매김을 사용하여 결과 페이지를 이동하고 가시 범위를 추적하세요.',
           hi: 'जब सूची बढ़ती है, तो परिणाम पृष्ठों पर जाने और दृश्यमान सीमा का ट्रैक रखने के लिए पेजिनेशन का उपयोग करें।',
-          nl: 'Wanneer de lijst groter wordt, kunt u paginering gebruiken om door de resultatenpagina\'s te bladeren en het zichtbare bereik bij te houden.',
+          nl: "Wanneer de lijst groter wordt, kunt u paginering gebruiken om door de resultatenpagina's te bladeren en het zichtbare bereik bij te houden.",
           sv: 'När listan växer, använd sidnumrering för att gå igenom resultatsidor och hålla reda på det synliga intervallet.',
           vi: 'Khi danh sách phát triển, hãy sử dụng tính năng phân trang để di chuyển qua các trang kết quả và theo dõi phạm vi hiển thị.',
           id: 'Saat daftar bertambah, gunakan penomoran halaman untuk menelusuri halaman hasil dan melacak rentang yang terlihat.',

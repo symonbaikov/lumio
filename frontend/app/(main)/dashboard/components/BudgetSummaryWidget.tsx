@@ -47,10 +47,20 @@ export function BudgetSummaryWidget() {
 
   if (budgets.length === 0) {
     return (
-      <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+      <Box
+        sx={{
+          p: 2.5,
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
           <PiggyBank size={18} />
-          <Typography variant="subtitle2" fontWeight={600}>{t.title}</Typography>
+          <Typography variant="subtitle2" fontWeight={600}>
+            {t.title}
+          </Typography>
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
           {t.emptyDescription}
@@ -63,11 +73,21 @@ export function BudgetSummaryWidget() {
   }
 
   return (
-    <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+    <Box
+      sx={{
+        p: 2.5,
+        borderRadius: 2,
+        border: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+      }}
+    >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <PiggyBank size={18} />
-          <Typography variant="subtitle2" fontWeight={600}>{t.title}</Typography>
+          <Typography variant="subtitle2" fontWeight={600}>
+            {t.title}
+          </Typography>
         </Box>
         <Button component={Link} href="/budgets" size="small" variant="text">
           {t.viewAll}
@@ -80,7 +100,11 @@ export function BudgetSummaryWidget() {
               <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: '60%' }}>
                 {b.category?.name ?? b.name}
               </Typography>
-              <Typography variant="caption" fontWeight={600} color={`${getColor(b.percentUsed)}.main`}>
+              <Typography
+                variant="caption"
+                fontWeight={600}
+                color={`${getColor(b.percentUsed)}.main`}
+              >
                 {Math.round(b.percentUsed)}%
               </Typography>
             </Box>

@@ -1,7 +1,7 @@
 'use client';
 
-import type { Column, Table } from '@tanstack/react-table';
 import { Tag, X } from '@/app/components/icons';
+import type { Column, Table } from '@tanstack/react-table';
 import { useEffect, useRef, useState } from 'react';
 import type { CustomTableGridRow } from '../../utils/stylingUtils';
 
@@ -89,16 +89,38 @@ export function EditableHeader({
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
         disabled={isSaving}
-        style={{ width: '100%', padding: '4px 8px', fontSize: 14, border: '1px solid #3b82f6', background: 'var(--card-bg)', boxSizing: 'border-box' }}
+        style={{
+          width: '100%',
+          padding: '4px 8px',
+          fontSize: 14,
+          border: '1px solid #3b82f6',
+          background: 'var(--card-bg)',
+          boxSizing: 'border-box',
+        }}
       />
     );
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
+        width: '100%',
+      }}
+    >
       <div
         onDoubleClick={() => !isSystemColumn && setIsEditing(true)}
-        style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, cursor: !isSystemColumn ? 'pointer' : 'default' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          flex: 1,
+          minWidth: 0,
+          cursor: !isSystemColumn ? 'pointer' : 'default',
+        }}
         title={!isSystemColumn ? 'Double-click to rename' : undefined}
       >
         {icon && (
@@ -112,14 +134,24 @@ export function EditableHeader({
             )}
           </span>
         )}
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {title}
+        </span>
       </div>
 
       {!isSystemColumn && onDelete && (
         <button
           type="button"
           onClick={handleDelete}
-          style={{ flexShrink: 0, padding: 4, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--muted-foreground)', lineHeight: 0 }}
+          style={{
+            flexShrink: 0,
+            padding: 4,
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            color: 'var(--muted-foreground)',
+            lineHeight: 0,
+          }}
           title="Delete column"
         >
           <X className="h-3 w-3" />

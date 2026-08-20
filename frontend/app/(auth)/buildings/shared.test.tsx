@@ -23,14 +23,15 @@ describe('auth building shared visuals', () => {
     const { container } = render(<WindowGrid cols={3} rows={2} density={0.5} />);
     const grid = container.firstElementChild;
 
-    expect(Array.from(grid?.children ?? []).map(cell => (cell as HTMLElement).style.background))
-      .toEqual([
-        'rgba(255, 255, 255, 0.28)',
-        'rgba(255, 255, 255, 0.28)',
-        'rgba(255, 255, 255, 0.28)',
-        'rgba(255, 255, 255, 0.28)',
-        'rgba(255, 255, 255, 0.28)',
-        'rgba(255, 255, 255, 0.28)',
-      ]);
+    expect(
+      Array.from(grid?.children ?? []).map(cell => (cell as HTMLElement).style.background),
+    ).toEqual([
+      'rgba(255, 255, 255, 0.28)',
+      'rgba(255, 255, 255, 0.28)',
+      'rgba(255, 255, 255, 0.28)',
+      'rgba(255, 255, 255, 0.28)',
+      'rgba(255, 255, 255, 0.28)',
+      'rgba(255, 255, 255, 0.28)',
+    ]);
   });
 });

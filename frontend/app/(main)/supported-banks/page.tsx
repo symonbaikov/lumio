@@ -52,7 +52,9 @@ export default function SupportedBanksPage(): React.JSX.Element {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-          <Box sx={{ bgcolor: 'var(--primary-fill)', p: 1.5, color: '#fff', display: 'inline-flex' }}>
+          <Box
+            sx={{ bgcolor: 'var(--primary-fill)', p: 1.5, color: '#fff', display: 'inline-flex' }}
+          >
             <Building2 size={24} />
           </Box>
           <Box>

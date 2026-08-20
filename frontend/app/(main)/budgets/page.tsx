@@ -8,7 +8,14 @@ export default function BudgetsPage() {
   const state = useBudgetsPage();
 
   return (
-    <Box component="main" sx={{ minHeight: 'calc(100vh - var(--global-nav-height,0px))', display: 'flex', flexDirection: 'column' }}>
+    <Box
+      component="main"
+      sx={{
+        minHeight: 'calc(100vh - var(--global-nav-height,0px))',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       <BudgetsContent {...state} />
     </Box>
   );

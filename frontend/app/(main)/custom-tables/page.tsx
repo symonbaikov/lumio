@@ -4,6 +4,19 @@ import { FilterActions } from '@/app/(main)/statements/components/filters/Filter
 import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
 import { FilterOptionRow } from '@/app/(main)/statements/components/filters/FilterOptionRow';
 import ConfirmModal from '@/app/components/ConfirmModal';
+import { Tag as CategoryIcon } from '@/app/components/icons';
+import {
+  ChevronDown,
+  ChevronRight,
+  Ellipsis,
+  FileSpreadsheet,
+  RefreshCcw,
+  Search,
+  SlidersHorizontal,
+  Table as TableIcon,
+  Trash2,
+} from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import {
   DropdownMenu,
@@ -23,11 +36,8 @@ import {
   CUSTOM_TABLES_VIEW_EVENT,
   type CustomTableAction,
   type CustomTableActionEventDetail,
-  type CustomTableSortOrder,
-  type CustomTableSourceFilter,
   type CustomTableViewEventDetail,
 } from '@/app/lib/custom-table-actions';
-import { Tag as CategoryIcon } from '@/app/components/icons';
 import {
   Box,
   Button,
@@ -43,18 +53,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import {
-  ChevronDown,
-  ChevronRight,
-  Download,
-  Ellipsis,
-  FileSpreadsheet,
-  RefreshCcw,
-  Search,
-  SlidersHorizontal,
-  Table as TableIcon,
-  Trash2,
-} from '@/app/components/icons';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -67,7 +65,6 @@ import {
   groupStatementSelectionOptions,
 } from './create-from-statements-utils';
 import { useCustomTablesData } from './hooks/useCustomTablesData';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 
 interface Category {
   id: string;
@@ -100,16 +97,15 @@ interface StatementItem {
 }
 
 import { getNestedValue, getRecord, resolveLabel } from '@/app/lib/side-panel-utils';
+import { tokens } from '@/lib/theme-tokens';
+import { useTheme } from 'next-themes';
 import {
   type ExportColumn,
-  formatUpdatedBadge,
   formatUpdatedDate,
   getExportColumn,
   sanitizeFileName,
   toCsv,
 } from './customTablesHelpers';
-import { tokens } from '@/lib/theme-tokens';
-import { useTheme } from 'next-themes';
 
 type TranslationValue = string | { value?: string };
 
@@ -802,7 +798,15 @@ export default function CustomTablesPage() {
 
   if (authLoading) {
     return (
-      <Box sx={{ display: 'flex', minHeight: '50vh', alignItems: 'center', justifyContent: 'center', color: c.ink500 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          minHeight: '50vh',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: c.ink500,
+        }}
+      >
         {t.auth.loading}
       </Box>
     );
@@ -811,7 +815,15 @@ export default function CustomTablesPage() {
   if (!user) {
     return (
       <Box className="container-shared" sx={{ px: { xs: 2, sm: 3, lg: 4 }, py: 5 }}>
-        <Box sx={{ border: `1px solid ${c.ink150}`, bgcolor: 'background.paper', p: 3, fontSize: 14, color: c.ink700 }}>
+        <Box
+          sx={{
+            border: `1px solid ${c.ink150}`,
+            bgcolor: 'background.paper',
+            p: 3,
+            fontSize: 14,
+            color: c.ink700,
+          }}
+        >
           {t.auth.loginRequired}
         </Box>
       </Box>
@@ -857,19 +869,61 @@ export default function CustomTablesPage() {
       />
       <Box className="container-shared" sx={{ px: { xs: 2, sm: 3, lg: 4 }, py: 6 }}>
         <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Box sx={{ border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.lg, bgcolor: 'background.paper', px: { xs: 2.5, sm: 3 }, py: 2.5 }}>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, alignItems: { md: 'center' }, justifyContent: { md: 'space-between' } }}>
+          <Box
+            sx={{
+              border: `1px solid ${c.ink150}`,
+              borderRadius: tokens.radius.lg,
+              bgcolor: 'background.paper',
+              px: { xs: 2.5, sm: 3 },
+              py: 2.5,
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', md: 'row' },
+                gap: 2,
+                alignItems: { md: 'center' },
+                justifyContent: { md: 'space-between' },
+              }}
+            >
               <Box sx={{ minWidth: 0 }}>
-                <Typography variant="h1" style={{ fontSize: 24, fontWeight: 600, color: c.ink900 }}>{headerTitle}</Typography>
-                <Typography style={{ marginTop: 8, maxWidth: 672, fontSize: 14, color: c.ink500 }}>{headerSubtitle}</Typography>
+                <Typography variant="h1" style={{ fontSize: 24, fontWeight: 600, color: c.ink900 }}>
+                  {headerTitle}
+                </Typography>
+                <Typography style={{ marginTop: 8, maxWidth: 672, fontSize: 14, color: c.ink500 }}>
+                  {headerSubtitle}
+                </Typography>
               </Box>
-              <Box sx={{ display: 'flex', flexShrink: 0, flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexShrink: 0,
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: 1,
+                }}
+              >
                 <Box
                   component="button"
                   type="button"
                   onClick={() => void openCreateFromStatements()}
                   data-tour-id="custom-tables-create-export"
-                  sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: 'var(--primary-fill)', color: '#fff', px: 2.5, py: 1.25, fontSize: 14, fontWeight: 600, border: 'none', borderRadius: tokens.radius.md, cursor: 'pointer', '&:hover': { bgcolor: 'primary.dark' } }}
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    bgcolor: 'var(--primary-fill)',
+                    color: '#fff',
+                    px: 2.5,
+                    py: 1.25,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    border: 'none',
+                    borderRadius: tokens.radius.md,
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: 'primary.dark' },
+                  }}
                 >
                   <FileSpreadsheet className="h-4 w-4" />
                   {createExportTableLabel}
@@ -880,7 +934,21 @@ export default function CustomTablesPage() {
                       component="button"
                       type="button"
                       data-tour-id="custom-tables-create-dropdown"
-                      sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.md, bgcolor: 'background.paper', px: 2, py: 1.25, fontSize: 14, fontWeight: 500, color: c.ink900, cursor: 'pointer', '&:hover': { borderColor: 'primary.main', color: 'primary.main' } }}
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        border: `1px solid ${c.ink150}`,
+                        borderRadius: tokens.radius.md,
+                        bgcolor: 'background.paper',
+                        px: 2,
+                        py: 1.25,
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: c.ink900,
+                        cursor: 'pointer',
+                        '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+                      }}
                     >
                       <TableIcon className="h-4 w-4" />
                       {createLabel}
@@ -898,18 +966,39 @@ export default function CustomTablesPage() {
                 </DropdownMenu>
               </Box>
             </Box>
-            <Typography style={{ marginTop: 12, fontSize: 12, color: c.ink500 }}>{ctaDescriptionLabel}</Typography>
+            <Typography style={{ marginTop: 12, fontSize: 12, color: c.ink500 }}>
+              {ctaDescriptionLabel}
+            </Typography>
           </Box>
 
           <Box sx={{ position: 'relative' }} data-tour-id="search-bar">
-            <Search style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: c.ink400 }} />
+            <Search
+              style={{
+                position: 'absolute',
+                left: 16,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 16,
+                height: 16,
+                color: c.ink400,
+              }}
+            />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={searchPlaceholder}
               aria-label={searchPlaceholder}
-              style={{ width: '100%', border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.md, background: 'var(--card-bg)', padding: '12px 16px 12px 44px', fontSize: 14, color: c.ink900, boxSizing: 'border-box' }}
+              style={{
+                width: '100%',
+                border: `1px solid ${c.ink150}`,
+                borderRadius: tokens.radius.md,
+                background: 'var(--card-bg)',
+                padding: '12px 16px 12px 44px',
+                fontSize: 14,
+                color: c.ink900,
+                boxSizing: 'border-box',
+              }}
             />
           </Box>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
@@ -922,7 +1011,10 @@ export default function CustomTablesPage() {
                   data-tour-id="custom-tables-source-filter"
                   style={tableFilterChipStyle}
                 >
-                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                  <Box
+                    component="span"
+                    sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}
+                  >
                     {filterSource !== 'all'
                       ? sourceOptions.find(option => option.value === filterSource)?.label ||
                         filterLabels.all
@@ -932,7 +1024,16 @@ export default function CustomTablesPage() {
                 </FilterChipButton>
               }
             >
-              <Box sx={{ maxHeight: 320, display: 'flex', flexDirection: 'column', gap: 0.5, overflowY: 'auto', pr: 0.5 }}>
+              <Box
+                sx={{
+                  maxHeight: 320,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.5,
+                  overflowY: 'auto',
+                  pr: 0.5,
+                }}
+              >
                 {sourceOptions.map(option => (
                   <FilterOptionRow
                     key={option.value}
@@ -955,15 +1056,32 @@ export default function CustomTablesPage() {
               open={sortDropdownOpen}
               onOpenChange={setSortDropdownOpen}
               trigger={
-                <FilterChipButton active={sortOrder !== 'updated_desc'} style={tableFilterChipStyle}>
-                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                    {sortOrder === 'updated_desc' ? filterLabels.sortUpdated : filterLabels.sortName}
+                <FilterChipButton
+                  active={sortOrder !== 'updated_desc'}
+                  style={tableFilterChipStyle}
+                >
+                  <Box
+                    component="span"
+                    sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}
+                  >
+                    {sortOrder === 'updated_desc'
+                      ? filterLabels.sortUpdated
+                      : filterLabels.sortName}
                     <ChevronDown size={16} />
                   </Box>
                 </FilterChipButton>
               }
             >
-              <Box sx={{ maxHeight: 320, display: 'flex', flexDirection: 'column', gap: 0.5, overflowY: 'auto', pr: 0.5 }}>
+              <Box
+                sx={{
+                  maxHeight: 320,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.5,
+                  overflowY: 'auto',
+                  pr: 0.5,
+                }}
+              >
                 {sortOptions.map(option => (
                   <FilterOptionRow
                     key={option.value}
@@ -986,12 +1104,42 @@ export default function CustomTablesPage() {
               component="button"
               type="button"
               onClick={handleOpenFiltersDrawer}
-              sx={{ height: 38, display: 'inline-flex', alignItems: 'center', gap: 1, border: `1px solid ${c.ink200}`, borderRadius: tokens.radius.full, bgcolor: 'background.paper', px: 2, py: 0, fontSize: 14, fontWeight: 600, color: c.ink900, cursor: 'pointer', '&:hover': { borderColor: c.ink300, bgcolor: c.ink50 } }}
+              sx={{
+                height: 38,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 1,
+                border: `1px solid ${c.ink200}`,
+                borderRadius: tokens.radius.full,
+                bgcolor: 'background.paper',
+                px: 2,
+                py: 0,
+                fontSize: 14,
+                fontWeight: 600,
+                color: c.ink900,
+                cursor: 'pointer',
+                '&:hover': { borderColor: c.ink300, bgcolor: c.ink50 },
+              }}
             >
               <SlidersHorizontal size={18} />
               {filterLabels.filters}
               {activeFilterCount > 0 ? (
-                <Box component="span" sx={{ ml: 0.5, display: 'inline-flex', width: 20, height: 20, alignItems: 'center', justifyContent: 'center', borderRadius: tokens.radius.full, bgcolor: 'rgba(22,129,24,0.1)', fontSize: 12, fontWeight: 600, color: 'primary.main' }}>
+                <Box
+                  component="span"
+                  sx={{
+                    ml: 0.5,
+                    display: 'inline-flex',
+                    width: 20,
+                    height: 20,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: tokens.radius.full,
+                    bgcolor: 'rgba(22,129,24,0.1)',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: 'primary.main',
+                  }}
+                >
                   {activeFilterCount}
                 </Box>
               ) : null}
@@ -1001,20 +1149,55 @@ export default function CustomTablesPage() {
 
         <Box data-tour-id="tables-list">
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 256 }}>
+            <Box
+              sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 256 }}
+            >
               <Spinner className="h-20 w-20 text-primary" />
             </Box>
           ) : filteredCount === 0 ? (
-            <Box sx={{ border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.lg, bgcolor: 'background.paper', px: { xs: 3, sm: 5 }, py: { xs: 5, sm: 6 } }}>
+            <Box
+              sx={{
+                border: `1px solid ${c.ink150}`,
+                borderRadius: tokens.radius.lg,
+                bgcolor: 'background.paper',
+                px: { xs: 3, sm: 5 },
+                py: { xs: 5, sm: 6 },
+              }}
+            >
               <EmptyStateIllustration name="tables" size="lg" />
-              <Typography style={{ textAlign: 'center', fontSize: 18, fontWeight: 600, color: c.ink900 }}>
+              <Typography
+                style={{ textAlign: 'center', fontSize: 18, fontWeight: 600, color: c.ink900 }}
+              >
                 {emptyLabels.title}
               </Typography>
-              <Typography style={{ marginTop: 8, textAlign: 'center', fontSize: 14, color: c.ink500 }}>
+              <Typography
+                style={{ marginTop: 8, textAlign: 'center', fontSize: 14, color: c.ink500 }}
+              >
                 {emptyLabels.description}
               </Typography>
-              <Box sx={{ mt: 2.5, mx: 'auto', maxWidth: 672, border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.lg, bgcolor: c.ink50, p: 2 }}>
-                <Box component="ol" sx={{ m: 0, pl: 2, display: 'flex', flexDirection: 'column', gap: 1, fontSize: 14, color: c.ink900 }}>
+              <Box
+                sx={{
+                  mt: 2.5,
+                  mx: 'auto',
+                  maxWidth: 672,
+                  border: `1px solid ${c.ink150}`,
+                  borderRadius: tokens.radius.lg,
+                  bgcolor: c.ink50,
+                  p: 2,
+                }}
+              >
+                <Box
+                  component="ol"
+                  sx={{
+                    m: 0,
+                    pl: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1,
+                    fontSize: 14,
+                    color: c.ink900,
+                  }}
+                >
                   <li>{emptyLabels.step1}</li>
                   <li>{emptyLabels.step2}</li>
                   <li>{emptyLabels.step3}</li>
@@ -1026,7 +1209,21 @@ export default function CustomTablesPage() {
                   component="button"
                   type="button"
                   onClick={() => void openCreateFromStatements()}
-                  sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: 'var(--primary-fill)', color: '#fff', px: 2.5, py: 1.25, fontSize: 14, fontWeight: 600, border: 'none', borderRadius: tokens.radius.md, cursor: 'pointer', '&:hover': { bgcolor: 'primary.dark' } }}
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    bgcolor: 'var(--primary-fill)',
+                    color: '#fff',
+                    px: 2.5,
+                    py: 1.25,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    border: 'none',
+                    borderRadius: tokens.radius.md,
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: 'primary.dark' },
+                  }}
                 >
                   <FileSpreadsheet className="h-4 w-4" />
                   {createFirstExportTableLabel}
@@ -1036,27 +1233,65 @@ export default function CustomTablesPage() {
           ) : (
             <>
               {shouldShowGrowthHint ? (
-                <Box sx={{ mb: 1.5, border: '1px solid rgba(22,129,24,0.2)', borderRadius: tokens.radius.lg, bgcolor: 'rgba(22,129,24,0.05)', px: 2, py: 1.5, fontSize: 14, color: c.primary }}>
+                <Box
+                  sx={{
+                    mb: 1.5,
+                    border: '1px solid rgba(22,129,24,0.2)',
+                    borderRadius: tokens.radius.lg,
+                    bgcolor: 'rgba(22,129,24,0.05)',
+                    px: 2,
+                    py: 1.5,
+                    fontSize: 14,
+                    color: c.primary,
+                  }}
+                >
                   {growthHintLabel}
                 </Box>
               ) : null}
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, overflow: 'hidden' }}>
-                <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1.5, px: 2, fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: c.ink500 }}>
+                <Box
+                  sx={{
+                    display: { xs: 'none', md: 'flex' },
+                    alignItems: 'center',
+                    gap: 1.5,
+                    px: 2,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: c.ink500,
+                  }}
+                >
                   <Box sx={{ width: 16 }} />
                   <Box sx={{ width: 44 }} />
                   <Box sx={{ width: 12 }} />
                   <Box sx={{ minWidth: 0, flex: 1 }}>{columnLabels.name}</Box>
                   <Box sx={{ width: 120, flexShrink: 1 }}>{columnLabels.purpose}</Box>
                   <Box sx={{ width: 120, flexShrink: 1 }}>{columnLabels.source}</Box>
-                  <Box sx={{ width: 72, flexShrink: 0, textAlign: 'right' }}>{columnLabels.rows}</Box>
-                  <Box sx={{ width: 96, flexShrink: 0, textAlign: 'right' }}>{columnLabels.updatedAt}</Box>
+                  <Box sx={{ width: 72, flexShrink: 0, textAlign: 'right' }}>
+                    {columnLabels.rows}
+                  </Box>
+                  <Box sx={{ width: 96, flexShrink: 0, textAlign: 'right' }}>
+                    {columnLabels.updatedAt}
+                  </Box>
                   <Box sx={{ textAlign: 'right', flexShrink: 0 }}>{columnLabels.actions}</Box>
                 </Box>
                 {registryItems.map(table => (
                   <Box
                     key={table.id}
-                    sx={{ display: 'flex', cursor: 'pointer', alignItems: 'center', gap: 1.5, border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.lg, bgcolor: 'background.paper', px: 2, py: 1.5, '&:hover': { bgcolor: 'action.hover' } }}
+                    sx={{
+                      display: 'flex',
+                      cursor: 'pointer',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      border: `1px solid ${c.ink150}`,
+                      borderRadius: tokens.radius.lg,
+                      bgcolor: 'background.paper',
+                      px: 2,
+                      py: 1.5,
+                      '&:hover': { bgcolor: 'action.hover' },
+                    }}
                     onClick={() => router.push(`/custom-tables/${table.id}`)}
                     onKeyDown={event => {
                       if (event.target !== event.currentTarget) {
@@ -1078,7 +1313,17 @@ export default function CustomTablesPage() {
                     <Box
                       component="button"
                       type="button"
-                      sx={{ width: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', bgcolor: 'transparent', border: 'none', '&:hover': { opacity: 0.8 } }}
+                      sx={{
+                        width: 44,
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        bgcolor: 'transparent',
+                        border: 'none',
+                        '&:hover': { opacity: 0.8 },
+                      }}
                       onClick={event => {
                         event.stopPropagation();
                         router.push(`/custom-tables/${table.id}`);
@@ -1093,35 +1338,133 @@ export default function CustomTablesPage() {
                     </Box>
                     <Box sx={{ width: 12, flexShrink: 0 }} />
                     <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography style={{ fontSize: 14, fontWeight: 600, color: c.ink900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Typography
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 600,
+                          color: c.ink900,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {table.displayName}
                       </Typography>
-                      <Typography style={{ marginTop: 4, fontSize: 12, color: c.ink500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Typography
+                        style={{
+                          marginTop: 4,
+                          fontSize: 12,
+                          color: c.ink500,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {fromLabel}: {table.sourceDescriptor} · {columnLabels.rows}:{' '}
                         {table.rowsCountLabel} · {columnLabels.updatedAt}:{' '}
                         {formatUpdatedDate(table.updatedAt)}
                       </Typography>
                       {table.createdFromBadge ? (
-                        <Box sx={{ mt: 0.5, display: 'inline-flex', alignItems: 'center', border: '1px solid rgba(22,129,24,0.2)', borderRadius: tokens.radius.sm, bgcolor: 'rgba(22,129,24,0.1)', px: 1, py: 0.25, fontSize: 11, fontWeight: 500, color: 'primary.main' }}>
+                        <Box
+                          sx={{
+                            mt: 0.5,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            border: '1px solid rgba(22,129,24,0.2)',
+                            borderRadius: tokens.radius.sm,
+                            bgcolor: 'rgba(22,129,24,0.1)',
+                            px: 1,
+                            py: 0.25,
+                            fontSize: 11,
+                            fontWeight: 500,
+                            color: 'primary.main',
+                          }}
+                        >
                           {table.createdFromBadge}
                         </Box>
                       ) : table.description ? (
-                        <Typography style={{ fontSize: 12, color: c.ink500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{table.description}</Typography>
+                        <Typography
+                          style={{
+                            fontSize: 12,
+                            color: c.ink500,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {table.description}
+                        </Typography>
                       ) : null}
                     </Box>
-                    <Box sx={{ display: { xs: 'none', md: 'inline-block' }, width: 120, flexShrink: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: c.ink800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Box
+                      sx={{
+                        display: { xs: 'none', md: 'inline-block' },
+                        width: 120,
+                        flexShrink: 1,
+                        minWidth: 0,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: c.ink800,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       {table.purpose}
                     </Box>
-                    <Box sx={{ display: { xs: 'none', md: 'inline-block' }, width: 120, flexShrink: 1, minWidth: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: c.ink500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Box
+                      sx={{
+                        display: { xs: 'none', md: 'inline-block' },
+                        width: 120,
+                        flexShrink: 1,
+                        minWidth: 0,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        color: c.ink500,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       {table.sourceSummary}
                     </Box>
-                    <Box sx={{ display: { xs: 'none', md: 'inline-block' }, width: 72, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: 600, color: c.ink900 }}>
+                    <Box
+                      sx={{
+                        display: { xs: 'none', md: 'inline-block' },
+                        width: 72,
+                        flexShrink: 0,
+                        textAlign: 'right',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: c.ink900,
+                      }}
+                    >
                       {table.rowsCountLabel}
                     </Box>
-                    <Box sx={{ display: { xs: 'none', md: 'inline-block' }, width: 96, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: 600, color: c.ink900 }}>
+                    <Box
+                      sx={{
+                        display: { xs: 'none', md: 'inline-block' },
+                        width: 96,
+                        flexShrink: 0,
+                        textAlign: 'right',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: c.ink900,
+                      }}
+                    >
                       {table.updatedLabel}
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1, flexShrink: 0 }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        gap: 1,
+                        flexShrink: 0,
+                      }}
+                    >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Box
@@ -1129,7 +1472,21 @@ export default function CustomTablesPage() {
                             type="button"
                             disabled={exportingTableId === table.id}
                             onClick={event => event.stopPropagation()}
-                            sx={{ display: 'inline-flex', alignItems: 'center', bgcolor: 'var(--primary-fill)', color: '#fff', px: 1.5, py: 0.75, fontSize: 14, fontWeight: 500, border: 'none', borderRadius: tokens.radius.md, cursor: 'pointer', '&:hover': { bgcolor: 'primary.dark' }, '&:disabled': { opacity: 0.5 } }}
+                            sx={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              bgcolor: 'var(--primary-fill)',
+                              color: '#fff',
+                              px: 1.5,
+                              py: 0.75,
+                              fontSize: 14,
+                              fontWeight: 500,
+                              border: 'none',
+                              borderRadius: tokens.radius.md,
+                              cursor: 'pointer',
+                              '&:hover': { bgcolor: 'primary.dark' },
+                              '&:disabled': { opacity: 0.5 },
+                            }}
                           >
                             {exportLabel}
                           </Box>
@@ -1157,7 +1514,20 @@ export default function CustomTablesPage() {
                       <Box
                         component="button"
                         type="button"
-                        sx={{ display: 'inline-flex', alignItems: 'center', border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.md, px: 1.5, py: 0.75, fontSize: 14, fontWeight: 500, color: c.ink800, bgcolor: 'transparent', cursor: 'pointer', '&:hover': { borderColor: 'primary.main', color: 'primary.main' } }}
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          border: `1px solid ${c.ink150}`,
+                          borderRadius: tokens.radius.md,
+                          px: 1.5,
+                          py: 0.75,
+                          fontSize: 14,
+                          fontWeight: 500,
+                          color: c.ink800,
+                          bgcolor: 'transparent',
+                          cursor: 'pointer',
+                          '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+                        }}
                         onClick={event => {
                           event.stopPropagation();
                           router.push(`/custom-tables/${table.id}`);
@@ -1169,7 +1539,21 @@ export default function CustomTablesPage() {
                       <Box
                         component="button"
                         type="button"
-                        sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 0.75, fontSize: 14, fontWeight: 500, color: c.ink500, bgcolor: 'transparent', border: 'none', cursor: 'pointer', '&:hover': { color: c.ink900 }, '&:disabled': { opacity: 0.5 } }}
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.75,
+                          px: 1.5,
+                          py: 0.75,
+                          fontSize: 14,
+                          fontWeight: 500,
+                          color: c.ink500,
+                          bgcolor: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          '&:hover': { color: c.ink900 },
+                          '&:disabled': { opacity: 0.5 },
+                        }}
                         disabled={updatingTableId === table.id}
                         onClick={event => {
                           event.stopPropagation();
@@ -1185,7 +1569,18 @@ export default function CustomTablesPage() {
                           <Box
                             component="button"
                             type="button"
-                            sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.sm, p: 0.75, color: c.ink700, bgcolor: 'transparent', cursor: 'pointer', '&:hover': { borderColor: c.ink300, color: c.ink900 } }}
+                            sx={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: `1px solid ${c.ink150}`,
+                              borderRadius: tokens.radius.sm,
+                              p: 0.75,
+                              color: c.ink700,
+                              bgcolor: 'transparent',
+                              cursor: 'pointer',
+                              '&:hover': { borderColor: c.ink300, color: c.ink900 },
+                            }}
                             onClick={event => event.stopPropagation()}
                             aria-label="More actions"
                           >
@@ -1200,7 +1595,10 @@ export default function CustomTablesPage() {
                             }}
                             style={{ color: c.danger }}
                           >
-                            <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                            <Box
+                              component="span"
+                              sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}
+                            >
                               <Trash2 className="h-4 w-4" />
                               {deleteLabel}
                             </Box>
@@ -1217,7 +1615,14 @@ export default function CustomTablesPage() {
               </Box>
 
               <Box
-                sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { md: 'center' }, justifyContent: 'space-between', gap: 1.5, pt: 2 }}
+                sx={{
+                  display: 'flex',
+                  flexDirection: { xs: 'column', md: 'row' },
+                  alignItems: { md: 'center' },
+                  justifyContent: 'space-between',
+                  gap: 1.5,
+                  pt: 2,
+                }}
                 data-tour-id="pagination"
               >
                 <Typography style={{ fontSize: 14, color: c.ink700 }}>
@@ -1230,7 +1635,9 @@ export default function CustomTablesPage() {
                       })}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography style={{ fontSize: 14, color: c.ink700, minWidth: 120, textAlign: 'center' }}>
+                  <Typography
+                    style={{ fontSize: 14, color: c.ink700, minWidth: 120, textAlign: 'center' }}
+                  >
                     {formatPaginationLabel(paginationLabels.pageOf, {
                       page,
                       count: totalPages || 1,
@@ -1264,266 +1671,372 @@ export default function CustomTablesPage() {
         </DialogTitle>
 
         <DialogContent dividers sx={{ px: 3, py: 2.5 }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-                <Box
-                  sx={{
-                    border: '1px solid',
-                    borderColor: createFromStatementsStep === 1 ? 'primary.main' : c.ink150,
-                    borderRadius: tokens.radius.sm,
-                    bgcolor: createFromStatementsStep === 1 ? 'primary.50' : 'transparent',
-                    px: 1.5,
-                    py: 1,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: createFromStatementsStep === 1 ? 'primary.main' : c.ink500,
-                  }}
-                >
-                  {createFromStatementsLabels.step1}
-                </Box>
-                <Box
-                  sx={{
-                    border: '1px solid',
-                    borderColor: createFromStatementsStep === 2 ? 'primary.main' : c.ink150,
-                    borderRadius: tokens.radius.sm,
-                    bgcolor: createFromStatementsStep === 2 ? 'primary.50' : 'transparent',
-                    px: 1.5,
-                    py: 1,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: createFromStatementsStep === 2 ? 'primary.main' : c.ink500,
-                  }}
-                >
-                  {createFromStatementsLabels.step2}
-                </Box>
-              </Box>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+            <Box
+              sx={{
+                border: '1px solid',
+                borderColor: createFromStatementsStep === 1 ? 'primary.main' : c.ink150,
+                borderRadius: tokens.radius.sm,
+                bgcolor: createFromStatementsStep === 1 ? 'primary.50' : 'transparent',
+                px: 1.5,
+                py: 1,
+                fontSize: 12,
+                fontWeight: 500,
+                color: createFromStatementsStep === 1 ? 'primary.main' : c.ink500,
+              }}
+            >
+              {createFromStatementsLabels.step1}
+            </Box>
+            <Box
+              sx={{
+                border: '1px solid',
+                borderColor: createFromStatementsStep === 2 ? 'primary.main' : c.ink150,
+                borderRadius: tokens.radius.sm,
+                bgcolor: createFromStatementsStep === 2 ? 'primary.50' : 'transparent',
+                px: 1.5,
+                py: 1,
+                fontSize: 12,
+                fontWeight: 500,
+                color: createFromStatementsStep === 2 ? 'primary.main' : c.ink500,
+              }}
+            >
+              {createFromStatementsLabels.step2}
+            </Box>
+          </Box>
 
-              {createFromStatementsStep === 1 ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    {createFromStatementsLabels.step1Description}
+          {createFromStatementsStep === 1 ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {createFromStatementsLabels.step1Description}
+              </Typography>
+
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder={createFromStatementsLabels.searchPlaceholder}
+                    value={statementsSearchQuery}
+                    onChange={e => setStatementsSearchQuery(e.target.value)}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>{createFromStatementsLabels.sourceFilter}</InputLabel>
+                    <Select
+                      value={statementsSourceFilter}
+                      label={createFromStatementsLabels.sourceFilter}
+                      onChange={e => setStatementsSourceFilter(e.target.value)}
+                    >
+                      {statementSourceOptions.map(option => (
+                        <MenuItem key={option} value={option}>
+                          {option === 'all' ? createFromStatementsLabels.sourceAll : option}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>{createFromStatementsLabels.groupBy}</InputLabel>
+                    <Select
+                      value={statementsGroupBy}
+                      label={createFromStatementsLabels.groupBy}
+                      onChange={e => setStatementsGroupBy(e.target.value as StatementGroupBy)}
+                    >
+                      <MenuItem value="source">{createFromStatementsLabels.groupBySource}</MenuItem>
+                      <MenuItem value="period">{createFromStatementsLabels.groupByPeriod}</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+
+              <Box
+                sx={{
+                  maxHeight: 360,
+                  overflowY: 'auto',
+                  border: `1px solid ${c.ink150}`,
+                  borderRadius: tokens.radius.lg,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1.5,
+                  p: 1,
+                }}
+              >
+                {statementsLoading ? (
+                  <Typography variant="caption">
+                    {createFromStatementsLabels.statementsLoading}
                   </Typography>
+                ) : statementSelectionOptions.length === 0 ? (
+                  <Typography variant="caption">
+                    {createFromStatementsLabels.statementsEmpty}
+                  </Typography>
+                ) : groupedStatementSelectionOptions.length === 0 ? (
+                  <Typography variant="caption">
+                    {createFromStatementsLabels.noSearchResults}
+                  </Typography>
+                ) : (
+                  groupedStatementSelectionOptions.map(group => (
+                    <Box
+                      key={group.key}
+                      sx={{ border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.md }}
+                    >
+                      <Box
+                        sx={{
+                          borderBottom: `1px solid ${c.ink150}`,
+                          bgcolor: c.ink50,
+                          px: 1.5,
+                          py: 0.75,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: c.ink700,
+                        }}
+                      >
+                        {group.label} ({group.options.length})
+                      </Box>
+                      <Box>
+                        {group.options.map((option, idx) => {
+                          const checked = selectedStatementIds.includes(option.representativeId);
 
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        placeholder={createFromStatementsLabels.searchPlaceholder}
-                        value={statementsSearchQuery}
-                        onChange={e => setStatementsSearchQuery(e.target.value)}
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 3 }}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>{createFromStatementsLabels.sourceFilter}</InputLabel>
-                        <Select
-                          value={statementsSourceFilter}
-                          label={createFromStatementsLabels.sourceFilter}
-                          onChange={e => setStatementsSourceFilter(e.target.value)}
-                        >
-                          {statementSourceOptions.map(option => (
-                            <MenuItem key={option} value={option}>
-                              {option === 'all' ? createFromStatementsLabels.sourceAll : option}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 3 }}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>{createFromStatementsLabels.groupBy}</InputLabel>
-                        <Select
-                          value={statementsGroupBy}
-                          label={createFromStatementsLabels.groupBy}
-                          onChange={e => setStatementsGroupBy(e.target.value as StatementGroupBy)}
-                        >
-                          <MenuItem value="source">
-                            {createFromStatementsLabels.groupBySource}
-                          </MenuItem>
-                          <MenuItem value="period">
-                            {createFromStatementsLabels.groupByPeriod}
-                          </MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                  </Grid>
-
-                  <Box sx={{ maxHeight: 360, overflowY: 'auto', border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.lg, display: 'flex', flexDirection: 'column', gap: 1.5, p: 1 }}>
-                    {statementsLoading ? (
-                      <Typography variant="caption">
-                        {createFromStatementsLabels.statementsLoading}
-                      </Typography>
-                    ) : statementSelectionOptions.length === 0 ? (
-                      <Typography variant="caption">
-                        {createFromStatementsLabels.statementsEmpty}
-                      </Typography>
-                    ) : groupedStatementSelectionOptions.length === 0 ? (
-                      <Typography variant="caption">
-                        {createFromStatementsLabels.noSearchResults}
-                      </Typography>
-                    ) : (
-                      groupedStatementSelectionOptions.map(group => (
-                        <Box key={group.key} sx={{ border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.md }}>
-                          <Box sx={{ borderBottom: `1px solid ${c.ink150}`, bgcolor: c.ink50, px: 1.5, py: 0.75, fontSize: 12, fontWeight: 600, color: c.ink700 }}>
-                            {group.label} ({group.options.length})
-                          </Box>
-                          <Box>
-                            {group.options.map((option, idx) => {
-                              const checked = selectedStatementIds.includes(
-                                option.representativeId,
-                              );
-
-                              return (
+                          return (
+                            <Box
+                              key={option.representativeId}
+                              component="button"
+                              type="button"
+                              disabled={option.disabled}
+                              onClick={() => {
+                                setSelectedStatementIds(prev =>
+                                  checked
+                                    ? prev.filter(id => id !== option.representativeId)
+                                    : [...prev, option.representativeId],
+                                );
+                              }}
+                              sx={{
+                                display: 'flex',
+                                width: '100%',
+                                alignItems: 'flex-start',
+                                gap: 1.5,
+                                px: 1.5,
+                                py: 1,
+                                textAlign: 'left',
+                                border: 'none',
+                                borderTop: idx > 0 ? `1px solid ${c.ink50}` : 'none',
+                                bgcolor: 'transparent',
+                                cursor: option.disabled ? 'not-allowed' : 'pointer',
+                                opacity: option.disabled ? 0.5 : 1,
+                                '&:hover': { bgcolor: option.disabled ? 'transparent' : c.ink50 },
+                              }}
+                            >
+                              <Checkbox
+                                checked={checked}
+                                className="h-4 w-4"
+                                style={{ marginTop: 2, flexShrink: 0 }}
+                              />
+                              <Box sx={{ minWidth: 0, flex: 1 }}>
                                 <Box
-                                  key={option.representativeId}
-                                  component="button"
-                                  type="button"
-                                  disabled={option.disabled}
-                                  onClick={() => {
-                                    setSelectedStatementIds(prev =>
-                                      checked
-                                        ? prev.filter(id => id !== option.representativeId)
-                                        : [...prev, option.representativeId],
-                                    );
-                                  }}
-                                  sx={{
-                                    display: 'flex',
-                                    width: '100%',
-                                    alignItems: 'flex-start',
-                                    gap: 1.5,
-                                    px: 1.5,
-                                    py: 1,
-                                    textAlign: 'left',
-                                    border: 'none',
-                                    borderTop: idx > 0 ? `1px solid ${c.ink50}` : 'none',
-                                    bgcolor: 'transparent',
-                                    cursor: option.disabled ? 'not-allowed' : 'pointer',
-                                    opacity: option.disabled ? 0.5 : 1,
-                                    '&:hover': { bgcolor: option.disabled ? 'transparent' : c.ink50 },
+                                  style={{
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    fontSize: 14,
+                                    fontWeight: 600,
+                                    color: c.ink900,
                                   }}
                                 >
-                                  <Checkbox checked={checked} className="h-4 w-4" style={{ marginTop: 2, flexShrink: 0 }} />
-                                  <Box sx={{ minWidth: 0, flex: 1 }}>
-                                    <Box style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 14, fontWeight: 600, color: c.ink900 }}>
-                                      {option.title}
-                                    </Box>
-                                    <Box style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: c.ink500 }}>
-                                      {createFromStatementsLabels.sourceLabel}: {option.sourceLabel}{' '}
-                                      - {createFromStatementsLabels.periodLabel}:{' '}
-                                      {option.periodLabel}
-                                    </Box>
-                                    <Box style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: c.ink500 }}>
-                                      {createFromStatementsLabels.fileLabel}: {option.fileLabel}
-                                    </Box>
-                                    {option.duplicateCount > 1 ? (
-                                      <Box style={{ fontSize: 12, color: c.warning }}>
-                                        {formatPaginationLabel(
-                                          createFromStatementsLabels.duplicateUploads,
-                                          {
-                                            count: option.duplicateCount,
-                                          },
-                                        )}
-                                      </Box>
-                                    ) : null}
-                                  </Box>
-                                  <Box style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, color: c.ink800 }}>
-                                    {option.rowsLabel}
-                                  </Box>
+                                  {option.title}
                                 </Box>
-                              );
-                            })}
-                          </Box>
-                        </Box>
-                      ))
-                    )}
-                  </Box>
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: c.ink500 }}>
-                    <span>{createFromStatementsLabels.hint}</span>
-                    <span>
-                      {formatPaginationLabel(createFromStatementsLabels.selectedLabel, {
-                        count: selectedStatementSummary.selectedCount,
-                      })}
-                    </span>
-                  </Box>
-                </Box>
-              ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    {createFromStatementsLabels.step2Description}
-                  </Typography>
-
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, md: 4 }}>
-                      <TextField
-                        label={createFromStatementsLabels.nameOptional}
-                        placeholder={createFromStatementsLabels.namePlaceholder}
-                        helperText={namingHintLabel}
-                        fullWidth
-                        size="small"
-                        value={createFromStatementsForm.name}
-                        onChange={e =>
-                          setCreateFromStatementsForm(prev => ({
-                            ...prev,
-                            name: e.target.value,
-                          }))
-                        }
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 8 }}>
-                      <TextField
-                        label={createFromStatementsLabels.descriptionOptional}
-                        placeholder={createFromStatementsLabels.descriptionPlaceholder}
-                        fullWidth
-                        size="small"
-                        value={createFromStatementsForm.description}
-                        onChange={e =>
-                          setCreateFromStatementsForm(prev => ({
-                            ...prev,
-                            description: e.target.value,
-                          }))
-                        }
-                      />
-                    </Grid>
-                  </Grid>
-
-                  <Box sx={{ border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.lg, bgcolor: c.ink50, p: 1.5 }}>
-                    <Typography style={{ fontSize: 14, fontWeight: 600, color: c.ink900 }}>
-                      {createFromStatementsLabels.previewTitle}
-                    </Typography>
-                    <Typography style={{ marginTop: 4, fontSize: 14, color: c.ink800 }}>
-                      {formatPaginationLabel(createFromStatementsLabels.previewSummary, {
-                        statements: selectedStatementSummary.selectedCount,
-                      })}
-                    </Typography>
-                    <Typography style={{ fontSize: 14, fontWeight: 600, color: c.ink900 }}>
-                      {formatPaginationLabel(createFromStatementsLabels.previewRows, {
-                        rows: selectedStatementSummary.totalRows,
-                      })}
-                    </Typography>
-                    <Typography style={{ marginTop: 4, fontSize: 12, color: c.ink500 }}>
-                      {createFromStatementsLabels.previewEditable}
-                    </Typography>
-
-                    <Box sx={{ mt: 1.5, maxHeight: 128, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      {selectedStatementPreviewItems.map(option => (
-                        <Box
-                          key={option.representativeId}
-                          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: `1px solid ${c.ink150}`, borderRadius: tokens.radius.sm, bgcolor: 'background.paper', px: 1, py: 0.5 }}
-                        >
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: c.ink800 }}>{option.title}</span>
-                          <span style={{ fontSize: 12, fontWeight: 500, color: c.ink900, flexShrink: 0, marginLeft: 8 }}>
-                            {option.rowsLabel}
-                          </span>
-                        </Box>
-                      ))}
+                                <Box
+                                  style={{
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    fontSize: 12,
+                                    color: c.ink500,
+                                  }}
+                                >
+                                  {createFromStatementsLabels.sourceLabel}: {option.sourceLabel} -{' '}
+                                  {createFromStatementsLabels.periodLabel}: {option.periodLabel}
+                                </Box>
+                                <Box
+                                  style={{
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    fontSize: 12,
+                                    color: c.ink500,
+                                  }}
+                                >
+                                  {createFromStatementsLabels.fileLabel}: {option.fileLabel}
+                                </Box>
+                                {option.duplicateCount > 1 ? (
+                                  <Box style={{ fontSize: 12, color: c.warning }}>
+                                    {formatPaginationLabel(
+                                      createFromStatementsLabels.duplicateUploads,
+                                      {
+                                        count: option.duplicateCount,
+                                      },
+                                    )}
+                                  </Box>
+                                ) : null}
+                              </Box>
+                              <Box
+                                style={{
+                                  flexShrink: 0,
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  color: c.ink800,
+                                }}
+                              >
+                                {option.rowsLabel}
+                              </Box>
+                            </Box>
+                          );
+                        })}
+                      </Box>
                     </Box>
-                  </Box>
+                  ))
+                )}
+              </Box>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontSize: 12,
+                  color: c.ink500,
+                }}
+              >
+                <span>{createFromStatementsLabels.hint}</span>
+                <span>
+                  {formatPaginationLabel(createFromStatementsLabels.selectedLabel, {
+                    count: selectedStatementSummary.selectedCount,
+                  })}
+                </span>
+              </Box>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {createFromStatementsLabels.step2Description}
+              </Typography>
+
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField
+                    label={createFromStatementsLabels.nameOptional}
+                    placeholder={createFromStatementsLabels.namePlaceholder}
+                    helperText={namingHintLabel}
+                    fullWidth
+                    size="small"
+                    value={createFromStatementsForm.name}
+                    onChange={e =>
+                      setCreateFromStatementsForm(prev => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 8 }}>
+                  <TextField
+                    label={createFromStatementsLabels.descriptionOptional}
+                    placeholder={createFromStatementsLabels.descriptionPlaceholder}
+                    fullWidth
+                    size="small"
+                    value={createFromStatementsForm.description}
+                    onChange={e =>
+                      setCreateFromStatementsForm(prev => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                  />
+                </Grid>
+              </Grid>
+
+              <Box
+                sx={{
+                  border: `1px solid ${c.ink150}`,
+                  borderRadius: tokens.radius.lg,
+                  bgcolor: c.ink50,
+                  p: 1.5,
+                }}
+              >
+                <Typography style={{ fontSize: 14, fontWeight: 600, color: c.ink900 }}>
+                  {createFromStatementsLabels.previewTitle}
+                </Typography>
+                <Typography style={{ marginTop: 4, fontSize: 14, color: c.ink800 }}>
+                  {formatPaginationLabel(createFromStatementsLabels.previewSummary, {
+                    statements: selectedStatementSummary.selectedCount,
+                  })}
+                </Typography>
+                <Typography style={{ fontSize: 14, fontWeight: 600, color: c.ink900 }}>
+                  {formatPaginationLabel(createFromStatementsLabels.previewRows, {
+                    rows: selectedStatementSummary.totalRows,
+                  })}
+                </Typography>
+                <Typography style={{ marginTop: 4, fontSize: 12, color: c.ink500 }}>
+                  {createFromStatementsLabels.previewEditable}
+                </Typography>
+
+                <Box
+                  sx={{
+                    mt: 1.5,
+                    maxHeight: 128,
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.5,
+                  }}
+                >
+                  {selectedStatementPreviewItems.map(option => (
+                    <Box
+                      key={option.representativeId}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        border: `1px solid ${c.ink150}`,
+                        borderRadius: tokens.radius.sm,
+                        bgcolor: 'background.paper',
+                        px: 1,
+                        py: 0.5,
+                      }}
+                    >
+                      <span
+                        style={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          fontSize: 12,
+                          color: c.ink800,
+                        }}
+                      >
+                        {option.title}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: c.ink900,
+                          flexShrink: 0,
+                          marginLeft: 8,
+                        }}
+                      >
+                        {option.rowsLabel}
+                      </span>
+                    </Box>
+                  ))}
                 </Box>
-              )}
+              </Box>
+            </Box>
+          )}
         </DialogContent>
 
-        <DialogActions sx={{ gap: 1, borderTop: '1px solid', borderColor: 'divider', px: 3, py: 2 }}>
+        <DialogActions
+          sx={{ gap: 1, borderTop: '1px solid', borderColor: 'divider', px: 3, py: 2 }}
+        >
           <Button onClick={closeCreateFromStatements} type="button">
             {t.actions.cancel.value}
           </Button>

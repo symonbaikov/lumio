@@ -157,9 +157,7 @@ describe('StatementsListItem', () => {
       );
     });
 
-    expect(
-      container.querySelector('[data-testid="statement-item-mobile-statement-1"]'),
-    ).toBeNull();
+    expect(container.querySelector('[data-testid="statement-item-mobile-statement-1"]')).toBeNull();
     expect(
       container.querySelector('[data-testid="statement-item-desktop-statement-1"]'),
     ).toBeTruthy();
@@ -211,9 +209,9 @@ describe('StatementsListItem', () => {
     });
 
     expect(documentTypeIconSpy).toHaveBeenCalled();
-    expect(
-      documentTypeIconSpy.mock.calls.every(([props]) => props.source === 'receipt'),
-    ).toBe(true);
+    expect(documentTypeIconSpy.mock.calls.every(([props]) => props.source === 'receipt')).toBe(
+      true,
+    );
 
     const previewTrigger = container.querySelector(
       '[data-testid="statement-thumbnail-trigger-receipt-local-1"]',
@@ -694,7 +692,9 @@ describe('StatementsListItem', () => {
     expect(container.textContent).toContain('PRIMARY #1/2');
     expect(container.textContent).toContain('Review');
     const duplicateRow = container.querySelector('.lumio-stmt-list-item') as HTMLElement | null;
-    const duplicateAccent = container.querySelector('.lumio-stmt-list-item__accent') as HTMLElement | null;
+    const duplicateAccent = container.querySelector(
+      '.lumio-stmt-list-item__accent',
+    ) as HTMLElement | null;
 
     expect(duplicateRow?.style.backgroundColor).toBe('rgb(255, 255, 255)');
     expect(duplicateRow?.style.boxShadow).toContain('inset 0 0 0 1px');
@@ -859,9 +859,7 @@ describe('StatementsListItem', () => {
           onToggleSelect={() => undefined}
           currentExchangeRateLabels={{ 'USD:KZT': '1 USD = 512.34 KZT' }}
           workspaceCurrency="KZT"
-          columns={[
-            { id: 'exchangeRate', label: 'Exchange rate', visible: true, order: 0 },
-          ]}
+          columns={[{ id: 'exchangeRate', label: 'Exchange rate', visible: true, order: 0 }]}
         />,
       );
     });
@@ -903,9 +901,7 @@ describe('StatementsListItem', () => {
           onToggleSelect={() => undefined}
           currentExchangeRateLabels={{ 'USD:KZT': '1 USD = 512.34 KZT' }}
           workspaceCurrency={null}
-          columns={[
-            { id: 'exchangeRate', label: 'Exchange rate', visible: true, order: 0 },
-          ]}
+          columns={[{ id: 'exchangeRate', label: 'Exchange rate', visible: true, order: 0 }]}
         />,
       );
     });
@@ -947,9 +943,7 @@ describe('StatementsListItem', () => {
           onToggleSelect={() => undefined}
           currentExchangeRateLabels={{ 'USD:ILS': '1 USD = 3.72 ILS' }}
           workspaceCurrency="NIS"
-          columns={[
-            { id: 'exchangeRate', label: 'Exchange rate', visible: true, order: 0 },
-          ]}
+          columns={[{ id: 'exchangeRate', label: 'Exchange rate', visible: true, order: 0 }]}
         />,
       );
     });

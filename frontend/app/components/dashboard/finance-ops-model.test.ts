@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import type { DashboardData } from '@/app/hooks/useDashboard';
+import { describe, expect, it } from 'vitest';
 
 import { type FinanceOpsLabels, buildFinanceOpsModel } from './finance-ops-model';
 
@@ -32,7 +32,8 @@ const labels: FinanceOpsLabels = {
     },
     transactionTriageMode: {
       title: 'Transaction Triage Mode',
-      summary: 'Process uncategorized transactions as an approval queue instead of hunting in tables.',
+      summary:
+        'Process uncategorized transactions as an approval queue instead of hunting in tables.',
       primaryAction: 'Start triage',
       evidence: '{transactions}',
     },
@@ -45,7 +46,8 @@ const labels: FinanceOpsLabels = {
     },
     periodCloseChecklistFeature: {
       title: 'Period Close Checklist',
-      summary: 'Make month close explicit: imports, review, categories, receipts, and cash approval.',
+      summary:
+        'Make month close explicit: imports, review, categories, receipts, and cash approval.',
       primaryActionResolve: 'Resolve blockers',
       primaryActionExport: 'Export reports',
       evidence: '{done}/{total} checks complete',
@@ -85,7 +87,8 @@ const labels: FinanceOpsLabels = {
     },
     explainThisNumber: {
       title: 'Explain This Number',
-      summary: 'Connect every headline number to source transactions, categories, and period changes.',
+      summary:
+        'Connect every headline number to source transactions, categories, and period changes.',
       primaryAction: 'Explain report numbers',
       evidenceTopCategoryAmount: '{name}: {amount}',
       evidenceBalance: 'Balance: {amount}',
@@ -121,7 +124,15 @@ const baseData: DashboardData = {
   cashFlow: [],
   topMerchants: [{ name: 'Acme Ltd', amount: 42000, count: 3 }],
   topCategories: [
-    { id: 'cat-1', name: 'Operations', color: '#3b82f6', icon: null, amount: 33000, count: 4, percent: 40 },
+    {
+      id: 'cat-1',
+      name: 'Operations',
+      color: '#3b82f6',
+      icon: null,
+      amount: 33000,
+      count: 4,
+      percent: 40,
+    },
   ],
   recentTransactions: [],
   role: 'owner',

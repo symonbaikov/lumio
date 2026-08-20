@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/app/lib/api';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 export interface ApiKeyItem {
@@ -38,18 +38,23 @@ export function useApiKeys() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
-
-  const create = useCallback(async (name: string) => {
-    try {
-      const res = await apiClient.post('/api-keys', { name });
-      setNewKey(res.data as CreatedApiKey);
-      await load();
-      toast.success('API key created');
-    } catch {
-      toast.error('Failed to create API key');
-    }
+  useEffect(() => {
+    void load();
   }, [load]);
+
+  const create = useCallback(
+    async (name: string) => {
+      try {
+        const res = await apiClient.post('/api-keys', { name });
+        setNewKey(res.data as CreatedApiKey);
+        await load();
+        toast.success('API key created');
+      } catch {
+        toast.error('Failed to create API key');
+      }
+    },
+    [load],
+  );
 
   const revoke = useCallback(async (id: string) => {
     try {

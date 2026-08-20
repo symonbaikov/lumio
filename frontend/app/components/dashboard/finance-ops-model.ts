@@ -160,7 +160,8 @@ export function buildFinanceOpsModel(
   const triagePending = dataHealth.uncategorizedTransactions;
   const receiptPending = dataHealth.receiptsPendingReview;
   const reconciliationPending = Math.abs(snapshot.unapprovedCash) > 0 ? 1 : 0;
-  const anomalyPending = snapshot.totalOverdue > 0 || snapshot.expense30d > snapshot.income30d ? 1 : 0;
+  const anomalyPending =
+    snapshot.totalOverdue > 0 || snapshot.expense30d > snapshot.income30d ? 1 : 0;
 
   const closeChecklist: FinanceOpsChecklistItem[] = [
     {

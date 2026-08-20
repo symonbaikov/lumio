@@ -4,7 +4,7 @@ import { useIntlayer } from '@/app/i18n';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { useSearchParams } from 'next/navigation';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 
 import DetailsDrawer from '@/app/components/transactions/DetailsDrawer';
@@ -117,7 +117,15 @@ export function TransactionTab() {
 
   if (error && transactions.length === 0) {
     return (
-      <Box sx={{ border: '1px solid #fecaca', bgcolor: 'var(--color-error-soft-bg)', p: 2, color: 'var(--destructive)', mb: 2 }}>
+      <Box
+        sx={{
+          border: '1px solid #fecaca',
+          bgcolor: 'var(--color-error-soft-bg)',
+          p: 2,
+          color: 'var(--destructive)',
+          mb: 2,
+        }}
+      >
         {error}
       </Box>
     );
@@ -176,7 +184,14 @@ export function TransactionTab() {
             <select
               value={bulkCategoryId}
               onChange={e => setBulkCategoryId(e.target.value)}
-              style={{ flex: 1, maxWidth: 320, border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', padding: '8px 12px', fontSize: 14 }}
+              style={{
+                flex: 1,
+                maxWidth: 320,
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--card-bg)',
+                padding: '8px 12px',
+                fontSize: 14,
+              }}
             >
               <option value="">{t.selectCategory?.value || 'Select category...'}</option>
               {categories
@@ -211,7 +226,16 @@ export function TransactionTab() {
           <button
             type="button"
             onClick={() => setSelectedIds([])}
-            style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', padding: '8px 16px', fontSize: 14, fontWeight: 600, color: 'var(--foreground)', cursor: 'pointer', transition: 'background-color 150ms' }}
+            style={{
+              border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--card-bg)',
+              padding: '8px 16px',
+              fontSize: 14,
+              fontWeight: 600,
+              color: 'var(--foreground)',
+              cursor: 'pointer',
+              transition: 'background-color 150ms',
+            }}
           >
             {t.clearSelection?.value || 'Clear selection'}
           </button>

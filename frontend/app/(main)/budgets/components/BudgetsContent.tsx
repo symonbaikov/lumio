@@ -77,12 +77,7 @@ export function BudgetsContent({
       {!loading && !error && budgets.length > 0 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {budgets.map(budget => (
-            <BudgetCard
-              key={budget.id}
-              budget={budget}
-              onEdit={openEdit}
-              onDelete={handleDelete}
-            />
+            <BudgetCard key={budget.id} budget={budget} onEdit={openEdit} onDelete={handleDelete} />
           ))}
         </Box>
       )}

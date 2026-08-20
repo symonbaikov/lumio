@@ -45,7 +45,15 @@ describe('TopCategoriesCard', () => {
     render(
       <TopCategoriesCard
         categories={[
-          { id: null, name: null, color: '#898781', icon: null, amount: 500, percent: 100, count: 2 },
+          {
+            id: null,
+            name: null,
+            color: '#898781',
+            icon: null,
+            amount: 500,
+            percent: 100,
+            count: 2,
+          },
         ]}
         formatAmount={v => `$${v}`}
       />,
@@ -83,7 +91,15 @@ describe('TopCategoriesCard', () => {
     render(
       <TopCategoriesCard
         categories={[
-          { id: 'cat-1', name: 'Groceries', color: '#0584C7', icon: null, amount: 1200, percent: 40, count: 5 },
+          {
+            id: 'cat-1',
+            name: 'Groceries',
+            color: '#0584C7',
+            icon: null,
+            amount: 1200,
+            percent: 40,
+            count: 5,
+          },
         ]}
         formatAmount={v => `$${v}`}
       />,
