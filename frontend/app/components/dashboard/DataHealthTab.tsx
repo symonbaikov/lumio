@@ -35,8 +35,7 @@ function getRelativeTime(isoDate: string, labels: RelativeTimeLabels): string {
   if (diffDays === 1) return labels.yesterday;
   if (diffDays < 7) return fillTemplate(labels.daysAgo, { n: String(diffDays) });
   if (diffDays < 14) return labels.oneWeekAgo;
-  if (diffDays < 30)
-    return fillTemplate(labels.weeksAgo, { n: String(Math.floor(diffDays / 7)) });
+  if (diffDays < 30) return fillTemplate(labels.weeksAgo, { n: String(Math.floor(diffDays / 7)) });
   if (diffDays < 60) return labels.oneMonthAgo;
   return fillTemplate(labels.monthsAgo, { n: String(Math.floor(diffDays / 30)) });
 }

@@ -1,9 +1,6 @@
 'use client';
 
-import {
-  parseDateOnly,
-  resolveLocale,
-} from '@/app/(main)/dashboard/helpers/dashboard-helpers';
+import { parseDateOnly, resolveLocale } from '@/app/(main)/dashboard/helpers/dashboard-helpers';
 import { ArrowRight } from '@/app/components/icons';
 import type { DashboardData } from '@/app/hooks/useDashboard';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -41,8 +38,12 @@ export function RecentTransactionsCard({
       </div>
       <div className="lumio-dashboard__card-shell-body">
         {transactions.length === 0 ? (
-          <Box sx={{ display: 'flex', height: 128, alignItems: 'center', justifyContent: 'center' }}>
-            <Typography sx={{ fontSize: 14, color: 'var(--muted-foreground)' }}>{t.empty}</Typography>
+          <Box
+            sx={{ display: 'flex', height: 128, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Typography sx={{ fontSize: 14, color: 'var(--muted-foreground)' }}>
+              {t.empty}
+            </Typography>
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

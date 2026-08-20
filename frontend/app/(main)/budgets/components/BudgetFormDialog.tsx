@@ -1,6 +1,5 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/app/lib/api';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -12,6 +11,7 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
+import { useCallback, useEffect, useState } from 'react';
 import type { BudgetFormData, BudgetItem } from '../hooks/useBudgetsPage';
 
 interface CategoryOption {
@@ -43,10 +43,13 @@ export function BudgetFormDialog({
 
   useEffect(() => {
     if (!open) return;
-    apiClient.get('/categories').then(res => {
-      const data = res.data?.data ?? res.data ?? [];
-      setCategories(data.filter((c: CategoryOption) => c.type === 'expense'));
-    }).catch(() => {});
+    apiClient
+      .get('/categories')
+      .then(res => {
+        const data = res.data?.data ?? res.data ?? [];
+        setCategories(data.filter((c: CategoryOption) => c.type === 'expense'));
+      })
+      .catch(() => {});
   }, [open]);
 
   const handleChange = useCallback(
@@ -61,7 +64,9 @@ export function BudgetFormDialog({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{editing ? 'Edit Budget' : 'New Budget'}</DialogTitle>
-      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+      <DialogContent
+        sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}
+      >
         <TextField
           label="Name"
           value={formData.name}

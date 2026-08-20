@@ -1,13 +1,13 @@
 'use client';
 
-import { Box, TextField, Typography } from '@mui/material';
 import { FileText, Filter, Folder, Search, Trash2 } from '@/app/components/icons';
+import { tokens } from '@/lib/theme-tokens';
+import { Box, TextField, Typography } from '@mui/material';
+import { useTheme } from 'next-themes';
 import React from 'react';
-import { DroppableHeaderTrigger } from './DroppableHeaderTrigger';
 import { listToggleSx } from '../helpers/storageStyling';
 import type { StorageFile } from '../storageHelpers';
-import { tokens } from '@/lib/theme-tokens';
-import { useTheme } from 'next-themes';
+import { DroppableHeaderTrigger } from './DroppableHeaderTrigger';
 
 type SortKey = string;
 
@@ -89,7 +89,14 @@ export function StorageHeader({
     >
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-          <Box sx={{ p: 1, borderRadius: tokens.radius.full, bgcolor: 'rgba(22,129,24,0.1)', color: 'primary.main' }}>
+          <Box
+            sx={{
+              p: 1,
+              borderRadius: tokens.radius.full,
+              bgcolor: 'rgba(22,129,24,0.1)',
+              color: 'primary.main',
+            }}
+          >
             <Folder style={{ width: 24, height: 24 }} />
           </Box>
           <Typography component="h1" style={{ fontSize: 22, fontWeight: 700, color: c.ink900 }}>
@@ -98,8 +105,23 @@ export function StorageHeader({
         </Box>
         <Typography style={{ fontSize: 14, color: c.ink500 }}>{subtitleLabel}</Typography>
       </Box>
-      <Box sx={{ display: 'flex', width: { xs: '100%', md: 'auto' }, flexDirection: 'column', gap: 1.5 }}>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { md: 'center' }, gap: 1.5, position: 'relative' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          width: { xs: '100%', md: 'auto' },
+          flexDirection: 'column',
+          gap: 1.5,
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: { md: 'center' },
+            gap: 1.5,
+            position: 'relative',
+          }}
+        >
           <StorageTabButtons
             isTrashView={isTrashView}
             isFolderActive={isFolderActive}
@@ -168,7 +190,16 @@ function StorageTabButtons({
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, border: `1px solid ${c.ink150}`, bgcolor: c.ink50, p: 0.5 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          border: `1px solid ${c.ink150}`,
+          bgcolor: c.ink50,
+          p: 0.5,
+        }}
+      >
         <Box sx={{ position: 'relative' }}>
           <DroppableHeaderTrigger onDragOver={onFolderDragOver}>
             <Box
@@ -179,7 +210,9 @@ function StorageTabButtons({
               title={typeof foldersTitleLabel === 'string' ? foldersTitleLabel : undefined}
               sx={{
                 ...listToggleSx(isFolderActive),
-                ...(draggingFile ? { outline: '2px solid rgba(22,129,24,0.3)', outlineOffset: 2 } : {}),
+                ...(draggingFile
+                  ? { outline: '2px solid rgba(22,129,24,0.3)', outlineOffset: 2 }
+                  : {}),
               }}
             >
               <Folder style={{ width: 16, height: 16 }} />
@@ -187,11 +220,21 @@ function StorageTabButtons({
             </Box>
           </DroppableHeaderTrigger>
         </Box>
-        <Box component="button" type="button" onClick={onListChangeActive} sx={listToggleSx(!isTrashView)}>
+        <Box
+          component="button"
+          type="button"
+          onClick={onListChangeActive}
+          sx={listToggleSx(!isTrashView)}
+        >
           <FileText style={{ width: 16, height: 16 }} />
           {tabsAllLabel}
         </Box>
-        <Box component="button" type="button" onClick={onListChangeTrash} sx={listToggleSx(isTrashView)}>
+        <Box
+          component="button"
+          type="button"
+          onClick={onListChangeTrash}
+          sx={listToggleSx(isTrashView)}
+        >
           <Trash2 style={{ width: 16, height: 16 }} />
           {tabsTrashLabel}
         </Box>
@@ -217,11 +260,22 @@ function StorageSearchInput({
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   return (
     <Box sx={{ position: 'relative', width: { xs: '100%', md: 320 } }} data-tour-id="file-search">
-      <Search style={{ width: 16, height: 16, color: c.ink400, position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+      <Search
+        style={{
+          width: 16,
+          height: 16,
+          color: c.ink400,
+          position: 'absolute',
+          left: 12,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          pointerEvents: 'none',
+        }}
+      />
       <TextField
         size="small"
         value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
+        onChange={e => onSearchChange(e.target.value)}
         placeholder={searchPlaceholder}
         aria-label={searchFilesLabel}
         sx={{ width: '100%', '& .MuiOutlinedInput-root': { pl: 4 } }}
@@ -257,8 +311,16 @@ function StorageSortSelect({
     <Box sx={{ position: 'relative', width: { xs: '100%', md: 224 } }}>
       <select
         value={sortKey}
-        onChange={(e) => onSortChange(e.target.value)}
-        style={{ width: '100%', border: `1px solid ${c.ink150}`, background: 'var(--card-bg)', padding: '8px 40px 8px 12px', fontSize: 14, color: c.ink900, appearance: 'auto' }}
+        onChange={e => onSortChange(e.target.value)}
+        style={{
+          width: '100%',
+          border: `1px solid ${c.ink150}`,
+          background: 'var(--card-bg)',
+          padding: '8px 40px 8px 12px',
+          fontSize: 14,
+          color: c.ink900,
+          appearance: 'auto',
+        }}
       >
         <option value="createdAt:desc">{sortNewest}</option>
         <option value="createdAt:asc">{sortOldest}</option>
@@ -307,7 +369,15 @@ function StorageFilterButton({
         <Filter style={{ width: 20, height: 20 }} />
         {filtersButtonLabel}
         {filtersApplied && (
-          <Box sx={{ ml: 1, width: 8, height: 8, borderRadius: tokens.radius.full, bgcolor: 'background.paper' }} />
+          <Box
+            sx={{
+              ml: 1,
+              width: 8,
+              height: 8,
+              borderRadius: tokens.radius.full,
+              bgcolor: 'background.paper',
+            }}
+          />
         )}
       </Box>
     </Box>

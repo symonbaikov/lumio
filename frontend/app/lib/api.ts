@@ -86,17 +86,15 @@ async function refreshAccessToken(originalRequest: Record<string, unknown>): Pro
   return apiClient(originalRequest);
 }
 
-const AUTH_RETRY_EXCLUDED_PATHS = new Set([
-  '/auth/login',
-  '/auth/register',
-  '/auth/refresh',
-]);
+const AUTH_RETRY_EXCLUDED_PATHS = new Set(['/auth/login', '/auth/register', '/auth/refresh']);
 
 function isAuthRetryExcludedRequest(originalRequest: Record<string, unknown>): boolean {
   const url = typeof originalRequest.url === 'string' ? originalRequest.url : '';
 
   try {
-    return AUTH_RETRY_EXCLUDED_PATHS.has(new URL(url, apiBaseUrl).pathname.replace(/\/api\/v1/, ''));
+    return AUTH_RETRY_EXCLUDED_PATHS.has(
+      new URL(url, apiBaseUrl).pathname.replace(/\/api\/v1/, ''),
+    );
   } catch {
     return AUTH_RETRY_EXCLUDED_PATHS.has(url.split('?')[0] ?? url);
   }

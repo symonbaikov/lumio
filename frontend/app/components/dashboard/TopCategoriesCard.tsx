@@ -105,7 +105,12 @@ export function TopCategoriesCard({ categories, formatAmount }: TopCategoriesCar
   return (
     <Box sx={{ display: 'flex', height: '100%', width: '100%', gap: 2 }}>
       <Box sx={{ flex: '0 0 140px', minWidth: 0, height: '100%' }}>
-        <ReactECharts style={{ height: '100%', width: '100%' }} option={option} notMerge lazyUpdate />
+        <ReactECharts
+          style={{ height: '100%', width: '100%' }}
+          option={option}
+          notMerge
+          lazyUpdate
+        />
       </Box>
       <Box
         sx={{

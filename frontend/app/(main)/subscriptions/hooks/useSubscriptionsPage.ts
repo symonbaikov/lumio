@@ -1,7 +1,7 @@
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import apiClient from '@/app/lib/api';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import apiClient from '@/app/lib/api';
-import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 
 export interface SubscriptionItem {
   id: string;
@@ -83,7 +83,9 @@ export function useSubscriptionsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSubscription, setEditingSubscription] = useState<SubscriptionItem | null>(null);
-  const [formData, setFormData] = useState<SubscriptionFormData>(() => makeEmptyForm(workspaceCurrency));
+  const [formData, setFormData] = useState<SubscriptionFormData>(() =>
+    makeEmptyForm(workspaceCurrency),
+  );
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -96,15 +98,18 @@ export function useSubscriptionsPage() {
         apiClient.get('/subscriptions/summary'),
       ]);
       setSubscriptions(subsRes.data?.data ?? subsRes.data ?? []);
-      setSummary(summaryRes.data?.data ?? summaryRes.data ?? {
-        totalMonthlyCost: 0,
-        activeCount: 0,
-        upcomingCount: 0,
-        upcoming30DaysCount: 0,
-        priceChangeCount: 0,
-        overdueReviewCount: 0,
-        realizedAnnualSavings: 0,
-      });
+      setSummary(
+        summaryRes.data?.data ??
+          summaryRes.data ?? {
+            totalMonthlyCost: 0,
+            activeCount: 0,
+            upcomingCount: 0,
+            upcoming30DaysCount: 0,
+            priceChangeCount: 0,
+            overdueReviewCount: 0,
+            realizedAnnualSavings: 0,
+          },
+      );
     } catch {
       setError('Failed to load subscriptions');
     } finally {
@@ -118,9 +123,12 @@ export function useSubscriptionsPage() {
 
   useEffect(() => {
     if (!currentWorkspace?.id) return;
-    void apiClient.get(`/workspaces/${currentWorkspace.id}`).then(res => {
-      setWorkspaceMembers(res.data?.members ?? []);
-    }).catch(() => setWorkspaceMembers([]));
+    void apiClient
+      .get(`/workspaces/${currentWorkspace.id}`)
+      .then(res => {
+        setWorkspaceMembers(res.data?.members ?? []);
+      })
+      .catch(() => setWorkspaceMembers([]));
   }, [currentWorkspace?.id]);
 
   const openCreate = useCallback(() => {
@@ -175,59 +183,74 @@ export function useSubscriptionsPage() {
     }
   }, [formData, editingSubscription, closeDialog, load, workspaceCurrency]);
 
-  const handleDelete = useCallback(async (id: string) => {
-    try {
-      await apiClient.delete(`/subscriptions/${id}`);
-      toast.success('Subscription cancelled');
-      await load();
-    } catch {
-      toast.error('Failed to delete subscription');
-    }
-  }, [load]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      try {
+        await apiClient.delete(`/subscriptions/${id}`);
+        toast.success('Subscription cancelled');
+        await load();
+      } catch {
+        toast.error('Failed to delete subscription');
+      }
+    },
+    [load],
+  );
 
-  const handleConfirm = useCallback(async (id: string) => {
-    try {
-      await apiClient.post(`/subscriptions/${id}/confirm`);
-      toast.success('Subscription confirmed');
-      await load();
-    } catch {
-      toast.error('Failed to confirm subscription');
-    }
-  }, [load]);
+  const handleConfirm = useCallback(
+    async (id: string) => {
+      try {
+        await apiClient.post(`/subscriptions/${id}/confirm`);
+        toast.success('Subscription confirmed');
+        await load();
+      } catch {
+        toast.error('Failed to confirm subscription');
+      }
+    },
+    [load],
+  );
 
-  const handleDismiss = useCallback(async (id: string) => {
-    try {
-      await apiClient.post(`/subscriptions/${id}/dismiss`);
-      toast.success('Subscription dismissed');
-      await load();
-    } catch {
-      toast.error('Failed to dismiss subscription');
-    }
-  }, [load]);
+  const handleDismiss = useCallback(
+    async (id: string) => {
+      try {
+        await apiClient.post(`/subscriptions/${id}/dismiss`);
+        toast.success('Subscription dismissed');
+        await load();
+      } catch {
+        toast.error('Failed to dismiss subscription');
+      }
+    },
+    [load],
+  );
 
-  const assignOwner = useCallback(async (id: string, ownerId: string) => {
-    try {
-      await apiClient.patch(`/subscriptions/${id}/owner`, { ownerId });
-      toast.success('Owner assigned');
-      await load();
-    } catch {
-      toast.error('Failed to assign owner');
-    }
-  }, [load]);
+  const assignOwner = useCallback(
+    async (id: string, ownerId: string) => {
+      try {
+        await apiClient.patch(`/subscriptions/${id}/owner`, { ownerId });
+        toast.success('Owner assigned');
+        await load();
+      } catch {
+        toast.error('Failed to assign owner');
+      }
+    },
+    [load],
+  );
 
-  const recordDecision = useCallback(async (
-    id: string,
-    decision: 'keep' | 'review' | 'cancelled' | 'price_reduced',
-    values: { note?: string; reviewAt?: string; realizedAnnualSavings?: number } = {},
-  ) => {
-    try {
-      await apiClient.post(`/subscriptions/${id}/decisions`, { decision, ...values });
-      toast.success('Subscription decision saved');
-      await load();
-    } catch {
-      toast.error('Failed to save subscription decision');
-    }
-  }, [load]);
+  const recordDecision = useCallback(
+    async (
+      id: string,
+      decision: 'keep' | 'review' | 'cancelled' | 'price_reduced',
+      values: { note?: string; reviewAt?: string; realizedAnnualSavings?: number } = {},
+    ) => {
+      try {
+        await apiClient.post(`/subscriptions/${id}/decisions`, { decision, ...values });
+        toast.success('Subscription decision saved');
+        await load();
+      } catch {
+        toast.error('Failed to save subscription decision');
+      }
+    },
+    [load],
+  );
 
   return {
     subscriptions,

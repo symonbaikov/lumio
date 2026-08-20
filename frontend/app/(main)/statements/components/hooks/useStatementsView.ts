@@ -274,10 +274,7 @@ export function useStatementsView({ stage, router, searchParams }: UseStatements
     setPage(1);
   }, [routeCategoryId, router, searchParams, stage]);
 
-  const routeReceiptStatus = useMemo(
-    () => searchParams.get('status') || null,
-    [searchParams],
-  );
+  const routeReceiptStatus = useMemo(() => searchParams.get('status') || null, [searchParams]);
 
   const {
     statements,

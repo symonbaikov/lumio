@@ -33,7 +33,7 @@ type WindowGridProps = { cols?: number; rows?: number; density?: number };
 export function WindowGrid({
   cols = 3,
   rows = 5,
-  density: _density = 0.4,
+  density: Density = 0.4,
 }: WindowGridProps): React.JSX.Element {
   const GRID_STYLE: React.CSSProperties = {
     width: '100%',

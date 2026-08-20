@@ -1,9 +1,13 @@
 'use client';
 
+import { ModalShell } from '@/app/components/ui/modal-shell';
+import {
+  GLOBAL_SHORTCUTS,
+  STATEMENTS_SHORTCUTS,
+  type ShortcutEntry,
+} from '@/app/lib/keyboard-shortcuts';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { ModalShell } from '@/app/components/ui/modal-shell';
-import { GLOBAL_SHORTCUTS, STATEMENTS_SHORTCUTS, type ShortcutEntry } from '@/app/lib/keyboard-shortcuts';
 
 interface KeyboardShortcutsModalProps {
   isOpen: boolean;
@@ -43,16 +47,26 @@ function ShortcutRow({ entry }: { entry: ShortcutEntry }): React.JSX.Element {
   );
 }
 
-function ShortcutGroup({ title, entries }: { title: string; entries: ShortcutEntry[] }): React.JSX.Element {
+function ShortcutGroup({
+  title,
+  entries,
+}: { title: string; entries: ShortcutEntry[] }): React.JSX.Element {
   return (
     <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>{title}</Typography>
-      {entries.map(entry => <ShortcutRow key={entry.keys} entry={entry} />)}
+      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
+        {title}
+      </Typography>
+      {entries.map(entry => (
+        <ShortcutRow key={entry.keys} entry={entry} />
+      ))}
     </Box>
   );
 }
 
-export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsModalProps): React.JSX.Element {
+export function KeyboardShortcutsModal({
+  isOpen,
+  onClose,
+}: KeyboardShortcutsModalProps): React.JSX.Element {
   const navigation = GLOBAL_SHORTCUTS.filter(s => s.category === 'navigation');
   const globalActions = GLOBAL_SHORTCUTS.filter(s => s.category === 'action');
 

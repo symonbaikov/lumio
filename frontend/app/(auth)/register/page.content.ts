@@ -108,7 +108,7 @@ const content = {
       zh: '密码',
       ar: 'كلمة المرور',
       pl: 'Hasło',
-      it: 'Parola d\'ordine',
+      it: "Parola d'ordine",
       sk: 'Hasło',
       ja: 'パスワード',
       ko: '비밀번호',

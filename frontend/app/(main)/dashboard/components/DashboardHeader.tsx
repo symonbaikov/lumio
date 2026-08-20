@@ -47,7 +47,7 @@ export function DashboardHeader({
           <ExportDropdown t={exportMenu} />
           <Link
             href="/statements?openExpenseDrawer=scan"
-            className="lumio-dashboard-header__icon-btn lumio-dashboard-header__icon-btn--upload"
+            className="lumio-dashboard-header__icon-btn"
             aria-label={labels.uploadStatement}
             title={labels.uploadStatement}
           >

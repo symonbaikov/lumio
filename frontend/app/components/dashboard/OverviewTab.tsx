@@ -269,7 +269,11 @@ function QuickActionsCard({
 
 // ── Overview state computation ───────────────────────────────────────────────
 
-function computeOverviewState(data: DashboardData, parsingIssuesLabel: string, isLoading?: boolean) {
+function computeOverviewState(
+  data: DashboardData,
+  parsingIssuesLabel: string,
+  isLoading?: boolean,
+) {
   const mappedActions: MappedAction[] = (data.actions || []).map(a => ({
     ...a,
     priority: resolveActionPriority(a.type),

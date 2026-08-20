@@ -1,9 +1,9 @@
 'use client';
 
+import { fillTemplate } from '@/app/(main)/dashboard/helpers/dashboard-helpers';
 import { CheckCircle2, CircleAlert, ExternalLink, ListChecks } from '@/app/components/icons';
 import type { DashboardData } from '@/app/hooks/useDashboard';
 import { useIntlayer } from '@/app/i18n';
-import { fillTemplate } from '@/app/(main)/dashboard/helpers/dashboard-helpers';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -23,11 +23,12 @@ type FinanceOpsTabProps = {
 export function FinanceOpsTab({ data, formatAmount }: FinanceOpsTabProps): React.JSX.Element {
   const t = useIntlayer('financeOpsTab');
 
-  const statusTone: Record<FinanceOpsFeatureStatus, { label: string; color: string; bg: string }> = {
-    ready: { label: t.statusReady.value, color: '#166534', bg: 'rgba(22, 101, 52, 0.1)' },
-    review: { label: t.statusReview.value, color: '#0369a1', bg: 'rgba(3, 105, 161, 0.1)' },
-    blocked: { label: t.statusBlocked.value, color: '#b42318', bg: 'rgba(180, 35, 24, 0.1)' },
-  };
+  const statusTone: Record<FinanceOpsFeatureStatus, { label: string; color: string; bg: string }> =
+    {
+      ready: { label: t.statusReady.value, color: '#166534', bg: 'rgba(22, 101, 52, 0.1)' },
+      review: { label: t.statusReview.value, color: '#0369a1', bg: 'rgba(3, 105, 161, 0.1)' },
+      blocked: { label: t.statusBlocked.value, color: '#b42318', bg: 'rgba(180, 35, 24, 0.1)' },
+    };
 
   const labels: FinanceOpsLabels = {
     checklist: {

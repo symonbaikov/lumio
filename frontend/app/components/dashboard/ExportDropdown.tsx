@@ -147,7 +147,7 @@ export function ExportDropdown({ t }: ExportDropdownProps): React.JSX.Element {
             disabled={isLoading}
             aria-label={buttonLabel}
             onClick={event => setAnchorEl(event.currentTarget)}
-            className="lumio-dashboard-header__icon-btn lumio-dashboard-header__icon-btn--export"
+            className="lumio-dashboard-header__icon-btn"
             style={{ opacity: isLoading ? 0.6 : 1 }}
           >
             <Download size={20} />

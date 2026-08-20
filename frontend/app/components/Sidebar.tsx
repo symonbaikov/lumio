@@ -29,7 +29,9 @@ function WorkspaceSwitcher() {
       onClick={() => setOpen(prev => !prev)}
       role="button"
       tabIndex={0}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setOpen(prev => !prev); }}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') setOpen(prev => !prev);
+      }}
       aria-expanded={open}
     >
       <div className="lumio-sidebar__ws-chip" style={{ background: color }}>
@@ -45,24 +47,20 @@ function WorkspaceSwitcher() {
       />
 
       {open && (
-        <div
-          className="lumio-sidebar__ws-dropdown"
-          onClick={e => e.stopPropagation()}
-          role="menu"
-        >
+        <div className="lumio-sidebar__ws-dropdown" onClick={e => e.stopPropagation()} role="menu">
           <div className="lumio-sidebar__ws-dropdown-label">Switch workspace</div>
           {workspaces.map(ws => (
             <button
               key={ws.id}
               type="button"
               className={`lumio-sidebar__ws-item${ws.id === currentWorkspace.id ? ' lumio-sidebar__ws-item--active' : ''}`}
-              onClick={() => { void switchWorkspace(ws.id); setOpen(false); }}
+              onClick={() => {
+                void switchWorkspace(ws.id);
+                setOpen(false);
+              }}
               role="menuitem"
             >
-              <div
-                className="lumio-sidebar__ws-chip"
-                style={{ background: ws.color ?? '#168118' }}
-              >
+              <div className="lumio-sidebar__ws-chip" style={{ background: ws.color ?? '#168118' }}>
                 {(ws.name ?? '?').slice(0, 1).toUpperCase()}
               </div>
               <span className="lumio-sidebar__ws-item-name">{ws.name}</span>
@@ -98,11 +96,7 @@ export function SidebarContent({ onNavClick }: SidebarProps) {
       <WorkspaceSwitcher />
 
       {/* CTA */}
-      <Link
-        href="/statements?upload=1"
-        className="lumio-sidebar__cta"
-        onClick={onNavClick}
-      >
+      <Link href="/statements?upload=1" className="lumio-sidebar__cta" onClick={onNavClick}>
         <span className="lumio-sidebar__cta-icon">
           <Plus size={12} />
         </span>

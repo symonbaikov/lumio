@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/app/lib/api';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 export interface BudgetItem {
@@ -107,15 +107,18 @@ export function useBudgetsPage() {
     }
   }, [editingBudget, formData, closeDialog, load]);
 
-  const handleDelete = useCallback(async (id: string) => {
-    try {
-      await apiClient.delete(`/budgets/${id}`);
-      toast.success('Budget deleted');
-      await load();
-    } catch {
-      toast.error('Failed to delete budget');
-    }
-  }, [load]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      try {
+        await apiClient.delete(`/budgets/${id}`);
+        toast.success('Budget deleted');
+        await load();
+      } catch {
+        toast.error('Failed to delete budget');
+      }
+    },
+    [load],
+  );
 
   return {
     budgets,

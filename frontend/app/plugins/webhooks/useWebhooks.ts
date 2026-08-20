@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/app/lib/api';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 export interface WebhookEndpoint {
@@ -44,37 +44,48 @@ export function useWebhookEndpoints() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
-
-  const create = useCallback(async (name: string) => {
-    try {
-      const res = await apiClient.post('/webhook-endpoints', { name });
-      setNewToken((res.data as WebhookEndpointFull).token);
-      await load();
-      toast.success('Webhook endpoint created');
-    } catch {
-      toast.error('Failed to create webhook endpoint');
-    }
+  useEffect(() => {
+    void load();
   }, [load]);
 
-  const remove = useCallback(async (id: string) => {
-    try {
-      await apiClient.delete(`/webhook-endpoints/${id}`);
-      await load();
-      toast.success('Webhook endpoint deleted');
-    } catch {
-      toast.error('Failed to delete webhook endpoint');
-    }
-  }, [load]);
+  const create = useCallback(
+    async (name: string) => {
+      try {
+        const res = await apiClient.post('/webhook-endpoints', { name });
+        setNewToken((res.data as WebhookEndpointFull).token);
+        await load();
+        toast.success('Webhook endpoint created');
+      } catch {
+        toast.error('Failed to create webhook endpoint');
+      }
+    },
+    [load],
+  );
 
-  const toggle = useCallback(async (id: string, isActive: boolean) => {
-    try {
-      await apiClient.patch(`/webhook-endpoints/${id}`, { isActive: !isActive });
-      await load();
-    } catch {
-      toast.error('Failed to update webhook endpoint');
-    }
-  }, [load]);
+  const remove = useCallback(
+    async (id: string) => {
+      try {
+        await apiClient.delete(`/webhook-endpoints/${id}`);
+        await load();
+        toast.success('Webhook endpoint deleted');
+      } catch {
+        toast.error('Failed to delete webhook endpoint');
+      }
+    },
+    [load],
+  );
+
+  const toggle = useCallback(
+    async (id: string, isActive: boolean) => {
+      try {
+        await apiClient.patch(`/webhook-endpoints/${id}`, { isActive: !isActive });
+        await load();
+      } catch {
+        toast.error('Failed to update webhook endpoint');
+      }
+    },
+    [load],
+  );
 
   return { endpoints, loading, newToken, setNewToken, load, create, remove, toggle };
 }
@@ -95,27 +106,35 @@ export function useWebhookSubscriptions() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
-
-  const create = useCallback(async (data: { name: string; url: string; secret: string; events: string[] }) => {
-    try {
-      await apiClient.post('/webhook-subscriptions', data);
-      await load();
-      toast.success('Webhook subscription created');
-    } catch {
-      toast.error('Failed to create webhook subscription');
-    }
+  useEffect(() => {
+    void load();
   }, [load]);
 
-  const remove = useCallback(async (id: string) => {
-    try {
-      await apiClient.delete(`/webhook-subscriptions/${id}`);
-      await load();
-      toast.success('Webhook subscription deleted');
-    } catch {
-      toast.error('Failed to delete webhook subscription');
-    }
-  }, [load]);
+  const create = useCallback(
+    async (data: { name: string; url: string; secret: string; events: string[] }) => {
+      try {
+        await apiClient.post('/webhook-subscriptions', data);
+        await load();
+        toast.success('Webhook subscription created');
+      } catch {
+        toast.error('Failed to create webhook subscription');
+      }
+    },
+    [load],
+  );
+
+  const remove = useCallback(
+    async (id: string) => {
+      try {
+        await apiClient.delete(`/webhook-subscriptions/${id}`);
+        await load();
+        toast.success('Webhook subscription deleted');
+      } catch {
+        toast.error('Failed to delete webhook subscription');
+      }
+    },
+    [load],
+  );
 
   const testPing = useCallback(async (id: string) => {
     try {

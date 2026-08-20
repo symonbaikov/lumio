@@ -93,7 +93,9 @@ export function useDashboardPage() {
     const greetingState = resolveGreetingState(greetingData);
     const greetingName = user?.name ?? text(dashboardText.greeting?.fallbackName) ?? 'User';
     const count = String(data?.dataHealth?.statementsPendingReview ?? 0);
-    const greetingCopy = dashboardText.greeting?.[greetingState] as { subtitle?: unknown } | undefined;
+    const greetingCopy = dashboardText.greeting?.[greetingState] as
+      | { subtitle?: unknown }
+      | undefined;
     const subtitle = fillTemplate(text(greetingCopy?.subtitle), {
       name: greetingName,
       count,
@@ -104,7 +106,8 @@ export function useDashboardPage() {
       error,
       loading,
     });
-    const heading = text(dashboardText.statusHeading?.[headingKey]) || statusHeadingFallback[headingKey];
+    const heading =
+      text(dashboardText.statusHeading?.[headingKey]) || statusHeadingFallback[headingKey];
     const period = resolveDashboardEffectivePeriod(data?.effectiveSince, data?.effectiveEndDate);
     return { statusHeading: heading, greetingSubtitle: subtitle, effectivePeriod: period };
   }, [dashboardText.greeting, dashboardText.statusHeading, data, error, loading, user?.name]);
