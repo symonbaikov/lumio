@@ -1,4 +1,4 @@
-import { TaxRatesController } from '@/modules/tax-rates/tax-rates.controller';
+import { TaxRatesController } from '@/modules/tax/tax-rates.controller';
 
 describe('TaxRatesController', () => {
   let controller: TaxRatesController;

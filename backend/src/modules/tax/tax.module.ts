@@ -10,4 +10,4 @@ import { TaxRatesService } from './tax-rates.service';
   providers: [TaxRatesService],
   exports: [TaxRatesService],
 })
-export class TaxRatesModule {}
+export class TaxModule {}

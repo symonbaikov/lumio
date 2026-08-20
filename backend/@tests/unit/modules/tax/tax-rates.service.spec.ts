@@ -1,5 +1,5 @@
 import { createRepoMock } from '../../../helpers/create-repo-mock';
-import { TaxRatesService } from '@/modules/tax-rates/tax-rates.service';
+import { TaxRatesService } from '@/modules/tax/tax-rates.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('TaxRatesService', () => {

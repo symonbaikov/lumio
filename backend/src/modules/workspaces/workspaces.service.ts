@@ -34,7 +34,7 @@ import type {
   MemberJoinedEvent,
   WorkspaceUpdatedEvent,
 } from '../notifications/events/notification-events';
-import { TaxRatesService } from '../tax-rates/tax-rates.service';
+import { TaxRatesService } from '../tax/tax-rates.service';
 import type { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import type { InviteMemberDto } from './dto/invite-member.dto';
 import type { UpdateWorkspaceDto } from './dto/update-workspace.dto';
