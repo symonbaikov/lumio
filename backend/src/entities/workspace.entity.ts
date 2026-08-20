@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { TaxJurisdiction } from './tax-jurisdiction.entity';
 import { User } from './user.entity';
 import { WorkspaceMember } from './workspace-member.entity';
 
@@ -33,6 +34,17 @@ export class Workspace {
 
   @Column({ type: 'varchar', length: 10, nullable: true })
   currency: string | null;
+
+  /**
+   * Tax jurisdiction this workspace files in. NULL means tax is not configured,
+   * which is the state every pre-existing workspace starts in.
+   */
+  @ManyToOne(() => TaxJurisdiction, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'tax_jurisdiction_id' })
+  taxJurisdiction: TaxJurisdiction | null;
+
+  @Column({ name: 'tax_jurisdiction_id', nullable: true })
+  taxJurisdictionId: string | null;
 
   @Column({ type: 'boolean', default: false, name: 'is_favorite' })
   isFavorite: boolean;

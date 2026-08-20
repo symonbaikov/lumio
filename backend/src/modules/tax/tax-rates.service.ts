@@ -1,10 +1,15 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import type { FindOptionsOrder, Repository } from 'typeorm';
+import type { FindOptionsOrder } from 'typeorm';
+import { IsNull, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { WorkspaceCrudBaseService } from '../../common/services/workspace-crud-base.service';
 import { TaxRate } from '../../entities/tax-rate.entity';
 import type { CreateTaxRateDto } from './dto/create-tax-rate.dto';
 import type { UpdateTaxRateDto } from './dto/update-tax-rate.dto';
+import { toDateOnly } from './jurisdictions.service';
+
+/** Stands in for "no end date" when comparing periods in SQL. */
+const FOREVER = '9999-12-31';
 
 @Injectable()
 export class TaxRatesService extends WorkspaceCrudBaseService<TaxRate> {
@@ -17,6 +22,67 @@ export class TaxRatesService extends WorkspaceCrudBaseService<TaxRate> {
 
   protected getDefaultOrder(): FindOptionsOrder<TaxRate> {
     return { isDefault: 'DESC', rate: 'ASC', name: 'ASC' };
+  }
+
+  /**
+   * Rates a workspace can apply on a given day.
+   *
+   * Always pass the transaction's own date. Resolving with "today" would tax a
+   * 2025 purchase at the 2026 rate the moment the law changed.
+   */
+  async findEnabledForDate(workspaceId: string, date: Date | string): Promise<TaxRate[]> {
+    const on = toDateOnly(date);
+
+    return this.repository.find({
+      where: [
+        { workspaceId, isEnabled: true, validFrom: LessThanOrEqual(on), validTo: IsNull() },
+        {
+          workspaceId,
+          isEnabled: true,
+          validFrom: LessThanOrEqual(on),
+          validTo: MoreThanOrEqual(on),
+        },
+      ],
+      order: { isDefault: 'DESC', rate: 'ASC', name: 'ASC' },
+    });
+  }
+
+  /** The workspace's default rate on a given day, or null if none applies. */
+  async findDefaultForDate(workspaceId: string, date: Date | string): Promise<TaxRate | null> {
+    const inForce = await this.findEnabledForDate(workspaceId, date);
+    return inForce.find(rate => rate.isDefault) ?? null;
+  }
+
+  /**
+   * Strips the default flag from rates whose validity period overlaps the one
+   * given, so that exactly one default is ever in force at a time.
+   *
+   * Scoped by period rather than blanket-cleared: the KZ 12% and 16% rows are
+   * both defaults, and clearing one must not disturb the other.
+   */
+  private async clearOverlappingDefaults(
+    workspaceId: string,
+    validFrom: string,
+    validTo: string | null,
+    exceptId?: string,
+  ): Promise<void> {
+    const query = this.repository
+      .createQueryBuilder()
+      .update(TaxRate)
+      .set({ isDefault: false })
+      .where('workspace_id = :workspaceId', { workspaceId })
+      .andWhere('is_default = true')
+      .andWhere('valid_from <= :newTo', { newTo: validTo ?? FOREVER })
+      .andWhere('COALESCE(valid_to, :forever) >= :newFrom', {
+        forever: FOREVER,
+        newFrom: validFrom,
+      });
+
+    if (exceptId) {
+      query.andWhere('id != :exceptId', { exceptId });
+    }
+
+    await query.execute();
   }
 
   async create(workspaceId: string, createDto: CreateTaxRateDto): Promise<TaxRate> {
@@ -33,9 +99,14 @@ export class TaxRatesService extends WorkspaceCrudBaseService<TaxRate> {
       throw new BadRequestException('Tax rate with this name already exists');
     }
 
+    // Hand-made rates carry no statutory lineage, so they span the whole
+    // timeline. The UI can narrow this once rate periods are editable.
+    const validFrom = '1900-01-01';
+    const validTo = null;
+
     const shouldBeDefault = createDto.isDefault === true;
     if (shouldBeDefault) {
-      await this.repository.update({ workspaceId, isDefault: true } as any, { isDefault: false });
+      await this.clearOverlappingDefaults(workspaceId, validFrom, validTo);
     }
 
     const taxRate = this.repository.create({
@@ -44,6 +115,8 @@ export class TaxRatesService extends WorkspaceCrudBaseService<TaxRate> {
       rate: createDto.rate,
       isDefault: shouldBeDefault,
       isEnabled: createDto.isEnabled ?? true,
+      validFrom,
+      validTo,
     });
 
     return this.repository.save(taxRate);
@@ -79,7 +152,7 @@ export class TaxRatesService extends WorkspaceCrudBaseService<TaxRate> {
 
     if (updateDto.isDefault !== undefined) {
       if (updateDto.isDefault) {
-        await this.repository.update({ workspaceId, isDefault: true } as any, { isDefault: false });
+        await this.clearOverlappingDefaults(workspaceId, taxRate.validFrom, taxRate.validTo, id);
       }
       taxRate.isDefault = updateDto.isDefault;
     }
@@ -87,6 +160,14 @@ export class TaxRatesService extends WorkspaceCrudBaseService<TaxRate> {
     return this.repository.save(taxRate);
   }
 
+  /**
+   * Seeds a brand-new workspace with a rate set.
+   *
+   * Without a jurisdiction there is nothing statutory to seed, so we fall back
+   * to a single zero rate: it keeps the "every workspace has a default" promise
+   * that the manual-expense path relies on, without inventing a tax nobody
+   * chose. Picking a country later replaces this via the adoption service.
+   */
   async createDefaultTaxRates(workspaceId: string): Promise<void> {
     const existingCount = await this.repository.count({ where: { workspaceId } as any });
     if (existingCount > 0) {
@@ -99,6 +180,8 @@ export class TaxRatesService extends WorkspaceCrudBaseService<TaxRate> {
       rate: 0,
       isDefault: true,
       isEnabled: true,
+      validFrom: '1900-01-01',
+      validTo: null,
     });
 
     await this.repository.save(defaultRate);

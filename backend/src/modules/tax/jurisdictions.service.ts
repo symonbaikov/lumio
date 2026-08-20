@@ -4,7 +4,14 @@ import { IsNull, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { TaxJurisdictionRate } from '../../entities/tax-jurisdiction-rate.entity';
 import { TaxJurisdiction } from '../../entities/tax-jurisdiction.entity';
 
-/** `Date` -> 'YYYY-MM-DD', which is how `date` columns compare in Postgres. */
+/**
+ * `Date` -> 'YYYY-MM-DD', which is how `date` columns compare in Postgres.
+ *
+ * A `Date` is read in UTC, so passing `new Date()` means "today in UTC", which
+ * is a day behind for a user east of UTC in the small hours. Callers that care
+ * which calendar day a document belongs to must pass the date explicitly rather
+ * than relying on the server's idea of now — every endpoint here accepts one.
+ */
 export function toDateOnly(value: Date | string): string {
   if (typeof value === 'string') {
     return value.slice(0, 10);

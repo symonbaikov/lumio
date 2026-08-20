@@ -201,8 +201,11 @@ backend/src/modules/tax/
 - Миграция: `workspaces.tax_jurisdiction_id`, расширение `tax_rates`.
 - Бэкфилл: существующим `tax_rates` проставить `valid_from = '1900-01-01'`, `is_inclusive = true`,
   `code = NULL` (остаются ручными). Ничего не ломается.
-- `PATCH /workspaces/:id` принимает `taxJurisdictionId` (permission `WORKSPACE_SETTINGS_MANAGE`,
-  не `CATEGORY_EDIT`).
+- ~~`PATCH /workspaces/:id` принимает `taxJurisdictionId`~~ → **сделано иначе:** отдельный
+  `PUT /tax/settings/jurisdiction` в tax-модуле (permission `WORKSPACE_SETTINGS_MANAGE`).
+  Причина: у смены юрисдикции крупный побочный эффект (принятие и закрытие ставок), а
+  общий audit-diff воркспейса его не фиксирует. Плюс `GET /tax/settings` и
+  `GET /tax/settings/rates?date=`.
 - `adoptFromJurisdiction(workspaceId, jurisdictionId)`: копирует эталонные ставки в
   `tax_rates` workspace'а со всеми версиями. Идемпотентно по `(workspace_id, code, valid_from)`.
 - `createDefaultTaxRates` получает необязательный `jurisdictionId`; при его наличии сеет из

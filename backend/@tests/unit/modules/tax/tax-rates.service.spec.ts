@@ -6,6 +6,23 @@ describe('TaxRatesService', () => {
   let service: TaxRatesService;
   let repo: ReturnType<typeof createRepoMock>;
 
+  /**
+   * Default clearing is period-scoped, so it runs through a query builder
+   * rather than a plain repository.update. This stubs the fluent chain and
+   * hands back the spies for assertion.
+   */
+  const mockUpdateQueryBuilder = () => {
+    const qb = {
+      update: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      execute: jest.fn().mockResolvedValue({ affected: 0 }),
+    };
+    repo.createQueryBuilder.mockReturnValue(qb);
+    return qb;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     repo = createRepoMock();
@@ -79,13 +96,16 @@ describe('TaxRatesService', () => {
       );
     });
 
-    it('unsets previous default when creating a new default', async () => {
+    it('unsets defaults overlapping the new rate period', async () => {
       repo.findOne.mockResolvedValue(null);
+      const qb = mockUpdateQueryBuilder();
+
       await service.create('ws-1', { name: 'New Default', rate: 15, isDefault: true });
-      expect(repo.update).toHaveBeenCalledWith(
-        { workspaceId: 'ws-1', isDefault: true },
-        { isDefault: false },
-      );
+
+      expect(qb.set).toHaveBeenCalledWith({ isDefault: false });
+      // A hand-made rate spans the whole timeline, so it displaces every
+      // default currently set.
+      expect(qb.andWhere).toHaveBeenCalledWith('valid_from <= :newTo', { newTo: '9999-12-31' });
     });
 
     it('defaults isEnabled to true', async () => {
@@ -142,15 +162,27 @@ describe('TaxRatesService', () => {
       await expect(service.update('rate-1', 'ws-1', { name: 'Same' })).resolves.toBeDefined();
     });
 
-    it('unsets previous default when setting new default', async () => {
-      const existing = { id: 'rate-1', workspaceId: 'ws-1', name: 'Rate' };
+    it('unsets defaults overlapping the edited rate period, excluding itself', async () => {
+      const existing = {
+        id: 'rate-1',
+        workspaceId: 'ws-1',
+        name: 'Rate',
+        validFrom: '2026-01-01',
+        validTo: null,
+      };
       repo.findOne.mockResolvedValue(existing);
+      const qb = mockUpdateQueryBuilder();
 
       await service.update('rate-1', 'ws-1', { isDefault: true });
-      expect(repo.update).toHaveBeenCalledWith(
-        { workspaceId: 'ws-1', isDefault: true },
-        { isDefault: false },
-      );
+
+      expect(qb.set).toHaveBeenCalledWith({ isDefault: false });
+      // Scoped to the edited rate's own period: the KZ 12% and 16% rows are
+      // both defaults, and promoting one must not demote the other.
+      expect(qb.andWhere).toHaveBeenCalledWith('COALESCE(valid_to, :forever) >= :newFrom', {
+        forever: '9999-12-31',
+        newFrom: '2026-01-01',
+      });
+      expect(qb.andWhere).toHaveBeenCalledWith('id != :exceptId', { exceptId: 'rate-1' });
     });
   });
 
