@@ -13,6 +13,7 @@ const nav = {
   goals: 'Goals',
   roi: 'Returns',
   subscriptions: 'Subscriptions',
+  crypto: 'Crypto',
 };
 
 const userMenuNav = {
@@ -39,6 +40,12 @@ describe('buildNavItems', () => {
 
     expect(items.find(item => item.path === '/goals')?.permission).toBe('goal.view');
     expect(items.find(item => item.path === '/roi')?.permission).toBe('statement.view');
+  });
+
+  it('gates crypto behind the wallet permission its endpoints use', () => {
+    const items = buildNavItems(nav);
+
+    expect(items.find(item => item.path === '/crypto')?.permission).toBe('wallet.view');
   });
 
   it('lists net worth next to the other money views', () => {
