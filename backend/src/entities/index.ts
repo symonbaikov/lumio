@@ -48,6 +48,8 @@ export * from './insight.entity';
 export * from './balance-account.entity';
 export * from './balance-snapshot.entity';
 export * from './auth-session.entity';
+export * from './tax-jurisdiction.entity';
+export * from './tax-jurisdiction-rate.entity';
 export * from './tax-rate.entity';
 export * from './payable.entity';
 export * from './report-history.entity';
