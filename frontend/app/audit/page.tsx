@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { AuditEventDrawer } from './components/AuditEventDrawer';
 import { AuditFilterBar } from './components/AuditFilterBar';
 import { AuditRollbackModal } from './components/AuditRollbackModal';
-import { AuditTimeline } from './components/AuditTimeline';
+import { AuditTimeline, AuditTimelineSkeleton } from './components/AuditTimeline';
 import { useAuditLoader } from './hooks/useAuditLoader';
 import { useAuditRollback } from './hooks/useAuditRollback';
 
@@ -95,9 +95,7 @@ export default function AuditPage() {
       {/* Timeline */}
       <div className="audit-timeline-card">
         {loader.loading ? (
-          <div className="audit-empty" style={{ padding: '32px 0' }}>
-            Loading…
-          </div>
+          <AuditTimelineSkeleton />
         ) : (
           <AuditTimeline
             events={loader.events}

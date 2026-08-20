@@ -13,6 +13,7 @@ import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Skeleton from '@mui/material/Skeleton';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
@@ -158,6 +159,39 @@ const formatDate = (value?: string) => {
 };
 
 const getRoleLabel = (role: string) => ROLE_LABELS[role] || role;
+
+const MEMBER_ROW_SKELETON_KEYS = ['row-0', 'row-1', 'row-2', 'row-3', 'row-4'];
+
+function MemberRowSkeleton(): React.JSX.Element {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 1.5,
+        border: '1px solid var(--border)',
+        borderRadius: tokens.radius.md,
+        bgcolor: 'var(--background)',
+        px: 2,
+        py: 1.5,
+      }}
+    >
+      <Box sx={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 1.5 }}>
+        <Skeleton variant="circular" width={36} height={36} />
+        <Box>
+          <Skeleton variant="text" width={140} height={18} />
+          <Skeleton variant="text" width={180} height={14} />
+        </Box>
+      </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Skeleton variant="rounded" width={72} height={22} />
+        <Skeleton variant="circular" width={28} height={28} />
+      </Box>
+    </Box>
+  );
+}
 
 export default function WorkspaceMembersView() {
   const { user } = useAuth();
@@ -421,18 +455,41 @@ export default function WorkspaceMembersView() {
           bgcolor: 'var(--background)',
         }}
       >
-        <Box sx={{ maxWidth: 1024, px: 3, py: 4 }}>
+        <Box
+          sx={{ maxWidth: 1024, px: 3, py: 4, display: 'flex', flexDirection: 'column', gap: 3 }}
+        >
           <Box
             sx={{
               border: '1px solid var(--border)',
               borderRadius: tokens.radius.lg,
               bgcolor: 'var(--card)',
               p: 3,
-              fontSize: 14,
-              color: 'var(--muted-foreground)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1.5,
             }}
           >
-            Loading members...
+            <Box>
+              <Skeleton variant="text" width={120} height={28} />
+              <Skeleton variant="text" width={100} height={18} />
+            </Box>
+            <Skeleton variant="rounded" width={140} height={32} />
+          </Box>
+          <Box
+            sx={{
+              border: '1px solid var(--border)',
+              borderRadius: tokens.radius.lg,
+              bgcolor: 'var(--card)',
+              p: 3,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.5,
+            }}
+          >
+            {MEMBER_ROW_SKELETON_KEYS.map(key => (
+              <MemberRowSkeleton key={key} />
+            ))}
           </Box>
         </Box>
       </Box>

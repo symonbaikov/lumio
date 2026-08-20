@@ -11,7 +11,7 @@ import {
 } from '@/app/components/icons';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
-import { Box, Typography } from '@mui/material';
+import { Box, Skeleton, Typography } from '@mui/material';
 import type { Locale } from 'date-fns';
 import { enUS, kk, ru } from 'date-fns/locale';
 import { useParams, useRouter } from 'next/navigation';
@@ -48,6 +48,18 @@ import type { CustomTablePageColumn } from './utils/tableTypes';
 const LOCALE_MAP: Record<string, Locale> = { ru, kk };
 
 const EDITABLE_TAGS = new Set(['input', 'textarea', 'select']);
+
+const GRID_SKELETON_COLUMN_KEYS = ['col-0', 'col-1', 'col-2', 'col-3', 'col-4', 'col-5'];
+const GRID_SKELETON_ROW_KEYS = [
+  'row-0',
+  'row-1',
+  'row-2',
+  'row-3',
+  'row-4',
+  'row-5',
+  'row-6',
+  'row-7',
+];
 
 function shouldIgnoreKeyEvent(target: HTMLElement | null): boolean {
   const tag = target?.tagName?.toLowerCase();
@@ -975,16 +987,32 @@ export default function CustomTableDetailPage() {
   const notReady = authLoading || loading || !mounted;
   if (notReady) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          minHeight: '50vh',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--muted-foreground)',
-        }}
-      >
-        {t.auth.loading}
+      <Box sx={{ p: { xs: 2, sm: 3 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+          {GRID_SKELETON_COLUMN_KEYS.map(key => (
+            <Skeleton key={key} variant="text" width={120} height={20} />
+          ))}
+        </Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {GRID_SKELETON_ROW_KEYS.map(rowKey => (
+            <Box
+              key={rowKey}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                border: '1px solid var(--border-color)',
+                borderRadius: 1,
+                px: 1.5,
+                py: 1.25,
+              }}
+            >
+              {GRID_SKELETON_COLUMN_KEYS.map(colKey => (
+                <Skeleton key={colKey} variant="text" width={120} height={18} />
+              ))}
+            </Box>
+          ))}
+        </Box>
       </Box>
     );
   }

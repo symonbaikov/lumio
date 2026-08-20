@@ -13,10 +13,53 @@ import { useTransactionData } from '@/app/components/transactions/hooks/useTrans
 import type { FilterState, Transaction } from '@/app/components/transactions/types';
 import { CurrencyDisplayToggle } from '@/app/components/ui/CurrencyDisplayToggle';
 import { CurrencyFilterDropdown } from '@/app/components/ui/CurrencyFilterDropdown';
-import { Spinner } from '@/app/components/ui/spinner';
 import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
 import api from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
+import Skeleton from '@mui/material/Skeleton';
+
+const TX_ROW_SKELETON_KEYS = ['tx-0', 'tx-1', 'tx-2', 'tx-3', 'tx-4', 'tx-5', 'tx-6', 'tx-7'];
+
+function TransactionTabSkeleton(): React.JSX.Element {
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+        <Skeleton variant="rounded" width={120} height={32} />
+        <Skeleton variant="rounded" width={140} height={32} />
+      </Box>
+      <Box className="lumio-tx-table__thead" sx={{ display: 'flex', gap: 2, px: 2, py: 1 }}>
+        <Skeleton variant="rounded" width={16} height={16} />
+        <Skeleton variant="text" width={70} height={16} />
+        <Skeleton variant="text" width="20%" height={16} />
+        <Skeleton variant="text" width="20%" height={16} />
+        <Skeleton variant="text" width={80} height={16} sx={{ ml: 'auto' }} />
+        <Skeleton variant="text" width={80} height={16} />
+        <Skeleton variant="rounded" width={90} height={16} />
+      </Box>
+      {TX_ROW_SKELETON_KEYS.map(key => (
+        <Box
+          key={key}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            px: 2,
+            py: 1.25,
+            borderTop: '1px solid var(--border)',
+          }}
+        >
+          <Skeleton variant="rounded" width={16} height={16} />
+          <Skeleton variant="text" width={70} height={16} />
+          <Skeleton variant="text" width="20%" height={16} />
+          <Skeleton variant="text" width="20%" height={16} />
+          <Skeleton variant="text" width={80} height={16} sx={{ ml: 'auto' }} />
+          <Skeleton variant="text" width={80} height={16} />
+          <Skeleton variant="rounded" width={90} height={20} />
+        </Box>
+      ))}
+    </Box>
+  );
+}
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types, max-lines-per-function, complexity
 export function TransactionTab() {
@@ -108,11 +151,7 @@ export function TransactionTab() {
   };
 
   if (loading && transactions.length === 0) {
-    return (
-      <Box sx={{ display: 'flex', minHeight: 400, alignItems: 'center', justifyContent: 'center' }}>
-        <Spinner size={32} />
-      </Box>
-    );
+    return <TransactionTabSkeleton />;
   }
 
   if (error && transactions.length === 0) {
