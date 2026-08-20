@@ -2,9 +2,9 @@
 
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useIntlayer } from '@/app/i18n';
+import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
-import Typography from '@mui/material/Typography';
+import Skeleton from '@mui/material/Skeleton';
 import { useRouter } from 'next/navigation';
 import React, { useMemo, useState } from 'react';
 import { WorkspaceGridView } from './WorkspaceGridView';
@@ -82,16 +82,30 @@ function useWorkspaceListState({ workspaces }: { workspaces: WorkspaceListItem[]
   };
 }
 
-function LoadingView({ loadingLabel }: { loadingLabel: string }): React.JSX.Element {
+const CARD_SKELETON_KEYS = ['card-0', 'card-1', 'card-2', 'card-3', 'card-4', 'card-5'];
+
+function LoadingView(): React.JSX.Element {
   return (
-    <Box
-      sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-    >
-      <Box sx={{ textAlign: 'center' }}>
-        <CircularProgress size={100} />
-        <Typography variant="body2" sx={{ mt: 2, color: 'var(--text-secondary)' }}>
-          {loadingLabel}
-        </Typography>
+    <Box sx={{ maxWidth: '100%', px: 3, py: 4 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, 1fr)',
+            lg: 'repeat(3, 1fr)',
+            xl: 'repeat(4, 1fr)',
+          },
+          gap: 3,
+        }}
+      >
+        {CARD_SKELETON_KEYS.map(key => (
+          <Skeleton
+            key={key}
+            variant="rounded"
+            sx={{ aspectRatio: '16/9', width: '100%', borderRadius: tokens.radius.xl }}
+          />
+        ))}
       </Box>
     </Box>
   );
@@ -209,13 +223,12 @@ export default function WorkspacesListContent({
   const handleCreateWorkspace = (): void => {
     router.push('/onboarding?mode=create-workspace');
   };
-  const loadingLabel = resolveTranslation(content.loading, 'Loading workspaces...');
   const createLabel = resolveTranslation(content.createWorkspace, 'Create workspace');
   const noWorkspacesLabel = resolveTranslation(content.noWorkspaces, 'You have no workspaces yet');
   const searchPlaceholder = resolveTranslation(content.searchPlaceholder, 'Search workspaces...');
 
   if (loading) {
-    return <LoadingView loadingLabel={loadingLabel} />;
+    return <LoadingView />;
   }
 
   return (

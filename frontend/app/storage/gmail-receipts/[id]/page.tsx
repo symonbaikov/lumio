@@ -3,12 +3,12 @@
 import StatementCategoryDrawer from '@/app/(main)/statements/[id]/edit/StatementCategoryDrawer';
 import { CreatePayableDrawer } from '@/app/(main)/statements/components/payables/CreatePayableDrawer';
 import { ArrowLeft } from '@/app/components/icons';
-import { Spinner } from '@/app/components/ui/spinner';
 import {
   getFinancialDocumentStatusLabel,
   toFinancialDocumentStatus,
 } from '@/app/lib/financial-document';
-import { Button, Container, Paper, Typography } from '@mui/material';
+import { Box, Button, Container, Paper, Typography } from '@mui/material';
+import Skeleton from '@mui/material/Skeleton';
 import { useParams, useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { ReceiptPreviewModal } from '../components/ReceiptPreviewModal';
@@ -225,6 +225,46 @@ function ReceiptPageContent({
   );
 }
 
+function GmailReceiptSkeleton(): React.JSX.Element {
+  return (
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Box>
+          <Skeleton variant="text" width={280} height={32} />
+          <Skeleton variant="text" width={180} height={20} />
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Skeleton variant="rounded" width={100} height={36} />
+          <Skeleton variant="rounded" width={130} height={36} />
+          <Skeleton variant="rounded" width={130} height={36} />
+        </Box>
+      </Box>
+
+      <Box
+        sx={{
+          mb: 3,
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
+          gap: 2,
+        }}
+      >
+        {[0, 1, 2, 3].map(idx => (
+          <Paper
+            key={idx}
+            elevation={0}
+            sx={{ border: '1px solid', borderColor: 'grey.200', p: 2 }}
+          >
+            <Skeleton variant="text" width={60} height={16} />
+            <Skeleton variant="text" width={90} height={22} />
+          </Paper>
+        ))}
+      </Box>
+
+      <Skeleton variant="rectangular" width="100%" height={320} />
+    </Container>
+  );
+}
+
 export default function GmailReceiptDocumentPage(): React.JSX.Element {
   const params = useParams<{ id: string }>();
   const receiptId = params.id;
@@ -244,11 +284,7 @@ export default function GmailReceiptDocumentPage(): React.JSX.Element {
   });
 
   if (data.loading) {
-    return (
-      <Container maxWidth="xl" sx={{ mt: 4, textAlign: 'center' }}>
-        <Spinner className="h-10 w-10 text-primary" />
-      </Container>
-    );
+    return <GmailReceiptSkeleton />;
   }
   if (!data.receipt) {
     return (
