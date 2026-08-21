@@ -160,16 +160,25 @@ jobs:
         with:
           persist-credentials: false
 
+      # Run Trivy through its image rather than trivy-action: the action's
+      # install.sh fails to fetch the binary on the runner, so the scan never
+      # starts. This also matches how hadolint/shellcheck/conftest run here.
       - name: Scan repo config (Trivy)
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          scan-type: config
-          scan-ref: .
-          severity: HIGH,CRITICAL
-          exit-code: 1
-          hide-progress: true
-          skip-dirs: >-
-            node_modules,backend/node_modules,frontend/node_modules,**/node_modules,**/dist,**/.next,**/coverage,**/uploads,**/.intlayer
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE":/project \
+            -w /project \
+            aquasec/trivy:0.65.0 \
+            config . \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --ignorefile .trivyignore.yaml \
+            --skip-dirs '**/node_modules' \
+            --skip-dirs '**/dist' \
+            --skip-dirs '**/.next' \
+            --skip-dirs '**/coverage' \
+            --skip-dirs '**/uploads' \
+            --skip-dirs '**/.intlayer'
 
   lint:
     runs-on: ubuntu-latest
@@ -442,6 +451,8 @@ jobs:
 
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: detect --source=. --verbose --redact
 
@@ -495,7 +506,7 @@ jobs:
           load: true
 
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           image-ref: parse-ledger:ci
           severity: HIGH,CRITICAL

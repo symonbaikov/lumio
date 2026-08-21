@@ -1,4 +1,8 @@
 failure-threshold: warning
 ignored:
+  # Pinning apt/apk package versions breaks builds as soon as the distro drops
+  # the old version from its archive. DL3018 (apk) was already accepted here;
+  # DL3008 is the same trade-off for apt.
   - DL3018
+  - DL3008
   - DL3059
