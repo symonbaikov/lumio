@@ -29,6 +29,7 @@ nsis:
   allowToChangeInstallationDirectory: true
 
 linux:
+  maintainer: Lumio Contributors <symonbaikov@users.noreply.github.com>
   target:
     - AppImage
     - deb

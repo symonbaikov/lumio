@@ -8,4 +8,7 @@ COPY observability/prometheus/entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 
+# Вернуться к непривилегированному пользователю образа (uid 65534)
+USER nobody
+
 ENTRYPOINT ["/entrypoint.sh"]

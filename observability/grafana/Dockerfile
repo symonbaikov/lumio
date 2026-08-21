@@ -11,4 +11,7 @@ ENV GF_SECURITY_COOKIE_SECURE=true
 ENV GF_PATHS_DATA=/var/lib/grafana
 ENV GF_PATHS_PROVISIONING=/etc/grafana/provisioning
 
+# Вернуться к непривилегированному пользователю образа (uid 472)
+USER grafana
+
 ENTRYPOINT ["/run.sh"]

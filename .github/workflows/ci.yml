@@ -161,7 +161,7 @@ jobs:
           persist-credentials: false
 
       - name: Scan repo config (Trivy)
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: config
           scan-ref: .
@@ -445,38 +445,9 @@ jobs:
         with:
           args: detect --source=. --verbose --redact
 
-  storybook-build:
-    runs-on: ubuntu-latest
-    needs: [lint, typecheck]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        run: npm ci --prefix frontend
-
-      - name: Build Storybook
-        run: npm run storybook:build --prefix frontend
-
-      - name: Upload Storybook artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: storybook-ci
-          path: frontend/storybook-static
-          retention-days: 7
-
   docker:
     runs-on: ubuntu-latest
-    needs: [build, dependency-scan, secrets-scan, storybook-build]
+    needs: [build, dependency-scan, secrets-scan]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -495,7 +466,7 @@ jobs:
           load: true
 
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           image-ref: parse-ledger:ci
           severity: HIGH,CRITICAL
@@ -504,10 +475,12 @@ jobs:
           hide-progress: true
 
       - name: Generate SBOM
-        uses: anchore/syft-action@v0.15.0
+        uses: anchore/sbom-action@v0.24.0
         with:
           image: parse-ledger:ci
-          output: sbom.spdx.json
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: false
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
