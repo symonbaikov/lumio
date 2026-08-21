@@ -1,5 +1,6 @@
 'use client';
 
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { formatMoney } from '@/app/lib/format-money';
 import { tokens } from '@/lib/theme-tokens';
@@ -10,11 +11,11 @@ import { useMemo, useState } from 'react';
 import { RoiProjectionChart } from './components/RoiProjectionChart';
 import { TABLE_YEARS, buildProjection, calculateRoi, splitPayback } from './roi-model';
 
-const CURRENCY = 'KZT';
-
 export default function RoiPage() {
   const t = useIntlayer('roiPage');
   const { locale } = useLocale();
+  const { currentWorkspace } = useWorkspace();
+  const currency = currentWorkspace?.currency ?? 'USD';
   const [investment, setInvestment] = useState('');
   const [monthlyIncome, setMonthlyIncome] = useState('');
 
@@ -30,7 +31,7 @@ export default function RoiPage() {
     [result, investment],
   );
 
-  const money = (value: number) => formatMoney(value, CURRENCY, locale);
+  const money = (value: number) => formatMoney(value, currency, locale);
 
   return (
     <Box component="main" sx={{ p: 3, maxWidth: 900, mx: 'auto', width: '100%' }}>
