@@ -61,7 +61,15 @@ jobs:
               return;
             }
 
-            const labels = (context.payload.pull_request.labels || []).map(label => label.name);
+            // Лейблы читаем через API, а не из context.payload: payload — это
+            // снимок на момент события, поэтому после навешивания лейбла
+            // перезапуск джобы видел бы устаревший список и падал снова.
+            const { data: currentLabels } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+            const labels = currentLabels.map(label => label.name);
             const missing = [];
 
             if (dbChanged && !labels.includes('db-approved')) {
