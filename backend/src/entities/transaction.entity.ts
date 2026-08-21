@@ -16,6 +16,18 @@ import { TaxRate } from './tax-rate.entity';
 import { Wallet } from './wallet.entity';
 import { Workspace } from './workspace.entity';
 
+/** Why a given rate ended up on a transaction. */
+export enum TaxSource {
+  /** The user picked the rate themselves. */
+  MANUAL = 'manual',
+  /** Matched a workspace tax rule. */
+  RULE = 'rule',
+  /** Fell through to the workspace default for that date. */
+  DEFAULT = 'default',
+  /** Read off the source document by the parser. */
+  PARSED = 'parsed',
+}
+
 export enum TransactionType {
   INCOME = 'income',
   EXPENSE = 'expense',
@@ -133,6 +145,30 @@ export class Transaction {
 
   @Column({ name: 'tax_detected', default: false })
   taxDetected: boolean;
+
+  /**
+   * Tax assessed on this transaction, stored rather than derived.
+   *
+   * Deriving it on read would mean a filed return changes whenever a rate is
+   * corrected. `taxRateId` above pins the exact rate version these figures
+   * came from.
+   */
+  @Column({ name: 'tax_amount', type: 'decimal', precision: 15, scale: 2, nullable: true })
+  taxAmount: number | null;
+
+  @Column({ name: 'tax_net_amount', type: 'decimal', precision: 15, scale: 2, nullable: true })
+  taxNetAmount: number | null;
+
+  /** How the rate was chosen, kept so an unexpected figure can be traced back. */
+  @Column({ name: 'tax_source', type: 'varchar', length: 20, nullable: true })
+  taxSource: TaxSource | null;
+
+  @Column({ name: 'tax_reverse_charge', default: false })
+  taxReverseCharge: boolean;
+
+  /** Set once this row has been included in a filed return. */
+  @Column({ name: 'tax_locked', default: false })
+  taxLocked: boolean;
 
   @Column({
     name: 'enrichment_confidence',
