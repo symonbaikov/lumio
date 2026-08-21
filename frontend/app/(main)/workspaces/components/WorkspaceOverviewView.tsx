@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AVAILABLE_BACKGROUNDS } from '../constants';
 import { BackgroundSelector } from './BackgroundSelector';
+import { TaxJurisdictionSection } from './TaxJurisdictionSection';
 
 const resolveBackgroundSrc = (backgroundImage: string | null) => {
   if (!backgroundImage) {
@@ -41,6 +42,29 @@ const resolveBackgroundSrc = (backgroundImage: string | null) => {
   }
 
   return `/workspace-backgrounds/${backgroundImage}`;
+};
+
+// Written out here rather than through intlayer to match this view, which uses
+// plain strings throughout. Passing them in keeps the section itself testable
+// and ready to be translated when this screen is.
+const TAX_JURISDICTION_LABELS = {
+  title: 'Tax jurisdiction',
+  description:
+    'Choose the country this workspace files tax in. Its statutory rates are copied in and applied to new transactions automatically.',
+  none: 'Not configured',
+  placeholder: 'No jurisdiction',
+  ratesTitle: 'Rates that apply today',
+  apply: 'Apply jurisdiction',
+  applying: 'Applying...',
+  switchWarning:
+    'Switching country closes the current rates as of today and brings in the new ones. Past transactions keep the rate they were taxed at.',
+  noRates: 'This country has no rates in this system yet.',
+  loadError: 'Could not load tax jurisdictions. Please try again.',
+  saveError: 'Could not apply the jurisdiction. Please try again.',
+  saved: 'Jurisdiction applied.',
+  disclaimer:
+    'Tax rates here are maintained by us and may be out of date or wrong. Check them against the current law before filing anything.',
+  reportError: 'Report an error',
 };
 
 const getInitials = (value: string) =>
@@ -531,6 +555,9 @@ export default function WorkspaceOverviewView() {
               )}
             </Box>
           </Box>
+
+          {/* Tax jurisdiction */}
+          <TaxJurisdictionSection labels={TAX_JURISDICTION_LABELS} />
 
           {/* Danger zone */}
           {currentWorkspace.memberRole === 'owner' && (
