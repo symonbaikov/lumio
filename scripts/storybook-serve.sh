@@ -39,10 +39,8 @@ if [ ! -d "$TEMP_DIR/storybook-static" ]; then
         echo "❌ Error: GitHub CLI (gh) is not installed"
         echo "Please install it first: https://cli.github.com/"
         exit 1
-   
-    
-...
-    
+    fi
+
     # Download the latest artifact
     if ! gh run download --name "$ARTIFACT_NAME" --dir "$TEMP_DIR" 2>/dev/null; then
         echo "❌ Error: Failed to download artifact '$ARTIFACT_NAME'"

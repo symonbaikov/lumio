@@ -237,14 +237,21 @@ function BalanceSheet(): React.JSX.Element {
       setError(null);
 
       try {
-        const response = await apiClient.get('/reports/balance/export', {
-          params: {
+        // Goes through the shared template endpoint so the export is recorded
+        // in report history, like every other report. A balance sheet is a
+        // snapshot, so both ends of the period are the same date.
+        const snapshotDate = effectiveDate || sheet?.date || toDateInputValue(new Date());
+        const response = await apiClient.post(
+          '/reports/generate',
+          {
+            templateId: 'balance-sheet',
+            dateFrom: snapshotDate,
+            dateTo: snapshotDate,
             format,
-            ...(effectiveDate ? { date: effectiveDate } : {}),
             locale,
           },
-          responseType: 'blob',
-        });
+          { responseType: 'blob' },
+        );
 
         const fallbackName = `balance-sheet-${sheet?.date || toDateInputValue(new Date())}.${
           format === 'excel' ? 'xlsx' : 'pdf'

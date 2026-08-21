@@ -1,0 +1,204 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import * as xlsx from 'xlsx';
+
+export type ReportFileFormat = 'pdf' | 'excel' | 'csv';
+
+export type ReportCell = string | number;
+
+export interface ReportSection {
+  /** Heading rendered as a band row above the table. Omit for a single-table report. */
+  title?: string;
+  columns: string[];
+  rows: ReportCell[][];
+  /** Emphasised closing row (e.g. TOTAL), same width as `columns`. */
+  total?: ReportCell[];
+}
+
+/**
+ * Format-agnostic description of a report. Every template builds one of these;
+ * `writeReportFile` is the single place that knows about xlsx/csv/pdf.
+ */
+export interface ReportDocument {
+  title: string;
+  /** e.g. "2024-01-01 — 2024-12-31 · EUR" */
+  subtitle: string;
+  sections: ReportSection[];
+  /** Emphasised lines below all sections (e.g. NET INCOME). */
+  footer?: ReportCell[][];
+}
+
+export interface ReportFile {
+  filePath: string;
+  fileName: string;
+  contentType: string;
+}
+
+const CONTENT_TYPES: Record<ReportFileFormat, string> = {
+  excel: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  csv: 'text/csv',
+  pdf: 'application/pdf',
+};
+
+const EXTENSIONS: Record<ReportFileFormat, string> = { excel: 'xlsx', csv: 'csv', pdf: 'pdf' };
+
+interface PdfMakeLike {
+  vfs?: unknown;
+  createPdf(docDefinition: unknown): { getBuffer(callback: (buffer: Uint8Array) => void): void };
+}
+
+interface PdfFontsLike {
+  pdfMake?: { vfs?: unknown };
+  vfs?: unknown;
+}
+
+function unwrapDefault<T>(module: unknown): T {
+  const candidate =
+    typeof module === 'object' && module !== null && 'default' in module
+      ? (module as { default: unknown }).default
+      : module;
+  return candidate as T;
+}
+
+/** Loads pdfmake with its bundled Roboto vfs (which covers Cyrillic). */
+export async function loadPdfMake(): Promise<PdfMakeLike> {
+  const pdfMake = unwrapDefault<PdfMakeLike>(await import('pdfmake/build/pdfmake'));
+  const pdfFonts = unwrapDefault<PdfFontsLike>(await import('pdfmake/build/vfs_fonts'));
+  pdfMake.vfs = pdfFonts.pdfMake?.vfs || pdfFonts.vfs;
+  return pdfMake;
+}
+
+function escapeCsvValue(value: ReportCell): string {
+  const text = String(value ?? '');
+  if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+/** Flattens the document into the sheet/CSV row model: header, blank, sections, footer. */
+function toGridRows(doc: ReportDocument): ReportCell[][] {
+  const rows: ReportCell[][] = [[doc.title], [doc.subtitle], []];
+
+  for (const section of doc.sections) {
+    if (section.title) {
+      rows.push([section.title]);
+    }
+    rows.push(section.columns);
+    rows.push(...section.rows);
+    if (section.total) {
+      rows.push(section.total);
+    }
+    rows.push([]);
+  }
+
+  for (const line of doc.footer ?? []) {
+    rows.push(line);
+  }
+
+  return rows;
+}
+
+function writeExcel(doc: ReportDocument, filePath: string): void {
+  const workbook = xlsx.utils.book_new();
+  const sheet = xlsx.utils.aoa_to_sheet(toGridRows(doc));
+  // Sheet names are capped at 31 chars by the format and reject []:*?/\
+  const sheetName = doc.title.replace(/[[\]:*?/\\]/g, '').slice(0, 31) || 'Report';
+  xlsx.utils.book_append_sheet(workbook, sheet, sheetName);
+  xlsx.writeFile(workbook, filePath);
+}
+
+function writeCsv(doc: ReportDocument, filePath: string): void {
+  const content = toGridRows(doc)
+    .map(row => row.map(escapeCsvValue).join(','))
+    .join('\n');
+  // BOM so Excel opens UTF-8 correctly, matching the workspace export.
+  fs.writeFileSync(filePath, `\uFEFF${content}`, 'utf-8');
+}
+
+function toPdfSection(section: ReportSection): unknown[] {
+  const body = [
+    section.columns.map(text => ({ text, style: 'th' })),
+    ...section.rows.map(row =>
+      row.map((cell, index) => ({
+        text: String(cell),
+        alignment: index === 0 ? 'left' : 'right',
+      })),
+    ),
+  ];
+
+  if (section.total) {
+    body.push(
+      section.total.map((cell, index) => ({
+        text: String(cell),
+        bold: true,
+        alignment: index === 0 ? 'left' : 'right',
+      })),
+    );
+  }
+
+  const widths = section.columns.map((_column, index) => (index === 0 ? '*' : 'auto'));
+
+  return [
+    ...(section.title ? [{ text: section.title, style: 'sectionTitle' }] : []),
+    {
+      table: { headerRows: 1, widths, body },
+      layout: 'lightHorizontalLines',
+      margin: [0, 0, 0, 14],
+    },
+  ];
+}
+
+async function writePdf(doc: ReportDocument, filePath: string): Promise<void> {
+  const pdfMake = await loadPdfMake();
+
+  const docDefinition = {
+    pageSize: 'A4',
+    pageMargins: [24, 28, 24, 28],
+    content: [
+      { text: doc.title, style: 'title' },
+      { text: doc.subtitle, style: 'subtitle' },
+      ...doc.sections.flatMap(toPdfSection),
+      ...(doc.footer ?? []).map(line => ({ text: line.join('   '), style: 'footerLine' })),
+    ],
+    styles: {
+      title: { bold: true, fontSize: 16 },
+      subtitle: { fontSize: 9, color: '#6b7280', margin: [0, 2, 0, 16] },
+      sectionTitle: { bold: true, fontSize: 11, margin: [0, 6, 0, 6] },
+      th: { bold: true, fontSize: 9, color: '#374151' },
+      footerLine: { bold: true, fontSize: 11, margin: [0, 4, 0, 0] },
+    },
+    defaultStyle: { font: 'Roboto', fontSize: 9 },
+  };
+
+  await new Promise<void>(resolve => {
+    pdfMake.createPdf(docDefinition).getBuffer((buffer: Uint8Array) => {
+      fs.writeFileSync(filePath, Buffer.from(buffer));
+      resolve();
+    });
+  });
+}
+
+/**
+ * Renders `doc` into `targetDir` in the requested format.
+ * `baseName` must already be filesystem-safe (it is built from a template id and ISO dates).
+ */
+export async function writeReportFile(
+  doc: ReportDocument,
+  format: ReportFileFormat,
+  baseName: string,
+  targetDir: string,
+): Promise<ReportFile> {
+  const fileName = `${baseName}.${EXTENSIONS[format]}`;
+  const filePath = path.join(targetDir, fileName);
+
+  if (format === 'excel') {
+    writeExcel(doc, filePath);
+  } else if (format === 'csv') {
+    writeCsv(doc, filePath);
+  } else {
+    await writePdf(doc, filePath);
+  }
+
+  return { filePath, fileName, contentType: CONTENT_TYPES[format] };
+}

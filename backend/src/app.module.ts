@@ -23,7 +23,6 @@ import {
   BalanceSnapshot,
   Branch,
   Budget,
-  ExchangeRate,
   Category,
   CategoryLearning,
   CustomTable,
@@ -32,6 +31,7 @@ import {
   DataEntry,
   DriveSettings,
   DropboxSettings,
+  ExchangeRate,
   FilePermission,
   GmailSettings,
   GmailWatchSubscription,
@@ -40,47 +40,48 @@ import {
   Insight,
   Integration,
   IntegrationToken,
-  OpenProtocolSettings,
   Notification,
   NotificationPreference,
-  Payable,
+  OpenProtocolSettings,
   ParsingRule,
+  Payable,
   Receipt,
   ReceiptProcessingJob,
   SharedLink,
   Statement,
+  Subscription,
+  SubscriptionCharge,
+  SubscriptionDecision,
   TaxRate,
   TelegramReport,
   Transaction,
   User,
   Wallet,
   Workspace,
-  WorkspaceServiceSettings,
   WorkspaceInvitation,
-  Subscription,
-  SubscriptionCharge,
-  SubscriptionDecision,
   WorkspaceMember,
+  WorkspaceServiceSettings,
 } from './entities';
-import { ApiKeysModule } from './modules/api-keys/api-keys.module';
-import { AuditModule } from './modules/audit/audit.module';
-import { ApplicationSettingsModule } from './modules/application-settings/application-settings.module';
 import { AiAnalysisModule } from './modules/ai-analysis/ai-analysis.module';
-import { BackupsModule } from './modules/backups/backups.module';
+import { ApiKeysModule } from './modules/api-keys/api-keys.module';
+import { ApplicationSettingsModule } from './modules/application-settings/application-settings.module';
+import { AuditModule } from './modules/audit/audit.module';
 import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor';
 import { AuthModule } from './modules/auth/auth.module';
+import { BackupsModule } from './modules/backups/backups.module';
 import { BalanceModule } from './modules/balance/balance.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { BudgetsModule } from './modules/budgets/budgets.module';
-import { GoalsModule } from './modules/goals/goals.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ClassificationModule } from './modules/classification/classification.module';
+import { CryptoModule } from './modules/crypto/crypto.module';
 import { CustomTablesModule } from './modules/custom-tables/custom-tables.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
-import { ExchangeRatesModule } from './modules/exchange-rates/exchange-rates.module';
 import { DataEntryModule } from './modules/data-entry/data-entry.module';
 import { DropboxModule } from './modules/dropbox/dropbox.module';
+import { ExchangeRatesModule } from './modules/exchange-rates/exchange-rates.module';
 import { GmailModule } from './modules/gmail/gmail.module';
+import { GoalsModule } from './modules/goals/goals.module';
 import { GoogleDriveModule } from './modules/google-drive/google-drive.module';
 import { GoogleSheetsModule } from './modules/google-sheets/google-sheets.module';
 import { InsightsModule } from './modules/insights/insights.module';
@@ -91,16 +92,16 @@ import { ObservabilityModule } from './modules/observability/observability.modul
 import { OpenProtocolIntegrationsModule } from './modules/open-protocol-integrations/open-protocol-integrations.module';
 import { ParsingModule } from './modules/parsing/parsing.module';
 import { PayablesModule } from './modules/payables/payables.module';
-import { ReportsModule } from './modules/reports/reports.module';
 import { ReceiptsModule } from './modules/receipts/receipts.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { StatementsModule } from './modules/statements/statements.module';
 import { StorageModule } from './modules/storage/storage.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { TaxRatesModule } from './modules/tax-rates/tax-rates.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
 import { UsersModule } from './modules/users/users.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
-import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 
@@ -218,6 +219,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     PayablesModule,
     ExchangeRatesModule,
     SubscriptionsModule,
+    CryptoModule,
     WebhooksModule,
     ApiKeysModule,
   ],

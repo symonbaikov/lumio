@@ -123,12 +123,12 @@
             "requireAscii": true,
             "conventions": [
               {
-                "selector": { "kind": "typeLike" },
-                "formats": ["PascalCase"]
-              },
-              {
                 "selector": { "kind": "enumMember" },
                 "formats": ["CONSTANT_CASE"]
+              },
+              {
+                "selector": { "kind": "typeLike" },
+                "formats": ["PascalCase"]
               },
               {
                 "selector": { "kind": "function" },

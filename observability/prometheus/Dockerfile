@@ -8,4 +8,9 @@ COPY observability/prometheus/entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 
+# Back to the image's default unprivileged user (uid 65534); /etc/prometheus
+# and /prometheus are both owned by nobody, so the entrypoint can still render
+# the config template and touch the TSDB directory.
+USER nobody
+
 ENTRYPOINT ["/entrypoint.sh"]

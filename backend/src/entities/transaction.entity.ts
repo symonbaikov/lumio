@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Branch } from './branch.entity';
 import { Category } from './category.entity';
+import { CryptoWallet } from './crypto-wallet.entity';
 import { ImportSession } from './import-session.entity';
 import { Statement } from './statement.entity';
 import { TaxRate } from './tax-rate.entity';
@@ -27,6 +28,15 @@ export enum TransactionType {
 @Index('IDX_transactions_workspace_split_group', ['workspaceId', 'splitGroupId'], {
   where: '"split_group_id" IS NOT NULL',
 })
+// Makes a crypto sync idempotent: re-reading the chain re-offers rows we already
+// have, and the insert simply loses the race with itself. One on-chain transaction
+// can legitimately produce several rows (a native transfer plus a token transfer,
+// or an in and an out leg), which is why asset and direction are part of the key.
+@Index(
+  'IDX_transactions_crypto_tx',
+  ['workspaceId', 'cryptoWalletId', 'cryptoTxHash', 'cryptoAsset', 'transactionType'],
+  { unique: true, where: '"crypto_tx_hash" IS NOT NULL' },
+)
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -115,6 +125,29 @@ export class Transaction {
 
   @Column({ name: 'wallet_id', nullable: true })
   walletId: string | null;
+
+  @ManyToOne(() => CryptoWallet, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'crypto_wallet_id' })
+  cryptoWallet: CryptoWallet | null;
+
+  @Column({ name: 'crypto_wallet_id', nullable: true })
+  cryptoWalletId: string | null;
+
+  /**
+   * Ticker of the asset that actually moved, e.g. `ETH` or `USDC`. `amount` and
+   * `currency` stay fiat — the value of this transfer on its own date — so every
+   * existing aggregate (dashboard, budgets, reports, net worth) keeps working
+   * without knowing crypto exists.
+   */
+  @Column({ name: 'crypto_asset', type: 'varchar', length: 20, nullable: true })
+  cryptoAsset: string | null;
+
+  /** Native amount. Fiat's two decimals cannot hold 18-decimal token amounts. */
+  @Column({ name: 'crypto_amount', type: 'decimal', precision: 38, scale: 18, nullable: true })
+  cryptoAmount: string | null;
+
+  @Column({ name: 'crypto_tx_hash', type: 'varchar', length: 66, nullable: true })
+  cryptoTxHash: string | null;
 
   @Column({ nullable: true })
   article: string | null;
