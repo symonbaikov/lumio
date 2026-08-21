@@ -161,7 +161,7 @@ jobs:
           persist-credentials: false
 
       - name: Scan repo config (Trivy)
-        uses: aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
           scan-ref: .
@@ -442,8 +442,8 @@ jobs:
 
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
-        with:
-          args: detect --source=. --verbose --redact
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   docker:
     runs-on: ubuntu-latest
@@ -466,7 +466,7 @@ jobs:
           load: true
 
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: parse-ledger:ci
           severity: HIGH,CRITICAL

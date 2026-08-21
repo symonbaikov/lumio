@@ -38,9 +38,7 @@ export class ReportSchedulesService {
    * partial current one.
    */
   resolvePeriod(cadence: ReportScheduleCadence, now: Date): SchedulePeriod {
-    const today = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-    );
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
     if (cadence === ReportScheduleCadence.DAILY) {
       const yesterday = new Date(today);
