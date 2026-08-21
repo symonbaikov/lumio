@@ -8,7 +8,7 @@ export class WebhookTokenGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request & { webhookEndpoint: any }>();
-    const token = request.params['token'];
+    const token = request.params.token;
     if (!token) throw new UnauthorizedException('Missing webhook token');
 
     const endpoint = await this.endpointsService.findByToken(token);

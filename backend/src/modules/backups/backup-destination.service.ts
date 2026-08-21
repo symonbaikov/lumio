@@ -51,7 +51,9 @@ export class BackupDestinationService {
         throw new BadRequestException('Backup file was not found');
       }
       const root = this.localRoot;
-      return (await import('node:fs/promises')).readFile(path.join(root || '', directory, fileName));
+      return (await import('node:fs/promises')).readFile(
+        path.join(root || '', directory, fileName),
+      );
     }
     const { client } = await this.nextcloudClient(configuration.workspaceId);
     const contents = await client.getFileContents(destinationFile, { format: 'binary' });
@@ -59,15 +61,16 @@ export class BackupDestinationService {
   }
 
   private async storeNextcloud(
-    configuration: Pick<
-      BackupConfiguration,
-      'destinationPath' | 'retentionCount' | 'workspaceId'
-    >,
+    configuration: Pick<BackupConfiguration, 'destinationPath' | 'retentionCount' | 'workspaceId'>,
     fileName: string,
     contents: Buffer,
   ): Promise<string> {
     const { client, rootPath } = await this.nextcloudClient(configuration.workspaceId);
-    const directory = this.remoteDirectory(rootPath, configuration.destinationPath, configuration.workspaceId);
+    const directory = this.remoteDirectory(
+      rootPath,
+      configuration.destinationPath,
+      configuration.workspaceId,
+    );
     await client.createDirectory(directory, { recursive: true });
     const destinationFile = `${directory}/${fileName}`;
     const partialFile = `${destinationFile}.partial`;
@@ -77,7 +80,11 @@ export class BackupDestinationService {
     return destinationFile;
   }
 
-  private async retainNextcloud(client: WebDAVClient, directory: string, keep: number): Promise<void> {
+  private async retainNextcloud(
+    client: WebDAVClient,
+    directory: string,
+    keep: number,
+  ): Promise<void> {
     const entries = await client.getDirectoryContents(directory);
     const snapshots = entries
       .filter(entry => entry.type === 'file' && entry.filename.endsWith('.lumio-backup'))
@@ -93,7 +100,9 @@ export class BackupDestinationService {
     return new LocalBackupDestinationService(this.localRoot);
   }
 
-  private localDirectory(configuration: Pick<BackupConfiguration, 'destinationPath' | 'workspaceId'>): string {
+  private localDirectory(
+    configuration: Pick<BackupConfiguration, 'destinationPath' | 'workspaceId'>,
+  ): string {
     const prefix = configuration.destinationPath || 'lumio-backups';
     if (!/^[a-zA-Z0-9_-]+$/.test(prefix)) {
       throw new BadRequestException('Invalid local backup destination');
@@ -101,7 +110,9 @@ export class BackupDestinationService {
     return `${prefix}-${configuration.workspaceId}`;
   }
 
-  private async nextcloudClient(workspaceId: string): Promise<{ client: WebDAVClient; rootPath: string }> {
+  private async nextcloudClient(
+    workspaceId: string,
+  ): Promise<{ client: WebDAVClient; rootPath: string }> {
     const integration = await this.integrationRepository.findOne({
       where: { workspaceId, provider: IntegrationProvider.WEBDAV },
       relations: ['openProtocolSettings'],

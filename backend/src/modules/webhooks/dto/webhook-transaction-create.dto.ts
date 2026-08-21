@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class WebhookTransactionCreateDto {
-  @ApiProperty({ example: 1250.00 })
+  @ApiProperty({ example: 1250.0 })
   @IsNumber()
   amount: number;
 

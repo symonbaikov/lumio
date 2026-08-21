@@ -14,10 +14,8 @@
       ".intlayer/**",
       "frontend/.next/**",
       "frontend/out/**",
+      "**/next-env.d.ts",
       "backend/uploads/**",
-      "**/stories/**",
-      "**/storybook-static/**",
-      "**/*.stories.*",
       "**/docs/**",
       "**/.claude/**",
       "**/.agent/**",
@@ -123,12 +121,12 @@
             "requireAscii": true,
             "conventions": [
               {
-                "selector": { "kind": "typeLike" },
-                "formats": ["PascalCase"]
-              },
-              {
                 "selector": { "kind": "enumMember" },
                 "formats": ["CONSTANT_CASE"]
+              },
+              {
+                "selector": { "kind": "typeLike" },
+                "formats": ["PascalCase"]
               },
               {
                 "selector": { "kind": "function" },
@@ -202,8 +200,7 @@
         "**/*.spec.{ts,tsx}",
         "**/*.test.{ts,tsx}",
         "frontend/app/**/*.test.{ts,tsx}",
-        "app/**/*.test.{ts,tsx}",
-        "**/.storybook/**/*.{ts,tsx}"
+        "app/**/*.test.{ts,tsx}"
       ],
       "linter": {
         "rules": {

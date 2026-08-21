@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, type Repository } from 'typeorm';
-import { BankName, Statement, StatementStatus } from '../../entities/statement.entity';
 import { Payable, PayableStatus } from '../../entities/payable.entity';
 import { Receipt, ReceiptStatus } from '../../entities/receipt.entity';
+import { BankName, Statement, StatementStatus } from '../../entities/statement.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { Workspace } from '../../entities/workspace.entity';
@@ -530,9 +530,7 @@ export class DashboardService {
       // Absorbing the rounding remainder here (rather than computing this
       // bucket's percent from its own amount) guarantees the displayed
       // percentages always sum to exactly 100.
-      const otherPercent = round2(
-        100 - withPercent.reduce((sum, row) => sum + row.percent, 0),
-      );
+      const otherPercent = round2(100 - withPercent.reduce((sum, row) => sum + row.percent, 0));
       withPercent.push({
         id: null,
         name: null,
@@ -597,7 +595,11 @@ export class DashboardService {
     return Promise.all(
       rows.map(async row => {
         const magnitude = row.transactionType === TransactionType.INCOME ? row.credit : row.debit;
-        const converted = await this.convertDashboardAmount(magnitude, row.currency, targetCurrency);
+        const converted = await this.convertDashboardAmount(
+          magnitude,
+          row.currency,
+          targetCurrency,
+        );
         const amount = row.transactionType === TransactionType.INCOME ? converted : -converted;
 
         const bankLabel = BANK_DISPLAY_NAMES[row.bankName] ?? BANK_DISPLAY_NAMES[BankName.OTHER];

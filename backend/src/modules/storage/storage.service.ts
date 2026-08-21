@@ -12,6 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { In, type Repository } from 'typeorm';
 import { FileStorageService } from '../../common/services/file-storage.service';
+import { neutralizeSpreadsheetFormulaCell } from '../../common/utils/spreadsheet-formula.util';
 import {
   Category,
   FilePermission,
@@ -29,7 +30,6 @@ import {
   WorkspaceMember,
   WorkspaceRole,
 } from '../../entities';
-import { neutralizeSpreadsheetFormulaCell } from '../../common/utils/spreadsheet-formula.util';
 import { MetricsService } from '../observability/metrics.service';
 import { StatementsService } from '../statements/statements.service';
 import type { CreateFolderDto } from './dto/create-folder.dto';

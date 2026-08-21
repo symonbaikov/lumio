@@ -12,7 +12,14 @@ import { DashboardService } from './dashboard.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Transaction, Statement, Payable, Receipt, WorkspaceMember, Workspace]),
+    TypeOrmModule.forFeature([
+      Transaction,
+      Statement,
+      Payable,
+      Receipt,
+      WorkspaceMember,
+      Workspace,
+    ]),
     ExchangeRatesModule,
   ],
   controllers: [DashboardController],

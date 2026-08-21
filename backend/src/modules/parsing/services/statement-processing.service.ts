@@ -109,7 +109,9 @@ export class StatementProcessingService {
       dateFrom: this.isValidDate(parserMetadata.dateFrom)
         ? parserMetadata.dateFrom
         : enrichedMetadata.dateFrom,
-      dateTo: this.isValidDate(parserMetadata.dateTo) ? parserMetadata.dateTo : enrichedMetadata.dateTo,
+      dateTo: this.isValidDate(parserMetadata.dateTo)
+        ? parserMetadata.dateTo
+        : enrichedMetadata.dateTo,
       balanceStart: parserMetadata.balanceStart ?? enrichedMetadata.balanceStart,
       balanceEnd: parserMetadata.balanceEnd ?? enrichedMetadata.balanceEnd,
       currency: parserMetadata.currency?.trim() || enrichedMetadata.currency || 'KZT',
