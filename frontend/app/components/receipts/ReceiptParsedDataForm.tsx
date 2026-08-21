@@ -19,6 +19,34 @@ import type { EditableReceiptParsedData, ReceiptCategoryOption } from './receipt
 
 const DEFAULT_RECENT_CURRENCIES = ['KZT', 'USD', 'EUR', 'RUB'] as const;
 
+/** Fields are stacked one per row so the form reads as a single column. */
+const FORM_MAX_WIDTH = 520;
+
+function Field({
+  htmlFor,
+  label,
+  children,
+}: {
+  htmlFor: string;
+  label: string;
+  children: React.ReactNode;
+}): React.ReactElement {
+  const { resolvedTheme } = useTheme();
+  const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
+  return (
+    <Box>
+      <Box
+        component="label"
+        htmlFor={htmlFor}
+        sx={{ display: 'block', mb: 0.75, fontSize: 14, fontWeight: 500, color: c.ink700 }}
+      >
+        {label}
+      </Box>
+      {children}
+    </Box>
+  );
+}
+
 export interface ReceiptParsedDataFormProps {
   value: EditableReceiptParsedData;
   categories: ReceiptCategoryOption[];
@@ -92,46 +120,27 @@ export function ReceiptParsedDataForm({
 
   return (
     <>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-        <Box
-          sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' } }}
-        >
-          <Box>
-            <label
-              htmlFor="receipt-vendor"
-              style={{ fontSize: 14, fontWeight: 500, color: c.ink700 }}
-            >
-              Vendor
-            </label>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: FORM_MAX_WIDTH }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <Field htmlFor="receipt-vendor" label="Vendor">
             <Input
               id="receipt-vendor"
               aria-label="Vendor"
               value={value.vendor}
               onChange={event => onChange({ ...value, vendor: event.target.value })}
             />
-          </Box>
+          </Field>
 
-          <Box>
-            <label
-              htmlFor="receipt-date-picker"
-              style={{ fontSize: 14, fontWeight: 500, color: c.ink700 }}
-            >
-              Date
-            </label>
+          <Field htmlFor="receipt-date-picker" label="Date">
             <CustomDatePicker
+              large
               value={value.date}
               onChange={date => onChange({ ...value, date })}
               containerTestId="receipt-date-picker"
             />
-          </Box>
+          </Field>
 
-          <Box>
-            <label
-              htmlFor="receipt-amount"
-              style={{ fontSize: 14, fontWeight: 500, color: c.ink700 }}
-            >
-              Amount
-            </label>
+          <Field htmlFor="receipt-amount" label="Amount">
             <Input
               id="receipt-amount"
               aria-label="Amount"
@@ -144,15 +153,9 @@ export function ReceiptParsedDataForm({
                 })
               }
             />
-          </Box>
+          </Field>
 
-          <Box>
-            <label
-              htmlFor="receipt-currency-trigger"
-              style={{ fontSize: 14, fontWeight: 500, color: c.ink700 }}
-            >
-              Currency
-            </label>
+          <Field htmlFor="receipt-currency-trigger" label="Currency">
             <Box
               component="button"
               id="receipt-currency-trigger"
@@ -161,16 +164,15 @@ export function ReceiptParsedDataForm({
               onClick={() => setCurrencyDrawerOpen(true)}
               sx={{
                 display: 'flex',
-                height: 36,
+                height: 48,
                 width: '100%',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 border: '1px solid rgba(0, 0, 0, 0.23)',
                 borderRadius: tokens.radius.md,
                 bgcolor: 'transparent',
-                px: 1.5,
-                py: 1,
-                fontSize: 13,
+                px: 1.75,
+                fontSize: 16,
                 cursor: 'pointer',
                 '&:hover': { borderColor: 'text.primary' },
                 '&:focus-visible': {
@@ -186,14 +188,11 @@ export function ReceiptParsedDataForm({
               >
                 {selectedCurrencyItem?.code || value.currency || 'Select a currency'}
               </Box>
-              <ChevronDown style={{ width: 16, height: 16, color: c.ink400 }} />
+              <ChevronDown style={{ width: 18, height: 18, color: c.ink400 }} />
             </Box>
-          </Box>
+          </Field>
 
-          <Box>
-            <label htmlFor="receipt-tax" style={{ fontSize: 14, fontWeight: 500, color: c.ink700 }}>
-              Tax
-            </label>
+          <Field htmlFor="receipt-tax" label="Tax">
             <Input
               id="receipt-tax"
               aria-label="Tax"
@@ -206,15 +205,9 @@ export function ReceiptParsedDataForm({
                 })
               }
             />
-          </Box>
+          </Field>
 
-          <Box>
-            <label
-              htmlFor="receipt-payment-method"
-              style={{ fontSize: 14, fontWeight: 500, color: c.ink700 }}
-            >
-              Payment method
-            </label>
+          <Field htmlFor="receipt-payment-method" label="Payment method">
             <Select
               id="receipt-payment-method"
               aria-label="Payment method"
@@ -227,15 +220,9 @@ export function ReceiptParsedDataForm({
               <option value="bank_transfer">Bank transfer</option>
               <option value="other">Other</option>
             </Select>
-          </Box>
+          </Field>
 
-          <Box>
-            <label
-              htmlFor="receipt-transaction-type"
-              style={{ fontSize: 14, fontWeight: 500, color: c.ink700 }}
-            >
-              Transaction type
-            </label>
+          <Field htmlFor="receipt-transaction-type" label="Transaction type">
             <Select
               id="receipt-transaction-type"
               aria-label="Transaction type"
@@ -253,15 +240,9 @@ export function ReceiptParsedDataForm({
               <option value="transfer">Transfer</option>
               <option value="unknown">Unknown</option>
             </Select>
-          </Box>
+          </Field>
 
-          <Box>
-            <label
-              htmlFor="receipt-category"
-              style={{ fontSize: 14, fontWeight: 500, color: c.ink700 }}
-            >
-              Category
-            </label>
+          <Field htmlFor="receipt-category" label="Category">
             <Select
               id="receipt-category"
               aria-label="Category"
@@ -275,7 +256,7 @@ export function ReceiptParsedDataForm({
                 </option>
               ))}
             </Select>
-          </Box>
+          </Field>
         </Box>
 
         <Box>
@@ -324,7 +305,8 @@ export function ReceiptParsedDataForm({
                 sx={{
                   display: 'grid',
                   gap: 1.5,
-                  gridTemplateColumns: { xs: '1fr', md: 'minmax(0,1fr) 120px 44px' },
+                  gridTemplateColumns: { xs: '1fr', sm: 'minmax(0,1fr) 140px 48px' },
+                  alignItems: 'center',
                 }}
               >
                 <Input
