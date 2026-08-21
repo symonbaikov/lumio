@@ -9,6 +9,7 @@ import { ClassificationModule } from '../classification/classification.module';
 import { GoogleSheetsModule } from '../google-sheets/google-sheets.module';
 import { ImportModule } from '../import/import.module';
 import { ObservabilityModule } from '../observability/observability.module';
+import { TaxModule } from '../tax/tax.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { ParsingController } from './controllers/parsing.controller';
 import { AiDocumentExtractor } from './helpers/ai-document-extractor.helper';
@@ -45,6 +46,7 @@ import { UniversalExtractorService } from './services/universal-extractor.servic
     forwardRef(() => ImportModule),
     ObservabilityModule,
     forwardRef(() => TransactionsModule),
+    TaxModule,
   ],
   controllers: [ParsingController],
   providers: [

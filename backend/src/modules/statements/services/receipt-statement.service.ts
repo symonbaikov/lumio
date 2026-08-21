@@ -5,6 +5,7 @@ import type { Repository } from 'typeorm';
 import { calculateFileHash } from '../../../common/utils/file-hash.util';
 import { getFileTypeFromMime } from '../../../common/utils/file-validator.util';
 import { normalizeFilename } from '../../../common/utils/filename.util';
+import { toMinor } from '../../../common/utils/money.util';
 import { Category, WorkspaceMember, WorkspaceRole } from '../../../entities';
 import { ActorType, AuditAction, EntityType, Severity } from '../../../entities/audit-event.entity';
 import { CategoryType } from '../../../entities/category.entity';
@@ -15,6 +16,7 @@ import { Transaction, TransactionType } from '../../../entities/transaction.enti
 import { User } from '../../../entities/user.entity';
 import { AuditService } from '../../audit/audit.service';
 import { ReceiptsService } from '../../receipts/receipts.service';
+import { TaxAssignmentService } from '../../tax/tax-assignment.service';
 
 @Injectable()
 export class ReceiptStatementService {
@@ -31,6 +33,7 @@ export class ReceiptStatementService {
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly receiptsService: ReceiptsService,
     private readonly auditService: AuditService,
+    private readonly taxAssignmentService: TaxAssignmentService,
   ) {}
 
   async createFromReceiptScan(params: {
@@ -269,6 +272,19 @@ export class ReceiptStatementService {
         parsed.transactionType === 'income' ? TransactionType.INCOME : TransactionType.EXPENSE;
       const isExpense = transactionType === TransactionType.EXPENSE;
 
+      // Resolved from the workspace rules and default as they stood on the
+      // receipt's date. The tax the receipt itself states stays on the Receipt
+      // record; reconciling the two is a separate question from assessing.
+      const taxAssignment = await this.taxAssignmentService.resolve({
+        workspaceId,
+        transactionDate,
+        amountMinor: toMinor(amountValue),
+        categoryId: fallbackCategory.id,
+        transactionType,
+        transactionNature: null,
+        explicitTaxRateId: null,
+      });
+
       const transaction = this.transactionRepository.create({
         workspaceId,
         statementId: savedStatement.id,
@@ -281,7 +297,12 @@ export class ReceiptStatementService {
         currency,
         transactionType,
         categoryId: fallbackCategory.id,
-        taxRateId: taxRate?.id || null,
+        taxRateId: taxAssignment.taxRateId ?? taxRate?.id ?? null,
+        taxRuleId: taxAssignment.taxRuleId,
+        taxSource: taxAssignment.taxSource,
+        taxAmount: taxAssignment.taxAmount,
+        taxNetAmount: taxAssignment.taxNetAmount,
+        taxReverseCharge: taxAssignment.taxReverseCharge,
         isVerified: true,
       });
 

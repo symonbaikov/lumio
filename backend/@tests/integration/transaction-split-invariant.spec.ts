@@ -54,6 +54,7 @@ import { ExchangeRatesService } from '../../src/modules/exchange-rates/exchange-
 import { NotificationsService } from '../../src/modules/notifications/notifications.service';
 import { ReportsService } from '../../src/modules/reports/reports.service';
 import { TransactionsService } from '../../src/modules/transactions/transactions.service';
+import { TaxAssignmentService } from '@/modules/tax/tax-assignment.service';
 
 const BASE_URL =
   process.env.DATABASE_URL || 'postgresql://finflow:finflow@localhost:5434/finflow';
@@ -211,6 +212,7 @@ describe('split() preserves every money aggregate (real Postgres)', () => {
         DashboardService,
         BudgetsService,
         ReportsService,
+        { provide: TaxAssignmentService, useValue: { resolve: jest.fn(async () => ({ taxRateId: null, taxRuleId: null, taxSource: null, taxAmount: null, taxNetAmount: null, taxReverseCharge: false })) } },
         { provide: AuditService, useValue: auditStub },
         { provide: CACHE_MANAGER, useValue: cacheStub },
         { provide: ExchangeRatesService, useValue: exchangeStub },

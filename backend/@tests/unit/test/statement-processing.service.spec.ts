@@ -167,6 +167,7 @@ describe('StatementProcessingService', () => {
       metadataExtractionService as any,
       importSessionService as any,
       transactionFingerprintService as any,
+      { resolve: jest.fn(async () => ({ taxRateId: null, taxRuleId: null, taxSource: null, taxAmount: null, taxNetAmount: null, taxReverseCharge: false })) } as any,
     );
 
     // Disable AI reconciliation for deterministic tests
