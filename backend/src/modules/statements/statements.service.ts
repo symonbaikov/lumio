@@ -21,6 +21,7 @@ import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { calculateFileHash } from '../../common/utils/file-hash.util';
 import { getFileTypeFromMime, validateFile } from '../../common/utils/file-validator.util';
 import { normalizeFilename, sanitizeArchiveEntryName } from '../../common/utils/filename.util';
+import { toMinor } from '../../common/utils/money.util';
 import { runExecutable } from '../../common/utils/thumbnail-command.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import { Category, WorkspaceMember, WorkspaceRole } from '../../entities';
@@ -36,6 +37,7 @@ import type {
   StatementUploadedEvent,
 } from '../notifications/events/notification-events';
 import { StatementProcessingService } from '../parsing/services/statement-processing.service';
+import { TaxAssignmentService } from '../tax/tax-assignment.service';
 import type { ConvertDroppedSampleDto } from './dto/convert-dropped-sample.dto';
 import type { CreateManualExpenseDto } from './dto/create-manual-expense.dto';
 import type { FilterStatementsDto } from './dto/filter-statements.dto';
@@ -153,6 +155,7 @@ export class StatementsService {
     private readonly receiptStatementService: ReceiptStatementService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly auditService: AuditService,
+    private readonly taxAssignmentService: TaxAssignmentService,
     private readonly eventEmitter?: EventEmitter2,
   ) {}
 
@@ -274,12 +277,7 @@ export class StatementsService {
     thumbnailWidth: number,
   ): Promise<void> {
     const scriptPath = path.join(__dirname, '../../../scripts/generate-thumbnail.py');
-    await runExecutable('python3', [
-      scriptPath,
-      pdfPath,
-      thumbnailPath,
-      String(thumbnailWidth),
-    ]);
+    await runExecutable('python3', [scriptPath, pdfPath, thumbnailPath, String(thumbnailWidth)]);
   }
 
   private async generateThumbnailWithQuickLook(
@@ -287,14 +285,7 @@ export class StatementsService {
     outputDir: string,
     thumbnailWidth: number,
   ): Promise<string> {
-    await runExecutable('qlmanage', [
-      '-t',
-      '-s',
-      String(thumbnailWidth),
-      '-o',
-      outputDir,
-      pdfPath,
-    ]);
+    await runExecutable('qlmanage', ['-t', '-s', String(thumbnailWidth), '-o', outputDir, pdfPath]);
     const generatedPath = path.join(outputDir, `${path.basename(pdfPath)}.png`);
     if (!fs.existsSync(generatedPath)) {
       throw new Error('Quick Look thumbnail output not found');
@@ -494,6 +485,18 @@ export class StatementsService {
       );
     }
 
+    // Resolved from the user's own choice where they made one, otherwise from
+    // the workspace rules and default as they stood on the expense's date.
+    const taxAssignment = await this.taxAssignmentService.resolve({
+      workspaceId,
+      transactionDate,
+      amountMinor: toMinor(amountValue),
+      categoryId: category.id,
+      transactionType: TransactionType.EXPENSE,
+      transactionNature: null,
+      explicitTaxRateId: taxRateId || null,
+    });
+
     const transaction = this.transactionRepository.create({
       workspaceId,
       statementId: savedStatement.id,
@@ -506,7 +509,12 @@ export class StatementsService {
       currency,
       transactionType: TransactionType.EXPENSE,
       categoryId: category.id,
-      taxRateId: taxRate?.id || null,
+      taxRateId: taxAssignment.taxRateId ?? taxRate?.id ?? null,
+      taxRuleId: taxAssignment.taxRuleId,
+      taxSource: taxAssignment.taxSource,
+      taxAmount: taxAssignment.taxAmount,
+      taxNetAmount: taxAssignment.taxNetAmount,
+      taxReverseCharge: taxAssignment.taxReverseCharge,
       isVerified: true,
     });
 

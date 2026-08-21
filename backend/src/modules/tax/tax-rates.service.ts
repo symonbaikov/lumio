@@ -54,6 +54,22 @@ export class TaxRatesService extends WorkspaceCrudBaseService<TaxRate> {
   }
 
   /**
+   * Resolves a stable rate code to the version in force on a given day.
+   *
+   * This is what lets a rule outlive a change in the law: the rule stores
+   * 'KZ_STANDARD', and a 2025 transaction still gets 12% after the 2026 row
+   * exists.
+   */
+  async findByCodeForDate(
+    workspaceId: string,
+    code: string,
+    date: Date | string,
+  ): Promise<TaxRate | null> {
+    const inForce = await this.findEnabledForDate(workspaceId, date);
+    return inForce.find(rate => rate.code === code) ?? null;
+  }
+
+  /**
    * Strips the default flag from rates whose validity period overlaps the one
    * given, so that exactly one default is ever in force at a time.
    *

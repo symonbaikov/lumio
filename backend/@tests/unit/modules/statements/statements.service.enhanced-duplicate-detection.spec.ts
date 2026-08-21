@@ -14,6 +14,7 @@ import { StatementProcessingService } from '../../../../src/modules/parsing/serv
 import { ReceiptStatementService } from '../../../../src/modules/statements/services/receipt-statement.service';
 import { StatementsService } from '../../../../src/modules/statements/statements.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { TaxAssignmentService } from '@/modules/tax/tax-assignment.service';
 
 // Mock the file hash calculation
 jest.mock('../../../../src/common/utils/file-hash.util', () => ({
@@ -68,6 +69,10 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
         {
           provide: getRepositoryToken(Transaction),
           useValue: mockRepositories.transaction,
+        },
+        {
+          provide: TaxAssignmentService,
+          useValue: { resolve: jest.fn(async () => ({})) },
         },
         {
           provide: AuditService,

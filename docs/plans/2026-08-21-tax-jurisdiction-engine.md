@@ -247,9 +247,12 @@ backend/src/modules/tax/
 - **Исключения (обязательно, иначе движок испортит данные):** переводы между
   счетами, зарплата, погашение кредита не облагаются. Фильтр по
   `transaction.transactionNature` / типу категории — поля уже есть в сущности.
-- Точки подключения: `transactions.service.ts:365`, `statements.service.ts:479/509/530`,
-  `statements/services/receipt-statement.service.ts:243/284/306`. Везде уже есть
-  `taxRateId: taxRate?.id || null` — заменяется на вызов assignment-сервиса.
+- Точки подключения. **Подключено:** путь ручного расхода в `statements.service.ts`
+  (`createManualExpense`). **Ещё не подключено:** `transactions.service.ts:365`,
+  `statements/services/receipt-statement.service.ts:243/284/306` и путь парсинга
+  выписок `parsing/services/statement-processing.service.ts:1045`. Везде там уже есть
+  `taxRateId: ... || null`, которое заменяется вызовом `TaxAssignmentService.resolve`.
+  Сам движок и правила от этого не меняются — остаётся механическая проводка.
 - Транзакции с `tax_locked = true` пропускаются.
 - **Verify:** e2e — создать правило «категория食品 → reduced», завести расход,
   проверить `tax_amount`; завести перевод между счетами — `tax_amount` остался null.

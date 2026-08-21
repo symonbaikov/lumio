@@ -13,6 +13,7 @@ import { Category } from './category.entity';
 import { ImportSession } from './import-session.entity';
 import { Statement } from './statement.entity';
 import { TaxRate } from './tax-rate.entity';
+import { TaxRule } from './tax-rule.entity';
 import { Wallet } from './wallet.entity';
 import { Workspace } from './workspace.entity';
 
@@ -165,6 +166,14 @@ export class Transaction {
 
   @Column({ name: 'tax_reverse_charge', default: false })
   taxReverseCharge: boolean;
+
+  /** Which rule produced these figures, when one did. */
+  @ManyToOne(() => TaxRule, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'tax_rule_id' })
+  taxRule: TaxRule | null;
+
+  @Column({ name: 'tax_rule_id', nullable: true })
+  taxRuleId: string | null;
 
   /** Set once this row has been included in a filed return. */
   @Column({ name: 'tax_locked', default: false })
