@@ -161,13 +161,14 @@ jobs:
           persist-credentials: false
 
       - name: Scan repo config (Trivy)
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: config
           scan-ref: .
           severity: HIGH,CRITICAL
           exit-code: 1
           hide-progress: true
+          trivyignores: .trivyignore.yaml
           skip-dirs: >-
             node_modules,backend/node_modules,frontend/node_modules,**/node_modules,**/dist,**/.next,**/coverage,**/uploads,**/.intlayer
 
@@ -442,6 +443,8 @@ jobs:
 
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: detect --source=. --verbose --redact
 
@@ -495,7 +498,7 @@ jobs:
           load: true
 
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           image-ref: parse-ledger:ci
           severity: HIGH,CRITICAL
