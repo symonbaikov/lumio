@@ -15,6 +15,7 @@ import {
   Sparkles,
   Table,
   TrendingUp,
+  Wallet,
 } from '@/app/components/icons';
 import { DEFAULT_APP_ROUTE } from '@/app/lib/default-app-route';
 import React, { type ReactNode } from 'react';
@@ -41,6 +42,7 @@ export function buildNavItems(nav: {
   goals: unknown;
   roi: unknown;
   subscriptions: unknown;
+  crypto: unknown;
 }): NavItem[] {
   return [
     {
@@ -112,6 +114,14 @@ export function buildNavItems(nav: {
       path: '/subscriptions',
       icon: React.createElement(CreditCard, { size: 18 }),
       permission: 'subscription.view',
+    },
+    {
+      label: nav.crypto as ReactNode,
+      path: '/crypto',
+      // Crypto wallets are wallets: the endpoints guard on the same permission,
+      // so the item is offered to exactly the roles that can open it.
+      icon: React.createElement(Wallet, { size: 18 }),
+      permission: 'wallet.view',
     },
   ];
 }

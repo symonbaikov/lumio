@@ -6,6 +6,7 @@ export * from './category.entity';
 export * from './category-learning.entity';
 export * from './branch.entity';
 export * from './wallet.entity';
+export * from './crypto-wallet.entity';
 export * from './google-sheet.entity';
 export * from './google-sheets-credential.entity';
 export * from './google-sheet-row.entity';
