@@ -62,6 +62,27 @@ export class User {
   @Column({ name: 'onboarding_completed_at', type: 'timestamptz', nullable: true, default: null })
   onboardingCompletedAt: Date | null;
 
+  /**
+   * When the user accepted the no-warranty disclaimer. NULL means they have not
+   * yet, which is the state every account starts in.
+   */
+  @Column({ name: 'disclaimer_accepted_at', type: 'timestamptz', nullable: true, default: null })
+  disclaimerAcceptedAt: Date | null;
+
+  /**
+   * Which revision of the text they accepted. A consent record without this is
+   * worthless the first time the wording changes, since there is no way to tell
+   * what the user actually agreed to.
+   */
+  @Column({
+    name: 'disclaimer_version',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+    default: null,
+  })
+  disclaimerVersion: string | null;
+
   @Column({ name: 'token_version', type: 'int', default: 0 })
   tokenVersion: number;
 

@@ -12,6 +12,7 @@ import { Permission } from '../../common/enums/permissions.enum';
 import { User, UserRole } from '../../entities/user.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { WorkspacesService } from '../workspaces/workspaces.service';
+import { CURRENT_DISCLAIMER_VERSION } from './disclaimer.constant';
 import type { ChangeEmailDto } from './dto/change-email.dto';
 import type { ChangePasswordDto } from './dto/change-password.dto';
 import type { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
@@ -62,6 +63,8 @@ export class UsersService {
         'timeZone',
         'themePreference',
         'onboardingCompletedAt',
+        'disclaimerAcceptedAt',
+        'disclaimerVersion',
         'tokenVersion',
       ],
     });
@@ -113,6 +116,8 @@ export class UsersService {
         'timeZone',
         'themePreference',
         'onboardingCompletedAt',
+        'disclaimerAcceptedAt',
+        'disclaimerVersion',
       ],
     });
 
@@ -184,6 +189,26 @@ export class UsersService {
 
   async getProfile(userId: string): Promise<User> {
     return this.findOne(userId);
+  }
+
+  /**
+   * Records that the user accepted the current no-warranty disclaimer.
+   *
+   * Accepting the same revision twice keeps the original timestamp: the first
+   * acceptance is the one that carries meaning, and overwriting it would erase
+   * when consent was actually given.
+   */
+  async acceptDisclaimer(userId: string): Promise<User> {
+    const user = await this.findOne(userId);
+
+    if (user.disclaimerVersion === CURRENT_DISCLAIMER_VERSION && user.disclaimerAcceptedAt) {
+      return user;
+    }
+
+    user.disclaimerAcceptedAt = new Date();
+    user.disclaimerVersion = CURRENT_DISCLAIMER_VERSION;
+
+    return this.userRepository.save(user);
   }
 
   async changeEmail(userId: string, dto: ChangeEmailDto): Promise<User> {
