@@ -2,16 +2,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import {
+  NotificationCategory,
+  NotificationSeverity,
+  NotificationType,
+} from '../../entities/notification.entity';
+import {
   Subscription,
   SubscriptionFrequency,
   SubscriptionStatus,
 } from '../../entities/subscription.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
-import {
-  NotificationCategory,
-  NotificationSeverity,
-  NotificationType,
-} from '../../entities/notification.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -102,17 +102,19 @@ export class SubscriptionDetectionService {
     }
 
     if (detected.length > 0) {
-      this.logger.log(`Detected ${detected.length} new subscription(s) for workspace ${workspaceId}`);
+      this.logger.log(
+        `Detected ${detected.length} new subscription(s) for workspace ${workspaceId}`,
+      );
       await this.notificationsService.createForWorkspaceMembers({
         workspaceId,
         type: NotificationType.SUBSCRIPTION_DETECTED,
         category: NotificationCategory.WORKSPACE_ACTIVITY,
         severity: NotificationSeverity.INFO,
         messageKey: 'subscription.detected',
-        messageParams: { vendors: detected.map((s) => s.vendorName).join(', ') },
+        messageParams: { vendors: detected.map(s => s.vendorName).join(', ') },
         entityType: 'subscription',
         entityId: detected[0].id,
-        meta: { count: detected.length, vendors: detected.map((s) => s.vendorName) },
+        meta: { count: detected.length, vendors: detected.map(s => s.vendorName) },
       });
     }
 
@@ -120,14 +122,14 @@ export class SubscriptionDetectionService {
   }
 
   private analyzeGroup(txs: Transaction[]): Partial<Subscription> | null {
-    const amounts = txs.map((t) => Math.abs(Number(t.amount)));
+    const amounts = txs.map(t => Math.abs(Number(t.amount)));
     const avgAmount = amounts.reduce((a, b) => a + b, 0) / amounts.length;
     if (avgAmount === 0) return null;
 
-    const maxVariance = Math.max(...amounts.map((a) => Math.abs(a - avgAmount))) / avgAmount;
+    const maxVariance = Math.max(...amounts.map(a => Math.abs(a - avgAmount))) / avgAmount;
     if (maxVariance > 0.15) return null;
 
-    const dates = txs.map((t) => new Date(t.transactionDate).getTime());
+    const dates = txs.map(t => new Date(t.transactionDate).getTime());
     const intervals: number[] = [];
     for (let i = 1; i < dates.length; i++) {
       intervals.push((dates[i] - dates[i - 1]) / (1000 * 60 * 60 * 24));
@@ -165,7 +167,7 @@ export class SubscriptionDetectionService {
         occurrenceCount: txs.length,
         amountVariance: Math.round(maxVariance * 100) / 100,
         medianIntervalDays: Math.round(medianInterval),
-        transactionIds: txs.map((t) => t.id).slice(-5),
+        transactionIds: txs.map(t => t.id).slice(-5),
       },
     };
   }

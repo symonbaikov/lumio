@@ -4,7 +4,9 @@ export class CreateSubscriptionCharges1778200000001 implements MigrationInterfac
   name = 'CreateSubscriptionCharges1778200000001';
 
   async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`CREATE TYPE "subscription_charges_match_status_enum" AS ENUM ('matched', 'price_changed', 'date_shifted')`);
+    await queryRunner.query(
+      `CREATE TYPE "subscription_charges_match_status_enum" AS ENUM ('matched', 'price_changed', 'date_shifted')`,
+    );
     await queryRunner.query(`
       CREATE TABLE "subscription_charges" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -25,7 +27,9 @@ export class CreateSubscriptionCharges1778200000001 implements MigrationInterfac
         CONSTRAINT "FK_subscription_charges_transaction" FOREIGN KEY ("transaction_id") REFERENCES "transactions"("id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`CREATE INDEX "IDX_subscription_charges_subscription_date" ON "subscription_charges" ("subscription_id", "charge_date")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_subscription_charges_subscription_date" ON "subscription_charges" ("subscription_id", "charge_date")`,
+    );
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {

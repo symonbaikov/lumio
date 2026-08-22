@@ -31,7 +31,11 @@ export class BackupKeyService {
       if (!value.startsWith(PREFIX)) throw new Error('invalid key');
       const payload = Buffer.from(value.slice(PREFIX.length), 'base64');
       if (payload.length !== 12 + 16 + 32) throw new Error('invalid key');
-      const decipher = crypto.createDecipheriv('aes-256-gcm', this.masterKey(), payload.subarray(0, 12));
+      const decipher = crypto.createDecipheriv(
+        'aes-256-gcm',
+        this.masterKey(),
+        payload.subarray(0, 12),
+      );
       decipher.setAuthTag(payload.subarray(12, 28));
       return Buffer.concat([decipher.update(payload.subarray(28)), decipher.final()]);
     } catch {
@@ -40,6 +44,9 @@ export class BackupKeyService {
   }
 
   private masterKey(): Buffer {
-    return crypto.createHash('sha256').update(this.masterSecret || 'lumio-development-backup-key').digest();
+    return crypto
+      .createHash('sha256')
+      .update(this.masterSecret || 'lumio-development-backup-key')
+      .digest();
   }
 }

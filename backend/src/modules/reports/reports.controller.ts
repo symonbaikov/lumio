@@ -27,10 +27,7 @@ import {
 import { CustomTablesSummaryDto } from './dto/custom-tables-summary.dto';
 import { ExportFormat, type ExportReportDto } from './dto/export-report.dto';
 import { GenerateReportDto } from './dto/generate-report.dto';
-import {
-  CreateReportScheduleDto,
-  UpdateReportScheduleActiveDto,
-} from './dto/report-schedule.dto';
+import { CreateReportScheduleDto, UpdateReportScheduleActiveDto } from './dto/report-schedule.dto';
 import { SpendOverTimeQueryDto } from './dto/spend-over-time-query.dto';
 import { TopCategoriesQueryDto } from './dto/top-categories-query.dto';
 import { type WorkspaceExportDto, WorkspaceExportFormat } from './dto/workspace-export.dto';

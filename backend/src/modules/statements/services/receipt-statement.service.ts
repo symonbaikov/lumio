@@ -261,9 +261,7 @@ export class ReceiptStatementService {
     try {
       await this.statementRepository.update(savedStatement.id, { fileData });
     } catch (error) {
-      this.logger.warn(
-        `Failed to persist receipt scan file in DB: ${(error as Error)?.message}`,
-      );
+      this.logger.warn(`Failed to persist receipt scan file in DB: ${(error as Error)?.message}`);
     }
 
     if (hasAmount) {

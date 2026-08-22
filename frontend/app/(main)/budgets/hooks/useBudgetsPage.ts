@@ -1,6 +1,7 @@
 'use client';
 
 import apiClient from '@/app/lib/api';
+import { getApiErrorMessage } from '@/app/lib/api-error';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -160,9 +161,8 @@ export function useBudgetsPage() {
       }
       closeDialog();
       await load();
-    } catch (err: any) {
-      const message = err?.response?.data?.message || 'Failed to save budget';
-      toast.error(message);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to save budget'));
     } finally {
       setSaving(false);
     }

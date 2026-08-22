@@ -200,7 +200,9 @@ function buildColumnMap(header: string[]): Partial<Record<TableColumnKey, number
     }
 
     const match = definitions.find(
-      definition => map[definition.key] === undefined && definition.patterns.some(pattern => pattern.test(value)),
+      definition =>
+        map[definition.key] === undefined &&
+        definition.patterns.some(pattern => pattern.test(value)),
     );
     if (match) {
       map[match.key] = index;

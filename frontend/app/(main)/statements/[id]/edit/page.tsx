@@ -116,7 +116,6 @@ function EditStatementSkeleton(): React.JSX.Element {
       >
         {Array.from({ length: 4 }).map((_, index) => (
           <Paper
-            // eslint-disable-next-line react/no-array-index-key
             key={index}
             elevation={0}
             sx={{ border: '1px solid', borderColor: 'grey.200', p: 2 }}
@@ -139,7 +138,6 @@ function EditStatementSkeleton(): React.JSX.Element {
                 <Skeleton variant="rectangular" width={18} height={18} />
               </TableCell>
               {Array.from({ length: 6 }).map((_, index) => (
-                // eslint-disable-next-line react/no-array-index-key
                 <TableCell key={index}>
                   <Skeleton variant="text" width="60%" height={20} />
                 </TableCell>
@@ -148,13 +146,11 @@ function EditStatementSkeleton(): React.JSX.Element {
           </TableHead>
           <TableBody>
             {rows.map((_, rowIndex) => (
-              // eslint-disable-next-line react/no-array-index-key
               <TableRow key={rowIndex}>
                 <TableCell padding="checkbox">
                   <Skeleton variant="rectangular" width={18} height={18} />
                 </TableCell>
                 {Array.from({ length: 6 }).map((_, cellIndex) => (
-                  // eslint-disable-next-line react/no-array-index-key
                   <TableCell key={cellIndex}>
                     <Skeleton variant="text" width="80%" height={20} />
                   </TableCell>

@@ -27,11 +27,19 @@ export class BackupImportService {
     return { importId, ...preview };
   }
 
-  async restore(importId: string, user: User, archive: Buffer, password: string, workspaceName?: string) {
+  async restore(
+    importId: string,
+    user: User,
+    archive: Buffer,
+    password: string,
+    workspaceName?: string,
+  ) {
     this.removeExpired();
     const pending = this.imports.get(importId);
     if (!pending || pending.userId !== user.id || pending.archiveSha256 !== this.hash(archive)) {
-      throw new BadRequestException('Import preview has expired. Preview this backup again before restoring.');
+      throw new BadRequestException(
+        'Import preview has expired. Preview this backup again before restoring.',
+      );
     }
     this.imports.delete(importId);
     return this.restoreService.restore(archive, password, user, workspaceName);

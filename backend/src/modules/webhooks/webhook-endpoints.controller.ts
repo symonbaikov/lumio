@@ -3,9 +3,9 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
-import { WebhookEndpointsService } from './services/webhook-endpoints.service';
 import { CreateWebhookEndpointDto } from './dto/create-webhook-endpoint.dto';
 import { UpdateWebhookEndpointDto } from './dto/update-webhook-endpoint.dto';
+import { WebhookEndpointsService } from './services/webhook-endpoints.service';
 
 @ApiTags('Webhook Endpoints')
 @Controller('webhook-endpoints')
@@ -25,7 +25,7 @@ export class WebhookEndpointsController {
     const endpoints = await this.service.findAll(workspaceId);
     return endpoints.map(({ token, ...rest }) => ({
       ...rest,
-      tokenPreview: token.slice(0, 8) + '...',
+      tokenPreview: `${token.slice(0, 8)}...`,
     }));
   }
 
@@ -33,7 +33,7 @@ export class WebhookEndpointsController {
   @WorkspaceAuth(Permission.STATEMENT_VIEW)
   async findOne(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
     const { token, ...rest } = await this.service.findOne(id, workspaceId);
-    return { ...rest, tokenPreview: token.slice(0, 8) + '...' };
+    return { ...rest, tokenPreview: `${token.slice(0, 8)}...` };
   }
 
   @Patch(':id')
@@ -44,7 +44,7 @@ export class WebhookEndpointsController {
     @Body() dto: UpdateWebhookEndpointDto,
   ) {
     const { token, ...rest } = await this.service.update(id, workspaceId, dto);
-    return { ...rest, tokenPreview: token.slice(0, 8) + '...' };
+    return { ...rest, tokenPreview: `${token.slice(0, 8)}...` };
   }
 
   @Delete(':id')

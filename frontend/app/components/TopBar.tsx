@@ -2,7 +2,6 @@
 
 import { GlobalSearch } from '@/app/components/GlobalSearch';
 import { NotificationDropdown } from '@/app/components/NotificationDropdown';
-import { UpdateButton } from '@/app/components/UpdateButton';
 import { HelpCircle, Menu } from '@/app/components/icons';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';

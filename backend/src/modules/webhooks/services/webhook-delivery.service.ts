@@ -1,10 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  WebhookDelivery,
-  WebhookDeliveryStatus,
-} from '../../../entities/webhook-delivery.entity';
+import { WebhookDelivery, WebhookDeliveryStatus } from '../../../entities/webhook-delivery.entity';
 import { WebhookEvent } from '../../../entities/webhook-subscription.entity';
 
 @Injectable()

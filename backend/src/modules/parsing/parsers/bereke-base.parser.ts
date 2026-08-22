@@ -137,9 +137,7 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
       }`,
     );
     this.logger.debug(
-      `Balance start: ${balanceStart || 'N/A'}, Balance end: ${
-        balanceEnd || 'N/A'
-      }`,
+      `Balance start: ${balanceStart || 'N/A'}, Balance end: ${balanceEnd || 'N/A'}`,
     );
 
     const detectedCurrency = this.detectCurrency(normalizedText) || 'KZT';
@@ -150,9 +148,7 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
       defaultCurrency: detectedCurrency,
       stopWords: ['итого', 'оборот', 'остаток'],
     });
-    this.logger.debug(
-      `pdf2table extracted ${tableTransactions.length} transactions`,
-    );
+    this.logger.debug(`pdf2table extracted ${tableTransactions.length} transactions`);
 
     this.logger.debug(`Extracting transactions from structured text...`);
     const { transactions: structuredTransactions, groupsDetected } = this.extractTransactions(
@@ -176,9 +172,7 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
           transactions.length > 0
             ? mergeTransactions(transactions, aiTransactions)
             : aiTransactions;
-        this.logger.debug(
-          `AI extraction succeeded with ${transactions.length} transactions`,
-        );
+        this.logger.debug(`AI extraction succeeded with ${transactions.length} transactions`);
       } else {
         this.logger.debug(`AI extraction did not return transactions`);
       }
@@ -186,9 +180,7 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
 
     const { from, to } = this.getDefaultMetadataDates(dateRange, transactions);
     const transactionTime = Date.now() - transactionStartTime;
-    this.logger.debug(
-      `Extracted ${transactions.length} transactions in ${transactionTime}ms`,
-    );
+    this.logger.debug(`Extracted ${transactions.length} transactions in ${transactionTime}ms`);
 
     return {
       metadata: {

@@ -5,8 +5,8 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, QueryFailedError, type Repository } from 'typeorm';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
-import { generateTransactionFingerprint } from '../../common/utils/fingerprint.util';
 import { normalizeFilename } from '../../common/utils/filename.util';
+import { generateTransactionFingerprint } from '../../common/utils/fingerprint.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import {
   ActorType,
@@ -230,13 +230,7 @@ export class CustomTablesService {
 
   private getColumnSearchText(column: CustomTableColumn): string {
     const source = this.getColumnSourceConfig(column.config);
-    return [
-      column.title,
-      column.key,
-      source?.field,
-      source?.name,
-      source?.kind,
-    ]
+    return [column.title, column.key, source?.field, source?.name, source?.kind]
       .map(value => this.normalizeColumnText(value))
       .filter(Boolean)
       .join(' ');
@@ -287,7 +281,12 @@ export class CustomTablesService {
       return '';
     }
     const value = this.getRowDataValue(data, key);
-    if (value === null || value === undefined || Array.isArray(value) || typeof value === 'object') {
+    if (
+      value === null ||
+      value === undefined ||
+      Array.isArray(value) ||
+      typeof value === 'object'
+    ) {
       return '';
     }
     return String(value).trim();
@@ -1645,7 +1644,12 @@ export class CustomTablesService {
     userId: string,
     workspaceId: string,
     tableId: string,
-  ): Promise<{ statementId: string; importedRows: number; skippedRows: number; warnings: string[] }> {
+  ): Promise<{
+    statementId: string;
+    importedRows: number;
+    skippedRows: number;
+    warnings: string[];
+  }> {
     await this.ensureCanEditCustomTables(userId, workspaceId);
     await this.ensureCanEditStatements(userId, workspaceId);
     const table = await this.requireTable(workspaceId, tableId);

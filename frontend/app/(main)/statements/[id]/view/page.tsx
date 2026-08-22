@@ -79,7 +79,6 @@ function ViewStatementSkeleton(): React.JSX.Element {
         }}
       >
         {Array.from({ length: 4 }).map((_, index) => (
-          // eslint-disable-next-line react/no-array-index-key
           <div key={index}>
             <Skeleton variant="text" width="50%" height={16} />
             <Skeleton variant="text" width="70%" height={28} />
@@ -90,7 +89,6 @@ function ViewStatementSkeleton(): React.JSX.Element {
       <div>
         {Array.from({ length: 8 }).map((_, index) => (
           <div
-            // eslint-disable-next-line react/no-array-index-key
             key={index}
             style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 0' }}
           >

@@ -165,9 +165,7 @@ export class ParserFactoryService {
       this.logger.debug(`Parser ${parserName} cannot parse this file`);
     }
 
-    this.logger.debug(
-      `No suitable parser found for bank: ${bankName}, fileType: ${fileType}`,
-    );
+    this.logger.debug(`No suitable parser found for bank: ${bankName}, fileType: ${fileType}`);
     return null;
   }
 
@@ -182,9 +180,7 @@ export class ParserFactoryService {
     detectedEvidence?: string[];
     otherBankMentions?: string[];
   }> {
-    this.logger.debug(
-      `Detecting bank and format for file: ${filePath}, type: ${fileType}`,
-    );
+    this.logger.debug(`Detecting bank and format for file: ${filePath}, type: ${fileType}`);
 
     // First, try to detect by file content for PDF files
     if (fileType === FileType.PDF) {

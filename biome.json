@@ -10,14 +10,14 @@
       "**/build/**",
       "**/coverage/**",
       "frontend/next-env.d.ts",
+      "**/next-env.d.ts",
+      "frontend/public/changelog.json",
+      "**/changelog.json",
       "frontend/.intlayer/**",
       ".intlayer/**",
       "frontend/.next/**",
       "frontend/out/**",
       "backend/uploads/**",
-      "**/stories/**",
-      "**/storybook-static/**",
-      "**/*.stories.*",
       "**/docs/**",
       "**/.claude/**",
       "**/.agent/**",
@@ -202,8 +202,7 @@
         "**/*.spec.{ts,tsx}",
         "**/*.test.{ts,tsx}",
         "frontend/app/**/*.test.{ts,tsx}",
-        "app/**/*.test.{ts,tsx}",
-        "**/.storybook/**/*.{ts,tsx}"
+        "app/**/*.test.{ts,tsx}"
       ],
       "linter": {
         "rules": {

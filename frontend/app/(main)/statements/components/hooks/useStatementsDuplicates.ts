@@ -199,10 +199,11 @@ export function useStatementsDuplicates({
     Record<string, DuplicateOverride>
   >({});
 
-  const setDuplicateOverrides: Dispatch<SetStateAction<Record<string, DuplicateOverride>>> =
-    updater => {
-      setDuplicateOverridesState(updater);
-    };
+  const setDuplicateOverrides: Dispatch<
+    SetStateAction<Record<string, DuplicateOverride>>
+  > = updater => {
+    setDuplicateOverridesState(updater);
+  };
 
   const duplicateMetaById = useMemo(
     () => buildDuplicateGroupsFromStatements(displayStatements, duplicateOverrides, scanningLabel),

@@ -1,29 +1,35 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
-import { SubscriptionCharge, SubscriptionChargeMatchStatus } from '../../entities/subscription-charge.entity';
-import {
-  Subscription,
-  SubscriptionFrequency,
-  SubscriptionRiskStatus,
-  SubscriptionReviewStatus,
-  SubscriptionStatus,
-} from '../../entities/subscription.entity';
-import { SubscriptionDecision, SubscriptionDecisionType } from '../../entities/subscription-decision.entity';
-import { WorkspaceMember } from '../../entities/workspace-member.entity';
-import { Transaction } from '../../entities/transaction.entity';
-import { Workspace } from '../../entities/workspace.entity';
-import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
+import { In, LessThanOrEqual, Repository } from 'typeorm';
 import {
   NotificationCategory,
   NotificationSeverity,
   NotificationType,
 } from '../../entities/notification.entity';
+import {
+  SubscriptionCharge,
+  SubscriptionChargeMatchStatus,
+} from '../../entities/subscription-charge.entity';
+import {
+  SubscriptionDecision,
+  SubscriptionDecisionType,
+} from '../../entities/subscription-decision.entity';
+import {
+  Subscription,
+  SubscriptionFrequency,
+  SubscriptionReviewStatus,
+  SubscriptionRiskStatus,
+  SubscriptionStatus,
+} from '../../entities/subscription.entity';
+import { Transaction } from '../../entities/transaction.entity';
+import { WorkspaceMember } from '../../entities/workspace-member.entity';
+import { Workspace } from '../../entities/workspace.entity';
+import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import type { CreateSubscriptionDto } from './dto/create-subscription.dto';
-import type { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 import type { RecordSubscriptionDecisionDto } from './dto/record-subscription-decision.dto';
+import type { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 
 @Injectable()
 export class SubscriptionsService {
@@ -46,7 +52,11 @@ export class SubscriptionsService {
     private readonly exchangeRatesService: ExchangeRatesService,
   ) {}
 
-  async create(workspaceId: string, userId: string, dto: CreateSubscriptionDto): Promise<Subscription> {
+  async create(
+    workspaceId: string,
+    userId: string,
+    dto: CreateSubscriptionDto,
+  ): Promise<Subscription> {
     const subscription = this.subscriptionRepository.create({
       workspaceId,
       createdById: userId,
@@ -104,7 +114,8 @@ export class SubscriptionsService {
     if (dto.status !== undefined) subscription.status = dto.status;
     if (dto.currency !== undefined) subscription.currency = dto.currency;
     if (dto.categoryId !== undefined) subscription.categoryId = dto.categoryId;
-    if (dto.nextChargeDate !== undefined) subscription.nextChargeDate = new Date(dto.nextChargeDate);
+    if (dto.nextChargeDate !== undefined)
+      subscription.nextChargeDate = new Date(dto.nextChargeDate);
     return this.subscriptionRepository.save(subscription);
   }
 
@@ -126,7 +137,12 @@ export class SubscriptionsService {
     await this.subscriptionRepository.remove(subscription);
   }
 
-  async assignOwner(id: string, workspaceId: string, ownerId: string, actorId: string): Promise<Subscription> {
+  async assignOwner(
+    id: string,
+    workspaceId: string,
+    ownerId: string,
+    actorId: string,
+  ): Promise<Subscription> {
     const membership = await this.workspaceMemberRepository.findOne({
       where: { workspaceId, userId: ownerId },
     });
@@ -203,12 +219,19 @@ export class SubscriptionsService {
 
     const workspace = await this.workspaceRepository.findOne({ where: { id: workspaceId } });
     const workspaceCurrency = workspace?.currency?.toUpperCase();
-    const normalizedMonthlyCosts = await Promise.all(active.map(async sub => {
-      const amount = this.normalizeToMonthly(Number(sub.amount), sub.frequency);
-      if (!workspaceCurrency || sub.currency.toUpperCase() === workspaceCurrency) return amount;
-      const converted = await this.exchangeRatesService.convert(amount, sub.currency, workspaceCurrency, new Date());
-      return converted.converted;
-    }));
+    const normalizedMonthlyCosts = await Promise.all(
+      active.map(async sub => {
+        const amount = this.normalizeToMonthly(Number(sub.amount), sub.frequency);
+        if (!workspaceCurrency || sub.currency.toUpperCase() === workspaceCurrency) return amount;
+        const converted = await this.exchangeRatesService.convert(
+          amount,
+          sub.currency,
+          workspaceCurrency,
+          new Date(),
+        );
+        return converted.converted;
+      }),
+    );
     const totalMonthlyCost = normalizedMonthlyCosts.reduce((sum, amount) => sum + amount, 0);
 
     const now = new Date();
@@ -231,7 +254,9 @@ export class SubscriptionsService {
     }).length;
 
     const priceChangeCount = active.filter(sub => sub.riskStatus === 'price_changed').length;
-    const overdueReviewCount = active.filter(sub => sub.reviewAt && new Date(sub.reviewAt) < now).length;
+    const overdueReviewCount = active.filter(
+      sub => sub.reviewAt && new Date(sub.reviewAt) < now,
+    ).length;
     const realizedAnnualSavings = active.reduce(
       (sum, sub) => sum + Number(sub.realizedAnnualSavings ?? 0),
       0,
@@ -293,14 +318,20 @@ export class SubscriptionsService {
         category: NotificationCategory.WORKSPACE_ACTIVITY,
         severity: NotificationSeverity.INFO,
         messageKey: 'subscription.upcoming',
-        messageParams: { details: subs.map((s) => `${s.vendorName} (${s.amount} ${s.currency})`).join(', ') },
+        messageParams: {
+          details: subs.map(s => `${s.vendorName} (${s.amount} ${s.currency})`).join(', '),
+        },
         entityType: 'subscription',
         entityId: subs[0].id,
-        meta: { subscriptions: subs.map((s) => ({ id: s.id, vendor: s.vendorName, amount: s.amount })) },
+        meta: {
+          subscriptions: subs.map(s => ({ id: s.id, vendor: s.vendorName, amount: s.amount })),
+        },
       });
     }
 
-    this.logger.log(`Checked upcoming charges: ${upcoming.length} subscription(s) due within 3 days`);
+    this.logger.log(
+      `Checked upcoming charges: ${upcoming.length} subscription(s) due within 3 days`,
+    );
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_6AM)
@@ -316,8 +347,11 @@ export class SubscriptionsService {
     });
 
     for (const sub of pastDue) {
-      sub.lastChargeDate = sub.nextChargeDate;
-      sub.nextChargeDate = this.addInterval(new Date(sub.nextChargeDate!), sub.frequency);
+      const currentChargeDate = sub.nextChargeDate;
+      if (!currentChargeDate) continue;
+
+      sub.lastChargeDate = currentChargeDate;
+      sub.nextChargeDate = this.addInterval(new Date(currentChargeDate), sub.frequency);
       sub.riskStatus = SubscriptionRiskStatus.MISSING_CHARGE;
       await this.subscriptionRepository.save(sub);
     }
@@ -367,24 +401,31 @@ export class SubscriptionsService {
       where: { workspaceId: subscription.workspaceId, id: In(transactionIds) },
     });
     for (const transaction of transactions) {
-      const existing = await this.chargeRepository.findOne({ where: { transactionId: transaction.id } });
+      const existing = await this.chargeRepository.findOne({
+        where: { transactionId: transaction.id },
+      });
       if (existing) continue;
       const amount = Math.abs(Number(transaction.amount));
-      const variance = subscription.amount ? Math.abs(amount - Number(subscription.amount)) / Number(subscription.amount) : 0;
-      const matchStatus = variance > 0.05
-        ? SubscriptionChargeMatchStatus.PRICE_CHANGED
-        : SubscriptionChargeMatchStatus.MATCHED;
-      await this.chargeRepository.save(this.chargeRepository.create({
-        workspaceId: subscription.workspaceId,
-        subscriptionId: subscription.id,
-        transactionId: transaction.id,
-        amount,
-        currency: transaction.currency,
-        chargeDate: transaction.transactionDate,
-        expectedAmount: subscription.amount,
-        expectedDate: subscription.nextChargeDate,
-        matchStatus,
-      }));
+      const variance = subscription.amount
+        ? Math.abs(amount - Number(subscription.amount)) / Number(subscription.amount)
+        : 0;
+      const matchStatus =
+        variance > 0.05
+          ? SubscriptionChargeMatchStatus.PRICE_CHANGED
+          : SubscriptionChargeMatchStatus.MATCHED;
+      await this.chargeRepository.save(
+        this.chargeRepository.create({
+          workspaceId: subscription.workspaceId,
+          subscriptionId: subscription.id,
+          transactionId: transaction.id,
+          amount,
+          currency: transaction.currency,
+          chargeDate: transaction.transactionDate,
+          expectedAmount: subscription.amount,
+          expectedDate: subscription.nextChargeDate,
+          matchStatus,
+        }),
+      );
       if (matchStatus === SubscriptionChargeMatchStatus.PRICE_CHANGED) {
         subscription.riskStatus = SubscriptionRiskStatus.PRICE_CHANGED;
         await this.subscriptionRepository.save(subscription);

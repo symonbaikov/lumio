@@ -1,5 +1,6 @@
 const CYRILLIC_RE = /[\u0400-\u04FF]/;
 const MOJIBAKE_HINT_RE = /[ÐÑÃÂ]/;
+// biome-ignore lint/suspicious/noControlCharactersInRegex: управляющие символы вырезаются намеренно
 const UNSAFE_ARCHIVE_CHARS_RE = /[\x00-\x1f\x7f]/g;
 
 function scoreCyrillic(value: string): number {

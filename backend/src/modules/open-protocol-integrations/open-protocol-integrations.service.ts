@@ -8,20 +8,20 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { NodeHttpHandler } from '@smithy/node-http-handler';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import type { Repository } from 'typeorm';
 import type { FileStat, WebDAVClient } from 'webdav';
 import { FileStorageService } from '../../common/services/file-storage.service';
-import { decryptText, encryptText } from '../../common/utils/encryption.util';
 import {
   assertPublicEgressHost,
   assertPublicEgressUrl,
   createPublicEgressHttpAgents,
 } from '../../common/utils/egress-url.util';
+import { decryptText, encryptText } from '../../common/utils/encryption.util';
 import { validateFile } from '../../common/utils/file-validator.util';
 import { normalizeFilename } from '../../common/utils/filename.util';
 import { buildContentDisposition } from '../../common/utils/http-file.util';
@@ -530,7 +530,7 @@ export class OpenProtocolIntegrationsService {
         } catch (msgError) {
           const e = msgError as Record<string, unknown>;
           this.logger.warn(
-            `IMAP: failed to process uid ${uid}: ${String(e['message'])} | responseStatus: ${String(e['responseStatus'])} | response: ${JSON.stringify(e['response'])}`,
+            `IMAP: failed to process uid ${uid}: ${String(e.message)} | responseStatus: ${String(e.responseStatus)} | response: ${JSON.stringify(e.response)}`,
           );
         }
       }

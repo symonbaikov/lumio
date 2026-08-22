@@ -3,6 +3,7 @@ import {
   type StatementFilters,
   applyStatementsFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
+import type { AnalyticsFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
 import type {
   TopCategoryFlowType,
   TopCategoryRecord,
@@ -13,7 +14,6 @@ import {
   mapGmailReceiptToCategoryRecord,
   mapTransactionToCategoryRecord,
 } from '@/app/(main)/statements/components/top-categories/helpers/top-categories-mappers';
-import type { AnalyticsFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
 import type {
   GmailReceipt,
   StatementMeta,
