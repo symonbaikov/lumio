@@ -28,7 +28,7 @@ export type ParsingDetailsData = {
   transactionsCreated?: number;
   errors?: string[];
   warnings?: string[];
-  droppedSamples?: ParsingDroppedSample[];
+  droppedSamples?: Array<string | ParsingDroppedSample>;
   otherBankMentions?: string[];
 };
 

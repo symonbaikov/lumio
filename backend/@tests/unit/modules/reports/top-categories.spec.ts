@@ -63,6 +63,9 @@ describe('ReportsService top categories report', () => {
       {} as any,
       { get: jest.fn(), set: jest.fn() } as any,
       { createEvent: jest.fn() } as AuditService,
+      { findOne: jest.fn(async () => ({ currency: 'EUR' })) } as any,
+      { getRate: jest.fn(async () => 1) } as any,
+      { exportBalanceSheet: jest.fn() } as any,
     );
 
     const result = await service.getTopCategoriesReport('ws-1', {

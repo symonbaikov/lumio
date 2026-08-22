@@ -17,7 +17,6 @@ import {
 import { Alert } from '@/app/components/ui/alert';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { Select as UiSelect } from '@/app/components/ui/select';
-import { Spinner } from '@/app/components/ui/spinner';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -53,9 +52,76 @@ import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import { useTheme } from 'next-themes';
 import React, { type ComponentType, useCallback, useEffect, useMemo, useState } from 'react';
+
+function ProfileSettingsSkeleton(): React.JSX.Element {
+  return (
+    <Box className="container-shared" sx={{ px: 2, py: 4 }}>
+      <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { lg: '260px 1fr' } }}>
+        <Box component="aside" sx={{ display: { xs: 'none', lg: 'block' } }}>
+          <Card variant="outlined">
+            <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 1,
+                  pb: 1.5,
+                }}
+              >
+                <Skeleton variant="circular" width={80} height={80} />
+              </Box>
+            </Box>
+            <CardContent sx={{ pt: 0 }}>
+              {Array.from({ length: 7 }).map((_, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length static skeleton list
+                <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.25 }}>
+                  <Skeleton variant="rounded" width={32} height={32} />
+                  <Skeleton variant="text" width="60%" height={20} />
+                </Box>
+              ))}
+            </CardContent>
+          </Card>
+        </Box>
+
+        <Box component="main" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Card variant="outlined">
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                px: 2,
+                py: 2,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'action.hover',
+              }}
+            >
+              <Skeleton variant="rounded" width={44} height={44} />
+              <Skeleton variant="text" width={160} height={28} />
+            </Box>
+            <CardContent
+              sx={{ p: { xs: 3, lg: 4 }, display: 'flex', flexDirection: 'column', gap: 3 }}
+            >
+              {Array.from({ length: 4 }).map((_, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length static skeleton list
+                <Box key={index} sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Skeleton variant="text" width={120} height={18} />
+                  <Skeleton variant="rounded" width="100%" height={44} />
+                </Box>
+              ))}
+            </CardContent>
+          </Card>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
 
 // eslint-disable-next-line max-lines-per-function, complexity, @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types
 export default function ProfileSettingsPage() {
@@ -255,14 +321,7 @@ export default function ProfileSettingsPage() {
   }, [activeSection]);
 
   if (loading) {
-    return (
-      <Box
-        className="container-shared"
-        sx={{ display: 'flex', justifyContent: 'center', px: 2, py: 8 }}
-      >
-        <Spinner size={32} />
-      </Box>
-    );
+    return <ProfileSettingsSkeleton />;
   }
 
   if (!isAuthenticated) {

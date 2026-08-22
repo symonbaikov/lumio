@@ -9,7 +9,7 @@ import { Box, Stack, Typography } from '@mui/material';
 import type React from 'react';
 import toast from 'react-hot-toast';
 import type { AuthStatus } from '../useGoogleSheetsPage';
-import type { ReturnType as PickerStateType } from '../useGoogleSheetsPage';
+import type { GoogleSheetsPageHandlers as PickerStateType } from '../useGoogleSheetsPage';
 
 interface Step1Texts {
   step1: {

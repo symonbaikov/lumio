@@ -3,10 +3,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiGet = vi.hoisted(() => vi.fn());
+const apiPost = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../lib/api', () => ({
   default: {
     get: apiGet,
+    post: apiPost,
   },
 }));
 
@@ -37,27 +39,27 @@ vi.mock('@/app/i18n', () => ({
 describe('BalanceSheet', () => {
   beforeEach(() => {
     apiGet.mockReset();
+    apiPost.mockReset();
   });
 
   it('passes locale to sheet and export API calls', async () => {
-    apiGet
-      .mockResolvedValueOnce({
-        data: {
-          date: '2026-04-02',
-          currency: 'KZT',
-          assets: { total: 100, sections: [] },
-          liabilities: { total: 100, sections: [] },
-          difference: 0,
-          isBalanced: true,
-        },
-      })
-      .mockResolvedValueOnce({
-        data: new Blob(['sheet']),
-        headers: {
-          'content-disposition': 'attachment; filename="balance-sheet-2026-04-02.xlsx"',
-          'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        },
-      });
+    apiGet.mockResolvedValueOnce({
+      data: {
+        date: '2026-04-02',
+        currency: 'KZT',
+        assets: { total: 100, sections: [] },
+        liabilities: { total: 100, sections: [] },
+        difference: 0,
+        isBalanced: true,
+      },
+    });
+    apiPost.mockResolvedValueOnce({
+      data: new Blob(['sheet']),
+      headers: {
+        'content-disposition': 'attachment; filename="balance-sheet-2026-04-02.xlsx"',
+        'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      },
+    });
 
     const createObjectUrl = vi.fn(() => 'blob:balance');
     const revokeObjectUrl = vi.fn();
@@ -87,11 +89,19 @@ describe('BalanceSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Exporter le bilan' }));
     fireEvent.click(screen.getByRole('button', { name: 'Excel localise' }));
 
+    // Exports go through the shared template endpoint so they land in report history.
     await waitFor(() => {
-      expect(apiGet).toHaveBeenNthCalledWith(2, '/reports/balance/export', {
-        params: { format: 'excel', locale: 'kk' },
-        responseType: 'blob',
-      });
+      expect(apiPost).toHaveBeenCalledWith(
+        '/reports/generate',
+        {
+          templateId: 'balance-sheet',
+          dateFrom: '2026-04-02',
+          dateTo: '2026-04-02',
+          format: 'excel',
+          locale: 'kk',
+        },
+        { responseType: 'blob' },
+      );
     });
   });
 });

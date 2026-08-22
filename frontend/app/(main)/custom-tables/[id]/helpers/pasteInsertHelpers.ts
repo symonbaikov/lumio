@@ -3,14 +3,18 @@
 import apiClient from '@/app/lib/api';
 import toast from 'react-hot-toast';
 import type { PastePreviewData } from '../utils/pasteUtils';
-import type { CustomTableGridRow, CustomTableRowPatch } from '../utils/stylingUtils';
+import type {
+  CustomTableCellValue,
+  CustomTableGridRow,
+  CustomTableRowPatch,
+} from '../utils/stylingUtils';
 import { getResponseItems } from '../utils/tableHelpers';
 
 interface NewColumnSpec {
   mode: string;
   newTitle?: string;
   newType?: string;
-  columnKey?: string;
+  columnKey?: string | null;
 }
 type ResponseObj = Record<string, unknown>;
 
@@ -63,7 +67,7 @@ export function buildPastePayload(
   return dataRows.map(row => {
     const data: CustomTableRowPatch = {};
     for (const [key, value] of Object.entries(row)) {
-      data[keyMap.get(key) ?? key] = value;
+      data[keyMap.get(key) ?? key] = value as CustomTableCellValue;
     }
     return { data };
   });

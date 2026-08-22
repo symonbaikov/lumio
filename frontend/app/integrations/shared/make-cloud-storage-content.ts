@@ -15,6 +15,13 @@ type LocalizedLabel = {
   pl: string;
   it: string;
   sk: string;
+  ja: string;
+  ko: string;
+  hi: string;
+  nl: string;
+  sv: string;
+  vi: string;
+  id: string;
 };
 
 type CloudStorageProvider = {

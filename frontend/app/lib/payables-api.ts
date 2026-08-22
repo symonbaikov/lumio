@@ -167,9 +167,13 @@ export const payablesApi = {
 
     return {
       blob: response.data,
-      fileName: parseContentDispositionFilename(response.headers['content-disposition']),
+      fileName: parseContentDispositionFilename(
+        response.headers['content-disposition'] as string | undefined,
+      ),
       contentType:
-        response.headers['content-type'] || response.data.type || 'application/octet-stream',
+        (response.headers['content-type'] as string | undefined) ||
+        response.data.type ||
+        'application/octet-stream',
     };
   },
 };

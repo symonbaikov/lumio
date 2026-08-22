@@ -4,10 +4,15 @@ export interface EditableReceiptLineItem {
   amount: number;
 }
 
+import type { StatementCategorySource } from '@/app/lib/statement-categories';
+
 export interface ReceiptCategoryOption {
   id: string;
   name: string;
   isEnabled?: boolean;
+  /** System/translated categories are localized for display (see statement-categories). */
+  source?: StatementCategorySource;
+  isSystem?: boolean;
 }
 
 export interface EditableReceiptParsedData {

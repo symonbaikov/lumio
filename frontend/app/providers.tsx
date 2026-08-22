@@ -45,7 +45,7 @@ const TOASTER_OPTS = {
   },
 };
 
-function htmlLanguageSync(): null {
+function HtmlLanguageSync(): null {
   useHTMLLanguage();
   return null;
 }
@@ -118,7 +118,7 @@ export function Providers({
   };
   return (
     <IntlayerProviderContent locale={locale} setLocale={handleLocaleChange}>
-      <htmlLanguageSync />
+      <HtmlLanguageSync />
       <ThemePreferenceSync />
       <TourAutoStarter />
       <ThemeProvider theme={muiTheme}>

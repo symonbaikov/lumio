@@ -13,6 +13,7 @@ import {
   mapGmailReceiptToCategoryRecord,
   mapTransactionToCategoryRecord,
 } from '@/app/(main)/statements/components/top-categories/helpers/top-categories-mappers';
+import type { AnalyticsFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
 import type {
   GmailReceipt,
   StatementMeta,
@@ -32,7 +33,7 @@ type Params = {
   activeFlowType: TopCategoryFlowType;
 };
 
-export type { AnalyticsFromOption as CategoryFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
+export type CategoryFromOption = AnalyticsFromOption;
 
 export type CategoryRecordsReturn = {
   allRecords: TopCategoryRecord[];

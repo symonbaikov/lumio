@@ -12,6 +12,7 @@ import type {
   TopMerchantFlowType,
   TopMerchantRecord,
 } from '@/app/(main)/statements/components/top-merchants/top-merchants.types';
+import type { AnalyticsFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
 import type {
   GmailReceipt,
   StatementMeta,
@@ -31,7 +32,7 @@ type Params = {
   activeFlowType: TopMerchantFlowType;
 };
 
-export type { AnalyticsFromOption as FromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
+export type FromOption = AnalyticsFromOption;
 
 export type RecordsReturn = {
   allRecords: TopMerchantRecord[];

@@ -7,8 +7,10 @@ import { getApiErrorMessage } from '@/app/lib/api-error';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import { useEffect, useState } from 'react';
+import DuplicateGroupCard from './components/DuplicateGroupCard';
 
 interface DuplicateTransaction {
   id: string;
@@ -31,6 +33,65 @@ interface DuplicateGroup {
 interface DuplicatesResponse {
   totalGroups: number;
   groups: DuplicateGroup[];
+}
+
+function DuplicateGroupCardSkeleton() {
+  return (
+    <Box sx={{ border: '1px solid var(--border-color)', bgcolor: 'background.paper', p: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+        <Skeleton variant="rounded" width={18} height={18} sx={{ mt: 0.5 }} />
+        <Box sx={{ flex: 1 }}>
+          <Box
+            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Skeleton variant="rounded" width={90} height={24} />
+              <Skeleton variant="text" width={90} height={20} />
+            </Box>
+            <Skeleton variant="text" width={80} height={20} />
+          </Box>
+          <Skeleton variant="rounded" height={72} sx={{ mb: 2 }} />
+          <Skeleton variant="rounded" height={64} />
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+function DuplicateGroupsContent({
+  loading,
+  duplicateGroups,
+  selectedGroups,
+  onToggleGroup,
+}: {
+  loading: boolean;
+  duplicateGroups: DuplicateGroup[];
+  selectedGroups: Set<string>;
+  onToggleGroup: (masterId: string) => void;
+}) {
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {loading ? (
+        Array.from({ length: 5 }).map((_, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
+          <DuplicateGroupCardSkeleton key={index} />
+        ))
+      ) : duplicateGroups.length === 0 ? (
+        <Typography variant="body2" sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
+          No duplicate groups found
+        </Typography>
+      ) : (
+        duplicateGroups.map(group => (
+          <DuplicateGroupCard
+            key={group.master.id}
+            group={group}
+            selected={selectedGroups.has(group.master.id)}
+            onToggle={() => onToggleGroup(group.master.id)}
+          />
+        ))
+      )}
+    </Box>
+  );
 }
 
 export default function TransactionDuplicatesPage() {
@@ -167,7 +228,7 @@ export default function TransactionDuplicatesPage() {
                   Total Groups
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                  {loading ? <Spinner size={16} /> : duplicateGroups.length}
+                  {loading ? <Skeleton variant="text" width={32} /> : duplicateGroups.length}
                 </Typography>
               </Box>
               <Box>
@@ -175,7 +236,7 @@ export default function TransactionDuplicatesPage() {
                   Selected
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                  {loading ? <Spinner size={16} /> : selectedGroups.size}
+                  {loading ? <Skeleton variant="text" width={32} /> : selectedGroups.size}
                 </Typography>
               </Box>
               <Box>
@@ -184,7 +245,7 @@ export default function TransactionDuplicatesPage() {
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
                   {loading ? (
-                    <Spinner size={16} />
+                    <Skeleton variant="text" width={32} />
                   ) : (
                     duplicateGroups.reduce((sum, g) => sum + g.duplicates.length, 0)
                   )}

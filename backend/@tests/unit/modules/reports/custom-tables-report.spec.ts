@@ -33,6 +33,9 @@ describe('ReportsService custom tables report', () => {
       { get: jest.fn(), set: jest.fn() } as any,
       { createEvent: jest.fn() } as unknown as AuditService,
       createRepoMock(),
+      { findOne: jest.fn(async () => ({ currency: 'EUR' })) } as any,
+      { getRate: jest.fn(async () => 1) } as any,
+      { exportBalanceSheet: jest.fn() } as any,
     );
   });
 
@@ -200,6 +203,9 @@ describe('ReportsService custom tables report', () => {
       { get: jest.fn().mockResolvedValue(null), set: jest.fn() } as any,
       { createEvent: jest.fn() } as unknown as AuditService,
       createRepoMock(),
+      { findOne: jest.fn(async () => ({ currency: 'EUR' })) } as any,
+      { getRate: jest.fn(async () => 1) } as any,
+      { exportBalanceSheet: jest.fn() } as any,
     );
 
     const result = await localService.getCustomTablesReport('workspace-1', {
@@ -337,6 +343,9 @@ describe('ReportsService custom tables report', () => {
       { get: jest.fn().mockResolvedValue(null), set: jest.fn() } as any,
       { createEvent: jest.fn() } as unknown as AuditService,
       createRepoMock(),
+      { findOne: jest.fn(async () => ({ currency: 'EUR' })) } as any,
+      { getRate: jest.fn(async () => 1) } as any,
+      { exportBalanceSheet: jest.fn() } as any,
     );
 
     const result = await localService.getCustomTablesReportDrillDown('workspace-1', {
@@ -392,6 +401,9 @@ describe('ReportsService custom tables report', () => {
       { get: jest.fn(), set: jest.fn() } as any,
       { createEvent: jest.fn() } as unknown as AuditService,
       createRepoMock(),
+      { findOne: jest.fn(async () => ({ currency: 'EUR' })) } as any,
+      { getRate: jest.fn(async () => 1) } as any,
+      { exportBalanceSheet: jest.fn() } as any,
     );
 
     const result = await localService.getAvailableCustomTables('workspace-1');

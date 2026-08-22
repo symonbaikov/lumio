@@ -2,7 +2,7 @@
  * Tour step builder - converts TourStep[] to DriveStep[]
  */
 
-import type { DriveStep } from 'driver.js';
+import type { AllowedButtons, DriveStep } from 'driver.js';
 import { resolveText } from './TourManagerHelpers';
 import type { TourStep } from './types';
 
@@ -133,7 +133,9 @@ function buildPopover(
     side: step.side ?? 'bottom',
     align: step.align ?? 'start',
     ...(centered ? { popoverClass: 'tour-popover tour-popover--centered' } : {}),
-    ...(Array.isArray(step.showButtons) ? { showButtons: step.showButtons } : {}),
+    ...(Array.isArray(step.showButtons)
+      ? { showButtons: step.showButtons as AllowedButtons[] }
+      : {}),
     onNextClick,
     onPrevClick,
   };

@@ -20,6 +20,14 @@ interface TourMenuProps {
   className?: string;
 }
 
+/** Narrow view of the 'navigation' intlayer dictionary used by the tour menu. */
+interface TourNavigationTexts {
+  tour: {
+    buttons: { next: { value: string }; prev: { value: string }; done: { value: string } };
+    progressText?: { value: string };
+  };
+}
+
 function TourTrigger(props: {
   trigger?: ReactNode;
   className?: string;
@@ -102,7 +110,7 @@ function useTourMenuTexts(): { statementsTexts: unknown; tourTexts: TourTextsMap
 function useTourSelectHandler(
   tours: TourConfig[],
   handleClose: () => void,
-  navigationTexts: ReturnType<typeof useIntlayer>,
+  navigationTexts: TourNavigationTexts,
 ): (tourId: string) => void {
   const router = useRouter();
   return useCallback(
@@ -133,7 +141,7 @@ function useTourSelectHandler(
 export function TourMenu({ trigger, className = '' }: TourMenuProps): ReactElement {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
-  const navigationTexts = useIntlayer('navigation');
+  const navigationTexts = useIntlayer('navigation') as unknown as TourNavigationTexts;
   const { statementsTexts, tourTexts } = useTourMenuTexts();
 
   useTourRegistration({ statementsTexts, tourTexts });

@@ -41,7 +41,7 @@ function ThemePreviewCard({
 }: {
   selectedTheme: ThemePreference;
   currentTheme: 'dark' | 'light';
-  copy: typeof DEFAULT_LABELS;
+  copy: NonNullable<ModeToggleProps['labels']>;
 }) {
   const isDark = currentTheme === 'dark';
   const themeLabel =

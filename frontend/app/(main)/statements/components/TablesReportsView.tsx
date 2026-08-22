@@ -2,6 +2,7 @@
 
 import apiClient from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
+import Skeleton from '@mui/material/Skeleton';
 import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -501,7 +502,14 @@ export default function TablesReportsView() {
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {loading ? (
-          <div style={{ padding: '40px 0', fontSize: 14, color: c.ink500 }}>Loading...</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+            {['total', 'manual', 'googleSheets', 'operations'].map(key => (
+              <div key={key} style={panelStyle}>
+                <Skeleton variant="text" width="40%" height={16} />
+                <Skeleton variant="rounded" width="60%" height={24} style={{ marginTop: 4 }} />
+              </div>
+            ))}
+          </div>
         ) : !report || report.totals.operations === 0 ? (
           <div style={{ padding: '40px 0', fontSize: 14, color: c.ink500 }}>
             No data found for the selected period.

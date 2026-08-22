@@ -11,8 +11,7 @@ import Typography from '@mui/material/Typography';
 import type { RefObject } from 'react';
 import type { ConvertDroppedSamplePayload, ResolveWarningPayload } from '../ParsingWarningsPanel';
 import { buildHints, ignoreEventArg, labelValue } from '../editHelpers';
-import type { MetadataHints } from '../editHelpers';
-import type { ParsingDetailsData } from './ParsingDetailsPanel';
+import type { MetadataHints, StatementParsingDetails } from '../editHelpers';
 import { ParsingDetailsPanel } from './ParsingDetailsPanel';
 
 type Labels = Record<string, { value?: string } | undefined>;
@@ -133,7 +132,7 @@ export type MetadataAccordionProps = {
   metadataForm: MetaForm;
   labels: Labels;
   locale: string;
-  parsingDetails: ParsingDetailsData | null | undefined;
+  parsingDetails: StatementParsingDetails | null | undefined;
   formatNumber: (n?: number | null) => string;
   balanceStartInputRef: RefObject<HTMLInputElement>;
   balanceEndInputRef: RefObject<HTMLInputElement>;

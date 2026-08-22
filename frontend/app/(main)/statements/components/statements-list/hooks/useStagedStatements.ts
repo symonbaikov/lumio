@@ -1,7 +1,7 @@
 'use client';
 
+import { applyStatementsFilters } from '@/app/(main)/statements/components/filters/statement-filters';
 import {
-  applyStatementsFilters,
   isReceiptDerivedStatement,
   paginateStatements,
   resolveStatementSortDate,
@@ -12,12 +12,17 @@ import { useMemo } from 'react';
 
 interface StatementForStaging {
   id: string;
-  source?: string;
+  source?: 'statement' | 'gmail' | 'scan';
   status: string;
   fileName: string;
-  subject?: string;
-  sender?: string;
-  parsedData?: { vendor?: string };
+  subject?: string | null;
+  sender?: string | null;
+  parsedData?: { vendor?: string | null; date?: string | null } | null;
+  parsingDetails?: {
+    detectedBy?: string;
+    importPreview?: { source?: string };
+    metadataExtracted?: { currency?: string; headerDisplay?: { currencyDisplay?: string } };
+  };
 }
 
 interface UseStagedStatementsParams {

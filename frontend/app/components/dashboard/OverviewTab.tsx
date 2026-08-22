@@ -28,6 +28,7 @@ import type React from 'react';
 import { useMemo } from 'react';
 import { Spinner } from '../ui/spinner';
 import { CashFlowMini } from './CashFlowMini';
+import { CryptoPortfolioCard } from './CryptoPortfolioCard';
 import { RecentTransactionsCard } from './RecentTransactionsCard';
 import { TopCategoriesCard } from './TopCategoriesCard';
 import { computeNet, computeSavingsRate } from './dashboard-stats.util';
@@ -406,6 +407,8 @@ export function OverviewTab({
           sub={monthLabel}
         />
       </div>
+
+      <CryptoPortfolioCard formatAmount={formatAmount} />
 
       {/* Main 2fr/1fr grid */}
       <div className="lumio-dashboard__grid">
