@@ -1,6 +1,7 @@
 'use client';
 
 import { NotificationDropdown } from '@/app/components/NotificationDropdown';
+import { UpdateButton } from '@/app/components/UpdateButton';
 import { HelpCircle, Menu } from '@/app/components/icons';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
@@ -159,6 +160,7 @@ export default function TopBar() {
         </div>
 
         <div className="lumio-topbar__right">
+          <UpdateButton />
           <AiAssistantTopBarButton />
           <McpServerTopBarButton />
           <NotificationDropdown iconSize={18} />
