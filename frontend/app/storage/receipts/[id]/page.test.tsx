@@ -464,7 +464,7 @@ describe('ReceiptDocumentPage', () => {
       ) as HTMLButtonElement | undefined;
 
       expect(actionButton).toBeTruthy();
-      expect(actionButton!.tagName.toLowerCase()).toBe('button');
+      expect(actionButton?.tagName.toLowerCase()).toBe('button');
     }
   });
 

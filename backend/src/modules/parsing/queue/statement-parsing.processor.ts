@@ -8,8 +8,8 @@ import { Statement, StatementStatus } from '../../../entities/statement.entity';
 import { StatementProcessingService } from '../services/statement-processing.service';
 import {
   STATEMENT_PARSING_QUEUE,
-  StatementParsingQueue,
   type StatementParsingJob,
+  StatementParsingQueue,
 } from './statement-parsing.queue';
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
@@ -96,7 +96,9 @@ export class StaleStatementReaper {
           status: StatementStatus.ERROR,
           errorMessage: `Parsing abandoned after ${statement.parsingAttempts} attempts`,
         });
-        this.logger.warn(`Statement ${statement.id} abandoned after ${statement.parsingAttempts} attempts`);
+        this.logger.warn(
+          `Statement ${statement.id} abandoned after ${statement.parsingAttempts} attempts`,
+        );
         continue;
       }
 

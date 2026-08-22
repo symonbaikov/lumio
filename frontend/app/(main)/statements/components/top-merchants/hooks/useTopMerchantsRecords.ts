@@ -3,6 +3,7 @@ import {
   type StatementFilters,
   applyStatementsFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
+import type { AnalyticsFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
 import {
   getBankDisplayName,
   mapGmailReceiptToMerchantRecord,
@@ -12,7 +13,6 @@ import type {
   TopMerchantFlowType,
   TopMerchantRecord,
 } from '@/app/(main)/statements/components/top-merchants/top-merchants.types';
-import type { AnalyticsFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
 import type {
   GmailReceipt,
   StatementMeta,

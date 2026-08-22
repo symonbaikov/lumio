@@ -74,9 +74,7 @@ export class HapoalimParser extends BaseParser {
     const text = await this.getText(cachedText, filePath, fileType);
     const confidence = this.cachedOcrResult?.confidence ?? 1.0;
 
-    this.logger.debug(
-      `Text length: ${text.length}, confidence: ${confidence.toFixed(2)}`,
-    );
+    this.logger.debug(`Text length: ${text.length}, confidence: ${confidence.toFixed(2)}`);
 
     // Extract metadata from text
     const metadata = this.extractMetadata(text);

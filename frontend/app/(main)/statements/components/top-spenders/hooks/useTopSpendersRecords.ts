@@ -3,6 +3,7 @@ import {
   type StatementFilters,
   applyStatementsFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
+import type { AnalyticsFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
 import {
   getBankDisplayName,
   mapReceiptToRecord,
@@ -12,7 +13,6 @@ import type {
   TopSpenderFlowType,
   TopSpenderRecord,
 } from '@/app/(main)/statements/components/top-spenders/top-spenders.types';
-import type { AnalyticsFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
 import type { GmailReceipt } from '@/app/(main)/statements/types/statement-types';
 import { useMemo } from 'react';
 

@@ -10,8 +10,8 @@ import { fetchExchangeRate } from '@/app/lib/exchange-rate';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import {
   type OpenExpenseDrawerEventDetail,
-  type StatementExpenseMode,
   STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT,
+  type StatementExpenseMode,
   resolveExpenseDrawerMode,
 } from '@/app/lib/statement-expense-drawer';
 import { STATEMENTS_GMAIL_SYNC_STORAGE_KEY } from '@/app/lib/statement-upload-actions';

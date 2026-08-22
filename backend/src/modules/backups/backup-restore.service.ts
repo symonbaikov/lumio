@@ -4,12 +4,12 @@ import * as path from 'node:path';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import type { DataSource, EntityMetadata } from 'typeorm';
-import { WorkspaceRole } from '../../entities';
-import { resolveUploadsDir } from '../../common/utils/uploads.util';
-import type { User } from '../../entities/user.entity';
-import { Workspace } from '../../entities/workspace.entity';
-import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import type { Repository } from 'typeorm';
+import { resolveUploadsDir } from '../../common/utils/uploads.util';
+import { WorkspaceRole } from '../../entities';
+import type { User } from '../../entities/user.entity';
+import { WorkspaceMember } from '../../entities/workspace-member.entity';
+import { Workspace } from '../../entities/workspace.entity';
 import { BackupArchiveService, type OpenedBackup } from './backup-archive.service';
 
 const RESTORE_ORDER = [
@@ -64,7 +64,12 @@ export class BackupRestoreService {
     };
   }
 
-  async restore(archive: Buffer, password: string, user: User, workspaceName?: string): Promise<Workspace> {
+  async restore(
+    archive: Buffer,
+    password: string,
+    user: User,
+    workspaceName?: string,
+  ): Promise<Workspace> {
     const opened = await this.archiveService.open(archive, password);
     const sourceWorkspace = this.sourceWorkspace(opened);
     const workspace = await this.workspaceRepository.save(
@@ -94,7 +99,14 @@ export class BackupRestoreService {
         }),
       );
       const idMap = this.buildIdMap(opened, sourceWorkspace.id, workspace.id);
-      const prepared = await this.prepareCollections(opened, idMap, workspace.id, user.id, restoreDirectory, stagedFiles);
+      const prepared = await this.prepareCollections(
+        opened,
+        idMap,
+        workspace.id,
+        user.id,
+        restoreDirectory,
+        stagedFiles,
+      );
       await this.dataSource.transaction(async manager => {
         for (const { metadata, values } of prepared) {
           if (values.length > 0) {
@@ -112,7 +124,9 @@ export class BackupRestoreService {
       return workspace;
     } catch (error) {
       await fs.rm(restoreDirectory, { recursive: true, force: true }).catch(() => undefined);
-      await Promise.all(stagedFiles.map(file => fs.rm(file.targetPath, { force: true }).catch(() => undefined)));
+      await Promise.all(
+        stagedFiles.map(file => fs.rm(file.targetPath, { force: true }).catch(() => undefined)),
+      );
       await this.workspaceRepository.delete(workspace.id).catch(() => undefined);
       throw error;
     }
@@ -124,7 +138,11 @@ export class BackupRestoreService {
     throw new BadRequestException('Backup does not contain workspace data');
   }
 
-  private buildIdMap(opened: OpenedBackup, sourceWorkspaceId: unknown, workspaceId: string): Map<string, string> {
+  private buildIdMap(
+    opened: OpenedBackup,
+    sourceWorkspaceId: unknown,
+    workspaceId: string,
+  ): Map<string, string> {
     const map = new Map<string, string>();
     if (typeof sourceWorkspaceId === 'string') map.set(sourceWorkspaceId, workspaceId);
     for (const [tableName, rows] of Object.entries(opened.collections)) {
@@ -137,10 +155,15 @@ export class BackupRestoreService {
     return map;
   }
 
-  private sortedCollections(collections: Record<string, unknown[]>): Array<[string, Record<string, unknown>[]]> {
+  private sortedCollections(
+    collections: Record<string, unknown[]>,
+  ): Array<[string, Record<string, unknown>[]]> {
     const entries = Object.entries(collections)
       .filter(([tableName]) => tableName !== 'workspace')
-      .map(([tableName, rows]) => [tableName, rows as Record<string, unknown>[]] as [string, Record<string, unknown>[]]);
+      .map(
+        ([tableName, rows]) =>
+          [tableName, rows as Record<string, unknown>[]] as [string, Record<string, unknown>[]],
+      );
     return entries.sort(([left], [right]) => this.order(left) - this.order(right));
   }
 
@@ -189,7 +212,8 @@ export class BackupRestoreService {
     const prepared: Array<{ metadata: EntityMetadata; values: Record<string, unknown>[] }> = [];
     for (const [tableName, rows] of this.sortedCollections(opened.collections)) {
       const metadata = this.dataSource.entityMetadatas.find(item => item.tableName === tableName);
-      if (!metadata) throw new BadRequestException(`Backup contains unsupported collection: ${tableName}`);
+      if (!metadata)
+        throw new BadRequestException(`Backup contains unsupported collection: ${tableName}`);
       const values: Record<string, unknown>[] = [];
       for (const row of rows) {
         const mapped = this.mapRecord(metadata, row, idMap, workspaceId, userId);
@@ -233,7 +257,13 @@ export class BackupRestoreService {
         source.attachmentPaths
           .filter((value): value is string => typeof value === 'string')
           .map(portablePath =>
-            this.stageDocument(portablePath, String(mapped.id), files, restoreDirectory, stagedFiles),
+            this.stageDocument(
+              portablePath,
+              String(mapped.id),
+              files,
+              restoreDirectory,
+              stagedFiles,
+            ),
           ),
       );
     }

@@ -280,12 +280,7 @@ export class StatementsService {
     thumbnailWidth: number,
   ): Promise<void> {
     const scriptPath = path.join(__dirname, '../../../scripts/generate-thumbnail.py');
-    await runExecutable('python3', [
-      scriptPath,
-      pdfPath,
-      thumbnailPath,
-      String(thumbnailWidth),
-    ]);
+    await runExecutable('python3', [scriptPath, pdfPath, thumbnailPath, String(thumbnailWidth)]);
   }
 
   private async generateThumbnailWithQuickLook(
@@ -293,14 +288,7 @@ export class StatementsService {
     outputDir: string,
     thumbnailWidth: number,
   ): Promise<string> {
-    await runExecutable('qlmanage', [
-      '-t',
-      '-s',
-      String(thumbnailWidth),
-      '-o',
-      outputDir,
-      pdfPath,
-    ]);
+    await runExecutable('qlmanage', ['-t', '-s', String(thumbnailWidth), '-o', outputDir, pdfPath]);
     const generatedPath = path.join(outputDir, `${path.basename(pdfPath)}.png`);
     if (!fs.existsSync(generatedPath)) {
       throw new Error('Quick Look thumbnail output not found');

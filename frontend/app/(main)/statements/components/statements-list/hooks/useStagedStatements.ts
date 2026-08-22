@@ -1,11 +1,11 @@
 'use client';
 
-import { applyStatementsFilters } from '@/app/(main)/statements/components/filters/statement-filters';
 import {
   isReceiptDerivedStatement,
   paginateStatements,
   resolveStatementSortDate,
 } from '@/app/(main)/statements/components/StatementsListView.utils';
+import { applyStatementsFilters } from '@/app/(main)/statements/components/filters/statement-filters';
 import type { StatementFilters } from '@/app/(main)/statements/components/filters/statement-filters';
 import { type StatementStage, getStatementStage } from '@/app/lib/statement-workflow';
 import { useMemo } from 'react';

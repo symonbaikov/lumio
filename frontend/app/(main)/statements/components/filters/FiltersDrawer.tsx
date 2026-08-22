@@ -842,7 +842,7 @@ const SCREEN_TITLE_MAP: Record<string, keyof FiltersDrawerLabels> = {
 
 function getScreenTitle(screen: string, labels: FiltersDrawerLabels): string {
   const key = SCREEN_TITLE_MAP[screen];
-  return key ? labels[key]! : labels.title;
+  return (key ? labels[key] : undefined) ?? labels.title;
 }
 
 export function FiltersDrawer({

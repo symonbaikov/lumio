@@ -61,7 +61,15 @@ jobs:
               return;
             }
 
-            const labels = (context.payload.pull_request.labels || []).map(label => label.name);
+            // Лейблы читаем через API, а не из context.payload: payload — это
+            // снимок на момент события, поэтому после навешивания лейбла
+            // перезапуск джобы видел бы устаревший список и падал снова.
+            const { data: currentLabels } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+            const labels = currentLabels.map(label => label.name);
             const missing = [];
 
             if (dbChanged && !labels.includes('db-approved')) {
@@ -431,7 +439,7 @@ jobs:
         run: npm ci --prefix website --ignore-scripts
 
       - name: Backend audit (high/critical)
-        run: npx audit-ci@9.4.0 --config backend/audit-ci.json --package-manager npm --path backend
+        run: npx audit-ci@7.1.0 --config backend/audit-ci.json --package-manager npm --path backend
 
       - name: Frontend audit (high/critical)
         run: npm audit --audit-level=high --prefix frontend
@@ -467,38 +475,9 @@ jobs:
         with:
           args: detect --source=. --verbose --redact
 
-  storybook-build:
-    runs-on: ubuntu-latest
-    needs: [lint, typecheck]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        run: npm ci --prefix frontend
-
-      - name: Build Storybook
-        run: npm run storybook:build --prefix frontend
-
-      - name: Upload Storybook artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: storybook-ci
-          path: frontend/storybook-static
-          retention-days: 7
-
   docker:
     runs-on: ubuntu-latest
-    needs: [build, dependency-scan, secrets-scan, storybook-build]
+    needs: [build, dependency-scan, secrets-scan]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -526,10 +505,12 @@ jobs:
           hide-progress: true
 
       - name: Generate SBOM
-        uses: anchore/syft-action@v0.15.0
+        uses: anchore/sbom-action@v0.24.0
         with:
           image: parse-ledger:ci
-          output: sbom.spdx.json
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: false
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v4

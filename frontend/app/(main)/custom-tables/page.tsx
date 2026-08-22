@@ -3,7 +3,6 @@
 import { FilterActions } from '@/app/(main)/statements/components/filters/FilterActions';
 import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
 import { FilterOptionRow } from '@/app/(main)/statements/components/filters/FilterOptionRow';
-import Skeleton from '@mui/material/Skeleton';
 import ConfirmModal from '@/app/components/ConfirmModal';
 import { Tag as CategoryIcon } from '@/app/components/icons';
 import {
@@ -53,6 +52,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import Skeleton from '@mui/material/Skeleton';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';

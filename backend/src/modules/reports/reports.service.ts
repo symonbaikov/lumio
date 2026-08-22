@@ -2847,9 +2847,7 @@ export class ReportsService {
     }
 
     const document = await this.buildTemplateDocument(workspaceId, dto);
-    const truncated = document.sections.some(
-      section => section.rows.length > maxRowsPerSection,
-    );
+    const truncated = document.sections.some(section => section.rows.length > maxRowsPerSection);
 
     return {
       ...document,
@@ -3160,14 +3158,7 @@ export class ReportsService {
       subtitle,
       sections: [
         {
-          columns: [
-            'Date',
-            'Counterparty',
-            'Category',
-            'Type',
-            `Amount (${currency})`,
-            'Original',
-          ],
+          columns: ['Date', 'Counterparty', 'Category', 'Type', `Amount (${currency})`, 'Original'],
           rows: sorted.map(row => [
             row.date,
             row.counterparty,
@@ -3189,9 +3180,10 @@ export class ReportsService {
     const totalIncome = income.reduce((sum, row) => sum + row.amount, 0);
     const totalExpense = expense.reduce((sum, row) => sum + row.amount, 0);
 
-    const topCategories = this.toAmountRows(
-      this.sumByKey(expense, row => row.categoryName),
-    ).slice(0, 10);
+    const topCategories = this.toAmountRows(this.sumByKey(expense, row => row.categoryName)).slice(
+      0,
+      10,
+    );
 
     return {
       title: 'Monthly Summary',

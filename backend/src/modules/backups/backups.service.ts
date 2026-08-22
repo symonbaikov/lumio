@@ -1,6 +1,11 @@
 import * as crypto from 'node:crypto';
 import { randomUUID } from 'node:crypto';
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import {
@@ -60,7 +65,8 @@ export class BackupsService {
       throw new BadRequestException('A backup password is required for the first configuration');
     }
 
-    const configuration = existing || this.configurationRepository.create({ workspaceId: workspace.id });
+    const configuration =
+      existing || this.configurationRepository.create({ workspaceId: workspace.id });
     configuration.destinationKind = input.destinationKind;
     configuration.destinationPath = input.destinationPath || 'lumio-backups';
     configuration.dailyTime = input.dailyTime || existing?.dailyTime || '03:00';
@@ -91,7 +97,10 @@ export class BackupsService {
     });
   }
 
-  async createRun(user: User, trigger: BackupRunTrigger = BackupRunTrigger.MANUAL): Promise<BackupRun> {
+  async createRun(
+    user: User,
+    trigger: BackupRunTrigger = BackupRunTrigger.MANUAL,
+  ): Promise<BackupRun> {
     const workspace = await this.requireOwner(user);
     const configuration = await this.configurationRepository.findOne({
       where: { workspaceId: workspace.id },
@@ -104,11 +113,15 @@ export class BackupsService {
 
   async downloadRun(user: User, runId: string): Promise<{ fileName: string; contents: Buffer }> {
     const workspace = await this.requireOwner(user);
-    const run = await this.runRepository.findOne({ where: { id: runId, workspaceId: workspace.id } });
+    const run = await this.runRepository.findOne({
+      where: { id: runId, workspaceId: workspace.id },
+    });
     if (!run?.destinationFile || run.status !== BackupRunStatus.SUCCEEDED) {
       throw new NotFoundException('Backup run was not found');
     }
-    const configuration = await this.configurationRepository.findOne({ where: { id: run.configurationId, workspaceId: workspace.id } });
+    const configuration = await this.configurationRepository.findOne({
+      where: { id: run.configurationId, workspaceId: workspace.id },
+    });
     if (!configuration) throw new NotFoundException('Backup configuration was not found');
 
     return {
@@ -163,7 +176,11 @@ export class BackupsService {
         },
       });
       const fileName = `backup-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.lumio-backup`;
-      savedRun.destinationFile = await this.destinationService.store(configuration, fileName, archive);
+      savedRun.destinationFile = await this.destinationService.store(
+        configuration,
+        fileName,
+        archive,
+      );
       savedRun.payloadSha256 = crypto.createHash('sha256').update(archive).digest('hex');
       savedRun.sizeBytes = String(archive.length);
       savedRun.status = BackupRunStatus.SUCCEEDED;
@@ -204,7 +221,10 @@ export class BackupsService {
         throw new BadRequestException('Invalid backup time zone');
       }
     }
-    if (input.retentionCount !== undefined && (!Number.isInteger(input.retentionCount) || input.retentionCount < 1)) {
+    if (
+      input.retentionCount !== undefined &&
+      (!Number.isInteger(input.retentionCount) || input.retentionCount < 1)
+    ) {
       throw new BadRequestException('Retention count must be at least one');
     }
     if (input.destinationPath && !/^[a-zA-Z0-9_-]+$/.test(input.destinationPath)) {

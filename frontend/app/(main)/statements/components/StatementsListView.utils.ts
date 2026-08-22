@@ -96,7 +96,7 @@ export type FilterOptionLabels = {
   columnExportedTo: string;
   columnsTitle: string;
   paid: string;
-}
+};
 
 const UI_ONLY_BANK_FILTER_IDS = new Set(['bank:receipt', 'bank:gmail']);
 

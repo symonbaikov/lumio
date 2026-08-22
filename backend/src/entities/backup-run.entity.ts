@@ -38,7 +38,11 @@ export class BackupRun {
   @Column({ name: 'configuration_id' })
   configurationId: string;
 
-  @ManyToOne(() => BackupConfiguration, configuration => configuration.runs, { onDelete: 'CASCADE' })
+  @ManyToOne(
+    () => BackupConfiguration,
+    configuration => configuration.runs,
+    { onDelete: 'CASCADE' },
+  )
   @JoinColumn({ name: 'configuration_id' })
   configuration: BackupConfiguration;
 

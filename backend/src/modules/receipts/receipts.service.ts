@@ -1,22 +1,22 @@
-import { Injectable, Logger } from '@nestjs/common';
 import { promises as fs } from 'node:fs';
+import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { normalizePagination } from '../../common/utils/pagination.util';
 import {
   Receipt,
   ReceiptJobStatus,
   ReceiptProcessingJob,
-  Statement,
   ReceiptSource,
   ReceiptStatus,
+  Statement,
   Transaction,
   TransactionType,
 } from '../../entities';
-import { normalizePagination } from '../../common/utils/pagination.util';
+import { ReceiptApprovedEvent } from '../notifications/events/notification-events';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
 import { ReceiptProcessorService } from './services/receipt-processor.service';
-import { ReceiptApprovedEvent } from '../notifications/events/notification-events';
 
 type UploadParams = {
   userId: string;
@@ -62,7 +62,12 @@ export class ReceiptsService {
     });
 
     const savedReceipt = await this.receiptRepository.save(receipt);
-    const job = await this.createManualJob(savedReceipt.id, params.userId, 'manual-upload', params.language);
+    const job = await this.createManualJob(
+      savedReceipt.id,
+      params.userId,
+      'manual-upload',
+      params.language,
+    );
     await this.receiptProcessor.processReceipt(job);
 
     return (
@@ -82,7 +87,12 @@ export class ReceiptsService {
     });
 
     const savedReceipt = await this.receiptRepository.save(receipt);
-    const job = await this.createManualJob(savedReceipt.id, params.userId, 'manual-scan', params.language);
+    const job = await this.createManualJob(
+      savedReceipt.id,
+      params.userId,
+      'manual-scan',
+      params.language,
+    );
     await this.receiptProcessor.processReceipt(job);
 
     return (
@@ -166,7 +176,7 @@ export class ReceiptsService {
         receiptId: savedReceipt.id,
         transactionId: savedTransaction.id,
       } satisfies ReceiptApprovedEvent)
-      .catch((err) => this.logger.error('Failed to emit receipt.approved event', err));
+      .catch(err => this.logger.error('Failed to emit receipt.approved event', err));
 
     return {
       receipt: savedReceipt,
@@ -183,7 +193,9 @@ export class ReceiptsService {
 
     for (const receiptId of receiptIds) {
       try {
-        const receipt = await this.receiptRepository.findOne({ where: { id: receiptId, workspaceId } });
+        const receipt = await this.receiptRepository.findOne({
+          where: { id: receiptId, workspaceId },
+        });
 
         if (!receipt) {
           results.failed += 1;
@@ -197,7 +209,11 @@ export class ReceiptsService {
           continue;
         }
 
-        const savedTransaction = await this.createTransactionFromReceipt(receipt, workspaceId, categoryId);
+        const savedTransaction = await this.createTransactionFromReceipt(
+          receipt,
+          workspaceId,
+          categoryId,
+        );
         receipt.status = ReceiptStatus.APPROVED;
         receipt.transactionId = savedTransaction.id;
         const savedReceipt = await this.receiptRepository.save(receipt);
@@ -207,7 +223,7 @@ export class ReceiptsService {
             receiptId: savedReceipt.id,
             transactionId: savedTransaction.id,
           } satisfies ReceiptApprovedEvent)
-          .catch((err) => this.logger.error('Failed to emit receipt.approved event', err));
+          .catch(err => this.logger.error('Failed to emit receipt.approved event', err));
         results.approved += 1;
       } catch (error) {
         results.failed += 1;
@@ -333,7 +349,9 @@ export class ReceiptsService {
     categoryId?: string,
   ) {
     const transactionType =
-      receipt.parsedData?.transactionType === 'income' ? TransactionType.INCOME : TransactionType.EXPENSE;
+      receipt.parsedData?.transactionType === 'income'
+        ? TransactionType.INCOME
+        : TransactionType.EXPENSE;
 
     const transaction = this.transactionRepository.create({
       statementId: null,

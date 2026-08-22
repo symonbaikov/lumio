@@ -7,8 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import AdmZip from 'adm-zip';
 import nodemailer from 'nodemailer';
 import type { Repository } from 'typeorm';
-import { decryptText, encryptText } from '../../common/utils/encryption.util';
 import { assertPublicEgressHost, assertPublicEgressUrl } from '../../common/utils/egress-url.util';
+import { decryptText, encryptText } from '../../common/utils/encryption.util';
 import { User, WorkspaceServiceSettings, WorkspaceServiceSettingsKey } from '../../entities';
 import { TransactionCategorizer } from '../classification/helpers/transaction-categorizer';
 

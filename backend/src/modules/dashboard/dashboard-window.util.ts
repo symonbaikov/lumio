@@ -17,24 +17,8 @@ export function getWindowBounds(days: number, targetDate: Date): DashboardWindow
 
 /** The calendar month containing `anchorDate`, from day 1 00:00:00 to the last day 23:59:59.999. */
 export function getMonthWindowBounds(anchorDate: Date): DashboardWindow {
-  const since = new Date(
-    anchorDate.getFullYear(),
-    anchorDate.getMonth(),
-    1,
-    0,
-    0,
-    0,
-    0,
-  );
-  const endDate = new Date(
-    anchorDate.getFullYear(),
-    anchorDate.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-    999,
-  );
+  const since = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1, 0, 0, 0, 0);
+  const endDate = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0, 23, 59, 59, 999);
   return { since, endDate };
 }
 

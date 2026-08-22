@@ -27,13 +27,6 @@ cd frontend
 npm run test
 ```
 
-## Storybook
-
-```bash
-cd frontend
-npm run storybook
-```
-
 ## Coverage goals
 
 - Backend: 80%+
