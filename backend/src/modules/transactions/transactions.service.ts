@@ -199,6 +199,41 @@ export class TransactionsService {
     return transaction;
   }
 
+  /**
+   * Refuses edits that would put a filed return out of step with its data.
+   *
+   * A locked transaction has been reported to a tax authority. Its money and
+   * its tax are therefore fixed; everything else about it — comments, wallet,
+   * counterparty spelling — stays editable, so locking does not turn the row
+   * into a museum piece.
+   */
+  private assertTaxEditable(transaction: Transaction, updateDto: UpdateTransactionDto): void {
+    if (!transaction.taxLocked) {
+      return;
+    }
+
+    const frozen: Array<keyof UpdateTransactionDto> = [
+      'amount',
+      'debit',
+      'credit',
+      'amountForeign',
+      'exchangeRate',
+      'transactionType',
+      'categoryId',
+      'transactionDate',
+      // Changing it would re-convert the tax at a different rate than the one
+      // the filed figure was built from.
+      'currency',
+    ];
+
+    const attempted = frozen.filter(field => updateDto[field] !== undefined);
+    if (attempted.length > 0) {
+      throw new BadRequestException(
+        `Cannot change ${attempted.join(', ')} on a transaction that is part of a filed tax return. Reopen the return first.`,
+      );
+    }
+  }
+
   async update(
     id: string,
     workspaceId: string,
@@ -211,6 +246,7 @@ export class TransactionsService {
     await this.assertWorkspaceOwnedRefs(updateDto, workspaceId);
     const before = { ...transaction };
     const previousCategoryId = transaction.categoryId;
+    this.assertTaxEditable(transaction, updateDto);
 
     // Recalculate amount if debit/credit changed
     if (updateDto.debit !== undefined || updateDto.credit !== undefined) {

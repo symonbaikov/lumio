@@ -188,3 +188,58 @@ describe('TransactionsService.split — tax', () => {
     expect(resolveSpy).not.toHaveBeenCalled();
   });
 });
+
+describe('TransactionsService.update — filed-return lock', () => {
+  const build = (locked: boolean) => {
+    const row = { ...ORIGINAL, taxLocked: locked };
+    const repo = {
+      findOne: jest.fn(async () => ({ ...row })),
+      save: jest.fn(async (saved: any) => saved),
+      manager: { getRepository: () => ({ countBy: jest.fn(async () => 99) }) },
+    };
+    const service = new TransactionsService(
+      repo as any,
+      {} as any,
+      { findOne: jest.fn(async () => ({ id: 'u-1', role: 'admin' })) } as any,
+      { findOne: jest.fn(async () => ({ permissions: { canEditStatements: true } })) } as any,
+      { set: jest.fn() } as any,
+      { createEvent: jest.fn() } as any,
+      { learnFromCorrection: jest.fn() } as any,
+      { bulkConvert: jest.fn() } as any,
+      { resolve: jest.fn() } as any,
+    );
+    (service as any).ensureCanEditStatements = jest.fn();
+    (service as any).assertWorkspaceOwnedRefs = jest.fn();
+    (service as any).invalidateReports = jest.fn();
+    return { service, repo };
+  };
+
+  it.each(['amount', 'categoryId', 'transactionDate', 'currency', 'transactionType'])(
+    'refuses to change %s once the row is in a filed return',
+    async field => {
+      const { service } = build(true);
+
+      await expect(
+        service.update('tx-1', 'ws-1', 'u-1', { [field]: 'x' } as any),
+      ).rejects.toThrow(/filed tax return/);
+    },
+  );
+
+  it('still allows edits that cannot move the figures', async () => {
+    const { service } = build(true);
+
+    // Locking must not turn the row into a museum piece: a typo in the
+    // counterparty or a note has no bearing on what was filed.
+    await expect(
+      service.update('tx-1', 'ws-1', 'u-1', { comments: 'checked' } as any),
+    ).resolves.toBeDefined();
+  });
+
+  it('leaves an unlocked row fully editable', async () => {
+    const { service } = build(false);
+
+    await expect(
+      service.update('tx-1', 'ws-1', 'u-1', { amount: 999 } as any),
+    ).resolves.toBeDefined();
+  });
+});

@@ -52,6 +52,7 @@ export * from './tax-jurisdiction.entity';
 export * from './tax-jurisdiction-rate.entity';
 export * from './tax-rate.entity';
 export * from './tax-rule.entity';
+export * from './tax-return.entity';
 export * from './payable.entity';
 export * from './report-history.entity';
 export * from './exchange-rate.entity';
