@@ -60,6 +60,7 @@ import {
 import { tokens } from '@/lib/theme-tokens';
 import { ParsingWarningsPanel } from './ParsingWarningsPanel';
 import StatementCategoryDrawer from './StatementCategoryDrawer';
+import { BalanceReviewAlert } from './components/BalanceReviewAlert';
 import {
   type Transaction,
   filterEnabledCategories,
@@ -669,6 +670,28 @@ export default function EditStatementPage(): React.JSX.Element {
           </Typography>
         </Alert>
       </Box>
+
+      {statement && (
+        <BalanceReviewAlert
+          statementId={statement.id}
+          status={statement.status}
+          parsingDetails={statement.parsingDetails}
+          formatNumber={formatNumber}
+          onConfirmed={LoadData}
+          labels={{
+            title: labels.balanceReviewTitle?.value || 'Balance does not reconcile',
+            description:
+              labels.balanceReviewDescription?.value ||
+              'This statement stays out of analytics until you confirm the discrepancy.',
+            expected: labels.balanceReviewExpected?.value || 'Expected',
+            actual: labels.balanceReviewActual?.value || 'Reported',
+            difference: labels.balanceReviewDifference?.value || 'Difference',
+            confirm: labels.balanceReviewConfirm?.value || 'Confirm discrepancy',
+            confirmFailed:
+              labels.balanceReviewConfirmFailed?.value || 'Failed to confirm the discrepancy',
+          }}
+        />
+      )}
 
       {/* Alerts */}
       {error && (

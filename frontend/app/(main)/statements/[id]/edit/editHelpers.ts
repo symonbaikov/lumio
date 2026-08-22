@@ -85,6 +85,21 @@ export interface StatementParsingDetails {
   processingTime?: number;
   logEntries?: Array<{ timestamp: string; level: string; message: string }>;
   droppedSamples?: Array<string | ParsingDroppedSample>;
+  /** Balance reconciliation result. `passed: false` puts the statement in `needs_review`. */
+  validation?: {
+    passed: boolean;
+    warnings?: string[];
+    balanceCheck?: {
+      expectedEnd?: number;
+      actualEnd?: number;
+      difference?: number;
+      tolerance?: number;
+    };
+  };
+  balanceConfirmation?: {
+    confirmedBy: string;
+    confirmedAt: string;
+  };
 }
 
 export interface Statement {

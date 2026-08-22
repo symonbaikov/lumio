@@ -321,10 +321,14 @@ export const resolveStatementViewAction = (
     return { type: 'route', href: `/storage/receipts/${statement.id}` };
   }
 
+  // `needs_review` belongs here too: the statement is parsed and has transactions
+  // to inspect, and the edit page is where the balance discrepancy is confirmed.
+  // Routing it to storage instead would hide the only way to release it.
   if (
     statement.status === 'completed' ||
     statement.status === 'parsed' ||
-    statement.status === 'validated'
+    statement.status === 'validated' ||
+    statement.status === 'needs_review'
   ) {
     return { type: 'route', href: `/statements/${statement.id}/edit` };
   }

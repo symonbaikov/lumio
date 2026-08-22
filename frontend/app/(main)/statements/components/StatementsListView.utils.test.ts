@@ -156,6 +156,32 @@ describe('StatementsListView utils', () => {
     });
   });
 
+  it('routes a needs_review statement to the edit page where it can be confirmed', () => {
+    expect(
+      resolveStatementViewAction({
+        id: 'statement-1',
+        source: 'statement',
+        status: 'needs_review',
+      }),
+    ).toEqual({
+      type: 'route',
+      href: '/statements/statement-1/edit',
+    });
+  });
+
+  it('still routes an unparsed statement to storage', () => {
+    expect(
+      resolveStatementViewAction({
+        id: 'statement-2',
+        source: 'statement',
+        status: 'uploaded',
+      }),
+    ).toEqual({
+      type: 'route',
+      href: '/storage/statement-2',
+    });
+  });
+
   it('paginates filtered statements on the client', () => {
     const result = paginateStatements(
       [{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }, { id: '5' }],
