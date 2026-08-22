@@ -45,7 +45,7 @@ describe('PDFPreviewModal manual attach flow', () => {
   let root: ReturnType<typeof createRoot>;
   let originalCreateObjectUrl: typeof URL.createObjectURL;
   let originalRevokeObjectUrl: typeof URL.revokeObjectURL;
-  let pdfPreviewModal: typeof import('./PDFPreviewModal').PDFPreviewModal;
+  let PDFPreviewModal: typeof import('./PDFPreviewModal').PDFPreviewModal;
 
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -89,7 +89,7 @@ describe('PDFPreviewModal manual attach flow', () => {
 
   async function loadComponent() {
     const module = await import('./PDFPreviewModal');
-    pdfPreviewModal = module.PDFPreviewModal;
+    PDFPreviewModal = module.PDFPreviewModal;
   }
 
   it('builds source-specific file endpoints', async () => {
@@ -112,7 +112,7 @@ describe('PDFPreviewModal manual attach flow', () => {
     await act(async () => {
       await loadComponent();
       root.render(
-        <pdfPreviewModal
+        <PDFPreviewModal
           isOpen
           onClose={vi.fn()}
           fileId="statement-1"
@@ -141,7 +141,7 @@ describe('PDFPreviewModal manual attach flow', () => {
     await act(async () => {
       await loadComponent();
       root.render(
-        <pdfPreviewModal
+        <PDFPreviewModal
           isOpen
           onClose={vi.fn()}
           fileId="statement-1"
@@ -194,7 +194,7 @@ describe('PDFPreviewModal manual attach flow', () => {
     await act(async () => {
       await loadComponent();
       root.render(
-        <pdfPreviewModal
+        <PDFPreviewModal
           isOpen
           onClose={vi.fn()}
           fileId="receipt-1"
@@ -224,7 +224,7 @@ describe('PDFPreviewModal manual attach flow', () => {
     await act(async () => {
       await loadComponent();
       root.render(
-        <pdfPreviewModal
+        <PDFPreviewModal
           isOpen
           onClose={vi.fn()}
           fileId="receipt-image-1"
@@ -255,7 +255,7 @@ describe('PDFPreviewModal manual attach flow', () => {
     await act(async () => {
       await loadComponent();
       root.render(
-        <pdfPreviewModal
+        <PDFPreviewModal
           isOpen
           onClose={vi.fn()}
           fileId="receipt-image-2"
@@ -278,7 +278,7 @@ describe('PDFPreviewModal manual attach flow', () => {
 
     await act(async () => {
       root.render(
-        <pdfPreviewModal
+        <PDFPreviewModal
           isOpen
           onClose={vi.fn()}
           fileId="receipt-image-3"
@@ -310,7 +310,7 @@ describe('PDFPreviewModal manual attach flow', () => {
     await act(async () => {
       await loadComponent();
       root.render(
-        <pdfPreviewModal
+        <PDFPreviewModal
           isOpen
           onClose={vi.fn()}
           fileId="receipt-1"
