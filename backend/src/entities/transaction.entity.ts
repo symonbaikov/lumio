@@ -80,6 +80,17 @@ export class Transaction {
   @Column({ name: 'counterparty_bank', nullable: true })
   counterpartyBank: string | null;
 
+  /**
+   * ISO-3166-1 alpha-2. Together with the VAT id below, this is what decides
+   * whether a cross-border supply is reverse-charged.
+   */
+  @Column({ name: 'counterparty_country', type: 'varchar', length: 2, nullable: true })
+  counterpartyCountry: string | null;
+
+  /** Its presence is what makes the other party a business rather than a consumer. */
+  @Column({ name: 'counterparty_vat_id', type: 'varchar', length: 32, nullable: true })
+  counterpartyVatId: string | null;
+
   @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
   debit: number | null;
 
@@ -166,6 +177,14 @@ export class Transaction {
 
   @Column({ name: 'tax_reverse_charge', default: false })
   taxReverseCharge: boolean;
+
+  /**
+   * The tax that would have been charged. Equal to `taxAmount` in the ordinary
+   * case; under reverse charge `taxAmount` is zero and this carries the figure
+   * the return reports on both sides so the entries cancel.
+   */
+  @Column({ name: 'tax_notional_amount', type: 'decimal', precision: 15, scale: 2, nullable: true })
+  taxNotionalAmount: number | null;
 
   /** Which rule produced these figures, when one did. */
   @ManyToOne(() => TaxRule, { nullable: true, onDelete: 'SET NULL' })

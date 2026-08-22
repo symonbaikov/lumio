@@ -305,4 +305,52 @@ describe('TaxReturnsService', () => {
       });
     });
   });
+
+  describe('reverse charge', () => {
+    it('reports the notional figure on both sides so the entries cancel', async () => {
+      transactionRepo.find.mockResolvedValue([
+        tx({
+          id: 'rc',
+          taxAmount: '0.00',
+          taxReverseCharge: true,
+          taxNotionalAmount: '190.00',
+        }),
+      ]);
+
+      const totals = await service.computeTotals('ws-1', '2026-01-01', '2026-03-31');
+
+      expect(totals.outputTax).toBe(190);
+      expect(totals.inputTax).toBe(190);
+      // The whole point: it is declared, and it costs nothing.
+      expect(totals.netPayable).toBe(0);
+    });
+
+    it('marks the line so the return shows why it appears twice', async () => {
+      transactionRepo.find.mockResolvedValue([
+        tx({ taxAmount: '0.00', taxReverseCharge: true, taxNotionalAmount: '190.00' }),
+      ]);
+
+      const [line] = (await service.computeTotals('ws-1', '2026-01-01', '2026-03-31')).lines;
+      expect(line.direction).toBe('reverse_charge');
+      expect(line.taxAmount).toBe(190);
+    });
+
+    it('does not drop a reverse-charge row for having zero tax charged', async () => {
+      transactionRepo.find.mockResolvedValue([
+        tx({ taxAmount: '0.00', taxReverseCharge: true, taxNotionalAmount: '190.00' }),
+      ]);
+
+      const totals = await service.computeTotals('ws-1', '2026-01-01', '2026-03-31');
+      expect(totals.lines).toHaveLength(1);
+    });
+
+    it('still skips a reverse-charge row that has no notional figure', async () => {
+      transactionRepo.find.mockResolvedValue([
+        tx({ taxAmount: '0.00', taxReverseCharge: true, taxNotionalAmount: null }),
+      ]);
+
+      const totals = await service.computeTotals('ws-1', '2026-01-01', '2026-03-31');
+      expect(totals.lines).toHaveLength(0);
+    });
+  });
 });

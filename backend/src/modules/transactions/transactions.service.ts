@@ -397,6 +397,8 @@ export class TransactionsService {
       counterpartyBin: source.counterpartyBin,
       counterpartyAccount: source.counterpartyAccount,
       counterpartyBank: source.counterpartyBank,
+      counterpartyCountry: source.counterpartyCountry,
+      counterpartyVatId: source.counterpartyVatId,
       currency: source.currency,
       exchangeRate: source.exchangeRate,
       paymentPurpose: source.paymentPurpose,
@@ -583,6 +585,8 @@ export class TransactionsService {
           transactionType: row.transactionType,
           transactionNature: row.transactionNature,
           explicitTaxRateId: row.taxSource === TaxSource.MANUAL ? row.taxRateId : null,
+          counterpartyCountry: row.counterpartyCountry,
+          counterpartyVatId: row.counterpartyVatId,
         });
 
         row.taxRateId = assignment.taxRateId;
@@ -591,6 +595,7 @@ export class TransactionsService {
         row.taxAmount = assignment.taxAmount;
         row.taxNetAmount = assignment.taxNetAmount;
         row.taxReverseCharge = assignment.taxReverseCharge;
+        row.taxNotionalAmount = assignment.taxNotionalAmount;
 
         rows.push(await repo.save(row));
       }

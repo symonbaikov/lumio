@@ -11,6 +11,7 @@ describe('TaxAssignmentService', () => {
     findByCodeForDate: jest.Mock;
     findDefaultForDate: jest.Mock;
   };
+  let adoption: { getCurrentJurisdiction: jest.Mock };
 
   const STANDARD_RATE = {
     id: 'rate-standard',
@@ -57,7 +58,10 @@ describe('TaxAssignmentService', () => {
       findByCodeForDate: jest.fn(),
       findDefaultForDate: jest.fn().mockResolvedValue(null),
     };
-    service = new TaxAssignmentService(ruleRepo, ratesService as never);
+    adoption = {
+      getCurrentJurisdiction: jest.fn().mockResolvedValue({ code: 'DE', isEu: true }),
+    };
+    service = new TaxAssignmentService(ruleRepo, ratesService as never, adoption as never);
   });
 
   // ─── operations that are never a taxable supply ────────────
@@ -290,6 +294,93 @@ describe('TaxAssignmentService', () => {
       const result = await service.resolve(base);
 
       expect(result.taxAmount).toBe(10.71);
+    });
+  });
+
+  // ─── reverse charge ────────────────────────────────────────
+
+  describe('reverse charge', () => {
+    const b2bInPoland = {
+      ...base,
+      counterpartyCountry: 'PL',
+      counterpartyVatId: 'PL1234567890',
+    };
+
+    beforeEach(() => {
+      ratesService.findDefaultForDate.mockResolvedValue({ ...STANDARD_RATE, rate: 19 });
+    });
+
+    it('charges nothing but records what the tax would have been', async () => {
+      const result = await service.resolve({ ...b2bInPoland, amountMinor: 100000 });
+
+      expect(result.taxReverseCharge).toBe(true);
+      expect(result.taxAmount).toBe(0);
+      // Reported on both sides of the return, where the entries cancel.
+      expect(result.taxNotionalAmount).toBe(190);
+      expect(result.taxNetAmount).toBe(1000);
+    });
+
+    it('does not apply to a domestic supply', async () => {
+      const result = await service.resolve({
+        ...b2bInPoland,
+        counterpartyCountry: 'DE',
+      });
+
+      expect(result.taxReverseCharge).toBe(false);
+      expect(result.taxAmount).not.toBe(0);
+    });
+
+    it('does not apply without a VAT id, since that party is a consumer', async () => {
+      const result = await service.resolve({ ...b2bInPoland, counterpartyVatId: null });
+      expect(result.taxReverseCharge).toBe(false);
+    });
+
+    it('treats a blank VAT id as absent', async () => {
+      const result = await service.resolve({ ...b2bInPoland, counterpartyVatId: '   ' });
+      expect(result.taxReverseCharge).toBe(false);
+    });
+
+    it('does not apply when the counterparty is outside the EU', async () => {
+      const result = await service.resolve({ ...b2bInPoland, counterpartyCountry: 'US' });
+      expect(result.taxReverseCharge).toBe(false);
+    });
+
+    it('does not apply when the workspace itself is outside the EU', async () => {
+      adoption.getCurrentJurisdiction.mockResolvedValue({ code: 'KZ', isEu: false });
+
+      const result = await service.resolve(b2bInPoland);
+      expect(result.taxReverseCharge).toBe(false);
+    });
+
+    it('recognises an EU country the jurisdiction catalogue does not carry', async () => {
+      // France is a member state but not a country anyone files in here, so
+      // deciding from the catalogue would tax this supply the ordinary way.
+      const result = await service.resolve({ ...b2bInPoland, counterpartyCountry: 'FR' });
+      expect(result.taxReverseCharge).toBe(true);
+    });
+
+    it('applies to a hand-picked rate too', async () => {
+      ratesService.findOne.mockResolvedValue({ ...STANDARD_RATE, rate: 19 });
+
+      const result = await service.resolve({
+        ...b2bInPoland,
+        explicitTaxRateId: 'rate-standard',
+        amountMinor: 100000,
+      });
+
+      expect(result.taxSource).toBe(TaxSource.MANUAL);
+      expect(result.taxReverseCharge).toBe(true);
+      expect(result.taxAmount).toBe(0);
+    });
+
+    it('skips the lookup entirely when the counterparty is unknown', async () => {
+      await service.resolve(base);
+      expect(adoption.getCurrentJurisdiction).not.toHaveBeenCalled();
+    });
+
+    it('fills the notional figure on ordinary supplies too', async () => {
+      const result = await service.resolve({ ...base, amountMinor: 10000 });
+      expect(result.taxNotionalAmount).toBe(result.taxAmount);
     });
   });
 });

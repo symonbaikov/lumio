@@ -23,7 +23,8 @@ export interface TaxReturnSnapshotLine {
   transactionId: string;
   date: string;
   counterparty: string;
-  direction: 'output' | 'input';
+  /** `reverse_charge` lines are reported on both sides and cancel. */
+  direction: 'output' | 'input' | 'reverse_charge';
   currency: string;
   taxAmount: number;
   netAmount: number;

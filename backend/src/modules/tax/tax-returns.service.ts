@@ -79,7 +79,14 @@ export class TaxReturnsService {
     const lines: TaxReturnSnapshotLine[] = [];
 
     for (const transaction of transactions) {
-      const taxAmount = Number(transaction.taxAmount ?? 0);
+      // Under reverse charge nothing was charged, so the figure the return
+      // reports is the notional one — on both sides, where the two entries
+      // cancel and leave the net unchanged.
+      const isReverseCharge = transaction.taxReverseCharge === true;
+      const taxAmount = isReverseCharge
+        ? Number(transaction.taxNotionalAmount ?? 0)
+        : Number(transaction.taxAmount ?? 0);
+
       if (!Number.isFinite(taxAmount) || taxAmount === 0) {
         continue;
       }
@@ -98,7 +105,10 @@ export class TaxReturnsService {
       const convertedMinor = roundHalfAwayFromZero(toMinor(taxAmount) * rate);
       const isOutput = transaction.transactionType === TransactionType.INCOME;
 
-      if (isOutput) {
+      if (isReverseCharge) {
+        outputMinor += convertedMinor;
+        inputMinor += convertedMinor;
+      } else if (isOutput) {
         outputMinor += convertedMinor;
       } else {
         inputMinor += convertedMinor;
@@ -108,7 +118,7 @@ export class TaxReturnsService {
         transactionId: transaction.id,
         date: toDateOnly(transaction.transactionDate),
         counterparty: transaction.counterpartyName,
-        direction: isOutput ? 'output' : 'input',
+        direction: isReverseCharge ? 'reverse_charge' : isOutput ? 'output' : 'input',
         currency: from,
         taxAmount,
         netAmount: Number(transaction.taxNetAmount ?? 0),

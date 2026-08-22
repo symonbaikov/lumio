@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { fromMinor, toMinor } from '../../common/utils/money.util';
 import { TaxRule, TaxRuleDirection } from '../../entities/tax-rule.entity';
 import { TaxSource, TransactionType } from '../../entities/transaction.entity';
+import { isEuCountry } from './eu-membership';
+import { JurisdictionAdoptionService } from './jurisdiction-adoption.service';
 import { computeTax } from './tax-calculation';
 import { TaxRatesService } from './tax-rates.service';
 
@@ -30,6 +32,10 @@ export interface AssignmentInput {
   transactionNature: string | null;
   /** A rate the user chose explicitly, which always wins. */
   explicitTaxRateId?: string | null;
+  /** ISO-3166-1 alpha-2 of the other party, when it is known. */
+  counterpartyCountry?: string | null;
+  /** Its presence is what makes the other party a business rather than a consumer. */
+  counterpartyVatId?: string | null;
 }
 
 export interface Assignment {
@@ -40,6 +46,8 @@ export interface Assignment {
   taxAmount: number | null;
   taxNetAmount: number | null;
   taxReverseCharge: boolean;
+  /** What the tax would have been. Equal to taxAmount unless reverse-charged. */
+  taxNotionalAmount: number | null;
 }
 
 const NOT_ASSESSED: Assignment = {
@@ -49,6 +57,7 @@ const NOT_ASSESSED: Assignment = {
   taxAmount: null,
   taxNetAmount: null,
   taxReverseCharge: false,
+  taxNotionalAmount: null,
 };
 
 /**
@@ -67,7 +76,40 @@ export class TaxAssignmentService {
     @InjectRepository(TaxRule)
     private readonly taxRuleRepository: Repository<TaxRule>,
     private readonly taxRatesService: TaxRatesService,
+    private readonly adoptionService: JurisdictionAdoptionService,
   ) {}
+
+  /**
+   * Whether the buyer, not the seller, accounts for the tax.
+   *
+   * All four conditions have to hold: both parties inside the EU, in different
+   * member states, and the other party VAT-registered. A missing country or
+   * VAT id therefore means "tax it normally" — the safe direction, since
+   * charging tax that was not due is a correctable error, while omitting tax
+   * that was due is an underpayment.
+   */
+  private async isReverseCharged(
+    workspaceId: string,
+    counterpartyCountry: string | null | undefined,
+    counterpartyVatId: string | null | undefined,
+  ): Promise<boolean> {
+    if (!(counterpartyCountry && counterpartyVatId?.trim())) {
+      return false;
+    }
+
+    const home = await this.adoptionService.getCurrentJurisdiction(workspaceId);
+    if (!home?.isEu) {
+      return false;
+    }
+
+    const other = counterpartyCountry.toUpperCase();
+    // A domestic supply is charged normally however registered the buyer is.
+    if (other === home.code.toUpperCase()) {
+      return false;
+    }
+
+    return isEuCountry(other);
+  }
 
   async resolve(input: AssignmentInput): Promise<Assignment> {
     const {
@@ -78,7 +120,19 @@ export class TaxAssignmentService {
       transactionType,
       transactionNature,
       explicitTaxRateId,
+      counterpartyCountry,
+      counterpartyVatId,
     } = input;
+
+    // Decided once, before any branch: a hand-picked rate on a cross-border
+    // B2B supply is still reverse-charged. The guard inside short-circuits on
+    // a missing country or VAT id, so the extra lookup only happens when both
+    // are present.
+    const reverseCharged = await this.isReverseCharged(
+      workspaceId,
+      counterpartyCountry,
+      counterpartyVatId,
+    );
 
     // 1. An explicit choice is never second-guessed.
     if (explicitTaxRateId) {
@@ -87,7 +141,7 @@ export class TaxAssignmentService {
         .catch(() => null);
 
       if (rate) {
-        return this.assess(rate, null, TaxSource.MANUAL, amountMinor);
+        return this.assess(rate, null, TaxSource.MANUAL, amountMinor, reverseCharged);
       }
       // A rate that does not belong to this workspace is not a reason to fall
       // back to a different one and silently tax the row at the wrong rate.
@@ -116,7 +170,7 @@ export class TaxAssignmentService {
       );
 
       if (rate) {
-        return this.assess(rate, rule.id, TaxSource.RULE, amountMinor);
+        return this.assess(rate, rule.id, TaxSource.RULE, amountMinor, reverseCharged);
       }
 
       // The rule names a code with no version in force on this date. Better to
@@ -131,7 +185,7 @@ export class TaxAssignmentService {
     // 5. The workspace default for that date.
     const fallback = await this.taxRatesService.findDefaultForDate(workspaceId, transactionDate);
     if (fallback) {
-      return this.assess(fallback, null, TaxSource.DEFAULT, amountMinor);
+      return this.assess(fallback, null, TaxSource.DEFAULT, amountMinor, reverseCharged);
     }
 
     return NOT_ASSESSED;
@@ -182,12 +236,17 @@ export class TaxAssignmentService {
     ruleId: string | null,
     source: TaxSource,
     amountMinor: number,
+    autoReverseCharge = false,
   ): Assignment {
+    // Either the rate is itself a reverse-charge rate, or the counterparty
+    // makes this supply one.
+    const isReverseCharge = rate.isReverseCharge || autoReverseCharge;
+
     const breakdown = computeTax({
       amountMinor,
       rate: Number(rate.rate),
       isInclusive: rate.isInclusive,
-      isReverseCharge: rate.isReverseCharge,
+      isReverseCharge,
     });
 
     return {
@@ -196,7 +255,8 @@ export class TaxAssignmentService {
       taxSource: source,
       taxAmount: fromMinor(breakdown.taxMinor),
       taxNetAmount: fromMinor(breakdown.netMinor),
-      taxReverseCharge: rate.isReverseCharge,
+      taxReverseCharge: isReverseCharge,
+      taxNotionalAmount: fromMinor(breakdown.notionalTaxMinor),
     };
   }
 }

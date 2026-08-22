@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
-import * as XLSX from 'xlsx';
+import * as xlsx from 'xlsx';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { validateFile } from '../../../common/utils/file-validator.util';
 import { multerConfig } from '../../../config/multer.config';
@@ -38,10 +38,7 @@ export class ParsingController {
   @ApiOperation({ summary: 'Parse uploaded document and extract structured financial fields' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', multerConfig))
-  async parseDocument(
-    @UploadedFile() file: MulterFile,
-    @Body() payload: ParseDocumentDto,
-  ) {
+  async parseDocument(@UploadedFile() file: MulterFile, @Body() payload: ParseDocumentDto) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
@@ -89,14 +86,14 @@ export class ParsingController {
       }
 
       if (ext === '.xlsx' || ext === '.xls') {
-        const workbook = XLSX.read(buffer, { type: 'buffer' });
+        const workbook = xlsx.read(buffer, { type: 'buffer' });
         const firstSheet = workbook.SheetNames[0];
 
         if (!firstSheet) {
           throw new BadRequestException('Spreadsheet has no sheets to parse');
         }
 
-        const csvText = XLSX.utils.sheet_to_csv(workbook.Sheets[firstSheet]);
+        const csvText = xlsx.utils.sheet_to_csv(workbook.Sheets[firstSheet]);
         const parsed = await this.universalExtractor.extractFromText(csvText, context);
 
         return {

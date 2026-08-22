@@ -515,6 +515,7 @@ export class StatementsService {
       taxAmount: taxAssignment.taxAmount,
       taxNetAmount: taxAssignment.taxNetAmount,
       taxReverseCharge: taxAssignment.taxReverseCharge,
+      taxNotionalAmount: taxAssignment.taxNotionalAmount,
       isVerified: true,
     });
 

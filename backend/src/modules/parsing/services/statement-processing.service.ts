@@ -1076,6 +1076,7 @@ export class StatementProcessingService {
         transaction.taxAmount = taxAssignment.taxAmount;
         transaction.taxNetAmount = taxAssignment.taxNetAmount;
         transaction.taxReverseCharge = taxAssignment.taxReverseCharge;
+        transaction.taxNotionalAmount = taxAssignment.taxNotionalAmount;
 
         const saved = await this.transactionRepository.save(transaction);
         transactions.push(saved);
