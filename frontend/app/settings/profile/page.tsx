@@ -24,8 +24,8 @@ import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import { AppearanceSection } from '@/app/settings/profile/components/AppearanceSection';
 import { ChangelogSection } from '@/app/settings/profile/components/ChangelogSection';
-import { MyDataSection } from '@/app/settings/profile/components/MyDataSection';
 import { EmailSection } from '@/app/settings/profile/components/EmailSection';
+import { MyDataSection } from '@/app/settings/profile/components/MyDataSection';
 import { NotificationsSection } from '@/app/settings/profile/components/NotificationsSection';
 import { PasswordSection } from '@/app/settings/profile/components/PasswordSection';
 import { ProfileSection } from '@/app/settings/profile/components/ProfileSection';
@@ -320,6 +320,13 @@ export default function ProfileSettingsPage() {
     window.history.replaceState(null, '', `#${activeSection}`);
   }, [activeSection]);
 
+  // Plain function, not useCallback: this sits below early returns in the render
+  // body, and a hook there would change hook order between renders.
+  const handleAccountDeleted = (): void => {
+    // The account is gone; clear the client session rather than leaving a dead token around.
+    void logout();
+  };
+
   if (loading) {
     return <ProfileSettingsSkeleton />;
   }
@@ -333,11 +340,6 @@ export default function ProfileSettingsPage() {
       </Box>
     );
   }
-
-  const handleAccountDeleted = useCallback((): void => {
-    // The account is gone; clear the client session rather than leaving a dead token around.
-    void logout();
-  }, [logout]);
 
   const sectionMeta: Record<
     SectionId,
@@ -377,7 +379,10 @@ export default function ProfileSettingsPage() {
     },
     'my-data': {
       title: tx(['myDataCard', 'title'], 'My data'),
-      description: tx(['myDataCard', 'description'], 'Download a copy of your data, or delete your account'),
+      description: tx(
+        ['myDataCard', 'description'],
+        'Download a copy of your data, or delete your account',
+      ),
       icon: Shield,
     },
   };
