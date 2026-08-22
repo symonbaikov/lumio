@@ -1,3 +1,4 @@
+import { AuthSession } from '@/entities/auth-session.entity';
 import { User, UserRole } from '@/entities/user.entity';
 import { JwtStrategy } from '@/modules/auth/strategies/jwt.strategy';
 import { UnauthorizedException } from '@nestjs/common';
@@ -10,6 +11,7 @@ describe('JwtStrategy', () => {
   let testingModule: TestingModule;
   let strategy: JwtStrategy;
   let userRepository: Repository<User>;
+  let authSessionRepository: Repository<AuthSession>;
 
   const mockUser: Partial<User> = {
     id: '1',
@@ -43,15 +45,28 @@ describe('JwtStrategy', () => {
             update: jest.fn(),
           },
         },
+        {
+          provide: getRepositoryToken(AuthSession),
+          useValue: {
+            findOne: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     strategy = testingModule.get<JwtStrategy>(JwtStrategy);
     userRepository = testingModule.get<Repository<User>>(getRepositoryToken(User));
+    authSessionRepository = testingModule.get<Repository<AuthSession>>(
+      getRepositoryToken(AuthSession),
+    );
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default: the session behind the token is still active.
+    jest
+      .spyOn(authSessionRepository, 'findOne')
+      .mockResolvedValue({ id: 'session-1' } as AuthSession);
   });
 
   afterAll(async () => {
@@ -153,6 +168,33 @@ describe('JwtStrategy', () => {
       expect(result.avatarUrl).toContain('https://api.dicebear.com/');
     });
 
+    it('should reject a token whose session was revoked', async () => {
+      const payload = {
+        sub: '1',
+        email: 'test@example.com',
+        role: UserRole.USER,
+        sessionId: 'session-1',
+      };
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
+      jest.spyOn(authSessionRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(strategy.validate(payload)).rejects.toThrow(UnauthorizedException);
+      expect(authSessionRepository.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: 'session-1', userId: '1' }),
+        }),
+      );
+    });
+
+    it('should accept a legacy token that carries no sessionId', async () => {
+      const payload = { sub: '1', email: 'test@example.com', role: UserRole.USER };
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
+      const sessionSpy = jest.spyOn(authSessionRepository, 'findOne');
+
+      await expect(strategy.validate(payload)).resolves.toBeDefined();
+      expect(sessionSpy).not.toHaveBeenCalled();
+    });
+
     it('should throw for malformed payload', async () => {
       const payload = { invalid: 'payload' };
 
@@ -172,7 +214,7 @@ describe('JwtStrategy', () => {
       const getSpy = jest.spyOn(configService, 'get').mockReturnValue('test-secret');
 
       // Create new strategy to test constructor
-      new JwtStrategy(configService, userRepository);
+      new JwtStrategy(configService, userRepository, authSessionRepository);
 
       expect(getSpy).toHaveBeenCalledWith('JWT_ACCESS_SECRET');
     });

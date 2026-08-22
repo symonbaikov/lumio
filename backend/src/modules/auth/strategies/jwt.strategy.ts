@@ -3,8 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import type { Repository } from 'typeorm';
+import { IsNull, type Repository } from 'typeorm';
 import { devDefault } from '../../../common/utils/dev-defaults';
+import { AuthSession } from '../../../entities/auth-session.entity';
 import { User } from '../../../entities/user.entity';
 
 export interface JwtPayload {
@@ -31,6 +32,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private configService: ConfigService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(AuthSession)
+    private authSessionRepository: Repository<AuthSession>,
   ) {
     // Prefer dedicated access token secret but fall back to legacy key
     const jwtSecret =
@@ -66,6 +69,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const tokenVersion = payload.tokenVersion ?? 0;
     if ((user.tokenVersion ?? 0) !== tokenVersion) {
       throw new UnauthorizedException('Token has been revoked');
+    }
+
+    // Revoking a single session only marks the row; without this check the
+    // access token of that device would keep working until it expires.
+    // Legacy tokens carry no sessionId — they stay covered by tokenVersion alone.
+    if (payload.sessionId) {
+      const session = await this.authSessionRepository.findOne({
+        where: { id: payload.sessionId, userId: user.id, revokedAt: IsNull() },
+        select: ['id'],
+      });
+
+      if (!session) {
+        throw new UnauthorizedException('Session is not active');
+      }
     }
 
     const authenticatedUser = {
