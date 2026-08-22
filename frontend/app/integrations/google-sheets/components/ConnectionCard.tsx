@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 import { AlertCircle, CheckCircle2, Plug, RefreshCcw, Trash2 } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
@@ -35,7 +36,7 @@ function formatLastSync({
   locale,
 }: { lastSync: string | null | undefined; locale: string }): string {
   if (!lastSync) return '';
-  return new Date(lastSync).toLocaleString(LOCALE_MAP[locale] ?? 'en-US');
+  return formatStoredDateTime(lastSync, LOCALE_MAP[locale] ?? 'en-US');
 }
 
 function ConnectionStatus({

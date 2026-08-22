@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Branch, User, WorkspaceMember } from '../../entities';
+import { Workspace } from '../../entities/workspace.entity';
 import { CategorizationRule } from '../../entities/categorization-rule.entity';
 import { CategoryLearning } from '../../entities/category-learning.entity';
 import { Category } from '../../entities/category.entity';
@@ -23,6 +24,7 @@ import { ClassificationService } from './services/classification.service';
       Transaction,
       CategorizationRule,
       WorkspaceMember,
+      Workspace,
       User,
     ]),
     AuditModule,

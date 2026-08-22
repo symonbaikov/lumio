@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import {
@@ -116,7 +117,7 @@ function LineItemRow({
             onChange={value => setEditedData(prev => ({ ...prev, date: value }))}
           />
         ) : editedData.date ? (
-          new Date(editedData.date).toLocaleDateString()
+          formatStoredDate(editedData.date)
         ) : (
           '—'
         )}

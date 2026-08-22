@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import {
   ArrowLeft,
@@ -241,7 +242,7 @@ export default function EditStatementPage(): React.JSX.Element {
     field: keyof Transaction,
   ): React.ReactNode => {
     if (field === 'transactionDate') {
-      return new Date(transaction.transactionDate).toLocaleDateString(resolveLocale(locale));
+      return formatStoredDate(transaction.transactionDate, resolveLocale(locale));
     }
     if (field === 'debit' || field === 'credit') {
       const value = transaction[field];
@@ -698,7 +699,7 @@ export default function EditStatementPage(): React.JSX.Element {
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
             {statement?.statementDateFrom && statement?.statementDateTo
-              ? `${new Date(statement.statementDateFrom).toLocaleDateString()} - ${new Date(statement.statementDateTo).toLocaleDateString()}`
+              ? `${formatStoredDate(statement.statementDateFrom)} - ${formatStoredDate(statement.statementDateTo)}`
               : labels.notSpecified?.value || 'Not specified'}
           </Typography>
         </Paper>
@@ -776,7 +777,7 @@ export default function EditStatementPage(): React.JSX.Element {
               onChange={value => handleMetadataChange('statementDateFrom', value)}
               helperText={
                 statement?.parsingDetails?.metadataExtracted?.dateFrom
-                  ? `${labels.fromFilePrefix?.value || 'From file: '}${new Date(statement.parsingDetails.metadataExtracted.dateFrom).toLocaleDateString(resolveLocale(locale))}`
+                  ? `${labels.fromFilePrefix?.value || 'From file: '}${formatStoredDate(statement.parsingDetails.metadataExtracted.dateFrom, resolveLocale(locale))}`
                   : undefined
               }
             />
@@ -787,7 +788,7 @@ export default function EditStatementPage(): React.JSX.Element {
               onChange={value => handleMetadataChange('statementDateTo', value)}
               helperText={
                 statement?.parsingDetails?.metadataExtracted?.dateTo
-                  ? `${labels.fromFilePrefix?.value || 'From file: '}${new Date(statement.parsingDetails.metadataExtracted.dateTo).toLocaleDateString(resolveLocale(locale))}`
+                  ? `${labels.fromFilePrefix?.value || 'From file: '}${formatStoredDate(statement.parsingDetails.metadataExtracted.dateTo, resolveLocale(locale))}`
                   : undefined
               }
             />

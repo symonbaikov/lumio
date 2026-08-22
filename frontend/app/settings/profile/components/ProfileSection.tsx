@@ -2,6 +2,8 @@
 
 import { Alert } from '@/app/components/ui/alert';
 import { Spinner } from '@/app/components/ui/spinner';
+import type { DateFormatPreference } from '@/app/lib/user-format';
+import { RegionalFormatFields } from '@/app/settings/profile/components/RegionalFormatFields';
 import type { TimeZoneOption } from '@/app/settings/profile/profileHelpers';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
@@ -34,6 +36,11 @@ type Props = {
   setIsTimeZoneModalOpen: (open: boolean) => void;
   setTimeZoneSearch: (q: string) => void;
   selectedTimeZoneOption: TimeZoneOption;
+  locale?: string | null;
+  profileDateFormat: DateFormatPreference;
+  setProfileDateFormat: (value: DateFormatPreference) => void;
+  profileFirstDayOfWeek: number | null;
+  setProfileFirstDayOfWeek: (value: number | null) => void;
 };
 
 export function ProfileSection({
@@ -52,6 +59,11 @@ export function ProfileSection({
   setIsTimeZoneModalOpen,
   setTimeZoneSearch,
   selectedTimeZoneOption,
+  locale,
+  profileDateFormat,
+  setProfileDateFormat,
+  profileFirstDayOfWeek,
+  setProfileFirstDayOfWeek,
 }: Props) {
   return (
     <Box
@@ -128,6 +140,15 @@ export function ProfileSection({
           {t.profileCard.timeZoneHelp.value}
         </Typography>
       </Stack>
+
+      <RegionalFormatFields
+        tx={tx}
+        locale={locale}
+        dateFormat={profileDateFormat}
+        setDateFormat={setProfileDateFormat}
+        firstDayOfWeek={profileFirstDayOfWeek}
+        setFirstDayOfWeek={setProfileFirstDayOfWeek}
+      />
 
       {hasProfileChanges && (
         <Alert variant="warning">{tx(['profileCard', 'unsavedChanges'], 'Unsaved changes')}</Alert>

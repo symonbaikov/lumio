@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { Calendar, DollarSign, User } from '@/app/components/icons';
 import Box from '@mui/material/Box';
@@ -36,11 +37,11 @@ export default function DuplicateGroupCard({ group, selected, onToggle }: Duplic
   const [expanded, setExpanded] = useState(false);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    return formatStoredDateWithOptions(
+      dateString,
+      { year: 'numeric', month: 'short', day: 'numeric' },
+      'en-US',
+    );
   };
 
   const formatAmount = (amount: number) => {

@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { type ChangelogEntry, ChangelogModal } from '@/app/components/ChangelogModal';
 import { CalendarDays, Clock3, FileText } from '@/app/components/icons';
@@ -38,11 +39,11 @@ export function ChangelogSection({
     const date = new Date(entry.date);
     const formattedDate = Number.isNaN(date.getTime())
       ? entry.date
-      : new Intl.DateTimeFormat(locale || 'ru', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        }).format(date);
+      : formatStoredDateWithOptions(
+          date,
+          { day: '2-digit', month: 'short', year: 'numeric' },
+          locale || 'ru',
+        );
 
     return { ...entry, dateLabel: formattedDate };
   });

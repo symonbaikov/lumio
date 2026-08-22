@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { Pencil } from '@/app/components/icons';
 import {
@@ -114,7 +115,7 @@ export function UserTableRow({
       <TableCell>
         <PermissionsChip user={user} labels={labels} />
       </TableCell>
-      <TableCell>{new Date(user.createdAt).toLocaleDateString(localeCode)}</TableCell>
+      <TableCell>{formatStoredDate(user.createdAt, localeCode)}</TableCell>
       <TableCell>
         <IconButton
           size="small"

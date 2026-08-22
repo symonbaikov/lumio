@@ -1,3 +1,4 @@
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 const MINUTE = 60_000;
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
@@ -31,9 +32,9 @@ export function relativeTime(dateString: string): string {
     return `${Math.floor(diff / DAY)} days ago`;
   }
 
-  return new Date(dateString).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  return formatStoredDateWithOptions(
+    dateString,
+    { month: 'short', day: 'numeric', year: 'numeric' },
+    'en-US',
+  );
 }

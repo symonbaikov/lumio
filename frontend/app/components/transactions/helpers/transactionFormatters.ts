@@ -1,3 +1,4 @@
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import type { Transaction } from '../types';
 
 const LOCALE_MAP: Record<string, string> = {
@@ -11,11 +12,11 @@ function resolveLocale(locale: string): string {
 }
 
 export function formatDate(dateString: string, locale: string): string {
-  return new Date(dateString).toLocaleDateString(resolveLocale(locale), {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  return formatStoredDateWithOptions(
+    dateString,
+    { year: 'numeric', month: 'short', day: 'numeric' },
+    resolveLocale(locale),
+  );
 }
 
 export function formatAmount(amount: number, currency: string, locale: string): string {

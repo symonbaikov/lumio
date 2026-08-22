@@ -11,6 +11,7 @@ import {
   getStoredThemePreference,
   resolveThemePreference,
 } from '@/app/lib/theme-preference';
+import { useAppearancePreferences } from '@/app/lib/appearance-preferences';
 import { ThemeProvider } from '@mui/material/styles';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -45,7 +46,7 @@ const TOASTER_OPTS = {
   },
 };
 
-function htmlLanguageSync(): null {
+function HtmlLanguageSync(): null {
   useHTMLLanguage();
   return null;
 }
@@ -101,7 +102,11 @@ export function Providers({
   const [mounted, setMounted] = useState(false);
   const [locale, setLocale] = useState<AppLocale>(() => readLocaleFromCookie() ?? initialLocale);
   const paletteMode = mounted && resolvedTheme === 'dark' ? 'dark' : 'light';
-  const muiTheme = useMemo(() => createAppTheme(paletteMode), [paletteMode]);
+  const { density, reduceMotion } = useAppearancePreferences();
+  const muiTheme = useMemo(
+    () => createAppTheme(paletteMode, { density, reduceMotion }),
+    [paletteMode, density, reduceMotion],
+  );
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -118,7 +123,7 @@ export function Providers({
   };
   return (
     <IntlayerProviderContent locale={locale} setLocale={handleLocaleChange}>
-      <htmlLanguageSync />
+      <HtmlLanguageSync />
       <ThemePreferenceSync />
       <TourAutoStarter />
       <ThemeProvider theme={muiTheme}>

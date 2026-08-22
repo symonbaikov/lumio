@@ -1,6 +1,7 @@
 import type { EditableReceiptParsedData } from '@/app/components/receipts/receipt-types';
 import apiClient from '@/app/lib/api';
 import type { ReceiptRecord } from '@/app/lib/api';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import toast from 'react-hot-toast';
 import { buildParsedDataPayload } from '../hooks/useReceiptData';
@@ -125,7 +126,7 @@ export async function createExportTable({
 }: { receipt: ReceiptRecord; exportData: ExportData; router: AppRouterInstance }): Promise<void> {
   const createRes = await apiClient.post('/custom-tables', {
     name: `Receipt ${receipt.subject}`.slice(0, 120),
-    description: `Exported from scanned receipt on ${new Date(receipt.receivedAt).toLocaleDateString()}`,
+    description: `Exported from scanned receipt on ${formatStoredDate(receipt.receivedAt)}`,
   });
   const createdTable = (createRes.data?.data || createRes.data) as Record<string, unknown>;
   const tableId = createdTable?.id as string | undefined;

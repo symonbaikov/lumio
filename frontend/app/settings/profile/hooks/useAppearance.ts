@@ -2,6 +2,8 @@
 
 import type { User } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
+import { notifyUserFormatChanged } from '@/app/lib/user-format-store';
+import type { UiDensity } from '@/app/theme';
 import {
   THEME_STORAGE_EVENT,
   type ThemePreference,
@@ -21,7 +23,13 @@ export type UseAppearanceReturn = {
   appearanceError: string | null;
   appearanceLoading: boolean;
   handleThemePreferenceChange: (nextTheme: ThemePreference) => Promise<void>;
+  density: UiDensity;
+  setDensity: (value: UiDensity) => void;
+  reduceMotion: boolean;
+  setReduceMotion: (value: boolean) => void;
 };
+
+type AppearancePatch = { uiDensity?: UiDensity; reduceMotion?: boolean };
 
 export function useAppearance(
   user: User | null | undefined,
@@ -29,6 +37,8 @@ export function useAppearance(
   messages: UseAppearanceMessages,
 ): UseAppearanceReturn {
   const [themePreference, setThemePreference] = useState<ThemePreference>('auto');
+  const [density, setDensityState] = useState<UiDensity>('comfortable');
+  const [reduceMotion, setReduceMotionState] = useState(false);
   const [appearanceMessage, setAppearanceMessage] = useState<string | null>(null);
   const [appearanceError, setAppearanceError] = useState<string | null>(null);
   const [appearanceLoading, setAppearanceLoading] = useState(false);
@@ -36,6 +46,42 @@ export function useAppearance(
   useEffect(() => {
     setThemePreference(resolveThemePreference(user?.themePreference));
   }, [user?.themePreference]);
+
+  useEffect(() => {
+    setDensityState(user?.uiDensity === 'compact' ? 'compact' : 'comfortable');
+    setReduceMotionState(Boolean(user?.reduceMotion));
+  }, [user?.uiDensity, user?.reduceMotion]);
+
+  /** Saves one appearance flag and re-themes the app straight away. */
+  const savePatch = async (patch: AppearancePatch) => {
+    setAppearanceMessage(null);
+    setAppearanceError(null);
+
+    try {
+      setAppearanceLoading(true);
+      const response = await apiClient.patch('/users/me/preferences', patch);
+      const nextUser = { ...(user || {}), ...(response.data?.user || {}), ...patch };
+
+      setUser(nextUser as User);
+      localStorage.setItem('user', JSON.stringify(nextUser));
+      notifyUserFormatChanged();
+      setAppearanceMessage(response.data?.message || messages.successFallback);
+    } catch (error: unknown) {
+      setAppearanceError(getApiErrorMessage(error, messages.errorFallback));
+    } finally {
+      setAppearanceLoading(false);
+    }
+  };
+
+  const setDensity = (value: UiDensity) => {
+    setDensityState(value);
+    void savePatch({ uiDensity: value });
+  };
+
+  const setReduceMotion = (value: boolean) => {
+    setReduceMotionState(value);
+    void savePatch({ reduceMotion: value });
+  };
 
   const handleThemePreferenceChange = async (nextThemePreference: ThemePreference) => {
     setAppearanceMessage(null);
@@ -80,5 +126,9 @@ export function useAppearance(
     appearanceError,
     appearanceLoading,
     handleThemePreferenceChange,
+    density,
+    setDensity,
+    reduceMotion,
+    setReduceMotion,
   };
 }

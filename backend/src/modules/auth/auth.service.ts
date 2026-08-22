@@ -24,11 +24,12 @@ import {
   WorkspaceRole,
 } from '../../entities';
 import { CategoriesService } from '../categories/categories.service';
-import type { AuthResponseDto } from './dto/auth-response.dto';
+import type { AuthResponseDto, LoginResultDto } from './dto/auth-response.dto';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
 import type { JwtRefreshPayload } from './strategies/jwt-refresh.strategy';
 import type { JwtPayload } from './strategies/jwt.strategy';
+import { TwoFactorService } from './two-factor.service';
 
 export interface SessionContext {
   userAgent?: string | null;
@@ -73,6 +74,7 @@ export class AuthService {
     @InjectRepository(AuthSession)
     private authSessionRepository: Repository<AuthSession>,
     private readonly categoriesService: CategoriesService,
+    private readonly twoFactorService: TwoFactorService,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
@@ -217,7 +219,7 @@ export class AuthService {
     return this.generateTokens(savedUser, sessionContext);
   }
 
-  async login(loginDto: LoginDto, sessionContext?: SessionContext): Promise<AuthResponseDto> {
+  async login(loginDto: LoginDto, sessionContext?: SessionContext): Promise<LoginResultDto> {
     const normalizedEmail = loginDto.email.trim().toLowerCase();
     const user = await this.userRepository.findOne({
       where: { email: normalizedEmail },
@@ -235,6 +237,7 @@ export class AuthService {
         'avatarUrl',
         'isActive',
         'tokenVersion',
+        'twoFactorEnabledAt',
       ],
     });
 
@@ -250,6 +253,13 @@ export class AuthService {
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.twoFactorEnabledAt) {
+      if (!loginDto.twoFactorCode) {
+        return { twoFactorRequired: true };
+      }
+      await this.twoFactorService.assertLoginCode(user.id, loginDto.twoFactorCode);
     }
 
     // Update last login

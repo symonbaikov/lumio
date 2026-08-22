@@ -1,4 +1,5 @@
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { Transaction } from '../editHelpers';
 import { isIdEmpty, resolveLocale } from '../editHelpers';
 
@@ -42,8 +43,7 @@ type FieldDisplayFn = (
   fmt: (n?: number | null) => string,
 ) => string;
 const fieldDisplayMap: Partial<Record<keyof Transaction, FieldDisplayFn>> = {
-  transactionDate: (tx, locale) =>
-    new Date(tx.transactionDate).toLocaleDateString(resolveLocale(locale)),
+  transactionDate: (tx, locale) => formatStoredDate(tx.transactionDate, resolveLocale(locale)),
   debit: (tx, _, fmt) => (tx.debit ? fmt(tx.debit) : '—'),
   credit: (tx, _, fmt) => (tx.credit ? fmt(tx.credit) : '—'),
   categoryId: getCategoryDisplay,

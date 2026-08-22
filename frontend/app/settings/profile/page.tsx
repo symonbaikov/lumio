@@ -12,6 +12,8 @@ import {
   Pencil,
   Search,
   Shield,
+  ShieldCheck,
+  SlidersHorizontal,
   UserCircle,
 } from '@/app/components/icons';
 import { Alert } from '@/app/components/ui/alert';
@@ -28,18 +30,23 @@ import { ChangelogSection } from '@/app/settings/profile/components/ChangelogSec
 import { EmailSection } from '@/app/settings/profile/components/EmailSection';
 import { NotificationsSection } from '@/app/settings/profile/components/NotificationsSection';
 import { PasswordSection } from '@/app/settings/profile/components/PasswordSection';
+import { ProcessingSection } from '@/app/settings/profile/components/ProcessingSection';
 import { ProfileSection } from '@/app/settings/profile/components/ProfileSection';
 import { SessionsSection } from '@/app/settings/profile/components/SessionsSection';
+import { SettingsElsewhereLinks } from '@/app/settings/profile/components/SettingsElsewhereLinks';
 import { SyncSection } from '@/app/settings/profile/components/SyncSection';
+import { TwoFactorSection } from '@/app/settings/profile/components/TwoFactorSection';
 import { useAppearance } from '@/app/settings/profile/hooks/useAppearance';
 import { useAvatarUpload } from '@/app/settings/profile/hooks/useAvatarUpload';
 import { useChangelog } from '@/app/settings/profile/hooks/useChangelog';
 import { useEmailForm } from '@/app/settings/profile/hooks/useEmailForm';
 import { useNotifications } from '@/app/settings/profile/hooks/useNotifications';
 import { usePasswordForm } from '@/app/settings/profile/hooks/usePasswordForm';
+import { useProcessing } from '@/app/settings/profile/hooks/useProcessing';
 import { useProfileForm } from '@/app/settings/profile/hooks/useProfileForm';
 import { useSessions } from '@/app/settings/profile/hooks/useSessions';
 import { useSync } from '@/app/settings/profile/hooks/useSync';
+import { useTwoFactor } from '@/app/settings/profile/hooks/useTwoFactor';
 import {
   type SectionId,
   type TimeZoneOption,
@@ -81,6 +88,10 @@ export default function ProfileSettingsPage() {
     setProfileName,
     profileTimeZone,
     setProfileTimeZone,
+    profileDateFormat,
+    setProfileDateFormat,
+    profileFirstDayOfWeek,
+    setProfileFirstDayOfWeek,
     profileMessage,
     setProfileMessage,
     profileError,
@@ -120,16 +131,41 @@ export default function ProfileSettingsPage() {
   });
 
   const {
-    notificationPreferences,
+    notificationSettings,
     notificationsLoading,
     notificationSavingKey,
     notificationError,
     notificationMessage,
-    toggleNotificationPreference,
+    toggleNotificationChannel,
+    updateDelivery,
   } = useNotifications(isAuthenticated, activeSection, {
     loadError: tx(['notificationsCard', 'errors', 'load'], ''),
     saveError: tx(['notificationsCard', 'errors', 'save'], ''),
     savedMessage: tx(['notificationsCard', 'messages', 'saved'], ''),
+  });
+
+  // Saved preferences drive every date on this page, so the effect is visible
+  // right where the setting lives.
+  const formatPreferences = useMemo(
+    () => ({
+      locale: user?.locale ?? locale,
+      dateFormat: profileDateFormat,
+      firstDayOfWeek: profileFirstDayOfWeek,
+    }),
+    [user?.locale, locale, profileDateFormat, profileFirstDayOfWeek],
+  );
+
+  const processing = useProcessing(isAuthenticated, activeSection, currentWorkspace?.id, {
+    loadError: tx(['processingCard', 'loadError'], 'Failed to load processing settings'),
+    saveError: tx(['processingCard', 'saveError'], 'Failed to save processing settings'),
+    savedMessage: tx(['notificationsCard', 'messages', 'saved'], 'Saved'),
+  });
+
+  const twoFactor = useTwoFactor(isAuthenticated, activeSection, {
+    loadError: tx(['securityCard', 'loadError'], 'Failed to load two-factor status'),
+    enabledMessage: tx(['securityCard', 'enabledMessage'], 'Two-factor authentication enabled'),
+    disabledMessage: tx(['securityCard', 'disabledMessage'], 'Two-factor authentication disabled'),
+    errorFallback: tx(['securityCard', 'errorFallback'], 'Two-factor action failed'),
   });
 
   const timeZoneSelectOptions = useMemo<TimeZoneOption[]>(() => {
@@ -195,6 +231,10 @@ export default function ProfileSettingsPage() {
     appearanceError,
     appearanceLoading,
     handleThemePreferenceChange,
+    density,
+    setDensity,
+    reduceMotion,
+    setReduceMotion,
   } = useAppearance(user, setUser, {
     successFallback: t.appearanceCard.title.value,
     errorFallback: t.profileCard.errorFallback.value,
@@ -295,6 +335,19 @@ export default function ProfileSettingsPage() {
     },
     email: { title: t.emailCard.title.value, icon: Mail },
     password: { title: t.passwordCard.title.value, icon: Lock },
+    processing: {
+      title: tx(['processingCard', 'title'], 'Processing'),
+      description: tx(['processingCard', 'description'], ''),
+      icon: SlidersHorizontal,
+    },
+    security: {
+      title: tx(['securityCard', 'title'], 'Two-factor authentication'),
+      description: tx(
+        ['securityCard', 'description'],
+        'Ask for a one-time code from your authenticator app on every login.',
+      ),
+      icon: ShieldCheck,
+    },
     notifications: {
       title: tx(['notificationsCard', 'title'], 'Notifications'),
       description: tx(['notificationsCard', 'description'], ''),
@@ -330,6 +383,11 @@ export default function ProfileSettingsPage() {
         setIsTimeZoneModalOpen={setIsTimeZoneModalOpen}
         setTimeZoneSearch={setTimeZoneSearch}
         selectedTimeZoneOption={selectedTimeZoneOption}
+        locale={locale}
+        profileDateFormat={profileDateFormat}
+        setProfileDateFormat={setProfileDateFormat}
+        profileFirstDayOfWeek={profileFirstDayOfWeek}
+        setProfileFirstDayOfWeek={setProfileFirstDayOfWeek}
       />
     ),
     appearance: (
@@ -341,6 +399,10 @@ export default function ProfileSettingsPage() {
         appearanceLoading={appearanceLoading}
         themePreference={themePreference}
         handleThemePreferenceChange={handleThemePreferenceChange}
+        density={density}
+        setDensity={setDensity}
+        reduceMotion={reduceMotion}
+        setReduceMotion={setReduceMotion}
       />
     ),
     sessions: (
@@ -355,6 +417,7 @@ export default function ProfileSettingsPage() {
         logoutSessionLoadingId={logoutSessionLoadingId}
         handleLogoutSession={handleLogoutSession}
         handleLogoutAll={handleLogoutAll}
+        formatPreferences={formatPreferences}
       />
     ),
     email: (
@@ -382,15 +445,18 @@ export default function ProfileSettingsPage() {
         handlePasswordSubmit={handlePasswordSubmit}
       />
     ),
+    security: <TwoFactorSection tx={tx} twoFactor={twoFactor} />,
+    processing: <ProcessingSection tx={tx} processing={processing} />,
     notifications: (
       <NotificationsSection
         tx={tx}
         notificationError={notificationError}
         notificationMessage={notificationMessage}
         notificationsLoading={notificationsLoading}
-        notificationPreferences={notificationPreferences}
+        notificationSettings={notificationSettings}
         notificationSavingKey={notificationSavingKey}
-        toggleNotificationPreference={toggleNotificationPreference}
+        toggleNotificationChannel={toggleNotificationChannel}
+        updateDelivery={updateDelivery}
       />
     ),
     changelog: (
@@ -550,6 +616,7 @@ export default function ProfileSettingsPage() {
                     </Box>
                   );
                 })}
+                <SettingsElsewhereLinks tx={tx} />
               </CardContent>
             </Card>
           </Box>

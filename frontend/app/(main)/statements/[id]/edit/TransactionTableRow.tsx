@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types, max-lines-per-function */
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { CheckCircle2, Pencil, Trash2, TriangleAlert, XCircle } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
@@ -162,7 +163,7 @@ function DisplayCell({
   formatNumber: (num?: number | null) => string;
 }) {
   if (field === 'transactionDate') {
-    return <>{new Date(transaction.transactionDate).toLocaleDateString(resolveLocale(locale))}</>;
+    return <>{formatStoredDate(transaction.transactionDate, resolveLocale(locale))}</>;
   }
   if (field === 'debit' || field === 'credit') {
     const value = transaction[field];

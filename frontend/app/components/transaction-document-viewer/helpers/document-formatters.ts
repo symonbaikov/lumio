@@ -1,3 +1,4 @@
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import type { Transaction } from '../types';
 
 export function formatNumber(
@@ -17,11 +18,11 @@ export function formatDate(dateString: string | null | undefined, locale: string
   if (!dateString) return '—';
   try {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat(locale, {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(date);
+    return formatStoredDateWithOptions(
+      date,
+      { year: 'numeric', month: '2-digit', day: '2-digit' },
+      locale,
+    );
   } catch {
     return dateString;
   }

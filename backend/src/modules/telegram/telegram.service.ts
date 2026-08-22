@@ -311,6 +311,15 @@ export class TelegramService {
     return this.sendMessage(chatId, text, user);
   }
 
+  /** Sends arbitrary text to a chat. Public so other modules can deliver through the bot. */
+  async sendPlainMessage(
+    chatId: string,
+    text: string,
+    user?: User | null,
+  ): Promise<TelegramSendResult> {
+    return this.sendMessage(chatId, text, user);
+  }
+
   private async sendMessage(
     chatId: string,
     text: string,

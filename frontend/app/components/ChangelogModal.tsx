@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 import { X } from '@/app/components/icons';
 import { tokens } from '@/lib/theme-tokens';
@@ -109,7 +110,7 @@ export function ChangelogModal({
     return null;
   }
 
-  const formattedDate = new Date(entry.date).toLocaleString();
+  const formattedDate = formatStoredDateTime(entry.date);
 
   return (
     <ModalShell

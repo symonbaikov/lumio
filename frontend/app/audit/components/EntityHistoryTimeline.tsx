@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 import {
   CheckCircle2,
@@ -86,7 +87,7 @@ function TimelineEventItem({
             {event.action.replace(/_/g, ' ')}
           </Typography>
           <Typography variant="caption" style={{ color: 'var(--muted-foreground)' }}>
-            {new Date(event.createdAt).toLocaleString()}
+            {formatStoredDateTime(event.createdAt)}
           </Typography>
         </Box>
         <Typography

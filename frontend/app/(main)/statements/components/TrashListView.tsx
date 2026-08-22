@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import ConfirmModal from '@/app/components/ConfirmModal';
 import { RotateCcw, Search, Trash2 } from '@/app/components/icons';
@@ -418,13 +419,17 @@ export default function TrashListView({ onCountChange }: Props) {
     if (Number.isNaN(date.getTime())) {
       return '—';
     }
-    return date.toLocaleString(localeCode, {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatStoredDateWithOptions(
+      date,
+      {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      },
+      localeCode,
+    );
   };
 
   const formatPermanentDeletionDate = (deletedAt?: string | null) => {

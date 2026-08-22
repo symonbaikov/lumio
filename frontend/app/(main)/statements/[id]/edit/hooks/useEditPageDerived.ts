@@ -1,5 +1,6 @@
 import { flattenStatementCategories, getCategoryDisplayName } from '@/app/lib/statement-categories';
 import type { StatementStageActionId } from '@/app/lib/statement-workflow';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { ParsingDetailsData } from '../components/ParsingDetailsPanel';
 import {
   countArray,
@@ -128,7 +129,7 @@ function buildPeriodLabel(form: UseStatementEditFormReturn): string {
   if (!(statement?.statementDateFrom && statement.statementDateTo)) {
     return '';
   }
-  return `${new Date(statement.statementDateFrom).toLocaleDateString()} - ${new Date(statement.statementDateTo).toLocaleDateString()}`;
+  return `${formatStoredDate(statement.statementDateFrom)} - ${formatStoredDate(statement.statementDateTo)}`;
 }
 
 function buildBalanceStartLabel(

@@ -49,6 +49,8 @@ function LoginPageContent(): React.JSX.Element {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false);
 
   // eslint-disable-next-line max-lines-per-function, complexity
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
@@ -60,7 +62,14 @@ function LoginPageContent(): React.JSX.Element {
       const response = await apiClient.post('/auth/login', {
         email,
         password,
+        ...(twoFactorCode ? { twoFactorCode: twoFactorCode.trim() } : {}),
       });
+
+      // Password was right, but the account also needs a second factor.
+      if (response.data?.twoFactorRequired) {
+        setTwoFactorRequired(true);
+        return;
+      }
 
       const { access_token, refresh_token, user } = response.data;
 
@@ -204,8 +213,27 @@ function LoginPageContent(): React.JSX.Element {
           InputProps={{
             sx: { borderRadius: tokens.radius.md },
           }}
-          sx={{ mb: 3 }}
+          sx={{ mb: twoFactorRequired ? 2 : 3 }}
         />
+        {twoFactorRequired && (
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="twoFactorCode"
+            name="twoFactorCode"
+            label={t.twoFactorLabel.value}
+            helperText={t.twoFactorHint.value}
+            autoComplete="one-time-code"
+            autoFocus
+            value={twoFactorCode}
+            onChange={e => setTwoFactorCode(e.target.value)}
+            InputProps={{
+              sx: { borderRadius: tokens.radius.md },
+            }}
+            sx={{ mb: 3 }}
+          />
+        )}
         <Button
           type="submit"
           fullWidth

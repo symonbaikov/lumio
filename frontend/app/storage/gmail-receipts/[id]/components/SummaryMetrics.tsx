@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { Box, Paper, Typography } from '@mui/material';
 import type { EditableReceiptData, GmailReceipt } from '../hooks/useGmailReceiptData';
@@ -49,8 +50,8 @@ export function SummaryMetrics({
   isLowConfidence,
 }: SummaryMetricsProps): React.ReactElement {
   const dateValue = editedData.date
-    ? new Date(editedData.date).toLocaleDateString()
-    : new Date(receipt.receivedAt).toLocaleDateString();
+    ? formatStoredDate(editedData.date)
+    : formatStoredDate(receipt.receivedAt);
 
   return (
     <Box

@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
@@ -23,7 +24,7 @@ const formatDate = (value?: string): string => {
   if (Number.isNaN(date.getTime())) {
     return 'N/A';
   }
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return formatStoredDateWithOptions(date, { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
 export type CopyLinkParams = { token: string; link?: string };

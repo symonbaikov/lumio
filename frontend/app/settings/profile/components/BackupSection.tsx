@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 import { Cloud, Download, FileUp, Lock, RefreshCw } from '@/app/components/icons';
 import { Alert } from '@/app/components/ui/alert';
@@ -314,7 +315,7 @@ export function BackupSection() {
                   </Button>
                   {config.lastSuccessfulAt ? (
                     <Typography variant="body2" color="text.secondary">
-                      Last successful: {new Date(config.lastSuccessfulAt).toLocaleString()}
+                      Last successful: {formatStoredDateTime(config.lastSuccessfulAt)}
                     </Typography>
                   ) : null}
                 </Box>
@@ -350,7 +351,7 @@ export function BackupSection() {
                 >
                   <Box>
                     <Typography variant="body2">
-                      {new Date(run.createdAt).toLocaleString()} · {run.trigger}
+                      {formatStoredDateTime(run.createdAt)} · {run.trigger}
                     </Typography>
                     {run.errorMessage ? (
                       <Typography variant="caption" color="error">

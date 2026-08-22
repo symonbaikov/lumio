@@ -13,6 +13,7 @@ import {
 import { Statement } from '../../../entities/statement.entity';
 import { Transaction, TransactionType } from '../../../entities/transaction.entity';
 import { User } from '../../../entities/user.entity';
+import { readProcessingSettings } from '../../../common/utils/workspace-processing.util';
 import { Workspace } from '../../../entities/workspace.entity';
 import type {
   ImportCommittedEvent,
@@ -578,6 +579,12 @@ export class ImportSessionService {
     await queryRunner.startTransaction();
 
     try {
+      const workspace = await this.workspaceRepository.findOne({
+        where: { id: session.workspaceId },
+        select: ['id', 'settings'],
+      });
+      const { duplicateResolution: defaultDuplicateResolution } = readProcessingSettings(workspace);
+
       const accountNumber = session.statement?.accountNumber || '';
       const savedTransactions: Transaction[] = [];
       const classifications: TransactionClassification[] = [];
@@ -624,8 +631,8 @@ export class ImportSessionService {
             fingerprint: previewData.fingerprint,
           });
         } else if (previewData.status === 'conflicted') {
-          // Apply resolution
-          const resolution = previewData.resolution || 'skip';
+          // Apply resolution; without an explicit one the workspace default decides.
+          const resolution = previewData.resolution || defaultDuplicateResolution;
 
           if (resolution === 'skip') {
             classifications.push({

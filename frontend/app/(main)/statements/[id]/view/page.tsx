@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { ArrowLeft } from '@/app/components/icons';
 import TransactionsPageView from '@/app/components/transactions/TransactionsPageView';
@@ -98,7 +99,7 @@ export default function ViewStatementPage({
           accountNumber: rawStatement.parsingDetails?.metadataExtracted?.accountNumber,
           period:
             rawStatement.statementDateFrom && rawStatement.statementDateTo
-              ? `${new Date(rawStatement.statementDateFrom).toLocaleDateString()} - ${new Date(rawStatement.statementDateTo).toLocaleDateString()}`
+              ? `${formatStoredDate(rawStatement.statementDateFrom)} - ${formatStoredDate(rawStatement.statementDateTo)}`
               : undefined,
         },
         category: rawStatement.category,

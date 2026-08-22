@@ -26,6 +26,7 @@ import {
 import { Integration } from '../../entities';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
+import { mergeProcessingSettings } from '../../common/utils/workspace-processing.util';
 import { AuditService } from '../audit/audit.service';
 import { BalanceService } from '../balance/balance.service';
 import { CategoriesService } from '../categories/categories.service';
@@ -861,6 +862,10 @@ export class WorkspacesService {
       ...(dto.backgroundImage !== undefined && { backgroundImage: dto.backgroundImage }),
       ...(dto.currency !== undefined && { currency: dto.currency }),
       ...(dto.isFavorite !== undefined && { isFavorite: dto.isFavorite }),
+      // Merged, not replaced: `settings` is a shared blob.
+      ...(dto.processing !== undefined && {
+        settings: mergeProcessingSettings(workspace.settings, dto.processing),
+      }),
     });
 
     const updated = await this.workspaceRepository.save(workspace);
