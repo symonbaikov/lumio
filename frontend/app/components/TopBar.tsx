@@ -1,5 +1,6 @@
 'use client';
 
+import { GlobalSearch } from '@/app/components/GlobalSearch';
 import { NotificationDropdown } from '@/app/components/NotificationDropdown';
 import { UpdateButton } from '@/app/components/UpdateButton';
 import { HelpCircle, Menu } from '@/app/components/icons';
@@ -160,7 +161,7 @@ export default function TopBar() {
         </div>
 
         <div className="lumio-topbar__right">
-          <UpdateButton />
+          <GlobalSearch />
           <AiAssistantTopBarButton />
           <McpServerTopBarButton />
           <NotificationDropdown iconSize={18} />

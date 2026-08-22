@@ -67,3 +67,4 @@ export * from './ai-chat-message.entity';
 export * from './transaction-embedding.entity';
 export * from './subscription-charge.entity';
 export * from './subscription-decision.entity';
+export * from './transaction-attachment.entity';

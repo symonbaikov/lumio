@@ -34,4 +34,12 @@ export class DashboardController {
   ) {
     return this.dashboardService.getTrends(workspaceId, days);
   }
+
+  @Get('commitments')
+  async getCommitments(
+    @WorkspaceId() workspaceId: string,
+    @Query('days', new DefaultValuePipe(60), ParseIntPipe) days: number,
+  ) {
+    return this.dashboardService.getCommitments(workspaceId, days);
+  }
 }

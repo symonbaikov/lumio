@@ -3,9 +3,12 @@ import apiClient from '@/app/lib/api';
 export type PayableStatus = 'to_pay' | 'scheduled' | 'paid' | 'overdue' | 'archived';
 export type PayableSource = 'statement' | 'invoice' | 'manual';
 export type PayablesExportFormat = 'csv' | 'excel';
+/** `payable` is money the workspace owes; `receivable` is money owed to it. */
+export type PayableDirection = 'payable' | 'receivable';
 
 export interface Payable {
   id: string;
+  direction: PayableDirection;
   vendor: string;
   amount: number | string;
   currency: string;
@@ -24,6 +27,7 @@ export interface Payable {
 }
 
 export interface ListPayablesParams {
+  direction?: PayableDirection;
   page?: number;
   limit?: number;
   search?: string;
@@ -57,6 +61,7 @@ export interface PayablesSummary {
 }
 
 export interface CreatePayableInput {
+  direction?: PayableDirection;
   vendor: string;
   amount: number;
   currency?: string;
@@ -123,8 +128,10 @@ export const payablesApi = {
     return unwrapData(response);
   },
 
-  async getSummary(): Promise<PayablesSummary> {
-    const response = await apiClient.get<PayablesSummary>('/payables/summary');
+  async getSummary(direction?: PayableDirection): Promise<PayablesSummary> {
+    const response = await apiClient.get<PayablesSummary>('/payables/summary', {
+      params: direction ? { direction } : undefined,
+    });
     return unwrapData(response);
   },
 

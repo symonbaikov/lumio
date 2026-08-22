@@ -68,6 +68,7 @@ describe('DashboardService', () => {
   const receiptRepo = createRepoMock();
   const memberRepo = createRepoMock();
   const workspaceRepo = createRepoMock();
+  const subscriptionRepo = createRepoMock();
   const exchangeRatesService = {
     getRate: jest.fn(),
   };
@@ -83,6 +84,7 @@ describe('DashboardService', () => {
       receiptRepo,
       memberRepo,
       workspaceRepo,
+      subscriptionRepo,
       exchangeRatesService as any,
     );
   });
@@ -1044,5 +1046,90 @@ describe('DashboardService', () => {
     expect(warningsQb.andWhere).toHaveBeenCalledWith(
       "jsonb_array_length(COALESCE(s.parsing_details->'warnings', '[]'::jsonb)) > 0",
     );
+  });
+  describe('getCommitments', () => {
+    const commitmentDay = (offset: number) => {
+      const date = new Date();
+      date.setHours(0, 0, 0, 0);
+      date.setDate(date.getDate() + offset);
+      return date;
+    };
+
+    const primeBalance = (balance: string) => {
+      transactionRepo.createQueryBuilder.mockReturnValue(
+        createQueryBuilderMock([{ currency: 'KZT', balance }]),
+      );
+    };
+
+    it('pulls overdue payables to today and keeps undated ones off the curve', async () => {
+      primeBalance('1000');
+      payableRepo.find.mockResolvedValue([
+        { id: 'p-overdue', vendor: 'Late Co', amount: '300', currency: 'KZT', dueDate: formatDateOnly(commitmentDay(-5)) },
+        { id: 'p-soon', vendor: 'Soon Co', amount: '500', currency: 'KZT', dueDate: formatDateOnly(commitmentDay(3)) },
+        { id: 'p-undated', vendor: 'No Date Co', amount: '700', currency: 'KZT', dueDate: null },
+      ]);
+      subscriptionRepo.find.mockResolvedValue([]);
+
+      const result = await service.getCommitments('ws-1', 10);
+
+      expect(result.openingBalance).toBe(1000);
+      expect(result.horizonDays).toBe(10);
+      expect(result.days).toHaveLength(10);
+      // The overdue payable is still owed, so it lands on day zero rather than in the past.
+      expect(result.items[0]).toMatchObject({
+        sourceId: 'p-overdue',
+        date: formatDateOnly(commitmentDay(0)),
+        isOverdue: true,
+      });
+      expect(result.unscheduledCommitted).toBe(700);
+      expect(result.totalCommitted).toBe(800);
+      expect(result.days[0].balance).toBe(700);
+      expect(result.days[3].balance).toBe(200);
+      expect(result.lowestBalance).toBe(200);
+      expect(result.shortfallDate).toBeNull();
+    });
+
+    it('projects monthly subscriptions with month-end clamping and flags the shortfall', async () => {
+      jest.useFakeTimers().setSystemTime(new Date(2026, 0, 15));
+      try {
+        primeBalance('250');
+        payableRepo.find.mockResolvedValue([]);
+        subscriptionRepo.find.mockResolvedValue([
+          {
+            id: 'sub-1',
+            vendorName: 'Hosting',
+            amount: '100',
+            currency: 'KZT',
+            frequency: 'monthly',
+            nextChargeDate: '2025-12-31',
+          },
+        ]);
+
+        const result = await service.getCommitments('ws-1', 90);
+
+        // A stale next-charge date rolls forward; Jan 31 + 1 month clamps to Feb 28.
+        expect(result.items.map(item => item.date)).toEqual([
+          '2026-01-31',
+          '2026-02-28',
+          '2026-03-28',
+        ]);
+        expect(result.totalCommitted).toBe(300);
+        expect(result.shortfallDate).toBe('2026-03-28');
+        expect(result.lowestBalance).toBe(-50);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('clamps an absurd horizon instead of projecting a decade of days', async () => {
+      primeBalance('0');
+      payableRepo.find.mockResolvedValue([]);
+      subscriptionRepo.find.mockResolvedValue([]);
+
+      const result = await service.getCommitments('ws-1', 10_000);
+
+      expect(result.horizonDays).toBe(365);
+      expect(result.days).toHaveLength(365);
+    });
   });
 });

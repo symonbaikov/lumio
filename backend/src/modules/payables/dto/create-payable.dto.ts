@@ -9,9 +9,13 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { PayableSource, PayableStatus } from '../../../entities/payable.entity';
+import { PayableDirection, PayableSource, PayableStatus } from '../../../entities/payable.entity';
 
 export class CreatePayableDto {
+  @IsOptional()
+  @IsEnum(PayableDirection)
+  direction?: PayableDirection;
+
   @IsString()
   @MaxLength(255)
   vendor: string;

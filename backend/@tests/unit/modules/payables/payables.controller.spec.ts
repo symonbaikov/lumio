@@ -47,7 +47,7 @@ describe('PayablesController', () => {
       page: 1,
       limit: 20,
     });
-    expect(await controller.getSummary(workspaceId)).toEqual({ toPay: 100 });
+    expect(await controller.getSummary(workspaceId, {})).toEqual({ toPay: 100 });
     expect(await controller.findOne('p1', workspaceId)).toEqual({ id: 'p1' });
     expect(await controller.update('p1', { vendor: 'New' } as any, user, workspaceId)).toEqual({
       id: 'p1',
@@ -72,7 +72,7 @@ describe('PayablesController', () => {
     expect(payablesService.findAll).toHaveBeenCalledWith(workspaceId, {
       status: PayableStatus.TO_PAY,
     });
-    expect(payablesService.getSummary).toHaveBeenCalledWith(workspaceId);
+    expect(payablesService.getSummary).toHaveBeenCalledWith(workspaceId, undefined);
     expect(payablesService.findOne).toHaveBeenCalledWith('p1', workspaceId);
     expect(payablesService.update).toHaveBeenCalledWith('p1', workspaceId, 'user-1', {
       vendor: 'New',

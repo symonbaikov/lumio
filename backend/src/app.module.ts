@@ -94,6 +94,7 @@ import { ParsingModule } from './modules/parsing/parsing.module';
 import { PayablesModule } from './modules/payables/payables.module';
 import { ReceiptsModule } from './modules/receipts/receipts.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { SearchModule } from './modules/search/search.module';
 import { StatementsModule } from './modules/statements/statements.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
@@ -216,6 +217,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     ObservabilityModule,
     OpenProtocolIntegrationsModule,
     DashboardModule,
+    SearchModule,
     PayablesModule,
     ExchangeRatesModule,
     SubscriptionsModule,
