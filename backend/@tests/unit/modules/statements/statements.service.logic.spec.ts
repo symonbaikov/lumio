@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import { AuditService } from '@/modules/audit/audit.service';
+import { StatementParsingQueue } from '@/modules/parsing/queue/statement-parsing.queue';
 import { StatementProcessingService } from '@/modules/parsing/services/statement-processing.service';
 import { ReceiptStatementService } from '@/modules/statements/services/receipt-statement.service';
 import { StatementsService } from '@/modules/statements/statements.service';
@@ -112,6 +113,10 @@ describe('StatementsService — business logic', () => {
         {
           provide: StatementProcessingService,
           useValue: { processStatement: jest.fn() },
+        },
+        {
+          provide: StatementParsingQueue,
+          useValue: { enqueue: jest.fn() },
         },
         {
           provide: ReceiptStatementService,

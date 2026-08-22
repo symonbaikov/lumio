@@ -52,6 +52,9 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-finflow}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # Both the cache and the statement-parsing queue read REDIS_URL. Without it
+      # they fall back to localhost, which does not resolve inside the container.
+      - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
       - INTEGRATIONS_ENCRYPTION_KEY=${INTEGRATIONS_ENCRYPTION_KEY:?INTEGRATIONS_ENCRYPTION_KEY is required}

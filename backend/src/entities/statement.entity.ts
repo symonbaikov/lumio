@@ -28,6 +28,11 @@ export enum StatementStatus {
   PARSED = 'parsed',
   VALIDATED = 'validated',
   COMPLETED = 'completed',
+  /**
+   * Parsed, but the balance did not reconcile. Excluded from analytics until a
+   * user confirms the discrepancy via `POST /statements/:id/confirm-balance`.
+   */
+  NEEDS_REVIEW = 'needs_review',
   ERROR = 'error',
 }
 
@@ -212,6 +217,7 @@ export class Statement {
     transactionsFound?: number;
     transactionsCreated?: number;
     transactionsDeduplicated?: number;
+    transactionsFlaggedDuplicate?: number;
     errors?: string[];
     warnings?: string[];
     metadataExtracted?: {
@@ -241,6 +247,10 @@ export class Statement {
       reason: string;
       transaction?: JsonObject;
     }>;
+    balanceConfirmation?: {
+      confirmedBy: string;
+      confirmedAt: string;
+    };
     crossStatementDuplicates?: {
       groups: number;
       marked: number;

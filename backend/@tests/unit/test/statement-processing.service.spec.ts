@@ -93,6 +93,26 @@ describe('StatementProcessingService', () => {
 
   const transactionFingerprintService = {
     bulkGenerateFingerprints: jest.fn(() => new Map()),
+    generateFingerprint: jest.fn(
+      (tx: Partial<Transaction>) => `fp-${tx.documentNumber ?? 'none'}`,
+    ),
+    findByFingerprints: jest.fn(async () => [] as Transaction[]),
+  };
+
+  // Runs the callback against a manager whose save() feeds the same
+  // savedTransactions array the repository mock uses.
+  const dataSource = {
+    transaction: jest.fn(async (run: (manager: unknown) => Promise<unknown>) =>
+      run({
+        save: jest.fn(async (_entity: unknown, rows: Partial<Transaction>[]) =>
+          rows.map(row => {
+            const saved = { id: `tx-${savedTransactions.length + 1}`, ...row } as Transaction;
+            savedTransactions.push(saved);
+            return saved;
+          }),
+        ),
+      }),
+    ),
   };
 
   const parsedStatement: ParsedStatement = {
@@ -167,6 +187,7 @@ describe('StatementProcessingService', () => {
       metadataExtractionService as any,
       importSessionService as any,
       transactionFingerprintService as any,
+      dataSource as any,
     );
 
     // Disable AI reconciliation for deterministic tests
@@ -227,6 +248,120 @@ describe('StatementProcessingService', () => {
     expect(statement.totalDebit).toBe(100);
     expect(statement.totalCredit).toBe(200);
     expect(statement.totalTransactions).toBe(2);
+  });
+
+  it('writes every transaction in one database transaction', async () => {
+    await service.processStatement(statement.id);
+
+    expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+    // Classification must stay outside the write transaction to keep it short.
+    expect(classificationService.classifyTransaction).toHaveBeenCalledTimes(2);
+    expect(savedTransactions).toHaveLength(2);
+  });
+
+  it('stamps a fingerprint on every transaction', async () => {
+    await service.processStatement(statement.id);
+
+    expect(transactionFingerprintService.generateFingerprint).toHaveBeenCalledWith(
+      expect.objectContaining({ documentNumber: 'DOC-1' }),
+      'KZACC123',
+    );
+    expect(savedTransactions.map(tx => tx.fingerprint)).toEqual(['fp-DOC-1', 'fp-DOC-2']);
+  });
+
+  it('flags transactions whose fingerprint already exists in the workspace', async () => {
+    transactionFingerprintService.findByFingerprints.mockResolvedValueOnce([
+      { id: 'tx-existing', fingerprint: 'fp-DOC-1' } as Transaction,
+    ]);
+
+    await service.processStatement(statement.id);
+
+    // Flagged, not dropped: the row is still persisted for traceability.
+    expect(savedTransactions).toHaveLength(2);
+    expect(savedTransactions[0]).toMatchObject({
+      documentNumber: 'DOC-1',
+      isDuplicate: true,
+      duplicateOfId: 'tx-existing',
+    });
+    expect(savedTransactions[1].isDuplicate).toBeUndefined();
+    expect(statement.parsingDetails?.transactionsFlaggedDuplicate).toBe(1);
+  });
+
+  it('flags the second occurrence when one batch repeats a fingerprint', async () => {
+    transactionFingerprintService.generateFingerprint.mockReturnValue('fp-same');
+
+    await service.processStatement(statement.id);
+
+    expect(savedTransactions[0].isDuplicate).toBeUndefined();
+    expect(savedTransactions[1].isDuplicate).toBe(true);
+    expect(statement.parsingDetails?.transactionsFlaggedDuplicate).toBe(1);
+  });
+
+  it('fails the whole statement when the write transaction fails', async () => {
+    dataSource.transaction.mockRejectedValueOnce(new Error('deadlock detected'));
+
+    await expect(service.processStatement(statement.id)).rejects.toThrow('deadlock detected');
+
+    expect(savedTransactions).toHaveLength(0);
+    expect(statement.status).toBe(StatementStatus.ERROR);
+    expect(statement.errorMessage).toBe('deadlock detected');
+  });
+
+  it('imports without a fingerprint rather than failing when generation throws', async () => {
+    transactionFingerprintService.generateFingerprint.mockImplementationOnce(() => {
+      throw new Error('bad date');
+    });
+
+    await service.processStatement(statement.id);
+
+    expect(savedTransactions).toHaveLength(2);
+    expect(savedTransactions[0].fingerprint).toBeNull();
+    expect(statement.status).toBe(StatementStatus.COMPLETED);
+  });
+
+  it('holds the statement for review when the balance does not reconcile', async () => {
+    parserFactory.getParser.mockResolvedValueOnce({
+      parse: jest.fn().mockResolvedValue({
+        ...parsedStatement,
+        // 1000 + 200 credit - 100 debit = 1100, but the bank reports 1500.
+        metadata: { ...parsedStatement.metadata, balanceStart: 1000, balanceEnd: 1500 },
+      }),
+      constructor: { name: 'FakeParser' },
+    });
+
+    await service.processStatement(statement.id);
+
+    expect(statement.status).toBe(StatementStatus.NEEDS_REVIEW);
+    expect(statement.parsingDetails?.validation?.passed).toBe(false);
+    expect(statement.parsingDetails?.validation?.balanceCheck).toMatchObject({
+      expectedEnd: 1100,
+      actualEnd: 1500,
+      difference: 400,
+    });
+    // Transactions are still persisted — only their visibility is withheld.
+    expect(savedTransactions).toHaveLength(2);
+  });
+
+  it('completes the statement when the balance reconciles', async () => {
+    parserFactory.getParser.mockResolvedValueOnce({
+      parse: jest.fn().mockResolvedValue({
+        ...parsedStatement,
+        metadata: { ...parsedStatement.metadata, balanceStart: 1000, balanceEnd: 1100 },
+      }),
+      constructor: { name: 'FakeParser' },
+    });
+
+    await service.processStatement(statement.id);
+
+    expect(statement.status).toBe(StatementStatus.COMPLETED);
+    expect(statement.parsingDetails?.validation?.passed).toBe(true);
+  });
+
+  it('completes the statement when the bank gave no balances to check', async () => {
+    await service.processStatement(statement.id);
+
+    expect(statement.status).toBe(StatementStatus.COMPLETED);
+    expect(statement.parsingDetails?.validation?.balanceCheck).toBeUndefined();
   });
 
   it('uses AI batch category when transaction classification is missing', async () => {

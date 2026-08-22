@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { extractTextFromPdf } from '../../../common/utils/pdf-parser.util';
 import { BankName, FileType } from '../../../entities/statement.entity';
 import type { IParser } from '../interfaces/parser.interface';
@@ -12,6 +12,7 @@ import { KaspiParser } from '../parsers/kaspi.parser';
 
 @Injectable()
 export class ParserFactoryService {
+  private readonly logger = new Logger(ParserFactoryService.name);
   private parsers: IParser[] = [];
 
   constructor() {
@@ -152,20 +153,20 @@ export class ParserFactoryService {
     filePath: string,
     cachedText?: string,
   ): Promise<IParser | null> {
-    console.log(`[ParserFactory] Looking for parser for bank: ${bankName}, fileType: ${fileType}`);
+    this.logger.debug(`Looking for parser for bank: ${bankName}, fileType: ${fileType}`);
     for (const parser of this.parsers) {
       const parserName = parser.constructor.name;
-      console.log(`[ParserFactory] Trying parser: ${parserName}`);
+      this.logger.debug(`Trying parser: ${parserName}`);
       if (await parser.canParse(bankName, fileType, filePath, cachedText)) {
-        console.log(`[ParserFactory] Parser ${parserName} can parse this file`);
+        this.logger.debug(`Parser ${parserName} can parse this file`);
         return parser;
       }
 
-      console.log(`[ParserFactory] Parser ${parserName} cannot parse this file`);
+      this.logger.debug(`Parser ${parserName} cannot parse this file`);
     }
 
-    console.log(
-      `[ParserFactory] No suitable parser found for bank: ${bankName}, fileType: ${fileType}`,
+    this.logger.debug(
+      `No suitable parser found for bank: ${bankName}, fileType: ${fileType}`,
     );
     return null;
   }
@@ -181,8 +182,8 @@ export class ParserFactoryService {
     detectedEvidence?: string[];
     otherBankMentions?: string[];
   }> {
-    console.log(
-      `[ParserFactory] Detecting bank and format for file: ${filePath}, type: ${fileType}`,
+    this.logger.debug(
+      `Detecting bank and format for file: ${filePath}, type: ${fileType}`,
     );
 
     // First, try to detect by file content for PDF files
@@ -191,7 +192,8 @@ export class ParserFactoryService {
         const text = cachedText ?? (await extractTextFromPdf(filePath));
         const textLower = text.toLowerCase();
         const headerText = this.extractHeaderText(textLower);
-        console.log(`[ParserFactory] Extracted header sample: ${headerText.substring(0, 200)}...`);
+        // The header is statement content — log its size, not the text.
+        this.logger.debug(`Extracted header sample: ${headerText.length} chars`);
 
         const headerNameDetection = this.detectBankByName(headerText);
         const headerBicDetection = this.detectBankByBic(headerText);
@@ -250,7 +252,7 @@ export class ParserFactoryService {
         }
 
         if (detectedBase === 'hapoalim') {
-          console.log(`[ParserFactory] Detected: Bank Hapoalim (${detectedBy || 'unknown'})`);
+          this.logger.debug(`Detected: Bank Hapoalim (${detectedBy || 'unknown'})`);
           return {
             bankName: BankName.HAPOALIM,
             detectedBy,
@@ -260,7 +262,7 @@ export class ParserFactoryService {
         }
 
         if (detectedBase === 'kaspi') {
-          console.log(`[ParserFactory] Detected: Kaspi Bank (${detectedBy || 'unknown'})`);
+          this.logger.debug(`Detected: Kaspi Bank (${detectedBy || 'unknown'})`);
           return {
             bankName: BankName.KASPI,
             detectedBy,
@@ -273,7 +275,7 @@ export class ParserFactoryService {
           if (
             await new BerekeNewParser().canParse(BankName.BEREKE_NEW, fileType, filePath, textLower)
           ) {
-            console.log('[ParserFactory] Detected: Bereke Bank (new format)');
+            this.logger.debug('Detected: Bereke Bank (new format)');
             return {
               bankName: BankName.BEREKE_NEW,
               formatVersion: 'new',
@@ -285,7 +287,7 @@ export class ParserFactoryService {
           if (
             await new BerekeOldParser().canParse(BankName.BEREKE_OLD, fileType, filePath, textLower)
           ) {
-            console.log('[ParserFactory] Detected: Bereke Bank (old format)');
+            this.logger.debug('Detected: Bereke Bank (old format)');
             return {
               bankName: BankName.BEREKE_OLD,
               formatVersion: 'old',
@@ -294,7 +296,7 @@ export class ParserFactoryService {
               otherBankMentions: otherBankMentions.length ? otherBankMentions : undefined,
             };
           }
-          console.log('[ParserFactory] Detected: Bereke Bank (format unknown)');
+          this.logger.debug('Detected: Bereke Bank (format unknown)');
           return {
             bankName: BankName.BEREKE_NEW,
             detectedBy,
@@ -303,7 +305,7 @@ export class ParserFactoryService {
           };
         }
       } catch (error) {
-        console.error('[ParserFactory] Error reading file content:', error);
+        this.logger.error('Error reading file content:', error);
       }
     }
 
@@ -312,7 +314,7 @@ export class ParserFactoryService {
       const textLower = cachedText.toLowerCase();
       const nameDetection = this.detectBankByName(textLower);
       if (nameDetection.bank === 'hapoalim') {
-        console.log('[ParserFactory] Detected: Bank Hapoalim (image-ocr-name)');
+        this.logger.debug('Detected: Bank Hapoalim (image-ocr-name)');
         return {
           bankName: BankName.HAPOALIM,
           detectedBy: 'image-ocr-name',
@@ -324,14 +326,14 @@ export class ParserFactoryService {
     // Fallback: Try each parser to detect bank and format
     for (const parser of this.parsers) {
       const parserName = parser.constructor.name;
-      console.log(`[ParserFactory] Checking parser: ${parserName}`);
+      this.logger.debug(`Checking parser: ${parserName}`);
 
       // Check Kaspi first
       if (
         parser instanceof KaspiParser &&
         (await parser.canParse(BankName.KASPI, fileType, filePath, cachedText))
       ) {
-        console.log('[ParserFactory] Detected: Kaspi Bank');
+        this.logger.debug('Detected: Kaspi Bank');
         return { bankName: BankName.KASPI };
       }
 
@@ -339,22 +341,22 @@ export class ParserFactoryService {
         parser instanceof HapoalimParser &&
         (await parser.canParse(BankName.HAPOALIM, fileType, filePath, cachedText))
       ) {
-        console.log('[ParserFactory] Detected: Bank Hapoalim');
+        this.logger.debug('Detected: Bank Hapoalim');
         return { bankName: BankName.HAPOALIM };
       }
 
       if (await parser.canParse(BankName.BEREKE_NEW, fileType, filePath, cachedText)) {
-        console.log('[ParserFactory] Detected: Bereke Bank (new format)');
+        this.logger.debug('Detected: Bereke Bank (new format)');
         return { bankName: BankName.BEREKE_NEW, formatVersion: 'new' };
       }
       if (await parser.canParse(BankName.BEREKE_OLD, fileType, filePath, cachedText)) {
-        console.log('[ParserFactory] Detected: Bereke Bank (old format)');
+        this.logger.debug('Detected: Bereke Bank (old format)');
         return { bankName: BankName.BEREKE_OLD, formatVersion: 'old' };
       }
     }
 
     // Default to other if can't detect
-    console.log('[ParserFactory] Could not detect bank, defaulting to OTHER');
+    this.logger.debug('Could not detect bank, defaulting to OTHER');
     return { bankName: BankName.OTHER };
   }
 }

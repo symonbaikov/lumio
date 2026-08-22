@@ -25,14 +25,14 @@ export class GenericPdfParser extends BaseParser {
     try {
       text = cachedText ?? (await extractTextFromPdf(filePath));
     } catch (error) {
-      console.warn('[GenericPdfParser] Failed to extract PDF text:', (error as Error)?.message);
+      this.logger.warn('Failed to extract PDF text:', (error as Error)?.message);
     }
 
     try {
       const extracted = await extractTablesFromPdf(filePath);
       tableRows = extracted.rows || [];
     } catch (error) {
-      console.warn('[GenericPdfParser] Failed to extract PDF tables:', (error as Error)?.message);
+      this.logger.warn('Failed to extract PDF tables:', (error as Error)?.message);
     }
 
     const headerInfo = this.extractHeaderFromText(text);
@@ -49,7 +49,7 @@ export class GenericPdfParser extends BaseParser {
       try {
         transactions = await this.aiExtractor.extractTransactions(text);
       } catch (error) {
-        console.warn('[GenericPdfParser] AI extraction failed:', (error as Error)?.message);
+        this.logger.warn('AI extraction failed:', (error as Error)?.message);
       }
     }
 

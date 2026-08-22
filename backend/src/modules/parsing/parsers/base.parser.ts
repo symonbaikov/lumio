@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { advancedLanguageDetector } from '../../../common/utils/advanced-language-detector.util';
 import { BankProfileService } from '../../../common/utils/bank-profiles.util';
 import { FeatureFlagService } from '../../../common/utils/feature-flags.util';
@@ -23,6 +24,12 @@ import type { ParsedStatement } from '../interfaces/parsed-statement.interface';
 import type { IParser } from '../interfaces/parser.interface';
 
 export abstract class BaseParser implements IParser {
+  /**
+   * Parsers handle bank statements, so log volumes and outcomes — never the
+   * contents of a transaction (counterparty, purpose, amount).
+   */
+  protected readonly logger = new Logger(this.constructor.name);
+
   constructor(
     protected languageCacheService: LanguageCacheService = new LanguageCacheService(),
     protected featureFlagService: FeatureFlagService = new FeatureFlagService(),
