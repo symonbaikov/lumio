@@ -237,7 +237,11 @@ export class ReportSchedulesService {
       replyTo: smtp.replyTo || undefined,
       subject,
       text: `Scheduled report for ${period.dateFrom} — ${period.dateTo} is attached.`,
-      attachments: [{ filename: fileName, content: fs.createReadStream(filePath) }],
+      // Читаем файл, а не отдаём поток: у потока ошибка чтения приходит
+      // событием 'error', и без слушателя она роняет процесс целиком вместо
+      // того, чтобы пометить расписание упавшим. Отчёты небольшие, чтения в
+      // память достаточно.
+      attachments: [{ filename: fileName, content: await fs.promises.readFile(filePath) }],
     });
   }
 }

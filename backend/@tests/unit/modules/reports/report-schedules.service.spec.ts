@@ -1,6 +1,21 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { ReportScheduleCadence } from '@/entities/report-schedule.entity';
 import { ReportSchedulesService } from '@/modules/reports/report-schedules.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+
+// Сервис прикладывает сгенерированный отчёт к письму, поэтому путь из мока
+// должен указывать на реально существующий файл.
+const REPORT_FIXTURE = path.join(os.tmpdir(), `lumio-report-fixture-${process.pid}.csv`);
+
+beforeAll(() => {
+  fs.writeFileSync(REPORT_FIXTURE, 'date,amount\n');
+});
+
+afterAll(() => {
+  fs.rmSync(REPORT_FIXTURE, { force: true });
+});
 
 function createService(overrides: Partial<Record<string, unknown>> = {}) {
   const scheduleRepository = {
@@ -14,7 +29,7 @@ function createService(overrides: Partial<Record<string, unknown>> = {}) {
   const userRepository = { findOne: jest.fn(async () => ({ id: 'u1' })) };
   const reportsService = {
     generateFromTemplate: jest.fn(async () => ({
-      filePath: '/tmp/report.csv',
+      filePath: REPORT_FIXTURE,
       fileName: 'report.csv',
       contentType: 'text/csv',
     })),

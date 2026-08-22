@@ -439,7 +439,7 @@ jobs:
         run: npm ci --prefix website --ignore-scripts
 
       - name: Backend audit (high/critical)
-        run: npx audit-ci@9.4.0 --config backend/audit-ci.json --package-manager npm --path backend
+        run: npx audit-ci@7.1.0 --config backend/audit-ci.json --package-manager npm --path backend
 
       - name: Frontend audit (high/critical)
         run: npm audit --audit-level=high --prefix frontend
