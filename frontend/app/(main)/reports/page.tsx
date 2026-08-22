@@ -14,6 +14,7 @@ import BalanceSheet from './components/BalanceSheet';
 import { type ReportGenerateParams, ReportGenerator } from './components/ReportGenerator';
 import { ReportHistory } from './components/ReportHistory';
 import { type ReportTemplate, ReportTemplateCard } from './components/ReportTemplateCard';
+import { TaxReturnView } from './components/TaxReturnView';
 
 // eslint-disable-next-line max-lines-per-function
 export default function ReportsPage(): React.JSX.Element {
@@ -63,7 +64,7 @@ export default function ReportsPage(): React.JSX.Element {
     },
   ];
 
-  const [tab, setTab] = useState<'templates' | 'history'>('templates');
+  const [tab, setTab] = useState<'templates' | 'history' | 'tax'>('templates');
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
   const [showBalanceSheet, setShowBalanceSheet] = useState(false);
 
@@ -136,7 +137,7 @@ export default function ReportsPage(): React.JSX.Element {
           data-tour-id="reports-tabs"
           value={tab}
           // eslint-disable-next-line max-params
-          onChange={(_e, v: 'templates' | 'history') => {
+          onChange={(_e, v: 'templates' | 'history' | 'tax') => {
             setTab(v);
             setSelectedTemplate(null);
           }}
@@ -150,10 +151,12 @@ export default function ReportsPage(): React.JSX.Element {
             label={text('tabHistory', 'History')}
             data-tour-id="reports-history-tab"
           />
+          <Tab value="tax" label={text('tabTax', 'Tax return')} />
         </Tabs>
       </Box>
 
       <Box sx={{ px: { xs: 2, sm: 4 }, py: 3 }}>
+        {tab === 'tax' && <TaxReturnView />}
         {tab === 'templates' && (
           <>
             <Box

@@ -27,6 +27,7 @@ import toast from 'react-hot-toast';
 import { AVAILABLE_BACKGROUNDS } from '../constants';
 import { BackgroundSelector } from './BackgroundSelector';
 import { TaxJurisdictionSection } from './TaxJurisdictionSection';
+import { TaxRulesSection } from './TaxRulesSection';
 
 const resolveBackgroundSrc = (backgroundImage: string | null) => {
   if (!backgroundImage) {
@@ -558,6 +559,9 @@ export default function WorkspaceOverviewView() {
 
           {/* Tax jurisdiction */}
           <TaxJurisdictionSection labels={TAX_JURISDICTION_LABELS} />
+
+          {/* Tax rules */}
+          <TaxRulesSection />
 
           {/* Danger zone */}
           {currentWorkspace.memberRole === 'owner' && (
