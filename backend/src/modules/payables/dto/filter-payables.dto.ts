@@ -10,7 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { toBooleanValue, toNumberValue } from '../../../common/dto/query-transformers';
-import { PayableSource, PayableStatus } from '../../../entities/payable.entity';
+import { PayableDirection, PayableSource, PayableStatus } from '../../../entities/payable.entity';
 
 export enum ExportFormat {
   EXCEL = 'excel',
@@ -25,6 +25,11 @@ export enum PayablesSortOption {
 }
 
 export class FilterPayablesDto {
+  /** Defaults to `payable` so existing clients keep seeing only what the workspace owes. */
+  @IsOptional()
+  @IsEnum(PayableDirection)
+  direction?: PayableDirection;
+
   @IsOptional()
   @Transform(toNumberValue)
   @IsNumber()

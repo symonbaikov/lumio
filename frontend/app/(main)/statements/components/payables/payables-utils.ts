@@ -1,5 +1,6 @@
 import type {
   Payable,
+  PayableDirection,
   PayableSource,
   PayableStatus,
   PayablesSummary,
@@ -119,6 +120,7 @@ export const getPayableStatusVariant = (
 };
 
 type PayablesListParams = {
+  direction?: PayableDirection;
   page?: number;
   limit?: number;
   search?: string;
@@ -134,8 +136,9 @@ const resolveOptional = (value: string, empty: string): string | undefined =>
 
 export const buildPayablesListParams = (
   filters: PayablesFiltersState,
-  pagination?: { page?: number; limit?: number },
+  pagination?: { page?: number; limit?: number; direction?: PayableDirection },
 ): PayablesListParams => ({
+  direction: pagination?.direction,
   page: pagination?.page,
   limit: pagination?.limit,
   search: filters.search || undefined,

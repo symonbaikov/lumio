@@ -1,3 +1,4 @@
+import * as fs from 'node:fs';
 import {
   Body,
   Controller,
@@ -6,22 +7,33 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Post,
   Put,
   Query,
+  Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
+import { buildContentDisposition } from '../../common/utils/http-file.util';
+import { deletedResponse } from '../../common/utils/responses.util';
 import { EntityType } from '../../entities/audit-event.entity';
 import type { User } from '../../entities/user.entity';
 import { Audit } from '../audit/decorators/audit.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { BulkUpdateItemDto } from './dto/bulk-update-transaction.dto';
 import { BulkUpdateTransactionDto } from './dto/bulk-update-transaction.dto';
+import { SetTransactionTagsDto } from './dto/set-transaction-tags.dto';
 import { SplitTransactionDto } from './dto/split-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { CrossStatementDeduplicationService } from './services/cross-statement-deduplication.service';
+import { TransactionAttachmentsService } from './services/transaction-attachments.service';
+import { TransactionTagsService } from './services/transaction-tags.service';
 import { TransactionsService } from './transactions.service';
 
 interface LegacyBulkUpdateTransactionDto {
@@ -29,11 +41,23 @@ interface LegacyBulkUpdateTransactionDto {
   updates: UpdateTransactionDto;
 }
 
+/**
+ * Aliased on purpose: writing `Express.Multer.File` straight into a decorated
+ * parameter makes emitDecoratorMetadata emit a runtime reference to `Express`,
+ * which does not exist and throws at import time.
+ */
+type MulterFile = Express.Multer.File;
+
+/** Mirrors the 10 MB ceiling in validateFile, but rejects before the body is buffered. */
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+
 @Controller('transactions')
 export class TransactionsController {
   constructor(
     private readonly transactionsService: TransactionsService,
     private readonly deduplicationService: CrossStatementDeduplicationService,
+    private readonly transactionTagsService: TransactionTagsService,
+    private readonly transactionAttachmentsService: TransactionAttachmentsService,
   ) {}
 
   @Get()
@@ -272,5 +296,70 @@ export class TransactionsController {
         isDuplicate: transaction.isDuplicate,
       },
     };
+  }
+
+  @Get(':id/tags')
+  @WorkspaceAuth(Permission.TRANSACTION_VIEW)
+  async getTags(@Param('id', new ParseUUIDPipe()) id: string, @WorkspaceId() workspaceId: string) {
+    return this.transactionTagsService.getTags(id, workspaceId);
+  }
+
+  @Put(':id/tags')
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  @Audit({ entityType: EntityType.TRANSACTION, includeDiff: true })
+  async setTags(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: SetTransactionTagsDto,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.transactionTagsService.setTags(id, workspaceId, dto.tagIds);
+  }
+
+  @Get(':id/attachments')
+  @WorkspaceAuth(Permission.TRANSACTION_VIEW)
+  async listAttachments(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.transactionAttachmentsService.list(id, workspaceId);
+  }
+
+  @Post(':id/attachments')
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_ATTACHMENT_BYTES } }))
+  @Audit({ entityType: EntityType.TRANSACTION })
+  async uploadAttachment(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @UploadedFile() file: MulterFile,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.transactionAttachmentsService.create(id, workspaceId, user.id, file);
+  }
+
+  @Get('attachments/:attachmentId/download')
+  @WorkspaceAuth(Permission.TRANSACTION_VIEW)
+  async downloadAttachment(
+    @Param('attachmentId', new ParseUUIDPipe()) attachmentId: string,
+    @WorkspaceId() workspaceId: string,
+    @Res() res: Response,
+  ) {
+    const { absolutePath, fileName, mimeType } =
+      await this.transactionAttachmentsService.getForDownload(attachmentId, workspaceId);
+
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', buildContentDisposition('attachment', fileName));
+    fs.createReadStream(absolutePath).pipe(res);
+  }
+
+  @Delete('attachments/:attachmentId')
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  @Audit({ entityType: EntityType.TRANSACTION })
+  async removeAttachment(
+    @Param('attachmentId', new ParseUUIDPipe()) attachmentId: string,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    await this.transactionAttachmentsService.remove(attachmentId, workspaceId);
+    return deletedResponse('Attachment');
   }
 }

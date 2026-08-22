@@ -25,6 +25,7 @@ import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import { AppearanceSection } from '@/app/settings/profile/components/AppearanceSection';
 import { ChangelogSection } from '@/app/settings/profile/components/ChangelogSection';
+import { MyDataSection } from '@/app/settings/profile/components/MyDataSection';
 import { EmailSection } from '@/app/settings/profile/components/EmailSection';
 import { NotificationsSection } from '@/app/settings/profile/components/NotificationsSection';
 import { PasswordSection } from '@/app/settings/profile/components/PasswordSection';
@@ -58,7 +59,7 @@ import React, { type ComponentType, useCallback, useEffect, useMemo, useState } 
 
 // eslint-disable-next-line max-lines-per-function, complexity, @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types
 export default function ProfileSettingsPage() {
-  const { user, loading, setUser } = useAuth();
+  const { user, loading, setUser, logout } = useAuth();
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   const { locale } = useLocale();
@@ -274,6 +275,11 @@ export default function ProfileSettingsPage() {
     );
   }
 
+  const handleAccountDeleted = useCallback((): void => {
+    // The account is gone; clear the client session rather than leaving a dead token around.
+    void logout();
+  }, [logout]);
+
   const sectionMeta: Record<
     SectionId,
     {
@@ -309,6 +315,11 @@ export default function ProfileSettingsPage() {
       title: tx(['syncCard', 'title'], 'Sync'),
       description: tx(['syncCard', 'description'], 'Export and sync files to your filesystem'),
       icon: Cloud,
+    },
+    'my-data': {
+      title: tx(['myDataCard', 'title'], 'My data'),
+      description: tx(['myDataCard', 'description'], 'Download a copy of your data, or delete your account'),
+      icon: Shield,
     },
   };
 
@@ -413,6 +424,7 @@ export default function ProfileSettingsPage() {
         handleExportZip={handleExportZip}
       />
     ),
+    'my-data': <MyDataSection tx={tx} onAccountDeleted={handleAccountDeleted} />,
   };
 
   const activeMeta = sectionMeta[activeSection];

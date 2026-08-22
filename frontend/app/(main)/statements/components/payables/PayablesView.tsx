@@ -10,6 +10,7 @@ import { useIntlayer, useLocale } from '@/app/i18n';
 import {
   type CreatePayableInput,
   type Payable,
+  type PayableDirection,
   type PayablesExportFormat,
   type PayablesSummary,
   type UpdatePayableInput,
@@ -89,8 +90,13 @@ const triggerBlobDownload = (blob: Blob, fileName: string) => {
   window.URL.revokeObjectURL(url);
 };
 
+type PayablesViewProps = {
+  /** Which side of the ledger this view manages. Defaults to money the workspace owes. */
+  direction?: PayableDirection;
+};
+
 // eslint-disable-next-line max-lines-per-function, complexity
-export function PayablesView(): React.JSX.Element {
+export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}): React.JSX.Element {
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
@@ -308,8 +314,10 @@ export function PayablesView(): React.JSX.Element {
 
       try {
         const [summaryResponse, listResponse] = await Promise.all([
-          payablesApi.getSummary(),
-          payablesApi.list(buildPayablesListParams(filters, { page: queryPage, limit: PAGE_SIZE })),
+          payablesApi.getSummary(direction),
+          payablesApi.list(
+            buildPayablesListParams(filters, { page: queryPage, limit: PAGE_SIZE, direction }),
+          ),
         ]);
 
         if (requestVersion !== requestVersionRef.current) {
@@ -341,7 +349,7 @@ export function PayablesView(): React.JSX.Element {
         }
       }
     },
-    [currentWorkspace, filters, labels.toasts.loadFailed, queryPage, user],
+    [currentWorkspace, direction, filters, labels.toasts.loadFailed, queryPage, user],
   );
 
   useEffect(() => {
@@ -385,7 +393,7 @@ export function PayablesView(): React.JSX.Element {
         await payablesApi.update(editingPayable.id, payload as UpdatePayableInput);
         toast.success(labels.toasts.updateSuccess);
       } else {
-        await payablesApi.create(payload as CreatePayableInput);
+        await payablesApi.create({ ...(payload as CreatePayableInput), direction });
         toast.success(labels.toasts.createSuccess);
       }
 
@@ -452,7 +460,7 @@ export function PayablesView(): React.JSX.Element {
     setExporting(format);
     try {
       const result = await payablesApi.exportList({
-        ...buildPayablesListParams(filters),
+        ...buildPayablesListParams(filters, { direction }),
         format,
       });
       triggerBlobDownload(

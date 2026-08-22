@@ -1,14 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, type Repository } from 'typeorm';
-import { BankName, Statement, StatementStatus } from '../../entities/statement.entity';
-import { Payable, PayableStatus } from '../../entities/payable.entity';
+import { Payable, PayableDirection, PayableStatus } from '../../entities/payable.entity';
 import { Receipt, ReceiptStatus } from '../../entities/receipt.entity';
+import { BankName, Statement, StatementStatus } from '../../entities/statement.entity';
+import {
+  Subscription,
+  SubscriptionFrequency,
+  SubscriptionStatus,
+} from '../../entities/subscription.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { daysInMonth, getMonthWindowBounds, getWindowBounds } from './dashboard-window.util';
+import type {
+  DashboardCommitmentDay,
+  DashboardCommitmentItem,
+  DashboardCommitmentsResponse,
+} from './interfaces/dashboard-commitments.interface';
 import type {
   DashboardActionItem,
   DashboardCashFlowPoint,
@@ -29,6 +39,8 @@ const OTHER_CATEGORY_COLOR = '#898781';
 const UNCATEGORIZED_KEY = '__uncategorized__';
 /** How many rows the dashboard's recent-transactions card shows. */
 const RECENT_TRANSACTIONS_LIMIT = 6;
+/** Upper bound on the commitments projection so a client can't request a decade of days. */
+const MAX_COMMITMENT_HORIZON_DAYS = 365;
 /** Bank names are proper nouns and aren't translated per locale. */
 const BANK_DISPLAY_NAMES: Record<BankName, string> = {
   [BankName.KASPI]: 'Kaspi',
@@ -66,6 +78,8 @@ export class DashboardService {
     private readonly memberRepo: Repository<WorkspaceMember>,
     @InjectRepository(Workspace)
     private readonly workspaceRepo: Repository<Workspace>,
+    @InjectRepository(Subscription)
+    private readonly subscriptionRepo: Repository<Subscription>,
     private readonly exchangeRatesService: ExchangeRatesService,
   ) {}
 
@@ -192,24 +206,7 @@ export class DashboardService {
       );
     }
 
-    // All-time balance grouped by currency
-    const balanceQuery = this.transactionRepo.createQueryBuilder('t').innerJoin('t.statement', 's');
-    this.applyWorkspaceStatementFilters(balanceQuery, workspaceId, true);
-
-    const balanceRows = await balanceQuery
-      .select([
-        't.currency AS currency',
-        `COALESCE(SUM(CASE WHEN t.transactionType = :balIncome THEN t.credit WHEN t.transactionType = :balExpense THEN -t.debit ELSE 0 END), 0) AS "balance"`,
-      ])
-      .setParameter('balIncome', TransactionType.INCOME)
-      .setParameter('balExpense', TransactionType.EXPENSE)
-      .groupBy('t.currency')
-      .getRawMany<{ currency: string; balance: string }>();
-
-    let totalBalance = 0;
-    for (const row of balanceRows) {
-      totalBalance += await this.convertDashboardAmount(row.balance, row.currency, targetCurrency);
-    }
+    const totalBalance = await this.getAllTimeBalance(workspaceId, targetCurrency);
 
     const payableRows = await this.payableRepo
       .createQueryBuilder('p')
@@ -220,6 +217,7 @@ export class DashboardService {
       ])
       .where('p.workspaceId = :workspaceId', { workspaceId })
       .andWhere('p.deletedAt IS NULL')
+      .andWhere('p.direction = :direction', { direction: PayableDirection.PAYABLE })
       .setParameter('payStatuses', [PayableStatus.TO_PAY, PayableStatus.SCHEDULED])
       .setParameter('overdue', PayableStatus.OVERDUE)
       .groupBy('p.currency')
@@ -250,6 +248,28 @@ export class DashboardService {
       unapprovedCash,
       currency: targetCurrency,
     };
+  }
+
+  /** All-time net of every approved transaction, converted into `targetCurrency`. */
+  private async getAllTimeBalance(workspaceId: string, targetCurrency: string): Promise<number> {
+    const balanceQuery = this.transactionRepo.createQueryBuilder('t').innerJoin('t.statement', 's');
+    this.applyWorkspaceStatementFilters(balanceQuery, workspaceId, true);
+
+    const balanceRows = await balanceQuery
+      .select([
+        't.currency AS currency',
+        `COALESCE(SUM(CASE WHEN t.transactionType = :balIncome THEN t.credit WHEN t.transactionType = :balExpense THEN -t.debit ELSE 0 END), 0) AS "balance"`,
+      ])
+      .setParameter('balIncome', TransactionType.INCOME)
+      .setParameter('balExpense', TransactionType.EXPENSE)
+      .groupBy('t.currency')
+      .getRawMany<{ currency: string; balance: string }>();
+
+    let totalBalance = 0;
+    for (const row of balanceRows) {
+      totalBalance += await this.convertDashboardAmount(row.balance, row.currency, targetCurrency);
+    }
+    return totalBalance;
   }
 
   private normalizeCurrency(currency: string | null | undefined): string {
@@ -530,9 +550,7 @@ export class DashboardService {
       // Absorbing the rounding remainder here (rather than computing this
       // bucket's percent from its own amount) guarantees the displayed
       // percentages always sum to exactly 100.
-      const otherPercent = round2(
-        100 - withPercent.reduce((sum, row) => sum + row.percent, 0),
-      );
+      const otherPercent = round2(100 - withPercent.reduce((sum, row) => sum + row.percent, 0));
       withPercent.push({
         id: null,
         name: null,
@@ -597,7 +615,11 @@ export class DashboardService {
     return Promise.all(
       rows.map(async row => {
         const magnitude = row.transactionType === TransactionType.INCOME ? row.credit : row.debit;
-        const converted = await this.convertDashboardAmount(magnitude, row.currency, targetCurrency);
+        const converted = await this.convertDashboardAmount(
+          magnitude,
+          row.currency,
+          targetCurrency,
+        );
         const amount = row.transactionType === TransactionType.INCOME ? converted : -converted;
 
         const bankLabel = BANK_DISPLAY_NAMES[row.bankName] ?? BANK_DISPLAY_NAMES[BankName.OTHER];
@@ -820,6 +842,241 @@ export class DashboardService {
     }
 
     return response;
+  }
+
+  /**
+   * Forward-looking cash runway built from commitments the workspace has already
+   * recorded — unpaid payables and active subscriptions — rather than from
+   * extrapolated history like {@link computeForecast}. Answers "what is left on
+   * the 15th" instead of "what does the trend suggest".
+   */
+  async getCommitments(workspaceId: string, days = 60): Promise<DashboardCommitmentsResponse> {
+    const horizonDays = Math.min(Math.max(Math.trunc(days) || 0, 1), MAX_COMMITMENT_HORIZON_DAYS);
+    const currency = await this.getWorkspaceCurrency(workspaceId);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const horizonEnd = new Date(today);
+    horizonEnd.setDate(horizonEnd.getDate() + horizonDays - 1);
+
+    const [openingBalance, payables, subscriptions] = await Promise.all([
+      this.getAllTimeBalance(workspaceId, currency),
+      this.payableRepo.find({
+        where: {
+          workspaceId,
+          direction: PayableDirection.PAYABLE,
+          status: In([PayableStatus.TO_PAY, PayableStatus.SCHEDULED, PayableStatus.OVERDUE]),
+          deletedAt: IsNull(),
+        },
+      }),
+      this.subscriptionRepo.find({
+        where: { workspaceId, status: SubscriptionStatus.ACTIVE },
+      }),
+    ]);
+
+    const [payableItems, subscriptionItems] = await Promise.all([
+      this.collectPayableCommitments(payables, currency, today, horizonEnd),
+      this.collectSubscriptionCommitments(subscriptions, currency, today, horizonEnd),
+    ]);
+
+    const items = [...payableItems.items, ...subscriptionItems].sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
+    const runway = this.buildRunway(items, openingBalance, today, horizonDays);
+
+    return {
+      currency,
+      horizonDays,
+      openingBalance,
+      unscheduledCommitted: payableItems.unscheduledCommitted,
+      items,
+      ...runway,
+    };
+  }
+
+  /** Unpaid payables placed on their due date, with undated ones split out. */
+  private async collectPayableCommitments(
+    payables: Payable[],
+    currency: string,
+    today: Date,
+    horizonEnd: Date,
+  ): Promise<{ items: DashboardCommitmentItem[]; unscheduledCommitted: number }> {
+    const items: DashboardCommitmentItem[] = [];
+    let unscheduledCommitted = 0;
+
+    for (const payable of payables) {
+      const amount = await this.convertDashboardAmount(payable.amount, payable.currency, currency);
+      if (amount === 0) {
+        continue;
+      }
+      const dueDate = this.parseDateOnly(payable.dueDate);
+      if (!dueDate) {
+        // Owed, but there is no day to place it on — reported separately.
+        unscheduledCommitted += amount;
+        continue;
+      }
+      if (dueDate > horizonEnd) {
+        continue;
+      }
+      // Anything already past due is still owed today, so it lands on day zero.
+      const isOverdue = dueDate < today;
+      items.push({
+        date: this.formatDateOnly(isOverdue ? today : dueDate),
+        label: payable.vendor,
+        amount,
+        source: 'payable',
+        sourceId: payable.id,
+        isOverdue,
+      });
+    }
+
+    return { items, unscheduledCommitted };
+  }
+
+  /** Every charge each active subscription will raise inside the horizon. */
+  private async collectSubscriptionCommitments(
+    subscriptions: Subscription[],
+    currency: string,
+    today: Date,
+    horizonEnd: Date,
+  ): Promise<DashboardCommitmentItem[]> {
+    const items: DashboardCommitmentItem[] = [];
+
+    for (const subscription of subscriptions) {
+      const amount = await this.convertDashboardAmount(
+        subscription.amount,
+        subscription.currency,
+        currency,
+      );
+      if (amount === 0) {
+        continue;
+      }
+      for (const chargeDate of this.projectSubscriptionCharges(subscription, today, horizonEnd)) {
+        items.push({
+          date: this.formatDateOnly(chargeDate),
+          label: subscription.vendorName,
+          amount,
+          source: 'subscription',
+          sourceId: subscription.id,
+          isOverdue: false,
+        });
+      }
+    }
+
+    return items;
+  }
+
+  /** Walks the horizon day by day, draining the opening balance as commitments fall due. */
+  private buildRunway(
+    items: DashboardCommitmentItem[],
+    openingBalance: number,
+    today: Date,
+    horizonDays: number,
+  ): Pick<
+    DashboardCommitmentsResponse,
+    'days' | 'totalCommitted' | 'lowestBalance' | 'lowestBalanceDate' | 'shortfallDate'
+  > {
+    const outflowByDate = new Map<string, number>();
+    for (const item of items) {
+      outflowByDate.set(item.date, (outflowByDate.get(item.date) ?? 0) + item.amount);
+    }
+
+    const days: DashboardCommitmentDay[] = [];
+    let balance = openingBalance;
+    let totalCommitted = 0;
+    let lowestBalance = openingBalance;
+    let lowestBalanceDate = this.formatDateOnly(today);
+    let shortfallDate: string | null = null;
+
+    for (let offset = 0; offset < horizonDays; offset += 1) {
+      const cursor = new Date(today);
+      cursor.setDate(cursor.getDate() + offset);
+      const date = this.formatDateOnly(cursor);
+      const outflow = outflowByDate.get(date) ?? 0;
+
+      totalCommitted += outflow;
+      balance -= outflow;
+
+      if (balance < lowestBalance) {
+        lowestBalance = balance;
+        lowestBalanceDate = date;
+      }
+      if (shortfallDate === null && balance < 0) {
+        shortfallDate = date;
+      }
+
+      days.push({ date, outflow, balance });
+    }
+
+    return { days, totalCommitted, lowestBalance, lowestBalanceDate, shortfallDate };
+  }
+
+  /** Every charge date of `subscription` that falls inside [today, horizonEnd]. */
+  private projectSubscriptionCharges(
+    subscription: Subscription,
+    today: Date,
+    horizonEnd: Date,
+  ): Date[] {
+    let cursor = this.parseDateOnly(subscription.nextChargeDate);
+    if (!cursor) {
+      return [];
+    }
+
+    // A next-charge date left in the past means the charge was never reconciled;
+    // roll it forward so the projection starts from the next real occurrence.
+    let guard = 0;
+    while (cursor < today && guard < MAX_COMMITMENT_HORIZON_DAYS) {
+      cursor = this.advanceByFrequency(cursor, subscription.frequency);
+      guard += 1;
+    }
+
+    const charges: Date[] = [];
+    while (cursor <= horizonEnd && charges.length < MAX_COMMITMENT_HORIZON_DAYS) {
+      charges.push(new Date(cursor));
+      cursor = this.advanceByFrequency(cursor, subscription.frequency);
+    }
+    return charges;
+  }
+
+  private advanceByFrequency(date: Date, frequency: SubscriptionFrequency): Date {
+    switch (frequency) {
+      case SubscriptionFrequency.WEEKLY: {
+        const next = new Date(date);
+        next.setDate(next.getDate() + 7);
+        return next;
+      }
+      case SubscriptionFrequency.QUARTERLY:
+        return this.addMonths(date, 3);
+      case SubscriptionFrequency.ANNUAL:
+        return this.addMonths(date, 12);
+      default:
+        return this.addMonths(date, 1);
+    }
+  }
+
+  /** Month arithmetic that clamps to the last day instead of overflowing (Jan 31 + 1m = Feb 28). */
+  private addMonths(date: Date, months: number): Date {
+    const dayOfMonth = date.getDate();
+    const result = new Date(date.getFullYear(), date.getMonth() + months, 1);
+    result.setDate(Math.min(dayOfMonth, daysInMonth(result)));
+    return result;
+  }
+
+  /** Postgres `date` columns arrive as 'YYYY-MM-DD' strings; parse them in local time. */
+  private parseDateOnly(value: Date | string | null): Date | null {
+    if (!value) {
+      return null;
+    }
+    if (value instanceof Date) {
+      const copy = new Date(value);
+      copy.setHours(0, 0, 0, 0);
+      return Number.isNaN(copy.getTime()) ? null : copy;
+    }
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
+    if (!match) {
+      return null;
+    }
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   }
 
   private async getLatestTransactionDate(workspaceId: string): Promise<Date | null> {

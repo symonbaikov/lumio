@@ -74,6 +74,7 @@ export const sections = [
   'notifications',
   'changelog',
   'sync',
+  'my-data',
 ] as const;
 export type SectionId = (typeof sections)[number];
 

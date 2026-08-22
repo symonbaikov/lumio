@@ -4,6 +4,8 @@ import {
   Entity,
   Index,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -12,6 +14,7 @@ import { Branch } from './branch.entity';
 import { Category } from './category.entity';
 import { ImportSession } from './import-session.entity';
 import { Statement } from './statement.entity';
+import { Tag } from './tag.entity';
 import { TaxRate } from './tax-rate.entity';
 import { Wallet } from './wallet.entity';
 import { Workspace } from './workspace.entity';
@@ -193,6 +196,21 @@ export class Transaction {
 
   @Column({ name: 'import_session_id', nullable: true })
   importSessionId: string | null;
+
+  /**
+   * Second axis of classification alongside the single hierarchical category:
+   * shares the workspace's tag vocabulary with statements and files.
+   */
+  @ManyToMany(
+    () => Tag,
+    tag => tag.transactions,
+  )
+  @JoinTable({
+    name: 'transaction_tags',
+    joinColumn: { name: 'transaction_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'tag_id', referencedColumnName: 'id' },
+  })
+  tags: Tag[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

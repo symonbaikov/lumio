@@ -5,6 +5,7 @@ import {
   Banknote,
   CalendarRange,
   Folder,
+  PiggyBank,
   Send,
   ShoppingCart,
   ThumbsUp,
@@ -39,6 +40,7 @@ type ActiveItem =
   | 'submit'
   | 'approve'
   | 'pay'
+  | 'receive'
   | 'unapproved-cash'
   | 'spend-over-time'
   | 'top-spenders'
@@ -455,6 +457,14 @@ export default function StatementsSidePanel({ activeItem }: Props) {
               emphasis: 'high',
               active: activeItem === 'pay',
               href: '/statements/pay',
+            },
+            {
+              id: 'receive',
+              label: tx(['sidePanel', 'receive'], 'Receive'),
+              icon: PiggyBank,
+              emphasis: 'high',
+              active: activeItem === 'receive',
+              href: '/statements/receive',
             },
           ],
         },

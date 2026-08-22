@@ -8,7 +8,12 @@ import {
   NotificationSeverity,
   NotificationType,
 } from '../../entities/notification.entity';
-import { Payable, PayableSource, PayableStatus } from '../../entities/payable.entity';
+import {
+  Payable,
+  PayableDirection,
+  PayableSource,
+  PayableStatus,
+} from '../../entities/payable.entity';
 import { Statement } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
@@ -47,6 +52,7 @@ export class PayablesService {
     const payable = this.payableRepository.create({
       workspaceId,
       createdById: userId,
+      direction: dto.direction || PayableDirection.PAYABLE,
       vendor: dto.vendor,
       amount: dto.amount,
       currency: dto.currency || 'KZT',
@@ -162,7 +168,10 @@ export class PayablesService {
     await this.payableRepository.softRemove(payable);
   }
 
-  async getSummary(workspaceId: string): Promise<{
+  async getSummary(
+    workspaceId: string,
+    direction: PayableDirection = PayableDirection.PAYABLE,
+  ): Promise<{
     toPay: number;
     overdue: number;
     dueThisWeek: number;
@@ -173,7 +182,7 @@ export class PayablesService {
     paidTotalCount: number;
   }> {
     const rows = await this.payableRepository.find({
-      where: { workspaceId, deletedAt: IsNull() },
+      where: { workspaceId, direction, deletedAt: IsNull() },
       select: {
         id: true,
         status: true,
@@ -314,6 +323,12 @@ export class PayablesService {
       .getMany();
   }
 
+  /**
+   * Feeds due-soon reminders only.
+   * ponytail: payables only — receivable reminders need their own message key
+   * and wording ("chase the customer", not "pay the vendor"); add a direction
+   * argument here once those translations exist.
+   */
   async findDueSoonPayables(days = 7): Promise<Payable[]> {
     const today = this.startOfDay(new Date());
     const targetDate = new Date(today);
@@ -322,6 +337,7 @@ export class PayablesService {
     return this.payableRepository
       .createQueryBuilder('payable')
       .where('payable.deletedAt IS NULL')
+      .andWhere('payable.direction = :direction', { direction: PayableDirection.PAYABLE })
       .andWhere('payable.status IN (:...statuses)', {
         statuses: [PayableStatus.TO_PAY, PayableStatus.SCHEDULED],
       })
@@ -366,7 +382,10 @@ export class PayablesService {
     const queryBuilder = this.payableRepository
       .createQueryBuilder('payable')
       .where('payable.workspaceId = :workspaceId', { workspaceId })
-      .andWhere('payable.deletedAt IS NULL');
+      .andWhere('payable.deletedAt IS NULL')
+      .andWhere('payable.direction = :direction', {
+        direction: filters.direction || PayableDirection.PAYABLE,
+      });
 
     if (!filters.includeArchived) {
       queryBuilder.andWhere('payable.status != :archivedStatus', {
