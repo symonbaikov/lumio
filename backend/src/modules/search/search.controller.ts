@@ -10,7 +10,9 @@ export class SearchController {
   constructor(private readonly searchService: SearchService) {}
 
   @Get()
-  async search(@WorkspaceId() workspaceId: string, @Query('q') q = '') {
-    return this.searchService.search(workspaceId, q);
+  // Без значения по умолчанию у параметра: babel не умеет транспилировать
+  // параметр-декоратор вместе с default value и выдаёт синтаксически битый JS.
+  async search(@WorkspaceId() workspaceId: string, @Query('q') q?: string) {
+    return this.searchService.search(workspaceId, q ?? '');
   }
 }
