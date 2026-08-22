@@ -110,8 +110,7 @@ export class SubscriptionsService {
 
   async remove(id: string, workspaceId: string): Promise<void> {
     const subscription = await this.findOne(id, workspaceId);
-    subscription.status = SubscriptionStatus.CANCELLED;
-    await this.subscriptionRepository.save(subscription);
+    await this.subscriptionRepository.remove(subscription);
   }
 
   async confirm(id: string, workspaceId: string): Promise<Subscription> {
