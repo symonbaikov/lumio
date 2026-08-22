@@ -1,0 +1,108 @@
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
+import { Interval } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import type { Job } from 'bullmq';
+import { LessThan, Repository } from 'typeorm';
+import { Statement, StatementStatus } from '../../../entities/statement.entity';
+import { StatementProcessingService } from '../services/statement-processing.service';
+import {
+  STATEMENT_PARSING_QUEUE,
+  StatementParsingQueue,
+  type StatementParsingJob,
+} from './statement-parsing.queue';
+
+function parsePositiveInt(value: string | undefined, fallback: number) {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/**
+ * Worker concurrency replaces the in-process Semaphore that used to bound
+ * parsing: this limit is per worker process, so N instances give N x this.
+ */
+export const STATEMENT_PARSING_CONCURRENCY = parsePositiveInt(
+  process.env.STATEMENT_PARSING_CONCURRENCY,
+  5,
+);
+
+@Processor(STATEMENT_PARSING_QUEUE, { concurrency: STATEMENT_PARSING_CONCURRENCY })
+export class StatementParsingProcessor extends WorkerHost {
+  private readonly logger = new Logger(StatementParsingProcessor.name);
+
+  constructor(
+    @InjectRepository(Statement)
+    private readonly statementRepository: Repository<Statement>,
+    private readonly statementProcessingService: StatementProcessingService,
+  ) {
+    super();
+  }
+
+  async process(job: Job<StatementParsingJob>): Promise<void> {
+    const { statementId } = job.data;
+
+    await this.statementRepository.increment({ id: statementId }, 'parsingAttempts', 1);
+    this.logger.log(`Processing statement ${statementId} (attempt ${job.attemptsMade + 1})`);
+
+    // Errors propagate so BullMQ retries with backoff. processStatement already
+    // recorded the failure on the statement itself before rethrowing.
+    await this.statementProcessingService.processStatement(statementId);
+  }
+}
+
+export const MAX_PARSING_ATTEMPTS = parsePositiveInt(process.env.STATEMENT_MAX_PARSING_ATTEMPTS, 3);
+
+export const STALE_PROCESSING_MS = parsePositiveInt(
+  process.env.STATEMENT_PROCESSING_STALE_MS,
+  15 * 60 * 1000,
+);
+
+/**
+ * Recovers statements stranded in PROCESSING.
+ *
+ * BullMQ retries a job whose worker died, but the statement row still reads
+ * PROCESSING, and a crash before the job was ever enqueued (or while Redis was
+ * unreachable) leaves nothing to retry at all. This sweep is the backstop for
+ * both: it resets the row and re-enqueues, giving up once a statement has burned
+ * MAX_PARSING_ATTEMPTS so a poison file cannot loop forever.
+ */
+@Injectable()
+export class StaleStatementReaper {
+  private readonly logger = new Logger(StaleStatementReaper.name);
+
+  constructor(
+    @InjectRepository(Statement)
+    private readonly statementRepository: Repository<Statement>,
+    private readonly queue: StatementParsingQueue,
+  ) {}
+
+  @Interval(STALE_PROCESSING_MS)
+  async reap(): Promise<void> {
+    const stale = await this.statementRepository.find({
+      where: {
+        status: StatementStatus.PROCESSING,
+        updatedAt: LessThan(new Date(Date.now() - STALE_PROCESSING_MS)),
+      },
+      select: ['id', 'parsingAttempts'],
+      take: 50,
+    });
+
+    for (const statement of stale) {
+      if (statement.parsingAttempts >= MAX_PARSING_ATTEMPTS) {
+        await this.statementRepository.update(statement.id, {
+          status: StatementStatus.ERROR,
+          errorMessage: `Parsing abandoned after ${statement.parsingAttempts} attempts`,
+        });
+        this.logger.warn(`Statement ${statement.id} abandoned after ${statement.parsingAttempts} attempts`);
+        continue;
+      }
+
+      await this.statementRepository.update(statement.id, { status: StatementStatus.UPLOADED });
+      await this.queue.enqueue(statement.id);
+      this.logger.warn(`Re-queued stale statement ${statement.id}`);
+    }
+  }
+}

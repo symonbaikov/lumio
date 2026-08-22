@@ -94,7 +94,7 @@ ${redactedPreview}`,
 
       return { corrected, notes };
     } catch (error) {
-      console.error('[AIValidator] Failed to reconcile via AI:', error);
+      this.logger.error('Failed to reconcile via AI:', error);
       return { corrected: parsed, notes: ['AI reconciliation failed'] };
     }
   }

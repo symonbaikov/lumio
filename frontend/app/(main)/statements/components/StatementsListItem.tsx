@@ -294,6 +294,11 @@ function StatusBadge({
   if (isProcessing || status === 'processing' || status === 'uploaded') {
     return <span className="lumio-stmt-badge lumio-stmt-badge--pending">Pending</span>;
   }
+  // Parsed, but the balance did not reconcile: held out of analytics until a user
+  // confirms it on the statement page.
+  if (status === 'needs_review') {
+    return <span className="lumio-stmt-badge lumio-stmt-badge--review">Needs review</span>;
+  }
   if (status === 'completed' || status === 'parsed' || status === 'validated') {
     return <span className="lumio-stmt-badge lumio-stmt-badge--completed">Completed</span>;
   }

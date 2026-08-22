@@ -258,8 +258,19 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+      # e2e boots AppModule, which now registers the statement-parsing queue.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     env:
       DATABASE_URL: postgresql://finflow:finflow@localhost:5432/finflow
+      REDIS_URL: redis://localhost:6379
       JWT_SECRET: test-jwt-secret
       JWT_REFRESH_SECRET: test-jwt-refresh
       JWT_EXPIRES_IN: 1h

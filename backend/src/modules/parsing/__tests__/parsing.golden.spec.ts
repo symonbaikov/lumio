@@ -50,6 +50,40 @@ function loadExpected(filePath: string): ParsedStatement {
   };
 }
 
+const sum = (list: ParsedStatement['transactions'], key: 'debit' | 'credit') =>
+  list.reduce((acc, t) => acc + (Number(t[key]) || 0), 0);
+
+const toDateOnly = (value: Date | null | undefined) =>
+  value instanceof Date && !Number.isNaN(value.getTime())
+    ? value.toISOString().split('T')[0]
+    : null;
+
+/**
+ * `loadExpected` falls back to "now" when a fixture omits a date, so only a date
+ * that actually came from the fixture is worth asserting on.
+ */
+const hasRealDate = (value: Date | null | undefined) => {
+  const dateOnly = toDateOnly(value);
+  return dateOnly !== null && dateOnly !== new Date().toISOString().split('T')[0];
+};
+
+/**
+ * The comparable shape of a transaction. Amounts are rounded to cents and text
+ * is whitespace-normalized so a fixture does not break on PDF spacing noise.
+ */
+function projectTransaction(transaction: ParsedStatement['transactions'][number]) {
+  const round = (value: unknown) =>
+    Number.isFinite(Number(value)) ? Number(Number(value).toFixed(2)) : null;
+
+  return {
+    date: toDateOnly(transaction.transactionDate),
+    debit: round(transaction.debit),
+    credit: round(transaction.credit),
+    counterpartyName: (transaction.counterpartyName || '').replace(/\s+/g, ' ').trim(),
+    documentNumber: (transaction.documentNumber || '').trim(),
+  };
+}
+
 function listGoldenCases(root: string) {
   const cases: { input: string; expected: string }[] = [];
   const entries = fs.readdirSync(root, { withFileTypes: true });
@@ -103,11 +137,22 @@ describe('golden parsing (optional)', () => {
       const actual = await parser.parse(input);
       const expectedData = loadExpected(expected);
 
+      // Guard against the fixture itself being a recording of broken output.
+      // Comparing a parse only against its own past result is tautological: it
+      // passes just as happily when the parser drops or invents rows. A fixture
+      // carrying both balances must reconcile before it is worth comparing to.
+      const { balanceStart, balanceEnd } = expectedData.metadata;
+      if (balanceStart !== null && balanceStart !== undefined && balanceEnd != null) {
+        const debits = sum(expectedData.transactions, 'debit');
+        const credits = sum(expectedData.transactions, 'credit');
+        expect({
+          fixture: caseName,
+          reconciled: Number((balanceStart + credits - debits).toFixed(2)),
+        }).toEqual({ fixture: caseName, reconciled: Number(balanceEnd.toFixed(2)) });
+      }
+
       expect(actual.metadata.currency).toBe(expectedData.metadata.currency);
       expect(actual.transactions.length).toBe(expectedData.transactions.length);
-
-      const sum = (list: ParsedStatement['transactions'], key: 'debit' | 'credit') =>
-        list.reduce((acc, t) => acc + (Number(t[key]) || 0), 0);
 
       expect(sum(actual.transactions, 'debit')).toBeCloseTo(
         sum(expectedData.transactions, 'debit'),
@@ -117,6 +162,33 @@ describe('golden parsing (optional)', () => {
         sum(expectedData.transactions, 'credit'),
         2,
       );
+
+      // Matching totals are not enough: a parser can drop one row and misread
+      // another by the same amount. Compare row by row.
+      expect(actual.transactions.map(projectTransaction)).toEqual(
+        expectedData.transactions.map(projectTransaction),
+      );
+
+      if (expectedData.metadata.accountNumber) {
+        expect(actual.metadata.accountNumber).toBe(expectedData.metadata.accountNumber);
+      }
+
+      // Balances are what the statement reconciles against, so a drift here is
+      // exactly the failure the runtime balance check is meant to catch.
+      (['balanceStart', 'balanceEnd'] as const).forEach(key => {
+        const expectedBalance = expectedData.metadata[key];
+        if (expectedBalance === null || expectedBalance === undefined) {
+          return;
+        }
+        expect(actual.metadata[key]).toBeCloseTo(expectedBalance, 2);
+      });
+
+      if (hasRealDate(expectedData.metadata.dateFrom)) {
+        expect(toDateOnly(actual.metadata.dateFrom)).toBe(
+          toDateOnly(expectedData.metadata.dateFrom),
+        );
+        expect(toDateOnly(actual.metadata.dateTo)).toBe(toDateOnly(expectedData.metadata.dateTo));
+      }
     });
   });
 });

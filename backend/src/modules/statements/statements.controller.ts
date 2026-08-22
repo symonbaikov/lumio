@@ -7,6 +7,7 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
+  Logger,
   Param,
   Patch,
   Post,
@@ -55,6 +56,8 @@ interface ThumbnailErrorLike {
 
 @Controller('statements')
 export class StatementsController {
+  private readonly logger = new Logger(StatementsController.name);
+
   constructor(
     private readonly statementsService: StatementsService,
     private readonly receiptStatementService: ReceiptStatementService,
@@ -364,7 +367,7 @@ export class StatementsController {
       res.send(thumbnail);
     } catch (error) {
       // Log full error details for diagnostics (includes stack when available)
-      console.error(`Thumbnail generation error for statement ${id}:`, error);
+      this.logger.error(`Thumbnail generation error for statement ${id}:`, error);
       const thumbnailError = this.getThumbnailError(error);
 
       // Try to infer HTTP status from Nest HttpException if present
@@ -513,5 +516,15 @@ export class StatementsController {
     @WorkspaceId() workspaceId: string,
   ) {
     return this.statementsService.commitImport(id, user.id, workspaceId);
+  }
+
+  @Post(':id/confirm-balance')
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
+  async confirmBalance(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.statementsService.confirmBalance(id, user.id, workspaceId);
   }
 }

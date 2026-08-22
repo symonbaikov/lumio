@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { BullModule } from '@nestjs/bullmq';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -127,6 +128,16 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
         store: redisStore,
         url: configService.get('REDIS_URL') || 'redis://localhost:6379',
         ttl: 3600, // 1 hour default
+      }),
+      inject: [ConfigService],
+    }),
+    // Shares the Redis instance already used for caching (REDIS_URL).
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          url: configService.get('REDIS_URL') || 'redis://localhost:6379',
+        },
       }),
       inject: [ConfigService],
     }),

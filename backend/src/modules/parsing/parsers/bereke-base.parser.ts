@@ -106,38 +106,38 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
       const text = (cachedText ?? (await extractTextFromPdf(filePath))).toLowerCase();
       return this.matchesBankText(text);
     } catch (error) {
-      console.error('Error parsing PDF in canParse:', error);
+      this.logger.error('Error parsing PDF in canParse:', error);
       return false;
     }
   }
 
   async parse(filePath: string, cachedText?: string): Promise<ParsedStatement> {
-    console.log(`[${this.parserName}] Starting to parse file: ${filePath}`);
+    this.logger.debug(`Starting to parse file: ${filePath}`);
     const extractStartTime = Date.now();
 
     const { text, rows } = await extractTextAndLayoutFromPdf(filePath);
     const normalizedText = cachedText ?? text;
     const { rows: tableRows } = await extractTablesFromPdf(filePath);
     const extractTime = Date.now() - extractStartTime;
-    console.log(
-      `[${this.parserName}] PDF text extracted in ${extractTime}ms, length: ${normalizedText.length} characters, rows: ${rows.length}`,
+    this.logger.debug(
+      `PDF text extracted in ${extractTime}ms, length: ${normalizedText.length} characters, rows: ${rows.length}`,
     );
 
-    console.log(`[${this.parserName}] Extracting metadata...`);
+    this.logger.debug(`Extracting metadata...`);
     const accountNumber = this.extractAccountNumber(normalizedText) || '';
     const dateRange = this.extractDateRange(normalizedText);
     const balanceStart = this.extractFirstBalance(normalizedText, this.getBalanceStartLabels());
     const balanceEnd = this.extractFirstBalance(normalizedText, this.getBalanceEndLabels());
 
-    console.log(
-      `[${this.parserName}] Metadata extracted - Account: ${
+    this.logger.debug(
+      `Metadata extracted - Account: ${
         accountNumber || 'N/A'
       }, Date range: ${dateRange.from?.toISOString() || 'N/A'} to ${
         dateRange.to?.toISOString() || 'N/A'
       }`,
     );
-    console.log(
-      `[${this.parserName}] Balance start: ${balanceStart || 'N/A'}, Balance end: ${
+    this.logger.debug(
+      `Balance start: ${balanceStart || 'N/A'}, Balance end: ${
         balanceEnd || 'N/A'
       }`,
     );
@@ -145,16 +145,16 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
     const detectedCurrency = this.detectCurrency(normalizedText) || 'KZT';
 
     const transactionStartTime = Date.now();
-    console.log(`[${this.parserName}] Extracting transactions from pdf2table rows...`);
+    this.logger.debug(`Extracting transactions from pdf2table rows...`);
     const tableTransactions = mapPdfTableRowsToTransactions(tableRows, {
       defaultCurrency: detectedCurrency,
       stopWords: ['итого', 'оборот', 'остаток'],
     });
-    console.log(
-      `[${this.parserName}] pdf2table extracted ${tableTransactions.length} transactions`,
+    this.logger.debug(
+      `pdf2table extracted ${tableTransactions.length} transactions`,
     );
 
-    console.log(`[${this.parserName}] Extracting transactions from structured text...`);
+    this.logger.debug(`Extracting transactions from structured text...`);
     const { transactions: structuredTransactions, groupsDetected } = this.extractTransactions(
       normalizedText,
       rows,
@@ -167,8 +167,8 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
       (transactions.length === 0 || transactions.length < detectedGroups) &&
       this.aiExtractor.isAvailable()
     ) {
-      console.log(
-        `[${this.parserName}] Structured parsing incomplete (${transactions.length}/${detectedGroups}), trying AI extraction...`,
+      this.logger.debug(
+        `Structured parsing incomplete (${transactions.length}/${detectedGroups}), trying AI extraction...`,
       );
       const aiTransactions = await this.aiExtractor.extractTransactions(normalizedText);
       if (aiTransactions.length) {
@@ -176,18 +176,18 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
           transactions.length > 0
             ? mergeTransactions(transactions, aiTransactions)
             : aiTransactions;
-        console.log(
-          `[${this.parserName}] AI extraction succeeded with ${transactions.length} transactions`,
+        this.logger.debug(
+          `AI extraction succeeded with ${transactions.length} transactions`,
         );
       } else {
-        console.log(`[${this.parserName}] AI extraction did not return transactions`);
+        this.logger.debug(`AI extraction did not return transactions`);
       }
     }
 
     const { from, to } = this.getDefaultMetadataDates(dateRange, transactions);
     const transactionTime = Date.now() - transactionStartTime;
-    console.log(
-      `[${this.parserName}] Extracted ${transactions.length} transactions in ${transactionTime}ms`,
+    this.logger.debug(
+      `Extracted ${transactions.length} transactions in ${transactionTime}ms`,
     );
 
     return {
@@ -229,7 +229,7 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
     const structuredRows = this.prepareStructuredRows(text, rows);
     const { cleanRows, headerIndex, dataRows } =
       this.prepareRowsForTransactionParsing(structuredRows);
-    console.log(`[${this.parserName}] Processing ${cleanRows.length} non-empty lines of text`);
+    this.logger.debug(`Processing ${cleanRows.length} non-empty lines of text`);
 
     const columnBoundaries =
       headerIndex >= 0 && cleanRows[headerIndex]?.items?.length
@@ -242,40 +242,34 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
           return `${column.key} [${Math.round(column.start)} - ${Math.round(column.end)}]@${Math.round(column.mid)}`;
         })
         .join('; ');
-      console.log(`[${this.parserName}] Column boundaries detected: ${mapping}`);
+      this.logger.debug(`Column boundaries detected: ${mapping}`);
     } else {
-      console.log(`[${this.parserName}] Column boundaries not detected, using heuristics`);
+      this.logger.debug(`Column boundaries not detected, using heuristics`);
     }
 
     const groups = this.groupRowsIntoTransactions(dataRows);
-    console.log(`[${this.parserName}] Detected ${groups.length} potential transaction groups`);
+    this.logger.debug(`Detected ${groups.length} potential transaction groups`);
 
     const transactions: ParsedTransaction[] = [];
 
-    groups.forEach((group, index) => {
+    let failedGroups = 0;
+    groups.forEach(group => {
       const transaction = this.parseTransactionGroup(group, columnBoundaries);
       if (transaction) {
         transactions.push(transaction);
-        if (transactions.length <= 5 || transactions.length % 10 === 0) {
-          console.log(
-            `[${this.parserName}] Parsed transaction ${transactions.length}: ${
-              transaction.transactionDate.toISOString().split('T')[0]
-            } - ${transaction.counterpartyName.substring(0, 30)}...`,
-          );
-        }
       } else {
-        console.log(
-          `[${this.parserName}] Failed to parse group ${index + 1}: ${group
-            .map(row => row.text)
-            .join(' | ')
-            .substring(0, 200)}...`,
-        );
+        // The row text is statement content, so only the count is logged.
+        failedGroups++;
       }
     });
 
+    if (failedGroups) {
+      this.logger.warn(`Failed to parse ${failedGroups}/${groups.length} transaction groups`);
+    }
+
     const groupsDetected = groups.length;
 
-    console.log(`[${this.parserName}] Total transactions extracted: ${transactions.length}`);
+    this.logger.debug(`Total transactions extracted: ${transactions.length}`);
     return { transactions, groupsDetected };
   }
 
