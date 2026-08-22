@@ -25,9 +25,11 @@ import {
   type TaxReturnRecord,
   type TaxReturnTotals,
   type ThresholdStatus,
+  exportFileName,
   formatMoney,
   netDirection,
   periodFor,
+  saveBlob,
 } from './tax-return.helpers';
 
 const PRESETS: Array<{ key: PeriodPreset; label: string }> = [
@@ -126,6 +128,23 @@ export function TaxReturnView(): React.ReactElement {
           ? 'Could not file the return. Please try again.'
           : 'Could not reopen the period. Please try again.',
       );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const download = async (format: 'pdf' | 'xlsx') => {
+    setBusy(true);
+    setError(null);
+
+    try {
+      const response = await apiClient.get(
+        `/tax/returns/export?periodStart=${period.periodStart}&periodEnd=${period.periodEnd}&format=${format}`,
+        { responseType: 'blob' },
+      );
+      saveBlob(response.data as Blob, exportFileName(period.periodStart, period.periodEnd, format));
+    } catch {
+      setError(`Could not export the return as ${format.toUpperCase()}.`);
     } finally {
       setBusy(false);
     }
@@ -232,6 +251,22 @@ export function TaxReturnView(): React.ReactElement {
                 label={isFiled ? 'Filed' : 'Draft'}
                 color={isFiled ? 'success' : 'default'}
               />
+              <Button
+                variant="outlined"
+                disabled={busy}
+                onClick={() => download('pdf')}
+                sx={{ borderRadius: tokens.radius.md, textTransform: 'none', fontWeight: 600 }}
+              >
+                PDF
+              </Button>
+              <Button
+                variant="outlined"
+                disabled={busy}
+                onClick={() => download('xlsx')}
+                sx={{ borderRadius: tokens.radius.md, textTransform: 'none', fontWeight: 600 }}
+              >
+                XLSX
+              </Button>
               <Button
                 variant={isFiled ? 'outlined' : 'contained'}
                 disabled={busy}

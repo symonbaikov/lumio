@@ -171,4 +171,68 @@ describe('TaxReturnView', () => {
 
     expect(await screen.findByText(/not a substitute for advice/)).toBeInTheDocument();
   });
+
+  describe('export', () => {
+    beforeEach(() => {
+      // jsdom implements neither, and both are needed to hand a blob over.
+      URL.createObjectURL = vi.fn(() => 'blob:fake');
+      URL.revokeObjectURL = vi.fn();
+    });
+
+    it.each(['pdf', 'xlsx'] as const)('downloads the return as %s', async format => {
+      mockApi();
+      get.mockImplementation(async (url: string) => {
+        if (url.startsWith('/tax/returns/export')) return { data: new Blob(['x']) };
+        if (url.startsWith('/tax/returns/period')) {
+          return { data: { id: 'ret-1', status: 'draft', currency: 'KZT' } };
+        }
+        if (url.startsWith('/tax/returns/preview')) return { data: TOTALS };
+        return { data: null };
+      });
+      render(<TaxReturnView />);
+
+      await userEvent.click(await screen.findByRole('button', { name: format.toUpperCase() }));
+
+      await waitFor(() =>
+        expect(get).toHaveBeenCalledWith(
+          expect.stringContaining(`format=${format}`),
+          expect.objectContaining({ responseType: 'blob' }),
+        ),
+      );
+    });
+
+    it('reports a failed export instead of downloading nothing', async () => {
+      mockApi();
+      get.mockImplementation(async (url: string) => {
+        if (url.startsWith('/tax/returns/export')) throw new Error('boom');
+        if (url.startsWith('/tax/returns/period')) {
+          return { data: { id: 'ret-1', status: 'draft', currency: 'KZT' } };
+        }
+        if (url.startsWith('/tax/returns/preview')) return { data: TOTALS };
+        return { data: null };
+      });
+      render(<TaxReturnView />);
+
+      await userEvent.click(await screen.findByRole('button', { name: 'PDF' }));
+
+      expect(await screen.findByText(/Could not export the return as PDF/)).toBeInTheDocument();
+    });
+
+    it('releases the object URL so the blob is not held for the page lifetime', async () => {
+      mockApi();
+      get.mockImplementation(async (url: string) => {
+        if (url.startsWith('/tax/returns/export')) return { data: new Blob(['x']) };
+        if (url.startsWith('/tax/returns/period')) {
+          return { data: { id: 'ret-1', status: 'draft', currency: 'KZT' } };
+        }
+        if (url.startsWith('/tax/returns/preview')) return { data: TOTALS };
+        return { data: null };
+      });
+      render(<TaxReturnView />);
+
+      await userEvent.click(await screen.findByRole('button', { name: 'XLSX' }));
+
+      await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalled());
+    });
+  });
 });

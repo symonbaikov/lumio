@@ -97,3 +97,30 @@ export function netDirection(netPayable: string | number): 'payable' | 'refund' 
   }
   return amount > 0 ? 'payable' : 'refund';
 }
+
+/**
+ * Hands a downloaded blob to the browser.
+ *
+ * The export endpoint needs the workspace header and the bearer token, so it
+ * cannot be a plain anchor href — the file arrives through the API client and
+ * is handed over here.
+ */
+export function saveBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  // Without this the blob stays in memory for the life of the document.
+  URL.revokeObjectURL(url);
+}
+
+export function exportFileName(
+  periodStart: string,
+  periodEnd: string,
+  format: 'pdf' | 'xlsx',
+): string {
+  return `tax-return-${periodStart}_${periodEnd}.${format}`;
+}

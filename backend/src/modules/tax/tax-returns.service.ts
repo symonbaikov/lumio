@@ -10,7 +10,13 @@ import {
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { JurisdictionAdoptionService } from './jurisdiction-adoption.service';
-import { toDateOnly } from './jurisdictions.service';
+import { JurisdictionsService, toDateOnly } from './jurisdictions.service';
+import {
+  type TaxReturnDocumentInput,
+  buildFileName,
+  buildTaxReturnPdf,
+  buildTaxReturnXlsx,
+} from './tax-return-document';
 
 export interface ReturnTotals {
   outputTax: number;
@@ -27,10 +33,8 @@ export interface ReturnTotals {
  * always reflects the current data. Filing freezes the figures, writes a
  * line-by-line snapshot and locks the transactions behind it.
  *
- * Reverse-charge rows currently contribute zero to both sides. That leaves
- * `netPayable` correct — the two entries cancel by definition — but understates
- * the gross output and input figures. Reporting them properly needs the
- * notional amount persisted, which lands with the reverse-charge phase.
+ * Reverse-charge rows report their notional figure on both sides, where the
+ * two entries cancel and leave the net unchanged.
  */
 @Injectable()
 export class TaxReturnsService {
@@ -43,6 +47,7 @@ export class TaxReturnsService {
     private readonly transactionRepository: Repository<Transaction>,
     private readonly adoptionService: JurisdictionAdoptionService,
     private readonly exchangeRatesService: ExchangeRatesService,
+    private readonly jurisdictionsService: JurisdictionsService,
   ) {}
 
   /**
@@ -278,5 +283,66 @@ export class TaxReturnsService {
         snapshot: null,
       });
     });
+  }
+
+  /**
+   * Everything a document needs for a period.
+   *
+   * A filed return is rendered from its snapshot and its own jurisdiction, not
+   * from today's data or today's country: the document has to show what was
+   * submitted, even if the workspace has since moved elsewhere.
+   */
+  async buildDocumentInput(
+    workspaceId: string,
+    periodStart: string,
+    periodEnd: string,
+  ): Promise<TaxReturnDocumentInput> {
+    const record = await this.getForPeriod(workspaceId, periodStart, periodEnd);
+    const isFiled = record.status === TaxReturnStatus.FILED;
+
+    const jurisdiction = isFiled
+      ? await this.jurisdictionsService.findById(record.jurisdictionId)
+      : await this.adoptionService.getCurrentJurisdiction(workspaceId);
+
+    const lines = isFiled
+      ? (record.snapshot ?? [])
+      : (await this.computeTotals(workspaceId, periodStart, periodEnd)).lines;
+
+    return {
+      jurisdictionName: jurisdiction?.name ?? '—',
+      taxName: jurisdiction?.taxName ?? '',
+      periodStart,
+      periodEnd,
+      status: isFiled ? 'filed' : 'draft',
+      filedAt: record.filedAt ? new Date(record.filedAt).toISOString().slice(0, 10) : null,
+      currency: record.currency,
+      outputTax: Number(record.outputTax),
+      inputTax: Number(record.inputTax),
+      netPayable: Number(record.netPayable),
+      lines,
+    };
+  }
+
+  async export(
+    workspaceId: string,
+    periodStart: string,
+    periodEnd: string,
+    format: 'pdf' | 'xlsx',
+  ): Promise<{ buffer: Buffer; fileName: string; contentType: string }> {
+    const input = await this.buildDocumentInput(workspaceId, periodStart, periodEnd);
+
+    if (format === 'pdf') {
+      return {
+        buffer: await buildTaxReturnPdf(input),
+        fileName: buildFileName(input, 'pdf'),
+        contentType: 'application/pdf',
+      };
+    }
+
+    return {
+      buffer: buildTaxReturnXlsx(input),
+      fileName: buildFileName(input, 'xlsx'),
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    };
   }
 }

@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Post, Query, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
+import { buildContentDisposition } from '../../common/utils/http-file.util';
 import { TaxReturnPeriodDto } from './dto/tax-return-period.dto';
 import { TaxReturnsService } from './tax-returns.service';
 
@@ -49,5 +51,35 @@ export class TaxReturnsController {
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
   async reopen(@WorkspaceId() workspaceId: string, @Body() dto: TaxReturnPeriodDto) {
     return this.taxReturnsService.reopen(workspaceId, dto.periodStart, dto.periodEnd);
+  }
+
+  /**
+   * The return as a document. A draft is rendered from current data and marked
+   * as a draft; a filed one is rendered from its snapshot, so the file shows
+   * what was actually submitted.
+   */
+  @Get('export')
+  @WorkspaceAuth(Permission.CATEGORY_VIEW)
+  async export(
+    @WorkspaceId() workspaceId: string,
+    @Query('periodStart') periodStart: string,
+    @Query('periodEnd') periodEnd: string,
+    @Query('format') format: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    if (format !== 'pdf' && format !== 'xlsx') {
+      throw new BadRequestException("Format must be 'pdf' or 'xlsx'");
+    }
+
+    const { buffer, fileName, contentType } = await this.taxReturnsService.export(
+      workspaceId,
+      periodStart,
+      periodEnd,
+      format,
+    );
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', buildContentDisposition('attachment', fileName));
+    res.send(buffer);
   }
 }
