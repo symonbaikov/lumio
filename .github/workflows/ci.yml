@@ -328,7 +328,7 @@ jobs:
 
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-coverage
           path: backend/coverage
@@ -490,7 +490,7 @@ jobs:
         run: npm run storybook:build --prefix frontend
 
       - name: Upload Storybook artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: storybook-ci
           path: frontend/storybook-static
@@ -532,7 +532,7 @@ jobs:
           output: sbom.spdx.json
 
       - name: Upload SBOM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom
           path: sbom.spdx.json
