@@ -3,12 +3,17 @@
 import { Check, ChevronDown, Plus } from '@/app/components/icons';
 import { useMenuClickOutside } from '@/app/components/pdf-preview/hooks/useMenuClickOutside';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { useAuth } from '@/app/hooks/useAuth';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer } from '@/app/i18n';
+import Skeleton from '@mui/material/Skeleton';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { buildNavItems, isNavItemActive } from './navigation/helpers/navigation-config';
+
+// Matches buildNavItems() length so the skeleton doesn't jump when real items land.
+const NAV_ITEM_SKELETON_KEYS = Array.from({ length: 10 }, (_, i) => `nav-skeleton-${i}`);
 
 function WorkspaceSwitcher() {
   const { currentWorkspace, workspaces, switchWorkspace } = useWorkspace();
@@ -80,8 +85,11 @@ type SidebarProps = {
 export function SidebarContent({ onNavClick }: SidebarProps) {
   const pathname = usePathname();
   const { hasPermission } = usePermissions();
+  const { loading: authLoading } = useAuth();
+  const { loading: workspaceLoading } = useWorkspace();
   const { nav, supportProject } = useIntlayer('navigation');
 
+  const isLoading = authLoading || workspaceLoading;
   const navItems = buildNavItems(nav as Parameters<typeof buildNavItems>[0]);
   const visibleNavItems = navItems.filter(item => hasPermission(item.permission));
 
@@ -93,34 +101,58 @@ export function SidebarContent({ onNavClick }: SidebarProps) {
       </Link>
 
       {/* Workspace switcher */}
-      <WorkspaceSwitcher />
+      {isLoading ? (
+        <div className="lumio-sidebar__ws-switcher">
+          <Skeleton variant="rounded" width={28} height={28} />
+          <div className="lumio-sidebar__ws-info">
+            <Skeleton variant="text" width="70%" height={16} />
+            <Skeleton variant="text" width="40%" height={13} />
+          </div>
+        </div>
+      ) : (
+        <WorkspaceSwitcher />
+      )}
 
       {/* CTA */}
-      <Link href="/statements?upload=1" className="lumio-sidebar__cta" onClick={onNavClick}>
-        <span className="lumio-sidebar__cta-icon">
-          <Plus size={12} />
-        </span>
-        <span>New statement</span>
-        <span className="lumio-sidebar__kbd">⌘ N</span>
-      </Link>
+      {isLoading ? (
+        <div className="lumio-sidebar__cta">
+          <Skeleton variant="rounded" width={18} height={18} />
+          <Skeleton variant="text" width={90} height={16} />
+        </div>
+      ) : (
+        <Link href="/statements?upload=1" className="lumio-sidebar__cta" onClick={onNavClick}>
+          <span className="lumio-sidebar__cta-icon">
+            <Plus size={12} />
+          </span>
+          <span>New statement</span>
+          <span className="lumio-sidebar__kbd">⌘ N</span>
+        </Link>
+      )}
 
       {/* Navigation */}
       <nav className="lumio-sidebar__nav" aria-label="Main navigation">
         <div className="lumio-sidebar__section-label">Workspace</div>
-        {visibleNavItems.map(item => {
-          const active = isNavItemActive(pathname ?? '', item.path);
-          return (
-            <Link
-              key={item.path}
-              href={item.path}
-              className={`lumio-sidebar__nav-item${active ? ' lumio-sidebar__nav-item--active' : ''}`}
-              onClick={onNavClick}
-            >
-              <span className="lumio-sidebar__nav-icon">{item.icon}</span>
-              <span className="lumio-sidebar__nav-label">{item.label}</span>
-            </Link>
-          );
-        })}
+        {isLoading
+          ? NAV_ITEM_SKELETON_KEYS.map(key => (
+              <div className="lumio-sidebar__nav-item" key={key}>
+                <Skeleton variant="rounded" width={18} height={18} />
+                <Skeleton variant="text" width="60%" height={16} />
+              </div>
+            ))
+          : visibleNavItems.map(item => {
+              const active = isNavItemActive(pathname ?? '', item.path);
+              return (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  className={`lumio-sidebar__nav-item${active ? ' lumio-sidebar__nav-item--active' : ''}`}
+                  onClick={onNavClick}
+                >
+                  <span className="lumio-sidebar__nav-icon">{item.icon}</span>
+                  <span className="lumio-sidebar__nav-label">{item.label}</span>
+                </Link>
+              );
+            })}
       </nav>
 
       <div className="lumio-sidebar__footer">

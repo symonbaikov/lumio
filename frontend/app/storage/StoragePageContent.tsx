@@ -43,8 +43,9 @@ import {
 } from './hooks/useStoragePageHandlers';
 import { useStorageTags } from './hooks/useStorageTags';
 import { useStorageTrash } from './hooks/useStorageTrash';
-import { useStorageViews } from './hooks/useStorageViews';
+import { type FilterSnapshot, useStorageViews } from './hooks/useStorageViews';
 import { NO_FOLDER, formatFileSize, getStatusTone, tagChipClass } from './storageHelpers';
+import type { StorageViewPayload } from './storageHelpers';
 
 /**
  * Storage page - displays all files with sharing and permissions
@@ -112,7 +113,7 @@ function StoragePageContent({
       tagDeleteFailed: t.toasts.tagDeleteFailed.value,
     },
     filesHook.setFiles,
-    foldersHook.folders,
+    foldersHook.setFolders,
   );
   const filtersHook = useStorageFilters(
     { loadCategoriesFailed: t.toasts.loadCategoriesFailed.value },
@@ -206,7 +207,14 @@ function StoragePageContent({
   );
 
   const { renderTrashExpiryBadge, renderAvailabilityChip, renderStatusBadge } = useMemo(
-    () => buildRenderFunctions({ locale, trashTtlDays, t, getStatusTone, boundGetStatusLabel }),
+    () =>
+      buildRenderFunctions({
+        locale,
+        trashTtlDays,
+        t: t as unknown as Parameters<typeof buildRenderFunctions>[0]['t'],
+        getStatusTone,
+        boundGetStatusLabel,
+      }),
     [locale, trashTtlDays, t, boundGetStatusLabel],
   );
 
@@ -296,6 +304,13 @@ function StoragePageContent({
     filtersHook.filters.folderId
   );
   const sortKey = `${filtersHook.sort.field}:${filtersHook.sort.direction}`;
+  const viewPayload: FilterSnapshot = {
+    searchQuery: filtersHook.searchQuery,
+    filterOpen: filtersHook.filterOpen,
+    filters: filtersHook.filters,
+    stagedFilters: filtersHook.stagedFilters,
+    sort: filtersHook.sort,
+  };
   const emptyStateTitle = isTrashView ? t.trash.empty.title : t.empty.title;
   const emptyStateSubtitle = isTrashView ? t.trash.empty.subtitle : t.empty.subtitle;
 
@@ -515,6 +530,10 @@ function StoragePageContent({
               folderMoveFeedback: foldersHook.folderMoveFeedback,
               activeFolderLabel,
               newFolderName: foldersHook.newFolderName,
+              onSetNewFolderName: foldersHook.setNewFolderName,
+              onCreateFolder: () => {
+                void foldersHook.handleCreateFolder();
+              },
               folderFileQuery: foldersHook.folderFileQuery,
               folderModalFiles,
               folderCreatePlaceholder: t.folders.createPlaceholder.value,
@@ -578,11 +597,13 @@ function StoragePageContent({
               onSetNewTagName: tagsHook.setNewTagName,
               onSetNewTagColor: tagsHook.setNewTagColor,
               onSetNewTagPickerOpen: tagsHook.setNewTagPickerOpen,
-              onSetNewTagAnchorEl: tagsHook.setNewTagAnchorEl,
+              onSetNewTagAnchorEl: (el: HTMLElement | null) =>
+                tagsHook.setNewTagAnchorEl(el as HTMLButtonElement | null),
               onSetEditingTagName: tagsHook.setEditingTagName,
               onSetEditingTagColor: tagsHook.setEditingTagColor,
               onSetEditingTagPickerId: tagsHook.setEditingTagPickerId,
-              onSetEditingTagAnchorEl: tagsHook.setEditingTagAnchorEl,
+              onSetEditingTagAnchorEl: (el: HTMLElement | null) =>
+                tagsHook.setEditingTagAnchorEl(el as HTMLButtonElement | null),
               onCreateTag: () => {
                 void tagsHook.handleCreateTag();
               },
@@ -608,13 +629,7 @@ function StoragePageContent({
             viewName={viewsHook.viewName}
             viewSaving={viewsHook.viewSaving}
             activeViewId={filtersHook.activeViewId}
-            viewPayload={{
-              searchQuery: filtersHook.searchQuery,
-              filterOpen: filtersHook.filterOpen,
-              filters: filtersHook.filters,
-              stagedFilters: filtersHook.stagedFilters,
-              sort: filtersHook.sort,
-            }}
+            viewPayload={viewPayload}
             filtersTitle={t.filters.title.toString()}
             filtersStatusLabel={t.filters.status}
             filtersBankLabel={t.filters.bank}
@@ -639,7 +654,9 @@ function StoragePageContent({
             onResetFilters={handleResetFilters}
             onApplyFilters={handleApplyFilters}
             onSetViewName={viewsHook.setViewName}
-            onSaveView={viewsHook.handleSaveView}
+            onSaveView={(payload: StorageViewPayload) => {
+              void viewsHook.handleSaveView(payload as FilterSnapshot);
+            }}
             onDeleteView={viewsHook.handleDeleteView}
             onApplyView={view => {
               viewsHook.applyView(view);

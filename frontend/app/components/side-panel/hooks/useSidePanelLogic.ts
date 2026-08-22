@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import type { SidePanelProps, SidePanelSection } from '../types';
+import type { SidePanelProps, SidePanelSection, SidePanelWidth } from '../types';
 import { getWidthValue } from '../types';
 
 type SectionFilter = {
@@ -65,7 +65,10 @@ export function useSidePanelLogic({
       setUncontrolled(p => !p);
     }
   }, [isControlled, ctrl, onCollapsedChange]);
-  const widthValue = useMemo((): string | number => getWidthValue(width), [width]);
+  const widthValue = useMemo(
+    (): string | number => getWidthValue(width as SidePanelWidth),
+    [width],
+  );
   const rawSections = config?.sections;
   const filteredSections = useMemo((): SidePanelSection[] => {
     const sections = rawSections ?? [];

@@ -12,6 +12,7 @@ import type {
   TopSpenderFlowType,
   TopSpenderRecord,
 } from '@/app/(main)/statements/components/top-spenders/top-spenders.types';
+import type { AnalyticsFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
 import type { GmailReceipt } from '@/app/(main)/statements/types/statement-types';
 import { useMemo } from 'react';
 
@@ -29,7 +30,7 @@ type Params = {
   activeFlowType: TopSpenderFlowType;
 };
 
-export type { AnalyticsFromOption as FromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
+export type FromOption = AnalyticsFromOption;
 
 export type RecordsReturn = {
   allRecords: TopSpenderRecord[];

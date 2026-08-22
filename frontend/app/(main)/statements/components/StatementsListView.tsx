@@ -381,7 +381,7 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
           }}
           onToggleSelectAll={v.handleToggleSelectAll}
           onToggleSortDirection={() =>
-            v.setDateSortDirection(cur => (cur === 'desc' ? 'asc' : 'desc'))
+            v.setDateSortDirection(v.dateSortDirection === 'desc' ? 'asc' : 'desc')
           }
           onToggleStatement={v.handleToggleStatement}
           onView={handleView}

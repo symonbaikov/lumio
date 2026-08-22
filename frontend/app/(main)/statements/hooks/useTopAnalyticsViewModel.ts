@@ -5,7 +5,6 @@ import {
   buildAnalyticsFilterLabels,
   buildAnalyticsFilterOptions,
 } from '@/app/(main)/statements/helpers/analytics-filter-labels';
-import type { TopAnalyticsStateReturn } from '@/app/(main)/statements/hooks/useTopAnalyticsState';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer } from '@/app/i18n';
@@ -25,6 +24,8 @@ type DrillLabels = {
   amount: string;
 };
 
+type TxFn = (path: string[], fallback: string) => string;
+
 type DataParams<TState> = {
   user: unknown;
   currentWorkspace: WorkspaceLike | null | undefined;
@@ -38,8 +39,8 @@ type DataParams<TState> = {
 export type TopAnalyticsViewModelConfig<TState, TData> = {
   useStateHook: () => TState;
   useDataHook: (params: DataParams<TState>) => TData;
-  createTx: (t: unknown) => unknown;
-  buildLabels: (tx: unknown) => Record<string, string>;
+  createTx: (t: unknown) => TxFn;
+  buildLabels: (tx: TxFn) => Record<string, string>;
 };
 
 export type TopAnalyticsViewModelReturn<TState, TData> = TState &
@@ -54,10 +55,9 @@ export type TopAnalyticsViewModelReturn<TState, TData> = TState &
     drillLabels: DrillLabels;
   };
 
-export function useTopAnalyticsViewModel<
-  TState extends TopAnalyticsStateReturn<string, string>,
-  TData,
->(config: TopAnalyticsViewModelConfig<TState, TData>): TopAnalyticsViewModelReturn<TState, TData> {
+export function useTopAnalyticsViewModel<TState, TData>(
+  config: TopAnalyticsViewModelConfig<TState, TData>,
+): TopAnalyticsViewModelReturn<TState, TData> {
   const { user } = useAuth();
   const { currentWorkspace, workspaces } = useWorkspace();
   const { resolvedTheme } = useTheme();

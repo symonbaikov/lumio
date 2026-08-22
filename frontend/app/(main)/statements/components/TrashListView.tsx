@@ -5,7 +5,6 @@ import { RotateCcw, Search, Trash2 } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { AppPagination } from '@/app/components/ui/pagination';
-import { Spinner } from '@/app/components/ui/spinner';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
@@ -17,6 +16,7 @@ import {
 } from '@/app/lib/statement-selection';
 import { tokens } from '@/lib/theme-tokens';
 import { resolveBankLogo } from '@bank-logos';
+import Skeleton from '@mui/material/Skeleton';
 import { useTheme } from 'next-themes';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -55,6 +55,32 @@ const resolveDateValue = (file: TrashFile): number => {
   const timestamp = value ? new Date(value).getTime() : 0;
   return Number.isFinite(timestamp) ? timestamp : 0;
 };
+
+const TRASH_ROW_SKELETON_KEYS = ['row-0', 'row-1', 'row-2', 'row-3', 'row-4', 'row-5', 'row-6'];
+
+function TrashListRowSkeleton(): React.JSX.Element {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
+      <div style={{ width: 16 }}>
+        <Skeleton variant="rounded" width={16} height={16} />
+      </div>
+      <div style={{ width: 176 }}>
+        <Skeleton variant="text" width="70%" height={16} />
+      </div>
+      <div style={{ width: 440, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Skeleton variant="text" width="80%" height={16} />
+        <Skeleton variant="text" width="80%" height={16} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <Skeleton variant="text" width="50%" height={16} />
+      </div>
+      <div style={{ width: 144, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <Skeleton variant="rounded" width={32} height={32} />
+        <Skeleton variant="rounded" width={32} height={32} />
+      </div>
+    </div>
+  );
+}
 
 export default function TrashListView({ onCountChange }: Props) {
   const t = useIntlayer('statementsPage');
@@ -506,8 +532,10 @@ export default function TrashListView({ onCountChange }: Props) {
 
       <div className="lumio-trash-list__body">
         {loading ? (
-          <div className="lumio-trash-list__loading">
-            <Spinner style={{ height: 80, width: 80, color: 'var(--primary)' }} />
+          <div className="lumio-trash-list__items">
+            {TRASH_ROW_SKELETON_KEYS.map(key => (
+              <TrashListRowSkeleton key={key} />
+            ))}
           </div>
         ) : filteredFiles.length === 0 ? (
           <div className="lumio-trash-list__empty-state">

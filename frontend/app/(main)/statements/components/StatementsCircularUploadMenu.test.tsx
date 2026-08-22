@@ -51,7 +51,9 @@ describe('StatementsCircularUploadMenu', () => {
       toggleButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    const actionButtons = Array.from(container.querySelectorAll('button[title]'));
+    const actionButtons = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('button[title]'),
+    );
     expect(actionButtons).toHaveLength(4);
     actionButtons.forEach(button => {
       expect(button.style.height).toBe('44px');

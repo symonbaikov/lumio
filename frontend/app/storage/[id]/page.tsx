@@ -16,6 +16,7 @@ import { getApiErrorMessage, getApiErrorStatus } from '@/app/lib/api-error';
 import { tokens } from '@/lib/theme-tokens';
 import { resolveBankLogo } from '@bank-logos';
 import { Box, Chip, Typography } from '@mui/material';
+import Skeleton from '@mui/material/Skeleton';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import PermissionsPanel from '../../components/PermissionsPanel';
@@ -99,6 +100,71 @@ const getBankDisplayName = (bankName: string): string => {
   }
   return resolved.key !== 'other' ? resolved.displayName : bankName;
 };
+
+function FileDetailsSkeleton(): React.JSX.Element {
+  return (
+    <Box
+      className="container-shared"
+      sx={{ px: 2, py: 4, display: 'flex', flexDirection: 'column', gap: 3 }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
+          alignItems: { sm: 'center' },
+          justifyContent: { sm: 'space-between' },
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+          <Skeleton variant="circular" width={36} height={36} />
+          <Box>
+            <Skeleton variant="text" width={220} height={28} />
+            <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
+              <Skeleton variant="rounded" width={90} height={22} />
+              <Skeleton variant="rounded" width={90} height={22} />
+              <Skeleton variant="rounded" width={90} height={22} />
+            </Box>
+          </Box>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Skeleton variant="rounded" width={110} height={36} />
+          <Skeleton variant="rounded" width={90} height={36} />
+        </Box>
+      </Box>
+
+      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', lg: '1.05fr 1.4fr' } }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
+            gap: 1.5,
+          }}
+        >
+          {[0, 1, 2, 3].map(idx => (
+            <Box
+              key={idx}
+              sx={{ border: '1px solid var(--border-color)', bgcolor: 'background.paper', p: 2 }}
+            >
+              <Skeleton variant="text" width={60} height={14} />
+              <Skeleton variant="text" width={90} height={24} />
+            </Box>
+          ))}
+        </Box>
+
+        <Box sx={{ border: '1px solid var(--border-color)', bgcolor: 'background.paper', p: 2 }}>
+          <Skeleton variant="text" width={140} height={24} />
+          <Skeleton variant="rectangular" sx={{ mt: 1.5 }} width="100%" height={360} />
+        </Box>
+      </Box>
+
+      <Box sx={{ border: '1px solid var(--border-color)', bgcolor: 'background.paper', p: 2 }}>
+        <Skeleton variant="text" width={160} height={20} />
+        <Skeleton variant="rectangular" sx={{ mt: 1.5 }} width="100%" height={200} />
+      </Box>
+    </Box>
+  );
+}
 
 /**
  * File details page with transactions, sharing, and permissions
@@ -363,22 +429,7 @@ export default function FileDetailsPage() {
   };
 
   if (loading) {
-    return (
-      <Box className="container-shared" sx={{ px: 2, py: 8 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 1.5,
-            color: 'var(--text-secondary)',
-          }}
-        >
-          <Spinner className="h-20 w-20 text-primary" />
-          <Typography style={{ fontSize: 14 }}>{t.loading}</Typography>
-        </Box>
-      </Box>
-    );
+    return <FileDetailsSkeleton />;
   }
 
   if (!details) {

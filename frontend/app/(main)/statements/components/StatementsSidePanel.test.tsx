@@ -120,8 +120,10 @@ describe('StatementsSidePanel FAB navigation', () => {
       overdue: 0,
       dueThisWeek: 0,
       paidThisMonth: 0,
+      paidTotal: 0,
       toPayCount: 0,
       overdueCount: 0,
+      paidTotalCount: 0,
     });
 
     const container = document.createElement('div');
@@ -181,8 +183,10 @@ describe('StatementsSidePanel FAB navigation', () => {
       overdue: 300,
       dueThisWeek: 450,
       paidThisMonth: 900,
+      paidTotal: 2400,
       toPayCount: 2,
       overdueCount: 3,
+      paidTotalCount: 5,
     });
 
     vi.mocked(apiClient.get).mockImplementation((url: string) => {
@@ -243,8 +247,10 @@ describe('StatementsSidePanel FAB navigation', () => {
       overdue: 100,
       dueThisWeek: 200,
       paidThisMonth: 50,
+      paidTotal: 800,
       toPayCount: 4,
       overdueCount: 1,
+      paidTotalCount: 7,
     });
 
     vi.mocked(apiClient.get).mockImplementation((url: string) => {
@@ -301,8 +307,10 @@ describe('StatementsSidePanel FAB navigation', () => {
       overdue: 0,
       dueThisWeek: 0,
       paidThisMonth: 0,
+      paidTotal: 0,
       toPayCount: 0,
       overdueCount: 0,
+      paidTotalCount: 0,
     });
 
     vi.mocked(apiClient.get).mockImplementation((url: string) => {

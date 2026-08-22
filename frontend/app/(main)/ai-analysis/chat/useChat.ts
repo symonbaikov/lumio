@@ -170,7 +170,7 @@ export function useChat(
     setTurns(
       transcript.messages.map(message => ({
         id: message.id,
-        role: message.role,
+        role: message.role as ChatTurn['role'],
         content: message.content,
       })),
     );

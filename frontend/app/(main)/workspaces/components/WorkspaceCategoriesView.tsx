@@ -19,7 +19,6 @@ import { tokens } from '@/lib/theme-tokens';
 import {
   Box,
   Button,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -28,6 +27,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  Skeleton,
   Switch,
   TextField,
   Typography,
@@ -140,6 +140,48 @@ const PREDEFINED_COLORS = [
   '#9E9E9E',
   '#607D8B',
 ];
+
+const CATEGORY_ROW_SKELETON_KEYS = [
+  'row-0',
+  'row-1',
+  'row-2',
+  'row-3',
+  'row-4',
+  'row-5',
+  'row-6',
+  'row-7',
+];
+
+function CategoryRowSkeleton(): React.JSX.Element {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        border: '1px solid var(--border)',
+        borderRadius: tokens.radius.md,
+        px: 2,
+        py: 2,
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Skeleton variant="rounded" width={18} height={18} />
+        <Skeleton variant="rounded" width={32} height={32} />
+        <Box>
+          <Skeleton variant="text" width={140} height={20} />
+          <Skeleton variant="text" width={100} height={14} />
+        </Box>
+      </Box>
+      <Skeleton
+        variant="rounded"
+        width={52}
+        height={32}
+        sx={{ borderRadius: tokens.radius.full }}
+      />
+    </Box>
+  );
+}
 
 export default function WorkspaceCategoriesView() {
   const t = useIntlayer('categoriesPage');
@@ -632,8 +674,10 @@ export default function WorkspaceCategoriesView() {
           </Box>
 
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
-              <CircularProgress size={32} />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, px: 1, pb: 2, pt: 1.5 }}>
+              {CATEGORY_ROW_SKELETON_KEYS.map(key => (
+                <CategoryRowSkeleton key={key} />
+              ))}
             </Box>
           ) : filteredCategories.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 8, px: 2 }}>

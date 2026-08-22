@@ -74,12 +74,9 @@ function RowDrawerSection(p: P): React.JSX.Element {
       columns={p.orderedColumns}
       onClose={p.closeRowDrawer}
       onModeChange={p.setRowDrawerMode}
-      handlers={{
-        onClose: p.closeRowDrawer,
-        onSave: p.saveRowFromDrawer,
-        onSaveAndClose: p.saveRowAndCloseDrawer,
-        onSaveAndNext: p.saveRowAndNext,
-      }}
+      onSave={p.saveRowFromDrawer}
+      onSaveAndClose={p.saveRowAndCloseDrawer}
+      onSaveAndNext={p.saveRowAndNext}
     />
   );
 }

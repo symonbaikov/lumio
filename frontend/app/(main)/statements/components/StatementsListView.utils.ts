@@ -15,6 +15,88 @@ import {
   serializeStatementFiltersToQuery,
 } from './filters/server-statement-filters';
 import type { StatementFilters } from './filters/statement-filters';
+import type { StatementUploadLabels } from './statement-upload';
+
+/** Labels produced by buildFilterLabels (consumed by StatementsListHeader). */
+export type FilterLabels = {
+  type: string;
+  status: string;
+  date: string;
+  from: string;
+  filters: string;
+  columns: string;
+};
+
+/** Labels produced by buildFilterOptionLabels (consumed by StatementsListHeader). */
+export type FilterOptionLabels = {
+  apply: string;
+  reset: string;
+  resetFilters: string;
+  viewResults: string;
+  save: string;
+  saveSearch: string;
+  any: string;
+  yes: string;
+  no: string;
+  typeExpense: string;
+  typeReport: string;
+  typeChat: string;
+  typeTrip: string;
+  typeTask: string;
+  statusUploaded: string;
+  statusProcessing: string;
+  statusParsed: string;
+  statusValidated: string;
+  statusCompleted: string;
+  statusError: string;
+  dateThisMonth: string;
+  dateLastMonth: string;
+  dateYearToDate: string;
+  dateOn: string;
+  dateAfter: string;
+  dateBefore: string;
+  drawerTitle: string;
+  drawerGeneral: string;
+  drawerExpenses: string;
+  drawerReports: string;
+  drawerGroupBy: string;
+  drawerHas: string;
+  drawerKeywords: string;
+  drawerLimit: string;
+  drawerTo: string;
+  drawerAmount: string;
+  drawerApproved: string;
+  drawerBillable: string;
+  groupByDate: string;
+  groupByStatus: string;
+  groupByType: string;
+  groupByBank: string;
+  groupByUser: string;
+  groupByAmount: string;
+  hasErrors: string;
+  hasLogs: string;
+  hasTransactions: string;
+  hasDateRange: string;
+  hasCurrency: string;
+  columnReceipt: string;
+  columnDate: string;
+  columnMerchant: string;
+  columnFrom: string;
+  columnTo: string;
+  columnCategory: string;
+  columnTag: string;
+  columnAmount: string;
+  columnAction: string;
+  columnApproved: string;
+  columnBillable: string;
+  columnCard: string;
+  columnDescription: string;
+  columnExchangeRate: string;
+  columnExported: string;
+  columnExportedTo: string;
+  columnsTitle: string;
+  paid: string;
+}
 
 const UI_ONLY_BANK_FILTER_IDS = new Set(['bank:receipt', 'bank:gmail']);
 
@@ -24,12 +106,10 @@ const UI_ONLY_BANK_FILTER_IDS = new Set(['bank:receipt', 'bank:gmail']);
 // creating a circular import.
 // ---------------------------------------------------------------------------
 
-type StatementSource = 'statement' | 'gmail' | 'scan';
-
 /** Minimal shape required by formatting & status helpers. */
 export type StatementLike = {
   id: string;
-  source?: StatementSource;
+  source?: string;
   receiptSource?: string;
   status: string;
   totalDebit?: number | string | null;
@@ -44,11 +124,18 @@ export type StatementLike = {
   statementDateFrom?: string | null;
   statementDateTo?: string | null;
   receivedAt?: string;
-  createdAt: string;
+  createdAt?: string;
   parsingDetails?: {
     metadataExtracted?: {
       currency?: string;
       headerDisplay?: { currencyDisplay?: string };
+    };
+    importPreview?: {
+      source?: string;
+      attachments?: number;
+      description?: string;
+      merchant?: string;
+      categoryId?: string;
     };
   };
 };
@@ -72,7 +159,7 @@ type ReceiptDerivedStatementCandidate = {
 type StatementViewCandidate = {
   id: string;
   statementId?: string | null;
-  source?: StatementSource;
+  source?: string;
   status: string;
 };
 
@@ -111,8 +198,16 @@ export const isStoreReceiptStatement = (
 // Statement formatting helpers
 // ---------------------------------------------------------------------------
 
+type StatementCurrencyLike = {
+  parsedData?: { currency?: string };
+  currency?: string | null;
+  parsingDetails?: {
+    metadataExtracted?: { currency?: string; headerDisplay?: { currencyDisplay?: string } };
+  };
+};
+
 // eslint-disable-next-line complexity
-export const resolveStatementCurrency = (statement: StatementLike): string =>
+export const resolveStatementCurrency = (statement: StatementCurrencyLike): string =>
   (
     statement.parsedData?.currency ||
     statement.currency ||
@@ -389,7 +484,7 @@ type IntlayerDict = any;
 type TxFn = (path: string[], fallback: string) => string;
 
 // eslint-disable-next-line complexity
-export const buildFilterLabels = (t: IntlayerDict): Record<string, string> => ({
+export const buildFilterLabels = (t: IntlayerDict): FilterLabels => ({
   type: resolveLabel(t.filters?.type, 'Type'),
   status: resolveLabel(t.filters?.status, 'Status'),
   date: resolveLabel(t.filters?.date, 'Date'),
@@ -417,14 +512,14 @@ export const buildPaginationLabels = (tx: TxFn): Record<string, string> => ({
 });
 
 // eslint-disable-next-line complexity
-export const buildUploadLabels = (t: IntlayerDict): Record<string, string> => ({
+export const buildUploadLabels = (t: IntlayerDict): StatementUploadLabels => ({
   pickAtLeastOne: resolveLabel(t.uploadModal?.pickAtLeastOne, 'Select at least one file'),
   uploadedProcessing: resolveLabel(t.uploadModal?.uploadedProcessing, 'Files uploaded'),
   uploadFailed: resolveLabel(t.uploadModal?.uploadFailed, 'Failed to upload files'),
 });
 
 // eslint-disable-next-line complexity, max-lines-per-function, max-params
-export const buildFilterOptionLabels = (_t: IntlayerDict, tx: TxFn): Record<string, string> => ({
+export const buildFilterOptionLabels = (_t: IntlayerDict, tx: TxFn): FilterOptionLabels => ({
   apply: tx(['filters', 'apply'], 'Apply'),
   reset: tx(['filters', 'reset'], 'Reset'),
   resetFilters: tx(['filters', 'resetFilters'], 'Reset filters'),

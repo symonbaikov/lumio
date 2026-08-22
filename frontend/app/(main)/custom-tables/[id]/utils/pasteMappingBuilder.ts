@@ -6,6 +6,7 @@ import type {
   PasteFieldKey,
   PasteMappingSelection,
 } from './pasteTypes';
+import type { ColumnType } from './stylingUtils';
 
 // ---------------------------------------------------------------------------
 // Column inference helpers
@@ -25,13 +26,13 @@ export const inferFieldFromColumn = (column: PasteColumn): PasteFieldKey | null 
   return column.type ? (TYPE_TO_FIELD[column.type] ?? null) : null;
 };
 
-const FIELD_TO_COL_TYPE: Record<string, string> = {
+const FIELD_TO_COL_TYPE: Record<string, ColumnType> = {
   date: 'date',
   amount: 'number',
   paid: 'boolean',
 };
 
-export const inferNewColumnType = (field: PasteFieldKey | null): string =>
+export const inferNewColumnType = (field: PasteFieldKey | null): ColumnType =>
   field ? (FIELD_TO_COL_TYPE[field] ?? 'text') : 'text';
 
 // ---------------------------------------------------------------------------

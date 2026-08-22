@@ -1,15 +1,7 @@
 'use client';
 
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
-import CircularProgress from '@mui/material/CircularProgress';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import Skeleton from '@mui/material/Skeleton';
 import React from 'react';
 import type { UserTableRowProps } from './UserTableRow';
 import { UserTableRow } from './UserTableRow';
@@ -23,6 +15,8 @@ interface User {
   permissions: string[] | null;
   createdAt: string;
 }
+
+const SKELETON_ROW_KEYS = ['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7'];
 
 export interface UsersTableProps {
   loading: boolean;
@@ -45,13 +39,6 @@ export function UsersTable({
   onUpdateRole,
   onToggleActive,
 }: UsersTableProps): React.JSX.Element {
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress size={40} />
-      </Box>
-    );
-  }
   return (
     <TableContainer>
       <Table>
@@ -63,17 +50,27 @@ export function UsersTable({
           </TableRow>
         </TableHead>
         <TableBody>
-          {users.map(user => (
-            <UserTableRow
-              key={user.id}
-              user={user}
-              localeCode={localeCode}
-              labels={labels}
-              onEditPermissions={onEditPermissions}
-              onUpdateRole={onUpdateRole}
-              onToggleActive={onToggleActive}
-            />
-          ))}
+          {loading
+            ? SKELETON_ROW_KEYS.map(key => (
+                <TableRow key={key}>
+                  {headerLabels.map(({ key: colKey }) => (
+                    <TableCell key={colKey}>
+                      <Skeleton variant="text" width="70%" height={20} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            : users.map(user => (
+                <UserTableRow
+                  key={user.id}
+                  user={user}
+                  localeCode={localeCode}
+                  labels={labels}
+                  onEditPermissions={onEditPermissions}
+                  onUpdateRole={onUpdateRole}
+                  onToggleActive={onToggleActive}
+                />
+              ))}
         </TableBody>
       </Table>
     </TableContainer>

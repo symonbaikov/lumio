@@ -71,15 +71,15 @@ export interface StorageFileTableProps {
   onToggleTrashSelection: (fileId: string) => void;
   onToggleSelectAllTrash: () => void;
   // eslint-disable-next-line max-params
-  onCategoryChange: (fileId: string, categoryId: string | null) => void;
-  onRestoreFromTrash: (fileId: string) => void;
-  onConfirmPermanentDelete: (file: StorageFile) => void;
-  onView: (file: StorageFile) => void;
-  onDownload: (file: StorageFile) => void;
-  onConfirmDelete: (file: StorageFile) => void;
+  onCategoryChange: (fileId: string, categoryId: string) => void | Promise<void>;
+  onRestoreFromTrash: (file: StorageFile) => void | Promise<void>;
+  onConfirmPermanentDelete: (file: StorageFile) => void | Promise<void>;
+  onView: (fileId: string) => void;
+  onDownload: (fileId: string, fileName: string) => void | Promise<void>;
+  onConfirmDelete: (file: StorageFile) => void | Promise<void>;
   onPageChange: (page: number) => void;
   // eslint-disable-next-line max-params
-  onPreviewOpen: (fileId: string, fileName: string) => void;
+  onPreviewOpen: (fileId: string, fileName: string) => void | Promise<void>;
 }
 
 // eslint-disable-next-line max-lines-per-function
@@ -290,14 +290,14 @@ interface TableBodyProps {
   onToggleTrashSelection: (fileId: string) => void;
   onToggleSelectAllTrash: () => void;
   // eslint-disable-next-line max-params
-  onCategoryChange: (fileId: string, categoryId: string | null) => void;
-  onRestoreFromTrash: (fileId: string) => void;
-  onConfirmPermanentDelete: (file: StorageFile) => void;
-  onView: (file: StorageFile) => void;
-  onDownload: (file: StorageFile) => void;
-  onConfirmDelete: (file: StorageFile) => void;
+  onCategoryChange: (fileId: string, categoryId: string) => void | Promise<void>;
+  onRestoreFromTrash: (file: StorageFile) => void | Promise<void>;
+  onConfirmPermanentDelete: (file: StorageFile) => void | Promise<void>;
+  onView: (fileId: string) => void;
+  onDownload: (fileId: string, fileName: string) => void | Promise<void>;
+  onConfirmDelete: (file: StorageFile) => void | Promise<void>;
   // eslint-disable-next-line max-params
-  onPreviewOpen: (fileId: string, fileName: string) => void;
+  onPreviewOpen: (fileId: string, fileName: string) => void | Promise<void>;
 }
 
 const thStyle: React.CSSProperties = {

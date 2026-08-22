@@ -1,5 +1,6 @@
 'use client';
 
+import { AnalyticsLeaderboardSkeleton } from '@/app/(main)/statements/components/analytics/AnalyticsLeaderboardSkeleton';
 import { TopMerchantsContent } from '@/app/(main)/statements/components/top-merchants/components/TopMerchantsContent';
 import { TopMerchantsDrillDown } from '@/app/(main)/statements/components/top-merchants/components/TopMerchantsDrillDown';
 import { TopMerchantsFiltersDrawer } from '@/app/(main)/statements/components/top-merchants/components/TopMerchantsFiltersDrawer';
@@ -8,18 +9,13 @@ import {
   type TopMerchantsViewModelReturn,
   useTopMerchantsViewModel,
 } from '@/app/(main)/statements/components/top-merchants/hooks/useTopMerchantsViewModel';
-import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
 
 type VmProps = { vm: TopMerchantsViewModelReturn };
 
 function TopMerchantsBody({ vm }: VmProps): React.JSX.Element {
   if (vm.loading) {
-    return (
-      <div className="lumio-view-page__loading">
-        <Spinner style={{ height: 80, width: 80, color: 'var(--primary)' }} />
-      </div>
-    );
+    return <AnalyticsLeaderboardSkeleton />;
   }
   if (vm.flowFilteredRecords.length === 0) {
     return (

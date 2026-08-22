@@ -10,7 +10,7 @@ import {
   ThumbsUp,
   User,
 } from '@/app/components/icons';
-import type { SidePanelPageConfig } from '@/app/components/side-panel';
+import type { NavigationItem, SidePanelPageConfig } from '@/app/components/side-panel';
 import type { TopBankSender } from '@/app/lib/statement-insights';
 import type { ConnectedCloudProviders } from '@/app/lib/statement-upload-actions';
 import StatementsCircularUploadMenu from './StatementsCircularUploadMenu';
@@ -41,7 +41,7 @@ export interface SidePanelConfigParams {
   topCategoriesCount: number;
   connectedCloudProviders: ConnectedCloudProviders;
   handleCloudImport: (
-    provider: Parameters<typeof StatementsCircularUploadMenu>[0]['onCloudImport'][0],
+    provider: Parameters<Parameters<typeof StatementsCircularUploadMenu>[0]['onCloudImport']>[0],
   ) => Promise<void>;
   handleGmailClick: () => void;
   handleScanClick: () => void;
@@ -50,9 +50,7 @@ export interface SidePanelConfigParams {
 
 const asPrimary = (count: number): 'primary' | 'default' => (count > 0 ? 'primary' : 'default');
 
-const buildWorkQueueItems = (
-  p: SidePanelConfigParams,
-): SidePanelPageConfig['sections'][number]['items'] => [
+const buildWorkQueueItems = (p: SidePanelConfigParams): NavigationItem[] => [
   {
     id: 'submit',
     label: p.tx(['sidePanel', 'submit'], 'Submit'),
@@ -88,9 +86,7 @@ const buildWorkQueueItems = (
   },
 ];
 
-const buildInsightItems = (
-  p: SidePanelConfigParams,
-): SidePanelPageConfig['sections'][number]['items'] => [
+const buildInsightItems = (p: SidePanelConfigParams): NavigationItem[] => [
   {
     id: 'spend-over-time',
     label: p.tx(['sidePanel', 'spendOverTime'], 'Spend over time'),

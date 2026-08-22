@@ -42,6 +42,7 @@ interface StatementForTable {
   paid?: boolean | null;
   processedAt?: string;
   receivedAt?: string;
+  createdAt: string;
   parsedData?: {
     vendor?: string;
     amount?: number;
@@ -115,7 +116,7 @@ interface Props {
   viewLabel: string;
   reviewDuplicateLabel: string;
   labels: TableLabels;
-  onToggleSelectAll: () => void;
+  onToggleSelectAll: (checked: boolean) => void;
   onToggleSortDirection: () => void;
   onToggleStatement: (id: string) => void;
   onView: (statement: StatementForTable) => void;
@@ -258,9 +259,9 @@ function TableDesktopHeader({
   allVisibleSelected: boolean;
   selectedCount: number;
   dateSortDirection: 'asc' | 'desc';
-  columns: StatementColumn[];
+  columns?: StatementColumn[];
   labels: TableLabels;
-  onToggleSelectAll: () => void;
+  onToggleSelectAll: (checked: boolean) => void;
   onToggleSortDirection: () => void;
 }): React.JSX.Element {
   const renderedColumns = getRenderedColumns(columns);
@@ -407,7 +408,7 @@ export function StatementsListTable({
               <StatementsListItem
                 key={statement.id}
                 dataTourId={index === 0 ? 'statement-row-primary' : undefined}
-                statement={statement}
+                statement={statement as Parameters<typeof StatementsListItem>[0]['statement']}
                 viewLabel={viewLabel}
                 isReceipt={rowData.isReceipt}
                 isProcessing={rowData.isProcessingReceipt}

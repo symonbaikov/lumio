@@ -169,7 +169,10 @@ const loadMerchantsAndUnapproved = async (
 export const loadStageCounts = async (): Promise<StageCountsResult> => {
   const allStatements = (await fetchAllPages('/statements')) as StatementListItem[];
   const statementIds = allStatements.map(s => s.id).filter((id): id is string => Boolean(id));
-  const counts = countStatementStages(statementIds, getStatementStageMap()) as StageCounts;
+  const counts = countStatementStages(
+    statementIds,
+    getStatementStageMap(),
+  ) as unknown as StageCounts;
   const topBankSenders = getTopBankSenders(allStatements, 5);
   const [{ uniqueMerchantsCount, unapprovedCashCount }, topCategoriesCount] = await Promise.all([
     loadMerchantsAndUnapproved(allStatements),
