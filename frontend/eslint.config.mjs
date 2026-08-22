@@ -25,11 +25,8 @@ export default tseslint.config(
       'build/**',
       'coverage/**',
       '.intlayer/**',
-      '**/*.stories.*',
       '**/*.config.{js,mjs,cjs,ts}',
       'next-env.d.ts',
-      '.storybook/**',
-      'storybook-static/**',
     ],
   },
 
