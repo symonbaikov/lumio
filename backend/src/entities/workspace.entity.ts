@@ -46,6 +46,17 @@ export class Workspace {
   @Column({ name: 'tax_jurisdiction_id', nullable: true })
   taxJurisdictionId: string | null;
 
+  /** How far the registration-threshold alert has escalated: 0, 80 or 100. */
+  @Column({ name: 'tax_threshold_alert_level', type: 'int', default: 0 })
+  taxThresholdAlertLevel: number;
+
+  /**
+   * Which measuring window the level belongs to, e.g. '2026'. A new window
+   * resets the alerts on its own, with no nightly job to clear flags.
+   */
+  @Column({ name: 'tax_threshold_alert_window', type: 'varchar', length: 16, nullable: true })
+  taxThresholdAlertWindow: string | null;
+
   @Column({ type: 'boolean', default: false, name: 'is_favorite' })
   isFavorite: boolean;
 

@@ -5,6 +5,7 @@ import { Permission } from '../../common/enums/permissions.enum';
 import { SetJurisdictionDto } from './dto/set-jurisdiction.dto';
 import { JurisdictionAdoptionService } from './jurisdiction-adoption.service';
 import { TaxRatesService } from './tax-rates.service';
+import { TaxThresholdService } from './tax-threshold.service';
 
 /**
  * A workspace's own tax configuration, as opposed to the global catalogue
@@ -15,6 +16,7 @@ export class WorkspaceTaxController {
   constructor(
     private readonly adoptionService: JurisdictionAdoptionService,
     private readonly taxRatesService: TaxRatesService,
+    private readonly taxThresholdService: TaxThresholdService,
   ) {}
 
   @Get()
@@ -34,6 +36,17 @@ export class WorkspaceTaxController {
   @WorkspaceAuth(Permission.CATEGORY_VIEW)
   async getRatesInForce(@WorkspaceId() workspaceId: string, @Query('date') date?: string) {
     return this.taxRatesService.findEnabledForDate(workspaceId, date ?? new Date());
+  }
+
+  /**
+   * Turnover against the registration threshold for the current window.
+   * Null when the workspace has no jurisdiction, or its jurisdiction
+   * publishes no threshold we track.
+   */
+  @Get('threshold')
+  @WorkspaceAuth(Permission.CATEGORY_VIEW)
+  async getThreshold(@WorkspaceId() workspaceId: string) {
+    return this.taxThresholdService.getStatus(workspaceId);
   }
 
   /**

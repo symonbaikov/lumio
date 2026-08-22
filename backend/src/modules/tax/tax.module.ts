@@ -8,6 +8,7 @@ import { TaxRule } from '../../entities/tax-rule.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { JurisdictionAdoptionService } from './jurisdiction-adoption.service';
 import { JurisdictionsController } from './jurisdictions.controller';
 import { JurisdictionsService } from './jurisdictions.service';
@@ -18,6 +19,7 @@ import { TaxReturnsController } from './tax-returns.controller';
 import { TaxReturnsService } from './tax-returns.service';
 import { TaxRulesController } from './tax-rules.controller';
 import { TaxRulesService } from './tax-rules.service';
+import { TaxThresholdService } from './tax-threshold.service';
 import { WorkspaceTaxController } from './workspace-tax.controller';
 
 @Module({
@@ -32,6 +34,7 @@ import { WorkspaceTaxController } from './workspace-tax.controller';
       Workspace,
     ]),
     ExchangeRatesModule,
+    NotificationsModule,
   ],
   controllers: [
     TaxRatesController,
@@ -47,6 +50,7 @@ import { WorkspaceTaxController } from './workspace-tax.controller';
     TaxRulesService,
     TaxAssignmentService,
     TaxReturnsService,
+    TaxThresholdService,
   ],
   exports: [
     TaxRatesService,
@@ -55,6 +59,7 @@ import { WorkspaceTaxController } from './workspace-tax.controller';
     TaxRulesService,
     TaxAssignmentService,
     TaxReturnsService,
+    TaxThresholdService,
   ],
 })
 export class TaxModule {}
