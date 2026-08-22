@@ -1,14 +1,87 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "570affc4651c175f8889b8ee5e8a4c6312698424"
+      "main": "53797997bf4cee3a181f3e813d25b881bdc1ee9f"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-08-21T20:21:11.804Z",
+    "lastGeneratedAt": "2026-08-22T09:55:38.718Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-08-22-5379799",
+      "version": "main-5379799",
+      "branch": "main",
+      "date": "2026-08-22T09:55:38.718Z",
+      "title": "Release update - August 22, 2026",
+      "summary": "This release includes 4 fixes.",
+      "markdown": "## Fixes\n- **ci**: Repair the five pipeline checks failing on main (#124)\n- **roi**: Use workspace currency instead of hardcoded KZT (#122)\n- **subscriptions**: Actually delete subscription on DELETE /subscriptions/:id (#121)\n- **plugins**: Remove dashed border box around empty-state illustration (#120)",
+      "commits": [
+        {
+          "sha": "c1dbdb6d2f29cd1fa3d0f73539ab5164d3ea7d4e",
+          "shortSha": "c1dbdb6d",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-08-21T20:21:12Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "4d5fb1f4e9747620583b62d17505321d76fd7980",
+          "shortSha": "4d5fb1f4",
+          "subject": "fix(ci): repair the five pipeline checks failing on main (#124)",
+          "author": "Symon Baikov",
+          "date": "2026-08-22T00:48:07+03:00",
+          "files": [
+            ".github/workflows/cd.yml",
+            ".github/workflows/ci.yml",
+            ".github/workflows/docs.yml",
+            ".github/workflows/electron-build.yml",
+            ".hadolint.yaml",
+            ".trivyignore.yaml",
+            "Dockerfile",
+            "backend/Dockerfile",
+            "biome.json",
+            "frontend/Dockerfile",
+            "observability/grafana/Dockerfile",
+            "observability/prometheus/Dockerfile",
+            "scripts/storybook-serve.sh"
+          ]
+        },
+        {
+          "sha": "68861d9cf90ecf458937939d1619c706f40acce2",
+          "shortSha": "68861d9c",
+          "subject": "fix(roi): use workspace currency instead of hardcoded KZT (#122)",
+          "author": "Symon Baikov",
+          "date": "2026-08-22T12:54:37+03:00",
+          "files": [
+            "frontend/app/(main)/roi/page.tsx"
+          ]
+        },
+        {
+          "sha": "9f659b16dee53ced8945b04b5a2cc83a9add9bba",
+          "shortSha": "9f659b16",
+          "subject": "fix(subscriptions): actually delete subscription on DELETE /subscriptions/:id (#121)",
+          "author": "Symon Baikov",
+          "date": "2026-08-22T12:54:51+03:00",
+          "files": [
+            "backend/src/modules/subscriptions/subscriptions.service.ts"
+          ]
+        },
+        {
+          "sha": "53797997bf4cee3a181f3e813d25b881bdc1ee9f",
+          "shortSha": "53797997",
+          "subject": "fix(plugins): remove dashed border box around empty-state illustration (#120)",
+          "author": "Symon Baikov",
+          "date": "2026-08-22T12:55:12+03:00",
+          "files": [
+            "frontend/app/plugins/page.tsx"
+          ]
+        }
+      ]
+    },
     {
       "id": "changelog-2026-08-21-570affc",
       "version": "main-570affc",
