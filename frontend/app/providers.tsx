@@ -1,5 +1,6 @@
 'use client';
 
+import { useAppearancePreferences } from '@/app/lib/appearance-preferences';
 import {
   type AppLocale,
   isSupportedLocale,
@@ -11,7 +12,6 @@ import {
   getStoredThemePreference,
   resolveThemePreference,
 } from '@/app/lib/theme-preference';
-import { useAppearancePreferences } from '@/app/lib/appearance-preferences';
 import { ThemeProvider } from '@mui/material/styles';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';

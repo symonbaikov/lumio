@@ -14,6 +14,7 @@ import nodemailer from 'nodemailer';
 import * as React from 'react';
 import type { Repository } from 'typeorm';
 import { TimeoutError, retry, withTimeout } from '../../common/utils/async.util';
+import { mergeProcessingSettings } from '../../common/utils/workspace-processing.util';
 import {
   User,
   Workspace,
@@ -26,7 +27,6 @@ import {
 import { Integration } from '../../entities';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
-import { mergeProcessingSettings } from '../../common/utils/workspace-processing.util';
 import { AuditService } from '../audit/audit.service';
 import { BalanceService } from '../balance/balance.service';
 import { CategoriesService } from '../categories/categories.service';

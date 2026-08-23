@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, type QueryRunner, Repository } from 'typeorm';
+import { readProcessingSettings } from '../../../common/utils/workspace-processing.util';
 import {
   type ImportConflictResolution,
   ImportSession,
@@ -13,7 +14,6 @@ import {
 import { Statement } from '../../../entities/statement.entity';
 import { Transaction, TransactionType } from '../../../entities/transaction.entity';
 import { User } from '../../../entities/user.entity';
-import { readProcessingSettings } from '../../../common/utils/workspace-processing.util';
 import { Workspace } from '../../../entities/workspace.entity';
 import type {
   ImportCommittedEvent,

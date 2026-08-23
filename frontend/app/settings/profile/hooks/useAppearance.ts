@@ -2,14 +2,14 @@
 
 import type { User } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
-import { notifyUserFormatChanged } from '@/app/lib/user-format-store';
-import type { UiDensity } from '@/app/theme';
 import {
   THEME_STORAGE_EVENT,
   type ThemePreference,
   resolveThemePreference,
 } from '@/app/lib/theme-preference';
+import { notifyUserFormatChanged } from '@/app/lib/user-format-store';
 import { getApiErrorMessage } from '@/app/settings/profile/profileHelpers';
+import type { UiDensity } from '@/app/theme';
 import { useEffect, useState } from 'react';
 
 export type UseAppearanceMessages = {

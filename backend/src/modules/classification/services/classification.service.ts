@@ -3,18 +3,18 @@ import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
-import { ActorType, AuditAction, EntityType } from '../../../entities/audit-event.entity';
-import { Branch } from '../../../entities/branch.entity';
 import {
   DEFAULT_PROCESSING_SETTINGS,
   readProcessingSettings,
 } from '../../../common/utils/workspace-processing.util';
-import { Workspace } from '../../../entities/workspace.entity';
+import { ActorType, AuditAction, EntityType } from '../../../entities/audit-event.entity';
+import { Branch } from '../../../entities/branch.entity';
 import { CategorizationRule } from '../../../entities/categorization-rule.entity';
 import { CategoryLearning } from '../../../entities/category-learning.entity';
 import { Category, CategorySource, CategoryType } from '../../../entities/category.entity';
 import { type Transaction, TransactionType } from '../../../entities/transaction.entity';
 import { Wallet } from '../../../entities/wallet.entity';
+import { Workspace } from '../../../entities/workspace.entity';
 import { ApplicationSettingsService } from '../../application-settings/application-settings.service';
 import { AuditService } from '../../audit/audit.service';
 import { CategoriesService } from '../../categories/categories.service';
