@@ -32,7 +32,6 @@ import { type User, UserRole } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { ChangeEmailDto } from './dto/change-email.dto';
-import { DeleteAccountDto } from './dto/delete-account.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
 import { DeleteMyAccountDto } from './dto/delete-my-account.dto';
@@ -115,13 +114,6 @@ export class UsersController {
         'Cache-Control': 'public, max-age=86400',
       },
     });
-  }
-
-  @Delete('me')
-  @HttpCode(HttpStatus.OK)
-  async deleteMyAccount(@CurrentUser() currentUser: User, @Body() dto: DeleteAccountDto) {
-    await this.usersService.deleteMyAccount(currentUser.id, dto.password);
-    return { message: 'Account deleted' };
   }
 
   @Get(':id')

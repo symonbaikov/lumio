@@ -1,7 +1,6 @@
 'use client';
 
 import { Alert } from '@/app/components/ui/alert';
-import { DeleteAccountCard } from '@/app/settings/profile/components/DeleteAccountCard';
 import { Spinner } from '@/app/components/ui/spinner';
 import {
   PasswordPrompt,
@@ -133,8 +132,6 @@ export function TwoFactorSection({ tx, twoFactor }: Props) {
       {!setup && status && !status.enabled ? (
         <DisabledPanel tx={tx} busy={busy} onStart={twoFactor.startSetup} />
       ) : null}
-
-      <DeleteAccountCard tx={tx} />
     </Stack>
   );
 }

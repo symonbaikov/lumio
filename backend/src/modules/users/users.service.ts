@@ -7,11 +7,9 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { IsNull, Not, type Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 import { Permission } from '../../common/enums/permissions.enum';
-import { AuthSession } from '../../entities/auth-session.entity';
 import { User, UserRole } from '../../entities/user.entity';
-import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 import type { ChangeEmailDto } from './dto/change-email.dto';
@@ -27,10 +25,6 @@ export class UsersService {
     private userRepository: Repository<User>,
     @InjectRepository(Workspace)
     private workspaceRepository: Repository<Workspace>,
-    @InjectRepository(WorkspaceMember)
-    private workspaceMemberRepository: Repository<WorkspaceMember>,
-    @InjectRepository(AuthSession)
-    private authSessionRepository: Repository<AuthSession>,
     private readonly workspacesService: WorkspacesService,
   ) {}
 
@@ -186,60 +180,6 @@ export class UsersService {
 
     await this.findOne(id);
     await this.userRepository.softDelete(id);
-  }
-
-  /**
-   * Self-service account deletion.
-   *
-   * Refuses while the user still owns a workspace that other people are in:
-   * deleting them would either orphan or destroy someone else's data, and that
-   * is a decision for the owner to make explicitly by handing over ownership.
-   */
-  async deleteMyAccount(userId: string, password: string): Promise<void> {
-    const user = await this.findOneWithPassword(userId);
-
-    const isPasswordValid = user.passwordHash
-      ? await bcrypt.compare(password || '', user.passwordHash)
-      : false;
-
-    if (!isPasswordValid) {
-      throw new ForbiddenException('Current password is incorrect');
-    }
-
-    const blocking = await this.findSharedOwnedWorkspaces(userId);
-    if (blocking.length) {
-      throw new ConflictException(
-        `Transfer ownership of these workspaces first: ${blocking.join(', ')}`,
-      );
-    }
-
-    // Kill every session before the row disappears, so no token outlives the account.
-    await this.authSessionRepository.update(
-      { userId, revokedAt: IsNull() },
-      { revokedAt: new Date() },
-    );
-    await this.userRepository.increment({ id: userId }, 'tokenVersion', 1);
-    await this.userRepository.softDelete(userId);
-  }
-
-  /** Names of workspaces this user owns that still have other members. */
-  private async findSharedOwnedWorkspaces(userId: string): Promise<string[]> {
-    const owned = await this.workspaceRepository.find({
-      where: { ownerId: userId },
-      select: ['id', 'name'],
-    });
-
-    const shared: string[] = [];
-    for (const workspace of owned) {
-      const others = await this.workspaceMemberRepository.count({
-        where: { workspaceId: workspace.id, userId: Not(userId) },
-      });
-      if (others > 0) {
-        shared.push(workspace.name);
-      }
-    }
-
-    return shared;
   }
 
   async getProfile(userId: string): Promise<User> {
