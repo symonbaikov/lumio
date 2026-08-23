@@ -161,7 +161,7 @@ export abstract class BaseTabularParser extends BaseParser {
         currency,
       };
     } catch (error) {
-      console.error(`Error parsing ${sourceLabel} row:`, error);
+      this.logger.error(`Error parsing ${sourceLabel} row:`, error);
       return null;
     }
   }

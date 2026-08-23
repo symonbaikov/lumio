@@ -50,8 +50,8 @@ export class PayablesController {
 
   @Get('summary')
   @WorkspaceAuth(Permission.PAYABLE_VIEW)
-  async getSummary(@WorkspaceId() workspaceId: string) {
-    return this.payablesService.getSummary(workspaceId);
+  async getSummary(@WorkspaceId() workspaceId: string, @Query() query: FilterPayablesDto) {
+    return this.payablesService.getSummary(workspaceId, query.direction);
   }
 
   @Get(':id')

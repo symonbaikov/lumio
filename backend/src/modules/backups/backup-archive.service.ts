@@ -71,7 +71,10 @@ export class BackupArchiveService {
     const collectionCounts: Record<string, number> = {};
     for (const [name, records] of Object.entries(input.collections)) {
       collectionCounts[name] = records.length;
-      payload.addFile(`data/${this.safePathSegment(name)}.json`, Buffer.from(JSON.stringify(records)));
+      payload.addFile(
+        `data/${this.safePathSegment(name)}.json`,
+        Buffer.from(JSON.stringify(records)),
+      );
     }
 
     const files = input.files.map(file => ({
@@ -122,7 +125,11 @@ export class BackupArchiveService {
 
       const salt = Buffer.from(manifest.encryption.kdf.salt, 'base64');
       const passwordKey = await this.derivePasswordKey(password, salt);
-      const dataKey = this.decrypt(manifest.encryption.wrappedDataKey, passwordKey, 'password is invalid');
+      const dataKey = this.decrypt(
+        manifest.encryption.wrappedDataKey,
+        passwordKey,
+        'password is invalid',
+      );
       const payload = this.decrypt(manifest.encryption.payload, dataKey, 'backup is corrupted');
       const inner = new AdmZip(payload);
       const collections: Record<string, unknown[]> = {};
@@ -147,7 +154,10 @@ export class BackupArchiveService {
       this.verifyContents(manifest, collections, files);
       return { manifest, collections, files };
     } catch (error) {
-      if (error instanceof Error && ['password is invalid', 'backup is corrupted'].includes(error.message)) {
+      if (
+        error instanceof Error &&
+        ['password is invalid', 'backup is corrupted'].includes(error.message)
+      ) {
         throw error;
       }
       throw new Error('backup is corrupted');
@@ -171,7 +181,11 @@ export class BackupArchiveService {
 
   private decrypt(envelope: EncryptionEnvelope, key: Buffer, message: string): Buffer {
     try {
-      const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(envelope.iv, 'base64'));
+      const decipher = crypto.createDecipheriv(
+        'aes-256-gcm',
+        key,
+        Buffer.from(envelope.iv, 'base64'),
+      );
       decipher.setAuthTag(Buffer.from(envelope.tag, 'base64'));
       return Buffer.concat([
         decipher.update(Buffer.from(envelope.ciphertext, 'base64')),
@@ -206,7 +220,9 @@ export class BackupArchiveService {
       }
     }
     const expectedFiles = manifest.files.map(file => `${file.sha256}:${file.size}`).sort();
-    const actualFiles = [...files.values()].map(file => `${this.sha256(file)}:${file.length}`).sort();
+    const actualFiles = [...files.values()]
+      .map(file => `${this.sha256(file)}:${file.length}`)
+      .sort();
     if (
       expectedFiles.length !== actualFiles.length ||
       expectedFiles.some((file, index) => file !== actualFiles[index])
@@ -224,7 +240,11 @@ export class BackupArchiveService {
 
   private safeFilePath(value: string): string {
     const normalized = value.replace(/\\/g, '/');
-    if (!normalized || normalized.startsWith('/') || normalized.split('/').some(part => part === '..' || !part)) {
+    if (
+      !normalized ||
+      normalized.startsWith('/') ||
+      normalized.split('/').some(part => part === '..' || !part)
+    ) {
       throw new Error('invalid backup file path');
     }
     return normalized;

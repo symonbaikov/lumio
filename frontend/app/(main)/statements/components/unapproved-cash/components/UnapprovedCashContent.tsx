@@ -1,7 +1,7 @@
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '@/app/components/ui/checkbox';
-import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
+import Skeleton from '@mui/material/Skeleton';
 /* eslint-disable max-lines */
 import React from 'react';
 import type {
@@ -113,19 +113,7 @@ export function UnapprovedCashContent({
   formatDate,
 }: UnapprovedCashContentProps): React.ReactElement {
   if (loading) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          height: '100%',
-          minHeight: 280,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Spinner size={80} />
-      </div>
-    );
+    return <UnapprovedCashContentSkeleton />;
   }
 
   if (filteredQueue.length === 0) {
@@ -181,6 +169,53 @@ export function UnapprovedCashContent({
         formatDate={formatDate}
       />
     </>
+  );
+}
+
+const ROW_SKELETON_KEYS = ['row-0', 'row-1', 'row-2', 'row-3', 'row-4', 'row-5'];
+
+function UnapprovedCashRowSkeleton(): React.JSX.Element {
+  return (
+    <tr style={{ borderBottom: '1px solid var(--muted)' }}>
+      <td style={{ padding: '12px 16px', verticalAlign: 'top' }}>
+        <Skeleton variant="rounded" width={16} height={16} />
+      </td>
+      <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+        <Skeleton variant="text" width="70%" height={16} />
+        <Skeleton variant="text" width="40%" height={14} />
+      </td>
+      <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+        <Skeleton variant="text" width="70%" height={16} />
+      </td>
+      <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+        <Skeleton variant="text" width="70%" height={16} />
+      </td>
+      <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+        <Skeleton variant="rounded" width={90} height={20} />
+      </td>
+      <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+        <Skeleton variant="rounded" width={64} height={20} />
+      </td>
+      <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+        <Skeleton variant="rounded" width={90} height={28} />
+      </td>
+    </tr>
+  );
+}
+
+function UnapprovedCashContentSkeleton(): React.JSX.Element {
+  return (
+    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="lumio-unapproved__desktop-table" style={{ overflowX: 'auto' }}>
+        <table style={{ minWidth: '100%', tableLayout: 'fixed', fontSize: 14 }}>
+          <tbody>
+            {ROW_SKELETON_KEYS.map(key => (
+              <UnapprovedCashRowSkeleton key={key} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

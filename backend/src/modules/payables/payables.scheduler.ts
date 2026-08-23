@@ -6,6 +6,7 @@ import {
   NotificationSeverity,
   NotificationType,
 } from '../../entities/notification.entity';
+import { PayableDirection } from '../../entities/payable.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PayablesService } from './payables.service';
 
@@ -23,6 +24,11 @@ export class PayablesScheduler {
     try {
       const overduePayables = await this.payablesService.markOverduePayables();
       for (const payable of overduePayables) {
+        // Receivables go overdue too, but 'payable.overdue' is the wrong thing to tell someone
+        // about money owed *to* them — they get no notification until wording exists.
+        if (payable.direction !== PayableDirection.PAYABLE) {
+          continue;
+        }
         try {
           await this.notificationsService.createForWorkspaceMembers({
             workspaceId: payable.workspaceId,

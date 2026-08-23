@@ -3,6 +3,7 @@
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { Download, X } from '@/app/components/icons';
 import { useIntlayer } from '@/app/i18n';
+import apiClient from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -11,14 +12,23 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
 import { useState } from 'react';
+import { ReportPreview, type ReportPreviewData } from './ReportPreview';
+import { type ReportScope, ReportScopeFilters } from './ReportScopeFilters';
 import type { ReportTemplate } from './ReportTemplateCard';
+import { PERIOD_PRESETS, type PeriodPreset, presetRangeValues } from './report-period-presets';
 
 export interface ReportGenerateParams {
   templateId: string;
   dateFrom: string;
   dateTo: string;
   format: 'pdf' | 'excel' | 'csv';
+  /** Cash Flow only. */
+  groupBy?: CashFlowGroupBy;
+  walletIds?: string[];
+  categoryIds?: string[];
 }
+
+type CashFlowGroupBy = 'day' | 'week' | 'month';
 
 interface ReportGeneratorProps {
   template: ReportTemplate;
@@ -31,6 +41,31 @@ const FORMAT_OPTIONS: Array<{ value: 'pdf' | 'excel' | 'csv'; label: string }> =
   { value: 'pdf', label: 'PDF (.pdf)' },
   { value: 'csv', label: 'CSV (.csv)' },
 ];
+
+const GROUP_BY_OPTIONS: Array<{ value: CashFlowGroupBy; labelKey: string; fallback: string }> = [
+  { value: 'day', labelKey: 'groupByDay', fallback: 'Day' },
+  { value: 'week', labelKey: 'groupByWeek', fallback: 'Week' },
+  { value: 'month', labelKey: 'groupByMonth', fallback: 'Month' },
+];
+const pillStyle = (selected: boolean): React.CSSProperties => ({
+  height: 32,
+  padding: '0 12px',
+  border: selected ? '1px solid var(--primary)' : '1px solid var(--border)',
+  background: selected ? 'var(--primary-fill)' : 'var(--card)',
+  color: selected ? '#fff' : 'var(--muted-foreground)',
+  fontSize: 11,
+  fontWeight: 600,
+  cursor: 'pointer',
+  borderRadius: tokens.radius.md,
+});
+
+const fieldLabelStyle: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  color: 'var(--muted-foreground)',
+};
 
 // eslint-disable-next-line max-lines-per-function
 export function ReportGenerator({
@@ -50,16 +85,57 @@ export function ReportGenerator({
   });
   const [dateTo, setDateTo] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [format, setFormat] = useState<'pdf' | 'excel' | 'csv'>('excel');
+  const [groupBy, setGroupBy] = useState<CashFlowGroupBy>('day');
   const [generating, setGenerating] = useState(false);
+  const [scope, setScope] = useState<ReportScope>({ walletIds: [], categoryIds: [] });
+  const [preview, setPreview] = useState<ReportPreviewData | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  const showGroupBy = template.id === 'cash-flow';
+  // The balance sheet is a snapshot of accounts, not a transaction query.
+  const showScopeFilters = template.id !== 'balance-sheet';
+  const canPreview = template.id !== 'balance-sheet';
+
+  const applyPreset = (preset: PeriodPreset): void => {
+    const [from, to] = presetRangeValues(preset);
+    setDateFrom(from);
+    setDateTo(to);
+  };
 
   const availableFormats = FORMAT_OPTIONS.filter(opt =>
     template.formats.includes(opt.value as 'pdf' | 'excel' | 'csv' | 'google-sheets'),
   );
 
+  /** Single source of truth, so the preview can never describe a different file. */
+  const buildParams = (): ReportGenerateParams => ({
+    templateId: template.id,
+    dateFrom,
+    dateTo,
+    format,
+    ...(showGroupBy ? { groupBy } : {}),
+    ...(scope.walletIds.length ? { walletIds: scope.walletIds } : {}),
+    ...(scope.categoryIds.length ? { categoryIds: scope.categoryIds } : {}),
+  });
+
+  const handlePreview = async (): Promise<void> => {
+    setPreviewLoading(true);
+    setPreviewError(null);
+    try {
+      const response = await apiClient.post('/reports/preview', buildParams());
+      setPreview(response.data as ReportPreviewData);
+    } catch {
+      setPreview(null);
+      setPreviewError(text('previewFailed', 'Could not build the preview'));
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const handleGenerate = async (): Promise<void> => {
     setGenerating(true);
     try {
-      await onGenerate({ templateId: template.id, dateFrom, dateTo, format });
+      await onGenerate(buildParams());
     } finally {
       setGenerating(false);
     }
@@ -103,6 +179,19 @@ export function ReportGenerator({
         </button>
       </Box>
 
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }} data-tour-id="reports-presets">
+        {PERIOD_PRESETS.map(preset => (
+          <button
+            key={preset.labelKey}
+            type="button"
+            onClick={() => applyPreset(preset)}
+            style={pillStyle(false)}
+          >
+            {text(preset.labelKey, preset.fallback)}
+          </button>
+        ))}
+      </Box>
+
       <Box
         sx={{
           display: 'grid',
@@ -121,17 +210,7 @@ export function ReportGenerator({
 
         {/* Format */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: 'var(--muted-foreground)',
-            }}
-          >
-            {text('format', 'Format')}
-          </span>
+          <span style={fieldLabelStyle}>{text('format', 'Format')}</span>
           <Box sx={{ display: 'flex', gap: 1 }} data-tour-id="reports-format">
             {availableFormats.map(opt => (
               <button
@@ -159,6 +238,26 @@ export function ReportGenerator({
         </Box>
       </Box>
 
+      {showScopeFilters && <ReportScopeFilters value={scope} onChange={setScope} />}
+
+      {showGroupBy && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 2.5 }}>
+          <span style={fieldLabelStyle}>{text('groupBy', 'Group by')}</span>
+          <Box sx={{ display: 'flex', gap: 1 }} data-tour-id="reports-group-by">
+            {GROUP_BY_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setGroupBy(opt.value)}
+                style={pillStyle(groupBy === opt.value)}
+              >
+                {text(opt.labelKey, opt.fallback)}
+              </button>
+            ))}
+          </Box>
+        </Box>
+      )}
+
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Button
           variant="contained"
@@ -177,10 +276,24 @@ export function ReportGenerator({
             ? text('generating', 'Generating…')
             : text('generateAndDownload', 'Generate & Download')}
         </Button>
+        {canPreview && (
+          <Button
+            variant="outlined"
+            onClick={handlePreview}
+            disabled={generating || previewLoading}
+            data-tour-id="reports-preview-button"
+          >
+            {text('preview', 'Preview')}
+          </Button>
+        )}
         <Button variant="text" onClick={onClose} disabled={generating}>
           {text('cancel', 'Cancel')}
         </Button>
       </Box>
+
+      {canPreview && (previewLoading || previewError || preview) && (
+        <ReportPreview data={preview} loading={previewLoading} error={previewError} />
+      )}
     </Paper>
   );
 }

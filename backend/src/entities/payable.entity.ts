@@ -27,8 +27,14 @@ export enum PayableSource {
   MANUAL = 'manual',
 }
 
+/** Which way the money flows: something we owe, or something owed to us. */
+export enum PayableDirection {
+  PAYABLE = 'payable',
+  RECEIVABLE = 'receivable',
+}
+
 @Entity('payables')
-@Index('IDX_payables_workspace_status', ['workspaceId', 'status'])
+@Index('IDX_payables_workspace_status', ['workspaceId', 'direction', 'status'])
 @Index('IDX_payables_workspace_due_date', ['workspaceId', 'dueDate'])
 export class Payable {
   @PrimaryGeneratedColumn('uuid')
@@ -48,6 +54,14 @@ export class Payable {
   @Column({ name: 'created_by_id', type: 'uuid', nullable: true })
   createdById: string | null;
 
+  @Column({
+    type: 'enum',
+    enum: PayableDirection,
+    default: PayableDirection.PAYABLE,
+  })
+  direction: PayableDirection;
+
+  /** Counterparty: who we owe for a payable, who owes us for a receivable. */
   @Column({ type: 'varchar', length: 255 })
   vendor: string;
 

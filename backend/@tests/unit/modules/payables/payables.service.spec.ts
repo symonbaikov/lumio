@@ -1,7 +1,12 @@
 import { Statement } from '@/entities/statement.entity';
 import { Transaction } from '@/entities/transaction.entity';
 import { NotificationCategory, NotificationSeverity, NotificationType } from '@/entities/notification.entity';
-import { Payable, PayableSource, PayableStatus } from '@/entities/payable.entity';
+import {
+  Payable,
+  PayableDirection,
+  PayableSource,
+  PayableStatus,
+} from '@/entities/payable.entity';
 import { Workspace } from '@/entities/workspace.entity';
 import { ExchangeRatesService } from '@/modules/exchange-rates/exchange-rates.service';
 import { NotificationsService } from '@/modules/notifications/notifications.service';
@@ -210,6 +215,31 @@ describe('PayablesService', () => {
       });
       expect(queryBuilder.skip).toHaveBeenCalledWith(5);
       expect(queryBuilder.take).toHaveBeenCalledWith(5);
+    });
+
+    it('defaults to payables and switches to receivables on request', async () => {
+      const createQueryBuilder = () => ({
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([[payableEntity], 1]),
+      });
+
+      const defaultQuery = createQueryBuilder();
+      jest.spyOn(payableRepository, 'createQueryBuilder').mockReturnValue(defaultQuery as never);
+      await service.findAll('workspace-1', {});
+      expect(defaultQuery.andWhere).toHaveBeenCalledWith('payable.direction = :direction', {
+        direction: PayableDirection.PAYABLE,
+      });
+
+      const receivableQuery = createQueryBuilder();
+      jest.spyOn(payableRepository, 'createQueryBuilder').mockReturnValue(receivableQuery as never);
+      await service.findAll('workspace-1', { direction: PayableDirection.RECEIVABLE });
+      expect(receivableQuery.andWhere).toHaveBeenCalledWith('payable.direction = :direction', {
+        direction: PayableDirection.RECEIVABLE,
+      });
     });
 
     it('searches both vendor and comment fields', async () => {

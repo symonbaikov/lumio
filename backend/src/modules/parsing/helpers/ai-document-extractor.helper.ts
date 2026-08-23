@@ -138,7 +138,7 @@ export class AiDocumentExtractor extends BaseAiHelper {
       const normalized = this.normalizeResult(parsed);
       return normalized;
     } catch (error) {
-      console.error('[AiDocumentExtractor] Failed:', error);
+      this.logger.error('Failed:', error);
       return null;
     }
   }

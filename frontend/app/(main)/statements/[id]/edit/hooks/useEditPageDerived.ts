@@ -1,7 +1,7 @@
 import { flattenStatementCategories, getCategoryDisplayName } from '@/app/lib/statement-categories';
 import type { StatementStageActionId } from '@/app/lib/statement-workflow';
 import { formatStoredDate } from '@/app/lib/user-format-store';
-import type { ParsingDetailsData } from '../components/ParsingDetailsPanel';
+import type { StatementParsingDetails } from '../editHelpers';
 import {
   countArray,
   filterEnabledCategories,
@@ -46,7 +46,7 @@ function computeCategoryFlags(statement: Statement): CategoryFlags {
 
 type ParsingCounts = { parsingErrorCount: number; parsingWarningCount: number };
 
-function computeParsingCounts(pd?: ParsingDetailsData | null): ParsingCounts {
+function computeParsingCounts(pd?: StatementParsingDetails | null): ParsingCounts {
   return {
     parsingErrorCount: countArray(pd?.errors),
     parsingWarningCount: countArray(pd?.warnings),
@@ -150,7 +150,30 @@ type DerivedParams = {
   formatNumber: (n?: number | null) => string;
 };
 
-export type EditPageDerived = ReturnType<typeof computeEditPageDerived>;
+export type EditPageDerived = {
+  hasStatementCategory: boolean;
+  hasDisabledStatementCategory: boolean;
+  isStatementCategoryEmpty: boolean;
+  parsingErrorCount: number;
+  parsingWarningCount: number;
+  missingCategoryCount: number;
+  totalIncome: number;
+  totalExpense: number;
+  selectedStatementCategoryName: string;
+  readinessSeverity: 'success' | 'warning' | 'error';
+  readinessTitle: string;
+  readinessMessage: string;
+  readinessInlineText: string;
+  stageActionLabels: Record<StatementStageActionId, string>;
+  stageActionToasts: Record<StatementStageActionId, string>;
+  flattenedCategories: ReturnType<typeof flattenStatementCategories>;
+  flattenedEnabledCategories: ReturnType<typeof flattenStatementCategories>;
+  enabledCategories: ReturnType<typeof filterEnabledCategories>;
+  periodLabel: string;
+  balanceStartLabel: string;
+  parsingDetails: StatementParsingDetails | null;
+  selectedCategoryId: string;
+};
 
 export function computeEditPageDerived({
   form,

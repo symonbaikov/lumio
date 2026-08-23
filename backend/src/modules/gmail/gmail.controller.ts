@@ -764,12 +764,7 @@ export class GmailController {
     try {
       thumbnailPath = path.join('/tmp', `receipt-thumbnail-${id}-${Date.now()}.png`);
       const scriptPath = path.join(__dirname, '../../../scripts/generate-thumbnail.py');
-      await runExecutable('python3', [
-        scriptPath,
-        pdfPath,
-        thumbnailPath,
-        String(thumbnailWidth),
-      ]);
+      await runExecutable('python3', [scriptPath, pdfPath, thumbnailPath, String(thumbnailWidth)]);
 
       const thumbnailData = await fs.promises.readFile(thumbnailPath);
       await this.cacheManager.set(cacheKey, thumbnailData.toString('base64'), 604800);

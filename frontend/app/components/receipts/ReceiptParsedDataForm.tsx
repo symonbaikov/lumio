@@ -6,6 +6,8 @@ import { Check, ChevronDown, ChevronLeft, Plus, Search, Trash2 } from '@/app/com
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { Input } from '@/app/components/ui/input';
 import { Select } from '@/app/components/ui/select';
+import { useLocale } from '@/app/i18n';
+import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import {
   type CurrencySearchItem,
   buildCurrencySearchIndex,
@@ -33,6 +35,7 @@ export function ReceiptParsedDataForm({
   onChange,
   onCurrencyChange,
 }: ReceiptParsedDataFormProps) {
+  const { locale } = useLocale();
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   const enabledCategories = categories.filter(category => category.isEnabled !== false);
@@ -51,8 +54,12 @@ export function ReceiptParsedDataForm({
   const currencyQuery = currencySearch.trim().toLowerCase();
 
   const selectedMatchesSearch = useMemo(() => {
-    if (!selectedCurrencyItem) return false;
-    if (!currencyQuery) return true;
+    if (!selectedCurrencyItem) {
+      return false;
+    }
+    if (!currencyQuery) {
+      return true;
+    }
     return selectedCurrencyItem.searchText.includes(currencyQuery);
   }, [selectedCurrencyItem, currencyQuery]);
 
@@ -271,7 +278,7 @@ export function ReceiptParsedDataForm({
               <option value="">Select category</option>
               {enabledCategories.map(category => (
                 <option key={category.id} value={category.id}>
-                  {category.name}
+                  {getCategoryDisplayName(category, locale)}
                 </option>
               ))}
             </Select>

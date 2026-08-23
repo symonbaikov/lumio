@@ -26,7 +26,6 @@ import {
 } from '@/app/components/ui/dropdown-menu';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { AppPagination } from '@/app/components/ui/pagination';
-import { Spinner } from '@/app/components/ui/spinner';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
@@ -53,6 +52,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import Skeleton from '@mui/material/Skeleton';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -111,6 +111,8 @@ type TranslationValue = string | { value?: string };
 
 const tx = (root: unknown, path: string[], fallback: string) =>
   resolveLabel(getNestedValue(root, path), fallback);
+
+const TABLE_ROW_SKELETON_KEYS = ['row-0', 'row-1', 'row-2', 'row-3', 'row-4', 'row-5'];
 
 export default function CustomTablesPage() {
   const router = useRouter();
@@ -1149,10 +1151,52 @@ export default function CustomTablesPage() {
 
         <Box data-tour-id="tables-list">
           {loading ? (
-            <Box
-              sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 256 }}
-            >
-              <Spinner className="h-20 w-20 text-primary" />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {TABLE_ROW_SKELETON_KEYS.map(key => (
+                <Box
+                  key={key}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    border: `1px solid ${c.ink150}`,
+                    borderRadius: tokens.radius.lg,
+                    bgcolor: 'background.paper',
+                    px: 2,
+                    py: 1.5,
+                  }}
+                >
+                  <Skeleton variant="rounded" width={16} height={16} sx={{ flexShrink: 0 }} />
+                  <Skeleton
+                    variant="rounded"
+                    width={44}
+                    height={44}
+                    sx={{ flexShrink: 0, borderRadius: tokens.radius.md }}
+                  />
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Skeleton variant="text" width="60%" height={20} />
+                    <Skeleton variant="text" width="35%" height={16} />
+                  </Box>
+                  <Skeleton
+                    variant="text"
+                    width={120}
+                    height={16}
+                    sx={{ flexShrink: 0, display: { xs: 'none', md: 'block' } }}
+                  />
+                  <Skeleton
+                    variant="text"
+                    width={72}
+                    height={16}
+                    sx={{ flexShrink: 0, display: { xs: 'none', md: 'block' } }}
+                  />
+                  <Skeleton
+                    variant="text"
+                    width={96}
+                    height={16}
+                    sx={{ flexShrink: 0, display: { xs: 'none', md: 'block' } }}
+                  />
+                </Box>
+              ))}
             </Box>
           ) : filteredCount === 0 ? (
             <Box

@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Statement } from './statement.entity';
+import { Transaction } from './transaction.entity';
 import { Workspace } from './workspace.entity';
 
 @Entity('tags')
@@ -43,4 +44,10 @@ export class Tag {
     statement => statement.tags,
   )
   statements: Statement[];
+
+  @ManyToMany(
+    () => Transaction,
+    transaction => transaction.tags,
+  )
+  transactions: Transaction[];
 }

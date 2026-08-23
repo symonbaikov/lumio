@@ -1,8 +1,8 @@
-import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { Injectable, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { In, type DataSource, type EntityMetadata } from 'typeorm';
+import { type DataSource, type EntityMetadata, In } from 'typeorm';
 import { FileStorageService } from '../../common/services/file-storage.service';
 import type { Statement } from '../../entities';
 
@@ -133,7 +133,12 @@ export class BackupDataService {
     const customTableIds = this.ids(collections.custom_tables);
     await this.collectByReference('custom_table_columns', 'tableId', customTableIds, collections);
     await this.collectByReference('custom_table_rows', 'tableId', customTableIds, collections);
-    await this.collectByReference('custom_table_column_styles', 'tableId', customTableIds, collections);
+    await this.collectByReference(
+      'custom_table_column_styles',
+      'tableId',
+      customTableIds,
+      collections,
+    );
     await this.collectByReference(
       'custom_table_cell_styles',
       'rowId',
@@ -146,7 +151,12 @@ export class BackupDataService {
       this.ids(collections.google_sheets),
       collections,
     );
-    await this.collectByReference('file_versions', 'statementId', this.ids(collections.statements), collections);
+    await this.collectByReference(
+      'file_versions',
+      'statementId',
+      this.ids(collections.statements),
+      collections,
+    );
     collections.file_versions = (collections.file_versions || []).map(record => {
       const value = record as Record<string, unknown>;
       return Buffer.isBuffer(value.fileData)

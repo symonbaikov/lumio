@@ -44,7 +44,7 @@ export function DashboardHeader({
           )}
         </div>
         <div className="lumio-dashboard-header__actions">
-          <ExportDropdown t={exportMenu} />
+          <ExportDropdown t={exportMenu as React.ComponentProps<typeof ExportDropdown>['t']} />
           <Link
             href="/statements?openExpenseDrawer=scan"
             className="lumio-dashboard-header__icon-btn"

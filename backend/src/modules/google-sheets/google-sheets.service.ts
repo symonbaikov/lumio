@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { decryptText, encryptText } from '../../common/utils/encryption.util';
 import { Branch } from '../../entities/branch.entity';
 import { Category } from '../../entities/category.entity';
 import { GoogleSheet } from '../../entities/google-sheet.entity';
@@ -9,7 +10,6 @@ import { GoogleSheetsCredential } from '../../entities/google-sheets-credential.
 import { Transaction } from '../../entities/transaction.entity';
 import type { User } from '../../entities/user.entity';
 import { Wallet } from '../../entities/wallet.entity';
-import { decryptText, encryptText } from '../../common/utils/encryption.util';
 import type { ConnectPickerSheetDto } from './dto/connect-picker-sheet.dto';
 import type { ConnectSheetDto } from './dto/connect-sheet.dto';
 import { GoogleSheetsApiService } from './services/google-sheets-api.service';
@@ -145,9 +145,7 @@ export class GoogleSheetsService {
       return { accessToken: storedAccessToken, apiKey };
     }
 
-    const accessToken = await this.googleSheetsApiService.refreshAccessToken(
-      storedRefreshToken,
-    );
+    const accessToken = await this.googleSheetsApiService.refreshAccessToken(storedRefreshToken);
     credential.accessToken = this.encryptToken(accessToken);
     await this.googleSheetsCredentialRepository.save(credential);
     return { accessToken, apiKey };

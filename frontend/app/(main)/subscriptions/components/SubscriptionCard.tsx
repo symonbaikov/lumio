@@ -35,7 +35,7 @@ export function SubscriptionCard({
   onDismiss,
 }: SubscriptionCardProps) {
   const formatAmount = (amount: number, currency: string) =>
-    new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(amount) + ' ' + currency;
+    `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(amount)} ${currency}`;
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '—';

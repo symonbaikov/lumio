@@ -43,7 +43,9 @@ export class LocalBackupDestinationService {
     }
     const snapshots = await this.list(directory);
     const stale = snapshots.slice(0, Math.max(0, snapshots.length - keep));
-    await Promise.all(stale.map(snapshot => fs.rm(this.resolveRelativeFile(snapshot), { force: true })));
+    await Promise.all(
+      stale.map(snapshot => fs.rm(this.resolveRelativeFile(snapshot), { force: true })),
+    );
   }
 
   private resolveDirectory(directory: string): string {

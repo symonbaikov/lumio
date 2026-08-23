@@ -73,6 +73,7 @@ describe('payables-utils', () => {
       [
         {
           id: 'b',
+          direction: 'payable' as const,
           vendor: 'Bravo',
           amount: 10,
           currency: 'KZT',
@@ -90,6 +91,7 @@ describe('payables-utils', () => {
         },
         {
           id: 'a',
+          direction: 'payable' as const,
           vendor: 'Alpha',
           amount: 5,
           currency: 'KZT',

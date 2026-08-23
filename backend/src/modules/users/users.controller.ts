@@ -35,6 +35,7 @@ import { ChangeEmailDto } from './dto/change-email.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
+import { DeleteMyAccountDto } from './dto/delete-my-account.dto';
 import { UpdateMyPreferencesDto } from './dto/update-my-preferences.dto';
 import type {
   AddPermissionDto,
@@ -42,6 +43,7 @@ import type {
   UpdatePermissionsDto,
 } from './dto/update-permissions.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AccountDataService } from './services/account-data.service';
 import { PermissionsService } from './services/permissions.service';
 import { UsersService } from './users.service';
 
@@ -52,6 +54,7 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly permissionsService: PermissionsService,
     private readonly timezonesService: TimezonesService,
+    private readonly accountDataService: AccountDataService,
   ) {}
 
   private toSafeUser(user: User): Omit<User, 'passwordHash'> {
@@ -83,6 +86,17 @@ export class UsersController {
     const updatedUser = await this.usersService.completeOnboarding(currentUser.id, dto);
     const safeUser = this.toSafeUser(updatedUser);
     return { user: safeUser, message: 'Onboarding completed successfully' };
+  }
+
+  @Get('me/export')
+  async exportMyData(@CurrentUser() currentUser: User) {
+    return this.accountDataService.exportMyData(currentUser.id);
+  }
+
+  @Delete('me')
+  async deleteMyAccount(@CurrentUser() currentUser: User, @Body() dto: DeleteMyAccountDto) {
+    await this.accountDataService.deleteMyAccount(currentUser.id, dto.currentPassword);
+    return deletedResponse('Account');
   }
 
   @Public()

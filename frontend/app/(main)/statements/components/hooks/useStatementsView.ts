@@ -11,12 +11,15 @@ import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import {
   type OpenExpenseDrawerEventDetail,
   STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT,
+  type StatementExpenseMode,
   resolveExpenseDrawerMode,
 } from '@/app/lib/statement-expense-drawer';
 import { STATEMENTS_GMAIL_SYNC_STORAGE_KEY } from '@/app/lib/statement-upload-actions';
 import { type StatementStage, getStatementStage } from '@/app/lib/statement-workflow';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  type FilterLabels,
+  type FilterOptionLabels,
   buildColumnLabels,
   buildCurrencyOptions,
   buildDateModes,
@@ -38,6 +41,7 @@ import {
   resolveStatementSortDate,
 } from '../StatementsListView.utils';
 import { mapGmailReceiptsToStatements } from '../gmail-receipt-mapping';
+import type { StatementUploadLabels } from '../statement-upload';
 import {
   STATEMENTS_PAGE_SIZE as PAGE_SIZE,
   type StatementsStatement as Statement,
@@ -140,12 +144,12 @@ export function useStatementsView({ stage, router, searchParams }: UseStatements
   expenseDrawerMode: StatementExpenseMode;
   listScrollRef: React.RefObject<HTMLDivElement | null>;
   // labels
-  t: ReturnType<typeof useIntlayer>;
-  filterLabels: Record<string, string>;
-  filterOptionLabels: Record<string, string>;
+  t: ReturnType<typeof useIntlayer<'statementsPage'>>;
+  filterLabels: FilterLabels;
+  filterOptionLabels: FilterOptionLabels;
   listHeaderLabels: Record<string, string>;
   paginationLabels: Record<string, string>;
-  uploadLabels: Record<string, string>;
+  uploadLabels: StatementUploadLabels;
   // options
   typeOptions: Array<{ value: string; label: string }>;
   statusOptions: Array<{ value: string; label: string }>;
@@ -187,12 +191,12 @@ export function useStatementsView({ stage, router, searchParams }: UseStatements
   hasSelectedDuplicates: boolean;
   duplicateStatementIds: string[];
   handleToggleStatement: (id: string) => void;
-  handleToggleSelectAll: () => void;
+  handleToggleSelectAll: (checked: boolean) => void;
   handleExportSelected: () => Promise<void>;
   handleDeleteSelected: () => Promise<void>;
-  handleMarkSelectedAsDuplicate: () => Promise<void>;
-  handleDismissSelectedDuplicates: () => Promise<void>;
-  handleSelectDetectedDuplicates: () => Promise<void>;
+  handleMarkSelectedAsDuplicate: () => void;
+  handleDismissSelectedDuplicates: () => void;
+  handleSelectDetectedDuplicates: () => void;
   handleMergeSelectedDuplicates: () => Promise<void>;
   // pull-to-refresh
   pullToRefreshHandlers: ReturnType<typeof usePullToRefresh>['handlers'];
@@ -504,7 +508,7 @@ export function useStatementsView({ stage, router, searchParams }: UseStatements
       return;
     }
 
-    const localLabels =
+    const localLabels: Record<string, string> =
       exchangeRateTargetCurrency === 'USD'
         ? { 'USD:USD': formatCurrentExchangeRateLabel('USD', 'USD', 1) }
         : {};

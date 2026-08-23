@@ -4,6 +4,10 @@
   "description": "Lumio Desktop — native desktop client",
   "main": "dist/main.js",
   "productName": "Lumio",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/symonbaikov/lumio.git"
+  },
   "scripts": {
     "dev": "tsc && electron .",
     "dev:watch": "concurrently \"tsc -w\" \"nodemon --watch dist --exec electron .\"",

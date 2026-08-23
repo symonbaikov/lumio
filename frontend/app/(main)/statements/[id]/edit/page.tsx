@@ -47,6 +47,7 @@ import {
   Typography,
 } from '@mui/material';
 import Alert from '@mui/material/Alert';
+import Skeleton from '@mui/material/Skeleton';
 
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { useParams, useRouter } from 'next/navigation';
@@ -61,6 +62,7 @@ import {
 import { tokens } from '@/lib/theme-tokens';
 import { ParsingWarningsPanel } from './ParsingWarningsPanel';
 import StatementCategoryDrawer from './StatementCategoryDrawer';
+import { BalanceReviewAlert } from './components/BalanceReviewAlert';
 import {
   type Transaction,
   filterEnabledCategories,
@@ -70,6 +72,98 @@ import {
   resolveLocale,
 } from './editHelpers';
 import { useStatementEditForm } from './hooks/useStatementEditForm';
+
+function EditStatementSkeleton(): React.JSX.Element {
+  const rows = Array.from({ length: 7 });
+
+  return (
+    <Container
+      maxWidth={false}
+      data-testid="statement-edit-loading"
+      sx={{ py: 5, height: '100%', overflowY: 'auto', overflowX: 'hidden' }}
+    >
+      <Box sx={{ mb: 4 }}>
+        <Skeleton variant="text" width={80} height={32} sx={{ mb: 3 }} />
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: 2,
+            flexWrap: 'wrap',
+          }}
+        >
+          <Box sx={{ minWidth: 240 }}>
+            <Skeleton variant="text" width={280} height={40} sx={{ mb: 1 }} />
+            <Skeleton variant="rounded" width={140} height={24} />
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Skeleton variant="rounded" width={160} height={36} />
+            <Skeleton variant="rounded" width={120} height={36} />
+            <Skeleton variant="rounded" width={100} height={36} />
+          </Box>
+        </Box>
+      </Box>
+
+      <Skeleton variant="rounded" height={42} sx={{ mb: 3 }} />
+
+      <Box
+        sx={{
+          mb: 3,
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
+          gap: 2,
+        }}
+      >
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Paper
+            key={index}
+            elevation={0}
+            sx={{ border: '1px solid', borderColor: 'grey.200', p: 2 }}
+          >
+            <Skeleton variant="text" width="50%" height={16} />
+            <Skeleton variant="text" width="70%" height={24} sx={{ mt: 0.5 }} />
+          </Paper>
+        ))}
+      </Box>
+
+      <TableContainer
+        component={Paper}
+        elevation={0}
+        sx={{ border: '1px solid', borderColor: 'grey.200' }}
+      >
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell padding="checkbox">
+                <Skeleton variant="rectangular" width={18} height={18} />
+              </TableCell>
+              {Array.from({ length: 6 }).map((_, index) => (
+                <TableCell key={index}>
+                  <Skeleton variant="text" width="60%" height={20} />
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {rows.map((_, rowIndex) => (
+              <TableRow key={rowIndex}>
+                <TableCell padding="checkbox">
+                  <Skeleton variant="rectangular" width={18} height={18} />
+                </TableCell>
+                {Array.from({ length: 6 }).map((_, cellIndex) => (
+                  <TableCell key={cellIndex}>
+                    <Skeleton variant="text" width="80%" height={20} />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Container>
+  );
+}
 
 // eslint-disable-next-line max-lines-per-function, complexity
 export default function EditStatementPage(): React.JSX.Element {
@@ -266,7 +360,7 @@ export default function EditStatementPage(): React.JSX.Element {
     if (field === 'walletId') {
       return transaction.wallet?.name || '—';
     }
-    return transaction[field] || '—';
+    return (transaction[field] || '—') as unknown as React.ReactNode;
   };
 
   const stageActionLabels: Record<StatementStageActionId, string> = {
@@ -294,20 +388,7 @@ export default function EditStatementPage(): React.JSX.Element {
   const stageActions = getStatementStageActions(currentStage);
 
   if (loading) {
-    return (
-      <Container
-        maxWidth="xl"
-        data-testid="statement-edit-loading"
-        style={{
-          display: 'flex',
-          minHeight: '60vh',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Spinner style={{ width: 40, height: 40, color: 'var(--primary)' }} />
-      </Container>
-    );
+    return <EditStatementSkeleton />;
   }
 
   const missingCategoryCount = transactions.filter(transaction => {
@@ -671,6 +752,28 @@ export default function EditStatementPage(): React.JSX.Element {
         </Alert>
       </Box>
 
+      {statement && (
+        <BalanceReviewAlert
+          statementId={statement.id}
+          status={statement.status}
+          parsingDetails={statement.parsingDetails}
+          formatNumber={formatNumber}
+          onConfirmed={LoadData}
+          labels={{
+            title: labels.balanceReviewTitle?.value || 'Balance does not reconcile',
+            description:
+              labels.balanceReviewDescription?.value ||
+              'This statement stays out of analytics until you confirm the discrepancy.',
+            expected: labels.balanceReviewExpected?.value || 'Expected',
+            actual: labels.balanceReviewActual?.value || 'Reported',
+            difference: labels.balanceReviewDifference?.value || 'Difference',
+            confirm: labels.balanceReviewConfirm?.value || 'Confirm discrepancy',
+            confirmFailed:
+              labels.balanceReviewConfirmFailed?.value || 'Failed to confirm the discrepancy',
+          }}
+        />
+      )}
+
       {/* Alerts */}
       {error && (
         <Alert variant="filled" severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
@@ -942,8 +1045,10 @@ export default function EditStatementPage(): React.JSX.Element {
                 <ParsingWarningsPanel
                   warnings={statement.parsingDetails.warnings || []}
                   droppedSamples={statement.parsingDetails.droppedSamples || []}
-                  onConvertDroppedSample={handleConvertDroppedSample}
-                  onResolveWarning={handleResolveParsingWarning}
+                  onConvertDroppedSample={({ sample, index, warning }) =>
+                    handleConvertDroppedSample(sample, index, warning)
+                  }
+                  onResolveWarning={({ warning }) => handleResolveParsingWarning(warning)}
                   fixTooltipLabel={labels.fixDroppedRow?.value || 'Fix'}
                   resolveBalanceTooltipLabel={labels.balanceEnd?.value || 'Review balances'}
                   title={labels.warnings?.value || 'Warnings'}

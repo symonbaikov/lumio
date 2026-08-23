@@ -62,64 +62,55 @@ export class HapoalimParser extends BaseParser {
       const text = await this.getText(cachedText, filePath, fileType);
       return this.hasHapoalimMarkers(text);
     } catch (error) {
-      console.error('[HapoalimParser] Error in canParse:', error);
+      this.logger.error('Error in canParse:', error);
       return false;
     }
   }
 
   async parse(filePath: string, cachedText?: string): Promise<ParsedStatement> {
-    console.log('[HapoalimParser] Starting to parse file:', filePath);
+    this.logger.debug('Starting to parse file:', filePath);
 
     const fileType = this.detectFileType(filePath);
     const text = await this.getText(cachedText, filePath, fileType);
     const confidence = this.cachedOcrResult?.confidence ?? 1.0;
 
-    console.log(
-      `[HapoalimParser] Text length: ${text.length}, confidence: ${confidence.toFixed(2)}`,
-    );
+    this.logger.debug(`Text length: ${text.length}, confidence: ${confidence.toFixed(2)}`);
 
     // Extract metadata from text
     const metadata = this.extractMetadata(text);
-    console.log(
-      `[HapoalimParser] Account: ${metadata.accountNumber || 'N/A'}, Period: ${metadata.dateFrom?.toISOString().split('T')[0] || 'N/A'}`,
+    this.logger.debug(
+      `Account: ${metadata.accountNumber || 'N/A'}, Period: ${metadata.dateFrom?.toISOString().split('T')[0] || 'N/A'}`,
     );
 
     // Try OCR-based text parsing first if confidence is decent
     let transactions: ParsedTransaction[] = [];
     if (confidence >= MIN_OCR_CONFIDENCE) {
       transactions = this.parseTransactionsFromText(text);
-      console.log(`[HapoalimParser] OCR text parsing: ${transactions.length} transactions`);
+      this.logger.debug(`OCR text parsing: ${transactions.length} transactions`);
     }
 
     // Fall back to AI vision if no transactions or low confidence
     if (transactions.length === 0 && fileType === FileType.IMAGE) {
-      console.log('[HapoalimParser] Falling back to AI vision extraction...');
+      this.logger.debug('Falling back to AI vision extraction...');
       try {
         const imageBuffer = await fs.promises.readFile(filePath);
         transactions = await this.aiExtractor.extractFromImage(imageBuffer);
-        console.log(`[HapoalimParser] AI vision: ${transactions.length} transactions`);
+        this.logger.debug(`AI vision: ${transactions.length} transactions`);
       } catch (error) {
-        console.error('[HapoalimParser] AI vision failed:', error);
+        this.logger.error('AI vision failed:', error);
       }
     }
 
     // Fall back to AI text extraction
     if (transactions.length === 0 && text.length > 50 && this.aiExtractor.isAvailable()) {
-      console.log('[HapoalimParser] Falling back to AI text extraction...');
+      this.logger.debug('Falling back to AI text extraction...');
       try {
         transactions = await this.aiExtractor.extractTransactions(text);
-        console.log(`[HapoalimParser] AI text: ${transactions.length} transactions`);
+        this.logger.debug(`AI text: ${transactions.length} transactions`);
       } catch (error) {
-        console.error('[HapoalimParser] AI text extraction failed:', error);
+        this.logger.error('AI text extraction failed:', error);
       }
     }
-
-    // Log first few transactions for debugging
-    transactions.slice(0, 3).forEach((t, i) => {
-      console.log(
-        `[HapoalimParser] Tx ${i + 1}: ${t.transactionDate.toISOString().split('T')[0]} - ${t.counterpartyName?.substring(0, 30)} - debit=${t.debit ?? '-'} credit=${t.credit ?? '-'}`,
-      );
-    });
 
     // Clear OCR cache
     this.cachedOcrResult = null;

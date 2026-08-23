@@ -2,6 +2,7 @@
 'use client';
 
 import { BudgetSummaryWidget } from '@/app/(main)/dashboard/components/BudgetSummaryWidget';
+import { CashRunwayWidget } from '@/app/(main)/dashboard/components/CashRunwayWidget';
 import {
   fillTemplate,
   formatDateOnly,
@@ -27,6 +28,7 @@ import type React from 'react';
 import { useMemo } from 'react';
 import { Spinner } from '../ui/spinner';
 import { CashFlowMini } from './CashFlowMini';
+import { CryptoPortfolioCard } from './CryptoPortfolioCard';
 import { RecentTransactionsCard } from './RecentTransactionsCard';
 import { TopCategoriesCard } from './TopCategoriesCard';
 import { computeNet, computeSavingsRate } from './dashboard-stats.util';
@@ -406,6 +408,8 @@ export function OverviewTab({
         />
       </div>
 
+      <CryptoPortfolioCard formatAmount={formatAmount} />
+
       {/* Main 2fr/1fr grid */}
       <div className="lumio-dashboard__grid">
         {/* ── Cash flow ── */}
@@ -463,6 +467,9 @@ export function OverviewTab({
 
         {/* ── Budget summary ── */}
         <BudgetSummaryWidget />
+
+        {/* ── Cash runway ── */}
+        <CashRunwayWidget formatAmount={formatAmount} />
 
         {/* ── Quick actions ── */}
         <QuickActionsCard actions={s.mappedActions} emptyColor={c.ink400} />

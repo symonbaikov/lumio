@@ -11,11 +11,11 @@ import {
 import { WebhookSubscription } from './webhook-subscription.entity';
 
 export enum WebhookDeliveryStatus {
-  PENDING    = 'pending',
+  PENDING = 'pending',
   PROCESSING = 'processing',
-  SUCCESS    = 'success',
-  FAILED     = 'failed',
-  EXHAUSTED  = 'exhausted',
+  SUCCESS = 'success',
+  FAILED = 'failed',
+  EXHAUSTED = 'exhausted',
 }
 
 @Entity('webhook_deliveries')

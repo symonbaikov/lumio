@@ -5,7 +5,12 @@ import { useMemo } from 'react';
 
 type WorkspaceLike = { id: string; name?: string | null };
 
-type BaseRecord = { flowType: string; sourceChannel: string };
+type BaseRecord = {
+  flowType: string;
+  sourceChannel: string;
+  dateValue?: string;
+  createdAt?: string | null;
+};
 type BaseAggregateRow = { id: string; flowType: string; sourceChannel: string };
 
 type RecordsResult<TRecord, TFromOption> = {

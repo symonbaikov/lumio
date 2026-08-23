@@ -2,6 +2,7 @@
 
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
 import { getStatementDisplayMerchant, getStatementMerchantLabel } from '@/app/lib/statement-status';
+import type { Dispatch, SetStateAction } from 'react';
 import { useMemo, useState } from 'react';
 import {
   DUPLICATE_GROUP_TONES,
@@ -24,6 +25,11 @@ interface StatementForDuplicates {
   subject?: string;
   sender?: string;
   parsedData?: { vendor?: string };
+  parsingDetails?: {
+    detectedBy?: string;
+    parserUsed?: string;
+    importPreview?: { source?: string; merchant?: string };
+  };
 }
 
 interface UseStatementsDuplicatesParams {
@@ -33,9 +39,7 @@ interface UseStatementsDuplicatesParams {
 
 interface UseStatementsDuplicatesReturn {
   duplicateOverrides: Record<string, DuplicateOverride>;
-  setDuplicateOverrides: (
-    updater: (prev: Record<string, DuplicateOverride>) => Record<string, DuplicateOverride>,
-  ) => void;
+  setDuplicateOverrides: Dispatch<SetStateAction<Record<string, DuplicateOverride>>>;
   duplicateMetaById: Map<string, DuplicateMeta>;
 }
 
@@ -195,9 +199,9 @@ export function useStatementsDuplicates({
     Record<string, DuplicateOverride>
   >({});
 
-  const setDuplicateOverrides = (
-    updater: (prev: Record<string, DuplicateOverride>) => Record<string, DuplicateOverride>,
-  ): void => {
+  const setDuplicateOverrides: Dispatch<
+    SetStateAction<Record<string, DuplicateOverride>>
+  > = updater => {
     setDuplicateOverridesState(updater);
   };
 

@@ -65,6 +65,7 @@ describe('StatementsService', () => {
       workspaceMemberRepository as any,
       fileStorageService as any,
       statementProcessingService as any,
+      { enqueue: jest.fn() } as any,
       receiptStatementService as any,
       cacheManager as any,
       auditService as any,

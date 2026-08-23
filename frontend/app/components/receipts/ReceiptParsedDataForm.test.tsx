@@ -11,6 +11,10 @@ type CustomDatePickerMockProps = {
   containerTestId?: string;
 };
 
+vi.mock('@/app/i18n', () => ({
+  useLocale: () => ({ locale: 'en' }),
+}));
+
 vi.mock('@/app/components/CustomDatePicker', () => ({
   default: ({ value, onChange, label, containerTestId }: CustomDatePickerMockProps) => (
     <div data-testid={containerTestId ?? 'mock-custom-date-picker'}>
@@ -57,7 +61,30 @@ describe('ReceiptParsedDataForm', () => {
     });
   });
 
-  it('uses dark surface classes for the line items container', () => {
+  it('localizes the category option name in the selected locale', () => {
+    render(
+      <ReceiptParsedDataForm
+        value={baseValue}
+        categories={[
+          {
+            id: 'meals',
+            name: 'Питание и представительские расходы',
+            isEnabled: true,
+            isSystem: true,
+          },
+        ]}
+        onChange={vi.fn()}
+      />,
+    );
+
+    const option = screen.getByRole('option', { name: 'Meals and entertainment' });
+    expect(option).toBeTruthy();
+    expect((option as HTMLOptionElement).value).toBe('meals');
+  });
+
+  it('renders line items and adds a new empty line on request', () => {
+    const onChange = vi.fn();
+
     render(
       <ReceiptParsedDataForm
         value={{
@@ -65,15 +92,18 @@ describe('ReceiptParsedDataForm', () => {
           lineItems: [{ id: 'line-1', description: 'Milk', amount: 12.5 }],
         }}
         categories={[]}
-        onChange={vi.fn()}
+        onChange={onChange}
       />,
     );
 
-    const lineItemsShell = Array.from(document.querySelectorAll('div')).find(
-      node => node.className.includes('rounded-2xl') && node.className.includes('border-slate-200'),
-    );
+    expect(screen.getByDisplayValue('Milk')).toBeTruthy();
 
-    expect(lineItemsShell?.className).toContain('dark:border-slate-700/60');
-    expect(lineItemsShell?.className).toContain('dark:bg-slate-900/60');
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lineItems: expect.arrayContaining([expect.objectContaining({ description: '' })]),
+      }),
+    );
   });
 });

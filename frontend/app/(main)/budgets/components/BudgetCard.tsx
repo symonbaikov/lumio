@@ -22,13 +22,12 @@ function getProgressColor(percent: number): 'success' | 'warning' | 'error' {
 }
 
 function formatAmount(amount: number, currency: string): string {
-  return (
-    new Intl.NumberFormat('en-US', {
-      style: 'decimal',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount) + ` ${currency}`
-  );
+  const formatted = new Intl.NumberFormat('en-US', {
+    style: 'decimal',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+  return `${formatted} ${currency}`;
 }
 
 interface BudgetCardProps {

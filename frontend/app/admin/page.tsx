@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AuditEventModal } from '../audit/components/AuditEventModal';
 import { AuditFilterBar } from '../audit/components/AuditFilterBar';
-import { AuditTimeline } from '../audit/components/AuditTimeline';
+import { AuditTimeline, AuditTimelineSkeleton } from '../audit/components/AuditTimeline';
 import { assertRollbackSucceeded } from '../audit/utils/rollback-result';
 
 export default function AdminPage() {
@@ -111,7 +111,7 @@ export default function AdminPage() {
 
         <div className="audit-timeline-card">
           {auditLoading ? (
-            <div className="audit-empty">Loading…</div>
+            <AuditTimelineSkeleton />
           ) : (
             <AuditTimeline
               events={auditLogs}

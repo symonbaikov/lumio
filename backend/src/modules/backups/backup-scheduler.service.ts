@@ -35,9 +35,15 @@ export class BackupSchedulerService {
       this.claimedSlots.add(slotKey);
 
       try {
-        const workspace = await this.workspaceRepository.findOne({ where: { id: configuration.workspaceId } });
+        const workspace = await this.workspaceRepository.findOne({
+          where: { id: configuration.workspaceId },
+        });
         if (workspace) {
-          await this.backupsService.runConfiguration(workspace, configuration, BackupRunTrigger.SCHEDULED);
+          await this.backupsService.runConfiguration(
+            workspace,
+            configuration,
+            BackupRunTrigger.SCHEDULED,
+          );
         }
       } catch (error) {
         this.logger.error(
@@ -58,7 +64,8 @@ export class BackupSchedulerService {
       minute: '2-digit',
       hourCycle: 'h23',
     }).formatToParts(now);
-    const value = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)?.value || '';
+    const value = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find(part => part.type === type)?.value || '';
     return {
       date: `${value('year')}-${value('month')}-${value('day')}`,
       hour: value('hour'),

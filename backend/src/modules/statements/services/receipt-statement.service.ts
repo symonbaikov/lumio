@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { calculateFileHash } from '../../../common/utils/file-hash.util';
@@ -18,6 +18,8 @@ import { ReceiptsService } from '../../receipts/receipts.service';
 
 @Injectable()
 export class ReceiptStatementService {
+  private readonly logger = new Logger(ReceiptStatementService.name);
+
   constructor(
     @InjectRepository(Statement)
     private readonly statementRepository: Repository<Statement>,
@@ -259,9 +261,7 @@ export class ReceiptStatementService {
     try {
       await this.statementRepository.update(savedStatement.id, { fileData });
     } catch (error) {
-      console.warn(
-        `[Statements] Failed to persist receipt scan file in DB: ${(error as Error)?.message}`,
-      );
+      this.logger.warn(`Failed to persist receipt scan file in DB: ${(error as Error)?.message}`);
     }
 
     if (hasAmount) {

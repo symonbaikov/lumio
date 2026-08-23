@@ -11,4 +11,7 @@ ENV GF_SECURITY_COOKIE_SECURE=true
 ENV GF_PATHS_DATA=/var/lib/grafana
 ENV GF_PATHS_PROVISIONING=/etc/grafana/provisioning
 
+# Back to the image's default unprivileged user (uid 472) for runtime
+USER grafana
+
 ENTRYPOINT ["/run.sh"]

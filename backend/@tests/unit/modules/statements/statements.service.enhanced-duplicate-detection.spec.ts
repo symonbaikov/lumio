@@ -10,6 +10,7 @@ import { WorkspaceMember } from '../../../../src/entities/workspace-member.entit
 import { Category } from '../../../../src/entities/category.entity';
 import { TaxRate } from '../../../../src/entities/tax-rate.entity';
 import { AuditService } from '../../../../src/modules/audit/audit.service';
+import { StatementParsingQueue } from '../../../../src/modules/parsing/queue/statement-parsing.queue';
 import { StatementProcessingService } from '../../../../src/modules/parsing/services/statement-processing.service';
 import { ReceiptStatementService } from '../../../../src/modules/statements/services/receipt-statement.service';
 import { StatementsService } from '../../../../src/modules/statements/statements.service';
@@ -96,6 +97,10 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
         {
           provide: StatementProcessingService,
           useValue: { processStatement: jest.fn() },
+        },
+        {
+          provide: StatementParsingQueue,
+          useValue: { enqueue: jest.fn() },
         },
         {
           provide: ReceiptStatementService,

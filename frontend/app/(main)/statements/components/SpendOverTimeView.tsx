@@ -9,7 +9,7 @@ import {
   type SpendOverTimeViewModelReturn,
   useSpendOverTimeViewModel,
 } from '@/app/(main)/statements/components/spend-over-time/hooks/useSpendOverTimeViewModel';
-import { Spinner } from '@/app/components/ui/spinner';
+import Skeleton from '@mui/material/Skeleton';
 import { useRouter } from 'next/navigation';
 
 type VmProps = { vm: SpendOverTimeViewModelReturn };
@@ -41,10 +41,50 @@ function buildDrillLabels(labels: Record<string, string>): DrillLabels {
   };
 }
 
+function StatCardSkeleton(): React.JSX.Element {
+  return (
+    <div className="lumio-view-page__stat-card">
+      <div className="lumio-view-page__stat-header">
+        <Skeleton variant="text" width="50%" height={16} />
+      </div>
+      <Skeleton variant="text" width="40%" height={26} style={{ marginTop: 8 }} />
+      <Skeleton variant="text" width="60%" height={14} style={{ marginTop: 4 }} />
+    </div>
+  );
+}
+
+function ChartCardSkeleton({
+  height,
+  wide,
+}: {
+  height: number;
+  wide?: boolean;
+}): React.JSX.Element {
+  return (
+    <div className={wide ? 'lumio-view-page__chart-card--wide' : 'lumio-view-page__chart-card'}>
+      <div className="lumio-view-page__chart-header">
+        <Skeleton variant="text" width={120} height={20} />
+      </div>
+      <Skeleton variant="rounded" width="100%" height={height} />
+    </div>
+  );
+}
+
 function SpendOverTimeLoading(): React.JSX.Element {
   return (
-    <div className="lumio-view-page__loading">
-      <Spinner style={{ height: 80, width: 80, color: 'var(--primary)' }} />
+    <div className="lumio-view-page__content">
+      <div className="lumio-view-page__stat-grid">
+        {['primary', 'statements', 'receipts', 'operations', 'avg'].map(key => (
+          <StatCardSkeleton key={key} />
+        ))}
+      </div>
+      <div className="lumio-view-page__chart-grid-wrapper">
+        <div className="lumio-view-page__chart-grid">
+          <ChartCardSkeleton height={300} wide />
+          <ChartCardSkeleton height={300} />
+        </div>
+        <ChartCardSkeleton height={320} />
+      </div>
     </div>
   );
 }

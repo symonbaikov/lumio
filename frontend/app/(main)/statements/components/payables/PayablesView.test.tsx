@@ -366,6 +366,7 @@ describe('PayablesView', () => {
 
     await waitFor(() => {
       expect(apiMocks.exportList).toHaveBeenCalledWith({
+        direction: 'payable',
         search: undefined,
         status: 'paid',
         source: undefined,

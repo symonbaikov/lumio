@@ -24,6 +24,9 @@ function makeService(
     cacheManager,
     { createEvent: jest.fn() } as unknown as AuditService,
     createRepoMock(), // reportHistory
+      { findOne: jest.fn(async () => ({ currency: 'EUR' })) } as any,
+      { getRate: jest.fn(async () => 1) } as any,
+      { exportBalanceSheet: jest.fn() } as any,
   );
 }
 

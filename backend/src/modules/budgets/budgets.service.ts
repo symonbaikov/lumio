@@ -2,14 +2,14 @@ import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { assertFound } from '../../common/utils/assert-found.util';
 import { Budget, BudgetPeriodType } from '../../entities/budget.entity';
-import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import {
   NotificationCategory,
   NotificationSeverity,
   NotificationType,
 } from '../../entities/notification.entity';
-import { assertFound } from '../../common/utils/assert-found.util';
+import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import type { CreateBudgetDto } from './dto/create-budget.dto';
 import type { UpdateBudgetDto } from './dto/update-budget.dto';
@@ -117,9 +117,8 @@ export class BudgetsService {
     for (const budget of budgets) {
       const { start, end } = this.computePeriodRange(budget.periodType, new Date());
       const spentAmount = await this.computeSpending(workspaceId, budget.categoryId, start, end);
-      const percentUsed = Number(budget.limitAmount) > 0
-        ? (spentAmount / Number(budget.limitAmount)) * 100
-        : 0;
+      const percentUsed =
+        Number(budget.limitAmount) > 0 ? (spentAmount / Number(budget.limitAmount)) * 100 : 0;
 
       if (percentUsed >= 100 && !budget.alertAt100Sent) {
         budget.alertAt100Sent = true;
@@ -168,10 +167,7 @@ export class BudgetsService {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async resetPeriodAlertFlags(): Promise<void> {
     const budgets = await this.budgetRepository.find({
-      where: [
-        { alertAt80Sent: true },
-        { alertAt100Sent: true },
-      ],
+      where: [{ alertAt80Sent: true }, { alertAt100Sent: true }],
     });
 
     const now = new Date();
@@ -197,7 +193,12 @@ export class BudgetsService {
 
   private async attachSpending(budget: Budget): Promise<BudgetWithSpending> {
     const { start, end } = this.computePeriodRange(budget.periodType, new Date());
-    const spentAmount = await this.computeSpending(budget.workspaceId, budget.categoryId, start, end);
+    const spentAmount = await this.computeSpending(
+      budget.workspaceId,
+      budget.categoryId,
+      start,
+      end,
+    );
     const limitAmount = Number(budget.limitAmount);
     const percentUsed = limitAmount > 0 ? (spentAmount / limitAmount) * 100 : 0;
 

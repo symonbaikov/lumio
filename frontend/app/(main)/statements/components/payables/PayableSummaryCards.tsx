@@ -35,8 +35,8 @@ function PayableSummaryCards({
 }: PayableSummaryCardsProps): React.JSX.Element {
   const items = getSummaryCardItems(summary).map(item => ({
     ...item,
-    label: labels[item.key],
-    icon: cardIcons[item.key],
+    label: labels[item.key as keyof typeof labels],
+    icon: cardIcons[item.key as keyof typeof cardIcons],
   }));
 
   return (

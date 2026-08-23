@@ -8,6 +8,7 @@ import { Transaction } from '@/entities/transaction.entity';
 import { User, UserRole } from '@/entities/user.entity';
 import { WorkspaceMember, WorkspaceRole } from '@/entities/workspace-member.entity';
 import { AuditService } from '@/modules/audit/audit.service';
+import { StatementParsingQueue } from '@/modules/parsing/queue/statement-parsing.queue';
 import { StatementProcessingService } from '@/modules/parsing/services/statement-processing.service';
 import { FilterStatementsDto } from '@/modules/statements/dto/filter-statements.dto';
 import { ReceiptStatementService } from '@/modules/statements/services/receipt-statement.service';
@@ -37,6 +38,7 @@ describe('StatementsService', () => {
   let workspaceMemberRepository: Repository<WorkspaceMember>;
   let fileStorageService: FileStorageService;
   let statementProcessingService: StatementProcessingService;
+  let statementParsingQueue: StatementParsingQueue;
   let categoryRepository: Repository<Category>;
   let taxRateRepository: Repository<TaxRate>;
   let receiptStatementService: ReceiptStatementService;
@@ -166,6 +168,12 @@ describe('StatementsService', () => {
           },
         },
         {
+          provide: StatementParsingQueue,
+          useValue: {
+            enqueue: jest.fn(),
+          },
+        },
+        {
           provide: ReceiptStatementService,
           useValue: {
             createFromReceiptScan: jest.fn(),
@@ -204,6 +212,7 @@ describe('StatementsService', () => {
     statementProcessingService = testingModule.get<StatementProcessingService>(
       StatementProcessingService,
     );
+    statementParsingQueue = testingModule.get<StatementParsingQueue>(StatementParsingQueue);
     receiptStatementService = testingModule.get<ReceiptStatementService>(ReceiptStatementService);
 
     // Setup fs.promises mocks
@@ -721,15 +730,14 @@ describe('StatementsService', () => {
       jest.spyOn(transactionRepository, 'find').mockResolvedValue([]);
     });
 
-    it('should trigger statement reprocessing', async () => {
+    it('should queue the statement for reprocessing', async () => {
       jest.spyOn(statementRepository, 'findOne').mockResolvedValue(mockStatement as Statement);
-      const reprocessSpy = jest
-        .spyOn(statementProcessingService, 'processStatement')
-        .mockResolvedValue(mockStatement as Statement);
+      const enqueueSpy = jest.spyOn(statementParsingQueue, 'enqueue').mockResolvedValue(undefined);
 
       await service.reprocess('1', '1');
 
-      expect(reprocessSpy).toHaveBeenCalledWith('1');
+      // Reprocessing goes through the queue so it survives a restart and retries.
+      expect(enqueueSpy).toHaveBeenCalledWith('1');
     });
 
     it('should reset status to PROCESSING', async () => {
@@ -760,6 +768,44 @@ describe('StatementsService', () => {
       } as Statement);
 
       await expect(service.reprocess('1', '1')).resolves.toBeDefined();
+    });
+  });
+
+  describe('confirmBalance', () => {
+    const mockFoundStatement = (status: StatementStatus) => {
+      const qb = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({ ...mockStatement, status } as Statement),
+      };
+      jest.spyOn(statementRepository, 'createQueryBuilder').mockReturnValue(qb as any);
+    };
+
+    beforeEach(() => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
+      jest.spyOn(workspaceMemberRepository, 'findOne').mockResolvedValue({
+        role: WorkspaceRole.ADMIN,
+      } as WorkspaceMember);
+    });
+
+    it('releases a needs-review statement into analytics', async () => {
+      mockFoundStatement(StatementStatus.NEEDS_REVIEW);
+      const saveSpy = jest
+        .spyOn(statementRepository, 'save')
+        .mockImplementation(async entity => entity as Statement);
+
+      await service.confirmBalance('1', '1', '1');
+
+      const saved = saveSpy.mock.calls[0][0] as Statement;
+      expect(saved.status).toBe(StatementStatus.COMPLETED);
+      expect(saved.parsingDetails?.balanceConfirmation).toMatchObject({ confirmedBy: '1' });
+    });
+
+    it('rejects a statement that is not awaiting confirmation', async () => {
+      mockFoundStatement(StatementStatus.COMPLETED);
+
+      await expect(service.confirmBalance('1', '1', '1')).rejects.toThrow(BadRequestException);
     });
   });
 

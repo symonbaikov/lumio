@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import * as os from 'node:os';
 import * as path from 'path';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
@@ -8,6 +7,7 @@ import { Cache } from 'cache-manager';
 import { Between, In, MoreThanOrEqual, type Repository } from 'typeorm';
 import * as xlsx from 'xlsx';
 import { formatMoney } from '../../common/utils/format-money.util';
+import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { Branch } from '../../entities/branch.entity';
 import { Category } from '../../entities/category.entity';
@@ -21,7 +21,11 @@ import { ReportHistory } from '../../entities/report-history.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { Wallet } from '../../entities/wallet.entity';
+import { Workspace } from '../../entities/workspace.entity';
 import { AuditService } from '../audit/audit.service';
+import { BalanceService } from '../balance/balance.service';
+import { BalanceExportFormat } from '../balance/dto/export-balance.dto';
+import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { type CustomReportDto, ReportGroupBy } from './dto/custom-report.dto';
 import {
   CustomTableReportFlowType,
@@ -39,6 +43,14 @@ import type { CustomReport, CustomReportGroup } from './interfaces/custom-report
 import type { DailyReport } from './interfaces/daily-report.interface';
 import type { MonthlyReport } from './interfaces/monthly-report.interface';
 import type { TopCategoriesReport } from './interfaces/top-categories-report.interface';
+import {
+  type ReportCell,
+  type ReportDocument,
+  type ReportFile,
+  type ReportFileFormat,
+  loadPdfMake,
+  writeReportFile,
+} from './report-document.util';
 
 export interface StatementsSummaryResponse {
   totals: {
@@ -117,14 +129,17 @@ interface CustomReportExportRow {
   Кошелёк: string;
 }
 
-interface PdfMakeLike {
-  vfs?: unknown;
-  createPdf(docDefinition: unknown): { getBuffer(callback: (buffer: Uint8Array) => void): void };
-}
-
-interface PdfFontsLike {
-  pdfMake?: { vfs?: unknown };
-  vfs?: unknown;
+/** A transaction flattened for template aggregation, already in workspace currency. */
+interface TemplateReportRow {
+  date: string;
+  categoryName: string;
+  counterparty: string;
+  isIncome: boolean;
+  /** Converted to the workspace currency. */
+  amount: number;
+  /** As recorded on the transaction, kept so the register can show both. */
+  originalAmount: number;
+  originalCurrency: string;
 }
 
 export interface CustomTablesReportRow {
@@ -196,22 +211,6 @@ export class ReportsService {
     }
 
     return null;
-  }
-
-  private toPdfMakeModule(module: unknown): PdfMakeLike {
-    const candidate =
-      typeof module === 'object' && module !== null && 'default' in module
-        ? (module as { default: unknown }).default
-        : module;
-    return candidate as PdfMakeLike;
-  }
-
-  private toPdfFontsModule(module: unknown): PdfFontsLike {
-    const candidate =
-      typeof module === 'object' && module !== null && 'default' in module
-        ? (module as { default: unknown }).default
-        : module;
-    return candidate as PdfFontsLike;
   }
 
   private emptyCustomTablesReportResponse(): CustomTablesReportResponse {
@@ -403,6 +402,10 @@ export class ReportsService {
     private readonly auditService: AuditService,
     @InjectRepository(ReportHistory)
     private readonly reportHistoryRepo: Repository<ReportHistory>,
+    @InjectRepository(Workspace)
+    private readonly workspaceRepository: Repository<Workspace>,
+    private readonly exchangeRatesService: ExchangeRatesService,
+    private readonly balanceService: BalanceService,
   ) {}
 
   private async getReportsVersion(userId: string): Promise<string> {
@@ -1722,13 +1725,7 @@ export class ReportsService {
     };
     const normalizedFormat = format || WorkspaceExportFormat.EXCEL;
     const fileName = `workspace-transactions-${timestamp}.${extensionMap[normalizedFormat]}`;
-    const uploadsBaseDir = process.env.UPLOADS_DIR || path.join(process.cwd(), 'uploads');
-    const filePath = path.join(uploadsBaseDir, 'reports', fileName);
-    const dir = path.dirname(filePath);
-
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    const filePath = path.join(this.resolveReportsDir(), fileName);
 
     if (normalizedFormat === WorkspaceExportFormat.EXCEL) {
       await this.generateWorkspaceExcel(transactions, filePath);
@@ -1905,12 +1902,7 @@ export class ReportsService {
   private async generateWorkspacePdf(transactions: Transaction[], filePath: string): Promise<void> {
     const rows = this.mapWorkspaceTransactionRows(transactions);
     const summaryRows = this.buildWorkspaceSummaryRows(rows);
-    const pdfMakeModule = await import('pdfmake/build/pdfmake');
-    const pdfFontsModule = await import('pdfmake/build/vfs_fonts');
-    const pdfMake = this.toPdfMakeModule(pdfMakeModule);
-    const pdfFonts = this.toPdfFontsModule(pdfFontsModule);
-
-    pdfMake.vfs = pdfFonts.pdfMake?.vfs || pdfFonts.vfs;
+    const pdfMake = await loadPdfMake();
 
     const docDefinition = {
       pageSize: 'A4',
@@ -2781,414 +2773,471 @@ export class ReportsService {
     };
   }
 
+  /** Display names persisted on report history rows. */
+  private static readonly TEMPLATE_NAMES: Record<string, string> = {
+    pnl: 'Profit & Loss (P&L)',
+    'cash-flow': 'Cash Flow Statement',
+    'expense-by-category': 'Expense by Category',
+    'balance-sheet': 'Balance Sheet',
+    'transaction-register': 'Transaction Register',
+    'monthly-summary': 'Monthly Summary',
+  };
+
+  /**
+   * Generated reports live under uploads/ rather than the OS temp dir, because
+   * report history rows keep pointing at them long after the download stream ends.
+   */
+  private resolveReportsDir(): string {
+    const dir = path.join(resolveUploadsDir(), 'reports');
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
+  }
+
   async generateFromTemplate(
+    workspaceId: string,
     userId: string,
     dto: GenerateReportDto,
-  ): Promise<{ filePath: string; fileName: string; contentType: string }> {
-    switch (dto.templateId) {
-      case 'pnl':
-        return this.generatePnLReport(userId, dto);
-      case 'cash-flow':
-        return this.generateCashFlowReport(userId, dto);
-      case 'expense-by-category':
-        return this.generateExpenseByCategoryReport(userId, dto);
-      default:
-        throw new BadRequestException(`Unknown template: ${dto.templateId}`);
-    }
-  }
-
-  private async generatePnLReport(
-    userId: string,
-    dto: GenerateReportDto,
-  ): Promise<{ filePath: string; fileName: string; contentType: string }> {
-    // 1. Get user workspace
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user?.workspaceId) {
-      throw new BadRequestException('No workspace');
+  ): Promise<ReportFile> {
+    const templateName = ReportsService.TEMPLATE_NAMES[dto.templateId];
+    if (!templateName) {
+      throw new BadRequestException(`Unknown template: ${dto.templateId}`);
     }
 
-    // 2. Query all transactions in [dateFrom, dateTo] scoped by workspaceId
-    const dateFrom = new Date(dto.dateFrom);
-    const dateTo = new Date(dto.dateTo);
-    dateTo.setUTCHours(23, 59, 59, 999);
+    const baseName = `${dto.templateId}-${dto.dateFrom}-${dto.dateTo}`;
+    const file =
+      dto.templateId === 'balance-sheet'
+        ? await this.writeBalanceSheetFile(workspaceId, dto, baseName)
+        : await writeReportFile(
+            await this.buildTemplateDocument(workspaceId, dto),
+            dto.format as ReportFileFormat,
+            baseName,
+            this.resolveReportsDir(),
+          );
 
-    const transactions = await this.transactionRepository.find({
-      where: {
-        workspaceId: user.workspaceId,
-        isDuplicate: false,
-        transactionDate: Between(dateFrom, dateTo),
-      },
-      relations: ['category'],
-    });
-
-    // 3. Group by category, separate income and expense
-    const incomeMap = new Map<string, number>();
-    const expenseMap = new Map<string, number>();
-
-    for (const t of transactions) {
-      const categoryName = t.category?.name || 'Uncategorized';
-      const amount = Math.abs(Number(t.amount || 0));
-
-      if (t.transactionType === TransactionType.INCOME) {
-        incomeMap.set(categoryName, (incomeMap.get(categoryName) || 0) + amount);
-      } else {
-        expenseMap.set(categoryName, (expenseMap.get(categoryName) || 0) + amount);
-      }
-    }
-
-    const incomeRows = Array.from(incomeMap.entries()).map(([categoryName, total]) => ({
-      categoryName,
-      total,
-    }));
-    const expenseRows = Array.from(expenseMap.entries()).map(([categoryName, total]) => ({
-      categoryName,
-      total,
-    }));
-
-    // 4. Calculate totals
-    const totalRevenue = incomeRows.reduce((sum, r) => sum + r.total, 0);
-    const totalExpenses = expenseRows.reduce((sum, r) => sum + r.total, 0);
-    const netIncome = totalRevenue - totalExpenses;
-
-    // 5. Export based on format
-    if (dto.format === 'pdf') {
-      throw new BadRequestException('PDF export not yet supported');
-    }
-
-    let filePath: string;
-    let fileName: string;
-    let contentType: string;
-
-    if (dto.format === 'excel') {
-      const wb = xlsx.utils.book_new();
-      const rows: (string | number)[][] = [];
-
-      rows.push(['P&L Report', '', '', user.workspaceId]);
-      rows.push(['Period:', dto.dateFrom, 'to', dto.dateTo]);
-      rows.push([]);
-      rows.push(['Category', 'Type', 'Amount']);
-
-      rows.push(['--- REVENUE ---', '', '']);
-      for (const row of incomeRows) {
-        rows.push([row.categoryName, 'Income', row.total]);
-      }
-      rows.push(['TOTAL REVENUE', '', totalRevenue]);
-
-      rows.push([]);
-
-      rows.push(['--- EXPENSES ---', '', '']);
-      for (const row of expenseRows) {
-        rows.push([row.categoryName, 'Expense', row.total]);
-      }
-      rows.push(['TOTAL EXPENSES', '', totalExpenses]);
-
-      rows.push([]);
-      rows.push(['NET INCOME', '', netIncome]);
-
-      const ws = xlsx.utils.aoa_to_sheet(rows);
-      xlsx.utils.book_append_sheet(wb, ws, 'P&L');
-
-      fileName = `pnl-${dto.dateFrom}-${dto.dateTo}.xlsx`;
-      filePath = path.join(os.tmpdir(), fileName);
-      xlsx.writeFile(wb, filePath);
-      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    } else {
-      // csv
-      const csvRows: (string | number)[][] = [
-        ['Category', 'Type', 'Amount'],
-        ...incomeRows.map(r => [r.categoryName, 'Income', r.total]),
-        ['TOTAL REVENUE', '', totalRevenue],
-        ...expenseRows.map(r => [r.categoryName, 'Expense', r.total]),
-        ['TOTAL EXPENSES', '', totalExpenses],
-        ['NET INCOME', '', netIncome],
-      ];
-      const csvContent = csvRows.map(r => r.join(',')).join('\n');
-      fileName = `pnl-${dto.dateFrom}-${dto.dateTo}.csv`;
-      filePath = path.join(os.tmpdir(), fileName);
-      fs.writeFileSync(filePath, csvContent, 'utf-8');
-      contentType = 'text/csv';
-    }
-
-    // Save report history
     await this.reportHistoryRepo.save({
-      workspaceId: user.workspaceId,
-      userId: user.id,
-      templateId: 'pnl',
-      templateName: 'Profit & Loss (P&L)',
+      workspaceId,
+      userId,
+      templateId: dto.templateId,
+      templateName,
       dateFrom: dto.dateFrom,
       dateTo: dto.dateTo,
       format: dto.format,
-      fileName,
-      filePath,
-      fileSize: fs.statSync(filePath).size,
+      fileName: file.fileName,
+      filePath: file.filePath,
+      fileSize: fs.statSync(file.filePath).size,
     });
 
-    return { filePath, fileName, contentType };
+    return file;
   }
 
-  private async generateCashFlowReport(
-    userId: string,
+  /**
+   * The document behind a report, without writing a file. Costs one query, so the
+   * generator can show what it is about to download.
+   */
+  async previewTemplate(
+    workspaceId: string,
     dto: GenerateReportDto,
-  ): Promise<{ filePath: string; fileName: string; contentType: string }> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user?.workspaceId) {
-      throw new BadRequestException('No workspace');
+    maxRowsPerSection = 20,
+  ): Promise<ReportDocument & { truncated: boolean }> {
+    if (!ReportsService.TEMPLATE_NAMES[dto.templateId]) {
+      throw new BadRequestException(`Unknown template: ${dto.templateId}`);
+    }
+    if (dto.templateId === 'balance-sheet') {
+      throw new BadRequestException('Balance Sheet has its own on-screen view');
     }
 
-    if (dto.format === 'pdf') {
-      throw new BadRequestException('PDF export not yet supported');
+    const document = await this.buildTemplateDocument(workspaceId, dto);
+    const truncated = document.sections.some(section => section.rows.length > maxRowsPerSection);
+
+    return {
+      ...document,
+      truncated,
+      sections: document.sections.map(section => ({
+        ...section,
+        rows: section.rows.slice(0, maxRowsPerSection),
+      })),
+    };
+  }
+
+  /**
+   * Balance Sheet reuses BalanceService's own renderers, which localize account
+   * names from the account tree — a generic table would lose that.
+   */
+  private async writeBalanceSheetFile(
+    workspaceId: string,
+    dto: GenerateReportDto,
+    baseName: string,
+  ): Promise<ReportFile> {
+    if (dto.format !== 'excel' && dto.format !== 'pdf') {
+      throw new BadRequestException('Balance Sheet supports only excel and pdf');
     }
 
+    const payload = await this.balanceService.exportBalanceSheet(
+      workspaceId,
+      { date: dto.dateTo, format: dto.format as BalanceExportFormat },
+      dto.locale,
+    );
+
+    const fileName = `${baseName}.${dto.format === 'pdf' ? 'pdf' : 'xlsx'}`;
+    const filePath = path.join(this.resolveReportsDir(), fileName);
+    fs.writeFileSync(filePath, payload.buffer);
+
+    return { filePath, fileName, contentType: payload.contentType };
+  }
+
+  private async buildTemplateDocument(
+    workspaceId: string,
+    dto: GenerateReportDto,
+  ): Promise<ReportDocument> {
+    const { currency, rows } = await this.loadReportRows(workspaceId, dto);
+    const subtitle = `${dto.dateFrom} — ${dto.dateTo} · ${currency}`;
+
+    if (dto.templateId === 'pnl') {
+      return this.buildPnLDocument(subtitle, rows);
+    }
+    if (dto.templateId === 'cash-flow') {
+      return this.buildCashFlowDocument(subtitle, rows, dto.groupBy || 'day');
+    }
+    if (dto.templateId === 'transaction-register') {
+      return this.buildTransactionRegisterDocument(subtitle, currency, rows);
+    }
+    if (dto.templateId === 'monthly-summary') {
+      return this.buildMonthlySummaryDocument(subtitle, rows);
+    }
+    return this.buildExpenseByCategoryDocument(subtitle, rows);
+  }
+
+  private normalizeCurrency(currency: string | null | undefined): string {
+    const normalized = String(currency || '')
+      .trim()
+      .toUpperCase();
+    return /^[A-Z]{3}$/.test(normalized) ? normalized : 'KZT';
+  }
+
+  private async getWorkspaceCurrency(workspaceId: string): Promise<string> {
+    const workspace = await this.workspaceRepository.findOne({
+      where: { id: workspaceId },
+      select: ['currency'],
+    });
+    return this.normalizeCurrency(workspace?.currency);
+  }
+
+  /**
+   * One rate lookup per distinct source currency rather than one per transaction.
+   * getRate never throws: it degrades to a stale rate, then to 1:1, and logs.
+   */
+  private async buildRateMap(
+    transactions: Transaction[],
+    targetCurrency: string,
+  ): Promise<Map<string, number>> {
+    const sources = new Set(transactions.map(t => this.normalizeCurrency(t.currency)));
+    const rates = new Map<string, number>();
+
+    for (const source of sources) {
+      rates.set(
+        source,
+        source === targetCurrency
+          ? 1
+          : await this.exchangeRatesService.getRate(source, targetCurrency),
+      );
+    }
+
+    return rates;
+  }
+
+  private async loadReportRows(
+    workspaceId: string,
+    dto: GenerateReportDto,
+  ): Promise<{ currency: string; rows: TemplateReportRow[] }> {
     const dateFrom = new Date(dto.dateFrom);
     const dateTo = new Date(dto.dateTo);
     dateTo.setUTCHours(23, 59, 59, 999);
 
-    const transactions = await this.transactionRepository.find({
-      where: {
-        workspaceId: user.workspaceId,
-        isDuplicate: false,
-        transactionDate: Between(dateFrom, dateTo),
-      },
-      relations: ['category'],
+    const [transactions, currency] = await Promise.all([
+      this.transactionRepository.find({
+        where: {
+          workspaceId,
+          isDuplicate: false,
+          transactionDate: Between(dateFrom, dateTo),
+          // An empty array would compile to `IN ()` and match nothing, so an
+          // unset filter has to drop the key entirely rather than pass [].
+          ...(dto.walletIds?.length ? { walletId: In(dto.walletIds) } : {}),
+          ...(dto.categoryIds?.length ? { categoryId: In(dto.categoryIds) } : {}),
+        },
+        relations: ['category'],
+      }),
+      this.getWorkspaceCurrency(workspaceId),
+    ]);
+
+    const rates = await this.buildRateMap(transactions, currency);
+
+    const rows = transactions.map(transaction => {
+      const originalCurrency = this.normalizeCurrency(transaction.currency);
+      const originalAmount = Math.abs(Number(transaction.amount || 0));
+
+      return {
+        date: this.toDateKey(transaction.transactionDate),
+        categoryName: transaction.category?.name || 'Uncategorized',
+        counterparty: transaction.counterpartyName || '',
+        isIncome: transaction.transactionType === TransactionType.INCOME,
+        amount: originalAmount * (rates.get(originalCurrency) ?? 1),
+        originalAmount,
+        originalCurrency,
+      };
     });
 
-    // Group by date (daily buckets)
-    const bucketMap = new Map<string, { income: number; expense: number }>();
-
-    for (const t of transactions) {
-      const dateKey = new Date(t.transactionDate).toISOString().slice(0, 10);
-      if (!bucketMap.has(dateKey)) {
-        bucketMap.set(dateKey, { income: 0, expense: 0 });
-      }
-      const bucket = bucketMap.get(dateKey);
-      if (!bucket) {
-        continue;
-      }
-      const amount = Math.abs(Number(t.amount || 0));
-      if (t.transactionType === TransactionType.INCOME) {
-        bucket.income += amount;
-      } else {
-        bucket.expense += amount;
-      }
-    }
-
-    // Sort by date ascending
-    const sortedBuckets = Array.from(bucketMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, { income, expense }]) => ({ date, income, expense, net: income - expense }));
-
-    const totalIncome = sortedBuckets.reduce((sum, r) => sum + r.income, 0);
-    const totalExpense = sortedBuckets.reduce((sum, r) => sum + r.expense, 0);
-    const totalNet = totalIncome - totalExpense;
-
-    let filePath: string;
-    let fileName: string;
-    let contentType: string;
-
-    if (dto.format === 'excel') {
-      const wb = xlsx.utils.book_new();
-      const rows: (string | number)[][] = [];
-
-      rows.push(['Cash Flow Statement', '', '', user.workspaceId]);
-      rows.push(['Period:', dto.dateFrom, 'to', dto.dateTo]);
-      rows.push([]);
-      rows.push(['Date', 'Income', 'Expense', 'Net']);
-
-      for (const row of sortedBuckets) {
-        rows.push([row.date, row.income, row.expense, row.net]);
-      }
-
-      rows.push([]);
-      rows.push(['TOTAL', totalIncome, totalExpense, totalNet]);
-
-      const ws = xlsx.utils.aoa_to_sheet(rows);
-      xlsx.utils.book_append_sheet(wb, ws, 'Cash Flow');
-
-      fileName = `cash-flow-${dto.dateFrom}-${dto.dateTo}.xlsx`;
-      filePath = path.join(os.tmpdir(), fileName);
-      xlsx.writeFile(wb, filePath);
-      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    } else {
-      // csv
-      const csvRows: (string | number)[][] = [
-        ['Date', 'Income', 'Expense', 'Net'],
-        ...sortedBuckets.map(r => [r.date, r.income, r.expense, r.net]),
-        ['TOTAL', totalIncome, totalExpense, totalNet],
-      ];
-      const csvContent = csvRows.map(r => r.join(',')).join('\n');
-      fileName = `cash-flow-${dto.dateFrom}-${dto.dateTo}.csv`;
-      filePath = path.join(os.tmpdir(), fileName);
-      fs.writeFileSync(filePath, csvContent, 'utf-8');
-      contentType = 'text/csv';
-    }
-
-    await this.reportHistoryRepo.save({
-      workspaceId: user.workspaceId,
-      userId: user.id,
-      templateId: 'cash-flow',
-      templateName: 'Cash Flow Statement',
-      dateFrom: dto.dateFrom,
-      dateTo: dto.dateTo,
-      format: dto.format,
-      fileName,
-      filePath,
-      fileSize: fs.statSync(filePath).size,
-    });
-
-    return { filePath, fileName, contentType };
+    return { currency, rows };
   }
 
-  private async generateExpenseByCategoryReport(
-    userId: string,
-    dto: GenerateReportDto,
-  ): Promise<{ filePath: string; fileName: string; contentType: string }> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user?.workspaceId) {
-      throw new BadRequestException('No workspace');
-    }
+  private sumByKey(
+    rows: TemplateReportRow[],
+    keyOf: (row: TemplateReportRow) => string,
+  ): Map<string, { total: number; count: number }> {
+    const totals = new Map<string, { total: number; count: number }>();
 
-    if (dto.format === 'pdf') {
-      throw new BadRequestException('PDF export not yet supported');
-    }
-
-    const dateFrom = new Date(dto.dateFrom);
-    const dateTo = new Date(dto.dateTo);
-    dateTo.setUTCHours(23, 59, 59, 999);
-
-    const transactions = await this.transactionRepository.find({
-      where: {
-        workspaceId: user.workspaceId,
-        isDuplicate: false,
-        transactionDate: Between(dateFrom, dateTo),
-        transactionType: TransactionType.EXPENSE,
-      },
-      relations: ['category'],
-    });
-
-    // Group by category name
-    const categoryMap = new Map<string, { total: number; count: number }>();
-
-    for (const t of transactions) {
-      const categoryName = t.category?.name || 'Uncategorized';
-      const amount = Math.abs(Number(t.amount || 0));
-      if (!categoryMap.has(categoryName)) {
-        categoryMap.set(categoryName, { total: 0, count: 0 });
-      }
-      const entry = categoryMap.get(categoryName);
-      if (!entry) {
-        continue;
-      }
-      entry.total += amount;
+    for (const row of rows) {
+      const key = keyOf(row);
+      const entry = totals.get(key) ?? { total: 0, count: 0 };
+      entry.total += row.amount;
       entry.count += 1;
+      totals.set(key, entry);
     }
 
-    const totalExpenses = Array.from(categoryMap.values()).reduce((sum, e) => sum + e.total, 0);
-
-    // Sort by amount descending
-    const categoryRows = Array.from(categoryMap.entries())
-      .map(([categoryName, { total, count }]) => ({
-        categoryName,
-        total,
-        count,
-        percentage: totalExpenses > 0 ? (total / totalExpenses) * 100 : 0,
-      }))
-      .sort((a, b) => b.total - a.total);
-
-    let filePath: string;
-    let fileName: string;
-    let contentType: string;
-
-    if (dto.format === 'excel') {
-      const wb = xlsx.utils.book_new();
-      const rows: (string | number)[][] = [];
-
-      rows.push(['Expense by Category', '', '', user.workspaceId]);
-      rows.push(['Period:', dto.dateFrom, 'to', dto.dateTo]);
-      rows.push([]);
-      rows.push(['Category', 'Total Amount', 'Transaction Count', '% of Total']);
-
-      for (const row of categoryRows) {
-        rows.push([row.categoryName, row.total, row.count, Number(row.percentage.toFixed(2))]);
-      }
-
-      rows.push([]);
-      rows.push(['TOTAL', totalExpenses, categoryRows.reduce((s, r) => s + r.count, 0), 100]);
-
-      const ws = xlsx.utils.aoa_to_sheet(rows);
-      xlsx.utils.book_append_sheet(wb, ws, 'Expense by Category');
-
-      fileName = `expense-by-category-${dto.dateFrom}-${dto.dateTo}.xlsx`;
-      filePath = path.join(os.tmpdir(), fileName);
-      xlsx.writeFile(wb, filePath);
-      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    } else {
-      // csv
-      const csvRows: (string | number)[][] = [
-        ['Category', 'Total Amount', 'Transaction Count', '% of Total'],
-        ...categoryRows.map(r => [
-          r.categoryName,
-          r.total,
-          r.count,
-          Number(r.percentage.toFixed(2)),
-        ]),
-        ['TOTAL', totalExpenses, categoryRows.reduce((s, r) => s + r.count, 0), 100],
-      ];
-      const csvContent = csvRows.map(r => r.join(',')).join('\n');
-      fileName = `expense-by-category-${dto.dateFrom}-${dto.dateTo}.csv`;
-      filePath = path.join(os.tmpdir(), fileName);
-      fs.writeFileSync(filePath, csvContent, 'utf-8');
-      contentType = 'text/csv';
-    }
-
-    await this.reportHistoryRepo.save({
-      workspaceId: user.workspaceId,
-      userId: user.id,
-      templateId: 'expense-by-category',
-      templateName: 'Expense by Category',
-      dateFrom: dto.dateFrom,
-      dateTo: dto.dateTo,
-      format: dto.format,
-      fileName,
-      filePath,
-      fileSize: fs.statSync(filePath).size,
-    });
-
-    return { filePath, fileName, contentType };
+    return totals;
   }
 
-  async getReportHistory(userId: string): Promise<ReportHistory[]> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      select: ['id', 'workspaceId'],
-    });
+  private buildPnLDocument(subtitle: string, rows: TemplateReportRow[]): ReportDocument {
+    const income = this.sumByKey(
+      rows.filter(row => row.isIncome),
+      row => row.categoryName,
+    );
+    const expense = this.sumByKey(
+      rows.filter(row => !row.isIncome),
+      row => row.categoryName,
+    );
 
-    if (!user?.workspaceId) {
-      return [];
+    const totalRevenue = this.sumTotals(income);
+    const totalExpenses = this.sumTotals(expense);
+
+    return {
+      title: 'Profit & Loss (P&L)',
+      subtitle,
+      sections: [
+        {
+          title: 'Revenue',
+          columns: ['Category', 'Amount'],
+          rows: this.toAmountRows(income),
+          total: ['TOTAL REVENUE', this.round2(totalRevenue)],
+        },
+        {
+          title: 'Expenses',
+          columns: ['Category', 'Amount'],
+          rows: this.toAmountRows(expense),
+          total: ['TOTAL EXPENSES', this.round2(totalExpenses)],
+        },
+      ],
+      footer: [['NET INCOME', this.round2(totalRevenue - totalExpenses)]],
+    };
+  }
+
+  /**
+   * Collapses an ISO date into its bucket. Weeks are keyed by their Monday, so
+   * the key stays sortable as a plain string like the other two.
+   */
+  private toPeriodKey(dateKey: string, groupBy: 'day' | 'week' | 'month'): string {
+    if (groupBy === 'month') {
+      return dateKey.slice(0, 7);
+    }
+    if (groupBy === 'day') {
+      return dateKey;
     }
 
+    const date = new Date(`${dateKey}T00:00:00.000Z`);
+    const dayOfWeek = (date.getUTCDay() + 6) % 7; // Monday = 0
+    date.setUTCDate(date.getUTCDate() - dayOfWeek);
+    return date.toISOString().slice(0, 10);
+  }
+
+  private buildCashFlowDocument(
+    subtitle: string,
+    rows: TemplateReportRow[],
+    groupBy: 'day' | 'week' | 'month',
+  ): ReportDocument {
+    const buckets = new Map<string, { income: number; expense: number }>();
+
+    for (const row of rows) {
+      const periodKey = this.toPeriodKey(row.date, groupBy);
+      const bucket = buckets.get(periodKey) ?? { income: 0, expense: 0 };
+      if (row.isIncome) {
+        bucket.income += row.amount;
+      } else {
+        bucket.expense += row.amount;
+      }
+      buckets.set(periodKey, bucket);
+    }
+
+    const sorted = Array.from(buckets.entries()).sort(([a], [b]) => a.localeCompare(b));
+    const totalIncome = sorted.reduce((sum, [, bucket]) => sum + bucket.income, 0);
+    const totalExpense = sorted.reduce((sum, [, bucket]) => sum + bucket.expense, 0);
+
+    return {
+      title: 'Cash Flow Statement',
+      subtitle,
+      sections: [
+        {
+          columns: [
+            groupBy === 'day' ? 'Date' : groupBy === 'week' ? 'Week of' : 'Month',
+            'Income',
+            'Expense',
+            'Net',
+          ],
+          rows: sorted.map(([date, bucket]) => [
+            date,
+            this.round2(bucket.income),
+            this.round2(bucket.expense),
+            this.round2(bucket.income - bucket.expense),
+          ]),
+          total: [
+            'TOTAL',
+            this.round2(totalIncome),
+            this.round2(totalExpense),
+            this.round2(totalIncome - totalExpense),
+          ],
+        },
+      ],
+    };
+  }
+
+  private buildExpenseByCategoryDocument(
+    subtitle: string,
+    rows: TemplateReportRow[],
+  ): ReportDocument {
+    const byCategory = this.sumByKey(
+      rows.filter(row => !row.isIncome),
+      row => row.categoryName,
+    );
+    const totalExpenses = this.sumTotals(byCategory);
+    const totalCount = Array.from(byCategory.values()).reduce((sum, e) => sum + e.count, 0);
+
+    const categoryRows = Array.from(byCategory.entries())
+      .sort(([, a], [, b]) => b.total - a.total)
+      .map(([categoryName, entry]) => [
+        categoryName,
+        this.round2(entry.total),
+        entry.count,
+        totalExpenses > 0 ? this.round2((entry.total / totalExpenses) * 100) : 0,
+      ]);
+
+    return {
+      title: 'Expense by Category',
+      subtitle,
+      sections: [
+        {
+          columns: ['Category', 'Total Amount', 'Transaction Count', '% of Total'],
+          rows: categoryRows,
+          total: ['TOTAL', this.round2(totalExpenses), totalCount, categoryRows.length ? 100 : 0],
+        },
+      ],
+    };
+  }
+
+  /**
+   * The one detail-level template: every transaction in the period, with both the
+   * converted and the original amount so a foreign-currency line stays auditable.
+   */
+  private buildTransactionRegisterDocument(
+    subtitle: string,
+    currency: string,
+    rows: TemplateReportRow[],
+  ): ReportDocument {
+    const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+    const net = sorted.reduce((sum, row) => sum + (row.isIncome ? row.amount : -row.amount), 0);
+
+    return {
+      title: 'Transaction Register',
+      subtitle,
+      sections: [
+        {
+          columns: ['Date', 'Counterparty', 'Category', 'Type', `Amount (${currency})`, 'Original'],
+          rows: sorted.map(row => [
+            row.date,
+            row.counterparty,
+            row.categoryName,
+            row.isIncome ? 'Income' : 'Expense',
+            this.round2(row.isIncome ? row.amount : -row.amount),
+            `${this.round2(row.originalAmount)} ${row.originalCurrency}`,
+          ]),
+          total: ['TOTAL', '', '', `${sorted.length} rows`, this.round2(net), ''],
+        },
+      ],
+    };
+  }
+
+  /** P&L condensed to one screen: the headline numbers plus where the money went. */
+  private buildMonthlySummaryDocument(subtitle: string, rows: TemplateReportRow[]): ReportDocument {
+    const income = rows.filter(row => row.isIncome);
+    const expense = rows.filter(row => !row.isIncome);
+    const totalIncome = income.reduce((sum, row) => sum + row.amount, 0);
+    const totalExpense = expense.reduce((sum, row) => sum + row.amount, 0);
+
+    const topCategories = this.toAmountRows(this.sumByKey(expense, row => row.categoryName)).slice(
+      0,
+      10,
+    );
+
+    return {
+      title: 'Monthly Summary',
+      subtitle,
+      sections: [
+        {
+          title: 'Totals',
+          columns: ['Metric', 'Value'],
+          rows: [
+            ['Income', this.round2(totalIncome)],
+            ['Expenses', this.round2(totalExpense)],
+            ['Transactions', rows.length],
+            [
+              'Savings rate, %',
+              totalIncome > 0 ? this.round2(((totalIncome - totalExpense) / totalIncome) * 100) : 0,
+            ],
+          ],
+        },
+        {
+          title: 'Top expense categories',
+          columns: ['Category', 'Amount'],
+          rows: topCategories,
+        },
+      ],
+      footer: [['NET', this.round2(totalIncome - totalExpense)]],
+    };
+  }
+
+  private sumTotals(entries: Map<string, { total: number; count: number }>): number {
+    return Array.from(entries.values()).reduce((sum, entry) => sum + entry.total, 0);
+  }
+
+  private toAmountRows(entries: Map<string, { total: number; count: number }>): ReportCell[][] {
+    return Array.from(entries.entries())
+      .sort(([, a], [, b]) => b.total - a.total)
+      .map(([name, entry]) => [name, this.round2(entry.total)]);
+  }
+
+  private round2(value: number): number {
+    return Math.round(value * 100) / 100;
+  }
+
+  async getReportHistory(workspaceId: string): Promise<ReportHistory[]> {
     return this.reportHistoryRepo.find({
-      where: { workspaceId: user.workspaceId },
+      where: { workspaceId },
       order: { generatedAt: 'DESC' },
       take: 50,
       relations: ['user'],
     });
   }
 
-  async downloadHistoryReport(
-    userId: string,
-    reportId: string,
-  ): Promise<{ filePath: string; fileName: string; contentType: string }> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      select: ['id', 'workspaceId'],
-    });
-
-    if (!user?.workspaceId) {
-      throw new NotFoundException('Report not found');
-    }
-
+  async downloadHistoryReport(workspaceId: string, reportId: string): Promise<ReportFile> {
     const report = await this.reportHistoryRepo.findOne({
-      where: { id: reportId, workspaceId: user.workspaceId },
+      where: { id: reportId, workspaceId },
     });
 
     if (!(report?.filePath && report.fileName && fs.existsSync(report.filePath))) {

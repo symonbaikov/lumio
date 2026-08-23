@@ -23,6 +23,11 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   output: 'standalone',
+
+  // Stamped at build time so the UI can tell whether a newer commit exists upstream.
+  env: {
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+  },
   outputFileTracingRoot: __dirname,
 
   serverExternalPackages: ['esbuild'],

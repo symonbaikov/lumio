@@ -50,7 +50,7 @@ function StatCard({
   noDataLabel,
   vsPreviousPeriodLabel,
   isMoney = true,
-}: CardProps): React.React.JSX.Element {
+}: CardProps): React.JSX.Element {
   return (
     <div className="lumio-view-page__stat-card">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -89,7 +89,7 @@ export function TopMerchantsStatCards({
   currency,
   noDataLabel,
   vsPreviousPeriodLabel,
-}: Props): React.React.JSX.Element {
+}: Props): React.JSX.Element {
   const cp = { currency, noDataLabel, vsPreviousPeriodLabel };
   const icon0 = isIncomeView ? (
     <ArrowUp size={16} color="#10b981" />

@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { In, type Repository } from 'typeorm';
 import * as xlsx from 'xlsx';
 import {
@@ -19,6 +18,7 @@ import {
   WorkspaceMember,
 } from '../../entities';
 import { AuditService } from '../audit/audit.service';
+import { loadPdfMake } from '../reports/report-document.util';
 import { DEFAULT_BALANCE_ACCOUNTS } from './balance-default-accounts';
 import type { CreateBalanceAccountDto } from './dto/create-balance-account.dto';
 import { BalanceExportFormat, type ExportBalanceDto } from './dto/export-balance.dto';
@@ -787,105 +787,71 @@ export class BalanceService {
     return xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
   }
 
+  /**
+   * Rendered with pdfmake rather than pdf-lib: pdf-lib's standard fonts are
+   * WinAnsi-encoded and throw on Cyrillic, which broke every ru/kk export.
+   * pdfmake's bundled Roboto covers those alphabets and paginates on its own,
+   * so long sheets are no longer silently cut off at one page.
+   */
   private async exportAsPdf(data: BalanceSheetResponse, locale?: string): Promise<Buffer> {
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([842, 595]);
-    const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const labels = this.getExportLabels(locale);
-
     const leftRows = this.flattenForExport(data.assets.sections);
     const rightRows = this.flattenForExport(data.liabilities.sections);
     const maxRows = Math.max(leftRows.length, rightRows.length);
 
-    const margin = 40;
-    const top = page.getHeight() - margin;
-    const mid = page.getWidth() / 2;
-    const lineHeight = 16;
+    const body: unknown[][] = [
+      [
+        { text: labels.assets, style: 'th' },
+        { text: this.formatAmount(data.assets.total, data.currency), style: 'thAmount' },
+        { text: labels.liabilities, style: 'th' },
+        { text: this.formatAmount(data.liabilities.total, data.currency), style: 'thAmount' },
+      ],
+    ];
 
-    page.drawText(`${labels.balanceAsOf} ${data.date}`, {
-      x: margin,
-      y: top,
-      size: 16,
-      font: boldFont,
-      color: rgb(0.1, 0.1, 0.1),
-    });
-
-    const assetsTotalAmount = this.formatAmount(data.assets.total, data.currency);
-    page.drawText(`${labels.assets}: ${assetsTotalAmount}`, {
-      x: margin,
-      y: top - 32,
-      size: 12,
-      font: boldFont,
-      color: rgb(0.1, 0.1, 0.1),
-    });
-
-    const liabilitiesTotalAmount = this.formatAmount(data.liabilities.total, data.currency);
-    page.drawText(`${labels.liabilities}: ${liabilitiesTotalAmount}`, {
-      x: mid + 10,
-      y: top - 32,
-      size: 12,
-      font: boldFont,
-      color: rgb(0.1, 0.1, 0.1),
-    });
-
-    let y = top - 58;
     for (let i = 0; i < maxRows; i++) {
       const left = leftRows[i];
       const right = rightRows[i];
-
-      if (left) {
-        page.drawText(left.label, {
-          x: margin,
-          y,
-          size: 10,
-          font: regularFont,
-          color: rgb(0.15, 0.15, 0.15),
-        });
-        page.drawText(this.formatAmount(left.amount, data.currency), {
-          x: mid - 120,
-          y,
-          size: 10,
-          font: regularFont,
-          color: rgb(0.15, 0.15, 0.15),
-        });
-      }
-
-      if (right) {
-        page.drawText(right.label, {
-          x: mid + 10,
-          y,
-          size: 10,
-          font: regularFont,
-          color: rgb(0.15, 0.15, 0.15),
-        });
-        page.drawText(this.formatAmount(right.amount, data.currency), {
-          x: page.getWidth() - margin - 120,
-          y,
-          size: 10,
-          font: regularFont,
-          color: rgb(0.15, 0.15, 0.15),
-        });
-      }
-
-      y -= lineHeight;
-      if (y <= margin + 24) {
-        break;
-      }
+      body.push([
+        { text: left?.label ?? '' },
+        { text: left ? this.formatAmount(left.amount, data.currency) : '', alignment: 'right' },
+        { text: right?.label ?? '' },
+        { text: right ? this.formatAmount(right.amount, data.currency) : '', alignment: 'right' },
+      ]);
     }
 
-    const differenceAmount = this.formatAmount(data.difference, data.currency);
-    const balancedLabel = data.isBalanced ? labels.balanced : labels.notBalanced;
-    page.drawText(`${labels.difference}: ${differenceAmount} (${balancedLabel})`, {
-      x: margin,
-      y: margin,
-      size: 11,
-      font: boldFont,
-      color: data.isBalanced ? rgb(0.12, 0.5, 0.2) : rgb(0.7, 0.2, 0.2),
-    });
+    const pdfMake = await loadPdfMake();
+    const docDefinition = {
+      pageSize: 'A4',
+      pageOrientation: 'landscape',
+      pageMargins: [40, 40, 40, 40],
+      content: [
+        { text: `${labels.balanceAsOf} ${data.date}`, style: 'title' },
+        {
+          table: { headerRows: 1, widths: ['*', 'auto', '*', 'auto'], body },
+          layout: 'lightHorizontalLines',
+        },
+        {
+          text: `${labels.difference}: ${this.formatAmount(data.difference, data.currency)} (${
+            data.isBalanced ? labels.balanced : labels.notBalanced
+          })`,
+          color: data.isBalanced ? '#1f8033' : '#b33333',
+          bold: true,
+          margin: [0, 16, 0, 0],
+        },
+      ],
+      styles: {
+        title: { bold: true, fontSize: 16, margin: [0, 0, 0, 14] },
+        th: { bold: true, fontSize: 11 },
+        thAmount: { bold: true, fontSize: 11, alignment: 'right' },
+      },
+      defaultStyle: { font: 'Roboto', fontSize: 9 },
+    };
 
-    const bytes = await pdfDoc.save();
-    return Buffer.from(bytes);
+    return new Promise<Buffer>(resolve => {
+      pdfMake.createPdf(docDefinition).getBuffer((buffer: Uint8Array) => {
+        resolve(Buffer.from(buffer));
+      });
+    });
   }
 
   async exportBalanceSheet(

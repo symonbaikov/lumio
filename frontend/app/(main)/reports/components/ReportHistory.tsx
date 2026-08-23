@@ -8,8 +8,8 @@ import apiClient from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
-import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from '@mui/material/IconButton';
+import Skeleton from '@mui/material/Skeleton';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -18,6 +18,89 @@ import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+
+const HISTORY_SKELETON_KEYS = ['hist-0', 'hist-1', 'hist-2', 'hist-3', 'hist-4'];
+
+function ReportHistoryRowSkeleton(): React.JSX.Element {
+  return (
+    <TableRow>
+      <TableCell>
+        <Skeleton variant="text" width="70%" height={18} />
+      </TableCell>
+      <TableCell>
+        <Skeleton variant="text" width={100} height={18} />
+      </TableCell>
+      <TableCell>
+        <Skeleton variant="rounded" width={48} height={20} />
+      </TableCell>
+      <TableCell>
+        <Skeleton variant="text" width={80} height={18} />
+      </TableCell>
+      <TableCell>
+        <Skeleton variant="text" width={50} height={18} />
+      </TableCell>
+      <TableCell align="right">
+        <Skeleton variant="circular" width={24} height={24} sx={{ ml: 'auto' }} />
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function ReportHistorySkeleton(): React.JSX.Element {
+  return (
+    <>
+      {/* Mobile card list — xs only */}
+      <Box
+        sx={{
+          display: { xs: 'flex', sm: 'none' },
+          flexDirection: 'column',
+          border: '1px solid var(--border)',
+          bgcolor: 'var(--card)',
+        }}
+      >
+        {HISTORY_SKELETON_KEYS.map((key, idx) => (
+          <Box
+            key={key}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              px: 2,
+              py: 1.5,
+              borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
+            }}
+          >
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Skeleton variant="text" width="60%" height={20} />
+              <Skeleton variant="text" width="40%" height={16} />
+            </Box>
+            <Skeleton variant="rounded" width={48} height={20} />
+            <Skeleton variant="text" width={40} height={16} />
+            <Skeleton variant="circular" width={24} height={24} />
+          </Box>
+        ))}
+      </Box>
+
+      {/* Desktop table — sm+ */}
+      <Box
+        sx={{
+          display: { xs: 'none', sm: 'block' },
+          overflowX: 'auto',
+          border: '1px solid var(--border)',
+          bgcolor: 'var(--card)',
+        }}
+      >
+        <Table size="small" sx={{ minWidth: 480 }}>
+          <TableBody>
+            {HISTORY_SKELETON_KEYS.map(key => (
+              <ReportHistoryRowSkeleton key={key} />
+            ))}
+          </TableBody>
+        </Table>
+      </Box>
+    </>
+  );
+}
 
 export interface ReportHistoryItem {
   id: string;
@@ -112,11 +195,7 @@ export function ReportHistory(): React.JSX.Element {
   }, []);
 
   if (loading) {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 8 }}>
-        <CircularProgress size={32} />
-      </Box>
-    );
+    return <ReportHistorySkeleton />;
   }
 
   if (!history.length) {

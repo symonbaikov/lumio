@@ -184,7 +184,6 @@
       "entry": [
         "app/**/*.{ts,tsx}",
         "app/**/*.css",
-        ".storybook/**/*.{js,ts,tsx}",
         "next.config.*",
         "types/**/*.d.ts"
       ],
@@ -194,24 +193,8 @@
         "lib/**/*.{ts,tsx}",
         "types/**/*.{ts,tsx,d.ts}",
         "app/**/*.css",
-        ".storybook/**/*.{js,ts,tsx}",
         "*.{js,ts,mjs}"
       ],
-      "storybook": {
-        "config": [
-          ".storybook/main.ts"
-        ]
-      },
-      "webpack": {
-        "config": [
-          ".storybook/main.ts"
-        ]
-      },
-      "babel": {
-        "config": [
-          ".storybook/main.ts"
-        ]
-      },
       "postcss": {
         "config": [
           "postcss.config.mjs"
@@ -221,14 +204,7 @@
         "entry": [
           "app/**/*.css"
         ]
-      },
-      "ignoreDependencies": [
-        "@babel/plugin-transform-runtime",
-        "@babel/preset-react",
-        "@babel/preset-typescript",
-        "babel-loader",
-        "ts-loader"
-      ]
+      }
     },
     "website": {
       "entry": [
