@@ -9,6 +9,7 @@ import {
   WorkspaceRole,
 } from '@/entities';
 import { AuthService } from '@/modules/auth/auth.service';
+import { TwoFactorService } from '@/modules/auth/two-factor.service';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -117,6 +118,12 @@ describe('AuthService', () => {
             createDefaultCategories: jest.fn(),
             createDefaultCategoriesForWorkspace: jest.fn(),
             createSystemCategories: jest.fn(),
+          },
+        },
+        {
+          provide: TwoFactorService,
+          useValue: {
+            assertLoginCode: jest.fn(),
           },
         },
       ],

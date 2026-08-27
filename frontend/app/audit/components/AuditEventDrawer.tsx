@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import type { AuditEvent } from '@/lib/api/audit';
@@ -27,7 +28,7 @@ function EventMetaRows({
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
 
   const rows = [
-    { label: 'Timestamp', value: new Date(event.createdAt).toLocaleString() },
+    { label: 'Timestamp', value: formatStoredDateTime(event.createdAt) },
     { label: 'Actor', value: event.actorLabel },
     { label: 'Action', value: formatted.actionLabel },
     { label: 'Entity', value: formatted.objectLabel },

@@ -39,6 +39,7 @@ describe('ClassificationService', () => {
       branchRepo as any,
       walletRepo as any,
       categorizationRuleRepo as any,
+      { findOne: jest.fn(async () => null) } as any,
       cacheManager as any,
       auditService as any,
       categoriesService,

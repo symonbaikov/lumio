@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { AnalyticsSourceBadge } from '@/app/(main)/statements/components/analytics/AnalyticsSourceBadge';
 import type {
@@ -37,7 +38,7 @@ const formatDateValue = (dateValue: string | null | undefined): string => {
     return '-';
   }
   const d = new Date(dateValue);
-  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString();
+  return Number.isNaN(d.getTime()) ? '-' : formatStoredDate(d);
 };
 
 type TableProps = {

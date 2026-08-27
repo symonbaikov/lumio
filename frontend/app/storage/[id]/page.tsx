@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import {
   ArrowLeft,
@@ -314,13 +315,10 @@ export default function FileDetailsPage() {
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(
+    return formatStoredDateWithOptions(
+      date,
+      { year: 'numeric', month: 'long', day: 'numeric' },
       locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US',
-      {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      },
     );
   };
 

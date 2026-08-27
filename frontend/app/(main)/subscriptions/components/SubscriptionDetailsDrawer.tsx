@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import apiClient from '@/app/lib/api';
@@ -30,7 +31,7 @@ interface SubscriptionDetailsDrawerProps {
 }
 
 const formatDate = (value: string | null): string =>
-  value ? new Date(value).toLocaleDateString('ru-RU') : '—';
+  value ? formatStoredDate(value, 'ru-RU') : '—';
 
 type SubscriptionDetails = {
   charges: Array<{

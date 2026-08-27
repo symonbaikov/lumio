@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { FileImage, FileText } from '@/app/components/icons';
@@ -347,7 +348,7 @@ export function ReceiptDetailPanel({
                   Received
                 </Typography>
                 <Typography style={{ fontSize: 14, fontWeight: 500, color: 'var(--foreground)' }}>
-                  {new Date(receipt.receivedAt).toLocaleDateString()}
+                  {formatStoredDate(receipt.receivedAt)}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>

@@ -3,7 +3,12 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, LessThan, type Repository } from 'typeorm';
-import { NotificationPreference } from '../../entities/notification-preference.entity';
+import {
+  NotificationChannel,
+  type NotificationChannelMatrix,
+  type NotificationChannelSet,
+  NotificationPreference,
+} from '../../entities/notification-preference.entity';
 import {
   Notification,
   NotificationCategory,
@@ -13,6 +18,7 @@ import {
 import { User } from '../../entities/user.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import type { UpdateNotificationPreferencesDto } from './dto/update-notification-preferences.dto';
+import { NotificationDeliveryService } from './notification-delivery.service';
 import { type NotificationMessageKey, renderNotification } from './notification-translations';
 
 type NotificationPreferenceKey =
@@ -25,6 +31,23 @@ type NotificationPreferenceKey =
   | 'parsingErrors'
   | 'importFailures'
   | 'uncategorizedItems';
+
+/** Anything that is not a real boolean leaves the current setting alone — a
+ * truthy string must not be able to switch a channel on. */
+const pickBoolean = (value: unknown, fallback: boolean): boolean =>
+  typeof value === 'boolean' ? value : fallback;
+
+const NOTIFICATION_PREFERENCE_KEYS: NotificationPreferenceKey[] = [
+  'statementUploaded',
+  'importCommitted',
+  'categoryChanges',
+  'memberActivity',
+  'dataDeleted',
+  'workspaceUpdated',
+  'parsingErrors',
+  'importFailures',
+  'uncategorizedItems',
+];
 
 const NOTIFICATION_PREFERENCE_MAP: Record<NotificationType, NotificationPreferenceKey> = {
   [NotificationType.STATEMENT_UPLOADED]: 'statementUploaded',
@@ -92,22 +115,30 @@ export class NotificationsService {
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly eventEmitter: EventEmitter2,
+    private readonly deliveryService: NotificationDeliveryService,
   ) {}
 
   async create(payload: CreateNotificationPayload): Promise<Notification | null> {
-    const enabled = await this.isTypeEnabled(payload.recipientId, payload.type);
-    if (!enabled) {
+    const preferences = await this.getPreferences(payload.recipientId);
+    const channels = this.resolveChannels(preferences, payload.type);
+
+    // Every channel off for this event: the user asked not to hear about it at all.
+    if (!(channels.inApp || channels.email || channels.telegram)) {
       return null;
     }
 
     const user = await this.userRepository.findOne({
       where: { id: payload.recipientId },
-      select: ['id', 'locale'],
     });
     const { title, message } = renderNotification(
       user?.locale ?? 'ru',
       payload.messageKey,
       payload.messageParams,
+    );
+
+    const pushChannels = this.resolvePushChannels(channels);
+    const deferred = Boolean(
+      pushChannels.length && user && this.deliveryService.isDeferred(preferences, user),
     );
 
     const notification = this.notificationRepository.create({
@@ -118,6 +149,9 @@ export class NotificationsService {
       severity: payload.severity ?? NotificationSeverity.INFO,
       title,
       message,
+      inApp: channels.inApp,
+      // Deferred sends are parked here; immediate ones are cleared right after.
+      pendingChannels: deferred ? pushChannels : [],
       actorId: payload.actorId ?? null,
       actorName: payload.actorName ?? null,
       entityType: payload.entityType ?? null,
@@ -126,8 +160,65 @@ export class NotificationsService {
     });
 
     const saved = await this.notificationRepository.save(notification);
-    this.eventEmitter.emit('notification.created', saved);
+
+    if (channels.inApp) {
+      this.eventEmitter.emit('notification.created', saved);
+    }
+
+    if (!deferred && user) {
+      await this.deliverNow(saved, user, pushChannels);
+    }
+
     return saved;
+  }
+
+  /** In-app is rendered from the row itself; only these two need sending out. */
+  private resolvePushChannels(channels: NotificationChannelSet): NotificationChannel[] {
+    return [
+      ...(channels.email ? [NotificationChannel.EMAIL] : []),
+      ...(channels.telegram ? [NotificationChannel.TELEGRAM] : []),
+    ];
+  }
+
+  /** Sends the push channels straight away; whatever fails stays pending for the sweep. */
+  private async deliverNow(
+    notification: Notification,
+    user: User,
+    pushChannels: NotificationChannel[],
+  ): Promise<void> {
+    if (!pushChannels.length) {
+      return;
+    }
+
+    const failed = await this.deliveryService.deliver(notification, user, pushChannels);
+    if (!failed.length) {
+      return;
+    }
+
+    notification.pendingChannels = failed;
+    await this.notificationRepository.update(notification.id, { pendingChannels: failed });
+  }
+
+  /** Falls back to the legacy booleans for rows written before the channels migration. */
+  private resolveChannels(
+    preferences: NotificationPreference,
+    type: NotificationType,
+  ): NotificationChannelSet {
+    const key = NOTIFICATION_PREFERENCE_MAP[type];
+    if (!key) {
+      return { inApp: true, email: false, telegram: false };
+    }
+
+    const configured = preferences.channels?.[key];
+    if (configured) {
+      return {
+        inApp: Boolean(configured.inApp),
+        email: Boolean(configured.email),
+        telegram: Boolean(configured.telegram),
+      };
+    }
+
+    return { inApp: Boolean(preferences[key]), email: false, telegram: false };
   }
 
   async createForWorkspaceMembers(payload: WorkspaceNotificationPayload): Promise<number> {
@@ -184,6 +275,7 @@ export class NotificationsService {
     const qb = this.notificationRepository
       .createQueryBuilder('notification')
       .where('notification.recipientId = :recipientId', { recipientId })
+      .andWhere('notification.inApp = true')
       .orderBy('notification.createdAt', 'DESC')
       .take(normalizedLimit)
       .skip(normalizedOffset);
@@ -198,6 +290,7 @@ export class NotificationsService {
     const qb = this.notificationRepository
       .createQueryBuilder('notification')
       .where('notification.recipientId = :recipientId', { recipientId })
+      .andWhere('notification.inApp = true')
       .andWhere('notification.isRead = false');
 
     qb.andWhere('notification.workspaceId = :workspaceId', { workspaceId });
@@ -240,12 +333,18 @@ export class NotificationsService {
 
   async getPreferences(userId: string): Promise<NotificationPreference> {
     const existing = await this.preferenceRepository.findOne({ where: { userId } });
-    if (existing) {
-      return existing;
+    const preferences =
+      existing ??
+      (await this.preferenceRepository.save(this.preferenceRepository.create({ userId })));
+
+    // Rows created after the migration start with an empty matrix. Fill it in once
+    // so every consumer sees the same shape instead of reimplementing the fallback.
+    if (!Object.keys(preferences.channels ?? {}).length) {
+      preferences.channels = this.normalizeChannels(preferences, {});
+      await this.preferenceRepository.update(preferences.id, { channels: preferences.channels });
     }
 
-    const created = this.preferenceRepository.create({ userId });
-    return this.preferenceRepository.save(created);
+    return preferences;
   }
 
   async updatePreferences(
@@ -253,18 +352,51 @@ export class NotificationsService {
     dto: UpdateNotificationPreferencesDto,
   ): Promise<NotificationPreference> {
     const preferences = await this.getPreferences(userId);
-    Object.assign(preferences, dto);
+    const { channels, ...rest } = dto;
+    Object.assign(preferences, rest);
+
+    if (channels) {
+      preferences.channels = this.normalizeChannels(preferences, channels);
+    }
+
     return this.preferenceRepository.save(preferences);
   }
 
-  async isTypeEnabled(userId: string, type: NotificationType): Promise<boolean> {
-    const preferenceKey = NOTIFICATION_PREFERENCE_MAP[type];
-    if (!preferenceKey) {
-      return true;
+  /**
+   * The matrix lands in a jsonb column, so only known event keys and real booleans
+   * are allowed through — never the raw request body.
+   */
+  private normalizeChannels(
+    preferences: NotificationPreference,
+    incoming: Record<string, { inApp?: boolean; email?: boolean; telegram?: boolean }>,
+  ): NotificationChannelMatrix {
+    const normalized: NotificationChannelMatrix = {};
+
+    for (const key of NOTIFICATION_PREFERENCE_KEYS) {
+      const current = preferences.channels?.[key] ?? {
+        inApp: Boolean(preferences[key]),
+        email: false,
+        telegram: false,
+      };
+      const patch = incoming[key];
+
+      normalized[key] = patch
+        ? {
+            inApp: pickBoolean(patch.inApp, current.inApp),
+            email: pickBoolean(patch.email, current.email),
+            telegram: pickBoolean(patch.telegram, current.telegram),
+          }
+        : current;
     }
 
+    return normalized;
+  }
+
+  /** True when the event reaches the user over at least one channel. */
+  async isTypeEnabled(userId: string, type: NotificationType): Promise<boolean> {
     const preferences = await this.getPreferences(userId);
-    return preferences[preferenceKey];
+    const channels = this.resolveChannels(preferences, type);
+    return channels.inApp || channels.email || channels.telegram;
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)

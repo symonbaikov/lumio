@@ -5,6 +5,7 @@ import type {
   PayableStatus,
   PayablesSummary,
 } from '@/app/lib/payables-api';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 export type PayablesSortOption = 'dueDateAsc' | 'dueDateDesc' | 'amountDesc' | 'vendorAsc';
 
@@ -78,7 +79,7 @@ export const formatPayableDate = (value?: string | null, locale = 'en'): string 
   if (!date) {
     return '—';
   }
-  return date.toLocaleDateString(resolveLocale(locale));
+  return formatStoredDate(date, resolveLocale(locale));
 };
 
 export const isPayableOverdue = (payable: Pick<Payable, 'status' | 'dueDate'>): boolean => {

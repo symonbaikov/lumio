@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import StatementCategoryDrawer from '@/app/(main)/statements/[id]/edit/StatementCategoryDrawer';
 import { AuditEventDrawer } from '@/app/audit/components/AuditEventDrawer';
@@ -321,7 +322,7 @@ export function GmailReceiptDetails({
                       {dup.parsedData?.vendor || dup.sender}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'warning.800' }}>
-                      {new Date(dup.parsedData?.date || dup.receivedAt).toLocaleDateString()} ·{' '}
+                      {formatStoredDate(dup.parsedData?.date || dup.receivedAt)} ·{' '}
                       {(dup.parsedData?.amount || 0).toLocaleString()}{' '}
                       {dup.parsedData?.currency || 'KZT'}
                     </Typography>

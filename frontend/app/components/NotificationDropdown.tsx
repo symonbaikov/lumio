@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { AlertTriangle, Bell, CircleAlert, Info } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
@@ -47,7 +48,7 @@ function formatRelativeTime(value: string, locale: string, justNowLabel: string)
     return relativeTime.format(-days, 'day');
   }
 
-  return date.toLocaleDateString(locale === 'kk' ? 'kk-KZ' : locale);
+  return formatStoredDate(date, locale === 'kk' ? 'kk-KZ' : locale);
 }
 
 function replaceTemplate(template: string, values: Record<string, string | number>): string {

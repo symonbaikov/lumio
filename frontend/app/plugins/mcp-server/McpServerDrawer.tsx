@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { Copy, Lock, Plus, Trash2 } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
@@ -90,7 +91,7 @@ function timeAgo(dateStr: string | null): string {
   if (d === 0) return 'Today';
   if (d === 1) return '1 day ago';
   if (d < 30) return `${d} days ago`;
-  return new Date(dateStr).toLocaleDateString();
+  return formatStoredDate(dateStr);
 }
 
 export function McpServerDrawer({ isOpen, onClose }: McpServerDrawerProps) {

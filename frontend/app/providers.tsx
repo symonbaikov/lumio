@@ -1,5 +1,6 @@
 'use client';
 
+import { useAppearancePreferences } from '@/app/lib/appearance-preferences';
 import {
   type AppLocale,
   isSupportedLocale,
@@ -101,7 +102,11 @@ export function Providers({
   const [mounted, setMounted] = useState(false);
   const [locale, setLocale] = useState<AppLocale>(() => readLocaleFromCookie() ?? initialLocale);
   const paletteMode = mounted && resolvedTheme === 'dark' ? 'dark' : 'light';
-  const muiTheme = useMemo(() => createAppTheme(paletteMode), [paletteMode]);
+  const { density, reduceMotion } = useAppearancePreferences();
+  const muiTheme = useMemo(
+    () => createAppTheme(paletteMode, { density, reduceMotion }),
+    [paletteMode, density, reduceMotion],
+  );
   useEffect(() => {
     setMounted(true);
   }, []);

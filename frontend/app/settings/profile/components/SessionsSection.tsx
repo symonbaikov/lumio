@@ -3,6 +3,7 @@
 import { LogOut } from '@/app/components/icons';
 import { Alert } from '@/app/components/ui/alert';
 import { Spinner } from '@/app/components/ui/spinner';
+import { type UserFormatPreferences, formatDateTime } from '@/app/lib/user-format';
 import { type UserSession, getSessionIcon } from '@/app/settings/profile/profileHelpers';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
@@ -27,6 +28,7 @@ type Props = {
   logoutSessionLoadingId: string | null;
   handleLogoutSession: (session: UserSession) => Promise<void>;
   handleLogoutAll: () => Promise<void>;
+  formatPreferences: UserFormatPreferences;
 };
 
 export function SessionsSection({
@@ -40,6 +42,7 @@ export function SessionsSection({
   logoutSessionLoadingId,
   handleLogoutSession,
   handleLogoutAll,
+  formatPreferences,
 }: Props) {
   return (
     <Stack spacing={2.5}>
@@ -67,7 +70,7 @@ export function SessionsSection({
         <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary', fontSize: 14 }}>
           {t.sessionsCard.lastLoginLabel.value}:
         </Typography>{' '}
-        {userLastLogin ? new Date(userLastLogin).toLocaleString() : '—'}
+        {userLastLogin ? formatDateTime(userLastLogin, formatPreferences) : '—'}
       </Box>
 
       <Stack spacing={1.5}>
@@ -155,7 +158,7 @@ export function SessionsSection({
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {tx(['sessionsCard', 'lastActiveLabel'], 'Last active')}:{' '}
-                        {new Date(session.lastUsedAt).toLocaleString()}
+                        {formatDateTime(session.lastUsedAt, formatPreferences)}
                       </Typography>
                     </Stack>
                   </Box>

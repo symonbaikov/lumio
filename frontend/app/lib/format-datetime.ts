@@ -1,9 +1,16 @@
-export const formatDateTime = (value?: string | null, locale?: string): string => {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return new Intl.DateTimeFormat(locale ?? undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
-};
+import {
+  type UserFormatPreferences,
+  formatDateTime as formatWithPreferences,
+} from '@/app/lib/user-format';
+
+/**
+ * Kept for existing call sites that only have a locale. New code should pass the
+ * user's full format preferences so the chosen date order is respected.
+ */
+export const formatDateTime = (value?: string | null, locale?: string): string =>
+  formatWithPreferences(value, { locale });
+
+export const formatDateTimeFor = (
+  value: string | null | undefined,
+  preferences: UserFormatPreferences,
+): string => formatWithPreferences(value, preferences);

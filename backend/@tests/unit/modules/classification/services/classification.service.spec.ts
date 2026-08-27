@@ -1,3 +1,4 @@
+import { Workspace } from '@/entities/workspace.entity';
 import { Branch } from '@/entities/branch.entity';
 import { CategorizationRule } from '@/entities/categorization-rule.entity';
 import { CategoryLearning } from '@/entities/category-learning.entity';
@@ -85,6 +86,10 @@ describe('ClassificationService', () => {
             find: jest.fn(),
             findOne: jest.fn(),
           },
+        },
+        {
+          provide: getRepositoryToken(Workspace),
+          useValue: { findOne: jest.fn(async () => null) },
         },
         {
           provide: getRepositoryToken(CategorizationRule),

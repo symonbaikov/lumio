@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { ArrowLeft, Download, Table } from '@/app/components/icons';
 import { ReceiptParsedDataForm } from '@/app/components/receipts/ReceiptParsedDataForm';
@@ -469,7 +470,7 @@ export default function ReceiptDocumentPage() {
 
       const createTableResponse = await apiClient.post('/custom-tables', {
         name: `Receipt ${receipt.subject}`.slice(0, 120),
-        description: `Exported from scanned receipt on ${new Date(receipt.receivedAt).toLocaleDateString()}`,
+        description: `Exported from scanned receipt on ${formatStoredDate(receipt.receivedAt)}`,
       });
 
       const createdTable = createTableResponse.data?.data || createTableResponse.data;
@@ -743,7 +744,7 @@ export default function ReceiptDocumentPage() {
                 {receipt.subject}
               </Typography>
               <Typography style={{ marginTop: 8, fontSize: 14, color: c.ink700 }}>
-                {receipt.source} · {new Date(receipt.receivedAt).toLocaleDateString()}
+                {receipt.source} · {formatStoredDate(receipt.receivedAt)}
               </Typography>
             </Box>
           </Box>

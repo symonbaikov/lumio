@@ -4,6 +4,7 @@ import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import { format as formatDate, isValid as isValidDate, parseISO } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -554,7 +555,7 @@ export const useUnapprovedCashViewModel = (): UnapprovedCashViewModel => {
     if (!item.date) {
       return '—';
     }
-    return item.date.toLocaleDateString();
+    return formatStoredDate(item.date);
   };
 
   return {

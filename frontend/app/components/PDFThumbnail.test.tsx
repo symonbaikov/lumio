@@ -183,12 +183,12 @@ describe('PDFThumbnail', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    const { PDFThumbnail: freshPdfThumbnail } = await import('./PDFThumbnail');
+    const { PDFThumbnail: FreshPDFThumbnail } = await import('./PDFThumbnail');
     const root = createRoot(container);
 
     try {
       await act(async () => {
-        root.render(<freshPdfThumbnail fileId="statement-dev" width={320} height={460} />);
+        root.render(<FreshPDFThumbnail fileId="statement-dev" width={320} height={460} />);
         await Promise.resolve();
       });
 

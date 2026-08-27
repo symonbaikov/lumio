@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { ArrowLeft, Download, Table } from '@/app/components/icons';
 import type { EditableReceiptParsedData } from '@/app/components/receipts/receipt-types';
@@ -200,7 +201,7 @@ function ReceiptHeaderTitle({ receipt }: { receipt: ReceiptRecord }): React.Reac
         {receipt.subject}
       </Typography>
       <Typography style={{ marginTop: 8, fontSize: 14, color: c.ink700 }}>
-        {receipt.source} · {new Date(receipt.receivedAt).toLocaleDateString()}
+        {receipt.source} · {formatStoredDate(receipt.receivedAt)}
       </Typography>
     </Box>
   );

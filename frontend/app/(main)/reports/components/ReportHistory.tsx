@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { Download } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
@@ -167,7 +168,7 @@ export function ReportHistory(): React.JSX.Element {
     }
 
     const resolvedLocale = locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US';
-    return date.toLocaleDateString(resolvedLocale, { month: 'short', day: 'numeric' });
+    return formatStoredDateWithOptions(date, { month: 'short', day: 'numeric' }, resolvedLocale);
   };
 
   const handleDownload = async (item: ReportHistoryItem): Promise<void> => {

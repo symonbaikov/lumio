@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { Download as DownloadIcon, Lock as LockIcon } from '@/app/components/icons';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -127,13 +128,10 @@ export default function SharedFilePage() {
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(
+    return formatStoredDateWithOptions(
+      date,
+      { year: 'numeric', month: 'long', day: 'numeric' },
       locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US',
-      {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      },
     );
   };
 

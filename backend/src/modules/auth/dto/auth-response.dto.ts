@@ -14,3 +14,13 @@ export class AuthResponseDto {
   access_token: string;
   refresh_token: string;
 }
+
+/**
+ * Returned by login when the password was correct but the account needs a
+ * second factor. Deliberately carries no tokens and no user data.
+ */
+export class TwoFactorChallengeDto {
+  twoFactorRequired: true;
+}
+
+export type LoginResultDto = AuthResponseDto | TwoFactorChallengeDto;

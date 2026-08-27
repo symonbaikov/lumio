@@ -3,6 +3,10 @@ import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
+import {
+  DEFAULT_PROCESSING_SETTINGS,
+  readProcessingSettings,
+} from '../../../common/utils/workspace-processing.util';
 import { ActorType, AuditAction, EntityType } from '../../../entities/audit-event.entity';
 import { Branch } from '../../../entities/branch.entity';
 import { CategorizationRule } from '../../../entities/categorization-rule.entity';
@@ -10,6 +14,7 @@ import { CategoryLearning } from '../../../entities/category-learning.entity';
 import { Category, CategorySource, CategoryType } from '../../../entities/category.entity';
 import { type Transaction, TransactionType } from '../../../entities/transaction.entity';
 import { Wallet } from '../../../entities/wallet.entity';
+import { Workspace } from '../../../entities/workspace.entity';
 import { ApplicationSettingsService } from '../../application-settings/application-settings.service';
 import { AuditService } from '../../audit/audit.service';
 import { CategoriesService } from '../../categories/categories.service';
@@ -45,6 +50,8 @@ export class ClassificationService {
     private walletRepository: Repository<Wallet>,
     @InjectRepository(CategorizationRule)
     private categorizationRuleRepository: Repository<CategorizationRule>,
+    @InjectRepository(Workspace)
+    private workspaceRepository: Repository<Workspace>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly auditService: AuditService,
     private readonly categoriesService: CategoriesService,
@@ -616,6 +623,7 @@ export class ClassificationService {
       transactionType === TransactionType.INCOME ? CategoryType.INCOME : CategoryType.EXPENSE;
     const categories = (await this.categoriesService.findAll(workspaceId, type)) ?? [];
 
+    const nameMatchThreshold = await this.getCategorizationThreshold(workspaceId);
     const searchTokens = this.tokenizeForCategoryMatch(searchText);
 
     for (const category of categories) {
@@ -636,7 +644,7 @@ export class ClassificationService {
       const matchedWords = words.filter(word =>
         searchTokens.some(token => this.categoryWordsMatch(word, token)),
       );
-      if (matchedWords.length / words.length >= 0.7) {
+      if (matchedWords.length / words.length >= nameMatchThreshold) {
         return category.id;
       }
     }
@@ -1020,6 +1028,8 @@ export class ClassificationService {
       return undefined;
     }
 
+    const threshold = await this.getCategorizationThreshold(workspaceId);
+
     // Calculate similarity scores
     const searchText =
       `${transaction.paymentPurpose} ${transaction.counterpartyName}`.toLowerCase();
@@ -1035,13 +1045,37 @@ export class ClassificationService {
       // Consider confidence in scoring (boost high-confidence patterns)
       const weightedScore = score * Number(pattern.confidence);
 
-      // Threshold: 0.7 weighted score to accept match
-      if (weightedScore > 0.7 && (!bestMatch || weightedScore > bestMatch.score)) {
+      if (weightedScore > threshold && (!bestMatch || weightedScore > bestMatch.score)) {
         bestMatch = { categoryId: pattern.categoryId, score: weightedScore };
       }
     }
 
     return bestMatch?.categoryId;
+  }
+
+  /**
+   * Workspace-configured match threshold. Cached because classification runs
+   * per transaction and the value changes about once a year.
+   */
+  private async getCategorizationThreshold(workspaceId: string | null): Promise<number> {
+    if (!workspaceId) {
+      return DEFAULT_PROCESSING_SETTINGS.categorizationThreshold;
+    }
+
+    const cacheKey = `workspace:${workspaceId}:categorization-threshold`;
+    const cached = await this.cacheManager.get<number>(cacheKey);
+    if (typeof cached === 'number') {
+      return cached;
+    }
+
+    const workspace = await this.workspaceRepository.findOne({
+      where: { id: workspaceId },
+      select: ['id', 'settings'],
+    });
+    const { categorizationThreshold } = readProcessingSettings(workspace);
+
+    await this.cacheManager.set(cacheKey, categorizationThreshold, 300000);
+    return categorizationThreshold;
   }
 
   private async learnFromAiClassification(

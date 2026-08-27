@@ -9,6 +9,27 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 
+export enum NotificationChannel {
+  IN_APP = 'inApp',
+  EMAIL = 'email',
+  TELEGRAM = 'telegram',
+}
+
+export enum NotificationDigestMode {
+  INSTANT = 'instant',
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
+}
+
+/** Which channels a single event should reach the user through. */
+export type NotificationChannelSet = {
+  inApp: boolean;
+  email: boolean;
+  telegram: boolean;
+};
+
+export type NotificationChannelMatrix = Record<string, NotificationChannelSet>;
+
 @Entity('notification_preferences')
 @Unique('UQ_notification_preferences_user', ['userId'])
 export class NotificationPreference {
@@ -48,6 +69,33 @@ export class NotificationPreference {
 
   @Column({ name: 'uncategorized_items', type: 'boolean', default: true })
   uncategorizedItems: boolean;
+
+  /**
+   * Per-event delivery matrix, the source of truth since the channels migration.
+   * The booleans above are kept only so a rollback does not lose settings.
+   * ponytail: drop the booleans once this has shipped for a release.
+   */
+  @Column({ type: 'jsonb', nullable: false, default: () => "'{}'::jsonb" })
+  channels: NotificationChannelMatrix;
+
+  @Column({
+    name: 'digest_mode',
+    type: 'varchar',
+    length: 16,
+    default: NotificationDigestMode.INSTANT,
+  })
+  digestMode: NotificationDigestMode;
+
+  /** Local hour (0-23) when quiet hours begin; null disables them. May wrap past midnight. */
+  @Column({ name: 'quiet_hours_start', type: 'smallint', nullable: true })
+  quietHoursStart: number | null;
+
+  @Column({ name: 'quiet_hours_end', type: 'smallint', nullable: true })
+  quietHoursEnd: number | null;
+
+  /** When the last daily/weekly digest went out, so a sweep never sends twice. */
+  @Column({ name: 'last_digest_at', type: 'timestamptz', nullable: true })
+  lastDigestAt: Date | null;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;

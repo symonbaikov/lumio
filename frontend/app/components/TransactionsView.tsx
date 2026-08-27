@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { Search as SearchIcon } from '@/app/components/icons';
 import { AppPagination } from '@/app/components/ui/pagination';
@@ -71,7 +72,7 @@ export default function TransactionsView({ transactions }: TransactionsViewProps
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US');
+    return formatStoredDate(date, locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US');
   };
 
   const formatAmount = (amount: number, currency?: string): string => {
