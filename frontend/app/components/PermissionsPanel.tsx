@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { Pencil, Trash2, UserPlus } from '@/app/components/icons';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -327,11 +328,11 @@ export default function PermissionsPanel({
 
   const LOCALE_MAP: Record<string, string> = { kk: 'kk-KZ', ru: 'ru-RU' };
   const formatDate = (dateString: string): string =>
-    new Date(dateString).toLocaleDateString(LOCALE_MAP[locale] ?? 'en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    formatStoredDateWithOptions(
+      dateString,
+      { year: 'numeric', month: 'long', day: 'numeric' },
+      LOCALE_MAP[locale] ?? 'en-US',
+    );
 
   const formProps: PermFormProps = {
     permissionType,

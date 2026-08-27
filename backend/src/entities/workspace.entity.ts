@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { TaxJurisdiction } from './tax-jurisdiction.entity';
 import { User } from './user.entity';
 import { WorkspaceMember } from './workspace-member.entity';
 
@@ -33,6 +34,28 @@ export class Workspace {
 
   @Column({ type: 'varchar', length: 10, nullable: true })
   currency: string | null;
+
+  /**
+   * Tax jurisdiction this workspace files in. NULL means tax is not configured,
+   * which is the state every pre-existing workspace starts in.
+   */
+  @ManyToOne(() => TaxJurisdiction, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'tax_jurisdiction_id' })
+  taxJurisdiction: TaxJurisdiction | null;
+
+  @Column({ name: 'tax_jurisdiction_id', nullable: true })
+  taxJurisdictionId: string | null;
+
+  /** How far the registration-threshold alert has escalated: 0, 80 or 100. */
+  @Column({ name: 'tax_threshold_alert_level', type: 'int', default: 0 })
+  taxThresholdAlertLevel: number;
+
+  /**
+   * Which measuring window the level belongs to, e.g. '2026'. A new window
+   * resets the alerts on its own, with no nightly job to clear flags.
+   */
+  @Column({ name: 'tax_threshold_alert_window', type: 'varchar', length: 16, nullable: true })
+  taxThresholdAlertWindow: string | null;
 
   @Column({ type: 'boolean', default: false, name: 'is_favorite' })
   isFavorite: boolean;

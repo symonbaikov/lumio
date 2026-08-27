@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { Camera, FileImage, FileText, Mail, UploadCloud } from '@/app/components/icons';
 import type { ReceiptRecord } from '@/app/lib/api';
@@ -144,7 +145,7 @@ export function ReceiptCard({ receipt, onOpen }: ReceiptCardProps) {
               color: 'var(--muted-foreground)',
             }}
           >
-            <span>{new Date(receipt.receivedAt).toLocaleDateString()}</span>
+            <span>{formatStoredDate(receipt.receivedAt)}</span>
             <Box
               component="span"
               sx={{

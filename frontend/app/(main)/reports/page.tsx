@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, DollarSign, PieChart, Scale } from '@/app/components/icons';
+import { BarChart3, CalendarDays, DollarSign, List, PieChart, Scale } from '@/app/components/icons';
 import { sharedMuiTabsSx } from '@/app/components/ui/mui-tabs';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
@@ -13,7 +13,9 @@ import { useState } from 'react';
 import BalanceSheet from './components/BalanceSheet';
 import { type ReportGenerateParams, ReportGenerator } from './components/ReportGenerator';
 import { ReportHistory } from './components/ReportHistory';
+import { ReportSchedules } from './components/ReportSchedules';
 import { type ReportTemplate, ReportTemplateCard } from './components/ReportTemplateCard';
+import { TaxReturnView } from './components/TaxReturnView';
 
 // eslint-disable-next-line max-lines-per-function
 export default function ReportsPage(): React.JSX.Element {
@@ -61,9 +63,31 @@ export default function ReportsPage(): React.JSX.Element {
       category: 'operational',
       formats: ['pdf', 'excel', 'csv'],
     },
+    {
+      id: 'transaction-register',
+      name: text('templateTransactionRegisterName', 'Transaction Register'),
+      description: text(
+        'templateTransactionRegisterDescription',
+        'Every transaction in the period with converted and original amounts',
+      ),
+      icon: List,
+      category: 'operational',
+      formats: ['pdf', 'excel', 'csv'],
+    },
+    {
+      id: 'monthly-summary',
+      name: text('templateMonthlySummaryName', 'Monthly Summary'),
+      description: text(
+        'templateMonthlySummaryDescription',
+        'Income, expenses, savings rate and top categories on one page',
+      ),
+      icon: CalendarDays,
+      category: 'financial',
+      formats: ['pdf', 'excel', 'csv'],
+    },
   ];
 
-  const [tab, setTab] = useState<'templates' | 'history'>('templates');
+  const [tab, setTab] = useState<'templates' | 'history' | 'schedules' | 'tax'>('templates');
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
   const [showBalanceSheet, setShowBalanceSheet] = useState(false);
 
@@ -136,7 +160,7 @@ export default function ReportsPage(): React.JSX.Element {
           data-tour-id="reports-tabs"
           value={tab}
           // eslint-disable-next-line max-params
-          onChange={(_e, v: 'templates' | 'history') => {
+          onChange={(_e, v: 'templates' | 'history' | 'schedules' | 'tax') => {
             setTab(v);
             setSelectedTemplate(null);
           }}
@@ -146,14 +170,21 @@ export default function ReportsPage(): React.JSX.Element {
         >
           <Tab value="templates" label={text('tabTemplates', 'Templates')} />
           <Tab
+            value="schedules"
+            label={text('tabSchedules', 'Schedules')}
+            data-tour-id="reports-schedules-tab"
+          />
+          <Tab
             value="history"
             label={text('tabHistory', 'History')}
             data-tour-id="reports-history-tab"
           />
+          <Tab value="tax" label={text('tabTax', 'Tax return')} />
         </Tabs>
       </Box>
 
       <Box sx={{ px: { xs: 2, sm: 4 }, py: 3 }}>
+        {tab === 'tax' && <TaxReturnView />}
         {tab === 'templates' && (
           <>
             <Box
@@ -181,6 +212,9 @@ export default function ReportsPage(): React.JSX.Element {
               />
             )}
           </>
+        )}
+        {tab === 'schedules' && (
+          <ReportSchedules templates={templates.map(tmpl => ({ id: tmpl.id, name: tmpl.name }))} />
         )}
         {tab === 'history' && <ReportHistory />}
       </Box>

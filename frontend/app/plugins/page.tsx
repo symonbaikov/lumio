@@ -140,14 +140,7 @@ export default function PluginsPage(): React.JSX.Element {
   );
 
   const renderEmpty = (message: React.ReactNode): React.JSX.Element => (
-    <Box
-      sx={{
-        borderRadius: tokens.radius.lg,
-        border: '1px dashed var(--border-color)',
-        bgcolor: 'var(--muted)',
-        p: 2,
-      }}
-    >
+    <Box>
       <EmptyStateIllustration name="plugins" size="sm" />
       <Typography style={{ fontSize: 14, color: 'var(--text-secondary)', textAlign: 'center' }}>
         {message}

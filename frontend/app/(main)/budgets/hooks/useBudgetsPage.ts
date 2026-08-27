@@ -1,6 +1,7 @@
 'use client';
 
 import apiClient from '@/app/lib/api';
+import { getApiErrorMessage } from '@/app/lib/api-error';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -10,10 +11,15 @@ export interface BudgetItem {
   categoryId: string;
   category?: { id: string; name: string; color?: string; icon?: string | null };
   limitAmount: number;
-  currency: string;
-  periodType: 'weekly' | 'monthly' | 'quarterly' | 'annual';
+  /** Budget limit in the workspace currency (API may return it as a decimal string). */
+  limitAmountWorkspace?: number;
+  /** User-entered spent amount for a budget cycle (API may return it as a decimal string). */
+  manualSpentAmount?: number;
   spentAmount: number;
   percentUsed: number;
+  currency: string;
+  workspaceCurrency?: string;
+  periodType: 'weekly' | 'monthly' | 'quarterly' | 'annual';
   createdAt: string;
 }
 
@@ -21,17 +27,72 @@ export interface BudgetFormData {
   name: string;
   categoryId: string;
   limitAmount: number;
+  manualSpentAmount: number;
   periodType: 'weekly' | 'monthly' | 'quarterly' | 'annual';
   currency: string;
 }
+
+export type BudgetDrawerIntent = 'create' | 'edit' | 'spending';
 
 const EMPTY_FORM: BudgetFormData = {
   name: '',
   categoryId: '',
   limitAmount: 0,
+  manualSpentAmount: 0,
   periodType: 'monthly',
   currency: 'KZT',
 };
+
+/** Coerces API decimal strings/numbers to a non-negative finite number. */
+export function toNonNegativeNumber(value: string | number | null | undefined): number {
+  if (value === null || value === undefined || value === '') {
+    return 0;
+  }
+  const parsed = typeof value === 'number' ? value : Number.parseFloat(value);
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+  return parsed < 0 ? 0 : parsed;
+}
+
+/** Normalizes budget API decimal fields into usable numbers before form editing and summaries. */
+export function normalizeBudgetItem(budget: BudgetItem): BudgetItem {
+  return {
+    ...budget,
+    limitAmount: toNonNegativeNumber(budget.limitAmount),
+    limitAmountWorkspace:
+      budget.limitAmountWorkspace === undefined
+        ? undefined
+        : toNonNegativeNumber(budget.limitAmountWorkspace),
+    manualSpentAmount:
+      budget.manualSpentAmount === undefined
+        ? undefined
+        : toNonNegativeNumber(budget.manualSpentAmount),
+    spentAmount: toNonNegativeNumber(budget.spentAmount),
+    percentUsed: toNonNegativeNumber(budget.percentUsed),
+  };
+}
+
+/**
+ * Builds the update payload for a budget. Spending-only updates must not resend
+ * the budget limit, so only the manual spent amount is included for that intent.
+ */
+export function buildBudgetUpdatePayload(
+  formData: BudgetFormData,
+  intent: BudgetDrawerIntent,
+): Partial<BudgetFormData> {
+  if (intent === 'spending') {
+    return { manualSpentAmount: formData.manualSpentAmount };
+  }
+  return {
+    name: formData.name,
+    categoryId: formData.categoryId,
+    limitAmount: formData.limitAmount,
+    manualSpentAmount: formData.manualSpentAmount,
+    periodType: formData.periodType,
+    currency: formData.currency,
+  };
+}
 
 export function useBudgetsPage() {
   const [budgets, setBudgets] = useState<BudgetItem[]>([]);
@@ -71,6 +132,7 @@ export function useBudgetsPage() {
       name: budget.name,
       categoryId: budget.categoryId,
       limitAmount: budget.limitAmount,
+      manualSpentAmount: budget.manualSpentAmount ?? 0,
       periodType: budget.periodType,
       currency: budget.currency,
     });
@@ -99,9 +161,8 @@ export function useBudgetsPage() {
       }
       closeDialog();
       await load();
-    } catch (err: any) {
-      const message = err?.response?.data?.message || 'Failed to save budget';
-      toast.error(message);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to save budget'));
     } finally {
       setSaving(false);
     }

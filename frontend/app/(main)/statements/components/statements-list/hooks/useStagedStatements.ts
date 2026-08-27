@@ -1,23 +1,28 @@
 'use client';
 
 import {
-  applyStatementsFilters,
   isReceiptDerivedStatement,
   paginateStatements,
   resolveStatementSortDate,
 } from '@/app/(main)/statements/components/StatementsListView.utils';
+import { applyStatementsFilters } from '@/app/(main)/statements/components/filters/statement-filters';
 import type { StatementFilters } from '@/app/(main)/statements/components/filters/statement-filters';
 import { type StatementStage, getStatementStage } from '@/app/lib/statement-workflow';
 import { useMemo } from 'react';
 
 interface StatementForStaging {
   id: string;
-  source?: string;
+  source?: 'statement' | 'gmail' | 'scan';
   status: string;
   fileName: string;
-  subject?: string;
-  sender?: string;
-  parsedData?: { vendor?: string };
+  subject?: string | null;
+  sender?: string | null;
+  parsedData?: { vendor?: string | null; date?: string | null } | null;
+  parsingDetails?: {
+    detectedBy?: string;
+    importPreview?: { source?: string };
+    metadataExtracted?: { currency?: string; headerDisplay?: { currencyDisplay?: string } };
+  };
 }
 
 interface UseStagedStatementsParams {

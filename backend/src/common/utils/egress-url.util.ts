@@ -6,7 +6,11 @@ import { BadRequestException } from '@nestjs/common';
 
 type LookupResult = Array<{ address: string }>;
 type LookupFn = (host: string) => Promise<LookupResult>;
-type NodeLookupCallback = (err: NodeJS.ErrnoException | null, address: string, family: 4 | 6) => void;
+type NodeLookupCallback = (
+  err: NodeJS.ErrnoException | null,
+  address: string,
+  family: 4 | 6,
+) => void;
 
 type EgressValidationOptions = {
   lookup?: LookupFn;
@@ -111,8 +115,13 @@ export function createPublicEgressLookup() {
     dns
       .lookup(hostname, { all: true })
       .then(records => {
-        if (records.length === 0 || records.some(record => isBlockedEgressAddress(record.address))) {
-          const error = new Error('Destination resolves to a blocked address') as NodeJS.ErrnoException;
+        if (
+          records.length === 0 ||
+          records.some(record => isBlockedEgressAddress(record.address))
+        ) {
+          const error = new Error(
+            'Destination resolves to a blocked address',
+          ) as NodeJS.ErrnoException;
           error.code = 'EHOSTUNREACH';
           callback(error, '', 4);
           return;

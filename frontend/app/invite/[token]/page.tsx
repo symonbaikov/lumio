@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 import { ShieldCheck } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
@@ -186,8 +187,7 @@ export default function AcceptInvitePage() {
                 </Typography>
                 {invitation.expiresAt && (
                   <Typography variant="body2">
-                    {t.details.expiresAt.value}:{' '}
-                    <b>{new Date(invitation.expiresAt).toLocaleString()}</b>
+                    {t.details.expiresAt.value}: <b>{formatStoredDateTime(invitation.expiresAt)}</b>
                   </Typography>
                 )}
                 <Typography variant="body2">

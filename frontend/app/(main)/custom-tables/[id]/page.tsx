@@ -15,7 +15,7 @@ import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
-import { Box, Typography } from '@mui/material';
+import { Box, Skeleton, Typography } from '@mui/material';
 import type { SortingState } from '@tanstack/react-table';
 import type { Locale } from 'date-fns';
 import { enUS, kk, ru } from 'date-fns/locale';
@@ -60,6 +60,7 @@ import {
   getActiveTabFilter,
   normalizeActiveTabId,
 } from './utils/quickTabs';
+import type { CustomTableColumn } from './utils/stylingUtils';
 import { isContentEditableTarget, tx } from './utils/tableHelpers';
 import type { CustomTablePageColumn } from './utils/tableTypes';
 import { TABULAR_FILE_ACCEPT } from './utils/tabularFileReader';
@@ -67,6 +68,18 @@ import { TABULAR_FILE_ACCEPT } from './utils/tabularFileReader';
 const LOCALE_MAP: Record<string, Locale> = { ru, kk };
 
 const EDITABLE_TAGS = new Set(['input', 'textarea', 'select']);
+
+const GRID_SKELETON_COLUMN_KEYS = ['col-0', 'col-1', 'col-2', 'col-3', 'col-4', 'col-5'];
+const GRID_SKELETON_ROW_KEYS = [
+  'row-0',
+  'row-1',
+  'row-2',
+  'row-3',
+  'row-4',
+  'row-5',
+  'row-6',
+  'row-7',
+];
 
 function shouldIgnoreKeyEvent(target: HTMLElement | null): boolean {
   const tag = target?.tagName?.toLowerCase();
@@ -152,11 +165,11 @@ function buildVisibleColumns(
   const hiddenSet = new Set(hiddenColumnKeys);
   return orderedKeys
     .map(key => columnsByKey.get(key))
-    .filter((c): c is CustomTablePageColumn => Boolean(c) && !hiddenSet.has(c.key));
+    .filter((c): c is CustomTablePageColumn => c !== undefined && !hiddenSet.has(c.key));
 }
 
 function getDeleteColumnMessage(
-  target: CustomTablePageColumn | null,
+  target: CustomTableColumn | null,
   prefix: string,
   suffix: string,
   noName: string,
@@ -167,14 +180,18 @@ function getDeleteColumnMessage(
 function getLoadButtonLabel(
   loadingRows: boolean,
   hasMore: boolean,
-  // Конкретный словарь, а не объединение всех: без ключа тип разворачивается
-  // в union из полутора тысяч словарей, где поле grid уже не выводится.
-  t: ReturnType<typeof useIntlayer<'customTableDetailPage'>>,
-) {
+  t: {
+    grid: {
+      loadingMore: { value: string };
+      loadMore: { value: string };
+      noMore: { value: string };
+    };
+  },
+): string {
   if (loadingRows) {
-    return t.grid.loadingMore;
+    return t.grid.loadingMore.value;
   }
-  return hasMore ? t.grid.loadMore : t.grid.noMore;
+  return hasMore ? t.grid.loadMore.value : t.grid.noMore.value;
 }
 
 function buildDeleteRowMessage(
@@ -1465,16 +1482,32 @@ export default function CustomTableDetailPage() {
   const notReady = authLoading || loading || !mounted;
   if (notReady) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          minHeight: '50vh',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--muted-foreground)',
-        }}
-      >
-        {t.auth.loading}
+      <Box sx={{ p: { xs: 2, sm: 3 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+          {GRID_SKELETON_COLUMN_KEYS.map(key => (
+            <Skeleton key={key} variant="text" width={120} height={20} />
+          ))}
+        </Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {GRID_SKELETON_ROW_KEYS.map(rowKey => (
+            <Box
+              key={rowKey}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                border: '1px solid var(--border-color)',
+                borderRadius: 1,
+                px: 1.5,
+                py: 1.25,
+              }}
+            >
+              {GRID_SKELETON_COLUMN_KEYS.map(colKey => (
+                <Skeleton key={colKey} variant="text" width={120} height={18} />
+              ))}
+            </Box>
+          ))}
+        </Box>
       </Box>
     );
   }

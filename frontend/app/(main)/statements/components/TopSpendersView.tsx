@@ -1,23 +1,19 @@
 'use client';
 
+import { AnalyticsLeaderboardSkeleton } from '@/app/(main)/statements/components/analytics/AnalyticsLeaderboardSkeleton';
 import { TopSpendersContent } from '@/app/(main)/statements/components/top-spenders/components/TopSpendersContent';
 import { TopSpendersDrillDown } from '@/app/(main)/statements/components/top-spenders/components/TopSpendersDrillDown';
 import { TopSpendersFiltersDrawer } from '@/app/(main)/statements/components/top-spenders/components/TopSpendersFiltersDrawer';
 import { TopSpendersPageHeader } from '@/app/(main)/statements/components/top-spenders/components/TopSpendersPageHeader';
 import { useTopSpendersViewModel } from '@/app/(main)/statements/components/top-spenders/hooks/useTopSpendersViewModel';
 import type { TopSpendersViewModelReturn } from '@/app/(main)/statements/components/top-spenders/hooks/useTopSpendersViewModel';
-import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
 
 type VmProps = { vm: TopSpendersViewModelReturn };
 
 function TopSpendersBody({ vm }: VmProps): React.JSX.Element {
   if (vm.loading) {
-    return (
-      <div className="lumio-view-page__loading">
-        <Spinner style={{ height: 80, width: 80, color: 'var(--primary)' }} />
-      </div>
-    );
+    return <AnalyticsLeaderboardSkeleton />;
   }
   if (vm.flowFilteredRecords.length === 0) {
     return (

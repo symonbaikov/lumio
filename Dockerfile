@@ -68,6 +68,6 @@ USER app
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD node -e "const http=require('http'); const port=process.env.API_PORT||4000; http.get('http://127.0.0.1:'+port+'/api/v1/health/ready', (r)=>process.exit(r.statusCode===200?0:1)).on('error', ()=>process.exit(1));"
+  CMD ["node", "-e", "const http=require('http'); const port=process.env.API_PORT||4000; http.get('http://127.0.0.1:'+port+'/api/v1/health/ready', (r)=>process.exit(r.statusCode===200?0:1)).on('error', ()=>process.exit(1));"]
 
 CMD ["./scripts/start.sh"]

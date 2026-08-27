@@ -64,7 +64,7 @@ export class AiHapoalimExtractor extends BaseAiHelper {
       );
       return this.parseResponse(content);
     } catch (error) {
-      console.error('[AiHapoalimExtractor] Text extraction failed:', error);
+      this.logger.error('Text extraction failed:', error);
       return [];
     }
   }
@@ -101,7 +101,7 @@ export class AiHapoalimExtractor extends BaseAiHelper {
       );
       return this.parseResponse(content);
     } catch (error) {
-      console.error('[AiHapoalimExtractor] Image extraction failed:', error);
+      this.logger.error('Image extraction failed:', error);
       return [];
     }
   }
@@ -140,7 +140,7 @@ export class AiHapoalimExtractor extends BaseAiHelper {
         })
         .filter((tx): tx is ParsedTransaction => tx !== null);
     } catch (error) {
-      console.error('[AiHapoalimExtractor] Failed to parse AI response:', error);
+      this.logger.error('Failed to parse AI response:', error);
       return [];
     }
   }

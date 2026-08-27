@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { Copy, Trash2 } from '@/app/components/icons';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -230,11 +231,11 @@ export default function ShareDialog({
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   const formatDate = (dateString: string): string =>
-    new Date(dateString).toLocaleDateString(resolveDateLocale(locale), {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    formatStoredDateWithOptions(
+      dateString,
+      { year: 'numeric', month: 'long', day: 'numeric' },
+      resolveDateLocale(locale),
+    );
 
   const PERMISSION_LABELS: Record<string, React.ReactNode> = {
     view: t.permissionLabel.view,

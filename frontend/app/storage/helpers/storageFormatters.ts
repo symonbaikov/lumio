@@ -1,5 +1,6 @@
 // Formatter helpers extracted from StoragePageContent
 
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import type { FileAvailabilityStatus } from '../storageHelpers';
 
 type LocaleCode = string;
@@ -19,13 +20,17 @@ export function formatDate(dateString: string, locale: LocaleCode): string {
   if (Number.isNaN(date.getTime())) {
     return dateString;
   }
-  return date.toLocaleDateString(resolveLocaleCode(locale), {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatStoredDateWithOptions(
+    date,
+    {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    },
+    resolveLocaleCode(locale),
+  );
 }
 
 const STATUS_LABEL_MAP: Record<string, keyof StatusLabels> = {

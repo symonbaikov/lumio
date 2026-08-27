@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { BullModule } from '@nestjs/bullmq';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -94,10 +95,11 @@ import { ParsingModule } from './modules/parsing/parsing.module';
 import { PayablesModule } from './modules/payables/payables.module';
 import { ReceiptsModule } from './modules/receipts/receipts.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { SearchModule } from './modules/search/search.module';
 import { StatementsModule } from './modules/statements/statements.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
-import { TaxRatesModule } from './modules/tax-rates/tax-rates.module';
+import { TaxModule } from './modules/tax/tax.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
 import { UsersModule } from './modules/users/users.module';
@@ -126,6 +128,16 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
         store: redisStore,
         url: configService.get('REDIS_URL') || 'redis://localhost:6379',
         ttl: 3600, // 1 hour default
+      }),
+      inject: [ConfigService],
+    }),
+    // Shares the Redis instance already used for caching (REDIS_URL).
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          url: configService.get('REDIS_URL') || 'redis://localhost:6379',
+        },
       }),
       inject: [ConfigService],
     }),
@@ -207,7 +219,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     ReportsModule,
     StorageModule,
     TelegramModule,
-    TaxRatesModule,
+    TaxModule,
     DataEntryModule,
     CustomTablesModule,
     WorkspacesModule,
@@ -216,6 +228,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     ObservabilityModule,
     OpenProtocolIntegrationsModule,
     DashboardModule,
+    SearchModule,
     PayablesModule,
     ExchangeRatesModule,
     SubscriptionsModule,

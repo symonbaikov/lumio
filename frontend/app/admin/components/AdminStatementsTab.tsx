@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { AlertCircle, RefreshCw, Trash2 } from '@/app/components/icons';
 import {
@@ -117,9 +118,9 @@ function StatementsTableBody({
             />
           </TableCell>
           <TableCell>{stmt.totalTransactions || 0}</TableCell>
-          <TableCell>{new Date(stmt.createdAt).toLocaleDateString(locale)}</TableCell>
+          <TableCell>{formatStoredDate(stmt.createdAt, locale)}</TableCell>
           <TableCell>
-            {stmt.processedAt ? new Date(stmt.processedAt).toLocaleDateString(locale) : '-'}
+            {stmt.processedAt ? formatStoredDate(stmt.processedAt, locale) : '-'}
           </TableCell>
           <TableCell>
             <StatementActions

@@ -501,6 +501,48 @@ describe('StatementsListItem', () => {
     ).toBeTruthy();
   });
 
+  it('badges a needs_review statement distinctly from a completed one', () => {
+    const root = createRoot(container);
+
+    const statement: Statement = {
+      id: 'statement-needs-review',
+      source: 'statement',
+      fileName: 'Unreconciled.pdf',
+      status: 'needs_review',
+      totalDebit: 100,
+      totalCredit: 0,
+      createdAt: '2026-02-01T00:00:00Z',
+      statementDateFrom: '2026-01-01',
+      statementDateTo: '2026-01-31',
+      bankName: 'kaspi',
+      fileType: 'pdf',
+      currency: 'KZT',
+    };
+
+    act(() => {
+      root.render(
+        <StatementsListItem
+          statement={statement}
+          viewLabel="View"
+          isReceipt={false}
+          isProcessing={false}
+          merchantLabel="Kaspi"
+          amountLabel="100 KZT"
+          dateLabel="01/31/2026"
+          onView={() => undefined}
+          onIconClick={() => undefined}
+          onToggleSelect={() => undefined}
+          typeLabel="PDF"
+        />,
+      );
+    });
+
+    expect(container.querySelector('.lumio-stmt-badge--review')).toBeTruthy();
+    // Must not read as done: the statement is excluded from analytics until confirmed.
+    expect(container.querySelector('.lumio-stmt-badge--completed')).toBeNull();
+    expect(container.textContent).toContain('Needs review');
+  });
+
   it('does not call onView when view is disabled', () => {
     const root = createRoot(container);
     const onView = vi.fn();

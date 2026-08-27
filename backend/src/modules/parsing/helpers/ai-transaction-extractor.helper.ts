@@ -60,7 +60,7 @@ ${redactedText}`,
         )
         .filter((tx): tx is ParsedTransaction => tx !== null);
     } catch (error) {
-      console.error('[AIExtractor] Failed to extract via AI:', error);
+      this.logger.error('Failed to extract via AI:', error);
       return [];
     }
   }

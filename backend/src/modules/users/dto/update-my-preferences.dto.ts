@@ -1,5 +1,14 @@
-import { ThemePreference } from '@/entities/user.entity';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { DateFormatPreference, ThemePreference, UiDensity } from '@/entities/user.entity';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export enum AppLocale {
   RU = 'ru',
@@ -25,4 +34,22 @@ export class UpdateMyPreferencesDto {
   @IsOptional()
   @IsEnum(ThemePreference)
   themePreference?: ThemePreference;
+
+  @IsOptional()
+  @IsEnum(DateFormatPreference)
+  dateFormat?: DateFormatPreference;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(6)
+  firstDayOfWeek?: number | null;
+
+  @IsOptional()
+  @IsEnum(UiDensity)
+  uiDensity?: UiDensity;
+
+  @IsOptional()
+  @IsBoolean()
+  reduceMotion?: boolean;
 }

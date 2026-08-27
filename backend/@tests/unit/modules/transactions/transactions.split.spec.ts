@@ -91,6 +91,7 @@ describe('TransactionsService.split', () => {
       auditService as any,
       { learnFromCorrection: jest.fn() } as any,
       { bulkConvert: jest.fn() } as any,
+      { resolve: jest.fn(async () => ({ taxRateId: null, taxRuleId: null, taxSource: null, taxAmount: null, taxNetAmount: null, taxReverseCharge: false })) } as any,
     );
     // ensureCanEditStatements is a private permission check with its own coverage;
     // stub it so these tests stay focused on split arithmetic.
@@ -554,6 +555,7 @@ describe('TransactionsService.unsplit', () => {
       auditService as any,
       { learnFromCorrection: jest.fn() } as any,
       { bulkConvert: jest.fn() } as any,
+      { resolve: jest.fn(async () => ({ taxRateId: null, taxRuleId: null, taxSource: null, taxAmount: null, taxNetAmount: null, taxReverseCharge: false })) } as any,
     );
     (service as any).ensureCanEditStatements = jest.fn();
   });
@@ -846,6 +848,7 @@ describe('TransactionsService.getSplitParts', () => {
       { createEvent: jest.fn() } as any,
       { learnFromCorrection: jest.fn() } as any,
       { bulkConvert: jest.fn() } as any,
+      { resolve: jest.fn(async () => ({ taxRateId: null, taxRuleId: null, taxSource: null, taxAmount: null, taxNetAmount: null, taxReverseCharge: false })) } as any,
     );
   });
 

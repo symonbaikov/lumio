@@ -4,6 +4,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { devDefault } from '../../common/utils/dev-defaults';
 import { Notification, NotificationPreference, User, WorkspaceMember } from '../../entities';
+import { MailerModule } from '../mailer/mailer.module';
+import { TelegramModule } from '../telegram/telegram.module';
+import { NotificationDeliveryService } from './notification-delivery.service';
 import { NotificationEventsListener } from './notification-events.listener';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsGateway } from './notifications.gateway';
@@ -12,6 +15,8 @@ import { NotificationsService } from './notifications.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Notification, NotificationPreference, User, WorkspaceMember]),
+    MailerModule,
+    TelegramModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
@@ -24,7 +29,12 @@ import { NotificationsService } from './notifications.service';
     }),
   ],
   controllers: [NotificationsController],
-  providers: [NotificationsService, NotificationsGateway, NotificationEventsListener],
+  providers: [
+    NotificationsService,
+    NotificationDeliveryService,
+    NotificationsGateway,
+    NotificationEventsListener,
+  ],
   exports: [NotificationsService],
 })
 export class NotificationsModule {}

@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { Plus } from '@/app/components/icons';
 import {
@@ -6,9 +7,9 @@ import {
   Button,
   Card,
   CardContent,
-  CircularProgress,
   MenuItem,
   Select,
+  Skeleton,
   Tab,
   Tabs,
   TextField,
@@ -55,10 +56,62 @@ interface SubscriptionsContentProps {
   ) => Promise<void>;
 }
 
+function SubscriptionRowSkeleton(): React.JSX.Element {
+  return (
+    <tr>
+      <td>
+        <Skeleton variant="text" width={140} height={20} />
+        <Skeleton variant="text" width={70} height={16} />
+      </td>
+      <td>
+        <Skeleton variant="text" width={80} height={20} />
+      </td>
+      <td>
+        <Skeleton variant="text" width={70} height={20} />
+      </td>
+      <td>
+        <Skeleton variant="text" width={100} height={20} />
+      </td>
+      <td>
+        <Skeleton variant="text" width={60} height={20} />
+      </td>
+      <td>
+        <Skeleton variant="text" width={70} height={20} />
+      </td>
+    </tr>
+  );
+}
+
+function SubscriptionCardSkeleton(): React.JSX.Element {
+  return (
+    <Card variant="outlined">
+      <CardContent sx={{ pb: 1.5, '&:last-child': { pb: 1.5 } }}>
+        <Box
+          sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}
+        >
+          <Box>
+            <Skeleton variant="text" width={120} height={22} />
+            <Skeleton variant="text" width={90} height={26} />
+          </Box>
+          <Skeleton variant="rounded" width={60} height={22} />
+        </Box>
+        <Box sx={{ display: 'flex', gap: 2, mb: 1.5 }}>
+          <Skeleton variant="text" width={80} height={18} />
+          <Skeleton variant="text" width={70} height={18} />
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+          <Skeleton variant="circular" width={28} height={28} />
+          <Skeleton variant="circular" width={28} height={28} />
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
 const formatAmount = (amount: number, currency: string) =>
   `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(amount)} ${currency}`;
 const formatDate = (date: string | null) =>
-  date ? new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '—';
+  date ? formatStoredDateWithOptions(date, { day: 'numeric', month: 'short' }, 'ru-RU') : '—';
 
 export function SubscriptionsContent(props: SubscriptionsContentProps) {
   const [search, setSearch] = useState('');
@@ -209,9 +262,51 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
         </Select>
       </Box>
       {props.loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
-        </Box>
+        <>
+          <Box
+            sx={{
+              display: { xs: 'none', md: 'block' },
+              overflowX: 'auto',
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 2,
+              bgcolor: 'background.paper',
+            }}
+          >
+            <Box
+              component="table"
+              sx={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                '& th': { textAlign: 'left', p: 1.5, color: 'text.secondary', fontSize: 12 },
+                '& td': { p: 1.5, borderTop: 1, borderColor: 'divider' },
+              }}
+            >
+              <thead>
+                <tr>
+                  <th>Vendor</th>
+                  <th>Spend</th>
+                  <th>Next charge</th>
+                  <th>Owner</th>
+                  <th>Risk</th>
+                  <th>Review</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 6 }).map((_, index) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
+                  <SubscriptionRowSkeleton key={index} />
+                ))}
+              </tbody>
+            </Box>
+          </Box>
+          <Box sx={{ display: { xs: 'grid', md: 'none' }, gridTemplateColumns: '1fr', gap: 1.5 }}>
+            {Array.from({ length: 4 }).map((_, index) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
+              <SubscriptionCardSkeleton key={index} />
+            ))}
+          </Box>
+        </>
       ) : props.error ? (
         <Typography color="error" sx={{ py: 4, textAlign: 'center' }}>
           {props.error}

@@ -10,6 +10,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -21,6 +22,7 @@ import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { calculateFileHash } from '../../common/utils/file-hash.util';
 import { getFileTypeFromMime, validateFile } from '../../common/utils/file-validator.util';
 import { normalizeFilename, sanitizeArchiveEntryName } from '../../common/utils/filename.util';
+import { toMinor } from '../../common/utils/money.util';
 import { runExecutable } from '../../common/utils/thumbnail-command.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import { Category, WorkspaceMember, WorkspaceRole } from '../../entities';
@@ -35,7 +37,9 @@ import type {
   DataDeletedEvent,
   StatementUploadedEvent,
 } from '../notifications/events/notification-events';
+import { StatementParsingQueue } from '../parsing/queue/statement-parsing.queue';
 import { StatementProcessingService } from '../parsing/services/statement-processing.service';
+import { TaxAssignmentService } from '../tax/tax-assignment.service';
 import type { ConvertDroppedSampleDto } from './dto/convert-dropped-sample.dto';
 import type { CreateManualExpenseDto } from './dto/create-manual-expense.dto';
 import type { FilterStatementsDto } from './dto/filter-statements.dto';
@@ -75,6 +79,7 @@ const NOT_APPROVED_STATUSES = [
   StatementStatus.UPLOADED,
   StatementStatus.PROCESSING,
   StatementStatus.ERROR,
+  StatementStatus.NEEDS_REVIEW,
 ];
 
 const toDateOnlyString = (value: Date) => {
@@ -135,6 +140,8 @@ const splitReferenceTokens = (tokens?: string[]) => {
 
 @Injectable()
 export class StatementsService {
+  private readonly logger = new Logger(StatementsService.name);
+
   constructor(
     @InjectRepository(Statement)
     private statementRepository: Repository<Statement>,
@@ -150,9 +157,11 @@ export class StatementsService {
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly fileStorageService: FileStorageService,
     private statementProcessingService: StatementProcessingService,
+    private readonly statementParsingQueue: StatementParsingQueue,
     private readonly receiptStatementService: ReceiptStatementService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly auditService: AuditService,
+    private readonly taxAssignmentService: TaxAssignmentService,
     private readonly eventEmitter?: EventEmitter2,
   ) {}
 
@@ -274,12 +283,7 @@ export class StatementsService {
     thumbnailWidth: number,
   ): Promise<void> {
     const scriptPath = path.join(__dirname, '../../../scripts/generate-thumbnail.py');
-    await runExecutable('python3', [
-      scriptPath,
-      pdfPath,
-      thumbnailPath,
-      String(thumbnailWidth),
-    ]);
+    await runExecutable('python3', [scriptPath, pdfPath, thumbnailPath, String(thumbnailWidth)]);
   }
 
   private async generateThumbnailWithQuickLook(
@@ -287,14 +291,7 @@ export class StatementsService {
     outputDir: string,
     thumbnailWidth: number,
   ): Promise<string> {
-    await runExecutable('qlmanage', [
-      '-t',
-      '-s',
-      String(thumbnailWidth),
-      '-o',
-      outputDir,
-      pdfPath,
-    ]);
+    await runExecutable('qlmanage', ['-t', '-s', String(thumbnailWidth), '-o', outputDir, pdfPath]);
     const generatedPath = path.join(outputDir, `${path.basename(pdfPath)}.png`);
     if (!fs.existsSync(generatedPath)) {
       throw new Error('Quick Look thumbnail output not found');
@@ -489,10 +486,22 @@ export class StatementsService {
     try {
       await this.statementRepository.update(savedStatement.id, { fileData });
     } catch (error) {
-      console.warn(
+      this.logger.warn(
         `[Statements] Failed to persist manual expense file in DB: ${(error as Error)?.message}`,
       );
     }
+
+    // Resolved from the user's own choice where they made one, otherwise from
+    // the workspace rules and default as they stood on the expense's date.
+    const taxAssignment = await this.taxAssignmentService.resolve({
+      workspaceId,
+      transactionDate,
+      amountMinor: toMinor(amountValue),
+      categoryId: category.id,
+      transactionType: TransactionType.EXPENSE,
+      transactionNature: null,
+      explicitTaxRateId: taxRateId || null,
+    });
 
     const transaction = this.transactionRepository.create({
       workspaceId,
@@ -506,7 +515,13 @@ export class StatementsService {
       currency,
       transactionType: TransactionType.EXPENSE,
       categoryId: category.id,
-      taxRateId: taxRate?.id || null,
+      taxRateId: taxAssignment.taxRateId ?? taxRate?.id ?? null,
+      taxRuleId: taxAssignment.taxRuleId,
+      taxSource: taxAssignment.taxSource,
+      taxAmount: taxAssignment.taxAmount,
+      taxNetAmount: taxAssignment.taxNetAmount,
+      taxReverseCharge: taxAssignment.taxReverseCharge,
+      taxNotionalAmount: taxAssignment.taxNotionalAmount,
       isVerified: true,
     });
 
@@ -724,7 +739,7 @@ export class StatementsService {
     try {
       fileData = await fs.promises.readFile(file.path);
     } catch (error) {
-      console.warn(
+      this.logger.warn(
         `[Statements] Failed to read uploaded file for DB storage: ${(error as Error)?.message}`,
       );
     }
@@ -755,7 +770,7 @@ export class StatementsService {
         await this.statementRepository.update(savedStatement.id, { fileData });
         storedInDb = true;
       } catch (error) {
-        console.warn(
+        this.logger.warn(
           `[Statements] Failed to persist uploaded file in DB: ${(error as Error)?.message}`,
         );
       }
@@ -790,12 +805,7 @@ export class StatementsService {
       bankName: savedStatement.bankName,
     } satisfies StatementUploadedEvent);
 
-    // Start processing asynchronously
-    Promise.resolve(this.statementProcessingService.processStatement(savedStatement.id)).catch(
-      error => {
-        console.error('Error processing statement:', error);
-      },
-    );
+    await this.statementParsingQueue.enqueue(savedStatement.id);
 
     return savedStatement;
   }
@@ -1215,7 +1225,7 @@ export class StatementsService {
       const fileData = await fs.promises.readFile(file.path);
       await this.statementRepository.update(updatedStatement.id, { fileData });
     } catch (error) {
-      console.warn(
+      this.logger.warn(
         `[Statements] Failed to persist attached file in DB: ${(error as Error).message}`,
       );
     }
@@ -1232,7 +1242,7 @@ export class StatementsService {
           await fs.promises.unlink(previousFilePath);
         }
       } catch (error) {
-        console.warn(
+        this.logger.warn(
           `[Statements] Failed to clean up previous file ${previousFilePath}: ${(error as Error).message}`,
         );
       }
@@ -1324,7 +1334,7 @@ export class StatementsService {
       try {
         fs.unlinkSync(statement.filePath);
       } catch (error) {
-        console.error(`Failed to delete file ${statement.filePath}:`, error);
+        this.logger.error(`Failed to delete file ${statement.filePath}:`, error);
         // Continue with statement deletion even if file deletion fails
       }
     }
@@ -1382,7 +1392,7 @@ export class StatementsService {
         await this.transactionRepository.delete(toDelete);
       }
 
-      console.log(
+      this.logger.log(
         `[Reprocess Merge] Keeping ${userModified.length} user-modified transactions, deleting ${toDelete.length}`,
       );
     }
@@ -1397,10 +1407,7 @@ export class StatementsService {
     statement.parsingDetails = null;
     await this.statementRepository.save(statement);
 
-    // Start processing asynchronously
-    this.statementProcessingService.processStatement(statement.id).catch(error => {
-      console.error('Error reprocessing statement:', error);
-    });
+    await this.statementParsingQueue.enqueue(statement.id);
 
     return statement;
   }
@@ -1409,6 +1416,57 @@ export class StatementsService {
     const statement = await this.findOne(id, workspaceId);
     await this.ensureCanModify(statement, userId, workspaceId);
     return this.statementProcessingService.commitImport(statement.id);
+  }
+
+  /**
+   * Accepts a statement whose balance did not reconcile, releasing it into
+   * analytics. The unreconciled figures are kept in `parsingDetails.validation`
+   * and the acknowledgement is audited, so the discrepancy stays traceable.
+   */
+  async confirmBalance(id: string, userId: string, workspaceId: string): Promise<Statement> {
+    const statement = await this.findOne(id, workspaceId);
+    await this.ensureCanModify(statement, userId, workspaceId);
+
+    if (statement.status !== StatementStatus.NEEDS_REVIEW) {
+      throw new BadRequestException('Выписка не ожидает подтверждения баланса');
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'name', 'email'],
+    });
+    const actorLabel = user?.email || user?.name || 'User';
+
+    const before = { status: statement.status };
+    statement.status = StatementStatus.COMPLETED;
+    statement.parsingDetails = {
+      ...(statement.parsingDetails || {}),
+      balanceConfirmation: {
+        confirmedBy: userId,
+        confirmedAt: new Date().toISOString(),
+      },
+    };
+
+    const saved = await this.statementRepository.save(statement);
+
+    await this.auditService.createEvent({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      actorLabel,
+      entityType: EntityType.STATEMENT,
+      entityId: statement.id,
+      action: AuditAction.UPDATE,
+      diff: { before, after: { status: saved.status } },
+      meta: {
+        reason: 'balance-mismatch-confirmed',
+        balanceCheck: statement.parsingDetails?.validation?.balanceCheck ?? null,
+      },
+      severity: Severity.WARN,
+      isUndoable: false,
+    });
+
+    return saved;
   }
 
   async getFileStream(
@@ -1538,7 +1596,7 @@ export class StatementsService {
           await fs.promises.unlink(tempPdfPath);
         }
       } catch (cleanupError) {
-        console.warn('Error cleaning up temporary files:', cleanupError);
+        this.logger.warn('Error cleaning up temporary files:', cleanupError);
       }
 
       return thumbnailData;
@@ -1552,7 +1610,7 @@ export class StatementsService {
         }
       }
 
-      console.error('Error generating thumbnail:', error);
+      this.logger.error('Error generating thumbnail:', error);
       throw new BadRequestException('Failed to generate thumbnail');
     }
   }

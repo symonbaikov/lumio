@@ -13,7 +13,7 @@ import { Workspace } from './workspace.entity';
 export enum WebhookEvent {
   TRANSACTION_CREATED = 'transaction.created',
   STATEMENT_PROCESSED = 'statement.processed',
-  RECEIPT_APPROVED    = 'receipt.approved',
+  RECEIPT_APPROVED = 'receipt.approved',
 }
 
 @Entity('webhook_subscriptions')

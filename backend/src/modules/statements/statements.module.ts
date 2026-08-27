@@ -9,6 +9,7 @@ import { Transaction } from '../../entities/transaction.entity';
 import { AuditModule } from '../audit/audit.module';
 import { ParsingModule } from '../parsing/parsing.module';
 import { ReceiptsModule } from '../receipts/receipts.module';
+import { TaxModule } from '../tax/tax.module';
 import { ReceiptStatementService } from './services/receipt-statement.service';
 import { StatementsController } from './statements.controller';
 import { StatementsService } from './statements.service';
@@ -26,6 +27,7 @@ import { StatementsService } from './statements.service';
     ]),
     AuditModule,
     ParsingModule,
+    TaxModule,
     ReceiptsModule,
   ],
   controllers: [StatementsController],

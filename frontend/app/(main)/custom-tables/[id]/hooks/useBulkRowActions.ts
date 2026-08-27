@@ -223,6 +223,23 @@ export function useBulkRowActions({
     [tableId],
   );
 
+  function partitionResults(
+    results: PromiseSettledResult<unknown>[],
+    updates: { rowId: string; value: boolean }[],
+  ): { succeededMap: Map<string, boolean>; failedIds: string[] } {
+    const failedIds: string[] = [];
+    const succeededMap = new Map<string, boolean>();
+    results.forEach((result, index) => {
+      const update = updates[index];
+      if (result.status === 'fulfilled') {
+        succeededMap.set(update.rowId, update.value);
+      } else {
+        failedIds.push(update.rowId);
+      }
+    });
+    return { succeededMap, failedIds };
+  }
+
   const applyPaidUpdates = (succeededMap: Map<string, boolean>, colKey: string): void => {
     if (!succeededMap.size) {
       return;
@@ -230,7 +247,10 @@ export function useBulkRowActions({
     setRows(prev =>
       prev.map(row =>
         succeededMap.has(row.id)
-          ? { ...row, data: { ...(row.data || {}), [colKey]: succeededMap.get(row.id) } }
+          ? {
+              ...row,
+              data: { ...(row.data || {}), [colKey]: succeededMap.get(row.id) as boolean },
+            }
           : row,
       ),
     );

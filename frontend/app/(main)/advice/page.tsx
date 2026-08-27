@@ -1,12 +1,36 @@
 'use client';
 
 import { Lightbulb } from '@/app/components/icons';
-import { Spinner } from '@/app/components/ui/spinner';
 import { useInsights } from '@/app/hooks/useInsights';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
+import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
+
+const ADVICE_SKELETON_KEYS = ['advice-0', 'advice-1', 'advice-2', 'advice-3'];
+
+function AdviceCardSkeleton(): React.JSX.Element {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        gap: 2,
+        p: 2.5,
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: tokens.radius.md,
+        bgcolor: 'background.paper',
+      }}
+    >
+      <Skeleton variant="rounded" width={20} height={20} />
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Skeleton variant="text" width="40%" height={22} />
+        <Skeleton variant="text" width="85%" height={18} />
+      </Box>
+    </Box>
+  );
+}
 
 export default function AdvicePage() {
   const t = useIntlayer('insights');
@@ -24,8 +48,10 @@ export default function AdvicePage() {
       </Typography>
 
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <Spinner size={32} />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {ADVICE_SKELETON_KEYS.map(key => (
+            <AdviceCardSkeleton key={key} />
+          ))}
         </Box>
       )}
 

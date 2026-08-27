@@ -2,6 +2,8 @@
 
 import type { User } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
+import type { DateFormatPreference } from '@/app/lib/user-format';
+import { notifyUserFormatChanged } from '@/app/lib/user-format-store';
 import { getApiErrorMessage } from '@/app/settings/profile/profileHelpers';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -15,6 +17,10 @@ export type UseProfileFormReturn = {
   setProfileName: (value: string) => void;
   profileTimeZone: string;
   setProfileTimeZone: (value: string) => void;
+  profileDateFormat: DateFormatPreference;
+  setProfileDateFormat: (value: DateFormatPreference) => void;
+  profileFirstDayOfWeek: number | null;
+  setProfileFirstDayOfWeek: (value: number | null) => void;
   profileMessage: string | null;
   setProfileMessage: (value: string | null) => void;
   profileError: string | null;
@@ -31,6 +37,8 @@ export function useProfileForm(
 ): UseProfileFormReturn {
   const [profileName, setProfileName] = useState('');
   const [profileTimeZone, setProfileTimeZone] = useState<string>('');
+  const [profileDateFormat, setProfileDateFormat] = useState<DateFormatPreference>('auto');
+  const [profileFirstDayOfWeek, setProfileFirstDayOfWeek] = useState<number | null>(null);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -38,14 +46,27 @@ export function useProfileForm(
   useEffect(() => {
     if (user?.name) setProfileName(user.name as string);
     setProfileTimeZone(user?.timeZone ? (user.timeZone as string) : '');
+    setProfileDateFormat(user?.dateFormat ?? 'auto');
+    setProfileFirstDayOfWeek(user?.firstDayOfWeek ?? null);
   }, [user]);
 
   const hasProfileChanges = useMemo(() => {
     return (
       profileName.trim() !== ((user?.name as string) || '').trim() ||
-      profileTimeZone !== ((user?.timeZone as string) || '')
+      profileTimeZone !== ((user?.timeZone as string) || '') ||
+      profileDateFormat !== (user?.dateFormat ?? 'auto') ||
+      profileFirstDayOfWeek !== (user?.firstDayOfWeek ?? null)
     );
-  }, [profileName, profileTimeZone, user?.name, user?.timeZone]);
+  }, [
+    profileName,
+    profileTimeZone,
+    profileDateFormat,
+    profileFirstDayOfWeek,
+    user?.name,
+    user?.timeZone,
+    user?.dateFormat,
+    user?.firstDayOfWeek,
+  ]);
 
   const handleProfileSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -60,18 +81,27 @@ export function useProfileForm(
       const response = await apiClient.patch('/users/me/preferences', {
         name: normalizedName,
         timeZone: profileTimeZone ? profileTimeZone : null,
+        dateFormat: profileDateFormat,
+        firstDayOfWeek: profileFirstDayOfWeek,
       });
 
       const responseUser = response.data?.user;
       const nextUser = responseUser
         ? { ...(user || {}), ...responseUser }
         : user
-          ? { ...user, name: normalizedName, timeZone: profileTimeZone || null }
+          ? {
+              ...user,
+              name: normalizedName,
+              timeZone: profileTimeZone || null,
+              dateFormat: profileDateFormat,
+              firstDayOfWeek: profileFirstDayOfWeek,
+            }
           : null;
 
       if (nextUser) {
         setUser(nextUser as User);
         localStorage.setItem('user', JSON.stringify(nextUser));
+        notifyUserFormatChanged();
       }
 
       setProfileMessage(response.data?.message || messages.successFallback);
@@ -87,6 +117,10 @@ export function useProfileForm(
     setProfileName,
     profileTimeZone,
     setProfileTimeZone,
+    profileDateFormat,
+    setProfileDateFormat,
+    profileFirstDayOfWeek,
+    setProfileFirstDayOfWeek,
     profileMessage,
     setProfileMessage,
     profileError,

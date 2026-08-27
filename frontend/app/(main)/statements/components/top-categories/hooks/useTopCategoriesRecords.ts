@@ -3,6 +3,7 @@ import {
   type StatementFilters,
   applyStatementsFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
+import type { AnalyticsFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
 import type {
   TopCategoryFlowType,
   TopCategoryRecord,
@@ -32,7 +33,7 @@ type Params = {
   activeFlowType: TopCategoryFlowType;
 };
 
-export type { AnalyticsFromOption as CategoryFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
+export type CategoryFromOption = AnalyticsFromOption;
 
 export type CategoryRecordsReturn = {
   allRecords: TopCategoryRecord[];

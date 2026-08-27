@@ -163,17 +163,6 @@ export function useCloudProvidersLoader(p: CloudProvidersLoaderParams): void {
   }, [user]);
 }
 
-type ActiveItem =
-  | 'submit'
-  | 'approve'
-  | 'pay'
-  | 'unapproved-cash'
-  | 'spend-over-time'
-  | 'top-spenders'
-  | 'top-merchants'
-  | 'top-categories'
-  | 'transactions';
-
 type PanelActionsParams = { activeItem: ActiveItem; connectedGmail: boolean };
 
 export type PanelActions = {

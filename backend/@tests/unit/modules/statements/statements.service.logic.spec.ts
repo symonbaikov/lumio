@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import { AuditService } from '@/modules/audit/audit.service';
+import { StatementParsingQueue } from '@/modules/parsing/queue/statement-parsing.queue';
 import { StatementProcessingService } from '@/modules/parsing/services/statement-processing.service';
 import { ReceiptStatementService } from '@/modules/statements/services/receipt-statement.service';
 import { StatementsService } from '@/modules/statements/statements.service';
@@ -15,6 +16,7 @@ import { Transaction } from '@/entities/transaction.entity';
 import { User, UserRole } from '@/entities/user.entity';
 import { WorkspaceMember, WorkspaceRole } from '@/entities/workspace-member.entity';
 import { FileStorageService } from '@/common/services/file-storage.service';
+import { TaxAssignmentService } from '@/modules/tax/tax-assignment.service';
 
 jest.mock('@/common/utils/file-hash.util');
 jest.mock('@/common/utils/file-validator.util');
@@ -114,12 +116,20 @@ describe('StatementsService — business logic', () => {
           useValue: { processStatement: jest.fn() },
         },
         {
+          provide: StatementParsingQueue,
+          useValue: { enqueue: jest.fn() },
+        },
+        {
           provide: ReceiptStatementService,
           useValue: { createFromReceiptScan: jest.fn() },
         },
         {
           provide: CACHE_MANAGER,
           useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn() },
+        },
+        {
+          provide: TaxAssignmentService,
+          useValue: { resolve: jest.fn(async () => ({})) },
         },
         {
           provide: AuditService,

@@ -1,4 +1,6 @@
 import { User, UserRole } from '@/entities/user.entity';
+import { AuthSession } from '@/entities/auth-session.entity';
+import { WorkspaceMember } from '@/entities/workspace-member.entity';
 import { Workspace } from '@/entities/workspace.entity';
 import { UsersService } from '@/modules/users/users.service';
 import { WorkspacesService } from '@/modules/workspaces/workspaces.service';
@@ -62,6 +64,14 @@ describe('UsersService', () => {
             findOne: jest.fn(),
             save: jest.fn(),
           },
+        },
+        {
+          provide: getRepositoryToken(WorkspaceMember),
+          useValue: { count: jest.fn(async () => 0) },
+        },
+        {
+          provide: getRepositoryToken(AuthSession),
+          useValue: { update: jest.fn(async () => ({ affected: 0 })) },
         },
         {
           provide: WorkspacesService,

@@ -35,6 +35,13 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/app/lib/api', () => ({
   default: {
     delete: deleteMock,
+    // The tax jurisdiction section fetches on mount. Empty responses keep it
+    // out of the way of the tests in this file, which are about the workspace
+    // form; TaxJurisdictionSection.test.tsx covers its behaviour.
+    get: vi.fn(async (url: string) =>
+      url === '/tax/settings' ? { data: { jurisdiction: null } } : { data: [] },
+    ),
+    put: vi.fn(async () => ({ data: {} })),
   },
 }));
 

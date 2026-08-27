@@ -1,11 +1,12 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { ArrowLeft } from '@/app/components/icons';
 import TransactionsPageView from '@/app/components/transactions/TransactionsPageView';
 import type { Category, StatementDetails, Transaction } from '@/app/components/transactions/types';
-import { Spinner } from '@/app/components/ui/spinner';
 import { useIntlayer } from '@/app/i18n';
 import api, { apiBaseUrl } from '@/app/lib/api';
+import Skeleton from '@mui/material/Skeleton';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -55,6 +56,55 @@ interface StatementViewResponse {
   transactions: RawTransaction[];
 }
 
+function ViewStatementSkeleton(): React.JSX.Element {
+  return (
+    <div
+      className="container-shared"
+      style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', padding: '32px 16px' }}
+    >
+      <div style={{ marginBottom: 24 }}>
+        <Skeleton variant="text" width={160} height={24} />
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <Skeleton variant="text" width={320} height={36} sx={{ mb: 1 }} />
+        <Skeleton variant="text" width={200} height={20} />
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+          gap: 16,
+          marginBottom: 24,
+        }}
+      >
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index}>
+            <Skeleton variant="text" width="50%" height={16} />
+            <Skeleton variant="text" width="70%" height={28} />
+          </div>
+        ))}
+      </div>
+
+      <div>
+        {Array.from({ length: 8 }).map((_, index) => (
+          <div
+            key={index}
+            style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 0' }}
+          >
+            <Skeleton variant="text" width="15%" height={20} />
+            <Skeleton variant="text" width="30%" height={20} />
+            <Skeleton variant="text" width="20%" height={20} />
+            <Skeleton variant="text" width="15%" height={20} />
+            <Skeleton variant="text" width="15%" height={20} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ViewStatementPage({
   params,
 }: {
@@ -98,7 +148,7 @@ export default function ViewStatementPage({
           accountNumber: rawStatement.parsingDetails?.metadataExtracted?.accountNumber,
           period:
             rawStatement.statementDateFrom && rawStatement.statementDateTo
-              ? `${new Date(rawStatement.statementDateFrom).toLocaleDateString()} - ${new Date(rawStatement.statementDateTo).toLocaleDateString()}`
+              ? `${formatStoredDate(rawStatement.statementDateFrom)} - ${formatStoredDate(rawStatement.statementDateTo)}`
               : undefined,
         },
         category: rawStatement.category,
@@ -192,24 +242,7 @@ export default function ViewStatementPage({
   };
 
   if (loading) {
-    return (
-      <div
-        className="container-shared"
-        style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', padding: '32px 16px' }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            height: '100%',
-            minHeight: 320,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Spinner style={{ height: 80, width: 80, color: 'var(--primary)' }} />
-        </div>
-      </div>
-    );
+    return <ViewStatementSkeleton />;
   }
 
   if (error || !statement) {

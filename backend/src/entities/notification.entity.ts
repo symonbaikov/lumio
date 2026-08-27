@@ -31,6 +31,8 @@ export enum NotificationType {
   BUDGET_EXCEEDED = 'budget.exceeded',
   SUBSCRIPTION_DETECTED = 'subscription.detected',
   SUBSCRIPTION_UPCOMING = 'subscription.upcoming',
+  TAX_THRESHOLD_WARNING = 'tax.threshold.warning',
+  TAX_THRESHOLD_REACHED = 'tax.threshold.reached',
 }
 
 export enum NotificationCategory {
@@ -82,6 +84,17 @@ export class Notification {
 
   @Column({ name: 'is_read', type: 'boolean', default: false })
   isRead: boolean;
+
+  /** False when the user wants this event only by email/Telegram, not in the bell. */
+  @Column({ name: 'in_app', type: 'boolean', default: true })
+  inApp: boolean;
+
+  /**
+   * Channels that still owe a delivery: set when a send is deferred (quiet hours,
+   * digest) or failed, cleared once sent. The digest sweep works off this list.
+   */
+  @Column({ name: 'pending_channels', type: 'jsonb', default: () => "'[]'::jsonb" })
+  pendingChannels: string[];
 
   @Column({ name: 'actor_id', type: 'uuid', nullable: true })
   actorId: string | null;

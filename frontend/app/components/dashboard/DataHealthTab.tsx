@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { fillTemplate, resolveLocale } from '@/app/(main)/dashboard/helpers/dashboard-helpers';
 import type { DashboardData, DashboardRange } from '@/app/hooks/useDashboard';
@@ -321,11 +322,11 @@ export function DataHealthTab({ data, formatAmount, isLoading }: DataHealthTabPr
                   pb: '20px',
                 }}
               >
-                {new Date(dataHealth.lastUploadDate).toLocaleDateString(resolveLocale(locale), {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                })}
+                {formatStoredDateWithOptions(
+                  dataHealth.lastUploadDate,
+                  { year: 'numeric', month: 'short', day: 'numeric' },
+                  resolveLocale(locale),
+                )}
               </Typography>
             </>
           ) : (

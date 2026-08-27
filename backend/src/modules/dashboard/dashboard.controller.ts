@@ -18,9 +18,7 @@ export class DashboardController {
     @Query('range') range: '7d' | '30d' | '90d' | 'month' = '30d',
     @Query('date') date?: string,
   ) {
-    const validRange: '7d' | '30d' | '90d' | 'month' = ['7d', '30d', '90d', 'month'].includes(
-      range,
-    )
+    const validRange: '7d' | '30d' | '90d' | 'month' = ['7d', '30d', '90d', 'month'].includes(range)
       ? range
       : '30d';
     return this.dashboardService.getDashboard(user.id, workspaceId, validRange, date);
@@ -33,5 +31,13 @@ export class DashboardController {
     @Query('days', new DefaultValuePipe(30), ParseIntPipe) days: number,
   ) {
     return this.dashboardService.getTrends(workspaceId, days);
+  }
+
+  @Get('commitments')
+  async getCommitments(
+    @WorkspaceId() workspaceId: string,
+    @Query('days', new DefaultValuePipe(60), ParseIntPipe) days: number,
+  ) {
+    return this.dashboardService.getCommitments(workspaceId, days);
   }
 }

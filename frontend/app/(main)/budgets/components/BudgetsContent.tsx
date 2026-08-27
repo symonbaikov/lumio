@@ -1,13 +1,42 @@
 'use client';
 
 import { Plus } from '@/app/components/icons';
-import { Spinner } from '@/app/components/ui/spinner';
+import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import type { BudgetFormData, BudgetItem } from '../hooks/useBudgetsPage';
 import { BudgetCard } from './BudgetCard';
 import { BudgetFormDialog } from './BudgetFormDialog';
+
+function BudgetCardSkeleton(): React.JSX.Element {
+  return (
+    <Box
+      sx={{
+        p: 2.5,
+        borderRadius: tokens.radius.lg,
+        border: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+      }}
+    >
+      <Box
+        sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}
+      >
+        <Box>
+          <Skeleton variant="text" width={140} height={24} />
+          <Skeleton variant="text" width={100} height={16} />
+        </Box>
+      </Box>
+      <Skeleton variant="rounded" height={8} sx={{ borderRadius: 4, mb: 1 }} />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Skeleton variant="text" width={120} height={20} />
+        <Skeleton variant="text" width={40} height={20} />
+      </Box>
+    </Box>
+  );
+}
 
 interface BudgetsContentProps {
   budgets: BudgetItem[];
@@ -52,8 +81,11 @@ export function BudgetsContent({
       </Box>
 
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <Spinner size={32} />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {Array.from({ length: 5 }).map((_, index) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
+            <BudgetCardSkeleton key={index} />
+          ))}
         </Box>
       )}
 

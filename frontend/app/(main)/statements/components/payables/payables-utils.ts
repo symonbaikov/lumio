@@ -1,9 +1,11 @@
 import type {
   Payable,
+  PayableDirection,
   PayableSource,
   PayableStatus,
   PayablesSummary,
 } from '@/app/lib/payables-api';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 export type PayablesSortOption = 'dueDateAsc' | 'dueDateDesc' | 'amountDesc' | 'vendorAsc';
 
@@ -77,7 +79,7 @@ export const formatPayableDate = (value?: string | null, locale = 'en'): string 
   if (!date) {
     return '—';
   }
-  return date.toLocaleDateString(resolveLocale(locale));
+  return formatStoredDate(date, resolveLocale(locale));
 };
 
 export const isPayableOverdue = (payable: Pick<Payable, 'status' | 'dueDate'>): boolean => {
@@ -119,6 +121,7 @@ export const getPayableStatusVariant = (
 };
 
 type PayablesListParams = {
+  direction?: PayableDirection;
   page?: number;
   limit?: number;
   search?: string;
@@ -134,8 +137,9 @@ const resolveOptional = (value: string, empty: string): string | undefined =>
 
 export const buildPayablesListParams = (
   filters: PayablesFiltersState,
-  pagination?: { page?: number; limit?: number },
+  pagination?: { page?: number; limit?: number; direction?: PayableDirection },
 ): PayablesListParams => ({
+  direction: pagination?.direction,
   page: pagination?.page,
   limit: pagination?.limit,
   search: filters.search || undefined,

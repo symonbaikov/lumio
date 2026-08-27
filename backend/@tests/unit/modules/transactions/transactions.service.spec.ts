@@ -13,6 +13,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { TaxAssignmentService } from '@/modules/tax/tax-assignment.service';
 
 describe('TransactionsService', () => {
   let testingModule: TestingModule;
@@ -90,6 +91,7 @@ describe('TransactionsService', () => {
             del: jest.fn(),
           },
         },
+        { provide: TaxAssignmentService, useValue: { resolve: jest.fn(async () => ({ taxRateId: null, taxRuleId: null, taxSource: null, taxAmount: null, taxNetAmount: null, taxReverseCharge: false })) } },
         {
           provide: AuditService,
           useValue: {

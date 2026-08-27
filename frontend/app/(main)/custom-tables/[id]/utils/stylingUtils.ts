@@ -204,7 +204,16 @@ const extractTextDecoration = (
   return undefined;
 };
 
-const extractTextFormatCss = (tf: SheetTextFormat) => ({
+interface TextFormatCss {
+  color?: string;
+  fontWeight?: number;
+  fontStyle?: 'italic' | 'normal';
+  textDecorationLine?: CSSProperties['textDecorationLine'];
+  fontSize?: number;
+  fontFamily?: string;
+}
+
+const extractTextFormatCss = (tf: SheetTextFormat): TextFormatCss => ({
   color: typeof tf.foregroundColor === 'string' ? tf.foregroundColor : undefined,
   fontWeight: typeof tf.bold === 'boolean' ? (tf.bold ? 700 : 400) : undefined,
   fontStyle: typeof tf.italic === 'boolean' ? (tf.italic ? 'italic' : 'normal') : undefined,
@@ -218,7 +227,7 @@ const extractTextFormatCss = (tf: SheetTextFormat) => ({
 
 export const sheetStyleToCss = (style: SheetStyle) => {
   const tf = style.textFormat && typeof style.textFormat === 'object' ? style.textFormat : null;
-  const textProps = tf ? extractTextFormatCss(tf) : {};
+  const textProps: TextFormatCss = tf ? extractTextFormatCss(tf) : {};
 
   return {
     backgroundColor: typeof style.backgroundColor === 'string' ? style.backgroundColor : undefined,

@@ -530,9 +530,39 @@
     }
   }
 
+  &__update {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 12px;
+    border-radius: $lumio-radius-full;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    text-decoration: none;
+    white-space: nowrap;
+    background: linear-gradient(100deg, #10b981, #06b6d4, #3b82f6, #10b981);
+    background-size: 300% 100%;
+    animation: lumio-topbar-update-shimmer 4s linear infinite;
+
+    &:hover {
+      filter: brightness(1.08);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+      background-position: 0 0;
+    }
+  }
+
   &__hamburger {
     display: none;
   }
+}
+
+@keyframes lumio-topbar-update-shimmer {
+  to { background-position: -300% 0; }
 }
 
 // ── Mobile sidebar overlay ──

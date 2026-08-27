@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import {
   isAiCircuitOpen,
   isAiEnabled,
@@ -55,6 +56,7 @@ export type BaseAiClientConfig = {
 };
 
 export abstract class BaseAiHelper {
+  protected readonly logger = new Logger(this.constructor.name);
   protected aiBaseUrl: string | null = null;
   protected aiApiKey: string | null = null;
   protected aiModel: string | null = null;

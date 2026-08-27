@@ -3,12 +3,12 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
-import { WebhookSubscriptionsService } from './services/webhook-subscriptions.service';
-import { WebhookDeliveryService } from './services/webhook-delivery.service';
-import { WebhookDispatcherService } from './services/webhook-dispatcher.service';
+import { WebhookEvent } from '../../entities/webhook-subscription.entity';
 import { CreateWebhookSubscriptionDto } from './dto/create-webhook-subscription.dto';
 import { UpdateWebhookSubscriptionDto } from './dto/update-webhook-subscription.dto';
-import { WebhookEvent } from '../../entities/webhook-subscription.entity';
+import { WebhookDeliveryService } from './services/webhook-delivery.service';
+import { WebhookDispatcherService } from './services/webhook-dispatcher.service';
+import { WebhookSubscriptionsService } from './services/webhook-subscriptions.service';
 
 @ApiTags('Webhook Subscriptions')
 @Controller('webhook-subscriptions')

@@ -1,5 +1,6 @@
 'use client';
 
+import { FORM_CONTROL_SX } from '@/app/components/ui/input';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { format, isValid, parseISO } from 'date-fns';
 import type React from 'react';
@@ -11,6 +12,8 @@ interface CustomDatePickerProps {
   placeholder?: string;
   helperText?: string;
   containerTestId?: string;
+  /** Match the tall form-control sizing used by Input/Select. */
+  large?: boolean;
 }
 
 const DATE_VALUE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -41,6 +44,7 @@ export default function CustomDatePicker({
   placeholder,
   helperText,
   containerTestId,
+  large,
 }: CustomDatePickerProps) {
   const dateValue = normalizeToDate(value);
 
@@ -62,7 +66,8 @@ export default function CustomDatePicker({
         slotProps={{
           textField: {
             fullWidth: true,
-            size: 'small',
+            size: large ? 'medium' : 'small',
+            sx: large ? { '& .MuiInputBase-root': FORM_CONTROL_SX } : undefined,
             helperText: helperText,
             placeholder: placeholder,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

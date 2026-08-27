@@ -51,7 +51,11 @@ export class BackupsController {
   }
 
   @Get('runs/:id/download')
-  async downloadRun(@Param('id') id: string, @CurrentUser() user: User, @Res() response: Response): Promise<void> {
+  async downloadRun(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Res() response: Response,
+  ): Promise<void> {
     const { fileName, contents } = await this.backupsService.downloadRun(user, id);
     response.setHeader('Content-Type', 'application/octet-stream');
     response.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);

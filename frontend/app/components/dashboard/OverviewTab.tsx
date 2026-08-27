@@ -2,6 +2,7 @@
 'use client';
 
 import { BudgetSummaryWidget } from '@/app/(main)/dashboard/components/BudgetSummaryWidget';
+import { CashRunwayWidget } from '@/app/(main)/dashboard/components/CashRunwayWidget';
 import {
   fillTemplate,
   formatDateOnly,
@@ -466,6 +467,9 @@ export function OverviewTab({
 
         {/* ── Budget summary ── */}
         <BudgetSummaryWidget />
+
+        {/* ── Cash runway ── */}
+        <CashRunwayWidget formatAmount={formatAmount} />
 
         {/* ── Quick actions ── */}
         <QuickActionsCard actions={s.mappedActions} emptyColor={c.ink400} />

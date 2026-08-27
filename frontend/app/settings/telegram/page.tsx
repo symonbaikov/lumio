@@ -1,8 +1,8 @@
 /* eslint-disable max-lines */
 'use client';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 import { CheckCircle, Clock, Send, Bot as TelegramIcon } from '@/app/components/icons';
-import { Spinner } from '@/app/components/ui/spinner';
 import { useAuth } from '@/app/hooks/useAuth';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -16,6 +16,7 @@ import {
   Container,
   Divider,
   Paper,
+  Skeleton,
   Stack,
   Table,
   TableBody,
@@ -26,7 +27,49 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
+
+function TelegramSettingsSkeleton(): React.JSX.Element {
+  return (
+    <Container maxWidth={false} className="container-shared" sx={{ py: 4 }}>
+      <Stack spacing={3}>
+        <Box>
+          <Skeleton variant="text" width={220} height={40} />
+          <Skeleton variant="text" width={320} height={24} />
+        </Box>
+
+        {['bot', 'connect', 'quickSend'].map(key => (
+          <Paper key={key} elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
+            <Stack spacing={3}>
+              <Box>
+                <Skeleton variant="text" width={160} height={28} />
+                <Skeleton variant="text" width="80%" height={20} />
+              </Box>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                <Skeleton variant="rounded" width="100%" height={56} />
+                <Skeleton variant="rounded" width="100%" height={56} />
+              </Stack>
+              <Skeleton variant="rounded" width={140} height={36} />
+            </Stack>
+          </Paper>
+        ))}
+
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
+          <Stack spacing={2}>
+            <Box>
+              <Skeleton variant="text" width={160} height={28} />
+              <Skeleton variant="text" width="60%" height={20} />
+            </Box>
+            {['row1', 'row2', 'row3'].map(key => (
+              <Skeleton key={key} variant="rounded" width="100%" height={40} />
+            ))}
+          </Stack>
+        </Paper>
+      </Stack>
+    </Container>
+  );
+}
 
 type ReportStatus = 'pending' | 'sent' | 'failed';
 type ReportType = 'daily' | 'monthly' | 'custom';
@@ -65,7 +108,7 @@ export default function TelegramSettingsPage() {
   const formatTelegramDate = (dateString: string | null | undefined): string => {
     if (!dateString) return t.history.dash.value;
     const date = new Date(dateString);
-    return date.toLocaleString(locale);
+    return formatStoredDateTime(date, locale);
   };
 
   const getReportTypeLabel = (type: ReportType): string => {
@@ -190,15 +233,7 @@ export default function TelegramSettingsPage() {
   const canView = useMemo(() => hasPermission('telegram.view'), [hasPermission]);
 
   if (authLoading) {
-    return (
-      <Container
-        maxWidth={false}
-        className="container-shared"
-        sx={{ mt: 8, display: 'flex', justifyContent: 'center' }}
-      >
-        <Spinner size={40} />
-      </Container>
-    );
+    return <TelegramSettingsSkeleton />;
   }
 
   if (!user) {

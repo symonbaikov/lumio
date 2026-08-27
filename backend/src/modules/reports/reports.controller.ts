@@ -3,9 +3,11 @@ import {
   Body,
   Controller,
   DefaultValuePipe,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
   Res,
@@ -25,17 +27,22 @@ import {
 import { CustomTablesSummaryDto } from './dto/custom-tables-summary.dto';
 import { ExportFormat, type ExportReportDto } from './dto/export-report.dto';
 import { GenerateReportDto } from './dto/generate-report.dto';
+import { CreateReportScheduleDto, UpdateReportScheduleActiveDto } from './dto/report-schedule.dto';
 import { SpendOverTimeQueryDto } from './dto/spend-over-time-query.dto';
 import { TopCategoriesQueryDto } from './dto/top-categories-query.dto';
 import { type WorkspaceExportDto, WorkspaceExportFormat } from './dto/workspace-export.dto';
 import type { CustomReport } from './interfaces/custom-report.interface';
 import type { DailyReport } from './interfaces/daily-report.interface';
 import type { MonthlyReport } from './interfaces/monthly-report.interface';
+import { ReportSchedulesService } from './report-schedules.service';
 import { ReportsService } from './reports.service';
 
 @Controller('reports')
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService) {}
+  constructor(
+    private readonly reportsService: ReportsService,
+    private readonly reportSchedules: ReportSchedulesService,
+  ) {}
 
   private scheduleTempFileCleanup(fileStream: fs.ReadStream, filePath: string) {
     const cleanup = () => {
@@ -207,23 +214,33 @@ export class ReportsController {
     this.scheduleTempFileCleanup(fileStream, filePath);
   }
 
+  @Post('preview')
+  @WorkspaceAuth(Permission.REPORT_VIEW)
+  async previewReport(
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: GenerateReportDto,
+  ) {
+    return this.reportsService.previewTemplate(workspaceId, dto);
+  }
+
   @Post('generate')
   @WorkspaceAuth(Permission.REPORT_EXPORT)
   async generateReport(
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
     @Body() dto: GenerateReportDto,
     @Res() res: Response,
   ) {
     const { filePath, fileName, contentType } = await this.reportsService.generateFromTemplate(
       workspaceId,
+      user.id,
       dto,
     );
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Disposition', buildContentDisposition('attachment', fileName));
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-    this.scheduleTempFileCleanup(fileStream, filePath);
+    // No cleanup: the file is retained under uploads/reports for the History tab.
+    fs.createReadStream(filePath).pipe(res);
   }
 
   @Post('workspace-export')
@@ -248,8 +265,8 @@ export class ReportsController {
 
   @Get('history')
   @WorkspaceAuth(Permission.REPORT_VIEW)
-  async getHistory(@CurrentUser() user: User) {
-    return this.reportsService.getReportHistory(user.id);
+  async getHistory(@CurrentUser() _user: User, @WorkspaceId() workspaceId: string) {
+    return this.reportsService.getReportHistory(workspaceId);
   }
 
   @Get('history/:reportId/download')
@@ -268,6 +285,44 @@ export class ReportsController {
     res.setHeader('Content-Disposition', buildContentDisposition('attachment', fileName));
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
+  }
+
+  @Get('schedules')
+  @WorkspaceAuth(Permission.REPORT_VIEW)
+  async listSchedules(@CurrentUser() _user: User, @WorkspaceId() workspaceId: string) {
+    return this.reportSchedules.list(workspaceId);
+  }
+
+  @Post('schedules')
+  @WorkspaceAuth(Permission.REPORT_EXPORT)
+  async createSchedule(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: CreateReportScheduleDto,
+  ) {
+    return this.reportSchedules.create(workspaceId, user.id, dto);
+  }
+
+  @Patch('schedules/:scheduleId')
+  @WorkspaceAuth(Permission.REPORT_EXPORT)
+  async updateScheduleActive(
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('scheduleId') scheduleId: string,
+    @Body() dto: UpdateReportScheduleActiveDto,
+  ) {
+    return this.reportSchedules.setActive(workspaceId, scheduleId, dto.isActive);
+  }
+
+  @Delete('schedules/:scheduleId')
+  @WorkspaceAuth(Permission.REPORT_EXPORT)
+  async deleteSchedule(
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('scheduleId') scheduleId: string,
+  ) {
+    await this.reportSchedules.remove(workspaceId, scheduleId);
+    return { success: true };
   }
 
   @Get('latest')

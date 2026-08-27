@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, Layers } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { AppPagination } from '@/app/components/ui/pagination';
 import type { AuditEvent } from '@/lib/api/audit';
+import Skeleton from '@mui/material/Skeleton';
 import { useMemo, useState } from 'react';
 import { ACTION_ICON_MAP } from '../utils/actionIconMap';
 import { buildGroupedData } from '../utils/audit-table-utils';
@@ -129,6 +130,29 @@ function AuditBatchGroup({
         <div className="audit-when">{relativeTime(createdAt)}</div>
       </div>
     </li>
+  );
+}
+
+const SKELETON_ROW_KEYS = ['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7'];
+
+export function AuditTimelineSkeleton(): React.JSX.Element {
+  return (
+    <ol className="audit-list">
+      {SKELETON_ROW_KEYS.map(key => (
+        <li className="audit-item" key={key}>
+          <div className="audit-dot">
+            <Skeleton variant="circular" width={16} height={16} />
+          </div>
+          <div className="audit-body">
+            <div className="audit-line">
+              <Skeleton variant="circular" width={22} height={22} className="audit-avatar" />
+              <Skeleton variant="text" width={140} height={16} />
+            </div>
+            <Skeleton variant="text" width={70} height={14} />
+          </div>
+        </li>
+      ))}
+    </ol>
   );
 }
 

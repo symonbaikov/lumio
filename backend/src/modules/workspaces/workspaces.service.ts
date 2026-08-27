@@ -14,6 +14,7 @@ import nodemailer from 'nodemailer';
 import * as React from 'react';
 import type { Repository } from 'typeorm';
 import { TimeoutError, retry, withTimeout } from '../../common/utils/async.util';
+import { mergeProcessingSettings } from '../../common/utils/workspace-processing.util';
 import {
   User,
   Workspace,
@@ -34,7 +35,7 @@ import type {
   MemberJoinedEvent,
   WorkspaceUpdatedEvent,
 } from '../notifications/events/notification-events';
-import { TaxRatesService } from '../tax-rates/tax-rates.service';
+import { TaxRatesService } from '../tax/tax-rates.service';
 import type { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import type { InviteMemberDto } from './dto/invite-member.dto';
 import type { UpdateWorkspaceDto } from './dto/update-workspace.dto';
@@ -861,6 +862,10 @@ export class WorkspacesService {
       ...(dto.backgroundImage !== undefined && { backgroundImage: dto.backgroundImage }),
       ...(dto.currency !== undefined && { currency: dto.currency }),
       ...(dto.isFavorite !== undefined && { isFavorite: dto.isFavorite }),
+      // Merged, not replaced: `settings` is a shared blob.
+      ...(dto.processing !== undefined && {
+        settings: mergeProcessingSettings(workspace.settings, dto.processing),
+      }),
     });
 
     const updated = await this.workspaceRepository.save(workspace);

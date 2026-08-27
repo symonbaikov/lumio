@@ -1,15 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Category, Receipt, Transaction } from '@/entities';
+import { AiCategoryClassifier } from '@/modules/classification/helpers/ai-category-classifier.helper';
 import { ReceiptCategoryService } from '@/modules/receipts/services/receipt-category.service';
-
-function createCategoryQueryBuilder(result: Category[]) {
-  return {
-    leftJoin: jest.fn().mockReturnThis(),
-    where: jest.fn().mockReturnThis(),
-    getMany: jest.fn().mockResolvedValue(result),
-  };
-}
 
 function createTransactionQueryBuilder(result: Transaction[]) {
   return {
@@ -26,6 +19,8 @@ describe('ReceiptCategoryService', () => {
   let service: ReceiptCategoryService;
   let categoryRepository: { find: jest.Mock; createQueryBuilder: jest.Mock };
   let transactionRepository: { createQueryBuilder: jest.Mock };
+  let isAvailableSpy: jest.SpyInstance;
+  let classifySpy: jest.SpyInstance;
 
   beforeEach(async () => {
     categoryRepository = {
@@ -46,17 +41,30 @@ describe('ReceiptCategoryService', () => {
     }).compile();
 
     service = module.get(ReceiptCategoryService);
+
+    // By default the AI classifier is unavailable (no workspace AI settings).
+    isAvailableSpy = jest
+      .spyOn(AiCategoryClassifier.prototype, 'isAvailable')
+      .mockReturnValue(false);
+    classifySpy = jest
+      .spyOn(AiCategoryClassifier.prototype, 'classifyBatch')
+      .mockResolvedValue({ matches: [], failedCount: 1 });
   });
 
-  it('loads categories directly for regular receipts', async () => {
-    const categories = [{ id: 'food', name: 'food', isEnabled: true }] as Category[];
+  afterEach(() => {
+    isAvailableSpy.mockRestore();
+    classifySpy.mockRestore();
+  });
+
+  it('loads categories by workspaceId for regular receipts', async () => {
+    const categories = [{ id: 'food', name: 'Продукты', isEnabled: true }] as Category[];
 
     categoryRepository.find.mockResolvedValue(categories);
     transactionRepository.createQueryBuilder.mockReturnValue(createTransactionQueryBuilder([]));
 
     const result = await service.suggestCategory({
       workspaceId: 'workspace-1',
-      parsedData: { vendor: 'coffee point' },
+      parsedData: { vendor: 'Кафе Пушкин' },
     } as Receipt);
 
     expect(categoryRepository.find).toHaveBeenCalledWith({
@@ -66,27 +74,103 @@ describe('ReceiptCategoryService', () => {
     expect(result?.id).toBe('food');
   });
 
-  it('loads categories via statement ownership for gmail receipts', async () => {
-    const categories = [{ id: 'food', name: 'food', isEnabled: true }] as Category[];
-    const categoryQueryBuilder = createCategoryQueryBuilder(categories);
+  it('loads categories by workspaceId for gmail (via-statement) receipts too', async () => {
+    const categories = [{ id: 'food', name: 'Продукты', isEnabled: true }] as Category[];
 
-    categoryRepository.createQueryBuilder.mockReturnValue(categoryQueryBuilder);
+    categoryRepository.find.mockResolvedValue(categories);
     transactionRepository.createQueryBuilder.mockReturnValue(createTransactionQueryBuilder([]));
 
     const result = await service.suggestCategory(
       {
         workspaceId: 'workspace-1',
-        parsedData: { vendor: 'coffee point' },
+        parsedData: { vendor: 'Кафе Пушкин' },
       } as Receipt,
       'via-statement',
     );
 
-    expect(categoryRepository.find).not.toHaveBeenCalled();
-    expect(categoryRepository.createQueryBuilder).toHaveBeenCalledWith('category');
-    expect(categoryQueryBuilder.leftJoin).toHaveBeenCalledWith('category.user', 'user');
-    expect(categoryQueryBuilder.where).toHaveBeenCalledWith('user.workspace_id = :workspaceId', {
+    // The legacy via-statement join is gone: both modes query by workspaceId.
+    expect(categoryRepository.find).toHaveBeenCalled();
+    expect(categoryRepository.createQueryBuilder).not.toHaveBeenCalled();
+    expect(result?.id).toBe('food');
+  });
+
+  it('filters categories by expense type for expense receipts', async () => {
+    const expenseCategories = [{ id: 'food', name: 'Продукты', type: 'expense', isEnabled: true }] as Category[];
+
+    categoryRepository.find.mockResolvedValue(expenseCategories);
+    transactionRepository.createQueryBuilder.mockReturnValue(createTransactionQueryBuilder([]));
+
+    const result = await service.suggestCategory({
       workspaceId: 'workspace-1',
+      parsedData: { vendor: 'Кафе Пушкин', transactionType: 'expense' },
+    } as Receipt);
+
+    expect(categoryRepository.find).toHaveBeenCalledWith({
+      where: { workspaceId: 'workspace-1', isEnabled: true, type: 'expense' },
     });
     expect(result?.id).toBe('food');
+  });
+
+  it('filters categories by income type for income receipts', async () => {
+    const incomeCategories = [{ id: 'sales', name: 'Продажи', type: 'income', isEnabled: true }] as Category[];
+
+    categoryRepository.find.mockResolvedValue(incomeCategories);
+    transactionRepository.createQueryBuilder.mockReturnValue(createTransactionQueryBuilder([]));
+
+    const result = await service.suggestCategory({
+      workspaceId: 'workspace-1',
+      parsedData: { vendor: 'ООО Ромашка', transactionType: 'income' },
+    } as Receipt);
+
+    expect(categoryRepository.find).toHaveBeenCalledWith({
+      where: { workspaceId: 'workspace-1', isEnabled: true, type: 'income' },
+    });
+    // No vendor keyword/alias maps to an income category, so no match is expected.
+    expect(result).toBeNull();
+  });
+
+  it('matches Russian default categories via keywords', () => {
+    const categories = [{ id: 'food', name: 'Продукты' }] as Category[];
+    expect(service.matchByKeywords('Кафе Пушкин', categories)?.id).toBe('food');
+    expect(service.matchByKeywords('Кофейня на углу', categories)?.id).toBe('food');
+  });
+
+  it('matches English category names via keywords', () => {
+    const categories = [{ id: 'food', name: 'Food & Dining' }] as Category[];
+    expect(service.matchByKeywords('Pizza Hut', categories)?.id).toBe('food');
+  });
+
+  it('does not match keywords when no category corresponds', () => {
+    const categories = [{ id: 'salary', name: 'Зарплата' }] as Category[];
+    expect(service.matchByKeywords('Кафе Пушкин', categories)).toBeNull();
+  });
+
+  it('uses AI classification when available', async () => {
+    isAvailableSpy.mockReturnValue(true);
+    classifySpy.mockResolvedValue({
+      matches: [{ index: 0, categoryName: 'Продукты', categoryId: 'food', confidence: 0.95 }],
+      failedCount: 0,
+    });
+
+    const categories = [{ id: 'food', name: 'Продукты' }, { id: 'shop', name: 'Покупки' }] as Category[];
+    categoryRepository.find.mockResolvedValue(categories);
+    transactionRepository.createQueryBuilder.mockReturnValue(createTransactionQueryBuilder([]));
+
+    const result = await service.suggestCategory({
+      workspaceId: 'workspace-1',
+      parsedData: { vendor: 'Magnum', lineItems: [{ description: 'Продукты' }] },
+    } as Receipt);
+
+    expect(classifySpy).toHaveBeenCalled();
+    expect(result?.id).toBe('food');
+  });
+
+  it('returns null when there are no categories', async () => {
+    categoryRepository.find.mockResolvedValue([]);
+    const result = await service.suggestCategory({
+      workspaceId: 'workspace-1',
+      parsedData: { vendor: 'Кафе' },
+    } as Receipt);
+    expect(result).toBeNull();
   });
 });

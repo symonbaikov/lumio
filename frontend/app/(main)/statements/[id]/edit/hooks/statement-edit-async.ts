@@ -2,7 +2,12 @@ import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import { payablesApi } from '@/app/lib/payables-api';
 import { isStageActionBlocked, setStatementStage } from '@/app/lib/statement-workflow';
-import type { StatementStageAction, StatementStageActionId } from '@/app/lib/statement-workflow';
+import type {
+  StatementStage,
+  StatementStageAction,
+  StatementStageActionId,
+} from '@/app/lib/statement-workflow';
+import type { Dispatch, SetStateAction } from 'react';
 import { toast } from 'react-hot-toast';
 import type {
   BranchOption,
@@ -43,8 +48,9 @@ function extractMeta(statementData: Statement | null): Record<string, unknown> {
   return details?.metadataExtracted ?? {};
 }
 
-function resolveField(primary: unknown, fallback: unknown): unknown {
-  return primary ?? fallback;
+function resolveField<T>(primary: T | null | undefined, fallback: unknown): T | null | undefined {
+  const value = primary ?? fallback;
+  return (value as T) ?? null;
 }
 
 function buildMetadataForm(
@@ -243,12 +249,12 @@ type StageArgs = {
   transactions: Transaction[];
   router: { push: (p: string) => void };
   setStageActionLoadingId: (v: StatementStageActionId | null) => void;
-  setCurrentStage: (v: string) => void;
+  setCurrentStage: Dispatch<SetStateAction<StatementStage>>;
 };
 
 function isStageActionReady(
   statement: Statement | null,
-  actionId: string,
+  actionId: StatementStageActionId,
   missingCount: number,
 ): statement is Statement {
   return Boolean(statement?.id) && !isStageActionBlocked(actionId, missingCount);
@@ -305,8 +311,10 @@ function resolveSelectedCategory(
   responseCategory: unknown,
   flatCategories: { id: string; name: string }[],
   categoryId: string,
-): unknown {
-  return responseCategory ?? flatCategories.find(c => c.id === categoryId) ?? null;
+): Statement['category'] {
+  return (responseCategory ??
+    flatCategories.find(c => c.id === categoryId) ??
+    null) as Statement['category'];
 }
 
 function canUpdateCategory(statement: Statement | null, saving: boolean): statement is Statement {

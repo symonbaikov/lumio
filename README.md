@@ -124,7 +124,6 @@ Lumio is a full-stack financial operations platform built for teams that need to
 - **WebSocket Support** — Live updates via Socket.IO for notifications and import progress.
 - **Observability** — Prometheus metrics endpoint (`/api/v1/metrics`) with pre-built Grafana dashboards.
 - **Guided Onboarding** — 10 interactive feature tours in English, Russian, and Kazakh.
-- **Storybook** — Component library with stories for every UI primitive; auto-built on every PR.
 
 </details>
 
@@ -196,7 +195,6 @@ Setting expectations upfront:
 | Onboarding | driver.js |
 | PDF Viewer | react-pdf v10 |
 | Animation | framer-motion v12 |
-| Component Dev | Storybook v8 (webpack5) |
 | Tests | Vitest v2 |
 
 ### Infrastructure
@@ -205,7 +203,7 @@ Setting expectations upfront:
 |---|---|
 | Containerization | Docker + Docker Compose |
 | Monitoring | Prometheus + Grafana |
-| CI/CD | GitHub Actions (CI, CD, CodeQL, dependency-review, Scorecard, release-please, Storybook) |
+| CI/CD | GitHub Actions (CI, CD, CodeQL, dependency-review, Scorecard, release-please) |
 
 ---
 
@@ -280,8 +278,7 @@ lumio/
 │   │   ├── upload/                  # Statement upload flow
 │   │   ├── components/              # Reusable React components
 │   │   ├── hooks/                   # Custom hooks (useAuth, etc.)
-│   │   ├── tours/                   # driver.js guided tour definitions
-│   │   └── stories/                 # Storybook stories (*.stories.tsx)
+│   │   └── tours/                   # driver.js guided tour definitions
 │   └── public/                      # Static assets, bank logos
 ├── docs/
 │   ├── plans/                       # 38 feature design & implementation plans
@@ -294,8 +291,6 @@ lumio/
 ├── observability/                   # Prometheus & Grafana configuration
 ├── scripts/                         # Shell helper scripts
 │   ├── generate-env.sh              # Generate .env files with random secrets
-│   ├── storybook-download.sh        # Download Storybook from CI artifacts
-│   ├── storybook-serve.sh           # Serve downloaded Storybook locally
 │   └── generate-changelog.mjs       # Changelog generation script
 ├── docker-compose.yml               # Production Docker config (4 services)
 ├── docker-compose.dev.yml           # Development overrides with hot reload
@@ -434,7 +429,6 @@ The development bootstrap supports and tests these paths:
 | Frontend | http://localhost:3000 | Next.js app |
 | Backend API | http://localhost:3001/api/v1 | All REST endpoints |
 | Swagger Docs | http://localhost:3001/api/docs | Interactive API explorer |
-| Storybook | http://localhost:6006 | `make storybook` |
 | Prometheus | http://localhost:9090 | `make observability` |
 | Grafana | http://localhost:3002 | `make observability` · `admin` / `admin` |
 
@@ -620,15 +614,6 @@ make observability     # Start Prometheus + Grafana
 make observability-stop # Stop monitoring stack
 ```
 
-**Storybook**
-
-```bash
-make storybook         # Start Storybook dev server at http://localhost:6006
-make storybook-build   # Build static Storybook to frontend/storybook-static/
-make storybook-serve   # Serve Storybook from downloaded CI artifacts
-make storybook-download # Download latest Storybook from GitHub Actions
-```
-
 **Utilities**
 
 ```bash
@@ -731,28 +716,6 @@ cd frontend
 
 npm test               # Run all tests with Vitest
 ```
-
-### Storybook
-
-Storybook documents all UI components with interactive examples.
-
-```bash
-# Start development server
-make storybook         # or: cd frontend && npm run storybook
-
-# Build static output
-make storybook-build   # output: frontend/storybook-static/
-
-# Work with CI artifacts
-make storybook-download   # Download latest build from GitHub Actions
-make storybook-serve      # Serve the downloaded build locally
-```
-
-Stories live in `frontend/app/stories/` and follow the `*.stories.tsx` naming convention. Storybook is automatically built on every PR and push to `main` as a GitHub Actions artifact (7-day retention for PRs, 30-day for main).
-
-**Story categories:** Components, Modals, Transactions, UI.
-
----
 
 ## Architecture
 
@@ -1028,7 +991,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 Built on great open-source foundations:
 
-[NestJS](https://nestjs.com/) · [Next.js](https://nextjs.org/) · [PostgreSQL](https://www.postgresql.org/) · [TypeORM](https://typeorm.io/) · [Redis](https://redis.io/) · [MUI](https://mui.com/) · [Emotion](https://emotion.sh/) · [TanStack Table](https://tanstack.com/table) · [ECharts](https://echarts.apache.org/) · [Tesseract.js](https://tesseract.projectnaptha.com/) · [Socket.IO](https://socket.io/) · [Intlayer](https://intlayer.org/) · [driver.js](https://driverjs.com/) · [Biome](https://biomejs.dev/) · [Storybook](https://storybook.js.org/) · and many more.
+[NestJS](https://nestjs.com/) · [Next.js](https://nextjs.org/) · [PostgreSQL](https://www.postgresql.org/) · [TypeORM](https://typeorm.io/) · [Redis](https://redis.io/) · [MUI](https://mui.com/) · [Emotion](https://emotion.sh/) · [TanStack Table](https://tanstack.com/table) · [ECharts](https://echarts.apache.org/) · [Tesseract.js](https://tesseract.projectnaptha.com/) · [Socket.IO](https://socket.io/) · [Intlayer](https://intlayer.org/) · [driver.js](https://driverjs.com/) · [Biome](https://biomejs.dev/) · and many more.
 
 ---
 

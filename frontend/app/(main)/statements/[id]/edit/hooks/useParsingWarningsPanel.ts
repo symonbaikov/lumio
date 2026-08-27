@@ -1,7 +1,11 @@
 import { buildCurrencySearchIndex } from '@/app/lib/statement-expense-drawer';
 import type { CurrencySearchItem } from '@/app/lib/statement-expense-drawer';
 import { useEffect, useMemo, useState } from 'react';
-import type { ConvertDroppedSamplePayload, ResolveWarningPayload } from '../ParsingWarningsPanel';
+import type {
+  ConvertDroppedSamplePayload,
+  ParsingDroppedSample,
+  ResolveWarningPayload,
+} from '../ParsingWarningsPanel';
 import {
   type DroppedSampleDraft,
   canConvertDraft,

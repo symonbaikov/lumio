@@ -1,5 +1,6 @@
 // Pure helper functions and types for the Statement Edit page
 
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { ParsingDroppedSample } from './ParsingWarningsPanel';
 
 export interface CategoryOption {
@@ -85,6 +86,21 @@ export interface StatementParsingDetails {
   processingTime?: number;
   logEntries?: Array<{ timestamp: string; level: string; message: string }>;
   droppedSamples?: Array<string | ParsingDroppedSample>;
+  /** Balance reconciliation result. `passed: false` puts the statement in `needs_review`. */
+  validation?: {
+    passed: boolean;
+    warnings?: string[];
+    balanceCheck?: {
+      expectedEnd?: number;
+      actualEnd?: number;
+      difference?: number;
+      tolerance?: number;
+    };
+  };
+  balanceConfirmation?: {
+    confirmedBy: string;
+    confirmedAt: string;
+  };
 }
 
 export interface Statement {
@@ -157,7 +173,7 @@ export const formatDate = (dateString?: string | null): string => {
     return '';
   }
   try {
-    return new Date(dateString).toLocaleDateString('ru-RU');
+    return formatStoredDate(dateString, 'ru-RU');
   } catch {
     return String(dateString);
   }
@@ -185,3 +201,96 @@ export const formatLabel = (
     template,
   );
 };
+
+// ---------------------------------------------------------------------------
+// Reconstructed helpers consumed across the Statement Edit page
+// ---------------------------------------------------------------------------
+
+export const labelValue = (label: { value?: string } | undefined, fallback: string): string =>
+  label?.value ?? fallback;
+
+export interface FieldChangeParams {
+  id: string;
+  field: keyof Transaction;
+  value: string;
+}
+
+export type MetadataHints = {
+  startDate: string;
+  endDate: string;
+  openingBalance: string;
+  closingBalance: string;
+};
+
+type BuildHintsParams = {
+  prefix?: string;
+  locale: string;
+  meta?: {
+    dateFrom?: string;
+    dateTo?: string;
+    balanceStart?: number;
+    balanceEnd?: number;
+  };
+  fmt: (n?: number | null) => string;
+  labels: Record<string, { value?: string } | undefined>;
+};
+
+export function buildHints({ prefix, locale, meta, fmt, labels }: BuildHintsParams): MetadataHints {
+  const filePrefix = prefix ?? labelValue(labels.fromFilePrefix, 'From file: ');
+  const { dateFrom, dateTo, balanceStart, balanceEnd } = meta ?? {};
+  const dateHint = (value?: string): string =>
+    value ? `${filePrefix}${new Date(value).toLocaleDateString(resolveLocale(locale))}` : '';
+  return {
+    startDate: dateHint(dateFrom),
+    endDate: dateHint(dateTo),
+    openingBalance:
+      balanceStart != null
+        ? `${filePrefix}${fmt(balanceStart)}`
+        : labelValue(labels.enterOpeningBalance, 'Enter opening balance'),
+    closingBalance:
+      balanceEnd != null
+        ? `${filePrefix}${fmt(balanceEnd)}`
+        : labelValue(labels.enterManuallyHint, 'Enter manually if it was not detected'),
+  };
+}
+
+export function ignoreEventArg<T>(handler: (value: T) => void): (event: unknown, value: T) => void {
+  return (_event, value) => handler(value);
+}
+
+export const countArray = (items?: unknown[] | null): number => items?.length ?? 0;
+
+export const getParsingStats = (pd: {
+  errors?: string[];
+  warnings?: string[];
+  otherBankMentions?: string[];
+}): { errCount: number; warnCount: number; mentions: string[] } => ({
+  errCount: countArray(pd.errors),
+  warnCount: countArray(pd.warnings),
+  mentions: pd.otherBankMentions ?? [],
+});
+
+export const toOptionalStr = (value?: number | string | null): string | undefined =>
+  value == null ? undefined : String(value);
+
+export const toUpperOrUndefined = (value?: string | null): string | undefined => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.toUpperCase() : undefined;
+};
+
+export const sumTransactionCredit = (transactions: Transaction[]): number =>
+  transactions.reduce((sum, tx) => {
+    const credit = Number(tx.credit);
+    return sum + (Number.isNaN(credit) ? 0 : credit);
+  }, 0);
+
+export const sumTransactionDebit = (transactions: Transaction[]): number =>
+  transactions.reduce((sum, tx) => {
+    const debit = Number(tx.debit);
+    return sum + (Number.isNaN(debit) ? 0 : debit);
+  }, 0);
+
+export const formatSummaryAmount = (
+  amount: number,
+  formatNumber: (n?: number | null) => string,
+): string => (Number.isNaN(amount) ? '0.00' : formatNumber(amount));

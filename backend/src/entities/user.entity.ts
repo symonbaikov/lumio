@@ -1,6 +1,7 @@
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -23,6 +24,19 @@ export enum UserRole {
   ADMIN = 'admin',
   USER = 'user',
   VIEWER = 'viewer',
+}
+
+export enum DateFormatPreference {
+  /** Derive the date order from the interface language. */
+  AUTO = 'auto',
+  DMY = 'dmy',
+  MDY = 'mdy',
+  YMD = 'ymd',
+}
+
+export enum UiDensity {
+  COMFORTABLE = 'comfortable',
+  COMPACT = 'compact',
 }
 
 export enum ThemePreference {
@@ -52,6 +66,25 @@ export class User {
   timeZone: string | null;
 
   @Column({
+    name: 'date_format',
+    type: 'varchar',
+    length: 8,
+    default: DateFormatPreference.AUTO,
+  })
+  dateFormat: DateFormatPreference;
+
+  /** 0 = Sunday … 6 = Saturday; null follows the interface language. */
+  @Column({ name: 'first_day_of_week', type: 'smallint', nullable: true })
+  firstDayOfWeek: number | null;
+
+  @Column({ name: 'ui_density', type: 'varchar', length: 16, default: UiDensity.COMFORTABLE })
+  uiDensity: UiDensity;
+
+  /** Turns off non-essential transitions and animations across the interface. */
+  @Column({ name: 'reduce_motion', type: 'boolean', default: false })
+  reduceMotion: boolean;
+
+  @Column({
     name: 'theme_preference',
     type: 'varchar',
     length: 16,
@@ -61,6 +94,45 @@ export class User {
 
   @Column({ name: 'onboarding_completed_at', type: 'timestamptz', nullable: true, default: null })
   onboardingCompletedAt: Date | null;
+
+  /**
+   * When the user accepted the no-warranty disclaimer. NULL means they have not
+   * yet, which is the state every account starts in.
+   */
+  @Column({ name: 'disclaimer_accepted_at', type: 'timestamptz', nullable: true, default: null })
+  disclaimerAcceptedAt: Date | null;
+
+  /**
+   * Which revision of the text they accepted. A consent record without this is
+   * worthless the first time the wording changes, since there is no way to tell
+   * what the user actually agreed to.
+   */
+  @Column({
+    name: 'disclaimer_version',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+    default: null,
+  })
+  disclaimerVersion: string | null;
+
+  /** Base32 TOTP secret, encrypted at rest. Set during setup, before 2FA is confirmed. */
+  @Column({ name: 'two_factor_secret', type: 'text', nullable: true, select: false })
+  twoFactorSecret: string | null;
+
+  /** Non-null only after the user confirmed a code — 2FA is active from this moment. */
+  @Column({ name: 'two_factor_enabled_at', type: 'timestamptz', nullable: true, default: null })
+  twoFactorEnabledAt: Date | null;
+
+  /** HMAC-SHA256 hashes of the unused recovery codes. */
+  @Column({
+    name: 'two_factor_recovery_codes',
+    type: 'jsonb',
+    nullable: false,
+    default: () => "'[]'::jsonb",
+    select: false,
+  })
+  twoFactorRecoveryCodes: string[];
 
   @Column({ name: 'token_version', type: 'int', default: 0 })
   tokenVersion: number;
@@ -102,6 +174,10 @@ export class User {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  /** Set when the account is deleted; TypeORM hides these rows from every find. */
+  @DeleteDateColumn({ name: 'deleted_at', type: 'timestamptz', nullable: true })
+  deletedAt: Date | null;
 
   @Column({ name: 'last_login', nullable: true })
   lastLogin: Date | null;

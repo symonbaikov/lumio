@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { Calendar, Landmark, Receipt, TrendingDown, TrendingUp } from '@/app/components/icons';
 import {
@@ -105,11 +106,11 @@ export default function TransactionDocumentViewer({
     }
     try {
       const date = new Date(dateString);
-      return new Intl.DateTimeFormat(locale, {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).format(date);
+      return formatStoredDateWithOptions(
+        date,
+        { year: 'numeric', month: '2-digit', day: '2-digit' },
+        locale,
+      );
     } catch {
       return dateString;
     }
@@ -785,13 +786,17 @@ export default function TransactionDocumentViewer({
             display="block"
             sx={{ mt: 0.5 }}
           >
-            {new Date().toLocaleString(locale, {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            {formatStoredDateWithOptions(
+              new Date(),
+              {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              },
+              locale,
+            )}
           </Typography>
         </Box>
       </Box>

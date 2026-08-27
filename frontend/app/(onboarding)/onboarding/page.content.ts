@@ -47,9 +47,76 @@ const setupAction = t({
   id: 'Atur',
 });
 
+/**
+ * Legal wording, shown in Russian and English only.
+ *
+ * The other locales fall back to the English text on purpose rather than to a
+ * machine translation: a liability waiver that says something slightly
+ * different in nineteen languages is worse than one the reader has to work
+ * through in English. Replace locale by locale once the text has been through
+ * professional legal translation.
+ */
+const legal = (ru: string, en: string) =>
+  t({
+    ru,
+    en,
+    kk: en,
+    de: en,
+    fr: en,
+    es: en,
+    pt: en,
+    tr: en,
+    uk: en,
+    zh: en,
+    ar: en,
+    pl: en,
+    it: en,
+    sk: en,
+    ja: en,
+    ko: en,
+    hi: en,
+    nl: en,
+    sv: en,
+    vi: en,
+    id: en,
+  });
+
 const content = {
   key: 'onboardingPage',
   content: {
+    disclaimer: {
+      title: legal('Прежде чем начать', 'Before you start'),
+      intro: legal(
+        'Lumio помогает вести учёт и анализировать финансы, но не заменяет бухгалтера, налогового консультанта или финансового советника.',
+        'Lumio helps you track and analyse your finances, but it does not replace an accountant, a tax adviser or a financial adviser.',
+      ),
+      pointAccuracy: legal(
+        'Расчёты, категории и налоговые ставки могут содержать ошибки или устаревшие данные. Проверяйте их перед подачей отчётности и принятием финансовых решений.',
+        'Calculations, categories and tax rates may be wrong or out of date. Check them before you file anything or make a financial decision.',
+      ),
+      pointResponsibility: legal(
+        'Ответственность за сведения, поданные в государственные органы, остаётся на вас.',
+        'You remain responsible for whatever you submit to government authorities.',
+      ),
+      pointNoWarranty: legal(
+        'Приложение предоставляется «как есть», без гарантий. Мы не отвечаем за убытки, возникшие в результате его использования.',
+        'The app is provided as is, without warranties. We are not liable for losses arising from its use.',
+      ),
+      pointReport: legal(
+        'Если вы заметили ошибку в данных или расчётах — сообщите нам, и мы её исправим.',
+        'If you spot an error in the data or the calculations, tell us and we will fix it.',
+      ),
+      consent: legal(
+        'Мне понятно изложенное выше, и я принимаю эти условия',
+        'I understand the above and accept these terms',
+      ),
+      accept: legal('Принимаю', 'I accept'),
+      saving: legal('Сохраняем…', 'Saving…'),
+      error: legal(
+        'Не удалось сохранить подтверждение. Попробуйте ещё раз.',
+        'Could not save your acknowledgement. Please try again.',
+      ),
+    },
     progressLabel: t({
       ru: 'Шаг {current} из {total}',
       en: 'Step {current} of {total}',

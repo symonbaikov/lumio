@@ -27,26 +27,26 @@ export class KaspiParser extends BaseParser {
       const text = (cachedText ?? (await extractTextFromPdf(filePath))).toLowerCase();
       return text.includes('kaspi') || text.includes('каспи') || text.includes('caspkzka');
     } catch (error) {
-      console.error('[KaspiParser] Error in canParse:', error);
+      this.logger.error('Error in canParse:', error);
       return false;
     }
   }
 
   async parse(filePath: string, cachedText?: string): Promise<ParsedStatement> {
-    console.log('[KaspiParser] Starting to parse file:', filePath);
+    this.logger.debug('Starting to parse file:', filePath);
 
     const text = cachedText ?? (await extractTextFromPdf(filePath));
     const { rows: tableRows } = await extractTablesFromPdf(filePath);
-    console.log(`[KaspiParser] PDF text length: ${text.length}`);
+    this.logger.debug(`PDF text length: ${text.length}`);
 
     // Extract metadata
     const accountNumber = this.extractKaspiAccountNumber(text);
     const balances = this.extractBalancesFromText(text);
     const dateRange = this.extractPeriodFromText(text);
 
-    console.log(`[KaspiParser] Account: ${accountNumber || 'N/A'}`);
-    console.log(`[KaspiParser] Balances: start=${balances.start}, end=${balances.end}`);
-    console.log(`[KaspiParser] Period: ${dateRange.from?.toISOString().split('T')[0] || 'N/A'}`);
+    this.logger.debug(`Account: ${accountNumber || 'N/A'}`);
+    this.logger.debug(`Balances: start=${balances.start}, end=${balances.end}`);
+    this.logger.debug(`Period: ${dateRange.from?.toISOString().split('T')[0] || 'N/A'}`);
 
     const detectedCurrency = this.detectCurrency(text) || 'KZT';
 
@@ -59,7 +59,7 @@ export class KaspiParser extends BaseParser {
       ? mergeTransactions(kaspiTableTransactions, tableTransactions)
       : tableTransactions;
     if (tableTransactions.length) {
-      console.log(`[KaspiParser] pdf2table extracted ${tableTransactions.length} transactions`);
+      this.logger.debug(`pdf2table extracted ${tableTransactions.length} transactions`);
     }
 
     // Parse transactions from the structured text
@@ -67,14 +67,7 @@ export class KaspiParser extends BaseParser {
     const transactions = combinedTableTx.length
       ? mergeTransactions(combinedTableTx, parsedFromText)
       : parsedFromText;
-    console.log(`[KaspiParser] Parsed ${transactions.length} transactions`);
-
-    // Log first few transactions
-    transactions.slice(0, 3).forEach((t, i) => {
-      console.log(
-        `[KaspiParser] Transaction ${i + 1}: ${t.documentNumber} - ${t.counterpartyName?.substring(0, 30)} - ${t.debit || t.credit} - ${t.paymentPurpose?.substring(0, 40)}`,
-      );
-    });
+    this.logger.debug(`Parsed ${transactions.length} transactions`);
 
     return {
       metadata: {
@@ -257,12 +250,12 @@ export class KaspiParser extends BaseParser {
     flushCurrent();
 
     if (transactions.length === 0 && this.aiExtractor.isAvailable()) {
-      console.log('[KaspiParser] No transactions parsed, trying AI...');
+      this.logger.debug('No transactions parsed, trying AI...');
       try {
         const aiTransactions = await this.aiExtractor.extractTransactions(text);
         return aiTransactions;
       } catch (error) {
-        console.error('[KaspiParser] AI extraction failed:', error);
+        this.logger.error('AI extraction failed:', error);
         return [];
       }
     }

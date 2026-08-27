@@ -8,6 +8,8 @@ import {
   type ThemePreference,
   resolveThemePreference,
 } from '@/app/lib/theme-preference';
+import type { DateFormatPreference } from '@/app/lib/user-format';
+import { notifyUserFormatChanged } from '@/app/lib/user-format-store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -22,6 +24,10 @@ export interface User {
   telegramChatId?: string | null;
   locale?: string;
   timeZone?: string | null;
+  dateFormat?: DateFormatPreference;
+  firstDayOfWeek?: number | null;
+  uiDensity?: 'comfortable' | 'compact';
+  reduceMotion?: boolean;
   themePreference?: ThemePreference;
   lastLogin?: string | null;
   avatarUrl?: string | null;
@@ -48,6 +54,7 @@ export function useAuth() {
           const nextUser = normalizeUser(response.data as User);
           setUser(nextUser);
           localStorage.setItem('user', JSON.stringify(nextUser));
+          notifyUserFormatChanged();
           if (readLocaleFromCookie() == null) {
             syncLocaleFromUser(nextUser);
           }

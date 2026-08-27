@@ -11,6 +11,7 @@ import { tokens } from '@/lib/theme-tokens';
 import { Alert, Box, CircularProgress, Typography } from '@mui/material';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { DisclaimerGate, useDisclaimerAcceptance } from './components/DisclaimerGate';
 import { OnboardingIntegrationConnection } from './components/OnboardingIntegrationConnection';
 import { OnboardingNavigation } from './components/OnboardingNavigation';
 import { OnboardingProgress } from './components/OnboardingProgress';
@@ -81,6 +82,11 @@ export default function OnboardingPage() {
   const [activeIntegrationKey, setActiveIntegrationKey] = useState<OnboardingIntegrationKey | null>(
     null,
   );
+  const {
+    loading: disclaimerLoading,
+    accepted: disclaimerAccepted,
+    markAccepted: markDisclaimerAccepted,
+  } = useDisclaimerAcceptance();
   const tx = useCallback(
     (path: string[], fallback = '', localeOverride?: string) =>
       resolveOnboardingText(
@@ -521,6 +527,7 @@ export default function OnboardingPage() {
   if (
     authLoading ||
     isInitializing ||
+    disclaimerLoading ||
     !user ||
     (user.onboardingCompletedAt && flow.shouldRedirectCompletedUser)
   ) {
@@ -535,6 +542,49 @@ export default function OnboardingPage() {
       >
         <CircularProgress size={40} color="primary" />
       </Box>
+    );
+  }
+
+  // Stands in front of the wizard rather than inside it: the wizard offers
+  // "skip" and "skip all", and consent that can be skipped records nothing.
+  if (!disclaimerAccepted) {
+    return (
+      <DisclaimerGate
+        title={tx(['disclaimer', 'title'], 'Before you start')}
+        intro={tx(
+          ['disclaimer', 'intro'],
+          'Lumio helps you track and analyse your finances, but it does not replace an accountant, a tax adviser or a financial adviser.',
+        )}
+        points={[
+          tx(
+            ['disclaimer', 'pointAccuracy'],
+            'Calculations, categories and tax rates may be wrong or out of date. Check them before you file anything or make a financial decision.',
+          ),
+          tx(
+            ['disclaimer', 'pointResponsibility'],
+            'You remain responsible for whatever you submit to government authorities.',
+          ),
+          tx(
+            ['disclaimer', 'pointNoWarranty'],
+            'The app is provided as is, without warranties. We are not liable for losses arising from its use.',
+          ),
+          tx(
+            ['disclaimer', 'pointReport'],
+            'If you spot an error in the data or the calculations, tell us and we will fix it.',
+          ),
+        ]}
+        consentLabel={tx(
+          ['disclaimer', 'consent'],
+          'I understand the above and accept these terms',
+        )}
+        acceptLabel={tx(['disclaimer', 'accept'], 'I accept')}
+        savingLabel={tx(['disclaimer', 'saving'], 'Saving…')}
+        errorLabel={tx(
+          ['disclaimer', 'error'],
+          'Could not save your acknowledgement. Please try again.',
+        )}
+        onAccepted={markDisclaimerAccepted}
+      />
     );
   }
 

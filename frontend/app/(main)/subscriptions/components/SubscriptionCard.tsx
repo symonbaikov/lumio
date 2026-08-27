@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { Pencil, Trash2 } from '@/app/components/icons';
 import { Box, Button, Card, CardContent, Chip, IconButton, Typography } from '@mui/material';
@@ -34,11 +35,11 @@ export function SubscriptionCard({
   onDismiss,
 }: SubscriptionCardProps) {
   const formatAmount = (amount: number, currency: string) =>
-    new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(amount) + ' ' + currency;
+    `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(amount)} ${currency}`;
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+    return formatStoredDateWithOptions(dateStr, { day: 'numeric', month: 'short' }, 'ru-RU');
   };
 
   return (

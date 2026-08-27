@@ -76,6 +76,48 @@ describe('ReportsController', () => {
     expect(fs.unlinkSync as any).toHaveBeenCalledWith('/tmp/report.csv');
   });
 
+  it('generateReport passes workspace and user ids, and keeps the file', async () => {
+    const fs = await import('fs');
+    const stream = new PassThrough();
+    (fs.createReadStream as any).mockReturnValue(stream);
+    (fs.unlinkSync as any).mockClear();
+
+    const reportsService = {
+      generateFromTemplate: jest.fn(async () => ({
+        filePath: '/uploads/reports/pnl.xlsx',
+        fileName: 'pnl.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })),
+    };
+    const res = new PassThrough() as any;
+    res.setHeader = jest.fn();
+    const controller = new ReportsController(reportsService as any);
+    const dto = {
+      templateId: 'pnl',
+      dateFrom: '2024-01-01',
+      dateTo: '2024-12-31',
+      format: 'excel',
+    } as any;
+
+    await controller.generateReport({ id: 'u1' } as any, 'ws-1', dto, res);
+
+    // The service resolves data by workspace and stamps history rows with the user.
+    expect(reportsService.generateFromTemplate).toHaveBeenCalledWith('ws-1', 'u1', dto);
+
+    // The file backs a History row, so it must survive the response stream.
+    stream.emit('end');
+    expect(fs.unlinkSync as any).not.toHaveBeenCalled();
+  });
+
+  it('getHistory is scoped by workspace, not by user', async () => {
+    const reportsService = { getReportHistory: jest.fn(async () => []) };
+    const controller = new ReportsController(reportsService as any);
+
+    await controller.getHistory({ id: 'u1' } as any, 'ws-1');
+
+    expect(reportsService.getReportHistory).toHaveBeenCalledWith('ws-1');
+  });
+
   it('downloadHistoryReport streams stored report file', async () => {
     const fs = await import('fs');
     const stream = new PassThrough();

@@ -34,6 +34,27 @@ export type NotificationPreferences = {
   uncategorizedItems: boolean;
 };
 
+export const notificationChannels = ['inApp', 'email', 'telegram'] as const;
+export type NotificationChannel = (typeof notificationChannels)[number];
+
+export type NotificationChannelSet = Record<NotificationChannel, boolean>;
+
+/** Per-event delivery matrix, keyed the same way as NotificationPreferences. */
+export type NotificationChannelMatrix = Record<
+  keyof NotificationPreferences,
+  NotificationChannelSet
+>;
+
+export const notificationDigestModes = ['instant', 'daily', 'weekly'] as const;
+export type NotificationDigestMode = (typeof notificationDigestModes)[number];
+
+export type NotificationSettings = {
+  channels: NotificationChannelMatrix;
+  digestMode: NotificationDigestMode;
+  quietHoursStart: number | null;
+  quietHoursEnd: number | null;
+};
+
 export interface ChangelogPayload {
   entries?: ChangelogEntry[];
 }
@@ -48,6 +69,20 @@ export const defaultNotificationPreferences: NotificationPreferences = {
   parsingErrors: true,
   importFailures: true,
   uncategorizedItems: true,
+};
+
+export const defaultNotificationChannels: NotificationChannelMatrix = Object.fromEntries(
+  (Object.keys(defaultNotificationPreferences) as Array<keyof NotificationPreferences>).map(key => [
+    key,
+    { inApp: true, email: false, telegram: false },
+  ]),
+) as NotificationChannelMatrix;
+
+export const defaultNotificationSettings: NotificationSettings = {
+  channels: defaultNotificationChannels,
+  digestMode: 'instant',
+  quietHoursStart: null,
+  quietHoursEnd: null,
 };
 
 export const workspaceNotificationSettings: Array<{ key: keyof NotificationPreferences }> = [
@@ -71,9 +106,12 @@ export const sections = [
   'sessions',
   'email',
   'password',
+  'security',
+  'processing',
   'notifications',
   'changelog',
   'sync',
+  'my-data',
 ] as const;
 export type SectionId = (typeof sections)[number];
 

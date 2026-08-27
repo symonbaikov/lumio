@@ -12,12 +12,13 @@ import {
   Pencil,
   Search,
   Shield,
+  ShieldCheck,
+  SlidersHorizontal,
   UserCircle,
 } from '@/app/components/icons';
 import { Alert } from '@/app/components/ui/alert';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { Select as UiSelect } from '@/app/components/ui/select';
-import { Spinner } from '@/app/components/ui/spinner';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -26,20 +27,26 @@ import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import { AppearanceSection } from '@/app/settings/profile/components/AppearanceSection';
 import { ChangelogSection } from '@/app/settings/profile/components/ChangelogSection';
 import { EmailSection } from '@/app/settings/profile/components/EmailSection';
+import { MyDataSection } from '@/app/settings/profile/components/MyDataSection';
 import { NotificationsSection } from '@/app/settings/profile/components/NotificationsSection';
 import { PasswordSection } from '@/app/settings/profile/components/PasswordSection';
+import { ProcessingSection } from '@/app/settings/profile/components/ProcessingSection';
 import { ProfileSection } from '@/app/settings/profile/components/ProfileSection';
 import { SessionsSection } from '@/app/settings/profile/components/SessionsSection';
+import { SettingsElsewhereLinks } from '@/app/settings/profile/components/SettingsElsewhereLinks';
 import { SyncSection } from '@/app/settings/profile/components/SyncSection';
+import { TwoFactorSection } from '@/app/settings/profile/components/TwoFactorSection';
 import { useAppearance } from '@/app/settings/profile/hooks/useAppearance';
 import { useAvatarUpload } from '@/app/settings/profile/hooks/useAvatarUpload';
 import { useChangelog } from '@/app/settings/profile/hooks/useChangelog';
 import { useEmailForm } from '@/app/settings/profile/hooks/useEmailForm';
 import { useNotifications } from '@/app/settings/profile/hooks/useNotifications';
 import { usePasswordForm } from '@/app/settings/profile/hooks/usePasswordForm';
+import { useProcessing } from '@/app/settings/profile/hooks/useProcessing';
 import { useProfileForm } from '@/app/settings/profile/hooks/useProfileForm';
 import { useSessions } from '@/app/settings/profile/hooks/useSessions';
 import { useSync } from '@/app/settings/profile/hooks/useSync';
+import { useTwoFactor } from '@/app/settings/profile/hooks/useTwoFactor';
 import {
   type SectionId,
   type TimeZoneOption,
@@ -52,13 +59,80 @@ import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import { useTheme } from 'next-themes';
 import React, { type ComponentType, useCallback, useEffect, useMemo, useState } from 'react';
 
+function ProfileSettingsSkeleton(): React.JSX.Element {
+  return (
+    <Box className="container-shared" sx={{ px: 2, py: 4 }}>
+      <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { lg: '260px 1fr' } }}>
+        <Box component="aside" sx={{ display: { xs: 'none', lg: 'block' } }}>
+          <Card variant="outlined">
+            <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 1,
+                  pb: 1.5,
+                }}
+              >
+                <Skeleton variant="circular" width={80} height={80} />
+              </Box>
+            </Box>
+            <CardContent sx={{ pt: 0 }}>
+              {Array.from({ length: 7 }).map((_, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length static skeleton list
+                <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.25 }}>
+                  <Skeleton variant="rounded" width={32} height={32} />
+                  <Skeleton variant="text" width="60%" height={20} />
+                </Box>
+              ))}
+            </CardContent>
+          </Card>
+        </Box>
+
+        <Box component="main" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Card variant="outlined">
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                px: 2,
+                py: 2,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'action.hover',
+              }}
+            >
+              <Skeleton variant="rounded" width={44} height={44} />
+              <Skeleton variant="text" width={160} height={28} />
+            </Box>
+            <CardContent
+              sx={{ p: { xs: 3, lg: 4 }, display: 'flex', flexDirection: 'column', gap: 3 }}
+            >
+              {Array.from({ length: 4 }).map((_, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length static skeleton list
+                <Box key={index} sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Skeleton variant="text" width={120} height={18} />
+                  <Skeleton variant="rounded" width="100%" height={44} />
+                </Box>
+              ))}
+            </CardContent>
+          </Card>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
 // eslint-disable-next-line max-lines-per-function, complexity, @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types
 export default function ProfileSettingsPage() {
-  const { user, loading, setUser } = useAuth();
+  const { user, loading, setUser, logout } = useAuth();
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   const { locale } = useLocale();
@@ -81,6 +155,10 @@ export default function ProfileSettingsPage() {
     setProfileName,
     profileTimeZone,
     setProfileTimeZone,
+    profileDateFormat,
+    setProfileDateFormat,
+    profileFirstDayOfWeek,
+    setProfileFirstDayOfWeek,
     profileMessage,
     setProfileMessage,
     profileError,
@@ -120,16 +198,41 @@ export default function ProfileSettingsPage() {
   });
 
   const {
-    notificationPreferences,
+    notificationSettings,
     notificationsLoading,
     notificationSavingKey,
     notificationError,
     notificationMessage,
-    toggleNotificationPreference,
+    toggleNotificationChannel,
+    updateDelivery,
   } = useNotifications(isAuthenticated, activeSection, {
     loadError: tx(['notificationsCard', 'errors', 'load'], ''),
     saveError: tx(['notificationsCard', 'errors', 'save'], ''),
     savedMessage: tx(['notificationsCard', 'messages', 'saved'], ''),
+  });
+
+  // Saved preferences drive every date on this page, so the effect is visible
+  // right where the setting lives.
+  const formatPreferences = useMemo(
+    () => ({
+      locale: user?.locale ?? locale,
+      dateFormat: profileDateFormat,
+      firstDayOfWeek: profileFirstDayOfWeek,
+    }),
+    [user?.locale, locale, profileDateFormat, profileFirstDayOfWeek],
+  );
+
+  const processing = useProcessing(isAuthenticated, activeSection, currentWorkspace?.id, {
+    loadError: tx(['processingCard', 'loadError'], 'Failed to load processing settings'),
+    saveError: tx(['processingCard', 'saveError'], 'Failed to save processing settings'),
+    savedMessage: tx(['notificationsCard', 'messages', 'saved'], 'Saved'),
+  });
+
+  const twoFactor = useTwoFactor(isAuthenticated, activeSection, {
+    loadError: tx(['securityCard', 'loadError'], 'Failed to load two-factor status'),
+    enabledMessage: tx(['securityCard', 'enabledMessage'], 'Two-factor authentication enabled'),
+    disabledMessage: tx(['securityCard', 'disabledMessage'], 'Two-factor authentication disabled'),
+    errorFallback: tx(['securityCard', 'errorFallback'], 'Two-factor action failed'),
   });
 
   const timeZoneSelectOptions = useMemo<TimeZoneOption[]>(() => {
@@ -195,6 +298,10 @@ export default function ProfileSettingsPage() {
     appearanceError,
     appearanceLoading,
     handleThemePreferenceChange,
+    density,
+    setDensity,
+    reduceMotion,
+    setReduceMotion,
   } = useAppearance(user, setUser, {
     successFallback: t.appearanceCard.title.value,
     errorFallback: t.profileCard.errorFallback.value,
@@ -253,15 +360,15 @@ export default function ProfileSettingsPage() {
     window.history.replaceState(null, '', `#${activeSection}`);
   }, [activeSection]);
 
+  // Plain function, not useCallback: this sits below early returns in the render
+  // body, and a hook there would change hook order between renders.
+  const handleAccountDeleted = (): void => {
+    // The account is gone; clear the client session rather than leaving a dead token around.
+    void logout();
+  };
+
   if (loading) {
-    return (
-      <Box
-        className="container-shared"
-        sx={{ display: 'flex', justifyContent: 'center', px: 2, py: 8 }}
-      >
-        <Spinner size={32} />
-      </Box>
-    );
+    return <ProfileSettingsSkeleton />;
   }
 
   if (!isAuthenticated) {
@@ -295,6 +402,19 @@ export default function ProfileSettingsPage() {
     },
     email: { title: t.emailCard.title.value, icon: Mail },
     password: { title: t.passwordCard.title.value, icon: Lock },
+    processing: {
+      title: tx(['processingCard', 'title'], 'Processing'),
+      description: tx(['processingCard', 'description'], ''),
+      icon: SlidersHorizontal,
+    },
+    security: {
+      title: tx(['securityCard', 'title'], 'Two-factor authentication'),
+      description: tx(
+        ['securityCard', 'description'],
+        'Ask for a one-time code from your authenticator app on every login.',
+      ),
+      icon: ShieldCheck,
+    },
     notifications: {
       title: tx(['notificationsCard', 'title'], 'Notifications'),
       description: tx(['notificationsCard', 'description'], ''),
@@ -309,6 +429,14 @@ export default function ProfileSettingsPage() {
       title: tx(['syncCard', 'title'], 'Sync'),
       description: tx(['syncCard', 'description'], 'Export and sync files to your filesystem'),
       icon: Cloud,
+    },
+    'my-data': {
+      title: tx(['myDataCard', 'title'], 'My data'),
+      description: tx(
+        ['myDataCard', 'description'],
+        'Download a copy of your data, or delete your account',
+      ),
+      icon: Shield,
     },
   };
 
@@ -330,6 +458,11 @@ export default function ProfileSettingsPage() {
         setIsTimeZoneModalOpen={setIsTimeZoneModalOpen}
         setTimeZoneSearch={setTimeZoneSearch}
         selectedTimeZoneOption={selectedTimeZoneOption}
+        locale={locale}
+        profileDateFormat={profileDateFormat}
+        setProfileDateFormat={setProfileDateFormat}
+        profileFirstDayOfWeek={profileFirstDayOfWeek}
+        setProfileFirstDayOfWeek={setProfileFirstDayOfWeek}
       />
     ),
     appearance: (
@@ -341,6 +474,10 @@ export default function ProfileSettingsPage() {
         appearanceLoading={appearanceLoading}
         themePreference={themePreference}
         handleThemePreferenceChange={handleThemePreferenceChange}
+        density={density}
+        setDensity={setDensity}
+        reduceMotion={reduceMotion}
+        setReduceMotion={setReduceMotion}
       />
     ),
     sessions: (
@@ -355,6 +492,7 @@ export default function ProfileSettingsPage() {
         logoutSessionLoadingId={logoutSessionLoadingId}
         handleLogoutSession={handleLogoutSession}
         handleLogoutAll={handleLogoutAll}
+        formatPreferences={formatPreferences}
       />
     ),
     email: (
@@ -382,15 +520,18 @@ export default function ProfileSettingsPage() {
         handlePasswordSubmit={handlePasswordSubmit}
       />
     ),
+    security: <TwoFactorSection tx={tx} twoFactor={twoFactor} />,
+    processing: <ProcessingSection tx={tx} processing={processing} />,
     notifications: (
       <NotificationsSection
         tx={tx}
         notificationError={notificationError}
         notificationMessage={notificationMessage}
         notificationsLoading={notificationsLoading}
-        notificationPreferences={notificationPreferences}
+        notificationSettings={notificationSettings}
         notificationSavingKey={notificationSavingKey}
-        toggleNotificationPreference={toggleNotificationPreference}
+        toggleNotificationChannel={toggleNotificationChannel}
+        updateDelivery={updateDelivery}
       />
     ),
     changelog: (
@@ -413,6 +554,7 @@ export default function ProfileSettingsPage() {
         handleExportZip={handleExportZip}
       />
     ),
+    'my-data': <MyDataSection tx={tx} onAccountDeleted={handleAccountDeleted} />,
   };
 
   const activeMeta = sectionMeta[activeSection];
@@ -550,6 +692,7 @@ export default function ProfileSettingsPage() {
                     </Box>
                   );
                 })}
+                <SettingsElsewhereLinks tx={tx} />
               </CardContent>
             </Card>
           </Box>

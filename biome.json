@@ -10,14 +10,14 @@
       "**/build/**",
       "**/coverage/**",
       "frontend/next-env.d.ts",
+      "**/next-env.d.ts",
+      "frontend/public/changelog.json",
+      "**/changelog.json",
       "frontend/.intlayer/**",
       ".intlayer/**",
       "frontend/.next/**",
       "frontend/out/**",
       "backend/uploads/**",
-      "**/stories/**",
-      "**/storybook-static/**",
-      "**/*.stories.*",
       "**/docs/**",
       "**/.claude/**",
       "**/.agent/**",
@@ -116,39 +116,7 @@
         "useShorthandAssign": "warn",
         "useSingleVarDeclarator": "error",
         "useTemplate": "error",
-        "useNamingConvention": {
-          "level": "warn",
-          "options": {
-            "strictCase": true,
-            "requireAscii": true,
-            "conventions": [
-              {
-                "selector": { "kind": "typeLike" },
-                "formats": ["PascalCase"]
-              },
-              {
-                "selector": { "kind": "enumMember" },
-                "formats": ["CONSTANT_CASE"]
-              },
-              {
-                "selector": { "kind": "function" },
-                "formats": ["camelCase", "PascalCase"]
-              },
-              {
-                "selector": { "kind": "variable" },
-                "formats": ["camelCase", "PascalCase", "CONSTANT_CASE"]
-              },
-              {
-                "selector": { "kind": "classProperty" },
-                "formats": ["camelCase"]
-              },
-              {
-                "selector": { "kind": "classMethod" },
-                "formats": ["camelCase"]
-              }
-            ]
-          }
-        }
+        "useNamingConvention": "off"
       },
 
       "performance": {
@@ -202,8 +170,7 @@
         "**/*.spec.{ts,tsx}",
         "**/*.test.{ts,tsx}",
         "frontend/app/**/*.test.{ts,tsx}",
-        "app/**/*.test.{ts,tsx}",
-        "**/.storybook/**/*.{ts,tsx}"
+        "app/**/*.test.{ts,tsx}"
       ],
       "linter": {
         "rules": {
