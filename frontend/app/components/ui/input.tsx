@@ -3,6 +3,12 @@
 import OutlinedInput from '@mui/material/OutlinedInput';
 import * as React from 'react';
 
+/**
+ * Shared sizing for form controls (Wise-style: tall target, 16px text so the
+ * value stays readable and iOS does not zoom on focus).
+ */
+export const FORM_CONTROL_SX = { height: 48, fontSize: 16 } as const;
+
 export type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
   /** MUI input slot props for adornments */
   startAdornment?: React.ReactNode;
@@ -20,9 +26,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       style={style}
       startAdornment={startAdornment}
       endAdornment={endAdornment}
-      size="small"
       inputProps={props as React.InputHTMLAttributes<HTMLInputElement>}
-      sx={{ width: '100%' }}
+      sx={{ width: '100%', ...FORM_CONTROL_SX }}
     />
   ),
 );
