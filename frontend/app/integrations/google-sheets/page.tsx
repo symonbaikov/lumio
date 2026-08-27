@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 'use client';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 import { GoogleSheetsPickerButton } from '@/app/components/GoogleSheetsPickerButton';
 import {
@@ -849,7 +850,8 @@ export default function GoogleSheetsIntegrationPage(): React.JSX.Element {
                           <Typography style={{ fontSize: 12, color: c.ink500 }}>
                             {t.list.fields.lastSyncPrefix.value}:{' '}
                             {item.lastSync
-                              ? new Date(item.lastSync).toLocaleString(
+                              ? formatStoredDateTime(
+                                  item.lastSync,
                                   locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US',
                                 )
                               : t.list.dash}

@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import { resolveLabel } from '@/app/lib/side-panel-utils';
 import type { StatementCategoryNode } from '@/app/lib/statement-categories';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import { resolveBankLogo } from '@bank-logos';
 import {
   type StatementColumn,
@@ -284,7 +285,7 @@ export const formatStatementDate = (statement: StatementLike): string => {
   if (Number.isNaN(date.getTime())) {
     return '—';
   }
-  return date.toLocaleDateString();
+  return formatStoredDate(date);
 };
 
 // eslint-disable-next-line complexity

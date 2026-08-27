@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { Pencil } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
@@ -320,7 +321,8 @@ export default function UsersManagementPage() {
                         />
                       </TableCell>
                       <TableCell>
-                        {new Date(user.createdAt).toLocaleDateString(
+                        {formatStoredDate(
+                          user.createdAt,
                           locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US',
                         )}
                       </TableCell>

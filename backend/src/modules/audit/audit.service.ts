@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { type Repository } from 'typeorm';
+import { LessThan, type Repository } from 'typeorm';
 import { normalizePagination } from '../../common/utils/pagination.util';
 import {
   ActorType,
@@ -20,6 +21,8 @@ import type {
   RollbackResult,
 } from './interfaces/audit-event.interface';
 import { RollbackService } from './rollback/rollback.service';
+
+const AUDIT_RETENTION_YEARS = 1;
 
 @Injectable()
 export class AuditService {
@@ -313,5 +316,21 @@ export class AuditService {
       before: diff.after ?? null,
       after: diff.before ?? null,
     };
+  }
+
+  /**
+   * Audit events had no expiry and grew forever. A year keeps them useful for
+   * "who changed this" questions without carrying every row from day one.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_4AM)
+  async cleanupOldAuditEvents(): Promise<void> {
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - AUDIT_RETENTION_YEARS);
+
+    const result = await this.auditEventRepository.delete({ createdAt: LessThan(cutoff) });
+
+    if ((result.affected ?? 0) > 0) {
+      this.logger.log(`Deleted ${result.affected} audit events older than ${cutoff.toISOString()}`);
+    }
   }
 }

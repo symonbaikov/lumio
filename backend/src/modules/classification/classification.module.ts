@@ -6,6 +6,7 @@ import { CategoryLearning } from '../../entities/category-learning.entity';
 import { Category } from '../../entities/category.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { Wallet } from '../../entities/wallet.entity';
+import { Workspace } from '../../entities/workspace.entity';
 import { ApplicationSettingsModule } from '../application-settings/application-settings.module';
 import { AuditModule } from '../audit/audit.module';
 import { CategoriesModule } from '../categories/categories.module';
@@ -23,6 +24,7 @@ import { ClassificationService } from './services/classification.service';
       Transaction,
       CategorizationRule,
       WorkspaceMember,
+      Workspace,
       User,
     ]),
     AuditModule,

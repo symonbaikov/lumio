@@ -332,11 +332,46 @@ const paletteByMode: Record<ThemeMode, ThemeOptions['palette']> = {
   },
 };
 
-export const createAppTheme = (mode: ThemeMode) => {
+export type UiDensity = 'comfortable' | 'compact';
+
+export type AppThemeOptions = {
+  density?: UiDensity;
+  reduceMotion?: boolean;
+};
+
+/**
+ * Density lives in the theme rather than in each table, so all two dozen tables
+ * pick it up without being touched. Reduced motion cannot ride along here: the
+ * app never renders <CssBaseline />, so MuiCssBaseline overrides would be dead
+ * configuration — it is applied as a document attribute instead (globals.css).
+ */
+const getPreferenceOverrides = ({ density }: AppThemeOptions): ThemeOptions => {
+  const compact = density === 'compact';
+
+  return {
+    components: {
+      ...(compact
+        ? {
+            MuiTableCell: {
+              styleOverrides: {
+                root: { paddingTop: 6, paddingBottom: 6, fontSize: '13px' },
+              },
+            },
+            MuiTableRow: { styleOverrides: { root: { height: 'auto' } } },
+          }
+        : {}),
+    },
+  };
+};
+
+export const createAppTheme = (mode: ThemeMode, preferences: AppThemeOptions = {}) => {
   const surfaces = SURFACE_TOKENS[mode];
+  const shared = getSharedOptions(mode);
+  const overrides = getPreferenceOverrides(preferences);
 
   return createTheme({
-    ...getSharedOptions(mode),
+    ...shared,
+    components: { ...shared.components, ...overrides.components },
     palette: {
       ...paletteByMode[mode],
       action: {

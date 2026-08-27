@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 'use client';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 import { CheckCircle, Clock, Send, Bot as TelegramIcon } from '@/app/components/icons';
 import { useAuth } from '@/app/hooks/useAuth';
@@ -107,7 +108,7 @@ export default function TelegramSettingsPage() {
   const formatTelegramDate = (dateString: string | null | undefined): string => {
     if (!dateString) return t.history.dash.value;
     const date = new Date(dateString);
-    return date.toLocaleString(locale);
+    return formatStoredDateTime(date, locale);
   };
 
   const getReportTypeLabel = (type: ReportType): string => {

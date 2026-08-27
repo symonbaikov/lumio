@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { Send as SendIcon } from '@/app/components/icons';
 import { ChevronDown, MailPlus, MoreHorizontal, Search, Users } from '@/app/components/icons';
@@ -151,7 +152,7 @@ const formatDate = (value?: string) => {
     return 'N/A';
   }
 
-  return date.toLocaleDateString(undefined, {
+  return formatStoredDateWithOptions(date, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

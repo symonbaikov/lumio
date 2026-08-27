@@ -1,5 +1,6 @@
 // Computation helpers extracted from StoragePageContent
 
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import { tokens } from '@/lib/theme-tokens';
 import { Box, Chip } from '@mui/material';
 import React from 'react';
@@ -269,7 +270,7 @@ function buildRenderTrashExpiryBadge({
     return React.createElement(Chip, {
       label,
       size: 'small',
-      title: expiresAt.toLocaleDateString(resolveLocale(locale)),
+      title: formatStoredDate(expiresAt, resolveLocale(locale)),
       sx: {
         borderRadius: tokens.radius.full,
         fontSize: 11,

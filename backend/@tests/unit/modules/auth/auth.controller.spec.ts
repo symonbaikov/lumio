@@ -11,7 +11,18 @@ describe('AuthController', () => {
       getSessions: jest.fn(async () => [{ id: 's1' }]),
       logoutSession: jest.fn(async () => ({ message: 'ok-session' })),
     };
-    const controller = new AuthController(authService as any);
+    const twoFactorService = {
+      getStatus: jest.fn(async () => ({
+        enabled: false,
+        pendingSetup: false,
+        recoveryCodesRemaining: 0,
+      })),
+      setup: jest.fn(async () => ({ secret: 's', otpauthUrl: 'otpauth://', qrDataUrl: 'data:' })),
+      enable: jest.fn(async () => ({ recoveryCodes: ['AAAAA-BBBBB'] })),
+      disable: jest.fn(async () => undefined),
+      regenerateRecoveryCodes: jest.fn(async () => ({ recoveryCodes: ['CCCCC-DDDDD'] })),
+    };
+    const controller = new AuthController(authService as any, twoFactorService as any);
     const req = {
       headers: {
         authorization: 'Bearer token',
@@ -48,7 +59,7 @@ describe('AuthController', () => {
 
   it('redirects legacy google callback for google sheets integrations', async () => {
     const authService = {};
-    const controller = new AuthController(authService as any);
+    const controller = new AuthController(authService as any, {} as any);
 
     const result = controller.handleGoogleCallback(
       'integrations/google-sheets',

@@ -1,0 +1,19 @@
+// app/styles/base/_reduced-motion.scss
+// Opt-in from settings (Appearance → Reduce motion).
+// Lives here rather than in the MUI theme because the app never renders
+// <CssBaseline />, so `MuiCssBaseline` overrides would be dead configuration.
+// stylelint-disable declaration-no-important -- MUI's emotion classes are more
+// specific than anything we can write here, so the override has to win outright.
+html[data-reduce-motion='true'] {
+  scroll-behavior: auto !important;
+
+  // A near-zero duration instead of `none` keeps `transitionend` firing, which
+  // some components rely on to finish a state change.
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

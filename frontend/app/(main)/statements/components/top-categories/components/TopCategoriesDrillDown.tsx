@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { AnalyticsSourceBadge } from '@/app/(main)/statements/components/analytics/AnalyticsSourceBadge';
 import type {
@@ -124,7 +125,7 @@ function DrillDownTable({
           >
             <td style={{ padding: '8px 16px 8px 0', color: 'var(--text-secondary)' }}>
               {record.dateValue && !Number.isNaN(new Date(record.dateValue).getTime())
-                ? new Date(record.dateValue).toLocaleDateString()
+                ? formatStoredDate(record.dateValue)
                 : '-'}
             </td>
             <td style={{ padding: '8px 16px 8px 0' }}>

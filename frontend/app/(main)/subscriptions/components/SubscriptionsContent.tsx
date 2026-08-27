@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { Plus } from '@/app/components/icons';
 import {
@@ -110,7 +111,7 @@ function SubscriptionCardSkeleton(): React.JSX.Element {
 const formatAmount = (amount: number, currency: string) =>
   `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(amount)} ${currency}`;
 const formatDate = (date: string | null) =>
-  date ? new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '—';
+  date ? formatStoredDateWithOptions(date, { day: 'numeric', month: 'short' }, 'ru-RU') : '—';
 
 export function SubscriptionsContent(props: SubscriptionsContentProps) {
   const [search, setSearch] = useState('');

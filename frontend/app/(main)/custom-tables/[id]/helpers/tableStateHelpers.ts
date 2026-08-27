@@ -1,5 +1,6 @@
 'use client';
 
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { RowSelectionState } from '@tanstack/react-table';
 import type { CustomTableColumn, CustomTableGridRow } from '../utils/stylingUtils';
 
@@ -33,7 +34,7 @@ function formatDateCell(raw: unknown): string {
   if (Number.isNaN(date.getTime())) {
     return String(raw);
   }
-  return date.toLocaleDateString();
+  return formatStoredDate(date);
 }
 
 function formatTypedCellValue(column: CustomTableColumn, raw: unknown): string {

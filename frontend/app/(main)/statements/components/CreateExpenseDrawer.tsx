@@ -53,6 +53,103 @@ type Props = {
   onCreateTaxRate?: (payload: CreateTaxRatePayload) => Promise<TaxRateOption>;
 };
 
+/**
+ * One row of the "Confirm details" list. Every field uses the same label /
+ * value / divider rhythm; the chevron marks the rows that open a sub-drawer,
+ * so it stays an honest navigation affordance instead of decoration.
+ */
+const DETAIL_VALUE_STYLE = {
+  marginTop: 4,
+  fontSize: 17,
+  lineHeight: 1.4,
+  color: 'var(--foreground)',
+} as const;
+
+const DETAIL_INPUT_STYLE = {
+  ...DETAIL_VALUE_STYLE,
+  width: '100%',
+  border: 0,
+  background: 'transparent',
+  padding: 0,
+  outline: 'none',
+} as const;
+
+function DetailRow({
+  label,
+  htmlFor,
+  error,
+  onClick,
+  isLast,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  error?: string | null;
+  onClick?: () => void;
+  isLast?: boolean;
+  children: React.ReactNode;
+}): React.ReactElement {
+  // Rows that own an input get a real <label>; the rest are buttons or
+  // self-labelled controls, where a <label> would be dangling or nested.
+  const LabelTag = htmlFor ? 'label' : 'span';
+  const body = (
+    <>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <LabelTag
+          htmlFor={htmlFor}
+          style={{ fontSize: 13, color: 'var(--muted-foreground)', display: 'block' }}
+        >
+          {label}
+        </LabelTag>
+        {children}
+        {error ? (
+          <p style={{ marginTop: 4, fontSize: 12, color: 'var(--destructive)' }}>{error}</p>
+        ) : null}
+      </div>
+      {onClick ? (
+        <ChevronRight size={20} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
+      ) : null}
+    </>
+  );
+
+  const rowStyle = {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: 12,
+    padding: '14px 16px',
+    textAlign: 'left' as const,
+    borderBottom: isLast ? 'none' : '1px solid var(--border-color, var(--border-color))',
+  };
+
+  if (!onClick) {
+    return <div style={rowStyle}>{body}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        ...rowStyle,
+        cursor: 'pointer',
+        background: 'none',
+        border: 'none',
+        borderBottom: rowStyle.borderBottom,
+        transition: 'background-color 0.15s',
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLElement).style.background = 'var(--muted)';
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.background = 'none';
+      }}
+    >
+      {body}
+    </button>
+  );
+}
+
 export default function CreateExpenseDrawer({
   open,
   initialMode,
@@ -608,66 +705,14 @@ export default function CreateExpenseDrawer({
                     background: 'var(--card-bg, #fff)',
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setManualStep('amount')}
-                    style={{
-                      display: 'flex',
-                      width: '100%',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      background: 'none',
-                      border: 'none',
-                      transition: 'background-color 0.15s',
-                    }}
-                    onMouseEnter={e => {
-                      (e.currentTarget as HTMLElement).style.background = 'var(--muted)';
-                    }}
-                    onMouseLeave={e => {
-                      (e.currentTarget as HTMLElement).style.background = 'none';
-                    }}
-                  >
-                    <div>
-                      <p style={{ fontSize: 14, color: 'var(--muted-foreground)' }}>Amount</p>
-                      <p
-                        style={{
-                          marginTop: 4,
-                          fontSize: 30,
-                          lineHeight: 1,
-                          fontWeight: 600,
-                          color: 'var(--foreground)',
-                        }}
-                      >
-                        {selectedCurrencySymbol}
-                        {manualDraft.amount || '0.00'}
-                      </p>
-                    </div>
-                    <ChevronRight size={24} style={{ color: 'var(--muted-foreground)' }} />
-                  </button>
+                  <DetailRow label="Amount" onClick={() => setManualStep('amount')}>
+                    <span style={{ ...DETAIL_VALUE_STYLE, fontSize: 28, fontWeight: 600 }}>
+                      {selectedCurrencySymbol}
+                      {manualDraft.amount || '0.00'}
+                    </span>
+                  </DetailRow>
 
-                  <div
-                    style={{ height: 1, background: 'var(--border-color, var(--border-color))' }}
-                  />
-
-                  <div style={{ padding: '12px 16px' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <label
-                        htmlFor="expense-manual-description"
-                        style={{ fontSize: 14, color: 'var(--muted-foreground)' }}
-                      >
-                        Description
-                      </label>
-                      <ChevronRight size={24} style={{ color: 'var(--muted-foreground)' }} />
-                    </div>
+                  <DetailRow label="Description" htmlFor="expense-manual-description">
                     <input
                       id="expense-manual-description"
                       value={manualDraft.description}
@@ -678,39 +723,15 @@ export default function CreateExpenseDrawer({
                         }))
                       }
                       placeholder="Optional"
-                      style={{
-                        marginTop: 6,
-                        width: '100%',
-                        border: 0,
-                        background: 'transparent',
-                        padding: 0,
-                        fontSize: 24,
-                        lineHeight: 1,
-                        color: 'var(--foreground)',
-                      }}
+                      style={DETAIL_INPUT_STYLE}
                     />
-                  </div>
+                  </DetailRow>
 
-                  <div
-                    style={{ height: 1, background: 'var(--border-color, var(--border-color))' }}
-                  />
-
-                  <div style={{ padding: '12px 16px' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <label
-                        htmlFor="expense-manual-merchant"
-                        style={{ fontSize: 14, color: 'var(--muted-foreground)' }}
-                      >
-                        Merchant
-                      </label>
-                      <ChevronRight size={24} style={{ color: 'var(--muted-foreground)' }} />
-                    </div>
+                  <DetailRow
+                    label="Merchant"
+                    htmlFor="expense-manual-merchant"
+                    error={!manualValidation.merchant ? 'This field is required' : null}
+                  >
                     <input
                       id="expense-manual-merchant"
                       value={manualDraft.merchant}
@@ -721,135 +742,72 @@ export default function CreateExpenseDrawer({
                         }))
                       }
                       placeholder="Required"
-                      style={{
-                        marginTop: 6,
-                        width: '100%',
-                        border: 0,
-                        background: 'transparent',
-                        padding: 0,
-                        fontSize: 24,
-                        lineHeight: 1,
-                        color: 'var(--foreground)',
-                      }}
+                      style={DETAIL_INPUT_STYLE}
                     />
-                    {!manualValidation.merchant ? (
-                      <p style={{ marginTop: 4, fontSize: 12, color: 'var(--destructive)' }}>
-                        This field is required
-                      </p>
-                    ) : null}
-                  </div>
+                  </DetailRow>
 
-                  <div
-                    style={{ height: 1, background: 'var(--border-color, var(--border-color))' }}
-                  />
-
-                  <button
-                    type="button"
+                  <DetailRow
+                    label="Category"
                     onClick={() => setCategoryDrawerOpen(true)}
-                    style={{
-                      display: 'flex',
-                      width: '100%',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      background: 'none',
-                      border: 'none',
-                      transition: 'background-color 0.15s',
-                    }}
-                    onMouseEnter={e => {
-                      (e.currentTarget as HTMLElement).style.background = 'var(--muted)';
-                    }}
-                    onMouseLeave={e => {
-                      (e.currentTarget as HTMLElement).style.background = 'none';
-                    }}
+                    error={!manualValidation.category ? 'This field is required' : null}
                   >
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 14, color: 'var(--muted-foreground)' }}>Category</p>
-                      <p
-                        style={{
-                          marginTop: 6,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          fontSize: 24,
-                          lineHeight: 1,
-                          color: 'var(--foreground)',
-                        }}
-                      >
-                        {selectedCategoryName || 'Required'}
-                      </p>
-                      {!manualValidation.category ? (
-                        <p style={{ marginTop: 4, fontSize: 12, color: 'var(--destructive)' }}>
-                          This field is required
-                        </p>
-                      ) : null}
-                    </div>
-                    <ChevronRight size={24} style={{ color: 'var(--muted-foreground)' }} />
-                  </button>
+                    <span
+                      style={{
+                        ...DETAIL_VALUE_STYLE,
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        color: selectedCategoryName
+                          ? 'var(--foreground)'
+                          : 'var(--muted-foreground)',
+                      }}
+                    >
+                      {selectedCategoryName || 'Required'}
+                    </span>
+                  </DetailRow>
 
-                  <div
-                    style={{ height: 1, background: 'var(--border-color, var(--border-color))' }}
-                  />
-
-                  <div style={{ padding: '12px 16px' }}>
+                  <DetailRow label="Date">
                     <DatePicker
-                      label="Date"
                       value={manualDate ? parseISO(manualDate) : null}
                       onChange={(d: Date | null) =>
                         setManualDate(d && isValid(d) ? format(d, 'yyyy-MM-dd') : '')
                       }
-                      slotProps={{ textField: { size: 'small', fullWidth: true } as never }}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          variant: 'standard',
+                          InputProps: { disableUnderline: true },
+                          inputProps: { 'aria-label': 'Date' },
+                          sx: {
+                            '& .MuiInputBase-input': {
+                              p: 0,
+                              fontSize: 17,
+                              lineHeight: 1.4,
+                              color: 'var(--foreground)',
+                            },
+                          },
+                        } as never,
+                      }}
                     />
-                  </div>
+                  </DetailRow>
 
-                  <div
-                    style={{ height: 1, background: 'var(--border-color, var(--border-color))' }}
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => setTaxRateDrawerOpen(true)}
-                    style={{
-                      display: 'flex',
-                      width: '100%',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      background: 'none',
-                      border: 'none',
-                      transition: 'background-color 0.15s',
-                    }}
-                    onMouseEnter={e => {
-                      (e.currentTarget as HTMLElement).style.background = 'var(--muted)';
-                    }}
-                    onMouseLeave={e => {
-                      (e.currentTarget as HTMLElement).style.background = 'none';
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 14, color: 'var(--muted-foreground)' }}>Tax</p>
-                      <p
-                        style={{
-                          marginTop: 6,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          fontSize: 24,
-                          lineHeight: 1,
-                          color: 'var(--foreground)',
-                        }}
-                      >
-                        {selectedTaxRate
-                          ? `${selectedTaxRate.name} (${Number(selectedTaxRate.rate || 0).toFixed(0)}%)${selectedTaxRate.isDefault ? ' - Default' : ''}`
-                          : 'Optional'}
-                      </p>
-                    </div>
-                    <ChevronRight size={24} style={{ color: 'var(--muted-foreground)' }} />
-                  </button>
+                  <DetailRow label="Tax" onClick={() => setTaxRateDrawerOpen(true)} isLast>
+                    <span
+                      style={{
+                        ...DETAIL_VALUE_STYLE,
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        color: selectedTaxRate ? 'var(--foreground)' : 'var(--muted-foreground)',
+                      }}
+                    >
+                      {selectedTaxRate
+                        ? `${selectedTaxRate.name} (${Number(selectedTaxRate.rate || 0).toFixed(0)}%)${selectedTaxRate.isDefault ? ' - Default' : ''}`
+                        : 'Optional'}
+                    </span>
+                  </DetailRow>
                 </div>
               </>
             )}

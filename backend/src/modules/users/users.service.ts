@@ -264,6 +264,18 @@ export class UsersService {
     if (dto.themePreference !== undefined) {
       user.themePreference = dto.themePreference;
     }
+    if (dto.dateFormat !== undefined) {
+      user.dateFormat = dto.dateFormat;
+    }
+    if (dto.firstDayOfWeek !== undefined) {
+      user.firstDayOfWeek = dto.firstDayOfWeek;
+    }
+    if (dto.uiDensity !== undefined) {
+      user.uiDensity = dto.uiDensity;
+    }
+    if (dto.reduceMotion !== undefined) {
+      user.reduceMotion = dto.reduceMotion;
+    }
 
     return this.userRepository.save(user);
   }

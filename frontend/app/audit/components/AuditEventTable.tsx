@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 import { ChevronDown, ChevronRight, Cpu, Plug, User } from '@/app/components/icons';
 import { AppPagination } from '@/app/components/ui/pagination';
@@ -263,7 +264,7 @@ export function AuditEventTable({
           const data = row.original;
           return (
             <Typography variant="body2" style={{ color: c.ink800 }}>
-              {new Date(data.createdAt).toLocaleString()}
+              {formatStoredDateTime(data.createdAt)}
             </Typography>
           );
         },

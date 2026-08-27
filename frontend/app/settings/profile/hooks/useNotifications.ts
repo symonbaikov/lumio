@@ -2,10 +2,14 @@
 
 import apiClient from '@/app/lib/api';
 import {
+  type NotificationChannel,
+  type NotificationDigestMode,
   type NotificationPreferences,
-  defaultNotificationPreferences,
+  type NotificationSettings,
+  defaultNotificationChannels,
+  defaultNotificationSettings,
 } from '@/app/settings/profile/profileHelpers';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export type UseNotificationsMessages = {
   loadError: string;
@@ -13,16 +17,20 @@ export type UseNotificationsMessages = {
   savedMessage: string;
 };
 
+export type NotificationSavingKey = keyof NotificationPreferences | 'delivery' | null;
+
 export type UseNotificationsReturn = {
-  notificationPreferences: NotificationPreferences;
+  notificationSettings: NotificationSettings;
   notificationsLoading: boolean;
-  notificationSavingKey: keyof NotificationPreferences | null;
+  notificationSavingKey: NotificationSavingKey;
   notificationError: string | null;
   notificationMessage: string | null;
-  toggleNotificationPreference: (
+  toggleNotificationChannel: (
     key: keyof NotificationPreferences,
+    channel: NotificationChannel,
     value: boolean,
   ) => Promise<void>;
+  updateDelivery: (patch: Partial<Omit<NotificationSettings, 'channels'>>) => Promise<void>;
 };
 
 export function useNotifications(
@@ -30,13 +38,11 @@ export function useNotifications(
   activeSection: string,
   messages: UseNotificationsMessages,
 ): UseNotificationsReturn {
-  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(
-    defaultNotificationPreferences,
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(
+    defaultNotificationSettings,
   );
   const [notificationsLoading, setNotificationsLoading] = useState(false);
-  const [notificationSavingKey, setNotificationSavingKey] = useState<
-    keyof NotificationPreferences | null
-  >(null);
+  const [notificationSavingKey, setNotificationSavingKey] = useState<NotificationSavingKey>(null);
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
 
@@ -51,9 +57,13 @@ export function useNotifications(
       try {
         const response = await apiClient.get('/notifications/preferences');
         if (!active) return;
-        setNotificationPreferences({
-          ...defaultNotificationPreferences,
-          ...(response.data || {}),
+        const data = response.data || {};
+        setNotificationSettings({
+          // The API fills the matrix in, but a stale row must not blank out the UI.
+          channels: { ...defaultNotificationChannels, ...(data.channels || {}) },
+          digestMode: (data.digestMode as NotificationDigestMode) || 'instant',
+          quietHoursStart: data.quietHoursStart ?? null,
+          quietHoursEnd: data.quietHoursEnd ?? null,
         });
       } catch {
         if (!active) return;
@@ -69,34 +79,61 @@ export function useNotifications(
     };
   }, [activeSection, isAuthenticated, messages.loadError]);
 
-  const toggleNotificationPreference = async (
-    key: keyof NotificationPreferences,
-    value: boolean,
-  ) => {
-    setNotificationSavingKey(key);
-    setNotificationError(null);
-    setNotificationMessage(null);
+  /** Applies an optimistic change and rolls it back if the request fails. */
+  const save = useCallback(
+    async (
+      savingKey: NotificationSavingKey,
+      next: NotificationSettings,
+      payload: Record<string, unknown>,
+    ) => {
+      const previous = notificationSettings;
+      setNotificationSavingKey(savingKey);
+      setNotificationError(null);
+      setNotificationMessage(null);
+      setNotificationSettings(next);
 
-    const previous = notificationPreferences;
-    setNotificationPreferences(current => ({ ...current, [key]: value }));
+      try {
+        await apiClient.patch('/notifications/preferences', payload);
+        setNotificationMessage(messages.savedMessage);
+      } catch {
+        setNotificationSettings(previous);
+        setNotificationError(messages.saveError);
+      } finally {
+        setNotificationSavingKey(null);
+      }
+    },
+    [messages.saveError, messages.savedMessage, notificationSettings],
+  );
 
-    try {
-      await apiClient.patch('/notifications/preferences', { [key]: value });
-      setNotificationMessage(messages.savedMessage);
-    } catch {
-      setNotificationPreferences(previous);
-      setNotificationError(messages.saveError);
-    } finally {
-      setNotificationSavingKey(null);
-    }
-  };
+  const toggleNotificationChannel = useCallback(
+    (key: keyof NotificationPreferences, channel: NotificationChannel, value: boolean) => {
+      const nextSet = { ...notificationSettings.channels[key], [channel]: value };
+
+      return save(
+        key,
+        {
+          ...notificationSettings,
+          channels: { ...notificationSettings.channels, [key]: nextSet },
+        },
+        { channels: { [key]: nextSet } },
+      );
+    },
+    [notificationSettings, save],
+  );
+
+  const updateDelivery = useCallback(
+    (patch: Partial<Omit<NotificationSettings, 'channels'>>) =>
+      save('delivery', { ...notificationSettings, ...patch }, patch),
+    [notificationSettings, save],
+  );
 
   return {
-    notificationPreferences,
+    notificationSettings,
     notificationsLoading,
     notificationSavingKey,
     notificationError,
     notificationMessage,
-    toggleNotificationPreference,
+    toggleNotificationChannel,
+    updateDelivery,
   };
 }

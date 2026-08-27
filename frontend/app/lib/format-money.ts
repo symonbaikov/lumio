@@ -2,12 +2,13 @@
  * Shared currency formatting utilities used across transaction and analytics views.
  */
 
-/** Maps app locale keys to BCP 47 locale strings for Intl.NumberFormat. */
-export const resolveLocale = (locale?: string): string => {
-  if (locale === 'ru') return 'ru-RU';
-  if (locale === 'kk') return 'kk-KZ';
-  return 'en-US';
-};
+import { resolveLocaleTag } from '@/app/lib/user-format';
+
+/**
+ * Maps app locale keys to BCP 47 locale strings for Intl.NumberFormat.
+ * Delegates to the shared resolver so money and dates cannot drift apart.
+ */
+export const resolveLocale = (locale?: string): string => resolveLocaleTag(locale);
 
 /**
  * Validates and normalises a currency code to a 3-letter ISO 4217 uppercase string.

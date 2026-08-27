@@ -1,4 +1,5 @@
 'use client';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { AnalyticsSourceBadge } from '@/app/(main)/statements/components/analytics/AnalyticsSourceBadge';
 import type {
@@ -69,7 +70,7 @@ type RowProps = {
 function LeaderboardRow({ row, sourceLabels, onRowClick }: RowProps): React.JSX.Element {
   const lastDate =
     row.lastDate && !Number.isNaN(new Date(row.lastDate).getTime())
-      ? new Date(row.lastDate).toLocaleDateString()
+      ? formatStoredDate(row.lastDate)
       : '-';
   return (
     <tr style={{ color: 'var(--foreground)', borderTop: '1px solid var(--muted)' }}>

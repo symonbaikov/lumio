@@ -1,5 +1,6 @@
 // Pure helper functions and types for the Statement Edit page
 
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { ParsingDroppedSample } from './ParsingWarningsPanel';
 
 export interface CategoryOption {
@@ -172,7 +173,7 @@ export const formatDate = (dateString?: string | null): string => {
     return '';
   }
   try {
-    return new Date(dateString).toLocaleDateString('ru-RU');
+    return formatStoredDate(dateString, 'ru-RU');
   } catch {
     return String(dateString);
   }
