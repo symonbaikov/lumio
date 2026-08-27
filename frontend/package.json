@@ -41,6 +41,7 @@
     "@tanstack/react-virtual": "^3.13.18",
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
+    "country-flag-icons": "^1.6.20",
     "date-fns": "^4.1.0",
     "driver.js": "^1.4.0",
     "echarts": "^6.1.0",

@@ -11,6 +11,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import { type EntityTarget, In, type Repository } from 'typeorm';
+import { toMinor } from '../../common/utils/money.util';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { Branch } from '../../entities/branch.entity';
 import { Category } from '../../entities/category.entity';
@@ -18,7 +19,7 @@ import { Payable } from '../../entities/payable.entity';
 import { Receipt } from '../../entities/receipt.entity';
 import { Statement } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
-import { TransactionType } from '../../entities/transaction.entity';
+import { TaxSource, TransactionType } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { Wallet } from '../../entities/wallet.entity';
 import { WorkspaceMember, WorkspaceRole } from '../../entities/workspace-member.entity';
@@ -26,6 +27,7 @@ import { AuditService } from '../audit/audit.service';
 import { ClassificationService } from '../classification/services/classification.service';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import type { DataDeletedEvent } from '../notifications/events/notification-events';
+import { TaxAssignmentService } from '../tax/tax-assignment.service';
 import type { BulkUpdateItemDto } from './dto/bulk-update-transaction.dto';
 import type { SplitPartDto, SplitTransactionDto } from './dto/split-transaction.dto';
 import type { UpdateTransactionDto } from './dto/update-transaction.dto';
@@ -51,6 +53,7 @@ export class TransactionsService {
     private readonly auditService: AuditService,
     private readonly classificationService: ClassificationService,
     private readonly exchangeRatesService: ExchangeRatesService,
+    private readonly taxAssignmentService: TaxAssignmentService,
     private readonly eventEmitter?: EventEmitter2,
   ) {}
 
@@ -196,6 +199,41 @@ export class TransactionsService {
     return transaction;
   }
 
+  /**
+   * Refuses edits that would put a filed return out of step with its data.
+   *
+   * A locked transaction has been reported to a tax authority. Its money and
+   * its tax are therefore fixed; everything else about it — comments, wallet,
+   * counterparty spelling — stays editable, so locking does not turn the row
+   * into a museum piece.
+   */
+  private assertTaxEditable(transaction: Transaction, updateDto: UpdateTransactionDto): void {
+    if (!transaction.taxLocked) {
+      return;
+    }
+
+    const frozen: Array<keyof UpdateTransactionDto> = [
+      'amount',
+      'debit',
+      'credit',
+      'amountForeign',
+      'exchangeRate',
+      'transactionType',
+      'categoryId',
+      'transactionDate',
+      // Changing it would re-convert the tax at a different rate than the one
+      // the filed figure was built from.
+      'currency',
+    ];
+
+    const attempted = frozen.filter(field => updateDto[field] !== undefined);
+    if (attempted.length > 0) {
+      throw new BadRequestException(
+        `Cannot change ${attempted.join(', ')} on a transaction that is part of a filed tax return. Reopen the return first.`,
+      );
+    }
+  }
+
   async update(
     id: string,
     workspaceId: string,
@@ -208,6 +246,7 @@ export class TransactionsService {
     await this.assertWorkspaceOwnedRefs(updateDto, workspaceId);
     const before = { ...transaction };
     const previousCategoryId = transaction.categoryId;
+    this.assertTaxEditable(transaction, updateDto);
 
     // Recalculate amount if debit/credit changed
     if (updateDto.debit !== undefined || updateDto.credit !== undefined) {
@@ -358,11 +397,18 @@ export class TransactionsService {
       counterpartyBin: source.counterpartyBin,
       counterpartyAccount: source.counterpartyAccount,
       counterpartyBank: source.counterpartyBank,
+      counterpartyCountry: source.counterpartyCountry,
+      counterpartyVatId: source.counterpartyVatId,
       currency: source.currency,
       exchangeRate: source.exchangeRate,
       paymentPurpose: source.paymentPurpose,
       categoryId: source.categoryId,
+      // The rate carries over, but never the assessed figures: those belong to
+      // the pre-split amount, and copying them onto each part would multiply
+      // the transaction's tax by the number of parts. `split()` re-assesses
+      // every part from its own amount and category instead.
       taxRateId: source.taxRateId,
+      taxSource: source.taxSource,
       branchId: source.branchId,
       walletId: source.walletId,
       article: source.article,
@@ -395,6 +441,15 @@ export class TransactionsService {
     // amounts would reappear in those totals. Refuse instead.
     if (transaction.isDuplicate) {
       throw new BadRequestException('Cannot split a transaction marked as a duplicate');
+    }
+
+    // A locked row has already been reported on a filed return. Splitting it
+    // re-assesses the tax across the parts, which would change figures that
+    // have been submitted to a tax authority.
+    if (transaction.taxLocked) {
+      throw new BadRequestException(
+        'Cannot split a transaction that is part of a filed tax return',
+      );
     }
 
     const total = Number(
@@ -517,6 +572,30 @@ export class TransactionsService {
         row.categoryId = part.categoryId ?? row.categoryId;
         row.paymentPurpose = part.paymentPurpose ?? row.paymentPurpose;
         row.comments = part.comments ?? row.comments;
+
+        // Re-assessed after the category override, because a part moved to a
+        // different category may fall under a different rule. A rate the user
+        // picked by hand is carried through; an auto-assigned one is derived
+        // again from the part's own amount and category.
+        const assignment = await this.taxAssignmentService.resolve({
+          workspaceId,
+          transactionDate: row.transactionDate,
+          amountMinor: toMinor(amount),
+          categoryId: row.categoryId,
+          transactionType: row.transactionType,
+          transactionNature: row.transactionNature,
+          explicitTaxRateId: row.taxSource === TaxSource.MANUAL ? row.taxRateId : null,
+          counterpartyCountry: row.counterpartyCountry,
+          counterpartyVatId: row.counterpartyVatId,
+        });
+
+        row.taxRateId = assignment.taxRateId;
+        row.taxRuleId = assignment.taxRuleId;
+        row.taxSource = assignment.taxSource;
+        row.taxAmount = assignment.taxAmount;
+        row.taxNetAmount = assignment.taxNetAmount;
+        row.taxReverseCharge = assignment.taxReverseCharge;
+        row.taxNotionalAmount = assignment.taxNotionalAmount;
 
         rows.push(await repo.save(row));
       }

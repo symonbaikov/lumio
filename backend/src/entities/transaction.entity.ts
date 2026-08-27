@@ -17,8 +17,21 @@ import { ImportSession } from './import-session.entity';
 import { Statement } from './statement.entity';
 import { Tag } from './tag.entity';
 import { TaxRate } from './tax-rate.entity';
+import { TaxRule } from './tax-rule.entity';
 import { Wallet } from './wallet.entity';
 import { Workspace } from './workspace.entity';
+
+/** Why a given rate ended up on a transaction. */
+export enum TaxSource {
+  /** The user picked the rate themselves. */
+  MANUAL = 'manual',
+  /** Matched a workspace tax rule. */
+  RULE = 'rule',
+  /** Fell through to the workspace default for that date. */
+  DEFAULT = 'default',
+  /** Read off the source document by the parser. */
+  PARSED = 'parsed',
+}
 
 export enum TransactionType {
   INCOME = 'income',
@@ -79,6 +92,17 @@ export class Transaction {
 
   @Column({ name: 'counterparty_bank', nullable: true })
   counterpartyBank: string | null;
+
+  /**
+   * ISO-3166-1 alpha-2. Together with the VAT id below, this is what decides
+   * whether a cross-border supply is reverse-charged.
+   */
+  @Column({ name: 'counterparty_country', type: 'varchar', length: 2, nullable: true })
+  counterpartyCountry: string | null;
+
+  /** Its presence is what makes the other party a business rather than a consumer. */
+  @Column({ name: 'counterparty_vat_id', type: 'varchar', length: 32, nullable: true })
+  counterpartyVatId: string | null;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
   debit: number | null;
@@ -169,6 +193,46 @@ export class Transaction {
 
   @Column({ name: 'tax_detected', default: false })
   taxDetected: boolean;
+
+  /**
+   * Tax assessed on this transaction, stored rather than derived.
+   *
+   * Deriving it on read would mean a filed return changes whenever a rate is
+   * corrected. `taxRateId` above pins the exact rate version these figures
+   * came from.
+   */
+  @Column({ name: 'tax_amount', type: 'decimal', precision: 15, scale: 2, nullable: true })
+  taxAmount: number | null;
+
+  @Column({ name: 'tax_net_amount', type: 'decimal', precision: 15, scale: 2, nullable: true })
+  taxNetAmount: number | null;
+
+  /** How the rate was chosen, kept so an unexpected figure can be traced back. */
+  @Column({ name: 'tax_source', type: 'varchar', length: 20, nullable: true })
+  taxSource: TaxSource | null;
+
+  @Column({ name: 'tax_reverse_charge', default: false })
+  taxReverseCharge: boolean;
+
+  /**
+   * The tax that would have been charged. Equal to `taxAmount` in the ordinary
+   * case; under reverse charge `taxAmount` is zero and this carries the figure
+   * the return reports on both sides so the entries cancel.
+   */
+  @Column({ name: 'tax_notional_amount', type: 'decimal', precision: 15, scale: 2, nullable: true })
+  taxNotionalAmount: number | null;
+
+  /** Which rule produced these figures, when one did. */
+  @ManyToOne(() => TaxRule, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'tax_rule_id' })
+  taxRule: TaxRule | null;
+
+  @Column({ name: 'tax_rule_id', nullable: true })
+  taxRuleId: string | null;
+
+  /** Set once this row has been included in a filed return. */
+  @Column({ name: 'tax_locked', default: false })
+  taxLocked: boolean;
 
   @Column({
     name: 'enrichment_confidence',

@@ -21,7 +21,9 @@ export type NotificationMessageKey =
   | 'budget.exceeded'
   | 'budget.warning'
   | 'subscription.detected'
-  | 'subscription.upcoming';
+  | 'subscription.upcoming'
+  | 'tax.threshold.warning'
+  | 'tax.threshold.reached';
 
 interface TranslationEntry {
   title: string;
@@ -102,6 +104,14 @@ const ru: TranslationMap = {
     title: 'Предстоящие списания',
     message: 'Предстоящие списания: {{details}}',
   },
+  'tax.threshold.warning': {
+    title: 'Порог регистрации по налогу',
+    message: 'Оборот достиг {{percentUsed}}% порога регистрации ({{threshold}} {{currency}})',
+  },
+  'tax.threshold.reached': {
+    title: 'Порог регистрации достигнут',
+    message: 'Оборот достиг порога регистрации {{threshold}} {{currency}}',
+  },
 };
 
 const en: TranslationMap = {
@@ -179,6 +189,15 @@ const en: TranslationMap = {
     title: 'Upcoming subscription charges',
     message: 'Upcoming: {{details}}',
   },
+  'tax.threshold.warning': {
+    title: 'Tax registration threshold',
+    message:
+      'Turnover has reached {{percentUsed}}% of the {{threshold}} {{currency}} registration threshold',
+  },
+  'tax.threshold.reached': {
+    title: 'Registration threshold reached',
+    message: 'Turnover has reached the {{threshold}} {{currency}} registration threshold',
+  },
 };
 
 const kk: TranslationMap = {
@@ -250,6 +269,14 @@ const kk: TranslationMap = {
     message: 'Тұрақты төлемдер табылды: {{vendors}}',
   },
   'subscription.upcoming': { title: 'Алдағы төлемдер', message: 'Алдағы төлемдер: {{details}}' },
+  'tax.threshold.warning': {
+    title: 'Салықтық тіркеу шегі',
+    message: 'Айналым тіркеу шегінің {{percentUsed}}% жетті ({{threshold}} {{currency}})',
+  },
+  'tax.threshold.reached': {
+    title: 'Тіркеу шегіне жетті',
+    message: 'Айналым {{threshold}} {{currency}} тіркеу шегіне жетті',
+  },
 };
 
 const de: TranslationMap = {
@@ -336,6 +363,15 @@ const de: TranslationMap = {
     title: 'Anstehende Abonnement-Abbuchungen',
     message: 'Anstehend: {{details}}',
   },
+  'tax.threshold.warning': {
+    title: 'Registrierungsgrenze',
+    message:
+      'Der Umsatz hat {{percentUsed}}% der Registrierungsgrenze von {{threshold}} {{currency}} erreicht',
+  },
+  'tax.threshold.reached': {
+    title: 'Registrierungsgrenze erreicht',
+    message: 'Der Umsatz hat die Registrierungsgrenze von {{threshold}} {{currency}} erreicht',
+  },
 };
 
 const fr: TranslationMap = {
@@ -419,6 +455,15 @@ const fr: TranslationMap = {
     message: 'Paiements récurrents trouvés : {{vendors}}',
   },
   'subscription.upcoming': { title: 'Prélèvements à venir', message: 'À venir : {{details}}' },
+  'tax.threshold.warning': {
+    title: "Seuil d'immatriculation",
+    message:
+      "Le chiffre d'affaires a atteint {{percentUsed}}% du seuil de {{threshold}} {{currency}}",
+  },
+  'tax.threshold.reached': {
+    title: "Seuil d'immatriculation atteint",
+    message: "Le chiffre d'affaires a atteint le seuil de {{threshold}} {{currency}}",
+  },
 };
 
 const es: TranslationMap = {
@@ -501,6 +546,15 @@ const es: TranslationMap = {
   'subscription.upcoming': {
     title: 'Cargos de suscripción próximos',
     message: 'Próximos: {{details}}',
+  },
+  'tax.threshold.warning': {
+    title: 'Umbral de registro fiscal',
+    message:
+      'La facturación ha alcanzado el {{percentUsed}}% del umbral de {{threshold}} {{currency}}',
+  },
+  'tax.threshold.reached': {
+    title: 'Umbral de registro alcanzado',
+    message: 'La facturación ha alcanzado el umbral de {{threshold}} {{currency}}',
   },
 };
 
@@ -585,6 +639,15 @@ const pt: TranslationMap = {
     title: 'Cobranças de assinatura próximas',
     message: 'Próximas: {{details}}',
   },
+  'tax.threshold.warning': {
+    title: 'Limite de registo fiscal',
+    message:
+      'O volume de negócios atingiu {{percentUsed}}% do limite de {{threshold}} {{currency}}',
+  },
+  'tax.threshold.reached': {
+    title: 'Limite de registo atingido',
+    message: 'O volume de negócios atingiu o limite de {{threshold}} {{currency}}',
+  },
 };
 
 const tr: TranslationMap = {
@@ -661,6 +724,14 @@ const tr: TranslationMap = {
   'subscription.upcoming': {
     title: 'Yaklaşan abonelik ödemeleri',
     message: 'Yaklaşan: {{details}}',
+  },
+  'tax.threshold.warning': {
+    title: 'Vergi kayıt eşiği',
+    message: 'Ciro, {{threshold}} {{currency}} kayıt eşiğinin %{{percentUsed}} düzeyine ulaştı',
+  },
+  'tax.threshold.reached': {
+    title: 'Kayıt eşiğine ulaşıldı',
+    message: 'Ciro, {{threshold}} {{currency}} kayıt eşiğine ulaştı',
   },
 };
 
@@ -739,6 +810,14 @@ const uk: TranslationMap = {
     title: 'Майбутні списання',
     message: 'Майбутні списання: {{details}}',
   },
+  'tax.threshold.warning': {
+    title: 'Поріг податкової реєстрації',
+    message: 'Оборот досяг {{percentUsed}}% порогу реєстрації ({{threshold}} {{currency}})',
+  },
+  'tax.threshold.reached': {
+    title: 'Поріг реєстрації досягнуто',
+    message: 'Оборот досяг порогу реєстрації {{threshold}} {{currency}}',
+  },
 };
 
 const zh: TranslationMap = {
@@ -786,6 +865,14 @@ const zh: TranslationMap = {
   },
   'subscription.detected': { title: '检测到订阅', message: '发现定期付款：{{vendors}}' },
   'subscription.upcoming': { title: '即将扣费的订阅', message: '即将扣费：{{details}}' },
+  'tax.threshold.warning': {
+    title: '税务登记门槛',
+    message: '营业额已达到登记门槛 {{threshold}} {{currency}} 的 {{percentUsed}}%',
+  },
+  'tax.threshold.reached': {
+    title: '已达到登记门槛',
+    message: '营业额已达到 {{threshold}} {{currency}} 的登记门槛',
+  },
 };
 
 const ar: TranslationMap = {
@@ -854,6 +941,14 @@ const ar: TranslationMap = {
     message: 'تم العثور على مدفوعات متكررة: {{vendors}}',
   },
   'subscription.upcoming': { title: 'رسوم اشتراك قادمة', message: 'قادمة: {{details}}' },
+  'tax.threshold.warning': {
+    title: 'حد التسجيل الضريبي',
+    message: 'بلغ حجم الأعمال {{percentUsed}}% من حد التسجيل البالغ {{threshold}} {{currency}}',
+  },
+  'tax.threshold.reached': {
+    title: 'تم بلوغ حد التسجيل',
+    message: 'بلغ حجم الأعمال حد التسجيل {{threshold}} {{currency}}',
+  },
 };
 
 const pl: TranslationMap = {
@@ -940,6 +1035,14 @@ const pl: TranslationMap = {
     title: 'Nadchodzące opłaty subskrypcyjne',
     message: 'Nadchodzące: {{details}}',
   },
+  'tax.threshold.warning': {
+    title: 'Próg rejestracji podatkowej',
+    message: 'Obrót osiągnął {{percentUsed}}% progu rejestracji ({{threshold}} {{currency}})',
+  },
+  'tax.threshold.reached': {
+    title: 'Osiągnięto próg rejestracji',
+    message: 'Obrót osiągnął próg rejestracji {{threshold}} {{currency}}',
+  },
 };
 
 const it: TranslationMap = {
@@ -1023,6 +1126,15 @@ const it: TranslationMap = {
     title: 'Addebiti abbonamento in arrivo',
     message: 'In arrivo: {{details}}',
   },
+  'tax.threshold.warning': {
+    title: 'Soglia di registrazione fiscale',
+    message:
+      'Il fatturato ha raggiunto il {{percentUsed}}% della soglia di {{threshold}} {{currency}}',
+  },
+  'tax.threshold.reached': {
+    title: 'Soglia di registrazione raggiunta',
+    message: 'Il fatturato ha raggiunto la soglia di {{threshold}} {{currency}}',
+  },
 };
 
 const sk: TranslationMap = {
@@ -1102,6 +1214,14 @@ const sk: TranslationMap = {
   'subscription.upcoming': {
     title: 'Nadchádzajúce platby predplatného',
     message: 'Nadchádzajúce: {{details}}',
+  },
+  'tax.threshold.warning': {
+    title: 'Prah daňovej registrácie',
+    message: 'Obrat dosiahol {{percentUsed}}% prahu registrácie ({{threshold}} {{currency}})',
+  },
+  'tax.threshold.reached': {
+    title: 'Prah registrácie dosiahnutý',
+    message: 'Obrat dosiahol prah registrácie {{threshold}} {{currency}}',
   },
 };
 
@@ -1192,6 +1312,14 @@ const ja: TranslationMap = {
     title: '今後のサブスクリプション請求',
     message: '今後の請求：{{details}}',
   },
+  'tax.threshold.warning': {
+    title: '税務登録のしきい値',
+    message: '売上が登録しきい値 {{threshold}} {{currency}} の {{percentUsed}}% に達しました',
+  },
+  'tax.threshold.reached': {
+    title: '登録しきい値に到達',
+    message: '売上が登録しきい値 {{threshold}} {{currency}} に達しました',
+  },
 };
 
 const ko: TranslationMap = {
@@ -1266,6 +1394,14 @@ const ko: TranslationMap = {
   },
   'subscription.detected': { title: '구독 감지됨', message: '정기 결제 발견: {{vendors}}' },
   'subscription.upcoming': { title: '예정된 구독 결제', message: '예정: {{details}}' },
+  'tax.threshold.warning': {
+    title: '세무 등록 기준액',
+    message: '매출이 등록 기준액 {{threshold}} {{currency}}의 {{percentUsed}}%에 도달했습니다',
+  },
+  'tax.threshold.reached': {
+    title: '등록 기준액 도달',
+    message: '매출이 등록 기준액 {{threshold}} {{currency}}에 도달했습니다',
+  },
 };
 
 const hi: TranslationMap = {
@@ -1337,6 +1473,14 @@ const hi: TranslationMap = {
     message: 'नियमित भुगतान पाए गए: {{vendors}}',
   },
   'subscription.upcoming': { title: 'आगामी सदस्यता शुल्क', message: 'आगामी: {{details}}' },
+  'tax.threshold.warning': {
+    title: 'कर पंजीकरण सीमा',
+    message: 'कारोबार {{threshold}} {{currency}} पंजीकरण सीमा के {{percentUsed}}% तक पहुंच गया',
+  },
+  'tax.threshold.reached': {
+    title: 'पंजीकरण सीमा तक पहुंच गया',
+    message: 'कारोबार {{threshold}} {{currency}} की पंजीकरण सीमा तक पहुंच गया',
+  },
 };
 
 const nl: TranslationMap = {
@@ -1426,6 +1570,15 @@ const nl: TranslationMap = {
     title: 'Aankomende abonnementskosten',
     message: 'Aankomend: {{details}}',
   },
+  'tax.threshold.warning': {
+    title: 'Drempel voor btw-registratie',
+    message:
+      'De omzet heeft {{percentUsed}}% van de registratiedrempel van {{threshold}} {{currency}} bereikt',
+  },
+  'tax.threshold.reached': {
+    title: 'Registratiedrempel bereikt',
+    message: 'De omzet heeft de registratiedrempel van {{threshold}} {{currency}} bereikt',
+  },
 };
 
 const sv: TranslationMap = {
@@ -1506,6 +1659,15 @@ const sv: TranslationMap = {
     title: 'Kommande prenumerationsavgifter',
     message: 'Kommande: {{details}}',
   },
+  'tax.threshold.warning': {
+    title: 'Tröskel för skatteregistrering',
+    message:
+      'Omsättningen har nått {{percentUsed}}% av registreringströskeln på {{threshold}} {{currency}}',
+  },
+  'tax.threshold.reached': {
+    title: 'Registreringströskeln nådd',
+    message: 'Omsättningen har nått registreringströskeln på {{threshold}} {{currency}}',
+  },
 };
 
 const vi: TranslationMap = {
@@ -1583,6 +1745,14 @@ const vi: TranslationMap = {
     message: 'Tìm thấy thanh toán định kỳ: {{vendors}}',
   },
   'subscription.upcoming': { title: 'Phí đăng ký sắp tới', message: 'Sắp tới: {{details}}' },
+  'tax.threshold.warning': {
+    title: 'Ngưỡng đăng ký thuế',
+    message: 'Doanh thu đã đạt {{percentUsed}}% ngưỡng đăng ký {{threshold}} {{currency}}',
+  },
+  'tax.threshold.reached': {
+    title: 'Đã đạt ngưỡng đăng ký',
+    message: 'Doanh thu đã đạt ngưỡng đăng ký {{threshold}} {{currency}}',
+  },
 };
 
 const id: TranslationMap = {
@@ -1662,6 +1832,15 @@ const id: TranslationMap = {
   'subscription.upcoming': {
     title: 'Tagihan langganan mendatang',
     message: 'Mendatang: {{details}}',
+  },
+  'tax.threshold.warning': {
+    title: 'Ambang pendaftaran pajak',
+    message:
+      'Omzet telah mencapai {{percentUsed}}% dari ambang pendaftaran {{threshold}} {{currency}}',
+  },
+  'tax.threshold.reached': {
+    title: 'Ambang pendaftaran tercapai',
+    message: 'Omzet telah mencapai ambang pendaftaran {{threshold}} {{currency}}',
   },
 };
 

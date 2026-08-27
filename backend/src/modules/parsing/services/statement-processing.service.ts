@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 // parameter from the emitted design:paramtypes metadata, which `import type` erases.
 import { DataSource } from 'typeorm';
 import type { Repository } from 'typeorm';
+import { toMinor } from '../../../common/utils/money.util';
 import { extractTextFromPdf } from '../../../common/utils/pdf-parser.util';
 import { Semaphore } from '../../../common/utils/semaphore.util';
 import { ImportSessionMode } from '../../../entities/import-session.entity';
@@ -25,6 +26,7 @@ import type {
   TransactionsUncategorizedEvent,
 } from '../../notifications/events/notification-events';
 import { MetricsService } from '../../observability/metrics.service';
+import { TaxAssignmentService } from '../../tax/tax-assignment.service';
 import { CrossStatementDeduplicationService } from '../../transactions/services/cross-statement-deduplication.service';
 import { TransactionFingerprintService } from '../../transactions/services/transaction-fingerprint.service';
 import { AiParseValidator } from '../helpers/ai-parse-validator.helper';
@@ -77,6 +79,7 @@ export class StatementProcessingService {
     private importSessionService: ImportSessionService,
     private transactionFingerprintService: TransactionFingerprintService,
     private readonly dataSource: DataSource,
+    private readonly taxAssignmentService: TaxAssignmentService,
     @Optional()
     @Inject(forwardRef(() => GoogleSheetsService))
     private googleSheetsService?: GoogleSheetsService,
@@ -1075,6 +1078,33 @@ export class StatementProcessingService {
         taxDetected,
         enrichmentConfidence: enrichment?.confidence || null,
       });
+
+      // Assessed from the workspace rules and default as they stood on the
+      // transaction's own date. Rows the classifier left uncategorised, and
+      // transfers, wages and loan movements, are deliberately left unassessed
+      // by the resolver rather than taxed on a guess.
+      //
+      // ponytail: two small indexed queries per transaction, so a 500-row
+      // statement costs ~1000 of them. Negligible next to the AI
+      // classification this loop already does; if it ever shows up, hoist the
+      // rule and rate lookups out of the loop and pass them in.
+      const taxAssignment = await this.taxAssignmentService.resolve({
+        workspaceId: statement.workspaceId,
+        transactionDate: parsed.transactionDate,
+        amountMinor: toMinor(amount ?? 0),
+        categoryId: classification.categoryId ?? null,
+        transactionType,
+        transactionNature: enrichment?.transactionNature || null,
+        explicitTaxRateId: null,
+      });
+
+      transaction.taxRateId = taxAssignment.taxRateId;
+      transaction.taxRuleId = taxAssignment.taxRuleId;
+      transaction.taxSource = taxAssignment.taxSource;
+      transaction.taxAmount = taxAssignment.taxAmount;
+      transaction.taxNetAmount = taxAssignment.taxNetAmount;
+      transaction.taxReverseCharge = taxAssignment.taxReverseCharge;
+      transaction.taxNotionalAmount = taxAssignment.taxNotionalAmount;
 
       transaction.fingerprint = this.buildFingerprint(transaction, statement, log, i);
       drafts.push(transaction);

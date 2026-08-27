@@ -29,6 +29,7 @@ import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import { type User, UserRole } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
+import { CURRENT_DISCLAIMER_VERSION } from './disclaimer.constant';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
@@ -94,6 +95,33 @@ export class UsersController {
   async deleteMyAccount(@CurrentUser() currentUser: User, @Body() dto: DeleteMyAccountDto) {
     await this.accountDataService.deleteMyAccount(currentUser.id, dto.currentPassword);
     return deletedResponse('Account');
+  }
+
+  /**
+   * The disclaimer text itself lives in the client bundle so it can be shown in
+   * the user's language; this endpoint owns the record of what was accepted and
+   * when, which is the part that has to be auditable.
+   */
+  @Post('me/disclaimer')
+  async acceptDisclaimer(@CurrentUser() currentUser: User) {
+    const updatedUser = await this.usersService.acceptDisclaimer(currentUser.id);
+    return {
+      user: this.toSafeUser(updatedUser),
+      version: CURRENT_DISCLAIMER_VERSION,
+    };
+  }
+
+  @Get('me/disclaimer')
+  async getDisclaimerStatus(@CurrentUser() currentUser: User) {
+    const user = await this.usersService.getProfile(currentUser.id);
+    return {
+      version: CURRENT_DISCLAIMER_VERSION,
+      acceptedAt: user.disclaimerAcceptedAt,
+      acceptedVersion: user.disclaimerVersion,
+      // Computed here rather than in the client so that bumping the version
+      // re-prompts everyone without shipping a frontend release.
+      accepted: user.disclaimerVersion === CURRENT_DISCLAIMER_VERSION,
+    };
   }
 
   @Public()

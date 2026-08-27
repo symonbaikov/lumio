@@ -16,6 +16,7 @@ import { Transaction } from '@/entities/transaction.entity';
 import { User, UserRole } from '@/entities/user.entity';
 import { WorkspaceMember, WorkspaceRole } from '@/entities/workspace-member.entity';
 import { FileStorageService } from '@/common/services/file-storage.service';
+import { TaxAssignmentService } from '@/modules/tax/tax-assignment.service';
 
 jest.mock('@/common/utils/file-hash.util');
 jest.mock('@/common/utils/file-validator.util');
@@ -125,6 +126,10 @@ describe('StatementsService — business logic', () => {
         {
           provide: CACHE_MANAGER,
           useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn() },
+        },
+        {
+          provide: TaxAssignmentService,
+          useValue: { resolve: jest.fn(async () => ({})) },
         },
         {
           provide: AuditService,

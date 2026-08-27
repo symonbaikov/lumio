@@ -44,6 +44,8 @@ const NOTIFICATION_PREFERENCE_MAP: Record<NotificationType, NotificationPreferen
   [NotificationType.PAYABLE_OVERDUE]: 'workspaceUpdated',
   [NotificationType.PAYABLE_MARKED_PAID]: 'workspaceUpdated',
   [NotificationType.BUDGET_WARNING]: 'workspaceUpdated',
+  [NotificationType.TAX_THRESHOLD_WARNING]: 'workspaceUpdated',
+  [NotificationType.TAX_THRESHOLD_REACHED]: 'workspaceUpdated',
   [NotificationType.BUDGET_EXCEEDED]: 'workspaceUpdated',
   [NotificationType.SUBSCRIPTION_DETECTED]: 'workspaceUpdated',
   [NotificationType.SUBSCRIPTION_UPCOMING]: 'workspaceUpdated',

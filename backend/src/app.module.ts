@@ -99,7 +99,7 @@ import { SearchModule } from './modules/search/search.module';
 import { StatementsModule } from './modules/statements/statements.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
-import { TaxRatesModule } from './modules/tax-rates/tax-rates.module';
+import { TaxModule } from './modules/tax/tax.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
 import { UsersModule } from './modules/users/users.module';
@@ -219,7 +219,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     ReportsModule,
     StorageModule,
     TelegramModule,
-    TaxRatesModule,
+    TaxModule,
     DataEntryModule,
     CustomTablesModule,
     WorkspacesModule,
