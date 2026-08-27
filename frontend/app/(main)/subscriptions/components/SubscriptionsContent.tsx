@@ -1,11 +1,12 @@
 'use client';
 
-import { Plus } from '@/app/components/icons';
+import { Plus, Trash2 } from '@/app/components/icons';
 import {
   Box,
   Button,
   Card,
   CardContent,
+  IconButton,
   MenuItem,
   Select,
   Skeleton,
@@ -289,6 +290,7 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
                   <th>Owner</th>
                   <th>Risk</th>
                   <th>Review</th>
+                  <th aria-label="Actions" />
                 </tr>
               </thead>
               <tbody>
@@ -369,6 +371,19 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
                         : subscription.riskStatus.replace('_', ' ')}
                     </td>
                     <td>{formatDate(subscription.reviewAt)}</td>
+                    <td>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        aria-label={`Delete ${subscription.vendorName}`}
+                        onClick={event => {
+                          event.stopPropagation();
+                          props.handleDelete(subscription.id);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </IconButton>
+                    </td>
                   </tr>
                 ))}
               </tbody>

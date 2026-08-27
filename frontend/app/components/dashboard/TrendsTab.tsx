@@ -410,7 +410,7 @@ export function TrendsTab({ formatAmount }: TrendsTabProps) {
                     sx={{
                       fontSize: 11,
                       fontWeight: 600,
-                      color: '#34d399',
+                      color: 'success.main',
                       letterSpacing: '1px',
                       textTransform: 'uppercase',
                       fontFamily: 'var(--font-dashboard-mono)',

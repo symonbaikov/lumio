@@ -185,9 +185,13 @@ export function useSubscriptionsPage() {
 
   const handleDelete = useCallback(
     async (id: string) => {
+      // Deletion is a hard delete on the server, so a slip is unrecoverable.
+      if (!window.confirm('Delete this subscription? This cannot be undone.')) {
+        return;
+      }
       try {
         await apiClient.delete(`/subscriptions/${id}`);
-        toast.success('Subscription cancelled');
+        toast.success('Subscription deleted');
         await load();
       } catch {
         toast.error('Failed to delete subscription');

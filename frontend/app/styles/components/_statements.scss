@@ -948,7 +948,7 @@
     }
 
     &:hover {
-      border-color: #34d399;
+      border-color: $lumio-color-success;
       background: #ecfdf5;
 
       @include dark {
@@ -2582,7 +2582,7 @@
     }
 
     &:hover:not(:disabled) {
-      border-color: #34d399;
+      border-color: $lumio-color-success;
       background: #ecfdf5;
 
       @include dark {
