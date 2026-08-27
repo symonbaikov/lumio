@@ -15,11 +15,14 @@ import type {
   CustomTableGridRow,
   CustomTableRowPatch,
 } from '../utils/stylingUtils';
+import { RowComments } from './RowComments';
 
 type DrawerMode = 'view' | 'edit';
 
 interface RowDrawerProps {
   open: boolean;
+  /** Нужен для комментариев: они живут в контексте таблицы, а не только строки. */
+  tableId?: string | null;
   mode: DrawerMode;
   row: CustomTableGridRow | null;
   columns: CustomTableColumn[];
@@ -233,6 +236,7 @@ function HistoryTab({
 }
 
 export function RowDrawer({
+  tableId,
   open,
   mode,
   row,
@@ -250,7 +254,7 @@ export function RowDrawer({
   const [baseData, setBaseData] = useState<CustomTableRowPatch>({});
   const [draft, setDraft] = useState<CustomTableRowPatch>({});
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'history'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'history' | 'comments'>('details');
   const [historyEvents, setHistoryEvents] = useState<AuditEvent[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedHistoryEvent, setSelectedHistoryEvent] = useState<AuditEvent | null>(null);
@@ -409,7 +413,28 @@ export function RowDrawer({
           >
             History
           </Box>
+          <Box
+            component="button"
+            type="button"
+            onClick={() => setActiveTab('comments')}
+            sx={{
+              px: 1.5,
+              py: 0.5,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              border: 'none',
+              bgcolor: activeTab === 'comments' ? 'var(--foreground)' : 'transparent',
+              color: activeTab === 'comments' ? 'var(--background)' : 'var(--text-secondary)',
+            }}
+          >
+            Comments
+          </Box>
         </Box>
+
+        {activeTab === 'comments' && tableId && row?.id && (
+          <RowComments tableId={tableId} rowId={row.id} />
+        )}
 
         {activeTab === 'details' && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>

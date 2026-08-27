@@ -6,44 +6,7 @@ import type { CustomTableAction } from '@/app/lib/custom-table-actions';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
-import type { ExportColumn } from '../customTablesHelpers';
-import { getExportColumn, sanitizeFileName, toCsv } from '../customTablesHelpers';
-
-async function fetchAllTableRows(
-  tableId: string,
-): Promise<Array<{ rowNumber?: number; data: Record<string, unknown> }>> {
-  const rows: Array<{ rowNumber?: number; data: Record<string, unknown> }> = [];
-  let cursor: number | undefined;
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const response = await apiClient.get(`/custom-tables/${tableId}/rows`, {
-      params: { cursor, limit: 500 },
-    });
-    const items = response.data?.items || response.data?.data?.items || [];
-    const chunk = Array.isArray(items) ? items : [];
-    rows.push(...chunk);
-    if (chunk.length < 500) {
-      break;
-    }
-    const nextCursor = chunk[chunk.length - 1]?.rowNumber;
-    if (typeof nextCursor !== 'number' || Number.isNaN(nextCursor)) {
-      break;
-    }
-    cursor = nextCursor;
-  }
-  return rows;
-}
-
-function triggerBlobDownload(blob: Blob, fileName: string): void {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = fileName;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
-}
+import { downloadTableExport } from '../exportTable';
 
 interface CustomTableItem {
   id: string;
@@ -121,51 +84,9 @@ export function useCustomTablesActions({
       const toastId = toast.loading(`Export ${table.name}...`);
 
       try {
-        const tableResponse = await apiClient.get(`/custom-tables/${table.id}`);
-        const detail = tableResponse.data?.data || tableResponse.data;
-        const columns = Array.isArray(detail?.columns)
-          ? detail.columns
-              .map((col: unknown) => getExportColumn(col))
-              .filter((col: ExportColumn | null): col is ExportColumn => col !== null)
-              .sort((a: ExportColumn, b: ExportColumn) => (a.position || 0) - (b.position || 0))
-          : [];
-
-        if (columns.length === 0) {
-          throw new Error('No exportable columns found');
-        }
-
-        const rows = await fetchAllTableRows(table.id);
-        const headers = columns.map((col: ExportColumn) => col.title || col.key);
-        const normalizedRows = rows.map(row => {
-          const mapped: Record<string, unknown> = {};
-          columns.forEach((col: ExportColumn, index: number) => {
-            mapped[headers[index]] = row?.data?.[col.key] ?? '';
-          });
-          return mapped;
-        });
-
-        const fileBase = sanitizeFileName(table.name);
-
-        if (format === 'csv') {
-          const csv = toCsv(headers, normalizedRows);
-          triggerBlobDownload(
-            new Blob([csv], { type: 'text/csv;charset=utf-8;' }),
-            `${fileBase}.csv`,
-          );
-        } else {
-          const xlsx = await import('xlsx');
-          const sheet = xlsx.utils.json_to_sheet(normalizedRows);
-          const workbook = xlsx.utils.book_new();
-          xlsx.utils.book_append_sheet(workbook, sheet, 'Export');
-          const output = xlsx.write(workbook, { bookType: 'xlsx', type: 'array' });
-          triggerBlobDownload(
-            new Blob([output], {
-              type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            }),
-            `${fileBase}.xlsx`,
-          );
-        }
-
+        // Файл собирает бэкенд: раньше клиент выкачивал все строки страницами
+        // по 500 и строил воркбук в браузере.
+        await downloadTableExport(table.id, format);
         toast.success(`Export complete: ${table.name}`, { id: toastId });
       } catch (error) {
         console.error('Failed to export table:', error);

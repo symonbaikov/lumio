@@ -1,6 +1,7 @@
 'use client';
 
 import { useIsMobile } from '@/app/hooks/useIsMobile';
+import type { SortingState } from '@tanstack/react-table';
 import { DesktopTableView } from './components/DesktopTableView';
 import { MobileTableView } from './components/MobileTableView';
 import {
@@ -8,6 +9,8 @@ import {
   type UseCustomTableTanStackReturn,
   useCustomTableTanStack,
 } from './hooks/useCustomTableTanStack';
+import type { AggregateFn, AggregateSelection, AggregateValues } from './hooks/useTableAggregates';
+import type { ConditionalRule } from './utils/conditionalRules';
 import type {
   CustomTableCellValue,
   CustomTableColumn,
@@ -47,6 +50,12 @@ interface CustomTableTanStackProps {
   onSelectedRowIdsChange: (rowIds: string[]) => void;
   onAddColumnClick?: () => void;
   isPrintMode?: boolean;
+  sorting: SortingState;
+  onSortingChange: (updater: SortingState | ((prev: SortingState) => SortingState)) => void;
+  conditionalRules: ConditionalRule[];
+  aggregateSelection: AggregateSelection;
+  aggregateValues: AggregateValues;
+  onAggregateChange: (columnKey: string, fn: AggregateFn | null) => void;
 }
 
 interface ViewProps {
@@ -100,6 +109,10 @@ function DesktopView({ props: p, ctx }: ViewProps): React.JSX.Element {
       onColorPickerChange={ctx.state.handleColorPickerChange}
       onResizeMouseDown={ctx.state.handleResizeMouseDown}
       onCreateRow={p.onCreateRow}
+      columnTypeByKey={ctx.columnTypeByKey}
+      aggregateSelection={p.aggregateSelection}
+      aggregateValues={p.aggregateValues}
+      onAggregateChange={p.onAggregateChange}
       labels={ctx.commonLabels}
     />
   );
@@ -107,6 +120,7 @@ function DesktopView({ props: p, ctx }: ViewProps): React.JSX.Element {
 
 function propsToHookParams(props: CustomTableTanStackProps): UseCustomTableTanStackParams {
   return {
+    tableId: props.tableId,
     rows: props.rows,
     columns: props.columns,
     selectedRowIds: props.selectedRowIds,
@@ -125,6 +139,9 @@ function propsToHookParams(props: CustomTableTanStackProps): UseCustomTableTanSt
     onDeleteColumn: props.onDeleteColumn,
     onAddColumnClick: props.onAddColumnClick,
     onLoadMore: props.onLoadMore,
+    sorting: props.sorting,
+    onSortingChange: props.onSortingChange,
+    conditionalRules: props.conditionalRules,
   };
 }
 

@@ -2,12 +2,15 @@
 
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import apiClient from '@/app/lib/api';
+import type { SortingState } from '@tanstack/react-table';
 import type { Locale } from 'date-fns';
 import { enUS, kk, ru } from 'date-fns/locale';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ConditionalRule } from '../utils/conditionalRules';
 import { findPaidColumnKey } from '../utils/quickTabs';
-import type { CustomTableColumn, CustomTableGridRow } from '../utils/stylingUtils';
+import type { ColumnType, CustomTableColumn, CustomTableGridRow } from '../utils/stylingUtils';
 import { tx } from '../utils/tableHelpers';
 import type { CustomTable, CustomTablePageColumn } from '../utils/tableTypes';
 import { useBulkRowActions } from './useBulkRowActions';
@@ -24,16 +27,22 @@ import { useQuickTabState } from './useQuickTabState';
 import { useRowActions } from './useRowActions';
 import { useRowDrawer } from './useRowDrawer';
 import { useTabStats } from './useTabStats';
+import {
+  type AggregateFn,
+  type AggregateSelection,
+  useTableAggregates,
+} from './useTableAggregates';
 import { useTableData } from './useTableData';
 import { useTableFilters } from './useTableFilters';
-import { useTableGrid } from './useTableGrid';
+import { type TableSortState, useTableGrid } from './useTableGrid';
 
-function buildColumnTypes(
-  t: unknown,
-): { value: 'text' | 'number' | 'date' | 'boolean' | 'select' | 'multi_select'; label: string }[] {
+function buildColumnTypes(t: unknown): { value: ColumnType; label: string }[] {
   return [
     { value: 'text' as const, label: tx(t, ['columnTypes', 'text'], 'Text') },
     { value: 'number' as const, label: tx(t, ['columnTypes', 'number'], 'Number') },
+    { value: 'currency' as const, label: tx(t, ['columnTypes', 'currency'], 'Money') },
+    { value: 'formula' as const, label: tx(t, ['columnTypes', 'formula'], 'Formula') },
+    { value: 'ai' as const, label: tx(t, ['columnTypes', 'ai'], 'AI') },
     { value: 'date' as const, label: tx(t, ['columnTypes', 'date'], 'Date') },
     { value: 'boolean' as const, label: tx(t, ['columnTypes', 'boolean'], 'Yes/No') },
     { value: 'select' as const, label: tx(t, ['columnTypes', 'select'], 'Select') },
@@ -67,12 +76,14 @@ function buildPasteMessages(tOps: unknown): {
   missingColumnTitle: string;
   insertFailed: string;
   undoFailed: string;
+  fileReadFailed: string;
 } {
   return {
     noRows: tx(tOps, ['paste', 'noRows'], ''),
     missingColumnTitle: tx(tOps, ['paste', 'missingColumnTitle'], ''),
     insertFailed: tx(tOps, ['paste', 'insertFailed'], ''),
     undoFailed: tx(tOps, ['paste', 'undoFailed'], ''),
+    fileReadFailed: tx(tOps, ['paste', 'fileReadFailed'], 'Failed to read file'),
   };
 }
 function buildRowActionsMessages(
@@ -238,6 +249,7 @@ const useGridTab = (p: GridTabParams) => {
   const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[]>([]);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sorting, setSorting] = useState<SortingState>([]);
   const tabState = useQuickTabState({
     paidColKey: p.paidColKey,
     t: p.t,
@@ -257,11 +269,48 @@ const useGridTab = (p: GridTabParams) => {
     searchQuery,
     dateFnsLocale: p.dateFnsLocale,
   });
+  // Сортирует сервер, поэтому берём только первый критерий (см. useTableGrid).
+  const gridSort = useMemo<TableSortState | null>(() => {
+    const first = sorting[0];
+    return first ? { col: first.id, dir: first.desc ? 'desc' : 'asc' } : null;
+  }, [sorting]);
   const grid = useTableGrid({
     tableId: p.tableId,
     isAuthenticated: Boolean(p.user),
     combinedFiltersParam,
+    sort: gridSort,
     loadRowsFailedMessage: tx(p.t, ['grid', 'loadRowsFailed'], ''),
+  });
+  const [aggregateSelection, setAggregateSelection] = useState<AggregateSelection>({});
+  const [conditionalRules] = useState<ConditionalRule[]>([]);
+  const handleAggregateChange = useCallback(
+    (columnKey: string, fn: AggregateFn | null): void => {
+      setAggregateSelection(prev => {
+        const next = { ...prev };
+        if (fn) {
+          next[columnKey] = fn;
+        } else {
+          delete next[columnKey];
+        }
+        return next;
+      });
+      if (p.tableId) {
+        apiClient
+          .patch(`/custom-tables/${p.tableId}/view-settings/columns`, {
+            columnKey,
+            aggregate: fn,
+          })
+          .catch(error => console.error('Failed to persist column aggregate:', error));
+      }
+    },
+    [p.tableId],
+  );
+  const { values: aggregateValues } = useTableAggregates({
+    tableId: p.tableId,
+    isAuthenticated: Boolean(p.user),
+    combinedFiltersParam,
+    selection: aggregateSelection,
+    refreshToken: grid.rows.length,
   });
   useEffect(() => {
     setSelectedRowIds([]);
@@ -289,6 +338,12 @@ const useGridTab = (p: GridTabParams) => {
     setSelectedRowIds,
     searchQuery,
     setSearchQuery,
+    sorting,
+    setSorting,
+    aggregateSelection,
+    aggregateValues,
+    handleAggregateChange,
+    conditionalRules,
     combinedFiltersParam,
     ...tabState,
     ...grid,

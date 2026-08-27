@@ -19,6 +19,14 @@ export enum CustomTableColumnType {
   BOOLEAN = 'boolean',
   SELECT = 'select',
   MULTI_SELECT = 'multi_select',
+  /** Число с валютой и фиксированной точностью; config: { currency, precision }. */
+  CURRENCY = 'currency',
+  /** Вычисляемая колонка; config: { expression }. Значение не хранится. */
+  FORMULA = 'formula',
+  /** Ссылка на строку другой таблицы; config: { targetTableId, displayColumnKey }. */
+  RELATION = 'relation',
+  /** Заполняется моделью по промпту; config: { prompt }. Значение хранится. */
+  AI = 'ai',
 }
 
 @Entity('custom_table_columns')

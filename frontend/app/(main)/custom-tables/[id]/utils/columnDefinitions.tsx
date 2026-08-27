@@ -8,6 +8,8 @@ import { EditableDateCell } from '../components/cells/EditableDateCell';
 import { EditableNumberCell } from '../components/cells/EditableNumberCell';
 import { EditableSelectCell } from '../components/cells/EditableSelectCell';
 import { EditableTextCell } from '../components/cells/EditableTextCell';
+import { FormulaCell } from '../components/cells/FormulaCell';
+import { RelationCell } from '../components/cells/RelationCell';
 import { ActionsCell } from '../components/columns/ActionsCell';
 import { EditableHeader } from '../components/headers/EditableHeader';
 import type {
@@ -17,10 +19,18 @@ import type {
   RenameColumnFn,
   UpdateCellFn,
 } from './columnDefinitions.types';
-import { type CustomTableColumn, type CustomTableGridRow, getCellStyle } from './stylingUtils';
+import { type ConditionalRule, conditionalStyleFor } from './conditionalRules';
+import {
+  type CustomTableColumn,
+  type CustomTableGridRow,
+  getCellStyle,
+  mergeSheetStyle,
+} from './stylingUtils';
 
 export interface BuildColumnsParams {
   orderedColumns: CustomTableColumn[];
+  conditionalRules?: ConditionalRule[];
+  tableId?: string;
   columnWidths: Record<string, number>;
   onUpdateCell: UpdateCellFn;
   onRenameColumnTitle: RenameColumnFn;
@@ -44,6 +54,8 @@ interface RenderDataCellParams {
   table: TTable;
   col: CustomTableColumn;
   onUpdateCell: UpdateCellFn;
+  conditionalRules: ConditionalRule[];
+  tableId?: string;
 }
 
 interface CellCommonProps {
@@ -54,6 +66,10 @@ interface CellCommonProps {
   onUpdateCell: UpdateCellFn;
   style: React.CSSProperties;
   options?: string[];
+  currency?: string;
+  precision?: number;
+  expression?: string;
+  tableId?: string;
 }
 
 type CellRenderer = (p: CellCommonProps) => React.JSX.Element;
@@ -62,6 +78,9 @@ const CELL_RENDERERS: Partial<Record<CustomTableColumn['type'], CellRenderer>> =
   boolean: p => <EditableBooleanCell {...p} />,
   date: p => <EditableDateCell {...p} />,
   number: p => <EditableNumberCell {...p} />,
+  currency: p => <EditableNumberCell {...p} />,
+  formula: p => <FormulaCell {...p} />,
+  relation: p => <RelationCell {...p} />,
   select: p => <EditableSelectCell {...p} />,
   multi_select: p => <EditableSelectCell {...p} multiple />,
 };
@@ -72,8 +91,13 @@ function renderDataCell({
   table,
   col,
   onUpdateCell,
+  conditionalRules,
+  tableId,
 }: RenderDataCellParams): React.JSX.Element {
-  const baseStyle = col.style?.cell ?? {};
+  // Правило подмешивается в базовый стиль колонки, а ручная заливка ячейки
+  // накладывается поверх в getCellStyle — приоритет у явного выбора человека.
+  const ruleStyle = conditionalStyleFor(conditionalRules, row.original, col.key);
+  const baseStyle = mergeSheetStyle(col.style?.cell ?? {}, ruleStyle);
   const cellStyle = getCellStyle(row.original, col.key, baseStyle);
   const commonProps: CellCommonProps = {
     row,
@@ -83,6 +107,10 @@ function renderDataCell({
     onUpdateCell,
     style: cellStyle,
     options: col.config?.options,
+    currency: typeof col.config?.currency === 'string' ? col.config.currency : undefined,
+    precision: typeof col.config?.precision === 'number' ? col.config.precision : undefined,
+    expression: typeof col.config?.expression === 'string' ? col.config.expression : undefined,
+    tableId,
   };
   const renderer = CELL_RENDERERS[col.type];
   return renderer ? renderer(commonProps) : <EditableTextCell {...commonProps} />;
@@ -150,6 +178,8 @@ interface DataColumnParams {
   onUpdateCell: UpdateCellFn;
   onRenameColumnTitle: RenameColumnFn;
   onDeleteColumn?: DeleteColumnFn;
+  conditionalRules: ConditionalRule[];
+  tableId?: string;
 }
 function buildDataColumn({
   col,
@@ -157,10 +187,15 @@ function buildDataColumn({
   onUpdateCell,
   onRenameColumnTitle,
   onDeleteColumn,
+  conditionalRules,
+  tableId,
 }: DataColumnParams): ColumnDef<CustomTableGridRow> {
   const icon = typeof col.config?.icon === 'string' ? col.config.icon : null;
   return {
     id: col.key,
+    // TanStack включает сортировку только у колонок с аксессором. Ячейки читают
+    // row.original напрямую, поэтому здесь аксессор нужен ровно для этого.
+    accessorFn: row => row.data?.[col.key],
     header: ({ column, table }) => (
       <EditableHeader
         column={column}
@@ -175,7 +210,8 @@ function buildDataColumn({
     minSize: 80,
     maxSize: 1200,
     enableResizing: true,
-    cell: ({ row, column, table }) => renderDataCell({ row, column, table, col, onUpdateCell }),
+    cell: ({ row, column, table }) =>
+      renderDataCell({ row, column, table, col, onUpdateCell, conditionalRules, tableId }),
   };
 }
 
@@ -259,12 +295,22 @@ export function buildColumns({
   actionsHeaderLabel,
   colorTooltipLabel,
   deleteLabel,
+  conditionalRules = [],
+  tableId,
 }: BuildColumnsParams): ColumnDef<CustomTableGridRow>[] {
   return [
     buildSelectColumn(),
     buildRowNumberColumn(),
     ...orderedColumns.map(col =>
-      buildDataColumn({ col, columnWidths, onUpdateCell, onRenameColumnTitle, onDeleteColumn }),
+      buildDataColumn({
+        col,
+        columnWidths,
+        onUpdateCell,
+        onRenameColumnTitle,
+        onDeleteColumn,
+        conditionalRules,
+        tableId,
+      }),
     ),
     buildActionsColumn({
       actionsHeaderLabel,

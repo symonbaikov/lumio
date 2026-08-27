@@ -12,6 +12,7 @@ import {
 import { Box } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import type React from 'react';
+import type { NewColumnDraft } from '../hooks/useColumnManagement';
 import type { QuickTab } from '../utils/quickTabs';
 import type { ColumnType } from '../utils/stylingUtils';
 import { tx } from '../utils/tableHelpers';
@@ -50,8 +51,8 @@ export interface TableToolbarProps {
   resetColumns: () => void;
   newColumnOpen: boolean;
   setNewColumnOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  newColumn: { title: string; type: ColumnType };
-  setNewColumn: React.Dispatch<React.SetStateAction<{ title: string; type: ColumnType }>>;
+  newColumn: NewColumnDraft;
+  setNewColumn: React.Dispatch<React.SetStateAction<NewColumnDraft>>;
   createColumn: () => Promise<void>;
   columnTypes: ColumnTypeOption[];
 }

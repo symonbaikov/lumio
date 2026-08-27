@@ -79,6 +79,12 @@ describe('CustomTableTanStack', () => {
         onSelectedColumnKeysChange={vi.fn()}
         onRenameColumnTitle={vi.fn().mockResolvedValue(undefined)}
         onSelectedRowIdsChange={vi.fn()}
+        sorting={[]}
+        onSortingChange={vi.fn()}
+        conditionalRules={[]}
+        aggregateSelection={{}}
+        aggregateValues={{}}
+        onAggregateChange={vi.fn()}
       />,
     );
 
@@ -139,6 +145,12 @@ describe('CustomTableTanStack', () => {
         onSelectedColumnKeysChange={vi.fn()}
         onRenameColumnTitle={vi.fn().mockResolvedValue(undefined)}
         onSelectedRowIdsChange={vi.fn()}
+        sorting={[]}
+        onSortingChange={vi.fn()}
+        conditionalRules={[]}
+        aggregateSelection={{}}
+        aggregateValues={{}}
+        onAggregateChange={vi.fn()}
       />,
     );
 

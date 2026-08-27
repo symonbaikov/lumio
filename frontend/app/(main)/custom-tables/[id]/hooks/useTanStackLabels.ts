@@ -18,6 +18,11 @@ export interface CommonLabels {
   emptyTitle: string;
   emptySubtitle: string;
   loadingMore: string;
+  sortAscLabel: string;
+  sortDescLabel: string;
+  sortClearLabel: string;
+  aggregateNone: string;
+  aggregateLabels: Record<'sum' | 'avg' | 'min' | 'max' | 'count', string>;
 }
 
 export interface TanStackLabels {
@@ -66,6 +71,33 @@ export function useTanStackLabels(t: TanStackT): TanStackLabels {
         fallback: '',
       }),
       loadingMore: String(t.grid?.loadingMore?.value ?? 'Loading...'),
+      sortAscLabel: getTranslationValue({
+        root: t,
+        path: ['grid', 'sortAsc'],
+        fallback: 'Sort ascending',
+      }),
+      sortDescLabel: getTranslationValue({
+        root: t,
+        path: ['grid', 'sortDesc'],
+        fallback: 'Sort descending',
+      }),
+      sortClearLabel: getTranslationValue({
+        root: t,
+        path: ['grid', 'sortClear'],
+        fallback: 'Clear sorting',
+      }),
+      aggregateNone: getTranslationValue({
+        root: t,
+        path: ['grid', 'aggregateNone'],
+        fallback: 'No total',
+      }),
+      aggregateLabels: {
+        sum: getTranslationValue({ root: t, path: ['grid', 'aggregateSum'], fallback: 'Sum' }),
+        avg: getTranslationValue({ root: t, path: ['grid', 'aggregateAvg'], fallback: 'Average' }),
+        min: getTranslationValue({ root: t, path: ['grid', 'aggregateMin'], fallback: 'Min' }),
+        max: getTranslationValue({ root: t, path: ['grid', 'aggregateMax'], fallback: 'Max' }),
+        count: getTranslationValue({ root: t, path: ['grid', 'aggregateCount'], fallback: 'Count' }),
+      },
     }),
     [t],
   );

@@ -1,8 +1,10 @@
 'use client';
 
 import { useIntlayer } from '@/app/i18n';
+import type { SortingState } from '@tanstack/react-table';
 import { useTheme } from 'next-themes';
 import { useCallback, useMemo, useState } from 'react';
+import type { ConditionalRule } from '../utils/conditionalRules';
 import type {
   CustomTableCellValue,
   CustomTableColumn,
@@ -24,6 +26,7 @@ interface RawCb {
 }
 
 export interface UseCustomTableTanStackParams extends RawCb {
+  tableId?: string;
   rows: CustomTableGridRow[];
   columns: CustomTableColumn[];
   selectedRowIds: string[];
@@ -32,6 +35,9 @@ export interface UseCustomTableTanStackParams extends RawCb {
   stickyRightColumnIds: string[];
   loadingRows: boolean;
   hasMore: boolean;
+  sorting: SortingState;
+  conditionalRules: ConditionalRule[];
+  onSortingChange: (updater: SortingState | ((prev: SortingState) => SortingState)) => void;
   onCreateRow?: () => Promise<CustomTableGridRow | null>;
   onAddColumnClick?: () => void;
   onLoadMore: (opts?: { reset?: boolean; filtersParam?: string }) => void;
@@ -39,6 +45,8 @@ export interface UseCustomTableTanStackParams extends RawCb {
 
 export interface UseCustomTableTanStackReturn {
   state: UseCustomTableStateReturn;
+  /** Тип колонки по ключу — подвалу нужен, чтобы знать, что можно считать. */
+  columnTypeByKey: Record<string, string>;
   isDark: boolean;
   colorPickerRowId: string | null;
   commonLabels: CommonLabels;
@@ -96,6 +104,7 @@ export function useCustomTableTanStack(
   const adapters = useBuildAdapters(params);
 
   const state = useCustomTableState({
+    tableId: params.tableId,
     rows: params.rows,
     columns: params.columns,
     selectedRowIds: params.selectedRowIds,
@@ -104,6 +113,9 @@ export function useCustomTableTanStack(
     stickyRightColumnIds: params.stickyRightColumnIds,
     loadingRows: params.loadingRows,
     hasMore: params.hasMore,
+    sorting: params.sorting,
+    onSortingChange: params.onSortingChange,
+    conditionalRules: params.conditionalRules,
     isDark,
     onCreateRow: params.onCreateRow,
     onAddColumnClick: params.onAddColumnClick,
@@ -125,5 +137,13 @@ export function useCustomTableTanStack(
     [commonLabels],
   );
 
-  return { state, isDark, colorPickerRowId, commonLabels, mobileLabels };
+  const columnTypeByKey = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const col of params.columns) {
+      map[col.key] = col.type;
+    }
+    return map;
+  }, [params.columns]);
+
+  return { state, columnTypeByKey, isDark, colorPickerRowId, commonLabels, mobileLabels };
 }

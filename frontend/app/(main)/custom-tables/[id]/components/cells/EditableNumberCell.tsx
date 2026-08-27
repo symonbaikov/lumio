@@ -11,9 +11,42 @@ interface EditableNumberCellProps {
   cellType: string;
   onUpdateCell: (rowId: string, columnKey: string, value: CustomTableCellValue) => Promise<void>;
   style?: CSSProperties;
+  /** Код валюты (ISO 4217) — задан только у денежных колонок. */
+  currency?: string;
+  /** Знаков после запятой; для денег по умолчанию 2. */
+  precision?: number;
 }
 
-export function EditableNumberCell({ row, column, onUpdateCell, style }: EditableNumberCellProps) {
+function formatNumberValue(value: number, currency?: string, precision?: number): string {
+  if (currency) {
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency,
+        minimumFractionDigits: precision ?? 2,
+        maximumFractionDigits: precision ?? 2,
+      }).format(value);
+    } catch {
+      // Неизвестный код валюты не должен ронять ячейку — показываем число с кодом.
+      return `${value.toFixed(precision ?? 2)} ${currency}`;
+    }
+  }
+  return typeof precision === 'number'
+    ? value.toLocaleString(undefined, {
+        minimumFractionDigits: precision,
+        maximumFractionDigits: precision,
+      })
+    : value.toLocaleString();
+}
+
+export function EditableNumberCell({
+  row,
+  column,
+  onUpdateCell,
+  style,
+  currency,
+  precision,
+}: EditableNumberCellProps) {
   const rawValue = row.original.data[column.id];
   const initialValue = rawValue === null || rawValue === undefined ? null : Number(rawValue);
 
@@ -66,7 +99,8 @@ export function EditableNumberCell({ row, column, onUpdateCell, style }: Editabl
     );
   }
 
-  const displayValue = initialValue != null ? Number(initialValue).toLocaleString() : '—';
+  const displayValue =
+    initialValue != null ? formatNumberValue(Number(initialValue), currency, precision) : '—';
 
   return (
     <div

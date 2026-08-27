@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus } from '@/app/components/icons';
+import { ArrowDown, ArrowUp, Plus } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
@@ -9,6 +9,7 @@ import { type Cell, type Header, type Row, type Table, flexRender } from '@tanst
 import { type VirtualItem, type Virtualizer } from '@tanstack/react-virtual';
 import { type CSSProperties, useRef } from 'react';
 import { HexColorPicker } from 'react-colorful';
+import type { AggregateFn } from '../hooks/useTableAggregates';
 import { solidifyBackground } from '../utils/colorUtils';
 import type { CustomTableGridRow } from '../utils/stylingUtils';
 import { getRowStyle } from '../utils/stylingUtils';
@@ -37,7 +38,21 @@ interface DesktopTableViewProps {
   onColorPickerChange: (next: string) => void;
   onResizeMouseDown: ResizeMouseDownFn;
   onCreateRow?: () => Promise<CustomTableGridRow | null>;
-  labels: { addRowLabel: string; emptyTitle: string; emptySubtitle: string; loadingMore: string };
+  columnTypeByKey: Record<string, string>;
+  aggregateSelection: Record<string, AggregateFn>;
+  aggregateValues: Record<string, number | string | null>;
+  onAggregateChange: (columnKey: string, fn: AggregateFn | null) => void;
+  labels: {
+    addRowLabel: string;
+    emptyTitle: string;
+    emptySubtitle: string;
+    loadingMore: string;
+    sortAscLabel: string;
+    sortDescLabel: string;
+    sortClearLabel: string;
+    aggregateNone: string;
+    aggregateLabels: Record<AggregateFn, string>;
+  };
 }
 
 type P = DesktopTableViewProps;
@@ -198,17 +213,63 @@ function ColumnResizer({
   );
 }
 
+interface HeaderSortToggleProps {
+  header: Header<CustomTableGridRow, unknown>;
+  sortAscLabel: string;
+  sortDescLabel: string;
+  sortClearLabel: string;
+}
+function HeaderSortToggle({
+  header,
+  sortAscLabel,
+  sortDescLabel,
+  sortClearLabel,
+}: HeaderSortToggleProps): React.JSX.Element {
+  const sorted = header.column.getIsSorted();
+  const nextLabel =
+    sorted === false ? sortAscLabel : sorted === 'asc' ? sortDescLabel : sortClearLabel;
+  return (
+    <button
+      type="button"
+      aria-label={nextLabel}
+      title={nextLabel}
+      onClick={header.column.getToggleSortingHandler()}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 4,
+        padding: 2,
+        border: 'none',
+        borderRadius: 4,
+        background: 'transparent',
+        cursor: 'pointer',
+        color: 'inherit',
+        opacity: sorted ? 1 : 0.35,
+      }}
+    >
+      {sorted === 'desc' ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
+    </button>
+  );
+}
+
 interface DesktopHeaderCellProps {
   header: Header<CustomTableGridRow, unknown>;
   isDark: boolean;
   stickyOffsets: StickyOffsets;
   onResizeMouseDown: ResizeMouseDownFn;
+  sortAscLabel: string;
+  sortDescLabel: string;
+  sortClearLabel: string;
 }
 function DesktopHeaderCell({
   header,
   isDark,
   stickyOffsets,
   onResizeMouseDown,
+  sortAscLabel,
+  sortDescLabel,
+  sortClearLabel,
 }: DesktopHeaderCellProps): React.JSX.Element {
   const color = isDark ? '#d1d5db' : 'var(--foreground)';
   const bg = isDark ? '#1f2937' : 'var(--muted)';
@@ -230,7 +291,17 @@ function DesktopHeaderCell({
         ...buildStickyStyle({ columnId: header.column.id, isHeader: true, stickyOffsets, isDark }),
       }}
     >
-      {flexRender(header.column.columnDef.header, header.getContext())}
+      <span style={{ display: 'inline-flex', alignItems: 'center', maxWidth: '100%' }}>
+        {flexRender(header.column.columnDef.header, header.getContext())}
+        {header.column.getCanSort() && (
+          <HeaderSortToggle
+            header={header}
+            sortAscLabel={sortAscLabel}
+            sortDescLabel={sortDescLabel}
+            sortClearLabel={sortClearLabel}
+          />
+        )}
+      </span>
       {header.column.getCanResize() && (
         <ColumnResizer
           columnId={header.column.id}
@@ -243,6 +314,171 @@ function DesktopHeaderCell({
   );
 }
 
+const AGGREGATE_FN_OPTIONS: AggregateFn[] = ['sum', 'avg', 'min', 'max', 'count'];
+
+/** Что вообще осмысленно считать по типу колонки. */
+function allowedAggregateFns(columnType: string | undefined): AggregateFn[] {
+  if (columnType === 'number' || columnType === 'currency') {
+    return AGGREGATE_FN_OPTIONS;
+  }
+  if (columnType === 'date') {
+    return ['min', 'max', 'count'];
+  }
+  return ['count'];
+}
+
+function formatAggregateValue(value: number | string | null | undefined): string {
+  if (value === null || value === undefined) {
+    return '—';
+  }
+  if (typeof value === 'number') {
+    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
+  }
+  return value;
+}
+
+interface DesktopFooterCellProps {
+  columnId: string;
+  columnType: string | undefined;
+  isDark: boolean;
+  stickyOffsets: StickyOffsets;
+  width: number;
+  selectedFn: AggregateFn | undefined;
+  value: number | string | null | undefined;
+  aggregateLabels: Record<AggregateFn, string>;
+  noneLabel: string;
+  onAggregateChange: (columnKey: string, fn: AggregateFn | null) => void;
+}
+function DesktopFooterCell({
+  columnId,
+  columnType,
+  isDark,
+  stickyOffsets,
+  width,
+  selectedFn,
+  value,
+  aggregateLabels,
+  noneLabel,
+  onAggregateChange,
+}: DesktopFooterCellProps): React.JSX.Element {
+  const options = allowedAggregateFns(columnType);
+  const bg = isDark ? '#1f2937' : 'var(--muted)';
+  return (
+    <td
+      style={{
+        padding: '8px 16px',
+        width,
+        fontSize: '0.8125rem',
+        color: isDark ? '#d1d5db' : 'var(--foreground)',
+        backgroundColor: bg,
+        ...buildStickyStyle({ columnId, isHeader: false, stickyOffsets, isDark }),
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+        <select
+          aria-label={`${noneLabel}: ${columnId}`}
+          value={selectedFn ?? ''}
+          onChange={event =>
+            onAggregateChange(columnId, (event.target.value || null) as AggregateFn | null)
+          }
+          style={{
+            fontSize: '0.6875rem',
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--muted-foreground)',
+            cursor: 'pointer',
+          }}
+        >
+          <option value="">{noneLabel}</option>
+          {options.map(fn => (
+            <option key={fn} value={fn}>
+              {aggregateLabels[fn]}
+            </option>
+          ))}
+        </select>
+        {selectedFn && (
+          <span
+            style={{
+              fontWeight: 600,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {formatAggregateValue(value)}
+          </span>
+        )}
+      </div>
+    </td>
+  );
+}
+
+interface DesktopTableFooterProps {
+  isDark: boolean;
+  table: Table<CustomTableGridRow>;
+  stickyOffsets: StickyOffsets;
+  columnTypeByKey: Record<string, string>;
+  aggregateSelection: Record<string, AggregateFn>;
+  aggregateValues: Record<string, number | string | null>;
+  aggregateLabels: Record<AggregateFn, string>;
+  noneLabel: string;
+  onAggregateChange: (columnKey: string, fn: AggregateFn | null) => void;
+}
+function DesktopTableFooter({
+  isDark,
+  table,
+  stickyOffsets,
+  columnTypeByKey,
+  aggregateSelection,
+  aggregateValues,
+  aggregateLabels,
+  noneLabel,
+  onAggregateChange,
+}: DesktopTableFooterProps): React.JSX.Element {
+  const bg = isDark ? '#1f2937' : 'var(--muted)';
+  return (
+    <tfoot style={{ backgroundColor: bg }}>
+      <tr style={{ borderTop: isDark ? '1px solid #374151' : '1px solid var(--border-color)' }}>
+        {table.getVisibleLeafColumns().map(column => {
+          const columnType = columnTypeByKey[column.id];
+          // Служебные колонки (выбор, номер, действия) итогов не имеют.
+          if (!columnType) {
+            return (
+              <td
+                key={column.id}
+                style={{
+                  backgroundColor: bg,
+                  ...buildStickyStyle({
+                    columnId: column.id,
+                    isHeader: false,
+                    stickyOffsets,
+                    isDark,
+                  }),
+                }}
+              />
+            );
+          }
+          return (
+            <DesktopFooterCell
+              key={column.id}
+              columnId={column.id}
+              columnType={columnType}
+              isDark={isDark}
+              stickyOffsets={stickyOffsets}
+              width={column.getSize()}
+              selectedFn={aggregateSelection[column.id]}
+              value={aggregateValues[column.id]}
+              aggregateLabels={aggregateLabels}
+              noneLabel={noneLabel}
+              onAggregateChange={onAggregateChange}
+            />
+          );
+        })}
+      </tr>
+    </tfoot>
+  );
+}
+
 interface DesktopTableHeaderProps {
   isDark: boolean;
   isPrintMode: boolean;
@@ -250,6 +486,9 @@ interface DesktopTableHeaderProps {
   table: Table<CustomTableGridRow>;
   stickyOffsets: StickyOffsets;
   onResizeMouseDown: ResizeMouseDownFn;
+  sortAscLabel: string;
+  sortDescLabel: string;
+  sortClearLabel: string;
 }
 function DesktopTableHeader({
   isDark,
@@ -258,6 +497,9 @@ function DesktopTableHeader({
   table,
   stickyOffsets,
   onResizeMouseDown,
+  sortAscLabel,
+  sortDescLabel,
+  sortClearLabel,
 }: DesktopTableHeaderProps): React.JSX.Element {
   const position = isPrintMode ? 'static' : 'sticky';
   const top = isPrintMode ? 0 : isFullscreen ? 0 : 'var(--global-nav-height, 0px)';
@@ -280,6 +522,9 @@ function DesktopTableHeader({
               isDark={isDark}
               stickyOffsets={stickyOffsets}
               onResizeMouseDown={onResizeMouseDown}
+              sortAscLabel={sortAscLabel}
+              sortDescLabel={sortDescLabel}
+              sortClearLabel={sortClearLabel}
             />
           ))}
         </tr>
@@ -639,6 +884,9 @@ function DesktopTableContent(p: P): React.JSX.Element {
           table={p.table}
           stickyOffsets={p.stickyOffsets}
           onResizeMouseDown={p.onResizeMouseDown}
+          sortAscLabel={p.labels.sortAscLabel}
+          sortDescLabel={p.labels.sortDescLabel}
+          sortClearLabel={p.labels.sortClearLabel}
         />
         <DesktopTableBody
           isDark={p.isDark}
@@ -647,6 +895,17 @@ function DesktopTableContent(p: P): React.JSX.Element {
           virtualItems={p.virtualItems}
           rowVirtualizer={p.rowVirtualizer}
           stickyOffsets={p.stickyOffsets}
+        />
+        <DesktopTableFooter
+          isDark={p.isDark}
+          table={p.table}
+          stickyOffsets={p.stickyOffsets}
+          columnTypeByKey={p.columnTypeByKey}
+          aggregateSelection={p.aggregateSelection}
+          aggregateValues={p.aggregateValues}
+          aggregateLabels={p.labels.aggregateLabels}
+          noneLabel={p.labels.aggregateNone}
+          onAggregateChange={p.onAggregateChange}
         />
       </table>
       <DesktopStatusSection {...p} />

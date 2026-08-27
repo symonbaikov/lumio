@@ -13,6 +13,7 @@ import {
 import type { CustomTableGridRow, CustomTableRowPatch } from '../utils/stylingUtils';
 import { getResponseItems } from '../utils/tableHelpers';
 import type { CustomTablePageColumn } from '../utils/tableTypes';
+import { TabularFileError, readTabularFile } from '../utils/tabularFileReader';
 
 function extractBatchInsertResult(
   response: { data?: Record<string, unknown> },
@@ -52,6 +53,7 @@ interface PasteMessages {
   missingColumnTitle: string;
   insertFailed: string;
   undoFailed: string;
+  fileReadFailed: string;
 }
 
 export interface UsePasteImportReturn {
@@ -65,6 +67,7 @@ export interface UsePasteImportReturn {
   pasteEdits: Record<string, string>;
   hasMissingPasteColumnTitles: boolean;
   startPastePreview: (text: string) => void;
+  startFileImport: (file: File) => Promise<void>;
   resetPastePreview: () => void;
   handlePasteHeadersToggle: (checked: boolean) => void;
   handlePasteCellChange: (rowIndex: number, sourceIndex: number, value: string) => void;
@@ -152,13 +155,13 @@ export function usePasteImport({
     [orderedColumns, pasteDefaults],
   );
 
-  const startPastePreview = useCallback(
-    (text: string) => {
-      if (!orderedColumns.length) {
-        return;
-      }
-      const { rows } = parseClipboardRows(text);
-      if (!rows.length) {
+  /**
+   * Общий вход для вставки из буфера и импорта файлом: обе дороги приводят
+   * данные к матрице строк, дальше логика превью и маппинга одна и та же.
+   */
+  const startPreviewFromRows = useCallback(
+    (rows: string[][]) => {
+      if (!orderedColumns.length || !rows.length) {
         return;
       }
       setPasteRawRows(rows);
@@ -196,6 +199,27 @@ export function usePasteImport({
       }, 0);
     },
     [orderedColumns, pasteDefaults],
+  );
+
+  const startPastePreview = useCallback(
+    (text: string) => {
+      const { rows } = parseClipboardRows(text);
+      startPreviewFromRows(rows);
+    },
+    [startPreviewFromRows],
+  );
+
+  const startFileImport = useCallback(
+    async (file: File) => {
+      try {
+        const rows = await readTabularFile(file);
+        startPreviewFromRows(rows);
+      } catch (error) {
+        console.error('Failed to read import file:', error);
+        toast.error(error instanceof TabularFileError ? error.message : messages.fileReadFailed);
+      }
+    },
+    [startPreviewFromRows, messages.fileReadFailed],
   );
 
   const handlePasteHeadersToggle = useCallback(
@@ -410,6 +434,7 @@ export function usePasteImport({
     pasteEdits,
     hasMissingPasteColumnTitles,
     startPastePreview,
+    startFileImport,
     resetPastePreview,
     handlePasteHeadersToggle,
     handlePasteCellChange,

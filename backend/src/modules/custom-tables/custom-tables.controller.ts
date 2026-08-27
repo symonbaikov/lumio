@@ -11,13 +11,16 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { WorkspaceId } from '../../common/decorators/workspace.decorator';
+import type { Response } from 'express';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
+import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
+import { buildContentDisposition } from '../../common/utils/http-file.util';
 import { EntityType } from '../../entities/audit-event.entity';
 import type { User } from '../../entities/user.entity';
 import { Audit } from '../audit/decorators/audit.decorator';
@@ -34,16 +37,94 @@ import { CreateCustomTableFromDataEntryDto } from './dto/create-custom-table-fro
 import { CreateCustomTableFromStatementsDto } from './dto/create-custom-table-from-statements.dto';
 import { CreateCustomTableRowDto } from './dto/create-custom-table-row.dto';
 import { CreateCustomTableDto } from './dto/create-custom-table.dto';
+import { FillAiColumnDto } from './dto/fill-ai-column.dto';
 import { GoogleSheetsImportCommitDto } from './dto/google-sheets-import-commit.dto';
 import { GoogleSheetsImportPreviewDto } from './dto/google-sheets-import-preview.dto';
-import { CustomTableRowFilterDto } from './dto/list-custom-table-rows.dto';
+import {
+  CUSTOM_TABLE_AGGREGATE_FNS,
+  type CustomTableAggregateDto,
+  type CustomTableAggregateFn,
+  CustomTableRowFilterDto,
+  CustomTableRowSortDto,
+} from './dto/list-custom-table-rows.dto';
 import { ReorderCustomTableColumnsDto } from './dto/reorder-custom-table-columns.dto';
 import { UpdateCustomTableColumnDto } from './dto/update-custom-table-column.dto';
 import { UpdateCustomTableRowDto } from './dto/update-custom-table-row.dto';
 import { UpdateCustomTableViewSettingsColumnDto } from './dto/update-custom-table-view-settings.dto';
+import {
+  UpdateCustomTableRulesDto,
+  UpdateCustomTableViewsDto,
+} from './dto/update-custom-table-views.dto';
 import { UpdateCustomTableDto } from './dto/update-custom-table.dto';
 
 type GoogleSheetsCommitJobPayload = GoogleSheetsImportCommitDto;
+
+function parseRowFiltersParam(filtersRaw?: string): CustomTableRowFilterDto[] | undefined {
+  if (!filtersRaw) {
+    return undefined;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(filtersRaw);
+  } catch {
+    throw new BadRequestException('Некорректный JSON в filters');
+  }
+  if (!Array.isArray(parsed)) {
+    throw new BadRequestException('Некорректный формат filters');
+  }
+  return parsed as CustomTableRowFilterDto[];
+}
+
+function parseAggregatesParam(aggsRaw?: string): CustomTableAggregateDto[] {
+  if (!aggsRaw) {
+    return [];
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(aggsRaw);
+  } catch {
+    throw new BadRequestException('Некорректный JSON в aggs');
+  }
+  if (!Array.isArray(parsed)) {
+    throw new BadRequestException('Некорректный формат aggs');
+  }
+  return parsed.map(entry => {
+    const { col, fn } = (entry ?? {}) as { col?: unknown; fn?: unknown };
+    if (typeof col !== 'string' || !col.trim()) {
+      throw new BadRequestException('Некорректный формат aggs');
+    }
+    if (
+      typeof fn !== 'string' ||
+      !CUSTOM_TABLE_AGGREGATE_FNS.includes(fn as CustomTableAggregateFn)
+    ) {
+      throw new BadRequestException(`Неизвестная функция агрегата: ${String(fn)}`);
+    }
+    return { col: col.trim(), fn: fn as CustomTableAggregateFn };
+  });
+}
+
+function parseRowSortParam(sortRaw?: string): CustomTableRowSortDto | undefined {
+  if (!sortRaw) {
+    return undefined;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(sortRaw);
+  } catch {
+    throw new BadRequestException('Некорректный JSON в sort');
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new BadRequestException('Некорректный формат sort');
+  }
+  const { col, dir } = parsed as { col?: unknown; dir?: unknown };
+  if (typeof col !== 'string' || !col.trim()) {
+    throw new BadRequestException('Некорректный формат sort');
+  }
+  if (dir !== 'asc' && dir !== 'desc') {
+    throw new BadRequestException('Направление сортировки должно быть asc или desc');
+  }
+  return { col: col.trim(), dir };
+}
 
 @Controller('custom-tables')
 @UseGuards(JwtAuthGuard)
@@ -294,6 +375,146 @@ export class CustomTablesController {
     return { ok: true };
   }
 
+  @Get(':id/relation-options')
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
+  async listRelationOptions(
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('id', new ParseUUIDPipe()) tableId: string,
+    @Query('column') column?: string,
+    @Query('search') search?: string,
+  ) {
+    if (!column?.trim()) {
+      throw new BadRequestException('Не указана колонка-связь');
+    }
+    return this.customTablesService.listRelationOptions(
+      workspaceId,
+      tableId,
+      column.trim(),
+      search,
+    );
+  }
+
+  @Get(':id/duplicates')
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
+  async findDuplicates(
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('id', new ParseUUIDPipe()) tableId: string,
+    @Query('keys') keysRaw?: string,
+    @Query('limit') limitRaw?: string,
+  ) {
+    const keys = (keysRaw ?? '')
+      .split(',')
+      .map(key => key.trim())
+      .filter(Boolean);
+    if (!keys.length) {
+      throw new BadRequestException('Не указаны колонки для поиска дублей');
+    }
+    const limitNumber = limitRaw ? Number(limitRaw) : undefined;
+    const { items, groupCount } = await this.customTablesService.findDuplicateRows(
+      workspaceId,
+      tableId,
+      { keys, limit: Number.isFinite(limitNumber) ? limitNumber : undefined },
+    );
+    return { items, meta: { groupCount } };
+  }
+
+  @Get(':id/groups')
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
+  async groupRows(
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('id', new ParseUUIDPipe()) tableId: string,
+    @Query('groupBy') groupBy?: string,
+    @Query('aggs') aggsRaw?: string,
+    @Query('filters') filtersRaw?: string,
+    @Query('limit') limitRaw?: string,
+  ) {
+    if (!groupBy?.trim()) {
+      throw new BadRequestException('Не указана колонка группировки');
+    }
+    const aggs = parseAggregatesParam(aggsRaw);
+    const filters = parseRowFiltersParam(filtersRaw);
+    const limitNumber = limitRaw ? Number(limitRaw) : undefined;
+    const queryParams = {
+      groupBy: groupBy.trim(),
+      aggs,
+      filters,
+      limit: Number.isFinite(limitNumber) ? limitNumber : undefined,
+    };
+    const cacheKey = await this.customTablesCache.rowsKey(workspaceId, tableId, queryParams);
+    return this.customTablesCache.getOrSet(cacheKey, async () => {
+      const { items, groupCount } = await this.customTablesService.groupRows(
+        workspaceId,
+        tableId,
+        queryParams,
+      );
+      return { items, meta: { groupCount } };
+    });
+  }
+
+  @Get(':id/aggregates')
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
+  async aggregateRows(
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('id', new ParseUUIDPipe()) tableId: string,
+    @Query('aggs') aggsRaw?: string,
+    @Query('filters') filtersRaw?: string,
+  ) {
+    const aggs = parseAggregatesParam(aggsRaw);
+    const filters = parseRowFiltersParam(filtersRaw);
+    const cacheKey = await this.customTablesCache.rowsKey(workspaceId, tableId, {
+      aggs,
+      filters,
+    });
+    return this.customTablesCache.getOrSet(cacheKey, async () => {
+      const { items, total } = await this.customTablesService.aggregateRows(workspaceId, tableId, {
+        filters,
+        aggs,
+      });
+      return { items, meta: { total } };
+    });
+  }
+
+  @Get(':id/export')
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
+  async exportRows(
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('id', new ParseUUIDPipe()) tableId: string,
+    @Res() res: Response,
+    @Query('format') formatRaw?: string,
+    @Query('filters') filtersRaw?: string,
+    @Query('sort') sortRaw?: string,
+    @Query('columns') columnsRaw?: string,
+  ) {
+    const format = formatRaw === 'csv' ? 'csv' : 'xlsx';
+    const columnKeys = columnsRaw
+      ? columnsRaw
+          .split(',')
+          .map(key => key.trim())
+          .filter(Boolean)
+      : undefined;
+
+    const { buffer, fileName, contentType } = await this.customTablesService.exportRows(
+      workspaceId,
+      tableId,
+      {
+        format,
+        filters: parseRowFiltersParam(filtersRaw),
+        sort: parseRowSortParam(sortRaw),
+        columnKeys,
+      },
+    );
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', buildContentDisposition('attachment', fileName));
+    res.setHeader('Content-Length', String(buffer.length));
+    res.end(buffer);
+  }
+
   @Get(':id/rows')
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
   async listRows(
@@ -303,37 +524,45 @@ export class CustomTablesController {
     @Query('cursor') cursor?: string,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit?: number,
     @Query('filters') filtersRaw?: string,
+    // Новые параметры идут в конец: позиционный порядок прежних сохраняется.
+    @Query('sort') sortRaw?: string,
+    @Query('offset') offset?: string,
   ) {
     const safeLimit = Math.min(Math.max(limit ?? 50, 1), 500);
     const cursorNumber = cursor ? Number(cursor) : undefined;
-    let filters: CustomTableRowFilterDto[] | undefined;
-    if (filtersRaw) {
-      try {
-        const parsed = JSON.parse(filtersRaw);
-        if (!Array.isArray(parsed)) {
-          throw new BadRequestException('Некорректный формат filters');
-        }
-        filters = parsed as CustomTableRowFilterDto[];
-      } catch (error) {
-        if (error instanceof BadRequestException) {
-          throw error;
-        }
-        throw new BadRequestException('Некорректный JSON в filters');
-      }
-    }
-    const cacheKey = await this.customTablesCache.rowsKey(workspaceId, tableId, {
+    const offsetNumber = offset ? Number(offset) : undefined;
+    const filters = parseRowFiltersParam(filtersRaw);
+    const sort = parseRowSortParam(sortRaw);
+    const queryParams = {
       cursor: Number.isFinite(cursorNumber) ? cursorNumber : undefined,
+      offset:
+        Number.isFinite(offsetNumber) && (offsetNumber as number) >= 0 ? offsetNumber : undefined,
       limit: safeLimit,
       filters,
-    });
+      sort,
+    };
+    const cacheKey = await this.customTablesCache.rowsKey(workspaceId, tableId, queryParams);
     return this.customTablesCache.getOrSet(cacheKey, async () => {
-      const { items, total } = await this.customTablesService.listRows(workspaceId, tableId, {
-        cursor: Number.isFinite(cursorNumber) ? cursorNumber : undefined,
-        limit: safeLimit,
-        filters,
-      });
+      const { items, total } = await this.customTablesService.listRows(
+        workspaceId,
+        tableId,
+        queryParams,
+      );
       return { items, meta: { total } };
     });
+  }
+
+  @Post(':id/rows/ai-fill')
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
+  async fillAiColumn(
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('id', new ParseUUIDPipe()) tableId: string,
+    @Body() dto: FillAiColumnDto,
+  ) {
+    const result = await this.customTablesService.fillAiColumn(workspaceId, tableId, dto);
+    await this.customTablesCache.bumpTable(workspaceId, tableId);
+    return result;
   }
 
   @Post(':id/rows/paid-classify')
@@ -403,6 +632,42 @@ export class CustomTablesController {
     );
     await this.customTablesCache.bumpRows(workspaceId, tableId);
     return { ok: true, ...result };
+  }
+
+  @Patch(':id/view-settings/rules')
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
+  async updateViewSettingsRules(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('id', new ParseUUIDPipe()) tableId: string,
+    @Body() dto: UpdateCustomTableRulesDto,
+  ) {
+    const table = await this.customTablesService.updateViewSettingsRules(
+      user.id,
+      workspaceId,
+      tableId,
+      dto.rules,
+    );
+    await this.customTablesCache.bumpTable(workspaceId, tableId);
+    return table;
+  }
+
+  @Patch(':id/view-settings/views')
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
+  async updateViewSettingsViews(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('id', new ParseUUIDPipe()) tableId: string,
+    @Body() dto: UpdateCustomTableViewsDto,
+  ) {
+    const table = await this.customTablesService.updateViewSettingsViews(
+      user.id,
+      workspaceId,
+      tableId,
+      dto,
+    );
+    await this.customTablesCache.bumpTable(workspaceId, tableId);
+    return table;
   }
 
   @Patch(':id/view-settings/columns')

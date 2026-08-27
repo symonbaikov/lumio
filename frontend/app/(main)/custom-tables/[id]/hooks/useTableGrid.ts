@@ -20,6 +20,11 @@ const getRowIdentity = (row: unknown): string => {
   return '';
 };
 
+export interface TableSortState {
+  col: string;
+  dir: 'asc' | 'desc';
+}
+
 export interface UseTableGridReturn {
   rows: CustomTableGridRow[];
   setRows: React.Dispatch<React.SetStateAction<CustomTableGridRow[]>>;
@@ -32,6 +37,7 @@ interface UseTableGridParams {
   tableId: string | null;
   isAuthenticated: boolean;
   combinedFiltersParam: string | undefined;
+  sort?: TableSortState | null;
   loadRowsFailedMessage: string;
 }
 
@@ -39,6 +45,7 @@ export function useTableGrid({
   tableId,
   isAuthenticated,
   combinedFiltersParam,
+  sort,
   loadRowsFailedMessage,
 }: UseTableGridParams): UseTableGridReturn {
   const [rows, setRows] = useState<CustomTableGridRow[]>([]);
@@ -50,6 +57,15 @@ export function useTableGrid({
   const rowsAbortControllerRef = useRef<AbortController | null>(null);
   const loadingRowsRef = useRef(false);
   const combinedFiltersRef = useRef<string | undefined>(undefined);
+  const sortRef = useRef<TableSortState | null | undefined>(sort);
+
+  // Сортировка сериализуется в строку, чтобы не перезапускать загрузку
+  // на каждый новый литерал объекта с теми же полями.
+  const sortParam = sort ? JSON.stringify({ col: sort.col, dir: sort.dir }) : undefined;
+
+  useEffect(() => {
+    sortRef.current = sort;
+  }, [sort]);
 
   // Keep rowsRef in sync for cursor-based pagination
   useEffect(() => {
@@ -135,13 +151,25 @@ export function useTableGrid({
       loadingRowsRef.current = true;
       setLoadingRows(true);
 
-      const cursor = shouldReset ? undefined : rowsRef.current.at(-1)?.rowNumber;
       const filters = opts?.filtersParam ?? combinedFiltersRef.current;
+      const activeSort = sortRef.current;
+      // При произвольной сортировке keyset-курсор по rowNumber неверен:
+      // порядок больше не совпадает с полем курсора, поэтому идём смещением.
+      const cursor = activeSort || shouldReset ? undefined : rowsRef.current.at(-1)?.rowNumber;
+      const offset = activeSort && !shouldReset ? rowsRef.current.length : undefined;
 
       try {
         const response = await apiClient.get(`/custom-tables/${tableId}/rows`, {
           signal: controller.signal,
-          params: { cursor, limit: 50, filters },
+          params: {
+            cursor,
+            offset,
+            limit: 50,
+            filters,
+            sort: activeSort
+              ? JSON.stringify({ col: activeSort.col, dir: activeSort.dir })
+              : undefined,
+          },
         });
         if (isStaleRequest(controller, requestId)) {
           return;
@@ -158,7 +186,7 @@ export function useTableGrid({
     [tableId, loadRowsFailedMessage], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
-  // Reset and reload when filters or tableId changes
+  // Reset and reload when filters, sort or tableId changes
   useEffect(() => {
     if (!(isAuthenticated && tableId)) {
       return;
@@ -169,7 +197,7 @@ export function useTableGrid({
       loadRows({ reset: true, filtersParam: combinedFiltersParam });
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [combinedFiltersParam, loadRows, tableId, isAuthenticated]);
+  }, [combinedFiltersParam, sortParam, loadRows, tableId, isAuthenticated]);
 
   // Abort in-flight requests on unmount
   useEffect(() => {

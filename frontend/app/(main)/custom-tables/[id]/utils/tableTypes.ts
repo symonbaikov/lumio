@@ -13,10 +13,24 @@ export interface CustomTablePageColumn extends CustomTableColumn {
 
 export interface CustomTableViewColumnSettings {
   width?: number;
+  aggregate?: 'sum' | 'avg' | 'min' | 'max' | 'count';
+}
+
+export interface CustomTableSavedView {
+  id: string;
+  name: string;
+  columnFilters?: Record<string, unknown>;
+  sort?: { col: string; dir: 'asc' | 'desc' } | null;
+  columnOrder?: string[];
+  hiddenColumnKeys?: string[];
+  aggregates?: Record<string, 'sum' | 'avg' | 'min' | 'max' | 'count'>;
 }
 
 export interface CustomTableViewSettings {
   columns?: Record<string, CustomTableViewColumnSettings>;
+  views?: CustomTableSavedView[];
+  activeViewId?: string | null;
+  conditionalRules?: unknown[];
 }
 
 export interface CustomTable {

@@ -4,24 +4,34 @@ import ConfirmModal from '@/app/components/ConfirmModal';
 import {
   ArrowLeft as ArrowBackIcon,
   CheckCircle,
+  Download,
   Printer,
   Search,
   Trash2,
+  Upload,
   XCircle,
 } from '@/app/components/icons';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import apiClient from '@/app/lib/api';
+import { getApiErrorMessage } from '@/app/lib/api-error';
 import { Box, Typography } from '@mui/material';
+import type { SortingState } from '@tanstack/react-table';
 import type { Locale } from 'date-fns';
 import { enUS, kk, ru } from 'date-fns/locale';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { downloadTableExport } from '../exportTable';
 import { CustomTableTanStack } from './CustomTableTanStack';
 import { AddColumnModal } from './components/AddColumnModal';
 import { ColumnsVisibilityPanel } from './components/ColumnsVisibilityPanel';
+import { ConditionalRulesModal } from './components/ConditionalRulesModal';
+import { DuplicatesModal } from './components/DuplicatesModal';
 import { PastePreviewModal } from './components/PastePreviewModal';
 import { RowDrawer } from './components/RowDrawer';
+import { ShareTableModal } from './components/ShareTableModal';
+import { TableGroupsPanel } from './components/TableGroupsPanel';
 import { useBulkRowActions } from './hooks/useBulkRowActions';
 import { useColumnConfig } from './hooks/useColumnConfig';
 import { useColumnManagement } from './hooks/useColumnManagement';
@@ -29,10 +39,19 @@ import { useDeleteModals } from './hooks/useDeleteModals';
 import { usePasteImport } from './hooks/usePasteImport';
 import { useRowActions } from './hooks/useRowActions';
 import { useRowDrawer } from './hooks/useRowDrawer';
+import { type SavedView, useSavedViews } from './hooks/useSavedViews';
 import { useTabStats } from './hooks/useTabStats';
+import {
+  type AggregateFn,
+  type AggregateSelection,
+  useTableAggregates,
+} from './hooks/useTableAggregates';
 import { useTableData } from './hooks/useTableData';
+import { useTableDuplicates } from './hooks/useTableDuplicates';
 import { useTableFilters } from './hooks/useTableFilters';
-import { useTableGrid } from './hooks/useTableGrid';
+import { type TableSortState, useTableGrid } from './hooks/useTableGrid';
+import { useTableGroups } from './hooks/useTableGroups';
+import type { ConditionalRule } from './utils/conditionalRules';
 import { handleFullscreenEscapeNavigation } from './utils/fullscreenEscapeNavigation';
 import {
   type QuickTab,
@@ -43,6 +62,7 @@ import {
 } from './utils/quickTabs';
 import { isContentEditableTarget, tx } from './utils/tableHelpers';
 import type { CustomTablePageColumn } from './utils/tableTypes';
+import { TABULAR_FILE_ACCEPT } from './utils/tabularFileReader';
 
 const LOCALE_MAP: Record<string, Locale> = { ru, kk };
 
@@ -147,7 +167,9 @@ function getDeleteColumnMessage(
 function getLoadButtonLabel(
   loadingRows: boolean,
   hasMore: boolean,
-  t: ReturnType<typeof useIntlayer>,
+  // Конкретный словарь, а не объединение всех: без ключа тип разворачивается
+  // в union из полутора тысяч словарей, где поле grid уже не выводится.
+  t: ReturnType<typeof useIntlayer<'customTableDetailPage'>>,
 ) {
   if (loadingRows) {
     return t.grid.loadingMore;
@@ -347,6 +369,85 @@ function TableQuickTabs({
   );
 }
 
+function SavedViewsControl({
+  views,
+  activeViewId,
+  onApplyView,
+  onSaveView,
+  onDeleteView,
+  labels,
+}: {
+  views: SavedView[];
+  activeViewId: string | null;
+  onApplyView: (viewId: string) => void;
+  onSaveView: (name: string) => Promise<void>;
+  onDeleteView: (viewId: string) => Promise<void>;
+  labels: {
+    viewsPlaceholder: string;
+    saveView: string;
+    deleteView: string;
+    viewNamePrompt: string;
+    importFile: string;
+    groupByPlaceholder: string;
+    rules: string;
+    duplicates: string;
+    share: string;
+  };
+}) {
+  const controlSx = {
+    border: '1px solid var(--border-color)',
+    background: 'var(--card-bg)',
+    color: 'var(--text-secondary)',
+    fontSize: 12,
+    padding: '6px 8px',
+    cursor: 'pointer',
+  };
+  return (
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+      <select
+        aria-label={labels.viewsPlaceholder}
+        value={activeViewId ?? ''}
+        onChange={e => {
+          if (e.target.value) {
+            onApplyView(e.target.value);
+          }
+        }}
+        style={controlSx}
+      >
+        <option value="">{labels.viewsPlaceholder}</option>
+        {views.map(view => (
+          <option key={view.id} value={view.id}>
+            {view.name}
+          </option>
+        ))}
+      </select>
+      <Box
+        component="button"
+        type="button"
+        onClick={() => {
+          const name = window.prompt(labels.viewNamePrompt);
+          if (name?.trim()) {
+            void onSaveView(name);
+          }
+        }}
+        sx={{ ...controlSx, whiteSpace: 'nowrap' }}
+      >
+        {labels.saveView}
+      </Box>
+      {activeViewId && (
+        <Box
+          component="button"
+          type="button"
+          onClick={() => void onDeleteView(activeViewId)}
+          sx={{ ...controlSx, whiteSpace: 'nowrap' }}
+        >
+          {labels.deleteView}
+        </Box>
+      )}
+    </Box>
+  );
+}
+
 function TableActionToolbar({
   selectedRowIds,
   bulkMarking,
@@ -354,6 +455,20 @@ function TableActionToolbar({
   onMarkPaid,
   onMarkUnpaid,
   onPrint,
+  onExportView,
+  exportingView,
+  onImportFile,
+  groupByKey,
+  onGroupByChange,
+  groupableColumns,
+  onOpenRules,
+  onOpenDuplicates,
+  onOpenShare,
+  views,
+  activeViewId,
+  onApplyView,
+  onSaveView,
+  onDeleteView,
   onBulkDelete,
   onSearchChange,
   labels,
@@ -364,6 +479,20 @@ function TableActionToolbar({
   onMarkPaid: () => void;
   onMarkUnpaid: () => void;
   onPrint: () => void;
+  onExportView: () => void;
+  exportingView: boolean;
+  onImportFile: (file: File) => Promise<void>;
+  groupByKey: string | null;
+  onGroupByChange: (key: string | null) => void;
+  groupableColumns: Array<{ key: string; title: string }>;
+  onOpenRules: () => void;
+  onOpenDuplicates: () => void;
+  onOpenShare: () => void;
+  views: SavedView[];
+  activeViewId: string | null;
+  onApplyView: (viewId: string) => void;
+  onSaveView: (name: string) => Promise<void>;
+  onDeleteView: (viewId: string) => Promise<void>;
   onBulkDelete: () => void;
   onSearchChange: (value: string) => void;
   labels: {
@@ -372,8 +501,19 @@ function TableActionToolbar({
     markUnpaid: string;
     markingUnpaid: string;
     print: string;
+    exportView: string;
+    exportingView: string;
     delete: string;
     searchPlaceholder: string;
+    viewsPlaceholder: string;
+    saveView: string;
+    deleteView: string;
+    viewNamePrompt: string;
+    importFile: string;
+    groupByPlaceholder: string;
+    rules: string;
+    duplicates: string;
+    share: string;
   };
 }) {
   const hasSelection = selectedRowIds.length > 0;
@@ -468,6 +608,155 @@ function TableActionToolbar({
           </Box>
           <Box
             component="button"
+            onClick={onExportView}
+            disabled={exportingView}
+            sx={{
+              display: 'inline-flex',
+              flexShrink: 0,
+              alignItems: 'center',
+              gap: { xs: 0.75, sm: 1 },
+              whiteSpace: 'nowrap',
+              border: '1px solid var(--border-color)',
+              px: { xs: 1.25, sm: 2 },
+              py: { xs: 0.5, sm: 0.75 },
+              fontSize: { xs: 11, sm: 12 },
+              fontWeight: 500,
+              color: 'var(--text-secondary)',
+              bgcolor: 'transparent',
+              cursor: 'pointer',
+              '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
+              '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' },
+            }}
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>{exportingView ? labels.exportingView : labels.exportView}</span>
+          </Box>
+          <Box
+            component="label"
+            sx={{
+              display: 'inline-flex',
+              flexShrink: 0,
+              alignItems: 'center',
+              gap: { xs: 0.75, sm: 1 },
+              whiteSpace: 'nowrap',
+              border: '1px solid var(--border-color)',
+              px: { xs: 1.25, sm: 2 },
+              py: { xs: 0.5, sm: 0.75 },
+              fontSize: { xs: 11, sm: 12 },
+              fontWeight: 500,
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' },
+            }}
+          >
+            <Upload className="h-3.5 w-3.5" />
+            <span>{labels.importFile}</span>
+            <input
+              type="file"
+              accept={TABULAR_FILE_ACCEPT}
+              style={{ display: 'none' }}
+              onChange={e => {
+                const file = e.target.files?.[0];
+                // Сбрасываем значение, иначе повторный выбор того же файла не сработает.
+                e.target.value = '';
+                if (file) {
+                  void onImportFile(file);
+                }
+              }}
+            />
+          </Box>
+          <Box
+            component="select"
+            aria-label={labels.groupByPlaceholder}
+            value={groupByKey ?? ''}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              onGroupByChange(e.target.value || null)
+            }
+            sx={{
+              flexShrink: 0,
+              border: '1px solid var(--border-color)',
+              background: 'var(--card-bg)',
+              color: 'var(--text-secondary)',
+              fontSize: 12,
+              px: 1,
+              py: 0.75,
+              cursor: 'pointer',
+            }}
+          >
+            <option value="">{labels.groupByPlaceholder}</option>
+            {groupableColumns.map(col => (
+              <option key={col.key} value={col.key}>
+                {col.title}
+              </option>
+            ))}
+          </Box>
+          <Box
+            component="button"
+            type="button"
+            onClick={onOpenRules}
+            sx={{
+              flexShrink: 0,
+              border: '1px solid var(--border-color)',
+              background: 'var(--card-bg)',
+              color: 'var(--text-secondary)',
+              fontSize: 12,
+              px: 1,
+              py: 0.75,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' },
+            }}
+          >
+            {labels.rules}
+          </Box>
+          <Box
+            component="button"
+            type="button"
+            onClick={onOpenDuplicates}
+            sx={{
+              flexShrink: 0,
+              border: '1px solid var(--border-color)',
+              background: 'var(--card-bg)',
+              color: 'var(--text-secondary)',
+              fontSize: 12,
+              px: 1,
+              py: 0.75,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' },
+            }}
+          >
+            {labels.duplicates}
+          </Box>
+          <Box
+            component="button"
+            type="button"
+            onClick={onOpenShare}
+            sx={{
+              flexShrink: 0,
+              border: '1px solid var(--border-color)',
+              background: 'var(--card-bg)',
+              color: 'var(--text-secondary)',
+              fontSize: 12,
+              px: 1,
+              py: 0.75,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' },
+            }}
+          >
+            {labels.share}
+          </Box>
+          <SavedViewsControl
+            views={views}
+            activeViewId={activeViewId}
+            onApplyView={onApplyView}
+            onSaveView={onSaveView}
+            onDeleteView={onDeleteView}
+            labels={labels}
+          />
+          <Box
+            component="button"
             onClick={onBulkDelete}
             disabled={!hasSelection}
             sx={{
@@ -554,6 +843,8 @@ export default function CustomTableDetailPage() {
   const handleBackNavigation = useCallback(() => {
     router.push('/custom-tables');
   }, [router]);
+  const [exportingView, setExportingView] = useState(false);
+
   const handlePrintTable = useCallback(() => {
     setIsPrintMode(true);
     requestAnimationFrame(() => {
@@ -569,6 +860,7 @@ export default function CustomTableDetailPage() {
     loadTableFailedMessage: t.grid.loadTableFailed.value,
   });
   const [gridFiltersParam, setGridFiltersParam] = useState<string | undefined>(undefined);
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[]>([]);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [activeTabId, setActiveTabId] = useState('all');
@@ -579,6 +871,9 @@ export default function CustomTableDetailPage() {
     () => [
       { value: 'text' as const, label: t.columnTypes.text.value },
       { value: 'number' as const, label: t.columnTypes.number.value },
+      { value: 'currency' as const, label: t.columnTypes.currency.value },
+      { value: 'formula' as const, label: t.columnTypes.formula.value },
+      { value: 'ai' as const, label: t.columnTypes.ai.value },
       { value: 'date' as const, label: t.columnTypes.date.value },
       { value: 'boolean' as const, label: t.columnTypes.boolean.value },
       { value: 'select' as const, label: t.columnTypes.select.value },
@@ -626,8 +921,11 @@ export default function CustomTableDetailPage() {
 
   const {
     columnOrder,
+    setColumnOrder,
     hiddenColumnKeys,
+    setHiddenColumnKeys,
     columnFilters,
+    setColumnFilters,
     columnWidths,
     getColumnWidth,
     persistColumnWidth,
@@ -742,11 +1040,175 @@ export default function CustomTableDetailPage() {
     dateFnsLocale,
   });
 
+  // Сортировку применяет сервер, поэтому берём только первый критерий:
+  // мультисортировка потребовала бы составного ORDER BY и тут не нужна.
+  const gridSort = useMemo<TableSortState | null>(() => {
+    const first = sorting[0];
+    if (!first) {
+      return null;
+    }
+    return { col: first.id, dir: first.desc ? 'desc' : 'asc' };
+  }, [sorting]);
+
+  // Выгружаем текущий вид: те же фильтры и сортировка, что применены к гриду,
+  // и колонки в том порядке и составе, в каком они сейчас на экране.
+  const handleExportView = useCallback(async () => {
+    if (!tableId) {
+      return;
+    }
+    setExportingView(true);
+    const toastId = toast.loading(tx(t, ['actions', 'exportingView'], 'Exporting...'));
+    try {
+      await downloadTableExport(tableId, 'xlsx', {
+        filters: combinedFiltersParam,
+        sort: gridSort ? JSON.stringify(gridSort) : undefined,
+        columnKeys: displayColumns.map(c => c.key),
+      });
+      toast.success(tx(t, ['actions', 'exportViewDone'], 'Export complete'), { id: toastId });
+    } catch (error) {
+      console.error('Failed to export table view:', error);
+      toast.error(
+        getApiErrorMessage(error, tx(t, ['actions', 'exportViewFailed'], 'Export failed')),
+        {
+          id: toastId,
+        },
+      );
+    } finally {
+      setExportingView(false);
+    }
+  }, [tableId, combinedFiltersParam, gridSort, displayColumns, t]);
+
   const { rows, setRows, loadingRows, hasMore, loadRows } = useTableGrid({
     tableId,
     isAuthenticated: Boolean(user),
     combinedFiltersParam,
+    sort: gridSort,
     loadRowsFailedMessage: t.grid.loadRowsFailed.value,
+  });
+
+  // Выбор функций итога живёт в настройках вида таблицы и переживает перезагрузку.
+  const [aggregateSelection, setAggregateSelection] = useState<AggregateSelection>({});
+
+  useEffect(() => {
+    const columns = table?.viewSettings?.columns;
+    if (!columns) {
+      setAggregateSelection({});
+      return;
+    }
+    const next: AggregateSelection = {};
+    for (const [key, settings] of Object.entries(columns)) {
+      if (settings?.aggregate) {
+        next[key] = settings.aggregate;
+      }
+    }
+    setAggregateSelection(next);
+  }, [table?.viewSettings]);
+
+  const handleAggregateChange = useCallback(
+    (columnKey: string, fn: AggregateFn | null) => {
+      setAggregateSelection(prev => {
+        const next = { ...prev };
+        if (fn) {
+          next[columnKey] = fn;
+        } else {
+          delete next[columnKey];
+        }
+        return next;
+      });
+      if (!tableId) {
+        return;
+      }
+      apiClient
+        .patch(`/custom-tables/${tableId}/view-settings/columns`, {
+          columnKey,
+          aggregate: fn,
+        })
+        .catch(error => {
+          console.error('Failed to persist column aggregate:', error);
+        });
+    },
+    [tableId],
+  );
+
+  const { values: aggregateValues } = useTableAggregates({
+    tableId,
+    isAuthenticated: Boolean(user),
+    combinedFiltersParam,
+    selection: aggregateSelection,
+    refreshToken: rows.length,
+  });
+
+  const [conditionalRules, setConditionalRules] = useState<ConditionalRule[]>([]);
+  const [rulesModalOpen, setRulesModalOpen] = useState(false);
+  const [duplicatesModalOpen, setDuplicatesModalOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const duplicates = useTableDuplicates({
+    tableId,
+    failedMessage: tx(t, ['grid', 'duplicates', 'failed'], 'Failed to find duplicates'),
+  });
+
+  useEffect(() => {
+    const stored = table?.viewSettings?.conditionalRules;
+    setConditionalRules(Array.isArray(stored) ? (stored as ConditionalRule[]) : []);
+  }, [table?.viewSettings]);
+
+  const persistConditionalRules = useCallback(
+    async (rules: ConditionalRule[]): Promise<void> => {
+      setConditionalRules(rules);
+      if (!tableId) {
+        return;
+      }
+      try {
+        await apiClient.patch(`/custom-tables/${tableId}/view-settings/rules`, { rules });
+      } catch (error) {
+        console.error('Failed to persist conditional rules:', error);
+        toast.error(tx(t, ['grid', 'rules', 'saveFailed'], 'Failed to save rule'));
+      }
+    },
+    [tableId, t],
+  );
+
+  const [groupByKey, setGroupByKey] = useState<string | null>(null);
+
+  // Скрытая или удалённая колонка не должна оставаться активной группировкой.
+  useEffect(() => {
+    if (groupByKey && !displayColumns.some(c => c.key === groupByKey)) {
+      setGroupByKey(null);
+    }
+  }, [displayColumns, groupByKey]);
+
+  const { groups, loading: groupsLoading } = useTableGroups({
+    tableId,
+    isAuthenticated: Boolean(user),
+    groupBy: groupByKey,
+    combinedFiltersParam,
+    aggregates: aggregateSelection,
+    refreshToken: rows.length,
+  });
+
+  const savedViews = useSavedViews({
+    tableId,
+    storedViews: table?.viewSettings?.views,
+    storedActiveViewId: table?.viewSettings?.activeViewId,
+    current: {
+      columnFilters,
+      sorting,
+      columnOrder,
+      hiddenColumnKeys,
+      aggregates: aggregateSelection,
+    },
+    apply: {
+      setColumnFilters,
+      setSorting,
+      setColumnOrder,
+      setHiddenColumnKeys,
+      setAggregateSelection,
+    },
+    messages: {
+      saved: tx(t, ['grid', 'views', 'saved'], 'View saved'),
+      saveFailed: tx(t, ['grid', 'views', 'saveFailed'], 'Failed to save view'),
+      deleted: tx(t, ['grid', 'views', 'deleted'], 'View deleted'),
+    },
   });
 
   const {
@@ -806,6 +1268,7 @@ export default function CustomTableDetailPage() {
     handlePasteHeadersToggle,
     handlePasteCellChange,
     handlePasteAdd,
+    startFileImport,
   } = usePasteImport({
     tableId,
     orderedColumns,
@@ -819,6 +1282,7 @@ export default function CustomTableDetailPage() {
       missingColumnTitle: tx(t, ['paste', 'missingColumnTitle'], 'Missing column title'),
       insertFailed: tx(t, ['paste', 'insertFailed'], 'Failed to insert rows'),
       undoFailed: tx(t, ['paste', 'undoFailed'], 'Failed to undo insert'),
+      fileReadFailed: tx(t, ['paste', 'fileReadFailed'], 'Failed to read file'),
     },
   });
 
@@ -965,6 +1429,39 @@ export default function CustomTableDetailPage() {
     },
   });
 
+  const [relationTargets, setRelationTargets] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Цели для колонки-связи — таблицы того же воркспейса; сам список отдаёт бэк
+  // уже отфильтрованным по доступу.
+  useEffect(() => {
+    if (!(user && newColumnOpen)) {
+      return;
+    }
+    let cancelled = false;
+    apiClient
+      .get('/custom-tables')
+      .then(response => {
+        if (cancelled) {
+          return;
+        }
+        const root = (response.data ?? {}) as Record<string, unknown>;
+        const nested = (root.data ?? {}) as Record<string, unknown>;
+        const items = root.items ?? nested.items ?? [];
+        setRelationTargets(
+          Array.isArray(items)
+            ? (items as Array<{ id: string; name: string }>).map(item => ({
+                id: item.id,
+                name: item.name,
+              }))
+            : [],
+        );
+      })
+      .catch(error => console.error('Failed to load relation targets:', error));
+    return () => {
+      cancelled = true;
+    };
+  }, [user, newColumnOpen]);
+
   const notReady = authLoading || loading || !mounted;
   if (notReady) {
     return (
@@ -1066,6 +1563,20 @@ export default function CustomTableDetailPage() {
             onMarkPaid={() => markSelectedRowsPaid(true)}
             onMarkUnpaid={() => markSelectedRowsPaid(false)}
             onPrint={handlePrintTable}
+            onExportView={handleExportView}
+            exportingView={exportingView}
+            onImportFile={startFileImport}
+            groupByKey={groupByKey}
+            onGroupByChange={setGroupByKey}
+            groupableColumns={displayColumns.map(c => ({ key: c.key, title: c.title }))}
+            onOpenRules={() => setRulesModalOpen(true)}
+            onOpenDuplicates={() => setDuplicatesModalOpen(true)}
+            onOpenShare={() => setShareModalOpen(true)}
+            views={savedViews.views}
+            activeViewId={savedViews.activeViewId}
+            onApplyView={savedViews.applyView}
+            onSaveView={savedViews.saveCurrentAsView}
+            onDeleteView={savedViews.deleteView}
             onBulkDelete={() => openBulkDeleteModal(selectedRowIds)}
             onSearchChange={setSearchQuery}
             labels={{
@@ -1074,8 +1585,19 @@ export default function CustomTableDetailPage() {
               markUnpaid: tx(t, ['actions', 'markUnpaid'], 'Mark unpaid'),
               markingUnpaid: tx(t, ['actions', 'markingUnpaid'], 'Marking unpaid'),
               print: tx(t, ['actions', 'print'], 'Print'),
+              exportView: tx(t, ['actions', 'exportView'], 'Export view'),
+              exportingView: tx(t, ['actions', 'exportingView'], 'Exporting...'),
               delete: tx(t, ['actions', 'delete'], 'Delete'),
               searchPlaceholder: tx(t, ['actions', 'searchPlaceholder'], 'Search'),
+              viewsPlaceholder: tx(t, ['grid', 'views', 'placeholder'], 'Views'),
+              saveView: tx(t, ['grid', 'views', 'save'], 'Save view'),
+              deleteView: tx(t, ['grid', 'views', 'delete'], 'Delete view'),
+              viewNamePrompt: tx(t, ['grid', 'views', 'namePrompt'], 'View name'),
+              importFile: tx(t, ['actions', 'importFile'], 'Import file'),
+              groupByPlaceholder: tx(t, ['grid', 'groupBy', 'placeholder'], 'Group by'),
+              rules: tx(t, ['grid', 'rules', 'button'], 'Rules'),
+              duplicates: tx(t, ['grid', 'duplicates', 'button'], 'Duplicates'),
+              share: tx(t, ['grid', 'share', 'button'], 'Share'),
             }}
           />
         )}
@@ -1092,6 +1614,83 @@ export default function CustomTableDetailPage() {
           />
         )}
 
+        <ShareTableModal
+          isOpen={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          tableId={tableId}
+          labels={{
+            title: tx(t, ['grid', 'share', 'title'], 'Share table'),
+            hint: tx(t, ['grid', 'share', 'hint'], 'Anyone with the link can view this table'),
+            create: tx(t, ['grid', 'share', 'create'], 'Create link'),
+            creating: tx(t, ['grid', 'share', 'creating'], 'Creating...'),
+            revoke: tx(t, ['grid', 'share', 'revoke'], 'Revoke'),
+            copy: tx(t, ['grid', 'share', 'copy'], 'Copy'),
+            copied: tx(t, ['grid', 'share', 'copied'], 'Link copied'),
+            empty: tx(t, ['grid', 'share', 'empty'], 'No links yet'),
+            expires: tx(t, ['grid', 'share', 'expires'], 'expires'),
+            opened: tx(t, ['grid', 'share', 'opened'], 'opened'),
+            statusActive: tx(t, ['grid', 'share', 'statusActive'], 'Active'),
+            statusExpired: tx(t, ['grid', 'share', 'statusExpired'], 'Expired'),
+            statusRevoked: tx(t, ['grid', 'share', 'statusRevoked'], 'Revoked'),
+            failed: tx(t, ['grid', 'share', 'failed'], 'Failed'),
+          }}
+        />
+        <DuplicatesModal
+          isOpen={duplicatesModalOpen}
+          onClose={() => setDuplicatesModalOpen(false)}
+          columns={displayColumns.map(c => ({ key: c.key, title: c.title }))}
+          groups={duplicates.groups}
+          loading={duplicates.loading}
+          searched={duplicates.searched}
+          onSearch={duplicates.findDuplicates}
+          onSelectRows={rowIds => {
+            setSelectedRowIds(rowIds);
+            setDuplicatesModalOpen(false);
+          }}
+          labels={{
+            title: tx(t, ['grid', 'duplicates', 'title'], 'Find duplicates'),
+            hint: tx(t, ['grid', 'duplicates', 'hint'], 'Pick the columns that identify a row'),
+            search: tx(t, ['grid', 'duplicates', 'search'], 'Find'),
+            searching: tx(t, ['grid', 'duplicates', 'searching'], 'Searching...'),
+            empty: tx(t, ['grid', 'duplicates', 'empty'], 'No duplicates found'),
+            notSearched: tx(t, ['grid', 'duplicates', 'notSearched'], 'Pick columns and search'),
+            rows: tx(t, ['grid', 'duplicates', 'rows'], 'Rows'),
+            select: tx(t, ['grid', 'duplicates', 'select'], 'Select all'),
+            selectExtra: tx(t, ['grid', 'duplicates', 'selectExtra'], 'Select extras'),
+          }}
+        />
+        <ConditionalRulesModal
+          isOpen={rulesModalOpen}
+          onClose={() => setRulesModalOpen(false)}
+          rules={conditionalRules}
+          columns={displayColumns.map(c => ({ key: c.key, title: c.title }))}
+          onChange={persistConditionalRules}
+          labels={{
+            title: tx(t, ['grid', 'rules', 'title'], 'Conditional formatting'),
+            column: tx(t, ['grid', 'rules', 'column'], 'Column'),
+            condition: tx(t, ['grid', 'rules', 'condition'], 'Condition'),
+            value: tx(t, ['grid', 'rules', 'value'], 'Value'),
+            color: tx(t, ['grid', 'rules', 'color'], 'Color'),
+            target: tx(t, ['grid', 'rules', 'target'], 'Apply to'),
+            targetCell: tx(t, ['grid', 'rules', 'targetCell'], 'Cell'),
+            targetRow: tx(t, ['grid', 'rules', 'targetRow'], 'Row'),
+            add: tx(t, ['grid', 'rules', 'add'], 'Add'),
+            remove: tx(t, ['grid', 'rules', 'remove'], 'Remove'),
+            empty: tx(t, ['grid', 'rules', 'empty'], 'No rules yet'),
+            close: tx(t, ['grid', 'rules', 'close'], 'Close'),
+            ops: {
+              eq: tx(t, ['grid', 'rules', 'ops', 'eq'], 'equals'),
+              neq: tx(t, ['grid', 'rules', 'ops', 'neq'], 'not equals'),
+              contains: tx(t, ['grid', 'rules', 'ops', 'contains'], 'contains'),
+              gt: '>',
+              gte: '≥',
+              lt: '<',
+              lte: '≤',
+              isEmpty: tx(t, ['grid', 'rules', 'ops', 'isEmpty'], 'is empty'),
+              isNotEmpty: tx(t, ['grid', 'rules', 'ops', 'isNotEmpty'], 'is not empty'),
+            },
+          }}
+        />
         <AddColumnModal
           t={t}
           isOpen={newColumnOpen}
@@ -1100,6 +1699,7 @@ export default function CustomTableDetailPage() {
           setNewColumn={setNewColumn}
           createColumn={createColumn}
           columnTypes={columnTypes}
+          relationTargets={relationTargets}
         />
       </Box>
 
@@ -1113,6 +1713,28 @@ export default function CustomTableDetailPage() {
             mx: 'auto',
           }}
         >
+          {!showColumnsTab && groupByKey && (
+            <TableGroupsPanel
+              groups={groups}
+              loading={groupsLoading}
+              groupByTitle={displayColumns.find(c => c.key === groupByKey)?.title ?? groupByKey}
+              columnTitles={Object.fromEntries(displayColumns.map(c => [c.key, c.title]))}
+              aggregateLabels={{
+                sum: tx(t, ['grid', 'aggregateSum'], 'Sum'),
+                avg: tx(t, ['grid', 'aggregateAvg'], 'Average'),
+                min: tx(t, ['grid', 'aggregateMin'], 'Min'),
+                max: tx(t, ['grid', 'aggregateMax'], 'Max'),
+                count: tx(t, ['grid', 'aggregateCount'], 'Count'),
+              }}
+              labels={{
+                heading: tx(t, ['grid', 'groupBy', 'heading'], 'Grouped by'),
+                count: tx(t, ['grid', 'groupBy', 'count'], 'Rows'),
+                empty: tx(t, ['grid', 'groupBy', 'empty'], 'No groups'),
+                loading: tx(t, ['grid', 'loadingMore'], 'Loading...'),
+                noValue: tx(t, ['grid', 'groupBy', 'noValue'], 'Empty'),
+              }}
+            />
+          )}
           {!showColumnsTab && (
             <CustomTableTanStack
               tableId={tableId as string}
@@ -1145,6 +1767,12 @@ export default function CustomTableDetailPage() {
               onSelectedRowIdsChange={setSelectedRowIds}
               onAddColumnClick={() => setNewColumnOpen(true)}
               isPrintMode={isPrintMode}
+              sorting={sorting}
+              onSortingChange={setSorting}
+              conditionalRules={conditionalRules}
+              aggregateSelection={aggregateSelection}
+              aggregateValues={aggregateValues}
+              onAggregateChange={handleAggregateChange}
             />
           )}
         </Box>
@@ -1246,6 +1874,7 @@ export default function CustomTableDetailPage() {
       />
 
       <RowDrawer
+        tableId={tableId}
         open={rowDrawerOpen}
         mode={rowDrawerMode}
         row={drawerRow}

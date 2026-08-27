@@ -46,6 +46,12 @@ function GridArea(p: P): React.JSX.Element {
             stickyLeftColumnIds={p.stickyLeftColumnIds}
             stickyRightColumnIds={p.stickyRightColumnIds}
             showAddRow={p.normalizedActiveTabId === 'all'}
+            sorting={p.sorting}
+            onSortingChange={p.setSorting}
+            conditionalRules={p.conditionalRules}
+            aggregateSelection={p.aggregateSelection}
+            aggregateValues={p.aggregateValues}
+            onAggregateChange={p.handleAggregateChange}
             onLoadMore={p.loadRows}
             onFiltersParamChange={filtersParam => p.onGridFiltersParamChange(filtersParam)}
             onUpdateCell={(rowId, columnKey, value) =>

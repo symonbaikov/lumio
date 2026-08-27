@@ -1,12 +1,34 @@
 import type { CSSProperties } from 'react';
 
-export type ColumnType = 'text' | 'number' | 'date' | 'boolean' | 'select' | 'multi_select';
+export type ColumnType =
+  | 'text'
+  | 'number'
+  | 'date'
+  | 'boolean'
+  | 'select'
+  | 'multi_select'
+  | 'currency'
+  | 'formula'
+  | 'relation'
+  | 'ai';
 
 export type CustomTableCellValue = string | number | boolean | string[] | null;
 export type CustomTableRowPatch = Record<string, CustomTableCellValue>;
 
 export interface CustomTableColumnConfig {
   options?: string[];
+  /** Код валюты (ISO 4217) для колонок типа currency. */
+  currency?: string;
+  /** Знаков после запятой для числовых и денежных колонок. */
+  precision?: number;
+  /** Выражение для колонок типа formula, например "[a] * [b]". */
+  expression?: string;
+  /** Таблица-цель для колонок типа relation. */
+  targetTableId?: string;
+  /** Колонка таблицы-цели, чьё значение показывается как подпись. */
+  displayColumnKey?: string;
+  /** Инструкция для модели у колонок типа ai. */
+  prompt?: string;
   [key: string]: unknown;
 }
 
@@ -52,6 +74,8 @@ export interface CustomTableGridRow {
   rowNumber: number;
   data: CustomTableRowPatch;
   styles?: CustomTableRowStyles | null;
+  /** Подписи связанных строк, посчитанные сервером. */
+  relationLabels?: Record<string, string>;
 }
 
 export type RowFilterOp =

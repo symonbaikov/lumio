@@ -90,6 +90,24 @@ export class CustomTable {
   @Column({ name: 'data_entry_synced_at', type: 'timestamp', nullable: true })
   dataEntrySyncedAt: Date | null;
 
+  /** Включено ли регулярное обновление из источника. */
+  @Column({ name: 'sync_enabled', type: 'boolean', default: false })
+  syncEnabled: boolean;
+
+  /** Как часто перечитывать источник, в часах. */
+  @Column({ name: 'sync_interval_hours', type: 'int', default: 24 })
+  syncIntervalHours: number;
+
+  /** Параметры источника: { googleSheetId, worksheetName, range }. */
+  @Column({ name: 'sync_config', type: 'jsonb', nullable: true })
+  syncConfig: JsonObject | null;
+
+  @Column({ name: 'last_synced_at', type: 'timestamp', nullable: true })
+  lastSyncedAt: Date | null;
+
+  @Column({ name: 'last_sync_error', type: 'text', nullable: true })
+  lastSyncError: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

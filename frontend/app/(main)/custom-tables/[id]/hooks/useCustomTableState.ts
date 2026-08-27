@@ -3,6 +3,7 @@
 import {
   type ColumnResizeMode,
   type RowSelectionState,
+  type SortingState,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
@@ -15,6 +16,7 @@ import {
   formatMobileCellValue,
 } from '../helpers/tableStateHelpers';
 import { buildColumns } from '../utils/columnDefinitions';
+import type { ConditionalRule } from '../utils/conditionalRules';
 import type {
   CustomTableCellValue,
   CustomTableColumn,
@@ -43,6 +45,7 @@ interface RenameTitleOpts {
 }
 
 interface UseCustomTableStateParams {
+  tableId?: string;
   rows: CustomTableGridRow[];
   columns: CustomTableColumn[];
   selectedRowIds: string[];
@@ -52,6 +55,9 @@ interface UseCustomTableStateParams {
   loadingRows: boolean;
   hasMore: boolean;
   isDark: boolean;
+  sorting: SortingState;
+  conditionalRules: ConditionalRule[];
+  onSortingChange: (updater: SortingState | ((prev: SortingState) => SortingState)) => void;
   onUpdateCell: (opts: CellUpdateOpts) => Promise<void>;
   onUpdateRowStyle: (opts: RowStyleUpdateOpts) => Promise<void>;
   onCreateRow?: () => Promise<CustomTableGridRow | null>;
@@ -115,6 +121,7 @@ function buildRenameAdapter(
 
 export function useCustomTableState(params: UseCustomTableStateParams): UseCustomTableStateReturn {
   const {
+    tableId,
     rows,
     columns,
     selectedRowIds,
@@ -123,6 +130,9 @@ export function useCustomTableState(params: UseCustomTableStateParams): UseCusto
     stickyRightColumnIds,
     loadingRows,
     hasMore,
+    sorting,
+    onSortingChange,
+    conditionalRules,
     onUpdateCell,
     onPersistColumnWidth,
     onSelectedRowIdsChange,
@@ -179,6 +189,8 @@ export function useCustomTableState(params: UseCustomTableStateParams): UseCusto
         onAddColumnClick,
         onOpenColorPicker: colorPicker.openColorPickerForRow,
         onDeleteRow: deleteRowAdapter,
+        conditionalRules,
+        tableId,
         ...columnLabels,
       }),
     [
@@ -191,6 +203,8 @@ export function useCustomTableState(params: UseCustomTableStateParams): UseCusto
       onAddColumnClick,
       colorPicker.openColorPickerForRow,
       deleteRowAdapter,
+      conditionalRules,
+      tableId,
       columnLabels,
     ],
   );
@@ -203,8 +217,12 @@ export function useCustomTableState(params: UseCustomTableStateParams): UseCusto
     enableMultiRowSelection: true,
     enableColumnResizing: true,
     columnResizeMode: 'onChange' as ColumnResizeMode,
-    state: { rowSelection, columnSizing: columnResizing },
+    // Сортирует сервер по всей таблице: клиент видит лишь подгруженное окно строк,
+    // поэтому сортировка на клиенте показала бы порядок внутри окна, а не всей таблицы.
+    manualSorting: true,
+    state: { rowSelection, columnSizing: columnResizing, sorting },
     onRowSelectionChange,
+    onSortingChange,
     onColumnSizingChange: setColumnResizing,
     meta: { onUpdateCell: cellAdapter, onCreateRow },
   });

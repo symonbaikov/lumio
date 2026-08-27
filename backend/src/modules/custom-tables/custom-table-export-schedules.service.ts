@@ -1,0 +1,173 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { normalizeFilename } from '../../common/utils/filename.util';
+import { resolveUploadsDir } from '../../common/utils/uploads.util';
+import {
+  CustomTableExportSchedule,
+  ExportScheduleFormat,
+} from '../../entities/custom-table-export-schedule.entity';
+import { CustomTable } from '../../entities/custom-table.entity';
+import { CustomTablesService } from './custom-tables.service';
+import type {
+  CustomTableRowFilterDto,
+  CustomTableRowSortDto,
+} from './dto/list-custom-table-rows.dto';
+
+/**
+ * Периодическая выгрузка таблицы в файл. Файл собирается тем же кодом, что и
+ * ручной экспорт (T1.2), поэтому расписание и кнопка «Выгрузить» не могут
+ * разойтись в том, что попадает в файл.
+ */
+@Injectable()
+export class CustomTableExportSchedulesService {
+  private readonly logger = new Logger(CustomTableExportSchedulesService.name);
+
+  constructor(
+    @InjectRepository(CustomTableExportSchedule)
+    private readonly scheduleRepository: Repository<CustomTableExportSchedule>,
+    @InjectRepository(CustomTable)
+    private readonly tableRepository: Repository<CustomTable>,
+    private readonly customTablesService: CustomTablesService,
+  ) {}
+
+  private async requireTable(workspaceId: string, tableId: string): Promise<CustomTable> {
+    const table = await this.tableRepository
+      .createQueryBuilder('table')
+      .leftJoin('table.user', 'owner')
+      .where('table.id = :tableId', { tableId })
+      .andWhere('owner.workspaceId = :workspaceId', { workspaceId })
+      .getOne();
+    if (!table) {
+      throw new NotFoundException('Таблица не найдена');
+    }
+    return table;
+  }
+
+  async createSchedule(
+    userId: string,
+    workspaceId: string,
+    tableId: string,
+    dto: {
+      format?: ExportScheduleFormat;
+      intervalHours?: number;
+      viewConfig?: Record<string, unknown> | null;
+    },
+  ): Promise<CustomTableExportSchedule> {
+    await this.requireTable(workspaceId, tableId);
+    const intervalHours = Math.min(Math.max(dto.intervalHours ?? 168, 1), 24 * 31);
+
+    return this.scheduleRepository.save(
+      this.scheduleRepository.create({
+        tableId,
+        workspaceId,
+        createdById: userId,
+        format: dto.format ?? ExportScheduleFormat.XLSX,
+        intervalHours,
+        viewConfig: dto.viewConfig ?? null,
+        enabled: true,
+      }),
+    );
+  }
+
+  async listSchedules(workspaceId: string, tableId: string): Promise<CustomTableExportSchedule[]> {
+    await this.requireTable(workspaceId, tableId);
+    return this.scheduleRepository.find({
+      where: { tableId, workspaceId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async deleteSchedule(workspaceId: string, scheduleId: string): Promise<void> {
+    const schedule = await this.scheduleRepository.findOne({
+      where: { id: scheduleId, workspaceId },
+    });
+    if (!schedule) {
+      throw new NotFoundException('Расписание не найдено');
+    }
+    await this.scheduleRepository.delete({ id: scheduleId });
+  }
+
+  async findDueSchedules(now: Date = new Date()): Promise<CustomTableExportSchedule[]> {
+    const candidates = await this.scheduleRepository.find({
+      where: { enabled: true },
+      take: 50,
+    });
+    return candidates.filter(schedule => {
+      if (!schedule.lastRunAt) {
+        return true;
+      }
+      const intervalMs = Math.max(schedule.intervalHours || 168, 1) * 60 * 60 * 1000;
+      return new Date(schedule.lastRunAt).getTime() + intervalMs <= now.getTime();
+    });
+  }
+
+  async runSchedule(scheduleId: string): Promise<{ fileName: string; rows: number }> {
+    const schedule = await this.scheduleRepository.findOne({ where: { id: scheduleId } });
+    if (!schedule) {
+      throw new NotFoundException('Расписание не найдено');
+    }
+
+    const view = (schedule.viewConfig ?? {}) as {
+      filters?: CustomTableRowFilterDto[];
+      sort?: CustomTableRowSortDto;
+      columnKeys?: string[];
+    };
+
+    const { buffer, fileName } = await this.customTablesService.exportRows(
+      schedule.workspaceId,
+      schedule.tableId,
+      {
+        format: schedule.format === ExportScheduleFormat.CSV ? 'csv' : 'xlsx',
+        filters: view.filters,
+        sort: view.sort,
+        columnKeys: view.columnKeys,
+      },
+    );
+
+    const dir = path.join(resolveUploadsDir(), 'scheduled-exports');
+    await fs.promises.mkdir(dir, { recursive: true });
+    // Имя со штампом времени: прошлые выгрузки не затираются, их можно сверить.
+    const stamped = normalizeFilename(`${new Date().toISOString().slice(0, 10)}-${fileName}`);
+    const filePath = path.join(dir, `${schedule.id}-${stamped}`);
+    await fs.promises.writeFile(filePath, buffer);
+
+    schedule.lastRunAt = new Date();
+    schedule.lastError = null;
+    schedule.lastFilePath = filePath;
+    schedule.lastFileName = stamped;
+    await this.scheduleRepository.save(schedule);
+
+    this.logger.log(`Scheduled export ${schedule.id} written to ${filePath}`);
+    return { fileName: stamped, rows: buffer.length };
+  }
+
+  async recordFailure(scheduleId: string, error: unknown): Promise<void> {
+    const message = error instanceof Error ? error.message : String(error);
+    await this.scheduleRepository.update(
+      { id: scheduleId },
+      { lastError: message.slice(0, 500), lastRunAt: new Date() },
+    );
+  }
+
+  /** Отдаёт последний готовый файл владельцу воркспейса. */
+  async readLastFile(
+    workspaceId: string,
+    scheduleId: string,
+  ): Promise<{ buffer: Buffer; fileName: string }> {
+    const schedule = await this.scheduleRepository.findOne({
+      where: { id: scheduleId, workspaceId },
+    });
+    if (!schedule?.lastFilePath || !schedule.lastFileName) {
+      throw new NotFoundException('Готовый файл ещё не создан');
+    }
+    try {
+      const buffer = await fs.promises.readFile(schedule.lastFilePath);
+      return { buffer, fileName: schedule.lastFileName };
+    } catch {
+      throw new BadRequestException('Файл выгрузки недоступен');
+    }
+  }
+}

@@ -5,8 +5,12 @@ import { Cache } from 'cache-manager';
 
 type RowsCacheParams = {
   cursor?: number;
+  offset?: number;
   limit?: number;
   filters?: unknown;
+  sort?: unknown;
+  aggs?: unknown;
+  groupBy?: string;
 };
 
 @Injectable()
