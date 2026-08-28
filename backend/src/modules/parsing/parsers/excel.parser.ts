@@ -1,10 +1,19 @@
+import * as fs from 'fs';
 import * as xlsx from 'xlsx';
+import { assertSafeZipDecompressionRatio } from '../../../common/utils/zip-bomb-guard.util';
 import { type BankName, FileType } from '../../../entities/statement.entity';
 import type { ParsedStatement, ParsedTransaction } from '../interfaces/parsed-statement.interface';
 import { BaseTabularParser } from './base-tabular.parser';
 
 type ExcelCellValue = string | number | boolean | Date | null;
 type ExcelRow = ExcelCellValue[];
+
+// `sheetRows` (below) only skips converting rows into JS objects — the xlsx
+// library still fully inflates every ZIP entry before that cap ever applies,
+// so it does NOT bound decompression cost. assertSafeZipDecompressionRatio
+// runs first and does: no real bank statement's worksheet XML compresses at
+// anywhere near a decompression-bomb ratio.
+const MAX_SHEET_ROWS = 50_000;
 
 export class ExcelParser extends BaseTabularParser {
   async canParse(
@@ -13,17 +22,41 @@ export class ExcelParser extends BaseTabularParser {
     _filePath: string,
     _cachedText?: string,
   ): Promise<boolean> {
-    return fileType === FileType.XLSX || fileType === FileType.CSV;
+    // CSV is CsvParser's job: xlsx.readFile reads CSV files without an
+    // explicit encoding, garbling any non-ASCII (Cyrillic) text, and its
+    // auto-number-conversion misreads a comma-decimal amount like "1500,00"
+    // as 150000. CsvParser reads UTF-8 explicitly and leaves amounts as
+    // strings for the shared normalizer to parse correctly.
+    return fileType === FileType.XLSX;
   }
 
   async parse(filePath: string, _cachedText?: string): Promise<ParsedStatement> {
-    const workbook = xlsx.readFile(filePath);
+    assertSafeZipDecompressionRatio(fs.readFileSync(filePath));
+    // raw: false formats every cell through its own display format instead
+    // of returning the underlying raw value — critical for genuine Excel
+    // Date-typed cells, which otherwise come through as a raw day-count
+    // serial number (e.g. 45306) rather than a date string. normalizeDate
+    // happily parses that serial as a valid (garbage, ~43,000-years-off)
+    // Date instead of failing, so the row wouldn't get dropped — it would
+    // silently corrupt. Matches sheet-source-loader.service.ts's read of the
+    // same file format for the same reason.
+    const workbook = xlsx.readFile(filePath, { sheetRows: MAX_SHEET_ROWS, raw: false });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    const data = xlsx.utils.sheet_to_json<ExcelCellValue[]>(worksheet, { header: 1, defval: '' });
+    const data = xlsx.utils.sheet_to_json<ExcelCellValue[]>(worksheet, {
+      header: 1,
+      defval: '',
+      raw: false,
+    });
 
     if (data.length < 2) {
       throw new Error('Excel file is empty or has no data rows');
+    }
+
+    if (data.length >= MAX_SHEET_ROWS) {
+      this.logger.warn(
+        `Sheet hit the ${MAX_SHEET_ROWS}-row parse cap — rows beyond that were not read`,
+      );
     }
 
     // First row is header

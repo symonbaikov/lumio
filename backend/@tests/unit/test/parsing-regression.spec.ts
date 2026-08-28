@@ -14,7 +14,14 @@ import * as os from 'os';
 import * as path from 'path';
 import { BankName, FileType } from '@/entities/statement.entity';
 import type { ParsedStatement } from '@/modules/parsing/interfaces/parsed-statement.interface';
-import { type ExpectedFixture, buildGenericCsv, buildGenericXlsx } from '../../fixtures/parsing/build-fixtures';
+import {
+  type ExpectedFixture,
+  buildCyrillicCsv,
+  buildGenericCsv,
+  buildGenericXlsx,
+  buildSignedAmountCsv,
+  buildXlsxWithDateTypedCells,
+} from '../../fixtures/parsing/build-fixtures';
 
 // ── Mock pdfplumber extraction ───────────────────────────────────────────────
 
@@ -61,7 +68,10 @@ function sumField(transactions: ParsedStatement['transactions'], field: 'debit' 
 let tmpDir: string;
 let factory: InstanceType<typeof ParserFactoryService>;
 let csvFixture: ExpectedFixture;
+let cyrillicCsvFixture: ExpectedFixture;
+let signedAmountCsvFixture: ExpectedFixture;
 let xlsxFixture: ExpectedFixture;
+let xlsxDateTypedFixture: ReturnType<typeof buildXlsxWithDateTypedCells>;
 
 beforeAll(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'parsing-regression-'));
@@ -69,7 +79,10 @@ beforeAll(() => {
   process.env.AI_PARSING_ENABLED = '0';
 
   csvFixture = buildGenericCsv(tmpDir);
+  cyrillicCsvFixture = buildCyrillicCsv(tmpDir);
+  signedAmountCsvFixture = buildSignedAmountCsv(tmpDir);
   xlsxFixture = buildGenericXlsx(tmpDir);
+  xlsxDateTypedFixture = buildXlsxWithDateTypedCells(tmpDir);
 });
 
 afterAll(() => {
@@ -152,6 +165,52 @@ describe('CSV parsing', () => {
     expect(sumField(result.transactions, 'credit')).toBeCloseTo(csvFixture.expectedCreditSum, 2);
     expect(result.metadata.currency).toBe(csvFixture.expectedCurrency);
   });
+
+  it('routes CSV to CsvParser, not ExcelParser (encoding/comma-decimal regression)', async () => {
+    const parser = await factory.getParser(BankName.OTHER, FileType.CSV, cyrillicCsvFixture.filePath);
+    expect(parser).not.toBeNull();
+    expect(parser!.constructor.name).toBe('CsvParser');
+
+    const result = await parser!.parse(cyrillicCsvFixture.filePath);
+
+    expect(result.transactions.length).toBe(cyrillicCsvFixture.expectedTransactionCount);
+    // ExcelParser's xlsx.readFile has no explicit encoding and garbles
+    // Cyrillic text into mojibake; CsvParser reads UTF-8 explicitly.
+    expect(result.transactions.map(t => t.counterpartyName)).toEqual(
+      expect.arrayContaining(['ТОО Ромашка', 'АО Береке']),
+    );
+    // ExcelParser's auto-number-conversion misreads "1500,00" as 150000;
+    // CsvParser leaves it as a string for the shared normalizer.
+    expect(sumField(result.transactions, 'debit')).toBeCloseTo(
+      cyrillicCsvFixture.expectedDebitSum,
+      2,
+    );
+    expect(sumField(result.transactions, 'credit')).toBeCloseTo(
+      cyrillicCsvFixture.expectedCreditSum,
+      2,
+    );
+  });
+
+  it('parses a single signed Amount column into debit/credit (regression: used to yield zero transactions)', async () => {
+    const parser = await factory.getParser(
+      BankName.OTHER,
+      FileType.CSV,
+      signedAmountCsvFixture.filePath,
+    );
+    expect(parser).not.toBeNull();
+
+    const result = await parser!.parse(signedAmountCsvFixture.filePath);
+
+    expect(result.transactions.length).toBe(signedAmountCsvFixture.expectedTransactionCount);
+    expect(sumField(result.transactions, 'debit')).toBeCloseTo(
+      signedAmountCsvFixture.expectedDebitSum,
+      2,
+    );
+    expect(sumField(result.transactions, 'credit')).toBeCloseTo(
+      signedAmountCsvFixture.expectedCreditSum,
+      2,
+    );
+  });
 });
 
 // ── XLSX parsing ─────────────────────────────────────────────────────────────
@@ -167,5 +226,21 @@ describe('XLSX parsing', () => {
     expect(sumField(result.transactions, 'debit')).toBeCloseTo(xlsxFixture.expectedDebitSum, 2);
     expect(sumField(result.transactions, 'credit')).toBeCloseTo(xlsxFixture.expectedCreditSum, 2);
     expect(result.metadata.currency).toBe(xlsxFixture.expectedCurrency);
+  });
+
+  it('parses a genuine Excel Date-typed cell instead of reading its raw serial number (regression)', async () => {
+    const parser = await factory.getParser(BankName.OTHER, FileType.XLSX, xlsxDateTypedFixture.filePath);
+    expect(parser).not.toBeNull();
+
+    const result = await parser!.parse(xlsxDateTypedFixture.filePath);
+
+    expect(result.transactions).toHaveLength(1);
+    const [transaction] = result.transactions;
+    expect(transaction.transactionDate).toBeInstanceOf(Date);
+    expect(transaction.transactionDate?.getFullYear()).toBe(
+      xlsxDateTypedFixture.expectedDate.getFullYear(),
+    );
+    expect(transaction.transactionDate?.getMonth()).toBe(xlsxDateTypedFixture.expectedDate.getMonth());
+    expect(transaction.transactionDate?.getDate()).toBe(xlsxDateTypedFixture.expectedDate.getDate());
   });
 });

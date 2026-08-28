@@ -1436,7 +1436,7 @@ export class StatementsService {
   async commitImport(id: string, userId: string, workspaceId: string): Promise<Statement> {
     const statement = await this.findOne(id, workspaceId);
     await this.ensureCanModify(statement, userId, workspaceId);
-    return this.statementProcessingService.commitImport(statement.id);
+    return this.statementProcessingService.commitImport(statement.id, workspaceId);
   }
 
   /**

@@ -1,6 +1,12 @@
 # Build stage
 FROM node:20-bookworm-slim AS builder
 
+# Pinned explicitly (not just relying on the base image's default) so a date
+# built from local Date parts (new Date(year, month, day), used throughout
+# statement parsing) round-trips through toISOString()/Postgres without a
+# timezone-dependent day shift.
+ENV TZ=UTC
+
 WORKDIR /app
 
 # Copy package files
@@ -27,6 +33,9 @@ CMD ["npm", "run", "start:dev"]
 
 # --- Production stage ---
 FROM node:20-bookworm-slim
+
+# See the builder stage for why this is pinned explicitly.
+ENV TZ=UTC
 
 WORKDIR /app
 

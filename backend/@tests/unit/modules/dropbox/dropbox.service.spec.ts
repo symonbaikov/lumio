@@ -166,7 +166,7 @@ describe('DropboxService', () => {
     });
     const filesDownload = jest.fn().mockResolvedValue({
       result: {
-        fileBinary: Buffer.from('pdf-data'),
+        fileBinary: Buffer.from('%PDF-1.4\npdf-data'),
       },
     });
     jest

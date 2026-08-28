@@ -51,6 +51,13 @@ describe('StatementProcessingService', () => {
       Object.assign(statement, entity);
       return statement;
     }),
+    // Mid-pipeline heartbeats use update(), not save() — same merge
+    // semantics here so assertions against the final `statement` object
+    // still see whatever the heartbeat wrote.
+    update: jest.fn(async (_id: string, entity: Partial<Statement>) => {
+      Object.assign(statement, entity);
+      return { affected: 1 };
+    }),
   };
 
   const transactionRepository = {
@@ -230,14 +237,16 @@ describe('StatementProcessingService', () => {
       'user-1',
     );
 
-    expect(statement.accountNumber).toBe('KZACC123');
+    // No account number in parser metadata falls back to 'Unknown', never to
+    // a transaction's counterparty account (that belongs to the other party).
+    expect(statement.accountNumber).toBe('Unknown');
     expect(statement.statementDateFrom?.toISOString()).toContain('2024-01-05');
     expect(statement.statementDateTo?.toISOString()).toContain('2024-01-10');
     expect(statement.currency).toBe('USD');
     expect(statement.status).toBe(StatementStatus.COMPLETED);
 
     expect(statement.parsingDetails?.metadataExtracted).toMatchObject({
-      accountNumber: 'KZACC123',
+      accountNumber: 'Unknown',
       currency: 'USD',
     });
     expect(statement.parsingDetails?.transactionsFound).toBe(2);
@@ -275,7 +284,7 @@ describe('StatementProcessingService', () => {
 
     expect(transactionFingerprintService.generateFingerprint).toHaveBeenCalledWith(
       expect.objectContaining({ documentNumber: 'DOC-1' }),
-      'KZACC123',
+      'Unknown',
     );
     expect(savedTransactions.map(tx => tx.fingerprint)).toEqual(['fp-DOC-1', 'fp-DOC-2']);
   });
@@ -433,7 +442,9 @@ describe('StatementProcessingService', () => {
       importCommit: { committed: 2 },
     } as Statement['parsingDetails'];
 
-    await expect(service.commitImport(statement.id)).resolves.toBe(statement);
+    await expect(service.commitImport(statement.id, statement.workspaceId)).resolves.toBe(
+      statement,
+    );
     expect(importSessionService.processImport).not.toHaveBeenCalled();
   });
 
@@ -443,7 +454,9 @@ describe('StatementProcessingService', () => {
     statement.parsingDetails = null;
     transactionRepository.count.mockResolvedValueOnce(2);
 
-    await expect(service.commitImport(statement.id)).resolves.toBe(statement);
+    await expect(service.commitImport(statement.id, statement.workspaceId)).resolves.toBe(
+      statement,
+    );
     expect(importSessionService.processImport).not.toHaveBeenCalled();
   });
 
@@ -468,8 +481,125 @@ describe('StatementProcessingService', () => {
 
     await service.processStatement(statement.id);
 
-    expect(statement.parsingDetails?.warnings).toHaveLength(12);
+    // 12 per-row "skipped" warnings from schema enforcement, plus one
+    // statement-level warning for the 100%-dropped batch (see below).
+    expect(statement.parsingDetails?.warnings).toHaveLength(13);
     expect(statement.parsingDetails?.droppedSamples).toHaveLength(12);
+    expect(statement.status).toBe(StatementStatus.NEEDS_REVIEW);
+  });
+
+  it('holds a statement for review when every parsed row is rejected by schema validation', async () => {
+    const allInvalidTransactions = Array.from({ length: 3 }, (_, index) => ({
+      transactionDate: new Date('2024-01-05'),
+      documentNumber: `DOC-${index + 1}`,
+      counterpartyName: `Counterparty ${index + 1}`,
+      paymentPurpose: `Purpose ${index + 1}`,
+      debit: 0,
+      credit: 0,
+      currency: 'KZT',
+    }));
+
+    parserFactory.getParser.mockResolvedValueOnce({
+      parse: jest.fn().mockResolvedValue({
+        metadata: parsedStatement.metadata,
+        transactions: allInvalidTransactions,
+      }),
+      constructor: { name: 'FakeParser' },
+    });
+
+    await service.processStatement(statement.id);
+
+    expect(statement.status).toBe(StatementStatus.NEEDS_REVIEW);
+    expect(statement.parsingDetails?.validation?.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('zero transactions')]),
+    );
+    expect(savedTransactions).toHaveLength(0);
+  });
+
+  it('holds a statement for review when most parsed rows are rejected by schema validation', async () => {
+    const mostlyInvalidTransactions = [
+      ...Array.from({ length: 9 }, (_, index) => ({
+        transactionDate: new Date('2024-01-05'),
+        documentNumber: `BAD-${index + 1}`,
+        counterpartyName: `Counterparty ${index + 1}`,
+        paymentPurpose: `Purpose ${index + 1}`,
+        debit: 0,
+        credit: 0,
+        currency: 'KZT',
+      })),
+      ...parsedStatement.transactions,
+    ];
+
+    parserFactory.getParser.mockResolvedValueOnce({
+      parse: jest.fn().mockResolvedValue({
+        metadata: parsedStatement.metadata,
+        transactions: mostlyInvalidTransactions,
+      }),
+      constructor: { name: 'FakeParser' },
+    });
+
+    await service.processStatement(statement.id);
+
+    expect(statement.status).toBe(StatementStatus.NEEDS_REVIEW);
+    expect(statement.parsingDetails?.validation?.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('9 of 11 parsed rows were rejected')]),
+    );
+    expect(savedTransactions).toHaveLength(2);
+  });
+
+  it('does not flag a legitimately empty statement that has no transactions but reconciled balances', async () => {
+    parserFactory.getParser.mockResolvedValueOnce({
+      parse: jest.fn().mockResolvedValue({
+        metadata: { ...parsedStatement.metadata, balanceStart: 500, balanceEnd: 500 },
+        transactions: [],
+      }),
+      constructor: { name: 'FakeParser' },
+    });
+
+    await service.processStatement(statement.id);
+
+    expect(statement.status).toBe(StatementStatus.COMPLETED);
+    expect(savedTransactions).toHaveLength(0);
+  });
+
+  it('holds a statement for review instead of comparing mixed-currency totals against a single balance', async () => {
+    parserFactory.getParser.mockResolvedValueOnce({
+      parse: jest.fn().mockResolvedValue({
+        metadata: { ...parsedStatement.metadata, balanceStart: 1000, balanceEnd: 1100 },
+        transactions: [
+          { ...parsedStatement.transactions[0], currency: 'USD', debit: 100, credit: undefined },
+          { ...parsedStatement.transactions[1], currency: 'EUR', debit: undefined, credit: 200 },
+        ],
+      }),
+      constructor: { name: 'FakeParser' },
+    });
+
+    await service.processStatement(statement.id);
+
+    expect(statement.status).toBe(StatementStatus.NEEDS_REVIEW);
+    expect(statement.parsingDetails?.validation?.balanceCheck).toBeUndefined();
+    expect(statement.parsingDetails?.validation?.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('multiple currencies')]),
+    );
+    // Transactions are still persisted — only their visibility is withheld.
+    expect(savedTransactions).toHaveLength(2);
+  });
+
+  it('holds a statement for review when it has no transactions and only one balance was extracted', async () => {
+    parserFactory.getParser.mockResolvedValueOnce({
+      parse: jest.fn().mockResolvedValue({
+        metadata: { ...parsedStatement.metadata, balanceStart: 1000, balanceEnd: undefined },
+        transactions: [],
+      }),
+      constructor: { name: 'FakeParser' },
+    });
+
+    await service.processStatement(statement.id);
+
+    expect(statement.status).toBe(StatementStatus.NEEDS_REVIEW);
+    expect(statement.parsingDetails?.validation?.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('No transactions or balances')]),
+    );
   });
 
   it('keeps parser metadata when enrichment only has fallback values', async () => {

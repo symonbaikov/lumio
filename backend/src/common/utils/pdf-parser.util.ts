@@ -48,8 +48,40 @@ type RawPdfStructuredCell = Partial<Record<'text' | 'x', unknown>>;
 type RawPdfStructuredRow = Partial<Record<'page' | 'y' | 'columns' | 'cells', unknown>>;
 type RawPdfTable = Partial<Record<'page' | 'data' | 'structured', unknown>>;
 
+// ponytail: bounded via simple insertion-order eviction (Map preserves
+// insertion order; re-inserting on read turns this into an LRU) rather than
+// a dependency — this cache only needs to avoid unbounded growth across the
+// process lifetime, not sophisticated eviction policy.
+const MAX_CACHE_ENTRIES = 20;
 const parserCache = new Map<string, PdfPlumberResult>();
 let pythonExecutable: string | null = null;
+
+function cachePut(filePath: string, result: PdfPlumberResult) {
+  parserCache.set(filePath, result);
+  while (parserCache.size > MAX_CACHE_ENTRIES) {
+    const oldestKey = parserCache.keys().next().value;
+    if (oldestKey === undefined) {
+      break;
+    }
+    parserCache.delete(oldestKey);
+  }
+}
+
+function cacheGet(filePath: string): PdfPlumberResult | undefined {
+  const hit = parserCache.get(filePath);
+  if (hit) {
+    // Touch: move to the end so eviction targets the least-recently-used entry.
+    parserCache.delete(filePath);
+    parserCache.set(filePath, hit);
+  }
+  return hit;
+}
+
+// A hung/looping pdfplumber process would otherwise hold a BullMQ worker
+// slot forever, and unbounded stdout accumulation on a huge/malicious PDF
+// could exhaust memory before the process even exits.
+const PDF_PARSE_TIMEOUT_MS = Number.parseInt(process.env.PDF_PARSE_TIMEOUT_MS || '', 10) || 60_000;
+const MAX_PDF_OUTPUT_BYTES = 100 * 1024 * 1024; // 100MB of parsed JSON output
 
 /**
  * Extract text from PDF file using pdfplumber (Python).
@@ -143,7 +175,7 @@ function resolvePythonExecutable(): string {
 async function runPdfPlumber(filePath: string): Promise<PdfPlumberResult> {
   ensureFileExists(filePath);
 
-  const cached = parserCache.get(filePath);
+  const cached = cacheGet(filePath);
   if (cached) {
     return cached;
   }
@@ -156,8 +188,36 @@ async function runPdfPlumber(filePath: string): Promise<PdfPlumberResult> {
 
     let stdout = '';
     let stderr = '';
+    let outputBytes = 0;
+    let settled = false;
+
+    const settle = (fn: () => void) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      fn();
+    };
+
+    const timer = setTimeout(() => {
+      proc.kill('SIGKILL');
+      settle(() =>
+        reject(new Error(`[PDF Parser] pdfplumber timed out after ${PDF_PARSE_TIMEOUT_MS}ms`)),
+      );
+    }, PDF_PARSE_TIMEOUT_MS);
 
     proc.stdout.on('data', (data: Buffer) => {
+      outputBytes += data.length;
+      if (outputBytes > MAX_PDF_OUTPUT_BYTES) {
+        proc.kill('SIGKILL');
+        settle(() =>
+          reject(
+            new Error(`[PDF Parser] pdfplumber output exceeded ${MAX_PDF_OUTPUT_BYTES} bytes`),
+          ),
+        );
+        return;
+      }
       stdout += data.toString();
     });
 
@@ -166,36 +226,41 @@ async function runPdfPlumber(filePath: string): Promise<PdfPlumberResult> {
     });
 
     proc.on('error', error => {
-      reject(
-        new Error(
-          `[PDF Parser] Failed to start pdfplumber process: ${error.message}. Is python3 installed?`,
+      settle(() =>
+        reject(
+          new Error(
+            `[PDF Parser] Failed to start pdfplumber process: ${error.message}. Is python3 installed?`,
+          ),
         ),
       );
     });
 
     proc.on('close', code => {
-      if (code !== 0) {
-        return reject(
-          new Error(
-            `[PDF Parser] pdfplumber exited with code ${code}: ${stderr.trim() || 'no stderr'}`,
-          ),
-        );
-      }
+      settle(() => {
+        if (code !== 0) {
+          reject(
+            new Error(
+              `[PDF Parser] pdfplumber exited with code ${code}: ${stderr.trim() || 'no stderr'}`,
+            ),
+          );
+          return;
+        }
 
-      try {
-        const parsed = JSON.parse(stdout) as Partial<PdfPlumberResult>;
-        const normalized = normalizeResult(parsed);
-        parserCache.set(filePath, normalized);
-        resolve(normalized);
-      } catch (error) {
-        reject(
-          new Error(
-            `[PDF Parser] Could not parse pdfplumber output: ${
-              (error as Error).message
-            }. Output: ${stderr || stdout}`,
-          ),
-        );
-      }
+        try {
+          const parsed = JSON.parse(stdout) as Partial<PdfPlumberResult>;
+          const normalized = normalizeResult(parsed);
+          cachePut(filePath, normalized);
+          resolve(normalized);
+        } catch (error) {
+          reject(
+            new Error(
+              `[PDF Parser] Could not parse pdfplumber output: ${
+                (error as Error).message
+              }. Output: ${stderr || stdout}`,
+            ),
+          );
+        }
+      });
     });
   });
 }

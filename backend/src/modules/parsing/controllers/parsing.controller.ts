@@ -16,6 +16,7 @@ import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagg
 import * as xlsx from 'xlsx';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { validateFile } from '../../../common/utils/file-validator.util';
+import { assertSafeZipDecompressionRatio } from '../../../common/utils/zip-bomb-guard.util';
 import { multerConfig } from '../../../config/multer.config';
 import { ParseDocumentDto } from '../dto/parse-document.dto';
 import { UniversalExtractorService } from '../services/universal-extractor.service';
@@ -25,6 +26,10 @@ import { UniversalExtractorService } from '../services/universal-extractor.servi
 type MulterFile = Express.Multer.File;
 
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.webp']);
+// `sheetRows` (used below) only skips building JS row objects — xlsx still
+// fully inflates every ZIP entry first, so it doesn't bound decompression
+// cost. assertSafeZipDecompressionRatio, called before xlsx.read, does that.
+const MAX_SHEET_ROWS = 50_000;
 
 @ApiTags('Documents')
 @ApiBearerAuth()
@@ -86,7 +91,8 @@ export class ParsingController {
       }
 
       if (ext === '.xlsx' || ext === '.xls') {
-        const workbook = xlsx.read(buffer, { type: 'buffer' });
+        assertSafeZipDecompressionRatio(buffer);
+        const workbook = xlsx.read(buffer, { type: 'buffer', sheetRows: MAX_SHEET_ROWS });
         const firstSheet = workbook.SheetNames[0];
 
         if (!firstSheet) {

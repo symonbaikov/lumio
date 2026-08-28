@@ -17,7 +17,6 @@ import { IntelligentDeduplicationService } from '../parsing/services/intelligent
 import { TransactionFingerprintService } from '../transactions/services/transaction-fingerprint.service';
 import { ImportConfigService } from './config/import.config';
 import { ImportSessionController } from './import-session.controller';
-import { ImportRetryService } from './services/import-retry.service';
 import { ImportSessionService } from './services/import-session.service';
 import { SheetTransactionImportService } from './services/sheet-transaction-import.service';
 import { SheetTransactionImportController } from './sheet-transaction-import.controller';
@@ -48,7 +47,6 @@ import { SheetReferenceResolverService } from './sheets/sheet-reference-resolver
   controllers: [ImportSessionController, SheetTransactionImportController],
   providers: [
     ImportConfigService,
-    ImportRetryService,
     ImportSessionService,
     TransactionFingerprintService,
     IntelligentDeduplicationService,
@@ -58,7 +56,6 @@ import { SheetReferenceResolverService } from './sheets/sheet-reference-resolver
   ],
   exports: [
     ImportConfigService,
-    ImportRetryService,
     ImportSessionService,
     TransactionFingerprintService,
     IntelligentDeduplicationService,

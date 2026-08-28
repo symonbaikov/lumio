@@ -67,12 +67,20 @@ export class HapoalimParser extends BaseParser {
     }
   }
 
-  async parse(filePath: string, cachedText?: string): Promise<ParsedStatement> {
+  async parse(
+    filePath: string,
+    cachedText?: string,
+    ocrConfidence?: number,
+  ): Promise<ParsedStatement> {
     this.logger.debug('Starting to parse file:', filePath);
 
     const fileType = this.detectFileType(filePath);
     const text = await this.getText(cachedText, filePath, fileType);
-    const confidence = this.cachedOcrResult?.confidence ?? 1.0;
+    // ocrConfidence covers the case where the caller already ran OCR (and
+    // handed us the text via cachedText) — without it, this.cachedOcrResult
+    // stays null on that path and confidence silently defaults to 1.0,
+    // regardless of how unreliable the actual OCR was.
+    const confidence = ocrConfidence ?? this.cachedOcrResult?.confidence ?? 1.0;
 
     this.logger.debug(`Text length: ${text.length}, confidence: ${confidence.toFixed(2)}`);
 
@@ -308,9 +316,13 @@ export class HapoalimParser extends BaseParser {
     const currencySymbol = foreignAmountMatch?.[0]?.slice(-1);
     const foreignCurrency = currencySymbol === '€' ? 'EUR' : currencySymbol === '£' ? 'GBP' : 'USD';
 
-    // Extract exchange rate (decimal number like 3.1820)
+    // Extract exchange rate (decimal number like 3.1820). Parsed with
+    // Number.parseFloat rather than normalizeNumber: the capture group
+    // already guarantees a single-dot decimal shape, and normalizeNumber's
+    // thousands-grouping heuristic (for currency amounts like "1.234" KZT)
+    // would misread a 3-digit rate such as "3.182" as 3182.
     const rateMatch = line.match(/\b(\d\.\d{3,5})\b/);
-    const exchangeRate = rateMatch ? (normalizeNumber(rateMatch[1]) ?? undefined) : undefined;
+    const exchangeRate = rateMatch ? Number.parseFloat(rateMatch[1]) : undefined;
 
     // Extract NIS charge — typically the last number or a negative number at end
     const allAmounts = Array.from(line.matchAll(/-?[\d,]+\.\d{2}/g)).map(m => m[0]);
@@ -358,8 +370,10 @@ export class HapoalimParser extends BaseParser {
     const transactionDate = normalizeDate(dateMatch[1]);
     if (!transactionDate) return null;
 
-    // Extract amounts — look for numbers with decimals
-    const amounts = Array.from(line.matchAll(/([\d,]+\.\d{2})/g)).map(m => normalizeNumber(m[1]));
+    // Extract amounts — look for numbers with decimals. A leading minus
+    // marks a refund/credit (e.g. a returned purchase), same as the foreign
+    // line parser's amount regex just above.
+    const amounts = Array.from(line.matchAll(/(-?[\d,]+\.\d{2})/g)).map(m => normalizeNumber(m[1]));
 
     if (amounts.length === 0) return null;
 
@@ -367,18 +381,23 @@ export class HapoalimParser extends BaseParser {
     // If there are 2+ amounts, the larger one is the transaction amount,
     // the smaller one might be the installment charge
     let debit: number | undefined;
+    let credit: number | undefined;
     const lastAmount = amounts[amounts.length - 1];
-    if (lastAmount && lastAmount > 0) {
-      debit = lastAmount;
+    if (lastAmount) {
+      if (lastAmount < 0) {
+        credit = Math.abs(lastAmount);
+      } else {
+        debit = lastAmount;
+      }
     }
 
-    if (!debit) return null;
+    if (!debit && !credit) return null;
 
     // Extract merchant name — Hebrew text block
     // Remove the date and amounts, what remains is merchant + category
     let remaining = line
       .replace(/\d{2}\/\d{2}\/\d{2}/g, '')
-      .replace(/[\d,]+\.\d{2}/g, '')
+      .replace(/-?[\d,]+\.\d{2}/g, '')
       .trim();
 
     // Extract installment info
@@ -398,6 +417,7 @@ export class HapoalimParser extends BaseParser {
       transactionDate,
       counterpartyName: counterpartyName || 'Unknown',
       debit,
+      credit,
       paymentPurpose: paymentPurpose || 'Domestic purchase',
       currency: 'ILS',
     };

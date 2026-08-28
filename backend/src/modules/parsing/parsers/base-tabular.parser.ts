@@ -7,6 +7,11 @@ export abstract class BaseTabularParser extends BaseParser {
   protected mapColumns(headers: string[]): TabularColumnMapping {
     const mapping: TabularColumnMapping = {};
 
+    // `??=` (not `=`): a category's keyword can match more than one header
+    // in the same file (e.g. both "Сумма операции" and "Сумма в валюте
+    // счета" contain "сумма"). The first, left-to-right match — normally
+    // the primary column for that category — wins instead of a later,
+    // secondary column silently overwriting it with no warning.
     headers.forEach((header, index) => {
       const lowerHeader = header.toLowerCase();
       if (
@@ -15,7 +20,7 @@ export abstract class BaseTabularParser extends BaseParser {
         lowerHeader.includes('fecha') ||
         lowerHeader.includes('data')
       ) {
-        mapping.date = index;
+        mapping.date ??= index;
       }
       if (
         lowerHeader.includes('номер') ||
@@ -24,7 +29,7 @@ export abstract class BaseTabularParser extends BaseParser {
         lowerHeader.includes('номерок') ||
         lowerHeader.includes('doc')
       ) {
-        mapping.document = index;
+        mapping.document ??= index;
       }
       if (
         lowerHeader.includes('контрагент') ||
@@ -34,7 +39,7 @@ export abstract class BaseTabularParser extends BaseParser {
         lowerHeader.includes('payer') ||
         lowerHeader.includes('payee')
       ) {
-        mapping.counterparty = index;
+        mapping.counterparty ??= index;
       }
       if (
         lowerHeader.includes('бин') ||
@@ -42,7 +47,7 @@ export abstract class BaseTabularParser extends BaseParser {
         lowerHeader.includes('inn') ||
         lowerHeader.includes('tax')
       ) {
-        mapping.bin = index;
+        mapping.bin ??= index;
       }
       if (
         lowerHeader.includes('счёт') ||
@@ -50,24 +55,34 @@ export abstract class BaseTabularParser extends BaseParser {
         lowerHeader.includes('account') ||
         lowerHeader.includes('iban')
       ) {
-        mapping.account = index;
+        mapping.account ??= index;
       }
       if (lowerHeader.includes('банк') || lowerHeader.includes('bank')) {
-        mapping.bank = index;
+        mapping.bank ??= index;
       }
       if (
         lowerHeader.includes('дебет') ||
         lowerHeader.includes('debit') ||
         lowerHeader.includes('debe')
       ) {
-        mapping.debit = index;
+        mapping.debit ??= index;
       }
       if (
         lowerHeader.includes('кредит') ||
         lowerHeader.includes('credit') ||
         lowerHeader.includes('haber')
       ) {
-        mapping.credit = index;
+        mapping.credit ??= index;
+      }
+      if (
+        lowerHeader === 'сумма' ||
+        lowerHeader === 'amount' ||
+        lowerHeader === 'monto' ||
+        lowerHeader === 'importe' ||
+        lowerHeader.includes('сумма') ||
+        lowerHeader.includes('amount')
+      ) {
+        mapping.amount ??= index;
       }
       if (
         lowerHeader.includes('назначение') ||
@@ -78,7 +93,7 @@ export abstract class BaseTabularParser extends BaseParser {
         lowerHeader.includes('descr') ||
         lowerHeader.includes('concepto')
       ) {
-        mapping.purpose = index;
+        mapping.purpose ??= index;
       }
       if (
         lowerHeader === 'валюта' ||
@@ -88,7 +103,7 @@ export abstract class BaseTabularParser extends BaseParser {
         lowerHeader.includes('валюта') ||
         lowerHeader.includes('currency')
       ) {
-        mapping.currency = index;
+        mapping.currency ??= index;
       }
     });
 
@@ -120,8 +135,38 @@ export abstract class BaseTabularParser extends BaseParser {
       const bankIndex = columnMapping.bank;
       const debitIndex = columnMapping.debit;
       const creditIndex = columnMapping.credit;
+      const amountIndex = columnMapping.amount;
       const purposeIndex = columnMapping.purpose;
       const currencyIndex = columnMapping.currency;
+
+      // Some exports have a single signed amount column instead of separate
+      // debit/credit columns (negative = expense, positive = income — the
+      // same convention already used for the Google Sheets import path's
+      // equivalent case, see resolveSignedAmount in map-sheet-rows.ts).
+      // Without this, every row in such a file has debit=credit=undefined
+      // and gets silently dropped downstream as "no debit/credit amount".
+      let debit =
+        debitIndex !== undefined
+          ? this.normalizeNumberValue(getValue(debitIndex) as string | number | null | undefined) ||
+            undefined
+          : undefined;
+      let credit =
+        creditIndex !== undefined
+          ? this.normalizeNumberValue(
+              getValue(creditIndex) as string | number | null | undefined,
+            ) || undefined
+          : undefined;
+
+      if (debit === undefined && credit === undefined && amountIndex !== undefined) {
+        const amountValue = this.normalizeNumberValue(
+          getValue(amountIndex) as string | number | null | undefined,
+        );
+        if (amountValue !== null && amountValue < 0) {
+          debit = Math.abs(amountValue);
+        } else if (amountValue !== null && amountValue > 0) {
+          credit = amountValue;
+        }
+      }
 
       const currencyFromColumn =
         currencyIndex !== undefined
@@ -144,18 +189,8 @@ export abstract class BaseTabularParser extends BaseParser {
         counterpartyAccount:
           accountIndex !== undefined ? String(getValue(accountIndex) || '') : undefined,
         counterpartyBank: bankIndex !== undefined ? String(getValue(bankIndex) || '') : undefined,
-        debit:
-          debitIndex !== undefined
-            ? this.normalizeNumberValue(
-                getValue(debitIndex) as string | number | null | undefined,
-              ) || undefined
-            : undefined,
-        credit:
-          creditIndex !== undefined
-            ? this.normalizeNumberValue(
-                getValue(creditIndex) as string | number | null | undefined,
-              ) || undefined
-            : undefined,
+        debit,
+        credit,
         paymentPurpose:
           purposeIndex !== undefined ? String(getValue(purposeIndex) || '') : 'Не указано',
         currency,

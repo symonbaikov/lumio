@@ -75,6 +75,39 @@ describe('AiTransactionExtractor', () => {
     expect(mockRecordAiSuccess).toHaveBeenCalled();
   });
 
+  it('parses transactions even when the backend wraps JSON in a markdown code fence (regression)', async () => {
+    // Some OpenAI-compatible backends (self-hosted/local models) still fence
+    // JSON replies despite response_format:json_object being requested.
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content: `\`\`\`json\n${JSON.stringify({
+                transactions: [
+                  {
+                    date: '2026-01-15',
+                    document_number: 'DOC-1',
+                    counterparty_name: 'Acme',
+                    amount_debit: '1200.50',
+                    purpose: 'Invoice payment',
+                  },
+                ],
+              })}\n\`\`\``,
+            },
+          },
+        ],
+      }),
+    } as Response);
+
+    const extractor = new AiTransactionExtractor('fake-api-key');
+    const result = await extractor.extractTransactions('statement text');
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ documentNumber: 'DOC-1', debit: 1200.5 });
+  });
+
   it('extends BaseAiHelper', () => {
     const extractor = new AiTransactionExtractor('fake-api-key');
 

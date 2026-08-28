@@ -341,11 +341,17 @@ export class ParserFactoryService {
         return { bankName: BankName.HAPOALIM };
       }
 
-      if (await parser.canParse(BankName.BEREKE_NEW, fileType, filePath, cachedText)) {
+      if (
+        parser instanceof BerekeNewParser &&
+        (await parser.canParse(BankName.BEREKE_NEW, fileType, filePath, cachedText))
+      ) {
         this.logger.debug('Detected: Bereke Bank (new format)');
         return { bankName: BankName.BEREKE_NEW, formatVersion: 'new' };
       }
-      if (await parser.canParse(BankName.BEREKE_OLD, fileType, filePath, cachedText)) {
+      if (
+        parser instanceof BerekeOldParser &&
+        (await parser.canParse(BankName.BEREKE_OLD, fileType, filePath, cachedText))
+      ) {
         this.logger.debug('Detected: Bereke Bank (old format)');
         return { bankName: BankName.BEREKE_OLD, formatVersion: 'old' };
       }

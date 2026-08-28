@@ -44,7 +44,10 @@ describe('StatementParsingProcessor', () => {
 });
 
 describe('StaleStatementReaper', () => {
-  const statementRepository = { find: jest.fn(), update: jest.fn(async () => undefined) };
+  const statementRepository = {
+    find: jest.fn(),
+    update: jest.fn(async () => ({ affected: 1 })),
+  };
   const queue = { enqueue: jest.fn(async () => undefined) };
 
   beforeEach(() => jest.clearAllMocks());
@@ -53,12 +56,14 @@ describe('StaleStatementReaper', () => {
 
   it('re-queues a statement stranded in PROCESSING', async () => {
     statementRepository.find.mockResolvedValueOnce([{ id: 'stmt-1', parsingAttempts: 1 }]);
+    statementRepository.update.mockResolvedValueOnce({ affected: 1 });
 
     await reaper().reap();
 
-    expect(statementRepository.update).toHaveBeenCalledWith('stmt-1', {
-      status: StatementStatus.UPLOADED,
-    });
+    expect(statementRepository.update).toHaveBeenCalledWith(
+      { id: 'stmt-1', status: StatementStatus.PROCESSING },
+      { status: StatementStatus.UPLOADED },
+    );
     expect(queue.enqueue).toHaveBeenCalledWith('stmt-1');
   });
 
@@ -71,7 +76,7 @@ describe('StaleStatementReaper', () => {
 
     expect(queue.enqueue).not.toHaveBeenCalled();
     expect(statementRepository.update).toHaveBeenCalledWith(
-      'stmt-poison',
+      { id: 'stmt-poison', status: StatementStatus.PROCESSING },
       expect.objectContaining({ status: StatementStatus.ERROR }),
     );
   });
@@ -82,6 +87,22 @@ describe('StaleStatementReaper', () => {
     await reaper().reap();
 
     expect(statementRepository.update).not.toHaveBeenCalled();
+    expect(queue.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('does not re-queue (or clobber) a statement that already left PROCESSING by the time the conditional update runs', async () => {
+    // Simulates the real race this guards against: the statement heartbeated
+    // or finished between the reaper's SELECT and this UPDATE, so the
+    // WHERE status = PROCESSING clause no longer matches.
+    statementRepository.find.mockResolvedValueOnce([{ id: 'stmt-1', parsingAttempts: 1 }]);
+    statementRepository.update.mockResolvedValueOnce({ affected: 0 });
+
+    await reaper().reap();
+
+    expect(statementRepository.update).toHaveBeenCalledWith(
+      { id: 'stmt-1', status: StatementStatus.PROCESSING },
+      { status: StatementStatus.UPLOADED },
+    );
     expect(queue.enqueue).not.toHaveBeenCalled();
   });
 });
