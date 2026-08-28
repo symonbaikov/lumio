@@ -1,14 +1,80 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "7d8b64d11f8048b28cb9bf3ff85acd1c898010a5"
+      "main": "4adbe5bb7c311095bd75ab49370ffdcad5fa134d"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-08-27T17:19:15.914Z",
+    "lastGeneratedAt": "2026-08-28T11:17:45.652Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-08-28-4adbe5b",
+      "version": "main-4adbe5b",
+      "branch": "main",
+      "date": "2026-08-28T11:17:45.652Z",
+      "title": "Release update - August 28, 2026",
+      "summary": "This release includes 2 fixes.",
+      "markdown": "## Fixes\n- **parsing**: Real-world statement support — DOCX parser, header scan, money-path fixes\n- **parsing**: Resolve CodeQL alerts in DOCX text extraction",
+      "commits": [
+        {
+          "sha": "8a6eb3ace7583d86922c1283e61e02e850781548",
+          "shortSha": "8a6eb3ac",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-08-27T17:19:16Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "5e971e84a414de3b958ec3a2a414e81a5cacc3da",
+          "shortSha": "5e971e84",
+          "subject": "fix(parsing): real-world statement support — DOCX parser, header scan, money-path fixes",
+          "author": "peterbaikov",
+          "date": "2026-08-28T13:15:15+03:00",
+          "files": [
+            "backend/@tests/unit/modules/parsing/services/parser-factory.service.spec.ts",
+            "backend/@tests/unit/statement-parsing-tabular.spec.ts",
+            "backend/Dockerfile",
+            "backend/src/common/utils/number-normalizer.util.ts",
+            "backend/src/modules/parsing/parsers/base-tabular.parser.ts",
+            "backend/src/modules/parsing/parsers/docx.parser.ts",
+            "backend/src/modules/parsing/parsers/excel.parser.ts",
+            "backend/src/modules/parsing/services/parser-factory.service.ts"
+          ]
+        },
+        {
+          "sha": "6c254477dd8b885258b081fbf2bd3616e511aaa2",
+          "shortSha": "6c254477",
+          "subject": "fix(parsing): resolve CodeQL alerts in DOCX text extraction",
+          "author": "peterbaikov",
+          "date": "2026-08-28T13:31:27+03:00",
+          "files": [
+            "backend/src/modules/parsing/parsers/docx.parser.ts"
+          ]
+        },
+        {
+          "sha": "fa7cc3c7f0c024a47ad0246474e94875646cb897",
+          "shortSha": "fa7cc3c7",
+          "subject": "Merge pull request #131 from symonbaikov/feat/bank-statement-parser-test-dba74a",
+          "author": "Symon Baikov",
+          "date": "2026-08-28T13:55:13+03:00",
+          "files": []
+        },
+        {
+          "sha": "4adbe5bb7c311095bd75ab49370ffdcad5fa134d",
+          "shortSha": "4adbe5bb",
+          "subject": "Replace old image and add project badges",
+          "author": "Symon Baikov",
+          "date": "2026-08-28T14:17:23+03:00",
+          "files": [
+            "README.md"
+          ]
+        }
+      ]
+    },
     {
       "id": "changelog-2026-08-27-7d8b64d",
       "version": "main-7d8b64d",
