@@ -328,7 +328,10 @@ jobs:
         run: npm --prefix backend run test:ci
 
       - name: Upload coverage to Qlty
-        if: success() && env.QLTY_COVERAGE_TOKEN != ''
+        # !cancelled(): unit coverage is written before the e2e stage runs, so
+        # upload it even when e2e fails — otherwise the badge never updates
+        # while e2e is red.
+        if: ${{ !cancelled() && env.QLTY_COVERAGE_TOKEN != '' }}
         uses: qltysh/qlty-action/coverage@v2
         with:
           token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
