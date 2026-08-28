@@ -119,8 +119,7 @@ export class DocxParser extends BaseTabularParser {
       for (const tr of match[0].match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) || []) {
         const cells = (tr.match(/<w:tc[ >][\s\S]*?<\/w:tc>/g) || []).map(tc =>
           this.decodeXmlEntities(
-            (tc.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [])
-              .map(t => t.replace(/<[^>]+>/g, ''))
+            Array.from(tc.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g), m => m[1])
               .join('')
               .trim(),
           ),
@@ -142,22 +141,26 @@ export class DocxParser extends BaseTabularParser {
 
   /** Extracts document text with paragraph line breaks for metadata scanning. */
   private extractPlainText(xml: string): string {
-    return this.decodeXmlEntities(
-      xml
-        .replace(/<\/w:p>/g, '\n')
-        .replace(/<w:tab[^>]*\/>/g, ' ')
-        .replace(/<[^>]+>/g, '')
-        .replace(/[ \t]+/g, ' '),
-    ).trim();
+    let stripped = xml.replace(/<\/w:p>/g, '\n').replace(/<w:tab[^>]*\/>/g, ' ');
+    // Strip tags to a fixpoint so no partial tag survives a single pass
+    let previous: string;
+    do {
+      previous = stripped;
+      stripped = stripped.replace(/<[^>]*>?/g, '');
+    } while (stripped !== previous);
+    return this.decodeXmlEntities(stripped.replace(/[ \t]+/g, ' ')).trim();
   }
 
   private decodeXmlEntities(text: string): string {
-    return text
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&apos;/g, "'");
+    // Single pass so "&amp;lt;" decodes to "&lt;", not "<"
+    const entities: Record<string, string> = {
+      amp: '&',
+      lt: '<',
+      gt: '>',
+      quot: '"',
+      apos: "'",
+    };
+    return text.replace(/&(amp|lt|gt|quot|apos);/g, (_, name: string) => entities[name]);
   }
 
   /** First plausible statement year mentioned in the document, if any. */
