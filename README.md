@@ -83,6 +83,11 @@ Lumio is a full-stack financial operations platform built for teams that need to
 - **API Keys** — Programmatic access via `lum_`-prefixed, SHA-256 hashed keys with revocation support.
 - **Budgets** — Budget tracking with manual spend recording and alerts.
 - **Subscriptions** — Recurring billing detection and management with frequency-based tracking.
+- **Goals & Net Worth** — Savings goals with progress tracking, and net worth aggregated across accounts, wallets, and crypto holdings.
+- **Crypto Portfolio** — Crypto holdings with price and wallet sync, and transfer mapping into transactions.
+- **AI Chat & Semantic Search** — Ask questions about your data; embeddings-backed transaction search plus a global cross-entity search.
+- **Tax Engine** — Tax rates, rules, jurisdictions, thresholds, and tax return generation.
+- **Backups** — Scheduled encrypted backups with export, import, and restore.
 - **Docker Ready** — One-command deployment with Docker Compose.
 
 <details>
@@ -135,7 +140,7 @@ Setting expectations upfront:
 
 - **Not a bank integration** — Lumio parses statement files you export from your bank. It does not connect to bank APIs or fetch transactions automatically.
 - **Not a full general ledger** — There is no double-entry bookkeeping, chart of accounts, or journal entry workflow.
-- **Not a tax calculation engine** — Tax rates are reference data for enriching transactions; Lumio does not compute tax returns or filings.
+- **Not a filing service** — Lumio computes tax figures and generates tax return documents, but it does not submit anything to a tax authority on your behalf.
 - **Not an invoicing tool** — There is no invoice creation, sending, or payment tracking.
 - **Not a replacement for accounting software** — Think of Lumio as the import and analysis layer that feeds your existing workflow, not a replacement for QuickBooks, Xero, or 1C.
 
@@ -171,7 +176,7 @@ Setting expectations upfront:
 | AI / LLM | OpenAI-compatible HTTP endpoint (Ollama, LocalAI, vLLM) |
 | Email | SMTP via nodemailer + React Email templates |
 | Real-time | Socket.IO 4 + @nestjs/websockets |
-| Scheduling | @nestjs/schedule (cron jobs for Telegram reports, Gmail sync) |
+| Scheduling | @nestjs/schedule (cron jobs for Telegram reports, backups, crypto sync) |
 | Metrics | prom-client (Prometheus) |
 | Validation | class-validator + class-transformer (DTOs) |
 | API Docs | Swagger / OpenAPI at `/api/docs` |
@@ -187,7 +192,7 @@ Setting expectations upfront:
 | Styling | MUI v7 + Emotion |
 | Icons | Lucide React |
 | Tables | TanStack Table v8 + TanStack Virtual v3 |
-| Charts | ECharts v5 + echarts-for-react |
+| Charts | ECharts v6 + echarts-for-react |
 | Drag & Drop | @dnd-kit/core + @dnd-kit/sortable |
 | HTTP | Axios v1 |
 | Real-time | socket.io-client v4 |
@@ -195,7 +200,7 @@ Setting expectations upfront:
 | Onboarding | driver.js |
 | PDF Viewer | react-pdf v10 |
 | Animation | framer-motion v12 |
-| Tests | Vitest v2 |
+| Tests | Vitest v4 |
 
 ### Infrastructure
 
@@ -213,7 +218,7 @@ Setting expectations upfront:
 lumio/
 ├── backend/                         # NestJS API server
 │   ├── src/
-│   │   ├── modules/                 # 36 feature modules
+│   │   ├── modules/                 # 43 feature modules
 │   │   │   ├── api-keys/            # Programmatic API key management
 │   │   │   ├── application-settings/ # Runtime system configuration
 │   │   │   ├── auth/                # JWT auth, refresh tokens, session management
@@ -243,17 +248,24 @@ lumio/
 │   │   │   ├── import/              # Import session tracking
 │   │   │   ├── branches/            # Branch reference data
 │   │   │   ├── wallets/             # Wallet reference data
-│   │   │   ├── tax-rates/           # Tax rate reference data
+│   │   │   ├── tax/                 # Tax rates, rules, jurisdictions, tax returns
 │   │   │   ├── payables/            # Accounts payable workflow
 │   │   │   ├── receipts/            # Receipt management & browser
 │   │   │   ├── subscriptions/       # Recurring billing detection & management
 │   │   │   ├── webhooks/            # Outbound event delivery to endpoints
 │   │   │   ├── open-protocol-integrations/ # S3, WebDAV, IMAP protocol handlers
+│   │   │   ├── ai-analysis/         # AI chat, embeddings, semantic transaction search
+│   │   │   ├── search/              # Global cross-entity search
+│   │   │   ├── crypto/              # Crypto holdings, price and wallet sync
+│   │   │   ├── goals/               # Savings / financial goals
+│   │   │   ├── net-worth/           # Net worth aggregation across accounts
+│   │   │   ├── backups/             # Encrypted scheduled backups, export & restore
+│   │   │   ├── mailer/              # Transactional email delivery
 │   │   │   └── observability/       # Prometheus metrics endpoint
-│   │   ├── entities/                # 59 TypeORM entities
+│   │   ├── entities/                # 77 TypeORM entities
 │   │   ├── common/                  # Guards, decorators, interceptors, filters
 │   │   ├── config/                  # App configuration
-│   │   └── migrations/              # 90 database migrations (auto-applied on startup)
+│   │   └── migrations/              # 131 database migrations (auto-applied on startup)
 │   ├── scripts/                     # Admin, seed, parse debug, storage repair
 │   └── @tests/                      # Unit and E2E test suites
 ├── frontend/                        # Next.js application
@@ -261,14 +273,22 @@ lumio/
 │   │   ├── (auth)/                  # Login, register pages
 │   │   ├── (onboarding)/            # Onboarding flow
 │   │   ├── (main)/                  # Protected app routes
+│   │   │   ├── dashboard/           # Dashboard
 │   │   │   ├── statements/          # Statement list, detail, reports sub-routes
-│   │   │   ├── receipts/            # Gmail receipt browser
 │   │   │   ├── reports/             # Financial reports
+│   │   │   ├── budgets/             # Budget tracking
+│   │   │   ├── goals/               # Financial goals
+│   │   │   ├── net-worth/           # Net worth overview
+│   │   │   ├── crypto/              # Crypto portfolio
+│   │   │   ├── subscriptions/       # Recurring billing
+│   │   │   ├── roi/                 # ROI analysis
+│   │   │   ├── advice/              # AI advice
+│   │   │   ├── ai-analysis/         # AI chat over your data
 │   │   │   ├── custom-tables/       # Custom table UI
 │   │   │   ├── workspaces/          # Workspace management
 │   │   │   └── supported-banks/     # Supported banks reference page
 │   │   ├── categories/              # Category management
-│   │   ├── data-entry/              # Manual data entry UI
+│   │   ├── chat/                    # AI chat UI
 │   │   ├── integrations/            # Integration hub (S3, WebDAV, IMAP, workbook import)
 │   │   ├── storage/                 # File storage browser
 │   │   ├── settings/                # Profile, notifications, workspace, Telegram
@@ -281,7 +301,7 @@ lumio/
 │   │   └── tours/                   # driver.js guided tour definitions
 │   └── public/                      # Static assets, bank logos
 ├── docs/
-│   ├── plans/                       # 38 feature design & implementation plans
+│   ├── plans/                       # 35 feature design & implementation plans
 │   ├── CI/                          # CI/CD pipeline documentation
 │   ├── security/                    # CVE allowlists, license exceptions
 │   └── statements-examples/         # Sample bank statement files for testing
@@ -628,7 +648,7 @@ make update            # Update npm dependencies
 
 ### Database Migrations
 
-Lumio uses TypeORM migrations exclusively (`synchronize: false`). Migrations run automatically on every startup unless `RUN_MIGRATIONS=false` is set. There are currently 90 migrations covering the entire schema history.
+Lumio uses TypeORM migrations exclusively (`synchronize: false`). Migrations run automatically on every startup unless `RUN_MIGRATIONS=false` is set. There are currently 131 migrations covering the entire schema history.
 
 ```bash
 # Apply all pending migrations (Docker)
@@ -772,8 +792,8 @@ npm test               # Run all tests with Vitest
 ┌──────────▼────────────┐   ┌──────────▼────────────┐
 │   PostgreSQL 14       │   │     Redis 7           │
 │                       │   │                       │
-│  - 59 TypeORM entities│   │  - Session cache      │
-│  - 90 migrations      │   │  - Rate limiting      │
+│  - 77 TypeORM entities│   │  - Session cache      │
+│  - 131 migrations     │   │  - Rate limiting      │
 │  - Full-text search   │   │  - Bull queues        │
 └───────────────────────┘   └───────────────────────┘
 
@@ -804,7 +824,7 @@ npm test               # Run all tests with Vitest
 - SHA-256 `fileHash` on statements for idempotent re-upload detection
 - `Idempotency-Key` header supported on upload endpoints (stored in `IdempotencyKey` entity)
 - Transaction fingerprinting for cross-statement duplicate detection
-- 59 TypeORM entities covering all domain objects (see `backend/src/entities/`)
+- 77 TypeORM entities covering all domain objects (see `backend/src/entities/`)
 
 ### Parsing Pipeline
 
@@ -917,7 +937,7 @@ See [RAILWAY.md](RAILWAY.md) for step-by-step instructions.
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community guidelines |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [RAILWAY.md](RAILWAY.md) | Railway deployment step-by-step |
-| [docs/plans/](docs/plans/) | 38 feature design and implementation plan documents |
+| [docs/plans/](docs/plans/) | 35 feature design and implementation plan documents |
 | [docs/CI/](docs/CI/) | CI/CD pipeline documentation |
 | [docs/security/](docs/security/) | CVE allowlists and license exceptions |
 
