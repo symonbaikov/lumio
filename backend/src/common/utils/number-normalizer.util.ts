@@ -17,14 +17,19 @@ export function normalizeNumber(value: string | number | null | undefined): numb
     return null;
   }
 
-  // Remove all spaces
-  let normalized = value.replace(/\s/g, '');
+  // Remove all spaces and any non-digit characters except dot, comma and minus
+  let normalized = value.replace(/\s/g, '').replace(/[^\d.,-]/g, '');
 
-  // Replace comma with dot
-  normalized = normalized.replace(/,/g, '.');
-
-  // Remove any non-digit characters except dot and minus
-  normalized = normalized.replace(/[^\d.-]/g, '');
+  if (normalized.includes('.')) {
+    // Dot is the decimal separator, commas are thousands separators
+    normalized = normalized.replace(/,/g, '');
+  } else if (/^-?\d{1,3}(,\d{3})+$/.test(normalized)) {
+    // "2,000" / "1,000,000" — commas are thousands separators
+    normalized = normalized.replace(/,/g, '');
+  } else {
+    // "123,45" — comma is the decimal separator
+    normalized = normalized.replace(/,/g, '.');
+  }
 
   // Handle multiple dots (keep only the last one)
   const parts = normalized.split('.');
@@ -103,19 +108,25 @@ export function normalizeDate(dateStr: string): Date | null {
   for (const format of formats) {
     const match = dateStr.match(format);
     if (match) {
-      if (format === formats[0]) {
-        // DD.MM.YYYY
-        return new Date(`${match[3]}-${match[2]}-${match[1]}`);
-      }
-
       if (format === formats[1]) {
         // YYYY-MM-DD
-        return new Date(dateStr);
+        const parsed = new Date(dateStr);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed;
+        }
+        continue;
       }
 
-      if (format === formats[2]) {
-        // DD/MM/YYYY
-        return new Date(`${match[3]}-${match[2]}-${match[1]}`);
+      // DD.MM.YYYY or DD/MM/YYYY; US statements use MM/DD/YYYY, so swap when
+      // the middle component cannot be a month.
+      let day = Number(match[1]);
+      let month = Number(match[2]);
+      const year = Number(match[3]);
+      if (month > 12 && day <= 12) {
+        [day, month] = [month, day];
+      }
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        return new Date(year, month - 1, day);
       }
     }
   }
@@ -128,10 +139,13 @@ export function normalizeDate(dateStr: string): Date | null {
     return new Date(year, Number(mm) - 1, Number(dd));
   }
 
-  // Try direct parsing
+  // Try direct parsing; reject nonsense years (e.g. "45424" parsed as a year)
   const parsed = new Date(dateStr);
   if (!Number.isNaN(parsed.getTime())) {
-    return parsed;
+    const year = parsed.getFullYear();
+    if (year >= 1950 && year <= 2100) {
+      return parsed;
+    }
   }
 
   return null;
