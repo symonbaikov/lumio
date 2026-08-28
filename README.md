@@ -157,6 +157,7 @@ Setting expectations upfront:
 | Bank Hapoalim / Isracard | PDF | `HapoalimParser` — native (Hebrew) |
 | Any bank | CSV | `CsvParser` — generic delimiter detection |
 | Any bank | XLSX / XLS | `ExcelParser` — generic |
+| Any bank | DOCX | `DocxParser` — generic table extraction |
 | Any bank | PDF | `GenericPdfParser` — AI-assisted via OpenAI-compatible endpoint |
 | Any bank | Image (PNG / JPG) | OCR pipeline via Tesseract.js |
 
