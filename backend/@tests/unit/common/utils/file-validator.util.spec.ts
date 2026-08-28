@@ -1,13 +1,24 @@
+import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { BadRequestException } from '@nestjs/common';
+import { resolveUploadsDir } from '@/common/utils/uploads.util';
 import {
   getFileTypeFromMime,
   unlinkAll,
   validateFile,
   validateFiles,
 } from '@/common/utils/file-validator.util';
+
+// Fixtures must live inside the real uploads directory: the module under
+// test only trusts (reads/deletes) paths within it, matching what Multer's
+// diskStorage actually produces in production — see file-validator.util.ts.
+function makeTempDir(prefix: string): string {
+  const dir = path.join(resolveUploadsDir(), `${prefix}-${randomUUID()}`);
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
 
 function makeFile(overrides: Partial<Express.Multer.File>): Express.Multer.File {
   return {
@@ -29,7 +40,7 @@ describe('validateFile', () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'file-validator-'));
+    tmpDir = makeTempDir('file-validator');
   });
 
   afterEach(() => {
@@ -103,13 +114,31 @@ describe('validateFile', () => {
     const file = makeFile({ mimetype: 'application/pdf', path: '/tmp/does-not-exist-12345.pdf' });
     expect(() => validateFile(file)).not.toThrow();
   });
+
+  it('does not read a path outside the uploads directory even if it exists on disk', () => {
+    // Multer's diskStorage never produces a path outside the uploads root,
+    // but validateFile must not take that on faith — a file.path pointing
+    // elsewhere is skipped (not opened) rather than trusted.
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'outside-uploads-'));
+    try {
+      const outsidePath = path.join(outsideDir, 'fake.pdf');
+      fs.writeFileSync(outsidePath, '<html>not a pdf</html>');
+      const file = makeFile({ mimetype: 'application/pdf', path: outsidePath });
+      // Signature check is skipped for an out-of-bounds path, so a mismatched
+      // (non-PDF) payload does NOT get caught — but it also doesn't throw or
+      // read the file, which is the property under test.
+      expect(() => validateFile(file)).not.toThrow();
+    } finally {
+      fs.rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('validateFiles / unlinkAll', () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'file-validator-batch-'));
+    tmpDir = makeTempDir('file-validator-batch');
   });
 
   afterEach(() => {
@@ -148,6 +177,20 @@ describe('validateFiles / unlinkAll', () => {
 
     await expect(unlinkAll(files)).resolves.toBeUndefined();
     expect(fs.existsSync(p1)).toBe(false);
+  });
+
+  it('unlinkAll never deletes a path outside the uploads directory', async () => {
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'outside-uploads-'));
+    try {
+      const outsidePath = path.join(outsideDir, 'unrelated.tmp');
+      fs.writeFileSync(outsidePath, 'x');
+      const files = [makeFile({ path: outsidePath })];
+
+      await expect(unlinkAll(files)).resolves.toBeUndefined();
+      expect(fs.existsSync(outsidePath)).toBe(true);
+    } finally {
+      fs.rmSync(outsideDir, { recursive: true, force: true });
+    }
   });
 });
 

@@ -1,6 +1,21 @@
 import * as fs from 'fs';
 import { BadRequestException } from '@nestjs/common';
 import * as fsp from 'fs/promises';
+import * as path from 'path';
+import { resolveUploadsDir } from './uploads.util';
+
+// Multer's diskStorage (see config/multer.config.ts) always writes to this
+// directory under a server-generated random filename — file.path is never
+// built from client input (originalname included). This check is defense
+// in depth against that invariant ever being violated, and makes the
+// filesystem calls below auditable as bounded rather than taking an
+// Express.Multer.File's path on faith.
+const uploadsRoot = resolveUploadsDir();
+
+function isWithinUploadsDir(candidatePath: string): boolean {
+  const relative = path.relative(uploadsRoot, path.resolve(candidatePath));
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
 
 enum AllowedFileType {
   PDF = 'application/pdf',
@@ -24,23 +39,44 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 // even a ZIP/PDF/image at all — it doesn't distinguish DOCX from XLSX content.
 // CSV has no reliable magic bytes (plain text) and is intentionally skipped.
 const ZIP_SIGNATURE = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
-const MAGIC_BYTES: Partial<Record<AllowedFileType, (buf: Buffer) => boolean>> = {
-  [AllowedFileType.PDF]: buf => buf.subarray(0, 5).toString('latin1') === '%PDF-',
-  [AllowedFileType.XLSX]: buf => buf.subarray(0, 4).equals(ZIP_SIGNATURE),
-  [AllowedFileType.DOCX]: buf => buf.subarray(0, 4).equals(ZIP_SIGNATURE),
-  [AllowedFileType.XLS]: buf =>
-    buf.subarray(0, 8).equals(Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])),
-  [AllowedFileType.JPG]: buf => buf.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff])),
-  [AllowedFileType.PNG]: buf =>
-    buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
-  [AllowedFileType.TIFF]: buf =>
-    buf.subarray(0, 4).equals(Buffer.from([0x49, 0x49, 0x2a, 0x00])) ||
-    buf.subarray(0, 4).equals(Buffer.from([0x4d, 0x4d, 0x00, 0x2a])),
-  [AllowedFileType.BMP]: buf => buf.subarray(0, 2).toString('latin1') === 'BM',
-  [AllowedFileType.WEBP]: buf =>
-    buf.subarray(0, 4).toString('latin1') === 'RIFF' &&
-    buf.subarray(8, 12).toString('latin1') === 'WEBP',
-};
+// Map, not a plain object: file.mimetype is client-declared and used as the
+// lookup key immediately below. A plain object literal is reachable through
+// the prototype chain (e.g. a mimetype of "constructor"), which is exactly
+// the "user-controlled key used for dynamic dispatch" shape static analysis
+// flags — a Map has no such inherited keys, so an unrecognized/adversarial
+// mimetype can only ever produce a real `undefined`, never a foreign function.
+const MAGIC_BYTES: ReadonlyMap<AllowedFileType, (buf: Buffer) => boolean> = new Map([
+  [AllowedFileType.PDF, (buf: Buffer) => buf.subarray(0, 5).toString('latin1') === '%PDF-'],
+  [AllowedFileType.XLSX, (buf: Buffer) => buf.subarray(0, 4).equals(ZIP_SIGNATURE)],
+  [AllowedFileType.DOCX, (buf: Buffer) => buf.subarray(0, 4).equals(ZIP_SIGNATURE)],
+  [
+    AllowedFileType.XLS,
+    (buf: Buffer) =>
+      buf.subarray(0, 8).equals(Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])),
+  ],
+  [
+    AllowedFileType.JPG,
+    (buf: Buffer) => buf.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff])),
+  ],
+  [
+    AllowedFileType.PNG,
+    (buf: Buffer) =>
+      buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+  ],
+  [
+    AllowedFileType.TIFF,
+    (buf: Buffer) =>
+      buf.subarray(0, 4).equals(Buffer.from([0x49, 0x49, 0x2a, 0x00])) ||
+      buf.subarray(0, 4).equals(Buffer.from([0x4d, 0x4d, 0x00, 0x2a])),
+  ],
+  [AllowedFileType.BMP, (buf: Buffer) => buf.subarray(0, 2).toString('latin1') === 'BM'],
+  [
+    AllowedFileType.WEBP,
+    (buf: Buffer) =>
+      buf.subarray(0, 4).toString('latin1') === 'RIFF' &&
+      buf.subarray(8, 12).toString('latin1') === 'WEBP',
+  ],
+]);
 
 // Returns null (rather than throwing) when the file can't be read: at this
 // point multer has already written it moments earlier in the same request,
@@ -49,6 +85,9 @@ const MAGIC_BYTES: Partial<Record<AllowedFileType, (buf: Buffer) => boolean>> = 
 // malicious payload — the declared-mimetype allowlist check still applies
 // either way.
 function readSignature(filePath: string): Buffer | null {
+  if (!isWithinUploadsDir(filePath)) {
+    return null;
+  }
   let fd: number;
   try {
     fd = fs.openSync(filePath, 'r');
@@ -90,7 +129,7 @@ export function validateFile(file: Express.Multer.File): void {
     );
   }
 
-  const checkSignature = MAGIC_BYTES[file.mimetype as AllowedFileType];
+  const checkSignature = MAGIC_BYTES.get(file.mimetype as AllowedFileType);
   if (checkSignature && file.path) {
     const signature = readSignature(file.path);
     if (signature && !checkSignature(signature)) {
@@ -110,7 +149,9 @@ export function validateFile(file: Express.Multer.File): void {
 export async function unlinkAll(files: Express.Multer.File[]): Promise<void> {
   await Promise.all(
     files.map(file =>
-      file.path ? fsp.unlink(file.path).catch(() => undefined) : Promise.resolve(),
+      file.path && isWithinUploadsDir(file.path)
+        ? fsp.unlink(file.path).catch(() => undefined)
+        : Promise.resolve(),
     ),
   );
 }

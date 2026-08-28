@@ -383,7 +383,12 @@ export class StatementsService {
 
     const transactionDate = new Date(parsedDate.toISOString().slice(0, 10));
 
-    const normalizedFiles = files || [];
+    // Array.isArray, not `files || []`: `files` comes from a multipart
+    // upload field decorated with @UploadedFiles(), and although Multer's
+    // FilesInterceptor always produces an array (or omits the field), an
+    // explicit type check rather than truthiness keeps that guarantee from
+    // ever being taken on faith for this parameter.
+    const normalizedFiles = Array.isArray(files) ? files : [];
     normalizedFiles.forEach(validateFile);
 
     let fileName: string;
