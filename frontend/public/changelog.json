@@ -1,14 +1,157 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "944112476235f021b18a97205f69d859f5007bc2"
+      "main": "5b6c7e93a21d0891d2866bf6975c937efbcb6daf"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-08-28T16:10:47.009Z",
+    "lastGeneratedAt": "2026-08-28T16:21:43.170Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-08-28-5b6c7e9",
+      "version": "main-5b6c7e9",
+      "branch": "main",
+      "date": "2026-08-28T16:21:43.170Z",
+      "title": "Release update - August 28, 2026",
+      "summary": "This release includes 3 fixes.",
+      "markdown": "## Fixes\n- Close bank-statement parsing gaps found across a multi-phase audit\n- Address CodeQL findings in file-validator and statements.service\n- Close remaining unlinkAll path-taint alert and CI lint import order",
+      "commits": [
+        {
+          "sha": "4999c924156d530c96704c7bcfd8933aa93fc1f0",
+          "shortSha": "4999c924",
+          "subject": "fix: close bank-statement parsing gaps found across a multi-phase audit",
+          "author": "peterbaikov",
+          "date": "2026-08-28T18:47:32+03:00",
+          "files": [
+            "backend/@tests/fixtures/parsing/build-fixtures.ts",
+            "backend/@tests/unit/common/services/cloud-storage-base.service.spec.ts",
+            "backend/@tests/unit/common/utils/file-validator.util.spec.ts",
+            "backend/@tests/unit/common/utils/number-normalizer.util.spec.ts",
+            "backend/@tests/unit/common/utils/pdf-parser-resilience.spec.ts",
+            "backend/@tests/unit/common/utils/zip-bomb-guard.util.spec.ts",
+            "backend/@tests/unit/modules/dropbox/dropbox.service.spec.ts",
+            "backend/@tests/unit/modules/import/import-session.controller.spec.ts",
+            "backend/@tests/unit/modules/import/import.module.spec.ts",
+            "backend/@tests/unit/modules/import/services/import-retry.service.spec.ts",
+            "backend/@tests/unit/modules/import/services/import-session.service.spec.ts",
+            "backend/@tests/unit/modules/parsing/helpers/ai-parse-validator.helper.spec.ts",
+            "backend/@tests/unit/modules/parsing/helpers/ai-transaction-extractor.helper.spec.ts",
+            "backend/@tests/unit/modules/parsing/parsers/base-tabular.parser.spec.ts",
+            "backend/@tests/unit/modules/parsing/parsers/bereke-base.parser.spec.ts",
+            "backend/@tests/unit/modules/parsing/parsers/generic-pdf.parser.spec.ts",
+            "backend/@tests/unit/modules/parsing/parsers/hapoalim.parser.spec.ts",
+            "backend/@tests/unit/modules/parsing/parsers/kaspi.parser.spec.ts",
+            "backend/@tests/unit/modules/parsing/queue/statement-parsing.processor.spec.ts",
+            "backend/@tests/unit/modules/parsing/services/metadata-extraction.service.spec.ts",
+            "backend/@tests/unit/modules/parsing/services/parser-factory.service.spec.ts",
+            "backend/@tests/unit/modules/parsing/services/universal-date-parser.service.spec.ts",
+            "backend/@tests/unit/modules/transactions/cross-statement-deduplication.service.spec.ts",
+            "backend/@tests/unit/test/parsing-regression.spec.ts",
+            "backend/@tests/unit/test/statement-processing.service.spec.ts",
+            "backend/Dockerfile",
+            "backend/src/common/utils/file-validator.util.ts",
+            "backend/src/common/utils/number-normalizer.util.ts",
+            "backend/src/common/utils/pdf-parser.util.ts",
+            "backend/src/common/utils/zip-bomb-guard.util.ts",
+            "backend/src/entities/import-session.entity.ts",
+            "backend/src/modules/google-sheets/services/sheet-source-loader.service.ts",
+            "backend/src/modules/import/INTEGRATION_EXAMPLE.md",
+            "backend/src/modules/import/errors/README.md",
+            "backend/src/modules/import/import-session.controller.ts",
+            "backend/src/modules/import/import.module.ts",
+            "backend/src/modules/import/services/README.retry.md",
+            "backend/src/modules/import/services/import-retry.service.ts",
+            "backend/src/modules/import/services/import-session.service.ts",
+            "backend/src/modules/parsing/controllers/parsing.controller.ts",
+            "backend/src/modules/parsing/helpers/ai-parse-validator.helper.ts",
+            "backend/src/modules/parsing/helpers/ai-transaction-extractor.helper.ts",
+            "backend/src/modules/parsing/interfaces/parser.interface.ts",
+            "backend/src/modules/parsing/parsers/base-tabular.parser.ts",
+            "backend/src/modules/parsing/parsers/base.parser.ts",
+            "backend/src/modules/parsing/parsers/bereke-base.parser.ts",
+            "backend/src/modules/parsing/parsers/excel.parser.ts",
+            "backend/src/modules/parsing/parsers/generic-pdf.parser.ts",
+            "backend/src/modules/parsing/parsers/hapoalim.parser.ts",
+            "backend/src/modules/parsing/parsers/kaspi.parser.ts",
+            "backend/src/modules/parsing/queue/statement-parsing.processor.ts",
+            "backend/src/modules/parsing/services/intelligent-deduplication.service.ts",
+            "backend/src/modules/parsing/services/metadata-extraction.service.ts",
+            "backend/src/modules/parsing/services/parser-factory.service.ts",
+            "backend/src/modules/parsing/services/statement-processing.service.ts",
+            "backend/src/modules/parsing/services/universal-date-parser.service.ts",
+            "backend/src/modules/statements/statements.controller.ts",
+            "backend/src/modules/statements/statements.service.ts",
+            "backend/src/modules/transactions/services/cross-statement-deduplication.service.ts",
+            "backend/src/modules/transactions/services/transaction-fingerprint.service.ts",
+            "backend/src/modules/transactions/transactions.controller.ts"
+          ]
+        },
+        {
+          "sha": "d8e385fa8a6ee3b9233e38ce79fe06538b33e1ea",
+          "shortSha": "d8e385fa",
+          "subject": "Merge remote-tracking branch 'origin/main' into feat/bank-statement-parsing-gaps-b095a9",
+          "author": "peterbaikov",
+          "date": "2026-08-28T18:59:51+03:00",
+          "files": [
+            "backend/@tests/unit/modules/parsing/services/parser-factory.service.spec.ts",
+            "backend/Dockerfile",
+            "backend/src/common/utils/number-normalizer.util.ts",
+            "backend/src/modules/parsing/parsers/base-tabular.parser.ts",
+            "backend/src/modules/parsing/parsers/excel.parser.ts"
+          ]
+        },
+        {
+          "sha": "e69e8d8ae9ab178792d7cb50748e35cc627fcc5f",
+          "shortSha": "e69e8d8a",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-08-28T16:10:47Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "aad175773a194fce6e1c6b6e321cc146dadb3d5c",
+          "shortSha": "aad17577",
+          "subject": "fix: address CodeQL findings in file-validator and statements.service",
+          "author": "peterbaikov",
+          "date": "2026-08-28T19:12:08+03:00",
+          "files": [
+            "backend/@tests/unit/common/utils/file-validator.util.spec.ts",
+            "backend/src/common/utils/file-validator.util.ts",
+            "backend/src/modules/statements/statements.service.ts"
+          ]
+        },
+        {
+          "sha": "e23168ab8d5bc88d464781453b70bebd2646dc2c",
+          "shortSha": "e23168ab",
+          "subject": "Merge remote-tracking branch 'origin/main' into feat/bank-statement-parsing-gaps-b095a9",
+          "author": "peterbaikov",
+          "date": "2026-08-28T19:13:30+03:00",
+          "files": []
+        },
+        {
+          "sha": "d2d6e26e49e8c7c1e11e53793a001d480e52a087",
+          "shortSha": "d2d6e26e",
+          "subject": "fix: close remaining unlinkAll path-taint alert and CI lint import order",
+          "author": "peterbaikov",
+          "date": "2026-08-28T19:19:37+03:00",
+          "files": [
+            "backend/src/common/utils/file-validator.util.ts"
+          ]
+        },
+        {
+          "sha": "5b6c7e93a21d0891d2866bf6975c937efbcb6daf",
+          "shortSha": "5b6c7e93",
+          "subject": "Merge pull request #135 from symonbaikov/feat/bank-statement-parsing-gaps-b095a9",
+          "author": "Symon Baikov",
+          "date": "2026-08-28T19:21:22+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-08-28-9441124",
       "version": "main-9441124",
