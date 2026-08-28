@@ -28,6 +28,12 @@ RUN npm run build && npm run build:scripts
 # Keeps ALL dependencies including devDependencies
 FROM builder AS dev
 
+# Same Python toolchain as production — PDF parsing needs pdfplumber
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends python3 python3-pip python3-pil poppler-utils && \
+  pip3 install --no-cache-dir --break-system-packages pdfplumber==0.11.4 pdf2image==1.17.0 && \
+  rm -rf /var/lib/apt/lists/*
+
 # No pruning here — devDependencies stay for nest start --watch, ts-node, etc.
 CMD ["npm", "run", "start:dev"]
 

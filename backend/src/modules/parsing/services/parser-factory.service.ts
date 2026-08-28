@@ -5,6 +5,7 @@ import type { IParser } from '../interfaces/parser.interface';
 import { BerekeNewParser } from '../parsers/bereke-new.parser';
 import { BerekeOldParser } from '../parsers/bereke-old.parser';
 import { CsvParser } from '../parsers/csv.parser';
+import { DocxParser } from '../parsers/docx.parser';
 import { ExcelParser } from '../parsers/excel.parser';
 import { GenericPdfParser } from '../parsers/generic-pdf.parser';
 import { HapoalimParser } from '../parsers/hapoalim.parser';
@@ -24,6 +25,7 @@ export class ParserFactoryService {
       new GenericPdfParser(),
       new ExcelParser(),
       new CsvParser(),
+      new DocxParser(),
     ];
   }
 
@@ -341,6 +343,9 @@ export class ParserFactoryService {
         return { bankName: BankName.HAPOALIM };
       }
 
+      // Only bank-specific parsers may claim a bank here: generic parsers
+      // (Excel/CSV/DOCX/PDF) ignore bankName in canParse and would mislabel
+      // every spreadsheet as Bereke.
       if (
         parser instanceof BerekeNewParser &&
         (await parser.canParse(BankName.BEREKE_NEW, fileType, filePath, cachedText))

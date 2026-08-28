@@ -19,7 +19,8 @@
 [Quick Start](#quick-start) • [Features](#features) • [Tech Stack](#tech-stack) • [Architecture](#architecture) • [Contributing](CONTRIBUTING.md)
 
 </div>
-<img alt="SCR-20260425-btbs" src="https://github.com/user-attachments/assets/acabdf9c-dc29-42f8-9235-b0a507d86a01" />
+<img width="1920" height="917" alt="Screenshot_20260828_141321" src="https://github.com/user-attachments/assets/a252b1d0-bc05-42dd-8479-0d29b064f2f6" />
+
 
 ---
 

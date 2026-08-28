@@ -32,21 +32,23 @@ export class ExcelParser extends BaseTabularParser {
 
   async parse(filePath: string, _cachedText?: string): Promise<ParsedStatement> {
     assertSafeZipDecompressionRatio(fs.readFileSync(filePath));
-    // raw: false formats every cell through its own display format instead
-    // of returning the underlying raw value — critical for genuine Excel
-    // Date-typed cells, which otherwise come through as a raw day-count
-    // serial number (e.g. 45306) rather than a date string. normalizeDate
-    // happily parses that serial as a valid (garbage, ~43,000-years-off)
-    // Date instead of failing, so the row wouldn't get dropped — it would
-    // silently corrupt. Matches sheet-source-loader.service.ts's read of the
-    // same file format for the same reason.
-    const workbook = xlsx.readFile(filePath, { sheetRows: MAX_SHEET_ROWS, raw: false });
+    // Deliberately NOT raw:false. sheet_to_json returns the raw underlying
+    // value for a cell regardless of whether it's a genuinely date-typed
+    // cell or a plain untyped number (Excel stores both as a numeric serial
+    // day-count either way) — e.g. 45306 for both. raw:false would format
+    // only the properly-typed case into a date string; an untyped serial
+    // number (common in exports that never bothered to set a date format)
+    // would instead be stringified through "General" format ("45306"),
+    // which normalizeCellDate's string fallback then correctly rejects as
+    // implausible rather than misreading it as a date. Reading the raw
+    // number and letting normalizeCellDate's own serial-date branch
+    // (below, via parseRow) interpret it handles both cases uniformly.
+    const workbook = xlsx.readFile(filePath, { sheetRows: MAX_SHEET_ROWS });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const data = xlsx.utils.sheet_to_json<ExcelCellValue[]>(worksheet, {
       header: 1,
       defval: '',
-      raw: false,
     });
 
     if (data.length < 2) {
@@ -59,12 +61,14 @@ export class ExcelParser extends BaseTabularParser {
       );
     }
 
-    // First row is header
-    const headers = (data[0] || []).map(h => String(h).toLowerCase().trim());
-    const rows = data.slice(1);
-
-    // Map columns
-    const columnMapping = this.mapColumns(headers);
+    // Real statements often have title/summary rows above the transaction
+    // table, so scan for the header row instead of assuming row 0.
+    const headerRow = this.findHeaderRow(data);
+    const headerIndex = headerRow?.index ?? 0;
+    const columnMapping =
+      headerRow?.mapping ??
+      this.mapColumns((data[0] || []).map(h => String(h).toLowerCase().trim()));
+    const rows = data.slice(headerIndex + 1);
 
     // Detect currency from header rows before building transactions
     const headerSample = data

@@ -182,6 +182,7 @@ describe('ParserFactoryService', () => {
       'GenericPdfParser',
       'ExcelParser',
       'CsvParser',
+      'DocxParser',
     ]);
   });
 });
