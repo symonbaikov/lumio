@@ -26,12 +26,14 @@ export class ExcelParser extends BaseTabularParser {
       throw new Error('Excel file is empty or has no data rows');
     }
 
-    // First row is header
-    const headers = (data[0] || []).map(h => String(h).toLowerCase().trim());
-    const rows = data.slice(1);
-
-    // Map columns
-    const columnMapping = this.mapColumns(headers);
+    // Real statements often have title/summary rows above the transaction
+    // table, so scan for the header row instead of assuming row 0.
+    const headerRow = this.findHeaderRow(data);
+    const headerIndex = headerRow?.index ?? 0;
+    const columnMapping =
+      headerRow?.mapping ??
+      this.mapColumns((data[0] || []).map(h => String(h).toLowerCase().trim()));
+    const rows = data.slice(headerIndex + 1);
 
     // Detect currency from header rows before building transactions
     const headerSample = data
