@@ -1,7 +1,7 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import { BadRequestException } from '@nestjs/common';
 import * as fsp from 'fs/promises';
-import * as path from 'path';
 import { resolveUploadsDir } from './uploads.util';
 
 // Multer's diskStorage (see config/multer.config.ts) always writes to this
@@ -14,7 +14,7 @@ const uploadsRoot = resolveUploadsDir();
 
 function isWithinUploadsDir(candidatePath: string): boolean {
   const relative = path.relative(uploadsRoot, path.resolve(candidatePath));
-  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+  return relative === '' || !(relative.startsWith('..') || path.isAbsolute(relative));
 }
 
 enum AllowedFileType {
@@ -146,14 +146,16 @@ export function validateFile(file: Express.Multer.File): void {
  * so a rejected batch must be cleaned up explicitly or the files are
  * orphaned on disk forever.
  */
+async function unlinkIfWithinUploadsDir(file: Express.Multer.File): Promise<void> {
+  const filePath = file.path;
+  if (!(filePath && isWithinUploadsDir(filePath))) {
+    return;
+  }
+  await fsp.unlink(filePath).catch(() => undefined);
+}
+
 export async function unlinkAll(files: Express.Multer.File[]): Promise<void> {
-  await Promise.all(
-    files.map(file =>
-      file.path && isWithinUploadsDir(file.path)
-        ? fsp.unlink(file.path).catch(() => undefined)
-        : Promise.resolve(),
-    ),
-  );
+  await Promise.all(files.map(unlinkIfWithinUploadsDir));
 }
 
 /**
