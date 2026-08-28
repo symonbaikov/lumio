@@ -156,7 +156,7 @@ describe('TelegramService locale resolution', () => {
     expect(calls[0].text).toContain('Hallo!');
   });
 
-  it('falls back to Russian when Telegram reports an unsupported client language', async () => {
+  it('falls back to English when Telegram reports an unsupported client language', async () => {
     const calls = mockFetchOk();
     const { service } = createService({ users: [] });
 
@@ -168,7 +168,7 @@ describe('TelegramService locale resolution', () => {
       },
     });
 
-    expect(calls[0].text).toContain('Привет!');
+    expect(calls[0].text).toContain('Hi!');
   });
 
   it('renders /help and the unknown-command reply in the resolved locale', async () => {

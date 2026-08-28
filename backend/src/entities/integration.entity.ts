@@ -41,7 +41,7 @@ export class Integration {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @Column({ type: 'varchar' })
@@ -57,7 +57,7 @@ export class Integration {
   @JoinColumn({ name: 'connected_by_user_id' })
   connectedByUser: User | null;
 
-  @Column({ name: 'connected_by_user_id', nullable: true })
+  @Column({ name: 'connected_by_user_id', type: 'uuid', nullable: true })
   connectedByUserId: string | null;
 
   @CreateDateColumn({ name: 'created_at' })

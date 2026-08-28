@@ -2,6 +2,7 @@
 import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useIntlayer } from '@/app/i18n';
 import type { AuditEvent } from '@/lib/api/audit';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
@@ -80,6 +81,7 @@ function EventDrawerBody({
   event,
   onRollback,
 }: { event: AuditEvent; onRollback?: (event: AuditEvent) => void }): React.JSX.Element {
+  const t = useIntlayer('auditEventDrawer');
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
 
@@ -150,7 +152,7 @@ function EventDrawerBody({
             borderRadius: tokens.radius.md,
           }}
         >
-          Откатить изменение
+          {t.rollbackChange.value}
         </button>
       )}
     </Box>

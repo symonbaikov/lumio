@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ExportScheduleFormat } from '../../../src/entities/custom-table-export-schedule.entity';
 import { CustomTableExportSchedulesService } from '../../../src/modules/custom-tables/custom-table-export-schedules.service';
 
@@ -21,6 +21,7 @@ const SCHEDULE_ID = '66666666-6666-4666-8666-666666666666';
 function buildService(schedule?: Record<string, unknown>) {
   const scheduleRepository = createRepositoryMock();
   const tableRepository = createRepositoryMock();
+  const workspaceMemberRepository = createRepositoryMock();
 
   tableRepository.createQueryBuilder.mockReturnValue({
     leftJoin: jest.fn().mockReturnThis(),
@@ -50,10 +51,11 @@ function buildService(schedule?: Record<string, unknown>) {
   const service = new CustomTableExportSchedulesService(
     scheduleRepository as never,
     tableRepository as never,
+    workspaceMemberRepository as never,
     customTablesService as never,
   );
 
-  return { service, scheduleRepository, customTablesService };
+  return { service, scheduleRepository, workspaceMemberRepository, customTablesService };
 }
 
 describe('CustomTableExportSchedulesService', () => {
@@ -65,6 +67,21 @@ describe('CustomTableExportSchedulesService', () => {
 
   afterAll(() => {
     fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it('refuses schedule changes for a member without edit permission', async () => {
+    const { service, workspaceMemberRepository } = buildService();
+    workspaceMemberRepository.findOne.mockResolvedValue({
+      role: 'member',
+      permissions: { canEditCustomTables: false },
+    });
+
+    await expect(service.createSchedule('u1', 'ws-1', TABLE_ID, {})).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    await expect(service.deleteSchedule('u1', 'ws-1', SCHEDULE_ID)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 
   it('builds the file through the same export path as the manual button', async () => {

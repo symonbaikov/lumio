@@ -31,14 +31,14 @@ export class Budget {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @ManyToOne(() => Category, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'category_id' })
   category: Category;
 
-  @Column({ name: 'category_id' })
+  @Column({ name: 'category_id', type: 'uuid' })
   categoryId: string;
 
   @Column({ length: 255 })
@@ -70,7 +70,7 @@ export class Budget {
   @JoinColumn({ name: 'created_by_id' })
   createdBy: User | null;
 
-  @Column({ name: 'created_by_id', nullable: true })
+  @Column({ name: 'created_by_id', type: 'uuid', nullable: true })
   createdById: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

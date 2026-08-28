@@ -9,6 +9,7 @@
       "**/out/**",
       "**/build/**",
       "**/coverage/**",
+      "**/storybook-static/**",
       "frontend/next-env.d.ts",
       "**/next-env.d.ts",
       "frontend/public/changelog.json",

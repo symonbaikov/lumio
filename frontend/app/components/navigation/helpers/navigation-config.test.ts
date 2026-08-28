@@ -59,15 +59,15 @@ describe('buildNavItems', () => {
 });
 
 describe('buildUserMenuNavItems', () => {
-  it('places chat mode last, right after AI analysis', () => {
+  it('places AI analysis first, right before chat mode', () => {
     const items = buildUserMenuNavItems(userMenuNav);
 
-    expect(items.at(-2)).toMatchObject({
+    expect(items.at(0)).toMatchObject({
       label: 'AI analysis',
       path: '/ai-analysis',
       permission: 'statement.view',
     });
-    expect(items.at(-1)).toMatchObject({
+    expect(items.at(1)).toMatchObject({
       label: 'Chat mode',
       path: '/chat',
       permission: 'statement.view',

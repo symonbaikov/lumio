@@ -1124,13 +1124,12 @@ export default function CustomTableDetailPage() {
   const handleAggregateChange = useCallback(
     (columnKey: string, fn: AggregateFn | null) => {
       setAggregateSelection(prev => {
-        const next = { ...prev };
         if (fn) {
-          next[columnKey] = fn;
-        } else {
-          delete next[columnKey];
+          return { ...prev, [columnKey]: fn };
         }
-        return next;
+        return Object.fromEntries(
+          Object.entries(prev).filter(([key]) => key !== columnKey),
+        ) as AggregateSelection;
       });
       if (!tableId) {
         return;
@@ -1300,6 +1299,9 @@ export default function CustomTableDetailPage() {
       insertFailed: tx(t, ['paste', 'insertFailed'], 'Failed to insert rows'),
       undoFailed: tx(t, ['paste', 'undoFailed'], 'Failed to undo insert'),
       fileReadFailed: tx(t, ['paste', 'fileReadFailed'], 'Failed to read file'),
+      fileUnsupported: tx(t, ['paste', 'fileUnsupported'], 'File format is not supported'),
+      fileTooLarge: tx(t, ['paste', 'fileTooLarge'], 'File is too large'),
+      fileEmpty: tx(t, ['paste', 'fileEmpty'], 'The file contains no data'),
     },
   });
 

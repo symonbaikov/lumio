@@ -11,6 +11,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import { type EntityTarget, In, type Repository } from 'typeorm';
+import { appError } from '../../common/errors/app-error';
 import { toMinor } from '../../common/utils/money.util';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { Branch } from '../../entities/branch.entity';
@@ -93,7 +94,7 @@ export class TransactionsService {
     }
 
     if (membership.permissions?.canEditStatements === false) {
-      throw new ForbiddenException('Недостаточно прав для редактирования выписок');
+      throw new ForbiddenException(appError('STATEMENTS_EDIT_FORBIDDEN'));
     }
   }
 

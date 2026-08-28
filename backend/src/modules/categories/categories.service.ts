@@ -24,29 +24,31 @@ const DEFAULT_SYSTEM_CATEGORIES: ReadonlyArray<{
   name: string;
   type: CategoryType;
 }> = [
-  { name: 'Продажи', type: CategoryType.INCOME },
-  { name: 'Услуги', type: CategoryType.INCOME },
-  { name: 'Процентный доход', type: CategoryType.INCOME },
-  { name: 'Прочий доход', type: CategoryType.INCOME },
-  { name: 'Реклама', type: CategoryType.EXPENSE },
-  { name: 'Льготы и компенсации', type: CategoryType.EXPENSE },
-  { name: 'Автомобильные расходы', type: CategoryType.EXPENSE },
-  { name: 'Оборудование', type: CategoryType.EXPENSE },
-  { name: 'Комиссии и сборы', type: CategoryType.EXPENSE },
-  { name: 'Домашний офис', type: CategoryType.EXPENSE },
-  { name: 'Страхование', type: CategoryType.EXPENSE },
-  { name: 'Проценты', type: CategoryType.EXPENSE },
-  { name: 'Оплата труда', type: CategoryType.EXPENSE },
-  { name: 'Обслуживание и ремонт', type: CategoryType.EXPENSE },
-  { name: 'Материалы', type: CategoryType.EXPENSE },
-  { name: 'Питание и представительские расходы', type: CategoryType.EXPENSE },
-  { name: 'Канцелярские товары', type: CategoryType.EXPENSE },
-  { name: 'Прочие расходы', type: CategoryType.EXPENSE },
-  { name: 'Профессиональные услуги', type: CategoryType.EXPENSE },
-  { name: 'Аренда', type: CategoryType.EXPENSE },
-  { name: 'Налоги', type: CategoryType.EXPENSE },
-  { name: 'Командировки', type: CategoryType.EXPENSE },
-  { name: 'Коммунальные услуги', type: CategoryType.EXPENSE },
+  // Seeded in English; clients resolve the display name through the
+  // systemCategories dictionary, keyed on the stored name.
+  { name: 'Sales', type: CategoryType.INCOME },
+  { name: 'Services', type: CategoryType.INCOME },
+  { name: 'Interest income', type: CategoryType.INCOME },
+  { name: 'Other income', type: CategoryType.INCOME },
+  { name: 'Advertising', type: CategoryType.EXPENSE },
+  { name: 'Benefits and compensation', type: CategoryType.EXPENSE },
+  { name: 'Vehicle expenses', type: CategoryType.EXPENSE },
+  { name: 'Equipment', type: CategoryType.EXPENSE },
+  { name: 'Fees and charges', type: CategoryType.EXPENSE },
+  { name: 'Home office', type: CategoryType.EXPENSE },
+  { name: 'Insurance', type: CategoryType.EXPENSE },
+  { name: 'Interest', type: CategoryType.EXPENSE },
+  { name: 'Payroll', type: CategoryType.EXPENSE },
+  { name: 'Maintenance and repairs', type: CategoryType.EXPENSE },
+  { name: 'Materials', type: CategoryType.EXPENSE },
+  { name: 'Meals and entertainment', type: CategoryType.EXPENSE },
+  { name: 'Office supplies', type: CategoryType.EXPENSE },
+  { name: 'Other expenses', type: CategoryType.EXPENSE },
+  { name: 'Professional services', type: CategoryType.EXPENSE },
+  { name: 'Rent', type: CategoryType.EXPENSE },
+  { name: 'Taxes', type: CategoryType.EXPENSE },
+  { name: 'Travel', type: CategoryType.EXPENSE },
+  { name: 'Utilities', type: CategoryType.EXPENSE },
 ];
 
 @Injectable()
@@ -101,7 +103,7 @@ export class CategoriesService {
       workspaceId,
       userId,
       'canEditCategories',
-      'Недостаточно прав для редактирования категорий',
+      'CATEGORIES_EDIT_FORBIDDEN',
     );
   }
 

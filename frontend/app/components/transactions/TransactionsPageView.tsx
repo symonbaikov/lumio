@@ -1,6 +1,7 @@
 'use client';
 
-import { useIntlayer } from '@/app/i18n';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { useState } from 'react';
@@ -32,6 +33,7 @@ export default function TransactionsPageView({
   onReload,
 }: TransactionsPageViewProps) {
   const t = useIntlayer('transactionsPageView');
+  const { locale } = useLocale();
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [detailsTransaction, setDetailsTransaction] = useState<Transaction | null>(null);
@@ -193,7 +195,7 @@ export default function TransactionsPageView({
                 .filter(cat => cat.isEnabled !== false)
                 .map(cat => (
                   <option key={cat.id} value={cat.id}>
-                    {cat.name}
+                    {getCategoryDisplayName(cat, locale)}
                   </option>
                 ))}
             </select>

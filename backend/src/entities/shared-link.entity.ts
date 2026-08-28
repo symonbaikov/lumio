@@ -31,14 +31,14 @@ export class SharedLink {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'statement_id' })
+  @Column({ name: 'statement_id', type: 'uuid' })
   statementId: string;
 
   @ManyToOne(() => Statement, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'statement_id' })
   statement: Statement;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

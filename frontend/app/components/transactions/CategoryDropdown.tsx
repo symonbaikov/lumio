@@ -1,6 +1,8 @@
 'use client';
 
 import { Check, ChevronDown } from '@/app/components/icons';
+import { useLocale } from '@/app/i18n';
+import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import { tokens } from '@/lib/theme-tokens';
 import {
   DropdownMenu,
@@ -24,12 +26,14 @@ interface CategoryDropdownProps {
 interface CategoryMenuItemsProps {
   tx: Transaction;
   categories: Category[];
+  locale: string;
   onUpdateCategory?: UpdateCategoryFn;
 }
 
 function CategoryMenuItems({
   tx,
   categories,
+  locale,
   onUpdateCategory,
 }: CategoryMenuItemsProps): React.ReactElement {
   return (
@@ -51,7 +55,7 @@ function CategoryMenuItems({
                 backgroundColor: cat.color,
               }}
             />
-            {cat.name}
+            {getCategoryDisplayName(cat, locale)}
             {tx.category?.id === cat.id && <Check size={12} style={{ marginLeft: 'auto' }} />}
           </DropdownMenuItem>
         ))}
@@ -66,7 +70,8 @@ export function CategoryDropdown({
   align = 'end',
   onUpdateCategory,
 }: CategoryDropdownProps): React.ReactElement {
-  const { triggerLabel, style } = resolveCategoryDisplay(tx, label);
+  const { locale } = useLocale();
+  const { triggerLabel, style } = resolveCategoryDisplay(tx, label, locale);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -80,7 +85,12 @@ export function CategoryDropdown({
       <DropdownMenuContent align={align} style={{ width: 200 }}>
         <DropdownMenuLabel>{label}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <CategoryMenuItems tx={tx} categories={categories} onUpdateCategory={onUpdateCategory} />
+        <CategoryMenuItems
+          tx={tx}
+          categories={categories}
+          locale={locale}
+          onUpdateCategory={onUpdateCategory}
+        />
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -101,7 +101,6 @@ describe('Batch 2 workspace entity scoping', () => {
     [Transaction, 'transaction'],
     [Statement, 'statement'],
     [Category, 'category'],
-    [AuditEvent, 'audit event'],
     [Notification, 'notification'],
     [Insight, 'insight'],
     [CustomTable, 'custom table'],
@@ -120,6 +119,17 @@ describe('Batch 2 workspace entity scoping', () => {
 
     expect(column).toBeDefined();
     expect(column?.options.nullable).not.toBe(true);
+  });
+
+  // Исключение из правила выше: аудит обязан переживать удаление воркспейса,
+  // поэтому его workspaceId nullable, а FK — ON DELETE SET NULL.
+  it('keeps AuditEvent.workspaceId nullable so the audit trail survives workspace deletion', () => {
+    const column = metadata.columns.find(
+      entry => entry.target === AuditEvent && entry.propertyName === 'workspaceId',
+    );
+
+    expect(column).toBeDefined();
+    expect(column?.options.nullable).toBe(true);
   });
 
   it('maps CategoryLearning columns to explicit snake_case names and workspace relation', () => {

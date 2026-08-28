@@ -23,21 +23,21 @@ export class CustomTableRowComment {
   @JoinColumn({ name: 'row_id' })
   row: CustomTableRow;
 
-  @Column({ name: 'row_id' })
+  @Column({ name: 'row_id', type: 'uuid' })
   rowId: string;
 
   @ManyToOne(() => CustomTable, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'table_id' })
   table: CustomTable;
 
-  @Column({ name: 'table_id' })
+  @Column({ name: 'table_id', type: 'uuid' })
   tableId: string;
 
   @ManyToOne(() => Workspace, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   /** Автор может быть удалён — комментарий при этом остаётся. */

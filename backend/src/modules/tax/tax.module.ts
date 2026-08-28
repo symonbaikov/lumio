@@ -8,7 +8,6 @@ import { TaxRule } from '../../entities/tax-rule.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
-import { NotificationsModule } from '../notifications/notifications.module';
 import { JurisdictionAdoptionService } from './jurisdiction-adoption.service';
 import { JurisdictionsController } from './jurisdictions.controller';
 import { JurisdictionsService } from './jurisdictions.service';
@@ -34,7 +33,6 @@ import { WorkspaceTaxController } from './workspace-tax.controller';
       Workspace,
     ]),
     ExchangeRatesModule,
-    NotificationsModule,
   ],
   controllers: [
     TaxRatesController,

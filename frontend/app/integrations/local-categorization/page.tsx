@@ -30,13 +30,9 @@ type LocalCategorizationTestResult = {
 };
 
 const DEFAULT_MODEL_ID = 'Xenova/paraphrase-multilingual-MiniLM-L12-v2';
-const DEFAULT_CATEGORIES = [
-  'Продукты',
-  'Транспорт',
-  'Развлечения',
-  'Здоровье',
-  'Коммунальные услуги',
-];
+// Starter values for an editable field, not UI copy: the user replaces them
+// and the embedding model is multilingual, so they are plain defaults.
+const DEFAULT_CATEGORIES = ['Groceries', 'Transport', 'Entertainment', 'Health', 'Utilities'];
 
 export default function LocalCategorizationPage(): React.JSX.Element {
   const { resolvedTheme } = useTheme();

@@ -21,6 +21,7 @@ import type { Response } from 'express';
 import { diskStorage } from 'multer';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
+import { appError } from '../../common/errors/app-error';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TimezonesService } from '../../common/services/timezones.service';
 import { sanitizeAvatarFilename } from '../../common/utils/avatar-filename.util';
@@ -284,7 +285,7 @@ export class UsersController {
     @UploadedFile() file: { filename: string } | undefined,
   ) {
     if (!file) {
-      throw new BadRequestException('Файл не загружен');
+      throw new BadRequestException(appError('FILE_NOT_UPLOADED'));
     }
 
     const url = `/api/v1/users/avatars/${encodeURIComponent(file.filename)}`;

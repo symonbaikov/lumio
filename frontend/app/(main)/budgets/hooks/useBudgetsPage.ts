@@ -1,5 +1,6 @@
 'use client';
 
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import { useCallback, useEffect, useState } from 'react';
@@ -34,14 +35,16 @@ export interface BudgetFormData {
 
 export type BudgetDrawerIntent = 'create' | 'edit' | 'spending';
 
-const EMPTY_FORM: BudgetFormData = {
+const DEFAULT_CURRENCY = 'USD';
+
+const makeEmptyForm = (currency: string): BudgetFormData => ({
   name: '',
   categoryId: '',
   limitAmount: 0,
   manualSpentAmount: 0,
   periodType: 'monthly',
-  currency: 'KZT',
-};
+  currency,
+});
 
 /** Coerces API decimal strings/numbers to a non-negative finite number. */
 export function toNonNegativeNumber(value: string | number | null | undefined): number {
@@ -95,12 +98,14 @@ export function buildBudgetUpdatePayload(
 }
 
 export function useBudgetsPage() {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceCurrency = currentWorkspace?.currency ?? DEFAULT_CURRENCY;
   const [budgets, setBudgets] = useState<BudgetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<BudgetItem | null>(null);
-  const [formData, setFormData] = useState<BudgetFormData>(EMPTY_FORM);
+  const [formData, setFormData] = useState<BudgetFormData>(() => makeEmptyForm(workspaceCurrency));
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -122,9 +127,9 @@ export function useBudgetsPage() {
 
   const openCreate = useCallback(() => {
     setEditingBudget(null);
-    setFormData(EMPTY_FORM);
+    setFormData(makeEmptyForm(workspaceCurrency));
     setDialogOpen(true);
-  }, []);
+  }, [workspaceCurrency]);
 
   const openEdit = useCallback((budget: BudgetItem) => {
     setEditingBudget(budget);
@@ -142,8 +147,8 @@ export function useBudgetsPage() {
   const closeDialog = useCallback(() => {
     setDialogOpen(false);
     setEditingBudget(null);
-    setFormData(EMPTY_FORM);
-  }, []);
+    setFormData(makeEmptyForm(workspaceCurrency));
+  }, [workspaceCurrency]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -156,7 +161,13 @@ export function useBudgetsPage() {
         });
         toast.success('Budget updated');
       } else {
-        await apiClient.post('/budgets', formData);
+        await apiClient.post('/budgets', {
+          name: formData.name,
+          categoryId: formData.categoryId,
+          limitAmount: formData.limitAmount,
+          periodType: formData.periodType,
+          currency: formData.currency,
+        });
         toast.success('Budget created');
       }
       closeDialog();

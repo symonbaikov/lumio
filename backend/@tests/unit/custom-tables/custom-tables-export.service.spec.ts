@@ -125,9 +125,7 @@ describe('CustomTablesService.exportRows', () => {
     const { service, rowQueryBuilder } = buildService();
     rowQueryBuilder.getCount.mockResolvedValue(100_001);
 
-    await expect(service.exportRows('workspace-1', TABLE_ID, { format: 'csv' })).rejects.toThrow(
-      /Слишком много строк/,
-    );
+    await expect(service.exportRows('workspace-1', TABLE_ID, { format: 'csv' })).rejects.toMatchObject({ response: { code: 'EXPORT_TOO_MANY_ROWS' } });
   });
 
   it('prefixes CSV with a BOM so Excel reads Cyrillic correctly', async () => {

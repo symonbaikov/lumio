@@ -135,6 +135,18 @@ export function buildUserMenuNavItems(nav: {
 }): NavItem[] {
   return [
     {
+      label: nav.aiAnalysis as ReactNode,
+      path: '/ai-analysis',
+      icon: React.createElement(Sparkles, { size: 18 }),
+      permission: 'statement.view',
+    },
+    {
+      label: nav.chatMode as ReactNode,
+      path: '/chat',
+      icon: React.createElement(MessageCircle, { size: 18 }),
+      permission: 'statement.view',
+    },
+    {
       label: nav.integrations as ReactNode,
       path: '/integrations',
       icon: React.createElement(Plug, { size: 18 }),
@@ -151,18 +163,6 @@ export function buildUserMenuNavItems(nav: {
       path: '/admin',
       icon: React.createElement(ScrollText, { size: 18 }),
       permission: 'audit_log.view',
-    },
-    {
-      label: nav.aiAnalysis as ReactNode,
-      path: '/ai-analysis',
-      icon: React.createElement(Sparkles, { size: 18 }),
-      permission: 'statement.view',
-    },
-    {
-      label: nav.chatMode as ReactNode,
-      path: '/chat',
-      icon: React.createElement(MessageCircle, { size: 18 }),
-      permission: 'statement.view',
     },
   ];
 }

@@ -65,7 +65,7 @@ export class BalanceAccount {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @ManyToOne(
@@ -76,7 +76,7 @@ export class BalanceAccount {
   @JoinColumn({ name: 'parent_id' })
   parent: BalanceAccount | null;
 
-  @Column({ name: 'parent_id', nullable: true })
+  @Column({ name: 'parent_id', type: 'uuid', nullable: true })
   parentId: string | null;
 
   @OneToMany(

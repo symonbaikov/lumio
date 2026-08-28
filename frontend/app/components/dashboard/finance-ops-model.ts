@@ -192,7 +192,7 @@ export function buildFinanceOpsModel(
       id: 'cash-approved',
       label: labels.checklist.cashReconciled,
       done: Math.abs(snapshot.unapprovedCash) === 0,
-      href: '/statements/approve',
+      href: '/statements/unapproved-cash',
     },
   ];
 
@@ -219,7 +219,7 @@ export function buildFinanceOpsModel(
     {
       id: 'large-expenses',
       label: labels.savedViews.largeExpenses,
-      href: '/statements/transactions?sort=amount-desc&type=expense',
+      href: '/statements/top-spenders',
       count: 0,
     },
     {
@@ -237,7 +237,7 @@ export function buildFinanceOpsModel(
       summary: labels.features.importReviewInbox.summary,
       pendingCount: importPending,
       status: statusFor(importPending, dataHealth.statementsWithErrors > 0),
-      href: importPending > 0 ? '/statements/approve' : '/statements/submit',
+      href: importPending > 0 ? '/statements/approve' : '/statements/submit?openExpenseDrawer=scan',
       primaryAction:
         importPending > 0
           ? labels.features.importReviewInbox.primaryActionOpen
@@ -267,7 +267,7 @@ export function buildFinanceOpsModel(
       summary: labels.features.smartCategorySuggestions.summary,
       pendingCount: triagePending,
       status: statusFor(triagePending),
-      href: '/categories',
+      href: '/workspaces/categories',
       primaryAction: labels.features.smartCategorySuggestions.primaryAction,
       evidence: topCategories[0]
         ? fillTemplate(labels.features.smartCategorySuggestions.evidenceTopCategory, {
@@ -281,7 +281,7 @@ export function buildFinanceOpsModel(
       summary: labels.features.periodCloseChecklistFeature.summary,
       pendingCount: closePending,
       status: statusFor(closePending, closePending > 0),
-      href: '/reports',
+      href: closeChecklist.find(item => !item.done)?.href ?? '/reports',
       primaryAction:
         closePending > 0
           ? labels.features.periodCloseChecklistFeature.primaryActionResolve
@@ -297,7 +297,8 @@ export function buildFinanceOpsModel(
       summary: labels.features.anomalyDetectionFeed.summary,
       pendingCount: anomalyPending,
       status: statusFor(anomalyPending),
-      href: '/dashboard',
+      href:
+        snapshot.totalOverdue > 0 ? '/statements/pay?status=overdue' : '/statements/top-merchants',
       primaryAction: labels.features.anomalyDetectionFeed.primaryAction,
       evidence:
         snapshot.totalOverdue > 0
@@ -314,7 +315,7 @@ export function buildFinanceOpsModel(
       summary: labels.features.reconciliationDashboard.summary,
       pendingCount: reconciliationPending,
       status: statusFor(reconciliationPending),
-      href: '/reports',
+      href: '/statements/unapproved-cash',
       primaryAction: labels.features.reconciliationDashboard.primaryAction,
       evidence: fillTemplate(labels.features.reconciliationDashboard.evidence, {
         netFlow: formatAmount(snapshot.netFlow30d),

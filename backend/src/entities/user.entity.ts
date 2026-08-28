@@ -59,7 +59,7 @@ export class User {
   @Column()
   name: string;
 
-  @Column({ name: 'locale', type: 'varchar', length: 8, default: 'ru' })
+  @Column({ name: 'locale', type: 'varchar', length: 8, default: 'en' })
   locale: string;
 
   @Column({ name: 'time_zone', type: 'varchar', length: 64, nullable: true })
@@ -151,10 +151,10 @@ export class User {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace | null;
 
-  @Column({ name: 'workspace_id', nullable: true })
+  @Column({ name: 'workspace_id', type: 'uuid', nullable: true })
   workspaceId: string | null;
 
-  @Column({ name: 'last_workspace_id', nullable: true })
+  @Column({ name: 'last_workspace_id', type: 'uuid', nullable: true })
   lastWorkspaceId: string | null;
 
   @Column({ name: 'google_id', nullable: true })

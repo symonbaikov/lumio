@@ -32,7 +32,7 @@ export class CustomTableShare {
   @JoinColumn({ name: 'table_id' })
   table: CustomTable;
 
-  @Column({ name: 'table_id' })
+  @Column({ name: 'table_id', type: 'uuid' })
   tableId: string;
 
   /**
@@ -43,7 +43,7 @@ export class CustomTableShare {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })

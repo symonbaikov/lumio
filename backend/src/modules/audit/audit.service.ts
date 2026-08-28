@@ -14,7 +14,10 @@ import {
 } from '../../entities/audit-event.entity';
 import { User } from '../../entities/user.entity';
 import { Workspace } from '../../entities/workspace.entity';
-import { AuditDescriptionService } from './description/audit-description.service';
+import {
+  AuditDescriptionService,
+  renderAuditDescriptionEnglish,
+} from './description/audit-description.service';
 import type {
   AuditEventFilter,
   CreateAuditEventDto,
@@ -56,7 +59,14 @@ export class AuditService {
 
     const actorLabel = await this.resolveActorLabel(dto);
     const isUndoable = dto.isUndoable ?? this.isUndoable(dto.action, dto.entityType);
-    const description = dto.description?.trim() || this.descriptionService.generate(dto);
+    // A caller-supplied description wins; otherwise emit a locale-independent
+    // descriptor for clients and an English rendering for the stored column.
+    const customDescription = dto.description?.trim();
+    const descriptor = customDescription ? null : this.descriptionService.generate(dto);
+    const description = descriptor ? renderAuditDescriptionEnglish(descriptor) : customDescription;
+    const meta = descriptor
+      ? { ...(dto.meta ?? {}), auditDescription: descriptor }
+      : (dto.meta ?? null);
 
     const event = this.auditEventRepository.create({
       workspaceId: dto.workspaceId ?? null,
@@ -68,7 +78,7 @@ export class AuditService {
       action: dto.action,
       description,
       diff: dto.diff ?? null,
-      meta: dto.meta ?? null,
+      meta,
       batchId: dto.batchId ?? null,
       severity: dto.severity ?? Severity.INFO,
       isUndoable,

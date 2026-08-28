@@ -30,6 +30,33 @@ jest.mock('@/common/utils/file-validator.util');
 jest.mock('@/common/utils/filename.util');
 
 describe('StatementsService', () => {
+  // create() оборачивает проверку дубликатов и вставку в транзакцию с advisory-lock;
+  // менеджер прокидывает вызовы в тот же мок-репозиторий, чтобы ассерты не менялись.
+  const statementRepositoryMock: Record<string, unknown> = {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+    createQueryBuilder: jest.fn(() => ({
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]),
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(null),
+    })),
+  };
+  const statementManagerMock = {
+    query: jest.fn(),
+    getRepository: jest.fn(() => statementRepositoryMock),
+    transaction: jest.fn(async (cb: (m: unknown) => Promise<unknown>) => cb(statementManagerMock)),
+  };
+  statementRepositoryMock.manager = statementManagerMock;
+
   let testingModule: TestingModule;
   let service: StatementsService;
   let statementRepository: Repository<Statement>;
@@ -79,24 +106,7 @@ describe('StatementsService', () => {
         StatementsService,
         {
           provide: getRepositoryToken(Statement),
-          useValue: {
-            find: jest.fn(),
-            findOne: jest.fn(),
-            create: jest.fn(),
-            save: jest.fn(),
-            update: jest.fn(),
-            remove: jest.fn(),
-            delete: jest.fn(),
-            count: jest.fn(),
-            createQueryBuilder: jest.fn(() => ({
-              where: jest.fn().mockReturnThis(),
-              andWhere: jest.fn().mockReturnThis(),
-              orderBy: jest.fn().mockReturnThis(),
-              getMany: jest.fn().mockResolvedValue([]),
-              leftJoinAndSelect: jest.fn().mockReturnThis(),
-              getOne: jest.fn().mockResolvedValue(null),
-            })),
-          },
+          useValue: statementRepositoryMock,
         },
         {
           provide: getRepositoryToken(Transaction),

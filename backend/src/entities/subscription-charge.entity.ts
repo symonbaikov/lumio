@@ -29,21 +29,21 @@ export class SubscriptionCharge {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @ManyToOne(() => Subscription, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'subscription_id' })
   subscription: Subscription;
 
-  @Column({ name: 'subscription_id' })
+  @Column({ name: 'subscription_id', type: 'uuid' })
   subscriptionId: string;
 
   @ManyToOne(() => Transaction, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'transaction_id' })
   transaction: Transaction;
 
-  @Column({ name: 'transaction_id' })
+  @Column({ name: 'transaction_id', type: 'uuid' })
   transactionId: string;
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })

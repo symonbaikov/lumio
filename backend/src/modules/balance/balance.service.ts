@@ -147,7 +147,7 @@ export class BalanceService {
   }
 
   private getExportLabels(locale?: string): Record<string, string> {
-    const resolvedLocale = locale === 'en' || locale === 'kk' ? locale : 'ru';
+    const resolvedLocale = locale === 'en' || locale === 'kk' || locale === 'ru' ? locale : 'en';
     const labels = {
       ru: {
         balanceAsOf: 'Баланс на',
@@ -262,10 +262,12 @@ export class BalanceService {
 
     const memberIds = [...new Set(members.map(member => member.userId))];
 
+    // Обязательно фильтруем по workspaceId: участник может состоять в нескольких
+    // воркспейсах, и без фильтра сюда утекали бы кошельки чужого тенанта.
     const wallets =
       memberIds.length > 0
         ? await this.walletRepository.find({
-            where: { userId: In(memberIds), isActive: true },
+            where: { workspaceId, userId: In(memberIds), isActive: true },
             select: ['id', 'initialBalance'],
           })
         : [];
@@ -503,32 +505,49 @@ export class BalanceService {
       return;
     }
 
-    const parentByCode = new Map<string, BalanceAccount>();
+    // Сидим в одной транзакции: два одновременных первых захода в новый воркспейс
+    // оба проходили count===0, и проигравший падал на UQ_balance_accounts_workspace_code
+    // посреди цикла, оставляя дерево счетов навсегда неполным.
+    try {
+      await this.balanceAccountRepository.manager.transaction(async manager => {
+        const accounts = manager.getRepository(BalanceAccount);
+        const parentByCode = new Map<string, BalanceAccount>();
 
-    for (const definition of DEFAULT_BALANCE_ACCOUNTS) {
-      const parentId = definition.parentCode
-        ? (parentByCode.get(definition.parentCode)?.id ?? null)
-        : null;
+        for (const definition of DEFAULT_BALANCE_ACCOUNTS) {
+          const parentId = definition.parentCode
+            ? (parentByCode.get(definition.parentCode)?.id ?? null)
+            : null;
 
-      const account = this.balanceAccountRepository.create({
-        workspaceId,
-        parentId,
-        code: definition.code,
-        name: definition.name,
-        nameEn: definition.nameEn,
-        nameKk: definition.nameKk,
-        accountType: definition.accountType,
-        subType: definition.subType,
-        isEditable: definition.isEditable ?? true,
-        isAutoComputed: definition.isAutoComputed ?? false,
-        autoSource: definition.autoSource ?? null,
-        position: definition.position,
-        isSystem: true,
-        isExpandable: definition.isExpandable ?? false,
+          const account = accounts.create({
+            workspaceId,
+            parentId,
+            code: definition.code,
+            name: definition.name,
+            nameEn: definition.nameEn,
+            nameKk: definition.nameKk,
+            accountType: definition.accountType,
+            subType: definition.subType,
+            isEditable: definition.isEditable ?? true,
+            isAutoComputed: definition.isAutoComputed ?? false,
+            autoSource: definition.autoSource ?? null,
+            position: definition.position,
+            isSystem: true,
+            isExpandable: definition.isExpandable ?? false,
+          });
+
+          const saved = await accounts.save(account);
+          parentByCode.set(definition.code, saved);
+        }
       });
-
-      const saved = await this.balanceAccountRepository.save(account);
-      parentByCode.set(definition.code, saved);
+    } catch (error) {
+      // Unique violation — параллельный запрос уже засеял: это успех, не ошибка.
+      const code =
+        (error as { driverError?: { code?: string }; code?: string })?.driverError?.code ??
+        (error as { code?: string })?.code;
+      if (code === '23505') {
+        return;
+      }
+      throw error;
     }
   }
 

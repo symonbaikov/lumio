@@ -189,7 +189,9 @@ export class CustomTableImportJobsProcessor {
     try {
       if (job.type === CustomTableImportJobType.GOOGLE_SHEETS) {
         const dto = job.payload as unknown as GoogleSheetsCommitJobPayload;
-        const result = await this.importService.executeGoogleSheetsCommit(job.userId, dto, {
+        // Легаси-строки (до появления workspace_id) хранили workspaceId в user_id.
+        const workspaceId = job.workspaceId ?? job.userId;
+        const result = await this.importService.executeGoogleSheetsCommit(workspaceId, dto, {
           onProgress: async (progress, stage) => {
             await this.jobsService.updateProgress(job.id, { progress, stage });
           },

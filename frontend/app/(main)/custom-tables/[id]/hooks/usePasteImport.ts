@@ -58,6 +58,9 @@ interface PasteMessages {
   insertFailed: string;
   undoFailed: string;
   fileReadFailed: string;
+  fileUnsupported: string;
+  fileTooLarge: string;
+  fileEmpty: string;
 }
 
 export interface UsePasteImportReturn {
@@ -88,6 +91,29 @@ interface UsePasteImportParams {
   /** Called after successful paste — component renders the undo toast */
   onInsertSuccess: (createdCount: number, onUndo: () => void) => void;
   messages: PasteMessages;
+}
+
+/**
+ * TabularFileError already carries a `reason` discriminator, so localise by that
+ * and let its English message stand in for any kind we have no copy for.
+ */
+function describeFileError(error: unknown, messages: PasteMessages): string {
+  if (!(error instanceof TabularFileError)) {
+    return messages.fileReadFailed;
+  }
+
+  switch (error.reason) {
+    case 'unsupported':
+      return messages.fileUnsupported;
+    case 'too-large':
+      return messages.fileTooLarge;
+    case 'empty':
+      return messages.fileEmpty;
+    case 'unreadable':
+      return messages.fileReadFailed;
+    default:
+      return error.message;
+  }
 }
 
 export function usePasteImport({
@@ -220,10 +246,10 @@ export function usePasteImport({
         startPreviewFromRows(rows);
       } catch (error) {
         console.error('Failed to read import file:', error);
-        toast.error(error instanceof TabularFileError ? error.message : messages.fileReadFailed);
+        toast.error(describeFileError(error, messages));
       }
     },
-    [startPreviewFromRows, messages.fileReadFailed],
+    [startPreviewFromRows, messages],
   );
 
   const handlePasteHeadersToggle = useCallback(

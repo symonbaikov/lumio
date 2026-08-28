@@ -7,6 +7,8 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Category } from './category.entity';
+import { User } from './user.entity';
 import { Workspace } from './workspace.entity';
 
 /**
@@ -22,6 +24,10 @@ export class CategoryLearning {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
   @Column({ name: 'user_id', type: 'uuid' })
   @Index()
   userId: string;
@@ -33,6 +39,12 @@ export class CategoryLearning {
   @Column({ name: 'workspace_id', type: 'uuid' })
   @Index()
   workspaceId: string;
+
+  // CASCADE: паттерны удалённой категории бесполезны, а без FK классификатор
+  // продолжал бы советовать несуществующие категории.
+  @ManyToOne(() => Category, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'category_id' })
+  category: Category;
 
   @Column({ name: 'category_id', type: 'uuid' })
   @Index()

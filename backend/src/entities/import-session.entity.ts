@@ -97,21 +97,21 @@ export class ImportSession {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'user_id' })
   user: User | null;
 
-  @Column({ name: 'user_id', nullable: true })
+  @Column({ name: 'user_id', type: 'uuid', nullable: true })
   userId: string | null;
 
   @ManyToOne(() => Statement, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'statement_id' })
   statement: Statement | null;
 
-  @Column({ name: 'statement_id', nullable: true })
+  @Column({ name: 'statement_id', type: 'uuid', nullable: true })
   statementId: string | null;
 
   @Column({

@@ -77,6 +77,9 @@ function buildPasteMessages(tOps: unknown): {
   insertFailed: string;
   undoFailed: string;
   fileReadFailed: string;
+  fileUnsupported: string;
+  fileTooLarge: string;
+  fileEmpty: string;
 } {
   return {
     noRows: tx(tOps, ['paste', 'noRows'], ''),
@@ -84,6 +87,9 @@ function buildPasteMessages(tOps: unknown): {
     insertFailed: tx(tOps, ['paste', 'insertFailed'], ''),
     undoFailed: tx(tOps, ['paste', 'undoFailed'], ''),
     fileReadFailed: tx(tOps, ['paste', 'fileReadFailed'], 'Failed to read file'),
+    fileUnsupported: tx(tOps, ['paste', 'fileUnsupported'], 'File format is not supported'),
+    fileTooLarge: tx(tOps, ['paste', 'fileTooLarge'], 'File is too large'),
+    fileEmpty: tx(tOps, ['paste', 'fileEmpty'], 'The file contains no data'),
   };
 }
 function buildRowActionsMessages(
@@ -286,13 +292,12 @@ const useGridTab = (p: GridTabParams) => {
   const handleAggregateChange = useCallback(
     (columnKey: string, fn: AggregateFn | null): void => {
       setAggregateSelection(prev => {
-        const next = { ...prev };
         if (fn) {
-          next[columnKey] = fn;
-        } else {
-          delete next[columnKey];
+          return { ...prev, [columnKey]: fn };
         }
-        return next;
+        return Object.fromEntries(
+          Object.entries(prev).filter(([key]) => key !== columnKey),
+        ) as AggregateSelection;
       });
       if (p.tableId) {
         apiClient

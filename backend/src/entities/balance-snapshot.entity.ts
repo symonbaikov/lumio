@@ -22,14 +22,14 @@ export class BalanceSnapshot {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @ManyToOne(() => BalanceAccount, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'account_id' })
   account: BalanceAccount;
 
-  @Column({ name: 'account_id' })
+  @Column({ name: 'account_id', type: 'uuid' })
   accountId: string;
 
   @Column({ name: 'snapshot_date', type: 'date' })

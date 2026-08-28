@@ -27,14 +27,14 @@ export class TransactionEmbedding {
   @JoinColumn({ name: 'transaction_id' })
   transaction: Transaction;
 
-  @Column({ name: 'transaction_id' })
+  @Column({ name: 'transaction_id', type: 'uuid' })
   transactionId: string;
 
   @ManyToOne(() => Workspace, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   /** L2-normalised, so similarity is a dot product. */

@@ -3,6 +3,8 @@ import * as path from 'node:path';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { appError } from '../../common/errors/app-error';
+import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { normalizeFilename } from '../../common/utils/filename.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import {
@@ -10,6 +12,7 @@ import {
   ExportScheduleFormat,
 } from '../../entities/custom-table-export-schedule.entity';
 import { CustomTable } from '../../entities/custom-table.entity';
+import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { CustomTablesService } from './custom-tables.service';
 import type {
   CustomTableRowFilterDto,
@@ -30,8 +33,20 @@ export class CustomTableExportSchedulesService {
     private readonly scheduleRepository: Repository<CustomTableExportSchedule>,
     @InjectRepository(CustomTable)
     private readonly tableRepository: Repository<CustomTable>,
+    @InjectRepository(WorkspaceMember)
+    private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly customTablesService: CustomTablesService,
   ) {}
+
+  private async ensureCanEditCustomTables(userId: string, workspaceId: string): Promise<void> {
+    await ensureCanEdit(
+      this.workspaceMemberRepository,
+      workspaceId,
+      userId,
+      'canEditCustomTables',
+      'TABLES_EDIT_FORBIDDEN',
+    );
+  }
 
   private async requireTable(workspaceId: string, tableId: string): Promise<CustomTable> {
     const table = await this.tableRepository
@@ -41,7 +56,7 @@ export class CustomTableExportSchedulesService {
       .andWhere('owner.workspaceId = :workspaceId', { workspaceId })
       .getOne();
     if (!table) {
-      throw new NotFoundException('Таблица не найдена');
+      throw new NotFoundException(appError('TABLE_NOT_FOUND'));
     }
     return table;
   }
@@ -56,6 +71,7 @@ export class CustomTableExportSchedulesService {
       viewConfig?: Record<string, unknown> | null;
     },
   ): Promise<CustomTableExportSchedule> {
+    await this.ensureCanEditCustomTables(userId, workspaceId);
     await this.requireTable(workspaceId, tableId);
     const intervalHours = Math.min(Math.max(dto.intervalHours ?? 168, 1), 24 * 31);
 
@@ -80,12 +96,13 @@ export class CustomTableExportSchedulesService {
     });
   }
 
-  async deleteSchedule(workspaceId: string, scheduleId: string): Promise<void> {
+  async deleteSchedule(userId: string, workspaceId: string, scheduleId: string): Promise<void> {
+    await this.ensureCanEditCustomTables(userId, workspaceId);
     const schedule = await this.scheduleRepository.findOne({
       where: { id: scheduleId, workspaceId },
     });
     if (!schedule) {
-      throw new NotFoundException('Расписание не найдено');
+      throw new NotFoundException(appError('SCHEDULE_NOT_FOUND'));
     }
     await this.scheduleRepository.delete({ id: scheduleId });
   }
@@ -107,7 +124,7 @@ export class CustomTableExportSchedulesService {
   async runSchedule(scheduleId: string): Promise<{ fileName: string; rows: number }> {
     const schedule = await this.scheduleRepository.findOne({ where: { id: scheduleId } });
     if (!schedule) {
-      throw new NotFoundException('Расписание не найдено');
+      throw new NotFoundException(appError('SCHEDULE_NOT_FOUND'));
     }
 
     const view = (schedule.viewConfig ?? {}) as {
@@ -161,13 +178,13 @@ export class CustomTableExportSchedulesService {
       where: { id: scheduleId, workspaceId },
     });
     if (!schedule?.lastFilePath || !schedule.lastFileName) {
-      throw new NotFoundException('Готовый файл ещё не создан');
+      throw new NotFoundException(appError('EXPORT_FILE_NOT_READY'));
     }
     try {
       const buffer = await fs.promises.readFile(schedule.lastFilePath);
       return { buffer, fileName: schedule.lastFileName };
     } catch {
-      throw new BadRequestException('Файл выгрузки недоступен');
+      throw new BadRequestException(appError('EXPORT_FILE_UNAVAILABLE'));
     }
   }
 }

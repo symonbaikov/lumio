@@ -21,6 +21,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
+import { appError } from '../../common/errors/app-error';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
 import { IdempotencyService } from '../../common/services/idempotency.service';
@@ -161,7 +162,7 @@ export class DataEntryController {
   )
   async uploadCustomIcon(@UploadedFile() file: { filename: string } | undefined) {
     if (!file) {
-      throw new BadRequestException('Файл не загружен');
+      throw new BadRequestException(appError('FILE_NOT_UPLOADED'));
     }
     const url = `/uploads/custom-field-icons/${file.filename}`;
     return { url };

@@ -76,7 +76,7 @@ describe('flagFor', () => {
   it('returns null for a country seeded without a flag here', () => {
     // The backend can add a jurisdiction without a frontend release; it must
     // render flagless rather than throw.
-    expect(flagFor('FR')).toBeNull();
+    expect(flagFor('JP')).toBeNull();
   });
 });
 

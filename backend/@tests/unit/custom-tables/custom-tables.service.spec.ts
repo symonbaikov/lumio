@@ -543,9 +543,7 @@ describe('CustomTablesService.convertToStatement', () => {
       },
     ]);
 
-    await expect(service.convertToStatement('user-1', 'workspace-1', TABLE_ID)).rejects.toThrow(
-      'В таблице нет валидных строк для конвертации',
-    );
+    await expect(service.convertToStatement('user-1', 'workspace-1', TABLE_ID)).rejects.toMatchObject({ response: { code: 'TABLE_NO_VALID_ROWS_TO_CONVERT' } });
     expect(statementRepository.save).not.toHaveBeenCalled();
     expect(transactionRepository.save).not.toHaveBeenCalled();
   });
@@ -556,9 +554,7 @@ describe('CustomTablesService.convertToStatement', () => {
     mockMissingTable(customTableRepository);
     workspaceMemberRepository.findOne.mockResolvedValue({ role: 'owner', permissions: {} });
 
-    await expect(service.convertToStatement('user-1', 'workspace-2', TABLE_ID)).rejects.toThrow(
-      'Таблица не найдена',
-    );
+    await expect(service.convertToStatement('user-1', 'workspace-2', TABLE_ID)).rejects.toMatchObject({ response: { code: 'TABLE_NOT_FOUND' } });
   });
 
   it('rejects users without statement edit permission', async () => {
@@ -576,9 +572,7 @@ describe('CustomTablesService.convertToStatement', () => {
       permissions: { canEditCustomTables: true, canEditStatements: false },
     });
 
-    await expect(service.convertToStatement('user-1', 'workspace-1', TABLE_ID)).rejects.toThrow(
-      'Недостаточно прав для редактирования выписок',
-    );
+    await expect(service.convertToStatement('user-1', 'workspace-1', TABLE_ID)).rejects.toMatchObject({ response: { code: 'STATEMENTS_EDIT_FORBIDDEN' } });
     expect(customTableColumnRepository.find).not.toHaveBeenCalled();
     expect(customTableRowRepository.find).not.toHaveBeenCalled();
   });

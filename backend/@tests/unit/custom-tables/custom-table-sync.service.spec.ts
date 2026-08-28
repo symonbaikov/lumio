@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { CustomTableRow } from '../../../src/entities/custom-table-row.entity';
 import { CustomTableSyncService } from '../../../src/modules/custom-tables/custom-table-sync.service';
 
@@ -18,6 +18,7 @@ function buildService(options: { values?: unknown[][]; table?: Record<string, un
   const columnRepository = createRepositoryMock();
   const rowRepository = createRepositoryMock();
   const googleSheetRepository = createRepositoryMock();
+  const workspaceMemberRepository = createRepositoryMock();
 
   tableRepository.findOne.mockResolvedValue(
     options.table ?? {
@@ -59,11 +60,19 @@ function buildService(options: { values?: unknown[][]; table?: Record<string, un
     columnRepository as never,
     rowRepository as never,
     googleSheetRepository as never,
+    workspaceMemberRepository as never,
     googleSheetsApiService as never,
     dataSource as never,
   );
 
-  return { service, tableRepository, manager, dataSource, googleSheetsApiService };
+  return {
+    service,
+    tableRepository,
+    workspaceMemberRepository,
+    manager,
+    dataSource,
+    googleSheetsApiService,
+  };
 }
 
 describe('CustomTableSyncService', () => {
@@ -121,8 +130,23 @@ describe('CustomTableSyncService', () => {
     });
 
     await expect(
-      service.updateSyncSettings('ws-1', TABLE_ID, { syncEnabled: true }),
-    ).rejects.toThrow(/источник/);
+      service.updateSyncSettings('u1', 'ws-1', TABLE_ID, { syncEnabled: true }),
+    ).rejects.toMatchObject({ response: { code: 'SYNC_SOURCE_REQUIRED' } });
+  });
+
+  it('refuses settings changes and manual runs for a member without edit permission', async () => {
+    const { service, workspaceMemberRepository } = buildService();
+    workspaceMemberRepository.findOne.mockResolvedValue({
+      role: 'member',
+      permissions: { canEditCustomTables: false },
+    });
+
+    await expect(
+      service.updateSyncSettings('u1', 'ws-1', TABLE_ID, { syncIntervalHours: 1 }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.runUserSync('u1', 'ws-1', TABLE_ID)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 
   it('selects only tables whose interval has elapsed', async () => {

@@ -28,8 +28,14 @@ export class GmailWebhookGuard implements CanActivate {
     const expectedToken = process.env.PUBSUB_WEBHOOK_TOKEN || '';
 
     if (!expectedToken) {
-      this.logger.warn('PUBSUB_WEBHOOK_TOKEN not configured');
-      return true; // Allow in development if not configured
+      // Fail-safe default: без настроенного токена публичный вебхук открыт всем.
+      // Пропускаем только вне production (см. .claude/rules/security.md §3).
+      if (process.env.NODE_ENV !== 'production') {
+        this.logger.warn('PUBSUB_WEBHOOK_TOKEN not configured — allowing in non-production only');
+        return true;
+      }
+      this.logger.error('PUBSUB_WEBHOOK_TOKEN not configured in production — rejecting webhook');
+      throw new UnauthorizedException('Invalid webhook authentication');
     }
 
     if (token !== expectedToken) {

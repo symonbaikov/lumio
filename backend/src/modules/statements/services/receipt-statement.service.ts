@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { appError } from '../../../common/errors/app-error';
 import { calculateFileHash } from '../../../common/utils/file-hash.util';
 import { getFileTypeFromMime } from '../../../common/utils/file-validator.util';
 import { normalizeFilename } from '../../../common/utils/filename.util';
@@ -85,7 +86,7 @@ export class ReceiptStatementService {
     }
 
     if (membership.permissions?.canEditStatements === false) {
-      throw new ForbiddenException('Недостаточно прав для редактирования выписок');
+      throw new ForbiddenException(appError('STATEMENTS_EDIT_FORBIDDEN'));
     }
   }
 

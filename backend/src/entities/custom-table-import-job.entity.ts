@@ -3,9 +3,13 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { User } from './user.entity';
+import { Workspace } from './workspace.entity';
 
 type JsonObject = Record<string, unknown>;
 
@@ -25,12 +29,25 @@ export enum CustomTableImportJobStatus {
 @Index('IDX_custom_table_import_jobs_user_id', ['userId'])
 @Index('IDX_custom_table_import_jobs_status', ['status'])
 @Index('IDX_custom_table_import_jobs_created_at', ['createdAt'])
+@Index('IDX_custom_table_import_jobs_workspace_id', ['workspaceId'])
 export class CustomTableImportJob {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
+
+  // Nullable: старые записи созданы до появления скоупинга; новые всегда пишут его.
+  @ManyToOne(() => Workspace, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'workspace_id' })
+  workspace: Workspace | null;
+
+  @Column({ name: 'workspace_id', type: 'uuid', nullable: true })
+  workspaceId: string | null;
 
   @Column({ name: 'type', type: 'varchar' })
   type: CustomTableImportJobType;

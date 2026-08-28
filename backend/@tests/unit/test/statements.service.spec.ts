@@ -9,13 +9,21 @@ jest.mock('@/common/utils/file-hash.util', () => ({
 }));
 
 describe('StatementsService', () => {
-  const statementRepository = {
+  // create() оборачивает проверку дубликатов и вставку в транзакцию с advisory-lock;
+  // менеджер прокидывает вызовы в тот же мок-репозиторий, чтобы ассерты не менялись.
+  const statementRepository: Record<string, any> = {
     create: jest.fn(data => data),
     save: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
     createQueryBuilder: jest.fn(),
   };
+  const statementManager = {
+    query: jest.fn(),
+    getRepository: jest.fn(() => statementRepository),
+    transaction: jest.fn(async (cb: (m: unknown) => Promise<unknown>) => cb(statementManager)),
+  };
+  statementRepository.manager = statementManager;
 
   const auditService = { createEvent: jest.fn().mockResolvedValue(undefined) };
   const userRepository = {

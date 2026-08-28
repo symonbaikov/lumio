@@ -15,6 +15,7 @@ import type {
   ParsingErrorEvent,
   ReceiptUncategorizedEvent,
   StatementUploadedEvent,
+  TaxThresholdReachedEvent,
   TransactionsUncategorizedEvent,
   WorkspaceUpdatedEvent,
 } from './events/notification-events';
@@ -237,6 +238,38 @@ export class NotificationEventsListener {
       messageParams: { receiptName: event.receiptName ?? '' },
       entityType: 'receipt',
       entityId: event.receiptId ?? null,
+    });
+  }
+
+  @OnEvent('tax.threshold.reached')
+  async onTaxThresholdReached(event: TaxThresholdReachedEvent): Promise<void> {
+    const isBreach = event.level >= 100;
+
+    await this.notificationsService.createForWorkspaceMembers({
+      workspaceId: event.workspaceId,
+      type: isBreach
+        ? NotificationType.TAX_THRESHOLD_REACHED
+        : NotificationType.TAX_THRESHOLD_WARNING,
+      category: NotificationCategory.WORKSPACE_ACTIVITY,
+      severity: isBreach ? NotificationSeverity.ERROR : NotificationSeverity.WARN,
+      messageKey: (isBreach
+        ? 'tax.threshold.reached'
+        : 'tax.threshold.warning') as NotificationMessageKey,
+      messageParams: {
+        percentUsed: event.percentUsed,
+        threshold: event.threshold,
+        currency: event.currency,
+      },
+      entityType: 'workspace',
+      entityId: event.workspaceId,
+      meta: {
+        turnover: event.turnover,
+        threshold: event.threshold,
+        currency: event.currency,
+        percentUsed: event.percentUsed,
+        periodStart: event.periodStart,
+        periodEnd: event.periodEnd,
+      },
     });
   }
 }

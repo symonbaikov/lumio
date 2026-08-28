@@ -1,9 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { appError } from '../../common/errors/app-error';
+import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { CustomTableRowComment } from '../../entities/custom-table-row-comment.entity';
 import { CustomTableRow } from '../../entities/custom-table-row.entity';
 import { CustomTable } from '../../entities/custom-table.entity';
+import { WorkspaceMember } from '../../entities/workspace-member.entity';
 
 export interface CommentView {
   id: string;
@@ -24,7 +27,19 @@ export class CustomTableCommentsService {
     private readonly tableRepository: Repository<CustomTable>,
     @InjectRepository(CustomTableRow)
     private readonly rowRepository: Repository<CustomTableRow>,
+    @InjectRepository(WorkspaceMember)
+    private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
   ) {}
+
+  private async ensureCanEditCustomTables(userId: string, workspaceId: string): Promise<void> {
+    await ensureCanEdit(
+      this.workspaceMemberRepository,
+      workspaceId,
+      userId,
+      'canEditCustomTables',
+      'TABLES_EDIT_FORBIDDEN',
+    );
+  }
 
   /** Комментарий живёт внутри таблицы, поэтому проверяем и таблицу, и строку. */
   private async requireRow(
@@ -39,11 +54,11 @@ export class CustomTableCommentsService {
       .andWhere('owner.workspaceId = :workspaceId', { workspaceId })
       .getOne();
     if (!table) {
-      throw new NotFoundException('Таблица не найдена');
+      throw new NotFoundException(appError('TABLE_NOT_FOUND'));
     }
     const row = await this.rowRepository.findOne({ where: { id: rowId, tableId } });
     if (!row) {
-      throw new NotFoundException('Строка не найдена');
+      throw new NotFoundException(appError('ROW_NOT_FOUND'));
     }
     return row;
   }
@@ -81,13 +96,14 @@ export class CustomTableCommentsService {
     rowId: string,
     body: string,
   ): Promise<CommentView> {
+    await this.ensureCanEditCustomTables(userId, workspaceId);
     await this.requireRow(workspaceId, tableId, rowId);
     const trimmed = (body ?? '').trim();
     if (!trimmed) {
-      throw new BadRequestException('Комментарий пустой');
+      throw new BadRequestException(appError('COMMENT_EMPTY'));
     }
     if (trimmed.length > MAX_BODY_LENGTH) {
-      throw new BadRequestException('Комментарий слишком длинный');
+      throw new BadRequestException(appError('COMMENT_TOO_LONG'));
     }
 
     const saved = await this.commentRepository.save(
@@ -107,28 +123,31 @@ export class CustomTableCommentsService {
   }
 
   async setResolved(
+    userId: string,
     workspaceId: string,
     commentId: string,
     resolved: boolean,
   ): Promise<CommentView> {
+    await this.ensureCanEditCustomTables(userId, workspaceId);
     const comment = await this.commentRepository.findOne({
       where: { id: commentId, workspaceId },
       relations: ['user'],
     });
     if (!comment) {
-      throw new NotFoundException('Комментарий не найден');
+      throw new NotFoundException(appError('COMMENT_NOT_FOUND'));
     }
     comment.resolvedAt = resolved ? new Date() : null;
     await this.commentRepository.save(comment);
     return this.toView(comment);
   }
 
-  async deleteComment(workspaceId: string, commentId: string): Promise<void> {
+  async deleteComment(userId: string, workspaceId: string, commentId: string): Promise<void> {
+    await this.ensureCanEditCustomTables(userId, workspaceId);
     const comment = await this.commentRepository.findOne({
       where: { id: commentId, workspaceId },
     });
     if (!comment) {
-      throw new NotFoundException('Комментарий не найден');
+      throw new NotFoundException(appError('COMMENT_NOT_FOUND'));
     }
     await this.commentRepository.delete({ id: commentId });
   }

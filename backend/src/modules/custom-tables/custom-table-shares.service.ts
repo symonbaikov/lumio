@@ -2,11 +2,14 @@ import { randomBytes } from 'node:crypto';
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { appError } from '../../common/errors/app-error';
+import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { ActorType, AuditAction, EntityType, Severity } from '../../entities/audit-event.entity';
 import { CustomTableColumn } from '../../entities/custom-table-column.entity';
 import { CustomTableRow } from '../../entities/custom-table-row.entity';
 import { CustomTableShare, CustomTableShareStatus } from '../../entities/custom-table-share.entity';
 import { CustomTable } from '../../entities/custom-table.entity';
+import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { AuditService } from '../audit/audit.service';
 
 /** Срок жизни ссылки по умолчанию: бессрочные ссылки на финданные — плохая идея. */
@@ -31,8 +34,21 @@ export class CustomTableSharesService {
     private readonly columnRepository: Repository<CustomTableColumn>,
     @InjectRepository(CustomTableRow)
     private readonly rowRepository: Repository<CustomTableRow>,
+    @InjectRepository(WorkspaceMember)
+    private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly auditService: AuditService,
   ) {}
+
+  /** Выдача и отзыв внешнего доступа — привилегия редакторов таблиц. */
+  private async ensureCanEditCustomTables(userId: string, workspaceId: string): Promise<void> {
+    await ensureCanEdit(
+      this.workspaceMemberRepository,
+      workspaceId,
+      userId,
+      'canEditCustomTables',
+      'TABLES_EDIT_FORBIDDEN',
+    );
+  }
 
   /** Таблица обязана принадлежать воркспейсу — иначе поделиться чужим. */
   private async requireTable(workspaceId: string, tableId: string): Promise<CustomTable> {
@@ -43,7 +59,7 @@ export class CustomTableSharesService {
       .andWhere('owner.workspaceId = :workspaceId', { workspaceId })
       .getOne();
     if (!table) {
-      throw new NotFoundException('Таблица не найдена');
+      throw new NotFoundException(appError('TABLE_NOT_FOUND'));
     }
     return table;
   }
@@ -54,6 +70,7 @@ export class CustomTableSharesService {
     tableId: string,
     options: { expiresInDays?: number } = {},
   ): Promise<{ share: CustomTableShare; token: string }> {
+    await this.ensureCanEditCustomTables(userId, workspaceId);
     const table = await this.requireTable(workspaceId, tableId);
 
     const days = Math.min(
@@ -98,9 +115,10 @@ export class CustomTableSharesService {
   }
 
   async revokeShare(userId: string, workspaceId: string, shareId: string): Promise<void> {
+    await this.ensureCanEditCustomTables(userId, workspaceId);
     const share = await this.shareRepository.findOne({ where: { id: shareId, workspaceId } });
     if (!share) {
-      throw new NotFoundException('Ссылка не найдена');
+      throw new NotFoundException(appError('SHARE_LINK_NOT_FOUND'));
     }
     share.status = CustomTableShareStatus.REVOKED;
     await this.shareRepository.save(share);
@@ -123,19 +141,19 @@ export class CustomTableSharesService {
    */
   private async resolveActiveShare(token: string): Promise<CustomTableShare> {
     if (!token || token.length !== 64) {
-      throw new NotFoundException('Ссылка не найдена');
+      throw new NotFoundException(appError('SHARE_LINK_NOT_FOUND'));
     }
     const share = await this.shareRepository.findOne({ where: { token } });
     if (!share) {
-      throw new NotFoundException('Ссылка не найдена');
+      throw new NotFoundException(appError('SHARE_LINK_NOT_FOUND'));
     }
     if (share.status !== CustomTableShareStatus.ACTIVE) {
-      throw new ForbiddenException('Ссылка отозвана');
+      throw new ForbiddenException(appError('SHARE_LINK_REVOKED'));
     }
     if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
       share.status = CustomTableShareStatus.EXPIRED;
       await this.shareRepository.save(share);
-      throw new ForbiddenException('Срок действия ссылки истёк');
+      throw new ForbiddenException(appError('SHARE_LINK_EXPIRED'));
     }
     return share;
   }
@@ -145,7 +163,7 @@ export class CustomTableSharesService {
 
     const table = await this.tableRepository.findOne({ where: { id: share.tableId } });
     if (!table) {
-      throw new NotFoundException('Таблица не найдена');
+      throw new NotFoundException(appError('TABLE_NOT_FOUND'));
     }
 
     const columns = await this.columnRepository.find({

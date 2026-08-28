@@ -1,12 +1,13 @@
 'use client';
 import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
-import { Plus } from '@/app/components/icons';
+import { Pencil, Plus, Trash2 } from '@/app/components/icons';
 import {
   Box,
   Button,
   Card,
   CardContent,
+  IconButton,
   MenuItem,
   Select,
   Skeleton,
@@ -350,6 +351,7 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
                   <th>Owner</th>
                   <th>Risk</th>
                   <th>Review</th>
+                  <th aria-label="Actions" />
                 </tr>
               </thead>
               <tbody>
@@ -370,6 +372,18 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
                         : subscription.riskStatus.replace('_', ' ')}
                     </td>
                     <td>{formatDate(subscription.reviewAt)}</td>
+                    <td onClick={event => event.stopPropagation()}>
+                      <IconButton size="small" onClick={() => props.openEdit(subscription)}>
+                        <Pencil size={16} />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => props.handleDelete(subscription.id)}
+                      >
+                        <Trash2 size={16} />
+                      </IconButton>
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -35,7 +35,7 @@ export class TaxRule {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   /** NULL makes the rule a catch-all for its direction. */
@@ -43,7 +43,7 @@ export class TaxRule {
   @JoinColumn({ name: 'category_id' })
   category: Category | null;
 
-  @Column({ name: 'category_id', nullable: true })
+  @Column({ name: 'category_id', type: 'uuid', nullable: true })
   categoryId: string | null;
 
   /** e.g. 'KZ_STANDARD'. Resolved to a version at the transaction's date. */

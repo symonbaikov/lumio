@@ -1,5 +1,3 @@
-'use client';
-
 export type AppLocale =
   | 'en'
   | 'ru'
@@ -23,7 +21,7 @@ export type AppLocale =
   | 'vi'
   | 'id';
 
-export const DEFAULT_LOCALE: AppLocale = 'ru';
+export const DEFAULT_LOCALE: AppLocale = 'en';
 export const LOCALE_COOKIE_NAME = 'INTLAYER_LOCALE';
 export const SUPPORTED_LOCALES = [
   'ru',

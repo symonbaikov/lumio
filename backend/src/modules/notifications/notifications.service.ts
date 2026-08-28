@@ -133,7 +133,7 @@ export class NotificationsService {
       where: { id: payload.recipientId },
     });
     const { title, message } = renderNotification(
-      user?.locale ?? 'ru',
+      user?.locale ?? 'en',
       payload.messageKey,
       payload.messageParams,
     );

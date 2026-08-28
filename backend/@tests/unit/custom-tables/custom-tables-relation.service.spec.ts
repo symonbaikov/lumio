@@ -91,7 +91,7 @@ describe('relation columns', () => {
         type: CustomTableColumnType.RELATION,
         config: {},
       } as never),
-    ).rejects.toThrow(/таблица-цель/);
+    ).rejects.toMatchObject({ response: { code: 'COLUMN_RELATION_TARGET_REQUIRED' } });
   });
 
   it('rejects a display column that does not exist in the target', async () => {
@@ -103,7 +103,7 @@ describe('relation columns', () => {
         type: CustomTableColumnType.RELATION,
         config: { targetTableId: TARGET_TABLE_ID, displayColumnKey: 'ghost' },
       } as never),
-    ).rejects.toThrow(/Колонка подписи не найдена/);
+    ).rejects.toMatchObject({ response: { code: 'COLUMN_DISPLAY_NOT_FOUND' } });
   });
 
   it('lists options labelled by the display column', async () => {

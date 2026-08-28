@@ -31,7 +31,7 @@ export class TaxRate {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @Column({ type: 'varchar', length: 120 })
@@ -51,7 +51,7 @@ export class TaxRate {
   @JoinColumn({ name: 'jurisdiction_id' })
   jurisdiction: TaxJurisdiction | null;
 
-  @Column({ name: 'jurisdiction_id', nullable: true })
+  @Column({ name: 'jurisdiction_id', type: 'uuid', nullable: true })
   jurisdictionId: string | null;
 
   /**

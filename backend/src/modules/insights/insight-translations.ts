@@ -784,7 +784,7 @@ export function renderInsight(
   key: InsightMessageKey,
   params: Record<string, string | number>,
 ): { title: string; message: string } {
-  const translations = INSIGHT_TRANSLATIONS[locale] ?? INSIGHT_TRANSLATIONS.ru;
+  const translations = INSIGHT_TRANSLATIONS[locale] ?? INSIGHT_TRANSLATIONS.en;
   const entry = translations[key];
   const interpolate = (template: string) =>
     template.replace(/\{\{(\w+)\}\}/g, (_, k: string) => String(params[k] ?? ''));

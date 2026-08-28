@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
+import { appError } from '../../common/errors/app-error';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
 import type { User } from '../../entities/user.entity';
@@ -99,9 +100,7 @@ export class GoogleSheetsController {
     @CurrentUser() _user: User,
     @WorkspaceId() _workspaceId: string,
   ) {
-    throw new BadRequestException(
-      'Подключение через этот endpoint больше не поддерживается. Используйте OAuth: GET /google-sheets/oauth/url → POST /google-sheets/oauth/callback',
-    );
+    throw new BadRequestException(appError('SHEETS_ENDPOINT_DEPRECATED'));
   }
 
   @Get('spreadsheets/:spreadsheetId/worksheets')

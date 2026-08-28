@@ -151,7 +151,7 @@ export class AuthController {
   @UseGuards(JwtRefreshGuard)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Req() req: Request): Promise<{ access_token: string }> {
+  async refresh(@Req() req: Request): Promise<{ access_token: string; refresh_token: string }> {
     const refreshToken = req.headers.authorization?.replace('Bearer ', '');
     return this.authService.refreshToken(refreshToken, this.extractSessionContext(req));
   }

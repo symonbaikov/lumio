@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { appError } from '../../../common/errors/app-error';
 import type { Branch } from '../../../entities/branch.entity';
 import type { Category } from '../../../entities/category.entity';
 import type { Transaction } from '../../../entities/transaction.entity';
@@ -133,7 +134,7 @@ export class GoogleSheetsApiService {
    */
   async refreshAccessToken(refreshToken: string): Promise<string> {
     if (!refreshToken || refreshToken.includes('placeholder')) {
-      throw new BadRequestException('Отсутствует валидный refresh token Google');
+      throw new BadRequestException(appError('SHEETS_REFRESH_TOKEN_MISSING'));
     }
 
     try {
@@ -143,7 +144,7 @@ export class GoogleSheetsApiService {
       });
       const accessToken = tokenResponse.access_token;
       if (!accessToken) {
-        throw new Error('Access token не получен при обновлении');
+        throw new Error('Access token was not returned on refresh');
       }
       return accessToken;
     } catch (error) {
@@ -305,7 +306,7 @@ export class GoogleSheetsApiService {
       return { accessToken, refreshToken };
     } catch (error) {
       this.logger.error('Failed to exchange OAuth code for tokens:', error);
-      throw new BadRequestException('Не удалось обменять код авторизации Google');
+      throw new BadRequestException(appError('SHEETS_AUTH_CODE_EXCHANGE_FAILED'));
     }
   }
 
@@ -323,7 +324,7 @@ export class GoogleSheetsApiService {
       return { title, firstWorksheet };
     } catch (error) {
       this.logger.error('Failed to read spreadsheet info:', error);
-      throw new BadRequestException('Не удалось прочитать Google Sheet. Проверьте права доступа.');
+      throw new BadRequestException(appError('SHEETS_READ_FAILED'));
     }
   }
 
@@ -362,7 +363,7 @@ export class GoogleSheetsApiService {
       }));
     } catch (error) {
       this.logger.error('Failed to list worksheets:', error);
-      throw new BadRequestException('Не удалось получить список листов Google Sheets.');
+      throw new BadRequestException(appError('SHEETS_WORKSHEET_LIST_FAILED'));
     }
   }
 

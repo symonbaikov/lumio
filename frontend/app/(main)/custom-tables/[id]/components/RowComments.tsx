@@ -1,5 +1,6 @@
 'use client';
 
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { Box } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
@@ -20,6 +21,7 @@ interface RowCommentsProps {
 
 /** Обсуждение конкретной строки — рядом с историей её изменений. */
 export function RowComments({ tableId, rowId }: RowCommentsProps) {
+  const t = useIntlayer('rowComments');
   const [comments, setComments] = useState<RowComment[]>([]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -52,7 +54,7 @@ export function RowComments({ tableId, rowId }: RowCommentsProps) {
       await load();
     } catch (error) {
       console.error('Failed to add comment:', error);
-      toast.error('Не удалось добавить комментарий');
+      toast.error(t.addFailed.value);
     } finally {
       setBusy(false);
     }
@@ -77,7 +79,7 @@ export function RowComments({ tableId, rowId }: RowCommentsProps) {
           value={draft}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(e.target.value)}
           rows={2}
-          placeholder="Комментарий к строке"
+          placeholder={t.placeholder.value}
           sx={{
             flex: 1,
             border: '1px solid var(--border-color)',
@@ -107,12 +109,12 @@ export function RowComments({ tableId, rowId }: RowCommentsProps) {
             '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
           }}
         >
-          Отправить
+          {t.submit.value}
         </Box>
       </Box>
 
       {comments.length === 0 && (
-        <Box sx={{ fontSize: 13, color: 'var(--muted-foreground)' }}>Комментариев пока нет</Box>
+        <Box sx={{ fontSize: 13, color: 'var(--muted-foreground)' }}>{t.empty.value}</Box>
       )}
 
       {comments.map(comment => (
@@ -154,7 +156,7 @@ export function RowComments({ tableId, rowId }: RowCommentsProps) {
               color: 'var(--text-secondary)',
             }}
           >
-            {comment.resolvedAt ? 'Вернуть в работу' : 'Отметить решённым'}
+            {comment.resolvedAt ? t.reopen.value : t.markResolved.value}
           </Box>
         </Box>
       ))}

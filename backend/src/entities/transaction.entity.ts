@@ -61,7 +61,7 @@ export class Transaction {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @ManyToOne(
@@ -72,7 +72,7 @@ export class Transaction {
   @JoinColumn({ name: 'statement_id' })
   statement: Statement | null;
 
-  @Column({ name: 'statement_id', nullable: true })
+  @Column({ name: 'statement_id', type: 'uuid', nullable: true })
   statementId: string | null;
 
   @Column({ name: 'transaction_date', type: 'date' })
@@ -125,39 +125,39 @@ export class Transaction {
   @Column({ name: 'payment_purpose', type: 'text' })
   paymentPurpose: string;
 
-  @ManyToOne(() => Category, { nullable: true })
+  @ManyToOne(() => Category, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'category_id' })
   category: Category | null;
 
-  @Column({ name: 'category_id', nullable: true })
+  @Column({ name: 'category_id', type: 'uuid', nullable: true })
   categoryId: string | null;
 
   @ManyToOne(() => TaxRate, { nullable: true })
   @JoinColumn({ name: 'tax_rate_id' })
   taxRate: TaxRate | null;
 
-  @Column({ name: 'tax_rate_id', nullable: true })
+  @Column({ name: 'tax_rate_id', type: 'uuid', nullable: true })
   taxRateId: string | null;
 
-  @ManyToOne(() => Branch, { nullable: true })
+  @ManyToOne(() => Branch, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'branch_id' })
   branch: Branch | null;
 
-  @Column({ name: 'branch_id', nullable: true })
+  @Column({ name: 'branch_id', type: 'uuid', nullable: true })
   branchId: string | null;
 
-  @ManyToOne(() => Wallet, { nullable: true })
+  @ManyToOne(() => Wallet, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'wallet_id' })
   wallet: Wallet | null;
 
-  @Column({ name: 'wallet_id', nullable: true })
+  @Column({ name: 'wallet_id', type: 'uuid', nullable: true })
   walletId: string | null;
 
   @ManyToOne(() => CryptoWallet, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'crypto_wallet_id' })
   cryptoWallet: CryptoWallet | null;
 
-  @Column({ name: 'crypto_wallet_id', nullable: true })
+  @Column({ name: 'crypto_wallet_id', type: 'uuid', nullable: true })
   cryptoWalletId: string | null;
 
   /**
@@ -227,7 +227,7 @@ export class Transaction {
   @JoinColumn({ name: 'tax_rule_id' })
   taxRule: TaxRule | null;
 
-  @Column({ name: 'tax_rule_id', nullable: true })
+  @Column({ name: 'tax_rule_id', type: 'uuid', nullable: true })
   taxRuleId: string | null;
 
   /** Set once this row has been included in a filed return. */
@@ -263,7 +263,7 @@ export class Transaction {
   @JoinColumn({ name: 'duplicate_of_id' })
   duplicateOf: Transaction | null;
 
-  @Column({ name: 'duplicate_of_id', nullable: true })
+  @Column({ name: 'duplicate_of_id', type: 'uuid', nullable: true })
   duplicateOfId: string | null;
 
   @Column({ name: 'duplicate_confidence', type: 'decimal', precision: 3, scale: 2, nullable: true })
@@ -291,7 +291,7 @@ export class Transaction {
   @JoinColumn({ name: 'import_session_id' })
   importSession: ImportSession | null;
 
-  @Column({ name: 'import_session_id', nullable: true })
+  @Column({ name: 'import_session_id', type: 'uuid', nullable: true })
   importSessionId: string | null;
 
   /**

@@ -596,6 +596,8 @@ export default function CreateExpenseDrawer({
                       </span>
                       <input
                         ref={manualAmountInputRef}
+                        // biome-ignore lint/a11y/noAutofocus: amount is the step's sole input; drawer opens for typing
+                        autoFocus
                         id="expense-manual-amount"
                         inputMode="decimal"
                         value={manualDraft.amount}
@@ -610,6 +612,7 @@ export default function CreateExpenseDrawer({
                           minWidth: 0,
                           flex: 1,
                           border: 0,
+                          outline: 'none',
                           background: 'transparent',
                           padding: 0,
                           lineHeight: 1,

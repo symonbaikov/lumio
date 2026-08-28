@@ -5,6 +5,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, QueryFailedError, type Repository, type SelectQueryBuilder } from 'typeorm';
 import * as xlsx from 'xlsx';
+import { appError } from '../../common/errors/app-error';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { normalizeFilename } from '../../common/utils/filename.util';
 import { generateTransactionFingerprint } from '../../common/utils/fingerprint.util';
@@ -220,9 +221,7 @@ export class CustomTablesService {
     if (error instanceof QueryFailedError) {
       const code = this.getDriverErrorCode(error);
       if (code === '42P01' || code === '42703') {
-        throw new BadRequestException(
-          'Схема БД не обновлена для Custom Tables. Запустите миграции (`npm -C backend run migration:run`) или включите автозапуск миграций (переменная окружения `RUN_MIGRATIONS=true`) и перезапустите backend.',
-        );
+        throw new BadRequestException(appError('TABLE_SCHEMA_OUTDATED'));
       }
     }
     throw error;
@@ -234,7 +233,7 @@ export class CustomTablesService {
       workspaceId,
       userId,
       'canEditCustomTables',
-      'Недостаточно прав для редактирования таблиц',
+      'TABLES_EDIT_FORBIDDEN',
     );
   }
 
@@ -244,7 +243,7 @@ export class CustomTablesService {
       workspaceId,
       userId,
       'canEditStatements',
-      'Недостаточно прав для редактирования выписок',
+      'STATEMENTS_EDIT_FORBIDDEN',
     );
   }
 
@@ -415,14 +414,14 @@ export class CustomTablesService {
       this.throwHelpfulSchemaError(error);
     }
     if (!category) {
-      throw new BadRequestException('Категория не найдена');
+      throw new BadRequestException(appError('CATEGORY_NOT_FOUND'));
     }
     return category.id;
   }
 
   private async requireTable(workspaceId: string, tableId: string): Promise<CustomTable> {
     if (!this.isUuid(tableId)) {
-      throw new BadRequestException('Некорректный идентификатор таблицы');
+      throw new BadRequestException(appError('TABLE_ID_INVALID'));
     }
     try {
       const qb = this.customTableRepository
@@ -433,13 +432,13 @@ export class CustomTablesService {
 
       const table = await qb.getOne();
       if (!table) {
-        throw new NotFoundException('Таблица не найдена');
+        throw new NotFoundException(appError('TABLE_NOT_FOUND'));
       }
       return table;
     } catch (error) {
       this.throwHelpfulSchemaError(error);
     }
-    throw new NotFoundException('Таблица не найдена');
+    throw new NotFoundException(appError('TABLE_NOT_FOUND'));
   }
 
   private generateColumnKey(): string {
@@ -753,7 +752,7 @@ export class CustomTablesService {
       this.throwHelpfulSchemaError(error);
     }
     if (!table) {
-      throw new NotFoundException('Таблица не найдена');
+      throw new NotFoundException(appError('TABLE_NOT_FOUND'));
     }
 
     table.columns = (table.columns || []).sort((a, b) => a.position - b.position);
@@ -835,7 +834,7 @@ export class CustomTablesService {
     }
 
     if (!entries.length) {
-      throw new BadRequestException('Нет записей во «Ввод данных» для создания таблицы');
+      throw new BadRequestException(appError('DATA_ENTRY_EMPTY'));
     }
 
     const typeLabels: Record<DataEntryType, string> = {
@@ -869,7 +868,10 @@ export class CustomTablesService {
     const maxCustomColumns = 50;
     if (customFieldMetaByName.size > maxCustomColumns) {
       throw new BadRequestException(
-        `Слишком много пользовательских колонок (${customFieldMetaByName.size}). Упростите названия или создайте таблицу по одной вкладке (лимит ${maxCustomColumns}).`,
+        appError('TOO_MANY_CUSTOM_COLUMNS', {
+          count: customFieldMetaByName.size,
+          limit: maxCustomColumns,
+        }),
       );
     }
 
@@ -1011,7 +1013,7 @@ export class CustomTablesService {
     const noteKey = keyByDefId.get('note');
 
     if (!(dateKey && amountKey && currencyKey && noteKey)) {
-      throw new BadRequestException('Не удалось сформировать колонки таблицы');
+      throw new BadRequestException(appError('TABLE_COLUMNS_BUILD_FAILED'));
     }
 
     const rowsToInsert = entries.map((entry, idx) => {
@@ -1089,7 +1091,7 @@ export class CustomTablesService {
       this.throwHelpfulSchemaError(error);
     }
     if (!customTab) {
-      throw new BadRequestException('Пользовательская вкладка не найдена');
+      throw new BadRequestException(appError('VIEW_NOT_FOUND'));
     }
 
     let entries: DataEntry[];
@@ -1108,7 +1110,7 @@ export class CustomTablesService {
     }
 
     if (!entries.length) {
-      throw new BadRequestException('Нет записей в этой пользовательской вкладке');
+      throw new BadRequestException(appError('VIEW_EMPTY'));
     }
 
     const tableName = (dto.name?.trim() || customTab.name).slice(0, 120);
@@ -1239,7 +1241,7 @@ export class CustomTablesService {
     const noteKey = keyByDefId.get('note');
 
     if (!(dateKey && amountKey && currencyKey && noteKey)) {
-      throw new BadRequestException('Не удалось сформировать колонки таблицы');
+      throw new BadRequestException(appError('TABLE_COLUMNS_BUILD_FAILED'));
     }
 
     const rowsToInsert = entries.map((entry, idx) => {
@@ -1304,12 +1306,12 @@ export class CustomTablesService {
       this.throwHelpfulSchemaError(error);
     }
     if (!table) {
-      throw new NotFoundException('Таблица не найдена');
+      throw new NotFoundException(appError('TABLE_NOT_FOUND'));
     }
 
     const isCustomTab = Boolean(table.dataEntryCustomTabId);
     if (!(isCustomTab || table.dataEntryScope)) {
-      throw new BadRequestException('Таблица не связана с вводом данных');
+      throw new BadRequestException(appError('TABLE_NOT_LINKED_TO_DATA_ENTRY'));
     }
 
     let entries: DataEntry[];
@@ -1327,7 +1329,7 @@ export class CustomTablesService {
         });
       } else if (table.dataEntryScope === DataEntryToCustomTableScope.TYPE) {
         if (!table.dataEntryType) {
-          throw new BadRequestException('Не указан тип для синхронизации');
+          throw new BadRequestException(appError('SYNC_TYPE_REQUIRED'));
         }
         qb.andWhere('entry.type = :type', { type: table.dataEntryType });
       }
@@ -1355,7 +1357,7 @@ export class CustomTablesService {
         note: 'Комментарий',
       };
       const missingLabels = missing.map(field => labelByField[field]).join(', ');
-      throw new BadRequestException(`Не найдены колонки для синхронизации: ${missingLabels}`);
+      throw new BadRequestException(appError('SYNC_COLUMNS_NOT_FOUND', { columns: missingLabels }));
     }
 
     const typeLabels: Record<DataEntryType, string> = {
@@ -1444,10 +1446,10 @@ export class CustomTablesService {
       new Set((dto.statementIds || []).map(v => String(v).trim()).filter(Boolean)),
     );
     if (!statementIds.length) {
-      throw new BadRequestException('Выберите выписку');
+      throw new BadRequestException(appError('STATEMENT_REQUIRED'));
     }
     if (statementIds.length > 10) {
-      throw new BadRequestException('Слишком много выписок (лимит 10)');
+      throw new BadRequestException(appError('STATEMENT_TOO_MANY'));
     }
 
     let statements: Statement[];
@@ -1464,7 +1466,7 @@ export class CustomTablesService {
       this.throwHelpfulSchemaError(error);
     }
     if (statements.length !== statementIds.length) {
-      throw new BadRequestException('Выписка не найдена');
+      throw new BadRequestException(appError('STATEMENT_NOT_FOUND'));
     }
 
     let transactions: Transaction[];
@@ -1477,7 +1479,7 @@ export class CustomTablesService {
       this.throwHelpfulSchemaError(error);
     }
     if (!transactions.length) {
-      throw new BadRequestException('В выбранной выписке нет транзакций');
+      throw new BadRequestException(appError('STATEMENT_NO_TRANSACTIONS'));
     }
 
     const defaultName =
@@ -1587,7 +1589,7 @@ export class CustomTablesService {
     if (
       !(dateKey && counterpartyKey && purposeKey && debitKey && creditKey && currencyKey && typeKey)
     ) {
-      throw new BadRequestException('Не удалось сформировать колонки таблицы');
+      throw new BadRequestException(appError('TABLE_COLUMNS_BUILD_FAILED'));
     }
 
     const statementNameById = new Map<string, string>();
@@ -1696,10 +1698,10 @@ export class CustomTablesService {
     }
 
     if (!columns.length) {
-      throw new BadRequestException('В таблице нет колонок для конвертации');
+      throw new BadRequestException(appError('TABLE_NO_COLUMNS_TO_CONVERT'));
     }
     if (!rows.length) {
-      throw new BadRequestException('В таблице нет строк для конвертации');
+      throw new BadRequestException(appError('TABLE_NO_ROWS_TO_CONVERT'));
     }
 
     const mapping = this.buildConversionMapping(columns);
@@ -1710,7 +1712,7 @@ export class CustomTablesService {
 
     if (missingRequired.length) {
       throw new BadRequestException(
-        `Не удалось определить обязательные колонки: ${missingRequired.join(', ')}`,
+        appError('REQUIRED_COLUMNS_UNRESOLVED', { columns: missingRequired.join(', ') }),
       );
     }
 
@@ -1754,7 +1756,7 @@ export class CustomTablesService {
     }
 
     if (!converted.length) {
-      throw new BadRequestException('В таблице нет валидных строк для конвертации');
+      throw new BadRequestException(appError('TABLE_NO_VALID_ROWS_TO_CONVERT'));
     }
 
     const existingStatement = await this.findConvertedStatement(workspaceId, tableId);
@@ -1920,7 +1922,7 @@ export class CustomTablesService {
     }
     const expression = config?.expression;
     if (typeof expression !== 'string' || !expression.trim()) {
-      throw new BadRequestException('Для формульной колонки нужна формула');
+      throw new BadRequestException(appError('COLUMN_FORMULA_REQUIRED'));
     }
     const columns = await this.customTableColumnRepository.find({
       where: { tableId },
@@ -1933,9 +1935,7 @@ export class CustomTablesService {
     try {
       assertValidFormula(expression, knownKeys);
     } catch (error) {
-      throw new BadRequestException(
-        error instanceof Error ? error.message : 'Некорректная формула',
-      );
+      throw new BadRequestException(error instanceof Error ? error.message : 'Invalid formula');
     }
   }
 
@@ -1994,7 +1994,7 @@ export class CustomTablesService {
     await this.ensureCanEditCustomTables(userId, workspaceId);
     await this.requireTable(workspaceId, tableId);
     if (!this.isUuid(columnId)) {
-      throw new BadRequestException('Некорректный идентификатор колонки');
+      throw new BadRequestException(appError('COLUMN_ID_INVALID'));
     }
     let column: CustomTableColumn | null = null;
     try {
@@ -2005,7 +2005,7 @@ export class CustomTablesService {
       this.throwHelpfulSchemaError(error);
     }
     if (!column) {
-      throw new NotFoundException('Колонка не найдена');
+      throw new NotFoundException(appError('COLUMN_NOT_FOUND'));
     }
 
     const before = { ...column };
@@ -2059,7 +2059,7 @@ export class CustomTablesService {
     await this.requireTable(workspaceId, tableId);
     const invalidId = dto.columnIds.find(id => !this.isUuid(id));
     if (invalidId) {
-      throw new BadRequestException('Некорректный идентификатор колонки');
+      throw new BadRequestException(appError('COLUMN_ID_INVALID'));
     }
     let columns: CustomTableColumn[] = [];
     try {
@@ -2073,7 +2073,7 @@ export class CustomTablesService {
     const existingIds = new Set(columns.map(c => c.id));
     for (const id of dto.columnIds) {
       if (!existingIds.has(id)) {
-        throw new NotFoundException('Одна из колонок не найдена');
+        throw new NotFoundException(appError('COLUMN_SOME_NOT_FOUND'));
       }
     }
 
@@ -2119,7 +2119,7 @@ export class CustomTablesService {
     await this.ensureCanEditCustomTables(userId, workspaceId);
     await this.requireTable(workspaceId, tableId);
     if (!this.isUuid(columnId)) {
-      throw new BadRequestException('Некорректный идентификатор колонки');
+      throw new BadRequestException(appError('COLUMN_ID_INVALID'));
     }
     let column: CustomTableColumn | null = null;
     try {
@@ -2130,7 +2130,7 @@ export class CustomTablesService {
       this.throwHelpfulSchemaError(error);
     }
     if (!column) {
-      throw new NotFoundException('Колонка не найдена');
+      throw new NotFoundException(appError('COLUMN_NOT_FOUND'));
     }
     try {
       await this.customTableColumnRepository.delete({ id: columnId, tableId });
@@ -2293,7 +2293,7 @@ export class CustomTablesService {
     }
     const targetTableId = config?.targetTableId;
     if (typeof targetTableId !== 'string' || !this.isUuid(targetTableId)) {
-      throw new BadRequestException('Для колонки-связи нужна таблица-цель');
+      throw new BadRequestException(appError('COLUMN_RELATION_TARGET_REQUIRED'));
     }
     // requireTable проверяет принадлежность воркспейсу — это и есть защита
     // от ссылки на чужие данные.
@@ -2302,11 +2302,13 @@ export class CustomTablesService {
     const displayColumnKey = config?.displayColumnKey;
     if (displayColumnKey !== undefined && displayColumnKey !== null) {
       if (typeof displayColumnKey !== 'string') {
-        throw new BadRequestException('Некорректная колонка для подписи');
+        throw new BadRequestException(appError('COLUMN_DISPLAY_INVALID'));
       }
       const targetColumns = await this.loadColumnTypeMap(targetTableId);
       if (!targetColumns.has(displayColumnKey)) {
-        throw new BadRequestException(`Колонка подписи не найдена: ${displayColumnKey}`);
+        throw new BadRequestException(
+          appError('COLUMN_DISPLAY_NOT_FOUND', { column: displayColumnKey }),
+        );
       }
     }
   }
@@ -2323,11 +2325,11 @@ export class CustomTablesService {
       where: { tableId, key: columnKey },
     });
     if (!column || column.type !== CustomTableColumnType.RELATION) {
-      throw new BadRequestException('Колонка не является связью');
+      throw new BadRequestException(appError('COLUMN_NOT_RELATION'));
     }
     const targetTableId = column.config?.targetTableId as string | undefined;
     if (!targetTableId) {
-      throw new BadRequestException('У колонки-связи нет таблицы-цели');
+      throw new BadRequestException(appError('COLUMN_RELATION_TARGET_MISSING'));
     }
     await this.requireTable(workspaceId, targetTableId);
 
@@ -2376,13 +2378,13 @@ export class CustomTablesService {
   ): void {
     if (rawFilters.length) {
       if (rawFilters.length > 50) {
-        throw new BadRequestException('Слишком много фильтров');
+        throw new BadRequestException(appError('FILTER_TOO_MANY'));
       }
 
       rawFilters.forEach((filter, index) => {
         const op = filter?.op;
         if (!op) {
-          throw new BadRequestException('Некорректный фильтр');
+          throw new BadRequestException(appError('FILTER_INVALID'));
         }
 
         if (op === 'search') {
@@ -2402,11 +2404,13 @@ export class CustomTablesService {
 
         const col = filter?.col?.trim();
         if (!col) {
-          throw new BadRequestException('Некорректный фильтр');
+          throw new BadRequestException(appError('FILTER_INVALID'));
         }
         const columnType = typeByKey.get(col);
         if (!columnType) {
-          throw new BadRequestException(`Колонка для фильтра не найдена: ${col}`);
+          throw new BadRequestException(
+            appError('FILTER_COLUMN_NOT_FOUND', { column: String(col) }),
+          );
         }
 
         const colParam = `f_col_${index}`;
@@ -2582,7 +2586,10 @@ export class CustomTablesService {
               break;
             }
             throw new BadRequestException(
-              `Оператор ${op} не поддерживается для типа ${columnType}`,
+              appError('FILTER_OPERATOR_UNSUPPORTED', {
+                operator: String(op),
+                type: String(columnType),
+              }),
             );
           }
           case 'between': {
@@ -2617,7 +2624,7 @@ export class CustomTablesService {
               break;
             }
             throw new BadRequestException(
-              `Оператор between не поддерживается для типа ${columnType}`,
+              appError('FILTER_BETWEEN_UNSUPPORTED', { type: String(columnType) }),
             );
           }
           case 'in': {
@@ -2658,7 +2665,9 @@ export class CustomTablesService {
             break;
           }
           default:
-            throw new BadRequestException(`Неизвестный оператор фильтра: ${op}`);
+            throw new BadRequestException(
+              appError('FILTER_OPERATOR_UNKNOWN', { operator: String(op) }),
+            );
         }
       });
     }
@@ -2671,11 +2680,11 @@ export class CustomTablesService {
   ): void {
     const col = sort.col?.trim();
     if (!col) {
-      throw new BadRequestException('Некорректная сортировка');
+      throw new BadRequestException(appError('SORT_INVALID'));
     }
     const columnType = typeByKey.get(col);
     if (!columnType) {
-      throw new BadRequestException(`Колонка для сортировки не найдена: ${col}`);
+      throw new BadRequestException(appError('SORT_COLUMN_NOT_FOUND', { column: String(col) }));
     }
     const direction = sort.dir === 'desc' ? 'DESC' : 'ASC';
     const sortExpr = this.sortExprForColumnType('s_col', columnType);
@@ -2760,14 +2769,14 @@ export class CustomTablesService {
     return aggs.map((agg, index) => {
       const col = agg.col?.trim();
       if (!col) {
-        throw new BadRequestException('Некорректный агрегат');
+        throw new BadRequestException(appError('AGG_INVALID'));
       }
       const columnType = typeByKey.get(col);
       if (!columnType) {
-        throw new BadRequestException(`Колонка для агрегата не найдена: ${col}`);
+        throw new BadRequestException(appError('AGG_COLUMN_NOT_FOUND', { column: String(col) }));
       }
       if (!CUSTOM_TABLE_AGGREGATE_FNS.includes(agg.fn)) {
-        throw new BadRequestException(`Неизвестная функция агрегата: ${agg.fn}`);
+        throw new BadRequestException(appError('AGG_FUNCTION_UNKNOWN', { fn: String(agg.fn) }));
       }
 
       const colParam = `a_col_${index}`;
@@ -2784,7 +2793,9 @@ export class CustomTablesService {
       if (columnType === CustomTableColumnType.DATE && (agg.fn === 'min' || agg.fn === 'max')) {
         return `${agg.fn.toUpperCase()}(${exprs.dateExpr}) AS "agg_${index}"`;
       }
-      throw new BadRequestException(`Функция ${agg.fn} не поддерживается для типа ${columnType}`);
+      throw new BadRequestException(
+        appError('AGG_FUNCTION_UNSUPPORTED', { fn: String(agg.fn), type: String(columnType) }),
+      );
     });
   }
 
@@ -2817,16 +2828,16 @@ export class CustomTablesService {
 
     const keys = Array.from(new Set((params.keys ?? []).map(k => k.trim()).filter(Boolean)));
     if (!keys.length) {
-      throw new BadRequestException('Не указаны колонки для поиска дублей');
+      throw new BadRequestException(appError('DUPLICATE_KEY_COLUMNS_REQUIRED'));
     }
     if (keys.length > 10) {
-      throw new BadRequestException('Слишком много колонок в ключе');
+      throw new BadRequestException(appError('DUPLICATE_KEY_TOO_MANY_COLUMNS'));
     }
 
     const typeByKey = await this.loadColumnTypeMap(tableId);
     for (const key of keys) {
       if (!typeByKey.has(key)) {
-        throw new BadRequestException(`Колонка не найдена: ${key}`);
+        throw new BadRequestException(appError('COLUMN_NOT_FOUND_NAMED', { column: String(key) }));
       }
     }
 
@@ -2889,7 +2900,7 @@ export class CustomTablesService {
       return { items: [], total: 0 };
     }
     if (aggs.length > 50) {
-      throw new BadRequestException('Слишком много агрегатов');
+      throw new BadRequestException(appError('AGG_TOO_MANY'));
     }
 
     const typeByKey = await this.loadColumnTypeMap(tableId);
@@ -2937,17 +2948,19 @@ export class CustomTablesService {
 
     const groupBy = params.groupBy?.trim();
     if (!groupBy) {
-      throw new BadRequestException('Не указана колонка группировки');
+      throw new BadRequestException(appError('GROUP_COLUMN_REQUIRED'));
     }
 
     const typeByKey = await this.loadColumnTypeMap(tableId);
     if (!typeByKey.has(groupBy)) {
-      throw new BadRequestException(`Колонка для группировки не найдена: ${groupBy}`);
+      throw new BadRequestException(
+        appError('GROUP_COLUMN_NOT_FOUND', { column: String(groupBy) }),
+      );
     }
 
     const aggs = params.aggs?.filter(Boolean) ?? [];
     if (aggs.length > 50) {
-      throw new BadRequestException('Слишком много агрегатов');
+      throw new BadRequestException(appError('AGG_TOO_MANY'));
     }
 
     const query = await this.buildRowsQuery(tableId, { filters: params.filters });
@@ -3009,14 +3022,17 @@ export class CustomTablesService {
       : allColumns;
 
     if (!columns.length) {
-      throw new BadRequestException('Нет колонок для экспорта');
+      throw new BadRequestException(appError('EXPORT_NO_COLUMNS'));
     }
 
     const query = await this.buildRowsQuery(tableId, params);
     const total = await query.getCount();
     if (total > CustomTablesService.MAX_EXPORT_ROWS) {
       throw new BadRequestException(
-        `Слишком много строк для экспорта: ${total}. Ограничьте выборку фильтрами (максимум ${CustomTablesService.MAX_EXPORT_ROWS}).`,
+        appError('EXPORT_TOO_MANY_ROWS', {
+          total,
+          max: CustomTablesService.MAX_EXPORT_ROWS,
+        }),
       );
     }
 
@@ -3140,11 +3156,11 @@ export class CustomTablesService {
       where: { tableId, key: dto.columnKey },
     });
     if (!column || column.type !== CustomTableColumnType.AI) {
-      throw new BadRequestException('Колонка не является AI-колонкой');
+      throw new BadRequestException(appError('COLUMN_NOT_AI'));
     }
     const prompt = column.config?.prompt;
     if (typeof prompt !== 'string' || !prompt.trim()) {
-      throw new BadRequestException('У AI-колонки не задан промпт');
+      throw new BadRequestException(appError('COLUMN_AI_PROMPT_MISSING'));
     }
 
     const rowIds = Array.from(new Set((dto.rowIds ?? []).filter(id => this.isUuid(id))));
@@ -3316,7 +3332,9 @@ export class CustomTablesService {
 
         // При частичном обновлении отсутствующий ключ означает «не меняем».
         if (col.isRequired && (present || !options.partial) && this.isBlankCellValue(value)) {
-          throw new BadRequestException(`Колонка «${col.title}» обязательна`);
+          throw new BadRequestException(
+            appError('COLUMN_REQUIRED_VALUE', { column: String(col.title) }),
+          );
         }
 
         if (!col.isUnique || !present || this.isBlankCellValue(value)) {
@@ -3327,7 +3345,7 @@ export class CustomTablesService {
         const batchSeen = seenInBatch.get(col.key) ?? new Set<string>();
         if (batchSeen.has(text)) {
           throw new BadRequestException(
-            `Значение «${text}» в колонке «${col.title}» повторяется в загрузке`,
+            appError('VALUE_DUPLICATE_IN_BATCH', { value: text, column: String(col.title) }),
           );
         }
         batchSeen.add(text);
@@ -3342,7 +3360,7 @@ export class CustomTablesService {
         }
         if (await duplicateQuery.getExists()) {
           throw new BadRequestException(
-            `Значение «${text}» в колонке «${col.title}» уже есть в таблице`,
+            appError('VALUE_DUPLICATE_IN_TABLE', { value: text, column: String(col.title) }),
           );
         }
       }
@@ -3396,7 +3414,7 @@ export class CustomTablesService {
     await this.ensureCanEditCustomTables(userId, workspaceId);
     await this.requireTable(workspaceId, tableId);
     if (!this.isUuid(rowId)) {
-      throw new BadRequestException('Некорректный идентификатор строки');
+      throw new BadRequestException(appError('ROW_ID_INVALID'));
     }
     let row: CustomTableRow | null = null;
     try {
@@ -3407,7 +3425,7 @@ export class CustomTablesService {
       this.throwHelpfulSchemaError(error);
     }
     if (!row) {
-      throw new NotFoundException('Строка не найдена');
+      throw new NotFoundException(appError('ROW_NOT_FOUND'));
     }
 
     const allowedKeys = await this.getAllowedColumnKeys(tableId);
@@ -3482,7 +3500,7 @@ export class CustomTablesService {
     await this.ensureCanEditCustomTables(userId, workspaceId);
     await this.requireTable(workspaceId, tableId);
     if (!this.isUuid(rowId)) {
-      throw new BadRequestException('Некорректный идентификатор строки');
+      throw new BadRequestException(appError('ROW_ID_INVALID'));
     }
     let row: CustomTableRow | null = null;
     try {
@@ -3493,7 +3511,7 @@ export class CustomTablesService {
       this.throwHelpfulSchemaError(error);
     }
     if (!row) {
-      throw new NotFoundException('Строка не найдена');
+      throw new NotFoundException(appError('ROW_NOT_FOUND'));
     }
     try {
       await this.customTableRowRepository.delete({ id: rowId, tableId });
@@ -3569,7 +3587,7 @@ export class CustomTablesService {
 
     const columnKey = dto.columnKey?.trim();
     if (!columnKey) {
-      throw new BadRequestException('columnKey обязателен');
+      throw new BadRequestException(appError('COLUMN_KEY_REQUIRED'));
     }
 
     const column = await this.customTableColumnRepository.findOne({
@@ -3577,7 +3595,7 @@ export class CustomTablesService {
       select: ['id', 'key'],
     });
     if (!column) {
-      throw new BadRequestException('Колонка не найдена');
+      throw new BadRequestException(appError('COLUMN_NOT_FOUND'));
     }
 
     const viewSettings = this.getViewSettingsObject(table) as JsonObject;
@@ -3634,10 +3652,10 @@ export class CustomTablesService {
     for (const rule of rules) {
       const col = rule?.col;
       if (typeof col !== 'string' || !columnKeys.has(col)) {
-        throw new BadRequestException(`Колонка правила не найдена: ${String(col)}`);
+        throw new BadRequestException(appError('RULE_COLUMN_NOT_FOUND', { column: String(col) }));
       }
       if (rule.target !== 'cell' && rule.target !== 'row') {
-        throw new BadRequestException('Правило должно применяться к cell или row');
+        throw new BadRequestException(appError('RULE_TARGET_INVALID'));
       }
     }
 
@@ -3679,21 +3697,23 @@ export class CustomTablesService {
     const ids = new Set<string>();
     for (const view of dto.views) {
       if (ids.has(view.id)) {
-        throw new BadRequestException(`Дублирующийся идентификатор вида: ${view.id}`);
+        throw new BadRequestException(appError('VIEW_ID_DUPLICATE', { id: String(view.id) }));
       }
       ids.add(view.id);
 
       // class-validator проверяет, что aggregates — объект, но не его значения.
       for (const [col, fn] of Object.entries(view.aggregates ?? {})) {
         if (!CUSTOM_TABLE_AGGREGATE_FNS.includes(fn)) {
-          throw new BadRequestException(`Неизвестная функция итога у колонки ${col}: ${fn}`);
+          throw new BadRequestException(
+            appError('AGG_TOTAL_FUNCTION_UNKNOWN', { column: String(col), fn: String(fn) }),
+          );
         }
       }
     }
 
     const activeViewId = dto.activeViewId ?? null;
     if (activeViewId && !ids.has(activeViewId)) {
-      throw new BadRequestException('Активный вид отсутствует в списке');
+      throw new BadRequestException(appError('VIEW_ACTIVE_MISSING'));
     }
 
     const viewSettings = this.getViewSettingsObject(table) as JsonObject;

@@ -96,7 +96,11 @@ export function useTanStackLabels(t: TanStackT): TanStackLabels {
         avg: getTranslationValue({ root: t, path: ['grid', 'aggregateAvg'], fallback: 'Average' }),
         min: getTranslationValue({ root: t, path: ['grid', 'aggregateMin'], fallback: 'Min' }),
         max: getTranslationValue({ root: t, path: ['grid', 'aggregateMax'], fallback: 'Max' }),
-        count: getTranslationValue({ root: t, path: ['grid', 'aggregateCount'], fallback: 'Count' }),
+        count: getTranslationValue({
+          root: t,
+          path: ['grid', 'aggregateCount'],
+          fallback: 'Count',
+        }),
       },
     }),
     [t],

@@ -1,3 +1,4 @@
+import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import type { Transaction } from '../types';
 
@@ -64,9 +65,11 @@ function buildCategoryLabel(
 export function resolveCategoryDisplay(
   tx: Transaction,
   fallbackLabel: string,
+  locale: string,
 ): { triggerLabel: string; style: React.CSSProperties } {
   const hasDisabledCategory = tx.category?.isEnabled === false;
-  const triggerLabel = buildCategoryLabel(tx.category?.name, hasDisabledCategory, fallbackLabel);
+  const categoryName = tx.category ? getCategoryDisplayName(tx.category, locale) : undefined;
+  const triggerLabel = buildCategoryLabel(categoryName, hasDisabledCategory, fallbackLabel);
   return {
     triggerLabel,
     style: buildCategoryStyle({ hasDisabledCategory, color: tx.category?.color }),

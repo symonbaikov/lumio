@@ -169,7 +169,7 @@ export class ReportsController {
   @Post('export')
   @WorkspaceAuth(Permission.REPORT_EXPORT)
   async exportReport(
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
     @Body() dto: ExportReportDto,
     @Res() res: Response,
@@ -196,6 +196,7 @@ export class ReportsController {
       workspaceId,
       dto,
       reportData,
+      user?.locale,
     );
 
     // Send file

@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Intlayer
 .intlayer
+
+# Storybook build output
+storybook-static/

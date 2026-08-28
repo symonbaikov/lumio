@@ -118,7 +118,7 @@ describe('CustomTablesService.groupRows', () => {
 
     await expect(
       service.groupRows('workspace-1', TABLE_ID, { groupBy: 'ghost' }),
-    ).rejects.toThrow(/не найдена/);
+    ).rejects.toMatchObject({ response: { code: 'GROUP_COLUMN_NOT_FOUND' } });
   });
 
   it('rejects an aggregate the column type cannot support', async () => {
@@ -129,6 +129,6 @@ describe('CustomTablesService.groupRows', () => {
         groupBy: 'vendor',
         aggs: [{ col: 'vendor', fn: 'sum' }],
       }),
-    ).rejects.toThrow(/не поддерживается/);
+    ).rejects.toMatchObject({ response: { code: 'AGG_FUNCTION_UNSUPPORTED' } });
   });
 });

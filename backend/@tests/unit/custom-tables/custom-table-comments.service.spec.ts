@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CustomTableCommentsService } from '../../../src/modules/custom-tables/custom-table-comments.service';
 
 const createRepositoryMock = () => ({
@@ -17,6 +17,7 @@ function buildService(options: { tableFound?: boolean; rowFound?: boolean } = {}
   const commentRepository = createRepositoryMock();
   const tableRepository = createRepositoryMock();
   const rowRepository = createRepositoryMock();
+  const workspaceMemberRepository = createRepositoryMock();
 
   tableRepository.createQueryBuilder.mockReturnValue({
     leftJoin: jest.fn().mockReturnThis(),
@@ -41,12 +42,31 @@ function buildService(options: { tableFound?: boolean; rowFound?: boolean } = {}
     commentRepository as never,
     tableRepository as never,
     rowRepository as never,
+    workspaceMemberRepository as never,
   );
 
-  return { service, commentRepository };
+  return { service, commentRepository, workspaceMemberRepository };
 }
 
 describe('CustomTableCommentsService', () => {
+  it('refuses mutations for a member without edit permission', async () => {
+    const { service, workspaceMemberRepository } = buildService();
+    workspaceMemberRepository.findOne.mockResolvedValue({
+      role: 'member',
+      permissions: { canEditCustomTables: false },
+    });
+
+    await expect(
+      service.addComment('u1', 'ws-1', TABLE_ID, ROW_ID, 'привет'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.setResolved('u1', 'ws-1', 'c1', true)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    await expect(service.deleteComment('u1', 'ws-1', 'c1')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
   it('rejects an empty comment', async () => {
     const { service } = buildService();
 
@@ -60,7 +80,7 @@ describe('CustomTableCommentsService', () => {
 
     await expect(
       service.addComment('u1', 'ws-1', TABLE_ID, ROW_ID, 'x'.repeat(4001)),
-    ).rejects.toThrow(/слишком длинный/);
+    ).rejects.toMatchObject({ response: { code: 'COMMENT_TOO_LONG' } });
   });
 
   it('refuses to comment on a table from another workspace', async () => {
@@ -76,7 +96,7 @@ describe('CustomTableCommentsService', () => {
 
     await expect(
       service.addComment('u1', 'ws-1', TABLE_ID, ROW_ID, 'привет'),
-    ).rejects.toThrow(/Строка не найдена/);
+    ).rejects.toMatchObject({ response: { code: 'ROW_NOT_FOUND' } });
   });
 
   it('falls back to email when the author has no name', async () => {

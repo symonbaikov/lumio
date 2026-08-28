@@ -1,10 +1,13 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
+import { appError } from '../../common/errors/app-error';
+import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { CustomTableColumn } from '../../entities/custom-table-column.entity';
 import { CustomTableRow } from '../../entities/custom-table-row.entity';
 import { CustomTable } from '../../entities/custom-table.entity';
 import { GoogleSheet } from '../../entities/google-sheet.entity';
+import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { GoogleSheetsApiService } from '../google-sheets/services/google-sheets-api.service';
 
 export interface SyncResult {
@@ -36,9 +39,22 @@ export class CustomTableSyncService {
     private readonly rowRepository: Repository<CustomTableRow>,
     @InjectRepository(GoogleSheet)
     private readonly googleSheetRepository: Repository<GoogleSheet>,
+    @InjectRepository(WorkspaceMember)
+    private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly googleSheetsApiService: GoogleSheetsApiService,
     private readonly dataSource: DataSource,
   ) {}
+
+  /** Настройка и ручной запуск синка меняют данные таблицы — нужны права редактора. */
+  private async ensureCanEditCustomTables(userId: string, workspaceId: string): Promise<void> {
+    await ensureCanEdit(
+      this.workspaceMemberRepository,
+      workspaceId,
+      userId,
+      'canEditCustomTables',
+      'TABLES_EDIT_FORBIDDEN',
+    );
+  }
 
   /** Таблицы, у которых подошёл срок обновления. */
   async findDueTables(now: Date = new Date()): Promise<CustomTable[]> {
@@ -64,12 +80,13 @@ export class CustomTableSyncService {
       .andWhere('owner.workspaceId = :workspaceId', { workspaceId })
       .getOne();
     if (!table) {
-      throw new NotFoundException('Таблица не найдена');
+      throw new NotFoundException(appError('TABLE_NOT_FOUND'));
     }
     return table;
   }
 
   async updateSyncSettings(
+    userId: string,
     workspaceId: string,
     tableId: string,
     dto: {
@@ -78,6 +95,7 @@ export class CustomTableSyncService {
       syncConfig?: Record<string, unknown> | null;
     },
   ): Promise<CustomTable> {
+    await this.ensureCanEditCustomTables(userId, workspaceId);
     const table = await this.assertTableInWorkspace(workspaceId, tableId);
 
     if (dto.syncConfig !== undefined) {
@@ -90,7 +108,7 @@ export class CustomTableSyncService {
       // Включать синк без источника нельзя — иначе планировщик будет
       // бесконечно спотыкаться об одну и ту же таблицу.
       if (dto.syncEnabled && !(table.syncConfig as Record<string, unknown> | null)?.googleSheetId) {
-        throw new BadRequestException('Сначала укажите источник синхронизации');
+        throw new BadRequestException(appError('SYNC_SOURCE_REQUIRED'));
       }
       table.syncEnabled = dto.syncEnabled;
     }
@@ -98,20 +116,27 @@ export class CustomTableSyncService {
     return this.tableRepository.save(table);
   }
 
+  /** Ручной запуск из UI: та же перезапись строк, что и по расписанию, но от имени пользователя. */
+  async runUserSync(userId: string, workspaceId: string, tableId: string): Promise<SyncResult> {
+    await this.ensureCanEditCustomTables(userId, workspaceId);
+    await this.assertTableInWorkspace(workspaceId, tableId);
+    return this.syncTable(tableId);
+  }
+
   async syncTable(tableId: string): Promise<SyncResult> {
     const table = await this.tableRepository.findOne({ where: { id: tableId } });
     if (!table) {
-      throw new NotFoundException('Таблица не найдена');
+      throw new NotFoundException(appError('TABLE_NOT_FOUND'));
     }
     const config = (table.syncConfig ?? {}) as Record<string, unknown>;
     const googleSheetId = config.googleSheetId;
     if (typeof googleSheetId !== 'string') {
-      throw new BadRequestException('У таблицы не настроен источник синхронизации');
+      throw new BadRequestException(appError('SYNC_SOURCE_NOT_CONFIGURED'));
     }
 
     const sheet = await this.googleSheetRepository.findOne({ where: { id: googleSheetId } });
     if (!sheet) {
-      throw new NotFoundException('Google Sheet подключение не найдено');
+      throw new NotFoundException(appError('SHEETS_CONNECTION_NOT_FOUND'));
     }
 
     const worksheetName = typeof config.worksheetName === 'string' ? config.worksheetName : '';
@@ -131,7 +156,7 @@ export class CustomTableSyncService {
       order: { position: 'ASC' },
     });
     if (!columns.length) {
-      throw new BadRequestException('У таблицы нет колонок');
+      throw new BadRequestException(appError('TABLE_NO_COLUMNS'));
     }
 
     const matrix = Array.isArray(values) ? (values as unknown[][]) : [];

@@ -18,6 +18,7 @@ function buildService(share?: Record<string, unknown>) {
   const tableRepository = createRepositoryMock();
   const columnRepository = createRepositoryMock();
   const rowRepository = createRepositoryMock();
+  const workspaceMemberRepository = createRepositoryMock();
   const auditService = { createEvent: jest.fn(), createBatchEvents: jest.fn() };
 
   tableRepository.createQueryBuilder.mockReturnValue({
@@ -47,10 +48,11 @@ function buildService(share?: Record<string, unknown>) {
     tableRepository as never,
     columnRepository as never,
     rowRepository as never,
+    workspaceMemberRepository as never,
     auditService as never,
   );
 
-  return { service, shareRepository, auditService };
+  return { service, shareRepository, workspaceMemberRepository, auditService };
 }
 
 const activeShare = {
@@ -65,6 +67,18 @@ const activeShare = {
 };
 
 describe('CustomTableSharesService', () => {
+  it('refuses to create a share for a member without edit permission', async () => {
+    const { service, workspaceMemberRepository } = buildService();
+    workspaceMemberRepository.findOne.mockResolvedValue({
+      role: 'member',
+      permissions: { canEditCustomTables: false },
+    });
+
+    await expect(service.createShare('u1', 'ws-1', TABLE_ID, {})).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
   it('issues a long random token and records an audit event', async () => {
     const { service, auditService } = buildService();
 
@@ -100,7 +114,7 @@ describe('CustomTableSharesService', () => {
       expiresAt: new Date(Date.now() - 1000),
     });
 
-    await expect(service.getSharedTable(TOKEN)).rejects.toThrow(/истёк/);
+    await expect(service.getSharedTable(TOKEN)).rejects.toMatchObject({ response: { code: 'SHARE_LINK_EXPIRED' } });
     expect(shareRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({ status: CustomTableShareStatus.EXPIRED }),
     );

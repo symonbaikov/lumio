@@ -275,7 +275,7 @@ describe('WorkspacesService', () => {
       expect(invitationRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'inv-1', status: WorkspaceInvitationStatus.CANCELLED }),
       );
-      expect(result).toEqual({ message: 'Приглашение отозвано' });
+      expect(result).toEqual({ message: 'Invitation revoked' });
     });
   });
 

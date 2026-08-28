@@ -211,6 +211,7 @@ describe('SheetTransactionImportService', () => {
       expect(statementRepository.save).not.toHaveBeenCalled();
       expect(customTableImportJobsService.createSheetTransactionsJob).toHaveBeenCalledWith(
         userId,
+        workspaceId,
         expect.objectContaining({ workspaceId }),
       );
     });

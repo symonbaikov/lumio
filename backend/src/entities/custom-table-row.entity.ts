@@ -23,7 +23,7 @@ export class CustomTableRow {
   @JoinColumn({ name: 'table_id' })
   table: CustomTable;
 
-  @Column({ name: 'table_id' })
+  @Column({ name: 'table_id', type: 'uuid' })
   tableId: string;
 
   @Column({ name: 'row_number', type: 'int' })

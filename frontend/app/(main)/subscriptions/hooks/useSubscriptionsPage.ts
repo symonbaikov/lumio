@@ -187,7 +187,7 @@ export function useSubscriptionsPage() {
     async (id: string) => {
       try {
         await apiClient.delete(`/subscriptions/${id}`);
-        toast.success('Subscription cancelled');
+        toast.success('Subscription deleted');
         await load();
       } catch {
         toast.error('Failed to delete subscription');

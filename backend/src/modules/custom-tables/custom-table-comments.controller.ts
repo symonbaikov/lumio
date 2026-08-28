@@ -60,24 +60,24 @@ export class CustomTableCommentsController {
   @Patch(':id/comments/:commentId')
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
   async setResolved(
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
     @Param('id', new ParseUUIDPipe()) _tableId: string,
     @Param('commentId', new ParseUUIDPipe()) commentId: string,
     @Body() dto: SetCommentResolvedDto,
   ) {
-    return this.commentsService.setResolved(workspaceId, commentId, dto.resolved);
+    return this.commentsService.setResolved(user.id, workspaceId, commentId, dto.resolved);
   }
 
   @Delete(':id/comments/:commentId')
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
   async deleteComment(
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
     @Param('id', new ParseUUIDPipe()) _tableId: string,
     @Param('commentId', new ParseUUIDPipe()) commentId: string,
   ) {
-    await this.commentsService.deleteComment(workspaceId, commentId);
-    return { message: 'Комментарий удалён' };
+    await this.commentsService.deleteComment(user.id, workspaceId, commentId);
+    return { message: 'Comment deleted' };
   }
 }

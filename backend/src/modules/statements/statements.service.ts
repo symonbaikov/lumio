@@ -17,6 +17,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
+import { appError } from '../../common/errors/app-error';
 import { FileStorageService } from '../../common/services/file-storage.service';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { calculateFileHash } from '../../common/utils/file-hash.util';
@@ -236,7 +237,7 @@ export class StatementsService {
       workspaceId,
       userId,
       'canEditStatements',
-      'Недостаточно прав для редактирования выписок',
+      'STATEMENTS_EDIT_FORBIDDEN',
     );
   }
 
@@ -258,7 +259,7 @@ export class StatementsService {
         return;
       }
     }
-    throw new ForbiddenException('Недостаточно прав для изменения выписки');
+    throw new ForbiddenException(appError('STATEMENT_EDIT_FORBIDDEN'));
   }
 
   private escapeCsvValue(value: string): string {
@@ -382,23 +383,6 @@ export class StatementsService {
 
     const transactionDate = new Date(parsedDate.toISOString().slice(0, 10));
 
-    if (!allowDuplicates) {
-      const existingDuplicate = await this.transactionRepository.findOne({
-        where: {
-          workspaceId,
-          transactionType: TransactionType.EXPENSE,
-          transactionDate,
-          currency,
-          counterpartyName: merchant,
-          debit: amountValue,
-        },
-      });
-
-      if (existingDuplicate) {
-        throw new ConflictException('Аналогичный расход уже существует');
-      }
-    }
-
     const normalizedFiles = files || [];
     normalizedFiles.forEach(validateFile);
 
@@ -438,59 +422,6 @@ export class StatementsService {
       fileSize = fileData.length;
     }
 
-    const statement = this.statementRepository.create({
-      userId: user.id,
-      workspaceId,
-      fileName,
-      filePath,
-      fileType,
-      fileSize,
-      fileHash,
-      bankName: BankName.OTHER,
-      status: StatementStatus.COMPLETED,
-      processedAt: new Date(),
-      statementDateFrom: transactionDate,
-      statementDateTo: transactionDate,
-      totalTransactions: 1,
-      totalDebit: amountValue,
-      totalCredit: 0,
-      currency,
-      categoryId: category.id,
-      parsingDetails: {
-        detectedBy: 'manual-expense',
-        parserUsed: 'manual-expense',
-        parserVersion: '1',
-        transactionsFound: 1,
-        transactionsCreated: 1,
-        metadataExtracted: {
-          dateFrom: payload.date,
-          dateTo: payload.date,
-          currency,
-        },
-        importPreview: {
-          source: 'manual-expense',
-          merchant,
-          description,
-          attachments: normalizedFiles.length,
-          categoryId: category.id,
-          taxRateId: taxRate?.id || null,
-          taxRateLabel: taxRate
-            ? `${taxRate.name} (${Number(taxRate.rate || 0).toFixed(0)}%)`
-            : null,
-        },
-      },
-    });
-
-    const savedStatement = (await this.statementRepository.save(statement)) as Statement;
-
-    try {
-      await this.statementRepository.update(savedStatement.id, { fileData });
-    } catch (error) {
-      this.logger.warn(
-        `[Statements] Failed to persist manual expense file in DB: ${(error as Error)?.message}`,
-      );
-    }
-
     // Resolved from the user's own choice where they made one, otherwise from
     // the workspace rules and default as they stood on the expense's date.
     const taxAssignment = await this.taxAssignmentService.resolve({
@@ -503,29 +434,110 @@ export class StatementsService {
       explicitTaxRateId: taxRateId || null,
     });
 
-    const transaction = this.transactionRepository.create({
-      workspaceId,
-      statementId: savedStatement.id,
-      transactionDate,
-      counterpartyName: merchant,
-      paymentPurpose: description || merchant,
-      debit: amountValue,
-      credit: null,
-      amount: amountValue,
-      currency,
-      transactionType: TransactionType.EXPENSE,
-      categoryId: category.id,
-      taxRateId: taxAssignment.taxRateId ?? taxRate?.id ?? null,
-      taxRuleId: taxAssignment.taxRuleId,
-      taxSource: taxAssignment.taxSource,
-      taxAmount: taxAssignment.taxAmount,
-      taxNetAmount: taxAssignment.taxNetAmount,
-      taxReverseCharge: taxAssignment.taxReverseCharge,
-      taxNotionalAmount: taxAssignment.taxNotionalAmount,
-      isVerified: true,
+    // Проверка дубликата и обе вставки — в одной транзакции под advisory-lock:
+    // иначе double-submit формы проходил check-then-act дважды и создавал два
+    // одинаковых расхода (тот же паттерн, что в create() для выписок).
+    const savedStatement = await this.statementRepository.manager.transaction(async manager => {
+      await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+        `manual-expense:${workspaceId}:${payload.date}:${merchant}:${amountValue}:${currency}`,
+      ]);
+
+      if (!allowDuplicates) {
+        const existingDuplicate = await manager.getRepository(Transaction).findOne({
+          where: {
+            workspaceId,
+            transactionType: TransactionType.EXPENSE,
+            transactionDate,
+            currency,
+            counterpartyName: merchant,
+            debit: amountValue,
+          },
+        });
+
+        if (existingDuplicate) {
+          throw new ConflictException(appError('EXPENSE_DUPLICATE'));
+        }
+      }
+
+      const statements = manager.getRepository(Statement);
+      const statement = statements.create({
+        userId: user.id,
+        workspaceId,
+        fileName,
+        filePath,
+        fileType,
+        fileSize,
+        fileHash,
+        bankName: BankName.OTHER,
+        status: StatementStatus.COMPLETED,
+        processedAt: new Date(),
+        statementDateFrom: transactionDate,
+        statementDateTo: transactionDate,
+        totalTransactions: 1,
+        totalDebit: amountValue,
+        totalCredit: 0,
+        currency,
+        categoryId: category.id,
+        parsingDetails: {
+          detectedBy: 'manual-expense',
+          parserUsed: 'manual-expense',
+          parserVersion: '1',
+          transactionsFound: 1,
+          transactionsCreated: 1,
+          metadataExtracted: {
+            dateFrom: payload.date,
+            dateTo: payload.date,
+            currency,
+          },
+          importPreview: {
+            source: 'manual-expense',
+            merchant,
+            description,
+            attachments: normalizedFiles.length,
+            categoryId: category.id,
+            taxRateId: taxRate?.id || null,
+            taxRateLabel: taxRate
+              ? `${taxRate.name} (${Number(taxRate.rate || 0).toFixed(0)}%)`
+              : null,
+          },
+        },
+      });
+
+      const created = (await statements.save(statement)) as Statement;
+
+      const transaction = manager.getRepository(Transaction).create({
+        workspaceId,
+        statementId: created.id,
+        transactionDate,
+        counterpartyName: merchant,
+        paymentPurpose: description || merchant,
+        debit: amountValue,
+        credit: null,
+        amount: amountValue,
+        currency,
+        transactionType: TransactionType.EXPENSE,
+        categoryId: category.id,
+        taxRateId: taxAssignment.taxRateId ?? taxRate?.id ?? null,
+        taxRuleId: taxAssignment.taxRuleId,
+        taxSource: taxAssignment.taxSource,
+        taxAmount: taxAssignment.taxAmount,
+        taxNetAmount: taxAssignment.taxNetAmount,
+        taxReverseCharge: taxAssignment.taxReverseCharge,
+        taxNotionalAmount: taxAssignment.taxNotionalAmount,
+        isVerified: true,
+      });
+
+      await manager.getRepository(Transaction).save(transaction);
+      return created;
     });
 
-    await this.transactionRepository.save(transaction);
+    try {
+      await this.statementRepository.update(savedStatement.id, { fileData });
+    } catch (error) {
+      this.logger.warn(
+        `[Statements] Failed to persist manual expense file in DB: ${(error as Error)?.message}`,
+      );
+    }
 
     await this.auditService.createEvent({
       workspaceId,
@@ -706,35 +718,6 @@ export class StatementsService {
     const normalizedName = normalizeFilename(file.originalname);
     const fileHash = await calculateFileHash(file.path);
 
-    // Check for exact file hash duplicate
-    const hashDuplicate = await this.statementRepository.findOne({
-      where: { workspaceId, fileHash },
-    });
-
-    if (hashDuplicate && !allowDuplicates) {
-      throw new ConflictException({
-        message: 'Такая выписка уже загружена (дубликат файла)',
-        duplicateStatementId: hashDuplicate.id,
-      });
-    }
-
-    // Check for near-duplicate (same name, size, within 5 minutes)
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const recentStatements = await this.statementRepository
-      .createQueryBuilder('statement')
-      .where('statement.workspaceId = :workspaceId', { workspaceId })
-      .andWhere('statement.fileName = :fileName', { fileName: normalizedName })
-      .andWhere('statement.fileSize = :fileSize', { fileSize: file.size })
-      .andWhere('statement.createdAt >= :fiveMinutesAgo', { fiveMinutesAgo })
-      .getMany();
-
-    if (recentStatements.length > 0 && !allowDuplicates) {
-      throw new ConflictException({
-        message: 'Аналогичная выписка была недавно загружена',
-        duplicateStatementId: recentStatements[0].id,
-      });
-    }
-    // Calculate file hash
     let fileData: Buffer | null = null;
     try {
       fileData = await fs.promises.readFile(file.path);
@@ -744,26 +727,64 @@ export class StatementsService {
       );
     }
 
-    // Create new statement
-    const statement = this.statementRepository.create({
-      userId: user.id,
-      workspaceId,
-      googleSheetId: googleSheetId || null,
-      fileName: normalizedName,
-      filePath: file.path,
-      fileType: getFileTypeFromMime(file.mimetype) as FileType,
-      fileSize: file.size,
-      fileHash,
-      bankName: BankName.OTHER, // Will be determined during parsing
-      status: StatementStatus.UPLOADED,
-      parsingDetails: requireManualCategorySelection
-        ? {
-            manualCategorySelectionRequired: true,
-          }
-        : null,
-    });
+    // Проверка дубликата и вставка — в одной транзакции под advisory-lock:
+    // без него два одновременных аплоада одного файла (double-submit, retry)
+    // оба проходили check-then-act и создавали дубль выписки с транзакциями.
+    // Уникальный индекс тут не подходит — allowDuplicates легально обходит проверку.
+    const savedStatement = await this.statementRepository.manager.transaction(async manager => {
+      const statements = manager.getRepository(Statement);
+      await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+        `statement-upload:${workspaceId}:${fileHash}`,
+      ]);
 
-    const savedStatement = (await this.statementRepository.save(statement)) as unknown as Statement;
+      // Check for exact file hash duplicate
+      const hashDuplicate = await statements.findOne({ where: { workspaceId, fileHash } });
+
+      if (hashDuplicate && !allowDuplicates) {
+        throw new ConflictException({
+          ...appError('STATEMENT_DUPLICATE_FILE'),
+          duplicateStatementId: hashDuplicate.id,
+        });
+      }
+
+      // Check for near-duplicate (same name, size, within 5 minutes)
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const recentStatements = await statements
+        .createQueryBuilder('statement')
+        .where('statement.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('statement.fileName = :fileName', { fileName: normalizedName })
+        .andWhere('statement.fileSize = :fileSize', { fileSize: file.size })
+        .andWhere('statement.createdAt >= :fiveMinutesAgo', { fiveMinutesAgo })
+        .getMany();
+
+      if (recentStatements.length > 0 && !allowDuplicates) {
+        throw new ConflictException({
+          ...appError('STATEMENT_DUPLICATE_RECENT'),
+          duplicateStatementId: recentStatements[0].id,
+        });
+      }
+
+      // Create new statement
+      const statement = statements.create({
+        userId: user.id,
+        workspaceId,
+        googleSheetId: googleSheetId || null,
+        fileName: normalizedName,
+        filePath: file.path,
+        fileType: getFileTypeFromMime(file.mimetype) as FileType,
+        fileSize: file.size,
+        fileHash,
+        bankName: BankName.OTHER, // Will be determined during parsing
+        status: StatementStatus.UPLOADED,
+        parsingDetails: requireManualCategorySelection
+          ? {
+              manualCategorySelectionRequired: true,
+            }
+          : null,
+      });
+
+      return (await statements.save(statement)) as unknown as Statement;
+    });
     let storedInDb = false;
     if (fileData) {
       try {
@@ -1428,7 +1449,7 @@ export class StatementsService {
     await this.ensureCanModify(statement, userId, workspaceId);
 
     if (statement.status !== StatementStatus.NEEDS_REVIEW) {
-      throw new BadRequestException('Выписка не ожидает подтверждения баланса');
+      throw new BadRequestException(appError('STATEMENT_NOT_AWAITING_BALANCE'));
     }
 
     const user = await this.userRepository.findOne({

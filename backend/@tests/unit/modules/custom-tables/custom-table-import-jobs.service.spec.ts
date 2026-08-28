@@ -26,16 +26,18 @@ describe('CustomTableImportJobsService', () => {
   });
 
   it('createGoogleSheetsJob creates a pending job', async () => {
-    const job = await service.createGoogleSheetsJob('u1', { sheetId: 's1' });
+    const job = await service.createGoogleSheetsJob('u1', 'ws-1', { sheetId: 's1' });
 
     expect(job.type).toBe(CustomTableImportJobType.GOOGLE_SHEETS);
     expect(job.status).toBe(CustomTableImportJobStatus.PENDING);
     expect(job.progress).toBe(0);
+    expect(job.userId).toBe('u1');
+    expect(job.workspaceId).toBe('ws-1');
     expect(job.payload).toEqual({ sheetId: 's1' });
   });
 
   it('createSheetTransactionsJob creates a pending job', async () => {
-    const job = await service.createSheetTransactionsJob('u1', {
+    const job = await service.createSheetTransactionsJob('u1', 'w1', {
       workspaceId: 'w1',
       googleSheetId: 'gs1',
     });

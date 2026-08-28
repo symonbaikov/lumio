@@ -10,6 +10,7 @@ import AppChrome from './components/AppChrome';
 import DynamicPageTitle from './components/DynamicPageTitle';
 import TopBar from './components/TopBar';
 import MobileBottomBar from './components/mobile/MobileBottomBar';
+import { normalizeLocale } from './lib/locale';
 import { Providers } from './providers';
 
 const geist = Geist({
@@ -63,7 +64,7 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>): Promise<React.JSX.Element> {
   const locale = await getLocale();
-  const resolvedLocale = typeof locale === 'string' ? locale : 'en';
+  const resolvedLocale = normalizeLocale(typeof locale === 'string' ? locale : undefined);
   const direction = resolvedLocale.startsWith('ar') ? 'rtl' : 'ltr';
 
   return (
@@ -76,7 +77,7 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <Providers initialLocale={resolvedLocale as 'en' | 'ru' | 'kk'}>
+            <Providers initialLocale={resolvedLocale}>
               <ChatModeRedirect />
               <DynamicPageTitle />
               <div className="lumio-shell">

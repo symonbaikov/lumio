@@ -1,5 +1,4 @@
 import { createRepoMock } from '../../../helpers/create-repo-mock';
-import { NotificationType } from '@/entities/notification.entity';
 import { TaxThresholdPeriod } from '@/entities/tax-jurisdiction.entity';
 import { TransactionType } from '@/entities/transaction.entity';
 import { TaxThresholdService } from '@/modules/tax/tax-threshold.service';
@@ -10,7 +9,7 @@ describe('TaxThresholdService', () => {
   let transactionRepo: ReturnType<typeof createRepoMock>;
   let adoption: { getCurrentJurisdiction: jest.Mock };
   let exchangeRates: { getRate: jest.Mock };
-  let notifications: { createForWorkspaceMembers: jest.Mock };
+  let events: { emit: jest.Mock };
   let workspace: Record<string, unknown>;
 
   const GB = {
@@ -50,14 +49,14 @@ describe('TaxThresholdService', () => {
     transactionRepo.find.mockResolvedValue([]);
     adoption = { getCurrentJurisdiction: jest.fn().mockResolvedValue(GB) };
     exchangeRates = { getRate: jest.fn().mockResolvedValue(1) };
-    notifications = { createForWorkspaceMembers: jest.fn() };
+    events = { emit: jest.fn() };
 
     service = new TaxThresholdService(
       workspaceRepo,
       transactionRepo,
       adoption as never,
       exchangeRates as never,
-      notifications as never,
+      events as never,
     );
   });
 
@@ -124,7 +123,7 @@ describe('TaxThresholdService', () => {
     it('says nothing below 80%', async () => {
       turnoverOf('50000.00');
       await service.checkWorkspace('ws-1', NOW);
-      expect(notifications.createForWorkspaceMembers).not.toHaveBeenCalled();
+      expect(events.emit).not.toHaveBeenCalled();
     });
 
     it('warns once at 80%', async () => {
@@ -132,10 +131,9 @@ describe('TaxThresholdService', () => {
 
       await service.checkWorkspace('ws-1', NOW);
 
-      expect(notifications.createForWorkspaceMembers).toHaveBeenCalledTimes(1);
-      expect(notifications.createForWorkspaceMembers.mock.calls[0][0]).toMatchObject({
-        type: NotificationType.TAX_THRESHOLD_WARNING,
-      });
+      expect(events.emit).toHaveBeenCalledTimes(1);
+      expect(events.emit.mock.calls[0][0]).toBe('tax.threshold.reached');
+      expect(events.emit.mock.calls[0][1]).toMatchObject({ level: 80 });
     });
 
     it('does not warn again on the next run', async () => {
@@ -146,7 +144,7 @@ describe('TaxThresholdService', () => {
 
       // The alert level and its window are stored, so a daily sweep is quiet
       // after the first crossing.
-      expect(notifications.createForWorkspaceMembers).toHaveBeenCalledTimes(1);
+      expect(events.emit).toHaveBeenCalledTimes(1);
     });
 
     it('escalates from a warning to a breach', async () => {
@@ -156,10 +154,8 @@ describe('TaxThresholdService', () => {
       turnoverOf('95000.00');
       await service.checkWorkspace('ws-1', NOW);
 
-      expect(notifications.createForWorkspaceMembers).toHaveBeenCalledTimes(2);
-      expect(notifications.createForWorkspaceMembers.mock.calls[1][0]).toMatchObject({
-        type: NotificationType.TAX_THRESHOLD_REACHED,
-      });
+      expect(events.emit).toHaveBeenCalledTimes(2);
+      expect(events.emit.mock.calls[1][1]).toMatchObject({ level: 100 });
     });
 
     it('does not fall back to a warning once the breach was sent', async () => {
@@ -169,7 +165,7 @@ describe('TaxThresholdService', () => {
       turnoverOf('85000.00');
       await service.checkWorkspace('ws-1', NOW);
 
-      expect(notifications.createForWorkspaceMembers).toHaveBeenCalledTimes(1);
+      expect(events.emit).toHaveBeenCalledTimes(1);
     });
 
     it('re-arms in a new measuring window', async () => {
@@ -181,7 +177,7 @@ describe('TaxThresholdService', () => {
 
       // A new year is a new threshold, so the alerts start again with no job
       // to clear the flags.
-      expect(notifications.createForWorkspaceMembers).toHaveBeenCalledTimes(2);
+      expect(events.emit).toHaveBeenCalledTimes(2);
     });
 
     it('stays quiet when the jurisdiction publishes no threshold', async () => {
@@ -193,7 +189,7 @@ describe('TaxThresholdService', () => {
 
       await service.checkWorkspace('ws-1', NOW);
 
-      expect(notifications.createForWorkspaceMembers).not.toHaveBeenCalled();
+      expect(events.emit).not.toHaveBeenCalled();
     });
   });
 

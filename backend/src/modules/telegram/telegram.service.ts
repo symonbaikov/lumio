@@ -196,7 +196,7 @@ export class TelegramService {
       return;
     }
 
-    const locale = user.locale || 'ru';
+    const locale = user.locale || 'en';
     const header = renderTelegramMessage(locale, 'insight_digest_header');
 
     for (const insight of insights) {
@@ -223,7 +223,7 @@ export class TelegramService {
     }
 
     const dailyReport = await this.reportsService.generateDailyReport(user.id, date);
-    const message = this.formatDailyReportMessage(user.locale || 'ru', date, dailyReport);
+    const message = this.formatDailyReportMessage(user.locale || 'en', date, dailyReport);
 
     return this.persistAndSend(user, chatId, ReportType.DAILY, reportDate, message, existing);
   }
@@ -238,7 +238,7 @@ export class TelegramService {
 
     const monthlyReport = await this.reportsService.generateMonthlyReport(user.id, year, month);
     const message = this.formatMonthlyReportMessage(
-      user.locale || 'ru',
+      user.locale || 'en',
       year,
       month,
       monthlyReport,
@@ -307,7 +307,7 @@ export class TelegramService {
     key: TelegramMessageKey,
     params?: Record<string, string | number>,
   ): Promise<TelegramSendResult> {
-    const text = renderTelegramMessage(user?.locale || 'ru', key, params);
+    const text = renderTelegramMessage(user?.locale || 'en', key, params);
     return this.sendMessage(chatId, text, user);
   }
 
@@ -508,7 +508,7 @@ export class TelegramService {
       this.logger.error(`Error handling /report command: ${message}`);
       await this.sendMessage(
         chatId,
-        renderTelegramMessage(user.locale || 'ru', 'report_failed'),
+        renderTelegramMessage(user.locale || 'en', 'report_failed'),
         user,
       );
     }
@@ -533,7 +533,7 @@ export class TelegramService {
       return;
     }
 
-    const locale = user.locale || 'ru';
+    const locale = user.locale || 'en';
     const goals = await this.goalsService.findAll(user.workspaceId);
 
     if (goals.length === 0) {
@@ -576,7 +576,7 @@ export class TelegramService {
       return;
     }
 
-    const locale = user.locale || 'ru';
+    const locale = user.locale || 'en';
     const netWorth = await this.netWorthService.getNetWorth(user.workspaceId, '30d', locale);
 
     const lines = [
@@ -640,7 +640,7 @@ export class TelegramService {
       return;
     }
 
-    const locale = user.locale || 'ru';
+    const locale = user.locale || 'en';
     const fileName = this.sanitizeFileName(
       document.file_name || `statement-${document.file_id}.pdf`,
     );

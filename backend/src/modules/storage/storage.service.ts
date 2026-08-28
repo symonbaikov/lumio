@@ -11,6 +11,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { In, type Repository } from 'typeorm';
+import { appError } from '../../common/errors/app-error';
 import { FileStorageService } from '../../common/services/file-storage.service';
 import { neutralizeSpreadsheetFormulaCell } from '../../common/utils/spreadsheet-formula.util';
 import {
@@ -1320,10 +1321,10 @@ export class StorageService {
     if (statement.userId === userId) {
       if (membership && membership.role === WorkspaceRole.MEMBER) {
         if (requiredAction === 'edit' && membership.permissions?.canEditStatements === false) {
-          throw new ForbiddenException('Недостаточно прав для редактирования выписок');
+          throw new ForbiddenException(appError('STATEMENTS_EDIT_FORBIDDEN'));
         }
         if (requiredAction === 'share' && membership.permissions?.canShareFiles === false) {
-          throw new ForbiddenException('Недостаточно прав для создания ссылок и выдачи доступа');
+          throw new ForbiddenException(appError('SHARING_FORBIDDEN'));
         }
       }
       return;

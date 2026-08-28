@@ -1,18 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Not, Repository } from 'typeorm';
 import { fromMinor, roundHalfAwayFromZero, toMinor } from '../../common/utils/money.util';
-import {
-  NotificationCategory,
-  NotificationSeverity,
-  NotificationType,
-} from '../../entities/notification.entity';
 import { TaxThresholdPeriod } from '../../entities/tax-jurisdiction.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import type { TaxThresholdReachedEvent } from '../notifications/events/notification-events';
 import { JurisdictionAdoptionService } from './jurisdiction-adoption.service';
 import { toDateOnly } from './jurisdictions.service';
 
@@ -46,7 +42,9 @@ export class TaxThresholdService {
     private readonly transactionRepository: Repository<Transaction>,
     private readonly adoptionService: JurisdictionAdoptionService,
     private readonly exchangeRatesService: ExchangeRatesService,
-    private readonly notificationsService: NotificationsService,
+    // Emitted, not injected: importing NotificationsModule here closes a module
+    // cycle through telegram -> reports -> transactions -> tax.
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -175,31 +173,16 @@ export class TaxThresholdService {
     workspace.taxThresholdAlertWindow = status.window;
     await this.workspaceRepository.save(workspace);
 
-    const isBreach = reachedLevel === 100;
-    await this.notificationsService.createForWorkspaceMembers({
+    this.eventEmitter.emit('tax.threshold.reached', {
       workspaceId,
-      type: isBreach
-        ? NotificationType.TAX_THRESHOLD_REACHED
-        : NotificationType.TAX_THRESHOLD_WARNING,
-      category: NotificationCategory.WORKSPACE_ACTIVITY,
-      severity: isBreach ? NotificationSeverity.ERROR : NotificationSeverity.WARN,
-      messageKey: isBreach ? 'tax.threshold.reached' : 'tax.threshold.warning',
-      messageParams: {
-        percentUsed: Math.round(status.percentUsed),
-        threshold: status.threshold,
-        currency: status.currency,
-      },
-      entityType: 'workspace',
-      entityId: workspaceId,
-      meta: {
-        turnover: status.turnover,
-        threshold: status.threshold,
-        currency: status.currency,
-        percentUsed: Math.round(status.percentUsed),
-        periodStart: status.periodStart,
-        periodEnd: status.periodEnd,
-      },
-    });
+      level: reachedLevel,
+      turnover: status.turnover,
+      threshold: status.threshold,
+      currency: status.currency,
+      percentUsed: Math.round(status.percentUsed),
+      periodStart: status.periodStart,
+      periodEnd: status.periodEnd,
+    } satisfies TaxThresholdReachedEvent);
 
     this.logger.log(
       `Workspace ${workspaceId} reached ${Math.round(status.percentUsed)}% of its ` +

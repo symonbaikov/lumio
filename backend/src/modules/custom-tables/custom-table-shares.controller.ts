@@ -80,23 +80,22 @@ export class CustomTableSharesController {
   @Patch(':id/sync')
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
   async updateSync(
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
     @Param('id', new ParseUUIDPipe()) tableId: string,
     @Body() dto: UpdateCustomTableSyncDto,
   ) {
-    return this.syncService.updateSyncSettings(workspaceId, tableId, dto);
+    return this.syncService.updateSyncSettings(user.id, workspaceId, tableId, dto);
   }
 
   @Post(':id/sync/run')
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
   async runSync(
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
     @Param('id', new ParseUUIDPipe()) tableId: string,
   ) {
-    await this.syncService.assertTableInWorkspace(workspaceId, tableId);
-    return this.syncService.syncTable(tableId);
+    return this.syncService.runUserSync(user.id, workspaceId, tableId);
   }
 
   @Post(':id/export-schedules')
@@ -124,13 +123,13 @@ export class CustomTableSharesController {
   @Delete(':id/export-schedules/:scheduleId')
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
   async deleteExportSchedule(
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
     @Param('id', new ParseUUIDPipe()) _tableId: string,
     @Param('scheduleId', new ParseUUIDPipe()) scheduleId: string,
   ) {
-    await this.exportSchedulesService.deleteSchedule(workspaceId, scheduleId);
-    return { message: 'Расписание удалено' };
+    await this.exportSchedulesService.deleteSchedule(user.id, workspaceId, scheduleId);
+    return { message: 'Schedule deleted' };
   }
 
   @Get(':id/export-schedules/:scheduleId/file')
@@ -160,7 +159,7 @@ export class CustomTableSharesController {
     @Param('shareId', new ParseUUIDPipe()) shareId: string,
   ) {
     await this.sharesService.revokeShare(user.id, workspaceId, shareId);
-    return { message: 'Ссылка отозвана' };
+    return { message: 'Link revoked' };
   }
 }
 

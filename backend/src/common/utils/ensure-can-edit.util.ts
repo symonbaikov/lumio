@@ -5,6 +5,7 @@ import type {
   WorkspaceMemberPermissions,
 } from '../../entities/workspace-member.entity';
 import { WorkspaceRole } from '../../entities/workspace-member.entity';
+import { type ErrorCode, appError } from '../errors/app-error';
 
 /**
  * Checks that the given user has permission to perform an edit operation in the workspace.
@@ -15,7 +16,7 @@ export async function ensureCanEdit(
   workspaceId: string,
   userId: string,
   permissionKey: keyof WorkspaceMemberPermissions,
-  errorMessage: string,
+  errorCode: ErrorCode,
 ): Promise<void> {
   if (!workspaceId) {
     return;
@@ -33,6 +34,6 @@ export async function ensureCanEdit(
     return;
   }
   if (membership.permissions?.[permissionKey] === false) {
-    throw new ForbiddenException(errorMessage);
+    throw new ForbiddenException(appError(errorCode));
   }
 }

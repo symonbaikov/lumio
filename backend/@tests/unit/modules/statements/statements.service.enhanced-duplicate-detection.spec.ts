@@ -44,13 +44,23 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
     mimetype: 'application/pdf',
   } as Express.Multer.File;
 
+  // create() оборачивает проверку дубликатов и вставку в транзакцию с advisory-lock;
+  // менеджер прокидывает вызовы в тот же мок-репозиторий, чтобы ассерты не менялись.
+  const mockStatementRepository: Record<string, jest.Mock | unknown> = {
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    createQueryBuilder: jest.fn(),
+  };
+  const mockManager = {
+    query: jest.fn(),
+    getRepository: jest.fn(() => mockStatementRepository),
+    transaction: jest.fn(async (cb: (m: unknown) => Promise<unknown>) => cb(mockManager)),
+  };
+  mockStatementRepository.manager = mockManager;
+
   const mockRepositories = {
-    statement: {
-      findOne: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
-      createQueryBuilder: jest.fn(),
-    },
+    statement: mockStatementRepository,
     transaction: {},
     auditService: { createEvent: jest.fn() },
     user: {},
@@ -157,7 +167,7 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
         );
       } catch (error) {
         expect(error.response).toMatchObject({
-          message: 'Такая выписка уже загружена (дубликат файла)',
+          code: 'STATEMENT_DUPLICATE_FILE',
           duplicateStatementId: 'existing-statement-id',
         });
       }
@@ -243,7 +253,7 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
         );
       } catch (error) {
         expect(error.response).toMatchObject({
-          message: 'Аналогичная выписка была недавно загружена',
+          code: 'STATEMENT_DUPLICATE_RECENT',
           duplicateStatementId: 'recent-statement-id',
         });
       }

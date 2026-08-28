@@ -87,3 +87,22 @@ export interface TransactionCreatedEvent {
   counterpartyName: string;
   transactionType: string;
 }
+
+/**
+ * Taxable turnover crossed a registration-threshold escalation point.
+ *
+ * Emitted rather than calling NotificationsService directly: the tax module
+ * would otherwise import the notifications module, which reaches back through
+ * telegram → reports → transactions → tax and closes a module cycle.
+ */
+export interface TaxThresholdReachedEvent {
+  workspaceId: string;
+  /** 80 or 100. */
+  level: number;
+  turnover: number;
+  threshold: number;
+  currency: string;
+  percentUsed: number;
+  periodStart: string;
+  periodEnd: string;
+}

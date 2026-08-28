@@ -29,7 +29,7 @@ export class Goal {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @Column({ length: 150 })
@@ -54,7 +54,7 @@ export class Goal {
   @JoinColumn({ name: 'created_by_id' })
   createdBy: User | null;
 
-  @Column({ name: 'created_by_id', nullable: true })
+  @Column({ name: 'created_by_id', type: 'uuid', nullable: true })
   createdById: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
@@ -86,14 +86,14 @@ export class GoalContribution {
   @JoinColumn({ name: 'goal_id' })
   goal: Goal;
 
-  @Column({ name: 'goal_id' })
+  @Column({ name: 'goal_id', type: 'uuid' })
   goalId: string;
 
   @ManyToOne(() => Workspace, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
@@ -109,7 +109,7 @@ export class GoalContribution {
   @JoinColumn({ name: 'created_by_id' })
   createdBy: User | null;
 
-  @Column({ name: 'created_by_id', nullable: true })
+  @Column({ name: 'created_by_id', type: 'uuid', nullable: true })
   createdById: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

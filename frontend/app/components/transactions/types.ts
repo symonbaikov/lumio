@@ -1,6 +1,7 @@
 /**
  * TypeScript types for transaction view components
  */
+import type { StatementCategorySource } from '@/app/lib/statement-categories';
 
 export interface Transaction {
   id: string;
@@ -17,7 +18,14 @@ export interface Transaction {
   exchangeRate?: number;
   article?: string;
   amountForeign?: number;
-  category?: { id: string; name: string; color?: string; isEnabled?: boolean };
+  category?: {
+    id: string;
+    name: string;
+    color?: string;
+    isEnabled?: boolean;
+    source?: StatementCategorySource;
+    isSystem?: boolean;
+  };
   branch?: { name: string };
   wallet?: { name: string };
   // Currency conversion (populated when convert_to query param is passed to the API)
@@ -41,6 +49,8 @@ export interface Category {
   color?: string;
   icon?: string;
   isEnabled?: boolean;
+  source?: StatementCategorySource;
+  isSystem?: boolean;
 }
 
 export interface FilterState {

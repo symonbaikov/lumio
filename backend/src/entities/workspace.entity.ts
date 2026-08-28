@@ -43,7 +43,7 @@ export class Workspace {
   @JoinColumn({ name: 'tax_jurisdiction_id' })
   taxJurisdiction: TaxJurisdiction | null;
 
-  @Column({ name: 'tax_jurisdiction_id', nullable: true })
+  @Column({ name: 'tax_jurisdiction_id', type: 'uuid', nullable: true })
   taxJurisdictionId: string | null;
 
   /** How far the registration-threshold alert has escalated: 0, 80 or 100. */
@@ -63,7 +63,7 @@ export class Workspace {
   @Column({ type: 'jsonb', nullable: true })
   settings: Record<string, unknown> | null;
 
-  @Column({ name: 'owner_id', nullable: true })
+  @Column({ name: 'owner_id', type: 'uuid', nullable: true })
   ownerId: string | null;
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })

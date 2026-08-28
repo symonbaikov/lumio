@@ -78,18 +78,6 @@ export function UserMenuTriggerAndDropdown({
 
         <Divider />
 
-        {extraNavItems.map(item => (
-          <MenuItem
-            key={item.path}
-            onClick={() => {
-              onNavigate?.(item.path);
-            }}
-          >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText>{item.label}</ListItemText>
-          </MenuItem>
-        ))}
-
         <MenuItem
           onClick={() => {
             onAction('settings');
@@ -99,16 +87,6 @@ export function UserMenuTriggerAndDropdown({
             <Settings size={18} />
           </ListItemIcon>
           <ListItemText>{userMenu.settings as React.ReactNode}</ListItemText>
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            onAction('trash');
-          }}
-        >
-          <ListItemIcon>
-            <Trash2 size={18} />
-          </ListItemIcon>
-          <ListItemText>{trashLabel}</ListItemText>
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -128,6 +106,29 @@ export function UserMenuTriggerAndDropdown({
           >
             {languageLabel}
           </span>
+        </MenuItem>
+
+        {extraNavItems.map(item => (
+          <MenuItem
+            key={item.path}
+            onClick={() => {
+              onNavigate?.(item.path);
+            }}
+          >
+            <ListItemIcon>{item.icon}</ListItemIcon>
+            <ListItemText>{item.label}</ListItemText>
+          </MenuItem>
+        ))}
+
+        <MenuItem
+          onClick={() => {
+            onAction('trash');
+          }}
+        >
+          <ListItemIcon>
+            <Trash2 size={18} />
+          </ListItemIcon>
+          <ListItemText>{trashLabel}</ListItemText>
         </MenuItem>
 
         <MenuItem

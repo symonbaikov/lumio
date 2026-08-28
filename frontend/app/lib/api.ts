@@ -79,8 +79,15 @@ async function refreshAccessToken(originalRequest: Record<string, unknown>): Pro
     { headers: { Authorization: `Bearer ${refreshToken}` } },
   );
 
-  const { access_token } = response.data as { access_token: string };
+  const { access_token, refresh_token } = response.data as {
+    access_token: string;
+    refresh_token?: string;
+  };
   localStorage.setItem('access_token', access_token);
+  // Бэкенд ротирует refresh-токен на каждом обновлении — старый больше не примут.
+  if (refresh_token) {
+    localStorage.setItem('refresh_token', refresh_token);
+  }
   (originalRequest.headers as Record<string, string>).Authorization = `Bearer ${access_token}`;
 
   return apiClient(originalRequest);

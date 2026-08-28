@@ -93,13 +93,21 @@ describe('AuditService', () => {
       action: AuditAction.CREATE,
       diff: {
         before: null,
-        after: { id: 'table-1', name: 'Таблица продукции Fish Dream' },
+        after: { id: 'table-1', name: 'Fish Dream product table' },
       },
     });
 
+    // The stored column keeps an English rendering; the locale-independent
+    // descriptor rides along in meta for clients to translate.
     expect(auditEventRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
-        description: 'Создана таблица "Таблица продукции Fish Dream"',
+        description: 'Created: table "Fish Dream product table"',
+        meta: expect.objectContaining({
+          auditDescription: {
+            key: 'createNamed',
+            params: { entity: EntityType.CUSTOM_TABLE, name: 'Fish Dream product table' },
+          },
+        }),
       }),
     );
   });

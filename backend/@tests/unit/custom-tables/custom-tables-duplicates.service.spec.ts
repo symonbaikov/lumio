@@ -133,9 +133,7 @@ describe('CustomTablesService.findDuplicateRows', () => {
 
     await expect(
       service.findDuplicateRows('ws-1', TABLE_ID, { keys: ['ghost'] }),
-    ).rejects.toThrow(/не найдена/);
-    await expect(service.findDuplicateRows('ws-1', TABLE_ID, { keys: [] })).rejects.toThrow(
-      /Не указаны колонки/,
-    );
+    ).rejects.toMatchObject({ response: { code: 'COLUMN_NOT_FOUND_NAMED' } });
+    await expect(service.findDuplicateRows('ws-1', TABLE_ID, { keys: [] })).rejects.toMatchObject({ response: { code: 'DUPLICATE_KEY_COLUMNS_REQUIRED' } });
   });
 });

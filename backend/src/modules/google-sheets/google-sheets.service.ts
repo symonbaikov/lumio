@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { appError } from '../../common/errors/app-error';
 import { decryptText, encryptText } from '../../common/utils/encryption.util';
 import { Branch } from '../../entities/branch.entity';
 import { Category } from '../../entities/category.entity';
@@ -275,9 +276,7 @@ export class GoogleSheetsService {
 
     // Basic guard against placeholder tokens to avoid invalid_request
     if (!sheet.refreshToken || sheet.refreshToken.includes('placeholder')) {
-      throw new BadRequestException(
-        'Отсутствует refresh token Google. Переподключите таблицу через OAuth.',
-      );
+      throw new BadRequestException(appError('SHEETS_REFRESH_TOKEN_MISSING_RECONNECT'));
     }
 
     // Verify access

@@ -227,7 +227,7 @@ describe('WorkspacesService — member management', () => {
 
       const result = await service.cancelInvitation(WS_ID, ADMIN_ID, 'inv-1');
 
-      expect(result).toMatchObject({ message: 'Приглашение уже неактивно' });
+      expect(result).toMatchObject({ message: 'Invitation is already inactive' });
       expect(invitationRepository.save).not.toHaveBeenCalled();
     });
 
@@ -243,7 +243,7 @@ describe('WorkspacesService — member management', () => {
       expect(invitationRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ status: WorkspaceInvitationStatus.CANCELLED }),
       );
-      expect(result).toMatchObject({ message: 'Приглашение отозвано' });
+      expect(result).toMatchObject({ message: 'Invitation revoked' });
     });
   });
 
@@ -300,7 +300,7 @@ describe('WorkspacesService — member management', () => {
       expect(auditService.createEvent).toHaveBeenCalledWith(
         expect.objectContaining({ entityType: 'workspace' }),
       );
-      expect(result).toMatchObject({ message: 'Доступ участника отозван' });
+      expect(result).toMatchObject({ message: 'Member access revoked' });
     });
 
     it('clears user workspaceId when they belong to removed workspace', async () => {
@@ -341,6 +341,11 @@ describe('WorkspacesService — member management', () => {
       expect(auditService.createEvent).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'delete', isUndoable: true }),
       );
+      // Аудит — строго до remove: после удаления createEvent отверг бы событие
+      // (воркспейса больше нет), и след удаления пропал бы.
+      const auditOrder = auditService.createEvent.mock.invocationCallOrder[0];
+      const removeOrder = workspaceRepository.remove.mock.invocationCallOrder[0];
+      expect(auditOrder).toBeLessThan(removeOrder);
     });
   });
 

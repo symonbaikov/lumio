@@ -29,7 +29,7 @@ export class TaxJurisdictionRate {
   @JoinColumn({ name: 'jurisdiction_id' })
   jurisdiction: TaxJurisdiction;
 
-  @Column({ name: 'jurisdiction_id' })
+  @Column({ name: 'jurisdiction_id', type: 'uuid' })
   jurisdictionId: string;
 
   /**

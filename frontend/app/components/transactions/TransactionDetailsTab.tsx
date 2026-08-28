@@ -13,6 +13,7 @@ import { useCallback, useState } from 'react';
 
 import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 
 import { tokens } from '@/lib/theme-tokens';
 import { useTheme } from 'next-themes';
@@ -329,8 +330,8 @@ export function TransactionDetailsTab({
               }}
             >
               {transaction.category.isEnabled === false
-                ? `${transaction.category.name} — select category`
-                : transaction.category.name}
+                ? `${getCategoryDisplayName(transaction.category, locale)} — select category`
+                : getCategoryDisplayName(transaction.category, locale)}
             </span>
           ) : (
             <span style={{ fontSize: 14, color: c.ink500 }}>{t.noCategory.value}</span>
@@ -363,7 +364,7 @@ export function TransactionDetailsTab({
                   .filter(cat => cat.isEnabled !== false)
                   .map(cat => (
                     <option key={cat.id} value={cat.id}>
-                      {cat.name}
+                      {getCategoryDisplayName(cat, locale)}
                     </option>
                   ))}
               </select>
@@ -417,6 +418,7 @@ export function TransactionDetailsTab({
           currency={transaction.currency ?? 'KZT'}
           categories={splitCategories}
           saving={splitSaving}
+          locale={locale}
           onClose={() => setSplitOpen(false)}
           onSubmit={parts => {
             void split(transaction.id, parts);

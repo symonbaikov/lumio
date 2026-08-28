@@ -204,7 +204,7 @@ export class InsightsService {
       where: { id: userId },
       select: ['id', 'locale'],
     });
-    return user?.locale ?? 'ru';
+    return user?.locale ?? 'en';
   }
 
   /**

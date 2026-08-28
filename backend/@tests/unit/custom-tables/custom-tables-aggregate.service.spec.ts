@@ -123,7 +123,7 @@ describe('CustomTablesService.aggregateRows', () => {
 
     await expect(
       service.aggregateRows('workspace-1', TABLE_ID, { aggs: [{ col: 'note', fn: 'sum' }] }),
-    ).rejects.toThrow(/не поддерживается/);
+    ).rejects.toMatchObject({ response: { code: 'AGG_FUNCTION_UNSUPPORTED' } });
   });
 
   it('rejects an unknown column', async () => {
@@ -131,7 +131,7 @@ describe('CustomTablesService.aggregateRows', () => {
 
     await expect(
       service.aggregateRows('workspace-1', TABLE_ID, { aggs: [{ col: 'ghost', fn: 'sum' }] }),
-    ).rejects.toThrow(/не найдена/);
+    ).rejects.toMatchObject({ response: { code: 'AGG_COLUMN_NOT_FOUND' } });
   });
 
   it('returns nothing when no aggregates were requested', async () => {

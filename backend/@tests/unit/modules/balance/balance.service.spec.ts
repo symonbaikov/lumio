@@ -4,14 +4,23 @@ import { BalanceService } from '@/modules/balance/balance.service';
 import { BadRequestException } from '@nestjs/common';
 
 function createRepoMock() {
-  return {
+  // seedDefaultAccounts() сидит в транзакции; менеджер прокидывает вызовы
+  // в тот же мок-репозиторий, чтобы ассерты не менялись.
+  const repo: any = {
     count: jest.fn(),
     find: jest.fn(),
     findOne: jest.fn(),
     create: jest.fn((input: unknown) => input),
     save: jest.fn(async (input: unknown) => input),
     createQueryBuilder: jest.fn(),
-  } as any;
+  };
+  const manager = {
+    query: jest.fn(),
+    getRepository: jest.fn(() => repo),
+    transaction: jest.fn(async (cb: (m: unknown) => Promise<unknown>) => cb(manager)),
+  };
+  repo.manager = manager;
+  return repo;
 }
 
 describe('BalanceService', () => {
@@ -54,6 +63,13 @@ describe('BalanceService', () => {
     expect(balanceAccountRepository.save).toHaveBeenCalledTimes(DEFAULT_BALANCE_ACCOUNTS.length);
     const savedCodes = balanceAccountRepository.save.mock.calls.map((call: any[]) => call[0].code);
     expect(savedCodes).toEqual(DEFAULT_BALANCE_ACCOUNTS.map(account => account.code));
+  });
+
+  it('treats a concurrent-seed unique violation as success, not an error', async () => {
+    balanceAccountRepository.count.mockResolvedValue(0);
+    balanceAccountRepository.save.mockRejectedValue({ driverError: { code: '23505' } });
+
+    await expect(service.seedDefaultAccounts('ws-1')).resolves.toBeUndefined();
   });
 
   it('calculates totals from manual and auto-computed lines', async () => {

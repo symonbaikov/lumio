@@ -182,6 +182,7 @@ export class GmailSyncService {
 
         const job = this.jobRepository.create({
           userId,
+          workspaceId: integration.workspaceId,
           status: ReceiptJobStatus.PENDING,
           payload: {
             integrationId: integration.id,

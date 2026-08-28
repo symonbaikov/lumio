@@ -36,10 +36,10 @@ function isSupported(fileName: string): boolean {
  */
 export async function readTabularFile(file: ReadableTabularFile): Promise<string[][]> {
   if (!isSupported(file.name)) {
-    throw new TabularFileError('Формат файла не поддерживается', 'unsupported');
+    throw new TabularFileError('File format is not supported', 'unsupported');
   }
   if (file.size > MAX_FILE_BYTES) {
-    throw new TabularFileError('Файл слишком большой', 'too-large');
+    throw new TabularFileError('File is too large', 'too-large');
   }
 
   let rows: string[][];
@@ -51,7 +51,7 @@ export async function readTabularFile(file: ReadableTabularFile): Promise<string
     const workbook = xlsx.read(buffer, { type: 'array', cellDates: true, raw: false });
     const sheetName = workbook.SheetNames[0];
     if (!sheetName) {
-      throw new TabularFileError('В файле нет листов', 'empty');
+      throw new TabularFileError('The file has no sheets', 'empty');
     }
     const matrix = xlsx.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], {
       header: 1,
@@ -69,13 +69,13 @@ export async function readTabularFile(file: ReadableTabularFile): Promise<string
       throw error;
     }
     // cause сохраняем: без неё причина сбоя парсера теряется навсегда.
-    throw new TabularFileError('Не удалось прочитать файл', 'unreadable', { cause: error });
+    throw new TabularFileError('Could not read the file', 'unreadable', { cause: error });
   }
 
   // Полностью пустые строки в конце листа только мешают предпросмотру.
   const cleaned = rows.filter(row => row.some(cell => cell !== ''));
   if (!cleaned.length) {
-    throw new TabularFileError('Файл не содержит данных', 'empty');
+    throw new TabularFileError('The file contains no data', 'empty');
   }
   return cleaned;
 }

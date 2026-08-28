@@ -197,4 +197,30 @@ describe('buildFinanceOpsModel', () => {
     expect(model.features[3].status).toBe('ready');
     expect(model.closeChecklist.every(item => item.done)).toBe(true);
   });
+
+  it('routes every action to a destination that can resolve it', () => {
+    const model = buildFinanceOpsModel(baseData, value => `${value} KZT`, labels);
+    const hrefOf = (id: string): string | undefined =>
+      model.features.find(feature => feature.id === id)?.href;
+
+    // Period close sends the user to the first unresolved control, not a report.
+    expect(hrefOf('period-close-checklist')).toBe('/statements/submit');
+    // Anomalies open the overdue payables the evidence line is quoting.
+    expect(hrefOf('anomaly-feed')).toBe('/statements/pay?status=overdue');
+    expect(hrefOf('reconciliation-dashboard')).toBe('/statements/unapproved-cash');
+    // Nothing may link back to the page the tab already lives on.
+    expect(model.features.map(feature => feature.href)).not.toContain('/dashboard');
+  });
+
+  it('falls back to top merchants for anomalies when nothing is overdue', () => {
+    const model = buildFinanceOpsModel(
+      { ...baseData, snapshot: { ...baseData.snapshot, totalOverdue: 0 } },
+      value => `${value} KZT`,
+      labels,
+    );
+
+    expect(model.features.find(feature => feature.id === 'anomaly-feed')?.href).toBe(
+      '/statements/top-merchants',
+    );
+  });
 });

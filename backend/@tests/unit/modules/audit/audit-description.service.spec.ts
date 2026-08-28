@@ -1,29 +1,35 @@
+import { AuditAction, EntityType } from '@/entities/audit-event.entity';
 import {
-  AuditAction,
-  EntityType,
-} from '@/entities/audit-event.entity';
+  AuditDescriptionService,
+  renderAuditDescriptionEnglish,
+} from '@/modules/audit/description/audit-description.service';
 import type { CreateAuditEventDto } from '@/modules/audit/interfaces/audit-event.interface';
-import { AuditDescriptionService } from '@/modules/audit/description/audit-description.service';
 
 describe('AuditDescriptionService', () => {
   const service = new AuditDescriptionService();
 
   it('describes custom table creation with entity name', () => {
-    const description = service.generate({
+    const descriptor = service.generate({
       entityType: EntityType.CUSTOM_TABLE,
       entityId: 'table-1',
       action: AuditAction.CREATE,
       diff: {
         before: null,
-        after: { id: 'table-1', name: 'Таблица продукции Fish Dream' },
+        after: { id: 'table-1', name: 'Fish Dream product table' },
       },
     } as CreateAuditEventDto);
 
-    expect(description).toBe('Создана таблица "Таблица продукции Fish Dream"');
+    expect(descriptor).toEqual({
+      key: 'createNamed',
+      params: { entity: EntityType.CUSTOM_TABLE, name: 'Fish Dream product table' },
+    });
+    expect(renderAuditDescriptionEnglish(descriptor)).toBe(
+      'Created: table "Fish Dream product table"',
+    );
   });
 
-  it('describes single workspace field update with human-readable field label', () => {
-    const description = service.generate({
+  it('reports the raw field key so clients can label it in their own locale', () => {
+    const descriptor = service.generate({
       entityType: EntityType.WORKSPACE,
       entityId: 'workspace-1',
       action: AuditAction.UPDATE,
@@ -33,11 +39,17 @@ describe('AuditDescriptionService', () => {
       },
     } as CreateAuditEventDto);
 
-    expect(description).toBe('Изменено: фоновое изображение рабочего пространства');
+    expect(descriptor).toEqual({
+      key: 'updateOneField',
+      params: { entity: EntityType.WORKSPACE, field: 'backgroundImage' },
+    });
+    expect(renderAuditDescriptionEnglish(descriptor)).toBe(
+      'Changed: workspace background image',
+    );
   });
 
   it('describes rollback using original action context', () => {
-    const description = service.generate({
+    const descriptor = service.generate({
       entityType: EntityType.CATEGORY,
       entityId: 'category-1',
       action: AuditAction.ROLLBACK,
@@ -48,6 +60,28 @@ describe('AuditDescriptionService', () => {
       },
     } as CreateAuditEventDto);
 
-    expect(description).toBe('Откат: изменение категории');
+    expect(descriptor).toEqual({
+      key: 'rollbackUpdate',
+      params: { entity: EntityType.CATEGORY },
+    });
+    expect(renderAuditDescriptionEnglish(descriptor)).toBe('Rolled back: change to category');
+  });
+
+  it('truncates a long field list and reports the remainder', () => {
+    const descriptor = service.generate({
+      entityType: EntityType.CUSTOM_TABLE,
+      entityId: 'table-1',
+      action: AuditAction.UPDATE,
+      diff: {
+        before: { name: 'a', description: 'a', source: 'a', categoryId: 'a' },
+        after: { name: 'b', description: 'b', source: 'b', categoryId: 'b' },
+      },
+    } as CreateAuditEventDto);
+
+    expect(descriptor.key).toBe('updateManyFieldsMore');
+    expect(descriptor.params.more).toBe(1);
+    expect(renderAuditDescriptionEnglish(descriptor)).toBe(
+      'Changed table: table name, table description, table source and 1 more',
+    );
   });
 });

@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { type AppErrorBody, isAppErrorBody } from '../errors/app-error';
 import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 import { RequestContext } from '../observability/request-context';
 
@@ -32,7 +33,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const message =
       exception instanceof HttpException ? exception.getResponse() : 'Internal server error';
 
-    const locale = this.resolveLocale(request);
+    // Domain errors carry their own machine-readable code; the frontend
+    // translates by that code and falls back to the English message below.
+    const appError: AppErrorBody | undefined = isAppErrorBody(message) ? message : undefined;
 
     // Debug log to surface unexpected errors in logs
     if (!(exception instanceof HttpException)) {
@@ -44,9 +47,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const errorResponse = {
       error: {
-        code: this.getErrorCode(status),
-        message: this.getLocalizedMessage(status, message, locale),
-        details: isMessageWithDetails(message) && message.message ? message : undefined,
+        code: appError?.code ?? this.getErrorCode(status),
+        message: appError?.message ?? this.extractMessage(status, message),
+        params: appError?.params,
+        details: appError
+          ? this.extraFields(message)
+          : isMessageWithDetails(message) && message.message
+            ? message
+            : undefined,
       },
       requestId: RequestContext.getRequestId(),
       traceId: RequestContext.getTraceId(),
@@ -70,57 +78,52 @@ export class HttpExceptionFilter implements ExceptionFilter {
     return codes[status] || 'UNKNOWN_ERROR';
   }
 
-  private resolveLocale(request: AuthenticatedRequest): 'en' | 'ru' {
-    const userLocale = request.user?.locale;
-    const headerLocale = request.headers['accept-language'];
-    const normalizedHeader = Array.isArray(headerLocale)
-      ? headerLocale[0]
-      : headerLocale?.split(',')[0];
-
-    const locale = userLocale || normalizedHeader || 'ru';
-    return locale.startsWith('en') ? 'en' : 'ru';
+  /**
+   * Payload a domain error carries beyond the code/message/params contract,
+   * e.g. `duplicateStatementId` on a statement-upload conflict.
+   */
+  private extraFields(body: unknown): Record<string, unknown> | undefined {
+    if (typeof body !== 'object' || body === null) {
+      return undefined;
+    }
+    const rest = Object.fromEntries(
+      Object.entries(body as Record<string, unknown>).filter(
+        ([key]) => key !== 'code' && key !== 'message' && key !== 'params',
+      ),
+    );
+    return Object.keys(rest).length > 0 ? rest : undefined;
   }
 
-  private getLocalizedMessage(status: number, rawMessage: unknown, locale: 'en' | 'ru'): string {
-    const localizedByStatus: Record<number, { en: string; ru: string }> = {
-      400: { en: 'Bad request', ru: 'Некорректный запрос' },
-      401: { en: 'Unauthorized', ru: 'Не авторизован' },
-      403: { en: 'Forbidden', ru: 'Доступ запрещен' },
-      404: { en: 'Not found', ru: 'Ресурс не найден' },
-      422: { en: 'Validation error', ru: 'Ошибка валидации' },
-      429: { en: 'Too many requests', ru: 'Слишком много запросов' },
-      500: { en: 'Internal server error', ru: 'Внутренняя ошибка сервера' },
+  /**
+   * Messages are English by construction — clients localise by `error.code`.
+   */
+  private extractMessage(status: number, rawMessage: unknown): string {
+    const defaultByStatus: Record<number, string> = {
+      400: 'Bad request',
+      401: 'Unauthorized',
+      403: 'Forbidden',
+      404: 'Not found',
+      422: 'Validation error',
+      429: 'Too many requests',
+      500: 'Internal server error',
     };
 
-    const defaultEnglishMessages = new Set([
-      'Internal server error',
-      'Forbidden resource',
-      'Unauthorized',
-      'Too Many Requests',
-      'Bad Request',
-      'Not Found',
-      'Validation failed',
-    ]);
-
-    const extractedMessage =
+    const extracted =
       typeof rawMessage === 'string'
         ? rawMessage
         : ((isMessageWithDetails(rawMessage) ? rawMessage.message : undefined) ??
-          localizedByStatus[status]?.[locale] ??
+          defaultByStatus[status] ??
           'Error');
 
-    if (Array.isArray(extractedMessage)) {
-      return localizedByStatus[status]?.[locale] ?? 'Error';
+    // class-validator returns an array of constraint violations
+    if (Array.isArray(extracted)) {
+      return defaultByStatus[status] ?? 'Error';
     }
 
-    if (typeof extractedMessage === 'string' && defaultEnglishMessages.has(extractedMessage)) {
-      return localizedByStatus[status]?.[locale] ?? extractedMessage;
+    if (typeof extracted === 'string' && extracted) {
+      return extracted;
     }
 
-    if (typeof extractedMessage === 'string' && extractedMessage) {
-      return extractedMessage;
-    }
-
-    return localizedByStatus[status]?.[locale] || 'Error';
+    return defaultByStatus[status] ?? 'Error';
   }
 }

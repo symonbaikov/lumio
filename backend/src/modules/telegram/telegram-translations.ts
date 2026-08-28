@@ -1051,7 +1051,7 @@ export const TELEGRAM_TRANSLATIONS: Record<string, TranslationMap> = {
 /** Telegram's own per-user language_code, mapped down to a locale we ship. */
 export function resolveTelegramLocale(languageCode?: string | null): string {
   const normalized = (languageCode ?? '').slice(0, 2).toLowerCase();
-  return normalized in TELEGRAM_TRANSLATIONS ? normalized : 'ru';
+  return normalized in TELEGRAM_TRANSLATIONS ? normalized : 'en';
 }
 
 export function renderTelegramMessage(
@@ -1059,7 +1059,7 @@ export function renderTelegramMessage(
   key: TelegramMessageKey,
   params: Record<string, string | number> = {},
 ): string {
-  const translations = TELEGRAM_TRANSLATIONS[locale] ?? TELEGRAM_TRANSLATIONS.ru;
+  const translations = TELEGRAM_TRANSLATIONS[locale] ?? TELEGRAM_TRANSLATIONS.en;
   const template = translations[key];
   return template.replace(/\{\{(\w+)\}\}/g, (_, name: string) => String(params[name] ?? ''));
 }

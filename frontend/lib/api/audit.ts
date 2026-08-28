@@ -18,7 +18,10 @@ export type EntityType =
   | 'branch'
   | 'wallet'
   | 'custom_table'
-  | 'custom_table_column';
+  | 'custom_table_column'
+  | 'payable'
+  | 'budget'
+  | 'subscription';
 
 export type AuditAction =
   | 'create'
@@ -50,6 +53,11 @@ export type PatchOperation = {
 export type AuditEventDiff = BeforeAfterDiff | PatchOperation[];
 
 export interface AuditEventMeta {
+  /**
+   * Locale-independent description emitted by the backend. Rendered in the
+   * viewer's locale by formatAuditEvent; `description` holds the English text.
+   */
+  auditDescription?: { key: string; params: Record<string, string | number> };
   reason?: string;
   source?: string;
   confidence?: number;

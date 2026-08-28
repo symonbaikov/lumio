@@ -29,7 +29,7 @@ export class WorkspaceServiceSettings {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @Column({ type: 'varchar', length: 64 })
@@ -45,7 +45,7 @@ export class WorkspaceServiceSettings {
   @JoinColumn({ name: 'updated_by_user_id' })
   updatedByUser: User | null;
 
-  @Column({ name: 'updated_by_user_id', nullable: true })
+  @Column({ name: 'updated_by_user_id', type: 'uuid', nullable: true })
   updatedByUserId: string | null;
 
   @CreateDateColumn({ name: 'created_at' })

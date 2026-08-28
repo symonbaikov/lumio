@@ -40,7 +40,7 @@ export class CustomTableColumn {
   @JoinColumn({ name: 'table_id' })
   table: CustomTable;
 
-  @Column({ name: 'table_id' })
+  @Column({ name: 'table_id', type: 'uuid' })
   tableId: string;
 
   @Column({ name: 'key', type: 'varchar' })

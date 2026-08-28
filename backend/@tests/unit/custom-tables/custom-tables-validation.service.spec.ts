@@ -89,7 +89,7 @@ describe('row validation against column flags', () => {
 
     await expect(
       service.createRow('u1', 'ws-1', TABLE_ID, { data: { inn: '   ', note: 'x' } } as never),
-    ).rejects.toThrow(/обязательна/);
+    ).rejects.toMatchObject({ response: { code: 'COLUMN_REQUIRED_VALUE' } });
   });
 
   it('rejects a value that already exists in a unique column', async () => {
@@ -97,7 +97,7 @@ describe('row validation against column flags', () => {
 
     await expect(
       service.createRow('u1', 'ws-1', TABLE_ID, { data: { inn: '123' } } as never),
-    ).rejects.toThrow(/уже есть/);
+    ).rejects.toMatchObject({ response: { code: 'VALUE_DUPLICATE_IN_TABLE' } });
   });
 
   it('rejects duplicates inside a single batch, which the database cannot see yet', async () => {
@@ -107,7 +107,7 @@ describe('row validation against column flags', () => {
       service.batchCreateRows('u1', 'ws-1', TABLE_ID, {
         rows: [{ data: { inn: '777' } }, { data: { inn: '777' } }],
       } as never),
-    ).rejects.toThrow(/повторяется/);
+    ).rejects.toMatchObject({ response: { code: 'VALUE_DUPLICATE_IN_BATCH' } });
   });
 
   it('allows a partial update that does not touch the required column', async () => {
@@ -123,6 +123,6 @@ describe('row validation against column flags', () => {
 
     await expect(
       service.updateRow('u1', 'ws-1', TABLE_ID, ROW_ID, { data: { inn: '' } } as never),
-    ).rejects.toThrow(/обязательна/);
+    ).rejects.toMatchObject({ response: { code: 'COLUMN_REQUIRED_VALUE' } });
   });
 });

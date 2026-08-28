@@ -73,6 +73,12 @@ export type PatchOperation = {
 export type AuditEventDiff = BeforeAfterDiff | PatchOperation[];
 
 export interface AuditEventMeta {
+  /**
+   * Locale-independent description emitted by AuditDescriptionService.
+   * Clients render it in the viewer's locale; `description` holds the English
+   * rendering so historic rows and exports stay readable.
+   */
+  auditDescription?: { key: string; params: Record<string, string | number> };
   reason?: string;
   source?: string;
   confidence?: number;
@@ -101,12 +107,13 @@ export class AuditEvent {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Workspace)
+  // SET NULL, не CASCADE: аудит обязан переживать воркспейс, который описывает.
+  @ManyToOne(() => Workspace, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'workspace_id' })
-  workspace: Workspace;
+  workspace: Workspace | null;
 
-  @Column({ name: 'workspace_id', type: 'uuid' })
-  workspaceId: string;
+  @Column({ name: 'workspace_id', type: 'uuid', nullable: true })
+  workspaceId: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;

@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
@@ -16,7 +15,16 @@ import {
 } from './crypto-transfer.mapper';
 import { CHAIN_NAMES, NATIVE_ASSET_BY_CHAIN } from './crypto.constants';
 
-const ETHERSCAN_BASE_URL = 'https://api.etherscan.io/v2/api';
+/**
+ * Blockscout's hosted Ethereum mainnet explorer mirrors Etherscan's account API
+ * (same actions, same field names) but needs no API key, so wallet sync works with
+ * zero setup. Its anonymous rate limit is a few hundred requests/minute — plenty for
+ * per-wallet syncs, but a ceiling worth knowing about.
+ *
+ * ponytail: single free provider, no fallback. Point this at Etherscan (with a key)
+ * or add a second provider if Blockscout's limit or uptime ever becomes a problem.
+ */
+const BLOCK_EXPLORER_BASE_URL = 'https://eth.blockscout.com/api';
 /**
  * ponytail: newest-N window instead of a stored block cursor. Re-reading rows we
  * already have is free (the unique index absorbs them), so this is only a ceiling
@@ -33,7 +41,6 @@ export interface WalletSyncResult {
 @Injectable()
 export class CryptoSyncService {
   private readonly logger = new Logger(CryptoSyncService.name);
-  private readonly apiKey: string | undefined;
 
   constructor(
     @InjectRepository(CryptoWallet)
@@ -44,18 +51,10 @@ export class CryptoSyncService {
     private readonly workspaceRepo: Repository<Workspace>,
     private readonly priceService: CryptoPriceService,
     private readonly exchangeRatesService: ExchangeRatesService,
-    private readonly configService: ConfigService,
-  ) {
-    this.apiKey = this.configService.get<string>('ETHERSCAN_API_KEY');
-  }
+  ) {}
 
   @Cron('0 */6 * * *')
   async syncAllWallets(): Promise<void> {
-    if (!this.apiKey) {
-      this.logger.debug('ETHERSCAN_API_KEY not set, skipping crypto sync');
-      return;
-    }
-
     const wallets = await this.walletRepo.find({ where: { isActive: true } });
     this.logger.log(`Syncing ${wallets.length} crypto wallet(s)`);
 
@@ -68,10 +67,6 @@ export class CryptoSyncService {
   }
 
   async syncWallet(wallet: CryptoWallet): Promise<WalletSyncResult> {
-    if (!this.apiKey) {
-      throw new Error('ETHERSCAN_API_KEY is not configured');
-    }
-
     try {
       const result = await this.runSync(wallet);
       await this.walletRepo.update(wallet.id, {
@@ -191,7 +186,6 @@ export class CryptoSyncService {
     action: 'txlist' | 'tokentx',
   ): Promise<T[]> {
     const params = new URLSearchParams({
-      chainid: String(wallet.chainId),
       module: 'account',
       action,
       address: wallet.address,
@@ -200,12 +194,11 @@ export class CryptoSyncService {
       page: '1',
       offset: String(MAX_ROWS_PER_SYNC),
       sort: 'desc',
-      apikey: this.apiKey ?? '',
     });
 
-    const response = await fetch(`${ETHERSCAN_BASE_URL}?${params.toString()}`);
+    const response = await fetch(`${BLOCK_EXPLORER_BASE_URL}?${params.toString()}`);
     if (!response.ok) {
-      throw new Error(`Etherscan ${action} returned HTTP ${response.status}`);
+      throw new Error(`Block explorer ${action} returned HTTP ${response.status}`);
     }
 
     const data = (await response.json()) as {
@@ -220,7 +213,7 @@ export class CryptoSyncService {
       if (data.message?.includes('No transactions found')) {
         return [];
       }
-      throw new Error(`Etherscan ${action} error: ${data.result}`);
+      throw new Error(`Block explorer ${action} error: ${data.result}`);
     }
 
     return data.result;

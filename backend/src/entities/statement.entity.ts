@@ -64,14 +64,14 @@ export class Statement {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 
   @ManyToOne(() => Workspace, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @ManyToOne(
@@ -82,14 +82,14 @@ export class Statement {
   @JoinColumn({ name: 'google_sheet_id' })
   googleSheet: GoogleSheet | null;
 
-  @Column({ name: 'google_sheet_id', nullable: true })
+  @Column({ name: 'google_sheet_id', type: 'uuid', nullable: true })
   googleSheetId: string | null;
 
   @ManyToOne(() => Folder, { nullable: true })
   @JoinColumn({ name: 'folder_id' })
   folder: Folder | null;
 
-  @Column({ name: 'folder_id', nullable: true })
+  @Column({ name: 'folder_id', type: 'uuid', nullable: true })
   folderId: string | null;
 
   @Column({ name: 'file_name' })
@@ -186,7 +186,7 @@ export class Statement {
   @JoinColumn({ name: 'category_id' })
   category: Category | null;
 
-  @Column({ name: 'category_id', nullable: true })
+  @Column({ name: 'category_id', type: 'uuid', nullable: true })
   categoryId: string | null;
 
   @CreateDateColumn({ name: 'created_at' })

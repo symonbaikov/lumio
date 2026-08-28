@@ -3,6 +3,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, type Repository } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import { appError } from '../../common/errors/app-error';
 import {
   ActorType,
   AuditAction,
@@ -503,9 +504,7 @@ export class CustomTablesImportService {
     if (error instanceof QueryFailedError) {
       const code = this.getDriverErrorCode(error);
       if (code === '42P01' || code === '42703') {
-        throw new BadRequestException(
-          'Схема БД не обновлена для Custom Tables. Запустите миграции (`npm -C backend run migration:run`) или включите автозапуск миграций (переменная окружения `RUN_MIGRATIONS=true`) и перезапустите backend.',
-        );
+        throw new BadRequestException(appError('TABLE_SCHEMA_OUTDATED'));
       }
     }
     throw error;
@@ -521,7 +520,7 @@ export class CustomTablesImportService {
       this.throwHelpfulSchemaError(error);
     }
     if (!category) {
-      throw new BadRequestException('Категория не найдена');
+      throw new BadRequestException(appError('CATEGORY_NOT_FOUND'));
     }
     return category.id;
   }
@@ -534,12 +533,10 @@ export class CustomTablesImportService {
       where: { id: googleSheetId, workspaceId, isActive: true },
     });
     if (!sheet) {
-      throw new NotFoundException('Google Sheet не найден или недоступен');
+      throw new NotFoundException(appError('SHEETS_NOT_FOUND'));
     }
     if (!sheet.refreshToken || sheet.refreshToken.includes('placeholder')) {
-      throw new BadRequestException(
-        'Отсутствует refresh token Google. Подключите таблицу через OAuth.',
-      );
+      throw new BadRequestException(appError('SHEETS_REFRESH_TOKEN_MISSING_CONNECT'));
     }
     return sheet;
   }
@@ -553,7 +550,7 @@ export class CustomTablesImportService {
       sheet.sheetId,
     );
     if (!info.firstWorksheet) {
-      throw new BadRequestException('Не удалось определить лист Google Sheets');
+      throw new BadRequestException(appError('SHEETS_WORKSHEET_UNRESOLVED'));
     }
     return info.firstWorksheet;
   }
@@ -646,7 +643,7 @@ export class CustomTablesImportService {
     };
 
     if (!dto.importUserId) {
-      throw new BadRequestException('Не удалось определить пользователя для импорта');
+      throw new BadRequestException(appError('IMPORT_USER_UNRESOLVED'));
     }
 
     await report(1, 'reading_values');
@@ -686,7 +683,7 @@ export class CustomTablesImportService {
     ).filter(c => c.include);
 
     if (!finalColumns.length) {
-      throw new BadRequestException('Нужно выбрать хотя бы одну колонку для импорта');
+      throw new BadRequestException(appError('IMPORT_COLUMN_REQUIRED'));
     }
 
     await report(5, 'creating_table');
@@ -831,7 +828,7 @@ export class CustomTablesImportService {
     }
 
     if (!dto.googleSheetId) {
-      throw new BadRequestException('Укажите Google Sheet подключение или ссылку');
+      throw new BadRequestException(appError('SHEETS_CONNECTION_OR_URL_REQUIRED'));
     }
     const sheet = await this.requireGoogleSheet(workspaceId, dto.googleSheetId);
     const worksheetName = await this.resolveWorksheetName(sheet, dto.worksheetName);
@@ -1007,7 +1004,7 @@ export class CustomTablesImportService {
     }
 
     if (!dto.googleSheetId) {
-      throw new BadRequestException('Укажите Google Sheet подключение или ссылку');
+      throw new BadRequestException(appError('SHEETS_CONNECTION_OR_URL_REQUIRED'));
     }
 
     const report = async (progress: number, stage?: string) => {
@@ -1071,7 +1068,7 @@ export class CustomTablesImportService {
     ).filter(c => c.include);
 
     if (!finalColumns.length) {
-      throw new BadRequestException('Нужно выбрать хотя бы одну колонку для импорта');
+      throw new BadRequestException(appError('IMPORT_COLUMN_REQUIRED'));
     }
 
     await report(5, 'creating_table');

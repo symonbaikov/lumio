@@ -50,7 +50,10 @@ export interface UserSessionDto {
 const toJwtExpiresIn = (value: string | undefined, fallback: StringValue): StringValue =>
   (value || fallback) as StringValue;
 
-const DEFAULT_AUTH_SESSION_EXPIRES_IN = '30d' as const;
+// Access-токен короткоживущий (см. .claude/rules/security.md §1: 15–30 минут);
+// длинная сессия живёт в refresh-токене, который ротируется на каждом /refresh.
+const DEFAULT_ACCESS_TOKEN_EXPIRES_IN = '30m' as const;
+const DEFAULT_REFRESH_TOKEN_EXPIRES_IN = '30d' as const;
 
 const jwtSecret = () =>
   process.env.JWT_SECRET ||
@@ -324,7 +327,7 @@ export class AuthService {
   async refreshToken(
     refreshToken: string,
     sessionContext?: SessionContext,
-  ): Promise<{ access_token: string }> {
+  ): Promise<{ access_token: string; refresh_token: string }> {
     try {
       const payload = this.jwtService.verify<JwtRefreshPayload>(refreshToken, {
         secret: jwtRefreshSecret(),
@@ -372,9 +375,29 @@ export class AuthService {
         sessionContext?.userAgent || session.userAgent || null,
       );
 
+      // Ротация: каждый /refresh выдаёт новый refresh-токен и перепривязывает
+      // сессию к нему — украденный старый токен перестаёт работать после первого
+      // легитимного обновления (см. .claude/rules/security.md §1).
+      // ponytail: повтор старого токена просто отвергается; авто-отзыв сессии как
+      // сигнал кражи не делаем — конкурирующие вкладки дали бы ложные разлогины.
+      const newRefreshPayload: JwtRefreshPayload = {
+        sub: user.id,
+        type: 'refresh',
+        tokenVersion: user.tokenVersion ?? 0,
+        sessionId: payload.sessionId,
+      };
+      const newRefreshToken = this.jwtService.sign(newRefreshPayload, {
+        secret: jwtRefreshSecret(),
+        expiresIn: toJwtExpiresIn(
+          process.env.JWT_REFRESH_EXPIRES_IN,
+          DEFAULT_REFRESH_TOKEN_EXPIRES_IN,
+        ),
+      });
+
       await this.authSessionRepository.update(
         { id: session.id },
         {
+          refreshTokenHash: this.hashRefreshToken(newRefreshToken),
           lastUsedAt: new Date(),
           userAgent: sessionContext?.userAgent || session.userAgent,
           ipAddress: this.resolveIpAddress(sessionContext?.ipAddress) || session.ipAddress,
@@ -394,12 +417,12 @@ export class AuthService {
 
       const accessTokenOptions: JwtSignOptions = {
         secret: jwtSecret(),
-        expiresIn: toJwtExpiresIn(process.env.JWT_EXPIRES_IN, DEFAULT_AUTH_SESSION_EXPIRES_IN),
+        expiresIn: toJwtExpiresIn(process.env.JWT_EXPIRES_IN, DEFAULT_ACCESS_TOKEN_EXPIRES_IN),
       };
 
       const accessToken = this.jwtService.sign(accessTokenPayload, accessTokenOptions);
 
-      return { access_token: accessToken };
+      return { access_token: accessToken, refresh_token: newRefreshToken };
     } catch (_error) {
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -502,12 +525,15 @@ export class AuthService {
 
     const accessTokenOptions: JwtSignOptions = {
       secret: jwtSecret(),
-      expiresIn: toJwtExpiresIn(process.env.JWT_EXPIRES_IN, DEFAULT_AUTH_SESSION_EXPIRES_IN),
+      expiresIn: toJwtExpiresIn(process.env.JWT_EXPIRES_IN, DEFAULT_ACCESS_TOKEN_EXPIRES_IN),
     };
 
     const refreshTokenOptions: JwtSignOptions = {
       secret: jwtRefreshSecret(),
-      expiresIn: toJwtExpiresIn(process.env.JWT_REFRESH_EXPIRES_IN, '30d'),
+      expiresIn: toJwtExpiresIn(
+        process.env.JWT_REFRESH_EXPIRES_IN,
+        DEFAULT_REFRESH_TOKEN_EXPIRES_IN,
+      ),
     };
 
     const accessToken = this.jwtService.sign(payload, accessTokenOptions);

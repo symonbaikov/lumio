@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import * as xlsx from 'xlsx';
+import { appError } from '../../../common/errors/app-error';
 import { GoogleSheet } from '../../../entities/google-sheet.entity';
 import { GoogleSheetsApiService } from './google-sheets-api.service';
 
@@ -63,7 +64,7 @@ export const quoteSheetName = (value: string): string => {
 export const parseA1Range = (rangeRaw: string): A1RangeBounds => {
   const match = rangeRaw.match(/^(.*?)!(\$?[A-Z]+)(\$?\d+)(?::(\$?[A-Z]+)(\$?\d+))?$/);
   if (!match) {
-    throw new BadRequestException('Не удалось распарсить A1 range Google Sheets');
+    throw new BadRequestException(appError('SHEETS_RANGE_PARSE_FAILED'));
   }
 
   const sheetName = unquoteSheetName(match[1]);
@@ -109,15 +110,15 @@ export class SheetSourceLoaderService {
     try {
       url = new URL(rawUrl.trim());
     } catch {
-      throw new BadRequestException('Укажите корректную ссылку Google Sheets');
+      throw new BadRequestException(appError('SHEETS_URL_INVALID'));
     }
 
     if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-      throw new BadRequestException('Поддерживаются только http/https ссылки Google Sheets');
+      throw new BadRequestException(appError('SHEETS_URL_SCHEME_INVALID'));
     }
 
     if (url.hostname !== 'docs.google.com') {
-      throw new BadRequestException('Для импорта по ссылке поддерживается только docs.google.com');
+      throw new BadRequestException(appError('SHEETS_URL_HOST_INVALID'));
     }
 
     const publishedMatch = url.pathname.match(/^\/spreadsheets\/d\/e\/([^/]+)/);
@@ -130,7 +131,7 @@ export class SheetSourceLoaderService {
 
     const standardMatch = url.pathname.match(/^\/spreadsheets\/d\/([^/]+)/);
     if (!standardMatch) {
-      throw new BadRequestException('Не удалось найти spreadsheet id в ссылке Google Sheets');
+      throw new BadRequestException(appError('SHEETS_SPREADSHEET_ID_NOT_FOUND'));
     }
 
     const spreadsheetId = standardMatch[1];
@@ -151,26 +152,22 @@ export class SheetSourceLoaderService {
     try {
       const response = await fetch(exportUrl, { signal: controller.signal });
       if (!response.ok) {
-        throw new BadRequestException(
-          'Не удалось скачать Google Sheet. Откройте доступ по ссылке или опубликуйте таблицу.',
-        );
+        throw new BadRequestException(appError('SHEETS_DOWNLOAD_FAILED_SHARE'));
       }
 
       const contentLength = Number(response.headers.get('content-length') || 0);
       if (contentLength > MAX_PUBLIC_WORKBOOK_BYTES) {
-        throw new BadRequestException('Файл Google Sheets слишком большой для импорта');
+        throw new BadRequestException(appError('SHEETS_FILE_TOO_LARGE'));
       }
 
       const buffer = Buffer.from(await response.arrayBuffer());
       if (buffer.length > MAX_PUBLIC_WORKBOOK_BYTES) {
-        throw new BadRequestException('Файл Google Sheets слишком большой для импорта');
+        throw new BadRequestException(appError('SHEETS_FILE_TOO_LARGE'));
       }
       return buffer;
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
-      throw new BadRequestException(
-        'Не удалось скачать Google Sheet. Проверьте, что доступ по ссылке включен.',
-      );
+      throw new BadRequestException(appError('SHEETS_DOWNLOAD_FAILED_LINK_ACCESS'));
     } finally {
       clearTimeout(timeout);
     }
@@ -216,7 +213,7 @@ export class SheetSourceLoaderService {
     range?: string;
   }): Promise<LoadedSheetSource> {
     if (!dto.sourceUrl?.trim()) {
-      throw new BadRequestException('Укажите ссылку Google Sheets для импорта');
+      throw new BadRequestException(appError('SHEETS_URL_REQUIRED'));
     }
 
     const { spreadsheetId } = this.buildPublicExportUrl(dto.sourceUrl);
@@ -225,17 +222,19 @@ export class SheetSourceLoaderService {
     try {
       workbook = xlsx.read(buffer, { type: 'buffer', raw: false });
     } catch {
-      throw new BadRequestException('Не удалось прочитать экспорт Google Sheets');
+      throw new BadRequestException(appError('SHEETS_EXPORT_READ_FAILED'));
     }
 
     if (!workbook.SheetNames.length) {
-      throw new BadRequestException('В Google Sheet не найдено листов для импорта');
+      throw new BadRequestException(appError('SHEETS_NO_WORKSHEETS'));
     }
 
     const rangeSheet = dto.range?.includes('!') ? parseA1Range(dto.range).sheetName : '';
     const requestedWorksheet = rangeSheet || dto.worksheetName?.trim() || workbook.SheetNames[0];
     if (!workbook.SheetNames.includes(requestedWorksheet)) {
-      throw new BadRequestException(`Лист "${requestedWorksheet}" не найден в Google Sheet`);
+      throw new BadRequestException(
+        appError('SHEETS_WORKSHEET_NOT_FOUND', { worksheet: requestedWorksheet }),
+      );
     }
 
     const worksheet = workbook.Sheets[requestedWorksheet];
@@ -268,12 +267,10 @@ export class SheetSourceLoaderService {
       where: { id: googleSheetId, workspaceId, isActive: true },
     });
     if (!sheet) {
-      throw new NotFoundException('Google Sheet не найден или недоступен');
+      throw new NotFoundException(appError('SHEETS_NOT_FOUND'));
     }
     if (!sheet.refreshToken || sheet.refreshToken.includes('placeholder')) {
-      throw new BadRequestException(
-        'Отсутствует refresh token Google. Подключите таблицу через OAuth.',
-      );
+      throw new BadRequestException(appError('SHEETS_REFRESH_TOKEN_MISSING_CONNECT'));
     }
     return sheet;
   }
@@ -287,7 +284,7 @@ export class SheetSourceLoaderService {
       sheet.sheetId,
     );
     if (!info.firstWorksheet) {
-      throw new BadRequestException('Не удалось определить лист Google Sheets');
+      throw new BadRequestException(appError('SHEETS_WORKSHEET_UNRESOLVED'));
     }
     return info.firstWorksheet;
   }

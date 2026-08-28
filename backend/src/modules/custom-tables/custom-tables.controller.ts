@@ -18,6 +18,7 @@ import type { Response } from 'express';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
+import { appError } from '../../common/errors/app-error';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
 import { buildContentDisposition } from '../../common/utils/http-file.util';
@@ -67,10 +68,10 @@ function parseRowFiltersParam(filtersRaw?: string): CustomTableRowFilterDto[] | 
   try {
     parsed = JSON.parse(filtersRaw);
   } catch {
-    throw new BadRequestException('Некорректный JSON в filters');
+    throw new BadRequestException(appError('FILTER_JSON_INVALID'));
   }
   if (!Array.isArray(parsed)) {
-    throw new BadRequestException('Некорректный формат filters');
+    throw new BadRequestException(appError('FILTER_FORMAT_INVALID'));
   }
   return parsed as CustomTableRowFilterDto[];
 }
@@ -83,21 +84,21 @@ function parseAggregatesParam(aggsRaw?: string): CustomTableAggregateDto[] {
   try {
     parsed = JSON.parse(aggsRaw);
   } catch {
-    throw new BadRequestException('Некорректный JSON в aggs');
+    throw new BadRequestException(appError('AGG_JSON_INVALID'));
   }
   if (!Array.isArray(parsed)) {
-    throw new BadRequestException('Некорректный формат aggs');
+    throw new BadRequestException(appError('AGG_FORMAT_INVALID'));
   }
   return parsed.map(entry => {
     const { col, fn } = (entry ?? {}) as { col?: unknown; fn?: unknown };
     if (typeof col !== 'string' || !col.trim()) {
-      throw new BadRequestException('Некорректный формат aggs');
+      throw new BadRequestException(appError('AGG_FORMAT_INVALID'));
     }
     if (
       typeof fn !== 'string' ||
       !CUSTOM_TABLE_AGGREGATE_FNS.includes(fn as CustomTableAggregateFn)
     ) {
-      throw new BadRequestException(`Неизвестная функция агрегата: ${String(fn)}`);
+      throw new BadRequestException(appError('AGG_FUNCTION_UNKNOWN', { fn: String(fn) }));
     }
     return { col: col.trim(), fn: fn as CustomTableAggregateFn };
   });
@@ -111,17 +112,17 @@ function parseRowSortParam(sortRaw?: string): CustomTableRowSortDto | undefined 
   try {
     parsed = JSON.parse(sortRaw);
   } catch {
-    throw new BadRequestException('Некорректный JSON в sort');
+    throw new BadRequestException(appError('SORT_JSON_INVALID'));
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new BadRequestException('Некорректный формат sort');
+    throw new BadRequestException(appError('SORT_FORMAT_INVALID'));
   }
   const { col, dir } = parsed as { col?: unknown; dir?: unknown };
   if (typeof col !== 'string' || !col.trim()) {
-    throw new BadRequestException('Некорректный формат sort');
+    throw new BadRequestException(appError('SORT_FORMAT_INVALID'));
   }
   if (dir !== 'asc' && dir !== 'desc') {
-    throw new BadRequestException('Направление сортировки должно быть asc или desc');
+    throw new BadRequestException(appError('SORT_DIRECTION_INVALID'));
   }
   return { col: col.trim(), dir };
 }
@@ -176,7 +177,7 @@ export class CustomTablesController {
     @WorkspaceId() workspaceId: string,
     @Body() dto: GoogleSheetsImportCommitDto,
   ) {
-    const job = await this.importJobsService.createGoogleSheetsJob(workspaceId, {
+    const job = await this.importJobsService.createGoogleSheetsJob(user.id, workspaceId, {
       ...dto,
       importUserId: user.id,
     } as GoogleSheetsCommitJobPayload);
@@ -190,7 +191,7 @@ export class CustomTablesController {
     @WorkspaceId() workspaceId: string,
     @Param('jobId', new ParseUUIDPipe()) jobId: string,
   ) {
-    const job = await this.importJobsService.getJobForUser(workspaceId, jobId);
+    const job = await this.importJobsService.getJobForWorkspace(workspaceId, jobId);
     return {
       id: job.id,
       type: job.type,
@@ -385,7 +386,7 @@ export class CustomTablesController {
     @Query('search') search?: string,
   ) {
     if (!column?.trim()) {
-      throw new BadRequestException('Не указана колонка-связь');
+      throw new BadRequestException(appError('RELATION_COLUMN_REQUIRED'));
     }
     return this.customTablesService.listRelationOptions(
       workspaceId,
@@ -409,7 +410,7 @@ export class CustomTablesController {
       .map(key => key.trim())
       .filter(Boolean);
     if (!keys.length) {
-      throw new BadRequestException('Не указаны колонки для поиска дублей');
+      throw new BadRequestException(appError('DUPLICATE_KEY_COLUMNS_REQUIRED'));
     }
     const limitNumber = limitRaw ? Number(limitRaw) : undefined;
     const { items, groupCount } = await this.customTablesService.findDuplicateRows(
@@ -432,7 +433,7 @@ export class CustomTablesController {
     @Query('limit') limitRaw?: string,
   ) {
     if (!groupBy?.trim()) {
-      throw new BadRequestException('Не указана колонка группировки');
+      throw new BadRequestException(appError('GROUP_COLUMN_REQUIRED'));
     }
     const aggs = parseAggregatesParam(aggsRaw);
     const filters = parseRowFiltersParam(filtersRaw);

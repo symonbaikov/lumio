@@ -38,7 +38,7 @@ export function parseIntent(rawText: string): ParsedIntent {
   }
   const start = raw.indexOf('{');
   if (start < 0) {
-    return { ok: false, error: 'Ответ не содержит JSON-объекта' };
+    return { ok: false, error: 'The reply contains no JSON object' };
   }
   raw = raw.slice(start);
 
@@ -46,11 +46,11 @@ export function parseIntent(rawText: string): ParsedIntent {
   try {
     parsed = JSON.parse(raw) as ChatIntent;
   } catch {
-    return { ok: false, error: 'Невалидный JSON' };
+    return { ok: false, error: 'Invalid JSON' };
   }
 
   if (typeof parsed.reply !== 'string') {
-    return { ok: false, error: 'Поле reply отсутствует или не строка' };
+    return { ok: false, error: 'Field "reply" is missing or is not a string' };
   }
 
   if (parsed.action === null || parsed.action === undefined) {
@@ -58,12 +58,12 @@ export function parseIntent(rawText: string): ParsedIntent {
   }
 
   if (typeof parsed.action.name !== 'string') {
-    return { ok: false, error: 'Поле action.name отсутствует или не строка' };
+    return { ok: false, error: 'Field "action.name" is missing or is not a string' };
   }
 
   const tool = getChatTool(parsed.action.name);
   if (!tool) {
-    return { ok: false, error: `Неизвестное действие «${parsed.action.name}»` };
+    return { ok: false, error: `Unknown action "${parsed.action.name}"` };
   }
 
   const validation = tool.schema.safeParse(parsed.action.params ?? {});
@@ -71,7 +71,7 @@ export function parseIntent(rawText: string): ParsedIntent {
     const issues = validation.error.issues
       .map(issue => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
       .join('; ');
-    return { ok: false, error: `Параметры «${tool.name}» невалидны: ${issues}` };
+    return { ok: false, error: `Invalid parameters for "${tool.name}": ${issues}` };
   }
 
   return {

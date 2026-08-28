@@ -1873,7 +1873,7 @@ export function renderNotification(
   key: NotificationMessageKey,
   params: Record<string, string | number>,
 ): { title: string; message: string } {
-  const translations = NOTIFICATION_TRANSLATIONS[locale] ?? NOTIFICATION_TRANSLATIONS.ru;
+  const translations = NOTIFICATION_TRANSLATIONS[locale] ?? NOTIFICATION_TRANSLATIONS.en;
   const entry = translations[key];
   const interpolate = (template: string) =>
     template.replace(/\{\{(\w+)\}\}/g, (_, k: string) => String(params[k] ?? ''));

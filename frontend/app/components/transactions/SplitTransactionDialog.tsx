@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  type StatementCategorySource,
+  getCategoryDisplayName,
+} from '@/app/lib/statement-categories';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -25,6 +29,8 @@ import type { SplitPartInput } from './hooks/useTransactionSplit';
 interface CategoryOption {
   id: string;
   name: string;
+  source?: StatementCategorySource;
+  isSystem?: boolean;
 }
 
 interface PartRowProps {
@@ -32,6 +38,7 @@ interface PartRowProps {
   row: SplitPartRow;
   categories: CategoryOption[];
   canRemove: boolean;
+  locale: string;
   onChange: (index: number, field: keyof SplitPartRow, value: string) => void;
   onRemove: (index: number) => void;
 }
@@ -41,6 +48,7 @@ function PartRow({
   row,
   categories,
   canRemove,
+  locale,
   onChange,
   onRemove,
 }: PartRowProps): React.ReactElement {
@@ -69,7 +77,7 @@ function PartRow({
           </MenuItem>
           {categories.map(category => (
             <MenuItem key={category.id} value={category.id}>
-              {category.name}
+              {getCategoryDisplayName(category, locale)}
             </MenuItem>
           ))}
         </Select>
@@ -93,12 +101,13 @@ export interface SplitTransactionDialogProps {
   currency: string;
   categories: CategoryOption[];
   saving: boolean;
+  locale: string;
   onClose: () => void;
   onSubmit: (parts: SplitPartInput[]) => void;
 }
 
 export function SplitTransactionDialog(props: SplitTransactionDialogProps): React.ReactElement {
-  const { open, totalAmount, currency, categories, saving, onClose, onSubmit } = props;
+  const { open, totalAmount, currency, categories, saving, locale, onClose, onSubmit } = props;
   const split = useSplitRows(open, totalAmount);
 
   return (
@@ -119,6 +128,7 @@ export function SplitTransactionDialog(props: SplitTransactionDialogProps): Reac
             row={row}
             categories={categories}
             canRemove={split.rows.length > MIN_SPLIT_PARTS}
+            locale={locale}
             onChange={split.updateRow}
             onRemove={split.removeRow}
           />

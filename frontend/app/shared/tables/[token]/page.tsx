@@ -1,5 +1,6 @@
 'use client';
 
+import { useIntlayer } from '@/app/i18n';
 import { Alert, Box, Container, Paper, Typography } from '@mui/material';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -41,6 +42,7 @@ function formatCell(value: unknown): string {
  * определяет только токен, а сервер отдаёт исключительно данные для чтения.
  */
 export default function SharedTablePage() {
+  const t = useIntlayer('sharedTablePage');
   const params = useParams();
   const token = params.token as string;
 
@@ -71,7 +73,7 @@ export default function SharedTablePage() {
       } catch (err) {
         if (!cancelled) {
           // Отозванная и истёкшая ссылка приходят сюда же — показываем причину.
-          setError(getApiErrorMessage(err, 'Ссылка недоступна'));
+          setError(getApiErrorMessage(err, t.linkUnavailable.value));
         }
       } finally {
         if (!cancelled) {
@@ -84,12 +86,12 @@ export default function SharedTablePage() {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, t.linkUnavailable.value]);
 
   if (loading) {
     return (
       <Container sx={{ py: 6 }}>
-        <Typography>Загрузка...</Typography>
+        <Typography>{t.loading.value}</Typography>
       </Container>
     );
   }
@@ -97,7 +99,7 @@ export default function SharedTablePage() {
   if (error || !view) {
     return (
       <Container sx={{ py: 6, maxWidth: 600 }}>
-        <Alert severity="error">{error ?? 'Ссылка недоступна'}</Alert>
+        <Alert severity="error">{error ?? t.linkUnavailable.value}</Alert>
       </Container>
     );
   }
@@ -167,7 +169,7 @@ export default function SharedTablePage() {
       </Paper>
 
       {rows.length === 0 && (
-        <Typography sx={{ mt: 2, color: 'var(--muted-foreground)' }}>Нет данных</Typography>
+        <Typography sx={{ mt: 2, color: 'var(--muted-foreground)' }}>{t.noData.value}</Typography>
       )}
     </Container>
   );

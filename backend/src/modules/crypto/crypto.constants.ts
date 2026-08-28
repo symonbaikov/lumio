@@ -1,6 +1,8 @@
 /**
- * Etherscan's V2 API is one host and one key for every chain — the chain is just
- * a query parameter — so widening this list is the whole cost of a new network.
+ * The sync provider (Blockscout) is pinned to its Ethereum-mainnet host in
+ * crypto-sync.service.ts. Adding a chain id here is NOT enough: without a
+ * per-chain host the sync would silently pull mainnet transactions into
+ * wallets on the other chain.
  */
 export const SUPPORTED_CHAIN_IDS = [1] as const;
 

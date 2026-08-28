@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import { Between, In, MoreThanOrEqual, type Repository } from 'typeorm';
 import * as xlsx from 'xlsx';
+import { appError } from '../../common/errors/app-error';
 import { formatMoney } from '../../common/utils/format-money.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
@@ -51,6 +52,7 @@ import {
   loadPdfMake,
   writeReportFile,
 } from './report-document.util';
+import { renderReportLabels } from './report-export.translations';
 
 export interface StatementsSummaryResponse {
   totals: {
@@ -120,13 +122,13 @@ interface WorkspaceTransactionExportRow {
 }
 
 interface CustomReportExportRow {
-  Группа: string;
-  Дата: string | null;
-  Контрагент: string;
-  Сумма: number;
-  Категория: string;
-  Филиал: string;
-  Кошелёк: string;
+  group: string;
+  date: string | null;
+  counterparty: string;
+  amount: number;
+  category: string;
+  branch: string;
+  wallet: string;
 }
 
 /** A transaction flattened for template aggregation, already in workspace currency. */
@@ -557,7 +559,7 @@ export class ReportsService {
     });
 
     if (requestedIds.length && tables.length !== requestedIds.length) {
-      throw new BadRequestException('Одна или несколько таблиц не найдены');
+      throw new BadRequestException(appError('TABLES_NOT_FOUND'));
     }
 
     if (!tables.length) {
@@ -775,7 +777,7 @@ export class ReportsService {
     });
 
     if (requestedIds.length && tables.length !== requestedIds.length) {
-      throw new BadRequestException('Одна или несколько таблиц не найдены');
+      throw new BadRequestException(appError('TABLES_NOT_FOUND'));
     }
 
     if (!tables.length) {
@@ -1670,6 +1672,7 @@ export class ReportsService {
     _workspaceId: string,
     dto: ExportReportDto,
     reportData: DailyReport | MonthlyReport | CustomReport,
+    locale?: string,
   ): Promise<{ filePath: string; fileName: string }> {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const fileName = `report-${timestamp}.${dto.format === ExportFormat.EXCEL ? 'xlsx' : 'csv'}`;
@@ -1683,9 +1686,9 @@ export class ReportsService {
     }
 
     if (dto.format === ExportFormat.EXCEL) {
-      await this.exportToExcel(reportData, filePath);
+      await this.exportToExcel(reportData, filePath, locale);
     } else {
-      await this.exportToCSV(reportData, filePath);
+      await this.exportToCSV(reportData, filePath, locale);
     }
 
     return { filePath, fileName };
@@ -2067,31 +2070,30 @@ export class ReportsService {
   private async exportToExcel(
     reportData: DailyReport | MonthlyReport | CustomReport,
     filePath: string,
+    locale?: string,
   ): Promise<void> {
     const workbook = xlsx.utils.book_new();
+
+    const L = renderReportLabels(locale);
 
     if ('date' in reportData) {
       // Daily report
       const dailyData = reportData as DailyReport;
-      const ws = xlsx.utils.json_to_sheet([
-        {
-          Тип: 'Приходы',
-          Сумма: dailyData.income.totalAmount,
-          Количество: dailyData.income.transactionCount,
-        },
-        {
-          Тип: 'Расходы',
-          Сумма: dailyData.expense.totalAmount,
-          Количество: dailyData.expense.transactionCount,
-        },
-        { Тип: 'Разница', Сумма: dailyData.summary.difference },
+      const ws = xlsx.utils.aoa_to_sheet([
+        [L.type, L.amount, L.count],
+        [L.income, dailyData.income.totalAmount, dailyData.income.transactionCount],
+        [L.expense, dailyData.expense.totalAmount, dailyData.expense.transactionCount],
+        [L.difference, dailyData.summary.difference],
       ]);
-      xlsx.utils.book_append_sheet(workbook, ws, 'Отчёт');
+      xlsx.utils.book_append_sheet(workbook, ws, L.sheetReport);
     } else if ('month' in reportData) {
       // Monthly report
       const monthlyData = reportData as MonthlyReport;
-      const ws = xlsx.utils.json_to_sheet(monthlyData.dailyTrends);
-      xlsx.utils.book_append_sheet(workbook, ws, 'Динамика');
+      const ws = xlsx.utils.aoa_to_sheet([
+        [L.date, L.income, L.expense],
+        ...monthlyData.dailyTrends.map(trend => [trend.date, trend.income, trend.expense]),
+      ]);
+      xlsx.utils.book_append_sheet(workbook, ws, L.sheetTrends);
     } else {
       // Custom report
       const customData = reportData as CustomReport;
@@ -2099,18 +2101,29 @@ export class ReportsService {
       customData.groups.forEach(group => {
         group.transactions.forEach(t => {
           rows.push({
-            Группа: group.label,
-            Дата: t.date,
-            Контрагент: t.counterparty,
-            Сумма: t.amount,
-            Категория: t.category || '',
-            Филиал: t.branch || '',
-            Кошелёк: t.wallet || '',
+            group: group.label,
+            date: t.date,
+            counterparty: t.counterparty,
+            amount: t.amount,
+            category: t.category || '',
+            branch: t.branch || '',
+            wallet: t.wallet || '',
           });
         });
       });
-      const ws = xlsx.utils.json_to_sheet(rows);
-      xlsx.utils.book_append_sheet(workbook, ws, 'Отчёт');
+      const ws = xlsx.utils.aoa_to_sheet([
+        [L.group, L.date, L.counterparty, L.amount, L.category, L.branch, L.wallet],
+        ...rows.map(r => [
+          r.group,
+          r.date,
+          r.counterparty,
+          r.amount,
+          r.category,
+          r.branch,
+          r.wallet,
+        ]),
+      ]);
+      xlsx.utils.book_append_sheet(workbook, ws, L.sheetReport);
     }
 
     xlsx.writeFile(workbook, filePath);
@@ -2119,27 +2132,29 @@ export class ReportsService {
   private async exportToCSV(
     reportData: DailyReport | MonthlyReport | CustomReport,
     filePath: string,
+    locale?: string,
   ): Promise<void> {
     let csvContent = '';
+    const L = renderReportLabels(locale);
 
     if ('date' in reportData) {
       // Daily report
       const dailyData = reportData as DailyReport;
-      csvContent = 'Тип,Сумма,Количество\n';
-      csvContent += `Приходы,${dailyData.income.totalAmount},${dailyData.income.transactionCount}\n`;
-      csvContent += `Расходы,${dailyData.expense.totalAmount},${dailyData.expense.transactionCount}\n`;
-      csvContent += `Разница,${dailyData.summary.difference},\n`;
+      csvContent = `${L.type},${L.amount},${L.count}\n`;
+      csvContent += `${L.income},${dailyData.income.totalAmount},${dailyData.income.transactionCount}\n`;
+      csvContent += `${L.expense},${dailyData.expense.totalAmount},${dailyData.expense.transactionCount}\n`;
+      csvContent += `${L.difference},${dailyData.summary.difference},\n`;
     } else if ('month' in reportData) {
       // Monthly report
       const monthlyData = reportData as MonthlyReport;
-      csvContent = 'Дата,Приходы,Расходы\n';
+      csvContent = `${L.date},${L.income},${L.expense}\n`;
       monthlyData.dailyTrends.forEach(trend => {
         csvContent += `${trend.date},${trend.income},${trend.expense}\n`;
       });
     } else {
       // Custom report
       const customData = reportData as CustomReport;
-      csvContent = 'Группа,Дата,Контрагент,Сумма,Категория,Филиал,Кошелёк\n';
+      csvContent = `${L.group},${L.date},${L.counterparty},${L.amount},${L.category},${L.branch},${L.wallet}\n`;
       customData.groups.forEach(group => {
         group.transactions.forEach(t => {
           csvContent += `${group.label},${t.date},${t.counterparty},${t.amount},${t.category || ''},${t.branch || ''},${t.wallet || ''}\n`;

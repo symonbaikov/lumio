@@ -43,14 +43,14 @@ export class TaxReturn {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @ManyToOne(() => TaxJurisdiction, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'jurisdiction_id' })
   jurisdiction: TaxJurisdiction;
 
-  @Column({ name: 'jurisdiction_id' })
+  @Column({ name: 'jurisdiction_id', type: 'uuid' })
   jurisdictionId: string;
 
   @Column({ name: 'period_start', type: 'date' })

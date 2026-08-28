@@ -25,7 +25,7 @@ const config: IntlayerConfig = {
       'vi',
       'id',
     ],
-    defaultLocale: 'ru',
+    defaultLocale: 'en',
   },
 };
 

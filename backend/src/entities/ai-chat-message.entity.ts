@@ -33,14 +33,14 @@ export class AiChatMessage {
   @JoinColumn({ name: 'chat_id' })
   chat: AiChat;
 
-  @Column({ name: 'chat_id' })
+  @Column({ name: 'chat_id', type: 'uuid' })
   chatId: string;
 
   @ManyToOne(() => Workspace, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @Column({ type: 'enum', enum: AiChatRole })

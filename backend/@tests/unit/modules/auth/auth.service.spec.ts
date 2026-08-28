@@ -394,7 +394,7 @@ describe('AuthService', () => {
       );
     });
 
-    it('uses a 30 day access token by default', async () => {
+    it('uses a 30 minute access token by default', async () => {
       const previousExpiresIn = process.env.JWT_EXPIRES_IN;
       delete process.env.JWT_EXPIRES_IN;
 
@@ -412,7 +412,7 @@ describe('AuthService', () => {
         expect(jwtService.sign).toHaveBeenNthCalledWith(
           1,
           expect.any(Object),
-          expect.objectContaining({ expiresIn: '30d' }),
+          expect.objectContaining({ expiresIn: '30m' }),
         );
       } finally {
         if (previousExpiresIn === undefined) {
@@ -523,7 +523,10 @@ describe('AuthService', () => {
         ipAddress: '10.0.0.2',
       });
 
-      expect(result).toEqual({ access_token: 'new-access-token' });
+      expect(result).toEqual({
+        access_token: 'new-access-token',
+        refresh_token: 'new-access-token',
+      });
       expect(authSessionRepository.update).toHaveBeenCalledWith(
         { id: 'session-1' },
         expect.objectContaining({ lastUsedAt: expect.any(Date) }),

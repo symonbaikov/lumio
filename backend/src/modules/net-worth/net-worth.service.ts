@@ -338,10 +338,12 @@ export class NetWorthService {
     });
     const memberIds = [...new Set(members.map(member => member.userId))];
 
+    // Обязательно фильтруем по workspaceId: участник может состоять в нескольких
+    // воркспейсах, и без фильтра сюда утекали бы кошельки чужого тенанта.
     const wallets =
       memberIds.length > 0
         ? await this.walletRepository.find({
-            where: { userId: In(memberIds), isActive: true },
+            where: { workspaceId, userId: In(memberIds), isActive: true },
             select: ['id', 'initialBalance'],
           })
         : [];

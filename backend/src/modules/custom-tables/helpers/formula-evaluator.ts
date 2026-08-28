@@ -30,7 +30,7 @@ const NUMBER_RE = /^\d+(?:\.\d+)?/;
 
 export function tokenizeFormula(expression: string): Token[] {
   if (expression.length > MAX_EXPRESSION_LENGTH) {
-    throw new FormulaError('Формула слишком длинная');
+    throw new FormulaError('Formula is too long');
   }
   const tokens: Token[] = [];
   let rest = expression;
@@ -64,7 +64,7 @@ export function tokenizeFormula(expression: string): Token[] {
       rest = rest.slice(num[0].length);
       continue;
     }
-    throw new FormulaError(`Недопустимый символ в формуле: ${char}`);
+    throw new FormulaError(`Invalid character in formula: ${char}`);
   }
 
   return tokens;
@@ -106,14 +106,14 @@ function toRpn(tokens: Token[]): Token[] {
       output.push(top);
     }
     if (!matched) {
-      throw new FormulaError('Непарная скобка в формуле');
+      throw new FormulaError('Unbalanced parenthesis in formula');
     }
   }
 
   while (stack.length) {
     const top = stack.pop() as Token;
     if (top.kind === 'paren') {
-      throw new FormulaError('Непарная скобка в формуле');
+      throw new FormulaError('Unbalanced parenthesis in formula');
     }
     output.push(top);
   }
@@ -131,7 +131,7 @@ function toNumber(raw: unknown): number {
   }
   const num = Number(String(raw).replace(',', '.').trim());
   if (!Number.isFinite(num)) {
-    throw new FormulaError('Нечисловое значение в формуле');
+    throw new FormulaError('Non-numeric value in formula');
   }
   return num;
 }
@@ -158,12 +158,12 @@ export function evaluateFormula(
         continue;
       }
       if (token.kind !== 'op') {
-        throw new FormulaError('Некорректная формула');
+        throw new FormulaError('Invalid formula');
       }
       const right = stack.pop();
       const left = stack.pop();
       if (left === undefined || right === undefined) {
-        throw new FormulaError('Некорректная формула');
+        throw new FormulaError('Invalid formula');
       }
       if (token.value === '/' && right === 0) {
         // Деление на ноль — пустая ячейка, а не Infinity в отчёте.
@@ -181,7 +181,7 @@ export function evaluateFormula(
     }
 
     if (stack.length !== 1) {
-      throw new FormulaError('Некорректная формула');
+      throw new FormulaError('Invalid formula');
     }
     const value = stack[0];
     return Number.isFinite(value) ? value : null;
@@ -194,12 +194,12 @@ export function evaluateFormula(
 export function assertValidFormula(expression: string, knownKeys: string[]): void {
   const tokens = tokenizeFormula(expression);
   if (!tokens.length) {
-    throw new FormulaError('Формула пустая');
+    throw new FormulaError('Formula is empty');
   }
   const known = new Set(knownKeys);
   for (const token of tokens) {
     if (token.kind === 'field' && !known.has(token.key)) {
-      throw new FormulaError(`Колонка не найдена: ${token.key}`);
+      throw new FormulaError(`Column not found: ${token.key}`);
     }
   }
   // Разбор в ОПЗ ловит непарные скобки и мусор в структуре.

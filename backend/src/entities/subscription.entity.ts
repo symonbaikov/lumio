@@ -51,7 +51,7 @@ export class Subscription {
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 
   @Column({ name: 'vendor_name', length: 255 })
@@ -76,7 +76,7 @@ export class Subscription {
   @JoinColumn({ name: 'owner_id' })
   owner: User | null;
 
-  @Column({ name: 'owner_id', nullable: true })
+  @Column({ name: 'owner_id', type: 'uuid', nullable: true })
   ownerId: string | null;
 
   @Column({ name: 'review_at', type: 'date', nullable: true })
@@ -117,7 +117,7 @@ export class Subscription {
   @JoinColumn({ name: 'category_id' })
   category: Category | null;
 
-  @Column({ name: 'category_id', nullable: true })
+  @Column({ name: 'category_id', type: 'uuid', nullable: true })
   categoryId: string | null;
 
   @Column({ name: 'detection_meta', type: 'jsonb', nullable: true })
@@ -127,7 +127,7 @@ export class Subscription {
   @JoinColumn({ name: 'created_by_id' })
   createdBy: User | null;
 
-  @Column({ name: 'created_by_id', nullable: true })
+  @Column({ name: 'created_by_id', type: 'uuid', nullable: true })
   createdById: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

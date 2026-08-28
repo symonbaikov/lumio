@@ -1,6 +1,8 @@
 'use client';
 
 import { Filter, Search, X } from '@/app/components/icons';
+import { useLocale } from '@/app/i18n';
+import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import type { Category, FilterState } from './types';
 
 type FilterTranslations = {
@@ -95,6 +97,7 @@ function CategorySelect({
   onFilterChange,
   t,
 }: CategorySelectProps): React.ReactElement {
+  const { locale } = useLocale();
   return (
     <div className="lumio-tx-filters__select-wrap">
       <label htmlFor="category-filter" className="lumio-tx-filters__label">
@@ -109,7 +112,7 @@ function CategorySelect({
         <option value="">{t.categoryAll.value}</option>
         {categories.map(cat => (
           <option key={cat.id} value={cat.id}>
-            {cat.name}
+            {getCategoryDisplayName(cat, locale)}
           </option>
         ))}
       </select>

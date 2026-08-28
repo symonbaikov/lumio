@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import { appError } from '../../common/errors/app-error';
 import {
   CustomTableImportJob,
   CustomTableImportJobStatus,
@@ -42,10 +43,12 @@ export class CustomTableImportJobsService {
 
   async createGoogleSheetsJob(
     userId: string,
+    workspaceId: string,
     payload: GoogleSheetsCommitJobPayload,
   ): Promise<CustomTableImportJob> {
     const job = this.jobRepository.create({
       userId,
+      workspaceId,
       type: CustomTableImportJobType.GOOGLE_SHEETS,
       status: CustomTableImportJobStatus.PENDING,
       progress: 0,
@@ -59,10 +62,12 @@ export class CustomTableImportJobsService {
 
   async createSheetTransactionsJob(
     userId: string,
+    workspaceId: string,
     payload: Record<string, unknown>,
   ): Promise<CustomTableImportJob> {
     const job = this.jobRepository.create({
       userId,
+      workspaceId,
       type: CustomTableImportJobType.SHEET_TRANSACTIONS,
       status: CustomTableImportJobStatus.PENDING,
       progress: 0,
@@ -77,7 +82,15 @@ export class CustomTableImportJobsService {
   async getJobForUser(userId: string, jobId: string): Promise<CustomTableImportJob> {
     const job = await this.jobRepository.findOne({ where: { id: jobId, userId } });
     if (!job) {
-      throw new NotFoundException('Job не найден');
+      throw new NotFoundException(appError('JOB_NOT_FOUND'));
+    }
+    return job;
+  }
+
+  async getJobForWorkspace(workspaceId: string, jobId: string): Promise<CustomTableImportJob> {
+    const job = await this.jobRepository.findOne({ where: { id: jobId, workspaceId } });
+    if (!job) {
+      throw new NotFoundException(appError('JOB_NOT_FOUND'));
     }
     return job;
   }

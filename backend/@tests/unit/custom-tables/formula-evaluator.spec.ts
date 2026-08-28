@@ -54,7 +54,7 @@ describe('tokenizeFormula', () => {
   });
 
   it('rejects an over-long expression', () => {
-    expect(() => tokenizeFormula('1+'.repeat(400))).toThrow(/слишком длинная/);
+    expect(() => tokenizeFormula('1+'.repeat(400))).toThrow(/too long/);
   });
 });
 
@@ -64,14 +64,14 @@ describe('assertValidFormula', () => {
   });
 
   it('rejects a reference to a missing column', () => {
-    expect(() => assertValidFormula('[a] + [ghost]', ['a'])).toThrow(/не найдена/);
+    expect(() => assertValidFormula('[a] + [ghost]', ['a'])).toThrow(/Column not found/);
   });
 
   it('rejects unbalanced parentheses', () => {
-    expect(() => assertValidFormula('([a] + 1', ['a'])).toThrow(/скобка/);
+    expect(() => assertValidFormula('([a] + 1', ['a'])).toThrow(/parenthesis/);
   });
 
   it('rejects an empty formula', () => {
-    expect(() => assertValidFormula('   ', [])).toThrow(/пустая/);
+    expect(() => assertValidFormula('   ', [])).toThrow(/is empty/);
   });
 });

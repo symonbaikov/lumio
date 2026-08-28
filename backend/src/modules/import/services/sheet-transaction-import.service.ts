@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { appError } from '../../../common/errors/app-error';
 import { CategoryType } from '../../../entities/category.entity';
 import { ImportSession, ImportSessionMode } from '../../../entities/import-session.entity';
 import { BankName, FileType, Statement, StatementStatus } from '../../../entities/statement.entity';
@@ -156,9 +157,7 @@ export class SheetTransactionImportService {
     const headerRowIndex = dto.headerRowIndex ?? 0;
     const layout = detectLayout(loaded.values, headerRowIndex);
     if (layout === GoogleSheetsImportLayoutType.MATRIX) {
-      throw new BadRequestException(
-        'Матричные листы пока не поддерживаются для импорта транзакций',
-      );
+      throw new BadRequestException(appError('SHEETS_MATRIX_UNSUPPORTED'));
     }
 
     const headerRow = loaded.values[headerRowIndex] ?? [];
@@ -329,10 +328,14 @@ export class SheetTransactionImportService {
     userId: string,
     dto: SheetTransactionCommitInput,
   ): Promise<{ jobId: string }> {
-    const job = await this.customTableImportJobsService.createSheetTransactionsJob(userId, {
-      ...dto,
+    const job = await this.customTableImportJobsService.createSheetTransactionsJob(
+      userId,
       workspaceId,
-    });
+      {
+        ...dto,
+        workspaceId,
+      },
+    );
     return { jobId: job.id };
   }
 
@@ -345,7 +348,7 @@ export class SheetTransactionImportService {
     const { transactions: okTransactions, rowIndexes } = this.buildOkTransactions(mapped.rows);
 
     if (okTransactions.length === 0) {
-      throw new BadRequestException('Нет строк для импорта');
+      throw new BadRequestException(appError('IMPORT_NO_ROWS'));
     }
 
     const walletCurrency = await this.resolveWalletCurrency(workspaceId, dto);
