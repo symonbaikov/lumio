@@ -48,13 +48,15 @@ describe('SidePanel navigation styles', () => {
     );
 
     expect(activeButton).toBeTruthy();
-    expect(activeButton?.className).not.toContain('bg-[#ede8e1]');
 
-    const activeIconWrapper = activeButton?.querySelector('span.h-9.w-9') as HTMLSpanElement | null;
+    // Компонент перешёл с tailwind-классов на inline-стили: у активного пункта
+    // иконка 36×36 в цвете var(--primary), без собственной заливки.
+    const activeIconWrapper = activeButton?.querySelector('span') as HTMLSpanElement | null;
     expect(activeIconWrapper).toBeTruthy();
-    expect(activeIconWrapper?.className).toContain('text-primary');
-    expect(activeIconWrapper?.className).not.toContain('bg-white');
-    expect(activeIconWrapper?.className).not.toContain('bg-gray-100');
+    expect(activeIconWrapper?.style.width).toBe('36px');
+    expect(activeIconWrapper?.style.height).toBe('36px');
+    expect(activeIconWrapper?.style.color).toBe('var(--primary)');
+    expect(activeIconWrapper?.style.backgroundColor).toBe('');
   });
 
   it('adds left inset to navigation rows to align with header logo axis', async () => {
@@ -72,6 +74,7 @@ describe('SidePanel navigation styles', () => {
     const firstNavButton = container.querySelector('button');
 
     expect(firstNavButton).toBeTruthy();
-    expect(firstNavButton?.className).toContain('px-4');
+    // 16px по горизонтали — прежний px-4, теперь как inline-стиль.
+    expect(firstNavButton?.style.padding).toBe('10px 16px');
   });
 });

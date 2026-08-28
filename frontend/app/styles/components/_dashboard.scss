@@ -106,11 +106,13 @@
   /* ── Main 2fr/1fr grid ── */
   &__grid {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    /* minmax(0, …): голый fr не сжимается ниже min-content контента,
+       и карточка с графиком распирала грид за вьюпорт на мобильных. */
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     gap: 16px;
 
     @media (max-width: 1024px) {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 

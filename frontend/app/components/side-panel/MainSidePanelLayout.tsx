@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 'use client';
 
-import { X } from '@/app/components/icons';
+import { PanelLeftOpen, X } from '@/app/components/icons';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
@@ -278,7 +278,46 @@ function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
           </Box>
         </>
       ) : null}
-      <div style={{ flex: 1, ...(isStatementsPage ? { height: '100%', overflow: 'hidden' } : {}) }}>
+      {/* minWidth: 0 — иначе широкий контент (табы, таблицы) распирает
+          flex-элемент за вьюпорт, и вся страница уезжает вбок на мобильных. */}
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          ...(isStatementsPage ? { height: '100%', overflow: 'hidden' } : {}),
+        }}
+      >
+        {/* На мобильных сама панель скрыта, а без этой кнопки её drawer было
+            нечем открыть — разделы (например, в настройках) были недостижимы. */}
+        {config && !globalMobileMenuOpen ? (
+          <Box
+            component="button"
+            type="button"
+            onClick={() => setMobileSidePanelOpen(true)}
+            data-testid="mobile-side-panel-open"
+            sx={{
+              display: { xs: 'flex', lg: 'none' },
+              alignItems: 'center',
+              gap: 1,
+              width: '100%',
+              px: 2,
+              py: 1.25,
+              border: 'none',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              backgroundColor: 'transparent',
+              cursor: 'pointer',
+              font: 'inherit',
+              color: 'inherit',
+              textAlign: 'left',
+            }}
+          >
+            <PanelLeftOpen size={18} />
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {config.header?.title ?? 'Sections'}
+            </Typography>
+          </Box>
+        ) : null}
         {children}
       </div>
 
