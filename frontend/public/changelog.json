@@ -1,14 +1,71 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "4adbe5bb7c311095bd75ab49370ffdcad5fa134d"
+      "main": "37ba2d8109b76741b071ccb38a65e42fc07d18dd"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-08-28T11:17:45.652Z",
+    "lastGeneratedAt": "2026-08-28T11:58:31.414Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-08-28-37ba2d8",
+      "version": "main-37ba2d8",
+      "branch": "main",
+      "date": "2026-08-28T11:58:31.414Z",
+      "title": "Release update - August 28, 2026",
+      "summary": "This release includes routine maintenance updates.",
+      "markdown": "## Other\n- Routine maintenance updates.",
+      "commits": [
+        {
+          "sha": "746cbcb4b04a4b399082df677b09008695dd2876",
+          "shortSha": "746cbcb4",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-08-28T11:17:46Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "e2f8658f1ade8f4fba840ab0286c36729e7edc5d",
+          "shortSha": "e2f8658f",
+          "subject": "ci: upload coverage to Qlty even when the e2e stage fails",
+          "author": "peterbaikov",
+          "date": "2026-08-28T14:23:17+03:00",
+          "files": [
+            ".github/workflows/ci.yml"
+          ]
+        },
+        {
+          "sha": "af4ba5a4a1871ad32192365b63d41af99cd8063a",
+          "shortSha": "af4ba5a4",
+          "subject": "ci: upload coverage to Qlty even when the e2e stage fails",
+          "author": "peterbaikov",
+          "date": "2026-08-28T14:23:17+03:00",
+          "files": [
+            ".github/workflows/ci.yml"
+          ]
+        },
+        {
+          "sha": "b392f3a0473338525837f313109f145bea7feffb",
+          "shortSha": "b392f3a0",
+          "subject": "Merge pull request #132 from symonbaikov/ci/qlty-coverage-upload",
+          "author": "Symon Baikov",
+          "date": "2026-08-28T14:57:34+03:00",
+          "files": []
+        },
+        {
+          "sha": "37ba2d8109b76741b071ccb38a65e42fc07d18dd",
+          "shortSha": "37ba2d81",
+          "subject": "Merge pull request #133 from symonbaikov/feat/bank-statement-parser-test-dba74a",
+          "author": "Symon Baikov",
+          "date": "2026-08-28T14:58:04+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-08-28-4adbe5b",
       "version": "main-4adbe5b",
