@@ -264,9 +264,12 @@ export class TransactionsController {
   async mergeDuplicates(
     @Body() body: { transactionIds: string[] },
     @CurrentUser() _user: User,
-    @WorkspaceId() _workspaceId: string,
+    @WorkspaceId() workspaceId: string,
   ) {
-    const master = await this.deduplicationService.mergeDuplicates(body.transactionIds);
+    const master = await this.deduplicationService.mergeDuplicates(
+      body.transactionIds,
+      workspaceId,
+    );
 
     return {
       success: true,
@@ -285,9 +288,9 @@ export class TransactionsController {
   async unmarkDuplicate(
     @Param('id') id: string,
     @CurrentUser() _user: User,
-    @WorkspaceId() _workspaceId: string,
+    @WorkspaceId() workspaceId: string,
   ) {
-    const transaction = await this.deduplicationService.unmarkDuplicate(id);
+    const transaction = await this.deduplicationService.unmarkDuplicate(id, workspaceId);
 
     return {
       success: true,

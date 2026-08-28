@@ -64,6 +64,11 @@ export abstract class BaseTabularParser extends BaseParser {
   protected mapColumns(headers: string[]): TabularColumnMapping {
     const mapping: TabularColumnMapping = {};
 
+    // `??=` (not `=`): a category's keyword can match more than one header
+    // in the same file (e.g. both "Сумма операции" and "Сумма в валюте
+    // счета" contain "сумма"). The first, left-to-right match — normally
+    // the primary column for that category — wins instead of a later,
+    // secondary column silently overwriting it with no warning.
     headers.forEach((header, index) => {
       const lowerHeader = header.toLowerCase();
       // "Deposit No.", "Cheque number", "Payment date" are not money columns
@@ -74,7 +79,7 @@ export abstract class BaseTabularParser extends BaseParser {
         lowerHeader.includes('fecha') ||
         lowerHeader.includes('data')
       ) {
-        mapping.date = index;
+        mapping.date ??= index;
       }
       if (
         lowerHeader.includes('номер') ||
@@ -83,7 +88,7 @@ export abstract class BaseTabularParser extends BaseParser {
         lowerHeader.includes('номерок') ||
         lowerHeader.includes('doc')
       ) {
-        mapping.document = index;
+        mapping.document ??= index;
       }
       if (
         lowerHeader.includes('контрагент') ||
@@ -93,7 +98,7 @@ export abstract class BaseTabularParser extends BaseParser {
         lowerHeader.includes('payer') ||
         lowerHeader.includes('payee')
       ) {
-        mapping.counterparty = index;
+        mapping.counterparty ??= index;
       }
       if (
         lowerHeader.includes('бин') ||
@@ -101,7 +106,7 @@ export abstract class BaseTabularParser extends BaseParser {
         lowerHeader.includes('inn') ||
         lowerHeader.includes('tax')
       ) {
-        mapping.bin = index;
+        mapping.bin ??= index;
       }
       if (
         lowerHeader.includes('счёт') ||
@@ -109,10 +114,10 @@ export abstract class BaseTabularParser extends BaseParser {
         lowerHeader.includes('account') ||
         lowerHeader.includes('iban')
       ) {
-        mapping.account = index;
+        mapping.account ??= index;
       }
       if (lowerHeader.includes('банк') || lowerHeader.includes('bank')) {
-        mapping.bank = index;
+        mapping.bank ??= index;
       }
       if (
         !looksLikeIdOrDate &&
@@ -126,7 +131,7 @@ export abstract class BaseTabularParser extends BaseParser {
           lowerHeader.includes('£ out') ||
           lowerHeader.includes('расход'))
       ) {
-        mapping.debit = index;
+        mapping.debit ??= index;
       }
       if (
         !looksLikeIdOrDate &&
@@ -139,15 +144,19 @@ export abstract class BaseTabularParser extends BaseParser {
           lowerHeader.includes('£ in') ||
           lowerHeader.includes('приход'))
       ) {
-        mapping.credit = index;
+        mapping.credit ??= index;
       }
       if (
-        !looksLikeIdOrDate &&
-        (lowerHeader.includes('amount') ||
-          lowerHeader.includes('сумма') ||
-          lowerHeader.includes('importe'))
+        lowerHeader === 'сумма' ||
+        lowerHeader === 'amount' ||
+        lowerHeader === 'monto' ||
+        lowerHeader === 'importe' ||
+        (!looksLikeIdOrDate &&
+          (lowerHeader.includes('сумма') ||
+            lowerHeader.includes('amount') ||
+            lowerHeader.includes('importe')))
       ) {
-        mapping.amount = index;
+        mapping.amount ??= index;
       }
       if (
         lowerHeader.includes('назначение') ||
@@ -163,7 +172,7 @@ export abstract class BaseTabularParser extends BaseParser {
             lowerHeader.includes('particulars') ||
             lowerHeader.includes('narrative')))
       ) {
-        mapping.purpose = index;
+        mapping.purpose ??= index;
       }
       if (
         lowerHeader === 'валюта' ||
@@ -173,7 +182,7 @@ export abstract class BaseTabularParser extends BaseParser {
         lowerHeader.includes('валюта') ||
         lowerHeader.includes('currency')
       ) {
-        mapping.currency = index;
+        mapping.currency ??= index;
       }
     });
 
@@ -206,10 +215,9 @@ export abstract class BaseTabularParser extends BaseParser {
       const bankIndex = columnMapping.bank;
       const debitIndex = columnMapping.debit;
       const creditIndex = columnMapping.credit;
+      const amountIndex = columnMapping.amount;
       const purposeIndex = columnMapping.purpose;
       const currencyIndex = columnMapping.currency;
-
-      const amountIndex = columnMapping.amount;
 
       const currencyFromColumn =
         currencyIndex !== undefined

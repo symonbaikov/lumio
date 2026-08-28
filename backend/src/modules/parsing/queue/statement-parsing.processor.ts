@@ -92,17 +92,35 @@ export class StaleStatementReaper {
 
     for (const statement of stale) {
       if (statement.parsingAttempts >= MAX_PARSING_ATTEMPTS) {
-        await this.statementRepository.update(statement.id, {
-          status: StatementStatus.ERROR,
-          errorMessage: `Parsing abandoned after ${statement.parsingAttempts} attempts`,
-        });
+        await this.statementRepository.update(
+          { id: statement.id, status: StatementStatus.PROCESSING },
+          {
+            status: StatementStatus.ERROR,
+            errorMessage: `Parsing abandoned after ${statement.parsingAttempts} attempts`,
+          },
+        );
         this.logger.warn(
           `Statement ${statement.id} abandoned after ${statement.parsingAttempts} attempts`,
         );
         continue;
       }
 
-      await this.statementRepository.update(statement.id, { status: StatementStatus.UPLOADED });
+      // Conditional on the row still reading PROCESSING: the initial SELECT
+      // and this UPDATE aren't atomic, and processStatementInternal now
+      // heartbeats its updatedAt during long-running stages (see
+      // statement-processing.service.ts), so a statement that finished (or
+      // heartbeated) in that window is no longer actually stale — this
+      // WHERE clause turns that race into a no-op instead of clobbering
+      // whatever status the still-running (or just-finished) job wrote.
+      const { affected } = await this.statementRepository.update(
+        { id: statement.id, status: StatementStatus.PROCESSING },
+        { status: StatementStatus.UPLOADED },
+      );
+      if (!affected) {
+        this.logger.log(`Statement ${statement.id} no longer stale, skipping re-queue`);
+        continue;
+      }
+
       await this.queue.enqueue(statement.id);
       this.logger.warn(`Re-queued stale statement ${statement.id}`);
     }

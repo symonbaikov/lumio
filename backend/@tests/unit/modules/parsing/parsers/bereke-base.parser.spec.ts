@@ -201,6 +201,18 @@ describe('BerekeBaseParser', () => {
     expectDateParts(result.metadata.dateTo, '2024-02-20');
   });
 
+  it('preserves a legitimate zero opening balance instead of dropping it', async () => {
+    const text = ['Bereke statement', 'Opening balance 0,00', 'Closing balance 500,00'].join('\n');
+
+    (extractTextAndLayoutFromPdf as jest.Mock).mockResolvedValue({ text, rows: [] });
+    (extractTablesFromPdf as jest.Mock).mockResolvedValue({ rows: [] });
+
+    const result = await parser.parse('/tmp/mock.pdf');
+
+    expect(result.metadata.balanceStart).toBe(0);
+    expect(result.metadata.balanceEnd).toBe(500);
+  });
+
   it('groups rows into transactions until the table footer', () => {
     const rows = [
       { text: '01.01.2026 Первая операция' },

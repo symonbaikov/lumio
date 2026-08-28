@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import * as xlsx from 'xlsx';
 import { appError } from '../../../common/errors/app-error';
+import { assertSafeZipDecompressionRatio } from '../../../common/utils/zip-bomb-guard.util';
 import { GoogleSheet } from '../../../entities/google-sheet.entity';
 import { GoogleSheetsApiService } from './google-sheets-api.service';
 
@@ -24,6 +25,11 @@ export interface LoadedSheetSource {
 }
 
 export const MAX_PUBLIC_WORKBOOK_BYTES = 25 * 1024 * 1024;
+// `sheetRows` only skips building JS row objects — the xlsx library still
+// fully inflates every ZIP entry first, so it does not bound decompression
+// cost. assertSafeZipDecompressionRatio (below, before xlsx.read) does that;
+// this cap is a secondary bound on how much gets converted into memory.
+const MAX_SHEET_ROWS = 50_000;
 
 export const columnLettersToNumber = (lettersRaw: string): number => {
   const letters = lettersRaw.toUpperCase();
@@ -220,7 +226,11 @@ export class SheetSourceLoaderService {
     const buffer = await this.fetchPublicWorkbook(dto.sourceUrl);
     let workbook: xlsx.WorkBook;
     try {
-      workbook = xlsx.read(buffer, { type: 'buffer', raw: false });
+      // sourceUrl is an externally-controlled public URL, so this buffer is
+      // untrusted content — guard against a decompression bomb before xlsx
+      // ever inflates it.
+      assertSafeZipDecompressionRatio(buffer);
+      workbook = xlsx.read(buffer, { type: 'buffer', raw: false, sheetRows: MAX_SHEET_ROWS });
     } catch {
       throw new BadRequestException(appError('SHEETS_EXPORT_READ_FAILED'));
     }

@@ -1,5 +1,5 @@
 import { BaseAiHelper } from '../../../common/helpers/base-ai.helper';
-import { mapParsedTransaction } from '../../../common/utils/ai-response.util';
+import { mapParsedTransaction, unwrapAiJson } from '../../../common/utils/ai-response.util';
 import { normalizeDate, normalizeNumber } from '../../../common/utils/number-normalizer.util';
 import type { ParsedTransaction } from '../interfaces/parsed-statement.interface';
 import { isAiCircuitOpen, redactSensitive } from './ai-runtime.util';
@@ -44,7 +44,12 @@ ${redactedText}`,
         return [];
       }
 
-      const parsed = JSON.parse(content);
+      // Some OpenAI-compatible backends (self-hosted/local models) still wrap
+      // JSON replies in markdown code fences despite response_format being
+      // requested — unwrap first, matching ai-document-extractor.helper.ts
+      // and ai-hapoalim-extractor.helper.ts, rather than letting JSON.parse
+      // throw and silently fail this extractor closed.
+      const parsed = JSON.parse(unwrapAiJson(content));
       const rawTransactions = parsed?.transactions || parsed?.data?.transactions || [];
 
       if (!Array.isArray(rawTransactions)) {

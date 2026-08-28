@@ -52,39 +52,13 @@ export class ImportSessionController {
       throw new NotFoundException('Statement not found');
     }
 
-    if (statement.parsingDetails?.importPreview) {
-      return {
-        statementId: statement.id,
-        status: statement.status,
-        importPreview: statement.parsingDetails.importPreview,
-      };
-    }
-
-    if (statement.status === StatementStatus.COMPLETED) {
-      return {
-        statementId: statement.id,
-        status: statement.status,
-        importPreview: null,
-      };
-    }
-
-    const transactionCount = await this.transactionRepository.count({
-      where: { statementId: statement.id },
-    });
-
-    if (transactionCount > 0) {
-      return {
-        statementId: statement.id,
-        status: statement.status,
-        importPreview: null,
-      };
-    }
-
-    const processed = await this.statementProcessingService.processStatement(statement.id);
+    // Nothing else to check: this is a read endpoint (STATEMENT_VIEW), so it
+    // must not trigger parsing itself if no preview was recorded — statement
+    // processing is kicked off by the upload flow, not by viewing a preview.
     return {
-      statementId: processed.id,
-      status: processed.status,
-      importPreview: processed.parsingDetails?.importPreview ?? null,
+      statementId: statement.id,
+      status: statement.status,
+      importPreview: statement.parsingDetails?.importPreview ?? null,
     };
   }
 
@@ -133,7 +107,7 @@ export class ImportSessionController {
       await this.importSessionService.resolveConflicts(importPreview.sessionId, body.resolutions);
     }
 
-    const committed = await this.statementProcessingService.commitImport(statement.id);
+    const committed = await this.statementProcessingService.commitImport(statement.id, workspaceId);
 
     return {
       statementId: committed.id,

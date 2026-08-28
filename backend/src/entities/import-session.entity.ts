@@ -50,6 +50,14 @@ export interface ImportSessionPreviewClassification {
   conflictRecommendedAction?: ImportConflictRecommendedAction;
   error?: string;
   resolution?: ImportConflictResolution;
+  /**
+   * True when this row's fingerprint collides with an earlier row in the
+   * SAME batch (not the database) — two distinct transactions the
+   * fingerprint alone can't tell apart. Still committed as 'new' so nothing
+   * is silently dropped, but persisted with isDuplicate=true so it doesn't
+   * collide with the earlier row on the partial unique index.
+   */
+  duplicateInBatch?: boolean;
 }
 
 export interface ImportSessionRetryError {

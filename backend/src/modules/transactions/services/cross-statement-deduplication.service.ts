@@ -149,14 +149,16 @@ export class CrossStatementDeduplicationService {
   /**
    * Merge duplicate transactions into master
    * @param transactionIds IDs of transactions to merge (first is master)
+   * @param workspaceId Workspace ID — scopes the merge to the caller's own transactions
    */
-  async mergeDuplicates(transactionIds: string[]): Promise<Transaction> {
+  async mergeDuplicates(transactionIds: string[], workspaceId: string): Promise<Transaction> {
     if (transactionIds.length < 2) {
       throw new Error('At least 2 transactions required for merge');
     }
 
     const transactions = await this.transactionRepository.findBy({
       id: In(transactionIds),
+      workspaceId,
     });
 
     if (transactions.length !== transactionIds.length) {
@@ -181,8 +183,14 @@ export class CrossStatementDeduplicationService {
 
   /**
    * Unmark transaction as duplicate
+   * @param workspaceId Workspace ID — scopes the update to the caller's own transaction
    */
-  async unmarkDuplicate(transactionId: string): Promise<Transaction> {
+  async unmarkDuplicate(transactionId: string, workspaceId: string): Promise<Transaction> {
+    const existing = await this.transactionRepository.findOneBy({ id: transactionId, workspaceId });
+    if (!existing) {
+      throw new Error('Transaction not found');
+    }
+
     await this.transactionRepository.update(transactionId, {
       isDuplicate: false,
       duplicateOfId: null,
@@ -233,6 +241,28 @@ export class CrossStatementDeduplicationService {
   }
 
   /**
+   * A charge and its own refund/reversal (or two unrelated payments that
+   * merely net to the same figure) can land within the same date/amount
+   * tolerance window without being the same transaction. Direction and
+   * currency are the two signals that distinguish them, so a mismatch on
+   * either rules out a duplicate regardless of how similar everything else
+   * scores.
+   */
+  private hasDirectionOrCurrencyMismatch(t1: Transaction, t2: Transaction): boolean {
+    const direction1 =
+      t1.debit && t1.debit > 0 ? 'debit' : t1.credit && t1.credit > 0 ? 'credit' : null;
+    const direction2 =
+      t2.debit && t2.debit > 0 ? 'debit' : t2.credit && t2.credit > 0 ? 'credit' : null;
+    if (direction1 && direction2 && direction1 !== direction2) {
+      return true;
+    }
+
+    const currency1 = t1.currency?.trim().toUpperCase();
+    const currency2 = t2.currency?.trim().toUpperCase();
+    return Boolean(currency1 && currency2 && currency1 !== currency2);
+  }
+
+  /**
    * Calculate similarity between two transactions
    */
   private calculateSimilarity(
@@ -243,6 +273,10 @@ export class CrossStatementDeduplicationService {
     matchType: 'exact' | 'fuzzy' | 'semantic' | 'hybrid';
     matchedFields: string[];
   } {
+    if (this.hasDirectionOrCurrencyMismatch(t1, t2)) {
+      return { similarity: 0, matchType: 'fuzzy', matchedFields: [] };
+    }
+
     const scores: Record<string, number> = {};
     const matchedFields: string[] = [];
 

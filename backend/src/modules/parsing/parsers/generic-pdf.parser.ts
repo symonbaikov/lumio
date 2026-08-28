@@ -67,12 +67,12 @@ export class GenericPdfParser extends BaseParser {
     const dateTo = dateRange.to || maxDate || dateFrom;
 
     const balanceStart =
-      this.extractBalance(text, 'Остаток на начало') ||
-      this.extractBalance(text, 'Остаток на начало периода') ||
+      this.extractBalance(text, 'Остаток на начало') ??
+      this.extractBalance(text, 'Остаток на начало периода') ??
       this.extractBalance(text, 'Входящий остаток');
     const balanceEnd =
-      this.extractBalance(text, 'Остаток на конец') ||
-      this.extractBalance(text, 'Остаток на конец периода') ||
+      this.extractBalance(text, 'Остаток на конец') ??
+      this.extractBalance(text, 'Остаток на конец периода') ??
       this.extractBalance(text, 'Исходящий остаток');
 
     return {

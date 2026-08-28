@@ -404,7 +404,7 @@ describe('CloudStorageBaseService', () => {
       uploadsDir,
       safeBaseName: 'statement.pdf',
       mimeType: 'application/pdf',
-      contents: Buffer.from('pdf-data'),
+      contents: Buffer.from('%PDF-1.4\npdf-data'),
       importFile,
     });
 
@@ -412,7 +412,7 @@ describe('CloudStorageBaseService', () => {
       expect.objectContaining({
         originalname: 'statement.pdf',
         mimetype: 'application/pdf',
-        size: Buffer.byteLength('pdf-data'),
+        size: Buffer.byteLength('%PDF-1.4\npdf-data'),
       }),
     );
   });
@@ -485,7 +485,7 @@ describe('CloudStorageBaseService', () => {
         originalName: 'statement.pdf',
         mimeType: 'application/pdf',
         size: 128,
-        getContents: async () => Buffer.from('pdf-data'),
+        getContents: async () => Buffer.from('%PDF-1.4\npdf-data'),
       })
       .mockResolvedValueOnce({
         result: {

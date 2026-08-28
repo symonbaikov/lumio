@@ -243,9 +243,26 @@ export class StatementProcessingService {
     });
   }
 
+  private static readonly HIGH_DROP_RATIO_THRESHOLD = 0.5;
+
+  /**
+   * Summing debit/credit across transactions only makes sense when they
+   * share one currency — a statement whose rows carry different currency
+   * codes (e.g. a generic CSV/XLSX with a per-row currency column) would
+   * otherwise get compared against balanceEnd as if KZT and USD were the
+   * same unit. Parsers that convert foreign amounts into the statement's
+   * own currency (Hapoalim tracks the original via amountForeign instead)
+   * already report one currency per row, so they're unaffected.
+   */
+  private findMixedCurrencies(transactions: ParsedTransaction[]): string[] | null {
+    const currencies = new Set(transactions.map(t => t.currency).filter((c): c is string => !!c));
+    return currencies.size > 1 ? Array.from(currencies) : null;
+  }
+
   private validateStatement(
     metadata: ParsedStatement['metadata'],
     transactions: ParsedTransaction[],
+    dropInfo?: { rawCount: number; droppedCount: number },
   ): {
     passed: boolean;
     warnings: string[];
@@ -260,6 +277,8 @@ export class StatementProcessingService {
     const debitSum = transactions.reduce((sum, t) => sum + (t.debit ?? 0), 0);
     const creditSum = transactions.reduce((sum, t) => sum + (t.credit ?? 0), 0);
 
+    const mixedCurrencies = this.findMixedCurrencies(transactions);
+
     let balanceCheck:
       | {
           expectedEnd?: number;
@@ -269,7 +288,11 @@ export class StatementProcessingService {
         }
       | undefined;
 
-    if (
+    if (mixedCurrencies) {
+      warnings.push(
+        `Statement mixes multiple currencies (${mixedCurrencies.join(', ')}) — balance could not be automatically reconciled`,
+      );
+    } else if (
       metadata.balanceStart !== null &&
       metadata.balanceStart !== undefined &&
       metadata.balanceEnd !== null &&
@@ -288,6 +311,39 @@ export class StatementProcessingService {
         warnings.push(
           `Balance mismatch: expected ${expectedEnd.toFixed(2)} got ${metadata.balanceEnd.toFixed(2)} (diff ${diff.toFixed(2)})`,
         );
+      }
+    }
+
+    // The balance check above passes trivially whenever the bank statement
+    // didn't include balances at all, or when every row happened to net to
+    // zero — that's not the same as a good parse. A statement that produced
+    // zero transactions, or dropped most of what it attempted, must not be
+    // reported as COMPLETED just because there was nothing left to compare.
+    if (dropInfo) {
+      const { rawCount, droppedCount } = dropInfo;
+      const validCount = transactions.length;
+
+      if (rawCount > 0 && validCount === 0) {
+        warnings.push(
+          `All ${rawCount} parsed rows were rejected during validation — statement produced zero transactions`,
+        );
+      } else if (
+        rawCount > 0 &&
+        droppedCount / rawCount > StatementProcessingService.HIGH_DROP_RATIO_THRESHOLD
+      ) {
+        const percent = Math.round((droppedCount / rawCount) * 100);
+        warnings.push(
+          `${droppedCount} of ${rawCount} parsed rows were rejected during validation (${percent}%)`,
+        );
+      } else if (
+        rawCount === 0 &&
+        validCount === 0 &&
+        (metadata.balanceStart == null || metadata.balanceEnd == null)
+      ) {
+        // Both balances must be present to trust that zero transactions means
+        // a genuinely empty period rather than a failed extraction — one
+        // balance found and the other missing is still a partial failure.
+        warnings.push('No transactions or balances could be extracted from the statement');
       }
     }
 
@@ -383,9 +439,9 @@ export class StatementProcessingService {
     }
   }
 
-  async commitImport(statementId: string): Promise<Statement> {
+  async commitImport(statementId: string, workspaceId: string): Promise<Statement> {
     const statement = await this.statementRepository.findOne({
-      where: { id: statementId },
+      where: { id: statementId, workspaceId },
     });
 
     if (!statement) {
@@ -526,6 +582,7 @@ export class StatementProcessingService {
       addLog('info', `Detecting bank and format for file type: ${statement.fileType}`);
       const detectStartTime = Date.now();
       let cachedText: string | undefined;
+      let ocrConfidence: number | undefined;
       if (statement.fileType === FileType.PDF) {
         try {
           cachedText = await extractTextFromPdf(processingFilePath);
@@ -541,6 +598,7 @@ export class StatementProcessingService {
           const ocrService = new OcrService();
           const ocrResult = await ocrService.extractTextFromImage(imageBuffer);
           cachedText = ocrResult.text;
+          ocrConfidence = ocrResult.confidence;
           addLog(
             'info',
             `OCR extracted ${ocrResult.text.length} chars (confidence: ${ocrResult.confidence.toFixed(2)})`,
@@ -607,12 +665,24 @@ export class StatementProcessingService {
       // Parse statement
       addLog('info', 'Starting PDF text extraction...');
       const parseStartTime = Date.now();
-      let parsedStatement = await parser.parse(processingFilePath, cachedText);
+      let parsedStatement = await parser.parse(processingFilePath, cachedText, ocrConfidence);
       const parseTime = Date.now() - parseStartTime;
 
       addLog('info', `Parsing completed in ${parseTime}ms`);
       addLog('info', `Found ${parsedStatement.transactions.length} transactions in parsed data`);
       this.observeDuration('parse', parseStartTime, statement.bankName, statement.fileType, 'ok');
+
+      // Heartbeat: persists progress so far and, via @UpdateDateColumn, bumps
+      // updatedAt — everything from here (metadata extraction, optional AI
+      // reconciliation, transaction creation/dedup) can legitimately run long
+      // on a big OCR'd PDF or large XLSX, and the only other save() calls are
+      // at the very start and very end of this method. Without a heartbeat in
+      // between, a statement genuinely still processing looks identical to a
+      // truly stuck one once STALE_PROCESSING_MS elapses, and
+      // StaleStatementReaper would reset+re-enqueue it while this run is
+      // still writing to it.
+      statement.parsingDetails = parsingDetails;
+      await this.statementRepository.update(statement.id, { parsingDetails });
 
       // Extract enhanced metadata from raw text
       addLog('info', 'Extracting statement headers and metadata...');
@@ -695,6 +765,7 @@ export class StatementProcessingService {
         reason: string;
         transaction?: Partial<ParsedTransaction>;
       }> = [];
+      const rawTransactionCount = parsedStatement.transactions.length;
       const schemaResult = this.enforceTransactionSchema(
         parsedStatement.transactions,
         parsedStatement.metadata?.currency || statement.currency || workspaceCurrency || 'KZT',
@@ -785,9 +856,18 @@ export class StatementProcessingService {
 
       addLog('info', `Totals - Debit: ${statement.totalDebit}, Credit: ${statement.totalCredit}`);
 
+      // Heartbeat: createTransactions() above does real DB inserts and can
+      // run long on a large statement; see the earlier heartbeat comment.
+      statement.parsingDetails = parsingDetails;
+      await this.statementRepository.update(statement.id, { parsingDetails });
+
       const validationResult = this.validateStatement(
         enrichedMetadata,
         parsedStatement.transactions,
+        {
+          rawCount: rawTransactionCount,
+          droppedCount: droppedSamples.length,
+        },
       );
       parsingDetails.validation = {
         passed: validationResult.passed,
@@ -924,29 +1004,12 @@ export class StatementProcessingService {
       addLog ||
       ((level: string, msg: string) => this.logger[level === 'error' ? 'error' : 'log'](msg));
 
-    const seen = new Set<string>();
-    const deduped: ParsedTransaction[] = [];
-    parsedTransactions.forEach(tx => {
-      const dateIso = tx.transactionDate
-        ? tx.transactionDate.toISOString().split('T')[0]
-        : 'no-date';
-      const amount = tx.debit ?? tx.credit ?? 0;
-      const signature = [
-        dateIso,
-        amount.toFixed(2),
-        (tx.documentNumber || '').trim().toLowerCase(),
-        (tx.counterpartyName || '').trim().toLowerCase(),
-        (tx.paymentPurpose || '').trim().toLowerCase(),
-      ].join('|');
-      if (seen.has(signature)) {
-        // The signature contains counterparty and purpose, and these log entries
-        // are persisted to parsingDetails — report the row, not its contents.
-        log('warn', `Duplicate transaction skipped (date=${dateIso}, amount=${amount.toFixed(2)})`);
-        return;
-      }
-      seen.add(signature);
-      deduped.push(tx);
-    });
+    // In-file duplicates are not dropped here: flagFingerprintDuplicates below
+    // already detects same-batch fingerprint collisions (and cross-statement
+    // ones) and marks them isDuplicate=true instead — still persisted, still
+    // visible/reversible via the duplicates review UI, just excluded from
+    // totals. A row silently dropped here could never be recovered.
+    const deduped: ParsedTransaction[] = parsedTransactions;
 
     log(
       'info',
@@ -1327,14 +1390,15 @@ export class StatementProcessingService {
         ? new Date(Math.max(...transactionDates.map(d => d.getTime())))
         : null;
 
-    const fallbackAccount =
-      transactions.find(t => t.counterpartyAccount)?.counterpartyAccount ||
-      transactions.find(t => t.counterpartyBin)?.counterpartyBin ||
-      'Unknown';
-
     const currencyFromTransactions = transactions.find(t => t.currency)?.currency;
 
-    const accountNumber = (parsed.metadata.accountNumber || '').trim() || fallbackAccount;
+    // No counterparty-account fallback here on purpose: a counterparty's
+    // account number is someone else's, not this statement's own, and using
+    // it (a) mislabels the statement's account in the UI and (b) makes the
+    // dedup fingerprint unstable — re-parsing the same file can pick a
+    // different first transaction and change which counterparty account gets
+    // borrowed, breaking idempotent re-upload detection.
+    const accountNumber = (parsed.metadata.accountNumber || '').trim() || 'Unknown';
     const dateFrom = parsed.metadata.dateFrom || minDate || new Date();
     const dateTo = parsed.metadata.dateTo || maxDate || dateFrom;
     const balanceStart = parsed.metadata.balanceStart ?? null;

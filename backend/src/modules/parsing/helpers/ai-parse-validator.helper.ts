@@ -1,5 +1,5 @@
 import { BaseAiHelper } from '../../../common/helpers/base-ai.helper';
-import { mapParsedTransaction } from '../../../common/utils/ai-response.util';
+import { mapParsedTransaction, unwrapAiJson } from '../../../common/utils/ai-response.util';
 import { normalizeDate, normalizeNumber } from '../../../common/utils/number-normalizer.util';
 import { extractTextFromPdf } from '../../../common/utils/pdf-parser.util';
 import type { ParsedStatement, ParsedTransaction } from '../interfaces/parsed-statement.interface';
@@ -58,7 +58,11 @@ ${redactedPreview}`,
         return { corrected: parsed, notes: ['AI returned empty content'] };
       }
 
-      const data = JSON.parse(content);
+      // Same markdown-fence-stripping as the other AI helpers — some
+      // OpenAI-compatible backends wrap JSON replies in ```json fences
+      // despite response_format:json_object, which would otherwise throw
+      // here and silently skip reconciliation for that backend only.
+      const data = JSON.parse(unwrapAiJson(content));
       const rawTransactions = data?.transactions || data?.data?.transactions || parsed.transactions;
 
       const mapped = Array.isArray(rawTransactions)
@@ -73,6 +77,19 @@ ${redactedPreview}`,
         : parsed.transactions;
 
       const notes = Array.isArray(data?.notes) ? data.notes.map((n: unknown) => String(n)) : [];
+
+      // ponytail: guard against the AI silently discarding most of a good
+      // deterministic parse (truncated context, hallucinated short answer).
+      // Undershoot keeps the original transactions; a same-size-or-larger AI
+      // result is still trusted wholesale — no per-row reconciliation.
+      const original = parsed.transactions;
+      const aiUndershoots = original.length > 0 && mapped.length < original.length * 0.5;
+      if (aiUndershoots) {
+        notes.push(
+          `AI reconciliation returned ${mapped.length} transactions vs ${original.length} parsed — keeping original parse`,
+        );
+      }
+      const finalTransactions = mapped.length && !aiUndershoots ? mapped : original;
 
       const meta = data?.metadata || {};
       const corrected: ParsedStatement = {
@@ -89,7 +106,7 @@ ${redactedPreview}`,
             normalizeNumber(meta.balanceEnd || meta.balance_end) ?? parsed.metadata.balanceEnd,
           currency: meta.currency || parsed.metadata.currency || 'KZT',
         },
-        transactions: mapped.length ? mapped : parsed.transactions,
+        transactions: finalTransactions,
       };
 
       return { corrected, notes };

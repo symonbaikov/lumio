@@ -424,6 +424,24 @@ export class KaspiParser extends BaseParser {
     const currencyFromBlock = this.detectCurrency(combinedBlock);
     const currency = currencyFromBlock || currentTransaction.currency || 'KZT';
 
+    let debit = currentTransaction.debit;
+    let credit = currentTransaction.credit;
+    // ponytail: the text-fallback path has no debit/credit column (unlike
+    // extractKaspiTableTransactions, which reads real column headers), so an
+    // amount is provisionally assigned to debit while scanning and direction
+    // is inferred here from purpose keywords. "пополнение" is deliberately
+    // excluded: it's ambiguous on Kaspi statements (also used for outgoing
+    // mobile-balance top-ups), unlike the other three which are unambiguous
+    // incoming-funds terms. Revisit with a labeled Kaspi sample if this
+    // keyword list proves incomplete.
+    if (debit !== undefined && credit === undefined) {
+      const directionText = `${paymentPurpose || ''} ${combinedBlock}`.toLowerCase();
+      if (/зачислен|поступлен|возврат/.test(directionText)) {
+        credit = debit;
+        debit = undefined;
+      }
+    }
+
     return {
       transactionDate: currentTransaction.transactionDate ?? new Date(),
       documentNumber: currentTransaction.documentNumber,
@@ -431,8 +449,8 @@ export class KaspiParser extends BaseParser {
       counterpartyBin,
       counterpartyAccount: currentTransaction.counterpartyAccount,
       counterpartyBank: currentTransaction.counterpartyBank,
-      debit: currentTransaction.debit,
-      credit: currentTransaction.credit,
+      debit,
+      credit,
       paymentPurpose: paymentPurpose?.trim() || 'Не указано',
       currency: currency || 'KZT',
       exchangeRate: currentTransaction.exchangeRate,

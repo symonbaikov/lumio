@@ -23,7 +23,7 @@ import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator'
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import { IdempotencyService } from '../../common/services/idempotency.service';
-import { validateFile } from '../../common/utils/file-validator.util';
+import { unlinkAll, validateFile, validateFiles } from '../../common/utils/file-validator.util';
 import { pipeFileStreamResponse } from '../../common/utils/stream-response.util';
 import { multerConfig } from '../../config/multer.config';
 import { EntityType } from '../../entities/audit-event.entity';
@@ -164,10 +164,15 @@ export class StatementsController {
       throw new BadRequestException('No files provided');
     }
 
-    files.forEach(file => {
-      validateFile(file);
-      this.assertReceiptFileSupported(file);
-    });
+    try {
+      for (const file of files) {
+        validateFile(file);
+        this.assertReceiptFileSupported(file);
+      }
+    } catch (error) {
+      await unlinkAll(files);
+      throw error;
+    }
 
     const data = await this.receiptStatementService.createFromReceiptScan({
       user,
@@ -194,7 +199,7 @@ export class StatementsController {
       throw new BadRequestException('No file provided');
     }
 
-    validateFile(file);
+    await validateFiles([file]);
     return this.statementsService.attachFile(id, user.id, workspaceId, file);
   }
 
@@ -226,7 +231,7 @@ export class StatementsController {
     }
 
     // Validate each file
-    files.forEach(validateFile);
+    await validateFiles(files);
 
     // Process each file
     const results = await Promise.all(

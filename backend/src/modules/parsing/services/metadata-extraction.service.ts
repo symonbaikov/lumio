@@ -533,7 +533,7 @@ export class MetadataExtractionService {
   private mapCurrencyCode(code: string): { code: string; symbol?: string } {
     const currencyMap: { [key: string]: { code: string; symbol?: string } } = {
       // ISO codes
-      KZT: { code: 'KZT', symbol: '₽' },
+      KZT: { code: 'KZT', symbol: '₸' },
       USD: { code: 'USD', symbol: '$' },
       EUR: { code: 'EUR', symbol: '€' },
       RUB: { code: 'RUB', symbol: '₽' },

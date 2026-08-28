@@ -56,6 +56,34 @@ describe('normalizeNumber', () => {
   it('returns null for empty string', () => {
     expect(normalizeNumber('')).toBeNull();
   });
+
+  it('treats a lone comma thousands group as grouping, not a decimal', () => {
+    expect(normalizeNumber('1,234')).toBe(1234);
+  });
+
+  it('treats a lone dot thousands group as grouping, not a decimal', () => {
+    expect(normalizeNumber('1.234')).toBe(1234);
+  });
+
+  it('still treats a lone comma with 2 digits as a decimal', () => {
+    expect(normalizeNumber('12,34')).toBe(12.34);
+  });
+
+  it('handles trailing-minus negative notation', () => {
+    expect(normalizeNumber('100-')).toBe(-100);
+  });
+
+  it('handles parenthesised negative notation', () => {
+    expect(normalizeNumber('(100.50)')).toBe(-100.5);
+  });
+
+  it('handles unicode minus sign', () => {
+    expect(normalizeNumber('−100')).toBe(-100);
+  });
+
+  it('handles negative number with thousands grouping', () => {
+    expect(normalizeNumber('-1,234.56')).toBe(-1234.56);
+  });
 });
 
 describe('normalizeNumberAdvanced', () => {
