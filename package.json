@@ -47,6 +47,6 @@
     "concurrently": "^8.2.2",
     "husky": "^9.1.7",
     "knip": "^5.88.1",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.3"
   }
 }
