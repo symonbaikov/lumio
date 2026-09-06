@@ -13,9 +13,7 @@ import { canAccessWorkspaceActivity } from '@/app/lib/workspace-activity-access'
 import { AiAssistantTopBarButton } from '@/app/plugins/ai-assistant/AiAssistantTopBarButton';
 import { McpServerTopBarButton } from '@/app/plugins/mcp-server/McpServerTopBarButton';
 import { TourMenu } from '@/app/tours/components/TourMenu';
-import { tokens } from '@/lib/theme-tokens';
 import { useTheme } from 'next-themes';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
@@ -144,15 +142,8 @@ export default function TopBar() {
           <Menu size={20} />
         </button>
 
-        <Link href="/dashboard" className="lumio-topbar__mobile-logo">
-          <Image
-            src="/images/logo.jpg"
-            alt="Lumio"
-            width={28}
-            height={28}
-            style={{ display: 'block', borderRadius: tokens.radius.sm }}
-          />
-          <span className="lumio-topbar__mobile-logo-text">Lumio</span>
+        <Link href="/dashboard" className="lumio-topbar__mobile-logo" aria-label="Lumio home">
+          <span className="lumio-topbar__mobile-logo-text">LUMIO</span>
         </Link>
 
         <div className="lumio-topbar__breadcrumbs">

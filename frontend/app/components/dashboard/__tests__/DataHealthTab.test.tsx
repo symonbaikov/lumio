@@ -1,116 +1,123 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
+import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import '../test-setup';
 import { DataHealthTab } from '../DataHealthTab';
 
 type DataHealthTabData = React.ComponentProps<typeof DataHealthTab>['data'];
 
-// Mirrors react-intlayer's renderIntlayerNode: a Proxy over a rendered
-// Fragment whose `.value` is intercepted to return the plain string, so the
-// mock is usable both as a JSX child and via `.value` string access.
-const value = (v: string) =>
-  // biome-ignore lint/complexity/noUselessFragments: Proxy needs an object target — a bare string can't be proxied
-  new Proxy(<>{v}</>, {
-    get(target, prop, receiver) {
-      if (prop === 'value') return v;
-      return Reflect.get(target, prop, receiver);
-    },
-  });
-
-vi.mock('@/app/i18n', () => ({
-  useIntlayer: () => ({
-    uploadParse: value('Upload / Parse'),
-    reviewQueue: value('Review Queue ({count})'),
-    exportButton: value('Export'),
-    dataQualityMetrics: value('DATA QUALITY METRICS'),
-    uncategorizedLabel: value('Uncategorized'),
-    statementErrorsLabel: value('Statement errors'),
-    pendingReviewLabel: value('Pending review'),
-    receiptsPendingLabel: value('Receipts pending'),
-    parsingWarningsLabel: value('Parsing warnings'),
-    allGood: value('All good'),
-    metricNeedsAttention: value('{value} need attention'),
-    lastUpload: value('Last upload'),
-    relativeToday: value('Today'),
-    relativeYesterday: value('Yesterday'),
-    relativeDaysAgo: value('{n} days ago'),
-    relativeOneWeekAgo: value('1 week ago'),
-    relativeWeeksAgo: value('{n} weeks ago'),
-    relativeOneMonthAgo: value('1 month ago'),
-    relativeMonthsAgo: value('{n} months ago'),
-    noDataYet: value('No data yet'),
-    uploadFirstStatement: value('Upload your first statement →'),
-    unapprovedCash: value('Unapproved cash'),
-    allCashApproved: value('ALL CASH APPROVED'),
-    reviewApproveCash: value('Review & approve cash →'),
-    actionRequired: value('Action required'),
-    quickLinkUncategorized: value('Review {count} uncategorized transactions'),
-    quickLinkStatementErrors: value('Fix {count} statement errors'),
-    quickLinkPendingStatements: value('Review {count} pending statements'),
-    quickLinkReceipts: value('Review {count} receipts'),
-  }),
-  useLocale: () => ({ locale: 'en' }),
+vi.mock('next/link', () => ({
+  default: ({ href, children, ...props }: { href: string; children?: React.ReactNode }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
+vi.mock('@/app/lib/user-format-store', () => ({
+  formatStoredDateWithOptions: () => 'May 31, 2025',
+}));
+
+vi.mock('@/app/i18n', async () => {
+  const { autoDictionary, value } = await import('./intlayer-mock');
+  return {
+    useIntlayer: () =>
+      autoDictionary({
+        uploadParse: value('Upload / Parse'),
+        reviewQueue: value('Review Queue ({count})'),
+        dataQualityMetrics: value('Data quality metrics'),
+        uncategorizedLabel: value('Uncategorized'),
+        statementErrorsLabel: value('Statement errors'),
+        pendingReviewLabel: value('Pending review'),
+        receiptsPendingLabel: value('Receipts pending'),
+        parsingWarningsLabel: value('Parsing warnings'),
+        allGood: value('All good'),
+        metricNeedsAttention: value('{value} need attention'),
+        lastUpload: value('Last upload'),
+        unapprovedCash: value('Unapproved cash'),
+        allCashApproved: value('All cash approved'),
+        reviewApproveCash: value('Review & approve cash'),
+        actionRequired: value('Action required'),
+        quickLinkUncategorized: value('Review {count} uncategorized transactions'),
+        quickLinkStatementErrors: value('Fix {count} statement errors'),
+        quickLinkPendingStatements: value('Review {count} pending statements'),
+        quickLinkReceipts: value('Review {count} receipts'),
+      }),
+    useLocale: () => ({ locale: 'en' }),
+  };
+});
+
+function renderTab(dataHealth: DataHealthTabData['dataHealth']): void {
+  render(<DataHealthTab data={{ dataHealth } as DataHealthTabData} formatAmount={v => `$${v}`} />);
+}
+
 describe('DataHealthTab', () => {
-  it('uses dark-safe metric card surfaces instead of translucent white panels', () => {
-    render(
-      <DataHealthTab
-        data={
-          {
-            dataHealth: {
-              uncategorizedTransactions: 2,
-              statementsWithErrors: 1,
-              statementsPendingReview: 3,
-              statementsPendingSubmit: 2,
-              receiptsPendingReview: 4,
-              unapprovedCash: 0,
-              lastUploadDate: '2025-05-31T00:00:00.000Z',
-              parsingWarnings: 1,
-            },
-          } as DataHealthTabData
-        }
-        formatAmount={value => String(value)}
-        range="30d"
-        isLoading={false}
-      />,
-    );
+  it('renders each metric as a linked KPI card with a severity tone', () => {
+    renderTab({
+      uncategorizedTransactions: 2,
+      statementsWithErrors: 1,
+      statementsPendingReview: 0,
+      statementsPendingSubmit: 0,
+      receiptsPendingReview: 0,
+      unapprovedCash: 0,
+      lastUploadDate: '2025-05-31T00:00:00.000Z',
+      parsingWarnings: 0,
+    });
 
-    const heading = screen.getByText('DATA QUALITY METRICS');
-    const metricCard = heading.parentElement?.querySelector('[class*="dark:bg-card"]');
+    const uncategorized = screen.getByRole('link', { name: /Uncategorized/ });
+    expect(uncategorized.getAttribute('href')).toBe('/statements/submit?categoryId=uncategorized');
+    expect(uncategorized.querySelector('.lumio-dashboard__stat-value--warning')).not.toBeNull();
 
-    expect(metricCard).toBeInTheDocument();
-    expect(metricCard?.className).toContain('dark:bg-card');
-    expect(metricCard?.className).toContain('dark:border-border');
-    expect(metricCard?.className).not.toContain('bg-white/40');
-    expect(metricCard?.className).not.toContain('border-white/60');
+    const errors = screen.getByRole('link', { name: /Statement errors/ });
+    expect(errors.querySelector('.lumio-dashboard__stat-value--negative')).not.toBeNull();
+
+    const pending = screen.getByRole('link', { name: /Pending review/ });
+    expect(pending.querySelector('.lumio-dashboard__stat-value--positive')).not.toBeNull();
+    expect(pending.textContent).toContain('All good');
+
+    expect(screen.queryByRole('button', { name: /export/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Review Queue (0)' })).toBeInTheDocument();
   });
 
   it('renders receipts pending metric and action link', () => {
-    render(
-      <DataHealthTab
-        data={
-          {
-            dataHealth: {
-              uncategorizedTransactions: 0,
-              statementsWithErrors: 0,
-              statementsPendingReview: 0,
-              statementsPendingSubmit: 0,
-              receiptsPendingReview: 2,
-              unapprovedCash: 0,
-              lastUploadDate: '2025-05-31T00:00:00.000Z',
-              parsingWarnings: 0,
-            },
-          } as DataHealthTabData
-        }
-        formatAmount={value => String(value)}
-        range="30d"
-        isLoading={false}
-      />,
-    );
+    renderTab({
+      uncategorizedTransactions: 0,
+      statementsWithErrors: 0,
+      statementsPendingReview: 0,
+      statementsPendingSubmit: 0,
+      receiptsPendingReview: 2,
+      unapprovedCash: 0,
+      lastUploadDate: '2025-05-31T00:00:00.000Z',
+      parsingWarnings: 0,
+    });
 
     expect(screen.getByText(/receipts pending/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Review 2 receipts/i })).toBeInTheDocument();
+    expect(screen.getByText('May 31, 2025')).toBeInTheDocument();
+  });
+
+  it('shows unapproved cash as a warning with a review link, and the empty-upload CTA', () => {
+    renderTab({
+      uncategorizedTransactions: 0,
+      statementsWithErrors: 0,
+      statementsPendingReview: 0,
+      statementsPendingSubmit: 0,
+      receiptsPendingReview: 0,
+      unapprovedCash: 1500,
+      lastUploadDate: null,
+      parsingWarnings: 0,
+    });
+
+    expect(screen.getByText('$1500').className).toContain('lumio-dashboard__stat-value--warning');
+    expect(screen.getByRole('link', { name: /Review & approve cash/ })).toHaveAttribute(
+      'href',
+      '/statements/approve',
+    );
+    expect(screen.getByRole('link', { name: 'uploadFirstStatement' })).toHaveAttribute(
+      'href',
+      '/statements/submit',
+    );
+    expect(screen.queryByText('Action required')).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 'use client';
 
 import { Lightbulb } from '@/app/components/icons';
+import { EmptyState } from '@/app/components/ui/EmptyState';
 import { useInsights } from '@/app/hooks/useInsights';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
@@ -39,7 +40,7 @@ export default function AdvicePage() {
   const { items, loading } = useInsights({ severities: ['info'], refreshFirst: true });
 
   return (
-    <Box component="main" sx={{ p: 3, maxWidth: 800, mx: 'auto', width: '100%' }}>
+    <Box component="main" sx={{ px: { xs: 2, md: 4 }, py: 3, width: '100%' }}>
       <Typography variant="h5" fontWeight={700}>
         {t.adviceTitle}
       </Typography>
@@ -56,9 +57,7 @@ export default function AdvicePage() {
       )}
 
       {!loading && items.length === 0 && (
-        <Typography sx={{ color: 'text.secondary', py: 6, textAlign: 'center' }}>
-          {t.adviceEmpty}
-        </Typography>
+        <EmptyState illustration="notifications" description={t.adviceEmpty} />
       )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

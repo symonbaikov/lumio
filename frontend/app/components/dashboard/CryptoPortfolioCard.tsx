@@ -58,7 +58,7 @@ export function CryptoPortfolioCard({
     <Link href="/crypto" className="lumio-dashboard__card" style={CARD_STYLE}>
       <div>
         <div className="lumio-dashboard__card-sub">{t.portfolio}</div>
-        <div className="lumio-dashboard__card-title" style={VALUE_STYLE}>
+        <div className="lumio-dashboard__stat-value" style={VALUE_STYLE}>
           {formatAmount(summary.portfolioValue)}
         </div>
         {summary.holdings.length > 0 && (
@@ -80,7 +80,6 @@ const CARD_STYLE = {
   alignItems: 'center',
   justifyContent: 'space-between',
   gap: 16,
-  marginBottom: 16,
   textDecoration: 'none',
 } as const;
 

@@ -137,6 +137,14 @@ const NAME_TO_SLUG = new Map<string, string>([
   ['өзге шығыстар', 'otherExpenses'],
 ]);
 
+/** System-category slug for a stored name (any supported language), or `null` for user-defined names. */
+export function resolveCategorySlug(name: string | null | undefined): string | null {
+  if (!name) {
+    return null;
+  }
+  return NAME_TO_SLUG.get(name.trim().toLowerCase()) ?? null;
+}
+
 type CategoryDictionary = Record<string, { value?: unknown } | string | undefined>;
 
 /**

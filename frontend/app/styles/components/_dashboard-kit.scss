@@ -1,0 +1,332 @@
+@use '../abstracts' as *;
+
+/* Shared dashboard primitives: chips, list rows, section headers.
+   Cards and KPI tiles live in _dashboard.scss under the same block. */
+
+/* ── Chips ── */
+.lumio-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: $lumio-radius-full;
+  border: 1px solid $lumio-color-ink-150;
+  background: $lumio-color-surface;
+  color: $lumio-color-ink-700;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: $lumio-font-weight-medium;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 120ms, border-color 120ms, color 120ms;
+
+  @include dark {
+    border-color: $lumio-color-ink-150-dk;
+    background: $lumio-color-surface-dk;
+    color: $lumio-color-ink-700-dk;
+  }
+
+  &:hover:not(:disabled):not(.lumio-chip--active) {
+    background: $lumio-color-ink-50;
+    border-color: $lumio-color-ink-200;
+
+    @include dark {
+      background: $lumio-color-ink-50-dk;
+      border-color: $lumio-color-ink-200-dk;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid $lumio-color-primary;
+    outline-offset: 2px;
+
+    @include dark {
+      outline-color: $lumio-color-primary-dk;
+    }
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &--active {
+    background: $lumio-color-primary;
+    border-color: $lumio-color-primary;
+    color: $lumio-color-primary-contrast;
+
+    @include dark {
+      background: $lumio-color-primary-fill-dk;
+      border-color: $lumio-color-primary-fill-dk;
+      color: $lumio-color-primary-contrast;
+    }
+  }
+
+  &--muted {
+    opacity: 0.45;
+  }
+
+  &--sm {
+    height: 26px;
+    padding: 0 10px;
+    font-size: 11.5px;
+  }
+
+  &--tone-success {
+    background: $lumio-color-success-soft;
+    border-color: transparent;
+    color: $lumio-color-success;
+
+    @include dark {
+      background: $lumio-color-success-soft-dk;
+      color: $lumio-color-success-dk;
+    }
+  }
+
+  &--tone-warning {
+    background: $lumio-color-warning-soft;
+    border-color: transparent;
+    color: $lumio-color-warning;
+
+    @include dark {
+      background: $lumio-color-warning-soft-dk;
+      color: $lumio-color-warning-dk;
+    }
+  }
+
+  &--tone-danger {
+    background: $lumio-color-danger-soft;
+    border-color: transparent;
+    color: $lumio-color-danger;
+
+    @include dark {
+      background: $lumio-color-danger-soft-dk;
+      color: $lumio-color-danger-dk;
+    }
+  }
+
+  &--tone-info {
+    background: $lumio-color-info-soft;
+    border-color: transparent;
+    color: $lumio-color-info;
+
+    @include dark {
+      background: $lumio-color-info-soft-dk;
+      color: $lumio-color-info-dk;
+    }
+  }
+
+  &__count {
+    color: $lumio-color-ink-500;
+    font-weight: $lumio-font-weight-regular;
+
+    @include dark {
+      color: $lumio-color-ink-500-dk;
+    }
+  }
+
+  &--active &__count {
+    color: inherit;
+    opacity: 0.8;
+  }
+}
+
+.lumio-chip-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &--wrap {
+    flex-wrap: wrap;
+  }
+
+  &--scroll {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &--sm {
+    gap: 6px;
+  }
+}
+
+/* ── List rows & section headers (dashboard block) ── */
+.lumio-dashboard {
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    color: inherit;
+    text-decoration: none;
+
+    & + & {
+      border-top: 1px solid $lumio-color-ink-150;
+
+      @include dark {
+        border-top-color: $lumio-color-ink-150-dk;
+      }
+    }
+
+    &:first-child {
+      padding-top: 0;
+    }
+
+    &:last-child {
+      padding-bottom: 0;
+    }
+
+    &--link {
+      cursor: pointer;
+      transition: color 120ms;
+
+      &:hover .lumio-dashboard__row-primary {
+        color: $lumio-color-primary;
+
+        @include dark {
+          color: $lumio-color-primary-dk;
+        }
+      }
+    }
+  }
+
+  &__row-leading {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  &__row-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__row-primary {
+    font-size: 14px;
+    font-weight: $lumio-font-weight-medium;
+    color: $lumio-color-ink-900;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @include dark {
+      color: $lumio-color-ink-900-dk;
+    }
+  }
+
+  &__row-secondary {
+    font-size: 12px;
+    color: $lumio-color-ink-500;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @include dark {
+      color: $lumio-color-ink-500-dk;
+    }
+  }
+
+  &__row-trailing {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: $lumio-font-weight-semibold;
+    color: $lumio-color-ink-900;
+    font-variant-numeric: tabular-nums;
+
+    @include dark {
+      color: $lumio-color-ink-900-dk;
+    }
+  }
+
+  &__amount--positive {
+    color: $lumio-color-success;
+
+    @include dark {
+      color: $lumio-color-success-dk;
+    }
+  }
+
+  &__amount--negative {
+    color: $lumio-color-danger;
+
+    @include dark {
+      color: $lumio-color-danger-dk;
+    }
+  }
+
+  &__muted {
+    color: $lumio-color-ink-500;
+    font-weight: $lumio-font-weight-regular;
+
+    @include dark {
+      color: $lumio-color-ink-500-dk;
+    }
+  }
+
+  &__section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 8px 0 12px;
+  }
+
+  &__section-title {
+    margin: 0;
+    font-size: 11.5px;
+    font-weight: $lumio-font-weight-semibold;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: $lumio-color-ink-500;
+
+    @include dark {
+      color: $lumio-color-ink-500-dk;
+    }
+  }
+
+  &__section-sub {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    color: $lumio-color-ink-500;
+
+    @include dark {
+      color: $lumio-color-ink-500-dk;
+    }
+  }
+
+  &__section-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Inline empty/loading message inside a card body. */
+  &__card-empty {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+    font-size: 13px;
+    color: $lumio-color-ink-500;
+    text-align: center;
+
+    @include dark {
+      color: $lumio-color-ink-500-dk;
+    }
+  }
+}

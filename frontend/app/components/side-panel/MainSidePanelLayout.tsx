@@ -278,7 +278,15 @@ function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
           </Box>
         </>
       ) : null}
-      <div style={{ flex: 1, ...(isStatementsPage ? { height: '100%', overflow: 'hidden' } : {}) }}>
+      <div
+        style={{
+          flex: 1,
+          // A flex item defaults to min-width:auto; without this, wide nowrap
+          // content (month chips, tables) pushes the page past the viewport.
+          minWidth: 0,
+          ...(isStatementsPage ? { height: '100%', overflow: 'hidden' } : {}),
+        }}
+      >
         {children}
       </div>
 

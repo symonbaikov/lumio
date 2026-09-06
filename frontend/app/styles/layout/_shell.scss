@@ -480,11 +480,16 @@
     flex-shrink: 0;
     text-decoration: none;
 
+    // Same wordmark as the desktop sidebar brand.
     &-text {
-      font-size: 15px;
+      font-family: var(--font-manrope), 'Manrope', sans-serif;
+      font-size: 18px;
       font-weight: 700;
       color: $lumio-color-text-primary;
-      letter-spacing: -0.02em;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      line-height: 1;
+      white-space: nowrap;
 
       @include dark { color: $lumio-color-text-primary-dk; }
     }

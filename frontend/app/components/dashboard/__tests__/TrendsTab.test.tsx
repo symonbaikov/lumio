@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '../test-setup';
 import { TrendsTab } from '../TrendsTab';
@@ -13,6 +13,8 @@ const hooksMock = vi.hoisted(() => ({
 vi.mock('next/dynamic', () => ({
   default: () => () => <div data-testid="mock-echarts" />,
 }));
+
+vi.mock('next-themes', () => ({ useTheme: () => ({ resolvedTheme: 'light' }) }));
 
 vi.mock('@/app/hooks/useDashboard', async () => {
   const actual = await vi.importActual('@/app/hooks/useDashboard');
@@ -58,6 +60,8 @@ vi.mock('@/app/i18n', () => ({
     forecastSuffix: value(' (forecast)'),
     forecastLabel: value('Forecast →'),
     expenseCategoriesSeriesName: value('Expense categories'),
+    subtitle: value('Income vs. expenses · {range}'),
+    empty: value('No cash flow data yet'),
   }),
   useLocale: () => ({ locale: 'en' }),
 }));
@@ -83,10 +87,9 @@ describe('TrendsTab', () => {
 
     render(
       <TrendsTab
-        data={{} as TrendsTabData}
+        data={{ cashFlow: [] } as unknown as TrendsTabData}
         formatAmount={value => String(value)}
-        range="30d"
-        isLoading={false}
+        displayMonth={new Date(2026, 2, 1)}
       />,
     );
 
@@ -95,18 +98,34 @@ describe('TrendsTab', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders spend trend surface without translucent white classes', () => {
+  it('renders the month-scoped cash flow card above the rolling-window sections', () => {
+    hooksMock.useDashboardTrends.mockReturnValue({
+      data: null,
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+
+    render(
+      <TrendsTab
+        data={{ cashFlow: [] } as unknown as TrendsTabData}
+        formatAmount={value => String(value)}
+        displayMonth={new Date(2026, 2, 1)}
+      />,
+    );
+
+    expect(screen.getByText('Income vs. expenses · March 2026')).toBeInTheDocument();
+    expect(screen.getByText('No cash flow data yet')).toBeInTheDocument();
+  });
+
+  it('switches the rolling window with the 7D/30D/90D chips', () => {
     hooksMock.useDashboardTrends.mockReturnValue({
       data: {
         dailyTrend: [{ date: '2025-05-10', income: 100, expense: 40 }],
         forecast: [],
         categories: [{ name: 'Office', amount: 40, count: 1 }],
         counterparties: [{ name: 'Client', amount: 100, count: 1 }],
-        sources: {
-          statements: { income: 100, expense: 40, rows: 2 },
-        },
-        effectiveSince: '2025-05-01',
-        effectiveEndDate: '2025-05-31',
+        sources: { statements: { income: 100, expense: 40, rows: 2 } },
       },
       loading: false,
       error: null,
@@ -115,19 +134,47 @@ describe('TrendsTab', () => {
 
     render(
       <TrendsTab
-        data={{} as TrendsTabData}
+        data={{ cashFlow: [] } as unknown as TrendsTabData}
         formatAmount={value => String(value)}
-        range="30d"
-        isLoading={false}
+        displayMonth={new Date(2026, 2, 1)}
       />,
     );
 
-    const spendTrendHeading = screen.getByText(/spend trend/i);
-    const spendTrendCard = spendTrendHeading.parentElement;
-    const className = String(spendTrendCard?.className ?? '');
+    expect(screen.getByRole('button', { name: '30D' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: '7D' }));
+    expect(hooksMock.useDashboardTrends).toHaveBeenLastCalledWith(7);
+    expect(screen.getByRole('button', { name: '7D' })).toHaveAttribute('aria-pressed', 'true');
+  });
 
-    expect(spendTrendCard).not.toBeNull();
-    expect(className).not.toContain('bg-white/40');
-    expect(className).not.toContain('border-white/60');
+  it('lists top categories with amounts next to the rose chart', () => {
+    hooksMock.useDashboardTrends.mockReturnValue({
+      data: {
+        dailyTrend: [{ date: '2025-05-10', income: 100, expense: 40 }],
+        forecast: [],
+        categories: [
+          { name: 'Office', amount: 40, count: 1 },
+          { name: 'Rent', amount: 25, count: 1 },
+        ],
+        counterparties: [{ name: 'Client', amount: 100, count: 1 }],
+        sources: { statements: { income: 100, expense: 40, rows: 2 } },
+      },
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+
+    render(
+      <TrendsTab
+        data={{ cashFlow: [] } as unknown as TrendsTabData}
+        formatAmount={value => `$${value}`}
+        displayMonth={new Date(2026, 2, 1)}
+      />,
+    );
+
+    expect(screen.getByText('Office')).toBeInTheDocument();
+    expect(screen.getByText('$40')).toBeInTheDocument();
+    expect(screen.getByText('Rent')).toBeInTheDocument();
+    expect(screen.getAllByTestId('mock-echarts').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('+$60').className).toContain('lumio-dashboard__stat-value--positive');
   });
 });

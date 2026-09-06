@@ -1,15 +1,20 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 // @vitest-environment jsdom
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/app/test/setup';
 import DashboardPage from './page';
 
 const replace = vi.hoisted(() => vi.fn());
 const refresh = vi.hoisted(() => vi.fn());
+const effectivePeriod = vi.hoisted(() => ({ current: null as string | null }));
+
+const searchParams = vi.hoisted(() => ({ current: new URLSearchParams() }));
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace }),
+  usePathname: () => '/dashboard',
+  useSearchParams: () => searchParams.current,
 }));
 
 vi.mock('next/link', () => ({
@@ -21,8 +26,22 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('@mui/material', () => ({
-  Tabs: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  Tab: ({ label }: { label: React.ReactNode }) => <button type="button">{label}</button>,
+  Tabs: ({
+    children,
+    value,
+  }: {
+    children?: React.ReactNode;
+    value: string;
+  }) => (
+    <div data-testid="tabs" data-active={value}>
+      {children}
+    </div>
+  ),
+  Tab: ({ label, value }: { label: React.ReactNode; value: string }) => (
+    <button type="button" data-value={value}>
+      {label}
+    </button>
+  ),
 }));
 
 vi.mock('@/app/components/icons', () => ({
@@ -32,6 +51,9 @@ vi.mock('@/app/components/icons', () => ({
   ListChecks: () => <span data-testid="list-checks-icon" />,
   RefreshCcw: () => <span data-testid="refresh-icon" />,
   Plus: () => <span data-testid="plus-icon" />,
+  ArrowRight: () => <span data-testid="arrow-right-icon" />,
+  ChevronLeft: () => <span data-testid="chevron-left-icon" />,
+  ChevronRight: () => <span data-testid="chevron-right-icon" />,
 }));
 
 vi.mock('@/app/components/ui/spinner', () => ({
@@ -137,12 +159,16 @@ vi.mock('@/app/i18n', () => ({
       dataHealth: { value: 'Data Health' },
     },
     uploadStatement: { value: 'Upload statement' },
+    periodBanner: { value: 'Showing latest available period: {period}' },
+    monthStripLabel: { value: 'Select month' },
+    previousYear: { value: 'Previous year' },
+    nextYear: { value: 'Next year' },
   }),
   useLocale: () => ({ locale: 'en' }),
 }));
 
 vi.mock('@/app/lib/dashboard-effective-window', () => ({
-  resolveDashboardEffectivePeriod: () => null,
+  resolveDashboardEffectivePeriod: () => effectivePeriod.current,
 }));
 
 vi.mock('@/app/lib/dashboard-status-heading', () => ({
@@ -150,6 +176,12 @@ vi.mock('@/app/lib/dashboard-status-heading', () => ({
 }));
 
 describe('DashboardPage', () => {
+  beforeEach(() => {
+    replace.mockClear();
+    searchParams.current = new URLSearchParams();
+    effectivePeriod.current = null;
+  });
+
   it('renders the export dropdown in the header actions', () => {
     render(<DashboardPage />);
 
@@ -170,5 +202,53 @@ describe('DashboardPage', () => {
     const link = screen.getByRole('link', { name: /upload statement/i });
 
     expect(link.className).toContain('lumio-dashboard-header__icon-btn');
+  });
+
+  it('orders tabs Overview, Trends, Finance Ops, Data Health and defaults to Overview', () => {
+    render(<DashboardPage />);
+
+    const tabs = screen.getByTestId('tabs');
+    const order = Array.from(tabs.querySelectorAll('button')).map(b => b.textContent);
+    expect(order).toEqual(['Overview', 'Trends', 'Finance Ops', 'Data Health']);
+    expect(tabs).toHaveAttribute('data-active', 'overview');
+    expect(screen.getByText('Overview tab')).toBeInTheDocument();
+  });
+
+  it('selects the tab from the ?tab query param', () => {
+    searchParams.current = new URLSearchParams('tab=trends');
+    render(<DashboardPage />);
+
+    expect(screen.getByTestId('tabs')).toHaveAttribute('data-active', 'trends');
+    expect(screen.getByText('Trends tab')).toBeInTheDocument();
+  });
+
+  it('writes the picked month to the URL without scrolling', () => {
+    searchParams.current = new URLSearchParams('tab=trends');
+    render(<DashboardPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Jan' }));
+
+    const year = new Date().getFullYear();
+    expect(replace).toHaveBeenCalledWith(`/dashboard?tab=trends&month=${year}-01`, {
+      scroll: false,
+    });
+  });
+
+  it('highlights the month from the URL', () => {
+    searchParams.current = new URLSearchParams('month=2025-03');
+    render(<DashboardPage />);
+
+    expect(screen.getByRole('button', { name: 'Mar' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('2025')).toBeInTheDocument();
+  });
+
+  it('shows the effective period banner under the month strip on every tab', () => {
+    effectivePeriod.current = '2025-05-01 - 2025-05-31';
+    searchParams.current = new URLSearchParams('tab=data-health');
+    render(<DashboardPage />);
+
+    expect(
+      screen.getByText('Showing latest available period: 2025-05-01 - 2025-05-31'),
+    ).toBeInTheDocument();
   });
 });

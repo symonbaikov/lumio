@@ -1,12 +1,11 @@
 'use client';
 
-import { AlertTriangle, CalendarClock } from '@/app/components/icons';
+import { CardLink, DashboardCard, ListRow } from '@/app/components/dashboard/ui';
+import { AlertTriangle } from '@/app/components/icons';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import Link from 'next/link';
+import clsx from 'clsx';
+import type React from 'react';
 import { useEffect, useState } from 'react';
 import { fillTemplate, text } from '../helpers/dashboard-helpers';
 
@@ -34,60 +33,33 @@ interface Commitments {
 const HORIZON_DAYS = 60;
 const VISIBLE_ITEMS = 5;
 
-const CARD_SX = {
-  p: 2.5,
-  borderRadius: 2,
-  border: '1px solid',
-  borderColor: 'divider',
-  bgcolor: 'background.paper',
-};
-
 type CashRunwayWidgetProps = {
   formatAmount: (value: number) => string;
 };
 
-export function CashRunwayWidget({ formatAmount }: CashRunwayWidgetProps) {
-  const t = useIntlayer('cashRunwayWidget');
+function useCommitments(): { data: Commitments | null; loaded: boolean } {
   const [data, setData] = useState<Commitments | null>(null);
   const [loaded, setLoaded] = useState(false);
-
   useEffect(() => {
     apiClient
       .get('/dashboard/commitments', { params: { days: HORIZON_DAYS } })
       .then(res => setData(res.data?.data ?? res.data ?? null))
       .catch(() => {
-        // A failed projection hides the card rather than breaking the dashboard.
+        // A failed projection shows the empty state rather than breaking the dashboard.
       })
       .finally(() => setLoaded(true));
   }, []);
+  return { data, loaded };
+}
 
-  if (!loaded) {
-    return null;
-  }
-
-  const header = (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-      <CalendarClock size={18} />
-      <Typography variant="subtitle2" fontWeight={600}>
-        {t.title}
-      </Typography>
-    </Box>
-  );
-
-  if (!data || (data.items.length === 0 && data.unscheduledCommitted === 0)) {
-    return (
-      <Box sx={CARD_SX}>
-        {header}
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-          {t.emptyDescription}
-        </Typography>
-        <Button component={Link} href="/statements/pay" size="small" variant="text">
-          {t.openPayables}
-        </Button>
-      </Box>
-    );
-  }
-
+function RunwayBody({
+  data,
+  formatAmount,
+}: {
+  data: Commitments;
+  formatAmount: (value: number) => string;
+}): React.JSX.Element {
+  const t = useIntlayer('cashRunwayWidget');
   const hasShortfall = data.shortfallDate !== null;
   const summary = hasShortfall
     ? fillTemplate(text(t.shortfallSummary), {
@@ -98,53 +70,63 @@ export function CashRunwayWidget({ formatAmount }: CashRunwayWidgetProps) {
         amount: formatAmount(data.lowestBalance),
         days: String(data.horizonDays),
       });
-
   return (
-    <Box sx={CARD_SX}>
-      {header}
-
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2 }}>
-        {hasShortfall && (
-          <Box sx={{ color: 'error.main', display: 'flex', pt: '2px' }}>
-            <AlertTriangle size={16} />
-          </Box>
+    <>
+      <p
+        className={clsx(
+          'lumio-dashboard__card-note',
+          hasShortfall && 'lumio-dashboard__card-note--danger',
         )}
-        <Typography variant="body2" color={hasShortfall ? 'error.main' : 'text.secondary'}>
-          {summary}
-        </Typography>
-      </Box>
-
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      >
+        {hasShortfall && <AlertTriangle size={15} />}
+        <span>{summary}</span>
+      </p>
+      <div className="lumio-dashboard__list">
         {data.items.slice(0, VISIBLE_ITEMS).map(item => (
-          <Box
+          <ListRow
             key={`${item.source}-${item.sourceId}-${item.date}`}
-            sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}
-          >
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="caption" noWrap display="block">
-                {item.label}
-              </Typography>
-              <Typography
-                variant="caption"
-                color={item.isOverdue ? 'error.main' : 'text.secondary'}
-              >
-                {item.isOverdue ? t.overdue : item.date}
-              </Typography>
-            </Box>
-            <Typography variant="caption" fontWeight={600} sx={{ whiteSpace: 'nowrap' }}>
-              {formatAmount(item.amount)}
-            </Typography>
-          </Box>
+            primary={item.label}
+            secondary={
+              item.isOverdue ? (
+                <span className="lumio-dashboard__amount--negative">{t.overdue}</span>
+              ) : (
+                item.date
+              )
+            }
+            trailing={formatAmount(item.amount)}
+          />
         ))}
-      </Box>
-
+      </div>
       {data.unscheduledCommitted > 0 && (
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1.5 }}>
-          {fillTemplate(text(t.unscheduled), {
-            amount: formatAmount(data.unscheduledCommitted),
-          })}
-        </Typography>
+        <p className="lumio-dashboard__card-note lumio-dashboard__card-note--footer">
+          {fillTemplate(text(t.unscheduled), { amount: formatAmount(data.unscheduledCommitted) })}
+        </p>
       )}
-    </Box>
+    </>
+  );
+}
+
+export function CashRunwayWidget({
+  formatAmount,
+}: CashRunwayWidgetProps): React.JSX.Element | null {
+  const t = useIntlayer('cashRunwayWidget');
+  const { data, loaded } = useCommitments();
+
+  if (!loaded) {
+    return null;
+  }
+
+  const isEmpty = !data || (data.items.length === 0 && data.unscheduledCommitted === 0);
+  return (
+    <DashboardCard
+      title={t.title}
+      action={<CardLink href="/statements/pay">{t.openPayables}</CardLink>}
+    >
+      {isEmpty ? (
+        <div className="lumio-dashboard__card-empty">{t.emptyDescription}</div>
+      ) : (
+        <RunwayBody data={data} formatAmount={formatAmount} />
+      )}
+    </DashboardCard>
   );
 }

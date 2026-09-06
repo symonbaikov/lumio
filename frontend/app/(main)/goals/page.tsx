@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus } from '@/app/components/icons';
+import { EmptyState } from '@/app/components/ui/EmptyState';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
@@ -98,7 +99,7 @@ export default function GoalsPage() {
   };
 
   return (
-    <Box component="main" sx={{ p: 3, maxWidth: 800, mx: 'auto', width: '100%' }}>
+    <Box component="main" sx={{ px: { xs: 2, md: 4 }, py: 3, width: '100%' }}>
       <Box
         sx={{
           display: 'flex',
@@ -138,9 +139,7 @@ export default function GoalsPage() {
       )}
 
       {!loading && !error && goals.length === 0 && (
-        <Typography sx={{ color: 'text.secondary', py: 6, textAlign: 'center' }}>
-          {t.empty}
-        </Typography>
+        <EmptyState illustration="activity" description={t.empty} />
       )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

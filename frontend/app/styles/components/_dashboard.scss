@@ -4,34 +4,64 @@
 
 /* ── Stat grid ── */
 .lumio-dashboard {
+  /* Tab body: stacked sections with a uniform gap. */
+  &__tab {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 40px;
+    min-width: 0;
+    max-width: 100%;
+
+    @media (max-width: 640px) {
+      gap: 12px;
+    }
+  }
+
   &__stat-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
+    gap: 16px;
+
+    /* Let cards shrink below their nowrap content instead of widening the track. */
+    > * {
+      min-width: 0;
+    }
+
+    &--auto {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
 
     @media (max-width: 1280px) {
       grid-template-columns: repeat(2, 1fr);
+
+      /* In two-column mode an odd trailing tile stretches across the row. */
+      &--auto > :last-child:nth-child(odd) {
+        grid-column: span 2;
+      }
     }
 
+    /* Phones: two compact tiles per row instead of a tall single column. */
     @media (max-width: 640px) {
-      grid-template-columns: 1fr;
+      gap: 10px;
     }
   }
 
   &__stat {
     position: relative;
     padding: 18px 20px 16px;
+
+    @media (max-width: 640px) {
+      padding: 14px 14px 12px;
+    }
     background: $lumio-color-surface;
     border: 1px solid $lumio-color-ink-150;
     border-radius: $lumio-radius-lg;
     overflow: hidden;
-    box-shadow: $lumio-shadow-sm;
 
     @include dark {
       background: $lumio-color-surface-dk;
       border-color: $lumio-color-ink-150-dk;
-      box-shadow: $lumio-shadow-sm-dk;
     }
   }
 
@@ -55,6 +85,12 @@
     margin-top: 6px;
     line-height: 1.15;
     font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+
+    @media (max-width: 640px) {
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
 
     @include dark {
       color: $lumio-color-ink-900-dk;
@@ -75,6 +111,37 @@
         color: $lumio-color-danger-dk;
       }
     }
+
+    &--warning {
+      color: $lumio-color-warning;
+
+      @include dark {
+        color: $lumio-color-warning-dk;
+      }
+    }
+
+    &--info {
+      color: $lumio-color-info;
+
+      @include dark {
+        color: $lumio-color-info-dk;
+      }
+    }
+  }
+
+  &__stat--link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 120ms;
+
+    &:hover {
+      border-color: $lumio-color-ink-300;
+
+      @include dark {
+        border-color: $lumio-color-ink-300-dk;
+      }
+    }
   }
 
   &__stat-row {
@@ -91,6 +158,20 @@
     @include dark {
       color: $lumio-color-ink-500-dk;
     }
+
+    a {
+      color: $lumio-color-primary;
+      text-decoration: none;
+      font-weight: $lumio-font-weight-medium;
+
+      @include dark {
+        color: $lumio-color-primary-dk;
+      }
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
   }
 
   &__stat-spark {
@@ -101,82 +182,112 @@
     height: 42px;
     pointer-events: none;
     opacity: 0.9;
-  }
+    color: $lumio-color-primary;
 
-  /* ── Main 2fr/1fr grid ── */
-  &__grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 16px;
+    @include dark {
+      color: $lumio-color-primary-dk;
+    }
 
-    @media (max-width: 1024px) {
-      grid-template-columns: 1fr;
+    &--positive {
+      color: $lumio-color-success;
+
+      @include dark {
+        color: $lumio-color-success-dk;
+      }
+    }
+
+    &--negative {
+      color: $lumio-color-danger;
+
+      @include dark {
+        color: $lumio-color-danger-dk;
+      }
+    }
+
+    &--warning {
+      color: $lumio-color-warning;
+
+      @include dark {
+        color: $lumio-color-warning-dk;
+      }
+    }
+
+    &--info {
+      color: $lumio-color-info;
+
+      @include dark {
+        color: $lumio-color-info-dk;
+      }
     }
   }
 
-  &__cashflow  { grid-column: 1; grid-row: 1; }
-  &__categories { grid-column: 2; grid-row: 1; }
-  &__activity  { grid-column: 1; grid-row: 2 / span 2; }
-  &__actions   { grid-column: 2; grid-row: 2; }
-  &__upload    { grid-column: 2; grid-row: 3; }
+  /* ── Card grids ── */
+  &__grid {
+    display: grid;
+    gap: 16px;
+    align-items: stretch;
 
-  @media (max-width: 1024px) {
-    &__cashflow,
-    &__categories,
-    &__activity,
-    &__actions,
-    &__upload {
-      grid-column: 1;
-      grid-row: auto;
+    @media (max-width: 640px) {
+      gap: 12px;
+    }
+
+    > * {
+      min-width: 0;
+    }
+
+    /* Categories vs. transactions on the first screen. */
+    &--split {
+      grid-template-columns: 11fr 9fr;
+    }
+
+    /* Two equal cards; a lone card stretches to the full row. */
+    &--pair {
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+
+    /* Primary chart plus a narrower companion. */
+    &--wide {
+      grid-template-columns: 2fr 1fr;
+    }
+
+    /* Any number of feature cards. */
+    &--cards {
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    }
+
+    @media (max-width: 1024px) {
+      &--split,
+      &--wide {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+
+  /* Stacked cards inside one grid column; the last card absorbs leftover height. */
+  &__column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+
+    > :last-child {
+      flex: 1;
     }
   }
 
   /* ── Card (padded) ── */
   &__card {
+    display: flex;
+    flex-direction: column;
     background: $lumio-color-surface;
     border: 1px solid $lumio-color-ink-150;
     border-radius: $lumio-radius-lg;
     padding: 20px;
-    box-shadow: $lumio-shadow-sm;
 
     @include dark {
       background: $lumio-color-surface-dk;
       border-color: $lumio-color-ink-150-dk;
-      box-shadow: $lumio-shadow-sm-dk;
     }
-  }
-
-  /* Card shell — provides border/radius/shadow but no padding (used for components with self-managed padding) */
-  &__card-shell {
-    background: $lumio-color-surface;
-    border: 1px solid $lumio-color-ink-150;
-    border-radius: $lumio-radius-lg;
-    box-shadow: $lumio-shadow-sm;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-
-    @include dark {
-      background: $lumio-color-surface-dk;
-      border-color: $lumio-color-ink-150-dk;
-      box-shadow: $lumio-shadow-sm-dk;
-    }
-  }
-
-  &__card-shell-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 20px 20px 16px;
-    flex-shrink: 0;
-  }
-
-  &__card-shell-body {
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-    padding: 0 20px 20px;
   }
 
   /* ── Card header (for padded cards) ── */
@@ -185,7 +296,7 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
 
   &__card-head-actions {
@@ -196,13 +307,35 @@
   }
 
   &__card-title {
-    font-size: 15px;
+    font-size: 11.5px;
     font-weight: 600;
-    color: $lumio-color-ink-900;
-    letter-spacing: -0.01em;
+    color: $lumio-color-ink-500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 
     @include dark {
-      color: $lumio-color-ink-900-dk;
+      color: $lumio-color-ink-500-dk;
+    }
+  }
+
+  &__card-heading {
+    min-width: 0;
+  }
+
+  &__card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* Shell variant: the body scrolls instead of growing the card. */
+  &__card--shell {
+    overflow: hidden;
+
+    .lumio-dashboard__card-body {
+      overflow: auto;
     }
   }
 
@@ -214,25 +347,6 @@
     @include dark {
       color: $lumio-color-ink-500-dk;
     }
-  }
-
-  &__legend {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: $lumio-color-ink-500;
-
-    @include dark {
-      color: $lumio-color-ink-500-dk;
-    }
-  }
-
-  &__legend-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: $lumio-radius-xs;
-    flex-shrink: 0;
   }
 
   &__card-link-btn {
@@ -265,16 +379,164 @@
     }
   }
 
-  /* ── Cash flow chart area ── */
-  &__cf-chart {
-    height: 260px;
+  /* ── Chart area inside a card ── */
+  /* The chart box grows with the card; the canvas is pinned to it so ECharts
+     gets a definite size even when the height comes from flex. */
+  &__chart {
+    flex: 1;
+    min-height: 260px;
     position: relative;
+    overflow: hidden;
+
+    > * {
+      position: absolute;
+      inset: 0;
+    }
   }
 
-  /* ── Top categories area ── */
-  &__cat-chart {
-    height: 260px;
-    position: relative;
+  /* ── Spending by category: donut + list ── */
+  &__categories {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    flex: 1;
+    min-height: 200px;
+
+    @media (max-width: 640px) {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  &__donut {
+    flex: 0 0 160px;
+    height: 160px;
+
+    &--wide {
+      flex-basis: auto;
+      width: 100%;
+      height: 200px;
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 640px) {
+      flex-basis: auto;
+      height: 180px;
+    }
+  }
+
+  &__list {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ── Budget rows ── */
+  &__budget-row {
+    padding: 10px 0;
+
+    & + & {
+      border-top: 1px solid $lumio-color-ink-150;
+
+      @include dark {
+        border-top-color: $lumio-color-ink-150-dk;
+      }
+    }
+
+    &:first-child {
+      padding-top: 0;
+    }
+
+    &:last-child {
+      padding-bottom: 0;
+    }
+  }
+
+  &__budget-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  &__budget-pct {
+    font-size: 13px;
+    font-weight: $lumio-font-weight-semibold;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Short note inside a card (runway summary, footnotes) ── */
+  &__card-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0 0 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: $lumio-color-ink-500;
+
+    @include dark {
+      color: $lumio-color-ink-500-dk;
+    }
+
+    &--danger {
+      color: $lumio-color-danger;
+
+      @include dark {
+        color: $lumio-color-danger-dk;
+      }
+    }
+
+    &--footer {
+      margin: 12px 0 0;
+      font-size: 12px;
+    }
+  }
+
+  /* ── Finance Ops ── */
+  &__saved-views {
+    margin-top: 16px;
+  }
+
+  &__feature-summary {
+    margin: 0 0 16px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: $lumio-color-ink-600;
+
+    @include dark {
+      color: $lumio-color-ink-600-dk;
+    }
+  }
+
+  &__feature-metric {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    .lumio-dashboard__stat-value {
+      margin-top: 0;
+    }
+  }
+
+  &__feature-footer {
+    margin-top: auto;
+    padding-top: 12px;
+    margin-left: -8px;
+  }
+
+  /* Card whose body is a single interactive surface (upload zone). */
+  &__card--flush {
+    padding: 8px;
+  }
+
+  &__card--flush &__upload-zone {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
   }
 
   /* ── Quick actions ── */
@@ -570,33 +832,84 @@
     }
   }
 
-  /* ── Month/year picker ── */
-  &__month-picker {
+  /* ── Month strip + year stepper ── */
+  &__month-strip {
     display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
   }
 
-  &__month-picker-select {
-    appearance: none;
-    padding: 8px 32px 8px 12px;
-    background: $lumio-color-surface url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238e8e9a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")
-      no-repeat right 8px center;
-    border: 1px solid $lumio-color-ink-150;
-    border-radius: $lumio-radius-md;
-    font-size: 13px;
-    font-weight: 500;
-    color: $lumio-color-ink-900;
-    cursor: pointer;
+  &__month-chips {
+    flex: 1;
+    min-width: 0;
+  }
 
-    &--year {
-      min-width: 92px;
-    }
+  &__year-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 4px;
+    border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-full;
+    background: $lumio-color-surface;
 
     @include dark {
-      background-color: $lumio-color-surface-dk;
-      border-color: $lumio-color-border-dk;
+      border-color: $lumio-color-ink-150-dk;
+      background: $lumio-color-surface-dk;
+    }
+  }
+
+  &__year-value {
+    min-width: 44px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: $lumio-font-weight-semibold;
+    font-variant-numeric: tabular-nums;
+    color: $lumio-color-ink-900;
+
+    @include dark {
       color: $lumio-color-ink-900-dk;
+    }
+  }
+
+  &__year-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: $lumio-color-ink-500;
+    cursor: pointer;
+    transition: background-color 120ms, color 120ms;
+
+    @include dark {
+      color: $lumio-color-ink-500-dk;
+    }
+
+    &:hover:not(:disabled) {
+      background: $lumio-color-ink-100;
+      color: $lumio-color-ink-900;
+
+      @include dark {
+        background: $lumio-color-ink-100-dk;
+        color: $lumio-color-ink-900-dk;
+      }
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $lumio-color-primary;
+      outline-offset: 1px;
     }
   }
 
@@ -608,7 +921,7 @@
     border-radius: $lumio-radius-sm;
     font-size: 12px;
     color: $lumio-color-ink-500;
-    margin-bottom: 16px;
+    margin-top: 12px;
 
     @include dark {
       border-color: $lumio-color-border-dk;
@@ -620,10 +933,12 @@
 
 /* ── Page header ── */
 .lumio-dashboard-header {
-  padding: 32px 32px 0; /* matches DashboardTabContent px:4 = 32px */
+  padding: 24px 32px 0; /* matches DashboardTabContent px:4 = 32px */
+  min-width: 0;
+  max-width: 100%;
 
   @media (max-width: 640px) {
-    padding: 24px 16px 0;
+    padding: 20px 16px 0;
   }
 
   &__greet {
@@ -647,6 +962,10 @@
     letter-spacing: -0.02em;
     line-height: 1.2;
 
+    @media (max-width: 640px) {
+      font-size: 20px;
+    }
+
     @include dark {
       color: $lumio-color-ink-900-dk;
     }
@@ -657,6 +976,11 @@
     font-size: 14px;
     color: $lumio-color-ink-500;
 
+    @media (max-width: 640px) {
+      margin-top: 4px;
+      font-size: 13px;
+    }
+
     @include dark {
       color: $lumio-color-ink-500-dk;
     }
@@ -666,9 +990,10 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
 
     @media (max-width: 640px) {
-      flex-wrap: wrap;
+      gap: 8px;
     }
   }
 
@@ -678,6 +1003,11 @@
     justify-content: center;
     width: 48px;
     height: 48px;
+
+    @media (max-width: 640px) {
+      width: 40px;
+      height: 40px;
+    }
     border: none;
     border-radius: 50%;
     background: $lumio-color-primary;
@@ -708,6 +1038,31 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    flex-wrap: wrap;
+
+    /* The heading column may shrink; the action buttons never wrap under it. */
+    > :first-child {
+      min-width: 0;
+    }
+  }
+
+  &__tabs {
+    margin-top: 16px;
+
+    @media (max-width: 640px) {
+      margin-top: 8px;
+    }
+    border-bottom: 1px solid $lumio-color-border;
+
+    @include dark {
+      border-bottom-color: $lumio-color-border-dk;
+    }
+  }
+
+  &__controls {
+    padding-top: 16px;
+
+    @media (max-width: 640px) {
+      padding-top: 12px;
+    }
   }
 }

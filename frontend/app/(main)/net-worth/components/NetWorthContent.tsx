@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowDownRight, ArrowUpRight } from '@/app/components/icons';
+import { EmptyState } from '@/app/components/ui/EmptyState';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { formatMoney } from '@/app/lib/format-money';
 import { tokens } from '@/lib/theme-tokens';
@@ -56,7 +57,7 @@ export function NetWorthContent() {
   const hasData = Boolean(data && (data.assetsTotal !== 0 || data.liabilitiesTotal !== 0));
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1100, mx: 'auto', width: '100%' }}>
+    <Box sx={{ px: { xs: 2, md: 4 }, py: 3, width: '100%' }}>
       <Box
         sx={{
           display: 'flex',
@@ -139,12 +140,7 @@ export function NetWorthContent() {
                 <NetWorthChart points={data.series} positive={isPositive} />
               </Box>
             ) : (
-              <Typography
-                variant="body2"
-                sx={{ color: 'text.secondary', py: 6, textAlign: 'center' }}
-              >
-                {t.empty}
-              </Typography>
+              <EmptyState illustration="reports" description={t.empty} compact />
             )}
 
             <Box sx={{ display: 'flex', gap: 4, mt: 2, flexWrap: 'wrap' }}>

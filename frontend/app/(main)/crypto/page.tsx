@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus } from '@/app/components/icons';
+import { EmptyState } from '@/app/components/ui/EmptyState';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { formatMoney } from '@/app/lib/format-money';
@@ -39,7 +40,7 @@ export default function CryptoPage(): React.JSX.Element {
   const dialogServerError = error === 'duplicate' ? t.duplicate.value : null;
 
   return (
-    <Box component="main" sx={{ p: 3, maxWidth: 900, mx: 'auto', width: '100%' }}>
+    <Box component="main" sx={{ px: { xs: 2, md: 4 }, py: 3, width: '100%' }}>
       <Box
         sx={{
           display: 'flex',
@@ -120,9 +121,7 @@ export default function CryptoPage(): React.JSX.Element {
       )}
 
       {!loading && wallets.length === 0 && error !== 'failed' && (
-        <Typography sx={{ color: 'text.secondary', py: 6, textAlign: 'center' }}>
-          {t.empty}
-        </Typography>
+        <EmptyState illustration="integrations" description={t.empty} />
       )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

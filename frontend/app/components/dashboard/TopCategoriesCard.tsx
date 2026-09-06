@@ -2,12 +2,12 @@
 
 import type { DashboardData } from '@/app/hooks/useDashboard';
 import { useIntlayer } from '@/app/i18n';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
+import { categoryColorFor } from '@/app/lib/category-defaults';
 import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import { CategoryIconBadge } from './CategoryIconBadge';
+import { ListRow } from './ui';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
@@ -64,7 +64,7 @@ export function TopCategoriesCard({ categories, formatAmount }: TopCategoriesCar
         {
           name: 'Categories',
           type: 'pie',
-          radius: ['62%', '85%'],
+          radius: ['64%', '88%'],
           avoidLabelOverlap: false,
           itemStyle: { borderColor: isDark ? '#151C24' : '#ffffff', borderWidth: 2 },
           label: { show: false },
@@ -74,7 +74,7 @@ export function TopCategoriesCard({ categories, formatAmount }: TopCategoriesCar
           data: categories.map(cat => ({
             value: cat.amount,
             name: categoryDisplayName(cat, labels),
-            itemStyle: { color: cat.color },
+            itemStyle: { color: cat.isOther ? cat.color : categoryColorFor(cat.name, cat.color) },
           })),
         },
       ],
@@ -84,62 +84,42 @@ export function TopCategoriesCard({ categories, formatAmount }: TopCategoriesCar
   }, [categories, labels, isDark, formatAmount]);
 
   if (!option) {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          height: '100%',
-          width: '100%',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 13,
-          color: 'var(--muted-foreground)',
-          fontFamily: 'var(--font-dashboard-sans)',
-        }}
-      >
-        {t.noCategoryData}
-      </Box>
-    );
+    return <div className="lumio-dashboard__card-empty">{t.noCategoryData}</div>;
   }
 
   return (
-    <Box sx={{ display: 'flex', height: '100%', width: '100%', gap: 2 }}>
-      <Box sx={{ flex: '0 0 140px', minWidth: 0, height: '100%' }}>
+    <div className="lumio-dashboard__categories">
+      <div className="lumio-dashboard__donut">
         <ReactECharts
           style={{ height: '100%', width: '100%' }}
           option={option}
           notMerge
           lazyUpdate
         />
-      </Box>
-      <Box
-        sx={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-          overflowY: 'auto',
-        }}
-      >
+      </div>
+      <div className="lumio-dashboard__list">
         {categories.map(cat => (
-          <Box key={categoryKey(cat)} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CategoryIconBadge color={cat.color} icon={cat.icon} isOther={cat.isOther} />
-            <Typography variant="body2" noWrap sx={{ flex: 1, minWidth: 0 }}>
-              {categoryDisplayName(cat, labels)}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', flexShrink: 0 }}>
-              {cat.percent}%
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 600, flexShrink: 0, minWidth: 90, textAlign: 'right' }}
-            >
-              {formatAmount(cat.amount)}
-            </Typography>
-          </Box>
+          <ListRow
+            key={categoryKey(cat)}
+            leading={
+              <CategoryIconBadge
+                name={cat.name}
+                color={cat.color}
+                icon={cat.icon}
+                isOther={cat.isOther}
+                size={32}
+              />
+            }
+            primary={categoryDisplayName(cat, labels)}
+            trailing={
+              <>
+                <span className="lumio-dashboard__muted">{cat.percent}%</span>
+                <span>{formatAmount(cat.amount)}</span>
+              </>
+            }
+          />
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

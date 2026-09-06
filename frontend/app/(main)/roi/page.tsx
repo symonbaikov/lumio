@@ -1,5 +1,6 @@
 'use client';
 
+import { EmptyState } from '@/app/components/ui/EmptyState';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { formatMoney } from '@/app/lib/format-money';
@@ -34,7 +35,7 @@ export default function RoiPage() {
   const money = (value: number) => formatMoney(value, currency, locale);
 
   return (
-    <Box component="main" sx={{ p: 3, maxWidth: 900, mx: 'auto', width: '100%' }}>
+    <Box component="main" sx={{ px: { xs: 2, md: 4 }, py: 3, width: '100%' }}>
       <Typography variant="h5" fontWeight={700}>
         {t.title}
       </Typography>
@@ -73,9 +74,7 @@ export default function RoiPage() {
         </Box>
 
         {result === null ? (
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 3 }}>
-            {t.hint}
-          </Typography>
+          <EmptyState illustration="no-data" size="sm" description={t.hint} compact />
         ) : (
           <Box sx={{ display: 'flex', gap: 4, mt: 3, flexWrap: 'wrap' }}>
             <Box>

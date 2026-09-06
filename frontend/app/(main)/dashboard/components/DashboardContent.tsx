@@ -1,10 +1,10 @@
 'use client';
 
-import type { DashboardData, DashboardRange } from '@/app/hooks/useDashboard';
+import type { DashboardData } from '@/app/hooks/useDashboard';
 import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import type React from 'react';
-import type { DashboardTabId } from '../hooks/useDashboardPage';
+import type { DashboardTabId } from '../helpers/dashboard-url-state';
 import { DashboardErrorBanner } from './DashboardErrorBanner';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardTabContent } from './DashboardTabContent';
@@ -68,15 +68,15 @@ type DashboardContentProps = {
   loading: boolean;
   data: DashboardData | null;
   onRefresh: () => void;
-  range: DashboardRange;
   activeTab: DashboardTabId;
   setActiveTab: (tab: DashboardTabId) => void;
   formatAmount: (value: number) => string;
   statusHeading: string;
   greetingSubtitle: string;
-  effectivePeriod: string | null;
+  periodBanner: string | null;
   displayMonth: Date;
   changeMonth: (year: number, month: number) => void;
+  locale: string;
   exportMenu: unknown;
   headerLabels: React.ComponentProps<typeof DashboardHeader>['labels'];
 };
@@ -86,15 +86,15 @@ export function DashboardContent({
   loading,
   data,
   onRefresh,
-  range,
   activeTab,
   setActiveTab,
   formatAmount,
   statusHeading,
   greetingSubtitle,
-  effectivePeriod,
+  periodBanner,
   displayMonth,
   changeMonth,
+  locale,
   exportMenu,
   headerLabels,
 }: DashboardContentProps): React.JSX.Element {
@@ -114,6 +114,10 @@ export function DashboardContent({
         greetingSubtitle={greetingSubtitle}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        displayMonth={displayMonth}
+        changeMonth={changeMonth}
+        locale={locale}
+        periodBanner={periodBanner}
         exportMenu={exportMenu}
         labels={headerLabels}
       />
@@ -121,11 +125,8 @@ export function DashboardContent({
         activeTab={activeTab}
         data={data}
         formatAmount={formatAmount}
-        range={range}
         isLoading={loading}
-        effectivePeriod={effectivePeriod}
         displayMonth={displayMonth}
-        changeMonth={changeMonth}
       />
     </>
   );

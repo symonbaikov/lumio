@@ -1,6 +1,8 @@
 'use client';
 
 import { Plus } from '@/app/components/icons';
+import { EmptyState } from '@/app/components/ui/EmptyState';
+import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -69,8 +71,9 @@ export function BudgetsContent({
   handleSave,
   handleDelete,
 }: BudgetsContentProps) {
+  const t = useIntlayer('budgetsPage');
   return (
-    <Box sx={{ p: 3, maxWidth: 800, mx: 'auto', width: '100%' }}>
+    <Box sx={{ px: { xs: 2, md: 4 }, py: 3, width: '100%' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" fontWeight={700}>
           Budgets
@@ -96,14 +99,15 @@ export function BudgetsContent({
       )}
 
       {!loading && !error && budgets.length === 0 && (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Typography color="text.secondary" sx={{ mb: 2 }}>
-            No budgets yet. Create one to start tracking your spending.
-          </Typography>
-          <Button variant="outlined" onClick={openCreate}>
-            Create your first budget
-          </Button>
-        </Box>
+        <EmptyState
+          illustration="top-categories"
+          description={t.emptyDescription}
+          action={
+            <Button variant="outlined" onClick={openCreate}>
+              {t.createFirst}
+            </Button>
+          }
+        />
       )}
 
       {!loading && !error && budgets.length > 0 && (

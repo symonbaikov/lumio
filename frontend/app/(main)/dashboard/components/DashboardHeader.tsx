@@ -2,16 +2,16 @@
 
 import { ExportDropdown } from '@/app/components/dashboard/ExportDropdown';
 import { Plus } from '@/app/components/icons';
-import { tokens } from '@/lib/theme-tokens';
-import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import type React from 'react';
-import type { DashboardTabId } from '../hooks/useDashboardPage';
-import { DashboardTabs } from './DashboardTabs';
+import type { DashboardTabId } from '../helpers/dashboard-url-state';
+import { DashboardTabs, type DashboardTabsLabels } from './DashboardTabs';
+import { MonthStrip, type MonthStripLabels } from './MonthStrip';
 
-type DashboardHeaderLabels = {
-  tabs: { financeOps: string; overview: string; trends: string; dataHealth: string };
+export type DashboardHeaderLabels = {
+  tabs: DashboardTabsLabels;
   uploadStatement: string;
+  monthStrip: MonthStripLabels;
 };
 
 type DashboardHeaderProps = {
@@ -19,6 +19,11 @@ type DashboardHeaderProps = {
   greetingSubtitle: string;
   activeTab: DashboardTabId;
   onTabChange: (tab: DashboardTabId) => void;
+  displayMonth: Date;
+  changeMonth: (year: number, month: number) => void;
+  locale: string;
+  /** "Showing latest available period …" when the backend auto-shifted the window. */
+  periodBanner: string | null;
   exportMenu: unknown;
   labels: DashboardHeaderLabels;
 };
@@ -28,12 +33,13 @@ export function DashboardHeader({
   greetingSubtitle,
   activeTab,
   onTabChange,
+  displayMonth,
+  changeMonth,
+  locale,
+  periodBanner,
   exportMenu,
   labels,
 }: DashboardHeaderProps): React.JSX.Element {
-  const { resolvedTheme } = useTheme();
-  const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
-
   return (
     <div className="lumio-dashboard-header">
       <div className="lumio-dashboard-header__row">
@@ -55,8 +61,17 @@ export function DashboardHeader({
           </Link>
         </div>
       </div>
-      <div style={{ marginTop: 24, borderBottom: `1px solid ${c.border}` }}>
+      <div className="lumio-dashboard-header__tabs">
         <DashboardTabs activeTab={activeTab} onTabChange={onTabChange} labels={labels.tabs} />
+      </div>
+      <div className="lumio-dashboard-header__controls">
+        <MonthStrip
+          displayMonth={displayMonth}
+          onChange={changeMonth}
+          locale={locale}
+          labels={labels.monthStrip}
+        />
+        {periodBanner && <div className="lumio-dashboard__period-banner">{periodBanner}</div>}
       </div>
     </div>
   );

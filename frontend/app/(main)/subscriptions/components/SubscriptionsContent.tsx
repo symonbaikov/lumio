@@ -1,4 +1,5 @@
 'use client';
+import { EmptyState } from '@/app/components/ui/EmptyState';
 import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 import { Pencil, Plus, Trash2 } from '@/app/components/icons';
@@ -313,14 +314,15 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
           {props.error}
         </Typography>
       ) : visibleSubscriptions.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 6 }}>
-          <Typography color="text.secondary" sx={{ mb: 2 }}>
-            No subscriptions match these filters
-          </Typography>
-          <Button variant="outlined" onClick={props.openCreate}>
-            Add subscription
-          </Button>
-        </Box>
+        <EmptyState
+          illustration="subscriptions"
+          description="No subscriptions match these filters"
+          action={
+            <Button variant="outlined" onClick={props.openCreate}>
+              Add subscription
+            </Button>
+          }
+        />
       ) : (
         <>
           <Box

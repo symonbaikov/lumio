@@ -111,15 +111,7 @@ export function CashFlowMini({
   }, [data, resolvedTheme, incomeLabel, expenseLabel]);
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        width: '100%',
-        height: '100%',
-        position: 'relative',
-      }}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
       {!option ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span
@@ -133,9 +125,10 @@ export function CashFlowMini({
           </span>
         </div>
       ) : (
-        <div style={{ flex: 1, width: '100%' }}>
+        <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+          {/* Pinned to the box so ECharts measures a definite size, not its 100px default. */}
           <ReactECharts
-            style={{ height: '100%', width: '100%' }}
+            style={{ position: 'absolute', inset: 0 }}
             option={option}
             notMerge
             lazyUpdate
