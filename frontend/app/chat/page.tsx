@@ -4,6 +4,7 @@ import { useLocalModel } from '@/app/(main)/ai-analysis/llm/useLocalModel';
 import { RECOMMENDED_MODEL_ID, resolveCatalog } from '@/app/(main)/ai-analysis/model-catalog';
 import { Sparkles } from '@/app/components/icons';
 import { useIntlayer } from '@/app/i18n';
+import { isExperimentalModeEnabled } from '@/app/lib/experimental-mode';
 import { tokens } from '@/lib/theme-tokens';
 import { Box, Button, Chip, LinearProgress, Stack, TextField, Typography } from '@mui/material';
 import Link from 'next/link';
@@ -57,10 +58,16 @@ export default function ChatModePage(): React.JSX.Element {
     endRef.current?.scrollIntoView({ block: 'end' });
   }, [turns]);
 
+  // Chat mode is unfinished: it is reachable only while experimental mode is on.
   // Entering the page opts the device into chat mode; the exit button opts out.
   useEffect(() => {
+    if (!isExperimentalModeEnabled()) {
+      setChatModePreferred(false);
+      router.replace('/dashboard');
+      return;
+    }
     setChatModePreferred(true);
-  }, []);
+  }, [router]);
 
   const exitMode = (): void => {
     setChatModePreferred(false);

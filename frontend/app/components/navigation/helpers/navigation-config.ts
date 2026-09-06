@@ -28,6 +28,8 @@ export interface NavItem {
   path: string;
   icon: React.ReactElement;
   permission: string;
+  /** Only offered while experimental mode is on — the feature is unfinished. */
+  experimental?: boolean;
 }
 
 export function buildNavItems(nav: {
@@ -145,6 +147,7 @@ export function buildUserMenuNavItems(nav: {
       path: '/chat',
       icon: React.createElement(MessageCircle, { size: 18 }),
       permission: 'statement.view',
+      experimental: true,
     },
     {
       label: nav.integrations as ReactNode,

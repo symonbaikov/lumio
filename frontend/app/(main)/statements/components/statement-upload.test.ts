@@ -42,6 +42,20 @@ describe('statement-upload helpers', () => {
     );
   });
 
+  it('extracts the message from the wrapped { error: { message } } envelope', () => {
+    const error = {
+      response: {
+        data: {
+          error: { code: 'BAD_REQUEST', message: 'Only image and PDF receipt files are supported' },
+        },
+      },
+    };
+
+    expect(extractUploadErrorMessage(error, labels.uploadFailed)).toBe(
+      'Only image and PDF receipt files are supported',
+    );
+  });
+
   it('preserves backend receipt upload errors instead of replacing them with a generic message', async () => {
     const onUploadSuccess = vi.fn();
     const refreshAfterCreate = vi.fn().mockResolvedValue(undefined);

@@ -39,7 +39,7 @@ services:
       dockerfile: Dockerfile
     container_name: finflow-backend
     ports:
-      - "3001:3001"
+      - "${BACKEND_PORT:-3001}:3001"
     env_file:
       - path: .env
         required: false
@@ -81,7 +81,7 @@ services:
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
     container_name: finflow-frontend
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3001/api/v1}

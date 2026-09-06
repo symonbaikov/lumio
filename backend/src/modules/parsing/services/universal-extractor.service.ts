@@ -47,7 +47,11 @@ const TOTAL_KEYWORD_REGEX =
 
 const NUMBER_PATTERN = '-?\\d{1,3}(?:[\\s.,]\\d{3})*(?:[.,]\\d{1,2})?|-?\\d+(?:[.,]\\d{1,2})?';
 
-const DATE_PATTERNS = [/\d{2}[-/.]\d{2}[-/.]\d{4}/, /\d{4}[-/.]\d{2}[-/.]\d{2}/];
+// Anchored on non-digits so a longer run of OCR digits can't yield a date-looking substring.
+const DATE_PATTERNS = [
+  /(?<!\d)\d{2}[-/.]\d{2}[-/.]\d{4}(?!\d)/,
+  /(?<!\d)\d{4}[-/.]\d{2}[-/.]\d{2}(?!\d)/,
+];
 
 const TAX_PATTERNS = [
   /tax[:\s]+(\d+[\s,.]?\d*)/i,
@@ -62,6 +66,11 @@ const SUBTOTAL_PATTERNS = [
   /подитог[:\s]+(\d+[\s,.]?\d*)/i,
   /промежуточный\s*итог[:\s]+(\d+[\s,.]?\d*)/i,
 ];
+
+/** Same window the universal date parser uses: anything outside it is noise, not a date. */
+function isPlausibleDate(date: Date): boolean {
+  return !Number.isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100;
+}
 
 @Injectable()
 export class UniversalExtractorService {
@@ -245,15 +254,16 @@ export class UniversalExtractorService {
       const candidate = match[0];
       if (/^\d{4}/.test(candidate)) {
         const date = new Date(candidate.replace(/[/.]/g, '-'));
-        if (!Number.isNaN(date.getTime())) {
+        if (isPlausibleDate(date)) {
           return date;
         }
+        continue;
       }
 
       const [left, middle, right] = candidate.split(/[./-]/).map(part => Number(part));
-      if (left > 0 && middle > 0 && right > 0) {
+      if (left > 0 && left <= 31 && middle > 0 && middle <= 12) {
         const date = new Date(right, middle - 1, left);
-        if (!Number.isNaN(date.getTime())) {
+        if (isPlausibleDate(date)) {
           return date;
         }
       }

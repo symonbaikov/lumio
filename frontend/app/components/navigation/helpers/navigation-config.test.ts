@@ -74,6 +74,13 @@ describe('buildUserMenuNavItems', () => {
     });
   });
 
+  it('marks chat mode experimental so it stays hidden until opted in', () => {
+    const items = buildUserMenuNavItems(userMenuNav);
+
+    expect(items.find(item => item.path === '/chat')?.experimental).toBe(true);
+    expect(items.find(item => item.path === '/ai-analysis')?.experimental).toBeUndefined();
+  });
+
   it('gates activity log behind the audit log permission', () => {
     const items = buildUserMenuNavItems(userMenuNav);
 

@@ -48,8 +48,14 @@ const chunkFiles = (files: File[], size: number): File[][] => {
 
 // eslint-disable-next-line complexity
 export const extractUploadErrorMessage = (error: unknown, fallback: string): string => {
-  const responseMessage = (error as { response?: { data?: { message?: unknown } } })?.response?.data
-    ?.message;
+  // HttpExceptionFilter wraps failures as { error: { message } }; older/plain
+  // Nest responses still use a top-level { message }.
+  const responseData = (
+    error as {
+      response?: { data?: { message?: unknown; error?: { message?: unknown } } };
+    }
+  )?.response?.data;
+  const responseMessage = responseData?.error?.message ?? responseData?.message;
 
   if (Array.isArray(responseMessage)) {
     const [firstMessage] = responseMessage;

@@ -25,19 +25,12 @@ services:
       - backend_uploads:/app/uploads
     command: sh -lc "NODE_OPTIONS=--max-old-space-size=2048 npm run migration:run:dev && NODE_OPTIONS=--max-old-space-size=2048 npm run start:dev"
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: builder
-    environment:
-      - NODE_ENV=development
-      - API_PROXY_TARGET=http://backend:3001
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    command: npm run dev
+  # frontend intentionally left on the production build (docker-compose.yml
+  # defaults) here: `next dev` with Turbopack on Next.js 16.3.1 fails to write
+  # per-route build-manifest.json files in this environment (every app-router
+  # route 500s with ENOENT), and next dev --webpack breaks separately because
+  # react-intlayer's editor/CJS code leaks Node builtins into the client
+  # bundle. The prod build compiles and serves fine, just without hot reload.
 
 volumes:
   postgres_dev_data:

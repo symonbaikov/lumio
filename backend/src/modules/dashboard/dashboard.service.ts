@@ -358,13 +358,14 @@ export class DashboardService {
       });
     }
 
+    // Counts transactions *and* receipts, so the label stays on "items".
     const uncategorized = await this.getUncategorizedCount(workspaceId);
 
     if (uncategorized > 0) {
       actions.push({
         type: 'transactions_uncategorized',
         count: uncategorized,
-        label: `${uncategorized} transaction${uncategorized > 1 ? 's' : ''} uncategorized`,
+        label: `${uncategorized} item${uncategorized > 1 ? 's' : ''} uncategorized`,
         href: '/statements/submit?categoryId=uncategorized',
       });
     }
@@ -586,7 +587,7 @@ export class DashboardService {
       .addSelect('t.credit', 'credit')
       .addSelect('t.transactionType', 'transactionType')
       .addSelect('t.currency', 'currency')
-      .addSelect('t.transactionDate', 'date')
+      .addSelect("TO_CHAR(t.transactionDate, 'YYYY-MM-DD')", 'date')
       .addSelect('c.id', 'categoryId')
       .addSelect('c.name', 'categoryName')
       .addSelect('c.color', 'categoryColor')

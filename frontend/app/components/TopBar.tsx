@@ -8,6 +8,7 @@ import { useAuth } from '@/app/hooks/useAuth';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
+import { useExperimentalMode } from '@/app/lib/experimental-mode';
 import { getRecord, resolveLabel } from '@/app/lib/side-panel-utils';
 import { canAccessWorkspaceActivity } from '@/app/lib/workspace-activity-access';
 import { AiAssistantTopBarButton } from '@/app/plugins/ai-assistant/AiAssistantTopBarButton';
@@ -39,6 +40,7 @@ export default function TopBar() {
   const router = useRouter();
   const [avatarError, setAvatarError] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const experimentalMode = useExperimentalMode();
 
   const { handleThemePreferenceChange } = useThemePreference({
     userThemePreference: user?.themePreference,
@@ -99,7 +101,7 @@ export default function TopBar() {
 
   const extraNavItems = buildUserMenuNavItems(
     nav as Parameters<typeof buildUserMenuNavItems>[0],
-  ).filter(item => hasPermission(item.permission));
+  ).filter(item => hasPermission(item.permission) && (!item.experimental || experimentalMode));
 
   const userMenuProps = {
     user,

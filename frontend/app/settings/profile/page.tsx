@@ -6,6 +6,7 @@ import {
   Check,
   Clock,
   Cloud,
+  FlaskConical,
   Lock,
   Mail,
   Palette,
@@ -23,10 +24,12 @@ import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
+import { isExperimentalModeEnabled, setExperimentalModeEnabled } from '@/app/lib/experimental-mode';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import { AppearanceSection } from '@/app/settings/profile/components/AppearanceSection';
 import { ChangelogSection } from '@/app/settings/profile/components/ChangelogSection';
 import { EmailSection } from '@/app/settings/profile/components/EmailSection';
+import { ExperimentalSection } from '@/app/settings/profile/components/ExperimentalSection';
 import { MyDataSection } from '@/app/settings/profile/components/MyDataSection';
 import { NotificationsSection } from '@/app/settings/profile/components/NotificationsSection';
 import { PasswordSection } from '@/app/settings/profile/components/PasswordSection';
@@ -139,6 +142,7 @@ export default function ProfileSettingsPage() {
   const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
   const t = useIntlayer('settingsProfilePage');
   const [activeSection, setActiveSection] = useState<SectionId>('profile');
+  const [experimentalMode, setExperimentalMode] = useState(false);
   const [isTimeZoneModalOpen, setIsTimeZoneModalOpen] = useState(false);
   const [timeZoneSearch, setTimeZoneSearch] = useState('');
   const timeZoneOptions = useMemo(resolveTimeZoneOptions, []);
@@ -354,6 +358,14 @@ export default function ProfileSettingsPage() {
 
   useEffect(() => {
     setActiveSection(normalizeSection(window.location.hash?.replace('#', '')));
+    // localStorage is only readable after mount, so the switch starts off and
+    // catches up here instead of desyncing hydration.
+    setExperimentalMode(isExperimentalModeEnabled());
+  }, []);
+
+  const handleExperimentalModeChange = useCallback((value: boolean): void => {
+    setExperimentalMode(value);
+    setExperimentalModeEnabled(value);
   }, []);
 
   useEffect(() => {
@@ -437,6 +449,14 @@ export default function ProfileSettingsPage() {
         'Download a copy of your data, or delete your account',
       ),
       icon: Shield,
+    },
+    experimental: {
+      title: tx(['experimentalCard', 'title'], 'Experimental'),
+      description: tx(
+        ['experimentalCard', 'description'],
+        'Try features that are still in development',
+      ),
+      icon: FlaskConical,
     },
   };
 
@@ -555,6 +575,13 @@ export default function ProfileSettingsPage() {
       />
     ),
     'my-data': <MyDataSection tx={tx} onAccountDeleted={handleAccountDeleted} />,
+    experimental: (
+      <ExperimentalSection
+        tx={tx}
+        enabled={experimentalMode}
+        setEnabled={handleExperimentalModeChange}
+      />
+    ),
   };
 
   const activeMeta = sectionMeta[activeSection];

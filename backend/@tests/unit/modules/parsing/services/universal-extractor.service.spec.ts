@@ -67,6 +67,29 @@ describe('UniversalExtractorService', () => {
       expect(result.fieldConfidence.totalAmount).toBeGreaterThan(0);
     });
 
+    it('extracts a receipt date', async () => {
+      const text = 'Receipt\nStore ABC\nDate: 26.11.2025\nTotal: $10.00';
+      const result = await service.extractFromText(text);
+
+      expect(result.date?.getFullYear()).toBe(2025);
+      expect(result.date?.getMonth()).toBe(10);
+      expect(result.date?.getDate()).toBe(26);
+    });
+
+    it('ignores a date with an implausible year', async () => {
+      const text = 'Receipt\nStore ABC\n11.11.9301\nTotal: $10.00';
+      const result = await service.extractFromText(text);
+
+      expect(result.date).toBeUndefined();
+    });
+
+    it('ignores a date-looking substring inside a longer digit run', async () => {
+      const text = 'Receipt\nStore ABC\nRef 111.11.93011\nTotal: $10.00';
+      const result = await service.extractFromText(text);
+
+      expect(result.date).toBeUndefined();
+    });
+
     it('captures validation issue when subtotal plus tax does not match total', async () => {
       const text = 'Receipt\nSubtotal: $40.00\nTax: $5.00\nTotal: $50.00';
       const result = await service.extractFromText(text);

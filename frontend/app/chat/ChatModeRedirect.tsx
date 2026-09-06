@@ -1,5 +1,6 @@
 'use client';
 
+import { isExperimentalModeEnabled } from '@/app/lib/experimental-mode';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { isChatModePreferred } from './chat-mode-preference';
@@ -22,7 +23,8 @@ export function ChatModeRedirect(): null {
     if (!pathname || EXEMPT_PREFIXES.some(prefix => pathname.startsWith(prefix))) {
       return;
     }
-    if (isChatModePreferred()) {
+    // Chat mode is experimental: without the opt-in it must not take over the app.
+    if (isExperimentalModeEnabled() && isChatModePreferred()) {
       router.replace('/chat');
     }
   }, []);
