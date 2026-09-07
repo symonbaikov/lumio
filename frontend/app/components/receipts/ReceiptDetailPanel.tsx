@@ -106,7 +106,7 @@ export function ReceiptDetailPanel({
     let objectUrl: string | null = null;
 
     const loadPreview = async () => {
-      try {
+      return await (async () => {
         const response = await fetch(`${apiBaseUrl}/receipts/${receipt.id}/file`, {
           method: 'GET',
           headers: getWorkspaceHeaders(),
@@ -128,9 +128,9 @@ export function ReceiptDetailPanel({
             return objectUrl;
           });
         }
-      } catch {
+      })().catch(async () => {
         // ignore preview errors and keep fallback card visible
-      }
+      });
     };
 
     void loadPreview();
@@ -180,14 +180,14 @@ export function ReceiptDetailPanel({
   const handleCurrencyChange = async (nextValue: EditableReceiptParsedData) => {
     if (!receipt) return;
 
-    try {
+    await (async () => {
       await apiClient.patch(`/receipts/${receipt.id}`, {
         parsedData: buildParsedDataPayload(nextValue),
       });
       onUpdated?.();
-    } catch {
+    })().catch(async () => {
       toast.error('Failed to save receipt currency.');
-    }
+    });
   };
 
   if (!receipt) {
@@ -197,40 +197,44 @@ export function ReceiptDetailPanel({
   const handleSaveDraft = async () => {
     setSaving(true);
 
-    try {
+    await (async () => {
       await apiClient.patch(`/receipts/${receipt.id}`, {
         parsedData: payload,
       });
       toast.success('Receipt draft saved.');
       onUpdated?.();
-    } catch {
-      toast.error('Failed to save receipt draft.');
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error('Failed to save receipt draft.');
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   const handleReject = async () => {
     setSaving(true);
 
-    try {
+    await (async () => {
       await apiClient.patch(`/receipts/${receipt.id}`, {
         status: 'rejected',
       });
       toast.success('Receipt rejected.');
       onUpdated?.();
       onClose();
-    } catch {
-      toast.error('Failed to reject receipt.');
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error('Failed to reject receipt.');
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   const handleApprove = async () => {
     setSaving(true);
 
-    try {
+    await (async () => {
       await apiClient.patch(`/receipts/${receipt.id}`, {
         parsedData: payload,
       });
@@ -238,11 +242,13 @@ export function ReceiptDetailPanel({
       toast.success('Receipt approved.');
       onUpdated?.();
       onClose();
-    } catch {
-      toast.error('Failed to approve receipt.');
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error('Failed to approve receipt.');
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   return (

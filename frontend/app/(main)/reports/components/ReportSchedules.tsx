@@ -96,15 +96,18 @@ export function ReportSchedules({ templates }: ReportSchedulesProps): React.JSX.
 
     setSaving(true);
     setError(null);
-    try {
+
+    await (async () => {
       await apiClient.post('/reports/schedules', { templateId, format, cadence, recipients });
       setRecipientsRaw('');
       await load();
-    } catch {
-      setError(text('scheduleCreateFailed', 'Could not save the schedule'));
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async () => {
+        setError(text('scheduleCreateFailed', 'Could not save the schedule'));
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   const toggle = async (row: ReportScheduleRow): Promise<void> => {

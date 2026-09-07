@@ -2,7 +2,7 @@
 
 import type { PromptMessage } from '@/app/(main)/ai-analysis/chat/build-prompt';
 import * as chatsApi from '@/app/(main)/ai-analysis/chat/chats-api';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { parseIntent } from '../tools/registry';
 import type { ChatTool } from '../tools/types';
 import {
@@ -99,7 +99,7 @@ export function useAgentChat(engine: AgentEngine | null, modelId: string) {
         actionPayload?: Record<string, unknown>;
       }>,
     ): Promise<void> => {
-      try {
+      await (async () => {
         let targetId = chatId;
         if (targetId === null) {
           const created = await chatsApi.createChat(modelId, firstQuestion);
@@ -115,12 +115,19 @@ export function useAgentChat(engine: AgentEngine | null, modelId: string) {
           );
         }
         setUnsaved(false);
-      } catch {
+      })().catch(async () => {
         setUnsaved(true);
-      }
+      });
     },
     [chatId, modelId],
   );
+
+  // `send` only needs the turns at call time; reading them through a ref keeps
+  // its identity stable while a reply streams in (turns change per token).
+  const turnsRef = useRef(turns);
+  useEffect(() => {
+    turnsRef.current = turns;
+  }, [turns]);
 
   const send = useCallback(
     async (question: string): Promise<void> => {
@@ -133,7 +140,7 @@ export function useAgentChat(engine: AgentEngine | null, modelId: string) {
       setError(null);
 
       const system: PromptMessage = { role: 'system', content: buildAgentSystemPrompt(todayIso()) };
-      const history = toHistory(turns);
+      const history = toHistory(turnsRef.current);
       const userTurn: AgentTurn = { id: nextId(), role: 'user', content: question };
       setTurns(previous => [...previous, userTurn]);
 
@@ -143,7 +150,7 @@ export function useAgentChat(engine: AgentEngine | null, modelId: string) {
         actionPayload?: Record<string, unknown>;
       }> = [{ role: 'user', content: question }];
 
-      try {
+      return await (async () => {
         const messages: PromptMessage[] = [system, ...history, { role: 'user', content: question }];
 
         let rounds = 0;
@@ -209,14 +216,16 @@ export function useAgentChat(engine: AgentEngine | null, modelId: string) {
           setTurns(previous => [...previous, cardTurn]);
 
           let result: unknown;
-          try {
+
+          await (async () => {
             result = await tool.execute(params);
             patchAction(cardTurn.id, { status: 'done', result });
-          } catch (cause) {
+          })().catch(async cause => {
             const message = cause instanceof Error ? cause.message : 'unknown error';
             patchAction(cardTurn.id, { status: 'error', errorMessage: message });
             result = { error: message };
-          }
+          });
+
           toSave.push({
             role: 'tool',
             content: parsed.reply,
@@ -243,16 +252,18 @@ export function useAgentChat(engine: AgentEngine | null, modelId: string) {
         }
 
         await persist(question, toSave);
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'generation failed');
-        setTurns(previous =>
-          previous.filter(turn => turn.id !== userTurn.id || turn.role === 'user'),
-        );
-      } finally {
-        setBusy(false);
-      }
+      })()
+        .catch(async cause => {
+          setError(cause instanceof Error ? cause.message : 'generation failed');
+          setTurns(previous =>
+            previous.filter(turn => turn.id !== userTurn.id || turn.role === 'user'),
+          );
+        })
+        .finally(async () => {
+          setBusy(false);
+        });
     },
-    [engine, busy, turns, persist, patchAction],
+    [engine, busy, persist, patchAction],
   );
 
   /** Runs a previously proposed write action after the user's explicit tap. */
@@ -265,7 +276,7 @@ export function useAgentChat(engine: AgentEngine | null, modelId: string) {
       pendingRef.current.delete(turnId);
       patchAction(turnId, { status: 'running' });
 
-      try {
+      await (async () => {
         const result = await pending.tool.execute(pending.params);
         patchAction(turnId, { status: 'done', result });
         if (chatId) {
@@ -277,10 +288,10 @@ export function useAgentChat(engine: AgentEngine | null, modelId: string) {
             })
             .catch(() => setUnsaved(true));
         }
-      } catch (cause) {
+      })().catch(async cause => {
         const message = cause instanceof Error ? cause.message : 'unknown error';
         patchAction(turnId, { status: 'error', errorMessage: message });
-      }
+      });
     },
     [chatId, patchAction],
   );

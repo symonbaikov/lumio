@@ -81,16 +81,19 @@ export function useCreateFromStatements({ loadTables, messages }: UseCreateFromS
 
   const loadStatements = useCallback(async (): Promise<void> => {
     setStatementsLoading(true);
-    try {
+
+    await (async () => {
       const response = await apiClient.get('/statements', { params: { page: 1, limit: 50 } });
       const payload = response.data?.data || response.data?.items || [];
       setStatements(Array.isArray(payload) ? payload : []);
-    } catch (error) {
-      console.error('Failed to load statements:', error);
-      toast.error(getApiErrorMessage(error, messages.loadStatementsFailed));
-    } finally {
-      setStatementsLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to load statements:', error);
+        toast.error(getApiErrorMessage(error, messages.loadStatementsFailed));
+      })
+      .finally(async () => {
+        setStatementsLoading(false);
+      });
   }, [messages.loadStatementsFailed]);
 
   const statementSelectionOptions = useMemo(
@@ -165,7 +168,8 @@ export function useCreateFromStatements({ loadTables, messages }: UseCreateFromS
       return;
     }
     setCreatingFromStatements(true);
-    try {
+
+    return await (async () => {
       const response = await apiClient.post('/custom-tables/from-statements', {
         statementIds: selectedStatementPayloadIds,
         name: createFromStatementsForm.name.trim() || undefined,
@@ -180,12 +184,14 @@ export function useCreateFromStatements({ loadTables, messages }: UseCreateFromS
         return;
       }
       await loadTables();
-    } catch (error) {
-      console.error('Failed to create from statements:', error);
-      toast.error(getApiErrorMessage(error, messages.createFromStatementFailed));
-    } finally {
-      setCreatingFromStatements(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to create from statements:', error);
+        toast.error(getApiErrorMessage(error, messages.createFromStatementFailed));
+      })
+      .finally(async () => {
+        setCreatingFromStatements(false);
+      });
   }, [
     selectedStatementPayloadIds,
     createFromStatementsForm,

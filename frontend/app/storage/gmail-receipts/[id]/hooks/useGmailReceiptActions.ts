@@ -67,7 +67,7 @@ export function useGmailReceiptActions({
   };
 
   const handleSaveChanges = async (): Promise<void> => {
-    try {
+    await (async () => {
       setSaving(true);
       const normalizedLineItems = editedData.lineItems
         .filter(item => Number.isFinite(item.amount))
@@ -81,12 +81,14 @@ export function useGmailReceiptActions({
       });
       toast.success('Receipt updated');
       await refreshReceipt();
-    } catch (error) {
-      console.error('Failed to save receipt changes', error);
-      toast.error('Failed to save receipt');
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to save receipt changes', error);
+        toast.error('Failed to save receipt');
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   const handleSubmitDocument = async (): Promise<void> => {
@@ -98,7 +100,8 @@ export function useGmailReceiptActions({
       toast.error('Amount is required before submit');
       return;
     }
-    try {
+
+    await (async () => {
       setSubmitting(true);
       await gmailReceiptsApi.approveReceipt(receipt.id, {
         description: editedData.vendor || receipt.parsedData?.vendor || receipt.subject,
@@ -108,12 +111,14 @@ export function useGmailReceiptActions({
       });
       toast.success('Receipt submitted');
       await refreshReceipt();
-    } catch (error) {
-      console.error('Failed to submit receipt', error);
-      toast.error('Failed to submit receipt');
-    } finally {
-      setSubmitting(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to submit receipt', error);
+        toast.error('Failed to submit receipt');
+      })
+      .finally(async () => {
+        setSubmitting(false);
+      });
   };
 
   const handleCategorySelect = async (categoryId: string): Promise<void> => {
@@ -123,7 +128,7 @@ export function useGmailReceiptActions({
 
     const selected = categories.find(c => c.id === categoryId);
 
-    try {
+    await (async () => {
       setCategorySaving(true);
       await gmailReceiptsApi.updateReceiptParsedData(receipt.id, {
         categoryId: categoryId || null,
@@ -151,16 +156,18 @@ export function useGmailReceiptActions({
 
       setCategoryDrawerOpen(false);
       toast.success('Category updated');
-    } catch (error) {
-      console.error('Failed to update category', error);
-      toast.error('Failed to update category');
-    } finally {
-      setCategorySaving(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to update category', error);
+        toast.error('Failed to update category');
+      })
+      .finally(async () => {
+        setCategorySaving(false);
+      });
   };
 
   const handleExportToGmailDraft = async (): Promise<void> => {
-    try {
+    await (async () => {
       setExporting(true);
       const response = await gmailReceiptsApi.exportReceiptToDraft(receiptId);
       const url = response.data?.data?.url;
@@ -168,50 +175,54 @@ export function useGmailReceiptActions({
         window.open(url, '_blank');
       }
       toast.success('Gmail draft created');
-    } catch (error) {
-      console.error('Failed to create Gmail draft', error);
-      toast.error('Failed to create Gmail draft');
-    } finally {
-      setExporting(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to create Gmail draft', error);
+        toast.error('Failed to create Gmail draft');
+      })
+      .finally(async () => {
+        setExporting(false);
+      });
   };
 
   const handleExportToSheets = async (): Promise<void> => {
-    try {
+    await (async () => {
       setExporting(true);
       const response = await gmailReceiptsApi.exportReceiptsToSheets([receiptId]);
       if (response.data?.url) {
         window.open(response.data.url, '_blank');
       }
       toast.success('Receipt exported to Sheets');
-    } catch (error) {
-      console.error('Failed to export receipt', error);
-      toast.error('Failed to export receipt');
-    } finally {
-      setExporting(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to export receipt', error);
+        toast.error('Failed to export receipt');
+      })
+      .finally(async () => {
+        setExporting(false);
+      });
   };
 
   const handleMarkDuplicate = async (originalId: string): Promise<void> => {
-    try {
+    await (async () => {
       await gmailReceiptsApi.markDuplicate(receiptId, originalId);
       toast.success('Marked as duplicate');
       await refreshReceipt();
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to mark duplicate', error);
       toast.error('Failed to mark duplicate');
-    }
+    });
   };
 
   const handleUnmarkDuplicate = async (): Promise<void> => {
-    try {
+    await (async () => {
       await gmailReceiptsApi.unmarkDuplicate(receiptId);
       toast.success('Duplicate mark removed');
       await refreshReceipt();
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to unmark duplicate', error);
       toast.error('Failed to unmark duplicate');
-    }
+    });
   };
 
   const handleCreatePayable = async (): Promise<void> => {

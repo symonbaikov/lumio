@@ -21,6 +21,34 @@ interface TransactionsPageViewProps {
   onReload?: () => Promise<void>;
 }
 
+interface BulkCategorizationResult {
+  successful: number;
+  failed: number;
+  notFound: number;
+  total: number;
+  errors?: unknown;
+}
+
+async function requestBulkCategorization(
+  transactionIds: string[],
+): Promise<BulkCategorizationResult> {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL || '/api/v1'}/classification/bulk`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+      },
+      body: JSON.stringify({ transactionIds }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error('Failed to auto-categorize transactions');
+  }
+  return (await response.json()) as BulkCategorizationResult;
+}
+
 /**
  * Main component for transaction view page with summary, table, and drawer
  */
@@ -63,14 +91,20 @@ export default function TransactionsPageView({
       return;
     }
 
-    try {
-      await onUpdateCategory([txId], categoryId);
-      toast.success(t.categoryUpdated?.value || 'Category updated successfully');
-      handleCloseDrawer();
-    } catch (error) {
-      console.error('Failed to update category:', error);
-      toast.error(t.categoryUpdateFailed?.value || 'Failed to update category');
-    }
+    // Messages resolved before the chain: React Compiler skips components with
+    // optional chaining inside a try block.
+    const successMessage = t.categoryUpdated?.value || 'Category updated successfully';
+    const failureMessage = t.categoryUpdateFailed?.value || 'Failed to update category';
+    await onUpdateCategory([txId], categoryId).then(
+      () => {
+        toast.success(successMessage);
+        handleCloseDrawer();
+      },
+      (error: unknown) => {
+        console.error('Failed to update category:', error);
+        toast.error(failureMessage);
+      },
+    );
   };
 
   const handleSplitDone = async () => {
@@ -81,17 +115,20 @@ export default function TransactionsPageView({
   const handleBulkAssignCategory = async () => {
     if (!bulkCategoryId || selectedIds.length === 0 || !onUpdateCategory) return;
 
-    try {
-      await onUpdateCategory(selectedIds, bulkCategoryId);
-      toast.success(
-        t.categoriesUpdated?.value || `Category assigned to ${selectedIds.length} transaction(s)`,
-      );
-      setSelectedIds([]);
-      setBulkCategoryId('');
-    } catch (error) {
-      console.error('Failed to bulk update categories:', error);
-      toast.error(t.bulkUpdateFailed?.value || 'Failed to update categories');
-    }
+    const successMessage =
+      t.categoriesUpdated?.value || `Category assigned to ${selectedIds.length} transaction(s)`;
+    const failureMessage = t.bulkUpdateFailed?.value || 'Failed to update categories';
+    await onUpdateCategory(selectedIds, bulkCategoryId).then(
+      () => {
+        toast.success(successMessage);
+        setSelectedIds([]);
+        setBulkCategoryId('');
+      },
+      (error: unknown) => {
+        console.error('Failed to bulk update categories:', error);
+        toast.error(failureMessage);
+      },
+    );
   };
 
   const handleExport = () => {
@@ -106,59 +143,46 @@ export default function TransactionsPageView({
       return;
     }
 
-    try {
-      setFixing(true);
-      const toastId = toast.loading(
-        t.categorizingProgress.value.replace('{{count}}', String(uncategorizedTxIds.length)),
+    // No try/finally here (React Compiler skips components containing one);
+    // the request itself lives in a module-level helper.
+    setFixing(true);
+    const toastId = toast.loading(
+      t.categorizingProgress.value.replace('{{count}}', String(uncategorizedTxIds.length)),
+    );
+    await requestBulkCategorization(uncategorizedTxIds)
+      .then(async results => {
+        if (onReload) {
+          await onReload();
+        }
+        reportCategorizationResults(results, toastId);
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to fix issues:', error);
+        toast.error(t.autoFixFailed.value);
+      });
+    setFixing(false);
+  };
+
+  const reportCategorizationResults = (results: BulkCategorizationResult, toastId: string) => {
+    if (results.successful > 0 && results.failed === 0 && results.notFound === 0) {
+      toast.success(t.categorizeSuccess.value.replace('{{count}}', String(results.successful)), {
+        id: toastId,
+      });
+    } else if (results.successful > 0 && (results.failed > 0 || results.notFound > 0)) {
+      toast(
+        t.categorizePartial.value
+          .replace('{{successful}}', String(results.successful))
+          .replace('{{total}}', String(results.total))
+          .replace('{{failed}}', String(results.failed + results.notFound)),
+        { id: toastId, duration: 6000, icon: '⚠️' },
       );
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || '/api/v1'}/classification/bulk`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-          },
-          body: JSON.stringify({ transactionIds: uncategorizedTxIds }),
-        },
+      console.error('Categorization errors:', results.errors);
+    } else {
+      toast.error(
+        t.categorizeFailed.value.replace('{{count}}', String(results.failed + results.notFound)),
+        { id: toastId },
       );
-
-      if (!response.ok) {
-        throw new Error('Failed to auto-categorize transactions');
-      }
-
-      const results = await response.json();
-
-      if (onReload) {
-        await onReload();
-      }
-
-      if (results.successful > 0 && results.failed === 0 && results.notFound === 0) {
-        toast.success(t.categorizeSuccess.value.replace('{{count}}', String(results.successful)), {
-          id: toastId,
-        });
-      } else if (results.successful > 0 && (results.failed > 0 || results.notFound > 0)) {
-        toast(
-          t.categorizePartial.value
-            .replace('{{successful}}', String(results.successful))
-            .replace('{{total}}', String(results.total))
-            .replace('{{failed}}', String(results.failed + results.notFound)),
-          { id: toastId, duration: 6000, icon: '⚠️' },
-        );
-        console.error('Categorization errors:', results.errors);
-      } else {
-        toast.error(
-          t.categorizeFailed.value.replace('{{count}}', String(results.failed + results.notFound)),
-          { id: toastId },
-        );
-        console.error('All errors:', results.errors);
-      }
-    } catch (error) {
-      console.error('Failed to fix issues:', error);
-      toast.error(t.autoFixFailed.value);
-    } finally {
-      setFixing(false);
+      console.error('All errors:', results.errors);
     }
   };
 

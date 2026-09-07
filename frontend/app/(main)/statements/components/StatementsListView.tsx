@@ -1,8 +1,9 @@
 'use client';
 
 import CreateExpenseDrawer from '@/app/(main)/statements/components/CreateExpenseDrawer';
+import ConfirmModal from '@/app/components/ConfirmModal';
 import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
-import { RefreshCcw } from '@/app/components/icons';
+import { GitMerge, RefreshCcw } from '@/app/components/icons';
 import { useKeyboardShortcuts } from '@/app/hooks/use-keyboard-shortcuts';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import apiClient from '@/app/lib/api';
@@ -15,10 +16,12 @@ import type {
 } from '@/app/lib/statement-expense-drawer';
 import type { StatementStage } from '@/app/lib/statement-workflow';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useRef } from 'react';
 import toast from 'react-hot-toast';
 import { StatementsListHeader } from './StatementsListHeader';
 import { StatementsListTable } from './StatementsListTable';
 import { isGmailStatement, resolveStatementViewAction } from './StatementsListView.utils';
+import type { MergeDuplicatesPlan } from './hooks/useStatementSelection';
 import { useStatementsView } from './hooks/useStatementsView';
 import { uploadScanDrawerFiles as runUploadScanDrawerFiles } from './statement-upload';
 
@@ -126,12 +129,53 @@ function PullToRefreshIndicator({
   );
 }
 
+function MergeDuplicatesSummary({
+  plan,
+}: {
+  plan: MergeDuplicatesPlan | null;
+}): React.JSX.Element | null {
+  if (!plan) {
+    return null;
+  }
+  const trashCount = plan.statementIds.length + plan.receiptIds.length;
+  const lines: string[] = [];
+  if (plan.gmailEntries.length > 0) {
+    lines.push(`${plan.gmailEntries.length} Gmail receipt(s) will be marked as duplicate.`);
+  }
+  if (plan.receiptIds.length > 0) {
+    lines.push(`${plan.receiptIds.length} receipt(s) will be moved to trash.`);
+  }
+  if (plan.statementIds.length > 0) {
+    lines.push(`${plan.statementIds.length} statement(s) will be moved to trash.`);
+  }
+  if (plan.skippedGmailCount > 0) {
+    lines.push(
+      `${plan.skippedGmailCount} Gmail item(s) will be skipped because the primary record is not a Gmail receipt.`,
+    );
+  }
+
+  return (
+    <div style={{ color: 'var(--text-secondary)', lineHeight: 1.625 }}>
+      <p style={{ marginBottom: 12 }}>
+        Primary records are kept. {trashCount} duplicate item(s) will be moved to trash and can be
+        restored from there.
+      </p>
+      <ul style={{ margin: 0, paddingInlineStart: 20 }}>
+        {lines.map(line => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 // ---- Main component ----
 
 export default function StatementsListView({ stage }: Props): React.JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const v = useStatementsView({ stage, router, searchParams });
+  const listScrollRef = useRef<HTMLDivElement | null>(null);
+  const v = useStatementsView({ stage, router, searchParams, listScrollRef });
 
   useLockBodyScroll(v.expenseDrawerOpen);
 
@@ -144,23 +188,15 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
 
   const { t, filterState, listHeaderLabels, paginationLabels, uploadLabels } = v;
 
+  // Опции загрузчика растворились: search — часть ключа запроса, ошибку
+  // рапортует сам хук данных. Остаётся только сбросить страницу и перезапросить.
   const refreshAfterCreate = async (): Promise<void> => {
     v.setPage(1);
-    try {
-      const ok = await v.loadStatements({
-        search: v.search,
-        notifyOnCompletion: false,
-        showErrorToast: false,
-      });
-      if (!ok) throw new Error('refresh-failed');
-    } catch (err) {
-      console.error('Failed to refresh statements:', err);
-      toast.error(resolveLabel(t.refreshFailed, 'Failed to refresh statements'));
-    }
+    v.refetchStatements();
   };
 
   const refreshAfterAttach = (): void => {
-    void v.loadStatements({ silent: true, search: v.search, showErrorToast: false });
+    v.refetchStatements();
   };
 
   const onUploadSuccess = (msg: string): void => {
@@ -174,16 +210,14 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
   }): Promise<void> => {
     const skeletonKeys = payload.files.map((_, index) => `local-upload-${Date.now()}-${index}`);
     v.setGmailSyncSkeletonKeys(prev => [...prev, ...skeletonKeys]);
-    try {
-      await runUploadScanDrawerFiles({
-        payload,
-        labels: uploadLabels,
-        onUploadSuccess: onUploadSuccess,
-        refreshAfterCreate: refreshAfterCreate,
-      });
-    } finally {
+    await runUploadScanDrawerFiles({
+      payload,
+      labels: uploadLabels,
+      onUploadSuccess: onUploadSuccess,
+      refreshAfterCreate: refreshAfterCreate,
+    }).finally(() => {
       v.setGmailSyncSkeletonKeys(prev => prev.filter(key => !skeletonKeys.includes(key)));
-    }
+    });
   };
 
   const handleCreateManualExpense = async (payload: ManualExpensePayload): Promise<void> => {
@@ -260,7 +294,7 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
         selectedCount={v.selectedCount}
         selectedActionsOpen={v.selectedActionsOpen}
         hasSelectedDuplicates={v.hasSelectedDuplicates}
-        loading={v.loading}
+        loading={v.isPending}
         draftFilters={filterState.draftFilters}
         activeFilterCount={v.activeFilterCount}
         typeDropdownOpen={filterState.typeDropdownOpen}
@@ -339,13 +373,13 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
         onColumnsSave={filterState.handleSaveColumns}
       />
       <div
-        ref={v.listScrollRef}
+        ref={listScrollRef}
         data-tour-id="statements-table"
         className="lumio-stmt-list-view__body"
         style={{ paddingBottom: v.selectedCount > 0 ? 96 : 0 }}
       >
         <StatementsListTable
-          loading={v.loading}
+          loading={v.isPending}
           displayStatements={v.displayStatements}
           paginatedStatements={v.paginatedDisplayStatements}
           gmailSyncSkeletonKeys={v.gmailSyncSkeletonKeys}
@@ -411,6 +445,17 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
         onSubmitScan={uploadScanDrawerFiles}
         onSubmitManual={handleCreateManualExpense}
         onCreateTaxRate={handleCreateTaxRate}
+      />
+      <ConfirmModal
+        isOpen={v.mergePlan !== null}
+        onClose={v.cancelMergeSelectedDuplicates}
+        onConfirm={v.confirmMergeSelectedDuplicates}
+        title={mergeDuplicatesLabel}
+        message={<MergeDuplicatesSummary plan={v.mergePlan} />}
+        confirmText={mergeDuplicatesLabel}
+        isLoading={v.mergeRunning}
+        manualClose
+        icon={<GitMerge size={20} />}
       />
     </div>
   );

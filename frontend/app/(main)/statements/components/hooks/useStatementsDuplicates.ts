@@ -137,7 +137,7 @@ function buildMetaFromGroups(
 
     const primaryId = sortedGroup[0]?.statement.id ?? '';
     const groupLabel = toDuplicateGroupLabel(duplicateGroupOrder);
-    // eslint-disable-next-line complexity
+
     const groupTone = DUPLICATE_GROUP_TONES[duplicateGroupOrder % DUPLICATE_GROUP_TONES.length];
     duplicateGroupOrder += 1;
 

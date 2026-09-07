@@ -59,7 +59,7 @@ export async function bulkUpdateAction(loadData: () => Promise<void>, ctx: BulkC
     const updates = Array.from(ctx.selectedRows)
       .filter(id => ctx.editedData[id])
       .map(id => ({ id, updates: ctx.editedData[id] }));
-    await apiClient.patch('/transactions/bulk', { items: updates });
+    await apiClient.post('/transactions/bulk-update', { items: updates });
     await loadData();
     ctx.setSelectedRows(new Set());
     ctx.setEditedData({});
@@ -129,7 +129,7 @@ export async function applyBulkCategoryAction(
       id,
       updates: { categoryId: ctx.bulkCategoryId },
     }));
-    await apiClient.patch('/transactions/bulk', { items });
+    await apiClient.post('/transactions/bulk-update', { items });
     await loadData();
     ctx.setSelectedRows(new Set());
     ctx.setBulkCategoryDialogOpen(false);

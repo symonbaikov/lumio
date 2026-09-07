@@ -52,7 +52,7 @@ export interface UseStorageTagsReturn {
   canEditTag: (tag: TagOption) => boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types, max-lines-per-function
+// eslint-disable-next-line max-lines-per-function
 export function useStorageTags(
   messages: UseStorageTagsMessages,
   setFiles: React.Dispatch<React.SetStateAction<StorageFile[]>>,
@@ -72,13 +72,13 @@ export function useStorageTags(
   const [tagToDelete, setTagToDelete] = useState<TagOption | null>(null);
 
   const loadTags = async (): Promise<void> => {
-    try {
+    await (async () => {
       const response = await api.get('/storage/tags');
       setTags(response.data || []);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to load tags:', error);
       toast.error(messages.loadTagsFailed);
-    }
+    });
   };
 
   const handleCreateTag = async (): Promise<void> => {
@@ -87,16 +87,17 @@ export function useStorageTags(
       toast.error(messages.tagNameRequired);
       return;
     }
-    try {
+
+    await (async () => {
       const payload = { name, color: newTagColor || undefined };
       const response = await api.post('/storage/tags', payload);
       setTags(prev => [...prev, response.data].sort((a, b) => a.name.localeCompare(b.name)));
       setNewTagName('');
       toast.success(messages.tagCreated);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to create tag:', error);
       toast.error(messages.tagCreateFailed);
-    }
+    });
   };
 
   const handleStartEditTag = (tag: TagOption): void => {
@@ -106,14 +107,15 @@ export function useStorageTags(
     setEditingTagPickerId(null);
   };
 
-  // eslint-disable-next-line complexity, max-lines-per-function
+  // eslint-disable-next-line max-lines-per-function
   const handleRenameTag = async (tagId: string): Promise<void> => {
     const name = editingTagName.trim();
     if (!name) {
       toast.error(messages.tagNameRequired);
       return;
     }
-    try {
+
+    await (async () => {
       const response = await api.patch(`/storage/tags/${tagId}`, {
         name,
         color: editingTagColor,
@@ -146,10 +148,10 @@ export function useStorageTags(
       setEditingTagName('');
       setEditingTagColor(null);
       toast.success(messages.tagRenamed);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to rename tag:', error);
       toast.error(messages.tagRenameFailed);
-    }
+    });
   };
 
   const handleCancelEditTag = (): void => {
@@ -169,7 +171,8 @@ export function useStorageTags(
       return;
     }
     const toastId = toast.loading(messages.tagDeleteLoading);
-    try {
+
+    await (async () => {
       await api.delete(`/storage/tags/${tagToDelete.id}`);
       setTags(prev => prev.filter(tag => tag.id !== tagToDelete.id));
       setFolders(prev =>
@@ -184,13 +187,15 @@ export function useStorageTags(
         })),
       );
       toast.success(messages.tagDeleted, { id: toastId });
-    } catch (error) {
-      console.error('Failed to delete tag:', error);
-      toast.error(messages.tagDeleteFailed, { id: toastId });
-    } finally {
-      setTagToDelete(null);
-      setDeleteTagModalOpen(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to delete tag:', error);
+        toast.error(messages.tagDeleteFailed, { id: toastId });
+      })
+      .finally(async () => {
+        setTagToDelete(null);
+        setDeleteTagModalOpen(false);
+      });
   };
 
   const canEditTag = (tag: TagOption): boolean => tag.userId !== null;

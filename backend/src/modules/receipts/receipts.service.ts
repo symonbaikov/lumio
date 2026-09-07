@@ -2,9 +2,10 @@ import { promises as fs } from 'node:fs';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { normalizePagination } from '../../common/utils/pagination.util';
 import {
+  Category,
   Receipt,
   ReceiptJobStatus,
   ReceiptProcessingJob,
@@ -34,6 +35,13 @@ type ScanParams = {
 
 const MANUAL_RECEIPT_WORKER_ID = 'manual-receipt-sync';
 
+/**
+ * The category a user picks on a receipt is stored inside `parsedData` as a
+ * bare id, so every reader would otherwise have to resolve the name itself.
+ * Lists render the name, so the id is resolved once here.
+ */
+type ReceiptWithCategory = Receipt & { category: { id: string; name: string } | null };
+
 @Injectable()
 export class ReceiptsService {
   private readonly logger = new Logger(ReceiptsService.name);
@@ -47,6 +55,8 @@ export class ReceiptsService {
     private readonly transactionRepository: Repository<Transaction>,
     @InjectRepository(Statement)
     private readonly statementRepository: Repository<Statement>,
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>,
     private readonly receiptProcessor: ReceiptProcessorService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -120,11 +130,47 @@ export class ReceiptsService {
       take: limit,
     });
 
-    return { data, total, page, limit };
+    return { data: await this.withCategories(data, workspaceId), total, page, limit };
   }
 
-  async findOne(id: string, workspaceId: string): Promise<Receipt | null> {
-    return this.receiptRepository.findOne({ where: { id, workspaceId } });
+  async findOne(id: string, workspaceId: string): Promise<ReceiptWithCategory | null> {
+    const receipt = await this.receiptRepository.findOne({ where: { id, workspaceId } });
+    if (!receipt) {
+      return null;
+    }
+    const [withCategory] = await this.withCategories([receipt], workspaceId);
+    return withCategory;
+  }
+
+  private async withCategories(
+    receipts: Receipt[],
+    workspaceId: string,
+  ): Promise<ReceiptWithCategory[]> {
+    const categoryIds = [
+      ...new Set(
+        receipts
+          .map(receipt => receipt.parsedData?.categoryId)
+          .filter((categoryId): categoryId is string => Boolean(categoryId)),
+      ),
+    ];
+
+    const categories = categoryIds.length
+      ? await this.categoryRepository.find({
+          where: { id: In(categoryIds), workspaceId },
+          select: ['id', 'name'],
+        })
+      : [];
+    const byId = new Map(categories.map(category => [category.id, category]));
+
+    return receipts.map(receipt => {
+      const category = receipt.parsedData?.categoryId
+        ? byId.get(receipt.parsedData.categoryId)
+        : undefined;
+      return {
+        ...receipt,
+        category: category ? { id: category.id, name: category.name } : null,
+      };
+    });
   }
 
   async update(
@@ -156,7 +202,36 @@ export class ReceiptsService {
       receipt.statementId = dto.statementId;
     }
 
-    return this.receiptRepository.save(receipt);
+    const saved = await this.receiptRepository.save(receipt);
+    await this.syncStatementCategory(saved, workspaceId);
+
+    return saved;
+  }
+
+  /**
+   * A scan receipt is converted into a statement before the user ever opens it,
+   * so the statement carries the fallback category picked at conversion time.
+   * When the user then picks a category on the receipt, the statement has to
+   * follow — otherwise the choice is invisible everywhere the statement is shown.
+   */
+  private async syncStatementCategory(receipt: Receipt, workspaceId: string): Promise<void> {
+    const categoryId = receipt.parsedData?.categoryId;
+    if (!(receipt.statementId && categoryId)) {
+      return;
+    }
+
+    const category = await this.categoryRepository.findOne({
+      where: { id: categoryId, workspaceId },
+      select: ['id'],
+    });
+    if (!category) {
+      return;
+    }
+
+    await this.statementRepository.update(
+      { id: receipt.statementId, workspaceId },
+      { categoryId: category.id },
+    );
   }
 
   async approve(id: string, workspaceId: string) {

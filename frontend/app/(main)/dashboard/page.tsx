@@ -29,11 +29,11 @@ function DashboardPageInner(): React.JSX.Element {
     pullRefreshing,
     isReadyToRefresh,
     error,
-    loading,
+    isPending,
     data,
     activeTab,
     setActiveTab,
-    refresh,
+    refetch,
     formatAmount,
     statusHeading,
     greetingSubtitle,
@@ -65,10 +65,10 @@ function DashboardPageInner(): React.JSX.Element {
         />
         <DashboardContent
           error={error}
-          loading={loading}
-          data={data}
+          loading={isPending}
+          data={data ?? null}
           onRefresh={() => {
-            void refresh();
+            void refetch();
           }}
           activeTab={activeTab}
           setActiveTab={setActiveTab}

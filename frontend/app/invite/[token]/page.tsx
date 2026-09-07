@@ -88,10 +88,12 @@ export default function AcceptInvitePage() {
       });
   }, []);
 
+  const userEmail = user?.email;
+  const invitationEmail = invitation?.email;
   const isEmailMatch = useMemo(() => {
-    if (!user?.email || !invitation?.email) return false;
-    return user.email.trim().toLowerCase() === invitation.email.trim().toLowerCase();
-  }, [invitation?.email, user?.email]);
+    if (!userEmail || !invitationEmail) return false;
+    return userEmail.trim().toLowerCase() === invitationEmail.trim().toLowerCase();
+  }, [invitationEmail, userEmail]);
 
   const loginHref = useMemo(() => {
     const safeNext = safeInternalPath(nextPath);
@@ -111,7 +113,7 @@ export default function AcceptInvitePage() {
     setAcceptError(null);
     setAcceptSuccess(null);
 
-    try {
+    await (async () => {
       const response = await apiClient.post(`/workspaces/invitations/${token}/accept`);
 
       const message = response.data?.message || t.messages.acceptedFallback.value;
@@ -119,7 +121,7 @@ export default function AcceptInvitePage() {
 
       setAcceptSuccess(message);
 
-      try {
+      await (async () => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const parsed = JSON.parse(storedUser) as Record<string, unknown>;
@@ -127,16 +129,18 @@ export default function AcceptInvitePage() {
         } else if (user) {
           localStorage.setItem('user', JSON.stringify({ ...user, workspaceId }));
         }
-      } catch {
+      })().catch(async () => {
         // ignore localStorage update issues
-      }
+      });
 
       window.location.href = '/settings/workspace';
-    } catch (err) {
-      setAcceptError(getApiErrorMessage(err, t.errors.acceptFailed.value));
-    } finally {
-      setAccepting(false);
-    }
+    })()
+      .catch(async err => {
+        setAcceptError(getApiErrorMessage(err, t.errors.acceptFailed.value));
+      })
+      .finally(async () => {
+        setAccepting(false);
+      });
   };
 
   const handleLoginAsAnother = () => {

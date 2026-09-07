@@ -2,7 +2,7 @@
 
 import { resolveCurrencyCode } from '@/app/lib/format-money';
 import type React from 'react';
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from './WorkspaceContext';
 
 const STORAGE_KEY = 'lumio:currencyDisplay';
@@ -37,12 +37,13 @@ export function CurrencyDisplayProvider({
     setShowConverted(prev => !prev);
   }, []);
 
+  const value = useMemo(
+    () => ({ showConverted, toggleShowConverted, workspaceCurrency }),
+    [showConverted, toggleShowConverted, workspaceCurrency],
+  );
+
   return (
-    <CurrencyDisplayContext.Provider
-      value={{ showConverted, toggleShowConverted, workspaceCurrency }}
-    >
-      {children}
-    </CurrencyDisplayContext.Provider>
+    <CurrencyDisplayContext.Provider value={value}>{children}</CurrencyDisplayContext.Provider>
   );
 }
 

@@ -3,6 +3,7 @@
 import { Filter, Search, X } from '@/app/components/icons';
 import { useLocale } from '@/app/i18n';
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
+import { useEffect, useState } from 'react';
 import type { Category, FilterState } from './types';
 
 type FilterTranslations = {
@@ -169,6 +170,21 @@ export function TransactionFiltersBar({
 }: TransactionFiltersBarProps): React.ReactElement {
   const activeCount = (filters.status !== 'all' ? 1 : 0) + (filters.category ? 1 : 0);
 
+  // Typing updates a local draft; the (expensive) filter + sort of the whole
+  // list only runs once the user pauses. External changes (clear buttons)
+  // still win: they reset the draft during render.
+  const [searchDraft, setSearchDraft] = useState(filters.search);
+  const [syncedSearch, setSyncedSearch] = useState(filters.search);
+  if (filters.search !== syncedSearch) {
+    setSyncedSearch(filters.search);
+    setSearchDraft(filters.search);
+  }
+  useEffect(() => {
+    if (searchDraft === filters.search) return;
+    const timer = setTimeout(() => onFilterChange({ ...filters, search: searchDraft }), 250);
+    return () => clearTimeout(timer);
+  }, [searchDraft, filters, onFilterChange]);
+
   return (
     <div className="lumio-tx-filters">
       <div className="lumio-tx-filters__top">
@@ -177,11 +193,11 @@ export function TransactionFiltersBar({
           <input
             type="text"
             placeholder={t.searchPlaceholder.value}
-            value={filters.search}
-            onChange={e => onFilterChange({ ...filters, search: e.target.value })}
+            value={searchDraft}
+            onChange={e => setSearchDraft(e.target.value)}
             className="lumio-tx-filters__search"
           />
-          {filters.search && (
+          {searchDraft && (
             <button
               type="button"
               onClick={() => onFilterChange({ ...filters, search: '' })}

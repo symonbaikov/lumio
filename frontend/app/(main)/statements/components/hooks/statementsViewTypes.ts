@@ -82,6 +82,9 @@ export interface UseStatementsViewParams {
   stage: StatementStage;
   router: AppRouterInstance;
   searchParams: ReadonlyURLSearchParams;
+  /** Owned by the view: keeping the ref out of the returned state object lets
+   * React Compiler memoize the view (an object holding a ref is treated as a ref). */
+  listScrollRef: RefObject<HTMLDivElement | null>;
 }
 
 export const STATEMENTS_PAGE_SIZE = 30;
@@ -97,7 +100,6 @@ export interface StatementsViewState {
   expenseDrawerOpen: boolean;
   setExpenseDrawerOpen: (v: boolean) => void;
   expenseDrawerMode: StatementExpenseMode;
-  listScrollRef: RefObject<HTMLDivElement | null>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   t: any;
   filterLabels: Record<string, string>;
@@ -120,8 +122,8 @@ export interface StatementsViewState {
   closePreview: ReturnType<typeof useStatementPreview>['closePreview'];
   loading: boolean;
   gmailSyncSkeletonKeys: string[];
-  loadStatements: ReturnType<typeof useStatementsListData>['loadStatements'];
-  loadGmailReceipts: ReturnType<typeof useStatementsListData>['loadGmailReceipts'];
+  refetchStatements: ReturnType<typeof useStatementsListData>['refetchStatements'];
+  refetchGmailReceipts: ReturnType<typeof useStatementsListData>['refetchGmailReceipts'];
   refreshActiveStatements: ReturnType<typeof useStatementsListData>['refreshActiveStatements'];
   displayStatements: StatementsStatement[];
   paginatedDisplayStatements: StatementsStatement[];

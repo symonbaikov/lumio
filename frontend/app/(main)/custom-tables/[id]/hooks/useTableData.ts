@@ -42,13 +42,13 @@ export function useTableData({
   const [loading, setLoading] = useState(false);
 
   const loadCategories = useCallback(async () => {
-    try {
+    await (async () => {
       const response = await apiClient.get('/categories');
       const payload = response.data?.data || response.data || [];
       setCategories(Array.isArray(payload) ? payload : []);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to load categories:', error);
-    }
+    });
   }, []);
 
   const loadTable = useCallback(async () => {
@@ -56,18 +56,21 @@ export function useTableData({
       return;
     }
     setLoading(true);
-    try {
+
+    await (async () => {
       const response = await apiClient.get(`/custom-tables/${tableId}`);
       const payload = response.data?.data || response.data;
       setTable(payload);
       const currentCategoryId = payload?.categoryId || payload?.category?.id || '';
       setCategoryId(currentCategoryId || '');
-    } catch (error) {
-      console.error('Failed to load table:', error);
-      toast.error(loadTableFailedMessage);
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to load table:', error);
+        toast.error(loadTableFailedMessage);
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, [tableId, loadTableFailedMessage]);
 
   // Initial load on auth + tableId

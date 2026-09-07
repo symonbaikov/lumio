@@ -37,7 +37,7 @@ export function useConvertToStatement({
       tx(t, ['toasts', 'convertingToStatement'], 'Converting table to statement...'),
     );
 
-    try {
+    await (async () => {
       const response = await apiClient.post(`/custom-tables/${tableId}/convert-to-statement`);
       const payload: ConvertResponse = response.data?.data || response.data || {};
       const importedRows = Number(payload.importedRows || 0);
@@ -50,17 +50,19 @@ export function useConvertToStatement({
 
       toast.success(successMessage, { id: toastId });
       router.push(statementId ? `/statements?statementId=${statementId}` : '/statements');
-    } catch (error) {
-      toast.error(
-        getApiErrorMessage(
-          error,
-          tx(t, ['toasts', 'convertToStatementFailed'], 'Failed to convert table'),
-        ),
-        { id: toastId },
-      );
-    } finally {
-      setConvertingToStatement(false);
-    }
+    })()
+      .catch(async error => {
+        toast.error(
+          getApiErrorMessage(
+            error,
+            tx(t, ['toasts', 'convertToStatementFailed'], 'Failed to convert table'),
+          ),
+          { id: toastId },
+        );
+      })
+      .finally(async () => {
+        setConvertingToStatement(false);
+      });
   }, [convertingToStatement, router, t, tableId]);
 
   return { convertingToStatement, convertToStatement };

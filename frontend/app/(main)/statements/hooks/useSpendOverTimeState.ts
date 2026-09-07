@@ -80,7 +80,7 @@ const DEFAULT_FLOW: SpendOverTimeFlowType = 'expense';
 // localStorage helpers
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line max-lines-per-function, complexity
+// eslint-disable-next-line complexity
 const loadStoredState = (storageKey: string): StoredState => {
   if (typeof window === 'undefined') {
     return {
@@ -235,7 +235,6 @@ export function useSpendOverTimeState(storageKey: string): UseSpendOverTimeState
     close();
   };
 
-  // eslint-disable-next-line max-params
   const resetAndClose = (key: keyof StatementFilters, close: () => void): void => {
     const next = resetSingleStatementFilter(draftFilters, key);
     setDraftFilters(next);

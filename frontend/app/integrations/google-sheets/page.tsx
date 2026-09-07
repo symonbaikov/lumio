@@ -30,7 +30,7 @@ import { tokens } from '@/lib/theme-tokens';
 import { Alert, Box, Stack, Typography } from '@mui/material';
 import { useTheme } from 'next-themes';
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 
 interface GoogleSheetConnection {
@@ -87,21 +87,22 @@ export default function GoogleSheetsIntegrationPage(): React.JSX.Element {
   });
 
   const loadConnections = async (): Promise<void> => {
-    try {
+    await (async () => {
       setLoadingList(true);
       const response = await apiClient.get('/google-sheets');
       const items: GoogleSheetConnection[] = response.data?.data || response.data || [];
       setConnections(items);
-    } catch {
-      setError(t.errors.loadConnections.value);
-    } finally {
-      setLoadingList(false);
-    }
+    })()
+      .catch(async () => {
+        setError(t.errors.loadConnections.value);
+      })
+      .finally(async () => {
+        setLoadingList(false);
+      });
   };
 
-  // eslint-disable-next-line complexity
   const loadAuthStatus = async (): Promise<void> => {
-    try {
+    await (async () => {
       const response = await apiClient.get('/google-sheets/oauth/status');
       const status: AuthStatus = response.data?.data || response.data || { connected: false };
       setAuthStatus(status);
@@ -115,22 +116,24 @@ export default function GoogleSheetsIntegrationPage(): React.JSX.Element {
         setPickerAccessToken('');
         setPickerApiKey('');
       }
-    } catch {
+    })().catch(async () => {
       setAuthStatus({ connected: false, email: null });
       setPickerAccessToken('');
       setPickerApiKey('');
-    }
+    });
   };
 
-  useEffect(() => {
-    if (!user) return;
+  const loadForUser = useEffectEvent(() => {
     void loadConnections();
     void loadAuthStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    if (!user) return;
+    loadForUser();
   }, [user]);
 
   const startOauth = async (): Promise<void> => {
-    try {
+    await (async () => {
       setConnectingAccount(true);
       setError(null);
       const resp = await apiClient.get('/google-sheets/oauth/url', {
@@ -142,17 +145,19 @@ export default function GoogleSheetsIntegrationPage(): React.JSX.Element {
       }
       toast.success(t.toasts.openingAuth.value);
       window.location.href = url;
-    } catch (err) {
-      const message = getApiErrorMessage(err, t.errors.connectFailed.value);
-      setError(message);
-      toast.error(message);
-    } finally {
-      setConnectingAccount(false);
-    }
+    })()
+      .catch(async err => {
+        const message = getApiErrorMessage(err, t.errors.connectFailed.value);
+        setError(message);
+        toast.error(message);
+      })
+      .finally(async () => {
+        setConnectingAccount(false);
+      });
   };
 
   const loadWorksheets = async (spreadsheetId: string): Promise<void> => {
-    try {
+    await (async () => {
       setLoadingWorksheets(true);
       const response = await apiClient.get(
         `/google-sheets/spreadsheets/${spreadsheetId}/worksheets`,
@@ -160,13 +165,15 @@ export default function GoogleSheetsIntegrationPage(): React.JSX.Element {
       const items: WorksheetOption[] = response.data?.data || response.data || [];
       setWorksheets(items);
       setWorksheetName(current => getDefaultWorksheetName(current, items));
-    } catch (err) {
-      const message = getApiErrorMessage(err, copy.errors.loadWorksheets);
-      setError(message);
-      toast.error(message);
-    } finally {
-      setLoadingWorksheets(false);
-    }
+    })()
+      .catch(async err => {
+        const message = getApiErrorMessage(err, copy.errors.loadWorksheets);
+        setError(message);
+        toast.error(message);
+      })
+      .finally(async () => {
+        setLoadingWorksheets(false);
+      });
   };
 
   const handleSpreadsheetPick = async (selection: SpreadsheetSelection): Promise<void> => {
@@ -186,7 +193,7 @@ export default function GoogleSheetsIntegrationPage(): React.JSX.Element {
       return;
     }
 
-    try {
+    await (async () => {
       setSubmitting(true);
       setError(null);
       setSuccess(null);
@@ -198,17 +205,19 @@ export default function GoogleSheetsIntegrationPage(): React.JSX.Element {
       setSuccess(copy.toasts.connected);
       toast.success(copy.toasts.connected);
       await loadConnections();
-    } catch (err) {
-      const message = getApiErrorMessage(err, t.errors.connectFailed.value);
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    })()
+      .catch(async err => {
+        const message = getApiErrorMessage(err, t.errors.connectFailed.value);
+        setError(message);
+        toast.error(message);
+      })
+      .finally(async () => {
+        setSubmitting(false);
+      });
   };
 
   const handleSync = async (id: string): Promise<void> => {
-    try {
+    await (async () => {
       setSyncingId(id);
       setError(null);
       setSuccess(null);
@@ -216,17 +225,19 @@ export default function GoogleSheetsIntegrationPage(): React.JSX.Element {
       setSuccess(t.toasts.syncStarted.value);
       toast.success(t.toasts.syncStarted.value);
       await loadConnections();
-    } catch (err) {
-      const message = getApiErrorMessage(err, t.errors.syncFailed.value);
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSyncingId(null);
-    }
+    })()
+      .catch(async err => {
+        const message = getApiErrorMessage(err, t.errors.syncFailed.value);
+        setError(message);
+        toast.error(message);
+      })
+      .finally(async () => {
+        setSyncingId(null);
+      });
   };
 
   const handleRemove = async (id: string): Promise<void> => {
-    try {
+    await (async () => {
       setRemovingId(id);
       setError(null);
       setSuccess(null);
@@ -234,13 +245,15 @@ export default function GoogleSheetsIntegrationPage(): React.JSX.Element {
       setSuccess(t.toasts.removed.value);
       toast.success(t.toasts.removed.value);
       await loadConnections();
-    } catch (err) {
-      const message = getApiErrorMessage(err, t.errors.removeFailed.value);
-      setError(message);
-      toast.error(message);
-    } finally {
-      setRemovingId(null);
-    }
+    })()
+      .catch(async err => {
+        const message = getApiErrorMessage(err, t.errors.removeFailed.value);
+        setError(message);
+        toast.error(message);
+      })
+      .finally(async () => {
+        setRemovingId(null);
+      });
   };
 
   const emptyState = useMemo(

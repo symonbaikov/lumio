@@ -6,7 +6,7 @@ import Box from '@mui/material/Box';
 import Popper from '@mui/material/Popper';
 import Typography from '@mui/material/Typography';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type SearchResultKind = 'transaction' | 'statement' | 'payable' | 'receivable' | 'category';
 
@@ -32,7 +32,8 @@ const KIND_LABELS: Record<SearchResultKind, string> = {
 
 export function GlobalSearch() {
   const router = useRouter();
-  const anchorRef = useRef<HTMLDivElement | null>(null);
+  // Anchor kept in state (not a ref read during render) so React Compiler can memoize.
+  const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
@@ -77,7 +78,7 @@ export function GlobalSearch() {
   };
 
   return (
-    <Box ref={anchorRef} sx={{ position: 'relative', display: { xs: 'none', md: 'block' } }}>
+    <Box ref={setAnchorEl} sx={{ position: 'relative', display: { xs: 'none', md: 'block' } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
         <Search size={16} />
         <Box
@@ -99,7 +100,7 @@ export function GlobalSearch() {
         />
       </Box>
 
-      <Popper open={open && results.length > 0} anchorEl={anchorRef.current} placement="bottom-end">
+      <Popper open={open && results.length > 0} anchorEl={anchorEl} placement="bottom-end">
         <Box
           sx={{
             mt: 1,

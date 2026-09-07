@@ -71,7 +71,7 @@ function useLanguageStepData(props: LanguageStepProps): LanguageStepData {
   const text: TextFn = (path, fallback = '') =>
     resolveOnboardingText(getNestedOnboardingValue(t, path), fallback, locale);
 
-  const timeZoneOptions = useMemo(resolveTimeZoneOptions, []);
+  const timeZoneOptions = useMemo(() => resolveTimeZoneOptions(), []);
   const timezoneSelectOptions = useMemo<TimeZoneOption[]>(
     () => timeZoneOptions.map(zone => ({ value: zone, label: zone })),
     [timeZoneOptions],

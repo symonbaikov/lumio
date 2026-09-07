@@ -40,7 +40,7 @@ export function usePasswordForm(messages: UsePasswordFormMessages): UsePasswordF
       return;
     }
 
-    try {
+    await (async () => {
       setPasswordLoading(true);
       const response = await apiClient.patch('/users/me/password', {
         currentPassword: passwords.current,
@@ -49,11 +49,13 @@ export function usePasswordForm(messages: UsePasswordFormMessages): UsePasswordF
 
       setPasswordMessage(response.data?.message || messages.successFallback);
       setPasswords({ current: '', next: '', confirm: '' });
-    } catch (error: unknown) {
-      setPasswordError(getApiErrorMessage(error, messages.errorFallback));
-    } finally {
-      setPasswordLoading(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        setPasswordError(getApiErrorMessage(error, messages.errorFallback));
+      })
+      .finally(async () => {
+        setPasswordLoading(false);
+      });
   };
 
   return {

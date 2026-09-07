@@ -96,7 +96,11 @@ export function useTourCompletedState(open: boolean): TourCompletedState {
           completed.add(tour.id);
         }
       });
-      setCompletedTours(completed);
+      // Polled twice a second while the menu is open: keep the previous Set
+      // when nothing changed so the menu does not re-render on every tick.
+      setCompletedTours(prev =>
+        prev.size === completed.size && [...completed].every(id => prev.has(id)) ? prev : completed,
+      );
     };
 
     updateCompleted();

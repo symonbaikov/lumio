@@ -265,7 +265,7 @@ export default function CreateExpenseDrawer({
     setTaxRateSaving(true);
     setTaxRateError(null);
 
-    try {
+    await (async () => {
       const created = await onCreateTaxRate({ name, rate, isEnabled: true });
       const normalizedCreated = {
         ...created,
@@ -278,13 +278,15 @@ export default function CreateExpenseDrawer({
         taxRateId: normalizedCreated.id,
       }));
       setTaxRateDrawerOpen(false);
-    } catch (createError: unknown) {
-      const message =
-        createError instanceof Error ? createError.message : 'Failed to save tax rate';
-      setTaxRateError(message);
-    } finally {
-      setTaxRateSaving(false);
-    }
+    })()
+      .catch(async (createError: unknown) => {
+        const message =
+          createError instanceof Error ? createError.message : 'Failed to save tax rate';
+        setTaxRateError(message);
+      })
+      .finally(async () => {
+        setTaxRateSaving(false);
+      });
   };
 
   return (

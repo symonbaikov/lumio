@@ -17,6 +17,8 @@ export interface GmailReceipt {
     categoryId?: string;
     lineItems?: Array<{ description: string; amount?: number }>;
   };
+  /** Resolved by the API from `parsedData.categoryId`; absent when none is picked. */
+  category?: { id: string; name: string } | null;
   gmailMessageId?: string;
 }
 
@@ -56,6 +58,7 @@ export interface GmailMappedStatement {
   gmailMessageId?: string;
   receivedAt: string;
   parsedData?: GmailMappedParsedData;
+  category?: { id: string; name: string } | null;
 }
 
 const VENDOR_BANK_PATTERNS: { pattern: RegExp; bankName: string }[] = [
@@ -140,6 +143,7 @@ export const mapGmailReceiptToStatement = (receipt: GmailReceipt): GmailMappedSt
     errorMessage: receipt.status === 'failed' ? 'Failed to parse' : null,
     gmailMessageId: receipt.gmailMessageId,
     receivedAt: receipt.receivedAt,
+    category: receipt.category,
     parsedData: {
       amount: amount ?? undefined,
       currency: receipt.parsedData?.currency,

@@ -113,7 +113,8 @@ export function ProtocolIntegrationPage({
   const saveSettings = async (): Promise<void> => {
     setSaving(true);
     setActionMessage(null);
-    try {
+
+    await (async () => {
       const response =
         settingsMethod === 'put'
           ? await apiClient.put<ProtocolStatus>(settingsPath, form)
@@ -122,78 +123,92 @@ export function ProtocolIntegrationPage({
       setForm(buildInitialForm(fields, response.data.settings || {}));
       void onConnectionStatusChange?.(Boolean(response.data.connected));
       setActionMessage('Connected');
-    } catch {
-      setActionMessage('Connection failed. Check the fields and try again.');
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async () => {
+        setActionMessage('Connection failed. Check the fields and try again.');
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   const disconnect = async (): Promise<void> => {
     setSaving(true);
     setActionMessage(null);
-    try {
+
+    await (async () => {
       await apiClient.delete(disconnectPath);
       const response = await apiClient.get<ProtocolStatus>(statusPath);
       setStatus(response.data);
       void onConnectionStatusChange?.(Boolean(response.data.connected));
       setActionMessage('Disconnected');
-    } catch {
-      setActionMessage('Unable to disconnect');
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async () => {
+        setActionMessage('Unable to disconnect');
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   const loadFiles = async (): Promise<void> => {
     if (!filesPath) return;
     setLoadingFiles(true);
     setActionMessage(null);
-    try {
+
+    await (async () => {
       const response = await apiClient.get<{ files: ProtocolFile[] }>(filesPath);
       setFiles(response.data.files || []);
-    } catch {
-      setActionMessage('Unable to load files');
-    } finally {
-      setLoadingFiles(false);
-    }
+    })()
+      .catch(async () => {
+        setActionMessage('Unable to load files');
+      })
+      .finally(async () => {
+        setLoadingFiles(false);
+      });
   };
 
   const importFile = async (file: ProtocolFile): Promise<void> => {
     if (!importPath) return;
     setActionMessage(null);
-    try {
+
+    await (async () => {
       await apiClient.post(importPath, { fileIds: [file.id] });
       setActionMessage(`Imported ${file.name}`);
-    } catch {
+    })().catch(async () => {
       setActionMessage(`Unable to import ${file.name}`);
-    }
+    });
   };
 
   const browseField = async (field: ConfigField): Promise<void> => {
-    if (!field.browseAction) return;
+    const browseAction = field.browseAction;
+    if (!browseAction) return;
     setBrowsing(field.name);
-    try {
-      const body = Object.fromEntries(field.browseAction.dependsOn.map(key => [key, form[key]]));
-      const response = await apiClient.post<string[]>(field.browseAction.endpoint, body);
+
+    await (async () => {
+      const body = Object.fromEntries(browseAction.dependsOn.map(key => [key, form[key]]));
+      const response = await apiClient.post<string[]>(browseAction.endpoint, body);
       setBrowseOptions(prev => ({ ...prev, [field.name]: response.data }));
-    } catch {
-      setActionMessage('Could not load options. Check the credentials above.');
-    } finally {
-      setBrowsing(null);
-    }
+    })()
+      .catch(async () => {
+        setActionMessage('Could not load options. Check the credentials above.');
+      })
+      .finally(async () => {
+        setBrowsing(null);
+      });
   };
 
   const syncNow = async (): Promise<void> => {
     if (!syncPath) return;
     setActionMessage(null);
-    try {
+
+    await (async () => {
       const response = await apiClient.post<{ uploaded?: number; imported?: number }>(syncPath);
       const count = response.data.uploaded ?? response.data.imported ?? 0;
       setActionMessage(`Sync complete: ${count}`);
-    } catch {
+    })().catch(async () => {
       setActionMessage('Sync failed');
-    }
+    });
   };
 
   return (

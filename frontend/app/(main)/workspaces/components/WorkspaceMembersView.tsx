@@ -245,16 +245,18 @@ export default function WorkspaceMembersView() {
   );
 
   const loadOverview = async () => {
-    try {
+    await (async () => {
       setLoading(true);
       setFetchError(null);
       const response = await apiClient.get<WorkspaceOverview>('/workspaces/me');
       setOverview(response.data);
-    } catch (err) {
-      setFetchError(getApiMessage(err, 'Failed to load workspace members'));
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async err => {
+        setFetchError(getApiMessage(err, 'Failed to load workspace members'));
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -309,7 +311,8 @@ export default function WorkspaceMembersView() {
     }
 
     setInviteLoading(true);
-    try {
+
+    await (async () => {
       await apiClient.post(`/workspaces/${overview.workspace.id}/invitations`, {
         email: inviteEmail,
         role: inviteRole,
@@ -319,11 +322,13 @@ export default function WorkspaceMembersView() {
       setInviteEmail('');
       toast.success('Invitation sent');
       await loadOverview();
-    } catch (err) {
-      toast.error(getApiMessage(err, 'Failed to send invitation'));
-    } finally {
-      setInviteLoading(false);
-    }
+    })()
+      .catch(async err => {
+        toast.error(getApiMessage(err, 'Failed to send invitation'));
+      })
+      .finally(async () => {
+        setInviteLoading(false);
+      });
   };
 
   const handleChangeMemberRole = async (
@@ -346,17 +351,20 @@ export default function WorkspaceMembersView() {
     }
 
     setUpdatingRoleMemberId(member.id);
-    try {
+
+    await (async () => {
       await apiClient.patch(`/workspaces/${overview.workspace.id}/members/${member.id}/role`, {
         role: nextRole,
       });
       toast.success('Role updated');
       await loadOverview();
-    } catch (err) {
-      toast.error(getApiMessage(err, 'Failed to update role'));
-    } finally {
-      setUpdatingRoleMemberId(null);
-    }
+    })()
+      .catch(async err => {
+        toast.error(getApiMessage(err, 'Failed to update role'));
+      })
+      .finally(async () => {
+        setUpdatingRoleMemberId(null);
+      });
   };
 
   const handleRemoveMember = async (memberId: string) => {
@@ -365,15 +373,18 @@ export default function WorkspaceMembersView() {
     }
 
     setRemovingMemberId(memberId);
-    try {
+
+    await (async () => {
       await apiClient.delete(`/workspaces/${overview.workspace.id}/members/${memberId}`);
       toast.success('Member removed');
       await loadOverview();
-    } catch (err) {
-      toast.error(getApiMessage(err, 'Failed to remove member'));
-    } finally {
-      setRemovingMemberId(null);
-    }
+    })()
+      .catch(async err => {
+        toast.error(getApiMessage(err, 'Failed to remove member'));
+      })
+      .finally(async () => {
+        setRemovingMemberId(null);
+      });
   };
 
   const handleResendInvitation = async (invite: WorkspaceOverview['invitations'][number]) => {
@@ -382,7 +393,8 @@ export default function WorkspaceMembersView() {
     }
 
     setResendingInvitationId(invite.id);
-    try {
+
+    await (async () => {
       await apiClient.post(`/workspaces/${overview.workspace.id}/invitations`, {
         email: invite.email,
         role: invite.role,
@@ -390,11 +402,13 @@ export default function WorkspaceMembersView() {
       });
       toast.success('Invitation resent');
       await loadOverview();
-    } catch (err) {
-      toast.error(getApiMessage(err, 'Failed to resend invitation'));
-    } finally {
-      setResendingInvitationId(null);
-    }
+    })()
+      .catch(async err => {
+        toast.error(getApiMessage(err, 'Failed to resend invitation'));
+      })
+      .finally(async () => {
+        setResendingInvitationId(null);
+      });
   };
 
   const handleRevokeInvitation = async (invitationId: string) => {
@@ -406,15 +420,18 @@ export default function WorkspaceMembersView() {
     }
 
     setRevokingInvitationId(invitationId);
-    try {
+
+    await (async () => {
       await apiClient.delete(`/workspaces/${overview.workspace.id}/invitations/${invitationId}`);
       toast.success('Invitation revoked');
       await loadOverview();
-    } catch (err) {
-      toast.error(getApiMessage(err, 'Failed to revoke invitation'));
-    } finally {
-      setRevokingInvitationId(null);
-    }
+    })()
+      .catch(async err => {
+        toast.error(getApiMessage(err, 'Failed to revoke invitation'));
+      })
+      .finally(async () => {
+        setRevokingInvitationId(null);
+      });
   };
 
   const handleMemberMenuAction = async (
@@ -438,13 +455,13 @@ export default function WorkspaceMembersView() {
   };
 
   const copyInviteLink = async (token: string, providedLink?: string) => {
-    try {
+    await (async () => {
       const link = providedLink || `${window.location.origin}/invite/${token}`;
       await navigator.clipboard.writeText(link);
       toast.success('Link copied');
-    } catch {
+    })().catch(async () => {
       toast.error('Failed to copy link');
-    }
+    });
   };
 
   if (loading) {

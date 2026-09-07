@@ -100,28 +100,6 @@ export const systemNotificationSettings: Array<{ key: keyof NotificationPreferen
   { key: 'uncategorizedItems' },
 ];
 
-export const sections = [
-  'profile',
-  'appearance',
-  'sessions',
-  'email',
-  'password',
-  'security',
-  'processing',
-  'notifications',
-  'changelog',
-  'sync',
-  'my-data',
-  'experimental',
-] as const;
-export type SectionId = (typeof sections)[number];
-
-export const normalizeSection = (value: string | null | undefined): SectionId => {
-  if (!value) return 'profile';
-  if ((sections as readonly string[]).includes(value)) return value as SectionId;
-  return 'profile';
-};
-
 export const getApiErrorMessage = (error: unknown, fallback: string) => {
   const axiosError = error as AxiosError<ApiErrorResponse>;
   return (

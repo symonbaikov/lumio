@@ -82,7 +82,8 @@ export function AiAssistantDrawer({ isOpen, onClose }: AiAssistantDrawerProps) {
       if (!template) return;
 
       setLoadingKey(key);
-      try {
+
+      await (async () => {
         const prompt = await template.buildPrompt();
         const encoded = encodeURIComponent(prompt);
         const url = `${CHATGPT_URL}?q=${encoded}`;
@@ -94,11 +95,13 @@ export function AiAssistantDrawer({ isOpen, onClose }: AiAssistantDrawerProps) {
         } else {
           window.open(url, '_blank', 'noopener,noreferrer');
         }
-      } catch {
-        toast.error('Failed to load data');
-      } finally {
-        setLoadingKey(null);
-      }
+      })()
+        .catch(async () => {
+          toast.error('Failed to load data');
+        })
+        .finally(async () => {
+          setLoadingKey(null);
+        });
     },
     [t.copied],
   );

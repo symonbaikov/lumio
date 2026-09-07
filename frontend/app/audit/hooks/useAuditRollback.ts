@@ -38,18 +38,21 @@ export function useAuditRollback({
     }
     setRollbackLoading(true);
     setRollbackError(null);
-    try {
+
+    await (async () => {
       const result = await rollbackEvent(rollbackTarget.id);
       assertRollbackSucceeded(result);
       toast.success('Rollback successful');
       setRollbackTarget(null);
       onCloseDrawer();
       onAfterRollback();
-    } catch (err: unknown) {
-      setRollbackError(getErrorMessage({ error: err, fallback: 'Rollback failed' }));
-    } finally {
-      setRollbackLoading(false);
-    }
+    })()
+      .catch(async (err: unknown) => {
+        setRollbackError(getErrorMessage({ error: err, fallback: 'Rollback failed' }));
+      })
+      .finally(async () => {
+        setRollbackLoading(false);
+      });
   };
 
   return {

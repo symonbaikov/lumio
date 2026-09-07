@@ -1,13 +1,16 @@
 'use client';
 
 import apiClient from '@/app/lib/api';
+import { apiQuery } from '@/app/lib/query-fn';
+import { queryKeys } from '@/app/lib/query-keys';
 import {
   connectNotificationsSocket,
   disconnectNotificationsSocket,
   getNotificationsSocket,
 } from '@/app/lib/socket';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { Socket } from 'socket.io-client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
+import { useAuthContext } from './AuthContext';
 import { useWorkspace } from './WorkspaceContext';
 
 export interface NotificationItem {
@@ -28,152 +31,171 @@ export interface NotificationItem {
   createdAt: string;
 }
 
-type NotificationContextValue = {
+export type NotificationContextValue = {
   notifications: NotificationItem[];
   unreadCount: number;
-  loading: boolean;
-  refresh: () => Promise<void>;
-  markAsRead: (ids: string[]) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
+  isPending: boolean;
+  refetch: () => void;
+  markAsRead: (ids: string[]) => void;
+  markAllAsRead: () => void;
 };
+
+/**
+ * Список и счётчик держатся одним запросом, а не двумя: они всегда читаются
+ * вместе, а сокет-пуш и обе мутации обязаны обновлять их атомарно — иначе бейдж
+ * и список разъезжаются посреди полёта.
+ */
+interface NotificationsSnapshot {
+  items: NotificationItem[];
+  unreadCount: number;
+}
 
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const { currentWorkspace } = useWorkspace();
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
+  const { user } = useAuthContext();
+  const queryClient = useQueryClient();
 
   const workspaceId = currentWorkspace?.id;
+  const queryKey = queryKeys.notifications(workspaceId ?? null);
 
-  const refresh = useCallback(async () => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-    if (!token) {
-      setNotifications([]);
-      setUnreadCount(0);
+  const params: Record<string, string> = {};
+  if (workspaceId) {
+    params.workspaceId = workspaceId;
+  }
+
+  const query = useQuery({
+    queryKey,
+    queryFn: async ({ signal }): Promise<NotificationsSnapshot> => {
+      const [list, unread] = await Promise.all([
+        apiQuery<{ items?: NotificationItem[] }>({ url: '/notifications', params, signal }),
+        apiQuery<{ count?: number }>({ url: '/notifications/unread-count', params, signal }),
+      ]);
+      return { items: list.items ?? [], unreadCount: unread.count ?? 0 };
+    },
+    // `user` реактивен, в отличие от прежнего чтения localStorage: логин в той же
+    // вкладке теперь сам запускает загрузку. workspaceLoading сохраняет прежнее
+    // правило — не фетчить без скоупа, а потом со скоупом.
+    enabled: !workspaceLoading && Boolean(user),
+  });
+
+  useEffect(() => {
+    if (!user) {
+      disconnectNotificationsSocket();
       return;
     }
-
-    setLoading(true);
-    try {
-      const params: Record<string, string> = {};
-      if (workspaceId) {
-        params.workspaceId = workspaceId;
-      }
-
-      const [listResponse, unreadResponse] = await Promise.all([
-        apiClient.get('/notifications', { params }),
-        apiClient.get('/notifications/unread-count', { params }),
-      ]);
-
-      setNotifications(listResponse.data.items ?? []);
-      setUnreadCount(unreadResponse.data.count ?? 0);
-    } catch (error) {
-      console.error('Failed to load notifications', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [workspaceId]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     if (!token) {
       disconnectNotificationsSocket();
-      setSocket(null);
       return;
     }
 
-    const existing = getNotificationsSocket();
-    const nextSocket = existing ?? connectNotificationsSocket(token);
-    setSocket(nextSocket);
-
-    return () => {
-      nextSocket.off('notification:new');
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!socket) {
-      return;
-    }
+    // The socket is a module singleton; holding it in state only added a render.
+    const socket = getNotificationsSocket() ?? connectNotificationsSocket(token);
 
     const onNotification = (notification: NotificationItem) => {
       if (workspaceId && notification.workspaceId && notification.workspaceId !== workspaceId) {
         return;
       }
 
-      setNotifications(previous => {
-        if (previous.some(item => item.id === notification.id)) {
+      // setQueryData, а не invalidateQueries: пуш и есть новый элемент,
+      // рефетч был бы лишним раундтрипом на каждое событие.
+      queryClient.setQueryData<NotificationsSnapshot>(queryKey, previous => {
+        if (!previous || previous.items.some(item => item.id === notification.id)) {
           return previous;
         }
-        return [notification, ...previous].slice(0, 50);
+        return {
+          items: [notification, ...previous.items].slice(0, 50),
+          unreadCount: notification.isRead ? previous.unreadCount : previous.unreadCount + 1,
+        };
       });
-
-      if (!notification.isRead) {
-        setUnreadCount(previous => previous + 1);
-      }
     };
 
     socket.on('notification:new', onNotification);
-    return () => {
-      socket.off('notification:new', onNotification);
-    };
-  }, [socket, workspaceId]);
-
-  useEffect(() => {
-    if (!socket) {
-      return;
-    }
-
     if (workspaceId) {
       socket.emit('join-workspace', { workspaceId });
     }
 
     return () => {
+      socket.off('notification:new', onNotification);
       if (workspaceId) {
         socket.emit('leave-workspace', { workspaceId });
       }
     };
-  }, [socket, workspaceId]);
+  }, [workspaceId, user, queryClient, queryKey]);
 
-  const markAsRead = useCallback(async (ids: string[]) => {
-    if (ids.length === 0) {
-      return;
-    }
+  const markAsReadMutation = useMutation({
+    mutationFn: (ids: string[]) => apiClient.post('/notifications/mark-read', { ids }),
+    onMutate: async (ids: string[]) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<NotificationsSnapshot>(queryKey);
+      queryClient.setQueryData<NotificationsSnapshot>(queryKey, current =>
+        current
+          ? {
+              items: current.items.map(item =>
+                ids.includes(item.id) ? { ...item, isRead: true } : item,
+              ),
+              unreadCount: Math.max(0, current.unreadCount - ids.length),
+            }
+          : current,
+      );
+      return { previous };
+    },
+    onError: (_error, _ids, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  });
 
-    await apiClient.post('/notifications/mark-read', { ids });
-    setNotifications(previous =>
-      previous.map(item => (ids.includes(item.id) ? { ...item, isRead: true } : item)),
-    );
-    setUnreadCount(previous => Math.max(0, previous - ids.length));
-  }, []);
+  const markAllAsReadMutation = useMutation({
+    mutationFn: () => apiClient.post('/notifications/mark-all-read', null, { params }),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<NotificationsSnapshot>(queryKey);
+      queryClient.setQueryData<NotificationsSnapshot>(queryKey, current =>
+        current
+          ? { items: current.items.map(item => ({ ...item, isRead: true })), unreadCount: 0 }
+          : current,
+      );
+      return { previous };
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  });
 
-  const markAllAsRead = useCallback(async () => {
-    const params: Record<string, string> = {};
-    if (workspaceId) {
-      params.workspaceId = workspaceId;
-    }
-    await apiClient.post('/notifications/mark-all-read', null, { params });
-    setNotifications(previous => previous.map(item => ({ ...item, isRead: true })));
-    setUnreadCount(0);
-  }, [workspaceId]);
+  const markAsRead = useCallback(
+    (ids: string[]): void => {
+      if (ids.length === 0) return;
+      markAsReadMutation.mutate(ids);
+    },
+    [markAsReadMutation.mutate],
+  );
+
+  const markAllAsRead = useCallback((): void => {
+    markAllAsReadMutation.mutate();
+  }, [markAllAsReadMutation.mutate]);
+
+  const refetch = useCallback((): void => {
+    void query.refetch();
+  }, [query.refetch]);
+
+  const notifications = query.data?.items ?? [];
+  const unreadCount = query.data?.unreadCount ?? 0;
+  const isPending = query.isPending;
 
   const value = useMemo<NotificationContextValue>(
     () => ({
       notifications,
       unreadCount,
-      loading,
-      refresh,
+      isPending,
+      refetch,
       markAsRead,
       markAllAsRead,
     }),
-    [loading, markAllAsRead, markAsRead, notifications, refresh, unreadCount],
+    [isPending, markAllAsRead, markAsRead, notifications, refetch, unreadCount],
   );
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

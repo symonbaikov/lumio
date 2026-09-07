@@ -37,17 +37,19 @@ export function ReceiptCameraCapture({ isOpen, onClose, onCaptured }: ReceiptCam
   const handleBlobUpload = async (blob: Blob) => {
     setSubmitting(true);
 
-    try {
+    await (async () => {
       const file = new File([blob], 'receipt-scan.jpg', { type: blob.type || 'image/jpeg' });
       await receiptsApi.scanReceipt(file);
       toast.success('Receipt scan uploaded.');
       onCaptured?.();
       onClose();
-    } catch {
-      toast.error('Failed to upload receipt scan.');
-    } finally {
-      setSubmitting(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error('Failed to upload receipt scan.');
+      })
+      .finally(async () => {
+        setSubmitting(false);
+      });
   };
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

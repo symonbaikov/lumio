@@ -124,28 +124,31 @@ export function useCustomTablesData(
   const [page, setPage] = useState(1);
 
   const loadCategories = useCallback(async () => {
-    try {
+    await (async () => {
       const response = await apiClient.get('/categories');
       const payload = response.data?.data || response.data || [];
       setCategories(Array.isArray(payload) ? payload : []);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to load categories:', error);
-    }
+    });
   }, []);
 
   const loadTables = useCallback(async () => {
     setLoading(true);
-    try {
+
+    await (async () => {
       const response = await apiClient.get('/custom-tables');
       const payload =
         response.data?.items || response.data?.data?.items || response.data?.data || [];
       setItems(Array.isArray(payload) ? payload : []);
-    } catch (error) {
-      console.error('Failed to load custom tables:', error);
-      toast.error(getApiErrorMessage(error, messages.loadTablesFailed));
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to load custom tables:', error);
+        toast.error(getApiErrorMessage(error, messages.loadTablesFailed));
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, [messages.loadTablesFailed]);
 
   useEffect(() => {
@@ -208,15 +211,15 @@ export function useCustomTablesData(
     const loadRowsCount = async () => {
       const entries = await Promise.all(
         missing.map(async table => {
-          try {
+          return await (async () => {
             const response = await apiClient.get(`/custom-tables/${table.id}/rows`, {
               params: { limit: 1 },
             });
             const total = Number(response.data?.meta?.total);
             return [table.id, Number.isFinite(total) ? total : 0] as const;
-          } catch {
+          })().catch(async () => {
             return [table.id, 0] as const;
-          }
+          });
         }),
       );
 

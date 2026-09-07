@@ -87,10 +87,11 @@ export function SidePanel({
   const collapsedWidth = 48; // Width when collapsed (just shows toggle)
 
   // Filter sections based on enabledSections and permissions
+  const sections = config?.sections;
   const filteredSections = useMemo(() => {
-    if (!config?.sections) return [];
+    if (!sections) return [];
 
-    return config.sections.filter(section => {
+    return sections.filter(section => {
       // Check if section is enabled
       if (enabledSections && !enabledSections.includes(section.id)) {
         return false;
@@ -105,7 +106,7 @@ export function SidePanel({
 
       return true;
     });
-  }, [config?.sections, enabledSections, permissions, context]);
+  }, [sections, enabledSections, permissions, context]);
 
   // Check panel-level permissions
   const canViewPanel = useMemo(() => {

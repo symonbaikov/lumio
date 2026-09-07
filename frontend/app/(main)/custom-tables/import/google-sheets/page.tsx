@@ -14,7 +14,7 @@ import { useTheme } from 'next-themes';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { type SheetColumnRole, TransactionMappingCard } from './TransactionMappingCard';
 import {
@@ -206,29 +206,32 @@ export default function GoogleSheetsImportPage() {
 
   const loadConnections = async () => {
     setLoadingConnections(true);
-    try {
+
+    await (async () => {
       const response = await apiClient.get('/google-sheets');
       const items: GoogleSheetConnection[] = response.data?.data || response.data || [];
       setConnections(Array.isArray(items) ? items : []);
-    } catch (error) {
-      console.error('Failed to load google sheets connections:', error);
-    } finally {
-      setLoadingConnections(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to load google sheets connections:', error);
+      })
+      .finally(async () => {
+        setLoadingConnections(false);
+      });
   };
 
   const loadCategories = async () => {
-    try {
+    await (async () => {
       const response = await apiClient.get('/categories');
       const payload = response.data?.data || response.data || [];
       setCategories(Array.isArray(payload) ? payload : []);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to load categories:', error);
-    }
+    });
   };
 
   const loadWallets = async () => {
-    try {
+    await (async () => {
       const response = await apiClient.get('/wallets');
       const payload = response.data?.data || response.data || [];
       setWallets(
@@ -236,9 +239,9 @@ export default function GoogleSheetsImportPage() {
           ? payload.map((w: WalletOption) => ({ id: w.id, name: w.name }))
           : [],
       );
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to load wallets:', error);
-    }
+    });
   };
 
   useEffect(() => {
@@ -276,17 +279,19 @@ export default function GoogleSheetsImportPage() {
     const fallbackName = selectedConnection.worksheetName || '';
 
     const loadWorksheets = async () => {
-      try {
+      await (async () => {
         setLoadingWorksheets(true);
         const response = await apiClient.get(`/google-sheets/spreadsheets/${sheetId}/worksheets`);
         const items: WorksheetOption[] = response.data?.data || response.data || [];
         setWorksheetOptions(items);
         setWorksheetName(current => getDefaultWorksheetName(current || fallbackName, items));
-      } catch {
-        setWorksheetOptions([]);
-      } finally {
-        setLoadingWorksheets(false);
-      }
+      })()
+        .catch(async () => {
+          setWorksheetOptions([]);
+        })
+        .finally(async () => {
+          setLoadingWorksheets(false);
+        });
     };
 
     void loadWorksheets();
@@ -314,7 +319,8 @@ export default function GoogleSheetsImportPage() {
       return;
     }
     setLoadingPreview(true);
-    try {
+
+    await (async () => {
       const response = await apiClient.post('/custom-tables/import/google-sheets/preview', {
         sourceUrl: hasSourceUrl ? sourceUrl.trim() : undefined,
         googleSheetId: hasSourceUrl ? undefined : googleSheetId,
@@ -332,12 +338,14 @@ export default function GoogleSheetsImportPage() {
         : selectedConnection?.sheetName || t.defaults.tableName.value;
       setTableName(prev => (prev.trim() ? prev : fallbackName));
       toast.success(t.toasts.previewReady.value);
-    } catch (error: unknown) {
-      console.error('Preview failed:', error);
-      toast.error(getApiErrorMessage(error, t.toasts.previewFailed.value));
-    } finally {
-      setLoadingPreview(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        console.error('Preview failed:', error);
+        toast.error(getApiErrorMessage(error, t.toasts.previewFailed.value));
+      })
+      .finally(async () => {
+        setLoadingPreview(false);
+      });
   };
 
   const runTransactionPreview = async (overrideRoles?: SheetColumnRole[]) => {
@@ -345,7 +353,8 @@ export default function GoogleSheetsImportPage() {
       return;
     }
     setTransactionPreviewLoading(true);
-    try {
+
+    await (async () => {
       const response = await apiClient.post('/import/google-sheets/transactions/preview', {
         sourceUrl: hasSourceUrl ? sourceUrl.trim() : undefined,
         googleSheetId: hasSourceUrl ? undefined : googleSheetId,
@@ -360,15 +369,24 @@ export default function GoogleSheetsImportPage() {
       if (!overrideRoles) {
         setTransactionRoles(data.suggestedMapping.roles);
       }
-    } catch (error: unknown) {
-      console.error('Transaction preview failed:', error);
-      toast.error(getApiErrorMessage(error, t.toasts.previewFailed.value));
-    } finally {
-      setTransactionPreviewLoading(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        console.error('Transaction preview failed:', error);
+        toast.error(getApiErrorMessage(error, t.toasts.previewFailed.value));
+      })
+      .finally(async () => {
+        setTransactionPreviewLoading(false);
+      });
   };
 
   // Seeds the transactions mapping card with real backend-detected columns/roles
+  // `runTransactionPreview` closes over sourceUrl/googleSheetId/worksheetName and
+  // is redefined every render; an effect event lets the effects below call the
+  // latest version without re-running on every keystroke in those fields.
+  const previewTransactions = useEffectEvent((roles?: typeof transactionRoles) =>
+    runTransactionPreview(roles),
+  );
+
   // the first time the user lands on the 'transactions' target (either by explicit
   // toggle or via the heuristic default below), independent of the table-import
   // preview call above (different endpoint, different response shape).
@@ -378,12 +396,7 @@ export default function GoogleSheetsImportPage() {
     if (transactionPreviewAttemptedRef.current) return;
     if (!canPreview) return;
     transactionPreviewAttemptedRef.current = true;
-    void runTransactionPreview();
-    // `runTransactionPreview` is intentionally omitted: it closes over sourceUrl/
-    // googleSheetId/worksheetName/etc. and is redefined every render, so adding it
-    // here would re-run this effect (and re-fetch) on every keystroke in those
-    // fields instead of only when the guarded conditions above actually change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void previewTransactions();
   }, [importTarget, canPreview, transactionPreview, transactionPreviewLoading]);
 
   // Live re-preview: a role change re-posts /preview (debounced 400ms) so the
@@ -402,7 +415,7 @@ export default function GoogleSheetsImportPage() {
     }
     transactionPreviewTimerRef.current = window.setTimeout(() => {
       transactionPreviewTimerRef.current = null;
-      void runTransactionPreview(transactionRoles);
+      void previewTransactions(transactionRoles);
     }, 400);
     return () => {
       if (transactionPreviewTimerRef.current) {
@@ -410,13 +423,13 @@ export default function GoogleSheetsImportPage() {
         transactionPreviewTimerRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactionRoles]);
 
   const handleCommit = async () => {
     if (!preview || !canCommit) return;
     setCommitting(true);
-    try {
+
+    return await (async () => {
       const response = await apiClient.post('/custom-tables/import/google-sheets/commit', {
         sourceUrl: hasSourceUrl ? sourceUrl.trim() : undefined,
         googleSheetId: hasSourceUrl ? undefined : googleSheetId,
@@ -448,12 +461,14 @@ export default function GoogleSheetsImportPage() {
       setJobStage('queued');
       setJobError('');
       toast.success(t.toasts.importStarted.value);
-    } catch (error: unknown) {
-      console.error('Commit failed:', error);
-      toast.error(getApiErrorMessage(error, t.toasts.importFailed.value));
-    } finally {
-      setCommitting(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        console.error('Commit failed:', error);
+        toast.error(getApiErrorMessage(error, t.toasts.importFailed.value));
+      })
+      .finally(async () => {
+        setCommitting(false);
+      });
   };
 
   useEffect(() => {

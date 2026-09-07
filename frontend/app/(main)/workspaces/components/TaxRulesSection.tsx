@@ -60,7 +60,7 @@ export function TaxRulesSection(): React.ReactElement {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    try {
+    await (async () => {
       const [rulesResponse, categoriesResponse, ratesResponse] = await Promise.all([
         apiClient.get<TaxRule[]>('/tax/rules'),
         apiClient.get<Category[] | { data: Category[] }>('/categories'),
@@ -73,11 +73,13 @@ export function TaxRulesSection(): React.ReactElement {
       // Only coded rates can be named by a rule; hand-made ones have no code.
       setRates((ratesResponse.data ?? []).filter(rate => Boolean(rate.code)));
       setError(null);
-    } catch {
-      setError('Could not load tax rules.');
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async () => {
+        setError('Could not load tax rules.');
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -88,7 +90,7 @@ export function TaxRulesSection(): React.ReactElement {
     setBusy(true);
     setError(null);
 
-    try {
+    await (async () => {
       await apiClient.post('/tax/rules', {
         categoryId: draft.categoryId || undefined,
         taxRateCode: draft.taxRateCode,
@@ -96,27 +98,32 @@ export function TaxRulesSection(): React.ReactElement {
       });
       setDraft({ categoryId: '', taxRateCode: '', direction: 'both' });
       await load();
-    } catch (caught) {
-      // The server rejects a duplicate category/direction pair and an unknown
-      // rate code, and says which; passing that through beats a generic line.
-      const message = (caught as { response?: { data?: { error?: { message?: string } } } })
-        ?.response?.data?.error?.message;
-      setError(message ?? 'Could not add the rule.');
-    } finally {
-      setBusy(false);
-    }
+    })()
+      .catch(async caught => {
+        // The server rejects a duplicate category/direction pair and an unknown
+        // rate code, and says which; passing that through beats a generic line.
+        const message = (caught as { response?: { data?: { error?: { message?: string } } } })
+          ?.response?.data?.error?.message;
+        setError(message ?? 'Could not add the rule.');
+      })
+      .finally(async () => {
+        setBusy(false);
+      });
   };
 
   const removeRule = async (id: string) => {
     setBusy(true);
-    try {
+
+    await (async () => {
       await apiClient.delete(`/tax/rules/${id}`);
       await load();
-    } catch {
-      setError('Could not delete the rule.');
-    } finally {
-      setBusy(false);
-    }
+    })()
+      .catch(async () => {
+        setError('Could not delete the rule.');
+      })
+      .finally(async () => {
+        setBusy(false);
+      });
   };
 
   const nameOfCategory = (id: string | null) =>

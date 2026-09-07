@@ -54,6 +54,10 @@ export function useStatementEditForm({
   messages,
 }: UseStatementEditFormOptions): UseStatementEditFormReturn {
   const s = useStatementFormState();
+  // Destructured so effects/callbacks depend on the stable setters and refs,
+  // not on the (re-created every render) state object.
+  const { setCurrentStage, setStatement, setParsingDetailsExpanded } = s;
+  const { balanceEndInputRef, balanceStartInputRef } = s;
 
   const loadData = useCallback(async (): Promise<void> => {
     await loadStatementData(
@@ -71,23 +75,32 @@ export function useStatementEditForm({
         setError: s.setError,
       },
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statementId]);
+  }, [
+    statementId,
+    messages.loadDataError,
+    s.setLoading,
+    s.setOptionsLoading,
+    s.setStatement,
+    s.setTransactions,
+    s.setCategories,
+    s.setBranches,
+    s.setWallets,
+    s.setMetadataForm,
+    s.setError,
+  ]);
 
   useEffect(() => {
     if (user && statementId) {
-      s.setCurrentStage(getStatementStage(statementId));
+      setCurrentStage(getStatementStage(statementId));
       void loadData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, statementId, loadData]);
+  }, [user, statementId, loadData, setCurrentStage]);
 
   const handleMetadataAutoSave = useCallback(
-    async (formData: typeof s.metadataForm): Promise<void> => {
-      await metadataAutoSave({ statementId, formData, setStatement: s.setStatement });
+    async (formData: Parameters<typeof metadataAutoSave>[0]['formData']): Promise<void> => {
+      await metadataAutoSave({ statementId, formData, setStatement });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [statementId],
+    [statementId, setStatement],
   );
 
   useAutoSave({
@@ -161,21 +174,23 @@ export function useStatementEditForm({
     s.setMetadataForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleResolveParsingWarning = useCallback((warning: string): void => {
-    s.setParsingDetailsExpanded(true);
-    const target = /balance mismatch/i.test(warning)
-      ? s.balanceEndInputRef.current || s.balanceStartInputRef.current
-      : null;
-    if (target) {
-      window.setTimeout(() => {
-        if (typeof target.scrollIntoView === 'function') {
-          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        target.focus();
-      }, 0);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const handleResolveParsingWarning = useCallback(
+    (warning: string): void => {
+      setParsingDetailsExpanded(true);
+      const target = /balance mismatch/i.test(warning)
+        ? balanceEndInputRef.current || balanceStartInputRef.current
+        : null;
+      if (target) {
+        window.setTimeout(() => {
+          if (typeof target.scrollIntoView === 'function') {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          target.focus();
+        }, 0);
+      }
+    },
+    [setParsingDetailsExpanded, balanceEndInputRef, balanceStartInputRef],
+  );
 
   const handleConvertDroppedSample = useCallback(
     async (sample: { transaction?: unknown }, index: number, warning?: string): Promise<void> => {

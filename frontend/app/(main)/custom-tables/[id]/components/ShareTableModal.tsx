@@ -49,15 +49,16 @@ export function ShareTableModal({ isOpen, onClose, tableId, labels }: ShareTable
     if (!tableId) {
       return;
     }
-    try {
+
+    await (async () => {
       const response = await apiClient.get(`/custom-tables/${tableId}/shares`);
       const root = (response.data ?? {}) as Record<string, unknown>;
       const nested = (root.data ?? {}) as Record<string, unknown>;
       const items = root.items ?? nested.items ?? [];
       setShares(Array.isArray(items) ? (items as ShareItem[]) : []);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to load shares:', error);
-    }
+    });
   }, [tableId]);
 
   useEffect(() => {
@@ -71,28 +72,32 @@ export function ShareTableModal({ isOpen, onClose, tableId, labels }: ShareTable
       return;
     }
     setBusy(true);
-    try {
+
+    await (async () => {
       await apiClient.post(`/custom-tables/${tableId}/shares`, {});
       await load();
-    } catch (error) {
-      console.error('Failed to create share:', error);
-      toast.error(labels.failed);
-    } finally {
-      setBusy(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to create share:', error);
+        toast.error(labels.failed);
+      })
+      .finally(async () => {
+        setBusy(false);
+      });
   };
 
   const revokeShare = async (shareId: string): Promise<void> => {
     if (!tableId) {
       return;
     }
-    try {
+
+    await (async () => {
       await apiClient.delete(`/custom-tables/${tableId}/shares/${shareId}`);
       await load();
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to revoke share:', error);
       toast.error(labels.failed);
-    }
+    });
   };
 
   const statusLabel = (status: ShareItem['status']): string =>

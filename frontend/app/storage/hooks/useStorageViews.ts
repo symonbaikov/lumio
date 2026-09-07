@@ -55,16 +55,18 @@ export function useStorageViews(
   const [viewSaving, setViewSaving] = useState(false);
 
   const loadViews = async () => {
-    try {
+    await (async () => {
       setViewsLoading(true);
       const response = await api.get('/storage/views');
       setViews(response.data || []);
-    } catch (error) {
-      console.error('Failed to load views:', error);
-      toast.error(messages.loadViewsFailed);
-    } finally {
-      setViewsLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to load views:', error);
+        toast.error(messages.loadViewsFailed);
+      })
+      .finally(async () => {
+        setViewsLoading(false);
+      });
   };
 
   const applyView = (view: StorageView) => {
@@ -89,7 +91,8 @@ export function useStorageViews(
       return;
     }
     const { searchQuery, filterOpen, stagedFilters, filters, sort } = snapshot;
-    try {
+
+    await (async () => {
       setViewSaving(true);
       const response = await api.post('/storage/views', {
         name,
@@ -103,24 +106,26 @@ export function useStorageViews(
       setViewName('');
       setActiveViewId(response.data?.id ?? null);
       toast.success(messages.viewSaved);
-    } catch (error) {
-      console.error('Failed to save view:', error);
-      toast.error(messages.viewSaveFailed);
-    } finally {
-      setViewSaving(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to save view:', error);
+        toast.error(messages.viewSaveFailed);
+      })
+      .finally(async () => {
+        setViewSaving(false);
+      });
   };
 
   const handleDeleteView = async (viewId: string) => {
-    try {
+    await (async () => {
       await api.delete(`/storage/views/${viewId}`);
       setViews(prev => prev.filter(view => view.id !== viewId));
       setActiveViewId(prev => (prev === viewId ? null : prev));
       toast.success(messages.viewDeleted);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to delete view:', error);
       toast.error(messages.viewDeleteFailed);
-    }
+    });
   };
 
   return {

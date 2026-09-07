@@ -104,7 +104,7 @@ export default function TransactionDuplicatesPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const loadDuplicates = async () => {
-    try {
+    await (async () => {
       setLoading(true);
       setError(null);
       const response = await apiClient.get<DuplicatesResponse>('/transactions/duplicates/detect', {
@@ -113,11 +113,13 @@ export default function TransactionDuplicatesPage() {
         },
       });
       setDuplicateGroups(response.data.groups);
-    } catch (error: unknown) {
-      setError(getApiErrorMessage(error, 'Failed to load duplicates'));
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        setError(getApiErrorMessage(error, 'Failed to load duplicates'));
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   };
 
   const handleDetect = async () => {
@@ -142,7 +144,7 @@ export default function TransactionDuplicatesPage() {
       return;
     }
 
-    try {
+    await (async () => {
       setMarking(true);
       setError(null);
 
@@ -160,11 +162,13 @@ export default function TransactionDuplicatesPage() {
       setSuccess(`Successfully marked ${response.data.markedCount} transactions as duplicates`);
       setSelectedGroups(new Set());
       await loadDuplicates(); // Reload to update the list
-    } catch (error: unknown) {
-      setError(getApiErrorMessage(error, 'Failed to mark duplicates'));
-    } finally {
-      setMarking(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        setError(getApiErrorMessage(error, 'Failed to mark duplicates'));
+      })
+      .finally(async () => {
+        setMarking(false);
+      });
   };
 
   const handleSelectAll = () => {

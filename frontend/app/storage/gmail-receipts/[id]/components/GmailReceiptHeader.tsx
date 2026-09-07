@@ -27,7 +27,7 @@ import {
 } from '@mui/material';
 import Alert from '@mui/material/Alert';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import type { GmailReceipt, ReceiptCategoryOption } from '../hooks/useGmailReceiptData';
 
 interface GmailReceiptHeaderProps {
@@ -143,7 +143,7 @@ export function GmailReceiptHeader({
 }: GmailReceiptHeaderProps): React.ReactElement {
   const router = useRouter();
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
-  const exportAnchorRef = useRef<HTMLDivElement>(null);
+  const [exportAnchorEl, setExportAnchorEl] = useState<HTMLDivElement | null>(null);
 
   return (
     <>
@@ -258,7 +258,7 @@ export function GmailReceiptHeader({
 
             <ButtonGroup
               variant="outlined"
-              ref={exportAnchorRef}
+              ref={setExportAnchorEl}
               sx={{ ...sharedOutlinedSx, border: 'none' }}
             >
               <Button
@@ -281,7 +281,7 @@ export function GmailReceiptHeader({
               </Button>
             </ButtonGroup>
             <Menu
-              anchorEl={exportAnchorRef.current}
+              anchorEl={exportAnchorEl}
               open={exportMenuOpen}
               onClose={() => setExportMenuOpen(false)}
               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}

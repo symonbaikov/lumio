@@ -49,7 +49,7 @@ export interface UseStorageFilesReturn {
   handleEmptyTrash: () => Promise<void>;
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types, max-lines-per-function
+// eslint-disable-next-line max-lines-per-function
 export function useStorageFiles(messages: UseStorageFilesMessages): UseStorageFilesReturn {
   const router = useRouter();
   const [files, setFiles] = useState<StorageFile[]>([]);
@@ -60,18 +60,20 @@ export function useStorageFiles(messages: UseStorageFilesMessages): UseStorageFi
   const [fileToDeletePermanently, setFileToDeletePermanently] = useState<StorageFile | null>(null);
 
   const loadFiles = async (listMode: 'active' | 'trash'): Promise<void> => {
-    try {
+    await (async () => {
       setLoading(true);
       const response = await api.get('/storage/files', {
         params: listMode === 'trash' ? { deleted: 'only' } : undefined,
       });
       setFiles(response.data);
-    } catch (error) {
-      console.error('Failed to load files:', error);
-      toast.error(messages.loadFilesFailed);
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to load files:', error);
+        toast.error(messages.loadFilesFailed);
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   };
 
   const handleView = (fileId: string): void => {
@@ -87,7 +89,7 @@ export function useStorageFiles(messages: UseStorageFilesMessages): UseStorageFi
   };
 
   const handleDownload = async (fileId: string, fileName: string): Promise<void> => {
-    try {
+    await (async () => {
       const response = await api.get(`/storage/files/${fileId}/download`, {
         responseType: 'blob',
       });
@@ -99,14 +101,14 @@ export function useStorageFiles(messages: UseStorageFilesMessages): UseStorageFi
       link.click();
       link.remove();
       toast.success(messages.downloaded);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to download file:', error);
       toast.error(messages.downloadFailed);
-    }
+    });
   };
 
   const handleCategoryChange = async (fileId: string, categoryId: string): Promise<void> => {
-    try {
+    await (async () => {
       const response = await api.patch(`/storage/files/${fileId}/category`, {
         categoryId: categoryId || null,
       });
@@ -122,10 +124,10 @@ export function useStorageFiles(messages: UseStorageFilesMessages): UseStorageFi
         ),
       );
       toast.success(messages.categoryUpdated);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to update file category:', error);
       toast.error(messages.categoryUpdateFailed);
-    }
+    });
   };
 
   const confirmDelete = (file: StorageFile): void => {
@@ -138,14 +140,16 @@ export function useStorageFiles(messages: UseStorageFilesMessages): UseStorageFi
       return;
     }
     const toastId = toast.loading(messages.deleteLoading);
-    try {
+
+    await (async () => {
       await api.post(`/storage/files/${fileToDelete.id}/trash`);
       setFiles(prev => prev.filter(file => file.id !== fileToDelete.id));
       toast.success(messages.deleteSuccess, { id: toastId });
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to move file to trash:', error);
       toast.error(messages.deleteError, { id: toastId });
-    }
+    });
+
     setFileToDelete(null);
   };
 
@@ -159,27 +163,30 @@ export function useStorageFiles(messages: UseStorageFilesMessages): UseStorageFi
       return;
     }
     const toastId = toast.loading(messages.trashDeleteLoading);
-    try {
+
+    await (async () => {
       await api.delete(`/storage/files/${fileToDeletePermanently.id}/trash`);
       setFiles(prev => prev.filter(file => file.id !== fileToDeletePermanently.id));
       toast.success(messages.trashDeleteSuccess, { id: toastId });
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to permanently delete file:', error);
       toast.error(messages.trashDeleteFailed, { id: toastId });
-    }
+    });
+
     setFileToDeletePermanently(null);
   };
 
   const handleRestoreFromTrash = async (file: StorageFile): Promise<void> => {
     const toastId = toast.loading(messages.trashRestoreLoading);
-    try {
+
+    await (async () => {
       await api.post(`/storage/files/${file.id}/trash/restore`);
       setFiles(prev => prev.filter(item => item.id !== file.id));
       toast.success(messages.trashRestoreSuccess, { id: toastId });
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to restore file from trash:', error);
       toast.error(messages.trashRestoreFailed, { id: toastId });
-    }
+    });
   };
 
   const handleBulkRestore = async (ids: string[]): Promise<void> => {
@@ -187,14 +194,15 @@ export function useStorageFiles(messages: UseStorageFilesMessages): UseStorageFi
       return;
     }
     const toastId = toast.loading(messages.trashRestoreLoading);
-    try {
+
+    await (async () => {
       await api.post('/storage/files/trash/bulk/restore', { statementIds: ids });
       setFiles(prev => prev.filter(file => !ids.includes(file.id)));
       toast.success(messages.trashRestoreSuccess, { id: toastId });
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to restore files from trash:', error);
       toast.error(messages.trashRestoreFailed, { id: toastId });
-    }
+    });
   };
 
   const handleBulkDeleteFromTrash = async (ids: string[]): Promise<void> => {
@@ -202,14 +210,15 @@ export function useStorageFiles(messages: UseStorageFilesMessages): UseStorageFi
       return;
     }
     const toastId = toast.loading(messages.trashDeleteLoading);
-    try {
+
+    await (async () => {
       await api.post('/storage/files/bulk/trash/delete', { statementIds: ids });
       setFiles(prev => prev.filter(file => !ids.includes(file.id)));
       toast.success(messages.trashDeleteSuccess, { id: toastId });
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to delete files from trash:', error);
       toast.error(messages.trashDeleteFailed, { id: toastId });
-    }
+    });
   };
 
   const handleEmptyTrash = async (): Promise<void> => {

@@ -80,7 +80,8 @@ describe('TrendsTab', () => {
         effectiveSince: '2025-05-01',
         effectiveEndDate: '2025-05-31',
       },
-      loading: false,
+      isPending: false,
+      isFetching: false,
       error: null,
       refresh: vi.fn(),
     });
@@ -101,7 +102,8 @@ describe('TrendsTab', () => {
   it('renders the month-scoped cash flow card above the rolling-window sections', () => {
     hooksMock.useDashboardTrends.mockReturnValue({
       data: null,
-      loading: false,
+      isPending: false,
+      isFetching: false,
       error: null,
       refresh: vi.fn(),
     });
@@ -127,7 +129,8 @@ describe('TrendsTab', () => {
         counterparties: [{ name: 'Client', amount: 100, count: 1 }],
         sources: { statements: { income: 100, expense: 40, rows: 2 } },
       },
-      loading: false,
+      isPending: false,
+      isFetching: false,
       error: null,
       refresh: vi.fn(),
     });
@@ -158,7 +161,8 @@ describe('TrendsTab', () => {
         counterparties: [{ name: 'Client', amount: 100, count: 1 }],
         sources: { statements: { income: 100, expense: 40, rows: 2 } },
       },
-      loading: false,
+      isPending: false,
+      isFetching: false,
       error: null,
       refresh: vi.fn(),
     });

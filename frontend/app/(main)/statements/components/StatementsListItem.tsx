@@ -476,11 +476,9 @@ export function StatementsListItem({
   const visibleColumns = columns.filter(column => column.visible);
   const renderedColumns = visibleColumns.length > 0 ? visibleColumns : columns.slice(0, 1);
   const sourceLabel = isGmailReceipt ? 'Gmail' : isLocalReceipt ? 'Receipt' : statement.bankName;
-  const categoryLabel = firstNonEmpty(
-    statement.category?.name,
-    statement.parsedData?.category,
-    statement.parsingDetails?.importPreview?.categoryId,
-  );
+  // importPreview.categoryId is deliberately not a fallback: it is a bare id,
+  // and rendering it puts a raw UUID in the column.
+  const categoryLabel = firstNonEmpty(statement.category?.name, statement.parsedData?.category);
   const tagsLabel =
     statement.tags
       ?.map(tag => tag.name)

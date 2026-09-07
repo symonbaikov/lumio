@@ -11,7 +11,7 @@ const routerMocks = vi.hoisted(() => ({
 
 const notificationMocks = vi.hoisted(() => ({
   markAsRead: vi.fn(),
-  refresh: vi.fn(),
+  refetch: vi.fn(),
 }));
 
 const menuMocks = vi.hoisted(() => ({
@@ -90,8 +90,8 @@ vi.mock('@/app/hooks/useNotifications', () => ({
       },
     ],
     unreadCount: 2,
-    loading: false,
-    refresh: notificationMocks.refresh,
+    isPending: false,
+    refetch: notificationMocks.refetch,
     markAsRead: notificationMocks.markAsRead,
     markAllAsRead: vi.fn(),
   }),
@@ -110,7 +110,7 @@ describe('NotificationDropdown', () => {
     container.remove();
     routerMocks.push.mockReset();
     notificationMocks.markAsRead.mockReset();
-    notificationMocks.refresh.mockReset();
+    notificationMocks.refetch.mockReset();
     menuMocks.lastOpen = false;
   });
 
@@ -131,7 +131,7 @@ describe('NotificationDropdown', () => {
 
     expect(menuMocks.lastOpen).toBe(true);
     expect(document.querySelector('[data-testid="notification-menu"]')).toBeTruthy();
-    expect(notificationMocks.refresh).toHaveBeenCalled();
+    expect(notificationMocks.refetch).toHaveBeenCalled();
   });
 
   it('routes to receipt details for uncategorized receipts', async () => {

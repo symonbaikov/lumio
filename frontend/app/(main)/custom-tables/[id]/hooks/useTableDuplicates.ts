@@ -39,7 +39,8 @@ export function useTableDuplicates({
         return;
       }
       setLoading(true);
-      try {
+
+      await (async () => {
         const response = await apiClient.get(`/custom-tables/${tableId}/duplicates`, {
           params: { keys: keys.join(',') },
         });
@@ -48,12 +49,14 @@ export function useTableDuplicates({
         const items = root.items ?? nested.items ?? [];
         setGroups(Array.isArray(items) ? (items as DuplicateGroup[]) : []);
         setSearched(true);
-      } catch (error) {
-        console.error('Failed to find duplicates:', error);
-        toast.error(failedMessage);
-      } finally {
-        setLoading(false);
-      }
+      })()
+        .catch(async error => {
+          console.error('Failed to find duplicates:', error);
+          toast.error(failedMessage);
+        })
+        .finally(async () => {
+          setLoading(false);
+        });
     },
     [tableId, failedMessage],
   );

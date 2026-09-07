@@ -46,15 +46,18 @@ export function EditableHeader({
     }
 
     setIsSaving(true);
-    try {
+
+    await (async () => {
       await onRename(column.id, newTitle);
       setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to rename column:', error);
-      setEditValue(title);
-    } finally {
-      setIsSaving(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to rename column:', error);
+        setEditValue(title);
+      })
+      .finally(async () => {
+        setIsSaving(false);
+      });
   };
 
   const handleCancel = () => {

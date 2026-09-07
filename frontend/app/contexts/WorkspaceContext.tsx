@@ -2,7 +2,15 @@
 
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import type React from 'react';
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { api } from '../lib/api';
 
 type WorkspaceSettings = Record<string, unknown>;
@@ -33,9 +41,14 @@ interface Workspace {
   stats?: WorkspaceStats;
 }
 
-interface WorkspaceContextType {
+interface WorkspaceData {
   currentWorkspace: Workspace | null;
   workspaces: Workspace[];
+  loading: boolean;
+  error: string | null;
+}
+
+interface WorkspaceActions {
   switchWorkspace: (workspaceId: string) => Promise<void>;
   clearWorkspace: () => void;
   refreshWorkspaces: () => Promise<void>;
@@ -44,11 +57,14 @@ interface WorkspaceContextType {
     workspaceId: string;
     backgroundImage: string;
   }) => Promise<void>;
-  loading: boolean;
-  error: string | null;
 }
 
-const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
+type WorkspaceContextType = WorkspaceData & WorkspaceActions;
+
+// Data and actions live in separate contexts so consumers that only need the
+// (stable) actions do not re-render on every loading/error flip.
+const WorkspaceDataContext = createContext<WorkspaceData | undefined>(undefined);
+const WorkspaceActionsContext = createContext<WorkspaceActions | undefined>(undefined);
 
 type SetState<T> = React.Dispatch<React.SetStateAction<T>>;
 
@@ -155,20 +171,24 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const setters: WorkspaceSetters = { setWorkspaces, setCurrentWorkspace, setLoading, setError };
-  const miniSetters = { setWorkspaces, setCurrentWorkspace };
+  // switchWorkspace reads the latest list through a ref so its identity does
+  // not change every time the list is refreshed.
+  const workspacesRef = useRef(workspaces);
+  useEffect(() => {
+    workspacesRef.current = workspaces;
+  }, [workspaces]);
 
-  const refreshWorkspaces = useCallback(
-    async () => fetchAndSetWorkspaces(setters),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setters = useMemo<WorkspaceSetters>(
+    () => ({ setWorkspaces, setCurrentWorkspace, setLoading, setError }),
     [],
   );
 
+  const refreshWorkspaces = useCallback(async () => fetchAndSetWorkspaces(setters), [setters]);
+
   const switchWorkspace = useCallback(
     async (workspaceId: string) =>
-      apiSwitchWorkspace({ workspaceId, refreshWorkspaces }, workspaces, setters),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [workspaces, refreshWorkspaces],
+      apiSwitchWorkspace({ workspaceId, refreshWorkspaces }, workspacesRef.current, setters),
+    [refreshWorkspaces, setters],
   );
 
   const clearWorkspace = useCallback(() => {
@@ -177,16 +197,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleFavorite = useCallback(
-    async (workspaceId: string) => apiToggleFavorite({ workspaceId }, miniSetters),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    async (workspaceId: string) => apiToggleFavorite({ workspaceId }, setters),
+    [setters],
   );
 
   const updateWorkspaceBackground = useCallback(
     async (params: { workspaceId: string; backgroundImage: string }) =>
-      apiUpdateBackground(params, miniSetters),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+      apiUpdateBackground(params, setters),
+    [setters],
   );
 
   useEffect(() => {
@@ -201,25 +219,43 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshWorkspaces]);
 
-  const value: WorkspaceContextType = {
-    currentWorkspace,
-    workspaces,
-    switchWorkspace,
-    clearWorkspace,
-    refreshWorkspaces,
-    toggleFavorite,
-    updateWorkspaceBackground,
-    loading,
-    error,
-  };
+  const data = useMemo<WorkspaceData>(
+    () => ({ currentWorkspace, workspaces, loading, error }),
+    [currentWorkspace, workspaces, loading, error],
+  );
 
-  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
+  const actions = useMemo<WorkspaceActions>(
+    () => ({
+      switchWorkspace,
+      clearWorkspace,
+      refreshWorkspaces,
+      toggleFavorite,
+      updateWorkspaceBackground,
+    }),
+    [switchWorkspace, clearWorkspace, refreshWorkspaces, toggleFavorite, updateWorkspaceBackground],
+  );
+
+  return (
+    <WorkspaceActionsContext.Provider value={actions}>
+      <WorkspaceDataContext.Provider value={data}>{children}</WorkspaceDataContext.Provider>
+    </WorkspaceActionsContext.Provider>
+  );
+}
+
+/** Stable workspace actions only; never re-renders on workspace data changes. */
+export function useWorkspaceActions(): WorkspaceActions {
+  const actions = useContext(WorkspaceActionsContext);
+  if (actions === undefined) {
+    throw new Error('useWorkspaceActions must be used within a WorkspaceProvider');
+  }
+  return actions;
 }
 
 export function useWorkspace(): WorkspaceContextType {
-  const context = useContext(WorkspaceContext);
-  if (context === undefined) {
+  const data = useContext(WorkspaceDataContext);
+  const actions = useContext(WorkspaceActionsContext);
+  if (data === undefined || actions === undefined) {
     throw new Error('useWorkspace must be used within a WorkspaceProvider');
   }
-  return context;
+  return useMemo(() => ({ ...data, ...actions }), [data, actions]);
 }

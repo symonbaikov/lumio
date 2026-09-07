@@ -98,21 +98,23 @@ export function useTabStats({
       ? () => fetchAllStats(controller.signal, paidColKey)
       : () => fetchTotalOnly(controller.signal);
 
-    try {
+    await (async () => {
       const counts = await fetchCounts();
       if (requestId === statsRequestSeqRef.current) {
         setTabCounts(counts);
       }
-    } catch (error) {
-      if (!isAbortError(error)) {
-        console.error('Failed to fetch table stats:', error);
-      }
-    } finally {
-      if (statsAbortControllerRef.current === controller) {
-        statsAbortControllerRef.current = null;
-      }
-    }
-  }, [paidColKey, tableId, isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+    })()
+      .catch(async error => {
+        if (!isAbortError(error)) {
+          console.error('Failed to fetch table stats:', error);
+        }
+      })
+      .finally(async () => {
+        if (statsAbortControllerRef.current === controller) {
+          statsAbortControllerRef.current = null;
+        }
+      });
+  }, [paidColKey, tableId, isAuthenticated, fetchAllStats, fetchTotalOnly]);
 
   // Auto-refresh when params change
   useEffect(() => {

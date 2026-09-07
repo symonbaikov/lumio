@@ -4,7 +4,7 @@ import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import { type WorksheetOption, getDefaultWorksheetName } from '@/app/lib/googleSheetsSelection';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import type {
   Category,
@@ -205,7 +205,7 @@ export const usePageState = (msgs: PageMessages): PageStateReturn => {
   const canCommit = Boolean(preview && tableName.trim() && columns.some(c => c.include));
 
   // Initial load
-  useEffect(() => {
+  const loadInitial = useEffectEvent(() => {
     setLoadingConnections(true);
     void fetchConnections()
       .then(setConnections)
@@ -214,7 +214,9 @@ export const usePageState = (msgs: PageMessages): PageStateReturn => {
     void fetchCategories()
       .then(setCategories)
       .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    loadInitial();
   }, []);
 
   // Connection change effect

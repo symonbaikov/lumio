@@ -19,7 +19,7 @@ import { resolveBankLogo } from '@bank-logos';
 import { Box, Chip, Typography } from '@mui/material';
 import Skeleton from '@mui/material/Skeleton';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
 import PermissionsPanel from '../../components/PermissionsPanel';
 import ShareDialog from '../../components/ShareDialog';
 import TransactionsView, {
@@ -203,56 +203,29 @@ export default function FileDetailsPage() {
   };
 
   useEffect(() => {
-    let cancelled = false;
-
-    // eslint-disable-next-line complexity
-    const run = async (): Promise<void> => {
-      const loadedDetails = await loadFileDetails();
-      if (cancelled) {
-        return;
-      }
-
-      if (loadedDetails?.fileAvailability?.status === 'missing') {
-        setPreviewError(t.preview.unavailable.value);
-        revokePreviewUrl();
-        setPreviewUrl(null);
-        setPreviewLoading(false);
-        return;
-      }
-
-      await loadPreview(loadedDetails?.fileAvailability?.status);
-    };
-
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fileId]);
-
-  useEffect(() => {
     return () => {
       revokePreviewUrl();
     };
   }, []);
 
   const loadFileDetails = async (): Promise<FileDetails | null> => {
-    try {
+    return await (async () => {
       setLoading(true);
       const response = await api.get(`/storage/files/${fileId}`);
       setDetails(response.data);
       return response.data;
-    } catch (error) {
-      console.error('Failed to load file details:', error);
-      setDetails(null);
-      return null;
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to load file details:', error);
+        setDetails(null);
+        return null;
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   };
 
-  // eslint-disable-next-line max-lines-per-function, complexity
+  // eslint-disable-next-line max-lines-per-function
   const loadPreview = async (
     availabilityStatusOverride?: FileAvailabilityStatus,
   ): Promise<void> => {
@@ -265,7 +238,7 @@ export default function FileDetailsPage() {
       return;
     }
 
-    try {
+    await (async () => {
       setPreviewLoading(true);
       setPreviewError(null);
       revokePreviewUrl();
@@ -278,25 +251,53 @@ export default function FileDetailsPage() {
       const url = URL.createObjectURL(response.data);
       previewUrlRef.current = url;
       setPreviewUrl(url);
-    } catch (error) {
-      console.error('Failed to load file preview:', error);
-      const message =
-        getApiErrorStatus(error) === 404
-          ? t.preview.unavailable.value
-          : getApiErrorMessage(error, t.toasts.previewFailed.value);
-      setPreviewError(message);
-      setPreviewUrl(null);
-    } finally {
-      setPreviewLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to load file preview:', error);
+        const message =
+          getApiErrorStatus(error) === 404
+            ? t.preview.unavailable.value
+            : getApiErrorMessage(error, t.toasts.previewFailed.value);
+        setPreviewError(message);
+        setPreviewUrl(null);
+      })
+      .finally(async () => {
+        setPreviewLoading(false);
+      });
   };
+
+  // eslint-disable-next-line complexity
+  const loadDetailsAndPreview = useEffectEvent(async (isCancelled: () => boolean) => {
+    const loadedDetails = await loadFileDetails();
+    if (isCancelled()) {
+      return;
+    }
+
+    if (loadedDetails?.fileAvailability?.status === 'missing') {
+      setPreviewError(t.preview.unavailable.value);
+      revokePreviewUrl();
+      setPreviewUrl(null);
+      setPreviewLoading(false);
+      return;
+    }
+
+    await loadPreview(loadedDetails?.fileAvailability?.status);
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadDetailsAndPreview(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
+  }, [fileId]);
 
   const handleDownload = async (): Promise<void> => {
     if (!details) {
       return;
     }
 
-    try {
+    await (async () => {
       const response = await api.get(`/storage/files/${fileId}/download`, {
         responseType: 'blob',
       });
@@ -308,9 +309,9 @@ export default function FileDetailsPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to download file:', error);
-    }
+    });
   };
 
   const formatDate = (dateString: string): string => {

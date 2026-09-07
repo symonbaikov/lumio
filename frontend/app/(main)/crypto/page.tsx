@@ -21,7 +21,7 @@ export default function CryptoPage(): React.JSX.Element {
   const {
     wallets,
     summary,
-    loading,
+    isPending,
     error,
     busyWalletId,
     connecting,
@@ -68,19 +68,19 @@ export default function CryptoPage(): React.JSX.Element {
         </Button>
       </Box>
 
-      {loading && (
+      {isPending && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <Spinner size={32} />
         </Box>
       )}
 
-      {error === 'failed' && !loading && (
+      {error === 'failed' && !isPending && (
         <Typography color="error" sx={{ py: 6, textAlign: 'center' }}>
           {t.error}
         </Typography>
       )}
 
-      {!loading && summary && wallets.length > 0 && (
+      {!isPending && summary && wallets.length > 0 && (
         <>
           <Box
             sx={{
@@ -120,7 +120,7 @@ export default function CryptoPage(): React.JSX.Element {
         </>
       )}
 
-      {!loading && wallets.length === 0 && error !== 'failed' && (
+      {!isPending && wallets.length === 0 && error !== 'failed' && (
         <EmptyState illustration="integrations" description={t.empty} />
       )}
 
@@ -137,8 +137,8 @@ export default function CryptoPage(): React.JSX.Element {
               transactions: t.transactions.value,
               neverSynced: t.neverSynced.value,
             }}
-            onSync={id => void syncWallet(id)}
-            onRemove={id => void removeWallet(id)}
+            onSync={id => syncWallet(id)}
+            onRemove={id => removeWallet(id)}
           />
         ))}
       </Box>

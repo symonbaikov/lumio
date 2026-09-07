@@ -114,14 +114,16 @@ function useConnectionsState(
   const [loadingList, setLoadingList] = useState(false);
 
   const loadConnections = async (): Promise<void> => {
-    try {
+    await (async () => {
       setLoadingList(true);
       setConnections(await fetchConnections());
-    } catch {
-      errorSetter(tErrors.loadConnections.value);
-    } finally {
-      setLoadingList(false);
-    }
+    })()
+      .catch(async () => {
+        errorSetter(tErrors.loadConnections.value);
+      })
+      .finally(async () => {
+        setLoadingList(false);
+      });
   };
 
   return { connections, loadingList, loadConnections };
@@ -146,7 +148,7 @@ function useAuthState(
   const [connectingAccount, setConnectingAccount] = useState(false);
 
   const loadAuthStatus = async (): Promise<void> => {
-    try {
+    await (async () => {
       const status = await fetchAuthStatus();
       setAuthStatus(status);
       if (status.connected) {
@@ -157,26 +159,28 @@ function useAuthState(
         setPickerAccessToken('');
         setPickerApiKey('');
       }
-    } catch {
+    })().catch(async () => {
       setAuthStatus({ connected: false, email: null });
       setPickerAccessToken('');
       setPickerApiKey('');
-    }
+    });
   };
 
   const startOauth = async (): Promise<void> => {
-    try {
+    await (async () => {
       setConnectingAccount(true);
       const url = await fetchOauthUrl('integrations/google-sheets');
       if (!url) throw new Error(tErrors.missingAuthUrl.value);
       toast.success(tToasts.openingAuth.value);
       window.location.href = url;
-    } catch (err) {
-      const message = getApiErrorMessage(err, tErrors.connectFailed.value);
-      toast.error(message);
-    } finally {
-      setConnectingAccount(false);
-    }
+    })()
+      .catch(async err => {
+        const message = getApiErrorMessage(err, tErrors.connectFailed.value);
+        toast.error(message);
+      })
+      .finally(async () => {
+        setConnectingAccount(false);
+      });
   };
 
   return {
@@ -211,18 +215,20 @@ function useSpreadsheetState(
   const [loadingWorksheets, setLoadingWorksheets] = useState(false);
 
   const loadWorksheets = async (spreadsheetId: string): Promise<void> => {
-    try {
+    await (async () => {
       setLoadingWorksheets(true);
       const items = await fetchWorksheets(spreadsheetId);
       setWorksheets(items);
       setWorksheetName(current => getDefaultWorksheetName(current, items));
-    } catch (err) {
-      const message = getApiErrorMessage(err, copyErrors.loadWorksheets);
-      errorSetter(message);
-      toast.error(message);
-    } finally {
-      setLoadingWorksheets(false);
-    }
+    })()
+      .catch(async err => {
+        const message = getApiErrorMessage(err, copyErrors.loadWorksheets);
+        errorSetter(message);
+        toast.error(message);
+      })
+      .finally(async () => {
+        setLoadingWorksheets(false);
+      });
   };
 
   const handleSpreadsheetPick = async (selection: SpreadsheetSelection): Promise<void> => {
@@ -290,7 +296,8 @@ export function useGoogleSheetsPage({
       toast.error(copy.errors.spreadsheetRequired);
       return;
     }
-    try {
+
+    await (async () => {
       setSubmitting(true);
       setError(null);
       setSuccess(null);
@@ -302,17 +309,19 @@ export function useGoogleSheetsPage({
       setSuccess(copy.toasts.connected);
       toast.success(copy.toasts.connected);
       await loadConnections();
-    } catch (err) {
-      const message = getApiErrorMessage(err, t.errors.connectFailed.value);
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    })()
+      .catch(async err => {
+        const message = getApiErrorMessage(err, t.errors.connectFailed.value);
+        setError(message);
+        toast.error(message);
+      })
+      .finally(async () => {
+        setSubmitting(false);
+      });
   };
 
   const handleSync = async (id: string): Promise<void> => {
-    try {
+    await (async () => {
       setSyncingId(id);
       setError(null);
       setSuccess(null);
@@ -320,17 +329,19 @@ export function useGoogleSheetsPage({
       setSuccess(t.toasts.syncStarted.value);
       toast.success(t.toasts.syncStarted.value);
       await loadConnections();
-    } catch (err) {
-      const message = getApiErrorMessage(err, t.errors.syncFailed.value);
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSyncingId(null);
-    }
+    })()
+      .catch(async err => {
+        const message = getApiErrorMessage(err, t.errors.syncFailed.value);
+        setError(message);
+        toast.error(message);
+      })
+      .finally(async () => {
+        setSyncingId(null);
+      });
   };
 
   const handleRemove = async (id: string): Promise<void> => {
-    try {
+    await (async () => {
       setRemovingId(id);
       setError(null);
       setSuccess(null);
@@ -338,13 +349,15 @@ export function useGoogleSheetsPage({
       setSuccess(t.toasts.removed.value);
       toast.success(t.toasts.removed.value);
       await loadConnections();
-    } catch (err) {
-      const message = getApiErrorMessage(err, t.errors.removeFailed.value);
-      setError(message);
-      toast.error(message);
-    } finally {
-      setRemovingId(null);
-    }
+    })()
+      .catch(async err => {
+        const message = getApiErrorMessage(err, t.errors.removeFailed.value);
+        setError(message);
+        toast.error(message);
+      })
+      .finally(async () => {
+        setRemovingId(null);
+      });
   };
 
   const emptyState = useMemo(

@@ -109,7 +109,7 @@ export function useExpenseActions({
       return;
     }
     const load = async (): Promise<void> => {
-      try {
+      await (async () => {
         const [categoriesRes, taxRatesRes] = await Promise.all([
           apiClient.get('/categories', { params: { type: 'expense' } }),
           apiClient.get('/tax-rates'),
@@ -128,11 +128,11 @@ export function useExpenseActions({
             isEnabled: r.isEnabled !== false,
           })),
         );
-      } catch (error) {
+      })().catch(async error => {
         console.error('Failed to load manual expense options:', error);
         setManualExpenseCategories([]);
         setManualExpenseTaxRates([]);
-      }
+      });
     };
     void load();
   }, [user]);

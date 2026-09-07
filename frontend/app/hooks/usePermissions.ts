@@ -1,6 +1,7 @@
 'use client';
 
-import { useAuth } from './useAuth';
+import { useCallback, useMemo } from 'react';
+import { type User, useAuth } from './useAuth';
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
   admin: [
@@ -85,52 +86,57 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 };
 
+const computePermissions = (user: User | null): string[] => {
+  if (!user) return [];
+
+  // Admin has all permissions
+  if (user.role === 'admin') {
+    return ROLE_PERMISSIONS.admin;
+  }
+
+  // If user has custom permissions, merge with role-based
+  const rolePermissions = ROLE_PERMISSIONS[user.role] || [];
+  const customPermissions = user.permissions || [];
+
+  // Merge and deduplicate
+  const merged = [...new Set([...rolePermissions, ...customPermissions])];
+  if (merged.includes('audit_log.view') && !merged.includes('audit_view')) {
+    merged.push('audit_view');
+  }
+  if (merged.includes('audit_view') && !merged.includes('audit_log.view')) {
+    merged.push('audit_log.view');
+  }
+  return merged;
+};
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types
 export function usePermissions() {
   const { user } = useAuth();
 
-  const getUserPermissions = (): string[] => {
-    if (!user) return [];
+  // Computed once per user; previously rebuilt on every hasPermission() call,
+  // which nav components make a dozen times per render.
+  const permissions = useMemo(() => computePermissions(user), [user]);
+  const permissionSet = useMemo(() => new Set(permissions), [permissions]);
 
-    // Admin has all permissions
-    if (user.role === 'admin') {
-      return ROLE_PERMISSIONS.admin;
-    }
+  const hasPermission = useCallback(
+    (permission: string): boolean => permissionSet.has(permission),
+    [permissionSet],
+  );
 
-    // If user has custom permissions, merge with role-based
-    const rolePermissions = ROLE_PERMISSIONS[user.role] || [];
-    const customPermissions = user.permissions || [];
+  const hasAnyPermission = useCallback(
+    (required: string[]): boolean => required.some(p => permissionSet.has(p)),
+    [permissionSet],
+  );
 
-    // Merge and deduplicate
-    const merged = [...new Set([...rolePermissions, ...customPermissions])];
-    if (merged.includes('audit_log.view') && !merged.includes('audit_view')) {
-      merged.push('audit_view');
-    }
-    if (merged.includes('audit_view') && !merged.includes('audit_log.view')) {
-      merged.push('audit_log.view');
-    }
-    return merged;
-  };
+  const hasAllPermissions = useCallback(
+    (required: string[]): boolean => required.every(p => permissionSet.has(p)),
+    [permissionSet],
+  );
 
-  const hasPermission = (permission: string): boolean => {
-    const permissions = getUserPermissions();
-    return permissions.includes(permission);
-  };
+  const isAdmin = user?.role === 'admin';
 
-  const hasAnyPermission = (permissions: string[]): boolean => {
-    const userPermissions = getUserPermissions();
-    return permissions.some(p => userPermissions.includes(p));
-  };
-
-  const hasAllPermissions = (permissions: string[]): boolean => {
-    const userPermissions = getUserPermissions();
-    return permissions.every(p => userPermissions.includes(p));
-  };
-
-  return {
-    permissions: getUserPermissions(),
-    hasPermission,
-    hasAnyPermission,
-    hasAllPermissions,
-    isAdmin: user?.role === 'admin',
-  };
+  return useMemo(
+    () => ({ permissions, hasPermission, hasAnyPermission, hasAllPermissions, isAdmin }),
+    [permissions, hasPermission, hasAnyPermission, hasAllPermissions, isAdmin],
+  );
 }

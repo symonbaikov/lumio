@@ -187,7 +187,8 @@ export function usePastePreviewHandlers({
   const handlePasteCellChange = useCallback(
     (rowIndex: number, sourceIndex: number, value: string): void => {
       setPasteEdits(prev => {
-        const next = { ...prev, [`${rowIndex}:${sourceIndex}`]: value };
+        const cellKey = `${rowIndex}:${sourceIndex}`;
+        const next = { ...prev, [cellKey]: value };
         rebuildPasteWithState(pasteMapping, next);
         return next;
       });

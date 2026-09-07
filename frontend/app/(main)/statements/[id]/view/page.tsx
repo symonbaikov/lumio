@@ -125,7 +125,7 @@ export default function ViewStatementPage({
       return;
     }
 
-    try {
+    await (async () => {
       setLoading(true);
 
       // Fetch statement and transactions
@@ -181,13 +181,15 @@ export default function ViewStatementPage({
       setStatement(transformedStatement);
       setTransactions(transformedTransactions);
       setCategories(categoriesResponse.data || []);
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(t.errors.loadFailed.value);
-      toast.error(t.errors.loadFailed.value);
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async err => {
+        console.error('Error fetching data:', err);
+        setError(t.errors.loadFailed.value);
+        toast.error(t.errors.loadFailed.value);
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -195,17 +197,16 @@ export default function ViewStatementPage({
   }, [statementId]);
 
   const handleUpdateCategory = async (txIds: string[], categoryId: string) => {
-    try {
-      await api.patch('/transactions/bulk-update-category', {
-        transactionIds: txIds,
-        categoryId,
+    await (async () => {
+      await api.post('/transactions/bulk-update', {
+        items: txIds.map(id => ({ id, updates: { categoryId } })),
       });
       // Reload data
       await fetchData();
-    } catch (err) {
+    })().catch(async err => {
       console.error('Failed to update category:', err);
       throw err;
-    }
+    });
   };
 
   const handleDownload = async () => {
@@ -213,7 +214,8 @@ export default function ViewStatementPage({
       return;
     }
     const toastId = toast.loading(t.loading.value);
-    try {
+
+    await (async () => {
       const token = localStorage.getItem('access_token');
       const response = await fetch(`${apiBaseUrl}/statements/edit`, {
         headers: {
@@ -235,10 +237,10 @@ export default function ViewStatementPage({
       } else {
         throw new Error('Download failed');
       }
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to download file:', error);
       toast.error(t.fileLoadFailed.value, { id: toastId });
-    }
+    });
   };
 
   if (loading) {

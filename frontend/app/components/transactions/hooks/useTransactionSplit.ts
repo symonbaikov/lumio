@@ -29,18 +29,21 @@ function errorMessage(error: unknown, fallback: string): string {
 export function useTransactionSplit(onDone: () => void | Promise<void>): UseTransactionSplitResult {
   const [saving, setSaving] = useState(false);
 
+  // Promise chains rather than try/finally: React Compiler skips hooks that
+  // contain a `finally` clause.
   const split = useCallback(
     async (transactionId: string, parts: SplitPartInput[]) => {
       setSaving(true);
-      try {
-        await apiClient.post(`/transactions/${transactionId}/split`, { parts });
-        toast.success('Transaction split');
-        await onDone();
-      } catch (error) {
-        toast.error(errorMessage(error, 'Failed to split transaction'));
-      } finally {
-        setSaving(false);
-      }
+      await apiClient
+        .post(`/transactions/${transactionId}/split`, { parts })
+        .then(async () => {
+          toast.success('Transaction split');
+          await onDone();
+        })
+        .catch((error: unknown) => {
+          toast.error(errorMessage(error, 'Failed to split transaction'));
+        });
+      setSaving(false);
     },
     [onDone],
   );
@@ -48,15 +51,16 @@ export function useTransactionSplit(onDone: () => void | Promise<void>): UseTran
   const unsplit = useCallback(
     async (transactionId: string) => {
       setSaving(true);
-      try {
-        await apiClient.post(`/transactions/${transactionId}/unsplit`);
-        toast.success('Split undone');
-        await onDone();
-      } catch (error) {
-        toast.error(errorMessage(error, 'Failed to undo split'));
-      } finally {
-        setSaving(false);
-      }
+      await apiClient
+        .post(`/transactions/${transactionId}/unsplit`)
+        .then(async () => {
+          toast.success('Split undone');
+          await onDone();
+        })
+        .catch((error: unknown) => {
+          toast.error(errorMessage(error, 'Failed to undo split'));
+        });
+      setSaving(false);
     },
     [onDone],
   );

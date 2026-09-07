@@ -18,6 +18,7 @@ import {
 import { tokens } from '@/lib/theme-tokens';
 import { resolveBankLogo } from '@bank-logos';
 import Skeleton from '@mui/material/Skeleton';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -87,6 +88,7 @@ export default function TrashListView({ onCountChange }: Props) {
   const t = useIntlayer('statementsPage');
   const { locale } = useLocale();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   const localeCode = locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US';
@@ -245,7 +247,7 @@ export default function TrashListView({ onCountChange }: Props) {
   }, [searchInput]);
 
   const loadTrashFiles = async () => {
-    try {
+    await (async () => {
       setLoading(true);
       const response = await apiClient.get('/storage/files', {
         params: { deleted: 'only' },
@@ -258,12 +260,14 @@ export default function TrashListView({ onCountChange }: Props) {
           : [];
 
       setFiles(nextFiles);
-    } catch (error) {
-      console.error('Failed to load trash files:', error);
-      toast.error(labels.loadError);
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to load trash files:', error);
+        toast.error(labels.loadError);
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -346,14 +350,15 @@ export default function TrashListView({ onCountChange }: Props) {
   const handleRestore = async (id: string) => {
     const toastId = toast.loading(labels.restoreLoading);
 
-    try {
+    await (async () => {
       await apiClient.post(`/storage/files/${id}/trash/restore`);
       removeFilesFromState([id]);
+      await queryClient.invalidateQueries({ queryKey: ['statements'] });
       toast.success(labels.restoreSuccess, { id: toastId });
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to restore trash file:', error);
       toast.error(labels.restoreFailed, { id: toastId });
-    }
+    });
   };
 
   const handleBulkRestore = async () => {
@@ -362,16 +367,17 @@ export default function TrashListView({ onCountChange }: Props) {
     }
     const toastId = toast.loading(labels.restoreLoading);
 
-    try {
+    await (async () => {
       await apiClient.post('/storage/files/trash/bulk/restore', {
         statementIds: selectedIds,
       });
       removeFilesFromState(selectedIds);
+      await queryClient.invalidateQueries({ queryKey: ['statements'] });
       toast.success(labels.restoreSuccess, { id: toastId });
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to bulk restore trash files:', error);
       toast.error(labels.restoreFailed, { id: toastId });
-    }
+    });
   };
 
   const openDeleteConfirm = (ids: string[]) => {
@@ -391,7 +397,7 @@ export default function TrashListView({ onCountChange }: Props) {
     const toastId = toast.loading(labels.deleteLoading);
     setConfirmLoading(true);
 
-    try {
+    await (async () => {
       if (ids.length === 1) {
         await apiClient.delete(`/storage/files/${ids[0]}/trash`);
       } else {
@@ -404,12 +410,14 @@ export default function TrashListView({ onCountChange }: Props) {
       setDeleteConfirmOpen(false);
       setPendingDeleteIds([]);
       toast.success(labels.deleteSuccess, { id: toastId });
-    } catch (error) {
-      console.error('Failed to permanently delete trash files:', error);
-      toast.error(labels.deleteFailed, { id: toastId });
-    } finally {
-      setConfirmLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to permanently delete trash files:', error);
+        toast.error(labels.deleteFailed, { id: toastId });
+      })
+      .finally(async () => {
+        setConfirmLoading(false);
+      });
   };
 
   const handleConfirmEmptyTrash = async () => {
@@ -422,19 +430,21 @@ export default function TrashListView({ onCountChange }: Props) {
     const toastId = toast.loading(labels.deleteLoading);
     setConfirmLoading(true);
 
-    try {
+    await (async () => {
       await apiClient.post('/storage/files/bulk/trash/delete', {
         statementIds: ids,
       });
       removeFilesFromState(ids);
       setEmptyConfirmOpen(false);
       toast.success(labels.deleteSuccess, { id: toastId });
-    } catch (error) {
-      console.error('Failed to empty trash:', error);
-      toast.error(labels.deleteFailed, { id: toastId });
-    } finally {
-      setConfirmLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to empty trash:', error);
+        toast.error(labels.deleteFailed, { id: toastId });
+      })
+      .finally(async () => {
+        setConfirmLoading(false);
+      });
   };
 
   const formatDateTime = (value?: string | Date | null) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
 import { FOLDER_NAME_MAX, type FolderOption, type StorageFile } from '../storageHelpers';
@@ -96,40 +96,6 @@ export function useStorageFolders(
   const folderMoveFeedbackTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastWheelTime = useRef<number>(0);
 
-  // Wheel-based folder reordering when a folder is "picked" in the modal
-  useEffect(() => {
-    if (!(pickedFolderId && isFolderModalOpen)) {
-      return;
-    }
-
-    const handleWheelMove = (idx: number, deltaY: number): void => {
-      const now = Date.now();
-      if (deltaY > 0 && idx < folders.length - 1) {
-        handleMoveFolderIdx(pickedFolderId, idx + 1, false);
-        lastWheelTime.current = now;
-      } else if (deltaY < 0 && idx > 0) {
-        handleMoveFolderIdx(pickedFolderId, idx - 1, false);
-        lastWheelTime.current = now;
-      }
-    };
-
-    const handleWheel = (e: WheelEvent): void => {
-      const now = Date.now();
-      if (now - lastWheelTime.current < 80) {
-        return;
-      }
-      const idx = folders.findIndex(f => f.id === pickedFolderId);
-      if (idx === -1 || Math.abs(e.deltaY) < 10) {
-        return;
-      }
-      handleWheelMove(idx, e.deltaY);
-    };
-
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    return () => window.removeEventListener('wheel', handleWheel);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pickedFolderId, folders, isFolderModalOpen]);
-
   // Close context menu on click/scroll outside
   useEffect(() => {
     const handleClickOutside = (): void => setFolderContextMenu(null);
@@ -161,13 +127,13 @@ export function useStorageFolders(
   };
 
   const loadFolders = async (): Promise<void> => {
-    try {
+    await (async () => {
       const response = await api.get('/storage/folders');
       setFolders(response.data || []);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to load folders:', error);
       toast.error(messages.loadFoldersFailed);
-    }
+    });
   };
 
   const handleCreateFolder = async (): Promise<void> => {
@@ -180,15 +146,16 @@ export function useStorageFolders(
       toast.error(messages.folderNameTooLong);
       return;
     }
-    try {
+
+    await (async () => {
       const response = await api.post('/storage/folders', { name });
       setFolders(prev => [...prev, response.data].sort((a, b) => a.name.localeCompare(b.name)));
       setNewFolderName('');
       toast.success(messages.folderCreated);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to create folder:', error);
       toast.error(messages.folderCreateFailed);
-    }
+    });
   };
 
   const handleStartEditFolder = (folder: FolderOption): void => {
@@ -207,7 +174,8 @@ export function useStorageFolders(
       toast.error(messages.folderNameTooLong);
       return;
     }
-    try {
+
+    await (async () => {
       const response = await api.patch(`/storage/folders/${folderId}`, { name });
       setFolders(prev =>
         prev.map(folder => (folder.id === folderId ? { ...folder, ...response.data } : folder)),
@@ -227,10 +195,10 @@ export function useStorageFolders(
       setEditingFolderId(null);
       setEditingFolderName('');
       toast.success(messages.folderRenamed);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to rename folder:', error);
       toast.error(messages.folderRenameFailed);
-    }
+    });
   };
 
   const handleCancelEditFolder = (): void => {
@@ -239,16 +207,16 @@ export function useStorageFolders(
   };
 
   const handleUpdateFolderTag = async (folderId: string, tagId: string | null): Promise<void> => {
-    try {
+    await (async () => {
       const response = await api.patch(`/storage/folders/${folderId}`, { tagId });
       setFolders(prev =>
         prev.map(folder => (folder.id === folderId ? { ...folder, ...response.data } : folder)),
       );
       setFolderTagPickerId(null);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to update folder tag:', error);
       toast.error(messages.folderTagUpdateFailed);
-    }
+    });
   };
 
   const closeDeleteFolderModal = (): void => {
@@ -264,7 +232,6 @@ export function useStorageFolders(
     setFolderTagPickerId(null);
   };
 
-  // eslint-disable-next-line complexity
   const handleDeleteFolder = async (): Promise<void> => {
     const targetFolder = folderToDelete;
     const removeContents = deleteFolderWithContents;
@@ -272,7 +239,8 @@ export function useStorageFolders(
       return;
     }
     const toastId = toast.loading(messages.folderDeleteLoading);
-    try {
+
+    await (async () => {
       await api.delete(`/storage/folders/${targetFolder.id}`, {
         params: { deleteFiles: removeContents },
       });
@@ -297,10 +265,10 @@ export function useStorageFolders(
         setFolderTagPickerId(null);
       }
       toast.success(messages.folderDeleted, { id: toastId });
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to delete folder:', error);
       toast.error(messages.folderDeleteFailed, { id: toastId });
-    }
+    });
   };
 
   const handleMoveFolderIdx = (fromId: string, toIdx: number, finalize = true): void => {
@@ -318,13 +286,49 @@ export function useStorageFolders(
     }
   };
 
+  // Wheel-based folder reordering when a folder is "picked" in the modal
+  const moveFolderByWheel = useEffectEvent((fromId: string, toIdx: number) =>
+    handleMoveFolderIdx(fromId, toIdx, false),
+  );
+  useEffect(() => {
+    if (!(pickedFolderId && isFolderModalOpen)) {
+      return;
+    }
+
+    const handleWheelMove = (idx: number, deltaY: number): void => {
+      const now = Date.now();
+      if (deltaY > 0 && idx < folders.length - 1) {
+        moveFolderByWheel(pickedFolderId, idx + 1);
+        lastWheelTime.current = now;
+      } else if (deltaY < 0 && idx > 0) {
+        moveFolderByWheel(pickedFolderId, idx - 1);
+        lastWheelTime.current = now;
+      }
+    };
+
+    const handleWheel = (e: WheelEvent): void => {
+      const now = Date.now();
+      if (now - lastWheelTime.current < 80) {
+        return;
+      }
+      const idx = folders.findIndex(f => f.id === pickedFolderId);
+      if (idx === -1 || Math.abs(e.deltaY) < 10) {
+        return;
+      }
+      handleWheelMove(idx, e.deltaY);
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, [pickedFolderId, folders, isFolderModalOpen]);
+
   const handleFolderContextMenu = (event: React.MouseEvent, folder: FolderOption): void => {
     event.preventDefault();
     setFolderContextMenu({ x: event.clientX, y: event.clientY, folder });
   };
 
   const handleMoveToFolder = async (fileId: string, folderId: string | null): Promise<void> => {
-    try {
+    await (async () => {
       await api.patch(`/storage/files/${fileId}/folder`, { folderId });
       setFiles(prev =>
         prev.map(file =>
@@ -343,11 +347,11 @@ export function useStorageFolders(
         : messages.folderUpdated;
       toast.success(message);
       setFolderMoveMessage('success', message);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to move file to folder:', error);
       toast.error(messages.folderUpdateFailed);
       setFolderMoveMessage('error', messages.folderUpdateFailed);
-    }
+    });
   };
 
   const canEditFolder = (folder: FolderOption): boolean => folder.userId !== null;

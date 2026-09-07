@@ -1,6 +1,6 @@
 'use client';
 
-import { type TouchEvent, useCallback, useMemo, useRef, useState } from 'react';
+import { type TouchEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type UsePullToRefreshOptions = {
   enabled?: boolean;
@@ -36,12 +36,33 @@ export function usePullToRefresh({
 
   const touchStartYRef = useRef<number | null>(null);
   const pullActiveRef = useRef(false);
+  // Live distance lives in a ref so the touch handlers stay referentially
+  // stable; React state is updated at most once per animation frame instead
+  // of once per touchmove event (which re-rendered the whole page per pixel).
+  const distanceRef = useRef(0);
+  const frameRef = useRef<number | null>(null);
+
+  const commitDistance = useCallback((next: number) => {
+    distanceRef.current = next;
+    if (frameRef.current !== null) return;
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = null;
+      setPullDistance(distanceRef.current);
+    });
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    },
+    [],
+  );
 
   const resetPullState = useCallback(() => {
     touchStartYRef.current = null;
     pullActiveRef.current = false;
-    setPullDistance(0);
-  }, []);
+    commitDistance(0);
+  }, [commitDistance]);
 
   const startPull = useCallback(
     (event: TouchEvent) => {
@@ -65,21 +86,20 @@ export function usePullToRefresh({
       const deltaY = currentY - touchStartYRef.current;
 
       if (deltaY <= 0) {
-        setPullDistance(0);
+        commitDistance(0);
         return;
       }
 
-      if (!isAtTop() && pullDistance <= 0) {
+      if (!isAtTop() && distanceRef.current <= 0) {
         resetPullState();
         return;
       }
 
       event.preventDefault();
 
-      const next = Math.min(maxPull, deltaY * resistance);
-      setPullDistance(next);
+      commitDistance(Math.min(maxPull, deltaY * resistance));
     },
-    [enabled, isAtTop, maxPull, pullDistance, resetPullState, resistance],
+    [enabled, isAtTop, maxPull, commitDistance, resetPullState, resistance],
   );
 
   const completePull = useCallback(async () => {
@@ -88,20 +108,20 @@ export function usePullToRefresh({
       return;
     }
 
-    const shouldRefresh = pullDistance >= threshold;
+    const shouldRefresh = distanceRef.current >= threshold;
     resetPullState();
 
     if (!shouldRefresh || isRefreshing) {
       return;
     }
 
-    try {
+    await (async () => {
       setIsRefreshing(true);
       await onRefresh();
-    } finally {
+    })().finally(async () => {
       setIsRefreshing(false);
-    }
-  }, [enabled, isRefreshing, onRefresh, pullDistance, resetPullState, threshold]);
+    });
+  }, [enabled, isRefreshing, onRefresh, resetPullState, threshold]);
 
   const handlers = useMemo<TouchHandlers>(
     () => ({

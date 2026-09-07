@@ -49,6 +49,13 @@ export default function LocalCategorizationPage(): React.JSX.Element {
   const [uploading, setUploading] = useState(false);
   const [testing, setTesting] = useState(false);
 
+  const applyStatus = (next: LocalCategorizationStatus): void => {
+    setStatus(next);
+    setEnabled(next.settings?.enabled ?? true);
+    setModelId(next.settings?.modelId || DEFAULT_MODEL_ID);
+    setThreshold(Number(next.settings?.threshold ?? 0.35));
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -71,17 +78,11 @@ export default function LocalCategorizationPage(): React.JSX.Element {
     };
   }, []);
 
-  const applyStatus = (next: LocalCategorizationStatus): void => {
-    setStatus(next);
-    setEnabled(next.settings?.enabled ?? true);
-    setModelId(next.settings?.modelId || DEFAULT_MODEL_ID);
-    setThreshold(Number(next.settings?.threshold ?? 0.35));
-  };
-
   const saveSettings = async (): Promise<void> => {
     setSaving(true);
     setMessage(null);
-    try {
+
+    await (async () => {
       const response = await apiClient.put<LocalCategorizationStatus>(
         '/settings/local-categorization',
         {
@@ -92,11 +93,13 @@ export default function LocalCategorizationPage(): React.JSX.Element {
       );
       applyStatus(response.data);
       setMessage('Settings saved.');
-    } catch {
-      setMessage('Unable to save settings.');
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async () => {
+        setMessage('Unable to save settings.');
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   const uploadModel = async (file: File | undefined): Promise<void> => {
@@ -105,7 +108,8 @@ export default function LocalCategorizationPage(): React.JSX.Element {
     }
     setUploading(true);
     setMessage(null);
-    try {
+
+    await (async () => {
       const formData = new FormData();
       formData.append('model', file);
       const response = await apiClient.post<LocalCategorizationStatus>(
@@ -115,17 +119,20 @@ export default function LocalCategorizationPage(): React.JSX.Element {
       );
       applyStatus(response.data);
       setMessage('Model installed.');
-    } catch {
-      setMessage('Unable to install model archive.');
-    } finally {
-      setUploading(false);
-    }
+    })()
+      .catch(async () => {
+        setMessage('Unable to install model archive.');
+      })
+      .finally(async () => {
+        setUploading(false);
+      });
   };
 
   const testMerchant = async (): Promise<void> => {
     setTesting(true);
     setMessage(null);
-    try {
+
+    await (async () => {
       const response = await apiClient.post<LocalCategorizationTestResult>(
         '/settings/local-categorization/test',
         {
@@ -134,11 +141,13 @@ export default function LocalCategorizationPage(): React.JSX.Element {
         },
       );
       setTestResult(response.data);
-    } catch {
-      setMessage('Unable to test local categorization.');
-    } finally {
-      setTesting(false);
-    }
+    })()
+      .catch(async () => {
+        setMessage('Unable to test local categorization.');
+      })
+      .finally(async () => {
+        setTesting(false);
+      });
   };
 
   const modelInstalled = Boolean(status?.settings?.modelInstalled);

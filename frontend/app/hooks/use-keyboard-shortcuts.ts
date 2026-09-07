@@ -15,7 +15,9 @@ function isEditableTarget(event: KeyboardEvent): boolean {
 
 export function useKeyboardShortcuts(bindings: KeyBindingMap, enabled = true): void {
   const bindingsRef = useRef(bindings);
-  bindingsRef.current = bindings;
+  useEffect(() => {
+    bindingsRef.current = bindings;
+  });
 
   useEffect(() => {
     if (!enabled) return;

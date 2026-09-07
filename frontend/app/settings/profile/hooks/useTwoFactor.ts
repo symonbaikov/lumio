@@ -41,7 +41,6 @@ export type UseTwoFactorReturn = {
 
 export function useTwoFactor(
   isAuthenticated: boolean,
-  activeSection: string,
   messages: UseTwoFactorMessages,
 ): UseTwoFactorReturn {
   const [status, setStatus] = useState<TwoFactorStatus | null>(null);
@@ -53,37 +52,41 @@ export function useTwoFactor(
   const [message, setMessage] = useState<string | null>(null);
 
   const loadStatus = useCallback(async () => {
-    try {
+    await (async () => {
       setLoading(true);
       setError(null);
       const response = await apiClient.get<TwoFactorStatus>('/auth/2fa');
       setStatus(response.data);
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, messages.loadError));
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async (err: unknown) => {
+        setError(getApiErrorMessage(err, messages.loadError));
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, [messages.loadError]);
 
   useEffect(() => {
-    if (!isAuthenticated || activeSection !== 'security') return;
+    if (!isAuthenticated) return;
     loadStatus();
-  }, [activeSection, isAuthenticated, loadStatus]);
+  }, [isAuthenticated, loadStatus]);
 
   /** Every action shares the same guard: clear feedback, run, refresh status. */
   const run = useCallback(
     async (action: () => Promise<void>) => {
-      try {
+      await (async () => {
         setBusy(true);
         setError(null);
         setMessage(null);
         await action();
         await loadStatus();
-      } catch (err: unknown) {
-        setError(getApiErrorMessage(err, messages.errorFallback));
-      } finally {
-        setBusy(false);
-      }
+      })()
+        .catch(async (err: unknown) => {
+          setError(getApiErrorMessage(err, messages.errorFallback));
+        })
+        .finally(async () => {
+          setBusy(false);
+        });
     },
     [loadStatus, messages.errorFallback],
   );

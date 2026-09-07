@@ -55,15 +55,18 @@ export function EditableDateCell({ row, column, onUpdateCell, style }: EditableD
     }
 
     setIsSaving(true);
-    try {
+
+    await (async () => {
       await onUpdateCell(row.original.id, column.id, newValue);
       setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to update cell:', error);
-      setSelectedValue(initialValue);
-    } finally {
-      setIsSaving(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to update cell:', error);
+        setSelectedValue(initialValue);
+      })
+      .finally(async () => {
+        setIsSaving(false);
+      });
   };
 
   const handleCancel = () => {

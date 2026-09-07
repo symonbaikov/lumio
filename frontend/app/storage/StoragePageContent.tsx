@@ -4,7 +4,7 @@ import { useIntlayer, useLocale } from '@/app/i18n';
 import { DndContext, DragOverlay, pointerWithin } from '@dnd-kit/core';
 import { Box, Typography } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { DocumentTypeIcon } from '../components/DocumentTypeIcon';
 import { PDFPreviewModal } from '../components/PDFPreviewModal';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
@@ -57,7 +57,7 @@ function StoragePageContent({
   const router = useRouter();
   const t = useIntlayer('storagePage');
   const { locale } = useLocale();
-  // eslint-disable-next-line max-params
+
   const tx = useCallback(
     (path: string[], fallback: string) => resolveLabel(getNestedValue(t, path), fallback),
     [t],
@@ -150,17 +150,34 @@ function StoragePageContent({
   const isTrashView = filtersHook.activeList === 'trash';
   const isFolderActive = activeModal === 'folders';
 
-  useEffect(() => {
+  // Effect events: the hook objects below are re-created every render, and an
+  // eslint-disable inside a component makes React Compiler skip it entirely.
+  const loadLookups = useEffectEvent(() => {
     void filtersHook.loadCategories();
     void tagsHook.loadTags();
     void foldersHook.loadFolders();
     void viewsHook.loadViews();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  const loadFilesForList = useEffectEvent((list: typeof filtersHook.activeList) => {
+    void filesHook.loadFiles(list);
+  });
+  const clampPage = useEffectEvent((maxPage: number) => {
+    if (filtersHook.page > maxPage) {
+      filtersHook.setPage(maxPage);
+    }
+  });
+  const stageFilters = useEffectEvent(() => {
+    if (filtersHook.filterOpen) {
+      filtersHook.setStagedFilters(filtersHook.filters);
+    }
+  });
+
+  useEffect(() => {
+    loadLookups();
   }, []);
 
   useEffect(() => {
-    void filesHook.loadFiles(filtersHook.activeList);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadFilesForList(filtersHook.activeList);
   }, [filtersHook.activeList]);
 
   useLockBodyScroll(activeModal !== null || filtersHook.filterOpen);
@@ -283,17 +300,11 @@ function StoragePageContent({
   }, [foldersHook.activeFolderId, foldersHook.folders, t]);
 
   useEffect(() => {
-    if (filtersHook.page > totalPagesCount) {
-      filtersHook.setPage(totalPagesCount);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    clampPage(totalPagesCount);
   }, [filtersHook.page, totalPagesCount]);
 
   useEffect(() => {
-    if (filtersHook.filterOpen) {
-      filtersHook.setStagedFilters(filtersHook.filters);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    stageFilters();
   }, [filtersHook.filterOpen, filtersHook.filters]);
 
   const filtersApplied = !!(

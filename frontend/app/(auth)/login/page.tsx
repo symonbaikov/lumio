@@ -52,13 +52,13 @@ function LoginPageContent(): React.JSX.Element {
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [twoFactorRequired, setTwoFactorRequired] = useState(false);
 
-  // eslint-disable-next-line max-lines-per-function, complexity
+  // eslint-disable-next-line max-lines-per-function
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    try {
+    return await (async () => {
       const response = await apiClient.post('/auth/login', {
         email,
         password,
@@ -94,11 +94,13 @@ function LoginPageContent(): React.JSX.Element {
       } else {
         window.location.href = '/workspaces';
       }
-    } catch (error: unknown) {
-      setError(getApiErrorMessage(error, t.loginFailed.value));
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        setError(getApiErrorMessage(error, t.loginFailed.value));
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   };
 
   const sideContent = (

@@ -40,7 +40,7 @@ export function useThemePreference({
   }, [userThemePreference]);
 
   const handleThemePreferenceChange = useCallback(
-    // eslint-disable-next-line complexity, max-lines-per-function
+    // eslint-disable-next-line max-lines-per-function
     async (nextThemePreference: ThemePreference) => {
       const previousThemePreference = selectedTheme;
       const previousUser = user;
@@ -64,7 +64,7 @@ export function useThemePreference({
         }),
       );
 
-      try {
+      await (async () => {
         const response = await apiClient.patch('/users/me/preferences', {
           themePreference: nextThemePreference,
         });
@@ -78,7 +78,7 @@ export function useThemePreference({
           setUser(mergedUser);
           localStorage.setItem('user', JSON.stringify(mergedUser));
         }
-      } catch {
+      })().catch(async () => {
         setSelectedTheme(previousThemePreference);
         setTheme(
           previousThemePreference === 'auto'
@@ -97,7 +97,7 @@ export function useThemePreference({
           }),
         );
         toast.error(resolveLabel(navTheme, 'Failed to update theme'));
-      }
+      });
     },
     [selectedTheme, user, setUser, setTheme, resolveLabel, navTheme],
   );

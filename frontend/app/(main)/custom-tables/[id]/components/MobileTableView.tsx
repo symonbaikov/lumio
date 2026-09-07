@@ -412,12 +412,14 @@ function MobileRowsContent(p: P): React.JSX.Element {
   );
 }
 
-function MobileScrollBody(p: P): React.JSX.Element {
+// The container ref is destructured out of the props object: React Compiler
+// treats an object holding a ref as a ref and refuses to compile reads of it.
+function MobileScrollBody({ tableContainerRef, ...p }: P): React.JSX.Element {
   const border = p.isDark ? '1px solid #374151' : '1px solid var(--border-color)';
   const height = p.isFullscreen ? 'calc(100vh - 150px)' : '600px';
   return (
     <div
-      ref={p.tableContainerRef}
+      ref={tableContainerRef}
       onScroll={p.onScroll}
       style={{
         position: 'relative',
@@ -437,7 +439,7 @@ function MobileScrollBody(p: P): React.JSX.Element {
         onCreateRow={p.onCreateRow}
         label={p.labels.addRowLabel}
       />
-      <MobileRowsContent {...p} />
+      <MobileRowsContent {...p} tableContainerRef={tableContainerRef} />
     </div>
   );
 }

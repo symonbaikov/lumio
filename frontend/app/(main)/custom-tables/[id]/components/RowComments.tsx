@@ -27,15 +27,15 @@ export function RowComments({ tableId, rowId }: RowCommentsProps) {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    try {
+    await (async () => {
       const response = await apiClient.get(`/custom-tables/${tableId}/rows/${rowId}/comments`);
       const root = (response.data ?? {}) as Record<string, unknown>;
       const nested = (root.data ?? {}) as Record<string, unknown>;
       const items = root.items ?? nested.items ?? [];
       setComments(Array.isArray(items) ? (items as RowComment[]) : []);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to load comments:', error);
-    }
+    });
   }, [tableId, rowId]);
 
   useEffect(() => {
@@ -48,27 +48,30 @@ export function RowComments({ tableId, rowId }: RowCommentsProps) {
       return;
     }
     setBusy(true);
-    try {
+
+    await (async () => {
       await apiClient.post(`/custom-tables/${tableId}/rows/${rowId}/comments`, { body });
       setDraft('');
       await load();
-    } catch (error) {
-      console.error('Failed to add comment:', error);
-      toast.error(t.addFailed.value);
-    } finally {
-      setBusy(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to add comment:', error);
+        toast.error(t.addFailed.value);
+      })
+      .finally(async () => {
+        setBusy(false);
+      });
   };
 
   const toggleResolved = async (comment: RowComment): Promise<void> => {
-    try {
+    await (async () => {
       await apiClient.patch(`/custom-tables/${tableId}/comments/${comment.id}`, {
         resolved: !comment.resolvedAt,
       });
       await load();
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to update comment:', error);
-    }
+    });
   };
 
   return (

@@ -62,7 +62,8 @@ export function TransactionFilesTab({ transactionId, labels }: TransactionFilesT
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
-    try {
+
+    await (async () => {
       const [allTags, ownTags, files] = await Promise.all([
         transactionFilesApi.listWorkspaceTags(),
         transactionFilesApi.getTags(transactionId),
@@ -71,11 +72,13 @@ export function TransactionFilesTab({ transactionId, labels }: TransactionFilesT
       setWorkspaceTags(allTags);
       setSelectedTagIds(ownTags.map(tag => tag.id));
       setAttachments(files);
-    } catch {
-      toast.error(labels.loadFailed);
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error(labels.loadFailed);
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, [transactionId, labels.loadFailed]);
 
   useEffect(() => {
@@ -91,14 +94,17 @@ export function TransactionFilesTab({ transactionId, labels }: TransactionFilesT
     const previous = selectedTagIds;
     setSelectedTagIds(next);
     setBusy(true);
-    try {
+
+    await (async () => {
       await transactionFilesApi.setTags(transactionId, next);
-    } catch {
-      setSelectedTagIds(previous);
-      toast.error(labels.saveFailed);
-    } finally {
-      setBusy(false);
-    }
+    })()
+      .catch(async () => {
+        setSelectedTagIds(previous);
+        toast.error(labels.saveFailed);
+      })
+      .finally(async () => {
+        setBusy(false);
+      });
   };
 
   const handleUpload = async (file: File | undefined): Promise<void> => {
@@ -106,38 +112,44 @@ export function TransactionFilesTab({ transactionId, labels }: TransactionFilesT
       return;
     }
     setBusy(true);
-    try {
+
+    await (async () => {
       const created = await transactionFilesApi.uploadAttachment(transactionId, file);
       setAttachments(prev => [created, ...prev]);
-    } catch {
-      toast.error(labels.uploadFailed);
-    } finally {
-      setBusy(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
+    })()
+      .catch(async () => {
+        toast.error(labels.uploadFailed);
+      })
+      .finally(async () => {
+        setBusy(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      });
   };
 
   const handleDownload = async (attachment: TransactionAttachment): Promise<void> => {
-    try {
+    await (async () => {
       const blob = await transactionFilesApi.downloadAttachment(attachment.id);
       triggerDownload(blob, attachment.fileName);
-    } catch {
+    })().catch(async () => {
       toast.error(labels.loadFailed);
-    }
+    });
   };
 
   const handleDelete = async (attachmentId: string): Promise<void> => {
     setBusy(true);
-    try {
+
+    await (async () => {
       await transactionFilesApi.deleteAttachment(attachmentId);
       setAttachments(prev => prev.filter(item => item.id !== attachmentId));
-    } catch {
-      toast.error(labels.deleteFailed);
-    } finally {
-      setBusy(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error(labels.deleteFailed);
+      })
+      .finally(async () => {
+        setBusy(false);
+      });
   };
 
   if (loading) {

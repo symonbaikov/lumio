@@ -1,9 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
+import { useCallback } from 'react';
 
-import api from '@/app/lib/api';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import { getApiErrorMessage } from '@/app/lib/api-error';
+import { apiQuery } from '@/app/lib/query-fn';
+import { queryKeys } from '@/app/lib/query-keys';
+import { useQuery } from '@tanstack/react-query';
 
 import { type TransactionApiRecord, mapApiRecordToTransaction } from '../helpers/transactionMapper';
 import type { Category, Transaction } from '../types';
@@ -21,10 +24,19 @@ export interface UseTransactionDataOptions {
 export interface UseTransactionDataResult {
   transactions: Transaction[];
   categories: Category[];
-  loading: boolean;
+  isPending: boolean;
+  isError: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  refetch: () => void;
 }
+
+interface TransactionsPayload {
+  data?: TransactionApiRecord[];
+  items?: TransactionApiRecord[];
+}
+
+/** Категории не зависят от фильтров, валюты и дат — отдельный ключ и свой staleTime. */
+const CATEGORIES_STALE_TIME = 5 * 60_000;
 
 export function useTransactionData({
   showConverted,
@@ -33,62 +45,56 @@ export function useTransactionData({
   startDate,
   endDate,
 }: UseTransactionDataOptions): UseTransactionDataResult {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const workspaceId = useWorkspaceId();
 
-  // Tracks whether the current component is still mounted and whether the
-  // latest in-flight request still matches the active option set. This guards
-  // against a slow earlier response overwriting results from a faster
-  // subsequent request.
-  const isMountedRef = useRef(true);
-  const requestIdRef = useRef(0);
+  const params: Record<string, string | number> = { limit: 500 };
+  if (showConverted) params.convert_to = workspaceCurrency;
+  if (currencyFilter) params.currency = currencyFilter;
+  if (startDate) params.startDate = startDate;
+  if (endDate) params.endDate = endDate;
 
-  const fetchData = useCallback(async () => {
-    const requestId = ++requestIdRef.current;
-    try {
-      setLoading(true);
-      setError(null);
+  const transactionsQuery = useQuery({
+    queryKey: queryKeys.transactions({ workspaceId, params }),
+    // Нормализация и маппинг живут в queryFn, а не в select: structural sharing
+    // применяется к уже отображённому массиву, поэтому неизменившийся рефетч
+    // отдаёт тот же референс и таблица ниже не перестраивается.
+    queryFn: async ({ signal }) => {
+      const payload = await apiQuery<TransactionsPayload | TransactionApiRecord[]>({
+        url: '/transactions',
+        params,
+        signal,
+      });
+      const raw = Array.isArray(payload) ? payload : (payload?.data ?? payload?.items ?? []);
+      return raw.map(mapApiRecordToTransaction);
+    },
+  });
 
-      const params: Record<string, string | number> = { limit: 500 };
-      if (showConverted) params.convert_to = workspaceCurrency;
-      if (currencyFilter) params.currency = currencyFilter;
-      if (startDate) params.startDate = startDate;
-      if (endDate) params.endDate = endDate;
+  const categoriesQuery = useQuery({
+    queryKey: queryKeys.categories(workspaceId),
+    queryFn: ({ signal }) => apiQuery<Category[]>({ url: '/categories', signal }),
+    staleTime: CATEGORIES_STALE_TIME,
+  });
 
-      const [txResponse, catResponse] = await Promise.all([
-        api.get('/transactions', { params }),
-        api.get('/categories'),
-      ]);
+  const refetch = useCallback((): void => {
+    void transactionsQuery.refetch();
+    void categoriesQuery.refetch();
+  }, [transactionsQuery.refetch, categoriesQuery.refetch]);
 
-      if (!isMountedRef.current || requestId !== requestIdRef.current) return;
+  const isError = transactionsQuery.isError || categoriesQuery.isError;
 
-      const rawTransactions =
-        (txResponse.data.data as TransactionApiRecord[] | undefined) ??
-        (txResponse.data.items as TransactionApiRecord[] | undefined) ??
-        [];
-      setTransactions(rawTransactions.map(mapApiRecordToTransaction));
-      setCategories((catResponse.data as Category[] | undefined) || []);
-    } catch (err) {
-      if (!isMountedRef.current || requestId !== requestIdRef.current) return;
-      console.error('Error fetching transactions:', err);
-      setError('Failed to load transactions');
-      toast.error('Failed to load transactions');
-    } finally {
-      if (isMountedRef.current && requestId === requestIdRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [showConverted, workspaceCurrency, currencyFilter, startDate, endDate]);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    fetchData();
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, [fetchData]);
-
-  return { transactions, categories, loading, error, refetch: fetchData };
+  return {
+    transactions: transactionsQuery.data ?? [],
+    categories: categoriesQuery.data ?? [],
+    isPending: transactionsQuery.isPending || categoriesQuery.isPending,
+    isError,
+    // Тост убран: с ретраями он всплывал бы повторно, а TransactionTab и так
+    // рендерит ошибку инлайном.
+    error: isError
+      ? getApiErrorMessage(
+          transactionsQuery.error ?? categoriesQuery.error,
+          'Failed to load transactions',
+        )
+      : null,
+    refetch,
+  };
 }

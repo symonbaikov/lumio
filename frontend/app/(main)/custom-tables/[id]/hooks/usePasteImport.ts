@@ -241,13 +241,13 @@ export function usePasteImport({
 
   const startFileImport = useCallback(
     async (file: File) => {
-      try {
+      await (async () => {
         const rows = await readTabularFile(file);
         startPreviewFromRows(rows);
-      } catch (error) {
+      })().catch(async error => {
         console.error('Failed to read import file:', error);
         toast.error(describeFileError(error, messages));
-      }
+      });
     },
     [startPreviewFromRows, messages],
   );
@@ -277,7 +277,8 @@ export function usePasteImport({
   const handlePasteCellChange = useCallback(
     (rowIndex: number, sourceIndex: number, value: string) => {
       setPasteEdits(prev => {
-        const next = { ...prev, [`${rowIndex}:${sourceIndex}`]: value };
+        const cellKey = `${rowIndex}:${sourceIndex}`;
+        const next = { ...prev, [cellKey]: value };
         rebuildPasteWithState(pasteMapping, next);
         return next;
       });
@@ -311,16 +312,17 @@ export function usePasteImport({
       if (!(tableId && rowIds.length)) {
         return;
       }
-      try {
+
+      await (async () => {
         await Promise.all(
           rowIds.map(rowId => apiClient.delete(`/custom-tables/${tableId}/rows/${rowId}`)),
         );
         setRows(prev => prev.filter(row => !rowIds.includes(row.id)));
         await refreshStats();
-      } catch (error) {
+      })().catch(async error => {
         console.error('Failed to rollback rows:', error);
         toast.error(messages.undoFailed);
-      }
+      });
     },
     [tableId, refreshStats, setRows, messages.undoFailed],
   );
@@ -385,7 +387,8 @@ export function usePasteImport({
     }
 
     setPasteApplying(true);
-    try {
+
+    await (async () => {
       const keyMap = await createNewColumns(newColumns);
       const payloadRows = buildPayloadRows(pastePreview.dataRows, keyMap);
       const response = await apiClient.post(`/custom-tables/${tableId}/rows/batch`, {
@@ -403,12 +406,14 @@ export function usePasteImport({
       onInsertSuccess(createdCount, () =>
         rollbackRows(normalizedRows.map(r => r.id).filter(Boolean)),
       );
-    } catch (error) {
-      console.error('Failed to batch insert rows:', error);
-      toast.error(messages.insertFailed);
-    } finally {
-      setPasteApplying(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to batch insert rows:', error);
+        toast.error(messages.insertFailed);
+      })
+      .finally(async () => {
+        setPasteApplying(false);
+      });
   }, [
     tableId,
     pastePreview,
@@ -422,6 +427,7 @@ export function usePasteImport({
     messages.noRows,
     messages.missingColumnTitle,
     messages.insertFailed,
+    createNewColumns,
   ]);
 
   // Global paste event listener

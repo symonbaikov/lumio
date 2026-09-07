@@ -82,16 +82,19 @@ export function useEditableCell<T extends CustomTableCellValue>({
     }
 
     setIsSaving(true);
-    try {
+
+    await (async () => {
       await onUpdateCell(rowId, columnKey, parsedValue);
       setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to update cell:', error);
-      // Revert to the last persisted value on error.
-      setInputValue(toInputString(initialValue));
-    } finally {
-      setIsSaving(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to update cell:', error);
+        // Revert to the last persisted value on error.
+        setInputValue(toInputString(initialValue));
+      })
+      .finally(async () => {
+        setIsSaving(false);
+      });
   }, [inputValue, initialValue, parseValue, onUpdateCell, rowId, columnKey, toInputString]);
 
   const handleCancel = useCallback(() => {

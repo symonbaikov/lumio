@@ -39,7 +39,8 @@ export function RelationCell({ row, column, onUpdateCell, style, tableId }: Rela
       return;
     }
     setLoading(true);
-    try {
+
+    await (async () => {
       const response = await apiClient.get(`/custom-tables/${tableId}/relation-options`, {
         params: { column: column.id },
       });
@@ -47,11 +48,13 @@ export function RelationCell({ row, column, onUpdateCell, style, tableId }: Rela
       const nested = (root.data ?? {}) as Record<string, unknown>;
       const items = root.items ?? nested.items ?? [];
       setOptions(Array.isArray(items) ? (items as RelationOption[]) : []);
-    } catch (error) {
-      console.error('Failed to load relation options:', error);
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to load relation options:', error);
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, [options.length, tableId, column.id]);
 
   if (isEditing) {

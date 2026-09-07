@@ -45,7 +45,8 @@ export function useSync() {
   const handleExportZip = useCallback(async () => {
     setDownloading(true);
     setErrorMessage(null);
-    try {
+
+    await (async () => {
       const res = await statementsApi.exportZip();
       const blob = new Blob([res.data as BlobPart], { type: 'application/zip' });
       const url = URL.createObjectURL(blob);
@@ -56,11 +57,13 @@ export function useSync() {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-    } catch {
-      setErrorMessage('Failed to export files. Please try again.');
-    } finally {
-      setDownloading(false);
-    }
+    })()
+      .catch(async () => {
+        setErrorMessage('Failed to export files. Please try again.');
+      })
+      .finally(async () => {
+        setDownloading(false);
+      });
   }, []);
 
   return {

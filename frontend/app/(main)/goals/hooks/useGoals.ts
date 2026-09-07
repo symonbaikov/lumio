@@ -50,35 +50,42 @@ export function useGoals(): UseGoalsState {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
+
+    await (async () => {
       const response = await apiClient.get('/goals');
       setGoals(response.data?.data ?? response.data ?? []);
-    } catch {
-      setError('failed');
-    } finally {
-      setLoading(false);
-    }
-    // Goals are workspace-scoped, so switching workspaces must refetch.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentWorkspace?.id]);
+    })()
+      .catch(async () => {
+        setError('failed');
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
+  }, []);
 
+  // Workspace-scoped: the request itself does not mention the workspace (the
+  // server scopes by session), so the effect re-runs on switch explicitly.
+  const workspaceId = currentWorkspace?.id;
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, workspaceId]);
 
   const submit = useCallback(
     async (request: () => Promise<unknown>) => {
       setSaving(true);
-      try {
+
+      return await (async () => {
         await request();
         await load();
         return true;
-      } catch {
-        setError('failed');
-        return false;
-      } finally {
-        setSaving(false);
-      }
+      })()
+        .catch(async () => {
+          setError('failed');
+          return false;
+        })
+        .finally(async () => {
+          setSaving(false);
+        });
     },
     [load],
   );

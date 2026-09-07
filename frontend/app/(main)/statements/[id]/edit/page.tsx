@@ -8,15 +8,12 @@ import {
   CheckCircle2,
   ChevronDown,
   Layers,
-  Pencil,
   Receipt,
   Save,
   Table2,
   Trash2,
   TriangleAlert,
-  XCircle,
 } from '@/app/components/icons';
-import { Checkbox } from '@/app/components/ui/checkbox';
 import { DetailActionButton } from '@/app/components/ui/detail-action-button';
 import { useAuth } from '@/app/hooks/useAuth';
 import { flattenStatementCategories, getCategoryDisplayName } from '@/app/lib/statement-categories';
@@ -33,7 +30,6 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  IconButton,
   MenuItem,
   Paper,
   Table,
@@ -63,8 +59,8 @@ import { tokens } from '@/lib/theme-tokens';
 import { ParsingWarningsPanel } from './ParsingWarningsPanel';
 import StatementCategoryDrawer from './StatementCategoryDrawer';
 import { BalanceReviewAlert } from './components/BalanceReviewAlert';
+import { EditTransactionsTable } from './components/EditTransactionsTable';
 import {
-  type Transaction,
   filterEnabledCategories,
   formatLabel,
   formatNumber as formatNumberHelper,
@@ -253,115 +249,6 @@ export default function EditStatementPage(): React.JSX.Element {
   });
 
   const formatNumber = (num?: number | null): string => formatNumberHelper(num, locale);
-
-  // eslint-disable-next-line max-lines-per-function
-  const renderEditCell = (
-    transaction: Transaction,
-    edited: Partial<Transaction>,
-    field: keyof Transaction,
-    // eslint-disable-next-line max-params, complexity
-  ): React.JSX.Element => {
-    const commonTextFieldProps = {
-      size: 'small' as const,
-      fullWidth: true,
-      multiline: field === 'paymentPurpose' || field === 'comments',
-    };
-
-    if (field === 'categoryId') {
-      return (
-        <TextField
-          {...commonTextFieldProps}
-          select
-          value={edited.categoryId || transaction.categoryId || ''}
-          onChange={e => handleFieldChange(transaction.id, 'categoryId', e.target.value)}
-        >
-          <MenuItem value="">{t.labels.notSelected}</MenuItem>
-          {flattenedEnabledStatementCategories.map(cat => (
-            <MenuItem key={cat.id} value={cat.id}>
-              {cat.name}
-            </MenuItem>
-          ))}
-        </TextField>
-      );
-    }
-
-    if (field === 'branchId') {
-      return (
-        <TextField
-          {...commonTextFieldProps}
-          select
-          value={edited.branchId || transaction.branchId || ''}
-          onChange={e => handleFieldChange(transaction.id, 'branchId', e.target.value)}
-        >
-          <MenuItem value="">{t.labels.notSelected}</MenuItem>
-          {branches.map(branch => (
-            <MenuItem key={branch.id} value={branch.id}>
-              {branch.name}
-            </MenuItem>
-          ))}
-        </TextField>
-      );
-    }
-
-    if (field === 'walletId') {
-      return (
-        <TextField
-          {...commonTextFieldProps}
-          select
-          value={edited.walletId || transaction.walletId || ''}
-          onChange={e => handleFieldChange(transaction.id, 'walletId', e.target.value)}
-        >
-          <MenuItem value="">{t.labels.notSelected}</MenuItem>
-          {wallets.map(wallet => (
-            <MenuItem key={wallet.id} value={wallet.id}>
-              {wallet.name}
-            </MenuItem>
-          ))}
-        </TextField>
-      );
-    }
-
-    return (
-      <TextField
-        {...commonTextFieldProps}
-        value={edited[field] ?? transaction[field] ?? ''}
-        onChange={e => handleFieldChange(transaction.id, field, e.target.value)}
-      />
-    );
-  };
-
-  // eslint-disable-next-line max-params, complexity
-  const renderDisplayCell = (
-    transaction: Transaction,
-    field: keyof Transaction,
-  ): React.ReactNode => {
-    if (field === 'transactionDate') {
-      return formatStoredDate(transaction.transactionDate, resolveLocale(locale));
-    }
-    if (field === 'debit' || field === 'credit') {
-      const value = transaction[field];
-      return value ? formatNumber(value) : '—';
-    }
-    if (field === 'categoryId') {
-      return transaction.category?.name
-        ? getCategoryDisplayName(
-            {
-              name: transaction.category.name,
-              source: transaction.category.source,
-              isSystem: transaction.category.isSystem,
-            },
-            locale,
-          )
-        : '—';
-    }
-    if (field === 'branchId') {
-      return transaction.branch?.name || '—';
-    }
-    if (field === 'walletId') {
-      return transaction.wallet?.name || '—';
-    }
-    return (transaction[field] || '—') as unknown as React.ReactNode;
-  };
 
   const stageActionLabels: Record<StatementStageActionId, string> = {
     submitForApproval: labels.submitForApproval?.value || 'Submit',
@@ -1229,329 +1116,26 @@ export default function EditStatementPage(): React.JSX.Element {
       )}
 
       {/* Transactions Table */}
-      <TableContainer
-        component={Paper}
-        elevation={0}
-        sx={{
-          border: '1px solid',
-          borderColor: 'divider',
-          overflow: 'hidden',
-        }}
-      >
-        <Table size="small">
-          <TableHead>
-            <TableRow
-              sx={{
-                bgcolor: theme =>
-                  theme.palette.mode === 'dark' ? '#18222d' : theme.palette.grey[50],
-                borderBottom: '1px solid',
-                borderBottomColor: 'divider',
-              }}
-            >
-              <TableCell padding="checkbox">
-                <Checkbox
-                  checked={selectedRows.size === transactions.length && transactions.length > 0}
-                  indeterminate={selectedRows.size > 0 && selectedRows.size < transactions.length}
-                  onCheckedChange={handleSelectAll}
-                />
-              </TableCell>
-              <TableCell
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '0.75rem',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                {columns.date?.value || 'Date'}
-              </TableCell>
-              <TableCell
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '0.75rem',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                {columns.counterparty?.value || 'Counterparty'}
-              </TableCell>
-              <TableCell
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '0.75rem',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                {columns.paymentPurposeShort?.value || 'Payment purpose'}
-              </TableCell>
-              <TableCell
-                align="right"
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '0.75rem',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                {columns.expense?.value || 'Expense'}
-              </TableCell>
-              <TableCell
-                align="right"
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '0.75rem',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                {columns.income?.value || 'Income'}
-              </TableCell>
-              <TableCell
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '0.75rem',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                {columns.category?.value || 'Category'}
-              </TableCell>
-              <TableCell
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '0.75rem',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                {columns.actions?.value || 'Actions'}
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {/* eslint-disable-next-line max-lines-per-function, complexity */}
-            {transactions.map(transaction => {
-              const isEditing = editingRow === transaction.id;
-              const edited = editedData[transaction.id] || transaction;
-              const missingCategory =
-                isIdEmpty(edited.categoryId) &&
-                isIdEmpty(transaction.categoryId) &&
-                isIdEmpty(transaction.category?.id);
-
-              return (
-                <TableRow
-                  key={transaction.id}
-                  hover
-                  sx={{
-                    bgcolor: missingCategory ? 'error.50' : undefined,
-                    borderLeft: missingCategory ? '3px solid' : undefined,
-                    borderLeftColor: missingCategory ? 'error.400' : undefined,
-                    transition: 'all 0.15s',
-                    '&:hover': {
-                      bgcolor: missingCategory ? 'error.100' : 'grey.50',
-                    },
-                  }}
-                >
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={selectedRows.has(transaction.id)}
-                      onCheckedChange={() => handleRowSelect(transaction.id)}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ minWidth: 100 }}>
-                    {isEditing
-                      ? renderEditCell(transaction, edited, 'transactionDate')
-                      : String(renderDisplayCell(transaction, 'transactionDate'))}
-                  </TableCell>
-                  <TableCell sx={{ minWidth: 150 }}>
-                    {isEditing
-                      ? renderEditCell(transaction, edited, 'counterpartyName')
-                      : transaction.counterpartyName}
-                  </TableCell>
-                  <TableCell sx={{ minWidth: 200, maxWidth: 300 }}>
-                    {isEditing ? (
-                      renderEditCell(transaction, edited, 'paymentPurpose')
-                    ) : (
-                      <Tooltip title={transaction.paymentPurpose}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {transaction.paymentPurpose}
-                        </Typography>
-                      </Tooltip>
-                    )}
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{
-                      color: 'error.600',
-                      fontWeight: 600,
-                      fontSize: '0.9375rem',
-                    }}
-                  >
-                    {transaction.debit ? formatNumber(transaction.debit) : '—'}
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{
-                      color: 'success.600',
-                      fontWeight: 600,
-                      fontSize: '0.9375rem',
-                    }}
-                  >
-                    {transaction.credit ? formatNumber(transaction.credit) : '—'}
-                  </TableCell>
-                  <TableCell sx={{ minWidth: 150 }}>
-                    {isEditing ? (
-                      renderEditCell(transaction, edited, 'categoryId')
-                    ) : (
-                      <Box>
-                        {transaction.category?.name ? (
-                          <Chip
-                            label={
-                              transaction.category.isEnabled === false
-                                ? `${getCategoryDisplayName(
-                                    {
-                                      name: transaction.category.name,
-                                      source: transaction.category.source,
-                                      isSystem: transaction.category.isSystem,
-                                    },
-                                    locale,
-                                  )} — ${labels.assignCategory?.value || 'Assign category'}`
-                                : getCategoryDisplayName(
-                                    {
-                                      name: transaction.category.name,
-                                      source: transaction.category.source,
-                                      isSystem: transaction.category.isSystem,
-                                    },
-                                    locale,
-                                  )
-                            }
-                            size="small"
-                            sx={{
-                              bgcolor:
-                                transaction.category.isEnabled === false
-                                  ? 'error.50'
-                                  : 'primary.50',
-                              color:
-                                transaction.category.isEnabled === false
-                                  ? 'error.700'
-                                  : 'primary.700',
-                              border:
-                                transaction.category.isEnabled === false ? '1px solid' : 'none',
-                              borderColor:
-                                transaction.category.isEnabled === false
-                                  ? 'error.200'
-                                  : 'transparent',
-                              fontWeight: 500,
-                              fontSize: '0.8125rem',
-                            }}
-                          />
-                        ) : (
-                          <Chip
-                            label={labels.noCategoryOption?.value || 'No category'}
-                            size="small"
-                            icon={<TriangleAlert size={16} />}
-                            sx={{
-                              bgcolor: 'error.50',
-                              color: 'error.700',
-                              border: '1px solid',
-                              borderColor: 'error.100',
-                              fontWeight: 600,
-                              fontSize: '0.8125rem',
-                              '& .MuiChip-icon': {
-                                color: 'error.600',
-                              },
-                            }}
-                          />
-                        )}
-                      </Box>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {isEditing ? (
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleSave(transaction.id)}
-                          sx={{
-                            color: 'success.600',
-                            '&:hover': {
-                              bgcolor: 'success.50',
-                            },
-                          }}
-                        >
-                          <CheckCircle2 size={18} />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={handleCancel}
-                          sx={{
-                            color: 'text.secondary',
-                            '&:hover': {
-                              bgcolor: 'grey.100',
-                            },
-                          }}
-                        >
-                          <XCircle size={18} />
-                        </IconButton>
-                      </Box>
-                    ) : (
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEdit(transaction)}
-                          sx={{
-                            color: 'primary.600',
-                            '&:hover': {
-                              bgcolor: 'primary.50',
-                            },
-                          }}
-                        >
-                          <Pencil size={18} />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                labels.confirmDeleteOne?.value || 'Delete transaction?',
-                              )
-                            ) {
-                              void handleDelete(transaction.id);
-                            }
-                          }}
-                          sx={{
-                            color: 'error.600',
-                            '&:hover': {
-                              bgcolor: 'error.50',
-                            },
-                          }}
-                        >
-                          <Trash2 size={18} />
-                        </IconButton>
-                      </Box>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <EditTransactionsTable
+        transactions={transactions}
+        editingRow={editingRow}
+        editedData={editedData}
+        selectedRows={selectedRows}
+        categories={flattenedEnabledStatementCategories}
+        branches={branches}
+        wallets={wallets}
+        locale={locale}
+        formatNumber={formatNumber}
+        columns={columns}
+        labels={labels}
+        onSelectAll={handleSelectAll}
+        onRowSelect={handleRowSelect}
+        onEdit={handleEdit}
+        onSave={handleSave}
+        onCancel={handleCancel}
+        onDelete={handleDelete}
+        onFieldChange={({ id, field, value }) => handleFieldChange(id, field, value)}
+      />
 
       {/* Bulk Category Dialog */}
       <Dialog

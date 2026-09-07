@@ -88,15 +88,15 @@ export function ReceiptUploadModal({ isOpen, onClose, onUploaded }: ReceiptUploa
       return;
     }
 
-    try {
+    await (async () => {
       await uploadReceipts(files, language);
       toast.success('Receipts uploaded and queued for processing.');
       resetState();
       onClose();
       onUploaded?.();
-    } catch {
+    })().catch(async () => {
       // handled by hook state
-    }
+    });
   };
 
   return (

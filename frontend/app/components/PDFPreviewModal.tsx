@@ -46,6 +46,10 @@ export function getFileEndpoint(source: 'statement' | 'gmail' | 'receipt', fileI
   return `${apiBaseUrl}/statements/${fileId}/file`;
 }
 
+// Dynamic import kept outside the component: React Compiler cannot compile
+// functions containing `import()` expressions.
+const loadReactPdf = (): Promise<ReactPdfModule> => import('react-pdf') as Promise<ReactPdfModule>;
+
 export function PDFPreviewModal({
   isOpen,
   onClose,
@@ -98,7 +102,7 @@ export function PDFPreviewModal({
     let localObjectUrl: string | null = null;
 
     const fetchPdf = async () => {
-      try {
+      return await (async () => {
         setLoading(true);
         setError(null);
 
@@ -130,13 +134,13 @@ export function PDFPreviewModal({
           setPdfObjectUrl(localObjectUrl);
           setLoading(false);
         }
-      } catch (err) {
+      })().catch(async err => {
         console.error('Error loading PDF:', err);
         if (!cancelled) {
           setError(err instanceof Error ? err.message : t.errors.fileLoadFailed.value);
           setLoading(false);
         }
-      }
+      });
     };
 
     fetchPdf();
@@ -157,18 +161,18 @@ export function PDFPreviewModal({
     let active = true;
 
     const loadPdfRenderer = async () => {
-      try {
-        const module = (await import('react-pdf')) as ReactPdfModule;
+      await (async () => {
+        const module = await loadReactPdf();
         module.pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${module.pdfjs.version}/build/pdf.worker.min.mjs`;
         if (active) {
           setPdfModule(module);
         }
-      } catch (err) {
+      })().catch(async err => {
         console.error('Error loading PDF renderer:', err);
         if (active) {
           setError(t.errors.pdfRendererFailed.value);
         }
-      }
+      });
     };
 
     loadPdfRenderer();
@@ -221,7 +225,7 @@ export function PDFPreviewModal({
   }, [menuOpen]);
 
   const handleDownload = async () => {
-    try {
+    return await (async () => {
       const headers = getWorkspaceHeaders();
       if (!headers.Authorization) {
         alert(t.errors.authRequired.value);
@@ -249,10 +253,10 @@ export function PDFPreviewModal({
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (err) {
+    })().catch(async err => {
       console.error('Error downloading PDF:', err);
       alert(t.errors.downloadAlertFailed.value);
-    }
+    });
   };
 
   const handleDownloadFromMenu = () => {
@@ -271,7 +275,7 @@ export function PDFPreviewModal({
       return;
     }
 
-    try {
+    return await (async () => {
       const headers = getWorkspaceHeaders();
       if (!headers.Authorization) {
         setError(t.errors.authRequired.value);
@@ -297,15 +301,17 @@ export function PDFPreviewModal({
       onFileAttached?.();
       setShowParsePrompt(true);
       setReloadToken(prev => prev + 1);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t.errors.uploadFailed.value);
-    } finally {
-      setAttachingFile(false);
-    }
+    })()
+      .catch(async err => {
+        setError(err instanceof Error ? err.message : t.errors.uploadFailed.value);
+      })
+      .finally(async () => {
+        setAttachingFile(false);
+      });
   };
 
   const handleStartReplaceParsing = async () => {
-    try {
+    return await (async () => {
       const headers = getWorkspaceHeaders();
       if (!headers.Authorization) {
         setError(t.errors.authRequired.value);
@@ -325,11 +331,13 @@ export function PDFPreviewModal({
 
       setShowParsePrompt(false);
       onParsingStarted?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t.errors.parsingFailed.value);
-    } finally {
-      setStartingParsing(false);
-    }
+    })()
+      .catch(async err => {
+        setError(err instanceof Error ? err.message : t.errors.parsingFailed.value);
+      })
+      .finally(async () => {
+        setStartingParsing(false);
+      });
   };
 
   const showAttachFallback = allowAttachFile && source === 'statement';

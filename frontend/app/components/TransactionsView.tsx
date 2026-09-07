@@ -18,7 +18,7 @@ import {
   TableRow,
   TextField,
 } from '@mui/material';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 
 export interface Transaction {
   id: string;
@@ -70,50 +70,68 @@ export default function TransactionsView({ transactions }: TransactionsViewProps
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
 
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return formatStoredDate(date, locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US');
-  };
+  const formatDate = useCallback(
+    (dateString: string): string => {
+      const date = new Date(dateString);
+      return formatStoredDate(
+        date,
+        locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US',
+      );
+    },
+    [locale],
+  );
 
-  const formatAmount = (amount: number, currency?: string): string => {
-    return new Intl.NumberFormat(locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US', {
-      style: 'currency',
-      currency: currency || 'KZT',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
+  const formatAmount = useCallback(
+    (amount: number, currency?: string): string => {
+      return new Intl.NumberFormat(
+        locale === 'kk' ? 'kk-KZ' : locale === 'ru' ? 'ru-RU' : 'en-US',
+        {
+          style: 'currency',
+          currency: currency || 'KZT',
+          minimumFractionDigits: 2,
+        },
+      ).format(amount);
+    },
+    [locale],
+  );
 
-  const getTypeColor = (type: string) => {
+  const getTypeColor = useCallback((type: string) => {
     const colors: Record<string, 'success' | 'error' | 'info'> = {
       INCOME: 'success',
       EXPENSE: 'error',
       TRANSFER: 'info',
     };
     return colors[type] || 'default';
-  };
+  }, []);
 
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'INCOME':
-        return t.type.income;
-      case 'EXPENSE':
-        return t.type.expense;
-      case 'TRANSFER':
-        return t.type.transfer;
-      default:
-        return type;
-    }
-  };
-
-  const filteredTransactions = transactions.filter(
-    tx =>
-      tx.counterpartyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.paymentPurpose?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.category?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.documentNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.counterpartyBin?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.article?.toLowerCase().includes(searchQuery.toLowerCase()),
+  const getTypeLabel = useCallback(
+    (type: string) => {
+      switch (type) {
+        case 'INCOME':
+          return t.type.income;
+        case 'EXPENSE':
+          return t.type.expense;
+        case 'TRANSFER':
+          return t.type.transfer;
+        default:
+          return type;
+      }
+    },
+    [t],
   );
+
+  const filteredTransactions = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    return transactions.filter(
+      tx =>
+        tx.counterpartyName?.toLowerCase().includes(query) ||
+        tx.paymentPurpose?.toLowerCase().includes(query) ||
+        tx.category?.name?.toLowerCase().includes(query) ||
+        tx.documentNumber?.toLowerCase().includes(query) ||
+        tx.counterpartyBin?.toLowerCase().includes(query) ||
+        tx.article?.toLowerCase().includes(query),
+    );
+  }, [transactions, searchQuery]);
 
   const paginatedTransactions = filteredTransactions.slice(
     page * rowsPerPage,
@@ -254,7 +272,7 @@ export default function TransactionsView({ transactions }: TransactionsViewProps
     });
 
     return columns;
-  }, [transactions, locale, t]);
+  }, [transactions, locale, t, formatDate, formatAmount, getTypeColor, getTypeLabel]);
 
   return (
     <Box>

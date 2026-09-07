@@ -87,7 +87,8 @@ function useLoadSheet(opts: { locale: string; errorMessage: string; setters: She
     async (date?: string): Promise<void> => {
       setters.setLoading(true);
       setters.setError(null);
-      try {
+
+      await (async () => {
         const response = await apiClient.get('/reports/balance/sheet', {
           params: { ...(date ? { date } : {}), locale },
         });
@@ -109,11 +110,13 @@ function useLoadSheet(opts: { locale: string; errorMessage: string; setters: She
           }
           return merged;
         });
-      } catch (err: unknown) {
-        setters.setError(getApiErrorMessage(err, errorMessage));
-      } finally {
-        setters.setLoading(false);
-      }
+      })()
+        .catch(async (err: unknown) => {
+          setters.setError(getApiErrorMessage(err, errorMessage));
+        })
+        .finally(async () => {
+          setters.setLoading(false);
+        });
     },
     [locale, errorMessage, setters],
   );
@@ -145,7 +148,8 @@ function useSaveSnapshot(opts: SaveSnapshotOpts): (accountId: string) => Promise
       setters.setSavingAccountId(accountId);
       setters.setSaveHint(text('savingBalance', 'Saving...'));
       setters.setError(null);
-      try {
+
+      await (async () => {
         await apiClient.put('/reports/balance/snapshot', {
           accountId,
           amount: parsed,
@@ -154,12 +158,14 @@ function useSaveSnapshot(opts: SaveSnapshotOpts): (accountId: string) => Promise
         });
         setters.setSaveHint(text('balanceSaved', 'Balance saved'));
         await loadSheet(effectiveDate);
-      } catch (err: unknown) {
-        setters.setError(getApiErrorMessage(err, errorMessage));
-        setters.setSaveHint('');
-      } finally {
-        setters.setSavingAccountId(null);
-      }
+      })()
+        .catch(async (err: unknown) => {
+          setters.setError(getApiErrorMessage(err, errorMessage));
+          setters.setSaveHint('');
+        })
+        .finally(async () => {
+          setters.setSavingAccountId(null);
+        });
     },
     [editableValues, effectiveDate, sheet, errorMessage, text, loadSheet, setters],
   );
@@ -182,7 +188,8 @@ function useDownloadExport(
       setters.setExportingFormat(format);
       setters.setExportMenuOpen(false);
       setters.setError(null);
-      try {
+
+      await (async () => {
         const params = { format, ...(effectiveDate ? { date: effectiveDate } : {}), locale };
         const response = await apiClient.get('/reports/balance/export', {
           params,
@@ -194,11 +201,13 @@ function useDownloadExport(
           type: headers['content-type'] || 'application/octet-stream',
         });
         triggerDownload(blob, fileName);
-      } catch (err: unknown) {
-        setters.setError(getApiErrorMessage(err, errorMessage));
-      } finally {
-        setters.setExportingFormat(null);
-      }
+      })()
+        .catch(async (err: unknown) => {
+          setters.setError(getApiErrorMessage(err, errorMessage));
+        })
+        .finally(async () => {
+          setters.setExportingFormat(null);
+        });
     },
     [effectiveDate, locale, sheet, errorMessage, setters],
   );

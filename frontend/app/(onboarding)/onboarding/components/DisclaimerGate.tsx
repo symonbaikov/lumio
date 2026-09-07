@@ -93,16 +93,18 @@ export function DisclaimerGate({
     setSubmitting(true);
     setFailed(false);
 
-    try {
+    await (async () => {
       await apiClient.post('/users/me/disclaimer');
       onAccepted();
-    } catch {
-      // Only advance once the acceptance is actually recorded — otherwise the
-      // user believes they consented and the audit trail disagrees.
-      setFailed(true);
-    } finally {
-      setSubmitting(false);
-    }
+    })()
+      .catch(async () => {
+        // Only advance once the acceptance is actually recorded — otherwise the
+        // user believes they consented and the audit trail disagrees.
+        setFailed(true);
+      })
+      .finally(async () => {
+        setSubmitting(false);
+      });
   };
 
   return (

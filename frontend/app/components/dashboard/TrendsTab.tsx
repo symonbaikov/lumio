@@ -219,8 +219,8 @@ export function TrendsTab({ data, formatAmount, displayMonth }: TrendsTabProps):
   const t = useIntlayer('trendsTab');
   const [days, setDays] = useState<number>(DEFAULT_DAYS);
   const monthLabel = useMonthLabel(displayMonth);
-  const { data: trends, loading, error } = useDashboardTrends(days);
-  const state: SectionState = { loading, error, trends };
+  const { data: trends, isPending, error } = useDashboardTrends(days);
+  const state: SectionState = { loading: isPending, error, trends: trends ?? null };
   const effectivePeriod = resolveDashboardEffectivePeriod(
     trends?.effectiveSince,
     trends?.effectiveEndDate,

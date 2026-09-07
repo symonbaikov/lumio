@@ -174,7 +174,6 @@ interface DropdownMenuItemProps extends React.HTMLAttributes<HTMLLIElement> {
 }
 
 const DropdownMenuItem = React.forwardRef<HTMLLIElement, DropdownMenuItemProps>(
-  // eslint-disable-next-line max-params
   (
     { children, inset, disabled, onClick, onSelect, className, style, ...props },
     ref,
@@ -213,7 +212,6 @@ interface DropdownMenuCheckboxItemProps extends React.HTMLAttributes<HTMLLIEleme
 }
 
 const DropdownMenuCheckboxItem = React.forwardRef<HTMLLIElement, DropdownMenuCheckboxItemProps>(
-  // eslint-disable-next-line max-params
   (
     { children, checked, onCheckedChange, disabled, className, ...props },
     ref,

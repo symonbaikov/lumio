@@ -86,7 +86,7 @@ export function NotificationDropdown({
 }: NotificationDropdownProps) {
   const t = useIntlayer('notificationDropdown');
   const { locale } = useLocale();
-  const { notifications, unreadCount, loading, refresh, markAsRead, markAllAsRead } =
+  const { notifications, unreadCount, isPending, refetch, markAsRead, markAllAsRead } =
     useNotifications();
   const router = useRouter();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -145,9 +145,9 @@ export function NotificationDropdown({
 
   useEffect(() => {
     if (open) {
-      void refresh();
+      refetch();
     }
-  }, [open, refresh]);
+  }, [open, refetch]);
 
   const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -239,7 +239,7 @@ export function NotificationDropdown({
         aria-label={t.aria.notifications.value}
       >
         <Bell size={iconSize} />
-        {loading ? (
+        {isPending ? (
           <span className="lumio-notification-dropdown__badge">
             <Spinner size={12} sx={{ color: 'white' }} />
           </span>
@@ -274,7 +274,7 @@ export function NotificationDropdown({
           <button
             type="button"
             className="lumio-notification-dropdown__mark-all"
-            onClick={() => void markAllAsRead()}
+            onClick={() => markAllAsRead()}
             disabled={unreadCount === 0}
           >
             {t.markAllRead.value}
@@ -282,11 +282,11 @@ export function NotificationDropdown({
         </div>
 
         <div className="lumio-notification-dropdown__list">
-          {loading && notifications.length === 0 ? (
+          {isPending && notifications.length === 0 ? (
             <div className="lumio-notification-dropdown__empty">{t.loading.value}</div>
           ) : null}
 
-          {!loading && notifications.length === 0 ? (
+          {!isPending && notifications.length === 0 ? (
             <div className="lumio-notification-dropdown__empty">
               <EmptyStateIllustration name="notifications" size="sm" />
               {t.empty.value}
@@ -311,7 +311,7 @@ export function NotificationDropdown({
                 type="button"
                 onClick={() => {
                   if (!notification.isRead) {
-                    void markAsRead([notification.id]);
+                    markAsRead([notification.id]);
                   }
 
                   if (href) {

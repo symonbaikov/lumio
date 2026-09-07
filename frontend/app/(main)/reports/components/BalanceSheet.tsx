@@ -65,7 +65,6 @@ const toDateInputValue = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-// eslint-disable-next-line max-params
 const collectEditableValues = (
   accounts: BalanceAccountNode[],
   result: Record<string, string>,
@@ -80,7 +79,6 @@ const collectEditableValues = (
   }
 };
 
-// eslint-disable-next-line max-params
 const collectExpandableDefaults = (
   accounts: BalanceAccountNode[],
   result: Record<string, boolean>,
@@ -151,7 +149,7 @@ function BalanceSheet(): React.JSX.Element {
       setLoading(true);
       setError(null);
 
-      try {
+      await (async () => {
         const response = await apiClient.get('/reports/balance/sheet', {
           params: {
             ...(date ? { date } : {}),
@@ -179,11 +177,13 @@ function BalanceSheet(): React.JSX.Element {
           }
           return merged;
         });
-      } catch (err: unknown) {
-        setError(getApiErrorMessage(err, t.errors.loadReport.value));
-      } finally {
-        setLoading(false);
-      }
+      })()
+        .catch(async (err: unknown) => {
+          setError(getApiErrorMessage(err, t.errors.loadReport.value));
+        })
+        .finally(async () => {
+          setLoading(false);
+        });
     },
     [locale, t.errors.loadReport.value],
   );
@@ -208,7 +208,7 @@ function BalanceSheet(): React.JSX.Element {
       setSaveHint(text('savingBalance', 'Saving...'));
       setError(null);
 
-      try {
+      await (async () => {
         await apiClient.put('/reports/balance/snapshot', {
           accountId,
           amount: parsed,
@@ -218,25 +218,26 @@ function BalanceSheet(): React.JSX.Element {
 
         setSaveHint(text('balanceSaved', 'Balance saved'));
         await loadSheet(effectiveDate);
-      } catch (err: unknown) {
-        setError(getApiErrorMessage(err, t.errors.loadReport.value));
-        setSaveHint('');
-      } finally {
-        setSavingAccountId(null);
-      }
+      })()
+        .catch(async (err: unknown) => {
+          setError(getApiErrorMessage(err, t.errors.loadReport.value));
+          setSaveHint('');
+        })
+        .finally(async () => {
+          setSavingAccountId(null);
+        });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [editableValues, effectiveDate, loadSheet, sheet?.currency, t],
+    [editableValues, effectiveDate, loadSheet, sheet?.currency, t, text],
   );
 
   const downloadExport = useCallback(
-    // eslint-disable-next-line max-lines-per-function, complexity
+    // eslint-disable-next-line max-lines-per-function
     async (format: BalanceExportFormat): Promise<void> => {
       setExportingFormat(format);
       setExportMenuOpen(false);
       setError(null);
 
-      try {
+      await (async () => {
         // Goes through the shared template endpoint so the export is recorded
         // in report history, like every other report. A balance sheet is a
         // snapshot, so both ends of the period are the same date.
@@ -271,11 +272,13 @@ function BalanceSheet(): React.JSX.Element {
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
-      } catch (err: unknown) {
-        setError(getApiErrorMessage(err, t.errors.loadReport.value));
-      } finally {
-        setExportingFormat(null);
-      }
+      })()
+        .catch(async (err: unknown) => {
+          setError(getApiErrorMessage(err, t.errors.loadReport.value));
+        })
+        .finally(async () => {
+          setExportingFormat(null);
+        });
     },
     [effectiveDate, locale, sheet?.date, t.errors.loadReport.value],
   );
@@ -287,148 +290,138 @@ function BalanceSheet(): React.JSX.Element {
     }));
   }, []);
 
-  const renderAccount = useCallback(
-    // eslint-disable-next-line max-lines-per-function, max-params, complexity
-    (account: BalanceAccountNode, level = 0): React.JSX.Element => {
-      const hasChildren = account.children.length > 0;
-      const isExpanded = expanded[account.id] ?? true;
-      const canToggle = account.isExpandable || hasChildren;
-      const isSection = level === 0;
+  // A hoisted function rather than a self-referencing useCallback: React
+  // Compiler cannot compile a callback that calls itself before declaration.
+  // eslint-disable-next-line max-lines-per-function, max-params, complexity
+  function renderAccount(account: BalanceAccountNode, level = 0): React.JSX.Element {
+    const hasChildren = account.children.length > 0;
+    const isExpanded = expanded[account.id] ?? true;
+    const canToggle = account.isExpandable || hasChildren;
+    const isSection = level === 0;
 
-      return (
+    return (
+      <Box
+        key={account.id}
+        sx={{ borderBottom: '1px solid var(--border)', '&:last-child': { borderBottom: 'none' } }}
+      >
         <Box
-          key={account.id}
-          sx={{ borderBottom: '1px solid var(--border)', '&:last-child': { borderBottom: 'none' } }}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 1.5,
+            py: 1.5,
+          }}
         >
           <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1.5,
-              py: 1.5,
-            }}
+            sx={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 1 }}
+            style={{ paddingLeft: `${level * 18}px` }}
           >
-            <Box
-              sx={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 1 }}
-              style={{ paddingLeft: `${level * 18}px` }}
-            >
-              {canToggle ? (
-                <button
-                  type="button"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 20,
-                    height: 20,
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--muted-foreground)',
-                    flexShrink: 0,
-                  }}
-                  onClick={() => toggleExpanded(account.id)}
-                >
-                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </button>
-              ) : (
-                <span style={{ width: 20, height: 20, flexShrink: 0, display: 'inline-block' }} />
-              )}
+            {canToggle ? (
+              <button
+                type="button"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 20,
+                  height: 20,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--muted-foreground)',
+                  flexShrink: 0,
+                }}
+                onClick={() => toggleExpanded(account.id)}
+              >
+                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </button>
+            ) : (
+              <span style={{ width: 20, height: 20, flexShrink: 0, display: 'inline-block' }} />
+            )}
 
+            <span
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                fontSize: isSection ? 16 : 14,
+                fontWeight: isSection ? 600 : 400,
+                color: 'var(--foreground)',
+              }}
+            >
+              {account.name}
+            </span>
+          </Box>
+
+          <Box sx={{ flexShrink: 0 }}>
+            {account.isEditable ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <input
+                  type="number"
+                  step="0.01"
+                  style={{
+                    width: 112,
+                    border: '1px solid var(--border)',
+                    background: 'var(--muted)',
+                    padding: '4px 8px',
+                    textAlign: 'right',
+                    fontSize: 14,
+                    color: 'var(--foreground)',
+                  }}
+                  value={editableValues[account.id] ?? '0.00'}
+                  onChange={event =>
+                    setEditableValues(prev => ({
+                      ...prev,
+                      [account.id]: event.target.value,
+                    }))
+                  }
+                  onBlur={() => saveSnapshot(account.id)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') {
+                      event.currentTarget.blur();
+                    }
+                  }}
+                  disabled={savingAccountId === account.id}
+                  aria-label={account.name}
+                />
+                <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted-foreground)' }}>
+                  {currencyCode}
+                </span>
+                {savingAccountId === account.id && (
+                  <CircularProgress size={16} sx={{ color: 'var(--primary)' }} />
+                )}
+              </Box>
+            ) : (
               <span
                 style={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  fontSize: isSection ? 16 : 14,
-                  fontWeight: isSection ? 600 : 400,
+                  fontSize: 14,
+                  fontWeight: isSection ? 600 : 500,
                   color: 'var(--foreground)',
                 }}
               >
-                {account.name}
+                {formatCurrency(account.amount)}
               </span>
-            </Box>
-
-            <Box sx={{ flexShrink: 0 }}>
-              {account.isEditable ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <input
-                    type="number"
-                    step="0.01"
-                    style={{
-                      width: 112,
-                      border: '1px solid var(--border)',
-                      background: 'var(--muted)',
-                      padding: '4px 8px',
-                      textAlign: 'right',
-                      fontSize: 14,
-                      color: 'var(--foreground)',
-                    }}
-                    value={editableValues[account.id] ?? '0.00'}
-                    onChange={event =>
-                      setEditableValues(prev => ({
-                        ...prev,
-                        [account.id]: event.target.value,
-                      }))
-                    }
-                    onBlur={() => saveSnapshot(account.id)}
-                    onKeyDown={event => {
-                      if (event.key === 'Enter') {
-                        event.currentTarget.blur();
-                      }
-                    }}
-                    disabled={savingAccountId === account.id}
-                    aria-label={account.name}
-                  />
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted-foreground)' }}>
-                    {currencyCode}
-                  </span>
-                  {savingAccountId === account.id && (
-                    <CircularProgress size={16} sx={{ color: 'var(--primary)' }} />
-                  )}
-                </Box>
-              ) : (
-                <span
-                  style={{
-                    fontSize: 14,
-                    fontWeight: isSection ? 600 : 500,
-                    color: 'var(--foreground)',
-                  }}
-                >
-                  {formatCurrency(account.amount)}
-                </span>
-              )}
-            </Box>
+            )}
           </Box>
-
-          {hasChildren && isExpanded && (
-            <Box>
-              {account.children
-                // eslint-disable-next-line max-params
-                .sort((a, b) => a.position - b.position)
-                .map(child => renderAccount(child, level + 1))}
-            </Box>
-          )}
         </Box>
-      );
-    },
-    [
-      currencyCode,
-      editableValues,
-      expanded,
-      formatCurrency,
-      saveSnapshot,
-      savingAccountId,
-      toggleExpanded,
-    ],
-  );
+
+        {hasChildren && isExpanded && (
+          <Box>
+            {account.children
+              // eslint-disable-next-line max-params
+              .sort((a, b) => a.position - b.position)
+              .map(child => renderAccount(child, level + 1))}
+          </Box>
+        )}
+      </Box>
+    );
+  }
 
   const balanceWarning = useMemo(() => {
     if (!sheet || sheet.isBalanced) return null;
     return `${text('balanceDifference', 'Balance difference')}: ${formatCurrency(sheet.difference)}`;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formatCurrency, sheet]);
+  }, [formatCurrency, sheet, text]);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }} data-tour-id="reports-balance">

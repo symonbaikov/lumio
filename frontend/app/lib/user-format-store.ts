@@ -2,7 +2,7 @@
 
 import type { UserFormatPreferences } from '@/app/lib/user-format';
 import { formatDate, formatDateTime, formatDateWithOptions } from '@/app/lib/user-format';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 /** Fired whenever the persisted user changes, so open views re-render dates. */
 export const USER_FORMAT_EVENT = 'lumio:user-format-changed';
@@ -16,6 +16,11 @@ const EMPTY: UserFormatPreferences = {};
  * threading preferences through every signature would touch far more code than
  * it buys, so they read the same stored user the app already keeps in sync.
  */
+// Parsed once per distinct stored value: the formatters below run inside table
+// row renders, so re-parsing the user JSON on every call is measurable.
+let cachedRaw: string | null = null;
+let cachedPreferences: UserFormatPreferences = EMPTY;
+
 export const readStoredFormatPreferences = (): UserFormatPreferences => {
   if (typeof window === 'undefined') {
     return EMPTY;
@@ -24,12 +29,15 @@ export const readStoredFormatPreferences = (): UserFormatPreferences => {
   try {
     const raw = window.localStorage.getItem('user');
     if (!raw) return EMPTY;
+    if (raw === cachedRaw) return cachedPreferences;
     const user = JSON.parse(raw) as UserFormatPreferences;
-    return {
+    cachedRaw = raw;
+    cachedPreferences = {
       locale: user.locale ?? null,
       dateFormat: user.dateFormat ?? null,
       firstDayOfWeek: user.firstDayOfWeek ?? null,
     };
+    return cachedPreferences;
   } catch {
     return EMPTY;
   }
@@ -83,7 +91,15 @@ export function useUserFormat(): UseUserFormatReturn {
   const [preferences, setPreferences] = useState<UserFormatPreferences>(EMPTY);
 
   useEffect(() => {
-    const sync = () => setPreferences(readStoredFormatPreferences());
+    const sync = () =>
+      setPreferences(prev => {
+        const next = readStoredFormatPreferences();
+        return prev.locale === next.locale &&
+          prev.dateFormat === next.dateFormat &&
+          prev.firstDayOfWeek === next.firstDayOfWeek
+          ? prev
+          : next;
+      });
     sync();
 
     window.addEventListener(USER_FORMAT_EVENT, sync);
@@ -94,9 +110,12 @@ export function useUserFormat(): UseUserFormatReturn {
     };
   }, []);
 
-  return {
-    preferences,
-    formatDate: useCallback(value => formatDate(value, preferences), [preferences]),
-    formatDateTime: useCallback(value => formatDateTime(value, preferences), [preferences]),
-  };
+  return useMemo(
+    () => ({
+      preferences,
+      formatDate: value => formatDate(value, preferences),
+      formatDateTime: value => formatDateTime(value, preferences),
+    }),
+    [preferences],
+  );
 }

@@ -8,6 +8,7 @@ import { IntlayerServerProvider } from 'react-intlayer/server';
 import { ChatModeRedirect } from './chat/ChatModeRedirect';
 import AppChrome from './components/AppChrome';
 import DynamicPageTitle from './components/DynamicPageTitle';
+import { ReactScan } from './components/ReactScan';
 import TopBar from './components/TopBar';
 import MobileBottomBar from './components/mobile/MobileBottomBar';
 import { normalizeLocale } from './lib/locale';
@@ -69,6 +70,7 @@ export default async function RootLayout({
 
   return (
     <html lang={resolvedLocale} dir={direction} suppressHydrationWarning>
+      {process.env.NODE_ENV === 'development' ? <ReactScan /> : null}
       <body className={FONT_CLASS_NAMES} style={BODY_STYLE} suppressHydrationWarning>
         <IntlayerServerProvider>
           <ThemeProvider

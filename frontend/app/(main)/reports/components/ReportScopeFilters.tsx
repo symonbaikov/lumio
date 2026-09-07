@@ -88,7 +88,7 @@ export function ReportScopeFilters({
     };
   }, []);
 
-  // eslint-disable-next-line max-lines-per-function, max-params
+  // eslint-disable-next-line max-lines-per-function
   const renderSelect = (
     options: NamedOption[],
     selected: string[],

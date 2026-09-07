@@ -27,15 +27,17 @@ export function useApiKeys() {
   const [newKey, setNewKey] = useState<CreatedApiKey | null>(null);
 
   const load = useCallback(async () => {
-    try {
+    await (async () => {
       setLoading(true);
       const res = await apiClient.get('/api-keys');
       setKeys(res.data as ApiKeyItem[]);
-    } catch {
-      // silently fail — status indicator will show red
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async () => {
+        // silently fail — status indicator will show red
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -44,26 +46,26 @@ export function useApiKeys() {
 
   const create = useCallback(
     async (name: string) => {
-      try {
+      await (async () => {
         const res = await apiClient.post('/api-keys', { name });
         setNewKey(res.data as CreatedApiKey);
         await load();
         toast.success('API key created');
-      } catch {
+      })().catch(async () => {
         toast.error('Failed to create API key');
-      }
+      });
     },
     [load],
   );
 
   const revoke = useCallback(async (id: string) => {
-    try {
+    await (async () => {
       await apiClient.delete(`/api-keys/${id}`);
       setKeys(prev => prev.filter(k => k.id !== id));
       toast.success('API key revoked');
-    } catch {
+    })().catch(async () => {
       toast.error('Failed to revoke API key');
-    }
+    });
   }, []);
 
   const clearNewKey = useCallback(() => setNewKey(null), []);

@@ -3,7 +3,6 @@
 import { Cloud, Shield, UserCircle } from '@/app/components/icons';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import Link from 'next/link';
 
@@ -23,7 +22,6 @@ const LINKS = [
 export function SettingsElsewhereLinks({ tx }: { tx: Tx }) {
   return (
     <>
-      <Divider sx={{ my: 1 }} />
       <Typography
         variant="caption"
         color="text.secondary"

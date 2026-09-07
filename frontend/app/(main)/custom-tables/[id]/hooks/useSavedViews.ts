@@ -138,17 +138,20 @@ export function useSavedViews({
         aggregates: current.aggregates,
       };
       const nextViews = [...views, view];
-      try {
+
+      await (async () => {
         await persist(nextViews, view.id);
         setViews(nextViews);
         setActiveViewId(view.id);
         toast.success(messages.saved);
-      } catch (error) {
-        console.error('Failed to save view:', error);
-        toast.error(messages.saveFailed);
-      } finally {
-        setSaving(false);
-      }
+      })()
+        .catch(async error => {
+          console.error('Failed to save view:', error);
+          toast.error(messages.saveFailed);
+        })
+        .finally(async () => {
+          setSaving(false);
+        });
     },
     [tableId, views, current, persist, messages],
   );
@@ -157,15 +160,16 @@ export function useSavedViews({
     async (viewId: string): Promise<void> => {
       const nextViews = views.filter(v => v.id !== viewId);
       const nextActive = activeViewId === viewId ? null : activeViewId;
-      try {
+
+      await (async () => {
         await persist(nextViews, nextActive);
         setViews(nextViews);
         setActiveViewId(nextActive);
         toast.success(messages.deleted);
-      } catch (error) {
+      })().catch(async error => {
         console.error('Failed to delete view:', error);
         toast.error(messages.saveFailed);
-      }
+      });
     },
     [views, activeViewId, persist, messages],
   );

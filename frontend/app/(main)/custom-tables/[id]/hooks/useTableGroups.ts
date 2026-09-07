@@ -61,7 +61,8 @@ export function useTableGroups({
     const controller = new AbortController();
     abortRef.current = controller;
     setLoading(true);
-    try {
+
+    return await (async () => {
       const response = await apiClient.get(`/custom-tables/${tableId}/groups`, {
         signal: controller.signal,
         params: { groupBy, aggs: aggsParam, filters: combinedFiltersParam },
@@ -70,16 +71,18 @@ export function useTableGroups({
         return;
       }
       setGroups(parseGroupItems(response.data));
-    } catch (error) {
-      if (!isAbortError(error)) {
-        console.error('Failed to load table groups:', error);
-      }
-    } finally {
-      if (abortRef.current === controller) {
-        abortRef.current = null;
-        setLoading(false);
-      }
-    }
+    })()
+      .catch(async error => {
+        if (!isAbortError(error)) {
+          console.error('Failed to load table groups:', error);
+        }
+      })
+      .finally(async () => {
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+          setLoading(false);
+        }
+      });
   }, [tableId, isAuthenticated, groupBy, aggsParam, combinedFiltersParam]);
 
   useEffect(() => {

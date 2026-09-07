@@ -91,14 +91,17 @@ function useConfirmBalance({
   const confirm = async (): Promise<void> => {
     setConfirming(true);
     setError(null);
-    try {
+
+    await (async () => {
       await apiClient.post(`/statements/${statementId}/confirm-balance`);
       onConfirmed();
-    } catch {
-      setError(failureLabel);
-    } finally {
-      setConfirming(false);
-    }
+    })()
+      .catch(async () => {
+        setError(failureLabel);
+      })
+      .finally(async () => {
+        setConfirming(false);
+      });
   };
 
   return { confirming, error, confirm };

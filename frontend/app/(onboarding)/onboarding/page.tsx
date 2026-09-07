@@ -112,15 +112,21 @@ export default function OnboardingPage() {
 
     await Promise.all(
       ONBOARDING_INTEGRATIONS.map(async integration => {
-        try {
+        await (async () => {
           nextStatuses[integration.key] = await checkIntegrationConnected(integration);
-        } catch {
+        })().catch(async () => {
           nextStatuses[integration.key] = false;
-        }
+        });
       }),
     );
 
-    setIntegrationStatuses(nextStatuses);
+    // Polled every 10s on the integrations step; skip the render when the
+    // statuses did not change.
+    setIntegrationStatuses(prev =>
+      ONBOARDING_INTEGRATIONS.every(({ key }) => prev[key] === nextStatuses[key])
+        ? prev
+        : nextStatuses,
+    );
   }, [checkIntegrationConnected]);
 
   useEffect(() => {
@@ -188,7 +194,7 @@ export default function OnboardingPage() {
         return;
       }
 
-      try {
+      await (async () => {
         const response = await apiClient.get('/workspaces');
         const workspaces = Array.isArray(response.data)
           ? response.data
@@ -211,19 +217,21 @@ export default function OnboardingPage() {
         if (workspace?.backgroundImage) {
           initialData.workspaceBackgroundImage = String(workspace.backgroundImage);
         }
-      } catch {
-        if (!cancelled) {
-          setError(tx(['errors', 'workspaceLoadFailed'], 'Failed to load workspace settings.'));
-        }
-      } finally {
-        if (!cancelled) {
-          updateData(initialData);
-          setLocale(resolvedAppLocale);
-          await refreshIntegrationStatuses();
-          setBootstrapComplete(true);
-          setIsInitializing(false);
-        }
-      }
+      })()
+        .catch(async () => {
+          if (!cancelled) {
+            setError(tx(['errors', 'workspaceLoadFailed'], 'Failed to load workspace settings.'));
+          }
+        })
+        .finally(async () => {
+          if (!cancelled) {
+            updateData(initialData);
+            setLocale(resolvedAppLocale);
+            await refreshIntegrationStatuses();
+            setBootstrapComplete(true);
+            setIsInitializing(false);
+          }
+        });
     };
 
     void initialize();
@@ -390,7 +398,7 @@ export default function OnboardingPage() {
     setError('');
     setIsSubmitting(true);
 
-    try {
+    return await (async () => {
       const workspaceName = data.workspaceName.trim();
       const workspaceCurrency = data.workspaceCurrency.trim().toUpperCase();
       const workspaceBackgroundImage = (data.workspaceBackgroundImage || '').trim();
@@ -420,11 +428,11 @@ export default function OnboardingPage() {
           localStorage.setItem('currentWorkspaceId', createdWorkspaceId);
         }
 
-        try {
+        await (async () => {
           await refreshWorkspaces();
-        } catch {
+        })().catch(async () => {
           // Do not block workspace creation if refresh fails.
-        }
+        });
 
         router.replace('/workspaces');
         return;
@@ -445,18 +453,20 @@ export default function OnboardingPage() {
         setUser(updatedUser);
       }
 
-      try {
+      await (async () => {
         await refreshWorkspaces();
-      } catch {
+      })().catch(async () => {
         // Do not block onboarding completion if workspace refresh fails.
-      }
+      });
 
       router.replace(DEFAULT_APP_ROUTE);
-    } catch {
-      setError(tx(['errors', 'completeFailed'], 'Failed to save onboarding settings.'));
-    } finally {
-      setIsSubmitting(false);
-    }
+    })()
+      .catch(async () => {
+        setError(tx(['errors', 'completeFailed'], 'Failed to save onboarding settings.'));
+      })
+      .finally(async () => {
+        setIsSubmitting(false);
+      });
   };
 
   const handleNext = () => {

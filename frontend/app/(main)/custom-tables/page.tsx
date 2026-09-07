@@ -231,24 +231,28 @@ export default function CustomTablesPage() {
 
   const loadStatements = useCallback(async () => {
     setStatementsLoading(true);
-    try {
+
+    await (async () => {
       const response = await apiClient.get('/statements', {
         params: { page: 1, limit: 50 },
       });
       const payload = response.data?.data || response.data?.items || [];
       setStatements(Array.isArray(payload) ? payload : []);
-    } catch (error) {
-      console.error('Failed to load statements:', error);
-      toast.error(getApiErrorMessage(error, t.toasts.loadStatementsFailed.value));
-    } finally {
-      setStatementsLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to load statements:', error);
+        toast.error(getApiErrorMessage(error, t.toasts.loadStatementsFailed.value));
+      })
+      .finally(async () => {
+        setStatementsLoading(false);
+      });
   }, [t.toasts.loadStatementsFailed.value]);
 
   const handleCreate = async () => {
     if (!canCreate) return;
     setCreating(true);
-    try {
+
+    return await (async () => {
       const response = await apiClient.post('/custom-tables', {
         name: form.name.trim(),
         description: form.description.trim() ? form.description.trim() : undefined,
@@ -263,12 +267,14 @@ export default function CustomTablesPage() {
         return;
       }
       await loadTables();
-    } catch (error) {
-      console.error('Failed to create custom table:', error);
-      toast.error(getApiErrorMessage(error, t.toasts.createFailed.value));
-    } finally {
-      setCreating(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to create custom table:', error);
+        toast.error(getApiErrorMessage(error, t.toasts.createFailed.value));
+      })
+      .finally(async () => {
+        setCreating(false);
+      });
   };
 
   const closeCreateFromStatements = useCallback(() => {
@@ -375,7 +381,8 @@ export default function CustomTablesPage() {
       return;
     }
     setCreatingFromStatements(true);
-    try {
+
+    return await (async () => {
       const response = await apiClient.post('/custom-tables/from-statements', {
         statementIds: selectedStatementPayloadIds,
         name: createFromStatementsForm.name.trim()
@@ -394,12 +401,14 @@ export default function CustomTablesPage() {
         return;
       }
       await loadTables();
-    } catch (error) {
-      console.error('Failed to create from statements:', error);
-      toast.error(getApiErrorMessage(error, t.toasts.createFromStatementFailed.value));
-    } finally {
-      setCreatingFromStatements(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to create from statements:', error);
+        toast.error(getApiErrorMessage(error, t.toasts.createFromStatementFailed.value));
+      })
+      .finally(async () => {
+        setCreatingFromStatements(false);
+      });
   };
 
   const confirmDelete = (table: CustomTableItem) => {
@@ -410,35 +419,40 @@ export default function CustomTablesPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     const toastId = toast.loading(t.toasts.deleting.value);
-    try {
+
+    await (async () => {
       await apiClient.delete(`/custom-tables/${deleteTarget.id}`);
       toast.success(t.toasts.deleted.value, { id: toastId });
       await loadTables();
-    } catch (error) {
-      console.error('Failed to delete custom table:', error);
-      toast.error(t.toasts.deleteFailed.value, { id: toastId });
-    } finally {
-      setDeleteTarget(null);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to delete custom table:', error);
+        toast.error(t.toasts.deleteFailed.value, { id: toastId });
+      })
+      .finally(async () => {
+        setDeleteTarget(null);
+      });
   };
 
   const handleExportTable = useCallback(async (table: CustomTableItem, format: 'csv' | 'xlsx') => {
     setExportingTableId(table.id);
     const toastId = toast.loading(`Export ${table.name}...`);
 
-    try {
+    await (async () => {
       // Файл собирает бэкенд: раньше клиент выкачивал все строки страницами
       // по 500 и строил воркбук в браузере.
       await downloadTableExport(table.id, format);
       toast.success(`Export complete: ${table.name}`, { id: toastId });
-    } catch (error) {
-      console.error('Failed to export table:', error);
-      toast.error(getApiErrorMessage(error, 'Failed to export table'), {
-        id: toastId,
+    })()
+      .catch(async error => {
+        console.error('Failed to export table:', error);
+        toast.error(getApiErrorMessage(error, 'Failed to export table'), {
+          id: toastId,
+        });
+      })
+      .finally(async () => {
+        setExportingTableId(prev => (prev === table.id ? null : prev));
       });
-    } finally {
-      setExportingTableId(prev => (prev === table.id ? null : prev));
-    }
   }, []);
 
   const handleUpdateData = useCallback(
@@ -446,7 +460,7 @@ export default function CustomTablesPage() {
       setUpdatingTableId(table.id);
       const source = (table.source || '').toLowerCase();
 
-      try {
+      return await (async () => {
         if (source.includes('data_entry')) {
           await apiClient.post(`/custom-tables/${table.id}/sync-from-data-entry`);
           await loadTables();
@@ -468,12 +482,14 @@ export default function CustomTablesPage() {
         }
 
         toast('This table source has no automatic refresh.', { icon: 'ℹ️' });
-      } catch (error) {
-        console.error('Failed to update table data:', error);
-        toast.error(getApiErrorMessage(error, 'Failed to update table data'));
-      } finally {
-        setUpdatingTableId(prev => (prev === table.id ? null : prev));
-      }
+      })()
+        .catch(async error => {
+          console.error('Failed to update table data:', error);
+          toast.error(getApiErrorMessage(error, 'Failed to update table data'));
+        })
+        .finally(async () => {
+          setUpdatingTableId(prev => (prev === table.id ? null : prev));
+        });
     },
     [loadTables, router],
   );

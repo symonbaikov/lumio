@@ -31,12 +31,13 @@ export function useIntegrationConnect({
       if (!integration) return;
 
       setIntegrationLoading(prev => ({ ...prev, [integration.key]: true }));
-      try {
+
+      await (async () => {
         setActiveIntegrationKey(integration.key);
         await refreshIntegrationStatuses();
-      } finally {
+      })().finally(async () => {
         setIntegrationLoading(prev => ({ ...prev, [integration.key]: false }));
-      }
+      });
     },
     [refreshIntegrationStatuses],
   );

@@ -35,7 +35,7 @@ export function useReceipts(initialFilters?: Partial<ReceiptsFilterState>) {
   const loadReceipts = useCallback(async () => {
     setIsLoading(true);
 
-    try {
+    await (async () => {
       const params: ReceiptListFilters = {
         page: filters.page,
         limit: filters.limit,
@@ -51,9 +51,9 @@ export function useReceipts(initialFilters?: Partial<ReceiptsFilterState>) {
 
       const response = await receiptsApi.listReceipts(params);
       setData(response);
-    } finally {
+    })().finally(async () => {
       setIsLoading(false);
-    }
+    });
   }, [filters]);
 
   useEffect(() => {

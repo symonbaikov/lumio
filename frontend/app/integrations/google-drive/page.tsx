@@ -263,13 +263,13 @@ export default function GoogleDriveIntegrationPage(): React.JSX.Element {
   const status = baseStatus as DriveStatus | null;
 
   const updateSettings = async (payload: Partial<DriveSettings>): Promise<void> => {
-    try {
+    await (async () => {
       await apiClient.post('/integrations/google-drive/settings', payload);
       toast.success(t.toasts.settingsSaved.value);
       await loadStatus();
-    } catch {
+    })().catch(async () => {
       toast.error(t.errors.connectFailed.value);
-    }
+    });
   };
 
   const handlePickFolder = async (): Promise<void> => {
@@ -277,7 +277,8 @@ export default function GoogleDriveIntegrationPage(): React.JSX.Element {
       toast.error(t.errors.pickerUnavailable.value);
       return;
     }
-    try {
+
+    return await (async () => {
       const tokenResp = await apiClient.get('/integrations/google-drive/picker-token');
       const accessToken = tokenResp.data?.accessToken as string | undefined;
       if (!accessToken) {
@@ -287,9 +288,9 @@ export default function GoogleDriveIntegrationPage(): React.JSX.Element {
       const folder = await pickDriveFolder({ accessToken, apiKey });
       if (!folder) return;
       await updateSettings({ folderId: folder.id, folderName: getPickerDocName(folder) });
-    } catch {
+    })().catch(async () => {
       toast.error(t.errors.pickerUnavailable.value);
-    }
+    });
   };
 
   const statusLabel = useMemo(() => {

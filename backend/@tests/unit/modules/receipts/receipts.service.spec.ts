@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
+  Category,
   Receipt,
   ReceiptProcessingJob,
   Statement,
@@ -23,7 +24,13 @@ describe('ReceiptsService', () => {
   };
   let jobRepository: { create: jest.Mock; save: jest.Mock };
   let transactionRepository: { create: jest.Mock; save: jest.Mock };
-  let statementRepository: { findOne: jest.Mock; save: jest.Mock; remove: jest.Mock };
+  let statementRepository: {
+    findOne: jest.Mock;
+    save: jest.Mock;
+    remove: jest.Mock;
+    update: jest.Mock;
+  };
+  let categoryRepository: { find: jest.Mock; findOne: jest.Mock };
   let processorService: { processReceipt: jest.Mock };
   let mockEventEmitter: { emit: jest.Mock; emitAsync: jest.Mock };
 
@@ -54,6 +61,12 @@ describe('ReceiptsService', () => {
       findOne: jest.fn().mockResolvedValue(null),
       save: jest.fn().mockImplementation(async payload => payload),
       remove: jest.fn().mockResolvedValue(undefined),
+      update: jest.fn().mockResolvedValue({ affected: 1 }),
+    };
+
+    categoryRepository = {
+      find: jest.fn().mockResolvedValue([]),
+      findOne: jest.fn().mockResolvedValue(null),
     };
 
     processorService = {
@@ -67,6 +80,7 @@ describe('ReceiptsService', () => {
         { provide: getRepositoryToken(ReceiptProcessingJob), useValue: jobRepository },
         { provide: getRepositoryToken(Transaction), useValue: transactionRepository },
         { provide: getRepositoryToken(Statement), useValue: statementRepository },
+        { provide: getRepositoryToken(Category), useValue: categoryRepository },
         { provide: ReceiptProcessorService, useValue: processorService },
         {
           provide: EventEmitter2,
@@ -162,7 +176,57 @@ describe('ReceiptsService', () => {
         take: 10,
       }),
     );
-    expect(result).toEqual({ data: [{ id: 'receipt-1' }], total: 1, page: 2, limit: 10 });
+    expect(result).toEqual({
+      data: [{ id: 'receipt-1', category: null }],
+      total: 1,
+      page: 2,
+      limit: 10,
+    });
+  });
+
+  it('resolves the picked category name for listed receipts', async () => {
+    receiptRepository.findAndCount.mockResolvedValue([
+      [{ id: 'receipt-1', parsedData: { categoryId: 'cat-1' } }],
+      1,
+    ]);
+    categoryRepository.find.mockResolvedValue([{ id: 'cat-1', name: 'Interest income' }]);
+
+    const result = await service.findAll('workspace-1', {});
+
+    expect(result.data[0]).toMatchObject({
+      id: 'receipt-1',
+      category: { id: 'cat-1', name: 'Interest income' },
+    });
+  });
+
+  it('propagates a picked category to the linked statement', async () => {
+    receiptRepository.findOne.mockResolvedValue({
+      id: 'receipt-1',
+      workspaceId: 'workspace-1',
+      statementId: 'statement-1',
+      parsedData: { vendor: 'Lidl' },
+    });
+    categoryRepository.findOne.mockResolvedValue({ id: 'cat-1' });
+
+    await service.update('receipt-1', 'workspace-1', { parsedData: { categoryId: 'cat-1' } });
+
+    expect(statementRepository.update).toHaveBeenCalledWith(
+      { id: 'statement-1', workspaceId: 'workspace-1' },
+      { categoryId: 'cat-1' },
+    );
+  });
+
+  it('leaves the statement alone when the receipt has no category', async () => {
+    receiptRepository.findOne.mockResolvedValue({
+      id: 'receipt-1',
+      workspaceId: 'workspace-1',
+      statementId: 'statement-1',
+      parsedData: {},
+    });
+
+    await service.update('receipt-1', 'workspace-1', { parsedData: { vendor: 'Lidl' } });
+
+    expect(statementRepository.update).not.toHaveBeenCalled();
   });
 
   it('approves receipt and creates transaction', async () => {

@@ -111,14 +111,17 @@ export function useBudgetsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
+
+    await (async () => {
       const res = await apiClient.get('/budgets');
       setBudgets(res.data?.data ?? res.data ?? []);
-    } catch {
-      setError('Failed to load budgets');
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async () => {
+        setError('Failed to load budgets');
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -152,7 +155,8 @@ export function useBudgetsPage() {
 
   const handleSave = useCallback(async () => {
     setSaving(true);
-    try {
+
+    await (async () => {
       if (editingBudget) {
         await apiClient.put(`/budgets/${editingBudget.id}`, {
           name: formData.name,
@@ -172,22 +176,24 @@ export function useBudgetsPage() {
       }
       closeDialog();
       await load();
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Failed to save budget'));
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async err => {
+        toast.error(getApiErrorMessage(err, 'Failed to save budget'));
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   }, [editingBudget, formData, closeDialog, load]);
 
   const handleDelete = useCallback(
     async (id: string) => {
-      try {
+      await (async () => {
         await apiClient.delete(`/budgets/${id}`);
         toast.success('Budget deleted');
         await load();
-      } catch {
+      })().catch(async () => {
         toast.error('Failed to delete budget');
-      }
+      });
     },
     [load],
   );

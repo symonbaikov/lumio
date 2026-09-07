@@ -153,7 +153,8 @@ export function useOnboardingPage(): OnboardingPageState {
   const handleCompleteOnboarding = useCallback(async (): Promise<void> => {
     setError('');
     setIsSubmitting(true);
-    try {
+
+    await (async () => {
       await completeOnboarding({
         data,
         isCreateWorkspaceFlow,
@@ -162,11 +163,13 @@ export function useOnboardingPage(): OnboardingPageState {
         onCreateWorkspaceDone: (): void => router.replace('/workspaces'),
         onOnboardingDone: (): void => router.replace('/dashboard'),
       });
-    } catch {
-      setError(tx(['errors', 'completeFailed']) || 'Failed to save onboarding settings.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    })()
+      .catch(async () => {
+        setError(tx(['errors', 'completeFailed']) || 'Failed to save onboarding settings.');
+      })
+      .finally(async () => {
+        setIsSubmitting(false);
+      });
   }, [data, isCreateWorkspaceFlow, refreshWorkspaces, setUser, router, tx, setError]);
 
   const canExitOnBack = isCreateWorkspaceFlow && currentStep === 0;

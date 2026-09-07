@@ -66,16 +66,19 @@ export function useCustomTablesActions({
       return;
     }
     const toastId = toast.loading(messages.deletingLabel);
-    try {
+
+    await (async () => {
       await apiClient.delete(`/custom-tables/${deleteTarget.id}`);
       toast.success(messages.deletedLabel, { id: toastId });
       await loadTables();
-    } catch (error) {
-      console.error('Failed to delete custom table:', error);
-      toast.error(messages.deleteFailedLabel, { id: toastId });
-    } finally {
-      setDeleteTarget(null);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to delete custom table:', error);
+        toast.error(messages.deleteFailedLabel, { id: toastId });
+      })
+      .finally(async () => {
+        setDeleteTarget(null);
+      });
   }, [deleteTarget, loadTables, messages]);
 
   const handleExportTable = useCallback(
@@ -83,17 +86,19 @@ export function useCustomTablesActions({
       setExportingTableId(table.id);
       const toastId = toast.loading(`Export ${table.name}...`);
 
-      try {
+      await (async () => {
         // Файл собирает бэкенд: раньше клиент выкачивал все строки страницами
         // по 500 и строил воркбук в браузере.
         await downloadTableExport(table.id, format);
         toast.success(`Export complete: ${table.name}`, { id: toastId });
-      } catch (error) {
-        console.error('Failed to export table:', error);
-        toast.error(getApiErrorMessage(error, 'Failed to export table'), { id: toastId });
-      } finally {
-        setExportingTableId(prev => (prev === table.id ? null : prev));
-      }
+      })()
+        .catch(async error => {
+          console.error('Failed to export table:', error);
+          toast.error(getApiErrorMessage(error, 'Failed to export table'), { id: toastId });
+        })
+        .finally(async () => {
+          setExportingTableId(prev => (prev === table.id ? null : prev));
+        });
     },
     [],
   );
@@ -102,7 +107,8 @@ export function useCustomTablesActions({
     async (table: CustomTableItem): Promise<void> => {
       setUpdatingTableId(table.id);
       const source = (table.source || '').toLowerCase();
-      try {
+
+      return await (async () => {
         if (source.includes('data_entry')) {
           await apiClient.post(`/custom-tables/${table.id}/sync-from-data-entry`);
           await loadTables();
@@ -119,12 +125,14 @@ export function useCustomTablesActions({
           return;
         }
         toast('This table source has no automatic refresh.', { icon: 'ℹ️' });
-      } catch (error) {
-        console.error('Failed to update table data:', error);
-        toast.error(getApiErrorMessage(error, 'Failed to update table data'));
-      } finally {
-        setUpdatingTableId(prev => (prev === table.id ? null : prev));
-      }
+      })()
+        .catch(async error => {
+          console.error('Failed to update table data:', error);
+          toast.error(getApiErrorMessage(error, 'Failed to update table data'));
+        })
+        .finally(async () => {
+          setUpdatingTableId(prev => (prev === table.id ? null : prev));
+        });
     },
     [loadTables, router],
   );

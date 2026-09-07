@@ -55,7 +55,7 @@ export default function SharedTablePage() {
     let cancelled = false;
 
     async function load(): Promise<void> {
-      try {
+      return await (async () => {
         const [tableResponse, rowsResponse] = await Promise.all([
           api.get(`/public/custom-tables/${token}`),
           api.get(`/public/custom-tables/${token}/rows`, { params: { limit: 200 } }),
@@ -70,16 +70,18 @@ export default function SharedTablePage() {
         const nested = (rowsRoot.data ?? {}) as Record<string, unknown>;
         const items = rowsRoot.items ?? nested.items ?? [];
         setRows(Array.isArray(items) ? (items as SharedRow[]) : []);
-      } catch (err) {
-        if (!cancelled) {
-          // Отозванная и истёкшая ссылка приходят сюда же — показываем причину.
-          setError(getApiErrorMessage(err, t.linkUnavailable.value));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
+      })()
+        .catch(async err => {
+          if (!cancelled) {
+            // Отозванная и истёкшая ссылка приходят сюда же — показываем причину.
+            setError(getApiErrorMessage(err, t.linkUnavailable.value));
+          }
+        })
+        .finally(async () => {
+          if (!cancelled) {
+            setLoading(false);
+          }
+        });
     }
 
     void load();

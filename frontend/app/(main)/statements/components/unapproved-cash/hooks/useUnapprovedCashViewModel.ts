@@ -320,7 +320,20 @@ const buildLabels = ({
   },
 });
 
-// eslint-disable-next-line max-lines-per-function
+/** Ignored ids from localStorage; `null` when nothing stored, `[]` when corrupt. */
+function readIgnoredIds(): string[] | null {
+  try {
+    const raw = localStorage.getItem(IGNORED_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : null;
+  } catch {
+    return [];
+  }
+}
+
 export const useUnapprovedCashViewModel = (): UnapprovedCashViewModel => {
   const router = useRouter();
   const { user } = useAuth();
@@ -397,17 +410,9 @@ export const useUnapprovedCashViewModel = (): UnapprovedCashViewModel => {
     if (typeof window === 'undefined') {
       return;
     }
-    try {
-      const raw = localStorage.getItem(IGNORED_STORAGE_KEY);
-      if (!raw) {
-        return;
-      }
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        setIgnoredIds(parsed.filter((v): v is string => typeof v === 'string'));
-      }
-    } catch {
-      setIgnoredIds([]);
+    const stored = readIgnoredIds();
+    if (stored) {
+      setIgnoredIds(stored);
     }
   }, []);
 
@@ -419,7 +424,6 @@ export const useUnapprovedCashViewModel = (): UnapprovedCashViewModel => {
   }, []);
 
   const loadQueueData = useCallback(
-    // eslint-disable-next-line complexity
     async (silent = false): Promise<void> => {
       if (!user) {
         setQueueItems([]);
@@ -431,7 +435,8 @@ export const useUnapprovedCashViewModel = (): UnapprovedCashViewModel => {
       } else {
         setLoading(true);
       }
-      try {
+
+      await (async () => {
         const [transactions, statements] = await Promise.all([
           fetchAllTransactions(),
           fetchAllStatements(),
@@ -441,15 +446,17 @@ export const useUnapprovedCashViewModel = (): UnapprovedCashViewModel => {
           transactions,
         }).sort(sortByNewestDate);
         setQueueItems(nextQueue);
-      } catch (error) {
-        toast.error(extractErrorMessage(error) || labels.toasts.loadFailed);
-      } finally {
-        if (silent) {
-          setRefreshing(false);
-        } else {
-          setLoading(false);
-        }
-      }
+      })()
+        .catch(async error => {
+          toast.error(extractErrorMessage(error) || labels.toasts.loadFailed);
+        })
+        .finally(async () => {
+          if (silent) {
+            setRefreshing(false);
+          } else {
+            setLoading(false);
+          }
+        });
     },
     [labels.toasts.loadFailed, user],
   );

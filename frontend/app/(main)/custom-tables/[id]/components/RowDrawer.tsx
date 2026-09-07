@@ -352,7 +352,8 @@ export function RowDrawer({
     }
 
     setSaving(true);
-    try {
+
+    await (async () => {
       const handler = getSaveHandler(intent);
       if (handler) {
         await handler();
@@ -360,11 +361,13 @@ export function RowDrawer({
         await onSave(row.id, patch);
         setBaseData(prev => ({ ...(prev || {}), ...patch }));
       }
-    } catch (error) {
-      console.error('Failed to save row:', error);
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to save row:', error);
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   if (!row) {

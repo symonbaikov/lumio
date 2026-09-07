@@ -160,7 +160,8 @@ export default function WorkspaceOverviewView() {
     }
 
     setSaving(true);
-    try {
+
+    await (async () => {
       await apiClient.patch(`/workspaces/${currentWorkspace.id}`, {
         name: name.trim(),
         description: description.trim() || undefined,
@@ -168,12 +169,14 @@ export default function WorkspaceOverviewView() {
       });
       await refreshWorkspaces();
       toast.success('Workspace updated');
-    } catch (err) {
-      console.error('Failed to update workspace:', err);
-      toast.error('Failed to update workspace');
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async err => {
+        console.error('Failed to update workspace:', err);
+        toast.error('Failed to update workspace');
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   const handleDelete = async () => {
@@ -185,7 +188,8 @@ export default function WorkspaceOverviewView() {
     }
 
     setDeleting(true);
-    try {
+
+    await (async () => {
       await apiClient.delete(`/workspaces/${currentWorkspace.id}`);
       clearWorkspace();
       await refreshWorkspaces();
@@ -193,12 +197,14 @@ export default function WorkspaceOverviewView() {
       setDeleteModalOpen(false);
       setDeleteConfirmationName('');
       router.replace('/workspaces/list');
-    } catch (err) {
-      console.error('Failed to delete workspace:', err);
-      toast.error('Failed to delete workspace');
-    } finally {
-      setDeleting(false);
-    }
+    })()
+      .catch(async err => {
+        console.error('Failed to delete workspace:', err);
+        toast.error('Failed to delete workspace');
+      })
+      .finally(async () => {
+        setDeleting(false);
+      });
   };
 
   const openDeleteModal = () => {
@@ -233,18 +239,21 @@ export default function WorkspaceOverviewView() {
       return;
     }
     setSavingBackground(true);
-    try {
+
+    await (async () => {
       await updateWorkspaceBackground({
         workspaceId: currentWorkspace.id,
         backgroundImage: background,
       });
       toast.success('Background updated');
       setShowBackgroundPicker(false);
-    } catch {
-      toast.error('Failed to update background');
-    } finally {
-      setSavingBackground(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error('Failed to update background');
+      })
+      .finally(async () => {
+        setSavingBackground(false);
+      });
   };
 
   if (!currentWorkspace) {

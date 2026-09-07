@@ -112,18 +112,21 @@ function useExportToTable({
 
   const handleExportToTable = async (): Promise<void> => {
     setExportingToTable(true);
-    try {
+
+    return await (async () => {
       const exportData = buildExportData({ receipt, formValue });
       if (!(exportData.columns.length && exportData.rows.length)) {
         toast.error('There are no parsed receipt fields to export yet');
         return;
       }
       await createExportTable({ receipt, exportData, router });
-    } catch {
-      toast.error('Failed to export to table');
-    } finally {
-      setExportingToTable(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error('Failed to export to table');
+      })
+      .finally(async () => {
+        setExportingToTable(false);
+      });
   };
 
   return { exportingToTable, exportConfirmOpen, setExportConfirmOpen, handleExportToTable };

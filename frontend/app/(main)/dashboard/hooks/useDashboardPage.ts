@@ -39,7 +39,7 @@ type DashboardPageText = {
 };
 
 /** Month and active tab live in the URL so a reload or shared link restores the view. */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function useDashboardUrlState() {
   const router = useRouter();
   const pathname = usePathname();
@@ -83,16 +83,17 @@ export function useDashboardPage() {
   const isMobile = useIsMobile();
   const { pickedMonth, activeTab, changeMonth, setActiveTab } = useDashboardUrlState();
   const targetDateParam = pickedMonth ? formatDateOnly(pickedMonth) : undefined;
-  const { data, loading, error, refresh, range } = useDashboard('month', targetDateParam);
+  const { data, isPending, error, refetch, range } = useDashboard('month', targetDateParam);
+  const effectiveSince = data?.effectiveSince;
   const displayMonth = useMemo(() => {
     if (pickedMonth) {
       return pickedMonth;
     }
-    if (data?.effectiveSince) {
-      return parseDateOnly(data.effectiveSince);
+    if (effectiveSince) {
+      return parseDateOnly(effectiveSince);
     }
     return new Date();
-  }, [pickedMonth, data?.effectiveSince]);
+  }, [pickedMonth, effectiveSince]);
   const isRedirecting = useDashboardRedirect({
     user,
     authLoading,
@@ -107,18 +108,25 @@ export function useDashboardPage() {
   } = usePullToRefresh({
     enabled: isMobile,
     onRefresh: () => {
-      void refresh();
+      void refetch();
     },
   });
-  const formatAmount = useCallback(
-    (value: number): string =>
+  // One formatter per locale/currency: Intl.NumberFormat construction is
+  // expensive and this runs once per row in several dashboard cards.
+  const currency = data?.snapshot?.currency ?? 'KZT';
+  const amountFormatter = useMemo(
+    () =>
       new Intl.NumberFormat(resolveLocale(locale), {
         style: 'currency',
-        currency: data?.snapshot?.currency ?? 'KZT',
+        currency,
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
-      }).format(value),
-    [locale, data?.snapshot?.currency],
+      }),
+    [locale, currency],
+  );
+  const formatAmount = useCallback(
+    (value: number): string => amountFormatter.format(value),
+    [amountFormatter],
   );
   // eslint-disable-next-line complexity
   const { statusHeading, greetingSubtitle, effectivePeriod } = useMemo(() => {
@@ -138,15 +146,15 @@ export function useDashboardPage() {
       days: '14',
     });
     const headingKey = resolveDashboardStatusHeading({
-      data: data as DashboardData | null,
+      data: (data ?? null) as DashboardData | null,
       error,
-      loading,
+      loading: isPending,
     });
     const heading =
       text(dashboardText.statusHeading?.[headingKey]) || statusHeadingFallback[headingKey];
     const period = resolveDashboardEffectivePeriod(data?.effectiveSince, data?.effectiveEndDate);
     return { statusHeading: heading, greetingSubtitle: subtitle, effectivePeriod: period };
-  }, [dashboardText.greeting, dashboardText.statusHeading, data, error, loading, user?.name]);
+  }, [dashboardText.greeting, dashboardText.statusHeading, data, error, isPending, user?.name]);
   const periodBanner = effectivePeriod
     ? fillTemplate(headerT.periodBanner.value, { period: effectivePeriod })
     : null;
@@ -166,9 +174,9 @@ export function useDashboardPage() {
   };
   return {
     data,
-    loading,
+    isPending,
     error,
-    refresh,
+    refetch,
     range,
     activeTab,
     setActiveTab,

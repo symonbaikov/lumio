@@ -52,7 +52,7 @@ export function useChat(
 
   const persist = useCallback(
     async (question: string, reply: string): Promise<void> => {
-      try {
+      await (async () => {
         let targetId = chatId;
         if (targetId === null) {
           const created = await chatsApi.createChat(modelId, question);
@@ -65,9 +65,9 @@ export function useChat(
           await chatsApi.appendMessage(targetId, 'assistant', reply);
         }
         setUnsaved(false);
-      } catch {
+      })().catch(async () => {
         setUnsaved(true);
-      }
+      });
     },
     [chatId, modelId],
   );
@@ -91,7 +91,7 @@ export function useChat(
         { id: replyId, role: 'assistant', content: '', streaming: true },
       ]);
 
-      try {
+      return await (async () => {
         // Rebuilt per question: statements may have been imported mid-conversation,
         // and a stale packet would have the model quoting figures that changed.
         const [input, search] = await Promise.all([
@@ -137,14 +137,18 @@ export function useChat(
         // an answer would otherwise leave a one-sided chat in the history list.
         // A stopped reply is still saved — it is on screen, so storage should agree.
         await persist(question, reply);
-      } catch (cause) {
-        // A failure to load figures is worth distinguishing: the model is fine,
-        // the data is not, and retrying is likely to work.
-        setError(cause instanceof Error && cause.name === 'AxiosError' ? 'context' : 'generation');
-        setTurns(previous => previous.filter(turn => turn.id !== replyId));
-      } finally {
-        setBusy(false);
-      }
+      })()
+        .catch(async cause => {
+          // A failure to load figures is worth distinguishing: the model is fine,
+          // the data is not, and retrying is likely to work.
+          setError(
+            cause instanceof Error && cause.name === 'AxiosError' ? 'context' : 'generation',
+          );
+          setTurns(previous => previous.filter(turn => turn.id !== replyId));
+        })
+        .finally(async () => {
+          setBusy(false);
+        });
     },
     [engine, busy, turns, modelContextTokens, persist],
   );

@@ -69,7 +69,7 @@ function RegisterPageContent(): React.JSX.Element {
       });
   }, [inviteToken, t.inviteLoadFailed.value]);
 
-  // eslint-disable-next-line max-lines-per-function, complexity
+  // eslint-disable-next-line max-lines-per-function
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setError('');
@@ -81,7 +81,7 @@ function RegisterPageContent(): React.JSX.Element {
 
     setLoading(true);
 
-    try {
+    return await (async () => {
       const response = await apiClient.post('/auth/register', {
         ...formData,
         invitationToken: inviteToken || undefined,
@@ -103,11 +103,13 @@ function RegisterPageContent(): React.JSX.Element {
       }
 
       window.location.href = '/onboarding';
-    } catch (error: unknown) {
-      setError(getApiErrorMessage(error, t.registerFailed.value));
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        setError(getApiErrorMessage(error, t.registerFailed.value));
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   };
 
   const sideContent = (

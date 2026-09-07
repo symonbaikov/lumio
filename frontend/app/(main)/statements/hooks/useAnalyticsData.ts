@@ -1,5 +1,5 @@
 import apiClient from '@/app/lib/api';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import type { GmailReceipt, StatementMeta, Transaction } from '../types/statement-types';
 
@@ -37,7 +37,7 @@ export interface UseAnalyticsDataResult {
 // Pagination helpers
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line max-params, max-lines-per-function
+// eslint-disable-next-line max-params
 async function fetchAllPages<T>(
   endpoint: string,
   headers: Record<string, string>,
@@ -61,7 +61,16 @@ async function fetchAllPages<T>(
       headers,
     });
     const batch = getItems(response.data);
-    results.push(...batch.map(item => ({ ...(item as object), workspaceId, workspaceName }) as T));
+    results.push(
+      ...batch.map(
+        item =>
+          ({
+            ...(item as object),
+            workspaceId,
+            workspaceName,
+          }) as T,
+      ),
+    );
     total = getTotal(response.data, results.length);
     if (batch.length < pageSize) {
       break;
@@ -92,7 +101,8 @@ export function useAnalyticsData({
   const [gmailReceipts, setGmailReceipts] = useState<GmailReceipt[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // eslint-disable-next-line complexity
+  const currentWorkspaceId = currentWorkspace?.id;
+  const currentWorkspaceName = currentWorkspace?.name;
   const workspaceTargets = useMemo<WorkspaceTarget[]>(() => {
     if (workspaceFilter === 'all') {
       const all = workspaces.map(ws => ({ id: ws.id, name: ws.name || 'Workspace' }));
@@ -101,8 +111,8 @@ export function useAnalyticsData({
       }
     }
     if (workspaceFilter === 'current') {
-      if (currentWorkspace?.id) {
-        return [{ id: currentWorkspace.id, name: currentWorkspace.name || currentWorkspaceLabel }];
+      if (currentWorkspaceId) {
+        return [{ id: currentWorkspaceId, name: currentWorkspaceName || currentWorkspaceLabel }];
       }
       return [];
     }
@@ -111,8 +121,8 @@ export function useAnalyticsData({
   }, [
     workspaceFilter,
     workspaces,
-    currentWorkspace?.id,
-    currentWorkspace?.name,
+    currentWorkspaceId,
+    currentWorkspaceName,
     currentWorkspaceLabel,
   ]);
 
@@ -121,116 +131,118 @@ export function useAnalyticsData({
     [workspaceTargets],
   );
 
+  // Effect event so the effect below depends only on the user/workspace key
+  // while always calling the latest loader (no eslint-disable, which would make
+  // React Compiler skip this hook).
   // eslint-disable-next-line max-lines-per-function
-  useEffect(() => {
-    let isMounted = true;
+  const loadAnalytics = useEffectEvent(async (isMounted: () => boolean): Promise<void> => {
+    if (!user) {
+      return;
+    }
 
-    // eslint-disable-next-line max-lines-per-function, complexity
-    const loadData = async (): Promise<void> => {
-      if (!user) {
-        return;
-      }
+    if (workspaceTargets.length === 0) {
+      setStatements([]);
+      setTransactions([]);
+      setGmailReceipts([]);
+      setLoading(false);
+      return;
+    }
 
-      if (workspaceTargets.length === 0) {
-        setStatements([]);
-        setTransactions([]);
-        setGmailReceipts([]);
-        setLoading(false);
-        return;
-      }
+    setLoading(true);
 
-      setLoading(true);
+    return await (async () => {
+      const allStatements: StatementMeta[] = [];
+      const allTransactions: Transaction[] = [];
+      const allReceipts: GmailReceipt[] = [];
 
-      try {
-        const allStatements: StatementMeta[] = [];
-        const allTransactions: Transaction[] = [];
-        const allReceipts: GmailReceipt[] = [];
+      for (const target of workspaceTargets) {
+        const headers = { 'X-Workspace-Id': target.id };
 
-        for (const target of workspaceTargets) {
-          const headers = { 'X-Workspace-Id': target.id };
+        // eslint-disable-next-line no-await-in-loop
+        const workspaceStatements = await fetchAllPages<StatementMeta>(
+          '/statements',
+          headers,
+          500,
+          target.id,
+          target.name,
+          data => {
+            const items = (data as { data?: unknown; items?: unknown }) ?? {};
+            const raw = (items as { data?: unknown }).data ?? data ?? [];
+            return Array.isArray(raw) ? raw : [];
+          },
+          (data, fetched) => Number((data as { total?: unknown }).total ?? fetched),
+          page => ({ page }),
+        );
+        allStatements.push(...workspaceStatements);
 
+        if (includeTransactions) {
           // eslint-disable-next-line no-await-in-loop
-          const workspaceStatements = await fetchAllPages<StatementMeta>(
-            '/statements',
+          const workspaceTransactions = await fetchAllPages<Transaction>(
+            '/transactions',
             headers,
             500,
             target.id,
             target.name,
             data => {
-              const items = (data as { data?: unknown; items?: unknown }) ?? {};
-              const raw = (items as { data?: unknown }).data ?? data ?? [];
+              const raw =
+                (data as { data?: unknown }).data ??
+                (data as { items?: unknown }).items ??
+                data ??
+                [];
               return Array.isArray(raw) ? raw : [];
             },
             (data, fetched) => Number((data as { total?: unknown }).total ?? fetched),
             page => ({ page }),
           );
-          allStatements.push(...workspaceStatements);
-
-          if (includeTransactions) {
-            // eslint-disable-next-line no-await-in-loop
-            const workspaceTransactions = await fetchAllPages<Transaction>(
-              '/transactions',
-              headers,
-              500,
-              target.id,
-              target.name,
-              data => {
-                const raw =
-                  (data as { data?: unknown }).data ??
-                  (data as { items?: unknown }).items ??
-                  data ??
-                  [];
-                return Array.isArray(raw) ? raw : [];
-              },
-              (data, fetched) => Number((data as { total?: unknown }).total ?? fetched),
-              page => ({ page }),
-            );
-            allTransactions.push(...workspaceTransactions);
-          }
-
-          // eslint-disable-next-line no-await-in-loop
-          const workspaceReceipts = await fetchAllPages<GmailReceipt>(
-            '/integrations/gmail/receipts',
-            headers,
-            100,
-            target.id,
-            target.name,
-            data => {
-              const receipts = (data as { receipts?: unknown }).receipts;
-              return Array.isArray(receipts) ? receipts : [];
-            },
-            (data, fetched) => Number((data as { total?: unknown }).total ?? fetched),
-            (_, offset) => ({ offset }),
-          );
-          allReceipts.push(...workspaceReceipts);
+          allTransactions.push(...workspaceTransactions);
         }
 
-        if (!isMounted) {
-          return;
-        }
-        setStatements(allStatements);
-        setTransactions(allTransactions);
-        setGmailReceipts(allReceipts);
-      } catch (error) {
+        // eslint-disable-next-line no-await-in-loop
+        const workspaceReceipts = await fetchAllPages<GmailReceipt>(
+          '/integrations/gmail/receipts',
+          headers,
+          100,
+          target.id,
+          target.name,
+          data => {
+            const receipts = (data as { receipts?: unknown }).receipts;
+            return Array.isArray(receipts) ? receipts : [];
+          },
+          (data, fetched) => Number((data as { total?: unknown }).total ?? fetched),
+          (_, offset) => ({ offset }),
+        );
+        allReceipts.push(...workspaceReceipts);
+      }
+
+      if (!isMounted()) {
+        return;
+      }
+      setStatements(allStatements);
+      setTransactions(allTransactions);
+      setGmailReceipts(allReceipts);
+    })()
+      .catch(async error => {
         console.error('Failed to load analytics data', error);
-        if (isMounted) {
+        if (isMounted()) {
           toast.error(errorToastMessage);
           setStatements([]);
           setTransactions([]);
           setGmailReceipts([]);
         }
-      } finally {
-        if (isMounted) {
+      })
+      .finally(async () => {
+        if (isMounted()) {
           setLoading(false);
         }
-      }
-    };
+      });
+  });
 
-    void loadData();
+  useEffect(() => {
+    let isMounted = true;
+    void loadAnalytics(() => isMounted);
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, workspaceTargetKey]);
 
   return {

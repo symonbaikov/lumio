@@ -60,7 +60,8 @@ export function useTableAggregates({
     const controller = new AbortController();
     abortRef.current = controller;
     setLoading(true);
-    try {
+
+    return await (async () => {
       const response = await apiClient.get(`/custom-tables/${tableId}/aggregates`, {
         signal: controller.signal,
         params: { aggs: aggsKey, filters: combinedFiltersParam },
@@ -73,16 +74,18 @@ export function useTableAggregates({
         next[item.col] = (item.value ?? null) as number | string | null;
       }
       setValues(next);
-    } catch (error) {
-      if (!isAbortError(error)) {
-        console.error('Failed to load table aggregates:', error);
-      }
-    } finally {
-      if (abortRef.current === controller) {
-        abortRef.current = null;
-        setLoading(false);
-      }
-    }
+    })()
+      .catch(async error => {
+        if (!isAbortError(error)) {
+          console.error('Failed to load table aggregates:', error);
+        }
+      })
+      .finally(async () => {
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+          setLoading(false);
+        }
+      });
   }, [tableId, isAuthenticated, aggsKey, combinedFiltersParam]);
 
   useEffect(() => {

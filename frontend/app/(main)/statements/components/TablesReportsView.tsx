@@ -105,7 +105,8 @@ export default function TablesReportsView() {
     abortRef.current = controller;
 
     setLoading(true);
-    try {
+
+    await (async () => {
       const payload: {
         days: number;
         flowType: TablesReportFlowType;
@@ -132,15 +133,17 @@ export default function TablesReportsView() {
       if (!controller.signal.aborted) {
         setReport(response.data);
       }
-    } catch {
-      if (!controller.signal.aborted) {
-        setReport(null);
-      }
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
-    }
+    })()
+      .catch(async () => {
+        if (!controller.signal.aborted) {
+          setReport(null);
+        }
+      })
+      .finally(async () => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
   }, [activeFlowType, debouncedSearch, selectedDays, selectedTableIds, sortKey]);
 
   useEffect(() => {
@@ -151,7 +154,8 @@ export default function TablesReportsView() {
   const handleDrillDown = useCallback(
     async (counterparty: string) => {
       setSelectedCounterparty(counterparty);
-      try {
+
+      await (async () => {
         const payload: {
           counterparty: string;
           days: number;
@@ -171,27 +175,28 @@ export default function TablesReportsView() {
 
         const response = await apiClient.post('/reports/custom-tables/report/drill-down', payload);
         setDrillDown(response.data);
-      } catch {
+      })().catch(async () => {
         setDrillDown({ counterparty, items: [] });
-      }
+      });
     },
     [activeFlowType, selectedDays, selectedTableIds],
   );
 
+  const timeseries = report?.timeseries;
   const trendChartOption = useMemo(() => {
-    if (!report?.timeseries?.length) return null;
+    if (!timeseries?.length) return null;
     return {
-      xAxis: { type: 'category', data: report.timeseries.map(item => item.date) },
+      xAxis: { type: 'category', data: timeseries.map(item => item.date) },
       yAxis: { type: 'value' },
       series: [
         {
           type: 'line',
-          data: report.timeseries.map(item => item.amount),
+          data: timeseries.map(item => item.amount),
           smooth: true,
         },
       ],
     };
-  }, [report?.timeseries]);
+  }, [timeseries]);
 
   const sourceSplitOption = useMemo(() => {
     if (!report) return null;
@@ -208,10 +213,11 @@ export default function TablesReportsView() {
     };
   }, [report]);
 
+  const aggregatedRows = report?.aggregatedRows;
   const topRowsBarOption = useMemo(() => {
-    if (!report?.aggregatedRows?.length) return null;
+    if (!aggregatedRows?.length) return null;
 
-    const topRows = report.aggregatedRows.slice(0, 12).reverse();
+    const topRows = aggregatedRows.slice(0, 12).reverse();
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -234,7 +240,7 @@ export default function TablesReportsView() {
         },
       ],
     };
-  }, [report?.aggregatedRows]);
+  }, [aggregatedRows]);
 
   const selectedTablesCount = selectedTableIds.length;
   const chartTheme = resolvedTheme === 'dark' ? 'dark' : 'light';

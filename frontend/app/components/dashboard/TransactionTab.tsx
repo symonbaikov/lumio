@@ -9,12 +9,12 @@ import toast from 'react-hot-toast';
 
 import DetailsDrawer from '@/app/components/transactions/DetailsDrawer';
 import TransactionsTable from '@/app/components/transactions/TransactionsTable';
+import { useBulkUpdateCategory } from '@/app/components/transactions/hooks/useBulkUpdateCategory';
 import { useTransactionData } from '@/app/components/transactions/hooks/useTransactionData';
 import type { FilterState, Transaction } from '@/app/components/transactions/types';
 import { CurrencyDisplayToggle } from '@/app/components/ui/CurrencyDisplayToggle';
 import { CurrencyFilterDropdown } from '@/app/components/ui/CurrencyFilterDropdown';
 import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
-import api from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
 import Skeleton from '@mui/material/Skeleton';
 
@@ -69,8 +69,9 @@ export function TransactionTab() {
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
 
+  const bulkUpdateCategory = useBulkUpdateCategory();
   const [currencyFilter, setCurrencyFilter] = useState<string | null>(null);
-  const { transactions, categories, loading, error, refetch } = useTransactionData({
+  const { transactions, categories, isPending, error, refetch } = useTransactionData({
     showConverted,
     workspaceCurrency,
     currencyFilter,
@@ -108,34 +109,30 @@ export function TransactionTab() {
 
   // eslint-disable-next-line max-params, @typescript-eslint/explicit-function-return-type
   const handleUpdateCategory = async (txIds: string[], categoryId: string) => {
-    try {
-      await api.patch('/transactions/bulk-update-category', {
-        transactionIds: txIds,
-        categoryId,
-      });
-      await refetch();
-      toast.success(t.categoriesUpdated?.value || `Category updated successfully`);
-    } catch (err) {
-      console.error('Failed to update category:', err);
-      toast.error(t.bulkUpdateFailed?.value || 'Failed to update category');
-      throw err;
-    }
+    // Messages resolved outside the promise chain and no try/catch here:
+    // React Compiler skips components with optional chaining inside `try`.
+    const successMessage = t.categoriesUpdated?.value || 'Category updated successfully';
+    const failureMessage = t.bulkUpdateFailed?.value || 'Failed to update category';
+    await bulkUpdateCategory.mutateAsync({ txIds, categoryId }).then(
+      () => toast.success(successMessage),
+      (err: unknown) => {
+        console.error('Failed to update category:', err);
+        toast.error(failureMessage);
+        throw err;
+      },
+    );
   };
 
   // eslint-disable-next-line max-params, @typescript-eslint/explicit-function-return-type
   const handleSingleUpdateCategory = async (txId: string, categoryId: string) => {
-    try {
-      await handleUpdateCategory([txId], categoryId);
-      handleCloseDrawer();
-    } catch {
-      // Error handled in handleUpdateCategory
-    }
+    // Error already reported in handleUpdateCategory.
+    await handleUpdateCategory([txId], categoryId).then(handleCloseDrawer, () => undefined);
   };
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   const handleSplitDone = async () => {
     handleCloseDrawer();
-    await refetch();
+    refetch();
   };
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -150,7 +147,7 @@ export function TransactionTab() {
     }
   };
 
-  if (loading && transactions.length === 0) {
+  if (isPending && transactions.length === 0) {
     return <TransactionTabSkeleton />;
   }
 

@@ -91,7 +91,8 @@ export function useSubscriptionsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
+
+    await (async () => {
       const params = statusFilter !== 'all' ? `?status=${statusFilter}` : '';
       const [subsRes, summaryRes] = await Promise.all([
         apiClient.get(`/subscriptions${params}`),
@@ -110,11 +111,13 @@ export function useSubscriptionsPage() {
             realizedAnnualSavings: 0,
           },
       );
-    } catch {
-      setError('Failed to load subscriptions');
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async () => {
+        setError('Failed to load subscriptions');
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, [statusFilter]);
 
   useEffect(() => {
@@ -158,7 +161,8 @@ export function useSubscriptionsPage() {
   const handleSave = useCallback(async () => {
     if (!formData.vendorName || !formData.amount) return;
     setSaving(true);
-    try {
+
+    await (async () => {
       const payload = {
         vendorName: formData.vendorName,
         amount: Number(formData.amount),
@@ -176,61 +180,63 @@ export function useSubscriptionsPage() {
       }
       closeDialog();
       await load();
-    } catch {
-      toast.error('Failed to save subscription');
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error('Failed to save subscription');
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   }, [formData, editingSubscription, closeDialog, load, workspaceCurrency]);
 
   const handleDelete = useCallback(
     async (id: string) => {
-      try {
+      await (async () => {
         await apiClient.delete(`/subscriptions/${id}`);
         toast.success('Subscription deleted');
         await load();
-      } catch {
+      })().catch(async () => {
         toast.error('Failed to delete subscription');
-      }
+      });
     },
     [load],
   );
 
   const handleConfirm = useCallback(
     async (id: string) => {
-      try {
+      await (async () => {
         await apiClient.post(`/subscriptions/${id}/confirm`);
         toast.success('Subscription confirmed');
         await load();
-      } catch {
+      })().catch(async () => {
         toast.error('Failed to confirm subscription');
-      }
+      });
     },
     [load],
   );
 
   const handleDismiss = useCallback(
     async (id: string) => {
-      try {
+      await (async () => {
         await apiClient.post(`/subscriptions/${id}/dismiss`);
         toast.success('Subscription dismissed');
         await load();
-      } catch {
+      })().catch(async () => {
         toast.error('Failed to dismiss subscription');
-      }
+      });
     },
     [load],
   );
 
   const assignOwner = useCallback(
     async (id: string, ownerId: string) => {
-      try {
+      await (async () => {
         await apiClient.patch(`/subscriptions/${id}/owner`, { ownerId });
         toast.success('Owner assigned');
         await load();
-      } catch {
+      })().catch(async () => {
         toast.error('Failed to assign owner');
-      }
+      });
     },
     [load],
   );
@@ -241,13 +247,13 @@ export function useSubscriptionsPage() {
       decision: 'keep' | 'review' | 'cancelled' | 'price_reduced',
       values: { note?: string; reviewAt?: string; realizedAnnualSavings?: number } = {},
     ) => {
-      try {
+      await (async () => {
         await apiClient.post(`/subscriptions/${id}/decisions`, { decision, ...values });
         toast.success('Subscription decision saved');
         await load();
-      } catch {
+      })().catch(async () => {
         toast.error('Failed to save subscription decision');
-      }
+      });
     },
     [load],
   );

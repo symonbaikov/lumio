@@ -57,7 +57,7 @@ export function useAppearance(
     setAppearanceMessage(null);
     setAppearanceError(null);
 
-    try {
+    await (async () => {
       setAppearanceLoading(true);
       const response = await apiClient.patch('/users/me/preferences', patch);
       const nextUser = { ...(user || {}), ...(response.data?.user || {}), ...patch };
@@ -66,11 +66,13 @@ export function useAppearance(
       localStorage.setItem('user', JSON.stringify(nextUser));
       notifyUserFormatChanged();
       setAppearanceMessage(response.data?.message || messages.successFallback);
-    } catch (error: unknown) {
-      setAppearanceError(getApiErrorMessage(error, messages.errorFallback));
-    } finally {
-      setAppearanceLoading(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        setAppearanceError(getApiErrorMessage(error, messages.errorFallback));
+      })
+      .finally(async () => {
+        setAppearanceLoading(false);
+      });
   };
 
   const setDensity = (value: UiDensity) => {
@@ -87,7 +89,7 @@ export function useAppearance(
     setAppearanceMessage(null);
     setAppearanceError(null);
 
-    try {
+    await (async () => {
       setAppearanceLoading(true);
       const response = await apiClient.patch('/users/me/preferences', {
         themePreference: nextThemePreference,
@@ -113,11 +115,13 @@ export function useAppearance(
       }
 
       setAppearanceMessage(response.data?.message || messages.successFallback);
-    } catch (error: unknown) {
-      setAppearanceError(getApiErrorMessage(error, messages.errorFallback));
-    } finally {
-      setAppearanceLoading(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        setAppearanceError(getApiErrorMessage(error, messages.errorFallback));
+      })
+      .finally(async () => {
+        setAppearanceLoading(false);
+      });
   };
 
   return {

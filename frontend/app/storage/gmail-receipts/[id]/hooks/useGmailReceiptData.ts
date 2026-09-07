@@ -136,7 +136,7 @@ export function useGmailReceiptData({
   const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
 
   const loadData = useCallback(async (): Promise<void> => {
-    try {
+    await (async () => {
       setLoading(true);
       const [receiptResponse, categoriesResponse] = await Promise.all([
         gmailReceiptsApi.getReceipt(receiptId),
@@ -175,12 +175,14 @@ export function useGmailReceiptData({
         categoryId: nextReceipt.parsedData?.categoryId,
         lineItems: editableLineItems,
       });
-    } catch (error) {
-      console.error('Failed to load receipt details', error);
-      toast.error('Failed to load receipt');
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to load receipt details', error);
+        toast.error('Failed to load receipt');
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, [receiptId]);
 
   useEffect(() => {

@@ -1,10 +1,18 @@
 // @vitest-environment jsdom
+import { useQueryClient } from '@tanstack/react-query';
 import { act, render, screen } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { resetQueryClient } from './lib/query-client';
 
 const workspaceState = vi.hoisted(() => ({
   currentWorkspaceId: 'workspace-1',
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock('@mui/material/styles', () => ({
@@ -54,6 +62,14 @@ vi.mock('./contexts/NotificationContext', () => ({
   NotificationProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+vi.mock('./contexts/CurrencyDisplayContext', () => ({
+  CurrencyDisplayProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('./contexts/AuthContext', () => ({
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 vi.mock('./contexts/WorkspaceContext', () => ({
   WorkspaceProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useWorkspace: () => ({
@@ -81,6 +97,11 @@ vi.mock('./tours/components/TourAutoStarter', () => ({
 }));
 
 describe('Providers', () => {
+  // Клиент — модульный синглтон, иначе тесты делили бы один кэш.
+  afterEach(() => {
+    resetQueryClient();
+  });
+
   it('prefers locale from the intlayer cookie over server fallback locale', async () => {
     document.cookie = 'INTLAYER_LOCALE=kk; path=/';
 
@@ -115,6 +136,23 @@ describe('Providers', () => {
 
     expect(document.cookie).toContain('INTLAYER_LOCALE=kk');
     expect(screen.getByTestId('intlayer-locale').textContent).toBe('kk');
+  });
+
+  it('exposes a query client to the tree below', async () => {
+    const { Providers } = await import('./providers');
+
+    function Probe() {
+      // Бросит, если QueryClientProvider отсутствует или стоит ниже потребителей.
+      return <div data-testid="has-client">{typeof useQueryClient()}</div>;
+    }
+
+    render(
+      <Providers initialLocale="en">
+        <Probe />
+      </Providers>,
+    );
+
+    expect(screen.getByTestId('has-client').textContent).toBe('object');
   });
 
   it('remounts workspace-scoped children when the active workspace changes', async () => {

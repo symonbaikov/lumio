@@ -41,7 +41,6 @@ function PayableFiltersBar({
   onReset,
   labels,
 }: PayableFiltersBarProps): React.JSX.Element {
-  // eslint-disable-next-line max-params
   const update = <K extends keyof PayablesFiltersState>(
     key: K,
     nextValue: PayablesFiltersState[K],

@@ -61,7 +61,8 @@ export function useRowActions({
       return null;
     }
     const toastId = toast.loading(messages.addRowLoading);
-    try {
+
+    return await (async () => {
       const response = await apiClient.post(`/custom-tables/${tableId}/rows`, { data: {} });
       const payload = response.data?.data ?? response.data?.item ?? response.data;
       const createdRaw = Array.isArray(payload) ? payload[0] : payload;
@@ -74,11 +75,11 @@ export function useRowActions({
       toast.success(messages.addRowSuccess, { id: toastId });
       refreshStats();
       return created;
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to add row:', error);
       toast.error(messages.addRowFailed, { id: toastId });
       return null;
-    }
+    });
   }, [tableId, rows, setRows, refreshStats, messages]);
 
   const updateCellFromGrid = useCallback(
@@ -97,7 +98,8 @@ export function useRowActions({
         }
         return;
       }
-      try {
+
+      await (async () => {
         await apiClient.patch(`/custom-tables/${tableId}/rows/${rowId}`, {
           data: { [columnKey]: value },
         });
@@ -109,10 +111,10 @@ export function useRowActions({
         if (columnKey === paidColKey) {
           refreshStats();
         }
-      } catch (error) {
+      })().catch(async error => {
         console.error('Failed to update cell:', error);
         toast.error(messages.saveValueFailed);
-      }
+      });
     },
     [tableId, paidColKey, setRows, refreshStats, messages.saveValueFailed],
   );
@@ -150,7 +152,8 @@ export function useRowActions({
       if (!tableId) {
         return;
       }
-      try {
+
+      return await (async () => {
         const row = rows.find(r => r.id === rowId);
         const mergedStyles = { ...(row?.styles || {}), ...styles };
         if (rowId.startsWith('temp-')) {
@@ -162,23 +165,23 @@ export function useRowActions({
           styles: mergedStyles,
         });
         setRows(prev => prev.map(r => (r.id === rowId ? { ...r, styles: mergedStyles } : r)));
-      } catch (error) {
+      })().catch(async error => {
         console.error('Failed to update row styles:', error);
         toast.error(messages.saveValueFailed);
-      }
+      });
     },
     [tableId, rows, setRows, messages.saveValueFailed],
   );
 
   const saveRowFromDrawer = useCallback(
     async (rowId: string, patchData: CustomTableRowPatch) => {
-      try {
+      await (async () => {
         await updateRowFromDrawer(rowId, patchData);
-      } catch (error) {
+      })().catch(async error => {
         console.error('Failed to update row:', error);
         toast.error(messages.saveValueFailed);
         throw error;
-      }
+      });
     },
     [updateRowFromDrawer, messages.saveValueFailed],
   );

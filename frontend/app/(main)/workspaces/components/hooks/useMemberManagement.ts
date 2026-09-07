@@ -149,15 +149,18 @@ function useMemberActions({
       return;
     }
     setUpdatingRoleMemberId(member.id);
-    try {
+
+    await (async () => {
       await apiClient.patch(`/workspaces/${wid}/members/${member.id}/role`, { role: nextRole });
       toast.success('Role updated');
       await onRefresh();
-    } catch (err) {
-      toast.error(getApiMessage(err, 'Failed to update role'));
-    } finally {
-      setUpdatingRoleMemberId(null);
-    }
+    })()
+      .catch(async err => {
+        toast.error(getApiMessage(err, 'Failed to update role'));
+      })
+      .finally(async () => {
+        setUpdatingRoleMemberId(null);
+      });
   };
 
   const handleRemoveMember = async (memberId: string): Promise<void> => {
@@ -165,15 +168,18 @@ function useMemberActions({
       return;
     }
     setRemovingMemberId(memberId);
-    try {
+
+    await (async () => {
       await apiClient.delete(`/workspaces/${wid}/members/${memberId}`);
       toast.success('Member removed');
       await onRefresh();
-    } catch (err) {
-      toast.error(getApiMessage(err, 'Failed to remove member'));
-    } finally {
-      setRemovingMemberId(null);
-    }
+    })()
+      .catch(async err => {
+        toast.error(getApiMessage(err, 'Failed to remove member'));
+      })
+      .finally(async () => {
+        setRemovingMemberId(null);
+      });
   };
 
   return {
@@ -205,7 +211,8 @@ function useInvitationActions({
       return;
     }
     setResendingInvitationId(invite.id);
-    try {
+
+    await (async () => {
       await apiClient.post(`/workspaces/${wid}/invitations`, {
         email: invite.email,
         role: invite.role,
@@ -213,11 +220,13 @@ function useInvitationActions({
       });
       toast.success('Invitation resent');
       await onRefresh();
-    } catch (err) {
-      toast.error(getApiMessage(err, 'Failed to resend invitation'));
-    } finally {
-      setResendingInvitationId(null);
-    }
+    })()
+      .catch(async err => {
+        toast.error(getApiMessage(err, 'Failed to resend invitation'));
+      })
+      .finally(async () => {
+        setResendingInvitationId(null);
+      });
   };
 
   const handleRevokeInvitation = async (invitationId: string): Promise<void> => {
@@ -225,27 +234,30 @@ function useInvitationActions({
       return;
     }
     setRevokingInvitationId(invitationId);
-    try {
+
+    await (async () => {
       await apiClient.delete(`/workspaces/${wid}/invitations/${invitationId}`);
       toast.success('Invitation revoked');
       await onRefresh();
-    } catch (err) {
-      toast.error(getApiMessage(err, 'Failed to revoke invitation'));
-    } finally {
-      setRevokingInvitationId(null);
-    }
+    })()
+      .catch(async err => {
+        toast.error(getApiMessage(err, 'Failed to revoke invitation'));
+      })
+      .finally(async () => {
+        setRevokingInvitationId(null);
+      });
   };
 
   const copyInviteLink = async ({
     token,
     link: provided,
   }: { token: string; link?: string }): Promise<void> => {
-    try {
+    await (async () => {
       await navigator.clipboard.writeText(provided || `${window.location.origin}/invite/${token}`);
       toast.success('Link copied');
-    } catch {
+    })().catch(async () => {
       toast.error('Failed to copy link');
-    }
+    });
   };
 
   return {

@@ -70,7 +70,8 @@ export function BackupSection() {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    try {
+
+    await (async () => {
       const [configResponse, runsResponse] = await Promise.all([
         apiClient.get<BackupConfig | null>('/backups/config'),
         apiClient.get<BackupRun[]>('/backups/runs'),
@@ -80,11 +81,13 @@ export function BackupSection() {
       }
       setRuns(runsResponse.data ?? []);
       setError(null);
-    } catch {
-      setError('Could not load backup settings. Only workspace owners can manage backups.');
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async () => {
+        setError('Could not load backup settings. Only workspace owners can manage backups.');
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -101,7 +104,8 @@ export function BackupSection() {
     setSaving(true);
     setMessage(null);
     setError(null);
-    try {
+
+    await (async () => {
       const response = await apiClient.put<BackupConfig>('/backups/config', {
         ...config,
         password: password || undefined,
@@ -109,31 +113,36 @@ export function BackupSection() {
       setConfig(response.data);
       setPassword('');
       setMessage('Backup settings saved.');
-    } catch {
-      setError('Could not save backup settings. Check the destination and try again.');
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async () => {
+        setError('Could not save backup settings. Check the destination and try again.');
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   const createNow = async () => {
     setRunning(true);
     setMessage(null);
     setError(null);
-    try {
+
+    await (async () => {
       await apiClient.post('/backups/runs');
       setMessage('Backup created successfully.');
       await refresh();
-    } catch {
-      setError('Backup failed. Your last successful backup was kept unchanged.');
-      await refresh();
-    } finally {
-      setRunning(false);
-    }
+    })()
+      .catch(async () => {
+        setError('Backup failed. Your last successful backup was kept unchanged.');
+        await refresh();
+      })
+      .finally(async () => {
+        setRunning(false);
+      });
   };
 
   const download = async (run: BackupRun) => {
-    try {
+    await (async () => {
       const response = await apiClient.get(`/backups/runs/${run.id}/download`, {
         responseType: 'blob',
       });
@@ -143,9 +152,9 @@ export function BackupSection() {
       link.download = `lumio-${run.id}.lumio-backup`;
       link.click();
       URL.revokeObjectURL(url);
-    } catch {
+    })().catch(async () => {
       setError('Could not download this backup.');
-    }
+    });
   };
 
   const importBackup = async (restore: boolean) => {
@@ -155,7 +164,8 @@ export function BackupSection() {
     }
     setImporting(true);
     setError(null);
-    try {
+
+    await (async () => {
       const body = new FormData();
       body.append('file', importFile);
       body.append('password', importPassword);
@@ -175,11 +185,13 @@ export function BackupSection() {
       } else {
         setPreview(response.data);
       }
-    } catch {
-      setError('The backup could not be verified. Check the file and recovery password.');
-    } finally {
-      setImporting(false);
-    }
+    })()
+      .catch(async () => {
+        setError('The backup could not be verified. Check the file and recovery password.');
+      })
+      .finally(async () => {
+        setImporting(false);
+      });
   };
 
   return (

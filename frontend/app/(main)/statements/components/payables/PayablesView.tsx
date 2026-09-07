@@ -115,7 +115,7 @@ function PayablesViewSkeleton(): React.JSX.Element {
   );
 }
 
-// eslint-disable-next-line max-lines-per-function, complexity
+// eslint-disable-next-line complexity
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (!error || typeof error !== 'object') {
     return fallback;
@@ -382,7 +382,7 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
 
       const requestVersion = ++requestVersionRef.current;
 
-      try {
+      return await (async () => {
         const [summaryResponse, listResponse] = await Promise.all([
           payablesApi.getSummary(direction),
           payablesApi.list(
@@ -411,17 +411,19 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
         setTotal(listResponse.total);
         setTotalPages(nextTotalPages);
         setPage(Math.min(queryPage, nextTotalPages));
-      } catch (error) {
-        if (requestVersion !== requestVersionRef.current) {
-          return;
-        }
-        toast.error(getErrorMessage(error, labels.toasts.loadFailed));
-      } finally {
-        if (requestVersion === requestVersionRef.current) {
-          setLoading(false);
-          setRefreshing(false);
-        }
-      }
+      })()
+        .catch(async error => {
+          if (requestVersion !== requestVersionRef.current) {
+            return;
+          }
+          toast.error(getErrorMessage(error, labels.toasts.loadFailed));
+        })
+        .finally(async () => {
+          if (requestVersion === requestVersionRef.current) {
+            setLoading(false);
+            setRefreshing(false);
+          }
+        });
     },
     [currentWorkspace, direction, filters, labels.toasts.loadFailed, queryPage, user],
   );
@@ -450,19 +452,19 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
   };
 
   const handleEdit = async (payable: Payable): Promise<void> => {
-    try {
+    await (async () => {
       const fresh = await payablesApi.getOne(payable.id);
       setEditingPayable(fresh);
       setDrawerOpen(true);
-    } catch (error) {
+    })().catch(async error => {
       toast.error(getErrorMessage(error, labels.toasts.loadFailed));
-    }
+    });
   };
 
-  // eslint-disable-next-line max-lines-per-function
   const handleSave = async (payload: CreatePayableInput | UpdatePayableInput): Promise<void> => {
     setSaving(true);
-    try {
+
+    await (async () => {
       if (editingPayable) {
         await payablesApi.update(editingPayable.id, payload as UpdatePayableInput);
         toast.success(labels.toasts.updateSuccess);
@@ -474,42 +476,50 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
       setDrawerOpen(false);
       setEditingPayable(null);
       await loadData({ silent: true });
-    } catch (error) {
-      toast.error(
-        getErrorMessage(
-          error,
-          editingPayable ? labels.toasts.updateFailed : labels.toasts.createFailed,
-        ),
-      );
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async error => {
+        toast.error(
+          getErrorMessage(
+            error,
+            editingPayable ? labels.toasts.updateFailed : labels.toasts.createFailed,
+          ),
+        );
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   const handleMarkPaid = async (payable: Payable): Promise<void> => {
     setMarkingPaidId(payable.id);
-    try {
+
+    await (async () => {
       await payablesApi.markAsPaid(payable.id);
       toast.success(labels.toasts.markPaidSuccess);
       await loadData({ silent: true });
-    } catch (error) {
-      toast.error(getErrorMessage(error, labels.toasts.markPaidFailed));
-    } finally {
-      setMarkingPaidId(null);
-    }
+    })()
+      .catch(async error => {
+        toast.error(getErrorMessage(error, labels.toasts.markPaidFailed));
+      })
+      .finally(async () => {
+        setMarkingPaidId(null);
+      });
   };
 
   const handleArchive = async (payable: Payable): Promise<void> => {
     setArchivingId(payable.id);
-    try {
+
+    await (async () => {
       await payablesApi.archive(payable.id);
       toast.success(labels.toasts.archiveSuccess);
       await loadData({ silent: true });
-    } catch (error) {
-      toast.error(getErrorMessage(error, labels.toasts.archiveFailed));
-    } finally {
-      setArchivingId(null);
-    }
+    })()
+      .catch(async error => {
+        toast.error(getErrorMessage(error, labels.toasts.archiveFailed));
+      })
+      .finally(async () => {
+        setArchivingId(null);
+      });
   };
 
   const handleDelete = async (payable: Payable): Promise<void> => {
@@ -519,20 +529,24 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
     }
 
     setDeletingId(payable.id);
-    try {
+
+    await (async () => {
       await payablesApi.delete(payable.id);
       toast.success(labels.toasts.deleteSuccess);
       await loadData({ silent: true });
-    } catch (error) {
-      toast.error(getErrorMessage(error, labels.toasts.deleteFailed));
-    } finally {
-      setDeletingId(null);
-    }
+    })()
+      .catch(async error => {
+        toast.error(getErrorMessage(error, labels.toasts.deleteFailed));
+      })
+      .finally(async () => {
+        setDeletingId(null);
+      });
   };
 
   const handleExport = async (format: PayablesExportFormat): Promise<void> => {
     setExporting(format);
-    try {
+
+    await (async () => {
       const result = await payablesApi.exportList({
         ...buildPayablesListParams(filters, { direction }),
         format,
@@ -542,11 +556,13 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
         result.fileName || `payables.${format === 'csv' ? 'csv' : 'xlsx'}`,
       );
       toast.success(labels.toasts.exportSuccess);
-    } catch (error) {
-      toast.error(getErrorMessage(error, labels.toasts.exportFailed));
-    } finally {
-      setExporting(null);
-    }
+    })()
+      .catch(async error => {
+        toast.error(getErrorMessage(error, labels.toasts.exportFailed));
+      })
+      .finally(async () => {
+        setExporting(null);
+      });
   };
 
   if (authLoading || workspaceLoading || loading) {

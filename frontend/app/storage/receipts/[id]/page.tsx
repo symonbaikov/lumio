@@ -246,7 +246,7 @@ export default function ReceiptDocumentPage() {
   const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    try {
+    await (async () => {
       setLoading(true);
       setError(null);
 
@@ -263,13 +263,15 @@ export default function ReceiptDocumentPage() {
       setReceipt(nextReceipt);
       setFormValue(buildInitialForm(nextReceipt));
       setCategories(nextCategories);
-    } catch (loadError) {
-      console.error('Failed to load receipt details:', loadError);
-      setError('Failed to load receipt');
-      toast.error('Failed to load receipt');
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async loadError => {
+        console.error('Failed to load receipt details:', loadError);
+        setError('Failed to load receipt');
+        toast.error('Failed to load receipt');
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, [receiptId]);
 
   useEffect(() => {
@@ -361,7 +363,7 @@ export default function ReceiptDocumentPage() {
         return;
       }
 
-      try {
+      await (async () => {
         await apiClient.patch(`/receipts/${receipt.id}`, {
           parsedData: nextPayload,
         });
@@ -377,9 +379,9 @@ export default function ReceiptDocumentPage() {
               }
             : currentReceipt,
         );
-      } catch {
+      })().catch(async () => {
         toast.error('Failed to autosave receipt changes.');
-      }
+      });
     },
     [receipt],
   );
@@ -405,7 +407,8 @@ export default function ReceiptDocumentPage() {
     }
 
     setSaving(true);
-    try {
+
+    await (async () => {
       const currentPayload = buildParsedDataPayload(formValue);
       await apiClient.patch(`/receipts/${receipt.id}`, {
         parsedData: currentPayload,
@@ -414,11 +417,13 @@ export default function ReceiptDocumentPage() {
       await receiptsApi.approveReceipt(receipt.id);
       toast.success('Receipt approved.');
       await loadData();
-    } catch {
-      toast.error('Failed to approve receipt.');
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error('Failed to approve receipt.');
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   const handleDownload = async () => {
@@ -426,7 +431,7 @@ export default function ReceiptDocumentPage() {
       return;
     }
 
-    try {
+    await (async () => {
       const response = await fetch(`${apiBaseUrl}/receipts/${receipt.id}/file`, {
         method: 'GET',
         headers: getWorkspaceHeaders(),
@@ -447,10 +452,10 @@ export default function ReceiptDocumentPage() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (downloadError) {
+    })().catch(async downloadError => {
       console.error('Failed to download receipt:', downloadError);
       toast.error('Failed to download receipt');
-    }
+    });
   };
 
   const handleExportToTable = async () => {
@@ -460,7 +465,8 @@ export default function ReceiptDocumentPage() {
     }
 
     setExportingToTable(true);
-    try {
+
+    return await (async () => {
       const exportData = buildReceiptExportData(receipt, formValue);
 
       if (!(exportData.columns.length && exportData.rows.length)) {
@@ -525,11 +531,13 @@ export default function ReceiptDocumentPage() {
       toast.success('Table created successfully');
       router.push(`/custom-tables/${tableId}`);
       return;
-    } catch {
-      toast.error('Failed to export to table');
-    } finally {
-      setExportingToTable(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error('Failed to export to table');
+      })
+      .finally(async () => {
+        setExportingToTable(false);
+      });
   };
 
   if (loading) {

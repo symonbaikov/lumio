@@ -218,7 +218,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
         return;
       }
 
-      try {
+      await (async () => {
         const data = await loadSidePanelData();
         if (isMounted) {
           setCounts(data.counts);
@@ -227,7 +227,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
           setTopCategoriesCount(data.topCategoriesCount);
           setCountsLoading(false);
         }
-      } catch {
+      })().catch(async () => {
         if (isMounted) {
           setCounts({ submit: 0, approve: 0, unapprovedCash: 0 });
           setTopSenders([]);
@@ -235,7 +235,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
           setTopCategoriesCount(0);
           setCountsLoading(false);
         }
-      }
+      });
     };
 
     setCountsLoading(true);
@@ -258,18 +258,18 @@ export default function StatementsSidePanel({ activeItem }: Props) {
 
       setPayCountLoading(true);
 
-      try {
+      await (async () => {
         const summary = await payablesApi.getSummary();
 
         if (isMounted) {
           setPayCount((summary.toPayCount || 0) + (summary.overdueCount || 0));
           setPayCountLoading(false);
         }
-      } catch {
+      })().catch(async () => {
         if (isMounted) {
           setPayCountLoading(false);
         }
-      }
+      });
     };
 
     void loadPayCount();
@@ -358,19 +358,19 @@ export default function StatementsSidePanel({ activeItem }: Props) {
       const endpoint =
         provider === 'dropbox' ? '/integrations/dropbox/sync' : '/integrations/google-drive/sync';
 
-      try {
+      await (async () => {
         await apiClient.post(endpoint);
         toast.success(
           provider === 'dropbox' ? 'Dropbox import started' : 'Google Drive import started',
         );
         navigateToSubmit();
-      } catch {
+      })().catch(async () => {
         toast.error(
           provider === 'dropbox'
             ? 'Failed to import from Dropbox'
             : 'Failed to import from Google Drive',
         );
-      }
+      });
     },
     [navigateToSubmit, router],
   );
@@ -563,6 +563,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
     handleGmailClick,
     handleScanClick,
     navigateToSubmit,
+    countsLoading,
   ]);
 
   useSidePanelConfig({ config: sidePanelConfig, autoRegister: true });

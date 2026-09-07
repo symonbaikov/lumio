@@ -54,7 +54,7 @@ export function useAvatarUpload(
 
     setAvatarUploading(true);
 
-    try {
+    await (async () => {
       const formData = new FormData();
       formData.append('avatar', file);
       const response = await apiClient.post('/users/me/avatar', formData, {
@@ -66,14 +66,16 @@ export function useAvatarUpload(
         localStorage.setItem('user', JSON.stringify(nextUser));
       }
       setAvatarMessage(messages.updated);
-    } catch (error: unknown) {
-      setAvatarErrorMessage(getApiErrorMessage(error, messages.errorFallback));
-    } finally {
-      setAvatarUploading(false);
-      if (avatarInputRef.current) {
-        avatarInputRef.current.value = '';
-      }
-    }
+    })()
+      .catch(async (error: unknown) => {
+        setAvatarErrorMessage(getApiErrorMessage(error, messages.errorFallback));
+      })
+      .finally(async () => {
+        setAvatarUploading(false);
+        if (avatarInputRef.current) {
+          avatarInputRef.current.value = '';
+        }
+      });
   };
 
   return {

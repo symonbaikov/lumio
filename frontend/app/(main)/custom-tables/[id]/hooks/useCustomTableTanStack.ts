@@ -62,34 +62,44 @@ function useBuildAdapters(p: RawCb): {
   deleteRow: (o: { rowId: string }) => void;
   deleteCol: ((o: { columnKey: string }) => void) | undefined;
 } {
+  // Destructured so each adapter depends on its own callback (calling `p.x()`
+  // would make the whole props object a dependency).
+  const {
+    onUpdateCell,
+    onUpdateRowStyle,
+    onPersistColumnWidth,
+    onRenameColumnTitle,
+    onSelectedRowIdsChange,
+    onDeleteRow,
+    onDeleteColumn,
+  } = p;
   const cell = useCallback(
     (o: { rowId: string; columnKey: string; value: CustomTableCellValue }) =>
-      p.onUpdateCell(o.rowId, o.columnKey, o.value),
-    [p.onUpdateCell],
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+      onUpdateCell(o.rowId, o.columnKey, o.value),
+    [onUpdateCell],
+  );
   const style = useCallback(
-    (o: { rowId: string; styles: CustomTableRowStyles }) => p.onUpdateRowStyle(o.rowId, o.styles),
-    [p.onUpdateRowStyle],
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+    (o: { rowId: string; styles: CustomTableRowStyles }) => onUpdateRowStyle(o.rowId, o.styles),
+    [onUpdateRowStyle],
+  );
   const width = useCallback(
-    (o: { columnKey: string; width: number }) => p.onPersistColumnWidth(o.columnKey, o.width),
-    [p.onPersistColumnWidth],
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+    (o: { columnKey: string; width: number }) => onPersistColumnWidth(o.columnKey, o.width),
+    [onPersistColumnWidth],
+  );
   const rename = useCallback(
-    (o: { columnKey: string; nextTitle: string }) =>
-      p.onRenameColumnTitle(o.columnKey, o.nextTitle),
-    [p.onRenameColumnTitle],
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+    (o: { columnKey: string; nextTitle: string }) => onRenameColumnTitle(o.columnKey, o.nextTitle),
+    [onRenameColumnTitle],
+  );
   const selection = useCallback(
-    (o: { rowIds: string[] }) => p.onSelectedRowIdsChange(o.rowIds),
-    [p.onSelectedRowIdsChange],
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-  const deleteRow = useCallback((o: { rowId: string }) => p.onDeleteRow(o.rowId), [p.onDeleteRow]); // eslint-disable-line react-hooks/exhaustive-deps
+    (o: { rowIds: string[] }) => onSelectedRowIdsChange(o.rowIds),
+    [onSelectedRowIdsChange],
+  );
+  const deleteRow = useCallback((o: { rowId: string }) => onDeleteRow(o.rowId), [onDeleteRow]);
   const deleteCol = useMemo(
     () =>
-      p.onDeleteColumn ? (o: { columnKey: string }) => p.onDeleteColumn?.(o.columnKey) : undefined,
-    [p.onDeleteColumn],
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+      onDeleteColumn ? (o: { columnKey: string }) => onDeleteColumn?.(o.columnKey) : undefined,
+    [onDeleteColumn],
+  );
   return { cell, style, width, rename, selection, deleteRow, deleteCol };
 }
 

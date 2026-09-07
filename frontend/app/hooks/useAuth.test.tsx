@@ -2,12 +2,15 @@
 
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AuthProvider } from '../contexts/AuthContext';
 
-const push = vi.fn();
-const get = vi.fn();
+// Hoisted: the static AuthProvider import evaluates the api mock factory before
+// module-level consts would be initialised.
+const { push, get } = vi.hoisted(() => ({ push: vi.fn(), get: vi.fn() }));
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
+  usePathname: () => '/dashboard',
 }));
 
 vi.mock('@/app/lib/api', () => ({
@@ -45,7 +48,7 @@ describe('useAuth', () => {
 
     const { useAuth } = await import('./useAuth');
 
-    renderHook(() => useAuth());
+    renderHook(() => useAuth(), { wrapper: AuthProvider });
 
     await waitFor(() => {
       expect(document.cookie).toContain('INTLAYER_LOCALE=en');
@@ -69,7 +72,7 @@ describe('useAuth', () => {
 
     const { useAuth } = await import('./useAuth');
 
-    renderHook(() => useAuth());
+    renderHook(() => useAuth(), { wrapper: AuthProvider });
 
     await waitFor(() => {
       expect(get).toHaveBeenCalledWith('/auth/me');

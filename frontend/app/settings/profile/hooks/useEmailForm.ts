@@ -46,7 +46,7 @@ export function useEmailForm(
       return;
     }
 
-    try {
+    await (async () => {
       setEmailLoading(true);
       const response = await apiClient.patch('/users/me/email', {
         email,
@@ -55,11 +55,13 @@ export function useEmailForm(
 
       setEmailMessage(response.data?.message || messages.successFallback);
       setEmailPassword('');
-    } catch (error: unknown) {
-      setEmailError(getApiErrorMessage(error, messages.errorFallback));
-    } finally {
-      setEmailLoading(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        setEmailError(getApiErrorMessage(error, messages.errorFallback));
+      })
+      .finally(async () => {
+        setEmailLoading(false);
+      });
   };
 
   return {

@@ -20,7 +20,7 @@ export function useReceiptUpload() {
       formData.append('language', language);
     }
 
-    try {
+    return await (async () => {
       const response = await apiClient.post('/receipts/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: event => {
@@ -30,14 +30,16 @@ export function useReceiptUpload() {
       });
 
       return response.data;
-    } catch (uploadError) {
-      const message = getApiErrorMessage(uploadError, 'Upload failed');
-      setError(message);
-      throw uploadError;
-    } finally {
-      setUploading(false);
-      setProgress(0);
-    }
+    })()
+      .catch(async uploadError => {
+        const message = getApiErrorMessage(uploadError, 'Upload failed');
+        setError(message);
+        throw uploadError;
+      })
+      .finally(async () => {
+        setUploading(false);
+        setProgress(0);
+      });
   };
 
   return {

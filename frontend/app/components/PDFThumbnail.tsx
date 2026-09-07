@@ -178,8 +178,7 @@ function useThumbnailFetch(
     return (): void => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fileId, source, requestedWidth]);
+  }, [fileId, source, requestedWidth, setThumbnailDataUrl, setError, setLoading]);
 }
 
 interface PdfErrorViewProps {

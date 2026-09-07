@@ -18,7 +18,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useEffectEvent, useState } from 'react';
 import TransactionsView from '../../components/TransactionsView';
 import api from '../../lib/api';
 
@@ -67,14 +67,8 @@ export default function SharedFilePage() {
     }
   };
 
-  useEffect(() => {
-    void loadSharedFile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
-
-  // eslint-disable-next-line complexity
   const loadSharedFile = async (pwd?: string): Promise<void> => {
-    try {
+    await (async () => {
       setLoading(true);
       setError(null);
 
@@ -83,22 +77,31 @@ export default function SharedFilePage() {
 
       setAccess(response.data);
       setNeedsPassword(false);
-    } catch (err) {
-      const status =
-        typeof err === 'object' && err !== null && 'response' in err
-          ? (err as { response?: { status?: number } }).response?.status
-          : undefined;
+    })()
+      .catch(async err => {
+        const status =
+          typeof err === 'object' && err !== null && 'response' in err
+            ? (err as { response?: { status?: number } }).response?.status
+            : undefined;
 
-      if (status === 401) {
-        setNeedsPassword(true);
-        setError(t.errors.passwordRequired.value);
-      } else {
-        setError(getApiErrorMessage(err, t.errors.loadFailed.value));
-      }
-    } finally {
-      setLoading(false);
-    }
+        if (status === 401) {
+          setNeedsPassword(true);
+          setError(t.errors.passwordRequired.value);
+        } else {
+          setError(getApiErrorMessage(err, t.errors.loadFailed.value));
+        }
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   };
+
+  const loadForToken = useEffectEvent(() => {
+    void loadSharedFile();
+  });
+  useEffect(() => {
+    loadForToken();
+  }, [token]);
 
   const handlePasswordSubmit = (): void => {
     void loadSharedFile(password);
@@ -107,7 +110,7 @@ export default function SharedFilePage() {
   const handleDownload = async (): Promise<void> => {
     if (!access) return;
 
-    try {
+    await (async () => {
       const params = password ? { password } : {};
       const response = await api.get(`/storage/shared/${token}/download`, {
         params,
@@ -121,9 +124,9 @@ export default function SharedFilePage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to download file:', error);
-    }
+    });
   };
 
   const formatDate = (dateString: string): string => {

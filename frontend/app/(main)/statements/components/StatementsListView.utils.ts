@@ -398,7 +398,6 @@ export const buildStatementRequestParams = ({
   };
 };
 
-// eslint-disable-next-line complexity
 export const isReceiptDerivedStatement = (statement: ReceiptDerivedStatementCandidate): boolean => {
   return (
     statement.parsingDetails?.detectedBy === 'receipt-scan' ||
@@ -516,14 +515,13 @@ export const buildPaginationLabels = (tx: TxFn): Record<string, string> => ({
   pageOf: tx(['pagination', 'pageOf'], 'Page {page} of {count}'),
 });
 
-// eslint-disable-next-line complexity
 export const buildUploadLabels = (t: IntlayerDict): StatementUploadLabels => ({
   pickAtLeastOne: resolveLabel(t.uploadModal?.pickAtLeastOne, 'Select at least one file'),
   uploadedProcessing: resolveLabel(t.uploadModal?.uploadedProcessing, 'Files uploaded'),
   uploadFailed: resolveLabel(t.uploadModal?.uploadFailed, 'Failed to upload files'),
 });
 
-// eslint-disable-next-line complexity, max-lines-per-function, max-params
+// eslint-disable-next-line max-lines-per-function
 export const buildFilterOptionLabels = (_t: IntlayerDict, tx: TxFn): FilterOptionLabels => ({
   apply: tx(['filters', 'apply'], 'Apply'),
   reset: tx(['filters', 'reset'], 'Reset'),

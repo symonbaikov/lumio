@@ -77,6 +77,37 @@ function loadLocalColumnWidths(tableId: string): Record<string, number> {
   }
 }
 
+function persistLocalColumnWidths(storageKey: string, widths: Record<string, number>): void {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(widths));
+  } catch (error) {
+    console.warn('Failed to persist column widths to storage:', error);
+  }
+}
+
+function readStoredColumnSettings(
+  storageKey: string,
+): { order?: string[]; hidden?: string[] } | null {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    return raw ? (JSON.parse(raw) as { order?: string[]; hidden?: string[] }) : null;
+  } catch (error) {
+    console.warn('Failed to load column settings:', error);
+    return null;
+  }
+}
+
+function writeStoredColumnSettings(
+  storageKey: string,
+  settings: { order: string[]; hidden: string[] },
+): void {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(settings));
+  } catch (error) {
+    console.warn('Failed to persist column settings:', error);
+  }
+}
+
 function resolveColWidth(
   serverWidth: unknown,
   localWidth: unknown,
@@ -135,21 +166,15 @@ export function useColumnConfig({
     if (!tableId) {
       return;
     }
-    const storageKey = `custom-table:${tableId}:columns`;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (!raw) {
-        return;
-      }
-      const parsed = JSON.parse(raw) as { order?: string[]; hidden?: string[] };
-      if (Array.isArray(parsed.order)) {
-        setColumnOrder(parsed.order);
-      }
-      if (Array.isArray(parsed.hidden)) {
-        setHiddenColumnKeys(parsed.hidden);
-      }
-    } catch (error) {
-      console.warn('Failed to load column settings:', error);
+    const parsed = readStoredColumnSettings(`custom-table:${tableId}:columns`);
+    if (!parsed) {
+      return;
+    }
+    if (Array.isArray(parsed.order)) {
+      setColumnOrder(parsed.order);
+    }
+    if (Array.isArray(parsed.hidden)) {
+      setHiddenColumnKeys(parsed.hidden);
     }
   }, [tableId]);
 
@@ -158,15 +183,10 @@ export function useColumnConfig({
     if (!tableId) {
       return;
     }
-    const storageKey = `custom-table:${tableId}:columns`;
-    try {
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify({ order: columnOrder, hidden: hiddenColumnKeys }),
-      );
-    } catch (error) {
-      console.warn('Failed to persist column settings:', error);
-    }
+    writeStoredColumnSettings(`custom-table:${tableId}:columns`, {
+      order: columnOrder,
+      hidden: hiddenColumnKeys,
+    });
   }, [tableId, columnOrder, hiddenColumnKeys]);
 
   // Keep columnOrder in sync when orderedColumns changes (e.g. after a column is added/removed)
@@ -229,11 +249,7 @@ export function useColumnConfig({
     const storageKey = `custom-table:${tableId}:column-widths`;
     setColumnWidths(prev => {
       const next = { ...prev, [colKey]: finalWidth };
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(next));
-      } catch (error) {
-        console.warn('Failed to persist column widths to storage:', error);
-      }
+      persistLocalColumnWidths(storageKey, next);
       return next;
     });
 
@@ -246,18 +262,20 @@ export function useColumnConfig({
       window.clearTimeout(existing);
     }
     columnWidthTimersRef.current[colKey] = window.setTimeout(async () => {
-      try {
+      await (async () => {
         await apiClient.patch(`/custom-tables/${tableId}/view-settings/columns`, {
           columnKey: colKey,
           width: finalWidth,
         });
-      } catch (error) {
-        console.error('Failed to persist column width:', error);
-        toast.error(columnWidthSaveFailedMessage);
-      } finally {
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete columnWidthTimersRef.current[colKey];
-      }
+      })()
+        .catch(async error => {
+          console.error('Failed to persist column width:', error);
+          toast.error(columnWidthSaveFailedMessage);
+        })
+        .finally(async () => {
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete columnWidthTimersRef.current[colKey];
+        });
     }, 800);
   };
 

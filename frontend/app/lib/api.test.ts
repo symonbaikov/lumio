@@ -1,77 +1,98 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import axios from 'axios';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import apiClient from './api';
 
-const axiosMocks = vi.hoisted(() => {
-  const apiClient = Object.assign(vi.fn(), {
-    interceptors: {
-      request: { use: vi.fn() },
-      response: { use: vi.fn() },
-    },
-  });
+interface MockRequestConfig {
+  url?: string;
+  headers: Record<string, string>;
+  _retry?: boolean;
+}
 
-  return {
-    apiClient,
-    axiosPost: vi.fn(),
-    responseRejected: undefined as ((error: unknown) => Promise<unknown>) | undefined,
-  };
-});
+const originalAdapter = apiClient.defaults.adapter;
 
-vi.mock('axios', () => ({
-  default: {
-    create: vi.fn(() => axiosMocks.apiClient),
-    post: axiosMocks.axiosPost,
-  },
-}));
+/**
+ * Отдаёт 401 на любой запрос со старым access-токеном и 200 — со свежим.
+ * Так же ведёт себя бэкенд после протухания токена.
+ */
+function installAdapter(): { requests: MockRequestConfig[] } {
+  const requests: MockRequestConfig[] = [];
+  apiClient.defaults.adapter = (config => {
+    const typed = config as unknown as MockRequestConfig;
+    requests.push(typed);
+    if (typed.headers.Authorization === 'Bearer fresh-access') {
+      return Promise.resolve({
+        data: { ok: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      });
+    }
+    return Promise.reject({ config, response: { status: 401 }, isAxiosError: true });
+  }) as typeof apiClient.defaults.adapter;
+  return { requests };
+}
 
-describe('apiClient auth retry handling', () => {
-  const storage = new Map<string, string>();
-
-  beforeEach(async () => {
-    vi.resetModules();
-    storage.clear();
-    Object.defineProperty(globalThis, 'localStorage', {
+describe('api single-flight refresh', () => {
+  beforeEach(() => {
+    localStorage.setItem('access_token', 'stale-access');
+    localStorage.setItem('refresh_token', 'refresh-1');
+    Object.defineProperty(window, 'location', {
       configurable: true,
-      value: {
-        getItem: (key: string) => storage.get(key) ?? null,
-        setItem: (key: string, value: string) => storage.set(key, value),
-        removeItem: (key: string) => storage.delete(key),
-        clear: () => storage.clear(),
-      },
+      writable: true,
+      value: { href: '' } as Location,
     });
-    axiosMocks.axiosPost.mockReset();
-    axiosMocks.apiClient.mockReset();
-    axiosMocks.apiClient.interceptors.request.use.mockReset();
-    axiosMocks.apiClient.interceptors.response.use.mockImplementation((_success, rejected) => {
-      axiosMocks.responseRejected = rejected;
-    });
-
-    await import('./api');
   });
 
-  it('does not replace login 401 errors with refresh-token failures', async () => {
-    const loginError = {
-      response: { status: 401 },
-      config: { url: '/auth/login' },
-    };
-
-    await expect(axiosMocks.responseRejected?.(loginError)).rejects.toBe(loginError);
-    expect(axiosMocks.axiosPost).not.toHaveBeenCalled();
+  afterEach(() => {
+    apiClient.defaults.adapter = originalAdapter;
+    localStorage.clear();
+    vi.restoreAllMocks();
   });
 
-  it('still refreshes retryable 401 errors outside auth endpoints', async () => {
-    localStorage.setItem('refresh_token', 'refresh-token');
-    axiosMocks.axiosPost.mockResolvedValue({ data: { access_token: 'new-access-token' } });
-    axiosMocks.apiClient.mockResolvedValue({ data: 'retried' });
-    const originalRequest = { url: '/dashboard', headers: {} };
+  it('refreshes once for concurrent 401s and replays every request', async () => {
+    installAdapter();
+    const post = vi.spyOn(axios, 'post').mockResolvedValue({
+      data: { access_token: 'fresh-access', refresh_token: 'refresh-2' },
+    });
 
-    await expect(
-      axiosMocks.responseRejected?.({ response: { status: 401 }, config: originalRequest }),
-    ).resolves.toEqual({ data: 'retried' });
+    const results = await Promise.all([
+      apiClient.get('/dashboard'),
+      apiClient.get('/transactions'),
+      apiClient.get('/crypto/wallets'),
+    ]);
 
-    expect(axiosMocks.axiosPost).toHaveBeenCalledWith(
-      expect.stringContaining('/auth/refresh'),
-      {},
-      { headers: { Authorization: 'Bearer refresh-token' } },
-    );
-    expect(localStorage.getItem('access_token')).toBe('new-access-token');
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post.mock.calls[0]?.[0]).toContain('/auth/refresh');
+    expect(results.map(r => r.status)).toEqual([200, 200, 200]);
+    expect(localStorage.getItem('access_token')).toBe('fresh-access');
+    // Ротация: второй параллельный рефреш предъявил бы уже отозванный refresh-1.
+    expect(localStorage.getItem('refresh_token')).toBe('refresh-2');
+  });
+
+  it('clears the in-flight lock when the refresh fails, so a later 401 retries', async () => {
+    installAdapter();
+    const post = vi.spyOn(axios, 'post').mockRejectedValue(new Error('refresh rejected'));
+
+    const settled = await Promise.allSettled([
+      apiClient.get('/dashboard'),
+      apiClient.get('/transactions'),
+      apiClient.get('/crypto/wallets'),
+    ]);
+
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(settled.every(r => r.status === 'rejected')).toBe(true);
+    expect(localStorage.getItem('access_token')).toBeNull();
+    expect(localStorage.getItem('refresh_token')).toBeNull();
+    expect(window.location.href).toBe('/login');
+
+    // Лока обнулена на ветке ошибки: следующий 401 стартует новый рефреш.
+    localStorage.setItem('access_token', 'stale-access');
+    localStorage.setItem('refresh_token', 'refresh-3');
+    post.mockResolvedValue({ data: { access_token: 'fresh-access' } });
+
+    const response = await apiClient.get('/insights');
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(200);
   });
 });

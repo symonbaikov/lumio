@@ -3,7 +3,7 @@
 import { Chip, ChipGroup } from '@/app/components/dashboard/ui';
 import { ChevronLeft, ChevronRight } from '@/app/components/icons';
 import type React from 'react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { resolveLocale } from '../helpers/dashboard-helpers';
 import { isFutureMonth } from '../helpers/dashboard-url-state';
 
@@ -37,8 +37,12 @@ export function MonthStrip({
   onChange,
   locale,
   labels,
-  now = new Date(),
+  now,
 }: MonthStripProps): React.JSX.Element {
+  // A fresh Date per render made every chip's "future" check a new input and
+  // kept the strip from ever being memoized; resolve it once per mount.
+  const [mountedAt] = useState(() => new Date());
+  const today = now ?? mountedAt;
   const year = displayMonth.getFullYear();
   const activeMonth = displayMonth.getMonth();
   const monthNames = useMonthNames(locale);
@@ -56,7 +60,7 @@ export function MonthStrip({
 
   const stepYear = (delta: number): void => {
     const nextYear = year + delta;
-    const month = isFutureMonth(nextYear, activeMonth, now) ? now.getMonth() : activeMonth;
+    const month = isFutureMonth(nextYear, activeMonth, today) ? today.getMonth() : activeMonth;
     onChange(nextYear, month);
   };
 
@@ -69,7 +73,7 @@ export function MonthStrip({
         className="lumio-dashboard__month-chips"
       >
         {MONTHS.map(month => {
-          const future = isFutureMonth(year, month, now);
+          const future = isFutureMonth(year, month, today);
           return (
             <Chip
               key={month}
@@ -97,7 +101,7 @@ export function MonthStrip({
           type="button"
           className="lumio-dashboard__year-btn"
           aria-label={labels.nextYear}
-          disabled={year >= now.getFullYear()}
+          disabled={year >= today.getFullYear()}
           onClick={() => stepYear(1)}
         >
           <ChevronRight size={16} />

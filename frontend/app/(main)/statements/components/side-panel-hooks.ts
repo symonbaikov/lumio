@@ -16,7 +16,7 @@ import {
   type ConnectedCloudProviders,
 } from '@/app/lib/statement-upload-actions';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useEffectEvent } from 'react';
 import toast from 'react-hot-toast';
 import { executeCloudImport, handleGmailSyncResponse } from './side-panel-actions';
 import {
@@ -59,12 +59,15 @@ type StageCountsLoaderParams = {
 };
 
 export function useStageCountsLoader(p: StageCountsLoaderParams): void {
-  const { user, activeItem, setData, setLoading } = p;
+  const { user, activeItem } = p;
+  // Callers may pass inline setters; effect events keep them out of the deps.
+  const applyData = useEffectEvent((d: StageData) => p.setData(d));
+  const applyLoading = useEffectEvent((v: boolean) => p.setLoading(v));
   useEffect(() => {
     let isMounted = true;
-    setLoading(true);
+    applyLoading(true);
     if (!user) {
-      setLoading(false);
+      applyLoading(false);
       return;
     }
     loadStageCounts()
@@ -72,24 +75,23 @@ export function useStageCountsLoader(p: StageCountsLoaderParams): void {
         if (!isMounted) {
           return;
         }
-        setData({
+        applyData({
           counts: { ...result.counts, unapprovedCash: result.unapprovedCashCount },
           topSenders: result.topBankSenders,
           merchants: result.uniqueMerchantsCount,
           categories: result.topCategoriesCount,
         });
-        setLoading(false);
+        applyLoading(false);
       })
       .catch(() => {
         if (isMounted) {
-          setData(EMPTY_STAGE_DATA);
-          setLoading(false);
+          applyData(EMPTY_STAGE_DATA);
+          applyLoading(false);
         }
       });
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, activeItem]);
 }
 
@@ -101,32 +103,33 @@ type PayCountLoaderParams = {
 };
 
 export function usePayCountLoader(p: PayCountLoaderParams): void {
-  const { user, workspaceId, setPayCount, setLoading } = p;
+  const { user, workspaceId } = p;
+  const applyPayCount = useEffectEvent((v: number) => p.setPayCount(v));
+  const applyLoading = useEffectEvent((v: boolean) => p.setLoading(v));
   useEffect(() => {
     let isMounted = true;
     if (!user) {
-      setPayCount(0);
-      setLoading(false);
+      applyPayCount(0);
+      applyLoading(false);
       return;
     }
-    setLoading(true);
+    applyLoading(true);
     payablesApi
       .getSummary()
       .then(summary => {
         if (isMounted) {
-          setPayCount((summary.toPayCount || 0) + (summary.overdueCount || 0));
-          setLoading(false);
+          applyPayCount((summary.toPayCount || 0) + (summary.overdueCount || 0));
+          applyLoading(false);
         }
       })
       .catch(() => {
         if (isMounted) {
-          setLoading(false);
+          applyLoading(false);
         }
       });
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, workspaceId]);
 }
 
@@ -136,7 +139,8 @@ type CloudProvidersLoaderParams = {
 };
 
 export function useCloudProvidersLoader(p: CloudProvidersLoaderParams): void {
-  const { user, setProviders } = p;
+  const { user } = p;
+  const applyProviders = useEffectEvent((v: ConnectedCloudProviders) => p.setProviders(v));
   useEffect(() => {
     let isMounted = true;
     if (!user) {
@@ -150,7 +154,7 @@ export function useCloudProvidersLoader(p: CloudProvidersLoaderParams): void {
       if (!isMounted) {
         return;
       }
-      setProviders({
+      applyProviders({
         dropboxConnected: resolveCloudConnectionStatus(dropbox),
         googleDriveConnected: resolveCloudConnectionStatus(gdrive),
         gmailConnected: resolveCloudConnectionStatus(inbox),
@@ -159,7 +163,6 @@ export function useCloudProvidersLoader(p: CloudProvidersLoaderParams): void {
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 }
 

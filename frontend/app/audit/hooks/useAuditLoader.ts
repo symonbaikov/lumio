@@ -31,15 +31,18 @@ export function useAuditLoader(): AuditLoaderResult {
   const loadEvents = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
-    try {
+
+    await (async () => {
       const response = await fetchAuditEvents(params);
       setEvents(response.data || []);
       setTotal(response.total || 0);
-    } catch (err: unknown) {
-      setError(getErrorMessage({ error: err, fallback: 'Failed to load audit events' }));
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async (err: unknown) => {
+        setError(getErrorMessage({ error: err, fallback: 'Failed to load audit events' }));
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, [params]);
 
   useEffect(() => {

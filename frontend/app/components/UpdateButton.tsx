@@ -29,7 +29,7 @@ export function UpdateButton() {
     const controller = new AbortController();
 
     const check = async (): Promise<void> => {
-      try {
+      return await (async () => {
         // 404 until release-please cuts the first release — the button simply stays hidden.
         const res = await fetch(LATEST_RELEASE_URL, {
           signal: controller.signal,
@@ -38,9 +38,9 @@ export function UpdateButton() {
         if (!res.ok) return;
         const release = await res.json();
         setTag(isUpdateAvailable(BUILD_TIME, release?.published_at) ? release.tag_name : null);
-      } catch {
+      })().catch(async () => {
         // Offline or rate-limited: keep the button hidden.
-      }
+      });
     };
 
     void check();

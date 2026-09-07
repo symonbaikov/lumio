@@ -159,7 +159,13 @@ export default tseslint.config(
 
   // ── Test files — relax structural rules ───────────────────────────────────
   {
-    files: ['**/*.spec.{ts,tsx}', '**/*.test.{ts,tsx}', '**/@tests/**/*.{ts,tsx}'],
+    files: [
+      '**/*.spec.{ts,tsx}',
+      '**/*.test.{ts,tsx}',
+      '**/@tests/**/*.{ts,tsx}',
+      // Тестовые хелперы не заканчиваются на .test.tsx, но подчиняются тем же правилам.
+      'app/test/**/*.{ts,tsx}',
+    ],
     rules: {
       'max-lines': 'off',
       'max-lines-per-function': 'off',

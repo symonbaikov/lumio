@@ -38,7 +38,7 @@ export default function TrashSidePanel({ trashCount }: Props) {
         },
       ],
     }),
-    [t, trashCount],
+    [trashTitle, trashCount],
   );
 
   useSidePanelConfig({ config: sidePanelConfig, autoRegister: true });

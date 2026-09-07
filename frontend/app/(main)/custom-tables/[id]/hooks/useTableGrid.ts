@@ -158,7 +158,7 @@ export function useTableGrid({
       const cursor = activeSort || shouldReset ? undefined : rowsRef.current.at(-1)?.rowNumber;
       const offset = activeSort && !shouldReset ? rowsRef.current.length : undefined;
 
-      try {
+      return await (async () => {
         const response = await apiClient.get(`/custom-tables/${tableId}/rows`, {
           signal: controller.signal,
           params: {
@@ -177,13 +177,15 @@ export function useTableGrid({
         const next = extractRows(response);
         applyFetchedRows(next, shouldReset);
         setHasMore(next.length >= 50);
-      } catch (error) {
-        handleLoadError(error);
-      } finally {
-        cleanupLoadState(controller, requestId);
-      }
+      })()
+        .catch(async error => {
+          handleLoadError(error);
+        })
+        .finally(async () => {
+          cleanupLoadState(controller, requestId);
+        });
     },
-    [tableId, loadRowsFailedMessage], // eslint-disable-line react-hooks/exhaustive-deps
+    [tableId, loadRowsFailedMessage, canStartLoad, handleLoadError], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Reset and reload when filters, sort or tableId changes

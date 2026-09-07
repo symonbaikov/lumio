@@ -42,18 +42,20 @@ export function GoogleSheetsPickerButton({
       return;
     }
 
-    try {
+    return await (async () => {
       setLoading(true);
       const selection = await pickSpreadsheet({ accessToken, apiKey });
       if (!selection) {
         return;
       }
       await onPick(selection);
-    } catch (error: unknown) {
-      onError(getErrorMessage(error));
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        onError(getErrorMessage(error));
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   };
 
   return (

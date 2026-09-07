@@ -27,7 +27,6 @@ export type UseSessionsReturn = {
 
 export function useSessions(
   isAuthenticated: boolean,
-  activeSection: string,
   messages: UseSessionsMessages,
 ): UseSessionsReturn {
   const router = useRouter();
@@ -38,35 +37,40 @@ export function useSessions(
   const [logoutSessionLoadingId, setLogoutSessionLoadingId] = useState<string | null>(null);
 
   const loadSessions = useCallback(async () => {
-    try {
+    await (async () => {
       setSessionsLoading(true);
       setSessionsError(null);
       const response = await apiClient.get<UserSession[]>('/auth/sessions');
       setSessions(Array.isArray(response.data) ? response.data : []);
-    } catch (error: unknown) {
-      setSessionsError(getApiErrorMessage(error, messages.loadError));
-    } finally {
-      setSessionsLoading(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        setSessionsError(getApiErrorMessage(error, messages.loadError));
+      })
+      .finally(async () => {
+        setSessionsLoading(false);
+      });
   }, [messages.loadError]);
 
   useEffect(() => {
-    if (!isAuthenticated || activeSection !== 'sessions') return;
+    if (!isAuthenticated) return;
     loadSessions();
-  }, [activeSection, isAuthenticated, loadSessions]);
+  }, [isAuthenticated, loadSessions]);
 
   const handleLogoutAll = useCallback(async () => {
     if (!window.confirm(messages.logoutAllConfirm)) return;
-    try {
+
+    await (async () => {
       await apiClient.post('/auth/logout-all');
-    } catch (error) {
-      console.error('Logout-all error:', error);
-    } finally {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
-      router.push('/login');
-    }
+    })()
+      .catch(async error => {
+        console.error('Logout-all error:', error);
+      })
+      .finally(async () => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        router.push('/login');
+      });
   }, [messages.logoutAllConfirm, router]);
 
   const handleLogoutSession = useCallback(
@@ -77,7 +81,7 @@ export function useSessions(
 
       if (!window.confirm(confirmMessage)) return;
 
-      try {
+      return await (async () => {
         setLogoutSessionLoadingId(session.id);
         setSessionsError(null);
         setSessionsMessage(null);
@@ -93,11 +97,13 @@ export function useSessions(
 
         setSessions(prev => prev.filter(current => current.id !== session.id));
         setSessionsMessage(messages.sessionLogoutSuccess);
-      } catch (error: unknown) {
-        setSessionsError(getApiErrorMessage(error, messages.sessionLogoutError));
-      } finally {
-        setLogoutSessionLoadingId(null);
-      }
+      })()
+        .catch(async (error: unknown) => {
+          setSessionsError(getApiErrorMessage(error, messages.sessionLogoutError));
+        })
+        .finally(async () => {
+          setLogoutSessionLoadingId(null);
+        });
     },
     [messages, router],
   );

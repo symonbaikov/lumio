@@ -1013,7 +1013,6 @@
     background: $lumio-color-primary;
     color: #fff;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
     transition: background 150ms ease, transform 150ms ease;
 
     @include dark {

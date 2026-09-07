@@ -85,7 +85,7 @@ export function TaxReturnView(): React.ReactElement {
     setLoading(true);
     setError(null);
 
-    try {
+    await (async () => {
       const query = `periodStart=${period.periodStart}&periodEnd=${period.periodEnd}`;
       const [returnResponse, previewResponse] = await Promise.all([
         apiClient.get<TaxReturnRecord>(`/tax/returns/period?${query}`),
@@ -93,15 +93,17 @@ export function TaxReturnView(): React.ReactElement {
       ]);
       setRecord(returnResponse.data);
       setTotals(previewResponse.data);
-    } catch {
-      // Most often this is a workspace with no jurisdiction yet, which is a
-      // setup step rather than a failure.
-      setError('Could not build the return. Check that this workspace has a tax jurisdiction.');
-      setRecord(null);
-      setTotals(null);
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async () => {
+        // Most often this is a workspace with no jurisdiction yet, which is a
+        // setup step rather than a failure.
+        setError('Could not build the return. Check that this workspace has a tax jurisdiction.');
+        setRecord(null);
+        setTotals(null);
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, [period]);
 
   useEffect(() => {
@@ -119,35 +121,39 @@ export function TaxReturnView(): React.ReactElement {
     setBusy(true);
     setError(null);
 
-    try {
+    await (async () => {
       await apiClient.post(`/tax/returns/${action}`, period);
       await load();
-    } catch {
-      setError(
-        action === 'file'
-          ? 'Could not file the return. Please try again.'
-          : 'Could not reopen the period. Please try again.',
-      );
-    } finally {
-      setBusy(false);
-    }
+    })()
+      .catch(async () => {
+        setError(
+          action === 'file'
+            ? 'Could not file the return. Please try again.'
+            : 'Could not reopen the period. Please try again.',
+        );
+      })
+      .finally(async () => {
+        setBusy(false);
+      });
   };
 
   const download = async (format: 'pdf' | 'xlsx') => {
     setBusy(true);
     setError(null);
 
-    try {
+    await (async () => {
       const response = await apiClient.get(
         `/tax/returns/export?periodStart=${period.periodStart}&periodEnd=${period.periodEnd}&format=${format}`,
         { responseType: 'blob' },
       );
       saveBlob(response.data as Blob, exportFileName(period.periodStart, period.periodEnd, format));
-    } catch {
-      setError(`Could not export the return as ${format.toUpperCase()}.`);
-    } finally {
-      setBusy(false);
-    }
+    })()
+      .catch(async () => {
+        setError(`Could not export the return as ${format.toUpperCase()}.`);
+      })
+      .finally(async () => {
+        setBusy(false);
+      });
   };
 
   const isFiled = record?.status === 'filed';

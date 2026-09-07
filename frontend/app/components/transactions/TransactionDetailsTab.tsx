@@ -65,25 +65,29 @@ export function TransactionDetailsTab({
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   const handleUpdateCategory = async () => {
     if (!selectedCategoryId || !onUpdateCategory) return;
-    try {
+
+    await (async () => {
       setUpdating(true);
       await onUpdateCategory(transaction.id, selectedCategoryId);
       setSelectedCategoryId('');
-    } catch (error) {
-      console.error('Failed to update category:', error);
-    } finally {
-      setUpdating(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to update category:', error);
+      })
+      .finally(async () => {
+        setUpdating(false);
+      });
   };
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   const handleMarkIgnored = async () => {
     if (!onMarkIgnored) return;
-    try {
+
+    await (async () => {
       await onMarkIgnored(transaction.id);
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to mark as ignored:', error);
-    }
+    });
   };
 
   return (

@@ -301,15 +301,15 @@ export function useExpenseForm({
     setError(null);
     handleClose();
 
-    try {
+    await (async () => {
       await onSubmitScan({
         files: filesToUpload,
         allowDuplicates: ALWAYS_ALLOW_STATEMENT_DUPLICATES,
         requireManualCategorySelection: false,
       });
-    } catch (submitError: unknown) {
+    })().catch(async (submitError: unknown) => {
       toast.error(getApiErrorMessage(submitError, 'Failed to upload files'));
-    }
+    });
   };
 
   const handleSubmitManual = async (): Promise<void> => {
@@ -321,7 +321,7 @@ export function useExpenseForm({
     setSubmitting(true);
     setError(null);
 
-    try {
+    await (async () => {
       await onSubmitManual({
         draft: manualDraft,
         date: manualDate,
@@ -329,11 +329,13 @@ export function useExpenseForm({
         allowDuplicates: ALWAYS_ALLOW_STATEMENT_DUPLICATES,
       });
       handleClose();
-    } catch (submitError: unknown) {
-      setError(getApiErrorMessage(submitError, 'Failed to submit manual expense'));
-    } finally {
-      setSubmitting(false);
-    }
+    })()
+      .catch(async (submitError: unknown) => {
+        setError(getApiErrorMessage(submitError, 'Failed to submit manual expense'));
+      })
+      .finally(async () => {
+        setSubmitting(false);
+      });
   };
 
   return {

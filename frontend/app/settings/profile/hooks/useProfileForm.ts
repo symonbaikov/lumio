@@ -76,7 +76,7 @@ export function useProfileForm(
     const normalizedName = profileName.trim();
     if (!hasProfileChanges) return;
 
-    try {
+    await (async () => {
       setProfileLoading(true);
       const response = await apiClient.patch('/users/me/preferences', {
         name: normalizedName,
@@ -105,11 +105,13 @@ export function useProfileForm(
       }
 
       setProfileMessage(response.data?.message || messages.successFallback);
-    } catch (error: unknown) {
-      setProfileError(getApiErrorMessage(error, messages.errorFallback));
-    } finally {
-      setProfileLoading(false);
-    }
+    })()
+      .catch(async (error: unknown) => {
+        setProfileError(getApiErrorMessage(error, messages.errorFallback));
+      })
+      .finally(async () => {
+        setProfileLoading(false);
+      });
   };
 
   return {

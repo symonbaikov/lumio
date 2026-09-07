@@ -193,19 +193,18 @@ export default function IntegrationsPage(): React.JSX.Element {
       const map: Record<string, boolean> = {};
 
       await Promise.all(
-        // eslint-disable-next-line complexity
         integrationMeta.map(async m => {
-          try {
+          await (async () => {
             const resp = await apiClient.get(m.statusPath || `/integrations/${m.key}/status`);
             const data = resp.data || {};
             // Support different shapes: { connected: boolean } or { status: 'connected' | ... }
             const connected =
               Boolean(data?.connected) || String(data?.status)?.toLowerCase() === 'connected';
             map[m.key] = connected;
-          } catch {
+          })().catch(async () => {
             // If endpoint missing or error, treat as not connected
             map[m.key] = false;
-          }
+          });
         }),
       );
 
@@ -666,7 +665,7 @@ export default function IntegrationsPage(): React.JSX.Element {
               </Box>
             ) : (
               <Stack spacing={3}>
-                {/* eslint-disable-next-line max-lines-per-function */}
+                {}
                 {categories.map(category => {
                   const items = availableByCategory.get(category.key) ?? [];
                   if (items.length === 0) return null;

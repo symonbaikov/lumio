@@ -2,12 +2,13 @@
 
 import { Lightbulb } from '@/app/components/icons';
 import { EmptyState } from '@/app/components/ui/EmptyState';
-import { useInsights } from '@/app/hooks/useInsights';
+import { useInsights, useRefreshInsights } from '@/app/hooks/useInsights';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
+import { useEffect } from 'react';
 
 const ADVICE_SKELETON_KEYS = ['advice-0', 'advice-1', 'advice-2', 'advice-3'];
 
@@ -37,7 +38,12 @@ export default function AdvicePage() {
   const t = useIntlayer('insights');
   // The one place that recomputes: opening this page is the user asking for a
   // fresh read, unlike a banner that happens to render on every route.
-  const { items, loading } = useInsights({ severities: ['info'], refreshFirst: true });
+  const { items, isPending } = useInsights({ severities: ['info'] });
+  const refreshInsights = useRefreshInsights();
+  const triggerRefresh = refreshInsights.mutate;
+  useEffect(() => {
+    triggerRefresh();
+  }, [triggerRefresh]);
 
   return (
     <Box component="main" sx={{ px: { xs: 2, md: 4 }, py: 3, width: '100%' }}>
@@ -48,7 +54,7 @@ export default function AdvicePage() {
         {t.adviceSubtitle}
       </Typography>
 
-      {loading && (
+      {isPending && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {ADVICE_SKELETON_KEYS.map(key => (
             <AdviceCardSkeleton key={key} />
@@ -56,7 +62,7 @@ export default function AdvicePage() {
         </Box>
       )}
 
-      {!loading && items.length === 0 && (
+      {!isPending && items.length === 0 && (
         <EmptyState illustration="notifications" description={t.adviceEmpty} />
       )}
 

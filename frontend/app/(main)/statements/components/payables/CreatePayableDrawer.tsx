@@ -130,7 +130,6 @@ function useCurrencyPickerState(currency: string): {
   };
 }
 
-// eslint-disable-next-line max-params
 const toFormState = (
   payable?: Payable | null,
   initialValues?: CreatePayableInput | null,

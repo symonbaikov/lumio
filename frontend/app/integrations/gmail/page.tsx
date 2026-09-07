@@ -311,21 +311,22 @@ export default function GmailIntegrationPage(): React.JSX.Element {
   const status = baseStatus as GmailStatus | null;
 
   const updateSettings = async (payload: Partial<GmailSettings>): Promise<void> => {
-    try {
+    await (async () => {
       setGmailSaving(true);
       await apiClient.post('/integrations/gmail/settings', payload);
       toast.success(t.toasts.settingsSaved.value);
       await loadStatus();
-    } catch {
-      toast.error(t.errors.saveFailed.value);
-    } finally {
-      setGmailSaving(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error(t.errors.saveFailed.value);
+      })
+      .finally(async () => {
+        setGmailSaving(false);
+      });
   };
 
-  // eslint-disable-next-line complexity
   const handleGmailSync = async (): Promise<void> => {
-    try {
+    await (async () => {
       setGmailSyncing(true);
       const response = await apiClient.post('/integrations/gmail/sync');
       const messagesFound = Number(response.data?.messagesFound ?? 0);
@@ -341,11 +342,13 @@ export default function GmailIntegrationPage(): React.JSX.Element {
         toast.error(t.errors.syncNoNew.value);
       }
       await loadStatus();
-    } catch {
-      toast.error(t.errors.syncFailed.value);
-    } finally {
-      setGmailSyncing(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error(t.errors.syncFailed.value);
+      })
+      .finally(async () => {
+        setGmailSyncing(false);
+      });
   };
 
   const isSaving = saving || gmailSaving;

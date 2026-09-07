@@ -64,16 +64,18 @@ export function useStorageFilters(
   }, [searchQuery, filters, sort, activeList]);
 
   const loadCategories = async () => {
-    try {
+    await (async () => {
       setCategoriesLoading(true);
       const response = await api.get('/categories');
       setCategories(response.data || []);
-    } catch (error) {
-      console.error('Failed to load categories:', error);
-      toast.error(messages.loadCategoriesFailed);
-    } finally {
-      setCategoriesLoading(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to load categories:', error);
+        toast.error(messages.loadCategoriesFailed);
+      })
+      .finally(async () => {
+        setCategoriesLoading(false);
+      });
   };
 
   const handleSortChange = (value: string) => {

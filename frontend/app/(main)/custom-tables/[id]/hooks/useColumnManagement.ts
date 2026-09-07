@@ -93,7 +93,8 @@ export function useColumnManagement({
               ? { prompt: newColumn.prompt.trim() }
               : undefined;
     const toastId = toast.loading(messages.addColumnLoading);
-    try {
+
+    await (async () => {
       await apiClient.post(`/custom-tables/${tableId}/columns`, {
         title,
         type: newColumn.type,
@@ -114,10 +115,10 @@ export function useColumnManagement({
         prompt: '',
       });
       await loadTable();
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to create column:', error);
       toast.error(messages.addColumnFailed, { id: toastId });
-    }
+    });
   }, [tableId, newColumn, loadTable, messages]);
 
   const deleteColumn = useCallback(async () => {
@@ -125,15 +126,16 @@ export function useColumnManagement({
       return;
     }
     const toastId = toast.loading(messages.deleteColumnLoading);
-    try {
+
+    await (async () => {
       await apiClient.delete(`/custom-tables/${tableId}/columns/${deleteColumnTarget.id}`);
       toast.success(messages.deleteColumnSuccess, { id: toastId });
       closeDeleteColumnModal();
       await loadTable();
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to delete column:', error);
       toast.error(messages.deleteColumnFailed, { id: toastId });
-    }
+    });
   }, [tableId, deleteColumnTarget, closeDeleteColumnModal, loadTable, messages]);
 
   const renameColumnTitleFromGrid = useCallback(
@@ -145,14 +147,15 @@ export function useColumnManagement({
       if (!colId) {
         return;
       }
-      try {
+
+      await (async () => {
         await apiClient.patch(`/custom-tables/${tableId}/columns/${colId}`, { title: nextTitle });
         await loadTable();
         toast.success(messages.renameColumnSuccess);
-      } catch (error) {
+      })().catch(async error => {
         console.error('Failed to rename column:', error);
         toast.error(messages.renameColumnFailed);
-      }
+      });
     },
     [tableId, orderedColumns, loadTable, messages],
   );

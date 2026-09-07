@@ -124,34 +124,37 @@ export default function UsersManagementPage() {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  const loadUsers = async () => {
+    setLoading(true);
+    setError(null);
+
+    await (async () => {
+      const response = await apiClient.get<{ data: User[] }>('/users');
+      setUsers(response.data.data || []);
+    })()
+      .catch(async (err: unknown) => {
+        const error = err as { response?: { data?: { message?: string } } };
+        setError(error.response?.data?.message || t.errors.loadUsers.value);
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
+  };
+
   useEffect(() => {
     loadUsers();
   }, []);
 
-  const loadUsers = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await apiClient.get<{ data: User[] }>('/users');
-      setUsers(response.data.data || []);
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || t.errors.loadUsers.value);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleEditPermissions = async (user: User) => {
-    try {
+    await (async () => {
       const response = await apiClient.get(`/users/${user.id}/permissions`);
       setSelectedPermissions(response.data.customPermissions || []);
       setEditingUser(user);
       setPermissionsDialogOpen(true);
-    } catch (err: unknown) {
+    })().catch(async (err: unknown) => {
       const error = err as { response?: { data?: { message?: string } } };
       setError(error.response?.data?.message || t.errors.loadPermissions.value);
-    }
+    });
   };
 
   const handleSavePermissions = async () => {
@@ -160,19 +163,22 @@ export default function UsersManagementPage() {
     }
 
     setSaving(true);
-    try {
+
+    await (async () => {
       await apiClient.put(`/users/${editingUser.id}/permissions`, {
         permissions: selectedPermissions,
       });
       setPermissionsDialogOpen(false);
       setEditingUser(null);
       loadUsers();
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || t.errors.savePermissions.value);
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async (err: unknown) => {
+        const error = err as { response?: { data?: { message?: string } } };
+        setError(error.response?.data?.message || t.errors.savePermissions.value);
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   const handleResetPermissions = async () => {
@@ -181,17 +187,20 @@ export default function UsersManagementPage() {
     }
 
     setSaving(true);
-    try {
+
+    await (async () => {
       await apiClient.post(`/users/${editingUser.id}/permissions/reset`);
       setPermissionsDialogOpen(false);
       setEditingUser(null);
       loadUsers();
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || t.errors.resetPermissions.value);
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async (err: unknown) => {
+        const error = err as { response?: { data?: { message?: string } } };
+        setError(error.response?.data?.message || t.errors.resetPermissions.value);
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
 
   const handleTogglePermission = (permission: string) => {
@@ -201,23 +210,23 @@ export default function UsersManagementPage() {
   };
 
   const handleUpdateRole = async (userId: string, newRole: string) => {
-    try {
+    await (async () => {
       await apiClient.put(`/users/${userId}`, { role: newRole });
       loadUsers();
-    } catch (err: unknown) {
+    })().catch(async (err: unknown) => {
       const error = err as { response?: { data?: { message?: string } } };
       setError(error.response?.data?.message || t.errors.updateRole.value);
-    }
+    });
   };
 
   const handleToggleActive = async (user: User) => {
-    try {
+    await (async () => {
       await apiClient.put(`/users/${user.id}`, { isActive: !user.isActive });
       loadUsers();
-    } catch (err: unknown) {
+    })().catch(async (err: unknown) => {
       const error = err as { response?: { data?: { message?: string } } };
       setError(error.response?.data?.message || t.errors.updateStatus.value);
-    }
+    });
   };
 
   const filteredUsers = users.filter(

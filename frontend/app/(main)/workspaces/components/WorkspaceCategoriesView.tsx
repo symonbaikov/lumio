@@ -240,14 +240,8 @@ export default function WorkspaceCategoriesView() {
     return getCategoryDisplayName(cat, locale).toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  useEffect(() => {
-    if (user) {
-      loadCategories();
-    }
-  }, [user]);
-
   const loadCategories = async () => {
-    try {
+    await (async () => {
       setLoading(true);
       const [categoriesRes, usageRes] = await Promise.all([
         apiClient.get('/categories'),
@@ -255,13 +249,21 @@ export default function WorkspaceCategoriesView() {
       ]);
       setCategories(categoriesRes.data);
       setUsageCounts(usageRes.data);
-    } catch (err) {
-      console.error('Failed to load categories:', err);
-      toast.error(t.toasts.loadFailed.value);
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async err => {
+        console.error('Failed to load categories:', err);
+        toast.error(t.toasts.loadFailed.value);
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   };
+
+  useEffect(() => {
+    if (user) {
+      loadCategories();
+    }
+  }, [user]);
 
   const handleOpenDialog = (category?: Category) => {
     if (category) {
@@ -297,7 +299,7 @@ export default function WorkspaceCategoriesView() {
   };
 
   const handleSave = async () => {
-    try {
+    await (async () => {
       const { withoutIcon, ...restFormData } = formData;
       const data = {
         ...restFormData,
@@ -315,31 +317,33 @@ export default function WorkspaceCategoriesView() {
 
       await loadCategories();
       handleCloseDialog();
-    } catch (err) {
+    })().catch(async err => {
       console.error('Failed to save category:', err);
       toast.error(t.toasts.saveFailed.value);
-    }
+    });
   };
 
   const performToggle = async (category: Category, nextEnabled: boolean) => {
     setDisableConfirm(null);
     setTogglingIds(prev => new Set(prev).add(category.id));
 
-    try {
+    await (async () => {
       await apiClient.put(`/categories/${category.id}`, { isEnabled: nextEnabled });
       setCategories(prev =>
         prev.map(item => (item.id === category.id ? { ...item, isEnabled: nextEnabled } : item)),
       );
-    } catch (err) {
-      console.error('Failed to toggle category state:', err);
-      toast.error(t.toasts.saveFailed.value);
-    } finally {
-      setTogglingIds(prev => {
-        const next = new Set(prev);
-        next.delete(category.id);
-        return next;
+    })()
+      .catch(async err => {
+        console.error('Failed to toggle category state:', err);
+        toast.error(t.toasts.saveFailed.value);
+      })
+      .finally(async () => {
+        setTogglingIds(prev => {
+          const next = new Set(prev);
+          next.delete(category.id);
+          return next;
+        });
       });
-    }
   };
 
   const handleToggleEnabled = async (category: Category) => {
@@ -350,16 +354,16 @@ export default function WorkspaceCategoriesView() {
     const nextEnabled = category.isEnabled === false;
 
     if (!nextEnabled) {
-      try {
-        const response = await apiClient.get(`/categories/${category.id}/usage-count`);
-        const usage = response.data as CategoryUsageCount;
-
-        if (usage.total > 0) {
-          setDisableConfirm({ category, usage });
-          return;
-        }
-      } catch (err) {
-        console.error('Failed to get category usage count:', err);
+      const usage = await apiClient
+        .get(`/categories/${category.id}/usage-count`)
+        .then(response => response.data as CategoryUsageCount)
+        .catch((err: unknown) => {
+          console.error('Failed to get category usage count:', err);
+          return null;
+        });
+      if (usage && usage.total > 0) {
+        setDisableConfirm({ category, usage });
+        return;
       }
     }
 
@@ -385,7 +389,7 @@ export default function WorkspaceCategoriesView() {
   };
 
   const handleBulkEnable = async (enable: boolean) => {
-    try {
+    await (async () => {
       await Promise.all(
         Array.from(selectedIds).map(id =>
           apiClient.put(`/categories/${id}`, { isEnabled: enable }),
@@ -394,17 +398,18 @@ export default function WorkspaceCategoriesView() {
       toast.success(enable ? 'Categories enabled' : 'Categories disabled');
       await loadCategories();
       setSelectedIds(new Set());
-    } catch (err) {
+    })().catch(async err => {
       console.error('Failed to bulk toggle categories:', err);
       toast.error(t.toasts.saveFailed.value);
-    }
+    });
   };
 
   const handleBulkDelete = async () => {
     if (!window.confirm('Are you sure you want to delete selected custom categories?')) {
       return;
     }
-    try {
+
+    await (async () => {
       const customIds = Array.from(selectedIds).filter(
         id => !categories.find(c => c.id === id)?.isSystem,
       );
@@ -412,10 +417,10 @@ export default function WorkspaceCategoriesView() {
       toast.success('Categories deleted');
       await loadCategories();
       setSelectedIds(new Set());
-    } catch (err) {
+    })().catch(async err => {
       console.error('Failed to delete categories:', err);
       toast.error('Failed to delete some categories');
-    }
+    });
   };
 
   const triggerIconUpload = () => {
@@ -431,7 +436,8 @@ export default function WorkspaceCategoriesView() {
     const fd = new FormData();
     fd.append('icon', file);
     setUploadingIcon(true);
-    try {
+
+    await (async () => {
       const response = await apiClient.post('/data-entry/custom-fields/icon', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -440,15 +446,17 @@ export default function WorkspaceCategoriesView() {
         setFormData(prev => ({ ...prev, icon: url, withoutIcon: false }));
         toast.success(t.toasts.iconUploaded.value);
       }
-    } catch (err) {
-      console.error('Failed to upload icon:', err);
-      toast.error(t.toasts.iconUploadFailed.value);
-    } finally {
-      setUploadingIcon(false);
-      if (iconInputRef.current) {
-        iconInputRef.current.value = '';
-      }
-    }
+    })()
+      .catch(async err => {
+        console.error('Failed to upload icon:', err);
+        toast.error(t.toasts.iconUploadFailed.value);
+      })
+      .finally(async () => {
+        setUploadingIcon(false);
+        if (iconInputRef.current) {
+          iconInputRef.current.value = '';
+        }
+      });
   };
 
   return (

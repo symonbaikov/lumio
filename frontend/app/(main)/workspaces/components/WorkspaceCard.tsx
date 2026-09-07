@@ -41,12 +41,13 @@ export function WorkspaceCard({ workspace, onClick, onFavoriteToggle }: Workspac
     e.stopPropagation();
     const nextFavorite = !isFavorite;
     setIsFavorite(nextFavorite);
-    try {
+
+    await (async () => {
       await onFavoriteToggle?.(workspace.id);
-    } catch (error: unknown) {
+    })().catch(async (error: unknown) => {
       setIsFavorite(!nextFavorite);
       toast.error(getApiMessage(error, 'Failed to update favorite status'));
-    }
+    });
   };
 
   const isExternalBackground = Boolean(

@@ -36,22 +36,24 @@ export function ReceiptPreviewModal({
     let active = true;
 
     const loadPreview = async (): Promise<void> => {
-      try {
+      await (async () => {
         setLoading(true);
         const response = await gmailReceiptsApi.getReceiptPreview(receiptId);
         if (active) {
           setPreview(response.data);
         }
-      } catch (error) {
-        console.error('Failed to load preview', error);
-        if (active) {
-          setPreview(null);
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
+      })()
+        .catch(async error => {
+          console.error('Failed to load preview', error);
+          if (active) {
+            setPreview(null);
+          }
+        })
+        .finally(async () => {
+          if (active) {
+            setLoading(false);
+          }
+        });
     };
 
     void loadPreview();

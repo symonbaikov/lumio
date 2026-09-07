@@ -121,24 +121,28 @@ export function ReportGenerator({
   const handlePreview = async (): Promise<void> => {
     setPreviewLoading(true);
     setPreviewError(null);
-    try {
+
+    await (async () => {
       const response = await apiClient.post('/reports/preview', buildParams());
       setPreview(response.data as ReportPreviewData);
-    } catch {
-      setPreview(null);
-      setPreviewError(text('previewFailed', 'Could not build the preview'));
-    } finally {
-      setPreviewLoading(false);
-    }
+    })()
+      .catch(async () => {
+        setPreview(null);
+        setPreviewError(text('previewFailed', 'Could not build the preview'));
+      })
+      .finally(async () => {
+        setPreviewLoading(false);
+      });
   };
 
   const handleGenerate = async (): Promise<void> => {
     setGenerating(true);
-    try {
+
+    await (async () => {
       await onGenerate(buildParams());
-    } finally {
+    })().finally(async () => {
       setGenerating(false);
-    }
+    });
   };
 
   return (

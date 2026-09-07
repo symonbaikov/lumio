@@ -85,22 +85,25 @@ export function useNetWorth(initialRange: NetWorthRange = '90d'): NetWorthState 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
+
+    await (async () => {
       const response = await apiClient.get('/reports/net-worth', { params: { range } });
       setData(response.data?.data ?? response.data);
-    } catch {
-      setError('failed');
-    } finally {
-      setLoading(false);
-    }
-    // currentWorkspace is a dependency because the report is workspace-scoped
-    // and switching workspaces must refetch rather than show stale numbers.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [range, currentWorkspace?.id]);
+    })()
+      .catch(async () => {
+        setError('failed');
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
+  }, [range]);
 
+  // Workspace-scoped: the request itself does not mention the workspace (the
+  // server scopes by session), so the effect re-runs on switch explicitly.
+  const workspaceId = currentWorkspace?.id;
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, workspaceId]);
 
   const classify = useCallback(
     async (

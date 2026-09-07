@@ -156,7 +156,14 @@ async function loadPreviewAsync(
 }
 
 function usePreviewLoader(receipt: ReceiptRecord | null, setters: PreviewSetters): void {
+  // The setters object is rebuilt by the caller every render; read it through
+  // a ref so the preview only reloads when the receipt changes.
+  const settersRef = useRef(setters);
   useEffect(() => {
+    settersRef.current = setters;
+  });
+  useEffect(() => {
+    const setters = settersRef.current;
     if (!receipt) {
       revokeAndSet(setters.setPreviewUrl, null);
       setters.setPreviewMimeType(null);
@@ -175,7 +182,6 @@ function usePreviewLoader(receipt: ReceiptRecord | null, setters: PreviewSetters
         URL.revokeObjectURL(objectUrl);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [receipt]);
 }
 
@@ -201,10 +207,16 @@ function useLoadData(
     setError: (v: string | null) => void;
   },
 ): () => Promise<void> {
+  const settersRef = useRef(setters);
+  useEffect(() => {
+    settersRef.current = setters;
+  });
   return useCallback(async (): Promise<void> => {
+    const setters = settersRef.current;
     setters.setLoading(true);
     setters.setError(null);
-    try {
+
+    await (async () => {
       const [rr, cr] = await Promise.all([
         apiClient.get(`/receipts/${receiptId}`),
         apiClient.get('/categories'),
@@ -213,14 +225,15 @@ function useLoadData(
       setters.setReceipt(receipt);
       setters.setFormValue(buildInitialForm(receipt));
       setters.setCategories(categories);
-    } catch (err) {
-      console.error('Failed to load receipt details:', err);
-      setters.setError('Failed to load receipt');
-      toast.error('Failed to load receipt');
-    } finally {
-      setters.setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    })()
+      .catch(async err => {
+        console.error('Failed to load receipt details:', err);
+        setters.setError('Failed to load receipt');
+        toast.error('Failed to load receipt');
+      })
+      .finally(async () => {
+        setters.setLoading(false);
+      });
   }, [receiptId]);
 }
 
@@ -239,15 +252,16 @@ function usePersistParsedData(
       if (serialized === lastSavedRef.current) {
         return;
       }
-      try {
+
+      await (async () => {
         await apiClient.patch(`/receipts/${receipt.id}`, { parsedData: nextPayload });
         lastSavedRef.current = serialized;
         setReceipt(cur =>
           cur ? { ...cur, parsedData: { ...cur.parsedData, ...nextPayload } } : cur,
         );
-      } catch {
+      })().catch(async () => {
         toast.error('Failed to autosave receipt changes.');
-      }
+      });
     },
     [receipt, setReceipt, lastSavedRef],
   );
@@ -265,18 +279,21 @@ function useApproveReceipt(
       return;
     }
     setSaving(true);
-    try {
+
+    await (async () => {
       const payload = buildParsedDataPayload(formValue);
       await apiClient.patch(`/receipts/${receipt.id}`, { parsedData: payload });
       lastSavedRef.current = JSON.stringify(payload);
       await receiptsApi.approveReceipt(receipt.id);
       toast.success('Receipt approved.');
       await loadData();
-    } catch {
-      toast.error('Failed to approve receipt.');
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error('Failed to approve receipt.');
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   };
   return { saving, handleApprove };
 }
@@ -344,7 +361,8 @@ export function useReceiptData({ receiptId }: { receiptId: string }): UseReceipt
     if (!receipt) {
       return;
     }
-    try {
+
+    await (async () => {
       const { blob } = await fetchReceiptFile(receipt.id);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -354,10 +372,10 @@ export function useReceiptData({ receiptId }: { receiptId: string }): UseReceipt
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (err) {
+    })().catch(async err => {
       console.error('Failed to download receipt:', err);
       toast.error('Failed to download receipt');
-    }
+    });
   };
 
   return {

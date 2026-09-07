@@ -113,9 +113,10 @@ vi.mock('@/app/hooks/useDashboard', () => ({
       effectiveSince: null,
       effectiveEndDate: null,
     },
-    loading: false,
+    isPending: false,
+    isFetching: false,
     error: null,
-    refresh,
+    refetch: refresh,
     range: '30d',
   }),
 }));

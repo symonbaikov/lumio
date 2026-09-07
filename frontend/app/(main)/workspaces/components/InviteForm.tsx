@@ -170,12 +170,13 @@ export function InviteForm({ isOwnerOrAdmin, onInvite }: InviteFormProps): React
   const handleSubmit = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
     setInviteLoading(true);
-    try {
+
+    await (async () => {
       await onInvite({ email: inviteEmail, role: inviteRole, permissions: invitePermissions });
       setInviteEmail('');
-    } finally {
+    })().finally(async () => {
       setInviteLoading(false);
-    }
+    });
   };
 
   const handlePermissionChange = (

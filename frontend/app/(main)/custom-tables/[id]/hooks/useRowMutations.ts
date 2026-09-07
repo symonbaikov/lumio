@@ -58,17 +58,18 @@ export function useRowMutations({
       return null;
     }
     const toastId = toast.loading(messages.addRowLoading);
-    try {
+
+    return await (async () => {
       const created = await createRowRequest(tableId, rows.length);
       setRows(prev => [...prev, created]);
       toast.success(messages.addRowSuccess, { id: toastId });
       void refreshStats();
       return created;
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to add row:', error);
       toast.error(messages.addRowFailed, { id: toastId });
       return null;
-    }
+    });
   }, [tableId, rows.length, setRows, refreshStats, messages]);
 
   const updateCellFromGrid = useCallback(
@@ -108,7 +109,8 @@ export function useRowMutations({
       if (!tableId) {
         return;
       }
-      try {
+
+      return await (async () => {
         const row = rows.find(r => r.id === rowId);
         const tempStyles = { ...(row?.styles || {}), ...styles };
         if (rowId.startsWith('temp-')) {
@@ -117,10 +119,10 @@ export function useRowMutations({
         }
         const saved = await persistRowStyle({ tableId, rowId, rows, styles });
         setRows(prev => applyRowStylePatch(prev, rowId, saved));
-      } catch (error) {
+      })().catch(async error => {
         console.error('Failed to update row styles:', error);
         toast.error(messages.saveValueFailed);
-      }
+      });
     },
     [tableId, rows, setRows, messages.saveValueFailed],
   );

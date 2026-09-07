@@ -1,4 +1,5 @@
 import axios, { type AxiosResponse } from 'axios';
+import { getQueryClient } from './query-client';
 
 type GmailReceiptParsedDataUpdate = {
   amount?: number;
@@ -69,7 +70,7 @@ async function handleForbiddenError(error: unknown): Promise<never> {
   return Promise.reject(error);
 }
 
-async function refreshAccessToken(originalRequest: Record<string, unknown>): Promise<unknown> {
+async function requestNewAccessToken(): Promise<string> {
   const refreshToken = localStorage.getItem('refresh_token');
   if (!refreshToken) return Promise.reject(new Error('No refresh token'));
 
@@ -88,8 +89,37 @@ async function refreshAccessToken(originalRequest: Record<string, unknown>): Pro
   if (refresh_token) {
     localStorage.setItem('refresh_token', refresh_token);
   }
-  (originalRequest.headers as Record<string, string>).Authorization = `Bearer ${access_token}`;
+  return access_token;
+}
 
+let refreshInFlight: Promise<string> | null = null;
+
+/**
+ * Все параллельные 401 ждут один рефреш: бэкенд ротирует refresh-токен, и второй
+ * одновременный рефреш предъявил бы уже отозванный токен и разлогинил пользователя.
+ *
+ * Флаг сбрасывается внутри колбэков then, то есть после записи токенов в localStorage:
+ * сброс до записи оставил бы окно, в котором следующий вызов прочитал бы старый refresh-токен.
+ * Обе ветки сбрасывают его — иначе один сетевой сбой навсегда отравил бы рефреш во вкладке.
+ * Без `finally`: React Compiler пропускает код с finally, и кодовая база держится промис-цепочек.
+ */
+function getFreshAccessToken(): Promise<string> {
+  refreshInFlight ??= requestNewAccessToken().then(
+    token => {
+      refreshInFlight = null;
+      return token;
+    },
+    (error: unknown) => {
+      refreshInFlight = null;
+      throw error;
+    },
+  );
+  return refreshInFlight;
+}
+
+async function refreshAccessToken(originalRequest: Record<string, unknown>): Promise<unknown> {
+  const accessToken = await getFreshAccessToken();
+  (originalRequest.headers as Record<string, string>).Authorization = `Bearer ${accessToken}`;
   return apiClient(originalRequest);
 }
 
@@ -146,6 +176,9 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
+        // Редирект не мгновенный: запросы в полёте успели бы отрезолвиться
+        // в кэш уже разлогиненного пользователя.
+        getQueryClient().clear();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }

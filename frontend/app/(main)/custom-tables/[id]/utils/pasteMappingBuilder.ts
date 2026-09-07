@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function -- ESLint 9.39.4 crashes on this file (rule bug) */
 import { matchFieldByName, normalizeToken } from './pasteParser';
 import type {
   PasteColumn,

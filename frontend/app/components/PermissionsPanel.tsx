@@ -262,7 +262,7 @@ export default function PermissionsPanel({
   const [error, setError] = useState<string | null>(null);
 
   const handleGrantPermission = async (): Promise<void> => {
-    try {
+    await (async () => {
       setGranting(true);
       setError(null);
       await api.post(`/storage/files/${fileId}/permissions`, {
@@ -277,18 +277,21 @@ export default function PermissionsPanel({
       setExpiresAt('');
       setGrantDialogOpen(false);
       onPermissionsUpdate();
-    } catch (err: unknown) {
-      setError(getApiMessage({ error: err, fallback: t.errors.grantFailed.value }));
-    } finally {
-      setGranting(false);
-    }
+    })()
+      .catch(async (err: unknown) => {
+        setError(getApiMessage({ error: err, fallback: t.errors.grantFailed.value }));
+      })
+      .finally(async () => {
+        setGranting(false);
+      });
   };
 
   const handleUpdatePermission = async (): Promise<void> => {
     if (!selectedPermission) {
       return;
     }
-    try {
+
+    await (async () => {
       setGranting(true);
       setError(null);
       await api.put(`/storage/permissions/${selectedPermission.id}`, {
@@ -299,23 +302,26 @@ export default function PermissionsPanel({
       setEditDialogOpen(false);
       setSelectedPermission(null);
       onPermissionsUpdate();
-    } catch (err: unknown) {
-      setError(getApiMessage({ error: err, fallback: t.errors.updateFailed.value }));
-    } finally {
-      setGranting(false);
-    }
+    })()
+      .catch(async (err: unknown) => {
+        setError(getApiMessage({ error: err, fallback: t.errors.updateFailed.value }));
+      })
+      .finally(async () => {
+        setGranting(false);
+      });
   };
 
   const handleRevokePermission = async (permissionId: string): Promise<void> => {
     if (!confirm(t.confirmRevoke.value)) {
       return;
     }
-    try {
+
+    await (async () => {
       await api.delete(`/storage/permissions/${permissionId}`);
       onPermissionsUpdate();
-    } catch (err) {
+    })().catch(async err => {
       console.error('Failed to revoke permission:', err);
-    }
+    });
   };
 
   const handleEditClick = (permission: Permission): void => {

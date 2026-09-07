@@ -277,30 +277,29 @@ export default function DropboxIntegrationPage(): React.JSX.Element {
 
   const status = baseStatus as DropboxStatus | null;
 
-  // eslint-disable-next-line complexity
   const updateSettings = async (payload: Partial<DropboxSettings>): Promise<void> => {
-    try {
+    await (async () => {
       await apiClient.post('/integrations/dropbox/settings', payload);
       toast.success(t.toasts?.settingsSaved?.value || 'Settings saved');
       await loadStatus();
-    } catch {
+    })().catch(async () => {
       toast.error(t.errors?.connectFailed?.value || 'Failed to save settings');
-    }
+    });
   };
 
-  // eslint-disable-next-line complexity
   const handlePickFolder = async (): Promise<void> => {
     if (!appKey) {
       toast.error(t.errors?.pickerUnavailable?.value || 'Dropbox Chooser is not available');
       return;
     }
-    try {
+
+    return await (async () => {
       const folder = await pickDropboxFolder({ appKey });
       if (!folder) return;
       await updateSettings({ folderId: folder.id, folderName: getChooserDocName(folder) });
-    } catch {
+    })().catch(async () => {
       toast.error(t.errors?.pickerUnavailable?.value || 'Failed to pick folder');
-    }
+    });
   };
 
   const statusLabel = useMemo(

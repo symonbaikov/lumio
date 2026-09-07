@@ -102,18 +102,21 @@ export function useTableMeta({
       return;
     }
     setSavingMeta(true);
-    try {
+
+    await (async () => {
       await apiClient.patch(`/custom-tables/${tableId}`, payload);
       setEditingMeta(false);
       setEditingScope(null);
       await loadTable();
       toast.success(messages.saved);
-    } catch (error) {
-      console.error('Failed to update table meta:', error);
-      toast.error(messages.saveFailed);
-    } finally {
-      setSavingMeta(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to update table meta:', error);
+        toast.error(messages.saveFailed);
+      })
+      .finally(async () => {
+        setSavingMeta(false);
+      });
   };
 
   return {

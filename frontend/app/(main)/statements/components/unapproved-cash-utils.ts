@@ -98,7 +98,6 @@ const parseNumberish = (value?: number | string | null): number | null => {
   return Number.isFinite(parsed) ? Number(parsed) : null;
 };
 
-// eslint-disable-next-line complexity
 const resolveAmount = (transaction: UnapprovedQueueTransaction): number | null => {
   const explicitAmount = parseNumberish(transaction.amount);
   if (explicitAmount !== null) {

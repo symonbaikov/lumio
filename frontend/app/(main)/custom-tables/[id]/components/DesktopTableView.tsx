@@ -913,13 +913,15 @@ function DesktopTableContent(p: P): React.JSX.Element {
   );
 }
 
-function DesktopScrollBody(p: P): React.JSX.Element {
+// The container ref is destructured out of the props object: React Compiler
+// treats an object holding a ref as a ref and refuses to compile reads of it.
+function DesktopScrollBody({ tableContainerRef, ...p }: P): React.JSX.Element {
   const overflow = p.isPrintMode ? 'visible' : 'auto';
   const border = p.isDark ? '1px solid #374151' : '1px solid var(--border-color)';
   const height = p.isPrintMode ? 'auto' : p.isFullscreen ? 'calc(100vh - 150px)' : '600px';
   return (
     <div
-      ref={p.tableContainerRef}
+      ref={tableContainerRef}
       onScroll={p.onScroll}
       style={{
         position: 'relative',
@@ -931,7 +933,7 @@ function DesktopScrollBody(p: P): React.JSX.Element {
         height,
       }}
     >
-      <DesktopTableContent {...p} />
+      <DesktopTableContent {...p} tableContainerRef={tableContainerRef} />
     </div>
   );
 }

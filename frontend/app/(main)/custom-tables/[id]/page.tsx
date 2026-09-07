@@ -1041,7 +1041,7 @@ export default function CustomTableDetailPage() {
       next[col.key] = getColumnWidth(col.key);
     }
     return next;
-  }, [orderedColumns, columnWidths]);
+  }, [orderedColumns, columnWidths, getColumnWidth]);
 
   const onGridFiltersParamChange = (next: string | undefined) => {
     if (next === gridFiltersParam) return;
@@ -1075,24 +1075,27 @@ export default function CustomTableDetailPage() {
     }
     setExportingView(true);
     const toastId = toast.loading(tx(t, ['actions', 'exportingView'], 'Exporting...'));
-    try {
+
+    await (async () => {
       await downloadTableExport(tableId, 'xlsx', {
         filters: combinedFiltersParam,
         sort: gridSort ? JSON.stringify(gridSort) : undefined,
         columnKeys: displayColumns.map(c => c.key),
       });
       toast.success(tx(t, ['actions', 'exportViewDone'], 'Export complete'), { id: toastId });
-    } catch (error) {
-      console.error('Failed to export table view:', error);
-      toast.error(
-        getApiErrorMessage(error, tx(t, ['actions', 'exportViewFailed'], 'Export failed')),
-        {
-          id: toastId,
-        },
-      );
-    } finally {
-      setExportingView(false);
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to export table view:', error);
+        toast.error(
+          getApiErrorMessage(error, tx(t, ['actions', 'exportViewFailed'], 'Export failed')),
+          {
+            id: toastId,
+          },
+        );
+      })
+      .finally(async () => {
+        setExportingView(false);
+      });
   }, [tableId, combinedFiltersParam, gridSort, displayColumns, t]);
 
   const { rows, setRows, loadingRows, hasMore, loadRows } = useTableGrid({
@@ -1174,12 +1177,13 @@ export default function CustomTableDetailPage() {
       if (!tableId) {
         return;
       }
-      try {
+
+      await (async () => {
         await apiClient.patch(`/custom-tables/${tableId}/view-settings/rules`, { rules });
-      } catch (error) {
+      })().catch(async error => {
         console.error('Failed to persist conditional rules:', error);
         toast.error(tx(t, ['grid', 'rules', 'saveFailed'], 'Failed to save rule'));
-      }
+      });
     },
     [tableId, t],
   );

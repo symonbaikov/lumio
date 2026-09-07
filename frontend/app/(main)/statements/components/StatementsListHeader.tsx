@@ -16,7 +16,7 @@ import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { Spinner } from '@/app/components/ui/spinner';
 import { SHORTCUT_FOCUS_SEARCH, SHORTCUT_OPEN_FILTERS } from '@/app/lib/keyboard-shortcuts';
 import { tokens } from '@/lib/theme-tokens';
-import { type ComponentPropsWithoutRef, useEffect, useRef } from 'react';
+import { type ComponentPropsWithoutRef, useEffect, useRef, useState } from 'react';
 import { StatementsBulkActions } from './StatementsBulkActions';
 
 interface FilterOption {
@@ -279,6 +279,20 @@ export function StatementsListHeader({
   onColumnsReorder,
   onColumnsSave,
 }: Props): React.JSX.Element {
+  // The search box owns its draft; the list only re-renders (and refetches)
+  // once typing pauses. Parent-driven changes still reset the draft.
+  const [searchDraft, setSearchDraft] = useState(searchInput);
+  const [syncedSearchInput, setSyncedSearchInput] = useState(searchInput);
+  if (searchInput !== syncedSearchInput) {
+    setSyncedSearchInput(searchInput);
+    setSearchDraft(searchInput);
+  }
+  useEffect(() => {
+    if (searchDraft === searchInput) return;
+    const timer = setTimeout(() => onSearchChange(searchDraft), 300);
+    return () => clearTimeout(timer);
+  }, [searchDraft, searchInput, onSearchChange]);
+
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -307,8 +321,8 @@ export function StatementsListHeader({
           <input
             ref={searchRef}
             type="text"
-            value={searchInput}
-            onChange={e => onSearchChange(e.target.value)}
+            value={searchDraft}
+            onChange={e => setSearchDraft(e.target.value)}
             placeholder={searchPlaceholder}
             aria-label={searchPlaceholder}
             className="lumio-stmt-list-view__search-input"

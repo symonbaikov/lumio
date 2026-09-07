@@ -136,15 +136,17 @@ export function TaxJurisdictionSection({
     setFailed(null);
     setSaved(false);
 
-    try {
+    await (async () => {
       await apiClient.put('/tax/settings/jurisdiction', { code: selectedCode });
       setCurrentCode(selectedCode);
       setSaved(true);
-    } catch {
-      setFailed('save');
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async () => {
+        setFailed('save');
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   }, [selectedCode]);
 
   const isSwitch = Boolean(currentCode) && selectedCode !== currentCode;

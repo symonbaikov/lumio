@@ -80,14 +80,15 @@ export function useBulkRowActions({
       return;
     }
     const toastId = toast.loading(messages.deleteRowLoading);
-    try {
+
+    return await (async () => {
       await apiClient.delete(`/custom-tables/${tableId}/rows/${deleteRowTarget.id}`);
       toast.success(messages.deleteRowSuccess, { id: toastId });
       setRows(prev => prev.filter(r => r.id !== deleteRowTarget.id));
       setSelectedRowIds(prev => prev.filter(id => id !== deleteRowTarget.id));
       closeDeleteRowModal();
       refreshStats();
-    } catch (error) {
+    })().catch(async error => {
       const status = getApiErrorStatus(error);
       if (status === 404 || status === 410) {
         toast.success(messages.deleteRowSuccess, { id: toastId });
@@ -99,7 +100,7 @@ export function useBulkRowActions({
       }
       console.error('Failed to delete row:', error);
       toast.error(messages.deleteRowFailed, { id: toastId });
-    }
+    });
   }, [
     tableId,
     deleteRowTarget,
@@ -119,7 +120,8 @@ export function useBulkRowActions({
       return;
     }
     const toastId = toast.loading(messages.bulkDeleteLoading);
-    try {
+
+    await (async () => {
       const tempIds = ids.filter(id => id.startsWith('temp-'));
       if (tempIds.length) {
         setRows(prev => prev.filter(row => !tempIds.includes(row.id)));
@@ -156,12 +158,14 @@ export function useBulkRowActions({
         toast.success(messages.bulkDeleteSuccess, { id: toastId });
       }
       refreshStats();
-    } catch (error) {
-      console.error('Failed to bulk delete rows:', error);
-      toast.error(messages.bulkDeleteFailed, { id: toastId });
-    } finally {
-      closeBulkDeleteModal();
-    }
+    })()
+      .catch(async error => {
+        console.error('Failed to bulk delete rows:', error);
+        toast.error(messages.bulkDeleteFailed, { id: toastId });
+      })
+      .finally(async () => {
+        closeBulkDeleteModal();
+      });
   }, [
     tableId,
     bulkDeleteRowIds,
@@ -181,7 +185,8 @@ export function useBulkRowActions({
       throw new Error('Missing tableId');
     }
     const toastId = toast.loading(messages.creatingPaidColumn);
-    try {
+
+    return await (async () => {
       const response = await apiClient.post(`/custom-tables/${tableId}/columns`, {
         title: messages.paidColumnTitle,
         type: 'boolean',
@@ -198,11 +203,11 @@ export function useBulkRowActions({
       );
       toast.success(messages.paidColumnCreated, { id: toastId });
       return created.key;
-    } catch (error) {
+    })().catch(async error => {
       console.error('Failed to create Paid column:', error);
       toast.error(messages.paidColumnCreateFailed, { id: toastId });
       throw error;
-    }
+    });
   }, [paidColKey, tableId, setTable, messages]);
 
   const classifyPaidStatuses = useCallback(
@@ -210,15 +215,16 @@ export function useBulkRowActions({
       if (!(tableId && rowIds.length)) {
         return new Map();
       }
-      try {
+
+      return await (async () => {
         const response = await apiClient.post(`/custom-tables/${tableId}/rows/paid-classify`, {
           rowIds,
         });
         return getClassificationResults(response.data);
-      } catch (error) {
+      })().catch(async error => {
         console.error('Failed to classify paid status:', error);
         return new Map();
-      }
+      });
     },
     [tableId],
   );
@@ -287,7 +293,8 @@ export function useBulkRowActions({
       const successMessage = paid ? messages.markedPaid : messages.markedUnpaid;
       setBulkMarking(markingLabel);
       const toastId = toast.loading(loadingMessage);
-      try {
+
+      await (async () => {
         const failedIds = await executeBulkPaid(paid, ids);
         if (failedIds.length) {
           toast.error(messages.updateSomeRowsFailed, { id: toastId });
@@ -295,14 +302,17 @@ export function useBulkRowActions({
           toast.success(successMessage, { id: toastId });
         }
         void refreshStats();
-      } catch (error) {
-        console.error('Failed to mark rows:', error);
-        toast.error(messages.updateRowsFailed, { id: toastId });
-      } finally {
-        setBulkMarking(null);
-      }
+      })()
+        .catch(async error => {
+          console.error('Failed to mark rows:', error);
+          toast.error(messages.updateRowsFailed, { id: toastId });
+        })
+        .finally(async () => {
+          setBulkMarking(null);
+        });
     },
     [
+      executeBulkPaid,
       tableId,
       selectedRowIds,
       bulkMarking,

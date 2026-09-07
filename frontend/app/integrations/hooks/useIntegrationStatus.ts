@@ -40,15 +40,17 @@ export function useIntegrationStatus({
   const base = `/integrations/${apiPath}`;
 
   const loadStatus = useCallback(async () => {
-    try {
+    await (async () => {
       setLoading(true);
       const response = await apiClient.get(`${base}/status`);
       setStatus(response.data);
-    } catch {
-      toast.error(messages.errors.loadStatus);
-    } finally {
-      setLoading(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error(messages.errors.loadStatus);
+      })
+      .finally(async () => {
+        setLoading(false);
+      });
   }, [base, messages.errors.loadStatus]);
 
   useEffect(() => {
@@ -78,7 +80,7 @@ export function useIntegrationStatus({
   }, [searchParams, messages]);
 
   const handleConnect = useCallback(async () => {
-    try {
+    return await (async () => {
       toast.success(messages.toasts.connecting);
       const response = await apiClient.get(`${base}/connect`);
       const url = response.data?.url as string | undefined;
@@ -87,35 +89,39 @@ export function useIntegrationStatus({
         return;
       }
       window.location.href = url;
-    } catch {
+    })().catch(async () => {
       toast.error(messages.errors.connectFailed);
-    }
+    });
   }, [base, messages]);
 
   const handleDisconnect = useCallback(async () => {
-    try {
+    await (async () => {
       setSaving(true);
       await apiClient.post(`${base}/disconnect`);
       toast.success(messages.toasts.disconnected);
       await loadStatus();
-    } catch {
-      toast.error(messages.errors.disconnectFailed);
-    } finally {
-      setSaving(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error(messages.errors.disconnectFailed);
+      })
+      .finally(async () => {
+        setSaving(false);
+      });
   }, [base, messages, loadStatus]);
 
   const handleSync = useCallback(async () => {
-    try {
+    await (async () => {
       setSyncing(true);
       await apiClient.post(`${base}/sync`);
       toast.success(messages.toasts.syncStarted);
       await loadStatus();
-    } catch {
-      toast.error(messages.errors.syncFailed);
-    } finally {
-      setSyncing(false);
-    }
+    })()
+      .catch(async () => {
+        toast.error(messages.errors.syncFailed);
+      })
+      .finally(async () => {
+        setSyncing(false);
+      });
   }, [base, messages, loadStatus]);
 
   return {
