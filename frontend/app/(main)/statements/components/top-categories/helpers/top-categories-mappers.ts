@@ -111,7 +111,11 @@ const buildTransactionCategoryRecord = ({
   const pu = getMetaParsingUser(meta);
   const ws = getMetaWorkspace(meta, item);
   const ci = getItemColorIcon(item);
-  const ch = resolveCategorySourceChannel({ sourceType: 'statement', fileType });
+  const ch = resolveCategorySourceChannel({
+    sourceType: 'statement',
+    fileType,
+    isCrypto: Boolean(item.cryptoWalletId),
+  });
   return {
     id: item.id,
     source: 'statement',

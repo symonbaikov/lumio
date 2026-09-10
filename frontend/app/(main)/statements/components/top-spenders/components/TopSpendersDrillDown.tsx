@@ -11,7 +11,12 @@ import { X } from '@/app/components/icons';
 import { formatMoney } from '@/app/lib/analytics-common';
 import { tokens } from '@/lib/theme-tokens';
 
-type SourceLabels = { sourceBank: string; sourceReceipt: string; sourceGmailInbox: string };
+type SourceLabels = {
+  sourceBank: string;
+  sourceReceipt: string;
+  sourceGmailInbox: string;
+  sourceCrypto: string;
+};
 
 type Props = {
   selectedRow: TopSpenderAggregateRow;

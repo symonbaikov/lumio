@@ -20,8 +20,19 @@ export const queryKeys = {
   transactions: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
     ['transactions', o.workspaceId, o.params] as const,
   categories: (workspaceId: string | null) => ['categories', workspaceId] as const,
+  goalFlow: (o: { workspaceId: string | null; goalId: string; month: string }) =>
+    ['goals', 'flow', o.workspaceId, o.goalId, o.month] as const,
+  goalPlan: (o: { workspaceId: string | null; goalId: string }) =>
+    ['goals', 'plan', o.workspaceId, o.goalId] as const,
+  goalItems: (o: { workspaceId: string | null; goalId: string }) =>
+    ['goals', 'items', o.workspaceId, o.goalId] as const,
   insights: (workspaceId: string | null) => ['insights', workspaceId] as const,
   cryptoWallets: (workspaceId: string | null) => ['crypto', 'wallets', workspaceId] as const,
   cryptoSummary: (workspaceId: string | null) => ['crypto', 'summary', workspaceId] as const,
   notifications: (workspaceId: string | null) => ['notifications', workspaceId] as const,
+  notes: (o: { workspaceId: string | null; entityType: string; entityId: string }) =>
+    ['notes', o.workspaceId, o.entityType, o.entityId] as const,
+  noteCounts: (o: { workspaceId: string | null; entityType: string; entityIds: string[] }) =>
+    ['notes', 'counts', o.workspaceId, o.entityType, o.entityIds] as const,
+  workspaceMembers: (workspaceId: string | null) => ['workspace-members', workspaceId] as const,
 } as const;

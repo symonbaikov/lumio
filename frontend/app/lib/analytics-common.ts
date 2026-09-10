@@ -133,9 +133,15 @@ export const mapGmailReceiptToStatement = (
  */
 export const getSourceLabel = (
   channel: string,
-  labels: { sourceBank: string; sourceReceipt: string; sourceGmailInbox: string },
+  labels: {
+    sourceBank: string;
+    sourceReceipt: string;
+    sourceGmailInbox: string;
+    sourceCrypto: string;
+  },
 ): string => {
   if (channel === 'gmail') return labels.sourceGmailInbox;
   if (channel === 'receipt') return labels.sourceReceipt;
+  if (channel === 'crypto') return labels.sourceCrypto;
   return labels.sourceBank;
 };

@@ -35,6 +35,7 @@ const LABEL_PATHS: Record<string, [string[], string]> = {
   sourceBank: [['topMerchants', 'sourceBank'], 'Bank'],
   sourceReceipt: [['topMerchants', 'sourceReceipt'], 'Receipt'],
   sourceGmailInbox: [['topMerchants', 'sourceGmailInbox'], 'Gmail'],
+  sourceCrypto: [['topMerchants', 'sourceCrypto'], 'Crypto'],
   workspace: [['topMerchants', 'workspace'], 'Workspace'],
   allWorkspaces: [['topMerchants', 'allWorkspaces'], 'All workspaces'],
   currentWorkspace: [['topMerchants', 'currentWorkspace'], 'Current workspace'],

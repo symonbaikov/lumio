@@ -14,6 +14,9 @@ describe('queryKeys', () => {
       gmailReceipts: queryKeys.gmailReceipts({ workspaceId: 'w1', params: { limit: 50 } }),
       transactions: queryKeys.transactions({ workspaceId: 'w1', params: { limit: 500 } }),
       categories: queryKeys.categories('w1'),
+      goalFlow: queryKeys.goalFlow({ workspaceId: 'w1', goalId: 'g1', month: '2026-09' }),
+      goalPlan: queryKeys.goalPlan({ workspaceId: 'w1', goalId: 'g1' }),
+      goalItems: queryKeys.goalItems({ workspaceId: 'w1', goalId: 'g1' }),
       insights: queryKeys.insights('w1'),
       cryptoWallets: queryKeys.cryptoWallets('w1'),
       cryptoSummary: queryKeys.cryptoSummary('w1'),
@@ -25,6 +28,9 @@ describe('queryKeys', () => {
       gmailReceipts: ['gmail-receipts', 'w1', { limit: 50 }],
       transactions: ['transactions', 'w1', { limit: 500 }],
       categories: ['categories', 'w1'],
+      goalFlow: ['goals', 'flow', 'w1', 'g1', '2026-09'],
+      goalPlan: ['goals', 'plan', 'w1', 'g1'],
+      goalItems: ['goals', 'items', 'w1', 'g1'],
       insights: ['insights', 'w1'],
       cryptoWallets: ['crypto', 'wallets', 'w1'],
       cryptoSummary: ['crypto', 'summary', 'w1'],
@@ -41,5 +47,15 @@ describe('queryKeys', () => {
   it('nests crypto keys under one prefix so a single invalidation sweeps the feature', () => {
     expect(queryKeys.cryptoWallets('w1')[0]).toBe('crypto');
     expect(queryKeys.cryptoSummary('w1')[0]).toBe('crypto');
+  });
+
+  // Editing a cost line changes what the plan says, so both have to fall to one
+  // invalidation of the `goals` prefix.
+  it('nests every goal key under one prefix', () => {
+    expect(queryKeys.goalFlow({ workspaceId: 'w1', goalId: 'g1', month: '2026-09' })[0]).toBe(
+      'goals',
+    );
+    expect(queryKeys.goalPlan({ workspaceId: 'w1', goalId: 'g1' })[0]).toBe('goals');
+    expect(queryKeys.goalItems({ workspaceId: 'w1', goalId: 'g1' })[0]).toBe('goals');
   });
 });

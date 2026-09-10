@@ -61,6 +61,7 @@ describe('TopMerchantsDrillDown', () => {
         currency="KZT"
         sourceLabels={{
           sourceBank: 'Bank',
+          sourceCrypto: 'Crypto',
           sourceReceipt: 'Receipt',
           sourceGmailInbox: 'Gmail',
         }}

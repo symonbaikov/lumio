@@ -26,7 +26,12 @@ import { useMemo, useState } from 'react';
 
 type WorkspaceLike = { id: string; name?: string | null };
 type SortKey = 'amount' | 'average' | 'operations';
-type SourceLabels = { sourceBank: string; sourceReceipt: string; sourceGmailInbox: string };
+type SourceLabels = {
+  sourceBank: string;
+  sourceReceipt: string;
+  sourceGmailInbox: string;
+  sourceCrypto: string;
+};
 
 const STORAGE_KEY = 'lumio-spend-over-time-filters-v3';
 
@@ -85,6 +90,7 @@ export const useSpendOverTimeViewModel = (): SpendOverTimeViewModelReturn => {
       sourceBank: labels.sourceBank,
       sourceReceipt: labels.sourceReceipt,
       sourceGmailInbox: labels.sourceGmailInbox,
+      sourceCrypto: labels.sourceCrypto,
     }),
     [labels],
   );

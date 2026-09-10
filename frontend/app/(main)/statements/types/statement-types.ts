@@ -35,6 +35,8 @@ export type StatementMeta = {
 export type Transaction = {
   id: string;
   statementId?: string | null;
+  /** Set when the row came from a synced crypto wallet instead of a statement. */
+  cryptoWalletId?: string | null;
   counterpartyName?: string | null;
   transactionDate?: string | null;
   debit?: number | string | null;

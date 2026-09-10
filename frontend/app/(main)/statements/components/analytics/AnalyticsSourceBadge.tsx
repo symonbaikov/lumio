@@ -1,7 +1,7 @@
 'use client';
 
 import type { SourceChannel } from '@/app/(main)/statements/components/shared-analytics.utils';
-import { Landmark, Mail, Receipt } from '@/app/components/icons';
+import { Bitcoin, Landmark, Mail, Receipt } from '@/app/components/icons';
 import { getSourceLabel } from '@/app/lib/analytics-common';
 
 type Props = {
@@ -10,6 +10,7 @@ type Props = {
     sourceBank: string;
     sourceReceipt: string;
     sourceGmailInbox: string;
+    sourceCrypto: string;
   };
 };
 
@@ -20,6 +21,15 @@ export function AnalyticsSourceBadge({ sourceChannel, labels }: Props): React.JS
     return (
       <span className="lumio-view-page__source-chip">
         <Mail size={14} />
+        {label}
+      </span>
+    );
+  }
+
+  if (sourceChannel === 'crypto') {
+    return (
+      <span className="lumio-view-page__source-chip">
+        <Bitcoin size={14} />
         {label}
       </span>
     );

@@ -11,7 +11,12 @@ import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustrati
 import { formatMoney } from '@/app/lib/analytics-common';
 import { tokens } from '@/lib/theme-tokens';
 
-type SourceLabels = { sourceBank: string; sourceReceipt: string; sourceGmailInbox: string };
+type SourceLabels = {
+  sourceBank: string;
+  sourceReceipt: string;
+  sourceGmailInbox: string;
+  sourceCrypto: string;
+};
 type SortLabels = { sortByAmount: string; sortByAverage: string; sortByOperations: string };
 type ColumnLabels = {
   merchant: string;

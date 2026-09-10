@@ -86,6 +86,19 @@ const formatCurrentExchangeRateLabel = (from: string, to: string, rate: number):
   return `1 ${from} = ${formattedRate} ${to}`;
 };
 
+function resolveRouteFilterLabel(
+  routeCategoryId: string | null,
+  routeReceiptStatus: string | null,
+): string | null {
+  if (routeCategoryId === 'uncategorized') {
+    return 'Missing category';
+  }
+  if (routeCategoryId) {
+    return 'Category filter';
+  }
+  return routeReceiptStatus ? 'Status filter' : null;
+}
+
 function matchesSearch(s: Statement, q: string): boolean {
   return (
     s.fileName.toLowerCase().includes(q) ||
@@ -214,7 +227,8 @@ export function useStatementsView({
   // computed
   activeFilterCount: number;
   routeFilterLabel: string | null;
-  resetRouteCategoryFilter: () => void;
+  resetRouteFilters: () => void;
+  resetAllFilters: () => void;
   visibleFilterScreens: string[];
   fromOptions: ReturnType<typeof buildFromOptions>;
   currencyOptions: string[];
@@ -267,25 +281,28 @@ export function useStatementsView({
     }
     return searchParams.get('missingCategory') === 'true' ? 'uncategorized' : null;
   }, [searchParams]);
-  const routeFilterLabel =
-    routeCategoryId === 'uncategorized'
-      ? 'Missing category'
-      : routeCategoryId
-        ? 'Category filter'
-        : null;
-  const resetRouteCategoryFilter = useCallback((): void => {
-    if (!routeCategoryId) {
+  const routeReceiptStatus = useMemo(() => searchParams.get('status') || null, [searchParams]);
+  const routeFilterLabel = resolveRouteFilterLabel(routeCategoryId, routeReceiptStatus);
+  // Dashboard widgets link here with the filter in the query string, where the
+  // drawer never shows it. Resetting has to clear it too, or the list stays
+  // filtered by something the user cannot see.
+  const resetRouteFilters = useCallback((): void => {
+    if (!(routeCategoryId || routeReceiptStatus)) {
       return;
     }
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.delete('categoryId');
     nextParams.delete('missingCategory');
+    nextParams.delete('status');
     const nextQuery = nextParams.toString();
     router.replace(nextQuery ? `/statements/${stage}?${nextQuery}` : `/statements/${stage}`);
     setPage(1);
-  }, [routeCategoryId, router, searchParams, stage]);
+  }, [routeCategoryId, routeReceiptStatus, router, searchParams, stage]);
 
-  const routeReceiptStatus = useMemo(() => searchParams.get('status') || null, [searchParams]);
+  const resetAllFilters = (): void => {
+    filterState.resetAllFilters();
+    resetRouteFilters();
+  };
 
   const {
     statements,
@@ -481,8 +498,11 @@ export function useStatementsView({
   });
 
   const activeFilterCount = useMemo(
-    () => computeActiveFilterCount(filterState.appliedFilters) + (routeCategoryId ? 1 : 0),
-    [filterState.appliedFilters, routeCategoryId],
+    () =>
+      computeActiveFilterCount(filterState.appliedFilters) +
+      (routeCategoryId ? 1 : 0) +
+      (routeReceiptStatus ? 1 : 0),
+    [filterState.appliedFilters, routeCategoryId, routeReceiptStatus],
   );
 
   const visibleFilterScreens = useMemo(
@@ -646,7 +666,8 @@ export function useStatementsView({
     isReadyToRefresh,
     activeFilterCount,
     routeFilterLabel,
-    resetRouteCategoryFilter,
+    resetRouteFilters,
+    resetAllFilters,
     visibleFilterScreens,
     fromOptions,
     currencyOptions,

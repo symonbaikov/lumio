@@ -145,6 +145,7 @@ export const sortCategoryRows = (
 export const resolveCategorySourceChannel = (input: {
   sourceType: TopCategorySourceType;
   fileType?: string | null;
+  isCrypto?: boolean;
 }): TopCategorySourceChannel => {
   return resolveSourceChannelBase(input);
 };

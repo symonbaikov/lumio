@@ -4,6 +4,7 @@ import CreateExpenseDrawer from '@/app/(main)/statements/components/CreateExpens
 import ConfirmModal from '@/app/components/ConfirmModal';
 import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { GitMerge, RefreshCcw } from '@/app/components/icons';
+import { NoteCountsProvider } from '@/app/components/notes/NoteCountsContext';
 import { useKeyboardShortcuts } from '@/app/hooks/use-keyboard-shortcuts';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import apiClient from '@/app/lib/api';
@@ -306,6 +307,8 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
         columnsDrawerOpen={filterState.columnsDrawerOpen}
         columnsWithLabels={v.columnsWithLabels}
         visibleFilterScreens={v.visibleFilterScreens}
+        routeFilterLabel={v.routeFilterLabel}
+        onResetRouteFilter={v.resetRouteFilters}
         duplicateStatementIds={v.duplicateStatementIds}
         typeOptions={v.typeOptions}
         statusOptions={v.statusOptions}
@@ -343,7 +346,7 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
         onFiltersBack={() => filterState.setFiltersDrawerScreen('root')}
         onFiltersSelect={field => filterState.setFiltersDrawerScreen(field)}
         onUpdateFilters={filterState.updateFilter}
-        onResetAllFilters={filterState.resetAllFilters}
+        onResetAllFilters={v.resetAllFilters}
         onViewResults={() => {
           filterState.applyFilterChanges();
           filterState.setFiltersDrawerOpen(false);
@@ -378,50 +381,55 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
         className="lumio-stmt-list-view__body"
         style={{ paddingBottom: v.selectedCount > 0 ? 96 : 0 }}
       >
-        <StatementsListTable
-          loading={v.isPending}
-          displayStatements={v.displayStatements}
-          paginatedStatements={v.paginatedDisplayStatements}
-          gmailSyncSkeletonKeys={v.gmailSyncSkeletonKeys}
-          allVisibleSelected={v.allVisibleSelected}
-          selectedCount={v.selectedCount}
-          selectedStatementIds={v.selectedStatementIds}
-          dateSortDirection={v.dateSortDirection}
-          page={v.page}
-          totalPagesCount={v.totalPagesCount}
-          rangeStart={v.rangeStart}
-          rangeEnd={v.rangeEnd}
-          total={v.total}
-          duplicateMetaById={v.duplicateMetaById}
-          columns={v.appliedColumnsWithLabels}
-          currentExchangeRateLabels={v.currentExchangeRateLabels}
-          workspaceCurrency={v.currentWorkspace?.currency}
-          viewLabel={viewLabel}
-          reviewDuplicateLabel={reviewDuplicateLabel}
-          labels={{
-            merchant: listHeaderLabels.merchant,
-            date: listHeaderLabels.date,
-            amount: listHeaderLabels.amount,
-            action: listHeaderLabels.action,
-            receipt: listHeaderLabels.receipt,
-            scanning: listHeaderLabels.scanning,
-            emptyTitle: resolveLabel(t.empty?.title, 'No statements yet'),
-            emptyDescription: resolveLabel(
-              t.empty?.description,
-              'Upload your first statement to get started',
-            ),
-            paginationShown: paginationLabels.shown,
-            paginationPageOf: paginationLabels.pageOf,
-          }}
-          onToggleSelectAll={v.handleToggleSelectAll}
-          onToggleSortDirection={() =>
-            v.setDateSortDirection(v.dateSortDirection === 'desc' ? 'asc' : 'desc')
-          }
-          onToggleStatement={v.handleToggleStatement}
-          onView={handleView}
-          onIconClick={handleIconClick}
-          onPageChange={v.setPage}
-        />
+        <NoteCountsProvider
+          entityType="statement"
+          entityIds={v.paginatedDisplayStatements.map(statement => statement.id)}
+        >
+          <StatementsListTable
+            loading={v.isPending}
+            displayStatements={v.displayStatements}
+            paginatedStatements={v.paginatedDisplayStatements}
+            gmailSyncSkeletonKeys={v.gmailSyncSkeletonKeys}
+            allVisibleSelected={v.allVisibleSelected}
+            selectedCount={v.selectedCount}
+            selectedStatementIds={v.selectedStatementIds}
+            dateSortDirection={v.dateSortDirection}
+            page={v.page}
+            totalPagesCount={v.totalPagesCount}
+            rangeStart={v.rangeStart}
+            rangeEnd={v.rangeEnd}
+            total={v.total}
+            duplicateMetaById={v.duplicateMetaById}
+            columns={v.appliedColumnsWithLabels}
+            currentExchangeRateLabels={v.currentExchangeRateLabels}
+            workspaceCurrency={v.currentWorkspace?.currency}
+            viewLabel={viewLabel}
+            reviewDuplicateLabel={reviewDuplicateLabel}
+            labels={{
+              merchant: listHeaderLabels.merchant,
+              date: listHeaderLabels.date,
+              amount: listHeaderLabels.amount,
+              action: listHeaderLabels.action,
+              receipt: listHeaderLabels.receipt,
+              scanning: listHeaderLabels.scanning,
+              emptyTitle: resolveLabel(t.empty?.title, 'No statements yet'),
+              emptyDescription: resolveLabel(
+                t.empty?.description,
+                'Upload your first statement to get started',
+              ),
+              paginationShown: paginationLabels.shown,
+              paginationPageOf: paginationLabels.pageOf,
+            }}
+            onToggleSelectAll={v.handleToggleSelectAll}
+            onToggleSortDirection={() =>
+              v.setDateSortDirection(v.dateSortDirection === 'desc' ? 'asc' : 'desc')
+            }
+            onToggleStatement={v.handleToggleStatement}
+            onView={handleView}
+            onIconClick={handleIconClick}
+            onPageChange={v.setPage}
+          />
+        </NoteCountsProvider>
       </div>
       {v.preview.fileId && (
         <PDFPreviewModal

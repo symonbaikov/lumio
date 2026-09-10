@@ -10,7 +10,12 @@ import type {
 import { X } from '@/app/components/icons';
 import { formatMoney } from '@/app/lib/analytics-common';
 
-type SourceLabels = { sourceBank: string; sourceReceipt: string; sourceGmailInbox: string };
+type SourceLabels = {
+  sourceBank: string;
+  sourceReceipt: string;
+  sourceGmailInbox: string;
+  sourceCrypto: string;
+};
 
 type Props = {
   selectedPoint: SpendOverTimePoint;

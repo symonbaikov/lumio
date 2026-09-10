@@ -142,6 +142,8 @@ interface Props {
   onFiltersSelect: (field: string) => void;
   onUpdateFilters: (next: Partial<StatementFilters>) => void;
   onResetAllFilters: () => void;
+  routeFilterLabel: string | null;
+  onResetRouteFilter: () => void;
   onViewResults: () => void;
   onApplyType: () => void;
   onResetType: () => void;
@@ -264,6 +266,8 @@ export function StatementsListHeader({
   onFiltersSelect,
   onUpdateFilters,
   onResetAllFilters,
+  routeFilterLabel,
+  onResetRouteFilter,
   onViewResults,
   onApplyType,
   onResetType,
@@ -526,6 +530,8 @@ export function StatementsListHeader({
         onSelect={onFiltersSelect}
         onUpdateFilters={onUpdateFilters}
         onResetAll={onResetAllFilters}
+        routeFilterLabel={routeFilterLabel}
+        onResetRouteFilter={onResetRouteFilter}
         onViewResults={onViewResults}
         typeOptions={typeOptions}
         statusOptions={statusOptions}

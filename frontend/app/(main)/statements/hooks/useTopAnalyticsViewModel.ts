@@ -13,7 +13,12 @@ import { useTheme } from 'next-themes';
 import { useMemo } from 'react';
 
 type WorkspaceLike = { id: string; name?: string | null };
-type SourceLabels = { sourceBank: string; sourceReceipt: string; sourceGmailInbox: string };
+type SourceLabels = {
+  sourceBank: string;
+  sourceReceipt: string;
+  sourceGmailInbox: string;
+  sourceCrypto: string;
+};
 type DrillLabels = {
   drillDown: string;
   close: string;
@@ -85,6 +90,7 @@ export function useTopAnalyticsViewModel<TState, TData>(
       sourceBank: labels.sourceBank,
       sourceReceipt: labels.sourceReceipt,
       sourceGmailInbox: labels.sourceGmailInbox,
+      sourceCrypto: labels.sourceCrypto,
     }),
     [labels],
   );

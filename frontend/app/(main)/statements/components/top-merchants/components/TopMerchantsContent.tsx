@@ -13,6 +13,7 @@ function TopMerchantsLeaderboardSection({ vm }: Props): React.JSX.Element {
     sourceBank: labels.sourceBank,
     sourceReceipt: labels.sourceReceipt,
     sourceGmailInbox: labels.sourceGmailInbox,
+    sourceCrypto: labels.sourceCrypto,
   };
   const columnLabels = {
     merchant: labels.merchant,

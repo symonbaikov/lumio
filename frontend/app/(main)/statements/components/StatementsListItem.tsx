@@ -5,6 +5,7 @@ import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
 import { PDFThumbnail } from '@/app/components/PDFThumbnail';
 import { CreditCard, Receipt } from '@/app/components/icons';
 import { AlertCircle, CheckCircle2, CircleHelp } from '@/app/components/icons';
+import { NotesBadge } from '@/app/components/notes/NotesBadge';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
@@ -696,6 +697,7 @@ export function StatementsListItem({
       </div>
       <div style={{ fontSize: 11, fontWeight: 500, color: c.ink400, marginTop: 2, marginLeft: 24 }}>
         {dateLabel}
+        <NotesBadge entityId={statement.id} />
       </div>
     </div>
   );

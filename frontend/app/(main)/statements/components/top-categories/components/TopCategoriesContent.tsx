@@ -14,6 +14,7 @@ function TopCategoriesLeaderboardSection({ vm }: Props): React.JSX.Element {
     sourceBank: labels.sourceBank,
     sourceReceipt: labels.sourceReceipt,
     sourceGmailInbox: labels.sourceGmailInbox,
+    sourceCrypto: labels.sourceCrypto,
   };
   const columnLabels = {
     category: labels.category,

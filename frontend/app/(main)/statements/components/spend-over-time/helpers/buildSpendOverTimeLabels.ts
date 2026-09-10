@@ -49,6 +49,7 @@ const LABEL_PATHS: Record<string, [string[], string]> = {
   sourceBank: [['spendOverTimeAnalytics', 'sourceBank'], 'Bank'],
   sourceReceipt: [['spendOverTimeAnalytics', 'sourceReceipt'], 'Receipt'],
   sourceGmailInbox: [['spendOverTimeAnalytics', 'sourceGmailInbox'], 'Gmail'],
+  sourceCrypto: [['spendOverTimeAnalytics', 'sourceCrypto'], 'Crypto'],
   emptyStateTitle: [['spendOverTime', 'emptyStateTitle'], 'No data for selected period'],
   emptyStateDescription: [
     ['spendOverTime', 'emptyStateDescription'],

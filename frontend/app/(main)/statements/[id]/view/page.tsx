@@ -2,6 +2,7 @@
 import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { ArrowLeft } from '@/app/components/icons';
+import { NotesPanel } from '@/app/components/notes/NotesPanel';
 import TransactionsPageView from '@/app/components/transactions/TransactionsPageView';
 import type { Category, StatementDetails, Transaction } from '@/app/components/transactions/types';
 import { useIntlayer } from '@/app/i18n';
@@ -288,6 +289,18 @@ export default function ViewStatementPage({
         onDownload={handleDownload}
         onReload={fetchData}
       />
+
+      <div
+        style={{
+          marginTop: 24,
+          border: '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-lg)',
+          background: 'var(--card-bg)',
+          padding: 20,
+        }}
+      >
+        <NotesPanel entityType="statement" entityId={statement.id} />
+      </div>
     </div>
   );
 }

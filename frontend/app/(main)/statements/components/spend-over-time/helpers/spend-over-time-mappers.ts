@@ -131,7 +131,11 @@ const buildTransactionSpendRecord = ({
     receivedAt: null,
     parsedData: { vendor: merchant, date: item.transactionDate ?? null },
     sourceType: 'statement',
-    sourceChannel: resolveSourceChannel({ sourceType: 'statement', fileType }),
+    sourceChannel: resolveSourceChannel({
+      sourceType: 'statement',
+      fileType,
+      isCrypto: Boolean(item.cryptoWalletId),
+    }),
     flowType: flow.flowType,
     amount: flow.amount,
     currencyValue: currency,

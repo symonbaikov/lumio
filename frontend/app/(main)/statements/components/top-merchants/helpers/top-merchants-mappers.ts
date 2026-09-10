@@ -125,7 +125,11 @@ const buildTransactionRecord = ({
     dateValue,
     paymentPurpose: item.paymentPurpose,
     sourceType: 'statement',
-    sourceChannel: resolveSourceChannel({ sourceType: 'statement', fileType }),
+    sourceChannel: resolveSourceChannel({
+      sourceType: 'statement',
+      fileType,
+      isCrypto: Boolean(item.cryptoWalletId),
+    }),
     flowType: flow.flowType,
     workspaceId: ws.workspaceId,
     workspaceName: ws.workspaceName,

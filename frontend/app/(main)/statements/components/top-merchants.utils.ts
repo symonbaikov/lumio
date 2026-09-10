@@ -43,6 +43,7 @@ type ResolveMerchantFlowInput = {
 type ResolveSourceChannelInput = {
   sourceType: TopMerchantSourceType;
   fileType?: string | null;
+  isCrypto?: boolean;
 };
 
 export const resolveMerchantFlow = (
