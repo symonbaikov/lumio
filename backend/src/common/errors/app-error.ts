@@ -185,6 +185,14 @@ export const ERR = {
   CATEGORIES_EDIT_FORBIDDEN: 'Not enough permissions to edit categories',
   TABLES_EDIT_FORBIDDEN: 'Not enough permissions to edit tables',
   DATA_ENTRY_EDIT_FORBIDDEN: 'Not enough permissions to edit data entry',
+
+  // ── notes ─────────────────────────────────────────────────────────────────
+  NOTE_NOT_FOUND: 'Note not found',
+  NOTE_EMPTY: 'Note is empty',
+  NOTE_TOO_LONG: 'Note is too long',
+  NOTE_TARGET_NOT_FOUND: 'The item this note belongs to was not found',
+  NOTE_MENTION_NOT_A_MEMBER: 'One of the mentioned users is not a workspace member',
+  NOTE_DELETE_FORBIDDEN: 'Only the author or a workspace admin can delete this note',
 } as const;
 
 export type ErrorCode = keyof typeof ERR;
