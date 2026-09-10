@@ -5,7 +5,9 @@ import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import LinearProgress from '@mui/material/LinearProgress';
+import Link from '@mui/material/Link';
 import Typography from '@mui/material/Typography';
+import NextLink from 'next/link';
 import type { Goal } from '../hooks/useGoals';
 
 interface GoalCardProps {
@@ -38,9 +40,18 @@ export function GoalCard({ goal, locale, labels, onContribute, onEdit, onDelete 
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="body1" fontWeight={600} noWrap>
+          <Link
+            component={NextLink}
+            href={`/goals/${goal.id}`}
+            underline="hover"
+            color="inherit"
+            variant="body1"
+            fontWeight={600}
+            noWrap
+            sx={{ display: 'block' }}
+          >
             {goal.name}
-          </Typography>
+          </Link>
           {goal.targetDate && (
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               {goal.targetDate}

@@ -6,10 +6,10 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
-  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { Category } from './category.entity';
+import { Goal } from './goal.entity';
 import { User } from './user.entity';
 import { Workspace } from './workspace.entity';
 
@@ -20,9 +20,30 @@ export enum BudgetPeriodType {
   ANNUAL = 'annual',
 }
 
+/**
+ * One category may now carry several limits of the same period, as long as at
+ * most one of them is unattached: the household grocery budget and the "food
+ * during the move" budget are different intents over the same category, and a
+ * single unique key across (workspace, category, period) made the second one
+ * impossible to create.
+ *
+ * Two partial unique indexes rather than one key over four columns, because in
+ * Postgres NULLs never collide — a plain unique key including `goal_id` would
+ * silently allow any number of unattached duplicates, which is the case the
+ * original constraint existed to prevent.
+ */
 @Entity('budgets')
-@Unique('UQ_budgets_workspace_category_period', ['workspaceId', 'categoryId', 'periodType'])
+@Index('UQ_budgets_workspace_category_period_unlinked', ['workspaceId', 'categoryId', 'periodType'], {
+  unique: true,
+  where: '"goal_id" IS NULL',
+})
+@Index(
+  'UQ_budgets_workspace_category_period_goal',
+  ['workspaceId', 'categoryId', 'periodType', 'goalId'],
+  { unique: true, where: '"goal_id" IS NOT NULL' },
+)
 @Index('IDX_budgets_workspace_category', ['workspaceId', 'categoryId'])
+@Index('IDX_budgets_workspace_goal', ['workspaceId', 'goalId'])
 export class Budget {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -65,6 +86,37 @@ export class Budget {
 
   @Column({ name: 'current_period_start', type: 'date' })
   currentPeriodStart: Date;
+
+  /**
+   * The window the budget is meant to apply in. Both null — the norm — means it
+   * runs forever, which is how every budget behaved before these columns
+   * existed. A project budget is the reason they exist: the relocation's moving
+   * costs run February to August and should stop counting, and stop alerting,
+   * outside that.
+   *
+   * Spending is clamped to this window rather than the budget simply
+   * disappearing, so a budget that started mid-month reports the part of the
+   * month it actually governs.
+   */
+  @Column({ name: 'starts_on', type: 'date', nullable: true })
+  startsOn: string | null;
+
+  @Column({ name: 'ends_on', type: 'date', nullable: true })
+  endsOn: string | null;
+
+  /**
+   * The goal this limit serves, if any. Null is the norm — a budget is useful
+   * on its own, and attaching it to a goal is what turns the pair into a
+   * plan-versus-actual tree. Goals are soft-deleted, so the FK's SET NULL will
+   * not fire on the usual delete path: readers must still exclude archived
+   * goals themselves.
+   */
+  @ManyToOne(() => Goal, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'goal_id' })
+  goal: Goal | null;
+
+  @Column({ name: 'goal_id', type: 'uuid', nullable: true })
+  goalId: string | null;
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'created_by_id' })

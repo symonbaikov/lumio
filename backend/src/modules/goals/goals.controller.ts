@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
@@ -7,12 +7,23 @@ import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateContributionDto } from './dto/create-contribution.dto';
 import { CreateGoalDto } from './dto/create-goal.dto';
+import { CreateGoalItemDto } from './dto/create-goal-item.dto';
+import { GoalFlowQueryDto } from './dto/goal-flow-query.dto';
 import { UpdateGoalDto } from './dto/update-goal.dto';
+import { UpdateGoalItemDto } from './dto/update-goal-item.dto';
+import { GoalFlowService } from './goal-flow.service';
+import { GoalItemsService } from './goal-items.service';
+import { GoalPlanService } from './goal-plan.service';
 import { GoalsService } from './goals.service';
 
 @Controller('goals')
 export class GoalsController {
-  constructor(private readonly goalsService: GoalsService) {}
+  constructor(
+    private readonly goalsService: GoalsService,
+    private readonly goalFlowService: GoalFlowService,
+    private readonly goalItemsService: GoalItemsService,
+    private readonly goalPlanService: GoalPlanService,
+  ) {}
 
   @Post()
   @WorkspaceAuth(Permission.GOAL_CREATE)
@@ -28,6 +39,69 @@ export class GoalsController {
   @WorkspaceAuth(Permission.GOAL_VIEW)
   async findAll(@WorkspaceId() workspaceId: string) {
     return this.goalsService.findAll(workspaceId);
+  }
+
+  /**
+   * Plan versus actual for one goal. Reads budget limits as well as spending,
+   * so it asks for both permissions; the guard requires all of them.
+   */
+  @Get(':id/flow')
+  @WorkspaceAuth(Permission.GOAL_VIEW, Permission.BUDGET_VIEW)
+  async getFlow(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @Query() query: GoalFlowQueryDto,
+  ) {
+    return this.goalFlowService.getFlow(id, workspaceId, query.month);
+  }
+
+  /**
+   * Whether the goal is reachable, and on what terms. Reads budget limits to
+   * work out free cash flow, so it asks for both permissions.
+   */
+  @Get(':id/plan')
+  @WorkspaceAuth(Permission.GOAL_VIEW, Permission.BUDGET_VIEW)
+  async getPlan(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
+    return this.goalPlanService.getPlan(id, workspaceId);
+  }
+
+  /** The goal's cost breakdown: what the move is made of, line by line. */
+  @Get(':id/items')
+  @WorkspaceAuth(Permission.GOAL_VIEW)
+  async listItems(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
+    return this.goalItemsService.list(id, workspaceId);
+  }
+
+  @Post(':id/items')
+  @WorkspaceAuth(Permission.GOAL_EDIT)
+  async createItem(
+    @Param('id') id: string,
+    @Body() itemDto: CreateGoalItemDto,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.goalItemsService.create(id, workspaceId, user.id, itemDto);
+  }
+
+  @Patch(':id/items/:itemId')
+  @WorkspaceAuth(Permission.GOAL_EDIT)
+  async updateItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() itemDto: UpdateGoalItemDto,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.goalItemsService.update(id, itemId, workspaceId, itemDto);
+  }
+
+  @Delete(':id/items/:itemId')
+  @WorkspaceAuth(Permission.GOAL_EDIT)
+  async removeItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.goalItemsService.remove(id, itemId, workspaceId);
   }
 
   @Get(':id')
