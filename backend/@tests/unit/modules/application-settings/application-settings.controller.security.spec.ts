@@ -29,4 +29,15 @@ describe('ApplicationSettingsController security metadata', () => {
       Permission.WORKSPACE_SETTINGS_MANAGE,
     ]);
   });
+
+  it.each([['getPersonalAi'], ['savePersonalAi'], ['disconnectPersonalAi']])(
+    'keeps %s open to any member: a personal key is not a workspace setting',
+    methodName => {
+      const handler = ApplicationSettingsController.prototype[
+        methodName as keyof ApplicationSettingsController
+      ] as (...args: never[]) => unknown;
+
+      expect(Reflect.getMetadata(PERMISSIONS_KEY, handler)).toBeUndefined();
+    },
+  );
 });

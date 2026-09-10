@@ -10,12 +10,13 @@ import { createCloudAgentEngine, fetchCloudProviderStatus } from './cloud-engine
 describe('cloud engine', () => {
   it('fetches provider status', async () => {
     (apiClient.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { configured: true, model: 'claude-opus-5' },
+      data: { configured: true, model: 'claude-opus-5', source: 'personal' },
     });
 
     await expect(fetchCloudProviderStatus()).resolves.toEqual({
       configured: true,
       model: 'claude-opus-5',
+      source: 'personal',
     });
     expect(apiClient.get).toHaveBeenCalledWith('/ai-analysis/completions/status');
   });
@@ -30,5 +31,25 @@ describe('cloud engine', () => {
 
     await expect(engine.complete(messages)).resolves.toBe('{"reply":"ок","action":null}');
     expect(apiClient.post).toHaveBeenCalledWith('/ai-analysis/completions', { messages });
+  });
+
+  it('reports usage once per completion', async () => {
+    (apiClient.post as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { content: 'ok', usage: { promptTokens: 120, completionTokens: 30 } },
+    });
+    const onUsage = vi.fn();
+
+    await createCloudAgentEngine(onUsage).complete([{ role: 'user', content: 'Привет' }]);
+
+    expect(onUsage).toHaveBeenCalledWith({ promptTokens: 120, completionTokens: 30 });
+  });
+
+  it('stays quiet when the provider reports no usage', async () => {
+    (apiClient.post as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { content: 'ok' } });
+    const onUsage = vi.fn();
+
+    await createCloudAgentEngine(onUsage).complete([{ role: 'user', content: 'Привет' }]);
+
+    expect(onUsage).not.toHaveBeenCalled();
   });
 });

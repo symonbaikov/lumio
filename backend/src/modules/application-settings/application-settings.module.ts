@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { WorkspaceServiceSettings } from '../../entities';
+import { UserAiSettings, WorkspaceServiceSettings } from '../../entities';
 import { ApplicationSettingsController } from './application-settings.controller';
 import { ApplicationSettingsService } from './application-settings.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([WorkspaceServiceSettings])],
+  imports: [TypeOrmModule.forFeature([WorkspaceServiceSettings, UserAiSettings])],
   controllers: [ApplicationSettingsController],
   providers: [ApplicationSettingsService],
   exports: [ApplicationSettingsService],

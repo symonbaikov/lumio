@@ -42,6 +42,26 @@ export class ApplicationSettingsController {
     return this.applicationSettingsService.disconnect(user, WorkspaceServiceSettingsKey.AI);
   }
 
+  /**
+   * A member's own AI key for chat mode. No WORKSPACE_SETTINGS_MANAGE on
+   * purpose: these credentials belong to the caller, are stored per
+   * (user, workspace), and serve only that member's chat.
+   */
+  @Get('integrations/ai/personal')
+  getPersonalAi(@CurrentUser() user: User) {
+    return this.applicationSettingsService.getPersonalAiStatus(user);
+  }
+
+  @Put('integrations/ai/personal')
+  savePersonalAi(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
+    return this.applicationSettingsService.savePersonalAiSettings(user, body);
+  }
+
+  @Delete('integrations/ai/personal')
+  disconnectPersonalAi(@CurrentUser() user: User) {
+    return this.applicationSettingsService.disconnectPersonalAi(user);
+  }
+
   @Get('local-categorization')
   getLocalCategorization(@CurrentUser() user: User) {
     return this.applicationSettingsService.getLocalCategorizationStatus(user);

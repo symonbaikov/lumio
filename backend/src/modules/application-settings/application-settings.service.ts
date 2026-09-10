@@ -7,9 +7,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import AdmZip from 'adm-zip';
 import nodemailer from 'nodemailer';
 import type { Repository } from 'typeorm';
+import { ANTHROPIC_API_VERSION, isAnthropicBaseUrl } from '../../common/utils/ai-provider.util';
 import { assertPublicEgressHost, assertPublicEgressUrl } from '../../common/utils/egress-url.util';
 import { decryptText, encryptText } from '../../common/utils/encryption.util';
-import { User, WorkspaceServiceSettings, WorkspaceServiceSettingsKey } from '../../entities';
+import {
+  User,
+  UserAiSettings,
+  WorkspaceServiceSettings,
+  WorkspaceServiceSettingsKey,
+} from '../../entities';
 import { TransactionCategorizer } from '../classification/helpers/transaction-categorizer';
 
 export type AiRuntimeSettings = {
@@ -18,7 +24,7 @@ export type AiRuntimeSettings = {
   apiKey: string | null;
   model: string | null;
   timeoutMs: number;
-  source: 'workspace' | 'env' | 'disabled';
+  source: 'personal' | 'workspace' | 'env' | 'disabled';
 };
 
 export type LocalCategorizationRuntimeSettings = {
@@ -72,6 +78,8 @@ export class ApplicationSettingsService {
   constructor(
     @InjectRepository(WorkspaceServiceSettings)
     private readonly settingsRepository: Repository<WorkspaceServiceSettings>,
+    @InjectRepository(UserAiSettings)
+    private readonly userAiSettingsRepository: Repository<UserAiSettings>,
   ) {}
 
   async getAiStatus(user: User) {
@@ -105,6 +113,97 @@ export class ApplicationSettingsService {
     await this.assertAiConnection(runtime);
     await this.saveSettings(user, WorkspaceServiceSettingsKey.AI, config, secrets);
     return this.getAiStatus(user);
+  }
+
+  /**
+   * A member's own provider credentials, used by chat mode instead of the
+   * workspace-wide ones. Deliberately narrow: no WORKSPACE_SETTINGS_MANAGE to
+   * set them, and they are never resolved for background jobs — a personal key
+   * pays only for the chat its owner is typing in.
+   */
+  async getPersonalAiStatus(user: User) {
+    const existing = await this.findPersonalAiSettings(user);
+    const runtime = existing
+      ? this.aiRuntimeFromParts(
+          existing.config,
+          this.decryptSecrets(existing.encryptedSecrets),
+          'personal',
+        )
+      : null;
+    const connected = runtime !== null && runtime.source !== 'disabled';
+    return {
+      connected,
+      status: connected ? 'connected' : 'disconnected',
+      source: 'personal' as const,
+      settings: {
+        enabled: runtime?.enabled ?? true,
+        baseUrl: runtime?.baseUrl ?? null,
+        model: runtime?.model ?? null,
+        timeoutMs: runtime?.timeoutMs ?? 20000,
+        apiKeyConfigured: Boolean(existing?.encryptedSecrets?.apiKey),
+      },
+    };
+  }
+
+  async savePersonalAiSettings(user: User, input: Record<string, unknown>) {
+    const workspaceId = this.requireWorkspaceId(user);
+    const existing = await this.findPersonalAiSettings(user);
+    const config = {
+      enabled: this.booleanValue(input.enabled, true),
+      baseUrl: this.requiredString(input.baseUrl, 'baseUrl').replace(/\/+$/, ''),
+      model: this.requiredString(input.model, 'model'),
+      timeoutMs: this.positiveNumber(input.timeoutMs, 20000),
+    };
+    const secrets = this.mergeSecrets(existing, ['apiKey'], input);
+    const runtime = this.aiRuntimeFromParts(config, secrets, 'personal');
+    await assertPublicEgressUrl(runtime.baseUrl);
+    await this.assertAiConnection(runtime);
+
+    const entity =
+      existing || this.userAiSettingsRepository.create({ userId: user.id, workspaceId });
+    entity.config = config;
+    entity.encryptedSecrets = this.encryptSecrets(secrets);
+    await this.userAiSettingsRepository.save(entity);
+
+    return this.getPersonalAiStatus(user);
+  }
+
+  async disconnectPersonalAi(user: User) {
+    const workspaceId = this.requireWorkspaceId(user);
+    await this.userAiSettingsRepository.delete({ userId: user.id, workspaceId });
+    return { ok: true };
+  }
+
+  /**
+   * Resolution order for chat mode: the member's own key, then the workspace
+   * settings, then the environment. A personal entry that is switched off or
+   * incomplete falls through instead of shadowing the workspace provider.
+   */
+  async getAiSettingsForChat(
+    workspaceId?: string | null,
+    userId?: string | null,
+  ): Promise<AiRuntimeSettings> {
+    if (workspaceId && userId) {
+      const personal = await this.userAiSettingsRepository.findOne({
+        where: { userId, workspaceId },
+      });
+      if (personal) {
+        const runtime = this.aiRuntimeFromParts(
+          personal.config,
+          this.decryptSecrets(personal.encryptedSecrets),
+          'personal',
+        );
+        if (runtime.enabled && runtime.source !== 'disabled') {
+          return runtime;
+        }
+      }
+    }
+    return this.getAiSettingsForWorkspaceId(workspaceId);
+  }
+
+  private async findPersonalAiSettings(user: User): Promise<UserAiSettings | null> {
+    const workspaceId = this.requireWorkspaceId(user);
+    return this.userAiSettingsRepository.findOne({ where: { userId: user.id, workspaceId } });
   }
 
   async getSmtpStatus(user: User) {
@@ -428,17 +527,21 @@ export class ApplicationSettingsService {
         key,
       });
     entity.config = config;
-    entity.encryptedSecrets = Object.fromEntries(
-      Object.entries(secrets)
-        .filter(([, value]) => value)
-        .map(([secretKey, value]) => [secretKey, encryptText(value)]),
-    );
+    entity.encryptedSecrets = this.encryptSecrets(secrets);
     entity.updatedByUserId = user.id;
     await this.settingsRepository.save(entity);
   }
 
+  private encryptSecrets(secrets: Record<string, string>): Record<string, string> {
+    return Object.fromEntries(
+      Object.entries(secrets)
+        .filter(([, value]) => value)
+        .map(([key, value]) => [key, encryptText(value)]),
+    );
+  }
+
   private mergeSecrets(
-    existing: WorkspaceServiceSettings | null,
+    existing: { encryptedSecrets: Record<string, string> } | null,
     keys: string[],
     input: Record<string, unknown>,
   ): Record<string, string> {
@@ -616,21 +719,43 @@ export class ApplicationSettingsService {
     }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), settings.timeoutMs);
+    // Anthropic speaks its own protocol; probing it with an OpenAI-shaped
+    // request would fail a perfectly good key.
+    const anthropic = isAnthropicBaseUrl(settings.baseUrl);
     try {
-      const response = await fetch(`${settings.baseUrl}/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(settings.apiKey ? { Authorization: `Bearer ${settings.apiKey}` } : {}),
+      const response = await fetch(
+        anthropic
+          ? `${settings.baseUrl}/v1/messages`
+          : `${settings.baseUrl}/v1/chat/completions`,
+        {
+          method: 'POST',
+          headers: anthropic
+            ? {
+                'Content-Type': 'application/json',
+                'anthropic-version': ANTHROPIC_API_VERSION,
+                ...(settings.apiKey ? { 'x-api-key': settings.apiKey } : {}),
+              }
+            : {
+                'Content-Type': 'application/json',
+                ...(settings.apiKey ? { Authorization: `Bearer ${settings.apiKey}` } : {}),
+              },
+          body: JSON.stringify(
+            anthropic
+              ? {
+                  model: settings.model,
+                  max_tokens: 16,
+                  messages: [{ role: 'user', content: 'Reply with OK.' }],
+                }
+              : {
+                  model: settings.model,
+                  messages: [{ role: 'user', content: 'Return {"ok":true} as JSON.' }],
+                  temperature: 0,
+                  response_format: { type: 'json_object' },
+                },
+          ),
+          signal: controller.signal,
         },
-        body: JSON.stringify({
-          model: settings.model,
-          messages: [{ role: 'user', content: 'Return {"ok":true} as JSON.' }],
-          temperature: 0,
-          response_format: { type: 'json_object' },
-        }),
-        signal: controller.signal,
-      });
+      );
       if (!response.ok) {
         throw new BadRequestException(`AI endpoint returned ${response.status}`);
       }

@@ -5,6 +5,8 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { isAnthropicBaseUrl } from '../../common/utils/ai-provider.util';
+import type { AiRuntimeSettings } from '../application-settings/application-settings.service';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
 
 export interface ChatCompletionMessage {
@@ -12,30 +14,23 @@ export interface ChatCompletionMessage {
   content: string;
 }
 
+/** Tokens billed to the caller's provider, when the provider reports them. */
+export interface ChatCompletionUsage {
+  promptTokens: number | null;
+  completionTokens: number | null;
+}
+
 export interface ChatCompletionResult {
   content: string;
   model: string;
+  usage: ChatCompletionUsage;
 }
 
 const MAX_OUTPUT_TOKENS = 1024;
-const ANTHROPIC_HOST = 'api.anthropic.com';
 
 interface OpenAiChatResponse {
   choices?: Array<{ message?: { content?: string | null } }>;
-}
-
-/**
- * Compares the parsed host, not a substring: `https://evil.test/api.anthropic.com`
- * and `https://api.anthropic.com.evil.test` both contain the literal but are
- * neither of them Anthropic, and routing them to the SDK would send the
- * workspace's key to whoever owns that host.
- */
-function isAnthropicBaseUrl(baseUrl: string): boolean {
-  try {
-    return new URL(baseUrl).hostname.toLowerCase() === ANTHROPIC_HOST;
-  } catch {
-    return false;
-  }
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
 }
 
 /**
@@ -52,17 +47,25 @@ export class ChatCompletionService {
 
   constructor(private readonly applicationSettingsService: ApplicationSettingsService) {}
 
-  async isConfigured(workspaceId: string): Promise<{ configured: boolean; model: string | null }> {
-    const runtime = await this.applicationSettingsService.getAiSettingsForWorkspaceId(workspaceId);
+  async isConfigured(
+    workspaceId: string,
+    userId?: string | null,
+  ): Promise<{ configured: boolean; model: string | null; source: AiRuntimeSettings['source'] }> {
+    const runtime = await this.applicationSettingsService.getAiSettingsForChat(workspaceId, userId);
     const configured = runtime.source !== 'disabled' && Boolean(runtime.baseUrl && runtime.model);
-    return { configured, model: configured ? runtime.model : null };
+    return {
+      configured,
+      model: configured ? runtime.model : null,
+      source: configured ? runtime.source : 'disabled',
+    };
   }
 
   async complete(
     workspaceId: string,
+    userId: string | null,
     messages: ChatCompletionMessage[],
   ): Promise<ChatCompletionResult> {
-    const runtime = await this.applicationSettingsService.getAiSettingsForWorkspaceId(workspaceId);
+    const runtime = await this.applicationSettingsService.getAiSettingsForChat(workspaceId, userId);
 
     if (runtime.source === 'disabled' || !(runtime.baseUrl && runtime.model)) {
       throw new ServiceUnavailableException('Cloud AI provider is not configured');
@@ -134,7 +137,14 @@ export class ChatCompletionService {
         .filter((block): block is Anthropic.TextBlock => block.type === 'text')
         .map(block => block.text)
         .join('');
-      return { content: text, model: response.model };
+      return {
+        content: text,
+        model: response.model,
+        usage: {
+          promptTokens: response.usage?.input_tokens ?? null,
+          completionTokens: response.usage?.output_tokens ?? null,
+        },
+      };
     } catch (error) {
       if (error instanceof ServiceUnavailableException) {
         throw error;
@@ -175,7 +185,14 @@ export class ChatCompletionService {
       if (!content) {
         throw new ServiceUnavailableException('Cloud AI returned an empty response');
       }
-      return { content, model };
+      return {
+        content,
+        model,
+        usage: {
+          promptTokens: payload.usage?.prompt_tokens ?? null,
+          completionTokens: payload.usage?.completion_tokens ?? null,
+        },
+      };
     } catch (error) {
       if (error instanceof ServiceUnavailableException) {
         throw error;

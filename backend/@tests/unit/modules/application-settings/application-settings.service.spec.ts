@@ -46,7 +46,19 @@ describe('ApplicationSettingsService', () => {
     delete: jest.fn(),
   };
 
-  const createService = () => new ApplicationSettingsService(repository as never);
+  let personalSaved: Record<string, unknown> | null = null;
+  const personalRepository = {
+    findOne: jest.fn(async () => personalSaved),
+    create: jest.fn(input => input),
+    save: jest.fn(async entity => {
+      personalSaved = entity;
+      return entity;
+    }),
+    delete: jest.fn(),
+  };
+
+  const createService = () =>
+    new ApplicationSettingsService(repository as never, personalRepository as never);
 
   beforeEach(() => {
     process.env = { ...originalEnv };
@@ -64,6 +76,10 @@ describe('ApplicationSettingsService', () => {
     (assertPublicEgressHost as jest.Mock).mockClear();
     (assertPublicEgressUrl as jest.Mock).mockClear();
     Object.keys(saved).forEach(key => delete saved[key]);
+    personalSaved = null;
+    personalRepository.findOne.mockClear();
+    personalRepository.save.mockClear();
+    personalRepository.delete.mockClear();
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: jest.fn().mockResolvedValue({ ok: true }),
@@ -94,6 +110,67 @@ describe('ApplicationSettingsService', () => {
       workspaceId: 'workspace-1',
       key: WorkspaceServiceSettingsKey.AI,
     });
+  });
+
+  it('saves a personal AI key scoped to the member and workspace', async () => {
+    const result = await createService().savePersonalAiSettings(user, {
+      baseUrl: 'https://api.openai.com',
+      model: 'gpt-4.1-mini',
+      apiKey: 'sk-personal',
+    });
+
+    expect(result.connected).toBe(true);
+    expect(result.source).toBe('personal');
+    expect(result.settings).toMatchObject({ model: 'gpt-4.1-mini', apiKeyConfigured: true });
+    expect(result.settings).not.toHaveProperty('apiKey');
+    expect(personalSaved).toMatchObject({ userId: 'user-1', workspaceId: 'workspace-1' });
+  });
+
+  it('prefers a personal key over the workspace provider in chat mode', async () => {
+    const service = createService();
+    await service.saveAiSettings(user, { baseUrl: 'https://llm.example.com', model: 'shared' });
+    await service.savePersonalAiSettings(user, {
+      baseUrl: 'https://api.openai.com',
+      model: 'gpt-4.1-mini',
+      apiKey: 'sk-personal',
+    });
+
+    const runtime = await service.getAiSettingsForChat('workspace-1', 'user-1');
+
+    expect(runtime).toMatchObject({ model: 'gpt-4.1-mini', source: 'personal' });
+  });
+
+  it('falls back to the workspace provider when the personal key is switched off', async () => {
+    const service = createService();
+    await service.saveAiSettings(user, { baseUrl: 'https://llm.example.com', model: 'shared' });
+    await service.savePersonalAiSettings(user, {
+      baseUrl: 'https://api.openai.com',
+      model: 'gpt-4.1-mini',
+      apiKey: 'sk-personal',
+      enabled: false,
+    });
+
+    const runtime = await service.getAiSettingsForChat('workspace-1', 'user-1');
+
+    expect(runtime).toMatchObject({ model: 'shared', source: 'workspace' });
+  });
+
+  it('probes Anthropic with its own protocol when validating a connection', async () => {
+    await createService().savePersonalAiSettings(user, {
+      baseUrl: 'https://api.anthropic.com',
+      model: 'claude-opus-5',
+      apiKey: 'sk-ant',
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.anthropic.com/v1/messages',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'x-api-key': 'sk-ant',
+          'anthropic-version': '2023-06-01',
+        }),
+      }),
+    );
   });
 
   it('preserves an existing SMTP password when the password field is blank', async () => {

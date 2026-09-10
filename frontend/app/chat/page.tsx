@@ -18,6 +18,11 @@ import {
 } from './agent/cloud-engine';
 import { useAgentChat } from './agent/useAgentChat';
 import { createWebLlmAgentEngine } from './agent/webllm-engine';
+import {
+  type ChatEngineChoice,
+  getChatEnginePreference,
+  setChatEnginePreference,
+} from './chat-engine-preference';
 import { setChatModePreferred } from './chat-mode-preference';
 import { ActionCard } from './components/ActionCard';
 
@@ -32,24 +37,49 @@ export default function ChatModePage(): React.JSX.Element {
   useEffect(() => {
     fetchCloudProviderStatus()
       .then(setCloud)
-      .catch(() => setCloud({ configured: false, model: null }));
+      .catch(() => setCloud({ configured: false, model: null, source: 'disabled' }));
   }, []);
+
+  // Read on the client only: the stored choice must not diverge from the
+  // server-rendered markup.
+  const [enginePreference, setEnginePreference] = useState<ChatEngineChoice | null>(null);
+  useEffect(() => {
+    setEnginePreference(getChatEnginePreference());
+  }, []);
+
+  /** Tokens the cloud provider billed for this chat, tool rounds included. */
+  const [tokensUsed, setTokensUsed] = useState(0);
 
   const activeModel = resolveCatalog().find(entry => entry.modelId === modelState.activeModelId);
   const localReady = modelState.status === 'ready' && engine !== null && activeModel !== undefined;
   const cloudReady = cloud?.configured === true;
-  const ready = cloudReady || localReady;
+  const useCloud = cloudReady && enginePreference !== 'local';
+  const ready = useCloud || localReady;
 
   const agentEngine = useMemo(() => {
-    if (cloudReady) {
-      return createCloudAgentEngine();
+    if (useCloud) {
+      return createCloudAgentEngine(usage =>
+        setTokensUsed(
+          previous => previous + (usage.promptTokens ?? 0) + (usage.completionTokens ?? 0),
+        ),
+      );
     }
     return engine ? createWebLlmAgentEngine(engine) : null;
-  }, [cloudReady, engine]);
+  }, [useCloud, engine]);
   const { turns, busy, send, stop, confirmAction, cancelAction, startNew } = useAgentChat(
     agentEngine,
-    cloudReady ? (cloud?.model ?? 'cloud') : (activeModel?.modelId ?? RECOMMENDED_MODEL_ID),
+    useCloud ? (cloud?.model ?? 'cloud') : (activeModel?.modelId ?? RECOMMENDED_MODEL_ID),
   );
+
+  const chooseEngine = (choice: ChatEngineChoice): void => {
+    setEnginePreference(choice);
+    setChatEnginePreference(choice);
+  };
+
+  const startNewChat = (): void => {
+    setTokensUsed(0);
+    startNew();
+  };
 
   const [draft, setDraft] = useState('');
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -109,13 +139,51 @@ export default function ChatModePage(): React.JSX.Element {
         <Typography component="h1" sx={{ fontSize: 20, fontWeight: 600, flexGrow: 1 }}>
           {t.title}
         </Typography>
-        <Button size="small" variant="text" onClick={startNew} disabled={busy}>
+        <Button size="small" variant="text" onClick={startNewChat} disabled={busy}>
           {t.newChat}
         </Button>
         <Button size="small" variant="outlined" onClick={exitMode}>
           {t.exitMode}
         </Button>
       </Stack>
+
+      {cloudReady ? (
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          flexWrap="wrap"
+          useFlexGap
+          sx={{ mb: 1.5 }}
+        >
+          <Chip
+            size="small"
+            label={t.engineCloud}
+            variant={useCloud ? 'filled' : 'outlined'}
+            color={useCloud ? 'primary' : 'default'}
+            onClick={() => chooseEngine('cloud')}
+            disabled={busy}
+          />
+          <Chip
+            size="small"
+            label={t.engineLocal}
+            variant={useCloud ? 'outlined' : 'filled'}
+            color={useCloud ? 'default' : 'primary'}
+            onClick={() => chooseEngine('local')}
+            disabled={busy}
+          />
+          {useCloud ? (
+            <Typography sx={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              {cloud?.model} · {cloud?.source === 'personal' ? t.keyPersonal : t.keyWorkspace}
+            </Typography>
+          ) : null}
+          {tokensUsed > 0 ? (
+            <Typography sx={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              ≈ {tokensUsed} {t.tokensLabel}
+            </Typography>
+          ) : null}
+        </Stack>
+      ) : null}
 
       {!ready ? (
         <Stack spacing={2} sx={{ my: 'auto', alignItems: 'flex-start' }}>
@@ -150,9 +218,9 @@ export default function ChatModePage(): React.JSX.Element {
         </Stack>
       ) : (
         <>
-          {cloudReady ? (
+          {useCloud ? (
             <Typography sx={{ fontSize: 12, color: 'var(--text-secondary)', mb: 1 }}>
-              {t.cloudModel}: {cloud?.model} · {t.cloudNotice}
+              {t.cloudNotice}
             </Typography>
           ) : null}
           <Box sx={{ flexGrow: 1, overflowY: 'auto', mb: 2 }}>
