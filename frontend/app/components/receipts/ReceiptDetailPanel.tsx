@@ -3,6 +3,7 @@ import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { FileImage, FileText } from '@/app/components/icons';
+import { NotesPanel } from '@/app/components/notes/NotesPanel';
 import { Button } from '@/app/components/ui/button';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import apiClient, { apiBaseUrl, receiptsApi, type ReceiptRecord } from '@/app/lib/api';
@@ -377,6 +378,10 @@ export function ReceiptDetailPanel({
               onChange={handleFormChange}
               onCurrencyChange={handleCurrencyChange}
             />
+
+            <Box sx={{ mt: 3, borderTop: '1px solid var(--border-color)', pt: 2.5 }}>
+              <NotesPanel entityType="receipt" entityId={receipt.id} />
+            </Box>
           </Box>
 
           <Box

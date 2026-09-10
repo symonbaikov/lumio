@@ -757,21 +757,27 @@ export default function ReceiptDocumentPage() {
             </Box>
           </Box>
 
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
-            <DetailActionButton type="button" onClick={handleDownload}>
-              <Download className="h-4 w-4" />
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+            <DetailActionButton variant="ghost" type="button" onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
               Download
             </DetailActionButton>
             <DetailActionButton
+              variant="ghost"
               type="button"
               onClick={() => setExportConfirmOpen(true)}
               disabled={exportingToTable || !canExportToTable}
             >
-              <Table className="h-4 w-4" />
+              <Table className="h-4 w-4 mr-2" />
               Export to table
             </DetailActionButton>
-            <DetailActionButton type="button" onClick={handleApprove} disabled={saving}>
-              {saving ? <Spinner className="size-[18px]" /> : null}
+            <DetailActionButton
+              variant="default"
+              type="button"
+              onClick={handleApprove}
+              disabled={saving}
+            >
+              {saving ? <Spinner className="size-[18px] mr-2" /> : null}
               Approve receipt
             </DetailActionButton>
           </Box>

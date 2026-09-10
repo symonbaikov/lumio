@@ -28,6 +28,10 @@ describe('GmailController - Receipts List Endpoint', () => {
     createQueryBuilder: jest.fn(),
   };
 
+  const categoryRepository = {
+    find: jest.fn(),
+  };
+
   const mockUser: Partial<User> = {
     id: 'user-123',
     workspaceId: 'ws-123',
@@ -43,6 +47,7 @@ describe('GmailController - Receipts List Endpoint', () => {
     queryBuilder.skip.mockReturnValue(queryBuilder);
     queryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
     receiptRepository.createQueryBuilder.mockReturnValue(queryBuilder);
+    categoryRepository.find.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [GmailController],
@@ -50,7 +55,7 @@ describe('GmailController - Receipts List Endpoint', () => {
         { provide: getRepositoryToken(Receipt), useValue: receiptRepository },
         { provide: getRepositoryToken(Transaction), useValue: {} },
         { provide: getRepositoryToken(GmailSettings), useValue: {} },
-        { provide: getRepositoryToken(Category), useValue: {} },
+        { provide: getRepositoryToken(Category), useValue: categoryRepository },
         { provide: GmailOAuthService, useValue: {} },
         { provide: GmailService, useValue: {} },
         { provide: GmailWatchService, useValue: {} },
@@ -117,6 +122,22 @@ describe('GmailController - Receipts List Endpoint', () => {
     expect(queryBuilder.andWhere).toHaveBeenCalledWith(
       "NULLIF(TRIM(receipt.parsed_data->>'amount'), '') IS NULL",
     );
+  });
+
+  it('resolves the picked category name for listed receipts', async () => {
+    queryBuilder.getManyAndCount.mockResolvedValue([
+      [{ id: 'receipt-1', parsedData: { categoryId: 'cat-1' } }, { id: 'receipt-2' }],
+      2,
+    ]);
+    categoryRepository.find.mockResolvedValue([{ id: 'cat-1', name: 'Office supplies' }]);
+
+    const result = await (controller as any).listReceipts(mockUser as User);
+
+    expect(result.receipts[0]).toMatchObject({
+      id: 'receipt-1',
+      category: { id: 'cat-1', name: 'Office supplies' },
+    });
+    expect(result.receipts[1]).toMatchObject({ id: 'receipt-2', category: null });
   });
 
   it('filters uncategorized receipts with compatible category id types', async () => {

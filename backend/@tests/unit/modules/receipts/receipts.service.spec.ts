@@ -23,7 +23,7 @@ describe('ReceiptsService', () => {
     delete: jest.Mock;
   };
   let jobRepository: { create: jest.Mock; save: jest.Mock };
-  let transactionRepository: { create: jest.Mock; save: jest.Mock };
+  let transactionRepository: { create: jest.Mock; save: jest.Mock; update: jest.Mock };
   let statementRepository: {
     findOne: jest.Mock;
     save: jest.Mock;
@@ -55,6 +55,7 @@ describe('ReceiptsService', () => {
     transactionRepository = {
       create: jest.fn().mockImplementation(payload => payload),
       save: jest.fn().mockImplementation(async payload => ({ id: 'tx-1', ...payload })),
+      update: jest.fn().mockResolvedValue({ affected: 1 }),
     };
 
     statementRepository = {
@@ -199,7 +200,7 @@ describe('ReceiptsService', () => {
     });
   });
 
-  it('propagates a picked category to the linked statement', async () => {
+  it('propagates a picked category to the linked statement and its scan transaction', async () => {
     receiptRepository.findOne.mockResolvedValue({
       id: 'receipt-1',
       workspaceId: 'workspace-1',
@@ -207,6 +208,10 @@ describe('ReceiptsService', () => {
       parsedData: { vendor: 'Lidl' },
     });
     categoryRepository.findOne.mockResolvedValue({ id: 'cat-1' });
+    statementRepository.findOne.mockResolvedValue({
+      id: 'statement-1',
+      parsingDetails: { detectedBy: 'receipt-scan' },
+    });
 
     await service.update('receipt-1', 'workspace-1', { parsedData: { categoryId: 'cat-1' } });
 
@@ -214,6 +219,29 @@ describe('ReceiptsService', () => {
       { id: 'statement-1', workspaceId: 'workspace-1' },
       { categoryId: 'cat-1' },
     );
+    expect(transactionRepository.update).toHaveBeenCalledWith(
+      { statementId: 'statement-1', workspaceId: 'workspace-1' },
+      { categoryId: 'cat-1' },
+    );
+  });
+
+  it('leaves transactions of a parsed bank statement alone', async () => {
+    receiptRepository.findOne.mockResolvedValue({
+      id: 'receipt-1',
+      workspaceId: 'workspace-1',
+      statementId: 'statement-1',
+      parsedData: { vendor: 'Lidl' },
+    });
+    categoryRepository.findOne.mockResolvedValue({ id: 'cat-1' });
+    statementRepository.findOne.mockResolvedValue({
+      id: 'statement-1',
+      parsingDetails: { detectedBy: 'kaspi-parser' },
+    });
+
+    await service.update('receipt-1', 'workspace-1', { parsedData: { categoryId: 'cat-1' } });
+
+    expect(statementRepository.update).toHaveBeenCalled();
+    expect(transactionRepository.update).not.toHaveBeenCalled();
   });
 
   it('leaves the statement alone when the receipt has no category', async () => {

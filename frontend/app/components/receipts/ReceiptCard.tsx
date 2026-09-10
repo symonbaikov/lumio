@@ -2,6 +2,7 @@
 import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { Camera, FileImage, FileText, Mail, UploadCloud } from '@/app/components/icons';
+import { NotesBadge } from '@/app/components/notes/NotesBadge';
 import type { ReceiptRecord } from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
 import { Box, Chip, Paper, Typography } from '@mui/material';
@@ -120,6 +121,7 @@ export function ReceiptCard({ receipt, onOpen }: ReceiptCardProps) {
                   }}
                 >
                   {receipt.subject}
+                  <NotesBadge entityId={receipt.id} />
                 </Typography>
               </Box>
             </Box>

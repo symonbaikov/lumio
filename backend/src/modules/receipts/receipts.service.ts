@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { normalizePagination } from '../../common/utils/pagination.util';
 import {
   Category,
@@ -17,6 +17,10 @@ import {
 } from '../../entities';
 import { ReceiptApprovedEvent } from '../notifications/events/notification-events';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
+import {
+  type ReceiptWithCategory,
+  attachReceiptCategories,
+} from './helpers/attach-receipt-categories';
 import { ReceiptProcessorService } from './services/receipt-processor.service';
 
 type UploadParams = {
@@ -34,13 +38,6 @@ type ScanParams = {
 };
 
 const MANUAL_RECEIPT_WORKER_ID = 'manual-receipt-sync';
-
-/**
- * The category a user picks on a receipt is stored inside `parsedData` as a
- * bare id, so every reader would otherwise have to resolve the name itself.
- * Lists render the name, so the id is resolved once here.
- */
-type ReceiptWithCategory = Receipt & { category: { id: string; name: string } | null };
 
 @Injectable()
 export class ReceiptsService {
@@ -142,35 +139,8 @@ export class ReceiptsService {
     return withCategory;
   }
 
-  private async withCategories(
-    receipts: Receipt[],
-    workspaceId: string,
-  ): Promise<ReceiptWithCategory[]> {
-    const categoryIds = [
-      ...new Set(
-        receipts
-          .map(receipt => receipt.parsedData?.categoryId)
-          .filter((categoryId): categoryId is string => Boolean(categoryId)),
-      ),
-    ];
-
-    const categories = categoryIds.length
-      ? await this.categoryRepository.find({
-          where: { id: In(categoryIds), workspaceId },
-          select: ['id', 'name'],
-        })
-      : [];
-    const byId = new Map(categories.map(category => [category.id, category]));
-
-    return receipts.map(receipt => {
-      const category = receipt.parsedData?.categoryId
-        ? byId.get(receipt.parsedData.categoryId)
-        : undefined;
-      return {
-        ...receipt,
-        category: category ? { id: category.id, name: category.name } : null,
-      };
-    });
+  private withCategories(receipts: Receipt[], workspaceId: string): Promise<ReceiptWithCategory[]> {
+    return attachReceiptCategories(receipts, this.categoryRepository, workspaceId);
   }
 
   async update(
@@ -228,10 +198,28 @@ export class ReceiptsService {
       return;
     }
 
+    const statement = await this.statementRepository.findOne({
+      where: { id: receipt.statementId, workspaceId },
+    });
+    if (!statement) {
+      return;
+    }
+
     await this.statementRepository.update(
-      { id: receipt.statementId, workspaceId },
+      { id: statement.id, workspaceId },
       { categoryId: category.id },
     );
+
+    // The dashboard aggregates by transaction category, so the transaction the
+    // scan produced has to follow the receipt too — otherwise the spend stays
+    // filed under the fallback category picked at conversion time. Statements
+    // parsed from a bank file carry unrelated transactions and are left alone.
+    if (statement.parsingDetails?.detectedBy === 'receipt-scan') {
+      await this.transactionRepository.update(
+        { statementId: statement.id, workspaceId },
+        { categoryId: category.id },
+      );
+    }
   }
 
   async approve(id: string, workspaceId: string) {

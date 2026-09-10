@@ -36,6 +36,7 @@ import {
 } from '../../entities';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
+import { attachReceiptCategories } from '../receipts/helpers/attach-receipt-categories';
 import { BulkApproveDto } from './dto/bulk-approve.dto';
 import { ExportSheetsDto } from './dto/export-sheets.dto';
 import { MarkDuplicateDto } from './dto/mark-duplicate.dto';
@@ -388,7 +389,9 @@ export class GmailController {
     const [receipts, total] = await queryBuilder.take(take).skip(skip).getManyAndCount();
 
     return {
-      receipts,
+      // The picked category lives in `parsedData.categoryId`; the list renders
+      // its name, so it is resolved here rather than by every caller.
+      receipts: await attachReceiptCategories(receipts, this.categoryRepository, user.workspaceId),
       total,
       limit: take,
       offset: skip,

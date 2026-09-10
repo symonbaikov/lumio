@@ -144,12 +144,13 @@ export function ReceiptActions({
 
   return (
     <>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
-        <DetailActionButton type="button" onClick={onDownload}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+        <DetailActionButton variant="ghost" type="button" onClick={onDownload}>
           <Download className="h-4 w-4" />
           Download
         </DetailActionButton>
         <DetailActionButton
+          variant="ghost"
           type="button"
           onClick={() => setExportConfirmOpen(true)}
           disabled={exportingToTable}
@@ -157,7 +158,7 @@ export function ReceiptActions({
           <Table className="h-4 w-4" />
           Export to table
         </DetailActionButton>
-        <DetailActionButton type="button" onClick={onApprove} disabled={saving}>
+        <DetailActionButton variant="default" type="button" onClick={onApprove} disabled={saving}>
           {saving ? <Spinner className="size-[18px]" /> : null}
           Approve receipt
         </DetailActionButton>
