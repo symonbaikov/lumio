@@ -7,10 +7,13 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
+import FormHelperText from '@mui/material/FormHelperText';
 import InputLabel from '@mui/material/InputLabel';
+import Link from '@mui/material/Link';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
+import NextLink from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import type { BudgetFormData, BudgetItem } from '../hooks/useBudgetsPage';
 
@@ -19,6 +22,13 @@ interface CategoryOption {
   name: string;
   type: string;
 }
+
+interface GoalOption {
+  id: string;
+  name: string;
+}
+
+const NO_GOAL = '';
 
 interface BudgetFormDialogProps {
   open: boolean;
@@ -40,6 +50,9 @@ export function BudgetFormDialog({
   onClose,
 }: BudgetFormDialogProps) {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
+  // null until the goals request settles, so the empty-state hint below never
+  // flashes while they are still loading.
+  const [goals, setGoals] = useState<GoalOption[] | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -52,6 +65,18 @@ export function BudgetFormDialog({
       .catch(() => {});
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    apiClient
+      .get('/goals')
+      .then(res => {
+        setGoals(res.data?.data ?? res.data ?? []);
+      })
+      // A member without goal.view keeps the picker empty and unexplained —
+      // the budget is still saveable without a goal.
+      .catch(() => {});
+  }, [open]);
+
   const handleChange = useCallback(
     (field: keyof BudgetFormData, value: string | number) => {
       onFormChange({ ...formData, [field]: value });
@@ -59,7 +84,11 @@ export function BudgetFormDialog({
     [formData, onFormChange],
   );
 
-  const isValid = formData.name.trim() && formData.categoryId && formData.limitAmount > 0;
+  const hasBackwardsWindow = Boolean(
+    formData.startsOn && formData.endsOn && formData.startsOn > formData.endsOn,
+  );
+  const isValid =
+    formData.name.trim() && formData.categoryId && formData.limitAmount > 0 && !hasBackwardsWindow;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -115,6 +144,58 @@ export function BudgetFormDialog({
             <MenuItem value="annual">Annual</MenuItem>
           </Select>
         </FormControl>
+
+        <FormControl fullWidth size="small">
+          <InputLabel>Goal</InputLabel>
+          <Select
+            value={formData.goalId}
+            label="Goal"
+            onChange={e => handleChange('goalId', e.target.value)}
+          >
+            <MenuItem value={NO_GOAL}>
+              <em>No goal</em>
+            </MenuItem>
+            {(goals ?? []).map(goal => (
+              <MenuItem key={goal.id} value={goal.id}>
+                {goal.name}
+              </MenuItem>
+            ))}
+          </Select>
+          {/* Budgets only link to goals; goals themselves are created on their
+              own page, so an empty picker points the way there. */}
+          {goals?.length === 0 && (
+            <FormHelperText>
+              No goals yet —{' '}
+              <Link component={NextLink} href="/goals" onClick={onClose}>
+                create one on the Goals page
+              </Link>
+            </FormHelperText>
+          )}
+        </FormControl>
+
+        {/* A project budget runs only while the project does. Left empty — the
+            normal case — the budget behaves as it always has and never ends. */}
+        <TextField
+          label="Starts on"
+          type="date"
+          value={formData.startsOn}
+          onChange={e => handleChange('startsOn', e.target.value)}
+          fullWidth
+          size="small"
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+
+        <TextField
+          label="Ends on"
+          type="date"
+          value={formData.endsOn}
+          onChange={e => handleChange('endsOn', e.target.value)}
+          fullWidth
+          size="small"
+          slotProps={{ inputLabel: { shrink: true } }}
+          error={hasBackwardsWindow}
+          helperText={hasBackwardsWindow ? 'Must not be earlier than the start date' : undefined}
+        />
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>

@@ -21,6 +21,13 @@ export interface BudgetItem {
   currency: string;
   workspaceCurrency?: string;
   periodType: 'weekly' | 'monthly' | 'quarterly' | 'annual';
+  /** The goal this budget serves; null when it stands on its own. */
+  goalId?: string | null;
+  /** The window the budget applies in; both null means it runs forever. */
+  startsOn?: string | null;
+  endsOn?: string | null;
+  /** Whether today falls inside that window. */
+  isActive?: boolean;
   createdAt: string;
 }
 
@@ -31,6 +38,11 @@ export interface BudgetFormData {
   manualSpentAmount: number;
   periodType: 'weekly' | 'monthly' | 'quarterly' | 'annual';
   currency: string;
+  /** Empty string means "no goal"; the API takes null for that. */
+  goalId: string;
+  /** Empty string means "no boundary"; the API takes null for that. */
+  startsOn: string;
+  endsOn: string;
 }
 
 export type BudgetDrawerIntent = 'create' | 'edit' | 'spending';
@@ -44,6 +56,9 @@ const makeEmptyForm = (currency: string): BudgetFormData => ({
   manualSpentAmount: 0,
   periodType: 'monthly',
   currency,
+  goalId: '',
+  startsOn: '',
+  endsOn: '',
 });
 
 /** Coerces API decimal strings/numbers to a non-negative finite number. */
@@ -94,6 +109,9 @@ export function buildBudgetUpdatePayload(
     manualSpentAmount: formData.manualSpentAmount,
     periodType: formData.periodType,
     currency: formData.currency,
+    goalId: formData.goalId,
+    startsOn: formData.startsOn,
+    endsOn: formData.endsOn,
   };
 }
 
@@ -124,9 +142,12 @@ export function useBudgetsPage() {
       });
   }, []);
 
+  // Workspace-scoped: the request itself does not mention the workspace (the
+  // server scopes by header), so the effect re-runs on switch explicitly.
+  const workspaceId = currentWorkspace?.id;
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, workspaceId]);
 
   const openCreate = useCallback(() => {
     setEditingBudget(null);
@@ -143,6 +164,9 @@ export function useBudgetsPage() {
       manualSpentAmount: budget.manualSpentAmount ?? 0,
       periodType: budget.periodType,
       currency: budget.currency,
+      goalId: budget.goalId ?? '',
+      startsOn: budget.startsOn ?? '',
+      endsOn: budget.endsOn ?? '',
     });
     setDialogOpen(true);
   }, []);
@@ -162,6 +186,11 @@ export function useBudgetsPage() {
           name: formData.name,
           limitAmount: formData.limitAmount,
           currency: formData.currency,
+          // Explicit null detaches; the API leaves the link alone only when the
+          // field is absent, which the form can never mean.
+          goalId: formData.goalId || null,
+          startsOn: formData.startsOn || null,
+          endsOn: formData.endsOn || null,
         });
         toast.success('Budget updated');
       } else {
@@ -171,6 +200,9 @@ export function useBudgetsPage() {
           limitAmount: formData.limitAmount,
           periodType: formData.periodType,
           currency: formData.currency,
+          goalId: formData.goalId || null,
+          startsOn: formData.startsOn || null,
+          endsOn: formData.endsOn || null,
         });
         toast.success('Budget created');
       }

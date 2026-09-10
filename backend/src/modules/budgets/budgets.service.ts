@@ -1,9 +1,10 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { assertFound } from '../../common/utils/assert-found.util';
-import { Budget, BudgetPeriodType } from '../../entities/budget.entity';
+import { Budget } from '../../entities/budget.entity';
+import { Goal } from '../../entities/goal.entity';
 import {
   NotificationCategory,
   NotificationSeverity,
@@ -11,12 +12,15 @@ import {
 } from '../../entities/notification.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { NotificationsService } from '../notifications/notifications.service';
+import { clampToWindow, computePeriodRange, overlapsWindow } from './budget-period.util';
 import type { CreateBudgetDto } from './dto/create-budget.dto';
 import type { UpdateBudgetDto } from './dto/update-budget.dto';
 
 export interface BudgetWithSpending extends Budget {
   spentAmount: number;
   percentUsed: number;
+  /** Whether today falls inside the budget's window. Always true for open-ended ones. */
+  isActive: boolean;
 }
 
 @Injectable()
@@ -28,15 +32,23 @@ export class BudgetsService {
     private readonly budgetRepository: Repository<Budget>,
     @InjectRepository(Transaction)
     private readonly transactionRepository: Repository<Transaction>,
+    @InjectRepository(Goal)
+    private readonly goalRepository: Repository<Goal>,
     private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(workspaceId: string, userId: string, dto: CreateBudgetDto): Promise<Budget> {
+    const goalId = dto.goalId ?? null;
+
+    // Scoped by goal as well as category: the household grocery limit and the
+    // "food during the move" limit are different intents over the same
+    // category, and only a second *unattached* budget is still a duplicate.
     const existing = await this.budgetRepository.findOne({
       where: {
         workspaceId,
         categoryId: dto.categoryId,
         periodType: dto.periodType,
+        goalId,
       },
     });
 
@@ -46,7 +58,10 @@ export class BudgetsService {
       );
     }
 
-    const { start } = this.computePeriodRange(dto.periodType, new Date());
+    assertWindowOrdered(dto.startsOn, dto.endsOn);
+    await this.assertGoalInWorkspace(dto.goalId, workspaceId);
+
+    const { start } = computePeriodRange(dto.periodType, new Date());
 
     const budget = this.budgetRepository.create({
       workspaceId,
@@ -57,6 +72,9 @@ export class BudgetsService {
       currency: dto.currency || 'KZT',
       periodType: dto.periodType,
       currentPeriodStart: start,
+      goalId,
+      startsOn: dto.startsOn ?? null,
+      endsOn: dto.endsOn ?? null,
     });
 
     return this.budgetRepository.save(budget);
@@ -86,6 +104,11 @@ export class BudgetsService {
       where: { id, workspaceId },
     });
     assertFound(budget, 'Budget');
+    assertWindowOrdered(
+      dto.startsOn === undefined ? budget.startsOn : dto.startsOn,
+      dto.endsOn === undefined ? budget.endsOn : dto.endsOn,
+    );
+    await this.assertGoalInWorkspace(dto.goalId, workspaceId);
     Object.assign(budget, dto);
     return this.budgetRepository.save(budget);
   }
@@ -115,7 +138,14 @@ export class BudgetsService {
     });
 
     for (const budget of budgets) {
-      const { start, end } = this.computePeriodRange(budget.periodType, new Date());
+      // A budget outside its window governs nothing right now, so it must not
+      // warn: a project budget that ended in August should go quiet, not fire
+      // every month afterwards on spending it no longer covers.
+      const period = clampToWindow(computePeriodRange(budget.periodType, new Date()), budget);
+      if (!period) {
+        continue;
+      }
+      const { start, end } = period;
       const spentAmount = await this.computeSpending(workspaceId, budget.categoryId, start, end);
       const percentUsed =
         Number(budget.limitAmount) > 0 ? (spentAmount / Number(budget.limitAmount)) * 100 : 0;
@@ -174,7 +204,7 @@ export class BudgetsService {
     let resetCount = 0;
 
     for (const budget of budgets) {
-      const { start } = this.computePeriodRange(budget.periodType, now);
+      const { start } = computePeriodRange(budget.periodType, now);
       const currentStart = new Date(budget.currentPeriodStart);
 
       if (start.getTime() > currentStart.getTime()) {
@@ -191,20 +221,47 @@ export class BudgetsService {
     }
   }
 
+  /**
+   * A budget may only point at a goal of its own workspace. Nothing else in
+   * this module cross-checks a foreign id, and `update` assigns the DTO blindly,
+   * so without this a crafted `goalId` would link across tenants.
+   *
+   * Soft-deleted goals are excluded by TypeORM's default scope, so an archived
+   * goal cannot be attached either.
+   */
+  private async assertGoalInWorkspace(
+    goalId: string | null | undefined,
+    workspaceId: string,
+  ): Promise<void> {
+    if (!goalId) {
+      return;
+    }
+    const goal = await this.goalRepository.findOne({ where: { id: goalId, workspaceId } });
+    assertFound(goal, 'Goal');
+  }
+
   private async attachSpending(budget: Budget): Promise<BudgetWithSpending> {
-    const { start, end } = this.computePeriodRange(budget.periodType, new Date());
-    const spentAmount = await this.computeSpending(
-      budget.workspaceId,
-      budget.categoryId,
-      start,
-      end,
-    );
+    const now = new Date();
+    // Clamped rather than skipped: a budget that started on the 10th reports
+    // the part of the month it actually governs, and one whose window has
+    // closed reports nothing instead of the whole month's spending against a
+    // limit that no longer applies.
+    const period = clampToWindow(computePeriodRange(budget.periodType, now), budget);
+    const spentAmount = period
+      ? await this.computeSpending(
+          budget.workspaceId,
+          budget.categoryId,
+          period.start,
+          period.end,
+        )
+      : 0;
     const limitAmount = Number(budget.limitAmount);
     const percentUsed = limitAmount > 0 ? (spentAmount / limitAmount) * 100 : 0;
 
     return Object.assign(budget, {
       spentAmount: Math.round(spentAmount * 100) / 100,
       percentUsed: Math.round(percentUsed * 100) / 100,
+      isActive: overlapsWindow({ start: now, end: now }, budget),
     });
   }
 
@@ -227,34 +284,14 @@ export class BudgetsService {
 
     return Number.parseFloat(result?.total ?? '0');
   }
+}
 
-  private computePeriodRange(periodType: BudgetPeriodType, date: Date): { start: Date; end: Date } {
-    const d = new Date(date);
-
-    switch (periodType) {
-      case BudgetPeriodType.WEEKLY: {
-        const day = d.getDay();
-        const diff = day === 0 ? 6 : day - 1; // Monday = 0
-        const start = new Date(d.getFullYear(), d.getMonth(), d.getDate() - diff);
-        const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
-        return { start, end };
-      }
-      case BudgetPeriodType.MONTHLY: {
-        const start = new Date(d.getFullYear(), d.getMonth(), 1);
-        const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-        return { start, end };
-      }
-      case BudgetPeriodType.QUARTERLY: {
-        const quarter = Math.floor(d.getMonth() / 3);
-        const start = new Date(d.getFullYear(), quarter * 3, 1);
-        const end = new Date(d.getFullYear(), quarter * 3 + 3, 0);
-        return { start, end };
-      }
-      case BudgetPeriodType.ANNUAL: {
-        const start = new Date(d.getFullYear(), 0, 1);
-        const end = new Date(d.getFullYear(), 11, 31);
-        return { start, end };
-      }
-    }
+/**
+ * A window that ends before it starts governs nothing, and the two dates are
+ * set on different screens often enough that the mistake is easy to make.
+ */
+function assertWindowOrdered(startsOn: string | null | undefined, endsOn: string | null | undefined): void {
+  if (startsOn && endsOn && startsOn > endsOn) {
+    throw new BadRequestException('Budget "endsOn" must not be earlier than "startsOn"');
   }
 }
