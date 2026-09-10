@@ -49,6 +49,7 @@ function QuietHourSelect({
       value={value === null ? '' : String(value)}
       disabled={disabled}
       onChange={event => onChange(event.target.value === '' ? null : Number(event.target.value))}
+      InputLabelProps={{ shrink: true }}
       SelectProps={{
         // '' is a real choice here ("off"), so it has to render instead of
         // being treated as an empty selection.

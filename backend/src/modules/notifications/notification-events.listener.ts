@@ -12,6 +12,7 @@ import type {
   ImportFailedEvent,
   MemberInvitedEvent,
   MemberJoinedEvent,
+  NoteMentionedEvent,
   ParsingErrorEvent,
   ReceiptUncategorizedEvent,
   StatementUploadedEvent,
@@ -41,6 +42,29 @@ export class NotificationEventsListener {
       entityId: event.statementId,
       meta: { bankName: event.bankName ?? null },
     });
+  }
+
+  /** Упоминание адресное: уведомляем только названных, а не весь воркспейс. */
+  @OnEvent('note.mentioned')
+  async onNoteMentioned(event: NoteMentionedEvent): Promise<void> {
+    await Promise.all(
+      event.mentionedUserIds.map(recipientId =>
+        this.notificationsService.create({
+          recipientId,
+          workspaceId: event.workspaceId,
+          actorId: event.actorId,
+          actorName: event.actorName,
+          type: NotificationType.NOTE_MENTIONED,
+          category: NotificationCategory.WORKSPACE_ACTIVITY,
+          severity: NotificationSeverity.INFO,
+          messageKey: 'note.mentioned',
+          messageParams: { actorName: event.actorName, excerpt: event.excerpt },
+          entityType: event.entityType,
+          entityId: event.entityId,
+          meta: { noteId: event.noteId },
+        }),
+      ),
+    );
   }
 
   @OnEvent('import.committed')

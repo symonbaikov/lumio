@@ -55,6 +55,7 @@ const NOTIFICATION_PREFERENCE_MAP: Record<NotificationType, NotificationPreferen
   [NotificationType.CATEGORY_CREATED]: 'categoryChanges',
   [NotificationType.CATEGORY_UPDATED]: 'categoryChanges',
   [NotificationType.CATEGORY_DELETED]: 'categoryChanges',
+  [NotificationType.NOTE_MENTIONED]: 'memberActivity',
   [NotificationType.MEMBER_INVITED]: 'memberActivity',
   [NotificationType.MEMBER_JOINED]: 'memberActivity',
   [NotificationType.DATA_DELETED]: 'dataDeleted',

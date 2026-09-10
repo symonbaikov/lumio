@@ -16,6 +16,7 @@ export enum NotificationType {
   CATEGORY_CREATED = 'category.created',
   CATEGORY_UPDATED = 'category.updated',
   CATEGORY_DELETED = 'category.deleted',
+  NOTE_MENTIONED = 'note.mentioned',
   MEMBER_INVITED = 'member.invited',
   MEMBER_JOINED = 'member.joined',
   DATA_DELETED = 'data.deleted',

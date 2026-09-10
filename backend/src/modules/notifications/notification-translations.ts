@@ -4,6 +4,7 @@ export type NotificationMessageKey =
   | 'category.created'
   | 'category.updated'
   | 'category.deleted'
+  | 'note.mentioned'
   | 'member.invited'
   | 'member.joined'
   | 'data.deleted'
@@ -33,6 +34,10 @@ interface TranslationEntry {
 type TranslationMap = Record<NotificationMessageKey, TranslationEntry>;
 
 const ru: TranslationMap = {
+  'note.mentioned': {
+    title: 'Вас упомянули в заметке',
+    message: '{{actorName}} упомянул(а) вас: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Загружена выписка',
     message: '{{actorName}} загрузил(а) выписку "{{statementName}}"',
@@ -115,6 +120,10 @@ const ru: TranslationMap = {
 };
 
 const en: TranslationMap = {
+  'note.mentioned': {
+    title: 'You were mentioned in a note',
+    message: '{{actorName}} mentioned you: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Statement uploaded',
     message: '{{actorName}} uploaded statement "{{statementName}}"',
@@ -201,6 +210,10 @@ const en: TranslationMap = {
 };
 
 const kk: TranslationMap = {
+  'note.mentioned': {
+    title: 'Сізді жазбада атап өтті',
+    message: '{{actorName}} сізді атап өтті: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Үзінді жүктелді',
     message: '{{actorName}} "{{statementName}}" үзіндісін жүктеді',
@@ -280,6 +293,10 @@ const kk: TranslationMap = {
 };
 
 const de: TranslationMap = {
+  'note.mentioned': {
+    title: 'Sie wurden in einer Notiz erwähnt',
+    message: '{{actorName}} hat Sie erwähnt: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Kontoauszug hochgeladen',
     message: '{{actorName}} hat den Kontoauszug "{{statementName}}" hochgeladen',
@@ -375,6 +392,10 @@ const de: TranslationMap = {
 };
 
 const fr: TranslationMap = {
+  'note.mentioned': {
+    title: 'Vous avez été mentionné dans une note',
+    message: '{{actorName}} vous a mentionné : {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Relevé importé',
     message: '{{actorName}} a importé le relevé "{{statementName}}"',
@@ -467,6 +488,10 @@ const fr: TranslationMap = {
 };
 
 const es: TranslationMap = {
+  'note.mentioned': {
+    title: 'Te mencionaron en una nota',
+    message: '{{actorName}} te mencionó: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Extracto subido',
     message: '{{actorName}} subió el extracto "{{statementName}}"',
@@ -559,6 +584,10 @@ const es: TranslationMap = {
 };
 
 const pt: TranslationMap = {
+  'note.mentioned': {
+    title: 'Você foi mencionado numa nota',
+    message: '{{actorName}} mencionou você: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Extrato enviado',
     message: '{{actorName}} enviou o extrato "{{statementName}}"',
@@ -651,6 +680,10 @@ const pt: TranslationMap = {
 };
 
 const tr: TranslationMap = {
+  'note.mentioned': {
+    title: 'Bir notta sizden bahsedildi',
+    message: '{{actorName}} sizden bahsetti: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Hesap özeti yüklendi',
     message: '{{actorName}} "{{statementName}}" hesap özetini yükledi',
@@ -736,6 +769,10 @@ const tr: TranslationMap = {
 };
 
 const uk: TranslationMap = {
+  'note.mentioned': {
+    title: 'Вас згадали в нотатці',
+    message: '{{actorName}} згадав(ла) вас: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Виписка завантажена',
     message: '{{actorName}} завантажив(ла) виписку "{{statementName}}"',
@@ -821,6 +858,10 @@ const uk: TranslationMap = {
 };
 
 const zh: TranslationMap = {
+  'note.mentioned': {
+    title: '有人在备注中提到了你',
+    message: '{{actorName}} 提到了你：{{excerpt}}',
+  },
   'statement.uploaded': {
     title: '对账单已上传',
     message: '{{actorName}} 上传了对账单 "{{statementName}}"',
@@ -876,6 +917,10 @@ const zh: TranslationMap = {
 };
 
 const ar: TranslationMap = {
+  'note.mentioned': {
+    title: 'تمت الإشارة إليك في ملاحظة',
+    message: 'أشار إليك {{actorName}}: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'تم رفع كشف الحساب',
     message: '{{actorName}} رفع كشف الحساب "{{statementName}}"',
@@ -952,6 +997,10 @@ const ar: TranslationMap = {
 };
 
 const pl: TranslationMap = {
+  'note.mentioned': {
+    title: 'Wspomniano o Tobie w notatce',
+    message: '{{actorName}} wspomniał(a) o Tobie: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Wyciąg przesłany',
     message: '{{actorName}} przesłał(a) wyciąg "{{statementName}}"',
@@ -1046,6 +1095,10 @@ const pl: TranslationMap = {
 };
 
 const it: TranslationMap = {
+  'note.mentioned': {
+    title: 'Sei stato menzionato in una nota',
+    message: '{{actorName}} ti ha menzionato: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Estratto conto caricato',
     message: '{{actorName}} ha caricato l\'estratto conto "{{statementName}}"',
@@ -1138,6 +1191,10 @@ const it: TranslationMap = {
 };
 
 const sk: TranslationMap = {
+  'note.mentioned': {
+    title: 'Spomenuli vás v poznámke',
+    message: '{{actorName}} vás spomenul(a): {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Výpis nahraný',
     message: '{{actorName}} nahral(a) výpis "{{statementName}}"',
@@ -1226,6 +1283,10 @@ const sk: TranslationMap = {
 };
 
 const ja: TranslationMap = {
+  'note.mentioned': {
+    title: 'メモであなたがメンションされました',
+    message: '{{actorName}} があなたをメンションしました: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: '明細書がアップロードされました',
     message: '{{actorName}} が明細書 "{{statementName}}" をアップロードしました',
@@ -1323,6 +1384,10 @@ const ja: TranslationMap = {
 };
 
 const ko: TranslationMap = {
+  'note.mentioned': {
+    title: '메모에서 회원님이 언급되었습니다',
+    message: '{{actorName}}님이 회원님을 언급했습니다: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: '명세서 업로드됨',
     message: '{{actorName}}님이 명세서 "{{statementName}}"을(를) 업로드했습니다',
@@ -1405,6 +1470,10 @@ const ko: TranslationMap = {
 };
 
 const hi: TranslationMap = {
+  'note.mentioned': {
+    title: 'एक नोट में आपका उल्लेख किया गया',
+    message: '{{actorName}} ने आपका उल्लेख किया: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'स्टेटमेंट अपलोड किया गया',
     message: '{{actorName}} ने स्टेटमेंट "{{statementName}}" अपलोड किया',
@@ -1484,6 +1553,10 @@ const hi: TranslationMap = {
 };
 
 const nl: TranslationMap = {
+  'note.mentioned': {
+    title: 'Je bent genoemd in een notitie',
+    message: '{{actorName}} heeft je genoemd: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Afschrift geüpload',
     message: '{{actorName}} heeft afschrift "{{statementName}}" geüpload',
@@ -1582,6 +1655,10 @@ const nl: TranslationMap = {
 };
 
 const sv: TranslationMap = {
+  'note.mentioned': {
+    title: 'Du nämndes i en anteckning',
+    message: '{{actorName}} nämnde dig: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Kontoutdrag uppladdat',
     message: '{{actorName}} laddade upp kontoutdraget "{{statementName}}"',
@@ -1671,6 +1748,10 @@ const sv: TranslationMap = {
 };
 
 const vi: TranslationMap = {
+  'note.mentioned': {
+    title: 'Bạn được nhắc đến trong một ghi chú',
+    message: '{{actorName}} đã nhắc đến bạn: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Sao kê đã tải lên',
     message: '{{actorName}} đã tải lên sao kê "{{statementName}}"',
@@ -1756,6 +1837,10 @@ const vi: TranslationMap = {
 };
 
 const id: TranslationMap = {
+  'note.mentioned': {
+    title: 'Anda disebut dalam sebuah catatan',
+    message: '{{actorName}} menyebut Anda: {{excerpt}}',
+  },
   'statement.uploaded': {
     title: 'Laporan diunggah',
     message: '{{actorName}} mengunggah laporan "{{statementName}}"',

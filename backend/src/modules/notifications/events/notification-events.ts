@@ -26,6 +26,15 @@ export interface MemberInvitedEvent extends WorkspaceActorEvent {
   role: string;
 }
 
+export interface NoteMentionedEvent extends WorkspaceActorEvent {
+  noteId: string;
+  entityType: 'statement' | 'receipt';
+  entityId: string;
+  /** Начало заметки — весь текст в уведомление не кладём. */
+  excerpt: string;
+  mentionedUserIds: string[];
+}
+
 export interface MemberJoinedEvent {
   workspaceId: string;
   memberId: string;
