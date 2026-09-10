@@ -34,6 +34,10 @@ services:
       - finflow-network
 
   backend:
+    # Prebuilt images are published by CD for every release (`latest` tracks
+    # the newest v* tag; set LUMIO_IMAGE_TAG to pin one). `docker compose pull`
+    # then starts the stack without building anything locally.
+    image: ghcr.io/symonbaikov/lumio-backend:${LUMIO_IMAGE_TAG:-latest}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -73,6 +77,7 @@ services:
     restart: unless-stopped
 
   frontend:
+    image: ghcr.io/symonbaikov/lumio-frontend:${LUMIO_IMAGE_TAG:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile

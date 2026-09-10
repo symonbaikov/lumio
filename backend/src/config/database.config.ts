@@ -2,8 +2,6 @@ import { ConfigService } from '@nestjs/config';
 import type { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
 export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOptions => {
-  const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
-  const isProd = nodeEnv === 'production';
   const runMigrationsEnv = (configService.get<string>('RUN_MIGRATIONS') || '').toLowerCase();
   // Default to running migrations everywhere unless explicitly disabled.
   // This prevents production deployments from silently missing new tables/enums.
@@ -20,7 +18,8 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
     url: databaseUrl,
     autoLoadEntities: true,
     synchronize: false,
-    logging: !isProd,
+    // Query logging is opt-in: it floods dev logs with thousands of lines.
+    logging: configService.get<string>('DB_QUERY_LOGGING') === 'true',
     migrations: [migrationsGlob],
     migrationsRun: shouldRunMigrations,
   };

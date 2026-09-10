@@ -35,5 +35,5 @@ export const AppDataSource = new DataSource({
   ],
   migrations: [resolveCompiledGlob('migrations', 'migrations')],
   synchronize: false,
-  logging: process.env.NODE_ENV === 'development',
+  logging: process.env.DB_QUERY_LOGGING === 'true',
 });

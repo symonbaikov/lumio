@@ -1,4 +1,4 @@
-.PHONY: help setup start stop restart logs clean test build migrate admin seed-demo quick-dev quick-start
+.PHONY: help setup start stop restart logs clean clean-build-cache test build migrate admin seed-demo quick-dev quick-start
 
 # Variables
 DOCKER_COMPOSE = docker compose
@@ -6,6 +6,17 @@ DOCKER_COMPOSE_DEV = docker compose -f docker-compose.yml -f docker-compose.dev.
 DOCKER_EXEC_BACKEND = docker exec finflow-backend
 DOCKER_EXEC_FRONTEND = docker exec -it finflow-frontend
 DOCKER_EXEC_DB = docker exec -it finflow-postgres
+
+define wait_for_backend
+	@echo "⏳ Waiting for backend to become ready..."
+	@port=$$(grep -E '^BACKEND_PORT=' .env 2>/dev/null | cut -d= -f2); port=$${port:-3001}; \
+	for i in $$(seq 1 120); do \
+		if curl -sf "http://localhost:$$port/api/v1/health/ready" >/dev/null 2>&1; then \
+			break; \
+		fi; \
+		sleep 1; \
+	done
+endef
 
 define wait_for_users_table
 	@echo "⏳ Waiting for database schema..."
@@ -41,8 +52,7 @@ start: ## Start all services in production mode
 	@echo "🐳 Starting Lumio (production mode)..."
 	@touch .env
 	@$(DOCKER_COMPOSE) up -d --build
-	@echo "⏳ Waiting for services to be ready..."
-	@sleep 10
+	$(call wait_for_backend)
 	@echo "✅ Lumio is running!"
 	@echo "Frontend: http://localhost:3000"
 	@echo "Backend:  http://localhost:3001/api/v1"
@@ -52,8 +62,7 @@ dev: ## Start all services in development mode (with hot reload)
 	@echo "🐳 Starting Lumio (development mode)..."
 	@touch .env
 	@$(DOCKER_COMPOSE_DEV) up -d --build
-	@echo "⏳ Waiting for services to be ready..."
-	@sleep 10
+	$(call wait_for_backend)
 	@echo "✅ Lumio is running in development mode!"
 	@echo "Frontend: http://localhost:3000"
 	@echo "Backend:  http://localhost:3001/api/v1"
@@ -70,7 +79,11 @@ restart: ## Restart all services
 	@$(DOCKER_COMPOSE) restart
 	@echo "✅ Services restarted!"
 
-clean: ## Stop services and remove volumes
+clean-build-cache: ## Remove unused Docker build cache (safe; next build re-creates what it needs)
+	@docker builder prune -f
+	@echo "✅ Build cache pruned!"
+
+clean: ## Stop services and remove volumes (also resets the dev node_modules volumes)
 	@echo "🧹 Cleaning up Lumio..."
 	@$(DOCKER_COMPOSE_DEV) down -v --remove-orphans
 	@$(DOCKER_COMPOSE) down -v --remove-orphans

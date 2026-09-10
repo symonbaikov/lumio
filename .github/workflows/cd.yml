@@ -146,26 +146,37 @@ jobs:
         id: image
         run: |
           IMAGE_NAME=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          TAGS="${IMAGE_NAME}:sha-${GITHUB_SHA::7}"
-          PRIMARY_TAG="${IMAGE_NAME}:sha-${GITHUB_SHA::7}"
+          SUFFIXES="sha-${GITHUB_SHA::7}"
+          PRIMARY_SUFFIX="sha-${GITHUB_SHA::7}"
 
           if [[ "${GITHUB_REF}" == "refs/heads/staging" ]]; then
-            TAGS="${TAGS}\n${IMAGE_NAME}:staging\n${IMAGE_NAME}:staging-${GITHUB_SHA::7}"
-            PRIMARY_TAG="${IMAGE_NAME}:staging-${GITHUB_SHA::7}"
+            SUFFIXES="${SUFFIXES} staging staging-${GITHUB_SHA::7}"
+            PRIMARY_SUFFIX="staging-${GITHUB_SHA::7}"
           elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             REF_NAME="${GITHUB_REF#refs/tags/}"
-            TAGS="${TAGS}\n${IMAGE_NAME}:${REF_NAME}\n${IMAGE_NAME}:latest"
-            PRIMARY_TAG="${IMAGE_NAME}:${REF_NAME}"
+            SUFFIXES="${SUFFIXES} ${REF_NAME} latest"
+            PRIMARY_SUFFIX="${REF_NAME}"
           elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.environment }}" == "staging" ]]; then
-            TAGS="${TAGS}\n${IMAGE_NAME}:staging\n${IMAGE_NAME}:staging-${GITHUB_SHA::7}"
-            PRIMARY_TAG="${IMAGE_NAME}:staging-${GITHUB_SHA::7}"
+            SUFFIXES="${SUFFIXES} staging staging-${GITHUB_SHA::7}"
+            PRIMARY_SUFFIX="staging-${GITHUB_SHA::7}"
           fi
 
+          # One tag list per image: the combined image (root Dockerfile) plus the
+          # per-service images docker-compose.yml pulls (lumio-backend, lumio-frontend).
+          emit_tags() {
+            local name="$1" key="$2" suffix
+            echo "${key}<<EOF" >> "$GITHUB_OUTPUT"
+            for suffix in ${SUFFIXES}; do
+              echo "${name}:${suffix}" >> "$GITHUB_OUTPUT"
+            done
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          }
+
           echo "image_name=${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
-          echo "primary_tag=${PRIMARY_TAG}" >> "$GITHUB_OUTPUT"
-          echo "tags<<'EOF'" >> "$GITHUB_OUTPUT"
-          echo "$TAGS" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "primary_tag=${IMAGE_NAME}:${PRIMARY_SUFFIX}" >> "$GITHUB_OUTPUT"
+          emit_tags "${IMAGE_NAME}" tags
+          emit_tags "${IMAGE_NAME}-backend" backend_tags
+          emit_tags "${IMAGE_NAME}-frontend" frontend_tags
 
       - name: Set up QEMU (multi-arch)
         uses: docker/setup-qemu-action@v3
@@ -191,6 +202,31 @@ jobs:
           tags: ${{ steps.image.outputs.tags }}
           platforms: linux/amd64,linux/arm64
           provenance: true
+
+      # Per-service images consumed by docker-compose.yml (`docker compose pull`
+      # starts the stack without a local build). The frontend proxies /api/v1 to
+      # the backend through Next rewrites, so the API URL is baked as a relative path.
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.image.outputs.backend_tags }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ steps.image.outputs.frontend_tags }}
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            NEXT_PUBLIC_API_URL=/api/v1
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
 
       - name: SLSA provenance attestation
         uses: actions/attest-build-provenance@v1

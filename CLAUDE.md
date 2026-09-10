@@ -93,6 +93,9 @@ npm run migration:generate -- src/migrations/<Name>
 
 - Frontend lint runs **both** Biome and ESLint — fixing one but not the other leaves CI red.
 - `prebuild` and `postinstall` on the frontend run `intlayer build`; deleting the intlayer config or skipping it breaks both install and build.
-- Backend dev uses a manual nodemon command, not `nest start`, and bumps Node heap to 2 GB.
+- Backend dev uses a manual nodemon command, not `nest start`, and bumps Node heap to 2 GB. Dev scripts (`migration:run:dev`, `seed:demo:dev`, `create-admin:dev`) run ts-node with `--transpile-only`; type-checking is `npm run typecheck`.
+- SWC was evaluated for the backend dev loop and rejected: its CommonJS getter exports hit a TDZ on circular entity imports with `emitDecoratorMetadata`. Adopting it needs the TypeORM `Relation<>` wrapper on every relation property first.
+- Docker dev: `node_modules` and `.next` are named volumes; `scripts/dev-entrypoint.sh` in each app re-runs `npm ci` only when `package-lock.json` changed. Dev images never compile source (bind mount).
+- TypeORM SQL logging is off unless `DB_QUERY_LOGGING=true`.
 - Always run migrations via the npm scripts, not raw `typeorm` — `migration:run` acquires a lock to prevent concurrent runs in deployment.
 - Tenant isolation: every backend query must filter by `workspaceId`. See `.claude/rules/security.md`.

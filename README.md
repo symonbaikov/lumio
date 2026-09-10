@@ -387,6 +387,20 @@ To stop Docker mode cleanly:
 docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 ```
 
+In Docker mode `node_modules` and the Next.js cache live in named volumes, so a restart does not re-copy dependencies and page compiles stay warm. When `package-lock.json` changes, the container refreshes its `node_modules` on the next start by itself. `make clean` drops those volumes for a from-scratch start.
+
+### Run prebuilt images (no local build)
+
+CD publishes `ghcr.io/symonbaikov/lumio-backend` and `ghcr.io/symonbaikov/lumio-frontend` for every release. To start the production stack without building anything locally:
+
+```bash
+npm run setup:env
+docker compose pull
+docker compose up -d
+```
+
+`LUMIO_IMAGE_TAG` in `.env` pins a specific release (defaults to the newest one).
+
 To stop local mode, press `Ctrl + C` in the terminal running `npm run setup:dev:local`.
 
 For a new contributor, Docker full-stack is the recommended path. It builds and runs PostgreSQL, Redis, backend, and frontend, waits for backend readiness, seeds the demo account, and prints the URLs and login credentials.
@@ -578,7 +592,8 @@ make dev               # Start all services in development mode (hot reload)
 make start             # Start all services in production mode
 make stop              # Stop all services
 make restart           # Restart all services
-make clean             # Stop services and remove all Docker volumes
+make clean             # Stop services and remove all Docker volumes (incl. dev node_modules volumes)
+make clean-build-cache # Prune unused Docker build cache
 make reset             # clean + setup + start (full environment reset)
 make ps                # Show running containers
 make stats             # Show container CPU/memory usage
