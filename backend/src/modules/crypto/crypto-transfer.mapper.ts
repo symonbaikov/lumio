@@ -5,6 +5,8 @@
  * as an expense, and what counts as nothing at all can be tested directly.
  */
 
+import type { CryptoWalletBalance as WalletBalance } from '../../entities/crypto-wallet.entity';
+
 /** A row from Etherscan's `txlist` action. Only the fields we read are declared. */
 export interface EtherscanTx {
   hash: string;
@@ -24,8 +26,16 @@ export interface EtherscanTokenTx {
   from: string;
   to: string;
   value: string;
-  tokenSymbol: string;
+  contractAddress: string;
   tokenDecimal: string;
+}
+
+/** A row from Etherscan's `tokenlist` action — the address's current token balances. */
+export interface EtherscanTokenBalance {
+  balance: string;
+  contractAddress: string;
+  decimals: string;
+  type: string;
 }
 
 export interface ChainTransfer {
@@ -45,6 +55,8 @@ export interface MapTransfersInput {
   nativeAsset: string;
   /** Every address the workspace watches, used to drop internal moves. */
   ownAddresses: string[];
+  /** Lowercase contract address to canonical ticker; see `TICKER_BY_CONTRACT`. */
+  tickerByContract: Record<string, string>;
   transactions: EtherscanTx[];
   tokenTransfers: EtherscanTokenTx[];
 }
@@ -113,15 +125,18 @@ export function mapChainTransfers(input: MapTransfersInput): ChainTransfer[] {
       continue;
     }
 
+    // A contract we cannot price is spam as far as the ledger is concerned, and
+    // its self-declared symbol is worth nothing — resolve the ticker by address.
+    const asset = input.tickerByContract[transfer.contractAddress?.toLowerCase()];
     const value = toBigInt(transfer.value);
-    if (value === 0n) {
+    if (!asset || value === 0n) {
       continue;
     }
 
     transfers.push({
       hash: transfer.hash,
       timestamp: Number(transfer.timeStamp),
-      asset: transfer.tokenSymbol.toUpperCase(),
+      asset,
       amount: formatUnits(value, Number(transfer.tokenDecimal) || 0),
       direction: isOutgoing ? 'out' : 'in',
       counterparty,
@@ -129,6 +144,56 @@ export function mapChainTransfers(input: MapTransfersInput): ChainTransfer[] {
   }
 
   return aggregate(transfers);
+}
+
+/**
+ * Turns the chain's reported balances into the holdings we show.
+ *
+ * A token counts only when its contract is one we can price. That rejects the two
+ * things a `tokenlist` is full of: airdropped spam, and impostors that borrow a
+ * real ticker — the token's own `symbol` is never consulted, so a contract calling
+ * itself `USDT` cannot be added to the real USDT balance.
+ *
+ * NFTs (`ERC-721`, `ERC-1155`) are left out too: their balance counts tokens, not
+ * money, and pricing that by ticker would be nonsense.
+ */
+export function mapWalletBalances(input: {
+  nativeAsset: string;
+  /** Native balance in wei, as the explorer reports it. */
+  nativeBalance: string;
+  /** Lowercase contract address to canonical ticker; see `TICKER_BY_CONTRACT`. */
+  tickerByContract: Record<string, string>;
+  tokens: EtherscanTokenBalance[];
+}): WalletBalance[] {
+  const balances: WalletBalance[] = [];
+
+  const native = toBigInt(input.nativeBalance);
+  if (native > 0n) {
+    balances.push({ asset: input.nativeAsset.toUpperCase(), amount: formatUnits(native, 18) });
+  }
+
+  const amountByTicker = new Map<string, string>();
+
+  for (const token of input.tokens) {
+    if (token.type && token.type.toUpperCase() !== 'ERC-20') {
+      continue;
+    }
+
+    const ticker = input.tickerByContract[token.contractAddress?.toLowerCase()];
+    const value = toBigInt(token.balance);
+    if (!ticker || value === 0n) {
+      continue;
+    }
+
+    const amount = formatUnits(value, Number(token.decimals) || 0);
+    amountByTicker.set(ticker, addDecimals(amountByTicker.get(ticker) ?? '0', amount));
+  }
+
+  for (const [ticker, amount] of amountByTicker) {
+    balances.push({ asset: ticker, amount });
+  }
+
+  return balances;
 }
 
 /**

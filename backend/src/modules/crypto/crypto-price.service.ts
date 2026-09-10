@@ -3,9 +3,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { ExchangeRate } from '../../entities/exchange-rate.entity';
 import { COINGECKO_IDS } from './crypto.constants';
+import { MAX_ATTEMPTS, isTransient, retryWaitMs, sleep } from './retry.util';
 
 const COINGECKO_BASE_URL = 'https://api.coingecko.com/api/v3';
 const PRICE_SOURCE = 'coingecko';
+
+/**
+ * CoinGecko's free tier answers five calls a minute and then returns 429 with
+ * `Retry-After: 60`. Asking for one date at a time meant a wallet with more than a
+ * handful of transfer dates ran out of budget mid-sync, so `primeHistoricalPrices`
+ * pulls a whole date range per asset in a single call instead.
+ */
+/** The provider has the price but would not serve it right now — a retry may work. */
+export class PriceUnavailableError extends Error {}
 
 /**
  * Prices crypto assets in USD.
@@ -28,7 +38,29 @@ export class CryptoPriceService {
     private readonly exchangeRateRepo: Repository<ExchangeRate>,
   ) {}
 
-  /** USD price of one unit of `asset` on `date`, or null if it cannot be priced. */
+  /**
+   * Caches every daily price the given assets had over the window, one request per
+   * asset. Call this before pricing a batch of transfers: without it each distinct
+   * date costs its own request and the rate limit eats the rest of the sync.
+   */
+  async primeHistoricalPrices(assets: string[], from: Date, to: Date): Promise<void> {
+    const tickers = [...new Set(assets.map(asset => asset.toUpperCase()))].filter(
+      ticker => COINGECKO_IDS[ticker],
+    );
+
+    for (const ticker of tickers) {
+      const prices = await this.fetchPriceRange(COINGECKO_IDS[ticker], from, to);
+      await this.savePrices(ticker, prices);
+    }
+  }
+
+  /**
+   * USD price of one unit of `asset` on `date`, or null when the asset has no price
+   * at all — it is absent from `COINGECKO_IDS`, or the provider has no data for that
+   * day. Throws `PriceUnavailableError` when the price exists but could not be
+   * fetched, so a rate-limited lookup fails the sync instead of silently dropping
+   * the transfer it was pricing.
+   */
   async getUsdPrice(asset: string, date: Date): Promise<number | null> {
     const ticker = asset.toUpperCase();
     const coingeckoId = COINGECKO_IDS[ticker];
@@ -98,23 +130,114 @@ export class CryptoPriceService {
   ): Promise<number | null> {
     // CoinGecko's history endpoint wants DD-MM-YYYY, unlike every other date we handle.
     const [year, month, day] = dateOnly.split('-');
-    const url = `${COINGECKO_BASE_URL}/coins/${coingeckoId}/history?date=${day}-${month}-${year}&localization=false`;
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        this.logger.warn(`CoinGecko history for ${coingeckoId} returned ${response.status}`);
-        return null;
-      }
-      const data = (await response.json()) as {
-        market_data?: { current_price?: { usd?: number } };
-      };
-      const price = data.market_data?.current_price?.usd;
-      return typeof price === 'number' && Number.isFinite(price) ? price : null;
-    } catch (error) {
-      this.logger.warn(`CoinGecko history for ${coingeckoId} failed: ${String(error)}`);
+    const response = await this.request(
+      `${COINGECKO_BASE_URL}/coins/${coingeckoId}/history?date=${day}-${month}-${year}&localization=false`,
+      `history for ${coingeckoId} on ${dateOnly}`,
+    );
+    if (response === null) {
       return null;
     }
+
+    const data = (await response.json()) as {
+      market_data?: { current_price?: { usd?: number } };
+    };
+    const price = data.market_data?.current_price?.usd;
+    return typeof price === 'number' && Number.isFinite(price) ? price : null;
+  }
+
+  /** Daily USD prices over the window, keyed by `YYYY-MM-DD`. */
+  private async fetchPriceRange(
+    coingeckoId: string,
+    from: Date,
+    to: Date,
+  ): Promise<Map<string, number>> {
+    const params = new URLSearchParams({
+      vs_currency: 'usd',
+      from: String(Math.floor(from.getTime() / 1000)),
+      to: String(Math.floor(to.getTime() / 1000)),
+    });
+    const response = await this.request(
+      `${COINGECKO_BASE_URL}/coins/${coingeckoId}/market_chart/range?${params.toString()}`,
+      `price range for ${coingeckoId}`,
+    );
+    if (response === null) {
+      return new Map();
+    }
+
+    const data = (await response.json()) as { prices?: [number, number][] };
+    const byDate = new Map<string, number>();
+
+    // Short windows come back hourly rather than daily, so the first point of each
+    // UTC day wins and the rest of that day is ignored.
+    for (const [timestamp, price] of data.prices ?? []) {
+      if (!Number.isFinite(price)) {
+        continue;
+      }
+      const dateOnly = toDateOnly(new Date(timestamp));
+      if (!byDate.has(dateOnly)) {
+        byDate.set(dateOnly, price);
+      }
+    }
+
+    return byDate;
+  }
+
+  /**
+   * Returns the response, or null when the provider genuinely has nothing for us.
+   * Retries a refusal it describes as temporary and throws once the attempts run
+   * out — the caller must not mistake "we could not ask" for "there is no price".
+   */
+  private async request(url: string, description: string): Promise<Response | null> {
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+      const response = await fetch(url).catch(() => null);
+
+      if (response?.ok) {
+        return response;
+      }
+
+      // A 4xx that is not a rate limit is an answer: this coin or date has no price.
+      if (!isTransient(response)) {
+        this.logger.warn(`CoinGecko ${description} returned ${response?.status}`);
+        return null;
+      }
+
+      const wait = retryWaitMs(response, attempt);
+      if (wait === null || attempt === MAX_ATTEMPTS - 1) {
+        throw new PriceUnavailableError(
+          `CoinGecko ${description} unavailable after ${attempt + 1} attempt(s)` +
+            `${response ? ` (HTTP ${response.status})` : ''}`,
+        );
+      }
+
+      this.logger.warn(
+        `CoinGecko ${description} returned ${response?.status ?? 'no response'}, retrying in ${wait}ms`,
+      );
+      await sleep(wait);
+    }
+
+    throw new PriceUnavailableError(`CoinGecko ${description} unavailable`);
+  }
+
+  private async savePrices(ticker: string, prices: Map<string, number>): Promise<void> {
+    if (prices.size === 0) {
+      return;
+    }
+
+    await this.exchangeRateRepo
+      .createQueryBuilder()
+      .insert()
+      .into(ExchangeRate)
+      .values(
+        [...prices].map(([dateOnly, price]) => ({
+          baseCurrency: ticker,
+          targetCurrency: 'USD',
+          rate: price,
+          rateDate: new Date(dateOnly),
+          source: PRICE_SOURCE,
+        })),
+      )
+      .orIgnore()
+      .execute();
   }
 
   /**

@@ -5,10 +5,12 @@ import {
   formatUnits,
   mapChainTransfers,
 } from '../../../../src/modules/crypto/crypto-transfer.mapper';
+import { TICKER_BY_CONTRACT } from '../../../../src/modules/crypto/crypto.constants';
 
 const ME = '0x1111111111111111111111111111111111111111';
 const OTHER_OWN = '0x2222222222222222222222222222222222222222';
 const STRANGER = '0x3333333333333333333333333333333333333333';
+const USDC_CONTRACT = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 
 function tx(overrides: Partial<EtherscanTx> = {}): EtherscanTx {
   return {
@@ -30,7 +32,7 @@ function tokenTx(overrides: Partial<EtherscanTokenTx> = {}): EtherscanTokenTx {
     from: STRANGER,
     to: ME,
     value: '0',
-    tokenSymbol: 'USDC',
+    contractAddress: USDC_CONTRACT,
     tokenDecimal: '6',
     ...overrides,
   };
@@ -45,12 +47,20 @@ function map(overrides: {
     address: ME,
     nativeAsset: 'ETH',
     ownAddresses: overrides.ownAddresses ?? [ME],
+    tickerByContract: TICKER_BY_CONTRACT[1],
     transactions: overrides.transactions ?? [],
     tokenTransfers: overrides.tokenTransfers ?? [],
   });
 }
 
 describe('mapChainTransfers', () => {
+  it('ignores a token transfer from a contract it cannot price', () => {
+    // A homoglyph "USDT" airdrop: the symbol is a lie, the address is not.
+    const spam = tokenTx({ contractAddress: '0x32e8aed3e1ba6ac970f0c41616bf2a595edb36c4' });
+
+    expect(map({ tokenTransfers: [spam] })).toEqual([]);
+  });
+
   it('books an incoming native transfer as income', () => {
     const [transfer] = map({ transactions: [tx({ value: '1500000000000000000' })] });
 

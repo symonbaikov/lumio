@@ -75,8 +75,11 @@ export function CryptoPortfolioCard({
   );
 }
 
+// The card class lays its children out in a column; this one reads as a row, with
+// the value against the left edge and the chevron against the right.
 const CARD_STYLE = {
   display: 'flex',
+  flexDirection: 'row',
   alignItems: 'center',
   justifyContent: 'space-between',
   gap: 16,

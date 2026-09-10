@@ -11,6 +11,14 @@ import {
 import { User } from './user.entity';
 import { Workspace } from './workspace.entity';
 
+/** One asset the address currently holds, as read from the chain. */
+export interface CryptoWalletBalance {
+  /** Ticker, uppercase. */
+  asset: string;
+  /** Native amount as a decimal string — 18-decimal tokens overflow `number`. */
+  amount: string;
+}
+
 /**
  * A public blockchain address the workspace watches. Read-only by design:
  * we never hold a private key, a seed phrase or a signing session — only an
@@ -49,6 +57,14 @@ export class CryptoWallet {
   /** Last sync failure, kept so the UI can explain a stale wallet. */
   @Column({ name: 'last_sync_error', type: 'text', nullable: true })
   lastSyncError: string | null;
+
+  /**
+   * Balances as of `lastSyncedAt`, read from the chain rather than summed from the
+   * synced transfers: a transfer we failed to import must not silently move the
+   * portfolio. Empty until the first successful sync.
+   */
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  balances: CryptoWalletBalance[];
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'connected_by_user_id' })

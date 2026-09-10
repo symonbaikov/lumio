@@ -25,7 +25,7 @@ export interface CryptoWalletView {
 
 export interface CryptoHolding {
   asset: string;
-  /** Net native amount held, as a decimal string. */
+  /** Amount held on-chain, as a decimal string. */
   amount: string;
   /** Current value in the workspace currency. */
   value: number;
@@ -177,44 +177,45 @@ export class CryptoService {
   }
 
   /**
-   * Holdings are derived from the booked transfers rather than read from the chain:
-   * the same rows that drive the dashboard also decide what the portfolio is worth,
-   * so the two can never disagree.
+   * Holdings are the balances the last sync read off the chain, summed across the
+   * workspace's wallets. They are deliberately NOT derived from the booked
+   * transfers: a transfer that fails to import (an unpriceable asset, a rate-limited
+   * price lookup) would otherwise move the portfolio silently, and a balance that
+   * changed without a transfer — staking accrued in place, a rebasing token — would
+   * never show up at all.
    *
-   * ponytail: this misses assets acquired before the synced window and any balance
-   * change that is not a transfer (staking rewards accrued in-place, rebasing
-   * tokens). Read live balances from the chain if that gap starts to matter.
+   * An asset we cannot price is dropped rather than counted at zero, which is also
+   * what keeps airdropped spam tokens out of the total.
    */
   private async getHoldings(workspaceId: string, currency: string): Promise<CryptoHolding[]> {
-    const rows = await this.transactionRepo
-      .createQueryBuilder('t')
-      .select('t.crypto_asset', 'asset')
-      .addSelect('t.transaction_type', 'type')
-      .addSelect('t.crypto_amount', 'amount')
-      .where('t.workspace_id = :workspaceId', { workspaceId })
-      .andWhere('t.crypto_wallet_id IS NOT NULL')
-      .andWhere('t.crypto_asset IS NOT NULL')
-      .getRawMany<{ asset: string; type: TransactionType; amount: string }>();
+    const wallets = await this.walletRepo.find({
+      where: { workspaceId },
+      select: ['id', 'balances'],
+    });
 
-    if (rows.length === 0) {
+    const amountByAsset = new Map<string, string>();
+    for (const wallet of wallets) {
+      for (const balance of wallet.balances ?? []) {
+        amountByAsset.set(
+          balance.asset,
+          addDecimals(amountByAsset.get(balance.asset) ?? '0', balance.amount),
+        );
+      }
+    }
+
+    if (amountByAsset.size === 0) {
       return [];
     }
 
-    const netByAsset = new Map<string, string>();
-    for (const row of rows) {
-      const signed = row.type === TransactionType.INCOME ? row.amount : `-${row.amount}`;
-      netByAsset.set(row.asset, addDecimals(netByAsset.get(row.asset) ?? '0', signed));
-    }
-
-    const usdPrices = await this.priceService.getCurrentUsdPrices([...netByAsset.keys()]);
+    const usdPrices = await this.priceService.getCurrentUsdPrices([...amountByAsset.keys()]);
     const usdToCurrency = await this.exchangeRatesService.getRate('USD', currency);
 
-    return [...netByAsset.entries()]
-      .filter(([, amount]) => Number(amount) > 0)
+    return [...amountByAsset.entries()]
+      .filter(([asset, amount]) => Number(amount) > 0 && usdPrices[asset] !== undefined)
       .map(([asset, amount]) => ({
         asset,
         amount,
-        value: round2(Number(amount) * (usdPrices[asset] ?? 0) * usdToCurrency),
+        value: round2(Number(amount) * usdPrices[asset] * usdToCurrency),
       }))
       .sort((a, b) => b.value - a.value);
   }
