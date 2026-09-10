@@ -3,6 +3,7 @@
 import { Pencil } from '@/app/components/icons';
 import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
+import { alpha } from '@mui/material/styles';
 import type React from 'react';
 import type { ChangeEvent, RefObject } from 'react';
 
@@ -44,7 +45,7 @@ export function AvatarUploadButton({
           justifyContent: 'center',
           overflow: 'hidden',
           borderRadius: tokens.radius.full,
-          bgcolor: 'primary.light',
+          bgcolor: theme => alpha(theme.palette.primary.main, 0.16),
           color: 'primary.main',
           fontSize: 16,
           fontWeight: 600,

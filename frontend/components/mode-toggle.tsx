@@ -114,16 +114,22 @@ export function ModeToggle({
         key: 'light' as const,
         label: copy.light,
         icon: Sun,
+        hoverIconBg: 'group-hover:bg-amber-400/15 group-hover:text-amber-500',
+        activeIconBg: 'bg-amber-400/20 text-amber-500',
       },
       {
         key: 'dark' as const,
         label: copy.dark,
         icon: MoonStar,
+        hoverIconBg: 'group-hover:bg-indigo-400/15 group-hover:text-indigo-400',
+        activeIconBg: 'bg-indigo-400/20 text-indigo-400',
       },
       {
         key: 'auto' as const,
         label: copy.auto,
         icon: Clock3,
+        hoverIconBg: 'group-hover:bg-sky-400/15 group-hover:text-sky-500',
+        activeIconBg: 'bg-sky-400/20 text-sky-500',
       },
     ],
     [copy.auto, copy.dark, copy.light],
@@ -145,13 +151,22 @@ export function ModeToggle({
               onClick={() => handleChange(option.key)}
               aria-pressed={active}
               className={cn(
-                'flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-medium transition-all duration-200',
+                'group flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-medium transition-all duration-200',
                 active
-                  ? 'border-primary bg-primary/12 text-primary'
+                  ? 'border-primary/40 bg-card text-foreground shadow-sm'
                   : 'border-transparent text-muted-foreground hover:border-border hover:bg-card hover:text-foreground',
               )}
             >
-              <Icon className="h-4 w-4" />
+              <span
+                className={cn(
+                  'flex h-6 w-6 items-center justify-center rounded-full transition-colors duration-200',
+                  active
+                    ? option.activeIconBg
+                    : cn('bg-transparent text-muted-foreground', option.hoverIconBg),
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+              </span>
               <span>{option.label}</span>
             </button>
           );

@@ -47,6 +47,7 @@ import CloudIcon from '@mui/icons-material/Cloud';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
+import CurrencyBitcoinIcon from '@mui/icons-material/CurrencyBitcoin';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import DateRangeIcon from '@mui/icons-material/DateRange';
@@ -344,6 +345,7 @@ export const ZoomOut = wrap(ZoomOutIcon);
 
 // Additional icons (Lucide aliases / missed in initial scan)
 export const Banknote = wrap(PaymentsIcon);
+export const Bitcoin = wrap(CurrencyBitcoinIcon);
 export const Calendar = wrap(CalendarMonthIcon);
 export const CircleAlert = wrap(ErrorOutlineIcon);
 export const Database = wrap(StorageIcon);

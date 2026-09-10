@@ -62,6 +62,7 @@ export class UsersService {
         'locale',
         'timeZone',
         'themePreference',
+        'avatarUrl',
         'onboardingCompletedAt',
         'disclaimerAcceptedAt',
         'disclaimerVersion',
