@@ -60,7 +60,7 @@ function toOptions(payload: unknown): NamedOption[] {
 export function ReportScopeFilters({
   value,
   onChange,
-}: ReportScopeFiltersProps): React.JSX.Element {
+}: ReportScopeFiltersProps): React.JSX.Element | null {
   const t = useIntlayer('reportsPage');
   const labels = t.labels as Record<string, { value?: string } | undefined>;
   // eslint-disable-next-line max-params
@@ -125,7 +125,7 @@ export function ReportScopeFilters({
 
   // Nothing to scope by yet (fresh workspace) — don't show empty dropdowns.
   if (wallets.length === 0 && categories.length === 0) {
-    return <></>;
+    return null;
   }
 
   return (

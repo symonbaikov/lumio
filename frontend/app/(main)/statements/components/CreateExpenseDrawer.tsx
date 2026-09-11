@@ -420,139 +420,137 @@ export default function CreateExpenseDrawer({
                 </div>
               </>
             ) : mode === 'scan' ? (
-              <>
-                {isMobile ? (
-                  <div
+              isMobile ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                    borderRadius: tokens.radius.lg,
+                    border: '1px solid var(--border-color)',
+                    background: 'rgba(0,0,0,0.04)',
+                    padding: 16,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => scanCameraInputRef.current?.click()}
                     style={{
                       display: 'flex',
-                      flexDirection: 'column',
-                      gap: 12,
-                      borderRadius: tokens.radius.lg,
-                      border: '1px solid var(--border-color)',
-                      background: 'rgba(0,0,0,0.04)',
-                      padding: 16,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => scanCameraInputRef.current?.click()}
-                      style={{
-                        display: 'flex',
-                        minHeight: 72,
-                        width: '100%',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 12,
-                        borderRadius: tokens.radius.md,
-                        border: 'none',
-                        background: 'var(--primary-fill)',
-                        padding: '16px 20px',
-                        fontSize: 18,
-                        fontWeight: 700,
-                        color: '#fff',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <Camera size={20} />
-                      Take photo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => scanGalleryInputRef.current?.click()}
-                      style={{
-                        display: 'flex',
-                        minHeight: 72,
-                        width: '100%',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 12,
-                        borderRadius: tokens.radius.md,
-                        border: '1px solid var(--border-color)',
-                        background: 'var(--card-bg)',
-                        padding: '16px 20px',
-                        fontSize: 18,
-                        fontWeight: 700,
-                        color: 'var(--foreground)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <ImageIcon size={20} />
-                      Choose from gallery
-                    </button>
-                    <input
-                      ref={scanCameraInputRef}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      style={{ display: 'none' }}
-                      onChange={event => handleFilesSelected(event.target.files)}
-                    />
-                    <input
-                      ref={scanGalleryInputRef}
-                      type="file"
-                      accept="image/*,.pdf"
-                      style={{ display: 'none' }}
-                      multiple
-                      onChange={event => handleFilesSelected(event.target.files)}
-                    />
-                  </div>
-                ) : (
-                  <label
-                    style={{
-                      display: 'flex',
-                      cursor: 'pointer',
-                      flexDirection: 'column',
+                      minHeight: 72,
+                      width: '100%',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      borderRadius: tokens.radius.lg,
-                      border: '2px dashed',
-                      borderColor: 'color-mix(in srgb, var(--primary) 40%, transparent)',
-                      background: 'rgba(0,0,0,0.04)',
-                      padding: '48px 24px',
-                      textAlign: 'center',
+                      gap: 12,
+                      borderRadius: tokens.radius.md,
+                      border: 'none',
+                      background: 'var(--primary-fill)',
+                      padding: '16px 20px',
+                      fontSize: 18,
+                      fontWeight: 700,
+                      color: '#fff',
+                      cursor: 'pointer',
                     }}
                   >
-                    <Receipt size={56} style={{ color: 'var(--muted-foreground)' }} />
-                    <p
-                      style={{
-                        marginTop: 24,
-                        fontSize: 30,
-                        fontWeight: 600,
-                        lineHeight: 1,
-                        color: 'var(--foreground)',
-                      }}
-                    >
-                      Upload receipts
-                    </p>
-                    <p style={{ marginTop: 8, fontSize: 14, color: 'var(--muted-foreground)' }}>
-                      or drag and drop them here
-                    </p>
-                    <span
-                      style={{
-                        marginTop: 24,
-                        display: 'inline-flex',
-                        borderRadius: tokens.radius.md,
-                        background: 'var(--primary-fill)',
-                        padding: '10px 28px',
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: '#fff',
-                      }}
-                    >
-                      Choose files
-                    </span>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*,.pdf"
-                      capture="environment"
-                      style={{ display: 'none' }}
-                      multiple
-                      onChange={event => handleFilesSelected(event.target.files)}
-                    />
-                  </label>
-                )}
-              </>
+                    <Camera size={20} />
+                    Take photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scanGalleryInputRef.current?.click()}
+                    style={{
+                      display: 'flex',
+                      minHeight: 72,
+                      width: '100%',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 12,
+                      borderRadius: tokens.radius.md,
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--card-bg)',
+                      padding: '16px 20px',
+                      fontSize: 18,
+                      fontWeight: 700,
+                      color: 'var(--foreground)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <ImageIcon size={20} />
+                    Choose from gallery
+                  </button>
+                  <input
+                    ref={scanCameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    style={{ display: 'none' }}
+                    onChange={event => handleFilesSelected(event.target.files)}
+                  />
+                  <input
+                    ref={scanGalleryInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    style={{ display: 'none' }}
+                    multiple
+                    onChange={event => handleFilesSelected(event.target.files)}
+                  />
+                </div>
+              ) : (
+                <label
+                  style={{
+                    display: 'flex',
+                    cursor: 'pointer',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: tokens.radius.lg,
+                    border: '2px dashed',
+                    borderColor: 'color-mix(in srgb, var(--primary) 40%, transparent)',
+                    background: 'rgba(0,0,0,0.04)',
+                    padding: '48px 24px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <Receipt size={56} style={{ color: 'var(--muted-foreground)' }} />
+                  <p
+                    style={{
+                      marginTop: 24,
+                      fontSize: 30,
+                      fontWeight: 600,
+                      lineHeight: 1,
+                      color: 'var(--foreground)',
+                    }}
+                  >
+                    Upload receipts
+                  </p>
+                  <p style={{ marginTop: 8, fontSize: 14, color: 'var(--muted-foreground)' }}>
+                    or drag and drop them here
+                  </p>
+                  <span
+                    style={{
+                      marginTop: 24,
+                      display: 'inline-flex',
+                      borderRadius: tokens.radius.md,
+                      background: 'var(--primary-fill)',
+                      padding: '10px 28px',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: '#fff',
+                    }}
+                  >
+                    Choose files
+                  </span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    capture="environment"
+                    style={{ display: 'none' }}
+                    multiple
+                    onChange={event => handleFilesSelected(event.target.files)}
+                  />
+                </label>
+              )
             ) : manualStep === 'amount' ? (
               <div
                 style={{

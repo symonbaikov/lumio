@@ -369,7 +369,7 @@ export function StatementsListItem({
 
   const updatePreviewPosition = useCallback(() => {
     const trigger = thumbnailButtonRef.current;
-    if (!(trigger && trigger.isConnected) || typeof window === 'undefined') {
+    if (!trigger?.isConnected || typeof window === 'undefined') {
       closePreview();
       return;
     }

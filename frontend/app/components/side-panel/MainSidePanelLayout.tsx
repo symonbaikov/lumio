@@ -262,21 +262,19 @@ function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
       }}
     >
       {config ? (
-        <>
-          <Box
-            sx={{
-              display: { xs: 'none', lg: 'flex' },
-              flexShrink: 0,
-              ...(isStatementsPage ? { height: '100%' } : {}),
-            }}
-          >
-            <SidePanel
-              config={config}
-              showCollapseToggle={false}
-              style={isStatementsPage ? { height: '100%' } : undefined}
-            />
-          </Box>
-        </>
+        <Box
+          sx={{
+            display: { xs: 'none', lg: 'flex' },
+            flexShrink: 0,
+            ...(isStatementsPage ? { height: '100%' } : {}),
+          }}
+        >
+          <SidePanel
+            config={config}
+            showCollapseToggle={false}
+            style={isStatementsPage ? { height: '100%' } : undefined}
+          />
+        </Box>
       ) : null}
       <div
         style={{

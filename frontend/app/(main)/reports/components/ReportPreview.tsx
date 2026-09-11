@@ -50,7 +50,11 @@ const headCellSx = {
 const alignFor = (index: number): 'left' | 'right' => (index === 0 ? 'left' : 'right');
 
 // eslint-disable-next-line max-lines-per-function, complexity
-export function ReportPreview({ data, loading, error }: ReportPreviewProps): React.JSX.Element {
+export function ReportPreview({
+  data,
+  loading,
+  error,
+}: ReportPreviewProps): React.JSX.Element | null {
   const t = useIntlayer('reportsPage');
   const labels = t.labels as Record<string, { value?: string } | undefined>;
   // eslint-disable-next-line max-params
@@ -76,7 +80,7 @@ export function ReportPreview({ data, loading, error }: ReportPreviewProps): Rea
   }
 
   if (!data) {
-    return <></>;
+    return null;
   }
 
   const isEmpty = data.sections.every(section => section.rows.length === 0);
