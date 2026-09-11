@@ -1,10 +1,10 @@
 'use client';
 
-import { Download } from '@/app/components/icons';
-import { tokens } from '@/lib/theme-tokens';
 import { useTheme } from 'next-themes';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { Download } from '@/app/components/icons';
+import { tokens } from '@/lib/theme-tokens';
 import { AuditEventDrawer } from './components/AuditEventDrawer';
 import { AuditFilterBar } from './components/AuditFilterBar';
 import { AuditRollbackModal } from './components/AuditRollbackModal';
@@ -93,8 +93,11 @@ export default function AuditPage() {
       )}
 
       {/* Timeline */}
-      <div className="audit-timeline-card">
-        {loader.loading ? (
+      <div
+        className="audit-timeline-card"
+        style={{ opacity: loader.isFetching ? 0.6 : 1, transition: 'opacity 150ms ease' }}
+      >
+        {loader.isPending ? (
           <AuditTimelineSkeleton />
         ) : (
           <AuditTimeline

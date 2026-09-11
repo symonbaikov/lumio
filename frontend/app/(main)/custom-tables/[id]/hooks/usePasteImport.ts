@@ -1,13 +1,13 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import apiClient from '@/app/lib/api';
 import {
-  type PasteMappingSelection,
-  type PastePreviewData,
   buildPastePreview,
   isEditableTarget,
+  type PasteMappingSelection,
+  type PastePreviewData,
   parseClipboardRows,
 } from '../utils/pasteUtils';
 import type {
@@ -17,7 +17,7 @@ import type {
 } from '../utils/stylingUtils';
 import { getResponseItems } from '../utils/tableHelpers';
 import type { CustomTablePageColumn } from '../utils/tableTypes';
-import { TabularFileError, readTabularFile } from '../utils/tabularFileReader';
+import { readTabularFile, TabularFileError } from '../utils/tabularFileReader';
 
 function extractBatchInsertResult(
   response: { data?: Record<string, unknown> },
@@ -191,7 +191,7 @@ export function usePasteImport({
    */
   const startPreviewFromRows = useCallback(
     (rows: string[][]) => {
-      if (!orderedColumns.length || !rows.length) {
+      if (!(orderedColumns.length && rows.length)) {
         return;
       }
       setPasteRawRows(rows);

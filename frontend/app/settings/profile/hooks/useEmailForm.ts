@@ -1,9 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import type { User } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/settings/profile/profileHelpers';
-import { useEffect, useState } from 'react';
 
 export type UseEmailFormMessages = {
   passwordRequired: string;

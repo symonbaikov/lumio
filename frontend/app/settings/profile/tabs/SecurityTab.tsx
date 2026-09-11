@@ -1,5 +1,7 @@
 'use client';
 
+import Stack from '@mui/material/Stack';
+import type React from 'react';
 import { Lock, Mail, Shield, ShieldCheck } from '@/app/components/icons';
 import { useUserFormat } from '@/app/lib/user-format-store';
 import { EmailSection } from '@/app/settings/profile/components/EmailSection';
@@ -13,8 +15,6 @@ import { usePasswordForm } from '@/app/settings/profile/hooks/usePasswordForm';
 import { useSessions } from '@/app/settings/profile/hooks/useSessions';
 import { useSettingsText } from '@/app/settings/profile/hooks/useSettingsText';
 import { useTwoFactor } from '@/app/settings/profile/hooks/useTwoFactor';
-import Stack from '@mui/material/Stack';
-import type React from 'react';
 
 import type { SettingsTabProps } from './types';
 

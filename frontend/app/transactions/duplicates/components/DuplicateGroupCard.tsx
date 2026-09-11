@@ -1,13 +1,12 @@
 'use client';
-import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
-
-import { Calendar, DollarSign, User } from '@/app/components/icons';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
 import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import { useState } from 'react';
+import { Calendar, DollarSign, User } from '@/app/components/icons';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 interface DuplicateTransaction {
   id: string;

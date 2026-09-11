@@ -1,11 +1,5 @@
 'use client';
 
-import { Alert } from '@/app/components/ui/alert';
-import type {
-  DuplicateResolution,
-  UseProcessingReturn,
-} from '@/app/settings/profile/hooks/useProcessing';
-import { duplicateResolutions } from '@/app/settings/profile/hooks/useProcessing';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -15,6 +9,12 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useEffect, useState } from 'react';
+import { Alert } from '@/app/components/ui/alert';
+import type {
+  DuplicateResolution,
+  UseProcessingReturn,
+} from '@/app/settings/profile/hooks/useProcessing';
+import { duplicateResolutions } from '@/app/settings/profile/hooks/useProcessing';
 
 type Tx = (path: string[], fallback: string) => string;
 
@@ -29,7 +29,12 @@ function ThresholdField({
   value,
   saving,
   onCommit,
-}: { tx: Tx; value: number; saving: boolean; onCommit: (value: number) => void }) {
+}: {
+  tx: Tx;
+  value: number;
+  saving: boolean;
+  onCommit: (value: number) => void;
+}) {
   // Local while dragging: every intermediate value would otherwise be a request.
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);

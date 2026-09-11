@@ -1,13 +1,13 @@
 'use client';
 
-import { Plus } from '@/app/components/icons';
-import { EmptyState } from '@/app/components/ui/EmptyState';
-import { useIntlayer } from '@/app/i18n';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
+import { Plus } from '@/app/components/icons';
+import { EmptyState } from '@/app/components/ui/EmptyState';
+import { useIntlayer } from '@/app/i18n';
+import { tokens } from '@/lib/theme-tokens';
 import type { BudgetFormData, BudgetItem } from '../hooks/useBudgetsPage';
 import { BudgetCard } from './BudgetCard';
 import { BudgetFormDialog } from './BudgetFormDialog';
@@ -42,7 +42,8 @@ function BudgetCardSkeleton(): React.JSX.Element {
 
 interface BudgetsContentProps {
   budgets: BudgetItem[];
-  loading: boolean;
+  isPending: boolean;
+  isFetching: boolean;
   error: string | null;
   dialogOpen: boolean;
   editingBudget: BudgetItem | null;
@@ -58,7 +59,8 @@ interface BudgetsContentProps {
 
 export function BudgetsContent({
   budgets,
-  loading,
+  isPending,
+  isFetching,
   error,
   dialogOpen,
   editingBudget,
@@ -83,7 +85,7 @@ export function BudgetsContent({
         </Button>
       </Box>
 
-      {loading && (
+      {isPending && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {Array.from({ length: 5 }).map((_, index) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
@@ -92,13 +94,13 @@ export function BudgetsContent({
         </Box>
       )}
 
-      {error && !loading && (
+      {error && !isPending && (
         <Typography color="error" sx={{ py: 4, textAlign: 'center' }}>
           {error}
         </Typography>
       )}
 
-      {!loading && !error && budgets.length === 0 && (
+      {!(isPending || error) && budgets.length === 0 && (
         <EmptyState
           illustration="top-categories"
           description={t.emptyDescription}
@@ -110,8 +112,17 @@ export function BudgetsContent({
         />
       )}
 
-      {!loading && !error && budgets.length > 0 && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {!(isPending || error) && budgets.length > 0 && (
+        // Удаление и сохранение перезагружают список в фоне, не гася карточки.
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            opacity: isFetching ? 0.6 : 1,
+            transition: 'opacity 150ms ease',
+          }}
+        >
           {budgets.map(budget => (
             <BudgetCard key={budget.id} budget={budget} onEdit={openEdit} onDelete={handleDelete} />
           ))}

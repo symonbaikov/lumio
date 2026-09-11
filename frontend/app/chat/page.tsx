@@ -1,16 +1,16 @@
 'use client';
 
+import { Box, Button, Chip, LinearProgress, Stack, TextField, Typography } from '@mui/material';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import type React from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocalModel } from '@/app/(main)/ai-analysis/llm/useLocalModel';
 import { RECOMMENDED_MODEL_ID, resolveCatalog } from '@/app/(main)/ai-analysis/model-catalog';
 import { Sparkles } from '@/app/components/icons';
 import { useIntlayer } from '@/app/i18n';
 import { isExperimentalModeEnabled } from '@/app/lib/experimental-mode';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, Button, Chip, LinearProgress, Stack, TextField, Typography } from '@mui/material';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import type React from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   type CloudProviderStatus,
   createCloudAgentEngine,

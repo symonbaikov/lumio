@@ -1,9 +1,9 @@
 'use client';
 
-import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
-import { getStatementDisplayMerchant, getStatementMerchantLabel } from '@/app/lib/statement-status';
 import type { Dispatch, SetStateAction } from 'react';
 import { useMemo, useState } from 'react';
+import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
+import { getStatementDisplayMerchant, getStatementMerchantLabel } from '@/app/lib/statement-status';
 import {
   DUPLICATE_GROUP_TONES,
   formatStatementAmount,

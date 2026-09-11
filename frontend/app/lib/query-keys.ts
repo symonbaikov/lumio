@@ -20,6 +20,8 @@ export const queryKeys = {
   transactions: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
     ['transactions', o.workspaceId, o.params] as const,
   categories: (workspaceId: string | null) => ['categories', workspaceId] as const,
+  categoryUsage: (workspaceId: string | null) => ['categories', workspaceId, 'usage'] as const,
+  goalsList: (workspaceId: string | null) => ['goals', 'list', workspaceId] as const,
   goalFlow: (o: { workspaceId: string | null; goalId: string; month: string }) =>
     ['goals', 'flow', o.workspaceId, o.goalId, o.month] as const,
   goalPlan: (o: { workspaceId: string | null; goalId: string }) =>
@@ -27,6 +29,31 @@ export const queryKeys = {
   goalItems: (o: { workspaceId: string | null; goalId: string }) =>
     ['goals', 'items', o.workspaceId, o.goalId] as const,
   insights: (workspaceId: string | null) => ['insights', workspaceId] as const,
+  integrationStatus: (o: { workspaceId: string | null; apiPath: string }) =>
+    ['integration-status', o.workspaceId, o.apiPath] as const,
+  webhookEndpoints: (workspaceId: string | null) => ['webhook-endpoints', workspaceId] as const,
+  webhookSubscriptions: (workspaceId: string | null) =>
+    ['webhook-subscriptions', workspaceId] as const,
+  apiKeys: (workspaceId: string | null) => ['api-keys', workspaceId] as const,
+  customTables: (workspaceId: string | null) => ['custom-tables', workspaceId] as const,
+  adminUsers: (workspaceId: string | null) => ['admin-users', workspaceId] as const,
+  budgets: (workspaceId: string | null) => ['budgets', workspaceId] as const,
+  balanceSheet: (o: { workspaceId: string | null; date: string | null; locale: string }) =>
+    ['balance-sheet', o.workspaceId, o.date, o.locale] as const,
+  tablesReport: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
+    ['tables-report', o.workspaceId, o.params] as const,
+  storageFiles: (o: { workspaceId: string | null; listMode: 'active' | 'trash' }) =>
+    ['storage-files', o.workspaceId, o.listMode] as const,
+  taxReturn: (o: { workspaceId: string | null; periodStart: string; periodEnd: string }) =>
+    ['tax-return', o.workspaceId, o.periodStart, o.periodEnd] as const,
+  subscriptions: (o: { workspaceId: string | null; status: string }) =>
+    ['subscriptions', o.workspaceId, 'list', o.status] as const,
+  subscriptionsSummary: (workspaceId: string | null) =>
+    ['subscriptions', workspaceId, 'summary'] as const,
+  auditEvents: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
+    ['audit-events', o.workspaceId, o.params] as const,
+  netWorth: (o: { workspaceId: string | null; range: string }) =>
+    ['net-worth', o.workspaceId, o.range] as const,
   cryptoWallets: (workspaceId: string | null) => ['crypto', 'wallets', workspaceId] as const,
   cryptoSummary: (workspaceId: string | null) => ['crypto', 'summary', workspaceId] as const,
   notifications: (workspaceId: string | null) => ['notifications', workspaceId] as const,

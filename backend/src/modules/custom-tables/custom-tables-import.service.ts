@@ -11,23 +11,23 @@ import {
   EntityType,
 } from '../../entities/audit-event.entity';
 import { Category } from '../../entities/category.entity';
+import { CustomTable, CustomTableSource } from '../../entities/custom-table.entity';
 import { CustomTableCellStyle } from '../../entities/custom-table-cell-style.entity';
-import { CustomTableColumnStyle } from '../../entities/custom-table-column-style.entity';
 import {
   CustomTableColumn,
   CustomTableColumnType,
 } from '../../entities/custom-table-column.entity';
+import { CustomTableColumnStyle } from '../../entities/custom-table-column-style.entity';
 import { CustomTableRow } from '../../entities/custom-table-row.entity';
-import { CustomTable, CustomTableSource } from '../../entities/custom-table.entity';
 import { GoogleSheet } from '../../entities/google-sheet.entity';
 import { AuditService } from '../audit/audit.service';
 import { GoogleSheetsApiService } from '../google-sheets/services/google-sheets-api.service';
 import {
   type A1RangeBounds,
-  SheetSourceLoaderService,
   numberToColumnLetters,
   parseA1Range,
   quoteSheetName,
+  SheetSourceLoaderService,
 } from '../google-sheets/services/sheet-source-loader.service';
 import { detectLayout } from '../import/sheets/detect-layout.util';
 import type {
@@ -209,7 +209,7 @@ const diffStyle = (base: SheetCellStyle, actual: SheetCellStyle): SheetCellStyle
     const baseHas = baseVal !== undefined;
     const actualHas = actualVal !== undefined;
 
-    if (!baseHas && !actualHas) continue;
+    if (!(baseHas || actualHas)) continue;
 
     if (!actualHas && baseHas) {
       patch[key] = null;
@@ -218,7 +218,7 @@ const diffStyle = (base: SheetCellStyle, actual: SheetCellStyle): SheetCellStyle
 
     if (actualHas) {
       const equal = JSON.stringify(baseVal) === JSON.stringify(actualVal);
-      if (!baseHas || !equal) {
+      if (!(baseHas && equal)) {
         patch[key] = actualVal ?? null;
       }
     }
@@ -289,7 +289,7 @@ const detectHighContrastRows = (
 ): HighlightedRowInfo[] => {
   const threshold = 6;
   const maxRows = 80;
-  if (!Array.isArray(gridRowData) || !gridRowData.length) return [];
+  if (!(Array.isArray(gridRowData) && gridRowData.length)) return [];
   const limit = Math.min(gridRowData.length, valuesLength);
   if (limit <= headerRowIndex + 1) return [];
 
@@ -297,7 +297,7 @@ const detectHighContrastRows = (
 
   for (let rowIdx = headerRowIndex + 1; rowIdx < limit && results.length < maxRows; rowIdx += 1) {
     const row = gridRowData[rowIdx];
-    if (!row || !Array.isArray(row.values)) continue;
+    if (!(row && Array.isArray(row.values))) continue;
 
     const backgroundMap = new Map<string, { color: NormalizedRgbColor; count: number }>();
     const textMap = new Map<string, { color: NormalizedRgbColor; count: number }>();
@@ -923,7 +923,7 @@ export class CustomTablesImportService {
       if (gridRowData?.length) {
         sampleRowStyles = sampleRowIndices.map(rowIdx => {
           const row = gridRowData?.[rowIdx];
-          if (!row || !Array.isArray(row.values)) return [];
+          if (!(row && Array.isArray(row.values))) return [];
           return Array.from({ length: colsCount }).map((_, colIdx) => {
             const fmt = row.values?.[colIdx]?.userEnteredFormat;
             return extractSheetStyle(fmt);
@@ -972,7 +972,7 @@ export class CustomTablesImportService {
     }>,
     override?: GoogleSheetsImportColumnDto[],
   ) {
-    if (!override || !override.length) {
+    if (!(override && override.length)) {
       return previewColumns.map(c => ({ ...c, include: true }));
     }
 

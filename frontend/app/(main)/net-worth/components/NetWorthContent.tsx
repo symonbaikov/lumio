@@ -1,15 +1,15 @@
 'use client';
 
-import { ArrowDownRight, ArrowUpRight } from '@/app/components/icons';
-import { EmptyState } from '@/app/components/ui/EmptyState';
-import { useIntlayer, useLocale } from '@/app/i18n';
-import { formatMoney } from '@/app/lib/format-money';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Typography from '@mui/material/Typography';
+import { ArrowDownRight, ArrowUpRight } from '@/app/components/icons';
+import { EmptyState } from '@/app/components/ui/EmptyState';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import { formatMoney } from '@/app/lib/format-money';
+import { tokens } from '@/lib/theme-tokens';
 import { NET_WORTH_RANGES, type NetWorthRange, useNetWorth } from '../hooks/useNetWorth';
 import { AllocationCard } from './AllocationCard';
 import { NetWorthChart } from './NetWorthChart';
@@ -50,7 +50,7 @@ function NetWorthSkeleton(): React.JSX.Element {
 export function NetWorthContent() {
   const t = useIntlayer('netWorthPage');
   const { locale } = useLocale();
-  const { data, loading, error, range, setRange, classify } = useNetWorth();
+  const { data, isPending, isFetching, error, range, setRange, classify } = useNetWorth();
 
   const currency = data?.currency ?? 'KZT';
   const isPositive = (data?.change ?? 0) >= 0;
@@ -92,16 +92,25 @@ export function NetWorthContent() {
         </ToggleButtonGroup>
       </Box>
 
-      {loading && <NetWorthSkeleton />}
+      {isPending && <NetWorthSkeleton />}
 
-      {error && !loading && (
-        <Typography color="error" sx={{ py: 6, textAlign: 'center' }}>
+      {error && (
+        <Typography color="error" sx={{ py: 2, textAlign: 'center' }}>
           {t.error}
         </Typography>
       )}
 
-      {!loading && !error && data && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {data && (
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 3,
+            // Фоновое обновление не гасит карточки скелетоном — только приглушает.
+            opacity: isFetching ? 0.6 : 1,
+            transition: 'opacity 150ms ease',
+          }}
+        >
           <Box
             sx={{
               border: '1px solid',
@@ -195,7 +204,7 @@ export function NetWorthContent() {
                 drain: t.roleDrain.value,
               },
             }}
-            onClassify={(accountId, patch) => void classify(accountId, patch)}
+            onClassify={classify}
           />
         </Box>
       )}

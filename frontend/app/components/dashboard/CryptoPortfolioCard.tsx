@@ -1,12 +1,12 @@
 'use client';
 
+import Link from 'next/link';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronRight } from '@/app/components/icons';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
-import Link from 'next/link';
-import type React from 'react';
-import { useEffect, useState } from 'react';
 
 interface CryptoSummary {
   currency: string;

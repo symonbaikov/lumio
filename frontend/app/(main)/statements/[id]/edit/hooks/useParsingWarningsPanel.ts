@@ -1,18 +1,18 @@
-import { buildCurrencySearchIndex } from '@/app/lib/statement-expense-drawer';
-import type { CurrencySearchItem } from '@/app/lib/statement-expense-drawer';
 import { useEffect, useMemo, useState } from 'react';
+import type { CurrencySearchItem } from '@/app/lib/statement-expense-drawer';
+import { buildCurrencySearchIndex } from '@/app/lib/statement-expense-drawer';
+import {
+  canConvertDraft,
+  type DroppedSampleDraft,
+  normalizeCurrencyCode,
+  toDraft,
+} from '../helpers/warning-formatters';
+import { buildWarningHandlers } from '../helpers/warning-handlers';
 import type {
   ConvertDroppedSamplePayload,
   ParsingDroppedSample,
   ResolveWarningPayload,
 } from '../ParsingWarningsPanel';
-import {
-  type DroppedSampleDraft,
-  canConvertDraft,
-  normalizeCurrencyCode,
-  toDraft,
-} from '../helpers/warning-formatters';
-import { buildWarningHandlers } from '../helpers/warning-handlers';
 
 export interface EditableWarningEntry {
   key: string;

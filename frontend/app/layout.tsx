@@ -1,16 +1,16 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Manrope, Nunito } from 'next/font/google';
 import './globals.scss';
-import { ThemeProvider } from '@/components/theme-provider';
 import { getLocale } from 'next-intlayer/server';
 import { getIntlayer } from 'react-intlayer';
 import { IntlayerServerProvider } from 'react-intlayer/server';
+import { ThemeProvider } from '@/components/theme-provider';
 import { ChatModeRedirect } from './chat/ChatModeRedirect';
 import AppChrome from './components/AppChrome';
 import DynamicPageTitle from './components/DynamicPageTitle';
+import MobileBottomBar from './components/mobile/MobileBottomBar';
 import { ReactScan } from './components/ReactScan';
 import TopBar from './components/TopBar';
-import MobileBottomBar from './components/mobile/MobileBottomBar';
 import { normalizeLocale } from './lib/locale';
 import { Providers } from './providers';
 

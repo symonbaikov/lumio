@@ -1,7 +1,7 @@
+import React from 'react';
 import { RefreshCcw } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
-import React from 'react';
 
 interface UnapprovedCashPageHeaderProps {
   title: string;

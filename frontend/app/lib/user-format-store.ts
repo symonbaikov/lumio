@@ -1,8 +1,8 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import type { UserFormatPreferences } from '@/app/lib/user-format';
 import { formatDate, formatDateTime, formatDateWithOptions } from '@/app/lib/user-format';
-import { useEffect, useMemo, useState } from 'react';
 
 /** Fired whenever the persisted user changes, so open views re-render dates. */
 export const USER_FORMAT_EVENT = 'lumio:user-format-changed';

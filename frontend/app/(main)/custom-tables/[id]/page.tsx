@@ -1,5 +1,12 @@
 'use client';
 
+import { Box, Skeleton, Typography } from '@mui/material';
+import type { SortingState } from '@tanstack/react-table';
+import type { Locale } from 'date-fns';
+import { enUS, kk, ru } from 'date-fns/locale';
+import { useParams, useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import ConfirmModal from '@/app/components/ConfirmModal';
 import {
   ArrowLeft as ArrowBackIcon,
@@ -15,13 +22,6 @@ import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
-import { Box, Skeleton, Typography } from '@mui/material';
-import type { SortingState } from '@tanstack/react-table';
-import type { Locale } from 'date-fns';
-import { enUS, kk, ru } from 'date-fns/locale';
-import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
 import { downloadTableExport } from '../exportTable';
 import { CustomTableTanStack } from './CustomTableTanStack';
 import { AddColumnModal } from './components/AddColumnModal';
@@ -40,7 +40,6 @@ import { usePasteImport } from './hooks/usePasteImport';
 import { useRowActions } from './hooks/useRowActions';
 import { useRowDrawer } from './hooks/useRowDrawer';
 import { type SavedView, useSavedViews } from './hooks/useSavedViews';
-import { useTabStats } from './hooks/useTabStats';
 import {
   type AggregateFn,
   type AggregateSelection,
@@ -51,14 +50,15 @@ import { useTableDuplicates } from './hooks/useTableDuplicates';
 import { useTableFilters } from './hooks/useTableFilters';
 import { type TableSortState, useTableGrid } from './hooks/useTableGrid';
 import { useTableGroups } from './hooks/useTableGroups';
+import { useTabStats } from './hooks/useTabStats';
 import type { ConditionalRule } from './utils/conditionalRules';
 import { handleFullscreenEscapeNavigation } from './utils/fullscreenEscapeNavigation';
 import {
-  type QuickTab,
   buildQuickTabs,
   findPaidColumnKey,
   getActiveTabFilter,
   normalizeActiveTabId,
+  type QuickTab,
 } from './utils/quickTabs';
 import type { CustomTableColumn } from './utils/stylingUtils';
 import { isContentEditableTarget, tx } from './utils/tableHelpers';
@@ -1517,7 +1517,7 @@ export default function CustomTableDetailPage() {
       </Box>
     );
   }
-  const notAuthorized = !user || !table;
+  const notAuthorized = !(user && table);
   if (notAuthorized) {
     const message = user ? t.errors.notFound : t.auth.loginRequired;
     return (

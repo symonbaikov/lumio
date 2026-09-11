@@ -1,15 +1,17 @@
 'use client';
 
+import { Box, Stack, Typography } from '@mui/material';
+import type React from 'react';
+import toast from 'react-hot-toast';
 import { GoogleSheetsPickerButton } from '@/app/components/GoogleSheetsPickerButton';
 import { ExternalLink, FileSpreadsheet } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
 import type { SpreadsheetSelection, WorksheetOption } from '@/app/lib/googleSheetsSelection';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, Stack, Typography } from '@mui/material';
-import type React from 'react';
-import toast from 'react-hot-toast';
-import type { AuthStatus } from '../useGoogleSheetsPage';
-import type { GoogleSheetsPageHandlers as PickerStateType } from '../useGoogleSheetsPage';
+import type {
+  AuthStatus,
+  GoogleSheetsPageHandlers as PickerStateType,
+} from '../useGoogleSheetsPage';
 
 interface Step1Texts {
   step1: {

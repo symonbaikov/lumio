@@ -1,8 +1,8 @@
 'use client';
 
-import type { LucideIcon } from '@/app/components/icons';
 import { Box } from '@mui/material';
 import React from 'react';
+import type { LucideIcon } from '@/app/components/icons';
 import { CompletionStep } from '../steps/CompletionStep';
 import { IntegrationsStep } from '../steps/IntegrationsStep';
 import { LanguageStep } from '../steps/LanguageStep';

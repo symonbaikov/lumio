@@ -1,5 +1,6 @@
 'use client';
 
+import { type ComponentPropsWithoutRef, useEffect, useRef, useState } from 'react';
 import { ColumnsDrawer } from '@/app/(main)/statements/components/columns/ColumnsDrawer';
 import type {
   StatementColumn,
@@ -9,14 +10,13 @@ import { DateFilterDropdown } from '@/app/(main)/statements/components/filters/D
 import { FiltersDrawer } from '@/app/(main)/statements/components/filters/FiltersDrawer';
 import { FromFilterDropdown } from '@/app/(main)/statements/components/filters/FromFilterDropdown';
 import { StatusFilterDropdown } from '@/app/(main)/statements/components/filters/StatusFilterDropdown';
-import { TypeFilterDropdown } from '@/app/(main)/statements/components/filters/TypeFilterDropdown';
 import type { StatementFilters } from '@/app/(main)/statements/components/filters/statement-filters';
+import { TypeFilterDropdown } from '@/app/(main)/statements/components/filters/TypeFilterDropdown';
 import { ChevronDown, Columns2, Copy, Search, SlidersHorizontal } from '@/app/components/icons';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { Spinner } from '@/app/components/ui/spinner';
 import { SHORTCUT_FOCUS_SEARCH, SHORTCUT_OPEN_FILTERS } from '@/app/lib/keyboard-shortcuts';
 import { tokens } from '@/lib/theme-tokens';
-import { type ComponentPropsWithoutRef, useEffect, useRef, useState } from 'react';
 import { StatementsBulkActions } from './StatementsBulkActions';
 
 interface FilterOption {

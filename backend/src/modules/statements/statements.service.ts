@@ -1,7 +1,9 @@
 import { createHash } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+
 import archiver = require('archiver');
+
 import { randomUUID } from 'node:crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
@@ -596,7 +598,7 @@ export class StatementsService {
     });
     const sample = sampleIndex >= 0 ? droppedSamples[sampleIndex] : null;
 
-    if (!sample && !warning) {
+    if (!(sample || warning)) {
       throw new NotFoundException('Dropped sample not found');
     }
 
@@ -608,7 +610,7 @@ export class StatementsService {
     const debit = this.normalizePositiveAmount(payload.transaction.debit);
     const credit = this.normalizePositiveAmount(payload.transaction.credit);
 
-    if (!debit && !credit) {
+    if (!(debit || credit)) {
       throw new BadRequestException('Either debit or credit amount is required');
     }
 

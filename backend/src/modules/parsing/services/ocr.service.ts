@@ -1,8 +1,8 @@
+import { Injectable, Logger } from '@nestjs/common';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { Injectable, Logger } from '@nestjs/common';
 
 export interface OcrResult {
   text: string;
@@ -290,9 +290,7 @@ export class OcrService {
 
         const timer = setTimeout(() => {
           proc.kill('SIGKILL');
-          settle(() =>
-            reject(new Error(`pdftoppm timed out after ${PDF_RASTERIZE_TIMEOUT_MS}ms`)),
-          );
+          settle(() => reject(new Error(`pdftoppm timed out after ${PDF_RASTERIZE_TIMEOUT_MS}ms`)));
         }, PDF_RASTERIZE_TIMEOUT_MS);
 
         proc.on('error', error => settle(() => reject(error)));

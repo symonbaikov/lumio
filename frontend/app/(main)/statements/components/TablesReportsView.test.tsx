@@ -1,3 +1,5 @@
+import { createTestQueryClient } from '@/app/test/query-wrapper';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -188,7 +190,11 @@ describe('TablesReportsView', () => {
 
   it('loads tables report data and renders summary content', async () => {
     await act(async () => {
-      root.render(<TablesReportsView />);
+      root.render(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <TablesReportsView />
+        </QueryClientProvider>,
+      );
     });
 
     await act(async () => {
@@ -216,7 +222,11 @@ describe('TablesReportsView', () => {
 
   it('opens tables dropdown and refetches report with selected tables', async () => {
     await act(async () => {
-      root.render(<TablesReportsView />);
+      root.render(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <TablesReportsView />
+        </QueryClientProvider>,
+      );
     });
 
     await act(async () => {
@@ -257,7 +267,11 @@ describe('TablesReportsView', () => {
 
   it('opens drill-down modal when clicking a leaderboard row', async () => {
     await act(async () => {
-      root.render(<TablesReportsView />);
+      root.render(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <TablesReportsView />
+        </QueryClientProvider>,
+      );
     });
 
     await act(async () => {
@@ -290,7 +304,11 @@ describe('TablesReportsView', () => {
     themeMock.resolvedTheme = 'dark';
 
     await act(async () => {
-      root.render(<TablesReportsView />);
+      root.render(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <TablesReportsView />
+        </QueryClientProvider>,
+      );
     });
 
     await act(async () => {

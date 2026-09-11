@@ -1,9 +1,9 @@
 'use client';
 
-import { formatMoney } from '@/app/lib/format-money';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import { formatMoney } from '@/app/lib/format-money';
+import { tokens } from '@/lib/theme-tokens';
 import type { NetWorthBreakdownItem } from '../hooks/useNetWorth';
 
 /**

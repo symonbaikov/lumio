@@ -1,5 +1,13 @@
 'use client';
 
+import { ThemeProvider } from '@mui/material/styles';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { useTheme as useNextTheme } from 'next-themes';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Toaster } from 'react-hot-toast';
+import { IntlayerProviderContent } from 'react-intlayer';
 import { useAppearancePreferences } from '@/app/lib/appearance-preferences';
 import {
   type AppLocale,
@@ -9,23 +17,15 @@ import {
 } from '@/app/lib/locale';
 import { getQueryClient } from '@/app/lib/query-client';
 import {
-  THEME_STORAGE_EVENT,
   getStoredThemePreference,
   resolveThemePreference,
+  THEME_STORAGE_EVENT,
 } from '@/app/lib/theme-preference';
-import { ThemeProvider } from '@mui/material/styles';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { useTheme as useNextTheme } from 'next-themes';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Toaster } from 'react-hot-toast';
-import { IntlayerProviderContent } from 'react-intlayer';
 import { KeyboardShortcutsProvider } from './components/keyboard-shortcuts-provider';
 import { AuthProvider } from './contexts/AuthContext';
 import { CurrencyDisplayProvider } from './contexts/CurrencyDisplayContext';
 import { NotificationProvider } from './contexts/NotificationContext';
-import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
+import { useWorkspace, WorkspaceProvider } from './contexts/WorkspaceContext';
 import { useAutoTheme } from './hooks/useAutoTheme';
 import { useHTMLLanguage } from './hooks/useHTMLLanguage';
 import { createAppTheme } from './theme';
@@ -71,7 +71,10 @@ function ThemePreferenceSync(): null {
 function WorkspaceScopedProviders({
   children,
   mounted,
-}: { children: React.ReactNode; mounted: boolean }): React.JSX.Element {
+}: {
+  children: React.ReactNode;
+  mounted: boolean;
+}): React.JSX.Element {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id ?? null;
   // Page hooks mostly do not refetch on workspace change, so a real switch
@@ -99,7 +102,10 @@ function WorkspaceScopedProviders({
 export function Providers({
   children,
   initialLocale,
-}: { children: React.ReactNode; initialLocale: AppLocale }): React.JSX.Element {
+}: {
+  children: React.ReactNode;
+  initialLocale: AppLocale;
+}): React.JSX.Element {
   const { resolvedTheme } = useNextTheme();
   const [mounted, setMounted] = useState(false);
   const [locale, setLocale] = useState<AppLocale>(() => readLocaleFromCookie() ?? initialLocale);

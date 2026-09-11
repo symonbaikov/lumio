@@ -1,5 +1,5 @@
-import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { useEffect, useState } from 'react';
+import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { getFileEndpoint } from '../helpers/pdf-endpoints';
 
 export type PDFLoaderState = {

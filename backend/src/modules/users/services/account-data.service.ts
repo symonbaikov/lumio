@@ -4,8 +4,8 @@ import * as bcrypt from 'bcrypt';
 import { IsNull, type Repository } from 'typeorm';
 import { AuditEvent } from '../../../entities/audit-event.entity';
 import { AuthSession } from '../../../entities/auth-session.entity';
-import { NotificationPreference } from '../../../entities/notification-preference.entity';
 import { Notification } from '../../../entities/notification.entity';
+import { NotificationPreference } from '../../../entities/notification-preference.entity';
 import { User } from '../../../entities/user.entity';
 import { WorkspaceMember, WorkspaceRole } from '../../../entities/workspace-member.entity';
 

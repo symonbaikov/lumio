@@ -1,5 +1,6 @@
 'use client';
 
+import React, { isValidElement, useCallback, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ChevronLeft,
@@ -10,7 +11,6 @@ import {
 } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
-import React, { isValidElement, useCallback, useMemo, useState } from 'react';
 import { useSidePanel } from './SidePanelContext';
 import { SectionRenderer } from './sections';
 import type { ActionItem, SidePanelProps } from './types';
@@ -115,7 +115,7 @@ export function SidePanel({
   }, [permissions?.viewPanel, context]);
 
   // Don't render if not visible or no permission
-  if (!visible || !canViewPanel) return null;
+  if (!(visible && canViewPanel)) return null;
 
   return (
     <aside

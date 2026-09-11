@@ -7,8 +7,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { TaxRateKind } from './tax-jurisdiction-rate.entity';
 import { TaxJurisdiction } from './tax-jurisdiction.entity';
+import { TaxRateKind } from './tax-jurisdiction-rate.entity';
 import { Workspace } from './workspace.entity';
 
 /**

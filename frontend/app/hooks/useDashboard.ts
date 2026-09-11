@@ -1,10 +1,10 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
-import { useQuery } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
 import type { DashboardData, DashboardRange, DashboardTrends } from './useDashboard.types';
 import { useWorkspaceId } from './useWorkspaceId';
 
@@ -58,7 +58,7 @@ export function useDashboardTrends(days = 30): TrendsState {
     queryFn: ({ signal }) =>
       apiQuery<DashboardTrends>({ url: '/dashboard/trends', params: { days }, signal }),
     placeholderData: (previous, previousQuery) =>
-      previousQuery?.queryKey[1] === workspaceId ? previous : undefined,
+      previousQuery?.queryKey[2] === workspaceId ? previous : undefined,
   });
 
   const refetch = useCallback((): void => {

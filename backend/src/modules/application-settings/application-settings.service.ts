@@ -724,9 +724,7 @@ export class ApplicationSettingsService {
     const anthropic = isAnthropicBaseUrl(settings.baseUrl);
     try {
       const response = await fetch(
-        anthropic
-          ? `${settings.baseUrl}/v1/messages`
-          : `${settings.baseUrl}/v1/chat/completions`,
+        anthropic ? `${settings.baseUrl}/v1/messages` : `${settings.baseUrl}/v1/chat/completions`,
         {
           method: 'POST',
           headers: anthropic

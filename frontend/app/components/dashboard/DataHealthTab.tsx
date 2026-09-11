@@ -1,17 +1,17 @@
 'use client';
 
+import Link from 'next/link';
+import type React from 'react';
 import { resolveLocale } from '@/app/(main)/dashboard/helpers/dashboard-helpers';
 import { ChevronRight } from '@/app/components/icons';
 import type { DashboardData } from '@/app/hooks/useDashboard';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
-import Link from 'next/link';
-import type React from 'react';
 import { actionIcoClass, actionIcon, resolveActionPriority } from './action-items';
 import {
-  type DataHealthQuickLink,
   buildDataHealthMetrics,
   buildDataHealthQuickLinks,
+  type DataHealthQuickLink,
   getRelativeTime,
 } from './data-health-model';
 import { Chip, ChipGroup, DashboardCard, KpiCard, SectionHeader } from './ui';

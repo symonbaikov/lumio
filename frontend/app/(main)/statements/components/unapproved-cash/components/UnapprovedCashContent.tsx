@@ -1,9 +1,9 @@
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
-import { Checkbox } from '@/app/components/ui/checkbox';
-import { tokens } from '@/lib/theme-tokens';
 import Skeleton from '@mui/material/Skeleton';
 /* eslint-disable max-lines */
 import React from 'react';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
+import { tokens } from '@/lib/theme-tokens';
 import type {
   UnapprovedReasonId,
   UnapprovedSource,

@@ -1,18 +1,17 @@
 'use client';
 
-import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
-import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
-import { PDFThumbnail } from '@/app/components/PDFThumbnail';
-import { CreditCard, Receipt } from '@/app/components/icons';
-import { AlertCircle, CheckCircle2, CircleHelp } from '@/app/components/icons';
-import { NotesBadge } from '@/app/components/notes/NotesBadge';
-import { Checkbox } from '@/app/components/ui/checkbox';
-import { Spinner } from '@/app/components/ui/spinner';
-import { tokens } from '@/lib/theme-tokens';
 import MuiTooltip from '@mui/material/Tooltip';
 import { useTheme } from 'next-themes';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
+import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
+import { AlertCircle, CheckCircle2, CircleHelp, CreditCard, Receipt } from '@/app/components/icons';
+import { NotesBadge } from '@/app/components/notes/NotesBadge';
+import { PDFThumbnail } from '@/app/components/PDFThumbnail';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { Spinner } from '@/app/components/ui/spinner';
+import { tokens } from '@/lib/theme-tokens';
 import {
   DEFAULT_STATEMENT_COLUMNS,
   type StatementColumn,
@@ -288,7 +287,11 @@ function StatusBadge({
   status,
   isProcessing,
   errorMessage,
-}: { status: string; isProcessing: boolean; errorMessage?: string | null }) {
+}: {
+  status: string;
+  isProcessing: boolean;
+  errorMessage?: string | null;
+}) {
   if (errorMessage || status === 'error') {
     return <span className="lumio-stmt-badge lumio-stmt-badge--error">Error</span>;
   }
@@ -366,7 +369,7 @@ export function StatementsListItem({
 
   const updatePreviewPosition = useCallback(() => {
     const trigger = thumbnailButtonRef.current;
-    if (!trigger || !trigger.isConnected || typeof window === 'undefined') {
+    if (!(trigger && trigger.isConnected) || typeof window === 'undefined') {
       closePreview();
       return;
     }
@@ -516,7 +519,7 @@ export function StatementsListItem({
     statement.googleSheet?.sheetName,
   );
   const approvedLabel = formatBoolean(APPROVED_STATUSES.has(statement.status.toLowerCase()));
-  const billableLabel = formatBoolean(!isMissingAmount && !isZeroAmountLabel);
+  const billableLabel = formatBoolean(!(isMissingAmount || isZeroAmountLabel));
   const exportedLabel = formatBoolean(Boolean(statement.exported ?? statement.processedAt));
 
   const renderPlainCell = (

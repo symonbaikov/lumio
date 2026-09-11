@@ -1,5 +1,7 @@
 'use client';
 
+import Skeleton from '@mui/material/Skeleton';
+import { useRouter } from 'next/navigation';
 import { SpendOverTimeContent } from '@/app/(main)/statements/components/spend-over-time/components/SpendOverTimeContent';
 import { SpendOverTimeDrillDown } from '@/app/(main)/statements/components/spend-over-time/components/SpendOverTimeDrillDown';
 import { SpendOverTimeEmptyState } from '@/app/(main)/statements/components/spend-over-time/components/SpendOverTimeEmptyState';
@@ -9,8 +11,6 @@ import {
   type SpendOverTimeViewModelReturn,
   useSpendOverTimeViewModel,
 } from '@/app/(main)/statements/components/spend-over-time/hooks/useSpendOverTimeViewModel';
-import Skeleton from '@mui/material/Skeleton';
-import { useRouter } from 'next/navigation';
 
 type VmProps = { vm: SpendOverTimeViewModelReturn };
 

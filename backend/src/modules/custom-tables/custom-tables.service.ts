@@ -18,16 +18,16 @@ import {
   Severity,
 } from '../../entities/audit-event.entity';
 import { Category } from '../../entities/category.entity';
+import { CustomTable, CustomTableSource } from '../../entities/custom-table.entity';
 import { CustomTableCellStyle } from '../../entities/custom-table-cell-style.entity';
-import { CustomTableColumnStyle } from '../../entities/custom-table-column-style.entity';
 import {
   CustomTableColumn,
   CustomTableColumnType,
 } from '../../entities/custom-table-column.entity';
+import { CustomTableColumnStyle } from '../../entities/custom-table-column-style.entity';
 import { CustomTableRow } from '../../entities/custom-table-row.entity';
-import { CustomTable, CustomTableSource } from '../../entities/custom-table.entity';
-import { DataEntryCustomField } from '../../entities/data-entry-custom-field.entity';
 import { DataEntry, DataEntryType } from '../../entities/data-entry.entity';
+import { DataEntryCustomField } from '../../entities/data-entry-custom-field.entity';
 import { BankName, FileType, Statement, StatementStatus } from '../../entities/statement.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
@@ -35,15 +35,15 @@ import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { AuditService } from '../audit/audit.service';
 import type { BatchCreateCustomTableRowsDto } from './dto/batch-create-custom-table-rows.dto';
 import type { ClassifyPaidStatusDto } from './dto/classify-paid-status.dto';
+import type { CreateCustomTableDto } from './dto/create-custom-table.dto';
 import type { CreateCustomTableColumnDto } from './dto/create-custom-table-column.dto';
-import type { CreateCustomTableFromDataEntryCustomTabDto } from './dto/create-custom-table-from-data-entry-custom-tab.dto';
 import {
   type CreateCustomTableFromDataEntryDto,
   DataEntryToCustomTableScope,
 } from './dto/create-custom-table-from-data-entry.dto';
+import type { CreateCustomTableFromDataEntryCustomTabDto } from './dto/create-custom-table-from-data-entry-custom-tab.dto';
 import type { CreateCustomTableFromStatementsDto } from './dto/create-custom-table-from-statements.dto';
 import type { CreateCustomTableRowDto } from './dto/create-custom-table-row.dto';
-import type { CreateCustomTableDto } from './dto/create-custom-table.dto';
 import {
   CUSTOM_TABLE_AGGREGATE_FNS,
   type CustomTableAggregateDto,
@@ -53,11 +53,11 @@ import {
   type CustomTableRowSortDto,
 } from './dto/list-custom-table-rows.dto';
 import type { ReorderCustomTableColumnsDto } from './dto/reorder-custom-table-columns.dto';
+import type { UpdateCustomTableDto } from './dto/update-custom-table.dto';
 import type { UpdateCustomTableColumnDto } from './dto/update-custom-table-column.dto';
 import type { UpdateCustomTableRowDto } from './dto/update-custom-table-row.dto';
 import type { UpdateCustomTableViewSettingsColumnDto } from './dto/update-custom-table-view-settings.dto';
 import type { UpdateCustomTableViewsDto } from './dto/update-custom-table-views.dto';
-import type { UpdateCustomTableDto } from './dto/update-custom-table.dto';
 import { AiColumnFiller } from './helpers/ai-column.helper';
 import { AiPaidStatusClassifier, type PaidStatusInput } from './helpers/ai-paid-status.helper';
 import { assertValidFormula, evaluateFormula } from './helpers/formula-evaluator';
@@ -3327,7 +3327,7 @@ export class CustomTablesService {
 
     for (const data of rows) {
       for (const col of guarded) {
-        const present = Object.prototype.hasOwnProperty.call(data, col.key);
+        const present = Object.hasOwn(data, col.key);
         const value = data[col.key];
 
         // При частичном обновлении отсутствующий ключ означает «не меняем».
@@ -3337,7 +3337,7 @@ export class CustomTablesService {
           );
         }
 
-        if (!col.isUnique || !present || this.isBlankCellValue(value)) {
+        if (!(col.isUnique && present) || this.isBlankCellValue(value)) {
           continue;
         }
 

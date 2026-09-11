@@ -1,10 +1,10 @@
 'use client';
 
-import { useIntlayer, useLocale } from '@/app/i18n';
 import { DndContext, DragOverlay, pointerWithin } from '@dnd-kit/core';
 import { Box, Typography } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { DocumentTypeIcon } from '../components/DocumentTypeIcon';
 import { PDFPreviewModal } from '../components/PDFPreviewModal';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
@@ -44,8 +44,8 @@ import {
 import { useStorageTags } from './hooks/useStorageTags';
 import { useStorageTrash } from './hooks/useStorageTrash';
 import { type FilterSnapshot, useStorageViews } from './hooks/useStorageViews';
-import { NO_FOLDER, formatFileSize, getStatusTone, tagChipClass } from './storageHelpers';
 import type { StorageViewPayload } from './storageHelpers';
+import { formatFileSize, getStatusTone, NO_FOLDER, tagChipClass } from './storageHelpers';
 
 /**
  * Storage page - displays all files with sharing and permissions
@@ -53,7 +53,9 @@ import type { StorageViewPayload } from './storageHelpers';
 // eslint-disable-next-line max-lines-per-function, complexity
 function StoragePageContent({
   initialList = 'active',
-}: { initialList?: 'active' | 'trash' }): React.JSX.Element {
+}: {
+  initialList?: 'active' | 'trash';
+}): React.JSX.Element {
   const router = useRouter();
   const t = useIntlayer('storagePage');
   const { locale } = useLocale();
@@ -63,22 +65,29 @@ function StoragePageContent({
     [t],
   );
 
-  const filesHook = useStorageFiles({
-    loadFilesFailed: t.toasts.loadFilesFailed.value,
-    downloaded: t.toasts.downloaded.value,
-    downloadFailed: t.toasts.downloadFailed.value,
-    categoryUpdated: t.toasts.categoryUpdated.value,
-    categoryUpdateFailed: t.toasts.categoryUpdateFailed.value,
-    deleteLoading: t.delete.loading.value,
-    deleteSuccess: t.delete.success.value,
-    deleteError: t.delete.error.value,
-    trashRestoreLoading: t.trash.restoreLoading.value,
-    trashRestoreSuccess: t.trash.restoreSuccess.value,
-    trashRestoreFailed: t.trash.restoreFailed.value,
-    trashDeleteLoading: t.trash.deleteLoading.value,
-    trashDeleteSuccess: t.trash.deleteSuccess.value,
-    trashDeleteFailed: t.trash.deleteFailed.value,
-  });
+  const filtersHook = useStorageFilters(
+    { loadCategoriesFailed: t.toasts.loadCategoriesFailed.value },
+    initialList,
+  );
+  const filesHook = useStorageFiles(
+    {
+      loadFilesFailed: t.toasts.loadFilesFailed.value,
+      downloaded: t.toasts.downloaded.value,
+      downloadFailed: t.toasts.downloadFailed.value,
+      categoryUpdated: t.toasts.categoryUpdated.value,
+      categoryUpdateFailed: t.toasts.categoryUpdateFailed.value,
+      deleteLoading: t.delete.loading.value,
+      deleteSuccess: t.delete.success.value,
+      deleteError: t.delete.error.value,
+      trashRestoreLoading: t.trash.restoreLoading.value,
+      trashRestoreSuccess: t.trash.restoreSuccess.value,
+      trashRestoreFailed: t.trash.restoreFailed.value,
+      trashDeleteLoading: t.trash.deleteLoading.value,
+      trashDeleteSuccess: t.trash.deleteSuccess.value,
+      trashDeleteFailed: t.trash.deleteFailed.value,
+    },
+    filtersHook.activeList,
+  );
   const [activeModal, setActiveModal] = useState<'folders' | null>(null);
   const foldersHook = useStorageFolders(
     {
@@ -114,10 +123,6 @@ function StoragePageContent({
     },
     filesHook.setFiles,
     foldersHook.setFolders,
-  );
-  const filtersHook = useStorageFilters(
-    { loadCategoriesFailed: t.toasts.loadCategoriesFailed.value },
-    initialList,
   );
   const viewsHook = useStorageViews(
     {
@@ -158,9 +163,6 @@ function StoragePageContent({
     void foldersHook.loadFolders();
     void viewsHook.loadViews();
   });
-  const loadFilesForList = useEffectEvent((list: typeof filtersHook.activeList) => {
-    void filesHook.loadFiles(list);
-  });
   const clampPage = useEffectEvent((maxPage: number) => {
     if (filtersHook.page > maxPage) {
       filtersHook.setPage(maxPage);
@@ -175,10 +177,6 @@ function StoragePageContent({
   useEffect(() => {
     loadLookups();
   }, []);
-
-  useEffect(() => {
-    loadFilesForList(filtersHook.activeList);
-  }, [filtersHook.activeList]);
 
   useLockBodyScroll(activeModal !== null || filtersHook.filterOpen);
 

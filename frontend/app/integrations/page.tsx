@@ -1,11 +1,6 @@
 /* eslint-disable max-lines */
 'use client';
 
-import { CheckCircle2, ExternalLink, Search, Star } from '@/app/components/icons';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
-import { useIntlayer } from '@/app/i18n';
-import apiClient from '@/app/lib/api';
-import { tokens } from '@/lib/theme-tokens';
 import AlternateEmailOutlinedIcon from '@mui/icons-material/AlternateEmailOutlined';
 import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
 import CloudQueueOutlinedIcon from '@mui/icons-material/CloudQueueOutlined';
@@ -17,11 +12,16 @@ import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import TelegramIcon from '@mui/icons-material/Telegram';
 import { Box, Stack, Typography } from '@mui/material';
-import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { CheckCircle2, ExternalLink, Search, Star } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
+import { useIntlayer } from '@/app/i18n';
+import apiClient from '@/app/lib/api';
+import { tokens } from '@/lib/theme-tokens';
 
 // eslint-disable-next-line max-lines-per-function, complexity
 export default function IntegrationsPage(): React.JSX.Element {

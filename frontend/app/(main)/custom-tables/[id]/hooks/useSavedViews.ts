@@ -1,9 +1,9 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
 import type { SortingState } from '@tanstack/react-table';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import apiClient from '@/app/lib/api';
 import type { ColumnFilterState } from './useColumnConfig';
 import type { AggregateSelection } from './useTableAggregates';
 

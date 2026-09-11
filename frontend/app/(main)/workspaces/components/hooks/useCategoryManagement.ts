@@ -1,6 +1,6 @@
-import apiClient from '@/app/lib/api';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import apiClient from '@/app/lib/api';
 
 export type Category = {
   id: string;

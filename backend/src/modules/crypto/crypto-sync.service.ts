@@ -6,6 +6,7 @@ import { CryptoWallet } from '../../entities/crypto-wallet.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
+import { CHAIN_NAMES, NATIVE_ASSET_BY_CHAIN, TICKER_BY_CONTRACT } from './crypto.constants';
 import { CryptoPriceService } from './crypto-price.service';
 import {
   type ChainTransfer,
@@ -15,8 +16,7 @@ import {
   mapChainTransfers,
   mapWalletBalances,
 } from './crypto-transfer.mapper';
-import { CHAIN_NAMES, NATIVE_ASSET_BY_CHAIN, TICKER_BY_CONTRACT } from './crypto.constants';
-import { MAX_ATTEMPTS, isTransient, retryWaitMs, sleep } from './retry.util';
+import { isTransient, MAX_ATTEMPTS, retryWaitMs, sleep } from './retry.util';
 
 /**
  * Blockscout's hosted Ethereum mainnet explorer mirrors Etherscan's account API

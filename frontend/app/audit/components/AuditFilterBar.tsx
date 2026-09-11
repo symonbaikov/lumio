@@ -1,11 +1,11 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FilterActions } from '@/app/(main)/statements/components/filters/FilterActions';
 import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
 import { Search } from '@/app/components/icons';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import type { ActorType, AuditAction, AuditEventFilter } from '@/lib/api/audit';
-import { useCallback, useEffect, useRef, useState } from 'react';
 
 type ActorTypeOption = { value: ActorType | ''; label: string };
 type ActionOption = { value: AuditAction | ''; label: string };

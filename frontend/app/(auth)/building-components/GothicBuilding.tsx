@@ -1,11 +1,11 @@
 'use client';
 
-import { tokens } from '@/lib/theme-tokens';
 import { motion } from 'framer-motion';
+import { tokens } from '@/lib/theme-tokens';
 import { Block } from './Block';
-import { WindowGrid } from './WindowGrid';
-import { stableWindowNoise } from './shared';
 import type { BuildingProps } from './shared';
+import { stableWindowNoise } from './shared';
+import { WindowGrid } from './WindowGrid';
 
 const WINDOW_COUNT = 6;
 const WINDOW_NOISE_OFFSET = 1000;

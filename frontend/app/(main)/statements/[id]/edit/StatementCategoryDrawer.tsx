@@ -1,13 +1,13 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import { Check, ChevronLeft, Search } from '@/app/components/icons';
 import { DrawerShell, type DrawerWidth } from '@/app/components/ui/drawer-shell';
 import { useLocale } from '@/app/i18n';
 import {
-  type StatementCategoryNode,
   filterStatementCategories,
+  type StatementCategoryNode,
 } from '@/app/lib/statement-categories';
-import { useEffect, useMemo, useState } from 'react';
 
 type StatementCategoryDrawerLabels = {
   title: string;

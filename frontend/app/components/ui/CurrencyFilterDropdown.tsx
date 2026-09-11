@@ -1,13 +1,13 @@
 'use client';
 
+import Box from '@mui/material/Box';
+import { useEffect, useState } from 'react';
 import { FilterActions } from '@/app/(main)/statements/components/filters/FilterActions';
 import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
 import { FilterOptionRow } from '@/app/(main)/statements/components/filters/FilterOptionRow';
 import { DollarSign } from '@/app/components/icons';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { useIntlayer } from '@/app/i18n';
-import Box from '@mui/material/Box';
-import { useEffect, useState } from 'react';
 
 interface CurrencyFilterDropdownProps {
   /** All currency codes present in the current dataset (e.g. ['KZT', 'USD', 'EUR']). */

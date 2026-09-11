@@ -1,10 +1,10 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
-import { tokens } from '@/lib/theme-tokens';
 import { Alert, Box, Button, Checkbox, CircularProgress, Stack, Typography } from '@mui/material';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import apiClient from '@/app/lib/api';
+import { tokens } from '@/lib/theme-tokens';
 
 interface DisclaimerStatus {
   version: string;

@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { applyStatementsFilters } from '@/app/(main)/statements/components/filters/statement-filters';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
@@ -10,16 +11,14 @@ import { fetchExchangeRate } from '@/app/lib/exchange-rate';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import {
   type OpenExpenseDrawerEventDetail,
+  resolveExpenseDrawerMode,
   STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT,
   type StatementExpenseMode,
-  resolveExpenseDrawerMode,
 } from '@/app/lib/statement-expense-drawer';
 import { STATEMENTS_GMAIL_SYNC_STORAGE_KEY } from '@/app/lib/statement-upload-actions';
-import { type StatementStage, getStatementStage } from '@/app/lib/statement-workflow';
-import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react';
+import { getStatementStage, type StatementStage } from '@/app/lib/statement-workflow';
+import { mapGmailReceiptsToStatements } from '../gmail-receipt-mapping';
 import {
-  type FilterLabels,
-  type FilterOptionLabels,
   buildColumnLabels,
   buildCurrencyOptions,
   buildDateModes,
@@ -36,11 +35,12 @@ import {
   buildUploadLabels,
   computeActiveFilterCount,
   deriveVisibleFilterScreens,
+  type FilterLabels,
+  type FilterOptionLabels,
   isReceiptDerivedStatement,
   paginateStatements,
   resolveStatementSortDate,
 } from '../StatementsListView.utils';
-import { mapGmailReceiptsToStatements } from '../gmail-receipt-mapping';
 import type { StatementUploadLabels } from '../statement-upload';
 import {
   STATEMENTS_PAGE_SIZE as PAGE_SIZE,
@@ -308,6 +308,7 @@ export function useStatementsView({
     statements,
     gmailReceipts,
     isPending,
+    gmailIsPending,
     gmailSyncSkeletonKeys,
     setGmailSyncSkeletonKeys,
     refetchStatements,
@@ -398,6 +399,11 @@ export function useStatementsView({
       sessionStorage.removeItem(STATEMENTS_GMAIL_SYNC_STORAGE_KEY);
     }
   }, [stage, gmailReceipts.length, gmailSyncSkeletonKeys.length, setGmailSyncSkeletonKeys]);
+
+  // Gmail-чеки вливаются в тот же список, поэтому на submit ждём оба запроса —
+  // иначе строки досыпаются в уже отрисованную таблицу. Гейт по stage зеркалит
+  // `enabled` самого запроса: выключенный запрос в RQ v5 навсегда `pending`.
+  const listIsPending = isPending || (stage === 'submit' && gmailIsPending);
 
   const receiptStatements = useMemo<Statement[]>(() => {
     if (stage !== 'submit') {
@@ -626,7 +632,7 @@ export function useStatementsView({
     preview,
     openPreview,
     closePreview,
-    isPending,
+    isPending: listIsPending,
     gmailSyncSkeletonKeys,
     setGmailSyncSkeletonKeys,
     refetchStatements,

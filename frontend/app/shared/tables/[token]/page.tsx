@@ -1,9 +1,9 @@
 'use client';
 
-import { useIntlayer } from '@/app/i18n';
 import { Alert, Box, Container, Paper, Typography } from '@mui/material';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useIntlayer } from '@/app/i18n';
 import api from '../../../lib/api';
 import { getApiErrorMessage } from '../../../lib/api-error';
 

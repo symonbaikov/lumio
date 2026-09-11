@@ -1,11 +1,11 @@
 'use client';
 
-import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
-import { GripVertical } from '@/app/components/icons';
 import { useDraggable } from '@dnd-kit/core';
 import { Box, Typography } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import React from 'react';
+import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
+import { GripVertical } from '@/app/components/icons';
 import type { StorageFile } from '../storageHelpers';
 
 interface DraggableModalFileItemProps {

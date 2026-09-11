@@ -1,23 +1,22 @@
 'use client';
-import { formatStoredDateTime } from '@/app/lib/user-format-store';
-
-import { ChevronDown, ChevronRight, Cpu, Plug, User } from '@/app/components/icons';
-import { AppPagination } from '@/app/components/ui/pagination';
-import type { AuditEvent } from '@/lib/api/audit';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import {
   type ColumnDef,
-  type SortingState,
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
 import { useTheme } from 'next-themes';
 import { useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, Cpu, Plug, User } from '@/app/components/icons';
+import { AppPagination } from '@/app/components/ui/pagination';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
+import type { AuditEvent } from '@/lib/api/audit';
+import { tokens } from '@/lib/theme-tokens';
 import { formatAuditEvent } from '../utils/formatAuditEvent';
 
 interface AuditEventTableProps {

@@ -1,15 +1,15 @@
 'use client';
 
-import { Alert } from '@/app/components/ui/alert';
-import { Spinner } from '@/app/components/ui/spinner';
-import apiClient from '@/app/lib/api';
-import { getApiErrorMessage } from '@/app/settings/profile/profileHelpers';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useState } from 'react';
+import { Alert } from '@/app/components/ui/alert';
+import { Spinner } from '@/app/components/ui/spinner';
+import apiClient from '@/app/lib/api';
+import { getApiErrorMessage } from '@/app/settings/profile/profileHelpers';
 
 type Props = {
   tx: (path: string[], fallback: string) => string;

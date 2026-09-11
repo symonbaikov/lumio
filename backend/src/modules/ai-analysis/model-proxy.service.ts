@@ -6,10 +6,10 @@ import { pipeline } from 'node:stream/promises';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   ALLOWED_MODEL_IDS,
+  expectedPathPrefix,
   MODEL_ASSET_KINDS,
   type ModelAssetKind,
   UPSTREAM_ORIGIN,
-  expectedPathPrefix,
 } from './model-proxy.constants';
 
 /** Upstream hops followed before a request is treated as a redirect loop. */

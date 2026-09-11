@@ -1,7 +1,8 @@
 'use client';
 
+import { useTheme } from 'next-themes';
+import React from 'react';
 import { Edit3, MoreHorizontal } from '@/app/components/icons';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 import {
@@ -10,12 +11,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 import type { Payable } from '@/app/lib/payables-api';
 import { tokens } from '@/lib/theme-tokens';
-import { useTheme } from 'next-themes';
-import React from 'react';
 import {
   formatMoney,
   formatPayableDate,

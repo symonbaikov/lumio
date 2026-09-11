@@ -1,7 +1,6 @@
 'use client';
 
-import { Box } from '@mui/material';
-import { Button, DialogActions } from '@mui/material';
+import { Box, Button, DialogActions } from '@mui/material';
 import type { CreateFromStatementsModalLabels, FormatLabelFn } from '../CreateFromStatementsModal';
 
 interface SelectedStatementSummary {

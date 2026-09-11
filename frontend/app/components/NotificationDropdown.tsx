@@ -1,16 +1,15 @@
 'use client';
-import { formatStoredDate } from '@/app/lib/user-format-store';
-
+import { Divider, Menu } from '@mui/material';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Bell, CircleAlert, Info } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useNotifications } from '@/app/hooks/useNotifications';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import { tokens } from '@/lib/theme-tokens';
-import { Divider, Menu } from '@mui/material';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
 
 type NotificationDropdownProps = {
   triggerClassName?: string;

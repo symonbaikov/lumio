@@ -5,11 +5,11 @@ import { CryptoWallet } from '../../entities/crypto-wallet.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
+import { CHAIN_NAMES, DEFAULT_CHAIN_ID } from './crypto.constants';
 import { CryptoPriceService } from './crypto-price.service';
 import type { WalletSyncResult } from './crypto-sync.service';
 import { CryptoSyncService } from './crypto-sync.service';
 import { addDecimals } from './crypto-transfer.mapper';
-import { CHAIN_NAMES, DEFAULT_CHAIN_ID } from './crypto.constants';
 import type { ConnectCryptoWalletDto } from './dto/connect-crypto-wallet.dto';
 
 export interface CryptoWalletView {

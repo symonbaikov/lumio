@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   type TopMerchantsAggregationReturn,
   useTopMerchantsAggregation,
@@ -13,7 +14,6 @@ import type {
 } from '@/app/(main)/statements/components/top-merchants/top-merchants.types';
 import { useAnalyticsData } from '@/app/(main)/statements/hooks/useAnalyticsData';
 import { getRecordDate } from '@/app/lib/analytics-common';
-import { useMemo } from 'react';
 
 type WorkspaceLike = { id: string; name?: string | null };
 

@@ -2,12 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { Notification } from '../../entities/notification.entity';
 import {
   NotificationChannel,
   NotificationDigestMode,
   NotificationPreference,
 } from '../../entities/notification-preference.entity';
-import { Notification } from '../../entities/notification.entity';
 import { User } from '../../entities/user.entity';
 import { MailerService } from '../mailer/mailer.service';
 import { TelegramService } from '../telegram/telegram.service';

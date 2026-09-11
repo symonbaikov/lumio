@@ -1,17 +1,16 @@
 'use client';
-import { formatStoredDate } from '@/app/lib/user-format-store';
-
-import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
-import { FileImage, FileText } from '@/app/components/icons';
-import { NotesPanel } from '@/app/components/notes/NotesPanel';
-import { Button } from '@/app/components/ui/button';
-import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import apiClient, { apiBaseUrl, receiptsApi, type ReceiptRecord } from '@/app/lib/api';
-import { normalizeReceiptLineItems } from '@/app/lib/financial-document';
-import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { Box, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { FileImage, FileText } from '@/app/components/icons';
+import { NotesPanel } from '@/app/components/notes/NotesPanel';
+import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
+import { Button } from '@/app/components/ui/button';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import apiClient, { apiBaseUrl, type ReceiptRecord, receiptsApi } from '@/app/lib/api';
+import { normalizeReceiptLineItems } from '@/app/lib/financial-document';
+import { formatStoredDate } from '@/app/lib/user-format-store';
+import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { ReceiptParsedDataForm } from './ReceiptParsedDataForm';
 import type {
   EditableReceiptLineItem,
@@ -82,7 +81,7 @@ export function ReceiptDetailPanel({
   }, [receipt]);
 
   useEffect(() => {
-    if (!isOpen || !receipt) {
+    if (!(isOpen && receipt)) {
       setPreviewUrl(currentUrl => {
         if (currentUrl) {
           URL.revokeObjectURL(currentUrl);

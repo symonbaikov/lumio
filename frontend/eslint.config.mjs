@@ -6,12 +6,12 @@
 // exhaustive deps, no-delete, no-accumulating-spread.
 // ESLint handles: everything below that requires AST traversal + type info.
 
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
 import js from '@eslint/js';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
+import { dirname } from 'path';
 import tseslint from 'typescript-eslint';
+import { fileURLToPath } from 'url';
 
 const Dirname = dirname(fileURLToPath(import.meta.url));
 

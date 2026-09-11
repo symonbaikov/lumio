@@ -1,12 +1,12 @@
 'use client';
 
+import { Box, Button, Stack, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
 import { BackgroundSelector } from '@/app/(main)/workspaces/components/BackgroundSelector';
 import { CurrencySelector } from '@/app/(main)/workspaces/components/CurrencySelector';
 import { AVAILABLE_BACKGROUNDS } from '@/app/(main)/workspaces/constants';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, Button, Stack, Typography } from '@mui/material';
-import { useEffect, useState } from 'react';
 import { getNestedOnboardingValue, resolveOnboardingText } from '../lib/resolveOnboardingText';
 import type { SupportedLocale } from '../useOnboardingWizard';
 

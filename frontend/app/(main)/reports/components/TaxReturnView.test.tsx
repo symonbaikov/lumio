@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from '@testing-library/react';
+import { renderWithQuery } from '@/app/test/query-wrapper';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -61,6 +62,10 @@ function mockApi({ status = 'draft', totals = TOTALS, threshold = null as unknow
   });
 }
 
+vi.mock('@/app/contexts/WorkspaceContext', () => ({
+  useWorkspace: () => ({ currentWorkspace: { id: 'w1' } }),
+}));
+
 describe('TaxReturnView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -69,7 +74,7 @@ describe('TaxReturnView', () => {
 
   it('shows the three headline figures', async () => {
     mockApi();
-    render(<TaxReturnView />);
+    renderWithQuery(<TaxReturnView />);
 
     expect(await screen.findByText('Output tax')).toBeInTheDocument();
     expect(screen.getByText('Input tax')).toBeInTheDocument();
@@ -78,7 +83,7 @@ describe('TaxReturnView', () => {
 
   it('labels a negative net as reclaimable rather than owed', async () => {
     mockApi({ totals: { ...TOTALS, netPayable: -300 } });
-    render(<TaxReturnView />);
+    renderWithQuery(<TaxReturnView />);
 
     expect(await screen.findByText('Reclaimable')).toBeInTheDocument();
     expect(screen.queryByText('Payable')).not.toBeInTheDocument();
@@ -86,7 +91,7 @@ describe('TaxReturnView', () => {
 
   it('lists the transactions behind the figures', async () => {
     mockApi();
-    render(<TaxReturnView />);
+    renderWithQuery(<TaxReturnView />);
 
     expect(await screen.findByText('Magnum')).toBeInTheDocument();
     // A reverse-charge line is named as such, since it appears on both sides.
@@ -95,7 +100,7 @@ describe('TaxReturnView', () => {
 
   it('files the period and reloads', async () => {
     mockApi();
-    render(<TaxReturnView />);
+    renderWithQuery(<TaxReturnView />);
 
     await userEvent.click(await screen.findByRole('button', { name: 'File and lock' }));
 
@@ -109,7 +114,7 @@ describe('TaxReturnView', () => {
 
   it('offers reopening once filed, and says the rows are locked', async () => {
     mockApi({ status: 'filed' });
-    render(<TaxReturnView />);
+    renderWithQuery(<TaxReturnView />);
 
     expect(await screen.findByRole('button', { name: 'Reopen period' })).toBeInTheDocument();
     expect(screen.getByText(/transactions behind it are locked/)).toBeInTheDocument();
@@ -117,7 +122,7 @@ describe('TaxReturnView', () => {
 
   it('reopens the period', async () => {
     mockApi({ status: 'filed' });
-    render(<TaxReturnView />);
+    renderWithQuery(<TaxReturnView />);
 
     await userEvent.click(await screen.findByRole('button', { name: 'Reopen period' }));
 
@@ -128,7 +133,7 @@ describe('TaxReturnView', () => {
 
   it('points at the missing setup step when the return cannot be built', async () => {
     get.mockRejectedValue(new Error('no jurisdiction'));
-    render(<TaxReturnView />);
+    renderWithQuery(<TaxReturnView />);
 
     expect(await screen.findByText(/tax jurisdiction/)).toBeInTheDocument();
   });
@@ -144,7 +149,7 @@ describe('TaxReturnView', () => {
         periodEnd: '2026-06-15',
       },
     });
-    render(<TaxReturnView />);
+    renderWithQuery(<TaxReturnView />);
 
     expect(await screen.findByText('Registration threshold')).toBeInTheDocument();
     expect(screen.getByText(/80%/)).toBeInTheDocument();
@@ -152,7 +157,7 @@ describe('TaxReturnView', () => {
 
   it('omits the gauge when the jurisdiction publishes none', async () => {
     mockApi({ threshold: { threshold: null, turnover: 0, currency: 'KZT', percentUsed: 0 } });
-    render(<TaxReturnView />);
+    renderWithQuery(<TaxReturnView />);
 
     await screen.findByText('Output tax');
     expect(screen.queryByText('Registration threshold')).not.toBeInTheDocument();
@@ -160,14 +165,14 @@ describe('TaxReturnView', () => {
 
   it('says so when nothing in the period was taxed', async () => {
     mockApi({ totals: { ...TOTALS, lines: [] } });
-    render(<TaxReturnView />);
+    renderWithQuery(<TaxReturnView />);
 
     expect(await screen.findByText(/No taxed transactions/)).toBeInTheDocument();
   });
 
   it('always carries the advice disclaimer', async () => {
     mockApi();
-    render(<TaxReturnView />);
+    renderWithQuery(<TaxReturnView />);
 
     expect(await screen.findByText(/not a substitute for advice/)).toBeInTheDocument();
   });
@@ -189,7 +194,7 @@ describe('TaxReturnView', () => {
         if (url.startsWith('/tax/returns/preview')) return { data: TOTALS };
         return { data: null };
       });
-      render(<TaxReturnView />);
+      renderWithQuery(<TaxReturnView />);
 
       await userEvent.click(await screen.findByRole('button', { name: format.toUpperCase() }));
 
@@ -211,7 +216,7 @@ describe('TaxReturnView', () => {
         if (url.startsWith('/tax/returns/preview')) return { data: TOTALS };
         return { data: null };
       });
-      render(<TaxReturnView />);
+      renderWithQuery(<TaxReturnView />);
 
       await userEvent.click(await screen.findByRole('button', { name: 'PDF' }));
 
@@ -228,7 +233,7 @@ describe('TaxReturnView', () => {
         if (url.startsWith('/tax/returns/preview')) return { data: TOTALS };
         return { data: null };
       });
-      render(<TaxReturnView />);
+      renderWithQuery(<TaxReturnView />);
 
       await userEvent.click(await screen.findByRole('button', { name: 'XLSX' }));
 

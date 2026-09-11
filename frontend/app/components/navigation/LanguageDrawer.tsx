@@ -1,8 +1,8 @@
 'use client';
 
+import React from 'react';
 import { Check, ChevronLeft, Search } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import React from 'react';
 
 type LanguageDrawerProps = {
   isOpen: boolean;

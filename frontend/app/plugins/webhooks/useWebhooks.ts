@@ -1,8 +1,12 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
-import { useCallback, useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import apiClient from '@/app/lib/api';
+import { apiQuery } from '@/app/lib/query-fn';
+import { queryKeys } from '@/app/lib/query-keys';
 
 export interface WebhookEndpoint {
   id: string;
@@ -28,116 +32,127 @@ export interface WebhookSubscription {
 }
 
 export function useWebhookEndpoints() {
-  const [endpoints, setEndpoints] = useState<WebhookEndpoint[]>([]);
-  const [loading, setLoading] = useState(false);
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
   const [newToken, setNewToken] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    await (async () => {
-      setLoading(true);
-      const res = await apiClient.get('/webhook-endpoints');
-      setEndpoints(res.data as WebhookEndpoint[]);
-    })()
-      .catch(async () => {
-        toast.error('Failed to load webhook endpoints');
-      })
-      .finally(async () => {
-        setLoading(false);
-      });
-  }, []);
+  const query = useQuery({
+    queryKey: queryKeys.webhookEndpoints(workspaceId),
+    queryFn: ({ signal }) => apiQuery<WebhookEndpoint[]>({ url: '/webhook-endpoints', signal }),
+  });
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const invalidate = useCallback((): Promise<void> => {
+    return queryClient.invalidateQueries({ queryKey: queryKeys.webhookEndpoints(workspaceId) });
+  }, [queryClient, workspaceId]);
+
+  const createMutation = useMutation({
+    mutationFn: (name: string) => apiClient.post('/webhook-endpoints', { name }),
+    onSuccess: response => {
+      setNewToken((response.data as WebhookEndpointFull).token);
+      toast.success('Webhook endpoint created');
+    },
+    onError: () => toast.error('Failed to create webhook endpoint'),
+    onSettled: invalidate,
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/webhook-endpoints/${id}`),
+    onSuccess: () => toast.success('Webhook endpoint deleted'),
+    onError: () => toast.error('Failed to delete webhook endpoint'),
+    onSettled: invalidate,
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: (variables: { id: string; isActive: boolean }) =>
+      apiClient.patch(`/webhook-endpoints/${variables.id}`, { isActive: !variables.isActive }),
+    onError: () => toast.error('Failed to update webhook endpoint'),
+    onSettled: invalidate,
+  });
+
+  const load = useCallback(async () => {
+    await invalidate();
+  }, [invalidate]);
 
   const create = useCallback(
     async (name: string) => {
-      await (async () => {
-        const res = await apiClient.post('/webhook-endpoints', { name });
-        setNewToken((res.data as WebhookEndpointFull).token);
-        await load();
-        toast.success('Webhook endpoint created');
-      })().catch(async () => {
-        toast.error('Failed to create webhook endpoint');
-      });
+      createMutation.mutate(name);
     },
-    [load],
+    [createMutation.mutate],
   );
 
   const remove = useCallback(
     async (id: string) => {
-      await (async () => {
-        await apiClient.delete(`/webhook-endpoints/${id}`);
-        await load();
-        toast.success('Webhook endpoint deleted');
-      })().catch(async () => {
-        toast.error('Failed to delete webhook endpoint');
-      });
+      removeMutation.mutate(id);
     },
-    [load],
+    [removeMutation.mutate],
   );
 
   const toggle = useCallback(
     async (id: string, isActive: boolean) => {
-      await (async () => {
-        await apiClient.patch(`/webhook-endpoints/${id}`, { isActive: !isActive });
-        await load();
-      })().catch(async () => {
-        toast.error('Failed to update webhook endpoint');
-      });
+      toggleMutation.mutate({ id, isActive });
     },
-    [load],
+    [toggleMutation.mutate],
   );
 
-  return { endpoints, loading, newToken, setNewToken, load, create, remove, toggle };
+  return {
+    endpoints: query.data ?? [],
+    loading: query.isPending,
+    newToken,
+    setNewToken,
+    load,
+    create,
+    remove,
+    toggle,
+  };
 }
 
 export function useWebhookSubscriptions() {
-  const [subscriptions, setSubscriptions] = useState<WebhookSubscription[]>([]);
-  const [loading, setLoading] = useState(false);
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: queryKeys.webhookSubscriptions(workspaceId),
+    queryFn: ({ signal }) =>
+      apiQuery<WebhookSubscription[]>({ url: '/webhook-subscriptions', signal }),
+  });
+
+  const invalidate = useCallback((): Promise<void> => {
+    return queryClient.invalidateQueries({
+      queryKey: queryKeys.webhookSubscriptions(workspaceId),
+    });
+  }, [queryClient, workspaceId]);
+
+  const createMutation = useMutation({
+    mutationFn: (data: { name: string; url: string; secret: string; events: string[] }) =>
+      apiClient.post('/webhook-subscriptions', data),
+    onSuccess: () => toast.success('Webhook subscription created'),
+    onError: () => toast.error('Failed to create webhook subscription'),
+    onSettled: invalidate,
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/webhook-subscriptions/${id}`),
+    onSuccess: () => toast.success('Webhook subscription deleted'),
+    onError: () => toast.error('Failed to delete webhook subscription'),
+    onSettled: invalidate,
+  });
 
   const load = useCallback(async () => {
-    await (async () => {
-      setLoading(true);
-      const res = await apiClient.get('/webhook-subscriptions');
-      setSubscriptions(res.data as WebhookSubscription[]);
-    })()
-      .catch(async () => {
-        toast.error('Failed to load webhook subscriptions');
-      })
-      .finally(async () => {
-        setLoading(false);
-      });
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+    await invalidate();
+  }, [invalidate]);
 
   const create = useCallback(
     async (data: { name: string; url: string; secret: string; events: string[] }) => {
-      await (async () => {
-        await apiClient.post('/webhook-subscriptions', data);
-        await load();
-        toast.success('Webhook subscription created');
-      })().catch(async () => {
-        toast.error('Failed to create webhook subscription');
-      });
+      createMutation.mutate(data);
     },
-    [load],
+    [createMutation.mutate],
   );
 
   const remove = useCallback(
     async (id: string) => {
-      await (async () => {
-        await apiClient.delete(`/webhook-subscriptions/${id}`);
-        await load();
-        toast.success('Webhook subscription deleted');
-      })().catch(async () => {
-        toast.error('Failed to delete webhook subscription');
-      });
+      removeMutation.mutate(id);
     },
-    [load],
+    [removeMutation.mutate],
   );
 
   const testPing = useCallback(async (id: string) => {
@@ -149,5 +164,12 @@ export function useWebhookSubscriptions() {
     });
   }, []);
 
-  return { subscriptions, loading, load, create, remove, testPing };
+  return {
+    subscriptions: query.data ?? [],
+    loading: query.isPending,
+    load,
+    create,
+    remove,
+    testPing,
+  };
 }

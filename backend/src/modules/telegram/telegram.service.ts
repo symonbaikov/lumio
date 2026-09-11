@@ -1,10 +1,10 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { BadRequestException, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { Repository } from 'typeorm';
-import { TimeoutError, retry } from '../../common/utils/async.util';
+import { retry, TimeoutError } from '../../common/utils/async.util';
 import { formatMoney } from '../../common/utils/format-money.util';
 import type { Insight } from '../../entities/insight.entity';
 import { ReportStatus, ReportType, TelegramReport } from '../../entities/telegram-report.entity';
@@ -19,9 +19,9 @@ import { StatementsService } from '../statements/statements.service';
 import type { ConnectTelegramDto } from './dto/connect-telegram.dto';
 import type { SendTelegramReportDto } from './dto/send-report.dto';
 import {
-  type TelegramMessageKey,
   renderTelegramMessage,
   resolveTelegramLocale,
+  type TelegramMessageKey,
 } from './telegram-translations';
 
 interface TelegramSendResult {
@@ -703,7 +703,7 @@ export class TelegramService {
   private sanitizeFileName(fileName: string): string {
     // Allow cyrillic letters (Russian alphabet) and common characters
     // Remove only truly dangerous characters for file systems
-    return fileName.replace(/[<>:"|?*\/\\]/g, '_');
+    return fileName.replace(/[<>:"|?*/\\]/g, '_');
   }
 
   private async downloadTelegramFile(

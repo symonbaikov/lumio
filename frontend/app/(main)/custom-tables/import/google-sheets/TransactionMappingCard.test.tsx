@@ -149,6 +149,23 @@ describe('TransactionMappingCard', () => {
     expect(screen.queryByText(/rows/)).not.toBeInTheDocument();
   });
 
+  it('opens the currency drawer and reports the picked code', () => {
+    const props = baseProps();
+    render(<TransactionMappingCard {...props} />);
+
+    const trigger = screen.getByLabelText('Default currency');
+    expect(trigger.textContent).toContain('KZT');
+    expect(screen.queryByPlaceholderText('Search')).not.toBeInTheDocument();
+
+    fireEvent.click(trigger);
+    // EUR is listed twice while the drawer is open: once under "Recents" and
+    // once in the full list.
+    fireEvent.click(screen.getAllByText('EUR - \u20ac')[0]);
+
+    expect(props.onDefaultCurrencyChange).toHaveBeenCalledTimes(1);
+    expect(props.onDefaultCurrencyChange).toHaveBeenCalledWith('EUR');
+  });
+
   it('renders the empty hint when there are no columns', () => {
     const props = baseProps();
     render(<TransactionMappingCard {...props} columns={[]} />);

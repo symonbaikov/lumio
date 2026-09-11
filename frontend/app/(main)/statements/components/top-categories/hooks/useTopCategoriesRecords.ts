@@ -1,25 +1,25 @@
+import { useMemo } from 'react';
 import {
+  applyStatementsFilters,
   type StatementFilterItem,
   type StatementFilters,
-  applyStatementsFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
 import type { AnalyticsFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
-import type {
-  TopCategoryFlowType,
-  TopCategoryRecord,
-} from '@/app/(main)/statements/components/top-categories.utils';
-import { dedupeCategoryReceiptRecords } from '@/app/(main)/statements/components/top-categories.utils';
 import {
   getBankDisplayName,
   mapGmailReceiptToCategoryRecord,
   mapTransactionToCategoryRecord,
 } from '@/app/(main)/statements/components/top-categories/helpers/top-categories-mappers';
 import type {
+  TopCategoryFlowType,
+  TopCategoryRecord,
+} from '@/app/(main)/statements/components/top-categories.utils';
+import { dedupeCategoryReceiptRecords } from '@/app/(main)/statements/components/top-categories.utils';
+import type {
   GmailReceipt,
   StatementMeta,
   Transaction,
 } from '@/app/(main)/statements/types/statement-types';
-import { useMemo } from 'react';
 
 type StatementWithWorkspace = StatementMeta & StatementFilterItem;
 

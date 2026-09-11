@@ -1,7 +1,7 @@
-import { existsSync, readFileSync, readdirSync } from 'fs';
-import { basename, extname, join, resolve } from 'path';
 import { Injectable, Logger } from '@nestjs/common';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import * as yaml from 'js-yaml';
+import { basename, extname, join, resolve } from 'path';
 import {
   createAmountFormat,
   createSharedProfileSections,

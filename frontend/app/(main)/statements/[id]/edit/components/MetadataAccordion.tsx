@@ -1,7 +1,5 @@
 'use client';
 
-import CustomDatePicker from '@/app/components/CustomDatePicker';
-import { ChevronDown } from '@/app/components/icons';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -9,9 +7,11 @@ import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import type { RefObject } from 'react';
-import type { ConvertDroppedSamplePayload, ResolveWarningPayload } from '../ParsingWarningsPanel';
-import { buildHints, ignoreEventArg, labelValue } from '../editHelpers';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
+import { ChevronDown } from '@/app/components/icons';
 import type { MetadataHints, StatementParsingDetails } from '../editHelpers';
+import { buildHints, ignoreEventArg, labelValue } from '../editHelpers';
+import type { ConvertDroppedSamplePayload, ResolveWarningPayload } from '../ParsingWarningsPanel';
 import { ParsingDetailsPanel } from './ParsingDetailsPanel';
 
 type Labels = Record<string, { value?: string } | undefined>;

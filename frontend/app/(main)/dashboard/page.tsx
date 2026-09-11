@@ -1,9 +1,9 @@
 'use client';
 
-import { Spinner } from '@/app/components/ui/spinner';
 import Box from '@mui/material/Box';
 import type React from 'react';
 import { Suspense } from 'react';
+import { Spinner } from '@/app/components/ui/spinner';
 import { DashboardContent } from './components/DashboardContent';
 import { DashboardPullIndicator } from './components/DashboardPullIndicator';
 import { useDashboardPage } from './hooks/useDashboardPage';

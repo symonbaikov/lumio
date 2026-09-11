@@ -1,6 +1,6 @@
+import { useCallback, useState } from 'react';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
-import { useCallback, useState } from 'react';
 import type { EditableChangeArgs } from './BalanceAccountRow';
 import {
   type BalanceExportFormat,
@@ -79,9 +79,11 @@ type SheetSetters = {
   setExportingFormat: (v: BalanceExportFormat | null) => void;
 };
 
-function useLoadSheet(opts: { locale: string; errorMessage: string; setters: SheetSetters }): (
-  date?: string,
-) => Promise<void> {
+function useLoadSheet(opts: {
+  locale: string;
+  errorMessage: string;
+  setters: SheetSetters;
+}): (date?: string) => Promise<void> {
   const { locale, errorMessage, setters } = opts;
   return useCallback(
     async (date?: string): Promise<void> => {

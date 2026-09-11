@@ -1,9 +1,9 @@
 'use client';
 
-import { resolveCategoryVisual } from '@/app/lib/category-defaults';
 import Box from '@mui/material/Box';
 import { alpha } from '@mui/material/styles';
 import type React from 'react';
+import { resolveCategoryVisual } from '@/app/lib/category-defaults';
 
 interface CategoryIconBadgeProps {
   /** Category name; drives the default icon and colour for system categories. */

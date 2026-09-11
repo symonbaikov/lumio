@@ -1,8 +1,8 @@
 'use client';
 
+import { type ColumnDef } from '@tanstack/react-table';
 import { Plus } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
-import { type ColumnDef } from '@tanstack/react-table';
 import { EditableBooleanCell } from '../components/cells/EditableBooleanCell';
 import { EditableDateCell } from '../components/cells/EditableDateCell';
 import { EditableNumberCell } from '../components/cells/EditableNumberCell';

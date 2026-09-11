@@ -1,12 +1,12 @@
 'use client';
 
+import Box from '@mui/material/Box';
+import type React from 'react';
 import { DataHealthTab } from '@/app/components/dashboard/DataHealthTab';
 import { FinanceOpsTab } from '@/app/components/dashboard/FinanceOpsTab';
 import { OverviewTab } from '@/app/components/dashboard/OverviewTab';
 import { TrendsTab } from '@/app/components/dashboard/TrendsTab';
 import type { DashboardData } from '@/app/hooks/useDashboard';
-import Box from '@mui/material/Box';
-import type React from 'react';
 import type { DashboardTabId } from '../helpers/dashboard-url-state';
 
 type DashboardTabContentProps = {

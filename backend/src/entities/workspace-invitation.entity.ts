@@ -9,8 +9,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
-import { type WorkspaceMemberPermissions, WorkspaceRole } from './workspace-member.entity';
 import { Workspace } from './workspace.entity';
+import { type WorkspaceMemberPermissions, WorkspaceRole } from './workspace-member.entity';
 
 export enum WorkspaceInvitationStatus {
   PENDING = 'pending',

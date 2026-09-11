@@ -1,12 +1,10 @@
 'use client';
 
-import { tokens } from '@/lib/theme-tokens';
 import { useTheme } from 'next-themes';
-import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
+import { LazyECharts } from '@/app/components/ui/lazy-echarts';
+import { tokens } from '@/lib/theme-tokens';
 import type { ProjectionPoint } from '../roi-model';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 interface RoiProjectionChartProps {
   points: ProjectionPoint[];
@@ -64,5 +62,5 @@ export function RoiProjectionChart({
     [points, compoundLabel, simpleLabel, color],
   );
 
-  return <ReactECharts option={option} style={{ height: 260, width: '100%' }} notMerge />;
+  return <LazyECharts option={option} style={{ height: 260, width: '100%' }} notMerge />;
 }

@@ -13,15 +13,15 @@ import { CustomTableImportJobsService } from '../../custom-tables/custom-table-i
 import { GoogleSheetsImportLayoutType } from '../../custom-tables/dto/google-sheets-import-preview.dto';
 import {
   type LoadedSheetSource,
-  SheetSourceLoaderService,
   numberToColumnLetters,
+  SheetSourceLoaderService,
 } from '../../google-sheets/services/sheet-source-loader.service';
 import type { ParsedTransaction } from '../../parsing/interfaces/parsed-statement.interface';
 import { TransactionFingerprintService } from '../../transactions/services/transaction-fingerprint.service';
 import type { SheetColumnRole } from '../sheets/column-roles';
 import { detectColumnRoles } from '../sheets/detect-column-roles.util';
 import { detectLayout } from '../sheets/detect-layout.util';
-import { type MappedSheetRow, type SheetMapping, mapSheetRows } from '../sheets/map-sheet-rows';
+import { type MappedSheetRow, mapSheetRows, type SheetMapping } from '../sheets/map-sheet-rows';
 import { SheetCurrencyService } from '../sheets/sheet-currency.service';
 import { SheetReferenceResolverService } from '../sheets/sheet-reference-resolver.service';
 import { ImportSessionService } from './import-session.service';

@@ -2,9 +2,9 @@
 
 import {
   type ColumnResizeMode,
+  getCoreRowModel,
   type RowSelectionState,
   type SortingState,
-  getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';

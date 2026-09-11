@@ -1,5 +1,3 @@
-import * as crypto from 'crypto';
-import * as fs from 'fs';
 import {
   BadRequestException,
   ForbiddenException,
@@ -10,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import * as fs from 'fs';
 import { In, type Repository } from 'typeorm';
 import { appError } from '../../common/errors/app-error';
 import { FileStorageService } from '../../common/services/file-storage.service';
@@ -20,9 +20,9 @@ import {
   FilePermissionType,
   FileVersion,
   Folder,
+  SharedLink,
   ShareLinkStatus,
   SharePermissionLevel,
-  SharedLink,
   Statement,
   StorageView,
   Tag,

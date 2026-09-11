@@ -1,8 +1,14 @@
 'use client';
 
-import { Checkbox } from '@/app/components/ui/checkbox';
 import { Box, Typography } from '@mui/material';
-import type { CSSProperties, ReactNode } from 'react';
+import { type CSSProperties, type ReactNode, useMemo, useState } from 'react';
+import { ChevronDown } from '@/app/components/icons';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { CurrencyPickerDrawer } from '@/app/components/ui/currency-picker-drawer';
+import {
+  type CurrencySearchItem,
+  buildCurrencySearchIndex,
+} from '@/app/lib/statement-expense-drawer';
 
 /** Kept in sync with `SheetColumnRole` in `backend/src/modules/import/sheets/column-roles.ts`. */
 export type SheetColumnRole =
@@ -98,6 +104,62 @@ const ROLE_ORDER: SheetColumnRole[] = [
   'externalId',
 ];
 
+/** Shown above the full list so the common picks are one tap away. */
+const RECENT_CURRENCY_CODES = ['USD', 'EUR', 'KZT', 'RUB'];
+
+/**
+ * Search/open state for the currency drawer. The selected code itself stays
+ * controlled by the owning page — only the drawer's own UI state lives here.
+ */
+function useCurrencyPicker(selectedCurrency: string): {
+  isOpen: boolean;
+  search: string;
+  selectedItem: CurrencySearchItem | null;
+  selectedMatchesSearch: boolean;
+  recentItems: CurrencySearchItem[];
+  allItems: CurrencySearchItem[];
+  open: () => void;
+  close: () => void;
+  setSearch: (value: string) => void;
+} {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const items = useMemo(() => buildCurrencySearchIndex(), []);
+  const byCode = useMemo(() => new Map(items.map(item => [item.code, item])), [items]);
+
+  const code = selectedCurrency.trim().toUpperCase();
+  const selectedItem = byCode.get(code) ?? null;
+  const query = search.trim().toLowerCase();
+  const selectedMatchesSearch =
+    selectedItem !== null && (query.length === 0 || selectedItem.searchText.includes(query));
+  const recentItems = useMemo(
+    () =>
+      RECENT_CURRENCY_CODES.map(recent => byCode.get(recent)).filter(
+        (item): item is CurrencySearchItem => item !== undefined && item.code !== code,
+      ),
+    [byCode, code],
+  );
+  const allItems = useMemo(() => {
+    const source = query.length > 0 ? items.filter(item => item.searchText.includes(query)) : items;
+    return source.filter(item => item.code !== code);
+  }, [items, query, code]);
+
+  return {
+    isOpen,
+    search,
+    selectedItem,
+    selectedMatchesSearch,
+    recentItems,
+    allItems,
+    open: () => setIsOpen(true),
+    close: () => {
+      setIsOpen(false);
+      setSearch('');
+    },
+    setSearch,
+  };
+}
+
 const inputStyle: CSSProperties = {
   marginTop: 4,
   width: '100%',
@@ -128,6 +190,13 @@ export function TransactionMappingCard({
   summary,
   t,
 }: TransactionMappingCardProps) {
+  const currencyPicker = useCurrencyPicker(defaultCurrency);
+
+  const handleSelectCurrency = (code: string) => {
+    onDefaultCurrencyChange(code);
+    currencyPicker.close();
+  };
+
   const handleRoleChange = (columnIndex: number, nextRole: SheetColumnRole) => {
     const nextRoles = [...roles];
     if (SINGLE_SLOT_ROLES.has(nextRole)) {
@@ -214,15 +283,34 @@ export function TransactionMappingCard({
       )}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mt: 2 }}>
-        <label style={{ display: 'block' }}>
-          <span style={{ fontSize: 14, fontWeight: 500 }}>{t.defaultCurrencyLabel}</span>
-          <input
-            value={defaultCurrency}
-            onChange={e => onDefaultCurrencyChange(e.target.value.toUpperCase())}
-            maxLength={3}
-            style={inputStyle}
-          />
-        </label>
+        <Box>
+          <label
+            htmlFor="gs-import-default-currency"
+            style={{ display: 'block', fontSize: 14, fontWeight: 500 }}
+          >
+            {t.defaultCurrencyLabel}
+          </label>
+          <button
+            id="gs-import-default-currency"
+            type="button"
+            onClick={currencyPicker.open}
+            style={{
+              ...inputStyle,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              textAlign: 'left',
+              color: 'var(--foreground)',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {currencyPicker.selectedItem?.label || defaultCurrency}
+            </span>
+            <ChevronDown size={16} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
+          </button>
+        </Box>
 
         <label style={{ display: 'block' }}>
           <span style={{ fontSize: 14, fontWeight: 500 }}>{t.walletLabel}</span>
@@ -263,6 +351,18 @@ export function TransactionMappingCard({
           {t.summary.duplicates} · {summary.invalid} {t.summary.errors}
         </Box>
       )}
+
+      <CurrencyPickerDrawer
+        isOpen={currencyPicker.isOpen}
+        currencySearch={currencyPicker.search}
+        selectedCurrencyItem={currencyPicker.selectedItem}
+        selectedMatchesSearch={currencyPicker.selectedMatchesSearch}
+        recentCurrencyItems={currencyPicker.recentItems}
+        allCurrencyItems={currencyPicker.allItems}
+        onSearchChange={currencyPicker.setSearch}
+        onClose={currencyPicker.close}
+        onSelect={handleSelectCurrency}
+      />
     </Box>
   );
 }

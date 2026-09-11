@@ -1,6 +1,6 @@
+import toast from 'react-hot-toast';
 import apiClient from '@/app/lib/api';
 import { getApiErrorStatus } from '@/app/lib/api-error';
-import toast from 'react-hot-toast';
 import type { CustomTableGridRow } from '../utils/stylingUtils';
 import { getClassificationResults } from '../utils/tableHelpers';
 import type { CustomTablePageColumn } from '../utils/tableTypes';

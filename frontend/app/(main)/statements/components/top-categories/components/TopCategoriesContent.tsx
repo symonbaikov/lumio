@@ -1,9 +1,9 @@
 'use client';
 
-import type { CategorySortKey } from '@/app/(main)/statements/components/top-categories.utils';
 import { TopCategoriesLeaderboard } from '@/app/(main)/statements/components/top-categories/components/TopCategoriesLeaderboard';
 import { TopCategoriesStatCards } from '@/app/(main)/statements/components/top-categories/components/TopCategoriesStatCards';
 import type { useTopCategoriesViewModel } from '@/app/(main)/statements/components/top-categories/hooks/useTopCategoriesViewModel';
+import type { CategorySortKey } from '@/app/(main)/statements/components/top-categories.utils';
 
 type Props = { vm: ReturnType<typeof useTopCategoriesViewModel> };
 

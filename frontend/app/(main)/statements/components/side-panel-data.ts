@@ -53,7 +53,10 @@ export const resolveCloudConnectionStatus = (
 
 type PageResult = { batch: unknown[]; total: number };
 
-const extractPageData = (responseData: { data?: unknown; total?: unknown }): {
+const extractPageData = (responseData: {
+  data?: unknown;
+  total?: unknown;
+}): {
   items: unknown;
   total: number | undefined;
 } => ({

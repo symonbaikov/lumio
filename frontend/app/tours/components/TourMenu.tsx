@@ -4,16 +4,16 @@
 
 'use client';
 
-import { Circle, Disc } from '@/app/components/icons';
-import { useIntlayer } from '@/app/i18n';
 import { Divider, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import { cloneElement, isValidElement, useCallback, useState } from 'react';
 import type { MouseEvent, ReactElement, ReactNode } from 'react';
+import { cloneElement, isValidElement, useCallback, useState } from 'react';
+import { Circle, Disc } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { getTourManager } from '../TourManager';
 import type { TourConfig } from '../types';
-import { useTourCompletedState, useTourRegistration } from './TourMenuHooks';
 import type { TourTextsMap } from './TourMenuHooks';
+import { useTourCompletedState, useTourRegistration } from './TourMenuHooks';
 
 interface TourMenuProps {
   trigger?: ReactNode;

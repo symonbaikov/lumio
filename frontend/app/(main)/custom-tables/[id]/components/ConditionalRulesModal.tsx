@@ -1,8 +1,8 @@
 'use client';
 
-import { ModalShell } from '@/app/components/ui/modal-shell';
 import { Box } from '@mui/material';
 import { useState } from 'react';
+import { ModalShell } from '@/app/components/ui/modal-shell';
 import type { ConditionalOp, ConditionalRule } from '../utils/conditionalRules';
 
 const OPS: ConditionalOp[] = [

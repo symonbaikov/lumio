@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import nodemailer from 'nodemailer';
-import { TimeoutError, retry, withTimeout } from '../../common/utils/async.util';
+import { retry, TimeoutError, withTimeout } from '../../common/utils/async.util';
 import type { User } from '../../entities/user.entity';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
 

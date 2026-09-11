@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import {
+  applyStatementsFilters,
   type StatementFilterItem,
   type StatementFilters,
-  applyStatementsFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
 import type { AnalyticsFromOption } from '@/app/(main)/statements/components/shared-analytics.utils';
 import {
@@ -14,7 +15,6 @@ import type {
   TopSpenderRecord,
 } from '@/app/(main)/statements/components/top-spenders/top-spenders.types';
 import type { GmailReceipt } from '@/app/(main)/statements/types/statement-types';
-import { useMemo } from 'react';
 
 type StatementWithWorkspace = StatementFilterItem & {
   workspaceId?: string;

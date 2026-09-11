@@ -3,6 +3,7 @@
 import { Box, Grid } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ReactNode } from 'react';
+
 interface AuthLayoutProps {
   children: ReactNode;
   sideContent: ReactNode;

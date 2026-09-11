@@ -1,17 +1,17 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Category } from '../../entities/category.entity';
+import { CustomTable } from '../../entities/custom-table.entity';
 import { CustomTableCellStyle } from '../../entities/custom-table-cell-style.entity';
-import { CustomTableColumnStyle } from '../../entities/custom-table-column-style.entity';
 import { CustomTableColumn } from '../../entities/custom-table-column.entity';
+import { CustomTableColumnStyle } from '../../entities/custom-table-column-style.entity';
 import { CustomTableExportSchedule } from '../../entities/custom-table-export-schedule.entity';
 import { CustomTableImportJob } from '../../entities/custom-table-import-job.entity';
-import { CustomTableRowComment } from '../../entities/custom-table-row-comment.entity';
 import { CustomTableRow } from '../../entities/custom-table-row.entity';
+import { CustomTableRowComment } from '../../entities/custom-table-row-comment.entity';
 import { CustomTableShare } from '../../entities/custom-table-share.entity';
-import { CustomTable } from '../../entities/custom-table.entity';
-import { DataEntryCustomField } from '../../entities/data-entry-custom-field.entity';
 import { DataEntry } from '../../entities/data-entry.entity';
+import { DataEntryCustomField } from '../../entities/data-entry-custom-field.entity';
 import { GoogleSheet } from '../../entities/google-sheet.entity';
 import { Statement } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
@@ -33,10 +33,10 @@ import {
 import { CustomTableSharesService } from './custom-table-shares.service';
 import { CustomTableSyncScheduler } from './custom-table-sync.scheduler';
 import { CustomTableSyncService } from './custom-table-sync.service';
-import { CustomTablesCacheService } from './custom-tables-cache.service';
-import { CustomTablesImportService } from './custom-tables-import.service';
 import { CustomTablesController } from './custom-tables.controller';
 import { CustomTablesService } from './custom-tables.service';
+import { CustomTablesCacheService } from './custom-tables-cache.service';
+import { CustomTablesImportService } from './custom-tables-import.service';
 
 @Module({
   imports: [

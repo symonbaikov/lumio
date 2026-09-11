@@ -1,12 +1,12 @@
 import type { StatementFilterItem } from '@/app/(main)/statements/components/filters/statement-filters';
+import type {
+  SourceChannel,
+  SourceType,
+} from '@/app/(main)/statements/components/shared-analytics.utils';
 import {
   resolveAmountFlow,
   resolveSourceChannel as resolveSourceChannelBase,
   sortAggregateRows,
-} from '@/app/(main)/statements/components/shared-analytics.utils';
-import type {
-  SourceChannel,
-  SourceType,
 } from '@/app/(main)/statements/components/shared-analytics.utils';
 
 export type TopCategoryFlowType = 'spend' | 'income';

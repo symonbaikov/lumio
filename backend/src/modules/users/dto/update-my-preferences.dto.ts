@@ -1,4 +1,3 @@
-import { DateFormatPreference, ThemePreference, UiDensity } from '@/entities/user.entity';
 import {
   IsBoolean,
   IsEnum,
@@ -9,6 +8,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { DateFormatPreference, ThemePreference, UiDensity } from '@/entities/user.entity';
 
 export enum AppLocale {
   RU = 'ru',

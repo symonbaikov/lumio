@@ -1,5 +1,4 @@
 'use client';
-import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { AnalyticsSourceBadge } from '@/app/(main)/statements/components/analytics/AnalyticsSourceBadge';
 import type {
@@ -9,6 +8,7 @@ import type {
 } from '@/app/(main)/statements/components/top-categories.utils';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { formatMoney } from '@/app/lib/analytics-common';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import { tokens } from '@/lib/theme-tokens';
 
 type SourceLabels = {

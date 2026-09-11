@@ -6,8 +6,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { validateFile } from '../../../common/utils/file-validator.util';
 import { resolveUploadsDir } from '../../../common/utils/uploads.util';
-import { TransactionAttachment } from '../../../entities/transaction-attachment.entity';
 import { Transaction } from '../../../entities/transaction.entity';
+import { TransactionAttachment } from '../../../entities/transaction-attachment.entity';
 
 /** Subdirectory of the uploads dir that holds every transaction attachment. */
 const ATTACHMENTS_SUBDIR = 'transaction-attachments';

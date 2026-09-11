@@ -1,16 +1,16 @@
 'use client';
 
-import { Plus, Trash2 } from '@/app/components/icons';
-import { useIntlayer } from '@/app/i18n';
-import { formatMoney } from '@/app/lib/format-money';
-import type { GoalItem, GoalItemsResponse } from '@/app/lib/goals-api';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
+import { Plus, Trash2 } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
+import { formatMoney } from '@/app/lib/format-money';
+import type { GoalItem, GoalItemsResponse } from '@/app/lib/goals-api';
+import { tokens } from '@/lib/theme-tokens';
 
 export interface GoalItemsCardProps {
   data: GoalItemsResponse;

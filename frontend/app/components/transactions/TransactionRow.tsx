@@ -1,7 +1,7 @@
 'use client';
 
-import { ChevronDown, ChevronRight } from '@/app/components/icons';
 import React from 'react';
+import { ChevronDown, ChevronRight } from '@/app/components/icons';
 import { Checkbox } from '../ui/checkbox';
 import { CategoryDropdown } from './CategoryDropdown';
 import { TransactionExpandedRow } from './TransactionExpandedRow';
@@ -64,7 +64,11 @@ function buildRowClass({
   isSelected,
   hasErrors,
   hasWarnings,
-}: { isSelected: boolean; hasErrors?: boolean; hasWarnings?: boolean }): string {
+}: {
+  isSelected: boolean;
+  hasErrors?: boolean;
+  hasWarnings?: boolean;
+}): string {
   let cls = 'lumio-tx-table__row';
   if (isSelected) cls += ' lumio-tx-table__row--selected';
   else if (hasErrors) cls += ' lumio-tx-table__row--error';

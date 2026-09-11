@@ -27,7 +27,7 @@ export interface ProjectionPoint {
  * negative outlay has no return to speak of, and blank fields are not zero.
  */
 export function calculateRoi(investment: number, monthlyIncome: number): RoiResult | null {
-  if (!Number.isFinite(investment) || !Number.isFinite(monthlyIncome) || investment <= 0) {
+  if (!(Number.isFinite(investment) && Number.isFinite(monthlyIncome)) || investment <= 0) {
     return null;
   }
 

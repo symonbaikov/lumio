@@ -1,18 +1,22 @@
 'use client';
 
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import type { CustomTableSortOrder, CustomTableSourceFilter } from '@/app/lib/custom-table-actions';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
+import { apiQuery } from '@/app/lib/query-fn';
+import { queryKeys } from '@/app/lib/query-keys';
 import { formatUpdatedBadge } from '../customTablesHelpers';
 import {
-  type TableRegistryItem,
   formatRowsCount,
   resolveCreatedFromBadge,
   resolveHumanTableName,
   resolveSourceSummary,
   resolveTablePurpose,
+  type TableRegistryItem,
 } from '../table-registry-utils';
 
 interface Category {
@@ -43,6 +47,7 @@ export interface UseCustomTablesDataReturn {
   setItems: React.Dispatch<React.SetStateAction<CustomTableItem[]>>;
   categories: Category[];
   loading: boolean;
+  isFetching: boolean;
   rowsCountByTableId: Record<string, number>;
   setRowsCountByTableId: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   searchQuery: string;
@@ -107,9 +112,8 @@ export function useCustomTablesData(
   authLoading: boolean,
   messages: UseCustomTablesDataMessages,
 ): UseCustomTablesDataReturn {
-  const [items, setItems] = useState<CustomTableItem[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
   const [rowsCountByTableId, setRowsCountByTableId] = useState<Record<string, number>>({});
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -123,40 +127,54 @@ export function useCustomTablesData(
   const [filtersDrawerScreen, setFiltersDrawerScreen] = useState('root');
   const [page, setPage] = useState(1);
 
-  const loadCategories = useCallback(async () => {
-    await (async () => {
-      const response = await apiClient.get('/categories');
-      const payload = response.data?.data || response.data || [];
-      setCategories(Array.isArray(payload) ? payload : []);
-    })().catch(async error => {
-      console.error('Failed to load categories:', error);
-    });
-  }, []);
+  const enabled = !authLoading && isAuthenticated;
 
-  const loadTables = useCallback(async () => {
-    setLoading(true);
-
-    await (async () => {
-      const response = await apiClient.get('/custom-tables');
+  const tablesQuery = useQuery({
+    queryKey: queryKeys.customTables(workspaceId),
+    queryFn: async ({ signal }) => {
+      const response = await apiClient.get('/custom-tables', { signal });
       const payload =
         response.data?.items || response.data?.data?.items || response.data?.data || [];
-      setItems(Array.isArray(payload) ? payload : []);
-    })()
-      .catch(async error => {
-        console.error('Failed to load custom tables:', error);
-        toast.error(getApiErrorMessage(error, messages.loadTablesFailed));
-      })
-      .finally(async () => {
-        setLoading(false);
-      });
-  }, [messages.loadTablesFailed]);
+      return (Array.isArray(payload) ? payload : []) as CustomTableItem[];
+    },
+    enabled,
+  });
 
+  const categoriesQuery = useQuery({
+    queryKey: queryKeys.categories(workspaceId),
+    queryFn: ({ signal }) => apiQuery<Category[]>({ url: '/categories', signal }),
+    enabled,
+  });
+
+  const items = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
+  const categories = categoriesQuery.data ?? [];
+
+  const loadFailed = tablesQuery.isError;
+  const loadFailedMessage = messages.loadTablesFailed;
+  const loadError = tablesQuery.error;
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      void loadTables();
-      void loadCategories();
+    if (loadFailed) {
+      toast.error(getApiErrorMessage(loadError, loadFailedMessage), { id: 'custom-tables-load' });
     }
-  }, [authLoading, isAuthenticated, loadCategories, loadTables]);
+  }, [loadFailed, loadError, loadFailedMessage]);
+
+  /**
+   * Переименование и удаление правят строку прямо в кэше; сигнатура совпадает
+   * с useState, поэтому вызовы `setItems(prev => ...)` не менялись.
+   */
+  const setItems: React.Dispatch<React.SetStateAction<CustomTableItem[]>> = useCallback(
+    update => {
+      queryClient.setQueryData<CustomTableItem[]>(queryKeys.customTables(workspaceId), previous => {
+        const current = previous ?? [];
+        return typeof update === 'function' ? update(current) : update;
+      });
+    },
+    [queryClient, workspaceId],
+  );
+
+  const loadTables = useCallback(async (): Promise<void> => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.customTables(workspaceId) });
+  }, [queryClient, workspaceId]);
 
   const filteredItems = useMemo(() => {
     let result = [...items];
@@ -247,7 +265,8 @@ export function useCustomTablesData(
     items,
     setItems,
     categories,
-    loading,
+    loading: tablesQuery.isPending,
+    isFetching: tablesQuery.isFetching,
     rowsCountByTableId,
     setRowsCountByTableId,
     searchQuery,

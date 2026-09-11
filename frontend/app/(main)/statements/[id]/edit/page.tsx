@@ -1,22 +1,5 @@
 /* eslint-disable max-lines */
 'use client';
-import { formatStoredDate } from '@/app/lib/user-format-store';
-
-import {
-  ArrowLeft,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  Layers,
-  Receipt,
-  Save,
-  Table2,
-  Trash2,
-  TriangleAlert,
-} from '@/app/components/icons';
-import { DetailActionButton } from '@/app/components/ui/detail-action-button';
-import { useAuth } from '@/app/hooks/useAuth';
-import { flattenStatementCategories, getCategoryDisplayName } from '@/app/lib/statement-categories';
 import {
   Accordion,
   AccordionDetails,
@@ -44,20 +27,32 @@ import {
 } from '@mui/material';
 import Alert from '@mui/material/Alert';
 import Skeleton from '@mui/material/Skeleton';
-
-import { useIntlayer, useLocale } from '@/app/i18n';
 import { useParams, useRouter } from 'next/navigation';
-
 import CustomDatePicker from '@/app/components/CustomDatePicker';
-import { Spinner } from '@/app/components/ui/spinner';
 import {
-  type StatementStageActionId,
+  ArrowLeft,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Layers,
+  Receipt,
+  Save,
+  Table2,
+  Trash2,
+  TriangleAlert,
+} from '@/app/components/icons';
+import { DetailActionButton } from '@/app/components/ui/detail-action-button';
+import { Spinner } from '@/app/components/ui/spinner';
+import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import { flattenStatementCategories, getCategoryDisplayName } from '@/app/lib/statement-categories';
+import {
   getStatementStageActions,
   isStageActionBlocked,
+  type StatementStageActionId,
 } from '@/app/lib/statement-workflow';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import { tokens } from '@/lib/theme-tokens';
-import { ParsingWarningsPanel } from './ParsingWarningsPanel';
-import StatementCategoryDrawer from './StatementCategoryDrawer';
 import { BalanceReviewAlert } from './components/BalanceReviewAlert';
 import { EditTransactionsTable } from './components/EditTransactionsTable';
 import {
@@ -68,6 +63,8 @@ import {
   resolveLocale,
 } from './editHelpers';
 import { useStatementEditForm } from './hooks/useStatementEditForm';
+import { ParsingWarningsPanel } from './ParsingWarningsPanel';
+import StatementCategoryDrawer from './StatementCategoryDrawer';
 
 function EditStatementSkeleton(): React.JSX.Element {
   const rows = Array.from({ length: 7 });

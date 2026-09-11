@@ -1,5 +1,10 @@
 'use client';
 
+import { Box, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import type React from 'react';
+import { useCallback, useState } from 'react';
+import toast from 'react-hot-toast';
 import {
   DollarSign,
   Landmark,
@@ -11,11 +16,6 @@ import {
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, Typography } from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import type React from 'react';
-import { useCallback, useState } from 'react';
-import toast from 'react-hot-toast';
 import { promptTemplates } from './prompt-templates';
 
 const CHATGPT_URL = 'https://chatgpt.com/';

@@ -1,9 +1,9 @@
 'use client';
 
+import { Box, Typography } from '@mui/material';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { ModalFooter, ModalShell } from '@/app/components/ui/modal-shell';
 import { Spinner } from '@/app/components/ui/spinner';
-import { Box, Typography } from '@mui/material';
 import type { PasteErrorKey, PastePreviewData, PastePreviewRow } from '../utils/pasteUtils';
 import { tx } from '../utils/tableHelpers';
 

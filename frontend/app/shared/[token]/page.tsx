@@ -1,10 +1,5 @@
 /* eslint-disable max-lines */
 'use client';
-import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
-
-import { Download as DownloadIcon, Lock as LockIcon } from '@/app/components/icons';
-import { useIntlayer, useLocale } from '@/app/i18n';
-import { getApiErrorMessage } from '@/app/lib/api-error';
 import {
   Alert,
   Box,
@@ -19,6 +14,10 @@ import {
 } from '@mui/material';
 import { useParams } from 'next/navigation';
 import React, { useEffect, useEffectEvent, useState } from 'react';
+import { Download as DownloadIcon, Lock as LockIcon } from '@/app/components/icons';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import { getApiErrorMessage } from '@/app/lib/api-error';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import TransactionsView from '../../components/TransactionsView';
 import api from '../../lib/api';
 

@@ -1,17 +1,16 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
-import { tokens } from '@/lib/theme-tokens';
 import Skeleton from '@mui/material/Skeleton';
+import { useQuery } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
-import dynamic from 'next/dynamic';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LazyECharts } from '@/app/components/ui/lazy-echarts';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import apiClient from '@/app/lib/api';
+import { queryKeys } from '@/app/lib/query-keys';
+import { tokens } from '@/lib/theme-tokens';
 import {
   type AvailableTable,
-  type TablesReportDrillDownResponse,
-  type TablesReportFlowType,
-  type TablesReportResponse,
-  type TablesReportSortKey,
   formatAmount,
   getComparisonArrow,
   getComparisonColor,
@@ -19,14 +18,15 @@ import {
   loadTablesReportsFilters,
   resolveDays,
   saveTablesReportsFilters,
+  type TablesReportDrillDownResponse,
+  type TablesReportFlowType,
+  type TablesReportResponse,
+  type TablesReportSortKey,
 } from './tables-reports.utils';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 export default function TablesReportsView() {
   const { resolvedTheme } = useTheme();
-  const [loading, setLoading] = useState(true);
-  const [report, setReport] = useState<TablesReportResponse | null>(null);
+  const workspaceId = useWorkspaceId();
   const [availableTables, setAvailableTables] = useState<AvailableTable[]>([]);
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -37,7 +37,6 @@ export default function TablesReportsView() {
   const [selectedCounterparty, setSelectedCounterparty] = useState<string | null>(null);
   const [drillDown, setDrillDown] = useState<TablesReportDrillDownResponse | null>(null);
   const [tableDropdownOpen, setTableDropdownOpen] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
   const tableDropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -99,57 +98,46 @@ export default function TablesReportsView() {
     };
   }, []);
 
-  const fetchReport = useCallback(async () => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
+  const reportPayload = useMemo(() => {
+    const payload: {
+      days: number;
+      flowType: TablesReportFlowType;
+      sortBy: TablesReportSortKey;
+      search?: string;
+      limit: number;
+      tableIds?: string[];
+    } = {
+      days: resolveDays(selectedDays),
+      flowType: activeFlowType,
+      sortBy: sortKey,
+      search: debouncedSearch.trim() || undefined,
+      limit: 60,
+    };
 
-    setLoading(true);
+    if (selectedTableIds.length > 0) {
+      payload.tableIds = selectedTableIds;
+    }
 
-    await (async () => {
-      const payload: {
-        days: number;
-        flowType: TablesReportFlowType;
-        sortBy: TablesReportSortKey;
-        search?: string;
-        limit: number;
-        tableIds?: string[];
-      } = {
-        days: resolveDays(selectedDays),
-        flowType: activeFlowType,
-        sortBy: sortKey,
-        search: debouncedSearch.trim() || undefined,
-        limit: 60,
-      };
-
-      if (selectedTableIds.length > 0) {
-        payload.tableIds = selectedTableIds;
-      }
-
-      const response = await apiClient.post('/reports/custom-tables/report', payload, {
-        signal: controller.signal,
-      });
-
-      if (!controller.signal.aborted) {
-        setReport(response.data);
-      }
-    })()
-      .catch(async () => {
-        if (!controller.signal.aborted) {
-          setReport(null);
-        }
-      })
-      .finally(async () => {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      });
+    return payload;
   }, [activeFlowType, debouncedSearch, selectedDays, selectedTableIds, sortKey]);
 
-  useEffect(() => {
-    void fetchReport();
-    return () => abortRef.current?.abort();
-  }, [fetchReport]);
+  const reportQuery = useQuery({
+    queryKey: queryKeys.tablesReport({ workspaceId, params: reportPayload }),
+    queryFn: async ({ signal }) => {
+      const response = await apiClient.post<TablesReportResponse>(
+        '/reports/custom-tables/report',
+        reportPayload,
+        { signal },
+      );
+      return response.data;
+    },
+    // Клик по фильтру меняет ключ; цифры и графики держатся на экране до
+    // прихода нового отчёта, но только внутри того же воркспейса.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[1] === workspaceId ? previous : undefined,
+  });
+
+  const report = reportQuery.isError ? null : (reportQuery.data ?? null);
 
   const handleDrillDown = useCallback(
     async (counterparty: string) => {
@@ -507,7 +495,7 @@ export default function TablesReportsView() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {loading ? (
+        {reportQuery.isPending ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
             {['total', 'manual', 'googleSheets', 'operations'].map(key => (
               <div key={key} style={panelStyle}>
@@ -521,7 +509,13 @@ export default function TablesReportsView() {
             No data found for the selected period.
           </div>
         ) : (
-          <>
+          // Смена фильтра перезагружает отчёт в фоне: цифры и графики не гаснут.
+          <div
+            style={{
+              opacity: reportQuery.isFetching ? 0.6 : 1,
+              transition: 'opacity 150ms ease',
+            }}
+          >
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
               <div style={panelStyle}>
                 <div style={{ fontSize: 12, color: c.ink500 }}>Total</div>
@@ -569,7 +563,7 @@ export default function TablesReportsView() {
                   Trend
                 </div>
                 {trendChartOption ? (
-                  <ReactECharts
+                  <LazyECharts
                     option={trendChartOption}
                     style={{ height: 220 }}
                     theme={chartTheme}
@@ -581,7 +575,7 @@ export default function TablesReportsView() {
                   Source split
                 </div>
                 {sourceSplitOption ? (
-                  <ReactECharts
+                  <LazyECharts
                     option={sourceSplitOption}
                     style={{ height: 220 }}
                     theme={chartTheme}
@@ -595,11 +589,7 @@ export default function TablesReportsView() {
                 <div style={{ marginBottom: 12, fontSize: 14, fontWeight: 500, color: c.ink800 }}>
                   Top counterparties
                 </div>
-                <ReactECharts
-                  option={topRowsBarOption}
-                  style={{ height: 320 }}
-                  theme={chartTheme}
-                />
+                <LazyECharts option={topRowsBarOption} style={{ height: 320 }} theme={chartTheme} />
               </div>
             ) : null}
 
@@ -842,7 +832,7 @@ export default function TablesReportsView() {
                 </div>
               </div>
             ) : null}
-          </>
+          </div>
         )}
       </div>
     </div>

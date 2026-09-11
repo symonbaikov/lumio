@@ -1,6 +1,6 @@
 'use client';
 
-import { type PickerSpreadsheetDoc, normalizeSpreadsheetSelection } from './googleSheetsSelection';
+import { normalizeSpreadsheetSelection, type PickerSpreadsheetDoc } from './googleSheetsSelection';
 
 const SHEETS_MIME_TYPE = 'application/vnd.google-apps.spreadsheet';
 

@@ -425,6 +425,7 @@ jobs:
             electron/package-lock.json
             frontend/package-lock.json
             website/package-lock.json
+            mcp-server/package-lock.json
 
       - name: Install root deps (no scripts)
         run: npm ci --ignore-scripts
@@ -441,11 +442,35 @@ jobs:
       - name: Install website deps (no scripts)
         run: npm ci --prefix website --ignore-scripts
 
-      - name: Backend audit (high/critical)
-        run: npx audit-ci@7.1.0 --config backend/audit-ci.json --package-manager npm --path backend
+      - name: Install mcp-server deps (no scripts)
+        run: npm ci --prefix mcp-server --ignore-scripts
+
+      # --directory, not --path: audit-ci silently ignores unknown flags, and
+      # `--path backend` made this step audit the repo root instead.
+      - name: Backend audit (moderate and above)
+        run: npx audit-ci@7.1.0 --config backend/audit-ci.json --package-manager npm --directory backend
 
       - name: Frontend audit (high/critical)
         run: npm audit --audit-level=high --prefix frontend
+
+      # Phase 1 of the Dependabot cleanup covers root/backend/frontend only.
+      # These three still carry known findings, so they report without failing
+      # the build; flip continue-on-error off as each phase lands.
+      - name: Root audit (high/critical)
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+      - name: Electron audit (high/critical)
+        continue-on-error: true
+        run: npm audit --audit-level=high --prefix electron
+
+      - name: Website audit (high/critical)
+        continue-on-error: true
+        run: npm audit --audit-level=high --prefix website
+
+      - name: MCP server audit (high/critical)
+        continue-on-error: true
+        run: npm audit --audit-level=high --prefix mcp-server
 
       - name: Root license compliance
         run: npx license-checker@25.0.1 --excludePrivatePackages --onlyAllow "$ALLOWED_LICENSES" --start .
@@ -499,7 +524,7 @@ jobs:
           load: true
 
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: parse-ledger:ci
           severity: HIGH,CRITICAL

@@ -81,9 +81,9 @@
     "imapflow": "^1.7.1",
     "ioredis": "^5.11.1",
     "js-yaml": "^4.1.0",
-    "mailparser": "^3.9.8",
-    "multer": "^2.0.2",
-    "nodemailer": "^9.0.5",
+    "mailparser": "^3.9.20",
+    "multer": "^2.3.0",
+    "nodemailer": "^9.1.1",
     "otplib": "^13.4.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -96,7 +96,7 @@
     "react-dom": "^19.2.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.4",
     "socket.io": "^4.8.3",
     "swagger-ui-express": "^5.0.1",
     "tesseract.js": "^5.1.1",
@@ -110,7 +110,7 @@
     "@babel/plugin-proposal-decorators": "^7.28.6",
     "@babel/preset-env": "^7.28.6",
     "@babel/preset-typescript": "^7.28.5",
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.5.13",
     "@nestjs/cli": "^11.0.14",
     "@nestjs/schematics": "^11.0.9",
     "@nestjs/testing": "^11.1.11",
@@ -144,7 +144,8 @@
     "jsonwebtoken": {
       "jws": "3.2.3"
     },
-    "sharp": "^0.35.3",
+    "multer": "^2.3.0",
+    "sharp": "^0.35.4",
     "adm-zip": "^0.6.0",
     "deepmerge-ts": "^8.0.1"
   }

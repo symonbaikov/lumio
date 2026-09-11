@@ -1,5 +1,6 @@
 'use client';
 
+import { useTheme } from 'next-themes';
 import {
   ChevronDown,
   ChevronRight,
@@ -10,7 +11,6 @@ import {
   X,
 } from '@/app/components/icons';
 import { tokens } from '@/lib/theme-tokens';
-import { useTheme } from 'next-themes';
 
 interface Props {
   selectedCount: number;

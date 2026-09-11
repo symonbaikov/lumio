@@ -2,9 +2,9 @@
 
 import { motion } from 'framer-motion';
 import { Block } from './Block';
-import { WindowGrid } from './WindowGrid';
-import { glassStyle } from './shared';
 import type { BuildingProps } from './shared';
+import { glassStyle } from './shared';
+import { WindowGrid } from './WindowGrid';
 
 const PILLAR_COUNT = 6;
 

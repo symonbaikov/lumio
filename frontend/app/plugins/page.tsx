@@ -1,16 +1,15 @@
 'use client';
 
-import { Cpu, Search } from '@/app/components/icons';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
-import { useIntlayer } from '@/app/i18n';
-import { tokens } from '@/lib/theme-tokens';
 import ExtensionOutlinedIcon from '@mui/icons-material/ExtensionOutlined';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import WebhookIcon from '@mui/icons-material/Webhook';
 import { Box, Stack, Typography } from '@mui/material';
 import type React from 'react';
-import { isValidElement } from 'react';
-import { useMemo, useState } from 'react';
+import { isValidElement, useMemo, useState } from 'react';
+import { Cpu, Search } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
+import { useIntlayer } from '@/app/i18n';
+import { tokens } from '@/lib/theme-tokens';
 import {
   CategoryDivider,
   IntegrationCard,

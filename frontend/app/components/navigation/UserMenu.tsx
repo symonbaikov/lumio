@@ -1,9 +1,9 @@
 'use client';
 
-import { BookOpen, Globe, LogOut, Settings, Trash2, User } from '@/app/components/icons';
-import { getRecord, resolveLabel } from '@/app/lib/side-panel-utils';
 import { Divider, ListItemIcon, ListItemText, MenuItem, Menu as MuiMenu } from '@mui/material';
 import React from 'react';
+import { BookOpen, Globe, LogOut, Settings, Trash2, User } from '@/app/components/icons';
+import { getRecord, resolveLabel } from '@/app/lib/side-panel-utils';
 import type { NavItem } from './helpers/navigation-config';
 
 type UserMenuProps = {

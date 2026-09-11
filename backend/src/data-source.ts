@@ -1,6 +1,6 @@
+import { config } from 'dotenv';
 import { existsSync } from 'fs';
 import * as path from 'path';
-import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
 
 // Load environment variables

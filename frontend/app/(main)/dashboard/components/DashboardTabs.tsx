@@ -1,8 +1,8 @@
 'use client';
 
-import { sharedMuiTabsSx } from '@/app/components/ui/mui-tabs';
 import { Tab, Tabs } from '@mui/material';
 import type React from 'react';
+import { sharedMuiTabsSx } from '@/app/components/ui/mui-tabs';
 import { DASHBOARD_TABS, type DashboardTabId } from '../helpers/dashboard-url-state';
 
 export type DashboardTabsLabels = {

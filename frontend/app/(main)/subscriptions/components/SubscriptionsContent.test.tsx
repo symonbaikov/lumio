@@ -45,7 +45,8 @@ describe('SubscriptionsContent', () => {
         }}
         workspaceCurrency="USD"
         workspaceMembers={[]}
-        loading={false}
+        isPending={false}
+        isFetching={false}
         error={null}
         statusFilter="all"
         setStatusFilter={vi.fn()}

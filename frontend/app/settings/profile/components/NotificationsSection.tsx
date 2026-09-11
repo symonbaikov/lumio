@@ -1,5 +1,11 @@
 'use client';
 
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Checkbox from '@mui/material/Checkbox';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import { Alert } from '@/app/components/ui/alert';
 import { NotificationDeliveryCard } from '@/app/settings/profile/components/NotificationDeliveryCard';
 import {
@@ -11,12 +17,6 @@ import {
   workspaceNotificationSettings,
 } from '@/app/settings/profile/profileHelpers';
 import { tokens } from '@/lib/theme-tokens';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Checkbox from '@mui/material/Checkbox';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
 
 type NotificationKey = keyof NotificationPreferences;
 type Tx = (path: string[], fallback: string) => string;

@@ -1,30 +1,30 @@
 /* eslint-disable max-lines */
 'use client';
 
+import { useEffect, useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useLocale } from '@/app/i18n';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import {
-  type StatementCategoryNode,
   flattenStatementCategories,
+  type StatementCategoryNode,
 } from '@/app/lib/statement-categories';
 import {
   ALWAYS_ALLOW_STATEMENT_DUPLICATES,
-  type CurrencySearchItem,
-  DEFAULT_RECENT_CURRENCIES,
-  type ManualExpenseDraft,
-  type ManualStep,
-  type StatementExpenseMode,
-  type TaxRateOption,
   buildCurrencySearchIndex,
+  type CurrencySearchItem,
   computeManualAmountFontSize,
   createDefaultManualDraft,
+  DEFAULT_RECENT_CURRENCIES,
   hasPositiveManualAmount,
+  type ManualExpenseDraft,
+  type ManualStep,
   resolveDefaultCurrency,
   resolveExpenseDrawerMode,
+  type StatementExpenseMode,
+  type TaxRateOption,
   validateManualExpenseDraft,
 } from '@/app/lib/statement-expense-drawer';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
 
 type SubmitScanPayload = {
   files: File[];

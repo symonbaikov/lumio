@@ -1,11 +1,10 @@
 'use client';
 
+import { Box, Typography } from '@mui/material';
 import React from 'react';
-
 import { AuditEventDrawer } from '@/app/audit/components/AuditEventDrawer';
 import { EntityHistoryTimeline } from '@/app/audit/components/EntityHistoryTimeline';
 import type { AuditEvent } from '@/lib/api/audit';
-import { Box, Typography } from '@mui/material';
 
 interface RowDrawerHistoryProps {
   historyLoading: boolean;

@@ -1,8 +1,8 @@
 'use client';
 
+import { Box, Typography } from '@mui/material';
 import { NoteCountsProvider } from '@/app/components/notes/NoteCountsContext';
 import type { ReceiptRecord } from '@/app/lib/api';
-import { Box, Typography } from '@mui/material';
 import { ReceiptCard } from './ReceiptCard';
 
 export interface ReceiptsListProps {

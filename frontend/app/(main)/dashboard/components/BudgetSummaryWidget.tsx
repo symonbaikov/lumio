@@ -1,12 +1,12 @@
 'use client';
 
-import { CardLink, DashboardCard } from '@/app/components/dashboard/ui';
-import { useIntlayer } from '@/app/i18n';
-import apiClient from '@/app/lib/api';
 import LinearProgress from '@mui/material/LinearProgress';
 import clsx from 'clsx';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { CardLink, DashboardCard } from '@/app/components/dashboard/ui';
+import { useIntlayer } from '@/app/i18n';
+import apiClient from '@/app/lib/api';
 
 interface BudgetSummary {
   id: string;

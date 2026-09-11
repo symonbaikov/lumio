@@ -1,10 +1,10 @@
 'use client';
 
+import { type UseQueryResult, useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { gmailReceiptsApi } from '@/app/lib/api';
 import { queryKeys } from '@/app/lib/query-keys';
-import { type UseQueryResult, useQuery } from '@tanstack/react-query';
-import { useCallback } from 'react';
 import { type GmailReceipt, hasGmailReceiptAmount } from '../gmail-receipt-mapping';
 
 const POLL_INTERVAL_MS = 6000;

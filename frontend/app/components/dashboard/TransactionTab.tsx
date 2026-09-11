@@ -1,22 +1,22 @@
 'use client';
 
-import { useIntlayer } from '@/app/i18n';
 import Box from '@mui/material/Box';
+import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import { useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 
 import DetailsDrawer from '@/app/components/transactions/DetailsDrawer';
-import TransactionsTable from '@/app/components/transactions/TransactionsTable';
 import { useBulkUpdateCategory } from '@/app/components/transactions/hooks/useBulkUpdateCategory';
 import { useTransactionData } from '@/app/components/transactions/hooks/useTransactionData';
+import TransactionsTable from '@/app/components/transactions/TransactionsTable';
 import type { FilterState, Transaction } from '@/app/components/transactions/types';
 import { CurrencyDisplayToggle } from '@/app/components/ui/CurrencyDisplayToggle';
 import { CurrencyFilterDropdown } from '@/app/components/ui/CurrencyFilterDropdown';
 import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
+import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
-import Skeleton from '@mui/material/Skeleton';
 
 const TX_ROW_SKELETON_KEYS = ['tx-0', 'tx-1', 'tx-2', 'tx-3', 'tx-4', 'tx-5', 'tx-6', 'tx-7'];
 

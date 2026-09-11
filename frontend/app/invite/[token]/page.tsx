@@ -1,15 +1,14 @@
 'use client';
-import { formatStoredDateTime } from '@/app/lib/user-format-store';
-
+import { Alert, Box, Button, Card, CardContent, Container, Stack, Typography } from '@mui/material';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { ShieldCheck } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import { safeInternalPath } from '@/app/lib/safe-path';
-import { Alert, Box, Button, Card, CardContent, Container, Stack, Typography } from '@mui/material';
-import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 type InvitationStatus = 'pending' | 'accepted' | 'cancelled' | 'expired';
 
@@ -91,7 +90,7 @@ export default function AcceptInvitePage() {
   const userEmail = user?.email;
   const invitationEmail = invitation?.email;
   const isEmailMatch = useMemo(() => {
-    if (!userEmail || !invitationEmail) return false;
+    if (!(userEmail && invitationEmail)) return false;
     return userEmail.trim().toLowerCase() === invitationEmail.trim().toLowerCase();
   }, [invitationEmail, userEmail]);
 
@@ -102,7 +101,7 @@ export default function AcceptInvitePage() {
 
   const registerHref = useMemo(() => {
     const safeNext = safeInternalPath(nextPath);
-    if (!safeNext || !token) return '/register';
+    if (!(safeNext && token)) return '/register';
     return `/register?next=${encodeURIComponent(safeNext)}&invite=${encodeURIComponent(token)}`;
   }, [nextPath, token]);
 

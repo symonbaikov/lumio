@@ -4,8 +4,8 @@
 
 'use client';
 
-import { PlayCircle } from '@/app/components/icons';
 import { Button } from '@mui/material';
+import { PlayCircle } from '@/app/components/icons';
 import { useTour } from '../../hooks/useTour';
 
 interface TourButtonProps {

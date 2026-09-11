@@ -1,8 +1,5 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
-import { apiQuery } from '@/app/lib/query-fn';
-import { queryKeys } from '@/app/lib/query-keys';
 import {
   type UseMutationResult,
   useMutation,
@@ -10,6 +7,9 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import apiClient from '@/app/lib/api';
+import { apiQuery } from '@/app/lib/query-fn';
+import { queryKeys } from '@/app/lib/query-keys';
 import { useWorkspaceId } from './useWorkspaceId';
 
 export type InsightSeverity = 'info' | 'warn' | 'critical';

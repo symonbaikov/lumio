@@ -1,6 +1,10 @@
 /* eslint-disable max-lines */
 'use client';
 
+import { Alert, Box, Button, Link, TextField, Typography } from '@mui/material';
+import CircularProgress from '@mui/material/CircularProgress';
+import { useSearchParams } from 'next/navigation';
+import React, { Suspense, useState } from 'react';
 import { AuthGreeting } from '@/app/components/AuthGreeting';
 import { AuthLanguageSwitcher } from '@/app/components/AuthLanguageSwitcher';
 import { useIntlayer } from '@/app/i18n';
@@ -10,10 +14,6 @@ import { DEFAULT_APP_ROUTE } from '@/app/lib/default-app-route';
 import { syncLocaleFromUser } from '@/app/lib/locale';
 import { safeInternalPath } from '@/app/lib/safe-path';
 import { tokens } from '@/lib/theme-tokens';
-import { Alert, Box, Button, Link, TextField, Typography } from '@mui/material';
-import CircularProgress from '@mui/material/CircularProgress';
-import { useSearchParams } from 'next/navigation';
-import React, { Suspense, useState } from 'react';
 import AuthLayout from '../AuthLayout';
 
 // eslint-disable-next-line complexity

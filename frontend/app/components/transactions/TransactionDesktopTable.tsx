@@ -2,8 +2,8 @@
 
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '../ui/checkbox';
-import { SortIcon, TransactionRow } from './TransactionRow';
 import type { TransactionRowFormatters, TransactionRowHandlers } from './TransactionRow';
+import { SortIcon, TransactionRow } from './TransactionRow';
 import type { Category, SortState, Transaction } from './types';
 
 interface TableHeaderProps {

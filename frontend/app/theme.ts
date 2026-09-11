@@ -1,5 +1,5 @@
+import { alpha, createTheme, type ThemeOptions } from '@mui/material/styles';
 import { tokens } from '@/lib/theme-tokens';
-import { type ThemeOptions, alpha, createTheme } from '@mui/material/styles';
 
 export type ThemeMode = 'light' | 'dark';
 

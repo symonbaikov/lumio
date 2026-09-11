@@ -1,4 +1,3 @@
-import { createHmac, randomUUID } from 'crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -10,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import { createHmac, randomUUID } from 'crypto';
 import type { StringValue } from 'ms';
 import { IsNull, type Repository } from 'typeorm';
 import { DEV_DEFAULTS } from '../../common/utils/dev-defaults';
@@ -27,8 +27,8 @@ import { CategoriesService } from '../categories/categories.service';
 import type { AuthResponseDto, LoginResultDto } from './dto/auth-response.dto';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
-import type { JwtRefreshPayload } from './strategies/jwt-refresh.strategy';
 import type { JwtPayload } from './strategies/jwt.strategy';
+import type { JwtRefreshPayload } from './strategies/jwt-refresh.strategy';
 import { TwoFactorService } from './two-factor.service';
 
 export interface SessionContext {

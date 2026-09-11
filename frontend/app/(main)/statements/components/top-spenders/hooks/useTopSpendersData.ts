@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { StatementFilterItem } from '@/app/(main)/statements/components/filters/statement-filters';
 import {
   type TopSpendersAggregationReturn,
@@ -14,7 +15,6 @@ import type {
 } from '@/app/(main)/statements/components/top-spenders/top-spenders.types';
 import { useAnalyticsData } from '@/app/(main)/statements/hooks/useAnalyticsData';
 import { getRecordDate } from '@/app/lib/analytics-common';
-import { useMemo } from 'react';
 
 type StatementWithWorkspace = StatementFilterItem & {
   workspaceId?: string;

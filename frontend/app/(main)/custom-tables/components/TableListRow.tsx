@@ -1,13 +1,16 @@
 'use client';
 
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import React from 'react';
 import {
+  Tag as CategoryIcon,
   ChevronRight,
   Ellipsis,
   RefreshCcw,
   Table as TableIcon,
   Trash2,
 } from '@/app/components/icons';
-import { Tag as CategoryIcon } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import {
   DropdownMenu,
@@ -15,9 +18,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import React from 'react';
 import { formatUpdatedDate } from '../customTablesHelpers';
 
 export interface CustomTableRegistryItem {

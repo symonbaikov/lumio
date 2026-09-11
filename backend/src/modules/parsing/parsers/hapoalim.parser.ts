@@ -343,7 +343,7 @@ export class HapoalimParser extends BaseParser {
       }
     }
 
-    if (!debit && !credit) return null;
+    if (!(debit || credit)) return null;
 
     return {
       transactionDate,
@@ -391,7 +391,7 @@ export class HapoalimParser extends BaseParser {
       }
     }
 
-    if (!debit && !credit) return null;
+    if (!(debit || credit)) return null;
 
     // Extract merchant name — Hebrew text block
     // Remove the date and amounts, what remains is merchant + category

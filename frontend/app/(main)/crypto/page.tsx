@@ -1,16 +1,16 @@
 'use client';
 
-import { Plus } from '@/app/components/icons';
-import { EmptyState } from '@/app/components/ui/EmptyState';
-import { Spinner } from '@/app/components/ui/spinner';
-import { useIntlayer, useLocale } from '@/app/i18n';
-import { formatMoney } from '@/app/lib/format-money';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
 import { useState } from 'react';
+import { Plus } from '@/app/components/icons';
+import { EmptyState } from '@/app/components/ui/EmptyState';
+import { Spinner } from '@/app/components/ui/spinner';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import { formatMoney } from '@/app/lib/format-money';
 import { ConnectWalletDialog } from './components/ConnectWalletDialog';
 import { CryptoWalletCard } from './components/CryptoWalletCard';
 import { useCrypto } from './hooks/useCrypto';

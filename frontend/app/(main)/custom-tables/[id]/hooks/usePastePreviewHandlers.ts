@@ -2,9 +2,9 @@
 
 import { useCallback } from 'react';
 import {
+  buildPastePreview,
   type PasteMappingSelection,
   type PastePreviewData,
-  buildPastePreview,
   parseClipboardRows,
 } from '../utils/pasteUtils';
 import type { CustomTablePageColumn } from '../utils/tableTypes';

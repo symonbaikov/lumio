@@ -1,8 +1,8 @@
 'use client';
 
+import React, { useMemo } from 'react';
 import { ArrowDown, ArrowUp, Minus } from '@/app/components/icons';
 import { tokens } from '@/lib/theme-tokens';
-import React, { useMemo } from 'react';
 import type { SummaryItem, SummarySection } from '../types';
 import { RenderIcon } from './components/RenderIcon';
 import { SectionWrapper } from './components/SectionWrapper';

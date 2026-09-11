@@ -2,8 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { Block } from './Block';
-import { WindowGrid } from './WindowGrid';
 import type { BuildingProps } from './shared';
+import { WindowGrid } from './WindowGrid';
 
 export const StandardBuilding = ({
   delay,

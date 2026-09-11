@@ -1,10 +1,10 @@
 'use client';
 
-import { FileText, Filter, Folder, Search, Trash2 } from '@/app/components/icons';
-import { tokens } from '@/lib/theme-tokens';
 import { Box, TextField, Typography } from '@mui/material';
 import { useTheme } from 'next-themes';
 import React from 'react';
+import { FileText, Filter, Folder, Search, Trash2 } from '@/app/components/icons';
+import { tokens } from '@/lib/theme-tokens';
 import { listToggleSx } from '../helpers/storageStyling';
 import type { StorageFile } from '../storageHelpers';
 import { DroppableHeaderTrigger } from './DroppableHeaderTrigger';

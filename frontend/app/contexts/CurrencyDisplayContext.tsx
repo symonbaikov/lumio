@@ -1,8 +1,8 @@
 'use client';
 
-import { resolveCurrencyCode } from '@/app/lib/format-money';
 import type React from 'react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import { useWorkspace } from './WorkspaceContext';
 
 const STORAGE_KEY = 'lumio:currencyDisplay';
@@ -19,7 +19,9 @@ const CurrencyDisplayContext = createContext<CurrencyDisplayContextType | undefi
 
 export function CurrencyDisplayProvider({
   children,
-}: { children: React.ReactNode }): React.JSX.Element {
+}: {
+  children: React.ReactNode;
+}): React.JSX.Element {
   const { currentWorkspace } = useWorkspace();
   const workspaceCurrency = resolveCurrencyCode(currentWorkspace?.currency);
 

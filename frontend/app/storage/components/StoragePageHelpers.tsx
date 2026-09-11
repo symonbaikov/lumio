@@ -1,11 +1,11 @@
 'use client';
 
-import { tokens } from '@/lib/theme-tokens';
 import { Box, Typography } from '@mui/material';
-import { useTheme } from 'next-themes';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import React from 'react';
+import { tokens } from '@/lib/theme-tokens';
 import { DropboxStorageWidget } from '../../components/DropboxStorageWidget';
 import { GoogleDriveStorageWidget } from '../../components/GoogleDriveStorageWidget';
 import type { FolderOption } from '../storageHelpers';

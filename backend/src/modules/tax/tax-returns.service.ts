@@ -12,10 +12,10 @@ import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { JurisdictionAdoptionService } from './jurisdiction-adoption.service';
 import { JurisdictionsService, toDateOnly } from './jurisdictions.service';
 import {
-  type TaxReturnDocumentInput,
   buildFileName,
   buildTaxReturnPdf,
   buildTaxReturnXlsx,
+  type TaxReturnDocumentInput,
 } from './tax-return-document';
 
 export interface ReturnTotals {

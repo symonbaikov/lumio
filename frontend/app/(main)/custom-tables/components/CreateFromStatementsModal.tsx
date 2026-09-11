@@ -1,10 +1,10 @@
 'use client';
 
 import { Dialog } from '@mui/material';
-import type { StatementGroupBy } from '../create-from-statements-utils';
 import type {
   buildStatementSelectionOptions,
   groupStatementSelectionOptions,
+  StatementGroupBy,
 } from '../create-from-statements-utils';
 import { ModalBody } from './create-from-statements/ModalBody';
 import { ModalFooter } from './create-from-statements/ModalFooter';

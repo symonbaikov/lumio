@@ -2,8 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { Permission, ROLE_PERMISSIONS } from '../../../common/enums/permissions.enum';
-import { User } from '../../../entities/user.entity';
-import { UserRole } from '../../../entities/user.entity';
+import { User, UserRole } from '../../../entities/user.entity';
 import { findUserOrThrow, getCurrentPermissions, withCurrentPermissions } from './permissions.util';
 
 @Injectable()

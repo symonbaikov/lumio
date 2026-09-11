@@ -1,14 +1,13 @@
 'use client';
-import { formatStoredDateTime } from '@/app/lib/user-format-store';
-
-import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import { useIntlayer } from '@/app/i18n';
-import type { AuditEvent } from '@/lib/api/audit';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { useTheme } from 'next-themes';
 import React from 'react';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useIntlayer } from '@/app/i18n';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
+import type { AuditEvent } from '@/lib/api/audit';
+import { tokens } from '@/lib/theme-tokens';
 import { formatAuditEvent } from '../utils/formatAuditEvent';
 import { DiffViewer } from './DiffViewer';
 
@@ -24,7 +23,10 @@ type FormattedEvent = ReturnType<typeof formatAuditEvent>;
 function EventMetaRows({
   event,
   formatted,
-}: { event: AuditEvent; formatted: FormattedEvent }): React.JSX.Element {
+}: {
+  event: AuditEvent;
+  formatted: FormattedEvent;
+}): React.JSX.Element {
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
 
@@ -80,7 +82,10 @@ function EventMetaRows({
 function EventDrawerBody({
   event,
   onRollback,
-}: { event: AuditEvent; onRollback?: (event: AuditEvent) => void }): React.JSX.Element {
+}: {
+  event: AuditEvent;
+  onRollback?: (event: AuditEvent) => void;
+}): React.JSX.Element {
   const t = useIntlayer('auditEventDrawer');
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;

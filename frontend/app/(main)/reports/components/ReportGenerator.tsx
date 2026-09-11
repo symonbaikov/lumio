@@ -1,10 +1,5 @@
 'use client';
 
-import CustomDatePicker from '@/app/components/CustomDatePicker';
-import { Download, X } from '@/app/components/icons';
-import { useIntlayer } from '@/app/i18n';
-import apiClient from '@/app/lib/api';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -12,6 +7,11 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
 import { useState } from 'react';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
+import { Download, X } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
+import apiClient from '@/app/lib/api';
+import { tokens } from '@/lib/theme-tokens';
 import { ReportPreview, type ReportPreviewData } from './ReportPreview';
 import { type ReportScope, ReportScopeFilters } from './ReportScopeFilters';
 import type { ReportTemplate } from './ReportTemplateCard';

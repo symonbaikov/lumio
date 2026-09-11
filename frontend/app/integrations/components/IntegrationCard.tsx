@@ -1,11 +1,11 @@
 'use client';
 
-import { CheckCircle2, ExternalLink, Star } from '@/app/components/icons';
-import { tokens } from '@/lib/theme-tokens';
 import { Box, Typography } from '@mui/material';
 import Image from 'next/image';
 import Link from 'next/link';
 import type React from 'react';
+import { CheckCircle2, ExternalLink, Star } from '@/app/components/icons';
+import { tokens } from '@/lib/theme-tokens';
 
 export interface IntegrationAction {
   key?: string;
@@ -165,7 +165,10 @@ function ActionButtonElement({ action }: { action: IntegrationAction }): React.J
 function ActionButton({
   action,
   active,
-}: { action: IntegrationAction; active: boolean }): React.JSX.Element {
+}: {
+  action: IntegrationAction;
+  active: boolean;
+}): React.JSX.Element {
   if (action.external && hasHref(action)) {
     return <ExternalActionLink action={action} />;
   }
@@ -181,7 +184,10 @@ function ActionButton({
 function IntegrationBadge({
   recommended,
   badge,
-}: { recommended: boolean; badge: React.ReactNode }): React.JSX.Element {
+}: {
+  recommended: boolean;
+  badge: React.ReactNode;
+}): React.JSX.Element {
   if (recommended) {
     return (
       <Box

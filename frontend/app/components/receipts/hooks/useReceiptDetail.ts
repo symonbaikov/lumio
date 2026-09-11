@@ -1,7 +1,7 @@
 'use client';
 
-import apiClient, { type ReceiptRecord } from '@/app/lib/api';
 import { useEffect, useMemo, useState } from 'react';
+import apiClient, { type ReceiptRecord } from '@/app/lib/api';
 import { buildInitialForm, buildParsedDataPayload } from '../helpers/receipt-builders';
 import type { EditableReceiptParsedData, ReceiptCategoryOption } from '../receipt-types';
 import { useReceiptActions } from './useReceiptActions';

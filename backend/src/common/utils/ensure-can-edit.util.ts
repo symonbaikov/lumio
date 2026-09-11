@@ -5,7 +5,7 @@ import type {
   WorkspaceMemberPermissions,
 } from '../../entities/workspace-member.entity';
 import { WorkspaceRole } from '../../entities/workspace-member.entity';
-import { type ErrorCode, appError } from '../errors/app-error';
+import { appError, type ErrorCode } from '../errors/app-error';
 
 /**
  * Checks that the given user has permission to perform an edit operation in the workspace.

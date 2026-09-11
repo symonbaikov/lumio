@@ -1,13 +1,13 @@
 'use client';
 
-import { Select } from '@/app/components/ui/select';
-import { useIntlayer } from '@/app/i18n';
-import { SUPPORTED_LOCALES } from '@/app/lib/locale';
-import { tokens } from '@/lib/theme-tokens';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import { useTheme } from 'next-themes';
 import { useMemo } from 'react';
+import { Select } from '@/app/components/ui/select';
+import { useIntlayer } from '@/app/i18n';
+import { SUPPORTED_LOCALES } from '@/app/lib/locale';
+import { tokens } from '@/lib/theme-tokens';
 import { getNestedOnboardingValue, resolveOnboardingText } from '../lib/resolveOnboardingText';
 import type { SupportedLocale } from '../useOnboardingWizard';
 

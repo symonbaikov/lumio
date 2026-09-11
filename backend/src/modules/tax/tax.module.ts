@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { TaxJurisdictionRate } from '../../entities/tax-jurisdiction-rate.entity';
 import { TaxJurisdiction } from '../../entities/tax-jurisdiction.entity';
+import { TaxJurisdictionRate } from '../../entities/tax-jurisdiction-rate.entity';
 import { TaxRate } from '../../entities/tax-rate.entity';
 import { TaxReturn } from '../../entities/tax-return.entity';
 import { TaxRule } from '../../entities/tax-rule.entity';

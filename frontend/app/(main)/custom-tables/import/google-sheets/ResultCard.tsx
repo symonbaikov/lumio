@@ -1,12 +1,12 @@
 'use client';
 
+import { Box, Typography } from '@mui/material';
+import Image from 'next/image';
+import type { CSSProperties } from 'react';
 import { Tag as CategoryIconFallback, Sparkles } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, Typography } from '@mui/material';
-import Image from 'next/image';
-import type { CSSProperties } from 'react';
 import type { Category, PreviewResponse } from './types';
 
 const inputStyle: CSSProperties = {

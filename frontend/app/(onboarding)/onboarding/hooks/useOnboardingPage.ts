@@ -1,10 +1,10 @@
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_BACKGROUND } from '@/app/(main)/workspaces/constants';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { normalizeLocale } from '@/app/lib/locale';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import { resolveOnboardingFlow } from '../lib/onboarding-flow';
 import { getNestedOnboardingValue, resolveOnboardingText } from '../lib/resolveOnboardingText';
 import { useOnboardingWizard } from '../useOnboardingWizard';

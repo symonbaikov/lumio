@@ -1,8 +1,11 @@
 'use client';
 
-import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import apiClient from '@/app/lib/api';
-import { useCallback, useEffect, useState } from 'react';
+import { apiQuery } from '@/app/lib/query-fn';
+import { queryKeys } from '@/app/lib/query-keys';
 
 export interface Goal {
   id: string;
@@ -30,7 +33,8 @@ export const EMPTY_GOAL_FORM: GoalFormData = {
 
 interface UseGoalsState {
   goals: Goal[];
-  loading: boolean;
+  isPending: boolean;
+  isFetching: boolean;
   error: string | null;
   saving: boolean;
   reload: () => void;
@@ -41,53 +45,29 @@ interface UseGoalsState {
 }
 
 export function useGoals(): UseGoalsState {
-  const { currentWorkspace } = useWorkspace();
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    await (async () => {
-      const response = await apiClient.get('/goals');
-      setGoals(response.data?.data ?? response.data ?? []);
-    })()
-      .catch(async () => {
-        setError('failed');
-      })
-      .finally(async () => {
-        setLoading(false);
-      });
-  }, []);
-
   // Workspace-scoped: the request itself does not mention the workspace (the
-  // server scopes by session), so the effect re-runs on switch explicitly.
-  const workspaceId = currentWorkspace?.id;
-  useEffect(() => {
-    void load();
-  }, [load, workspaceId]);
+  // server scopes by session), so the key carries it explicitly.
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: queryKeys.goalsList(workspaceId),
+    queryFn: ({ signal }) => apiQuery<Goal[]>({ url: '/goals', signal }),
+  });
+
+  const mutation = useMutation({
+    mutationFn: (request: () => Promise<unknown>) => request(),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.goalsList(workspaceId) }),
+  });
 
   const submit = useCallback(
     async (request: () => Promise<unknown>) => {
-      setSaving(true);
-
-      return await (async () => {
-        await request();
-        await load();
-        return true;
-      })()
-        .catch(async () => {
-          setError('failed');
-          return false;
-        })
-        .finally(async () => {
-          setSaving(false);
-        });
+      return await mutation
+        .mutateAsync(request)
+        .then(() => true)
+        .catch(() => false);
     },
-    [load],
+    [mutation.mutateAsync],
   );
 
   const toPayload = (form: GoalFormData) => ({
@@ -126,12 +106,17 @@ export function useGoals(): UseGoalsState {
     [submit],
   );
 
+  const reload = useCallback((): void => {
+    void query.refetch();
+  }, [query.refetch]);
+
   return {
-    goals,
-    loading,
-    error,
-    saving,
-    reload: load,
+    goals: query.data ?? [],
+    isPending: query.isPending,
+    isFetching: query.isFetching,
+    error: query.isError || mutation.isError ? 'failed' : null,
+    saving: mutation.isPending,
+    reload,
     createGoal,
     updateGoal,
     deleteGoal,

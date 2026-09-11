@@ -1,12 +1,5 @@
 'use client';
 
-import { Download, File as FileIcon, Trash2 } from '@/app/components/icons';
-import { Spinner } from '@/app/components/ui/spinner';
-import {
-  type TransactionAttachment,
-  type TransactionTag,
-  transactionFilesApi,
-} from '@/app/lib/transaction-files-api';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -14,6 +7,13 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { Download, File as FileIcon, Trash2 } from '@/app/components/icons';
+import { Spinner } from '@/app/components/ui/spinner';
+import {
+  type TransactionAttachment,
+  type TransactionTag,
+  transactionFilesApi,
+} from '@/app/lib/transaction-files-api';
 
 interface TransactionFilesTabProps {
   transactionId: string;

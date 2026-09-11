@@ -1,21 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import {
   DEFAULT_STATEMENT_COLUMNS,
-  type StatementColumn,
-  type StatementColumnId,
   loadStatementColumns,
   reorderStatementColumns,
+  type StatementColumn,
+  type StatementColumnId,
   saveStatementColumns,
 } from '@/app/(main)/statements/components/columns/statement-columns';
 import {
   DEFAULT_STATEMENT_FILTERS,
-  type StatementFilters,
   loadStatementFilters,
   resetSingleStatementFilter,
+  type StatementFilters,
   saveStatementFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
-import { useState } from 'react';
 import { reconcileFiltersWithColumns } from '../StatementsListView.utils';
 
 interface UseStatementsFilterStateReturn {

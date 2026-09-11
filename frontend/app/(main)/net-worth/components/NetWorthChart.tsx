@@ -1,12 +1,10 @@
 'use client';
 
-import { tokens } from '@/lib/theme-tokens';
 import { useTheme } from 'next-themes';
-import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
+import { LazyECharts } from '@/app/components/ui/lazy-echarts';
+import { tokens } from '@/lib/theme-tokens';
 import type { NetWorthPoint } from '../hooks/useNetWorth';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 interface NetWorthChartProps {
   points: NetWorthPoint[];
@@ -53,5 +51,5 @@ export function NetWorthChart({ points, positive }: NetWorthChartProps) {
     };
   }, [points, positive, color, isDark]);
 
-  return <ReactECharts option={option} style={{ height: 280, width: '100%' }} notMerge />;
+  return <LazyECharts option={option} style={{ height: 280, width: '100%' }} notMerge />;
 }

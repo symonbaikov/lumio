@@ -17,8 +17,8 @@ import { GoogleSheet } from './google-sheet.entity';
 import { Statement } from './statement.entity';
 import { TelegramReport } from './telegram-report.entity';
 import { Wallet } from './wallet.entity';
-import { WorkspaceMember } from './workspace-member.entity';
 import { Workspace } from './workspace.entity';
+import { WorkspaceMember } from './workspace-member.entity';
 
 export enum UserRole {
   ADMIN = 'admin',

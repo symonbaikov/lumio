@@ -1,11 +1,11 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { Plus, Trash2 } from '@/app/components/icons';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '@/app/components/ui/checkbox';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
-import type { CSSProperties } from 'react';
 import type { CustomTableColumn, CustomTableGridRow } from '../utils/stylingUtils';
 import { getRowStyle } from '../utils/stylingUtils';
 import type { FormatMobileCellFn, SelectRowFn } from './MobileTableView.types';
@@ -212,7 +212,9 @@ function MobileRowCard({
 
 function MobileEmptyState({
   labels,
-}: { labels: { emptyTitle: string; emptySubtitle: string } }): React.JSX.Element {
+}: {
+  labels: { emptyTitle: string; emptySubtitle: string };
+}): React.JSX.Element {
   return (
     <div
       style={{

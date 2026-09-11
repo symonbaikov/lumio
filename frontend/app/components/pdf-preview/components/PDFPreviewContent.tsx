@@ -1,8 +1,8 @@
 'use client';
 
+import type { ChangeEvent, ComponentType, RefObject } from 'react';
 import { X } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
-import type { ChangeEvent, ComponentType, RefObject } from 'react';
 
 type TIntl = Record<string, { value: string }>;
 
@@ -317,7 +317,7 @@ function PDFViewerArea({
         isReceiptImage={isReceiptImage}
       />
     );
-  if (!showPDF || !DocumentComponent || !PageComponent) return <></>;
+  if (!(showPDF && DocumentComponent && PageComponent)) return <></>;
   return (
     <PDFPagesView
       viewportRef={viewportRef}

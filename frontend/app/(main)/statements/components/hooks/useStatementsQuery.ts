@@ -1,12 +1,12 @@
 'use client';
 
+import { keepPreviousData, type UseQueryResult, useQuery } from '@tanstack/react-query';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
 import { hasProcessingStatements } from '@/app/lib/statement-status';
-import { type UseQueryResult, keepPreviousData, useQuery } from '@tanstack/react-query';
-import { buildStatementRequestParams } from '../StatementsListView.utils';
 import type { StatementFilters } from '../filters/statement-filters';
+import { buildStatementRequestParams } from '../StatementsListView.utils';
 
 /** Minimal shape required by the data-loading hook. */
 export interface StatementRecord {

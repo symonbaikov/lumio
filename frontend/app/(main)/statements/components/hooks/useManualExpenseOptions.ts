@@ -1,12 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import apiClient from '@/app/lib/api';
 import type { StatementCategoryNode } from '@/app/lib/statement-categories';
 import type { TaxRateOption } from '@/app/lib/statement-expense-drawer';
-import { useState } from 'react';
 import {
-  type StatementCategoryWithEnabled,
   filterEnabledCategories,
+  type StatementCategoryWithEnabled,
 } from '../StatementsListView.utils';
 
 interface UseManualExpenseOptionsReturn {

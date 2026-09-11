@@ -1,9 +1,9 @@
 'use client';
 
-import { useIntlayer } from '@/app/i18n';
 import type { SortingState } from '@tanstack/react-table';
 import { useTheme } from 'next-themes';
 import { useCallback, useMemo, useState } from 'react';
+import { useIntlayer } from '@/app/i18n';
 import type { ConditionalRule } from '../utils/conditionalRules';
 import type {
   CustomTableCellValue,
@@ -12,8 +12,8 @@ import type {
   CustomTableRowStyles,
 } from '../utils/stylingUtils';
 import { type UseCustomTableStateReturn, useCustomTableState } from './useCustomTableState';
-import { useTanStackLabels } from './useTanStackLabels';
 import type { CommonLabels } from './useTanStackLabels';
+import { useTanStackLabels } from './useTanStackLabels';
 
 interface RawCb {
   onUpdateCell: (r: string, k: string, v: CustomTableCellValue) => Promise<void>;

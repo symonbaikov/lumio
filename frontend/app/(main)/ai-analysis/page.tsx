@@ -1,11 +1,11 @@
 'use client';
 
-import { Sparkles } from '@/app/components/icons';
-import { useIntlayer } from '@/app/i18n';
-import { tokens } from '@/lib/theme-tokens';
 import { Box, Button, Tab, Tabs, Typography } from '@mui/material';
 import type React from 'react';
 import { useState } from 'react';
+import { Sparkles } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
+import { tokens } from '@/lib/theme-tokens';
 import { ChatTab } from './components/ChatTab';
 import { ModelCatalogTab } from './components/ModelCatalogTab';
 import { generateInsight } from './insights/generate-insight';

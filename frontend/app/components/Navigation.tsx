@@ -8,22 +8,19 @@ import { getRecord, resolveLabel } from '@/app/lib/side-panel-utils';
 import { TourMenu } from '@/app/tours/components/TourMenu';
 import 'driver.js/dist/driver.css';
 
-import { HelpCircle, X } from '@/app/components/icons';
-import { useIntlayer, useLocale } from '@/app/i18n';
-import { tokens } from '@/lib/theme-tokens';
-import { useTheme } from 'next-themes';
 import { Nunito } from 'next/font/google';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { HelpCircle, X } from '@/app/components/icons';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import { tokens } from '@/lib/theme-tokens';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
-import { LanguageDrawer } from './navigation/LanguageDrawer';
-import { MobileDrawer } from './navigation/MobileDrawer';
-import { UserMenuTriggerAndDropdown } from './navigation/UserMenu';
 import {
   type AppLanguage,
   buildNavItems,
@@ -33,6 +30,9 @@ import { useLanguageSelection } from './navigation/hooks/useLanguageSelection';
 import { useMobileMenu } from './navigation/hooks/useMobileMenu';
 import { useNavigationTour } from './navigation/hooks/useNavigationTour';
 import { useThemePreference } from './navigation/hooks/useThemePreference';
+import { LanguageDrawer } from './navigation/LanguageDrawer';
+import { MobileDrawer } from './navigation/MobileDrawer';
+import { UserMenuTriggerAndDropdown } from './navigation/UserMenu';
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['800', '900'] });
 const HIDDEN_PATHS = ['/onboarding', '/login', '/register', '/shared', '/invite'];

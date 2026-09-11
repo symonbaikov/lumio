@@ -1,12 +1,12 @@
-import { useWorkspace } from '@/app/contexts/WorkspaceContext';
-import apiClient from '@/app/lib/api';
-import {
-  type CurrencySearchItem,
-  buildCurrencySearchIndex,
-} from '@/app/lib/statement-expense-drawer';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import apiClient from '@/app/lib/api';
+import {
+  buildCurrencySearchIndex,
+  type CurrencySearchItem,
+} from '@/app/lib/statement-expense-drawer';
 
 const DEFAULT_RECENT_CURRENCIES = ['KZT', 'USD', 'EUR', 'RUB'] as const;
 
@@ -159,7 +159,11 @@ function useWorkspaceActions(
     name,
     description,
     currency,
-  }: { name: string; description: string; currency: string }): Promise<void> => {
+  }: {
+    name: string;
+    description: string;
+    currency: string;
+  }): Promise<void> => {
     if (!(workspaceId && name.trim())) {
       return;
     }
@@ -187,7 +191,11 @@ function useWorkspaceActions(
     confirmName,
     workspaceName,
     onSuccess,
-  }: { confirmName: string; workspaceName: string; onSuccess: () => void }): Promise<void> => {
+  }: {
+    confirmName: string;
+    workspaceName: string;
+    onSuccess: () => void;
+  }): Promise<void> => {
     if (!workspaceId || confirmName.trim() !== workspaceName) {
       return;
     }

@@ -1,12 +1,11 @@
 'use client';
-import { formatStoredDateTime } from '@/app/lib/user-format-store';
-
-import { X } from '@/app/components/icons';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import ReactMarkdown, { type Components } from 'react-markdown';
+import { X } from '@/app/components/icons';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
+import { tokens } from '@/lib/theme-tokens';
 import { ModalShell } from './ui/modal-shell';
 
 export interface ChangelogEntry {

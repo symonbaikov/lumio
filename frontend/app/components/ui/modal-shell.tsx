@@ -1,7 +1,5 @@
 'use client';
 
-import { X } from '@/app/components/icons';
-import { Spinner } from '@/app/components/ui/spinner';
 import type { SxProps, Theme } from '@mui/material';
 import MuiButton from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -9,6 +7,8 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import * as React from 'react';
+import { X } from '@/app/components/icons';
+import { Spinner } from '@/app/components/ui/spinner';
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 

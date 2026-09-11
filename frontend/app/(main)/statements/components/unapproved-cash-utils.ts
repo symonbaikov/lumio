@@ -211,7 +211,7 @@ export const resolveUnapprovedReasons = (
     reasons.push('missing-category');
   }
 
-  if (Boolean(transaction.isDuplicate) || isPresentId(transaction.duplicateOfId)) {
+  if (transaction.isDuplicate || isPresentId(transaction.duplicateOfId)) {
     reasons.push('duplicate-detected');
   }
 
@@ -228,7 +228,7 @@ export const resolveUnapprovedReasons = (
   }
 
   const statementStatus = (statement?.status || '').trim().toLowerCase();
-  if (statementStatus === 'error' || Boolean(statement?.errorMessage)) {
+  if (statementStatus === 'error' || statement?.errorMessage) {
     reasons.push('ocr-issues');
   }
 

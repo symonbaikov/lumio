@@ -1,5 +1,12 @@
 'use client';
 
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import { useState } from 'react';
 import { Alert } from '@/app/components/ui/alert';
 import { Spinner } from '@/app/components/ui/spinner';
 import {
@@ -9,13 +16,6 @@ import {
   type Tx,
 } from '@/app/settings/profile/components/TwoFactorPanels';
 import type { UseTwoFactorReturn } from '@/app/settings/profile/hooks/useTwoFactor';
-import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Chip from '@mui/material/Chip';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import { useState } from 'react';
 
 type EnabledPanelProps = {
   tx: Tx;
@@ -77,7 +77,11 @@ function DisabledPanel({
   tx,
   busy,
   onStart,
-}: { tx: Tx; busy: boolean; onStart: (password: string) => void }) {
+}: {
+  tx: Tx;
+  busy: boolean;
+  onStart: (password: string) => void;
+}) {
   return (
     <Card variant="outlined">
       {/* The section header already carries the description — no need to repeat it here. */}

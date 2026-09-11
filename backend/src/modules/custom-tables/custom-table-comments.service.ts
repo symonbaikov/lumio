@@ -3,9 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { appError } from '../../common/errors/app-error';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
-import { CustomTableRowComment } from '../../entities/custom-table-row-comment.entity';
-import { CustomTableRow } from '../../entities/custom-table-row.entity';
 import { CustomTable } from '../../entities/custom-table.entity';
+import { CustomTableRow } from '../../entities/custom-table-row.entity';
+import { CustomTableRowComment } from '../../entities/custom-table-row-comment.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 
 export interface CommentView {

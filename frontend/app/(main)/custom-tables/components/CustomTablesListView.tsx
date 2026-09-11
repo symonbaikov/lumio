@@ -1,6 +1,9 @@
 'use client';
 
+import { Box, Typography } from '@mui/material';
+import { useRouter } from 'next/navigation';
 import {
+  Tag as CategoryIcon,
   ChevronRight,
   Ellipsis,
   FileSpreadsheet,
@@ -8,8 +11,6 @@ import {
   Table as TableIcon,
   Trash2,
 } from '@/app/components/icons';
-import { Tag as CategoryIcon } from '@/app/components/icons';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import {
   DropdownMenu,
@@ -17,10 +18,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { Spinner } from '@/app/components/ui/spinner';
-import { Box, Typography } from '@mui/material';
-import { useRouter } from 'next/navigation';
 import { formatUpdatedDate } from '../customTablesHelpers';
 
 interface CustomTableRegistryItem {

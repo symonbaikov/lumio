@@ -3,12 +3,12 @@
 import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import { useTransactionFormatters } from './hooks/useTransactionFormatters';
+import { useTransactionsTable } from './hooks/useTransactionsTable';
 import { TransactionDesktopTable } from './TransactionDesktopTable';
 import { TransactionFiltersBar } from './TransactionFiltersBar';
 import { TransactionMobileList } from './TransactionMobileList';
 import { TransactionPagination } from './TransactionPagination';
-import { useTransactionFormatters } from './hooks/useTransactionFormatters';
-import { useTransactionsTable } from './hooks/useTransactionsTable';
 import type { Category, FilterState, Transaction, UpdateCategoryFn } from './types';
 
 interface TransactionsTableProps {

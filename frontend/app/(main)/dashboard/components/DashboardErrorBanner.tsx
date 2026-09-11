@@ -1,8 +1,8 @@
 'use client';
 
+import Box from '@mui/material/Box';
 import { RefreshCcw } from '@/app/components/icons';
 import { tokens } from '@/lib/theme-tokens';
-import Box from '@mui/material/Box';
 
 type DashboardErrorBannerProps = { error: string; onRefresh: () => void };
 

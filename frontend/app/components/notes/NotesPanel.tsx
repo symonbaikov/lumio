@@ -1,5 +1,8 @@
 'use client';
 
+import { Box, Typography } from '@mui/material';
+import { type ChangeEvent, type KeyboardEvent, useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { Button } from '@/app/components/ui/button';
 import { useAuth } from '@/app/hooks/useAuth';
 import {
@@ -11,15 +14,12 @@ import {
 import { useIntlayer } from '@/app/i18n';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import { formatStoredDateTime } from '@/app/lib/user-format-store';
-import { Box, Typography } from '@mui/material';
-import { type ChangeEvent, type KeyboardEvent, useMemo, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
 import {
-  type MentionCandidate,
   applyMention,
   collectMentionedIds,
   filterCandidates,
   findActiveMention,
+  type MentionCandidate,
   splitByMentions,
 } from './mentions.utils';
 

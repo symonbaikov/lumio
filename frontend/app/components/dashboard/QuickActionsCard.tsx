@@ -1,11 +1,11 @@
 'use client';
 
+import Link from 'next/link';
+import type React from 'react';
 import { fillTemplate } from '@/app/(main)/dashboard/helpers/dashboard-helpers';
 import { ChevronRight } from '@/app/components/icons';
 import type { DashboardData } from '@/app/hooks/useDashboard';
 import { useIntlayer } from '@/app/i18n';
-import Link from 'next/link';
-import type React from 'react';
 import { actionIcoClass, actionIcon, buildMappedActions } from './action-items';
 import { DashboardCard } from './ui';
 

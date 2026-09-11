@@ -2,28 +2,29 @@
  * Data-loading and action hooks for StatementsSidePanel.
  * Lives in .ts (not .tsx) so max-params rule allows up to 3 params.
  */
+
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useEffectEvent } from 'react';
+import toast from 'react-hot-toast';
 import apiClient from '@/app/lib/api';
 import { payablesApi } from '@/app/lib/payables-api';
 import {
   type OpenExpenseDrawerEventDetail,
+  resolveExpenseDrawerMode,
   STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT,
   type StatementExpenseMode,
-  resolveExpenseDrawerMode,
 } from '@/app/lib/statement-expense-drawer';
 import type { TopBankSender } from '@/app/lib/statement-insights';
 import {
   type CloudImportProvider,
   type ConnectedCloudProviders,
 } from '@/app/lib/statement-upload-actions';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useEffectEvent } from 'react';
-import toast from 'react-hot-toast';
 import { executeCloudImport, handleGmailSyncResponse } from './side-panel-actions';
 import {
   EMPTY_STAGE_COUNTS,
-  type StageCounts,
   loadStageCounts,
   resolveCloudConnectionStatus,
+  type StageCounts,
 } from './side-panel-data';
 
 export type StageData = {

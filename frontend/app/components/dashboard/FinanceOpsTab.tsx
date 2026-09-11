@@ -1,19 +1,19 @@
 'use client';
 
+import type React from 'react';
 import { fillTemplate } from '@/app/(main)/dashboard/helpers/dashboard-helpers';
 import { CheckCircle2, CircleAlert } from '@/app/components/icons';
 import type { DashboardData } from '@/app/hooks/useDashboard';
 import { useIntlayer } from '@/app/i18n';
-import type React from 'react';
-import { QuickActionsCard } from './QuickActionsCard';
-import { UploadZoneCard } from './UploadZoneCard';
 import { buildFinanceOpsLabels } from './finance-ops-labels';
 import {
+  buildFinanceOpsModel,
   type FinanceOpsFeature,
   type FinanceOpsFeatureStatus,
   type FinanceOpsModel,
-  buildFinanceOpsModel,
 } from './finance-ops-model';
+import { QuickActionsCard } from './QuickActionsCard';
+import { UploadZoneCard } from './UploadZoneCard';
 import { CardLink, Chip, ChipGroup, DashboardCard, ListRow, SectionHeader } from './ui';
 
 type FinanceOpsTabProps = {

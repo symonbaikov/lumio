@@ -1,8 +1,4 @@
 'use client';
-import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
-
-import { Copy, Trash2 } from '@/app/components/icons';
-import { useIntlayer, useLocale } from '@/app/i18n';
 import {
   Box,
   Chip,
@@ -16,6 +12,9 @@ import {
   Typography,
 } from '@mui/material';
 import React, { useState } from 'react';
+import { Copy, Trash2 } from '@/app/components/icons';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import api from '../lib/api';
 
 interface SharedLink {

@@ -1,6 +1,6 @@
-import { tokens } from '@/lib/theme-tokens';
 // Styling helpers extracted from StoragePageContent
 import type { SxProps, Theme } from '@mui/material';
+import { tokens } from '@/lib/theme-tokens';
 
 export function tagChipSx(isActive: boolean): SxProps<Theme> {
   return {

@@ -1,12 +1,5 @@
 'use client';
 
-import { CheckCircle, Clock, Send, Bot as TelegramIcon } from '@/app/components/icons';
-import type { User } from '@/app/hooks/useAuth';
-import { usePermissions } from '@/app/hooks/usePermissions';
-import { useIntlayer, useLocale } from '@/app/i18n';
-import apiClient from '@/app/lib/api';
-import { getApiErrorMessage } from '@/app/lib/api-error';
-import { formatStoredDateTime } from '@/app/lib/user-format-store';
 import {
   Alert,
   Box,
@@ -25,6 +18,13 @@ import {
 } from '@mui/material';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { CheckCircle, Clock, Send, Bot as TelegramIcon } from '@/app/components/icons';
+import type { User } from '@/app/hooks/useAuth';
+import { usePermissions } from '@/app/hooks/usePermissions';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import apiClient from '@/app/lib/api';
+import { getApiErrorMessage } from '@/app/lib/api-error';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 type ReportStatus = 'pending' | 'sent' | 'failed';
 type ReportType = 'daily' | 'monthly' | 'custom';
@@ -252,7 +252,7 @@ export function TelegramSettingsPanel({ user }: { user: User | null }): React.JS
               variant="contained"
               startIcon={<CheckCircle size={18} />}
               onClick={saveBotSettings}
-              disabled={savingBot || (!botConfigured && !botToken)}
+              disabled={savingBot || !(botConfigured || botToken)}
             >
               {savingBot ? 'Checking...' : botConfigured ? 'Update bot' : 'Save bot'}
             </Button>

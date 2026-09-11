@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import {
-  DEFAULT_RECEIPT_SYMBOL_TO_CURRENCY,
   createReceiptAmountHelpers,
+  DEFAULT_RECEIPT_SYMBOL_TO_CURRENCY,
   extractCurrency as detectCurrency,
   extractAmountWithCurrency as extractSharedAmountWithCurrency,
 } from '../../../common/utils/receipt-amount.util';

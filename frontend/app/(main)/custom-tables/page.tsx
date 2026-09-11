@@ -1,42 +1,5 @@
 'use client';
 
-import { FilterActions } from '@/app/(main)/statements/components/filters/FilterActions';
-import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
-import { FilterOptionRow } from '@/app/(main)/statements/components/filters/FilterOptionRow';
-import ConfirmModal from '@/app/components/ConfirmModal';
-import { Tag as CategoryIcon } from '@/app/components/icons';
-import {
-  ChevronDown,
-  ChevronRight,
-  Ellipsis,
-  FileSpreadsheet,
-  RefreshCcw,
-  Search,
-  SlidersHorizontal,
-  Table as TableIcon,
-  Trash2,
-} from '@/app/components/icons';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
-import { Checkbox } from '@/app/components/ui/checkbox';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/app/components/ui/dropdown-menu';
-import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
-import { AppPagination } from '@/app/components/ui/pagination';
-import { useAuth } from '@/app/hooks/useAuth';
-import { useIntlayer } from '@/app/i18n';
-import apiClient from '@/app/lib/api';
-import { getApiErrorMessage } from '@/app/lib/api-error';
-import {
-  CUSTOM_TABLES_OPEN_ACTION_EVENT,
-  CUSTOM_TABLES_VIEW_EVENT,
-  type CustomTableAction,
-  type CustomTableActionEventDetail,
-  type CustomTableViewEventDetail,
-} from '@/app/lib/custom-table-actions';
 import {
   Box,
   Button,
@@ -56,13 +19,50 @@ import Skeleton from '@mui/material/Skeleton';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { FilterActions } from '@/app/(main)/statements/components/filters/FilterActions';
+import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
+import { FilterOptionRow } from '@/app/(main)/statements/components/filters/FilterOptionRow';
+import ConfirmModal from '@/app/components/ConfirmModal';
+import {
+  Tag as CategoryIcon,
+  ChevronDown,
+  ChevronRight,
+  Ellipsis,
+  FileSpreadsheet,
+  RefreshCcw,
+  Search,
+  SlidersHorizontal,
+  Table as TableIcon,
+  Trash2,
+} from '@/app/components/icons';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/app/components/ui/dropdown-menu';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
+import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
+import { AppPagination } from '@/app/components/ui/pagination';
+import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer } from '@/app/i18n';
+import apiClient from '@/app/lib/api';
+import { getApiErrorMessage } from '@/app/lib/api-error';
+import {
+  CUSTOM_TABLES_OPEN_ACTION_EVENT,
+  CUSTOM_TABLES_VIEW_EVENT,
+  type CustomTableAction,
+  type CustomTableActionEventDetail,
+  type CustomTableViewEventDetail,
+} from '@/app/lib/custom-table-actions';
 import { CustomTablesFiltersDrawer } from './components/CustomTablesFiltersDrawer';
 import {
-  type StatementGroupBy,
   buildStatementSelectionOptions,
   filterStatementSelectionOptions,
   getSelectedStatementsSummary,
   groupStatementSelectionOptions,
+  type StatementGroupBy,
 } from './create-from-statements-utils';
 import { useCustomTablesData } from './hooks/useCustomTablesData';
 
@@ -96,9 +96,9 @@ interface StatementItem {
   bankName?: string | null;
 }
 
+import { useTheme } from 'next-themes';
 import { getNestedValue, getRecord, resolveLabel } from '@/app/lib/side-panel-utils';
 import { tokens } from '@/lib/theme-tokens';
-import { useTheme } from 'next-themes';
 import { formatUpdatedDate } from './customTablesHelpers';
 import { downloadTableExport } from './exportTable';
 
@@ -120,6 +120,7 @@ export default function CustomTablesPage() {
     setItems,
     categories,
     loading,
+    isFetching,
     rowsCountByTableId,
     setRowsCountByTableId,
     searchQuery,
@@ -1076,7 +1077,11 @@ export default function CustomTablesPage() {
           </Box>
         </Box>
 
-        <Box data-tour-id="tables-list">
+        <Box
+          data-tour-id="tables-list"
+          // Действия со списком перезагружают его в фоне: строки не гаснут.
+          sx={{ opacity: isFetching && !loading ? 0.6 : 1, transition: 'opacity 150ms ease' }}
+        >
           {loading ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {TABLE_ROW_SKELETON_KEYS.map(key => (

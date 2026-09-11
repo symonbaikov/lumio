@@ -9,9 +9,9 @@ import {
   EntityType,
 } from '../../../entities/audit-event.entity';
 import { Category } from '../../../entities/category.entity';
+import { CustomTable } from '../../../entities/custom-table.entity';
 import { CustomTableColumn } from '../../../entities/custom-table-column.entity';
 import { CustomTableRow } from '../../../entities/custom-table-row.entity';
-import { CustomTable } from '../../../entities/custom-table.entity';
 import { Statement } from '../../../entities/statement.entity';
 import { Transaction } from '../../../entities/transaction.entity';
 import { Workspace } from '../../../entities/workspace.entity';

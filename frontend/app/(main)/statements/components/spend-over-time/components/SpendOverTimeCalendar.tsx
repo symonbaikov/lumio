@@ -1,6 +1,6 @@
 'use client';
-import type { JSX } from 'react';
 import type React from 'react';
+import type { JSX } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
 import type { SpendOverTimeRecord } from '@/app/(main)/statements/components/spend-over-time.utils';

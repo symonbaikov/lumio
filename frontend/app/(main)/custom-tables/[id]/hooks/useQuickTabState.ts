@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
-  type QuickTab,
   buildQuickTabs,
   getActiveTabFilter,
   normalizeActiveTabId,
+  type QuickTab,
 } from '../utils/quickTabs';
 import { tx } from '../utils/tableHelpers';
 import type { TabCounts } from './useTabStats';

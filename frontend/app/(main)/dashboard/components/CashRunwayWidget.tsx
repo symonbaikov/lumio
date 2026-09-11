@@ -1,12 +1,12 @@
 'use client';
 
+import clsx from 'clsx';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import { CardLink, DashboardCard, ListRow } from '@/app/components/dashboard/ui';
 import { AlertTriangle } from '@/app/components/icons';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
-import clsx from 'clsx';
-import type React from 'react';
-import { useEffect, useState } from 'react';
 import { fillTemplate, text } from '../helpers/dashboard-helpers';
 
 interface CommitmentItem {

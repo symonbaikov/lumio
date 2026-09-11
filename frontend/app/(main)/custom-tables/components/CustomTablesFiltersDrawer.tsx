@@ -1,5 +1,8 @@
 'use client';
 
+import Box from '@mui/material/Box';
+import MuiButton from '@mui/material/Button';
+import React from 'react';
 import { FilterOptionRow } from '@/app/(main)/statements/components/filters/FilterOptionRow';
 import { FilterRow } from '@/app/(main)/statements/components/filters/FilterRow';
 import { FilterSection } from '@/app/(main)/statements/components/filters/FilterSection';
@@ -7,9 +10,6 @@ import { ChevronLeft } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import type { CustomTableSortOrder, CustomTableSourceFilter } from '@/app/lib/custom-table-actions';
 import { tokens } from '@/lib/theme-tokens';
-import Box from '@mui/material/Box';
-import MuiButton from '@mui/material/Button';
-import React from 'react';
 
 type FilterOption<T extends string> = { value: T; label: string };
 type FiltersLabels = {

@@ -2,9 +2,8 @@
 
 import { Alert, AlertTitle, Dialog, DialogTitle, Typography } from '@mui/material';
 import { useMemo } from 'react';
+import { CurrencyPickerDrawer } from '@/app/components/ui/currency-picker-drawer';
 import { DroppedSampleForm } from './DroppedSampleForm';
-import { WarningsList } from './WarningsList';
-import { CurrencyPickerDrawer } from './components/CurrencyPickerDrawer';
 import {
   extractTxKey,
   formatDroppedSampleText,
@@ -16,6 +15,7 @@ import {
   type EditableWarningEntry,
   useParsingWarningsPanel,
 } from './hooks/useParsingWarningsPanel';
+import { WarningsList } from './WarningsList';
 
 // ---------------------------------------------------------------------------
 // Core types

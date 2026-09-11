@@ -11,6 +11,7 @@ const toastError = vi.hoisted(() => vi.fn());
 // makes any effect depending on that value re-fire forever (this page's auth effect
 // depends on `user`), so keep these module-level constants instead of inlining them.
 const mockUser = vi.hoisted(() => ({ id: 'user-1' }));
+const mockWorkspace = vi.hoisted(() => ({ id: 'workspace-1', currency: 'EUR' }));
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
@@ -30,6 +31,10 @@ vi.mock('next-themes', () => ({
 
 vi.mock('@/app/hooks/useAuth', () => ({
   useAuth: () => ({ user: mockUser, loading: false }),
+}));
+
+vi.mock('@/app/contexts/WorkspaceContext', () => ({
+  useWorkspace: () => ({ currentWorkspace: mockWorkspace }),
 }));
 
 vi.mock('@/app/lib/api', () => ({
@@ -367,11 +372,12 @@ describe('GoogleSheetsImportPage target selector', () => {
     expect(screen.queryByText('Start import')).not.toBeInTheDocument();
 
     // Switching to 'transactions' seeds the mapping card via its own preview call
-    // (different endpoint/shape than the table-import preview above).
+    // (different endpoint/shape than the table-import preview above), using the
+    // workspace currency rather than a hardcoded default.
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
         '/import/google-sheets/transactions/preview',
-        expect.objectContaining({ defaultCurrency: 'KZT' }),
+        expect.objectContaining({ defaultCurrency: 'EUR' }),
       );
     });
     await waitFor(() => {

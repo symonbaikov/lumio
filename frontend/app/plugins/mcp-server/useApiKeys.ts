@@ -1,8 +1,12 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
-import { useCallback, useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import apiClient from '@/app/lib/api';
+import { apiQuery } from '@/app/lib/query-fn';
+import { queryKeys } from '@/app/lib/query-keys';
 
 export interface ApiKeyItem {
   id: string;
@@ -22,55 +26,60 @@ export interface CreatedApiKey {
 }
 
 export function useApiKeys() {
-  const [keys, setKeys] = useState<ApiKeyItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
   const [newKey, setNewKey] = useState<CreatedApiKey | null>(null);
 
-  const load = useCallback(async () => {
-    await (async () => {
-      setLoading(true);
-      const res = await apiClient.get('/api-keys');
-      setKeys(res.data as ApiKeyItem[]);
-    })()
-      .catch(async () => {
-        // silently fail — status indicator will show red
-      })
-      .finally(async () => {
-        setLoading(false);
-      });
-  }, []);
+  const query = useQuery({
+    queryKey: queryKeys.apiKeys(workspaceId),
+    // Ошибка не показывается отдельно — индикатор статуса и так станет красным.
+    queryFn: ({ signal }) => apiQuery<ApiKeyItem[]>({ url: '/api-keys', signal }),
+  });
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const keys = query.data ?? [];
+
+  const createMutation = useMutation({
+    mutationFn: (name: string) => apiClient.post('/api-keys', { name }),
+    onSuccess: response => {
+      setNewKey(response.data as CreatedApiKey);
+      toast.success('API key created');
+    },
+    onError: () => toast.error('Failed to create API key'),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys(workspaceId) }),
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/api-keys/${id}`),
+    onSuccess: (_response, id) => {
+      queryClient.setQueryData<ApiKeyItem[]>(queryKeys.apiKeys(workspaceId), previous =>
+        (previous ?? []).filter(k => k.id !== id),
+      );
+      toast.success('API key revoked');
+    },
+    onError: () => toast.error('Failed to revoke API key'),
+  });
 
   const create = useCallback(
     async (name: string) => {
-      await (async () => {
-        const res = await apiClient.post('/api-keys', { name });
-        setNewKey(res.data as CreatedApiKey);
-        await load();
-        toast.success('API key created');
-      })().catch(async () => {
-        toast.error('Failed to create API key');
-      });
+      createMutation.mutate(name);
     },
-    [load],
+    [createMutation.mutate],
   );
 
-  const revoke = useCallback(async (id: string) => {
-    await (async () => {
-      await apiClient.delete(`/api-keys/${id}`);
-      setKeys(prev => prev.filter(k => k.id !== id));
-      toast.success('API key revoked');
-    })().catch(async () => {
-      toast.error('Failed to revoke API key');
-    });
-  }, []);
+  const revoke = useCallback(
+    async (id: string) => {
+      revokeMutation.mutate(id);
+    },
+    [revokeMutation.mutate],
+  );
+
+  const reload = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys(workspaceId) });
+  }, [queryClient, workspaceId]);
 
   const clearNewKey = useCallback(() => setNewKey(null), []);
 
   const isActive = keys.length > 0;
 
-  return { keys, loading, newKey, isActive, create, revoke, clearNewKey, reload: load };
+  return { keys, loading: query.isPending, newKey, isActive, create, revoke, clearNewKey, reload };
 }

@@ -61,6 +61,7 @@ export function serializeProgress(progress: TourProgress): TourProgress {
         : progress.completedAt,
   };
 }
+
 import type { TourDriverConfig } from './types';
 
 const DRIVER_DEFAULTS = {

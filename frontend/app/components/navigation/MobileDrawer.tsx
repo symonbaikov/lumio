@@ -1,13 +1,13 @@
 'use client';
 
-import { NotificationDropdown } from '@/app/components/NotificationDropdown';
+import React from 'react';
 import { Check, Clock3, Moon, PlayCircle, Sun, X } from '@/app/components/icons';
+import { NotificationDropdown } from '@/app/components/NotificationDropdown';
 import { getRecord, resolveLabel } from '@/app/lib/side-panel-utils';
 import { TourMenu } from '@/app/tours/components/TourMenu';
-import React from 'react';
-import { UserMenuTriggerAndDropdown } from './UserMenu';
 import { isNavItemActive } from './helpers/navigation-config';
 import type { NavItem, UserMenuTriggerProps } from './types';
+import { UserMenuTriggerAndDropdown } from './UserMenu';
 
 type ThemeKey = 'light' | 'dark' | 'auto';
 

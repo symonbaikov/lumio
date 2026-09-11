@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useKeyboardShortcuts } from '@/app/hooks/use-keyboard-shortcuts';
 import {
   SHORTCUT_EXPORT,
@@ -7,13 +9,13 @@ import {
   SHORTCUT_OPEN_FILTERS,
 } from '@/app/lib/keyboard-shortcuts';
 import { STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT } from '@/app/lib/statement-expense-drawer';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 
 export function KeyboardShortcutsProvider({
   children,
-}: { children: React.ReactNode }): React.JSX.Element {
+}: {
+  children: React.ReactNode;
+}): React.JSX.Element {
   const router = useRouter();
   const [helpOpen, setHelpOpen] = useState(false);
 

@@ -1,9 +1,9 @@
 'use client';
 
+import { Box, Stack, Typography } from '@mui/material';
 import { CheckCircle2, ShieldCheck, Sparkles, Workflow } from '@/app/components/icons';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, Stack, Typography } from '@mui/material';
 import { getNestedOnboardingValue, resolveOnboardingText } from '../lib/resolveOnboardingText';
 
 export function WelcomeStep() {

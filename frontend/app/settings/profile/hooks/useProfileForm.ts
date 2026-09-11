@@ -1,11 +1,11 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import type { User } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import type { DateFormatPreference } from '@/app/lib/user-format';
 import { notifyUserFormatChanged } from '@/app/lib/user-format-store';
 import { getApiErrorMessage } from '@/app/settings/profile/profileHelpers';
-import { useEffect, useMemo, useState } from 'react';
 
 export type UseProfileFormMessages = {
   successFallback: string;

@@ -1,9 +1,9 @@
 'use client';
 
+import type React from 'react';
 import { fillTemplate } from '@/app/(main)/dashboard/helpers/dashboard-helpers';
 import type { DashboardCashFlowPoint } from '@/app/hooks/useDashboard';
 import { useIntlayer } from '@/app/i18n';
-import type React from 'react';
 import { CashFlowMini } from './CashFlowMini';
 import { DashboardCard } from './ui';
 

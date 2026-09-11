@@ -1,8 +1,8 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/settings/profile/profileHelpers';
-import { useCallback, useEffect, useRef, useState } from 'react';
 
 export const duplicateResolutions = ['skip', 'mark_duplicate', 'force_import'] as const;
 export type DuplicateResolution = (typeof duplicateResolutions)[number];
@@ -45,7 +45,7 @@ export function useProcessing(
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated || !workspaceId) return;
+    if (!(isAuthenticated && workspaceId)) return;
 
     let active = true;
 

@@ -1,8 +1,8 @@
 'use client';
 
-import { Calendar } from '@/app/components/icons';
 import { Box, Chip, TableCell, TableRow, Typography } from '@mui/material';
 import React from 'react';
+import { Calendar } from '@/app/components/icons';
 import type { Transaction } from './types';
 
 type DocumentTransactionRowProps = {

@@ -1,9 +1,13 @@
 'use client';
 
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useWorkspaceId } from '../../hooks/useWorkspaceId';
 import api from '../../lib/api';
+import { apiQuery } from '../../lib/query-fn';
+import { queryKeys } from '../../lib/query-keys';
 import type { StorageFile } from '../storageHelpers';
 
 interface UseStorageFilesMessages {
@@ -35,7 +39,7 @@ export interface UseStorageFilesReturn {
   setPermanentDeleteModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   fileToDeletePermanently: StorageFile | null;
   setFileToDeletePermanently: React.Dispatch<React.SetStateAction<StorageFile | null>>;
-  loadFiles: (listMode: 'active' | 'trash') => Promise<void>;
+  refreshFiles: () => void;
   handleView: (fileId: string) => void;
   handleDownload: (fileId: string, fileName: string) => Promise<void>;
   handleCategoryChange: (fileId: string, categoryId: string) => Promise<void>;
@@ -50,31 +54,63 @@ export interface UseStorageFilesReturn {
 }
 
 // eslint-disable-next-line max-lines-per-function
-export function useStorageFiles(messages: UseStorageFilesMessages): UseStorageFilesReturn {
+export function useStorageFiles(
+  messages: UseStorageFilesMessages,
+  listMode: 'active' | 'trash',
+): UseStorageFilesReturn {
   const router = useRouter();
-  const [files, setFiles] = useState<StorageFile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<StorageFile | null>(null);
   const [permanentDeleteModalOpen, setPermanentDeleteModalOpen] = useState(false);
   const [fileToDeletePermanently, setFileToDeletePermanently] = useState<StorageFile | null>(null);
 
-  const loadFiles = async (listMode: 'active' | 'trash'): Promise<void> => {
-    await (async () => {
-      setLoading(true);
-      const response = await api.get('/storage/files', {
+  const queryKey = queryKeys.storageFiles({ workspaceId, listMode });
+
+  const filesQuery = useQuery({
+    queryKey,
+    queryFn: ({ signal }) =>
+      apiQuery<StorageFile[]>({
+        url: '/storage/files',
         params: listMode === 'trash' ? { deleted: 'only' } : undefined,
-      });
-      setFiles(response.data);
-    })()
-      .catch(async error => {
-        console.error('Failed to load files:', error);
-        toast.error(messages.loadFilesFailed);
-      })
-      .finally(async () => {
-        setLoading(false);
-      });
-  };
+        signal,
+      }),
+  });
+
+  const loadFailed = filesQuery.isError;
+  const loadFailedMessage = messages.loadFilesFailed;
+  useEffect(() => {
+    if (loadFailed) {
+      toast.error(loadFailedMessage, { id: 'storage-files-load' });
+    }
+  }, [loadFailed, loadFailedMessage]);
+
+  const files = filesQuery.data ?? [];
+
+  /**
+   * Точечные правки списка (переименование, снятие тега, перенос в корзину)
+   * пишутся прямо в кэш — сигнатура осталась той же, что у useState, поэтому
+   * вызовы `setFiles(prev => ...)` по всему модулю не менялись.
+   */
+  const setFiles: React.Dispatch<React.SetStateAction<StorageFile[]>> = useCallback(
+    update => {
+      queryClient.setQueryData<StorageFile[]>(
+        queryKeys.storageFiles({ workspaceId, listMode }),
+        previous => {
+          const current = previous ?? [];
+          return typeof update === 'function' ? update(current) : update;
+        },
+      );
+    },
+    [queryClient, workspaceId, listMode],
+  );
+
+  const refreshFiles = useCallback((): void => {
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.storageFiles({ workspaceId, listMode }),
+    });
+  }, [queryClient, workspaceId, listMode]);
 
   const handleView = (fileId: string): void => {
     const file = files.find(f => f.id === fileId);
@@ -229,7 +265,7 @@ export function useStorageFiles(messages: UseStorageFilesMessages): UseStorageFi
   return {
     files,
     setFiles,
-    loading,
+    loading: filesQuery.isPending,
     deleteModalOpen,
     setDeleteModalOpen,
     fileToDelete,
@@ -238,7 +274,7 @@ export function useStorageFiles(messages: UseStorageFilesMessages): UseStorageFi
     setPermanentDeleteModalOpen,
     fileToDeletePermanently,
     setFileToDeletePermanently,
-    loadFiles,
+    refreshFiles,
     handleView,
     handleDownload,
     handleCategoryChange,

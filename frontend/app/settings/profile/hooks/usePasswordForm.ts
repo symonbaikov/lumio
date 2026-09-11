@@ -1,8 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/settings/profile/profileHelpers';
-import { useState } from 'react';
 
 export type UsePasswordFormMessages = {
   mismatch: string;

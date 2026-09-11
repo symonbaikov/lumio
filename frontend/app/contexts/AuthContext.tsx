@@ -1,16 +1,5 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
-import { readLocaleFromCookie, syncLocaleFromUser } from '@/app/lib/locale';
-import { getQueryClient } from '@/app/lib/query-client';
-import {
-  DEFAULT_THEME_PREFERENCE,
-  THEME_STORAGE_EVENT,
-  type ThemePreference,
-  resolveThemePreference,
-} from '@/app/lib/theme-preference';
-import type { DateFormatPreference } from '@/app/lib/user-format';
-import { notifyUserFormatChanged } from '@/app/lib/user-format-store';
 import { usePathname, useRouter } from 'next/navigation';
 import type React from 'react';
 import {
@@ -22,6 +11,17 @@ import {
   useRef,
   useState,
 } from 'react';
+import apiClient from '@/app/lib/api';
+import { readLocaleFromCookie, syncLocaleFromUser } from '@/app/lib/locale';
+import { getQueryClient } from '@/app/lib/query-client';
+import {
+  DEFAULT_THEME_PREFERENCE,
+  resolveThemePreference,
+  THEME_STORAGE_EVENT,
+  type ThemePreference,
+} from '@/app/lib/theme-preference';
+import type { DateFormatPreference } from '@/app/lib/user-format';
+import { notifyUserFormatChanged } from '@/app/lib/user-format-store';
 
 export interface User {
   id: string;

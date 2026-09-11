@@ -3,7 +3,6 @@
  */
 
 import { useEffect, useState } from 'react';
-import { getTourManager } from '../TourManager';
 import { createAdminTour } from '../admin-tour';
 import { createCategoriesTour } from '../categories-tour';
 import { createCustomTablesTour } from '../custom-tables-tour';
@@ -13,9 +12,10 @@ import { createIntegrationsTour } from '../integrations-tour';
 import { createReportsTour } from '../reports-tour';
 import { createSettingsTour } from '../settings-tour';
 import { createStatementsTour } from '../statements-tour';
+import { getTourManager } from '../TourManager';
 import type { TourConfig } from '../types';
-import { getTourContentSteps, getTypedTourInput } from './TourMenuHelpers';
 import type { TourTextContent } from './TourMenuHelpers';
+import { getTourContentSteps, getTypedTourInput } from './TourMenuHelpers';
 
 type CreateCustomTablesTourInput = Parameters<typeof createCustomTablesTour>[0];
 type CreateReportsTourInput = Parameters<typeof createReportsTour>[0];

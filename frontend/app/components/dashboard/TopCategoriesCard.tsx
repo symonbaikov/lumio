@@ -1,15 +1,13 @@
 'use client';
 
+import { useTheme } from 'next-themes';
+import { useMemo } from 'react';
+import { LazyECharts } from '@/app/components/ui/lazy-echarts';
 import type { DashboardData } from '@/app/hooks/useDashboard';
 import { useIntlayer } from '@/app/i18n';
 import { categoryColorFor } from '@/app/lib/category-defaults';
-import { useTheme } from 'next-themes';
-import dynamic from 'next/dynamic';
-import { useMemo } from 'react';
 import { CategoryIconBadge } from './CategoryIconBadge';
 import { ListRow } from './ui';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 type TopCategory = NonNullable<DashboardData['topCategories']>[number];
 
@@ -90,7 +88,7 @@ export function TopCategoriesCard({ categories, formatAmount }: TopCategoriesCar
   return (
     <div className="lumio-dashboard__categories">
       <div className="lumio-dashboard__donut">
-        <ReactECharts
+        <LazyECharts
           style={{ height: '100%', width: '100%' }}
           option={option}
           notMerge

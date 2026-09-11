@@ -1,25 +1,26 @@
 /* eslint-disable max-lines */
+
+import { format as formatDate, isValid as isValidDate, parseISO } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import { formatStoredDate } from '@/app/lib/user-format-store';
-import { format as formatDate, isValid as isValidDate, parseISO } from 'date-fns';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
 import {
+  buildUnapprovedStatementQueue,
   DEFAULT_UNAPPROVED_QUEUE_FILTERS,
-  type UnapprovedQueueFilterTarget,
+  matchesUnapprovedFilters,
   type UnapprovedQueueFilters,
+  type UnapprovedQueueFilterTarget,
   type UnapprovedQueueTransaction,
   type UnapprovedReasonId,
   type UnapprovedSource,
   type UnapprovedStatementMeta,
   type UnapprovedStatementQueueItem,
-  buildUnapprovedStatementQueue,
-  matchesUnapprovedFilters,
 } from '../../unapproved-cash-utils';
 
 const IGNORED_STORAGE_KEY = 'lumio-unapproved-cash-ignored';
@@ -218,7 +219,10 @@ export interface UnapprovedCashViewModel {
 const buildLabels = ({
   t: T,
   tx,
-}: { t: ReturnType<typeof useIntlayer>; tx: (path: string[], fallback: string) => string }): {
+}: {
+  t: ReturnType<typeof useIntlayer>;
+  tx: (path: string[], fallback: string) => string;
+}): {
   title: string;
   subtitle: string;
   searchPlaceholder: string;

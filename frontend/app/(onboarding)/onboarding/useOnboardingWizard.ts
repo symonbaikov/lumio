@@ -1,7 +1,7 @@
 'use client';
 
-import type { AppLocale as SupportedLocale } from '@/app/lib/locale';
 import { useCallback, useMemo, useState } from 'react';
+import type { AppLocale as SupportedLocale } from '@/app/lib/locale';
 
 export type { AppLocale as SupportedLocale } from '@/app/lib/locale';
 

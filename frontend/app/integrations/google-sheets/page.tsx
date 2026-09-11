@@ -1,7 +1,10 @@
 /* eslint-disable max-lines */
 'use client';
-import { formatStoredDateTime } from '@/app/lib/user-format-store';
-
+import { Alert, Box, Stack, Typography } from '@mui/material';
+import { useTheme } from 'next-themes';
+import type React from 'react';
+import { useEffect, useEffectEvent, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { GoogleSheetsPickerButton } from '@/app/components/GoogleSheetsPickerButton';
 import {
   AlertCircle,
@@ -22,16 +25,12 @@ import { getApiErrorMessage } from '@/app/lib/api-error';
 import { getGoogleSheetsIntegrationCopy } from '@/app/lib/googleSheetsIntegrationCopy';
 import { getGoogleSheetsPickerState } from '@/app/lib/googleSheetsPickerState';
 import {
+  getDefaultWorksheetName,
   type SpreadsheetSelection,
   type WorksheetOption,
-  getDefaultWorksheetName,
 } from '@/app/lib/googleSheetsSelection';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 import { tokens } from '@/lib/theme-tokens';
-import { Alert, Box, Stack, Typography } from '@mui/material';
-import { useTheme } from 'next-themes';
-import type React from 'react';
-import { useEffect, useEffectEvent, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
 
 interface GoogleSheetConnection {
   id: string;
@@ -70,7 +69,9 @@ export default function GoogleSheetsIntegrationPage(): React.JSX.Element {
   const [worksheetName, setWorksheetName] = useState('');
   const [sheetName, setSheetName] = useState('');
   const [connections, setConnections] = useState<GoogleSheetConnection[]>([]);
-  const [loadingList, setLoadingList] = useState(false);
+  // Первый рендер должен быть скелетоном, а не пустым состоянием: фетч уходит
+  // из useEffect, т.е. уже после первой отрисовки.
+  const [loadingList, setLoadingList] = useState(true);
   const [connectingAccount, setConnectingAccount] = useState(false);
   const [loadingWorksheets, setLoadingWorksheets] = useState(false);
   const [submitting, setSubmitting] = useState(false);

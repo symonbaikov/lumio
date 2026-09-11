@@ -1,39 +1,37 @@
 // Re-exports for backward compatibility
-export type {
-  PasteFieldKey,
-  PasteErrorKey,
-  PasteColumnMapping,
-  PasteSourceColumn,
-  PasteMappingSelection,
-  PastePreviewCell,
-  PastePreviewRow,
-  PastePreviewData,
-  PasteColumn,
-} from './pasteTypes';
-export { PASTE_FIELD_ALIASES } from './pasteTypes';
 
 export {
-  normalizeToken,
-  matchFieldByName,
-  splitDelimitedRow,
-  parseClipboardRows,
-  parseDateCell,
-  parseNumberCell,
-  resolveCurrencyCode,
-  parseCurrencyCell,
-  parsePaidCell,
-} from './pasteParser';
-
-export {
+  buildColumnMaps,
+  buildMappedColumns,
   inferFieldFromColumn,
   inferNewColumnType,
-  buildColumnMaps,
   tryMapByHeaderMatch,
   tryMapByValueInference,
-  buildMappedColumns,
 } from './pasteMappingBuilder';
-
+export {
+  matchFieldByName,
+  normalizeToken,
+  parseClipboardRows,
+  parseCurrencyCell,
+  parseDateCell,
+  parseNumberCell,
+  parsePaidCell,
+  resolveCurrencyCode,
+  splitDelimitedRow,
+} from './pasteParser';
 export { buildRowData } from './pasteRowBuilder';
+export type {
+  PasteColumn,
+  PasteColumnMapping,
+  PasteErrorKey,
+  PasteFieldKey,
+  PasteMappingSelection,
+  PastePreviewCell,
+  PastePreviewData,
+  PastePreviewRow,
+  PasteSourceColumn,
+} from './pasteTypes';
+export { PASTE_FIELD_ALIASES } from './pasteTypes';
 
 // ---------------------------------------------------------------------------
 // Imports used in this file

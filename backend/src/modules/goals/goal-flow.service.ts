@@ -350,7 +350,7 @@ export class GoalFlowService {
 
     const merchantsByCategory = new Map<string, Map<string, number>>();
     for (const row of merchantRows) {
-      if (!wanted.has(row.categoryId) || !row.merchant) {
+      if (!(wanted.has(row.categoryId) && row.merchant)) {
         continue;
       }
       const bucket = merchantsByCategory.get(row.categoryId) ?? new Map<string, number>();

@@ -1,10 +1,10 @@
 'use client';
 
+import { Box, IconButton, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
 import { X, ZoomIn, ZoomOut } from '@/app/components/icons';
 import { gmailReceiptsApi } from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, IconButton, Typography } from '@mui/material';
-import { useEffect, useState } from 'react';
 
 interface ReceiptPreviewModalProps {
   receiptId: string;

@@ -1,15 +1,15 @@
 'use client';
 
-import {
-  LEGACY_HASH_TARGETS,
-  type SettingsSectionId,
-  type SettingsTabId,
-  buildSettingsHref,
-  parseSettingsSection,
-  parseSettingsTab,
-} from '@/app/settings/profile/helpers/settings-url-state';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import {
+  buildSettingsHref,
+  LEGACY_HASH_TARGETS,
+  parseSettingsSection,
+  parseSettingsTab,
+  type SettingsSectionId,
+  type SettingsTabId,
+} from '@/app/settings/profile/helpers/settings-url-state';
 
 export type UseSettingsUrlStateReturn = {
   activeTab: SettingsTabId;

@@ -27,7 +27,9 @@ export function useUsersManagement(errorMessages: {
   updateStatus: string;
 }) {
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Первый рендер должен быть скелетоном, а не пустым состоянием: фетч уходит
+  // из useEffect, т.е. уже после первой отрисовки.
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);

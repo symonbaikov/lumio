@@ -1,8 +1,4 @@
 'use client';
-import { formatStoredDate } from '@/app/lib/user-format-store';
-
-import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import apiClient from '@/app/lib/api';
 import {
   Button,
   Chip,
@@ -16,6 +12,9 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import apiClient from '@/app/lib/api';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { SubscriptionItem, SubscriptionWorkspaceMember } from '../hooks/useSubscriptionsPage';
 
 interface SubscriptionDetailsDrawerProps {

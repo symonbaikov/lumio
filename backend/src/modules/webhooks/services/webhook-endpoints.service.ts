@@ -26,7 +26,7 @@ export class WebhookEndpointsService {
 
   async findOne(id: string, workspaceId: string): Promise<WebhookEndpoint> {
     const endpoint = await this.repo.findOne({ where: { id, workspaceId } });
-    if (!endpoint) throw new NotFoundException(`Webhook endpoint not found`);
+    if (!endpoint) throw new NotFoundException('Webhook endpoint not found');
     return endpoint;
   }
 

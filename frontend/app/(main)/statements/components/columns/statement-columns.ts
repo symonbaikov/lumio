@@ -1,7 +1,7 @@
 import {
   DEFAULT_STATEMENT_FILTERS,
-  type StatementFilters,
   resetSingleStatementFilter,
+  type StatementFilters,
 } from '../filters/statement-filters';
 
 export type StatementColumnId =

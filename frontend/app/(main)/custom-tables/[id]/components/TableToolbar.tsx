@@ -1,5 +1,8 @@
 'use client';
 
+import { Box } from '@mui/material';
+import type { SxProps, Theme } from '@mui/material/styles';
+import type React from 'react';
 import {
   ArrowLeft as ArrowBackIcon,
   CheckCircle,
@@ -9,9 +12,6 @@ import {
   Trash2,
   XCircle,
 } from '@/app/components/icons';
-import { Box } from '@mui/material';
-import type { SxProps, Theme } from '@mui/material/styles';
-import type React from 'react';
 import type { NewColumnDraft } from '../hooks/useColumnManagement';
 import type { QuickTab } from '../utils/quickTabs';
 import type { ColumnType } from '../utils/stylingUtils';

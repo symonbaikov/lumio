@@ -1,11 +1,11 @@
 'use client';
 
-import type { LucideIcon } from '@/app/components/icons';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
+import type { LucideIcon } from '@/app/components/icons';
+import { tokens } from '@/lib/theme-tokens';
 
 export interface ReportTemplate {
   id: string;

@@ -1,6 +1,7 @@
 'use client';
-import { formatStoredDateTime } from '@/app/lib/user-format-store';
-
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import React from 'react';
 import {
   CheckCircle2,
   Edit3,
@@ -12,11 +13,9 @@ import {
   Trash2,
   Unlink2,
 } from '@/app/components/icons';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 import type { AuditEvent } from '@/lib/api/audit';
 import { tokens } from '@/lib/theme-tokens';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import React from 'react';
 
 interface EntityHistoryTimelineProps {
   events: AuditEvent[];
@@ -44,7 +43,10 @@ function iconForAction(action: string): LucideIcon {
 function TimelineEventItem({
   event,
   onSelect,
-}: { event: AuditEvent; onSelect?: (event: AuditEvent) => void }): React.JSX.Element {
+}: {
+  event: AuditEvent;
+  onSelect?: (event: AuditEvent) => void;
+}): React.JSX.Element {
   const Icon = iconForAction(event.action);
   return (
     <button

@@ -1,11 +1,11 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import {
   DEFAULT_STATEMENT_FILTERS,
-  type StatementFilters,
   resetSingleStatementFilter,
+  type StatementFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
-import { useEffect, useMemo, useState } from 'react';
 
 const loadFilters = (storageKey: string): StatementFilters => {
   if (typeof window === 'undefined') {

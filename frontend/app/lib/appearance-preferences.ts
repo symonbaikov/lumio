@@ -1,8 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { USER_FORMAT_EVENT } from '@/app/lib/user-format-store';
 import type { UiDensity } from '@/app/theme';
-import { useEffect, useState } from 'react';
 
 export type AppearancePreferences = {
   density: UiDensity;

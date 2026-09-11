@@ -1,7 +1,7 @@
 'use client';
 
-import { format } from 'date-fns';
 import type { Locale } from 'date-fns';
+import { format } from 'date-fns';
 import { useMemo, useState } from 'react';
 import type { RowFilter } from '../utils/stylingUtils';
 import type { CustomTablePageColumn } from '../utils/tableTypes';

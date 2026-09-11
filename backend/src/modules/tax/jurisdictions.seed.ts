@@ -1,9 +1,9 @@
-import { TaxRateKind } from '../../entities/tax-jurisdiction-rate.entity';
 import {
   TaxFilingPeriod,
   TaxScheme,
   TaxThresholdPeriod,
 } from '../../entities/tax-jurisdiction.entity';
+import { TaxRateKind } from '../../entities/tax-jurisdiction-rate.entity';
 
 /**
  * Statutory reference data for the jurisdictions we support.

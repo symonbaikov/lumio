@@ -1,12 +1,12 @@
 'use client';
 
-import { useIntlayer } from '@/app/i18n';
-import { tokens } from '@/lib/theme-tokens';
 import type { MLCEngineInterface } from '@mlc-ai/web-llm';
 import { Box, Button, Chip, Stack, TextField, Typography } from '@mui/material';
 import Link from 'next/link';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { useIntlayer } from '@/app/i18n';
+import { tokens } from '@/lib/theme-tokens';
 import { type ChatSummary, deleteChat, listChats } from '../chat/chats-api';
 import { useChat } from '../chat/useChat';
 

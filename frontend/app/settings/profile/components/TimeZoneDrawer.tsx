@@ -1,12 +1,12 @@
 'use client';
 
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import type React from 'react';
 import { Check, Search } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import type { TimeZoneOption } from '@/app/settings/profile/profileHelpers';
 import { tokens } from '@/lib/theme-tokens';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import type React from 'react';
 
 type Props = {
   isOpen: boolean;

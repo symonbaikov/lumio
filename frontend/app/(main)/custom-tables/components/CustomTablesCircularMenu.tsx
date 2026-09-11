@@ -1,10 +1,10 @@
 'use client';
 
-import { FileSpreadsheet, Plus, Table as TableIcon } from '@/app/components/icons';
-import { tokens } from '@/lib/theme-tokens';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { FileSpreadsheet, Plus, Table as TableIcon } from '@/app/components/icons';
+import { tokens } from '@/lib/theme-tokens';
 
 type Props = {
   onCreateEmpty: () => void;

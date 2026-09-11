@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   BadRequestException,
@@ -20,6 +18,8 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import { Response } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { runExecutable } from '../../common/utils/thumbnail-command.util';
@@ -45,6 +45,7 @@ import { UpdateGmailSettingsDto } from './dto/update-gmail-settings.dto';
 import { UpdateParsedDataDto } from './dto/update-parsed-data.dto';
 import { ApproveReceiptDto, UpdateReceiptDto } from './dto/update-receipt.dto';
 import type { GmailApi } from './gmail-api.types';
+import { GmailService } from './services/gmail.service';
 import { GmailMerchantReparseService } from './services/gmail-merchant-reparse.service';
 import { GmailOAuthService } from './services/gmail-oauth.service';
 import { GmailReceiptCategoryService } from './services/gmail-receipt-category.service';
@@ -52,7 +53,6 @@ import { GmailReceiptDuplicateService } from './services/gmail-receipt-duplicate
 import { GmailReceiptExportService } from './services/gmail-receipt-export.service';
 import { GmailSyncService } from './services/gmail-sync.service';
 import { GmailWatchService } from './services/gmail-watch.service';
-import { GmailService } from './services/gmail.service';
 
 const AMOUNT_PRESENT_SQL = "NULLIF(TRIM(receipt.parsed_data->>'amount'), '') IS NOT NULL";
 const AMOUNT_MISSING_SQL = "NULLIF(TRIM(receipt.parsed_data->>'amount'), '') IS NULL";
@@ -358,7 +358,7 @@ export class GmailController {
       queryBuilder.andWhere(AMOUNT_PRESENT_SQL);
     } else if (hasAmountFilter === false) {
       queryBuilder.andWhere(AMOUNT_MISSING_SQL);
-    } else if (!includeInvalidReceipts && !status) {
+    } else if (!(includeInvalidReceipts || status)) {
       // When browsing without an explicit status filter, hide receipts with no parsed amount
       // to reduce noise. When a status is explicitly requested (e.g. needs_review), show all.
       queryBuilder.andWhere(AMOUNT_PRESENT_SQL);

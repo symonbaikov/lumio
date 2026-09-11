@@ -26,7 +26,7 @@ import {
 } from '../../parsing/services/intelligent-deduplication.service';
 import { TransactionFingerprintService } from '../../transactions/services/transaction-fingerprint.service';
 import { ImportConfigService } from '../config/import.config';
-import { ImportConflictError, ImportValidationError, classifyError } from '../errors/import-errors';
+import { classifyError, ImportConflictError, ImportValidationError } from '../errors/import-errors';
 
 /**
  * Result returned from processImport operation

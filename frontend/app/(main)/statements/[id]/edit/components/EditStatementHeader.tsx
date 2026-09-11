@@ -1,18 +1,18 @@
 'use client';
 
-import { ArrowLeft, Check, Layers, Receipt, Table2, TriangleAlert } from '@/app/components/icons';
-import { DetailActionButton } from '@/app/components/ui/detail-action-button';
-import { Spinner } from '@/app/components/ui/spinner';
-import {
-  type StatementStageAction,
-  type StatementStageActionId,
-  isStageActionBlocked,
-} from '@/app/lib/statement-workflow';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import { ArrowLeft, Check, Layers, Receipt, Table2, TriangleAlert } from '@/app/components/icons';
+import { DetailActionButton } from '@/app/components/ui/detail-action-button';
+import { Spinner } from '@/app/components/ui/spinner';
+import {
+  isStageActionBlocked,
+  type StatementStageAction,
+  type StatementStageActionId,
+} from '@/app/lib/statement-workflow';
 import { labelValue } from '../editHelpers';
 
 type Statement = {
@@ -76,7 +76,10 @@ type StageActionButtonProps = {
 function StageActionIcon({
   isLoading,
   actionId,
-}: { isLoading: boolean; actionId: string }): React.ReactElement {
+}: {
+  isLoading: boolean;
+  actionId: string;
+}): React.ReactElement {
   if (isLoading) {
     return <Spinner size={18} />;
   }
@@ -223,7 +226,11 @@ function StatementChips({
   statement,
   missingCategoryCount,
   t,
-}: { statement: Statement | null; missingCategoryCount: number; t: HeaderT }): React.ReactElement {
+}: {
+  statement: Statement | null;
+  missingCategoryCount: number;
+  t: HeaderT;
+}): React.ReactElement {
   return (
     <Box sx={{ minWidth: 240 }}>
       <Typography

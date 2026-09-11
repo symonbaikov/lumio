@@ -1,11 +1,11 @@
 'use client';
 
-import { HelpCircle, Settings, X } from '@/app/components/icons';
-import { usePermissions } from '@/app/hooks/usePermissions';
-import { useIntlayer } from '@/app/i18n';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
+import { HelpCircle, Settings, X } from '@/app/components/icons';
+import { usePermissions } from '@/app/hooks/usePermissions';
+import { useIntlayer } from '@/app/i18n';
 import { buildNavItems, isNavItemActive } from '../navigation/helpers/navigation-config';
 
 interface MobileMenuDrawerProps {

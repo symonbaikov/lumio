@@ -1,9 +1,9 @@
 'use client';
 
+import { Box, Stack, Typography } from '@mui/material';
 import { CheckCircle2, type LucideIcon } from '@/app/components/icons';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, Stack, Typography } from '@mui/material';
 import { getNestedOnboardingValue, resolveOnboardingText } from '../lib/resolveOnboardingText';
 import type { SupportedLocale } from '../useOnboardingWizard';
 

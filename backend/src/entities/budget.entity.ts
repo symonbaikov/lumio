@@ -33,10 +33,14 @@ export enum BudgetPeriodType {
  * original constraint existed to prevent.
  */
 @Entity('budgets')
-@Index('UQ_budgets_workspace_category_period_unlinked', ['workspaceId', 'categoryId', 'periodType'], {
-  unique: true,
-  where: '"goal_id" IS NULL',
-})
+@Index(
+  'UQ_budgets_workspace_category_period_unlinked',
+  ['workspaceId', 'categoryId', 'periodType'],
+  {
+    unique: true,
+    where: '"goal_id" IS NULL',
+  },
+)
 @Index(
   'UQ_budgets_workspace_category_period_goal',
   ['workspaceId', 'categoryId', 'periodType', 'goalId'],

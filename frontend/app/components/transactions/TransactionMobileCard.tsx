@@ -22,7 +22,11 @@ function buildCardClass({
   isSelected,
   hasErrors,
   hasWarnings,
-}: { isSelected: boolean; hasErrors?: boolean; hasWarnings?: boolean }): string {
+}: {
+  isSelected: boolean;
+  hasErrors?: boolean;
+  hasWarnings?: boolean;
+}): string {
   if (isSelected) return 'lumio-tx-card lumio-tx-card--selected';
   if (hasErrors) return 'lumio-tx-card lumio-tx-card--error';
   if (hasWarnings) return 'lumio-tx-card lumio-tx-card--warning';
@@ -32,7 +36,10 @@ function buildCardClass({
 function MobileAmounts({
   tx,
   formatters,
-}: { tx: Transaction; formatters: TransactionRowFormatters }): React.ReactElement {
+}: {
+  tx: Transaction;
+  formatters: TransactionRowFormatters;
+}): React.ReactElement {
   const debit = Number(tx.debit);
   const credit = Number(tx.credit);
   const fmtAmt = (n: number): string =>

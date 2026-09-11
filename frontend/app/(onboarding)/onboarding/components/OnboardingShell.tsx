@@ -1,9 +1,9 @@
 'use client';
 
-import type { LucideIcon } from '@/app/components/icons';
-import { tokens } from '@/lib/theme-tokens';
 import { Alert, Box } from '@mui/material';
 import React from 'react';
+import type { LucideIcon } from '@/app/components/icons';
+import { tokens } from '@/lib/theme-tokens';
 import type { OnboardingData } from '../useOnboardingWizard';
 import { OnboardingNavigation } from './OnboardingNavigation';
 import { OnboardingProgress } from './OnboardingProgress';

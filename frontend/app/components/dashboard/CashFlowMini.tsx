@@ -1,11 +1,9 @@
 'use client';
 
-import type { DashboardCashFlowPoint } from '@/app/hooks/useDashboard';
 import { useTheme } from 'next-themes';
-import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
+import { LazyECharts } from '@/app/components/ui/lazy-echarts';
+import type { DashboardCashFlowPoint } from '@/app/hooks/useDashboard';
 
 interface CashFlowMiniProps {
   data: DashboardCashFlowPoint[];
@@ -127,7 +125,7 @@ export function CashFlowMini({
       ) : (
         <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
           {/* Pinned to the box so ECharts measures a definite size, not its 100px default. */}
-          <ReactECharts
+          <LazyECharts
             style={{ position: 'absolute', inset: 0 }}
             option={option}
             notMerge

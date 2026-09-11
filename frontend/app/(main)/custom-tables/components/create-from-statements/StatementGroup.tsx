@@ -1,7 +1,7 @@
 'use client';
 
-import { Checkbox } from '@/app/components/ui/checkbox';
 import { Box } from '@mui/material';
+import { Checkbox } from '@/app/components/ui/checkbox';
 import type {
   CreateFromStatementsModalLabels,
   FormatLabelFn,

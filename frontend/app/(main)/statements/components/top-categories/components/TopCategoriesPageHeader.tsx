@@ -1,10 +1,10 @@
 'use client';
 
 import { AnalyticsFlowToggle } from '@/app/(main)/statements/components/analytics/AnalyticsFlowToggle';
-import type { TopCategoryFlowType } from '@/app/(main)/statements/components/top-categories.utils';
 import { TopCategoriesFilterChipsRow } from '@/app/(main)/statements/components/top-categories/components/TopCategoriesFilterChipsRow';
 import { TopCategoriesSearchRow } from '@/app/(main)/statements/components/top-categories/components/TopCategoriesSearchRow';
 import type { useTopCategoriesViewModel } from '@/app/(main)/statements/components/top-categories/hooks/useTopCategoriesViewModel';
+import type { TopCategoryFlowType } from '@/app/(main)/statements/components/top-categories.utils';
 
 type Props = { vm: ReturnType<typeof useTopCategoriesViewModel> };
 

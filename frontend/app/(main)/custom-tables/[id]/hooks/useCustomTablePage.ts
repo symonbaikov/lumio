@@ -1,13 +1,13 @@
 'use client';
 
-import { useAuth } from '@/app/hooks/useAuth';
-import { useIntlayer, useLocale } from '@/app/i18n';
-import apiClient from '@/app/lib/api';
 import type { SortingState } from '@tanstack/react-table';
 import type { Locale } from 'date-fns';
 import { enUS, kk, ru } from 'date-fns/locale';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import apiClient from '@/app/lib/api';
 import type { ConditionalRule } from '../utils/conditionalRules';
 import { findPaidColumnKey } from '../utils/quickTabs';
 import type { ColumnType, CustomTableColumn, CustomTableGridRow } from '../utils/stylingUtils';
@@ -26,7 +26,6 @@ import { usePasteImport } from './usePasteImport';
 import { useQuickTabState } from './useQuickTabState';
 import { useRowActions } from './useRowActions';
 import { useRowDrawer } from './useRowDrawer';
-import { useTabStats } from './useTabStats';
 import {
   type AggregateFn,
   type AggregateSelection,
@@ -35,6 +34,7 @@ import {
 import { useTableData } from './useTableData';
 import { useTableFilters } from './useTableFilters';
 import { type TableSortState, useTableGrid } from './useTableGrid';
+import { useTabStats } from './useTabStats';
 
 function buildColumnTypes(t: unknown): { value: ColumnType; label: string }[] {
   return [

@@ -1,8 +1,5 @@
 'use client';
 
-import { Alert } from '@/app/components/ui/alert';
-import { Spinner } from '@/app/components/ui/spinner';
-import type { UseTwoFactorReturn } from '@/app/settings/profile/hooks/useTwoFactor';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -11,6 +8,9 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { type FormEvent, useState } from 'react';
+import { Alert } from '@/app/components/ui/alert';
+import { Spinner } from '@/app/components/ui/spinner';
+import type { UseTwoFactorReturn } from '@/app/settings/profile/hooks/useTwoFactor';
 
 export type Tx = (path: string[], fallback: string) => string;
 
@@ -76,7 +76,11 @@ export function RecoveryCodesPanel({
   tx,
   codes,
   onDone,
-}: { tx: Tx; codes: string[]; onDone: () => void }) {
+}: {
+  tx: Tx;
+  codes: string[];
+  onDone: () => void;
+}) {
   return (
     <Card variant="outlined">
       <CardContent sx={{ display: 'grid', gap: 1.5 }}>

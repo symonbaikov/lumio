@@ -1,10 +1,5 @@
 'use client';
 
-import { Alert } from '@/app/components/ui/alert';
-import { Spinner } from '@/app/components/ui/spinner';
-import type { ThemePreference } from '@/app/lib/theme-preference';
-import type { UiDensity } from '@/app/theme';
-import { ModeToggle } from '@/components/mode-toggle';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -14,6 +9,11 @@ import Stack from '@mui/material/Stack';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import { Alert } from '@/app/components/ui/alert';
+import { Spinner } from '@/app/components/ui/spinner';
+import type { ThemePreference } from '@/app/lib/theme-preference';
+import type { UiDensity } from '@/app/theme';
+import { ModeToggle } from '@/components/mode-toggle';
 
 type Tx = (path: string[], fallback: string) => string;
 

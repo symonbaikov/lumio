@@ -5,8 +5,8 @@ import { FromFilterDropdown } from '@/app/(main)/statements/components/filters/F
 import { GroupByFilterDropdown } from '@/app/(main)/statements/components/filters/GroupByFilterDropdown';
 import { StatusFilterDropdown } from '@/app/(main)/statements/components/filters/StatusFilterDropdown';
 import { ViewFilterDropdown } from '@/app/(main)/statements/components/filters/ViewFilterDropdown';
-import type { SpendOverTimeGroupBy } from '@/app/(main)/statements/components/spend-over-time.utils';
 import type { useSpendOverTimeViewModel } from '@/app/(main)/statements/components/spend-over-time/hooks/useSpendOverTimeViewModel';
+import type { SpendOverTimeGroupBy } from '@/app/(main)/statements/components/spend-over-time.utils';
 import { filterLinkClassName } from '@/app/(main)/statements/helpers/analytics-filter-labels';
 import { ChevronDown, SlidersHorizontal } from '@/app/components/icons';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';

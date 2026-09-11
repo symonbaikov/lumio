@@ -1,7 +1,6 @@
 /* eslint-disable max-lines */
 'use client';
 
-import { Check } from '@/app/components/icons';
 import Divider from '@mui/material/Divider';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
@@ -10,6 +9,7 @@ import MenuItem from '@mui/material/MenuItem';
 import RadioButton from '@mui/material/Radio';
 import Typography from '@mui/material/Typography';
 import * as React from 'react';
+import { Check } from '@/app/components/icons';
 
 /* ─── Context ────────────────────────────────────────────────────────────── */
 
@@ -399,18 +399,18 @@ const DropdownMenuSubContent = ({
 
 export {
   DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuCheckboxItem,
-  DropdownMenuRadioItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuPortal,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
-  DropdownMenuGroup,
-  DropdownMenuPortal,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-  DropdownMenuRadioGroup,
+  DropdownMenuTrigger,
 };

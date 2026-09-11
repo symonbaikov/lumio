@@ -1,12 +1,12 @@
 'use client';
 
-import { formatMoney } from '@/app/lib/format-money';
-import type { GoalFlowBudget } from '@/app/lib/goals-api';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import LinearProgress from '@mui/material/LinearProgress';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
+import { formatMoney } from '@/app/lib/format-money';
+import type { GoalFlowBudget } from '@/app/lib/goals-api';
+import { tokens } from '@/lib/theme-tokens';
 
 export interface GoalBudgetListProps {
   budgets: GoalFlowBudget[];

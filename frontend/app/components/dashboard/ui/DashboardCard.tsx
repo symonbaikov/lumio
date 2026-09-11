@@ -1,7 +1,7 @@
-import { ArrowRight } from '@/app/components/icons';
 import clsx from 'clsx';
 import Link from 'next/link';
 import type React from 'react';
+import { ArrowRight } from '@/app/components/icons';
 
 export interface DashboardCardProps {
   /** Uppercase eyebrow title. */
