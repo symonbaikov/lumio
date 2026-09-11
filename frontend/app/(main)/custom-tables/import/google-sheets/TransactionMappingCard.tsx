@@ -6,8 +6,8 @@ import { ChevronDown } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { CurrencyPickerDrawer } from '@/app/components/ui/currency-picker-drawer';
 import {
-  type CurrencySearchItem,
   buildCurrencySearchIndex,
+  type CurrencySearchItem,
 } from '@/app/lib/statement-expense-drawer';
 
 /** Kept in sync with `SheetColumnRole` in `backend/src/modules/import/sheets/column-roles.ts`. */
