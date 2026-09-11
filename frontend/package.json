@@ -49,7 +49,7 @@
     "echarts": "^6.1.0",
     "echarts-for-react": "^3.0.6",
     "framer-motion": "^12.34.3",
-    "intlayer": "^7.5.11",
+    "intlayer": "^9.4.4",
     "next": "^16.1.2",
     "next-intlayer": "^7.5.11",
     "next-themes": "^0.2.1",
