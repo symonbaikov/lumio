@@ -1,14 +1,14 @@
 'use client';
 
+import { Popover } from '@mui/material';
+import { type Cell, flexRender, type Header, type Row, type Table } from '@tanstack/react-table';
+import { type VirtualItem, type Virtualizer } from '@tanstack/react-virtual';
+import { type CSSProperties, useRef } from 'react';
+import { HexColorPicker } from 'react-colorful';
 import { ArrowDown, ArrowUp, Plus } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
-import { Popover } from '@mui/material';
-import { type Cell, type Header, type Row, type Table, flexRender } from '@tanstack/react-table';
-import { type VirtualItem, type Virtualizer } from '@tanstack/react-virtual';
-import { type CSSProperties, useRef } from 'react';
-import { HexColorPicker } from 'react-colorful';
 import type { AggregateFn } from '../hooks/useTableAggregates';
 import { solidifyBackground } from '../utils/colorUtils';
 import type { CustomTableGridRow } from '../utils/stylingUtils';
@@ -91,7 +91,11 @@ function resolveStickyBg({
   isHeader,
   isDark,
   bodyBackground,
-}: { isHeader: boolean; isDark: boolean; bodyBackground?: string }): string | undefined {
+}: {
+  isHeader: boolean;
+  isDark: boolean;
+  bodyBackground?: string;
+}): string | undefined {
   if (isHeader) {
     return isDark ? '#1f2937' : 'var(--muted)';
   }
@@ -136,7 +140,10 @@ interface VirtualPadding {
 function getVirtualPadding({
   virtualItems,
   totalSize,
-}: { virtualItems: VirtualItem[]; totalSize: number }): VirtualPadding {
+}: {
+  virtualItems: VirtualItem[];
+  totalSize: number;
+}): VirtualPadding {
   if (virtualItems.length === 0) {
     return { top: 0, bottom: 0 };
   }
@@ -752,7 +759,9 @@ function DesktopTableBody({
 
 function DesktopEmptyState({
   labels,
-}: { labels: { emptyTitle: string; emptySubtitle: string } }): React.JSX.Element {
+}: {
+  labels: { emptyTitle: string; emptySubtitle: string };
+}): React.JSX.Element {
   return (
     <div
       style={{

@@ -1,7 +1,7 @@
 'use client';
 
-import { FileImage, FileSpreadsheet, FileText } from '@/app/components/icons';
 import Image from 'next/image';
+import { FileImage, FileSpreadsheet, FileText } from '@/app/components/icons';
 import pdfIcon from '../../public/images/pdf.png';
 import { PDFThumbnail } from './PDFThumbnail';
 

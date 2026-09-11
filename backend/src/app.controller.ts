@@ -1,7 +1,7 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { Controller, Get, Res, ServiceUnavailableException } from '@nestjs/common';
 import type { Response } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
 import { AppService } from './app.service';
 import { Public } from './modules/auth/decorators/public.decorator';
 

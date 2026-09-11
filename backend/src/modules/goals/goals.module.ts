@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Goal, GoalContribution } from '../../entities';
-import { GoalItem } from '../../entities/goal-item.entity';
 import { Budget } from '../../entities/budget.entity';
 import { DataEntry } from '../../entities/data-entry.entity';
+import { GoalItem } from '../../entities/goal-item.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { CategoriesModule } from '../categories/categories.module';

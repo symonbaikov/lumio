@@ -1,6 +1,13 @@
 /* eslint-disable max-lines */
 'use client';
 
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
+import Typography from '@mui/material/Typography';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import {
   CalendarDays,
@@ -9,15 +16,11 @@ import {
   Download,
   RefreshCcw,
 } from '@/app/components/icons';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { getApiErrorMessage } from '@/app/lib/api-error';
+import { queryKeys } from '@/app/lib/query-keys';
 import { tokens } from '@/lib/theme-tokens';
-import Alert from '@mui/material/Alert';
-import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
-import Typography from '@mui/material/Typography';
-import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import apiClient from '../../../lib/api';
 
 type BalanceExportFormat = 'excel' | 'pdf';
@@ -117,8 +120,8 @@ function BalanceSheet(): React.JSX.Element {
   // eslint-disable-next-line max-params
   const text = (key: string, fallback: string): string => labels[key]?.value ?? fallback;
 
-  const [sheet, setSheet] = useState<BalanceSheetResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<'now' | 'date'>('now');
   const [selectedDate, setSelectedDate] = useState<string>(toDateInputValue(new Date()));
@@ -128,6 +131,56 @@ function BalanceSheet(): React.JSX.Element {
   const [saveHint, setSaveHint] = useState<string>('');
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<BalanceExportFormat | null>(null);
+
+  const effectiveDate = filterMode === 'date' ? selectedDate : undefined;
+
+  const sheetQuery = useQuery({
+    queryKey: queryKeys.balanceSheet({ workspaceId, date: effectiveDate ?? null, locale }),
+    queryFn: async ({ signal }) => {
+      const response = await apiClient.get('/reports/balance/sheet', {
+        params: { ...(effectiveDate ? { date: effectiveDate } : {}), locale },
+        signal,
+      });
+      return (response.data?.data || response.data) as BalanceSheetResponse;
+    },
+    // Смена даты и сохранение баланса перезагружают отчёт; таблица держится на
+    // экране до прихода новых цифр, но только внутри того же воркспейса.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[1] === workspaceId ? previous : undefined,
+  });
+
+  const sheet = sheetQuery.data ?? null;
+
+  const loadSheet = useCallback((): void => {
+    void queryClient.invalidateQueries({ queryKey: ['balance-sheet', workspaceId] });
+  }, [queryClient, workspaceId]);
+
+  // Значения в полях и раскрытые секции выводятся из пришедшего отчёта:
+  // редактируемые суммы перезаписываются целиком, раскрытые секции сохраняют
+  // выбор пользователя для тех id, которые есть и в новом отчёте.
+  useEffect(() => {
+    if (!sheetQuery.data) return;
+    const payload = sheetQuery.data;
+
+    const nextEditableValues: Record<string, string> = {};
+    collectEditableValues(payload.assets.sections, nextEditableValues);
+    collectEditableValues(payload.liabilities.sections, nextEditableValues);
+    setEditableValues(nextEditableValues);
+
+    setExpanded(prevExpanded => {
+      const defaults: Record<string, boolean> = {};
+      collectExpandableDefaults(payload.assets.sections, defaults);
+      collectExpandableDefaults(payload.liabilities.sections, defaults);
+
+      const merged = { ...defaults };
+      for (const [id, isOpen] of Object.entries(prevExpanded)) {
+        if (id in merged) {
+          merged[id] = isOpen;
+        }
+      }
+      return merged;
+    });
+  }, [sheetQuery.data]);
 
   const currencyCode = sheet?.currency || 'KZT';
 
@@ -140,57 +193,6 @@ function BalanceSheet(): React.JSX.Element {
       }).format(value),
     [locale, currencyCode],
   );
-
-  const effectiveDate = filterMode === 'date' ? selectedDate : undefined;
-
-  const loadSheet = useCallback(
-    // eslint-disable-next-line max-lines-per-function
-    async (date?: string): Promise<void> => {
-      setLoading(true);
-      setError(null);
-
-      await (async () => {
-        const response = await apiClient.get('/reports/balance/sheet', {
-          params: {
-            ...(date ? { date } : {}),
-            locale,
-          },
-        });
-        const payload: BalanceSheetResponse = response.data?.data || response.data;
-        setSheet(payload);
-
-        const nextEditableValues: Record<string, string> = {};
-        collectEditableValues(payload.assets.sections, nextEditableValues);
-        collectEditableValues(payload.liabilities.sections, nextEditableValues);
-        setEditableValues(nextEditableValues);
-
-        setExpanded(prevExpanded => {
-          const defaults: Record<string, boolean> = {};
-          collectExpandableDefaults(payload.assets.sections, defaults);
-          collectExpandableDefaults(payload.liabilities.sections, defaults);
-
-          const merged = { ...defaults };
-          for (const [id, isOpen] of Object.entries(prevExpanded)) {
-            if (id in merged) {
-              merged[id] = isOpen;
-            }
-          }
-          return merged;
-        });
-      })()
-        .catch(async (err: unknown) => {
-          setError(getApiErrorMessage(err, t.errors.loadReport.value));
-        })
-        .finally(async () => {
-          setLoading(false);
-        });
-    },
-    [locale, t.errors.loadReport.value],
-  );
-
-  useEffect(() => {
-    void loadSheet(effectiveDate);
-  }, [effectiveDate, loadSheet]);
 
   const saveSnapshot = useCallback(
     async (accountId: string): Promise<void> => {
@@ -217,7 +219,7 @@ function BalanceSheet(): React.JSX.Element {
         });
 
         setSaveHint(text('balanceSaved', 'Balance saved'));
-        await loadSheet(effectiveDate);
+        loadSheet();
       })()
         .catch(async (err: unknown) => {
           setError(getApiErrorMessage(err, t.errors.loadReport.value));
@@ -477,7 +479,7 @@ function BalanceSheet(): React.JSX.Element {
 
             <button
               type="button"
-              onClick={() => void loadSheet(effectiveDate)}
+              onClick={loadSheet}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -585,11 +587,15 @@ function BalanceSheet(): React.JSX.Element {
         )}
       </Box>
 
-      {error && <Alert severity="error">{error}</Alert>}
+      {(error || sheetQuery.isError) && (
+        <Alert severity="error">
+          {error ?? getApiErrorMessage(sheetQuery.error, t.errors.loadReport.value)}
+        </Alert>
+      )}
 
       {balanceWarning && <Alert severity="warning">{balanceWarning}</Alert>}
 
-      {loading ? (
+      {sheetQuery.isPending ? (
         <Box
           sx={{
             border: '1px solid var(--border)',
@@ -604,7 +610,14 @@ function BalanceSheet(): React.JSX.Element {
         </Box>
       ) : sheet ? (
         <Box
-          sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: 'repeat(2, 1fr)' }, gap: 2 }}
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', xl: 'repeat(2, 1fr)' },
+            gap: 2,
+            // Сохранение баланса и смена даты перезагружают отчёт в фоне.
+            opacity: sheetQuery.isFetching ? 0.6 : 1,
+            transition: 'opacity 150ms ease',
+          }}
         >
           <Box sx={{ border: '1px solid var(--border)', bgcolor: 'var(--card)', p: 2 }}>
             <Box

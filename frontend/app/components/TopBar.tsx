@@ -1,8 +1,13 @@
 'use client';
 
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
+import { useCallback, useState } from 'react';
+import toast from 'react-hot-toast';
 import { GlobalSearch } from '@/app/components/GlobalSearch';
-import { NotificationDropdown } from '@/app/components/NotificationDropdown';
 import { HelpCircle, Menu } from '@/app/components/icons';
+import { NotificationDropdown } from '@/app/components/NotificationDropdown';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { usePermissions } from '@/app/hooks/usePermissions';
@@ -14,17 +19,12 @@ import { canAccessWorkspaceActivity } from '@/app/lib/workspace-activity-access'
 import { AiAssistantTopBarButton } from '@/app/plugins/ai-assistant/AiAssistantTopBarButton';
 import { McpServerTopBarButton } from '@/app/plugins/mcp-server/McpServerTopBarButton';
 import { TourMenu } from '@/app/tours/components/TourMenu';
-import { useTheme } from 'next-themes';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
-import toast from 'react-hot-toast';
 import GlobalBreadcrumbs from './GlobalBreadcrumbs';
-import { LanguageDrawer } from './navigation/LanguageDrawer';
-import { UserMenuTriggerAndDropdown } from './navigation/UserMenu';
 import { buildUserMenuNavItems } from './navigation/helpers/navigation-config';
 import { useLanguageSelection } from './navigation/hooks/useLanguageSelection';
 import { useThemePreference } from './navigation/hooks/useThemePreference';
+import { LanguageDrawer } from './navigation/LanguageDrawer';
+import { UserMenuTriggerAndDropdown } from './navigation/UserMenu';
 
 const SIDEBAR_OPEN_EVENT = 'lumio-sidebar-open';
 const HIDDEN_PATHS = ['/onboarding', '/login', '/register', '/shared', '/invite', '/chat'];

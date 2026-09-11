@@ -1,9 +1,9 @@
 'use client';
 
-import { ChevronRight } from '@/app/components/icons';
-import { tokens } from '@/lib/theme-tokens';
 import Link from 'next/link';
 import React from 'react';
+import { ChevronRight } from '@/app/components/icons';
+import { tokens } from '@/lib/theme-tokens';
 import { Spinner } from '../../ui/spinner';
 import type { NavigationItem, NavigationSection } from '../types';
 import { RenderIcon } from './components/RenderIcon';

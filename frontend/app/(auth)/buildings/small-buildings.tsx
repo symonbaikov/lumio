@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Block, BuildingProps, WindowGrid, motion } from './shared';
+import { Block, BuildingProps, motion, WindowGrid } from './shared';
 
 export function SteppedSkyscraper({
   delay,

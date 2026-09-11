@@ -1,10 +1,10 @@
 'use client';
 
-import { useIntlayer } from '@/app/i18n';
-import apiClient from '@/app/lib/api';
 import { Box } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useIntlayer } from '@/app/i18n';
+import apiClient from '@/app/lib/api';
 
 interface RowComment {
   id: string;

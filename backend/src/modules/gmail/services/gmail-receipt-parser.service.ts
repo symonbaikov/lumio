@@ -1,10 +1,10 @@
-import * as fs from 'fs';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import * as fs from 'fs';
 import * as pdfParse from 'pdf-parse';
 import { stripHtmlForAi } from '../../../common/utils/ai-response.util';
 import {
-  DEFAULT_RECEIPT_SYMBOL_TO_CURRENCY,
   createReceiptAmountHelpers,
+  DEFAULT_RECEIPT_SYMBOL_TO_CURRENCY,
   extractCurrency as detectCurrency,
   selectTopAmountCandidate,
 } from '../../../common/utils/receipt-amount.util';

@@ -1,8 +1,6 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
+import { LazyECharts } from '@/app/components/ui/lazy-echarts';
 
 type ChartCardProps = {
   title: string;
@@ -17,7 +15,7 @@ function ChartCard({ title, option, theme, height, wide }: ChartCardProps): Reac
       <div className="lumio-view-page__chart-header">
         <h3 className="lumio-view-page__chart-title">{title}</h3>
       </div>
-      <ReactECharts style={{ height }} option={option} theme={theme} />
+      <LazyECharts style={{ height }} option={option} theme={theme} />
     </div>
   );
 }

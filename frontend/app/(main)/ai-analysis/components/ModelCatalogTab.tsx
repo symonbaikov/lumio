@@ -1,15 +1,15 @@
 'use client';
 
-import { useIntlayer } from '@/app/i18n';
-import { tokens } from '@/lib/theme-tokens';
 import { Box, Button, Chip, LinearProgress, Stack, Typography } from '@mui/material';
 import type React from 'react';
 import { useMemo } from 'react';
+import { useIntlayer } from '@/app/i18n';
+import { tokens } from '@/lib/theme-tokens';
 import type { LocalModelState } from '../llm/useLocalModel';
 import {
+  fitsInBudget,
   RECOMMENDED_MODEL_ID,
   type ResolvedModel,
-  fitsInBudget,
   resolveCatalog,
 } from '../model-catalog';
 import { useWebGpuBudget } from '../useWebGpuBudget';

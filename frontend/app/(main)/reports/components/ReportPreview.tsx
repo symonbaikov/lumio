@@ -1,11 +1,11 @@
 'use client';
 
-import { useIntlayer } from '@/app/i18n';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
+import { useIntlayer } from '@/app/i18n';
+import { tokens } from '@/lib/theme-tokens';
 
 type PreviewCell = string | number;
 

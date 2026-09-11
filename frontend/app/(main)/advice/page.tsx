@@ -1,14 +1,14 @@
 'use client';
 
+import Box from '@mui/material/Box';
+import Skeleton from '@mui/material/Skeleton';
+import Typography from '@mui/material/Typography';
+import { useEffect } from 'react';
 import { Lightbulb } from '@/app/components/icons';
 import { EmptyState } from '@/app/components/ui/EmptyState';
 import { useInsights, useRefreshInsights } from '@/app/hooks/useInsights';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
-import Box from '@mui/material/Box';
-import Skeleton from '@mui/material/Skeleton';
-import Typography from '@mui/material/Typography';
-import { useEffect } from 'react';
 
 const ADVICE_SKELETON_KEYS = ['advice-0', 'advice-1', 'advice-2', 'advice-3'];
 

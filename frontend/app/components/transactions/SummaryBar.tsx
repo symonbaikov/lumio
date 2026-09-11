@@ -1,5 +1,7 @@
 'use client';
 
+import { resolveBankLogo } from '@bank-logos';
+import { useMemo } from 'react';
 import { Download, FileText, FileUp, TrendingDown, TrendingUp } from '@/app/components/icons';
 import {
   formatAmount,
@@ -8,8 +10,6 @@ import {
 import { Button } from '@/app/components/ui/button';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useIntlayer, useLocale } from '@/app/i18n';
-import { resolveBankLogo } from '@bank-logos';
-import { useMemo } from 'react';
 import type { StatementDetails, Transaction } from './types';
 
 interface SummaryBarProps {

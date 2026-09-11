@@ -1,10 +1,10 @@
 'use client';
 
+import { useTheme } from 'next-themes';
+import React from 'react';
 import { ModalFooter, ModalShell } from '@/app/components/ui/modal-shell';
 import type { AuditEvent } from '@/lib/api/audit';
 import { tokens } from '@/lib/theme-tokens';
-import { useTheme } from 'next-themes';
-import React from 'react';
 import { formatAuditEvent } from '../utils/formatAuditEvent';
 import { relativeTime } from '../utils/relativeTime';
 

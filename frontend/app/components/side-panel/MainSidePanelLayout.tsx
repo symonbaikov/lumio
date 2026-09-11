@@ -1,13 +1,13 @@
 /* eslint-disable max-lines */
 'use client';
 
-import { X } from '@/app/components/icons';
-import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import { usePathname } from 'next/navigation';
 import React from 'react';
+import { X } from '@/app/components/icons';
+import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import { SidePanel, SidePanelProvider, useCurrentSidePanelConfig, useSidePanel } from './index';
 
 type ClonableProps = Record<string, unknown>;

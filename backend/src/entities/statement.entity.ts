@@ -13,6 +13,7 @@ import {
 } from 'typeorm';
 
 type JsonObject = Record<string, unknown>;
+
 import { normalizeFilename } from '../common/utils/filename.util';
 import { Category } from './category.entity';
 import { Folder } from './folder.entity';

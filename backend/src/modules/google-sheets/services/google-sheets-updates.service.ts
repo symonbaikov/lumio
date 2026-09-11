@@ -9,8 +9,8 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { ActorType, AuditAction, EntityType } from '../../../entities/audit-event.entity';
-import { GoogleSheetRow } from '../../../entities/google-sheet-row.entity';
 import { GoogleSheet } from '../../../entities/google-sheet.entity';
+import { GoogleSheetRow } from '../../../entities/google-sheet-row.entity';
 import { AuditService } from '../../audit/audit.service';
 import type { GoogleSheetsBatchUpdateDto, GoogleSheetsUpdateDto } from '../dto/sheets-update.dto';
 import {

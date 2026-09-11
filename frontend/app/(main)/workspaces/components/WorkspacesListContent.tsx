@@ -1,12 +1,12 @@
 'use client';
 
-import { useWorkspace } from '@/app/contexts/WorkspaceContext';
-import { useIntlayer } from '@/app/i18n';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import { useRouter } from 'next/navigation';
 import React, { useMemo, useState } from 'react';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { useIntlayer } from '@/app/i18n';
+import { tokens } from '@/lib/theme-tokens';
 import { WorkspaceGridView } from './WorkspaceGridView';
 import { type ViewMode, WorkspaceListFilters } from './WorkspaceListFilters';
 import { WorkspaceListView } from './WorkspaceListView';

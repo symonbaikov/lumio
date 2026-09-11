@@ -1,7 +1,7 @@
 'use client';
 
-import { createBasicSidePanelConfig, useSidePanelConfig } from '@/app/components/side-panel';
 import { useMemo } from 'react';
+import { createBasicSidePanelConfig, useSidePanelConfig } from '@/app/components/side-panel';
 import WorkspacesListContent from '../components/WorkspacesListContent';
 
 export default function WorkspacesListPage() {

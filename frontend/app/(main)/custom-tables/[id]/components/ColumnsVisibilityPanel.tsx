@@ -1,7 +1,7 @@
 'use client';
 
-import { Checkbox } from '@/app/components/ui/checkbox';
 import { Box, Typography } from '@mui/material';
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { tx } from '../utils/tableHelpers';
 import type { CustomTablePageColumn } from '../utils/tableTypes';
 

@@ -1,8 +1,8 @@
 'use client';
 
-import { Tag, X } from '@/app/components/icons';
 import type { Column, Table } from '@tanstack/react-table';
 import { useEffect, useRef, useState } from 'react';
+import { Tag, X } from '@/app/components/icons';
 import type { CustomTableGridRow } from '../../utils/stylingUtils';
 
 interface EditableHeaderProps {

@@ -1,7 +1,5 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
-import { tokens } from '@/lib/theme-tokens';
 import {
   Alert,
   Box,
@@ -18,18 +16,23 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import apiClient from '@/app/lib/api';
+import { queryKeys } from '@/app/lib/query-keys';
+import { tokens } from '@/lib/theme-tokens';
 import {
-  type PeriodPreset,
-  type TaxReturnRecord,
-  type TaxReturnTotals,
-  type ThresholdStatus,
   exportFileName,
   formatMoney,
   netDirection,
+  type PeriodPreset,
   periodFor,
   saveBlob,
+  type TaxReturnRecord,
+  type TaxReturnTotals,
+  type ThresholdStatus,
 } from './tax-return.helpers';
 
 const PRESETS: Array<{ key: PeriodPreset; label: string }> = [
@@ -73,42 +76,33 @@ function Figure({
  * reopen path is offered explicitly rather than implied.
  */
 export function TaxReturnView(): React.ReactElement {
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
   const [period, setPeriod] = useState(() => periodFor('thisQuarter'));
-  const [record, setRecord] = useState<TaxReturnRecord | null>(null);
-  const [totals, setTotals] = useState<TaxReturnTotals | null>(null);
   const [threshold, setThreshold] = useState<ThresholdStatus | null>(null);
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const queryKey = queryKeys.taxReturn({ workspaceId, ...period });
 
-    await (async () => {
+  const returnQuery = useQuery({
+    queryKey,
+    queryFn: async ({ signal }) => {
       const query = `periodStart=${period.periodStart}&periodEnd=${period.periodEnd}`;
       const [returnResponse, previewResponse] = await Promise.all([
-        apiClient.get<TaxReturnRecord>(`/tax/returns/period?${query}`),
-        apiClient.get<TaxReturnTotals>(`/tax/returns/preview?${query}`),
+        apiClient.get<TaxReturnRecord>(`/tax/returns/period?${query}`, { signal }),
+        apiClient.get<TaxReturnTotals>(`/tax/returns/preview?${query}`, { signal }),
       ]);
-      setRecord(returnResponse.data);
-      setTotals(previewResponse.data);
-    })()
-      .catch(async () => {
-        // Most often this is a workspace with no jurisdiction yet, which is a
-        // setup step rather than a failure.
-        setError('Could not build the return. Check that this workspace has a tax jurisdiction.');
-        setRecord(null);
-        setTotals(null);
-      })
-      .finally(async () => {
-        setLoading(false);
-      });
-  }, [period]);
+      return { record: returnResponse.data, totals: previewResponse.data };
+    },
+    // Смена периода не должна стирать цифры: прошлый отчёт виден до прихода
+    // нового, но только внутри того же воркспейса.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[1] === workspaceId ? previous : undefined,
+  });
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const record = returnQuery.data?.record ?? null;
+  const totals = returnQuery.data?.totals ?? null;
 
   useEffect(() => {
     apiClient
@@ -117,24 +111,20 @@ export function TaxReturnView(): React.ReactElement {
       .catch(() => setThreshold(null));
   }, []);
 
-  const act = async (action: 'file' | 'reopen') => {
-    setBusy(true);
-    setError(null);
+  const actMutation = useMutation({
+    mutationFn: (action: 'file' | 'reopen') => apiClient.post(`/tax/returns/${action}`, period),
+    onSuccess: () => setError(null),
+    onError: (_error, action) =>
+      setError(
+        action === 'file'
+          ? 'Could not file the return. Please try again.'
+          : 'Could not reopen the period. Please try again.',
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  });
 
-    await (async () => {
-      await apiClient.post(`/tax/returns/${action}`, period);
-      await load();
-    })()
-      .catch(async () => {
-        setError(
-          action === 'file'
-            ? 'Could not file the return. Please try again.'
-            : 'Could not reopen the period. Please try again.',
-        );
-      })
-      .finally(async () => {
-        setBusy(false);
-      });
+  const act = async (action: 'file' | 'reopen') => {
+    actMutation.mutate(action);
   };
 
   const download = async (format: 'pdf' | 'xlsx') => {
@@ -191,7 +181,11 @@ export function TaxReturnView(): React.ReactElement {
         />
       </Stack>
 
-      {error ? <Alert severity="error">{error}</Alert> : null}
+      {error || returnQuery.isError ? (
+        <Alert severity="error">
+          {error ?? 'Could not build the return. Check that this workspace has a tax jurisdiction.'}
+        </Alert>
+      ) : null}
 
       {threshold?.threshold ? (
         <Box
@@ -225,12 +219,21 @@ export function TaxReturnView(): React.ReactElement {
         </Box>
       ) : null}
 
-      {loading ? (
+      {returnQuery.isPending ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress size={24} />
         </Box>
       ) : (
-        <>
+        // Фоновая перезагрузка после смены периода или подачи только приглушает.
+        <Box
+          sx={{
+            opacity: returnQuery.isFetching ? 0.6 : 1,
+            transition: 'opacity 150ms ease',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2.5,
+          }}
+        >
           <Stack
             direction="row"
             spacing={3}
@@ -259,7 +262,7 @@ export function TaxReturnView(): React.ReactElement {
               />
               <Button
                 variant="outlined"
-                disabled={busy}
+                disabled={busy || actMutation.isPending}
                 onClick={() => download('pdf')}
                 sx={{ borderRadius: tokens.radius.md, textTransform: 'none', fontWeight: 600 }}
               >
@@ -267,7 +270,7 @@ export function TaxReturnView(): React.ReactElement {
               </Button>
               <Button
                 variant="outlined"
-                disabled={busy}
+                disabled={busy || actMutation.isPending}
                 onClick={() => download('xlsx')}
                 sx={{ borderRadius: tokens.radius.md, textTransform: 'none', fontWeight: 600 }}
               >
@@ -275,7 +278,7 @@ export function TaxReturnView(): React.ReactElement {
               </Button>
               <Button
                 variant={isFiled ? 'outlined' : 'contained'}
-                disabled={busy}
+                disabled={busy || actMutation.isPending}
                 onClick={() => act(isFiled ? 'reopen' : 'file')}
                 sx={{ borderRadius: tokens.radius.md, textTransform: 'none', fontWeight: 600 }}
               >
@@ -329,7 +332,7 @@ export function TaxReturnView(): React.ReactElement {
               No taxed transactions in this period.
             </Typography>
           )}
-        </>
+        </Box>
       )}
 
       <Typography

@@ -1,5 +1,11 @@
 'use client';
 
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Clock } from '@/app/components/icons';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useLocale } from '@/app/i18n';
@@ -10,12 +16,6 @@ import { SettingsAccordion } from '@/app/settings/profile/components/SettingsAcc
 import { SettingsElsewhereLinks } from '@/app/settings/profile/components/SettingsElsewhereLinks';
 import { useChangelog } from '@/app/settings/profile/hooks/useChangelog';
 import { useSettingsText } from '@/app/settings/profile/hooks/useSettingsText';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
 
 import type { SettingsTabProps } from './types';
 

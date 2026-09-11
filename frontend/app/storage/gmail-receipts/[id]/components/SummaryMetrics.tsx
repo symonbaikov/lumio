@@ -1,7 +1,7 @@
 'use client';
-import { formatStoredDate } from '@/app/lib/user-format-store';
 
 import { Box, Paper, Typography } from '@mui/material';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { EditableReceiptData, GmailReceipt } from '../hooks/useGmailReceiptData';
 
 interface MetricCardProps {

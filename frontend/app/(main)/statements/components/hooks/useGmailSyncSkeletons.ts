@@ -1,11 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
   type GmailSyncSkeletonMeta,
   STATEMENTS_GMAIL_SYNC_EVENT,
   STATEMENTS_GMAIL_SYNC_STORAGE_KEY,
 } from '@/app/lib/statement-upload-actions';
-import { useEffect, useState } from 'react';
 
 /** Pending Gmail-sync skeleton count persisted by the upload flow; 0 when absent or corrupt. */
 function readStoredGmailSyncCount(): number {
@@ -38,7 +38,10 @@ export interface UseGmailSyncSkeletonsResult {
 export function useGmailSyncSkeletons({
   stage,
   pageSize,
-}: { stage: string; pageSize: number }): UseGmailSyncSkeletonsResult {
+}: {
+  stage: string;
+  pageSize: number;
+}): UseGmailSyncSkeletonsResult {
   const [gmailSyncSkeletonKeys, setGmailSyncSkeletonKeys] = useState<string[]>([]);
 
   useEffect(() => {

@@ -3,8 +3,8 @@
 import { DateFilterDropdown } from '@/app/(main)/statements/components/filters/DateFilterDropdown';
 import { FromFilterDropdown } from '@/app/(main)/statements/components/filters/FromFilterDropdown';
 import { StatusFilterDropdown } from '@/app/(main)/statements/components/filters/StatusFilterDropdown';
-import { TypeFilterDropdown } from '@/app/(main)/statements/components/filters/TypeFilterDropdown';
 import type { StatementFilters } from '@/app/(main)/statements/components/filters/statement-filters';
+import { TypeFilterDropdown } from '@/app/(main)/statements/components/filters/TypeFilterDropdown';
 import { ChevronDown, Columns2, Search, SlidersHorizontal } from '@/app/components/icons';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { tokens } from '@/lib/theme-tokens';

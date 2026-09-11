@@ -1,6 +1,6 @@
-import apiClient from '@/app/lib/api';
 import type { Dispatch, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
+import apiClient from '@/app/lib/api';
 
 export const DEFAULT_COLUMN_WIDTH = 180;
 export const MIN_COLUMN_WIDTH = 60;

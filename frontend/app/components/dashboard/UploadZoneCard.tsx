@@ -1,9 +1,9 @@
 'use client';
 
-import { FileUp } from '@/app/components/icons';
-import { useIntlayer } from '@/app/i18n';
 import Link from 'next/link';
 import type React from 'react';
+import { FileUp } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 
 const FORMATS = ['PDF', 'CSV', 'XLSX', 'JPG/PNG'];
 

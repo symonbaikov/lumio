@@ -70,7 +70,10 @@ const inactiveButtonStyle: React.CSSProperties = {
 function getFolderButtonStyle({
   isPicked,
   isActive,
-}: { isPicked: boolean; isActive: boolean }): React.CSSProperties {
+}: {
+  isPicked: boolean;
+  isActive: boolean;
+}): React.CSSProperties {
   if (isPicked) {
     return pickedButtonStyle;
   }

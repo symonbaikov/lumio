@@ -1,10 +1,10 @@
 'use client';
 
 import { Box, DialogContent } from '@mui/material';
-import type { StatementGroupBy } from '../../create-from-statements-utils';
 import type {
   buildStatementSelectionOptions,
   groupStatementSelectionOptions,
+  StatementGroupBy,
 } from '../../create-from-statements-utils';
 import type { CreateFromStatementsModalLabels, FormatLabelFn } from '../CreateFromStatementsModal';
 import { Step1Content } from './Step1Content';

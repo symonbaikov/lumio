@@ -1,7 +1,8 @@
+import { resolveBankLogo } from '@bank-logos';
 import type { StatementFilterItem } from '@/app/(main)/statements/components/filters/statement-filters';
 import { resolveSourceChannel } from '@/app/(main)/statements/components/shared-analytics.utils';
-import { resolveSpendOverTimeFlow } from '@/app/(main)/statements/components/spend-over-time.utils';
 import type { SpendOverTimeRecord } from '@/app/(main)/statements/components/spend-over-time.utils';
+import { resolveSpendOverTimeFlow } from '@/app/(main)/statements/components/spend-over-time.utils';
 import type {
   GmailReceipt,
   StatementMeta,
@@ -13,7 +14,6 @@ import {
   resolveCurrencyCode,
 } from '@/app/lib/analytics-common';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
-import { resolveBankLogo } from '@bank-logos';
 
 // ---------------------------------------------------------------------------
 // Bank display name helper (reused for fromOptions)

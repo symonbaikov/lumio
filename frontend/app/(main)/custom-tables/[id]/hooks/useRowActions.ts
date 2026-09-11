@@ -1,8 +1,8 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
 import { useCallback } from 'react';
 import toast from 'react-hot-toast';
+import apiClient from '@/app/lib/api';
 import type {
   CustomTableCellValue,
   CustomTableGridRow,
@@ -131,7 +131,7 @@ export function useRowActions({
         setRows(prev =>
           prev.map(r => (r.id === rowId ? { ...r, data: { ...(r.data || {}), ...patchData } } : r)),
         );
-        if (paidColKey && Object.prototype.hasOwnProperty.call(patchData, paidColKey)) {
+        if (paidColKey && Object.hasOwn(patchData, paidColKey)) {
           refreshStats();
         }
         return;
@@ -140,7 +140,7 @@ export function useRowActions({
       setRows(prev =>
         prev.map(r => (r.id === rowId ? { ...r, data: { ...(r.data || {}), ...patchData } } : r)),
       );
-      if (paidColKey && Object.prototype.hasOwnProperty.call(patchData, paidColKey)) {
+      if (paidColKey && Object.hasOwn(patchData, paidColKey)) {
         refreshStats();
       }
     },

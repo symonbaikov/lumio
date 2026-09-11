@@ -1,10 +1,13 @@
 'use client';
 
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useRef } from 'react';
+import toast from 'react-hot-toast';
 import CreateExpenseDrawer from '@/app/(main)/statements/components/CreateExpenseDrawer';
 import ConfirmModal from '@/app/components/ConfirmModal';
-import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { GitMerge, RefreshCcw } from '@/app/components/icons';
 import { NoteCountsProvider } from '@/app/components/notes/NoteCountsContext';
+import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { useKeyboardShortcuts } from '@/app/hooks/use-keyboard-shortcuts';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import apiClient from '@/app/lib/api';
@@ -16,14 +19,11 @@ import type {
   TaxRateOption,
 } from '@/app/lib/statement-expense-drawer';
 import type { StatementStage } from '@/app/lib/statement-workflow';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useRef } from 'react';
-import toast from 'react-hot-toast';
+import type { MergeDuplicatesPlan } from './hooks/useStatementSelection';
+import { useStatementsView } from './hooks/useStatementsView';
 import { StatementsListHeader } from './StatementsListHeader';
 import { StatementsListTable } from './StatementsListTable';
 import { isGmailStatement, resolveStatementViewAction } from './StatementsListView.utils';
-import type { MergeDuplicatesPlan } from './hooks/useStatementSelection';
-import { useStatementsView } from './hooks/useStatementsView';
 import { uploadScanDrawerFiles as runUploadScanDrawerFiles } from './statement-upload';
 
 type Props = { stage: StatementStage };

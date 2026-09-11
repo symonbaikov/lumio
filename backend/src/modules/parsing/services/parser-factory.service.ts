@@ -52,7 +52,7 @@ export class ParserFactoryService {
   }
 
   private looksLikeTransaction(line: string): boolean {
-    const hasDate = /\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}/.test(line);
+    const hasDate = /\d{1,2}[./-]\d{1,2}[./-]\d{2,4}/.test(line);
     const hasAmount = /\d[\d\s.,]*\d/.test(line);
     return Boolean(hasDate && hasAmount);
   }

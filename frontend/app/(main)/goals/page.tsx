@@ -1,14 +1,14 @@
 'use client';
 
-import { Plus } from '@/app/components/icons';
-import { EmptyState } from '@/app/components/ui/EmptyState';
-import { useIntlayer, useLocale } from '@/app/i18n';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import { useState } from 'react';
+import { Plus } from '@/app/components/icons';
+import { EmptyState } from '@/app/components/ui/EmptyState';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import { tokens } from '@/lib/theme-tokens';
 import { ContributionDialog } from './components/ContributionDialog';
 import { GoalCard } from './components/GoalCard';
 import { GoalFormDialog } from './components/GoalFormDialog';
@@ -48,8 +48,17 @@ function GoalCardSkeleton(): React.JSX.Element {
 export default function GoalsPage() {
   const t = useIntlayer('goalsPage');
   const { locale } = useLocale();
-  const { goals, loading, error, saving, createGoal, updateGoal, deleteGoal, addContribution } =
-    useGoals();
+  const {
+    goals,
+    isPending,
+    isFetching,
+    error,
+    saving,
+    createGoal,
+    updateGoal,
+    deleteGoal,
+    addContribution,
+  } = useGoals();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Goal | null>(null);
@@ -123,7 +132,7 @@ export default function GoalsPage() {
         </Button>
       </Box>
 
-      {loading && (
+      {isPending && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {Array.from({ length: 4 }).map((_, index) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
@@ -132,17 +141,26 @@ export default function GoalsPage() {
         </Box>
       )}
 
-      {error && !loading && (
+      {error && !isPending && (
         <Typography color="error" sx={{ py: 6, textAlign: 'center' }}>
           {t.error}
         </Typography>
       )}
 
-      {!loading && !error && goals.length === 0 && (
+      {!(isPending || error) && goals.length === 0 && (
         <EmptyState illustration="activity" description={t.empty} />
       )}
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          // Список остаётся на экране, пока мутация перезагружает цели.
+          opacity: isFetching ? 0.6 : 1,
+          transition: 'opacity 150ms ease',
+        }}
+      >
         {goals.map(goal => (
           <GoalCard
             key={goal.id}

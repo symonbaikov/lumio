@@ -1,7 +1,7 @@
 'use client';
 
+import { createContext, type ReactNode, useContext } from 'react';
 import { type NoteEntityType, useNoteCounts } from '@/app/hooks/useNotes';
-import { type ReactNode, createContext, useContext } from 'react';
 
 const NoteCountsContext = createContext<Record<string, number>>({});
 

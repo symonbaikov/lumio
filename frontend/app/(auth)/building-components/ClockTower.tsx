@@ -1,10 +1,10 @@
 'use client';
 
-import { tokens } from '@/lib/theme-tokens';
 import { motion } from 'framer-motion';
+import { tokens } from '@/lib/theme-tokens';
 import { Block } from './Block';
-import { WindowGrid } from './WindowGrid';
 import type { BuildingProps } from './shared';
+import { WindowGrid } from './WindowGrid';
 
 const handStyle = (rotation: string): React.CSSProperties => ({
   position: 'absolute',

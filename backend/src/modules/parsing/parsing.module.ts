@@ -1,5 +1,5 @@
 import { BullModule } from '@nestjs/bullmq';
-import { Module, forwardRef } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 // import { DataQualityFramework } from '../../common/utils/data-quality-framework.util';
 import { ParsingRule } from '../../entities/parsing-rule.entity';

@@ -1,7 +1,7 @@
 'use client';
 
-import { tokens } from '@/lib/theme-tokens';
 import Skeleton from '@mui/material/Skeleton';
+import { tokens } from '@/lib/theme-tokens';
 
 interface Props {
   skeletonKeys: string[];

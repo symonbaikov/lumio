@@ -1,9 +1,5 @@
 'use client';
 
-import {
-  ProtocolIntegrationPage,
-  type ProtocolIntegrationPageProps,
-} from '@/app/integrations/open-protocol-page';
 import AlternateEmailOutlinedIcon from '@mui/icons-material/AlternateEmailOutlined';
 import CloudQueueOutlinedIcon from '@mui/icons-material/CloudQueueOutlined';
 import DnsOutlinedIcon from '@mui/icons-material/DnsOutlined';
@@ -12,6 +8,10 @@ import MarkEmailUnreadOutlinedIcon from '@mui/icons-material/MarkEmailUnreadOutl
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import TelegramIcon from '@mui/icons-material/Telegram';
 import type React from 'react';
+import {
+  ProtocolIntegrationPage,
+  type ProtocolIntegrationPageProps,
+} from '@/app/integrations/open-protocol-page';
 import type { OnboardingIntegrationKey } from '../hooks/useOnboardingActions';
 
 type IntegrationConnectionConfig = Omit<

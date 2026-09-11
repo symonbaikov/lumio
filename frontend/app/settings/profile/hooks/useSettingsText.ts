@@ -1,8 +1,8 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useIntlayer } from '@/app/i18n';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
-import { useCallback } from 'react';
 
 const useDictionary = () => useIntlayer('settingsProfilePage');
 export type SettingsText = ReturnType<typeof useDictionary>;

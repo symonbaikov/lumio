@@ -1,10 +1,10 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Trash2 } from '@/app/components/icons';
 import { type SidePanelPageConfig, useSidePanelConfig } from '@/app/components/side-panel';
 import { useIntlayer } from '@/app/i18n';
 import { resolveLabel } from '@/app/lib/side-panel-utils';
-import { useMemo } from 'react';
 
 type Props = {
   trashCount: number | null;

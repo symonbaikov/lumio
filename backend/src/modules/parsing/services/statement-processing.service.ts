@@ -1,13 +1,13 @@
+import { forwardRef, Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { Inject, Injectable, Logger, Optional, forwardRef } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
+import type { Repository } from 'typeorm';
 // DataSource is imported as a value, not a type: Nest resolves this constructor
 // parameter from the emitted design:paramtypes metadata, which `import type` erases.
 import { DataSource } from 'typeorm';
-import type { Repository } from 'typeorm';
 import { toMinor } from '../../../common/utils/money.util';
 import { extractTextFromPdf } from '../../../common/utils/pdf-parser.util';
 import { Semaphore } from '../../../common/utils/semaphore.util';
@@ -30,8 +30,7 @@ import { TaxAssignmentService } from '../../tax/tax-assignment.service';
 import { CrossStatementDeduplicationService } from '../../transactions/services/cross-statement-deduplication.service';
 import { TransactionFingerprintService } from '../../transactions/services/transaction-fingerprint.service';
 import { AiParseValidator } from '../helpers/ai-parse-validator.helper';
-import type { ParsedTransaction } from '../interfaces/parsed-statement.interface';
-import type { ParsedStatement } from '../interfaces/parsed-statement.interface';
+import type { ParsedStatement, ParsedTransaction } from '../interfaces/parsed-statement.interface';
 import { MetadataExtractionService } from './metadata-extraction.service';
 import { OcrService } from './ocr.service';
 import { ParserFactoryService } from './parser-factory.service';

@@ -1,5 +1,8 @@
 'use client';
 
+import { Alert, Box, CircularProgress, Typography } from '@mui/material';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_BACKGROUND } from '@/app/(main)/workspaces/constants';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
@@ -8,9 +11,6 @@ import apiClient from '@/app/lib/api';
 import { DEFAULT_APP_ROUTE } from '@/app/lib/default-app-route';
 import { normalizeLocale, syncLocaleFromUser } from '@/app/lib/locale';
 import { tokens } from '@/lib/theme-tokens';
-import { Alert, Box, CircularProgress, Typography } from '@mui/material';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { DisclaimerGate, useDisclaimerAcceptance } from './components/DisclaimerGate';
 import { OnboardingIntegrationConnection } from './components/OnboardingIntegrationConnection';
 import { OnboardingNavigation } from './components/OnboardingNavigation';

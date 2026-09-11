@@ -10,8 +10,8 @@ import {
 import { ActorType, AuditAction, EntityType } from '../../../entities/audit-event.entity';
 import { Branch } from '../../../entities/branch.entity';
 import { CategorizationRule } from '../../../entities/categorization-rule.entity';
-import { CategoryLearning } from '../../../entities/category-learning.entity';
 import { Category, CategorySource, CategoryType } from '../../../entities/category.entity';
+import { CategoryLearning } from '../../../entities/category-learning.entity';
 import { type Transaction, TransactionType } from '../../../entities/transaction.entity';
 import { Wallet } from '../../../entities/wallet.entity';
 import { Workspace } from '../../../entities/workspace.entity';

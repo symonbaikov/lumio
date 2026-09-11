@@ -1,7 +1,7 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import apiClient from '@/app/lib/api';
 import { isAbortError } from '../utils/pasteUtils';
 import type { AggregateFn, AggregateSelection } from './useTableAggregates';
 

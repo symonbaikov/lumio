@@ -1,14 +1,11 @@
 'use client';
 
-import { ChevronLeft, GripVertical } from '@/app/components/icons';
-import { Checkbox } from '@/app/components/ui/checkbox';
-import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import {
+  closestCenter,
   DndContext,
   type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
-  closestCenter,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -20,6 +17,9 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import MuiButton from '@mui/material/Button';
+import { ChevronLeft, GripVertical } from '@/app/components/icons';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import type { StatementColumn, StatementColumnId } from './statement-columns';
 
 type ColumnsDrawerLabels = {

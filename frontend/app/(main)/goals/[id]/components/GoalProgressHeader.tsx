@@ -1,11 +1,11 @@
 'use client';
 
-import type { GoalFlowResponse } from '@/app/lib/goals-api';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import LinearProgress from '@mui/material/LinearProgress';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
+import type { GoalFlowResponse } from '@/app/lib/goals-api';
+import { tokens } from '@/lib/theme-tokens';
 
 export interface GoalProgressHeaderProps {
   goal: GoalFlowResponse['goal'];

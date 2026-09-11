@@ -1,13 +1,12 @@
 'use client';
 
-import { useWorkspace } from '@/app/contexts/WorkspaceContext';
-import type { WorkspaceTabId } from '@/app/lib/workspace-tabs';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useEffect } from 'react';
-import { useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import type { WorkspaceTabId } from '@/app/lib/workspace-tabs';
+import { tokens } from '@/lib/theme-tokens';
 import WorkspaceSidePanel from './WorkspaceSidePanel';
 import WorkspacesListContent from './WorkspacesListContent';
 

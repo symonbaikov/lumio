@@ -1,10 +1,10 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Building2, FolderOpen, LayoutGrid, Users } from '@/app/components/icons';
 import { type SidePanelPageConfig, useSidePanelConfig } from '@/app/components/side-panel';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
-import { type WorkspaceTabId, getWorkspaceTabItems } from '@/app/lib/workspace-tabs';
-import { useMemo } from 'react';
+import { getWorkspaceTabItems, type WorkspaceTabId } from '@/app/lib/workspace-tabs';
 
 type Props = {
   activeItem: WorkspaceTabId;

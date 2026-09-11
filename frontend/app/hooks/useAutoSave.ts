@@ -44,7 +44,7 @@ export function useAutoSave<T>({
       return;
     }
 
-    if (!wasEnabledRef.current || !initializedRef.current) {
+    if (!(wasEnabledRef.current && initializedRef.current)) {
       lastSavedRef.current = data;
       initializedRef.current = true;
       wasEnabledRef.current = true;

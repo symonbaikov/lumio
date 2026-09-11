@@ -1,16 +1,16 @@
 'use client';
 
+import { Button, FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft } from '@/app/components/icons';
 import { CurrencyDrawer } from '@/app/components/receipts/components/CurrencyDrawer';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import apiClient from '@/app/lib/api';
 import {
+  buildCurrencySearchIndex,
   type CurrencySearchItem,
   DEFAULT_RECENT_CURRENCIES,
-  buildCurrencySearchIndex,
 } from '@/app/lib/statement-expense-drawer';
-import { Button, FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material';
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { BudgetDrawerIntent, BudgetFormData, BudgetItem } from '../hooks/useBudgetsPage';
 
 type CategoryOption = { id: string; name: string; type: string };

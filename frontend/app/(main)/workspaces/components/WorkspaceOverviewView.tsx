@@ -1,5 +1,10 @@
 'use client';
 
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import {
   Building2,
   Check,
@@ -15,15 +20,10 @@ import { ModalFooter, ModalShell } from '@/app/components/ui/modal-shell';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import apiClient from '@/app/lib/api';
 import {
-  type CurrencySearchItem,
   buildCurrencySearchIndex,
+  type CurrencySearchItem,
 } from '@/app/lib/statement-expense-drawer';
 import { tokens } from '@/lib/theme-tokens';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
 import { AVAILABLE_BACKGROUNDS } from '../constants';
 import { BackgroundSelector } from './BackgroundSelector';
 import { TaxJurisdictionSection } from './TaxJurisdictionSection';

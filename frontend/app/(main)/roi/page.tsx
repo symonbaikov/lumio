@@ -1,16 +1,16 @@
 'use client';
 
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import { useMemo, useState } from 'react';
 import { EmptyState } from '@/app/components/ui/EmptyState';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { formatMoney } from '@/app/lib/format-money';
 import { tokens } from '@/lib/theme-tokens';
-import Box from '@mui/material/Box';
-import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
-import { useMemo, useState } from 'react';
 import { RoiProjectionChart } from './components/RoiProjectionChart';
-import { TABLE_YEARS, buildProjection, calculateRoi, splitPayback } from './roi-model';
+import { buildProjection, calculateRoi, splitPayback, TABLE_YEARS } from './roi-model';
 
 export default function RoiPage() {
   const t = useIntlayer('roiPage');

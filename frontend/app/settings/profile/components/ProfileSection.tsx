@@ -1,17 +1,17 @@
 'use client';
 
-import { Alert } from '@/app/components/ui/alert';
-import { Spinner } from '@/app/components/ui/spinner';
-import type { DateFormatPreference } from '@/app/lib/user-format';
-import { RegionalFormatFields } from '@/app/settings/profile/components/RegionalFormatFields';
-import type { TimeZoneOption } from '@/app/settings/profile/profileHelpers';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import type { FormEvent } from 'react';
+import { Alert } from '@/app/components/ui/alert';
+import { Spinner } from '@/app/components/ui/spinner';
+import type { DateFormatPreference } from '@/app/lib/user-format';
+import { RegionalFormatFields } from '@/app/settings/profile/components/RegionalFormatFields';
+import type { TimeZoneOption } from '@/app/settings/profile/profileHelpers';
+import { tokens } from '@/lib/theme-tokens';
 
 type Props = {
   t: {

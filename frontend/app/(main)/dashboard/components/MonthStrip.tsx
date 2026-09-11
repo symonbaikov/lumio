@@ -1,9 +1,9 @@
 'use client';
 
-import { Chip, ChipGroup } from '@/app/components/dashboard/ui';
-import { ChevronLeft, ChevronRight } from '@/app/components/icons';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Chip, ChipGroup } from '@/app/components/dashboard/ui';
+import { ChevronLeft, ChevronRight } from '@/app/components/icons';
 import { resolveLocale } from '../helpers/dashboard-helpers';
 import { isFutureMonth } from '../helpers/dashboard-url-state';
 
@@ -52,7 +52,7 @@ export function MonthStrip({
   useEffect(() => {
     const group = groupRef.current;
     const chip = group?.querySelector<HTMLElement>('[aria-pressed="true"]');
-    if (!group || !chip || group.scrollWidth <= group.clientWidth) {
+    if (!(group && chip) || group.scrollWidth <= group.clientWidth) {
       return;
     }
     group.scrollLeft = chip.offsetLeft - group.clientWidth / 2 + chip.offsetWidth / 2;

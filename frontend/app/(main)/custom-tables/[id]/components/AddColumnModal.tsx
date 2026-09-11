@@ -1,8 +1,8 @@
 'use client';
 
+import { Box } from '@mui/material';
 import { Save } from '@/app/components/icons';
 import { ModalShell } from '@/app/components/ui/modal-shell';
-import { Box } from '@mui/material';
 import { DEFAULT_COLUMN_CURRENCY, type NewColumnDraft } from '../hooks/useColumnManagement';
 import type { ColumnType } from '../utils/stylingUtils';
 import { tx } from '../utils/tableHelpers';

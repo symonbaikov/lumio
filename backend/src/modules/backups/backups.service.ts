@@ -61,7 +61,7 @@ export class BackupsService {
     const existing = await this.configurationRepository.findOne({
       where: { workspaceId: workspace.id },
     });
-    if (!existing && !input.password) {
+    if (!(existing || input.password)) {
       throw new BadRequestException('A backup password is required for the first configuration');
     }
 

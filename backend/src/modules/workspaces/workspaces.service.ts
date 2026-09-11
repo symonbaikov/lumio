@@ -14,13 +14,14 @@ import nodemailer from 'nodemailer';
 import * as React from 'react';
 import type { Repository } from 'typeorm';
 import { appError } from '../../common/errors/app-error';
-import { TimeoutError, retry, withTimeout } from '../../common/utils/async.util';
+import { retry, TimeoutError, withTimeout } from '../../common/utils/async.util';
 import { mergeProcessingSettings } from '../../common/utils/workspace-processing.util';
 import {
   invitationRoleKey,
   renderInvitation,
 } from '../../emails/workspace-invitation.translations';
 import {
+  Integration,
   User,
   Workspace,
   WorkspaceInvitation,
@@ -29,7 +30,6 @@ import {
   type WorkspaceMemberPermissions,
   WorkspaceRole,
 } from '../../entities';
-import { Integration } from '../../entities';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
 import { AuditService } from '../audit/audit.service';

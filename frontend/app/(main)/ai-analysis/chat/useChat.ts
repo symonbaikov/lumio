@@ -2,10 +2,10 @@
 
 import type { MLCEngineInterface } from '@mlc-ai/web-llm';
 import { useCallback, useRef, useState } from 'react';
-import { type ContextPacket, buildContextPacket } from '../context/build-context';
-import { type SearchHit, fetchContextInput, searchTransactions } from '../context/fetch-context';
+import { buildContextPacket, type ContextPacket } from '../context/build-context';
+import { fetchContextInput, type SearchHit, searchTransactions } from '../context/fetch-context';
 import { contextBudgetTokens } from '../context/token-budget';
-import { type ChatMessage, buildPrompt } from './build-prompt';
+import { buildPrompt, type ChatMessage } from './build-prompt';
 import * as chatsApi from './chats-api';
 
 export interface ChatTurn extends ChatMessage {

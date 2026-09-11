@@ -1,7 +1,5 @@
 'use client';
 
-import { useIntlayer } from '@/app/i18n';
-import type { GoalItem, GoalItemPayload } from '@/app/lib/goals-api';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -12,6 +10,8 @@ import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { useIntlayer } from '@/app/i18n';
+import type { GoalItem, GoalItemPayload } from '@/app/lib/goals-api';
 
 export interface GoalItemDialogProps {
   open: boolean;

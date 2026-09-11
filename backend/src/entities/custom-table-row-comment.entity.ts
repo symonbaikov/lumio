@@ -8,8 +8,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { CustomTableRow } from './custom-table-row.entity';
 import { CustomTable } from './custom-table.entity';
+import { CustomTableRow } from './custom-table-row.entity';
 import { User } from './user.entity';
 import { Workspace } from './workspace.entity';
 

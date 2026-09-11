@@ -43,7 +43,7 @@ export class BackupDestinationService {
     if (configuration.destinationKind === BackupDestinationKind.LOCAL) {
       const local = this.localDestination();
       const [directory, fileName] = destinationFile.split('/');
-      if (!directory || !fileName || destinationFile.split('/').length !== 2) {
+      if (!(directory && fileName) || destinationFile.split('/').length !== 2) {
         throw new BadRequestException('Invalid local backup reference');
       }
       const paths = await local.list(directory);

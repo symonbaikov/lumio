@@ -1,8 +1,8 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PromptMessage } from '@/app/(main)/ai-analysis/chat/build-prompt';
 import * as chatsApi from '@/app/(main)/ai-analysis/chat/chats-api';
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { parseIntent } from '../tools/registry';
 import type { ChatTool } from '../tools/types';
 import {

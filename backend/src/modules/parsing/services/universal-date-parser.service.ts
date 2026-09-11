@@ -417,7 +417,7 @@ export class UniversalDateParser {
 
   private parseSlashedFormats(dateString: string): DateParseResult | null {
     // MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD
-    const slashRegex = /^(?:(\d{1,2})[\/](\d{1,2})[\/](\d{4})|(\d{4})[\/](\d{1,2})[\/](\d{1,2}))$/;
+    const slashRegex = /^(?:(\d{1,2})[/](\d{1,2})[/](\d{4})|(\d{4})[/](\d{1,2})[/](\d{1,2}))$/;
     const match = dateString.match(slashRegex);
 
     if (match) {

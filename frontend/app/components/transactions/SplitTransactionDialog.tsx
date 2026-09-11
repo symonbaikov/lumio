@@ -1,9 +1,5 @@
 'use client';
 
-import {
-  type StatementCategorySource,
-  getCategoryDisplayName,
-} from '@/app/lib/statement-categories';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -18,6 +14,10 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import {
+  getCategoryDisplayName,
+  type StatementCategorySource,
+} from '@/app/lib/statement-categories';
 import {
   MAX_SPLIT_PARTS,
   MIN_SPLIT_PARTS,

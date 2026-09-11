@@ -1,6 +1,6 @@
+import { BadRequestException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import { BadRequestException } from '@nestjs/common';
 import {
   Integration,
   IntegrationProvider,

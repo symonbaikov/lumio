@@ -1,11 +1,11 @@
 'use client';
 
+import Skeleton from '@mui/material/Skeleton';
+import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Layers } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { AppPagination } from '@/app/components/ui/pagination';
 import type { AuditEvent } from '@/lib/api/audit';
-import Skeleton from '@mui/material/Skeleton';
-import { useMemo, useState } from 'react';
 import { ACTION_ICON_MAP } from '../utils/actionIconMap';
 import { buildGroupedData } from '../utils/audit-table-utils';
 import { getAvatarColor, getInitials } from '../utils/avatarUtils';

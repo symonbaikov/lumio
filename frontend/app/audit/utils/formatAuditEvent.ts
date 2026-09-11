@@ -1,6 +1,6 @@
+import { getIntlayer } from 'react-intlayer';
 import { DEFAULT_LOCALE, readLocaleFromCookie } from '@/app/lib/locale';
 import type { AuditAction, AuditEvent, EntityType, Severity } from '@/lib/api/audit';
-import { getIntlayer } from 'react-intlayer';
 
 type ActionTone = 'info' | 'warn' | 'critical' | 'primary' | 'success';
 

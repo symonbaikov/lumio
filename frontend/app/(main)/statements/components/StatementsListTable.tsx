@@ -1,8 +1,8 @@
 'use client';
 
 import { ArrowDown } from '@/app/components/icons';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '@/app/components/ui/checkbox';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { Spinner } from '@/app/components/ui/spinner';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
@@ -11,6 +11,12 @@ import {
   getStatementMerchantLabel,
   isManualExpenseStatement,
 } from '@/app/lib/statement-status';
+import {
+  DEFAULT_STATEMENT_COLUMNS,
+  type StatementColumn,
+  type StatementColumnId,
+} from './columns/statement-columns';
+import type { DuplicateMeta } from './hooks/useStatementSelection';
 import { StatementsGmailSync } from './StatementsGmailSync';
 import { StatementsListItem } from './StatementsListItem';
 import {
@@ -22,12 +28,6 @@ import {
   isReceiptProcessing,
   isStatementParsingInProgress,
 } from './StatementsListView.utils';
-import {
-  DEFAULT_STATEMENT_COLUMNS,
-  type StatementColumn,
-  type StatementColumnId,
-} from './columns/statement-columns';
-import type { DuplicateMeta } from './hooks/useStatementSelection';
 
 interface StatementForTable {
   id: string;

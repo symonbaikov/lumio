@@ -1,5 +1,5 @@
-import { apiBaseUrl } from '@/app/lib/api';
 import { type AppConfig, prebuiltAppConfig } from '@mlc-ai/web-llm';
+import { apiBaseUrl } from '@/app/lib/api';
 
 /**
  * WebLLM fetches weights from huggingface.co and the compiled wasm from

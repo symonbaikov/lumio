@@ -1,8 +1,8 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
 import type { Column, Row, Table } from '@tanstack/react-table';
 import { type CSSProperties, useCallback, useState } from 'react';
+import apiClient from '@/app/lib/api';
 import type { CustomTableCellValue, CustomTableGridRow } from '../../utils/stylingUtils';
 
 interface RelationOption {

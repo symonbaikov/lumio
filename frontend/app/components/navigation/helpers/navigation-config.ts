@@ -1,3 +1,4 @@
+import React, { type ReactNode } from 'react';
 import {
   BarChart2,
   Building2,
@@ -18,7 +19,6 @@ import {
   Wallet,
 } from '@/app/components/icons';
 import { DEFAULT_APP_ROUTE } from '@/app/lib/default-app-route';
-import React, { type ReactNode } from 'react';
 export const MOBILE_MENU_VISIBILITY_EVENT = 'lumio-mobile-menu-visibility';
 
 export type { AppLocale as AppLanguage } from '@/app/lib/locale';

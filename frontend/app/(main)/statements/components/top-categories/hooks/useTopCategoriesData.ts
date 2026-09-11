@@ -1,7 +1,4 @@
-import type {
-  TopCategoryAggregateRow,
-  TopCategoryRecord,
-} from '@/app/(main)/statements/components/top-categories.utils';
+import { useMemo } from 'react';
 import {
   type TopCategoriesAggregationReturn,
   useTopCategoriesAggregation,
@@ -11,9 +8,12 @@ import {
   useTopCategoriesRecords,
 } from '@/app/(main)/statements/components/top-categories/hooks/useTopCategoriesRecords';
 import type { useTopCategoriesState } from '@/app/(main)/statements/components/top-categories/hooks/useTopCategoriesState';
+import type {
+  TopCategoryAggregateRow,
+  TopCategoryRecord,
+} from '@/app/(main)/statements/components/top-categories.utils';
 import { useAnalyticsData } from '@/app/(main)/statements/hooks/useAnalyticsData';
 import { getRecordDate } from '@/app/lib/analytics-common';
-import { useMemo } from 'react';
 
 type WorkspaceLike = { id: string; name?: string | null };
 

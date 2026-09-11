@@ -1,7 +1,7 @@
 'use client';
 
-import apiClient, { receiptsApi, type ReceiptRecord } from '@/app/lib/api';
 import toast from 'react-hot-toast';
+import apiClient, { type ReceiptRecord, receiptsApi } from '@/app/lib/api';
 import { buildParsedDataPayload } from '../helpers/receipt-builders';
 import type { EditableReceiptParsedData } from '../receipt-types';
 

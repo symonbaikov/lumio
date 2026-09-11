@@ -1,10 +1,5 @@
 'use client';
 
-import { ChevronLeft, ChevronRight } from '@/app/components/icons';
-import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import { useWorkspace } from '@/app/contexts/WorkspaceContext';
-import { api } from '@/app/lib/api';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -16,6 +11,11 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import React, { useId, useState } from 'react';
 import toast from 'react-hot-toast';
+import { ChevronLeft, ChevronRight } from '@/app/components/icons';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { api } from '@/app/lib/api';
+import { tokens } from '@/lib/theme-tokens';
 import { AVAILABLE_BACKGROUNDS } from '../constants';
 import { BackgroundSelector } from './BackgroundSelector';
 import { CurrencySelector } from './CurrencySelector';

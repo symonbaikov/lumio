@@ -1,9 +1,9 @@
 'use client';
 
-import type { DashboardData } from '@/app/hooks/useDashboard';
 import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import type React from 'react';
+import type { DashboardData } from '@/app/hooks/useDashboard';
 import type { DashboardTabId } from '../helpers/dashboard-url-state';
 import { DashboardErrorBanner } from './DashboardErrorBanner';
 import { DashboardHeader } from './DashboardHeader';
@@ -101,11 +101,10 @@ export function DashboardContent({
   if (error) {
     return <DashboardErrorBanner error={error} onRefresh={onRefresh} />;
   }
-  if (loading && !data) {
+  // Ошибка уже обработана выше, поэтому "не грузится / нет данных" — не пустой
+  // экран, а всё тот же скелетон.
+  if (loading || !data) {
     return <DashboardContentSkeleton />;
-  }
-  if (!data) {
-    return <></>;
   }
   return (
     <>

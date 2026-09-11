@@ -1,13 +1,13 @@
 'use client';
 
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import { ModalShell } from '@/app/components/ui/modal-shell';
 import {
   GLOBAL_SHORTCUTS,
-  STATEMENTS_SHORTCUTS,
   type ShortcutEntry,
+  STATEMENTS_SHORTCUTS,
 } from '@/app/lib/keyboard-shortcuts';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
 
 interface KeyboardShortcutsModalProps {
   isOpen: boolean;
@@ -50,7 +50,10 @@ function ShortcutRow({ entry }: { entry: ShortcutEntry }): React.JSX.Element {
 function ShortcutGroup({
   title,
   entries,
-}: { title: string; entries: ShortcutEntry[] }): React.JSX.Element {
+}: {
+  title: string;
+  entries: ShortcutEntry[];
+}): React.JSX.Element {
   return (
     <Box sx={{ mb: 2 }}>
       <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>

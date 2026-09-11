@@ -1,5 +1,9 @@
 'use client';
 
+import { Box, Button, Container, Paper, Typography } from '@mui/material';
+import Skeleton from '@mui/material/Skeleton';
+import { useParams, useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
 import StatementCategoryDrawer from '@/app/(main)/statements/[id]/edit/StatementCategoryDrawer';
 import { CreatePayableDrawer } from '@/app/(main)/statements/components/payables/CreatePayableDrawer';
 import { ArrowLeft } from '@/app/components/icons';
@@ -7,10 +11,6 @@ import {
   getFinancialDocumentStatusLabel,
   toFinancialDocumentStatus,
 } from '@/app/lib/financial-document';
-import { Box, Button, Container, Paper, Typography } from '@mui/material';
-import Skeleton from '@mui/material/Skeleton';
-import { useParams, useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
 import { ReceiptPreviewModal } from '../components/ReceiptPreviewModal';
 import { GmailReceiptDetails } from './components/GmailReceiptDuplicates';
 import { GmailReceiptHeader } from './components/GmailReceiptHeader';
@@ -20,10 +20,9 @@ import {
   type UseGmailReceiptActionsReturn,
   useGmailReceiptActions,
 } from './hooks/useGmailReceiptActions';
+import type { GmailReceipt } from './hooks/useGmailReceiptData';
 import { type UseGmailReceiptDataReturn, useGmailReceiptData } from './hooks/useGmailReceiptData';
 import { buildPayablePrefillFromReceipt } from './payable-prefill';
-
-import type { GmailReceipt } from './hooks/useGmailReceiptData';
 
 interface PageContentProps {
   data: Omit<UseGmailReceiptDataReturn, 'receipt'> & { receipt: GmailReceipt };

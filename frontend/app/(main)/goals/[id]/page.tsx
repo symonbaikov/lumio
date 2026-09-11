@@ -1,10 +1,5 @@
 'use client';
 
-import { ArrowLeft } from '@/app/components/icons';
-import { useIntlayer, useLocale } from '@/app/i18n';
-import { formatMoney } from '@/app/lib/format-money';
-import type { GoalItem, GoalItemPayload } from '@/app/lib/goals-api';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
@@ -13,6 +8,11 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
+import { ArrowLeft } from '@/app/components/icons';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import { formatMoney } from '@/app/lib/format-money';
+import type { GoalItem, GoalItemPayload } from '@/app/lib/goals-api';
+import { tokens } from '@/lib/theme-tokens';
 import { MonthStrip } from '../../dashboard/components/MonthStrip';
 import { formatMonthParam } from '../../dashboard/helpers/dashboard-url-state';
 import { GoalBudgetList } from './components/GoalBudgetList';
@@ -36,6 +36,7 @@ export default function GoalDetailPage(): React.JSX.Element {
 
   const { month, changeMonth } = useMonthParam();
   const { data, isPending, error } = useGoalFlow(goalId, formatMonthParam(month));
+  const showSkeleton = isPending && !data;
   const plan = useGoalPlan(goalId);
   const items = useGoalItems(goalId);
 
@@ -92,11 +93,15 @@ export default function GoalDetailPage(): React.JSX.Element {
         </Typography>
       )}
 
-      {isPending && !data && (
+      {showSkeleton && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Skeleton variant="text" width={220} height={32} />
           <Skeleton variant="rounded" height={8} sx={{ borderRadius: tokens.radius.full }} />
           <Skeleton variant="rounded" height={440} />
+          {/* План и позиции грузятся отдельными запросами и раньше всплывали
+              из ниоткуда после того, как Sankey уже сел. */}
+          <Skeleton variant="rounded" height={160} />
+          <Skeleton variant="rounded" height={220} />
         </Box>
       )}
 
@@ -152,9 +157,11 @@ export default function GoalDetailPage(): React.JSX.Element {
         </>
       )}
 
-      {plan.data && <GoalPlanCard plan={plan.data} locale={locale} formatAmount={money} />}
+      {!showSkeleton && plan.data && (
+        <GoalPlanCard plan={plan.data} locale={locale} formatAmount={money} />
+      )}
 
-      {items.data && (
+      {!showSkeleton && items.data && (
         <>
           <GoalItemsCard
             data={items.data}

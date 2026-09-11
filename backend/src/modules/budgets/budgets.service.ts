@@ -248,12 +248,7 @@ export class BudgetsService {
     // limit that no longer applies.
     const period = clampToWindow(computePeriodRange(budget.periodType, now), budget);
     const spentAmount = period
-      ? await this.computeSpending(
-          budget.workspaceId,
-          budget.categoryId,
-          period.start,
-          period.end,
-        )
+      ? await this.computeSpending(budget.workspaceId, budget.categoryId, period.start, period.end)
       : 0;
     const limitAmount = Number(budget.limitAmount);
     const percentUsed = limitAmount > 0 ? (spentAmount / limitAmount) * 100 : 0;
@@ -290,7 +285,10 @@ export class BudgetsService {
  * A window that ends before it starts governs nothing, and the two dates are
  * set on different screens often enough that the mistake is easy to make.
  */
-function assertWindowOrdered(startsOn: string | null | undefined, endsOn: string | null | undefined): void {
+function assertWindowOrdered(
+  startsOn: string | null | undefined,
+  endsOn: string | null | undefined,
+): void {
   if (startsOn && endsOn && startsOn > endsOn) {
     throw new BadRequestException('Budget "endsOn" must not be earlier than "startsOn"');
   }

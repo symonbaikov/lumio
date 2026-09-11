@@ -1,6 +1,10 @@
 /* eslint-disable max-lines */
 'use client';
 
+import { Box, IconButton, Typography } from '@mui/material';
+import MuiButton from '@mui/material/Button';
+import { useTheme } from 'next-themes';
+import { useMemo, useState } from 'react';
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { Check, ChevronDown, ChevronLeft, Plus, Search, Trash2 } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
@@ -9,14 +13,10 @@ import { Select } from '@/app/components/ui/select';
 import { useLocale } from '@/app/i18n';
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import {
-  type CurrencySearchItem,
   buildCurrencySearchIndex,
+  type CurrencySearchItem,
 } from '@/app/lib/statement-expense-drawer';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, IconButton, Typography } from '@mui/material';
-import MuiButton from '@mui/material/Button';
-import { useTheme } from 'next-themes';
-import { useMemo, useState } from 'react';
 import type { EditableReceiptParsedData, ReceiptCategoryOption } from './receipt-types';
 
 const DEFAULT_RECENT_CURRENCIES = ['KZT', 'USD', 'EUR', 'RUB'] as const;

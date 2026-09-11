@@ -9,9 +9,6 @@
  * Usage: replace `from '@/app/components/icons'` with `from '@/app/components/icons'`
  */
 
-import type { SvgIconProps } from '@mui/material';
-import React from 'react';
-
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -132,8 +129,8 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import ShareIcon from '@mui/icons-material/Share';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
 import SmartphoneIcon from '@mui/icons-material/Smartphone';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import SortIcon from '@mui/icons-material/Sort';
 import SouthEastIcon from '@mui/icons-material/SouthEast';
 import StarIcon from '@mui/icons-material/Star';
@@ -157,6 +154,8 @@ import WbSunnyIcon from '@mui/icons-material/WbSunny';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
+import type { SvgIconProps } from '@mui/material';
+import React from 'react';
 
 // ---------------------------------------------------------------------------
 // Compat prop types (mirror Lucide's API)

@@ -1,6 +1,5 @@
 'use client';
 
-import { WalletUnavailableError, requestWalletAddress } from '@/app/lib/metamask';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -11,6 +10,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
 import { useState } from 'react';
+import { requestWalletAddress, WalletUnavailableError } from '@/app/lib/metamask';
 import { EVM_ADDRESS_PATTERN } from '../hooks/useCrypto';
 
 type ConnectWalletDialogLabels = {

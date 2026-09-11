@@ -1,8 +1,8 @@
 'use client';
 
-import { ChevronRight } from '@/app/components/icons';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { ChevronRight } from '@/app/components/icons';
 
 interface Crumb {
   label: string;

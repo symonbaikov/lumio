@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -16,7 +17,6 @@ import {
   dispatchCustomTableViewEvent,
 } from '@/app/lib/custom-table-actions';
 import { getNestedValue, getRecord, resolveLabel } from '@/app/lib/side-panel-utils';
-import { useMemo } from 'react';
 
 type Props = {
   activeSource: CustomTableSourceFilter;

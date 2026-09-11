@@ -1,13 +1,4 @@
 'use client';
-import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
-
-import { Send as SendIcon } from '@/app/components/icons';
-import { ChevronDown, MailPlus, MoreHorizontal, Search, Users } from '@/app/components/icons';
-import { Checkbox } from '@/app/components/ui/checkbox';
-import { useAuth } from '@/app/hooks/useAuth';
-import apiClient from '@/app/lib/api';
-import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
@@ -21,9 +12,23 @@ import Typography from '@mui/material/Typography';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
+  ChevronDown,
+  MailPlus,
+  MoreHorizontal,
+  Search,
+  Send as SendIcon,
+  Users,
+} from '@/app/components/icons';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { useAuth } from '@/app/hooks/useAuth';
+import apiClient from '@/app/lib/api';
+import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
+import { tokens } from '@/lib/theme-tokens';
+import {
+  filterAndSortMembers,
   type MemberRoleFilter,
   type MemberSortBy,
-  filterAndSortMembers,
 } from './workspace-members.utils';
 
 type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer';

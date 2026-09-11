@@ -1,11 +1,11 @@
 'use client';
 
-import { useIntlayer, useLocale } from '@/app/i18n';
-import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import DetailsDrawer from './DetailsDrawer';
 import ExportModal from './ExportModal';
 import SummaryBar from './SummaryBar';

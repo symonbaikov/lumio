@@ -1,5 +1,5 @@
-import type { StatementStage, StatementStageActionId } from '@/app/lib/statement-workflow';
 import { useRef, useState } from 'react';
+import type { StatementStage, StatementStageActionId } from '@/app/lib/statement-workflow';
 import type {
   BranchOption,
   CategoryOption,

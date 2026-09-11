@@ -1,10 +1,10 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { getApiErrorMessage } from '@/app/lib/api-error';
-import { type GoalPlanResponse, fetchGoalPlan } from '@/app/lib/goals-api';
+import { fetchGoalPlan, type GoalPlanResponse } from '@/app/lib/goals-api';
 import { queryKeys } from '@/app/lib/query-keys';
-import { useQuery } from '@tanstack/react-query';
 
 export interface GoalPlanState {
   data: GoalPlanResponse | undefined;

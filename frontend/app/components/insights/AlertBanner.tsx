@@ -1,12 +1,12 @@
 'use client';
 
+import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
 import { AlertTriangle, X } from '@/app/components/icons';
 import { useInsights } from '@/app/hooks/useInsights';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
-import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
-import Typography from '@mui/material/Typography';
 
 /**
  * Urgent insights, shown above the page content wherever the user happens to

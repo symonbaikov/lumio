@@ -1,24 +1,24 @@
+import { useMemo } from 'react';
 import {
+  applyStatementsFilters,
   type StatementFilterItem,
   type StatementFilters,
-  applyStatementsFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
-import type {
-  SpendOverTimeFlowType,
-  SpendOverTimeRecord,
-} from '@/app/(main)/statements/components/spend-over-time.utils';
-import { dedupeSpendOverTimeReceiptRecords } from '@/app/(main)/statements/components/spend-over-time.utils';
 import {
   getBankDisplayName,
   mapGmailReceiptToSpendRecord,
   mapTransactionToSpendRecord,
 } from '@/app/(main)/statements/components/spend-over-time/helpers/spend-over-time-mappers';
 import type {
+  SpendOverTimeFlowType,
+  SpendOverTimeRecord,
+} from '@/app/(main)/statements/components/spend-over-time.utils';
+import { dedupeSpendOverTimeReceiptRecords } from '@/app/(main)/statements/components/spend-over-time.utils';
+import type {
   GmailReceipt,
   StatementMeta,
   Transaction,
 } from '@/app/(main)/statements/types/statement-types';
-import { useMemo } from 'react';
 
 type StatementWithWorkspace = StatementMeta & StatementFilterItem;
 

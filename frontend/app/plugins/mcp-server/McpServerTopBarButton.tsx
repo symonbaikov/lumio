@@ -1,8 +1,8 @@
 'use client';
 
+import { useCallback, useState } from 'react';
 import { Cpu } from '@/app/components/icons';
 import { tokens } from '@/lib/theme-tokens';
-import { useCallback, useState } from 'react';
 import { usePluginState } from '../hooks/usePluginState';
 import { McpServerDrawer } from './McpServerDrawer';
 import { useApiKeys } from './useApiKeys';

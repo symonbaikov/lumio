@@ -1,6 +1,8 @@
 /**
  * Action handlers for StatementsSidePanel.
  */
+
+import toast from 'react-hot-toast';
 import apiClient from '@/app/lib/api';
 import {
   type CloudImportProvider,
@@ -8,7 +10,6 @@ import {
   STATEMENTS_GMAIL_SYNC_EVENT,
   STATEMENTS_GMAIL_SYNC_STORAGE_KEY,
 } from '@/app/lib/statement-upload-actions';
-import toast from 'react-hot-toast';
 
 const CLOUD_IMPORT_ENDPOINTS: Record<string, string> = {
   dropbox: '/integrations/dropbox/sync',

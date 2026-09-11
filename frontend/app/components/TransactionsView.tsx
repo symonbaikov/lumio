@@ -1,10 +1,4 @@
 'use client';
-import { formatStoredDate } from '@/app/lib/user-format-store';
-
-import { Search as SearchIcon } from '@/app/components/icons';
-import { AppPagination } from '@/app/components/ui/pagination';
-import { useIntlayer, useLocale } from '@/app/i18n';
-import { tokens } from '@/lib/theme-tokens';
 import {
   Box,
   Chip,
@@ -19,6 +13,11 @@ import {
   TextField,
 } from '@mui/material';
 import React, { useCallback, useMemo, useState } from 'react';
+import { Search as SearchIcon } from '@/app/components/icons';
+import { AppPagination } from '@/app/components/ui/pagination';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import { formatStoredDate } from '@/app/lib/user-format-store';
+import { tokens } from '@/lib/theme-tokens';
 
 export interface Transaction {
   id: string;

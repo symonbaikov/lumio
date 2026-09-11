@@ -42,11 +42,7 @@ export function buildGoalFlowSankey(
     tooltip: {
       trigger: 'item',
       triggerOn: 'mousemove',
-      formatter: (params: {
-        dataType?: string;
-        name?: string;
-        value?: unknown;
-      }) => {
+      formatter: (params: { dataType?: string; name?: string; value?: unknown }) => {
         if (params.dataType === 'edge') {
           return formatAmount(Number(params.value ?? 0));
         }

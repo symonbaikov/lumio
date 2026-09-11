@@ -1,12 +1,12 @@
 'use client';
 
-import { useIntlayer } from '@/app/i18n';
-import type { GoalPlanResponse, GoalPlanStatus } from '@/app/lib/goals-api';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
+import { useIntlayer } from '@/app/i18n';
+import type { GoalPlanResponse, GoalPlanStatus } from '@/app/lib/goals-api';
+import { tokens } from '@/lib/theme-tokens';
 
 export interface GoalPlanCardProps {
   plan: GoalPlanResponse;

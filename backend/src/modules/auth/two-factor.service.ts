@@ -1,4 +1,3 @@
-import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import {
   BadRequestException,
   ForbiddenException,
@@ -8,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { generateSecret, generateURI, verifySync } from 'otplib';
 import * as qrCode from 'qrcode';
 import type { Repository } from 'typeorm';
@@ -123,7 +123,7 @@ export class TwoFactorService {
   async assertLoginCode(userId: string, code: string): Promise<void> {
     const user = await this.loadSecrets(userId);
 
-    if (!user.twoFactorEnabledAt || !user.twoFactorSecret) {
+    if (!(user.twoFactorEnabledAt && user.twoFactorSecret)) {
       return;
     }
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { RowSelectionState } from '@tanstack/react-table';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { CustomTableColumn, CustomTableGridRow } from '../utils/stylingUtils';
 
 export function buildRowSelectionState(selectedRowIds: string[]): RowSelectionState {

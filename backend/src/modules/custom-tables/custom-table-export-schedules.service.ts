@@ -7,11 +7,11 @@ import { appError } from '../../common/errors/app-error';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { normalizeFilename } from '../../common/utils/filename.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
+import { CustomTable } from '../../entities/custom-table.entity';
 import {
   CustomTableExportSchedule,
   ExportScheduleFormat,
 } from '../../entities/custom-table-export-schedule.entity';
-import { CustomTable } from '../../entities/custom-table.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { CustomTablesService } from './custom-tables.service';
 import type {
@@ -177,7 +177,7 @@ export class CustomTableExportSchedulesService {
     const schedule = await this.scheduleRepository.findOne({
       where: { id: scheduleId, workspaceId },
     });
-    if (!schedule?.lastFilePath || !schedule.lastFileName) {
+    if (!(schedule?.lastFilePath && schedule.lastFileName)) {
       throw new NotFoundException(appError('EXPORT_FILE_NOT_READY'));
     }
     try {

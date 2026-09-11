@@ -1,8 +1,8 @@
 'use client';
 
+import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/settings/profile/profileHelpers';
-import { useCallback, useEffect, useState } from 'react';
 
 export type TwoFactorStatus = {
   enabled: boolean;

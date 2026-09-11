@@ -1,10 +1,4 @@
-import {
-  type SpendOverTimePoint,
-  type SpendOverTimeRecord,
-  buildSpendOverTimeSelectedPoint,
-  filterSpendOverTimeDrillDownRecords,
-  isSpendOverTimeDayPeriod,
-} from '@/app/(main)/statements/components/spend-over-time.utils';
+import { useMemo } from 'react';
 import {
   type SpendOverTimeAggregationReturn,
   useSpendOverTimeAggregation,
@@ -13,9 +7,15 @@ import {
   type SpendFromOption,
   useSpendOverTimeRecords,
 } from '@/app/(main)/statements/components/spend-over-time/hooks/useSpendOverTimeRecords';
+import {
+  buildSpendOverTimeSelectedPoint,
+  filterSpendOverTimeDrillDownRecords,
+  isSpendOverTimeDayPeriod,
+  type SpendOverTimePoint,
+  type SpendOverTimeRecord,
+} from '@/app/(main)/statements/components/spend-over-time.utils';
 import { useAnalyticsData } from '@/app/(main)/statements/hooks/useAnalyticsData';
 import type { UseSpendOverTimeStateReturn } from '@/app/(main)/statements/hooks/useSpendOverTimeState';
-import { useMemo } from 'react';
 
 type WorkspaceLike = { id: string; name?: string | null };
 

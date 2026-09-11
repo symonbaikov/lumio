@@ -1,7 +1,5 @@
 'use client';
 
-import { MessageCircle } from '@/app/components/icons';
-import { Alert } from '@/app/components/ui/alert';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -9,6 +7,8 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Stack from '@mui/material/Stack';
 import Switch from '@mui/material/Switch';
 import Typography from '@mui/material/Typography';
+import { MessageCircle } from '@/app/components/icons';
+import { Alert } from '@/app/components/ui/alert';
 
 type Props = {
   tx: (path: string[], fallback: string) => string;

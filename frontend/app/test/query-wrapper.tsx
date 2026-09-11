@@ -1,5 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { type RenderHookResult, renderHook } from '@testing-library/react';
+import {
+  type RenderHookResult,
+  type RenderResult,
+  render,
+  renderHook,
+} from '@testing-library/react';
 import React from 'react';
 
 /**
@@ -30,4 +35,13 @@ export function renderHookWithQuery<TProps, TResult>(
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   return renderHook(render, { wrapper, initialProps: options?.initialProps });
+}
+
+/** Тот же клиент, но для компонентных тестов: render внутри провайдера. */
+export function renderWithQuery(
+  ui: React.ReactElement,
+  options?: { client?: QueryClient },
+): RenderResult {
+  const client = options?.client ?? createTestQueryClient();
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 }

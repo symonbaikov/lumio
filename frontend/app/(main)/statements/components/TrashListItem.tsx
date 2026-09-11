@@ -1,9 +1,9 @@
 'use client';
 
+import type React from 'react';
 import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
 import { BriefcaseBusiness, FileText, RotateCcw, Table2, Trash2 } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
-import type React from 'react';
 import type { TrashEntityType } from './trash-utils';
 
 export type TrashListItemModel = {

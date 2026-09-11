@@ -1,15 +1,15 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import {
   DEFAULT_STATEMENT_FILTERS,
-  type StatementFilters,
   resetSingleStatementFilter,
+  type StatementFilters,
 } from '@/app/(main)/statements/components/filters/statement-filters';
 import type {
   SpendOverTimeFlowType,
   SpendOverTimeGroupBy,
 } from '@/app/(main)/statements/components/spend-over-time.utils';
-import { useEffect, useMemo, useState } from 'react';
 
 // ---------------------------------------------------------------------------
 // Types

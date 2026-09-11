@@ -5,11 +5,7 @@ import BuildingBackground from './BuildingBackground';
 import MoneyAnimation from './MoneyAnimation';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types
-export default function AuthRootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AuthRootLayout({ children }: { children: React.ReactNode }) {
   // Deep green palette
   const darkGreen = '#021a0e';
 

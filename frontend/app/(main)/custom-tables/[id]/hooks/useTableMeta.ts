@@ -1,8 +1,8 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import apiClient from '@/app/lib/api';
 
 type EditingScope = 'name' | 'description' | 'both';
 

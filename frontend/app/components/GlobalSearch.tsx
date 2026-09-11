@@ -1,12 +1,12 @@
 'use client';
 
-import { Search } from '@/app/components/icons';
-import apiClient from '@/app/lib/api';
 import Box from '@mui/material/Box';
 import Popper from '@mui/material/Popper';
 import Typography from '@mui/material/Typography';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Search } from '@/app/components/icons';
+import apiClient from '@/app/lib/api';
 
 type SearchResultKind = 'transaction' | 'statement' | 'payable' | 'receivable' | 'category';
 

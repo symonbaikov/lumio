@@ -1,10 +1,10 @@
 'use client';
 
-import { Spinner } from '@/app/components/ui/spinner';
-import type { WorksheetOption } from '@/app/lib/googleSheetsSelection';
 import { Box, Typography } from '@mui/material';
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
+import { Spinner } from '@/app/components/ui/spinner';
+import type { WorksheetOption } from '@/app/lib/googleSheetsSelection';
 import type { GoogleSheetConnection, LayoutType } from './types';
 
 const inputStyle: CSSProperties = {
@@ -154,8 +154,11 @@ const isPreviewDisabled = ({
   canPreview,
   loadingPreview,
   loadingConnections,
-}: { canPreview: boolean; loadingPreview: boolean; loadingConnections: boolean }): boolean =>
-  !canPreview || loadingPreview || loadingConnections;
+}: {
+  canPreview: boolean;
+  loadingPreview: boolean;
+  loadingConnections: boolean;
+}): boolean => !canPreview || loadingPreview || loadingConnections;
 
 const PreviewButton = ({
   canPreview,

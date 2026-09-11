@@ -1,9 +1,9 @@
 import {
-  type PdfTextItem,
-  type PdfTextRow,
   extractTablesFromPdf,
   extractTextAndLayoutFromPdf,
   extractTextFromPdf,
+  type PdfTextItem,
+  type PdfTextRow,
 } from '../../../common/utils/pdf-parser.util';
 import { type BankName, FileType } from '../../../entities/statement.entity';
 import { AiTransactionExtractor } from '../helpers/ai-transaction-extractor.helper';
@@ -123,7 +123,7 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
       `PDF text extracted in ${extractTime}ms, length: ${normalizedText.length} characters, rows: ${rows.length}`,
     );
 
-    this.logger.debug(`Extracting metadata...`);
+    this.logger.debug('Extracting metadata...');
     const accountNumber = this.extractAccountNumber(normalizedText) || '';
     const dateRange = this.extractDateRange(normalizedText);
     const balanceStart = this.extractFirstBalance(normalizedText, this.getBalanceStartLabels());
@@ -143,14 +143,14 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
     const detectedCurrency = this.detectCurrency(normalizedText) || 'KZT';
 
     const transactionStartTime = Date.now();
-    this.logger.debug(`Extracting transactions from pdf2table rows...`);
+    this.logger.debug('Extracting transactions from pdf2table rows...');
     const tableTransactions = mapPdfTableRowsToTransactions(tableRows, {
       defaultCurrency: detectedCurrency,
       stopWords: ['итого', 'оборот', 'остаток'],
     });
     this.logger.debug(`pdf2table extracted ${tableTransactions.length} transactions`);
 
-    this.logger.debug(`Extracting transactions from structured text...`);
+    this.logger.debug('Extracting transactions from structured text...');
     const { transactions: structuredTransactions, groupsDetected } = this.extractTransactions(
       normalizedText,
       rows,
@@ -174,7 +174,7 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
             : aiTransactions;
         this.logger.debug(`AI extraction succeeded with ${transactions.length} transactions`);
       } else {
-        this.logger.debug(`AI extraction did not return transactions`);
+        this.logger.debug('AI extraction did not return transactions');
       }
     }
 
@@ -236,7 +236,7 @@ export abstract class BerekeBaseParser<ColumnKey extends string> extends BasePar
         .join('; ');
       this.logger.debug(`Column boundaries detected: ${mapping}`);
     } else {
-      this.logger.debug(`Column boundaries not detected, using heuristics`);
+      this.logger.debug('Column boundaries not detected, using heuristics');
     }
 
     const groups = this.groupRowsIntoTransactions(dataRows);

@@ -1,9 +1,9 @@
 'use client';
 
-import { type AppLocale, SUPPORTED_LOCALES } from '@/app/lib/locale';
 import { Box, Typography } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { type AppLocale, SUPPORTED_LOCALES } from '@/app/lib/locale';
 
 const AUTH_GREETINGS = {
   ru: 'Добро пожаловать',

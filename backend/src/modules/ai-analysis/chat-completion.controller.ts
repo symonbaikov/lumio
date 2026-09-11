@@ -1,10 +1,10 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
-import type { User } from '../../entities';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
+import type { User } from '../../entities';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ChatCompletionService } from './chat-completion.service';
 import { CreateChatCompletionDto } from './dto/chat-completion.dto';
 

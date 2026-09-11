@@ -6,7 +6,7 @@ import {
   recordAiSuccess,
   withAiConcurrency,
 } from '../../modules/parsing/helpers/ai-runtime.util';
-import { TimeoutError, retry, withTimeout } from '../utils/async.util';
+import { retry, TimeoutError, withTimeout } from '../utils/async.util';
 
 type GenerateJsonOptions = {
   timeoutMs: number;

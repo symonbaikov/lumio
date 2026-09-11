@@ -1,16 +1,15 @@
 'use client';
-import { formatStoredDate } from '@/app/lib/user-format-store';
-
+import Skeleton from '@mui/material/Skeleton';
+import { useRouter } from 'next/navigation';
+import { use, useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { ArrowLeft } from '@/app/components/icons';
 import { NotesPanel } from '@/app/components/notes/NotesPanel';
 import TransactionsPageView from '@/app/components/transactions/TransactionsPageView';
 import type { Category, StatementDetails, Transaction } from '@/app/components/transactions/types';
 import { useIntlayer } from '@/app/i18n';
 import api, { apiBaseUrl } from '@/app/lib/api';
-import Skeleton from '@mui/material/Skeleton';
-import { useRouter } from 'next/navigation';
-import { use, useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 
 interface RawStatement {
   id: string;
@@ -106,11 +105,7 @@ function ViewStatementSkeleton(): React.JSX.Element {
   );
 }
 
-export default function ViewStatementPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function ViewStatementPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const t = useIntlayer('statementViewPage');
   const [statement, setStatement] = useState<StatementDetails | null>(null);

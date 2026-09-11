@@ -5,8 +5,8 @@ import { TopSpendersContent } from '@/app/(main)/statements/components/top-spend
 import { TopSpendersDrillDown } from '@/app/(main)/statements/components/top-spenders/components/TopSpendersDrillDown';
 import { TopSpendersFiltersDrawer } from '@/app/(main)/statements/components/top-spenders/components/TopSpendersFiltersDrawer';
 import { TopSpendersPageHeader } from '@/app/(main)/statements/components/top-spenders/components/TopSpendersPageHeader';
-import { useTopSpendersViewModel } from '@/app/(main)/statements/components/top-spenders/hooks/useTopSpendersViewModel';
 import type { TopSpendersViewModelReturn } from '@/app/(main)/statements/components/top-spenders/hooks/useTopSpendersViewModel';
+import { useTopSpendersViewModel } from '@/app/(main)/statements/components/top-spenders/hooks/useTopSpendersViewModel';
 import { tokens } from '@/lib/theme-tokens';
 
 type VmProps = { vm: TopSpendersViewModelReturn };

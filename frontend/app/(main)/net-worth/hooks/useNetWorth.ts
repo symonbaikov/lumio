@@ -1,8 +1,11 @@
 'use client';
 
-import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import apiClient from '@/app/lib/api';
-import { useCallback, useEffect, useState } from 'react';
+import { apiQuery } from '@/app/lib/query-fn';
+import { queryKeys } from '@/app/lib/query-keys';
 
 export type NetWorthRange = '30d' | '90d' | '1y' | '5y' | 'all';
 
@@ -62,61 +65,85 @@ export interface NetWorthData {
   assetLines: NetWorthAssetLine[];
 }
 
+export type ClassificationPatch = {
+  capitalRole?: CapitalRole | null;
+  riskLevel?: RiskLevel | null;
+};
+
 interface NetWorthState {
-  data: NetWorthData | null;
-  loading: boolean;
-  error: string | null;
+  data: NetWorthData | undefined;
+  isPending: boolean;
+  isFetching: boolean;
+  error: boolean;
   range: NetWorthRange;
   setRange: (range: NetWorthRange) => void;
-  refresh: () => void;
-  classify: (
-    accountId: string,
-    patch: { capitalRole?: CapitalRole | null; riskLevel?: RiskLevel | null },
-  ) => Promise<void>;
+  refetch: () => void;
+  classify: (accountId: string, patch: ClassificationPatch) => void;
+}
+
+function applyPatch(
+  data: NetWorthData,
+  accountId: string,
+  patch: ClassificationPatch,
+): NetWorthData {
+  return {
+    ...data,
+    assetLines: data.assetLines.map(line => (line.id === accountId ? { ...line, ...patch } : line)),
+  };
 }
 
 export function useNetWorth(initialRange: NetWorthRange = '90d'): NetWorthState {
-  const { currentWorkspace } = useWorkspace();
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
   const [range, setRange] = useState<NetWorthRange>(initialRange);
-  const [data, setData] = useState<NetWorthData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const queryKey = queryKeys.netWorth({ workspaceId, range });
 
-    await (async () => {
-      const response = await apiClient.get('/reports/net-worth', { params: { range } });
-      setData(response.data?.data ?? response.data);
-    })()
-      .catch(async () => {
-        setError('failed');
-      })
-      .finally(async () => {
-        setLoading(false);
-      });
-  }, [range]);
+  const query = useQuery({
+    queryKey,
+    queryFn: ({ signal }) =>
+      apiQuery<NetWorthData>({ url: '/reports/net-worth', params: { range }, signal }),
+    // Смена периода не должна гасить карточки: данные прошлого запроса живут
+    // на экране до прихода новых, но только внутри того же воркспейса.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[1] === workspaceId ? previous : undefined,
+  });
 
-  // Workspace-scoped: the request itself does not mention the workspace (the
-  // server scopes by session), so the effect re-runs on switch explicitly.
-  const workspaceId = currentWorkspace?.id;
-  useEffect(() => {
-    void load();
-  }, [load, workspaceId]);
+  const classifyMutation = useMutation({
+    mutationFn: (variables: { accountId: string; patch: ClassificationPatch }) =>
+      apiClient.patch(
+        `/reports/balance/accounts/${variables.accountId}/classification`,
+        variables.patch,
+      ),
+    // Выбор в селекте применяется сразу, иначе он «откатывается» на время
+    // запроса; проценты и сводки пересчитывает сервер — их ждём.
+    onMutate: (variables: { accountId: string; patch: ClassificationPatch }) => {
+      queryClient.setQueryData<NetWorthData>(queryKey, previous =>
+        previous ? applyPatch(previous, variables.accountId, variables.patch) : previous,
+      );
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['net-worth', workspaceId] }),
+  });
+
+  const refetch = useCallback((): void => {
+    void query.refetch();
+  }, [query.refetch]);
 
   const classify = useCallback(
-    async (
-      accountId: string,
-      patch: { capitalRole?: CapitalRole | null; riskLevel?: RiskLevel | null },
-    ) => {
-      // Reloading rather than patching locally: the change moves every
-      // percentage on the page, not just the row that was edited.
-      await apiClient.patch(`/reports/balance/accounts/${accountId}/classification`, patch);
-      await load();
+    (accountId: string, patch: ClassificationPatch): void => {
+      classifyMutation.mutate({ accountId, patch });
     },
-    [load],
+    [classifyMutation.mutate],
   );
 
-  return { data, loading, error, range, setRange, refresh: load, classify };
+  return {
+    data: query.data,
+    isPending: query.isPending,
+    isFetching: query.isFetching || classifyMutation.isPending,
+    error: query.isError || classifyMutation.isError,
+    range,
+    setRange,
+    refetch,
+    classify,
+  };
 }

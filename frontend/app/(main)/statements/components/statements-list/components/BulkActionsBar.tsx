@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 'use client';
 
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -10,7 +11,6 @@ import {
   Trash2,
   X,
 } from '@/app/components/icons';
-import React, { useEffect, useRef, useState } from 'react';
 
 interface DuplicateActionsProps {
   mergeDuplicatesLabel: string;
@@ -22,7 +22,10 @@ interface DuplicateActionsProps {
 function MergeButton({
   label,
   onClick,
-}: { label: string; onClick: () => void }): React.JSX.Element {
+}: {
+  label: string;
+  onClick: () => void;
+}): React.JSX.Element {
   return (
     <button type="button" onClick={onClick} className="lumio-stmt-list-view__bulk-menu-btn">
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -39,7 +42,10 @@ function MergeButton({
 function DismissButton({
   label,
   onClick,
-}: { label: string; onClick: () => void }): React.JSX.Element {
+}: {
+  label: string;
+  onClick: () => void;
+}): React.JSX.Element {
   return (
     <button type="button" onClick={onClick} className="lumio-stmt-list-view__bulk-menu-btn">
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

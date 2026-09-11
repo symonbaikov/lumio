@@ -1,9 +1,13 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import apiClient from '@/app/lib/api';
+import { apiQuery } from '@/app/lib/query-fn';
+import { queryKeys } from '@/app/lib/query-keys';
 import type { IntegrationStatus, IntegrationStatusMessages } from '../types';
 
 export type UseIntegrationStatusConfig = {
@@ -32,32 +36,29 @@ export function useIntegrationStatus({
   messages,
 }: UseIntegrationStatusConfig): UseIntegrationStatusResult {
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<IntegrationStatus | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
 
   const base = `/integrations/${apiPath}`;
+  const queryKey = queryKeys.integrationStatus({ workspaceId, apiPath });
+
+  const statusQuery = useQuery({
+    queryKey,
+    queryFn: ({ signal }) => apiQuery<IntegrationStatus>({ url: `${base}/status`, signal }),
+    enabled: Boolean(user),
+  });
+
+  const loadFailed = statusQuery.isError;
+  const loadFailedMessage = messages.errors.loadStatus;
+  useEffect(() => {
+    if (loadFailed) {
+      toast.error(loadFailedMessage, { id: `integration-status-${apiPath}` });
+    }
+  }, [loadFailed, loadFailedMessage, apiPath]);
 
   const loadStatus = useCallback(async () => {
-    await (async () => {
-      setLoading(true);
-      const response = await apiClient.get(`${base}/status`);
-      setStatus(response.data);
-    })()
-      .catch(async () => {
-        toast.error(messages.errors.loadStatus);
-      })
-      .finally(async () => {
-        setLoading(false);
-      });
-  }, [base, messages.errors.loadStatus]);
-
-  useEffect(() => {
-    if (user) {
-      void loadStatus();
-    }
-  }, [user, loadStatus]);
+    await queryClient.invalidateQueries({ queryKey });
+  }, [queryClient, workspaceId, apiPath]);
 
   useEffect(() => {
     // eslint-disable-next-line complexity
@@ -94,41 +95,35 @@ export function useIntegrationStatus({
     });
   }, [base, messages]);
 
+  const disconnectMutation = useMutation({
+    mutationFn: () => apiClient.post(`${base}/disconnect`),
+    onSuccess: () => toast.success(messages.toasts.disconnected),
+    onError: () => toast.error(messages.errors.disconnectFailed),
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: () => apiClient.post(`${base}/sync`),
+    onSuccess: () => toast.success(messages.toasts.syncStarted),
+    onError: () => toast.error(messages.errors.syncFailed),
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  });
+
   const handleDisconnect = useCallback(async () => {
-    await (async () => {
-      setSaving(true);
-      await apiClient.post(`${base}/disconnect`);
-      toast.success(messages.toasts.disconnected);
-      await loadStatus();
-    })()
-      .catch(async () => {
-        toast.error(messages.errors.disconnectFailed);
-      })
-      .finally(async () => {
-        setSaving(false);
-      });
-  }, [base, messages, loadStatus]);
+    disconnectMutation.mutate();
+  }, [disconnectMutation.mutate]);
 
   const handleSync = useCallback(async () => {
-    await (async () => {
-      setSyncing(true);
-      await apiClient.post(`${base}/sync`);
-      toast.success(messages.toasts.syncStarted);
-      await loadStatus();
-    })()
-      .catch(async () => {
-        toast.error(messages.errors.syncFailed);
-      })
-      .finally(async () => {
-        setSyncing(false);
-      });
-  }, [base, messages, loadStatus]);
+    syncMutation.mutate();
+  }, [syncMutation.mutate]);
 
   return {
-    status,
-    loading,
-    saving,
-    syncing,
+    status: statusQuery.data ?? null,
+    // isLoading, а не isPending: без пользователя запрос выключен, и isPending
+    // остался бы true навсегда.
+    loading: statusQuery.isLoading,
+    saving: disconnectMutation.isPending,
+    syncing: syncMutation.isPending,
     loadStatus,
     handleConnect,
     handleDisconnect,

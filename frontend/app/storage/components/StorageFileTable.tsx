@@ -1,11 +1,11 @@
 /* eslint-disable max-lines */
 'use client';
 
+import { Box, Chip, Typography } from '@mui/material';
+import React from 'react';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { Spinner } from '@/app/components/ui/spinner';
-import { Box, Chip, Typography } from '@mui/material';
-import React from 'react';
 import { Checkbox } from '../../components/ui/checkbox';
 import { formatPaginationLabel } from '../helpers/storageFormatters';
 import { getAvailabilityChipStyle, getStatusChipStyle } from '../helpers/storageStyling';
@@ -510,7 +510,6 @@ function PaginationFooter({
   );
 }
 
-// Re-export chip renderers for use in the main component
-export { getAvailabilityChipStyle, getStatusChipStyle };
 export type { TagOption };
-export { Chip };
+// Re-export chip renderers for use in the main component
+export { Chip, getAvailabilityChipStyle, getStatusChipStyle };

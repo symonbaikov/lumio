@@ -1,14 +1,12 @@
 'use client';
 
-import { DashboardCard } from '@/app/components/dashboard/ui';
-import type { GoalFlowResponse } from '@/app/lib/goals-api';
 import { useTheme } from 'next-themes';
-import dynamic from 'next/dynamic';
 import type React from 'react';
 import { useMemo } from 'react';
-import { type GoalFlowChartLabels, buildGoalFlowSankey } from './goal-flow.chart';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
+import { DashboardCard } from '@/app/components/dashboard/ui';
+import { LazyECharts } from '@/app/components/ui/lazy-echarts';
+import type { GoalFlowResponse } from '@/app/lib/goals-api';
+import { buildGoalFlowSankey, type GoalFlowChartLabels } from './goal-flow.chart';
 
 export interface GoalFlowSankeyProps {
   data: GoalFlowResponse;
@@ -46,7 +44,7 @@ export function GoalFlowSankey({
         // A definite height, not one inherited from flex: ECharts measures the
         // container once on mount and caches a 0x0 box forever if the height is
         // still being resolved at that moment. Four ranks of labels need the room.
-        <ReactECharts option={option} style={{ height: 440, width: '100%' }} notMerge />
+        <LazyECharts option={option} style={{ height: 440, width: '100%' }} notMerge />
       ) : (
         <p className="lumio-dashboard__empty">{emptyLabel}</p>
       )}

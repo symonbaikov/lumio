@@ -1,11 +1,11 @@
 'use client';
 
-import { Plus } from '@/app/components/icons';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import React from 'react';
+import { Plus } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
+import { tokens } from '@/lib/theme-tokens';
 import { WorkspaceCard } from './WorkspaceCard';
 
 type WorkspaceItem = {

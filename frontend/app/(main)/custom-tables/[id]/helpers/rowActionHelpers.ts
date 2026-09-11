@@ -26,7 +26,7 @@ export function hasPaidColChange(
   paidColKey: string | null,
   patchData: CustomTableRowPatch,
 ): boolean {
-  return Boolean(paidColKey && Object.prototype.hasOwnProperty.call(patchData, paidColKey));
+  return Boolean(paidColKey && Object.hasOwn(patchData, paidColKey));
 }
 
 function extractPayload(data: unknown): unknown {

@@ -1,10 +1,10 @@
 'use client';
 
+import { Box, Typography } from '@mui/material';
+import type React from 'react';
+import { useState } from 'react';
 import { ChevronDown, ChevronUp, ExternalLink, Plug } from '@/app/components/icons';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, Typography } from '@mui/material';
-import { useState } from 'react';
-import type React from 'react';
 
 interface Step2Texts {
   step2: {

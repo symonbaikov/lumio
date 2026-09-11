@@ -1,18 +1,18 @@
 'use client';
 
-import { formatMoney } from '@/app/lib/format-money';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import { formatMoney } from '@/app/lib/format-money';
+import { tokens } from '@/lib/theme-tokens';
 import {
   CAPITAL_ROLES,
   type CapitalRole,
   type NetWorthAssetLine,
   type NetWorthClassificationItem,
-  RISKY_ALLOCATION_THRESHOLD,
   RISK_LEVELS,
+  RISKY_ALLOCATION_THRESHOLD,
   type RiskLevel,
 } from '../hooks/useNetWorth';
 

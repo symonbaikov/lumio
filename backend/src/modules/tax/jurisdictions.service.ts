@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
-import { TaxJurisdictionRate } from '../../entities/tax-jurisdiction-rate.entity';
 import { TaxJurisdiction } from '../../entities/tax-jurisdiction.entity';
+import { TaxJurisdictionRate } from '../../entities/tax-jurisdiction-rate.entity';
 
 /**
  * `Date` -> 'YYYY-MM-DD', which is how `date` columns compare in Postgres.

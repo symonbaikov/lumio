@@ -1,9 +1,9 @@
 'use client';
 
+import React from 'react';
 import { Banknote, CalendarClock, CheckCircle2, Clock3 } from '@/app/components/icons';
 import { Card } from '@/app/components/ui/card';
 import type { PayablesSummary } from '@/app/lib/payables-api';
-import React from 'react';
 import { formatMoney, getSummaryCardItems } from './payables-utils';
 
 interface PayableSummaryCardsProps {

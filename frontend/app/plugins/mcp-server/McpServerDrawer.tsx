@@ -1,9 +1,4 @@
 'use client';
-import { formatStoredDate } from '@/app/lib/user-format-store';
-
-import { Copy, Lock, Plus, Trash2 } from '@/app/components/icons';
-import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import { tokens } from '@/lib/theme-tokens';
 import {
   Box,
   Button,
@@ -17,6 +12,10 @@ import {
 import { alpha } from '@mui/material/styles';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { Copy, Lock, Plus, Trash2 } from '@/app/components/icons';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { formatStoredDate } from '@/app/lib/user-format-store';
+import { tokens } from '@/lib/theme-tokens';
 import { useApiKeys } from './useApiKeys';
 
 interface McpServerDrawerProps {

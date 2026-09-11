@@ -1,17 +1,4 @@
 'use client';
-import { formatStoredDate } from '@/app/lib/user-format-store';
-
-import CustomDatePicker from '@/app/components/CustomDatePicker';
-import {
-  CheckCircle2,
-  Layers,
-  Pencil,
-  Trash2,
-  TriangleAlert,
-  XCircle,
-} from '@/app/components/icons';
-import { Checkbox } from '@/app/components/ui/checkbox';
-import { Spinner } from '@/app/components/ui/spinner';
 import {
   Box,
   Button,
@@ -30,6 +17,18 @@ import {
   Typography,
 } from '@mui/material';
 import { useState } from 'react';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
+import {
+  CheckCircle2,
+  Layers,
+  Pencil,
+  Trash2,
+  TriangleAlert,
+  XCircle,
+} from '@/app/components/icons';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { Spinner } from '@/app/components/ui/spinner';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import type {
   EditableLineItem,
   EditableReceiptData,

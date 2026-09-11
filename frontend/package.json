@@ -21,6 +21,7 @@
     "lint:css": "stylelint \"app/styles/**/*.scss\" \"app/components/**/*.scss\""
   },
   "overrides": {
+    "qs": "^6.16.0",
     "uuid": "^11.1.1",
     "simple-git": "^3.36.0",
     "defu": "^6.1.7",
@@ -65,7 +66,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.5.13",
     "@eslint/js": "^9.39.4",
     "@next/bundle-analyzer": "^16.2.4",
     "@testing-library/jest-dom": "^6.6.3",

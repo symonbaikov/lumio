@@ -1,7 +1,11 @@
-import { useWorkspace } from '@/app/contexts/WorkspaceContext';
-import apiClient from '@/app/lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import apiClient from '@/app/lib/api';
+import { apiQuery } from '@/app/lib/query-fn';
+import { queryKeys } from '@/app/lib/query-keys';
 
 export interface SubscriptionItem {
   id: string;
@@ -54,6 +58,16 @@ export interface SubscriptionFormData {
 
 const DEFAULT_CURRENCY = 'USD';
 
+const EMPTY_SUMMARY: SubscriptionSummary = {
+  totalMonthlyCost: 0,
+  activeCount: 0,
+  upcomingCount: 0,
+  upcoming30DaysCount: 0,
+  priceChangeCount: 0,
+  overdueReviewCount: 0,
+  realizedAnnualSavings: 0,
+};
+
 const makeEmptyForm = (currency: string): SubscriptionFormData => ({
   vendorName: '',
   amount: '',
@@ -65,64 +79,62 @@ const makeEmptyForm = (currency: string): SubscriptionFormData => ({
 
 export function useSubscriptionsPage() {
   const { currentWorkspace } = useWorkspace();
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
   const workspaceCurrency = currentWorkspace?.currency ?? DEFAULT_CURRENCY;
 
-  const [subscriptions, setSubscriptions] = useState<SubscriptionItem[]>([]);
-  const [summary, setSummary] = useState<SubscriptionSummary>({
-    totalMonthlyCost: 0,
-    activeCount: 0,
-    upcomingCount: 0,
-    upcoming30DaysCount: 0,
-    priceChangeCount: 0,
-    overdueReviewCount: 0,
-    realizedAnnualSavings: 0,
-  });
   const [workspaceMembers, setWorkspaceMembers] = useState<SubscriptionWorkspaceMember[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSubscription, setEditingSubscription] = useState<SubscriptionItem | null>(null);
   const [formData, setFormData] = useState<SubscriptionFormData>(() =>
     makeEmptyForm(workspaceCurrency),
   );
-  const [saving, setSaving] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const listQuery = useQuery({
+    queryKey: queryKeys.subscriptions({ workspaceId, status: statusFilter }),
+    queryFn: ({ signal }) =>
+      apiQuery<SubscriptionItem[]>({
+        url: '/subscriptions',
+        params: statusFilter !== 'all' ? { status: statusFilter } : undefined,
+        signal,
+      }),
+    // Смена фильтра статуса не должна стирать список: старые карточки живут на
+    // экране до прихода новых, но только внутри того же воркспейса.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[1] === workspaceId ? previous : undefined,
+  });
 
-    await (async () => {
-      const params = statusFilter !== 'all' ? `?status=${statusFilter}` : '';
-      const [subsRes, summaryRes] = await Promise.all([
-        apiClient.get(`/subscriptions${params}`),
-        apiClient.get('/subscriptions/summary'),
-      ]);
-      setSubscriptions(subsRes.data?.data ?? subsRes.data ?? []);
-      setSummary(
-        summaryRes.data?.data ??
-          summaryRes.data ?? {
-            totalMonthlyCost: 0,
-            activeCount: 0,
-            upcomingCount: 0,
-            upcoming30DaysCount: 0,
-            priceChangeCount: 0,
-            overdueReviewCount: 0,
-            realizedAnnualSavings: 0,
-          },
-      );
-    })()
-      .catch(async () => {
-        setError('Failed to load subscriptions');
-      })
-      .finally(async () => {
-        setLoading(false);
-      });
-  }, [statusFilter]);
+  const summaryQuery = useQuery({
+    queryKey: queryKeys.subscriptionsSummary(workspaceId),
+    queryFn: ({ signal }) =>
+      apiQuery<SubscriptionSummary>({ url: '/subscriptions/summary', signal }),
+  });
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const invalidate = useCallback((): Promise<void> => {
+    return queryClient.invalidateQueries({ queryKey: ['subscriptions', workspaceId] });
+  }, [queryClient, workspaceId]);
+
+  /**
+   * Действия строки отличаются только запросом и текстом тоста, поэтому живут
+   * в одной мутации: отдельный `saveMutation` нужен лишь затем, чтобы спиннер
+   * в диалоге не загорался от действий в списке.
+   */
+  const rowMutation = useMutation({
+    mutationFn: (action: { run: () => Promise<unknown>; success: string; failure: string }) =>
+      action.run(),
+    onSuccess: (_result, action) => toast.success(action.success),
+    onError: (_error, action) => toast.error(action.failure),
+    onSettled: invalidate,
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: (action: { run: () => Promise<unknown>; success: string; failure: string }) =>
+      action.run(),
+    onSuccess: (_result, action) => toast.success(action.success),
+    onError: (_error, action) => toast.error(action.failure),
+    onSettled: invalidate,
+  });
 
   useEffect(() => {
     if (!currentWorkspace?.id) return;
@@ -159,86 +171,75 @@ export function useSubscriptionsPage() {
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!formData.vendorName || !formData.amount) return;
-    setSaving(true);
+    if (!(formData.vendorName && formData.amount)) return;
 
-    await (async () => {
-      const payload = {
-        vendorName: formData.vendorName,
-        amount: Number(formData.amount),
-        frequency: formData.frequency,
-        currency: formData.currency || workspaceCurrency,
-        categoryId: formData.categoryId || undefined,
-        nextChargeDate: formData.nextChargeDate || undefined,
-      };
-      if (editingSubscription) {
-        await apiClient.put(`/subscriptions/${editingSubscription.id}`, payload);
-        toast.success('Subscription updated');
-      } else {
-        await apiClient.post('/subscriptions', payload);
-        toast.success('Subscription created');
-      }
-      closeDialog();
-      await load();
-    })()
-      .catch(async () => {
-        toast.error('Failed to save subscription');
+    const payload = {
+      vendorName: formData.vendorName,
+      amount: Number(formData.amount),
+      frequency: formData.frequency,
+      currency: formData.currency || workspaceCurrency,
+      categoryId: formData.categoryId || undefined,
+      nextChargeDate: formData.nextChargeDate || undefined,
+    };
+    const editingId = editingSubscription?.id;
+
+    await saveMutation
+      .mutateAsync({
+        run: () =>
+          editingId
+            ? apiClient.put(`/subscriptions/${editingId}`, payload)
+            : apiClient.post('/subscriptions', payload),
+        success: editingId ? 'Subscription updated' : 'Subscription created',
+        failure: 'Failed to save subscription',
       })
-      .finally(async () => {
-        setSaving(false);
-      });
-  }, [formData, editingSubscription, closeDialog, load, workspaceCurrency]);
+      // Диалог закрывается только после успеха: при ошибке форма остаётся
+      // заполненной, как и до миграции.
+      .then(() => closeDialog())
+      .catch(() => undefined);
+  }, [formData, editingSubscription, closeDialog, saveMutation.mutateAsync, workspaceCurrency]);
 
   const handleDelete = useCallback(
     async (id: string) => {
-      await (async () => {
-        await apiClient.delete(`/subscriptions/${id}`);
-        toast.success('Subscription deleted');
-        await load();
-      })().catch(async () => {
-        toast.error('Failed to delete subscription');
+      rowMutation.mutate({
+        run: () => apiClient.delete(`/subscriptions/${id}`),
+        success: 'Subscription deleted',
+        failure: 'Failed to delete subscription',
       });
     },
-    [load],
+    [rowMutation.mutate],
   );
 
   const handleConfirm = useCallback(
     async (id: string) => {
-      await (async () => {
-        await apiClient.post(`/subscriptions/${id}/confirm`);
-        toast.success('Subscription confirmed');
-        await load();
-      })().catch(async () => {
-        toast.error('Failed to confirm subscription');
+      rowMutation.mutate({
+        run: () => apiClient.post(`/subscriptions/${id}/confirm`),
+        success: 'Subscription confirmed',
+        failure: 'Failed to confirm subscription',
       });
     },
-    [load],
+    [rowMutation.mutate],
   );
 
   const handleDismiss = useCallback(
     async (id: string) => {
-      await (async () => {
-        await apiClient.post(`/subscriptions/${id}/dismiss`);
-        toast.success('Subscription dismissed');
-        await load();
-      })().catch(async () => {
-        toast.error('Failed to dismiss subscription');
+      rowMutation.mutate({
+        run: () => apiClient.post(`/subscriptions/${id}/dismiss`),
+        success: 'Subscription dismissed',
+        failure: 'Failed to dismiss subscription',
       });
     },
-    [load],
+    [rowMutation.mutate],
   );
 
   const assignOwner = useCallback(
     async (id: string, ownerId: string) => {
-      await (async () => {
-        await apiClient.patch(`/subscriptions/${id}/owner`, { ownerId });
-        toast.success('Owner assigned');
-        await load();
-      })().catch(async () => {
-        toast.error('Failed to assign owner');
+      rowMutation.mutate({
+        run: () => apiClient.patch(`/subscriptions/${id}/owner`, { ownerId }),
+        success: 'Owner assigned',
+        failure: 'Failed to assign owner',
       });
     },
-    [load],
+    [rowMutation.mutate],
   );
 
   const recordDecision = useCallback(
@@ -247,31 +248,30 @@ export function useSubscriptionsPage() {
       decision: 'keep' | 'review' | 'cancelled' | 'price_reduced',
       values: { note?: string; reviewAt?: string; realizedAnnualSavings?: number } = {},
     ) => {
-      await (async () => {
-        await apiClient.post(`/subscriptions/${id}/decisions`, { decision, ...values });
-        toast.success('Subscription decision saved');
-        await load();
-      })().catch(async () => {
-        toast.error('Failed to save subscription decision');
+      rowMutation.mutate({
+        run: () => apiClient.post(`/subscriptions/${id}/decisions`, { decision, ...values }),
+        success: 'Subscription decision saved',
+        failure: 'Failed to save subscription decision',
       });
     },
-    [load],
+    [rowMutation.mutate],
   );
 
   return {
-    subscriptions,
-    summary,
+    subscriptions: listQuery.data ?? [],
+    summary: summaryQuery.data ?? EMPTY_SUMMARY,
     workspaceMembers,
     workspaceCurrency,
-    loading,
-    error,
+    isPending: listQuery.isPending,
+    isFetching: listQuery.isFetching || rowMutation.isPending,
+    error: listQuery.isError ? 'Failed to load subscriptions' : null,
     statusFilter,
     setStatusFilter,
     dialogOpen,
     editingSubscription,
     formData,
     setFormData,
-    saving,
+    saving: saveMutation.isPending,
     openCreate,
     openEdit,
     closeDialog,

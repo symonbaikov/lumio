@@ -1,6 +1,6 @@
+import type React from 'react';
 import { AlertTriangle, Flag, Inbox, Receipt, Tag } from '@/app/components/icons';
 import type { DashboardData } from '@/app/hooks/useDashboard';
-import type React from 'react';
 
 export type ActionPriority = 'critical' | 'warning' | 'info' | 'success';
 

@@ -1,7 +1,7 @@
 'use client';
 
-import StatementsSidePanel from '../components/StatementsSidePanel';
 import { PayablesView } from '../components/payables/PayablesView';
+import StatementsSidePanel from '../components/StatementsSidePanel';
 
 export default function StatementsPayPage() {
   return (

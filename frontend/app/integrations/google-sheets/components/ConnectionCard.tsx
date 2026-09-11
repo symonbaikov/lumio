@@ -1,11 +1,10 @@
 'use client';
-import { formatStoredDateTime } from '@/app/lib/user-format-store';
-
-import { AlertCircle, CheckCircle2, Plug, RefreshCcw, Trash2 } from '@/app/components/icons';
-import { Spinner } from '@/app/components/ui/spinner';
-import { tokens } from '@/lib/theme-tokens';
 import { Box, Stack, Typography } from '@mui/material';
 import type React from 'react';
+import { AlertCircle, CheckCircle2, Plug, RefreshCcw, Trash2 } from '@/app/components/icons';
+import { Spinner } from '@/app/components/ui/spinner';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
+import { tokens } from '@/lib/theme-tokens';
 import type { GoogleSheetConnection } from '../useGoogleSheetsPage';
 
 interface ConnectionCardTexts {
@@ -34,7 +33,10 @@ const LOCALE_MAP: Record<string, string> = { kk: 'kk-KZ', ru: 'ru-RU', en: 'en-U
 function formatLastSync({
   lastSync,
   locale,
-}: { lastSync: string | null | undefined; locale: string }): string {
+}: {
+  lastSync: string | null | undefined;
+  locale: string;
+}): string {
   if (!lastSync) return '';
   return formatStoredDateTime(lastSync, LOCALE_MAP[locale] ?? 'en-US');
 }
@@ -42,7 +44,10 @@ function formatLastSync({
 function ConnectionStatus({
   oauthConnected,
   t,
-}: { oauthConnected: boolean | undefined; t: ConnectionCardTexts }): React.JSX.Element {
+}: {
+  oauthConnected: boolean | undefined;
+  t: ConnectionCardTexts;
+}): React.JSX.Element {
   if (oauthConnected === false) {
     return (
       <Box

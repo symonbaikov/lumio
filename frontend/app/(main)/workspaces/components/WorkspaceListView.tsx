@@ -1,10 +1,10 @@
 'use client';
 
-import { ChevronRight, MoreVertical, Plus } from '@/app/components/icons';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import { alpha } from '@mui/material/styles';
 import React from 'react';
+import { ChevronRight, MoreVertical, Plus } from '@/app/components/icons';
+import { tokens } from '@/lib/theme-tokens';
 
 type WorkspaceItem = { id: string; name: string; memberRole?: string };
 

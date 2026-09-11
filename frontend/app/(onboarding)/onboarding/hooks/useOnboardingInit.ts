@@ -1,13 +1,13 @@
+import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_BACKGROUND } from '@/app/(main)/workspaces/constants';
 import type { User } from '@/app/hooks/useAuth';
-import { useEffect, useRef, useState } from 'react';
 import { resolveOnboardingBootstrapLocale } from '../lib/locale-bootstrap';
 import type { OnboardingData } from '../useOnboardingWizard';
 import {
-  EMPTY_INTEGRATION_STATE,
-  type OnboardingIntegrationKey,
   detectTimeZone,
+  EMPTY_INTEGRATION_STATE,
   fetchWorkspaceInitialData,
+  type OnboardingIntegrationKey,
   refreshAllIntegrationStatuses,
 } from './useOnboardingActions';
 

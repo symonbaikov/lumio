@@ -1,9 +1,9 @@
 'use client';
 
-import { Grid, List, Search, SortAsc } from '@/app/components/icons';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import React from 'react';
+import { Grid, List, Search, SortAsc } from '@/app/components/icons';
+import { tokens } from '@/lib/theme-tokens';
 
 type ViewMode = 'grid' | 'list';
 type SortOption = 'alphabetical' | 'recent' | 'favorites';
@@ -188,4 +188,4 @@ export function WorkspaceListFilters({
   );
 }
 
-export type { ViewMode, SortOption };
+export type { SortOption, ViewMode };

@@ -1,13 +1,13 @@
 'use client';
 
-import { formatMoney } from '@/app/lib/format-money';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import LinearProgress from '@mui/material/LinearProgress';
 import Link from '@mui/material/Link';
 import Typography from '@mui/material/Typography';
 import NextLink from 'next/link';
+import { formatMoney } from '@/app/lib/format-money';
+import { tokens } from '@/lib/theme-tokens';
 import type { Goal } from '../hooks/useGoals';
 
 interface GoalCardProps {

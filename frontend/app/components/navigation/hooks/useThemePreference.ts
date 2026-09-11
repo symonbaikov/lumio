@@ -1,17 +1,17 @@
 'use client';
 
+import { type Dispatch, type SetStateAction, useCallback, useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import type { User } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import {
-  THEME_STORAGE_EVENT,
-  type ThemePreference,
   getScheduledTheme,
   getStoredThemePreference,
   getStoredThemeTimeZone,
   resolveThemePreference,
+  THEME_STORAGE_EVENT,
+  type ThemePreference,
 } from '@/app/lib/theme-preference';
-import { type Dispatch, type SetStateAction, useCallback, useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
 
 interface UseThemePreferenceParams {
   userThemePreference: ThemePreference | undefined;

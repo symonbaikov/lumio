@@ -1,11 +1,11 @@
 'use client';
 
-import { useIntlayer } from '@/app/i18n';
-import { DEFAULT_APP_ROUTE } from '@/app/lib/default-app-route';
-import { resolveLabel } from '@/app/lib/side-panel-utils';
 import Box from '@mui/material/Box';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
+import { useIntlayer } from '@/app/i18n';
+import { DEFAULT_APP_ROUTE } from '@/app/lib/default-app-route';
+import { resolveLabel } from '@/app/lib/side-panel-utils';
 import Breadcrumbs from './Breadcrumbs';
 
 interface GlobalBreadcrumbsProps {

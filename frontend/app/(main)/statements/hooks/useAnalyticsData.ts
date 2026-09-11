@@ -1,6 +1,6 @@
-import apiClient from '@/app/lib/api';
 import { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import apiClient from '@/app/lib/api';
 import type { GmailReceipt, StatementMeta, Transaction } from '../types/statement-types';
 
 // ---------------------------------------------------------------------------

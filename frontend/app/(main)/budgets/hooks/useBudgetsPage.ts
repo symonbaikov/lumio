@@ -1,10 +1,14 @@
 'use client';
 
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
-import { useCallback, useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+import { apiQuery } from '@/app/lib/query-fn';
+import { queryKeys } from '@/app/lib/query-keys';
 
 export interface BudgetItem {
   id: string;
@@ -118,36 +122,23 @@ export function buildBudgetUpdatePayload(
 export function useBudgetsPage() {
   const { currentWorkspace } = useWorkspace();
   const workspaceCurrency = currentWorkspace?.currency ?? DEFAULT_CURRENCY;
-  const [budgets, setBudgets] = useState<BudgetItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<BudgetItem | null>(null);
   const [formData, setFormData] = useState<BudgetFormData>(() => makeEmptyForm(workspaceCurrency));
-  const [saving, setSaving] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    await (async () => {
-      const res = await apiClient.get('/budgets');
-      setBudgets(res.data?.data ?? res.data ?? []);
-    })()
-      .catch(async () => {
-        setError('Failed to load budgets');
-      })
-      .finally(async () => {
-        setLoading(false);
-      });
-  }, []);
 
   // Workspace-scoped: the request itself does not mention the workspace (the
-  // server scopes by header), so the effect re-runs on switch explicitly.
-  const workspaceId = currentWorkspace?.id;
-  useEffect(() => {
-    void load();
-  }, [load, workspaceId]);
+  // server scopes by header), so the key carries it explicitly.
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: queryKeys.budgets(workspaceId),
+    queryFn: ({ signal }) => apiQuery<BudgetItem[]>({ url: '/budgets', signal }),
+  });
+
+  const invalidate = useCallback((): Promise<void> => {
+    return queryClient.invalidateQueries({ queryKey: queryKeys.budgets(workspaceId) });
+  }, [queryClient, workspaceId]);
 
   const openCreate = useCallback(() => {
     setEditingBudget(null);
@@ -177,12 +168,25 @@ export function useBudgetsPage() {
     setFormData(makeEmptyForm(workspaceCurrency));
   }, [workspaceCurrency]);
 
-  const handleSave = useCallback(async () => {
-    setSaving(true);
+  const saveMutation = useMutation({
+    mutationFn: (variables: { id: string | null; body: Record<string, unknown> }) =>
+      variables.id
+        ? apiClient.put(`/budgets/${variables.id}`, variables.body)
+        : apiClient.post('/budgets', variables.body),
+    onSettled: invalidate,
+  });
 
-    await (async () => {
-      if (editingBudget) {
-        await apiClient.put(`/budgets/${editingBudget.id}`, {
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/budgets/${id}`),
+    onSuccess: () => toast.success('Budget deleted'),
+    onError: () => toast.error('Failed to delete budget'),
+    onSettled: invalidate,
+  });
+
+  const handleSave = useCallback(async () => {
+    const editingId = editingBudget?.id ?? null;
+    const body = editingId
+      ? {
           name: formData.name,
           limitAmount: formData.limitAmount,
           currency: formData.currency,
@@ -191,10 +195,8 @@ export function useBudgetsPage() {
           goalId: formData.goalId || null,
           startsOn: formData.startsOn || null,
           endsOn: formData.endsOn || null,
-        });
-        toast.success('Budget updated');
-      } else {
-        await apiClient.post('/budgets', {
+        }
+      : {
           name: formData.name,
           categoryId: formData.categoryId,
           limitAmount: formData.limitAmount,
@@ -203,47 +205,45 @@ export function useBudgetsPage() {
           goalId: formData.goalId || null,
           startsOn: formData.startsOn || null,
           endsOn: formData.endsOn || null,
-        });
-        toast.success('Budget created');
-      }
-      closeDialog();
-      await load();
-    })()
-      .catch(async err => {
-        toast.error(getApiErrorMessage(err, 'Failed to save budget'));
+        };
+
+    await saveMutation
+      .mutateAsync({ id: editingId, body })
+      .then(() => {
+        toast.success(editingId ? 'Budget updated' : 'Budget created');
+        closeDialog();
       })
-      .finally(async () => {
-        setSaving(false);
+      .catch(err => {
+        toast.error(getApiErrorMessage(err, 'Failed to save budget'));
       });
-  }, [editingBudget, formData, closeDialog, load]);
+  }, [editingBudget, formData, closeDialog, saveMutation.mutateAsync]);
 
   const handleDelete = useCallback(
     async (id: string) => {
-      await (async () => {
-        await apiClient.delete(`/budgets/${id}`);
-        toast.success('Budget deleted');
-        await load();
-      })().catch(async () => {
-        toast.error('Failed to delete budget');
-      });
+      deleteMutation.mutate(id);
     },
-    [load],
+    [deleteMutation.mutate],
   );
 
+  const refresh = useCallback((): void => {
+    void query.refetch();
+  }, [query.refetch]);
+
   return {
-    budgets,
-    loading,
-    error,
+    budgets: query.data ?? [],
+    isPending: query.isPending,
+    isFetching: query.isFetching || deleteMutation.isPending,
+    error: query.isError ? 'Failed to load budgets' : null,
     dialogOpen,
     editingBudget,
     formData,
-    saving,
+    saving: saveMutation.isPending,
     setFormData,
     openCreate,
     openEdit,
     closeDialog,
     handleSave,
     handleDelete,
-    refresh: load,
+    refresh,
   };
 }

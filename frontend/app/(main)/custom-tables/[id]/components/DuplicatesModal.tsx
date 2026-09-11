@@ -1,8 +1,8 @@
 'use client';
 
-import { ModalShell } from '@/app/components/ui/modal-shell';
 import { Box } from '@mui/material';
 import { useState } from 'react';
+import { ModalShell } from '@/app/components/ui/modal-shell';
 import type { DuplicateGroup } from '../hooks/useTableDuplicates';
 
 interface DuplicatesModalProps {

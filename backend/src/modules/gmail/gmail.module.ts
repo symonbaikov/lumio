@@ -15,11 +15,12 @@ import {
 import { AuditModule } from '../audit/audit.module';
 import { ParsingModule } from '../parsing/parsing.module';
 import { ReceiptsModule } from '../receipts/receipts.module';
-import { GmailReceiptProcessor } from './gmail-receipt-processor';
-import { GmailWebhookController } from './gmail-webhook.controller';
 import { GmailController } from './gmail.controller';
 import { GmailScheduler } from './gmail.scheduler';
+import { GmailReceiptProcessor } from './gmail-receipt-processor';
+import { GmailWebhookController } from './gmail-webhook.controller';
 import { AiMerchantExtractor } from './helpers/ai-merchant-extractor.helper';
+import { GmailService } from './services/gmail.service';
 import { GmailMerchantReparseService } from './services/gmail-merchant-reparse.service';
 import { GmailOAuthService } from './services/gmail-oauth.service';
 import { GmailReceiptCategoryService } from './services/gmail-receipt-category.service';
@@ -29,7 +30,6 @@ import { GmailReceiptParserService } from './services/gmail-receipt-parser.servi
 import { GmailSyncService } from './services/gmail-sync.service';
 import { GmailWatchService } from './services/gmail-watch.service';
 import { GmailWebhookService } from './services/gmail-webhook.service';
-import { GmailService } from './services/gmail.service';
 
 @Module({
   imports: [

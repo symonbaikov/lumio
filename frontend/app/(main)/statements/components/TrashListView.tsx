@@ -1,10 +1,14 @@
 'use client';
-import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
-
+import { resolveBankLogo } from '@bank-logos';
+import Skeleton from '@mui/material/Skeleton';
+import { useQueryClient } from '@tanstack/react-query';
+import { useTheme } from 'next-themes';
+import { useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import ConfirmModal from '@/app/components/ConfirmModal';
 import { RotateCcw, Search, Trash2 } from '@/app/components/icons';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '@/app/components/ui/checkbox';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -15,18 +19,13 @@ import {
   toggleSelectAllVisible,
   toggleStatementSelection,
 } from '@/app/lib/statement-selection';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import { tokens } from '@/lib/theme-tokens';
-import { resolveBankLogo } from '@bank-logos';
-import Skeleton from '@mui/material/Skeleton';
-import { useQueryClient } from '@tanstack/react-query';
-import { useTheme } from 'next-themes';
-import { useEffect, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
 import { TrashListItem, type TrashListItemModel } from './TrashListItem';
 import {
-  type TrashEntityType,
   resolvePermanentDeletionDate,
   resolveTrashEntityType,
+  type TrashEntityType,
 } from './trash-utils';
 
 const PAGE_SIZE = 30;

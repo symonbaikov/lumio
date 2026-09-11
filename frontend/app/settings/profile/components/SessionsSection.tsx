@@ -1,16 +1,16 @@
 'use client';
 
-import { LogOut } from '@/app/components/icons';
-import { Alert } from '@/app/components/ui/alert';
-import { Spinner } from '@/app/components/ui/spinner';
-import { type UserFormatPreferences, formatDateTime } from '@/app/lib/user-format';
-import { type UserSession, getSessionIcon } from '@/app/settings/profile/profileHelpers';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import { LogOut } from '@/app/components/icons';
+import { Alert } from '@/app/components/ui/alert';
+import { Spinner } from '@/app/components/ui/spinner';
+import { formatDateTime, type UserFormatPreferences } from '@/app/lib/user-format';
+import { getSessionIcon, type UserSession } from '@/app/settings/profile/profileHelpers';
+import { tokens } from '@/lib/theme-tokens';
 
 type Props = {
   t: {

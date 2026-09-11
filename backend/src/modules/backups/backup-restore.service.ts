@@ -3,13 +3,12 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import type { DataSource, EntityMetadata } from 'typeorm';
-import type { Repository } from 'typeorm';
+import type { DataSource, EntityMetadata, Repository } from 'typeorm';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import { WorkspaceRole } from '../../entities';
 import type { User } from '../../entities/user.entity';
-import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { Workspace } from '../../entities/workspace.entity';
+import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { BackupArchiveService, type OpenedBackup } from './backup-archive.service';
 
 const RESTORE_ORDER = [

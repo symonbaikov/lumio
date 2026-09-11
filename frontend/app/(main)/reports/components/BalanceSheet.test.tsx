@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { renderWithQuery } from '@/app/test/query-wrapper';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiGet = vi.hoisted(() => vi.fn());
@@ -34,6 +35,10 @@ vi.mock('@/app/i18n', () => ({
     },
   }),
   useLocale: () => ({ locale: 'kk' }),
+}));
+
+vi.mock('@/app/contexts/WorkspaceContext', () => ({
+  useWorkspace: () => ({ currentWorkspace: { id: 'w1' } }),
 }));
 
 describe('BalanceSheet', () => {
@@ -78,11 +83,12 @@ describe('BalanceSheet', () => {
     }) as typeof document.createElement);
 
     const { default: BalanceSheet } = await import('./BalanceSheet');
-    render(<BalanceSheet />);
+    renderWithQuery(<BalanceSheet />);
 
     await waitFor(() => {
       expect(apiGet).toHaveBeenNthCalledWith(1, '/reports/balance/sheet', {
         params: { locale: 'kk' },
+        signal: expect.any(AbortSignal),
       });
     });
 

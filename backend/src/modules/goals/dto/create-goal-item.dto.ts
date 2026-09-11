@@ -5,8 +5,8 @@ import {
   IsString,
   Length,
   Matches,
-  Min,
   MaxLength,
+  Min,
 } from 'class-validator';
 import { GoalItemStatus } from '../../../entities/goal-item.entity';
 

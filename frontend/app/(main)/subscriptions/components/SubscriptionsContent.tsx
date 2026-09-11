@@ -1,8 +1,4 @@
 'use client';
-import { EmptyState } from '@/app/components/ui/EmptyState';
-import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
-
-import { Pencil, Plus, Trash2 } from '@/app/components/icons';
 import {
   Box,
   Button,
@@ -18,6 +14,10 @@ import {
   Typography,
 } from '@mui/material';
 import { useMemo, useState } from 'react';
+
+import { Pencil, Plus, Trash2 } from '@/app/components/icons';
+import { EmptyState } from '@/app/components/ui/EmptyState';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import type {
   SubscriptionFormData,
   SubscriptionItem,
@@ -34,7 +34,8 @@ interface SubscriptionsContentProps {
   summary: SubscriptionSummary;
   workspaceCurrency: string;
   workspaceMembers: SubscriptionWorkspaceMember[];
-  loading: boolean;
+  isPending: boolean;
+  isFetching: boolean;
   error: string | null;
   statusFilter: string;
   setStatusFilter: (value: string) => void;
@@ -263,7 +264,7 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
           <MenuItem value="missing_charge">Missing charge</MenuItem>
         </Select>
       </Box>
-      {props.loading ? (
+      {props.isPending ? (
         <>
           <Box
             sx={{
@@ -324,7 +325,8 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
           }
         />
       ) : (
-        <>
+        // Фоновое обновление после действия в строке не гасит список скелетоном.
+        <Box sx={{ opacity: props.isFetching ? 0.6 : 1, transition: 'opacity 150ms ease' }}>
           <Box
             sx={{
               display: { xs: 'none', md: 'block' },
@@ -403,7 +405,7 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
               />
             ))}
           </Box>
-        </>
+        </Box>
       )}
       <SubscriptionDetailsDrawer
         subscription={selected}

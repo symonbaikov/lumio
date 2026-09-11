@@ -1,9 +1,9 @@
 'use client';
 
-import { ChevronDown } from '@/app/components/icons';
-import { Checkbox } from '@/app/components/ui/checkbox';
 import type { Column, Row, Table } from '@tanstack/react-table';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { ChevronDown } from '@/app/components/icons';
+import { Checkbox } from '@/app/components/ui/checkbox';
 import type { CustomTableCellValue, CustomTableGridRow } from '../../utils/stylingUtils';
 
 interface EditableSelectCellProps {

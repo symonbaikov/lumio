@@ -1,7 +1,7 @@
 'use client';
 
-import { tokens } from '@/lib/theme-tokens';
 import { Box, Button, Stack } from '@mui/material';
+import { tokens } from '@/lib/theme-tokens';
 
 interface OnboardingNavigationProps {
   currentStep: number;

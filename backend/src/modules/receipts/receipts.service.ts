@@ -18,8 +18,8 @@ import {
 import { ReceiptApprovedEvent } from '../notifications/events/notification-events';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
 import {
-  type ReceiptWithCategory,
   attachReceiptCategories,
+  type ReceiptWithCategory,
 } from './helpers/attach-receipt-categories';
 import { ReceiptProcessorService } from './services/receipt-processor.service';
 
@@ -266,7 +266,7 @@ export class ReceiptsService {
           continue;
         }
 
-        if (!receipt.parsedData?.amount || !receipt.parsedData?.date) {
+        if (!(receipt.parsedData?.amount && receipt.parsedData?.date)) {
           results.failed += 1;
           results.errors.push({ receiptId, error: 'Missing required data' });
           continue;
@@ -335,7 +335,7 @@ export class ReceiptsService {
     const attachment = receipt.metadata?.attachments?.[0];
     const filePath = receipt.attachmentPaths?.[0];
 
-    if (!attachment || !filePath) {
+    if (!(attachment && filePath)) {
       return null;
     }
 

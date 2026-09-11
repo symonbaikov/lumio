@@ -1,13 +1,13 @@
 'use client';
 
+import IconButton from '@mui/material/IconButton';
+import { useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { Check, ChevronLeft, Globe, Search } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { type AppLocale as AppLanguage, DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/app/lib/locale';
 import { tokens } from '@/lib/theme-tokens';
-import IconButton from '@mui/material/IconButton';
-import { useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types, max-lines-per-function

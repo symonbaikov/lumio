@@ -1,9 +1,9 @@
 'use client';
 
-import { X } from '@/app/components/icons';
-import { tokens } from '@/lib/theme-tokens';
 import { Box, IconButton, Typography } from '@mui/material';
 import React from 'react';
+import { X } from '@/app/components/icons';
+import { tokens } from '@/lib/theme-tokens';
 import { StorageFoldersSidebar, type StorageFoldersSidebarProps } from './StorageFoldersSidebar';
 import { StorageTagsPanel, type StorageTagsPanelProps } from './StorageTagsPanel';
 

@@ -1,5 +1,6 @@
 'use client';
 
+import type { DuplicateMeta } from '@/app/(main)/statements/components/hooks/useStatementSelection';
 import { StatementsListItem } from '@/app/(main)/statements/components/StatementsListItem';
 import {
   formatPaginationLabel,
@@ -10,10 +11,9 @@ import {
   isReceiptProcessing,
   isStatementParsingInProgress,
 } from '@/app/(main)/statements/components/StatementsListView.utils';
-import type { DuplicateMeta } from '@/app/(main)/statements/components/hooks/useStatementSelection';
 import { ArrowDown } from '@/app/components/icons';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Checkbox } from '@/app/components/ui/checkbox';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { Spinner } from '@/app/components/ui/spinner';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';

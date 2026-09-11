@@ -1,5 +1,8 @@
 'use client';
 
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import React, { type ComponentType, Suspense, useEffect } from 'react';
 import { Alert } from '@/app/components/ui/alert';
 import { useAuth } from '@/app/hooks/useAuth';
 import { settingsSectionDomId } from '@/app/settings/profile/components/SettingsAccordion';
@@ -17,9 +20,6 @@ import { GeneralTab } from '@/app/settings/profile/tabs/GeneralTab';
 import { NotificationsTab } from '@/app/settings/profile/tabs/NotificationsTab';
 import { SecurityTab } from '@/app/settings/profile/tabs/SecurityTab';
 import type { SettingsTabProps } from '@/app/settings/profile/tabs/types';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import React, { type ComponentType, Suspense, useEffect } from 'react';
 
 const TAB_COMPONENT: Record<SettingsTabId, ComponentType<SettingsTabProps>> = {
   general: GeneralTab,

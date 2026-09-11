@@ -1,5 +1,7 @@
 'use client';
 
+import { useTheme } from 'next-themes';
+import { useMemo } from 'react';
 import {
   type AnalyticsFilterOptionLabels,
   buildAnalyticsFilterLabels,
@@ -9,8 +11,6 @@ import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer } from '@/app/i18n';
 import { resolveCurrencyCode } from '@/app/lib/analytics-common';
-import { useTheme } from 'next-themes';
-import { useMemo } from 'react';
 
 type WorkspaceLike = { id: string; name?: string | null };
 type SourceLabels = {

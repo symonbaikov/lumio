@@ -1,14 +1,13 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
-
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
-import { useQuery } from '@tanstack/react-query';
 
-import { type TransactionApiRecord, mapApiRecordToTransaction } from '../helpers/transactionMapper';
+import { mapApiRecordToTransaction, type TransactionApiRecord } from '../helpers/transactionMapper';
 import type { Category, Transaction } from '../types';
 
 export interface UseTransactionDataOptions {

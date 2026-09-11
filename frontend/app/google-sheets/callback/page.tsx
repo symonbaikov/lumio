@@ -2,13 +2,13 @@
 
 export const dynamic = 'force-dynamic';
 
+import { Alert, Container, Paper, Typography } from '@mui/material';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
-import { Alert, Container, Paper, Typography } from '@mui/material';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
 
 // eslint-disable-next-line max-lines-per-function
 function CallbackContent(): React.JSX.Element {
@@ -68,7 +68,7 @@ function CallbackContent(): React.JSX.Element {
           </Alert>
         ) : null}
 
-        {!error && !success ? <Spinner size={20} /> : null}
+        {!(error || success) ? <Spinner size={20} /> : null}
       </Paper>
     </Container>
   );

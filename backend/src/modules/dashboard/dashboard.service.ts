@@ -10,8 +10,8 @@ import {
   SubscriptionStatus,
 } from '../../entities/subscription.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
-import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { Workspace } from '../../entities/workspace.entity';
+import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { daysInMonth, getMonthWindowBounds, getWindowBounds } from './dashboard-window.util';
 import type {

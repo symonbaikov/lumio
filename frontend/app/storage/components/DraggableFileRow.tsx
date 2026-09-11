@@ -1,5 +1,10 @@
 'use client';
 
+import { useDraggable } from '@dnd-kit/core';
+import { Box, Chip, IconButton, Tooltip, Typography } from '@mui/material';
+import { useTheme } from 'next-themes';
+import type { CSSProperties } from 'react';
+import React from 'react';
 import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
 import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
 import {
@@ -13,11 +18,6 @@ import {
 } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { tokens } from '@/lib/theme-tokens';
-import { useDraggable } from '@dnd-kit/core';
-import { Box, Chip, IconButton, Tooltip, Typography } from '@mui/material';
-import { useTheme } from 'next-themes';
-import React from 'react';
-import type { CSSProperties } from 'react';
 import type { CategoryOption, FileAvailability, StorageFile, TagOption } from '../storageHelpers';
 
 interface DraggableFileRowProps {

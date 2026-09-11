@@ -1,12 +1,12 @@
 'use client';
 
-import { Camera, ImageUp } from '@/app/components/icons';
-import { ModalShell } from '@/app/components/ui/modal-shell';
-import { receiptsApi } from '@/app/lib/api';
 import { Box, Typography } from '@mui/material';
 import MuiButton from '@mui/material/Button';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { Camera, ImageUp } from '@/app/components/icons';
+import { ModalShell } from '@/app/components/ui/modal-shell';
+import { receiptsApi } from '@/app/lib/api';
 import { useCamera } from './hooks/useCamera';
 
 export interface ReceiptCameraCaptureProps {

@@ -1,14 +1,14 @@
 'use client';
 
+import { Tab, Tabs } from '@mui/material';
+import type React from 'react';
+import type { ComponentType } from 'react';
 import { Bell, Cloud, FlaskConical, ShieldCheck, UserCircle } from '@/app/components/icons';
 import { sharedMuiTabsSx } from '@/app/components/ui/mui-tabs';
 import {
   SETTINGS_TABS,
   type SettingsTabId,
 } from '@/app/settings/profile/helpers/settings-url-state';
-import { Tab, Tabs } from '@mui/material';
-import type React from 'react';
-import type { ComponentType } from 'react';
 
 export type SettingsTabsLabels = Record<SettingsTabId, string>;
 

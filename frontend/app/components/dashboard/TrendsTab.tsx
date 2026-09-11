@@ -1,23 +1,21 @@
 'use client';
 
-import { Spinner } from '@/app/components/ui/spinner';
+import Skeleton from '@mui/material/Skeleton';
+import { useTheme } from 'next-themes';
+import type React from 'react';
+import { useMemo, useState } from 'react';
+import { LazyECharts } from '@/app/components/ui/lazy-echarts';
 import type { DashboardData, DashboardTrends } from '@/app/hooks/useDashboard';
 import { useDashboardTrends } from '@/app/hooks/useDashboard';
 import { useIntlayer } from '@/app/i18n';
 import { categoryColorFor } from '@/app/lib/category-defaults';
 import { resolveDashboardEffectivePeriod } from '@/app/lib/dashboard-effective-window';
-import { useTheme } from 'next-themes';
-import dynamic from 'next/dynamic';
-import type React from 'react';
-import { useMemo, useState } from 'react';
 import { CashFlowCard } from './CashFlowCard';
 import { CategoryIconBadge } from './CategoryIconBadge';
 import { buildCategoryRoseOption, buildDailyTrendOption } from './helpers/trends-chart-options';
 import { DAY_OPTIONS } from './helpers/trends-constants';
 import { Chip, ChipGroup, DashboardCard, KpiCard, ListRow } from './ui';
 import { useMonthLabel } from './use-month-label';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 const DEFAULT_DAYS = 30;
 const LEGEND_LIMIT = 10;
@@ -79,10 +77,12 @@ function CardState({
   emptyLabel: React.ReactNode;
   children: React.ReactNode;
 }): React.JSX.Element {
+  // Та же коробка, что у загруженного графика (min-height 260 против 120 у
+  // __card-empty), иначе карточка меняет высоту дважды за загрузку.
   if (state.loading) {
     return (
-      <div className="lumio-dashboard__card-empty">
-        <Spinner size={24} />
+      <div className="lumio-dashboard__chart">
+        <Skeleton variant="rounded" width="100%" height="100%" />
       </div>
     );
   }
@@ -148,7 +148,7 @@ function SpendTrendCard({
       <CardState state={state} emptyLabel={t.noTrendDataForPeriod}>
         {option ? (
           <div className="lumio-dashboard__chart">
-            <ReactECharts
+            <LazyECharts
               style={{ height: '100%', width: '100%' }}
               option={option}
               notMerge
@@ -189,7 +189,7 @@ function CategoryBreakdownCard({
         {option ? (
           <>
             <div className="lumio-dashboard__donut lumio-dashboard__donut--wide">
-              <ReactECharts
+              <LazyECharts
                 style={{ height: '100%', width: '100%' }}
                 option={option}
                 notMerge

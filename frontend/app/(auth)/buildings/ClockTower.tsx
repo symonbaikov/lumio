@@ -1,8 +1,8 @@
 'use client';
 
-import { tokens } from '@/lib/theme-tokens';
 import React from 'react';
-import { Block, BuildingProps, WindowGrid, motion } from './shared';
+import { tokens } from '@/lib/theme-tokens';
+import { Block, BuildingProps, motion, WindowGrid } from './shared';
 
 const FACE_STYLE: React.CSSProperties = {
   display: 'flex',

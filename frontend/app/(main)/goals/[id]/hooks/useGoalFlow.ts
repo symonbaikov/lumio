@@ -1,11 +1,11 @@
 'use client';
 
-import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
-import { getApiErrorMessage } from '@/app/lib/api-error';
-import { type GoalFlowResponse, fetchGoalFlow } from '@/app/lib/goals-api';
-import { queryKeys } from '@/app/lib/query-keys';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import { getApiErrorMessage } from '@/app/lib/api-error';
+import { fetchGoalFlow, type GoalFlowResponse } from '@/app/lib/goals-api';
+import { queryKeys } from '@/app/lib/query-keys';
 
 export interface GoalFlowState {
   data: GoalFlowResponse | undefined;

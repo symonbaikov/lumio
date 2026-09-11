@@ -1,5 +1,7 @@
 'use client';
 
+import Stack from '@mui/material/Stack';
+import type React from 'react';
 import { Bot } from '@/app/components/icons';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer } from '@/app/i18n';
@@ -8,8 +10,6 @@ import { SettingsAccordion } from '@/app/settings/profile/components/SettingsAcc
 import { useNotifications } from '@/app/settings/profile/hooks/useNotifications';
 import { useSettingsText } from '@/app/settings/profile/hooks/useSettingsText';
 import { TelegramSettingsPanel } from '@/app/settings/telegram/TelegramSettingsPanel';
-import Stack from '@mui/material/Stack';
-import type React from 'react';
 
 import type { SettingsTabProps } from './types';
 

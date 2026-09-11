@@ -1,5 +1,8 @@
 'use client';
 
+import Link from 'next/link';
+import type React from 'react';
+import { useMemo } from 'react';
 import { BudgetSummaryWidget } from '@/app/(main)/dashboard/components/BudgetSummaryWidget';
 import { CashRunwayWidget } from '@/app/(main)/dashboard/components/CashRunwayWidget';
 import { formatDateOnly } from '@/app/(main)/dashboard/helpers/dashboard-helpers';
@@ -7,14 +10,11 @@ import { FileUp } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import type { DashboardData } from '@/app/hooks/useDashboard';
 import { useIntlayer } from '@/app/i18n';
-import Link from 'next/link';
-import type React from 'react';
-import { useMemo } from 'react';
 import { Spinner } from '../ui/spinner';
 import { CryptoPortfolioCard } from './CryptoPortfolioCard';
+import { computeNet, computeSavingsRate } from './dashboard-stats.util';
 import { RecentTransactionsCard } from './RecentTransactionsCard';
 import { TopCategoriesCard } from './TopCategoriesCard';
-import { computeNet, computeSavingsRate } from './dashboard-stats.util';
 import { CardLink, DashboardCard, KpiCard } from './ui';
 import { useMonthLabel } from './use-month-label';
 

@@ -1,5 +1,11 @@
 'use client';
 
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import type React from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Palette, UserCircle } from '@/app/components/icons';
 import { Alert } from '@/app/components/ui/alert';
 import { useLocale } from '@/app/i18n';
@@ -18,16 +24,10 @@ import { useAvatarUpload } from '@/app/settings/profile/hooks/useAvatarUpload';
 import { useProfileForm } from '@/app/settings/profile/hooks/useProfileForm';
 import { useSettingsText } from '@/app/settings/profile/hooks/useSettingsText';
 import {
-  type TimeZoneOption,
   getInitials,
   resolveTimeZoneOptions,
+  type TimeZoneOption,
 } from '@/app/settings/profile/profileHelpers';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import type React from 'react';
-import { useCallback, useMemo, useState } from 'react';
 
 import type { SettingsTabProps } from './types';
 

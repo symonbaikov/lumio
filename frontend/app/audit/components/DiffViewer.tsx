@@ -1,10 +1,10 @@
 'use client';
 
-import { getRecord } from '@/app/lib/side-panel-utils';
-import type { AuditEventDiff } from '@/lib/api/audit';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import React from 'react';
+import { getRecord } from '@/app/lib/side-panel-utils';
+import type { AuditEventDiff } from '@/lib/api/audit';
 
 const TECHNICAL_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'workspaceId', 'userId']);
 
@@ -114,8 +114,8 @@ function DiffObjectView({
         {keys.map(key => {
           const beforeValue = getRecord(before)?.[key];
           const afterValue = getRecord(after)?.[key];
-          const hadBefore = Object.prototype.hasOwnProperty.call(before, key);
-          const hadAfter = Object.prototype.hasOwnProperty.call(after, key);
+          const hadBefore = Object.hasOwn(before, key);
+          const hadAfter = Object.hasOwn(after, key);
           const changed = JSON.stringify(beforeValue) !== JSON.stringify(afterValue);
           const rowBg = getRowBackground(hadBefore, hadAfter, changed);
           return (

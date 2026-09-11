@@ -1,8 +1,8 @@
 'use client';
 
-import { isExperimentalModeEnabled } from '@/app/lib/experimental-mode';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { isExperimentalModeEnabled } from '@/app/lib/experimental-mode';
 import { isChatModePreferred } from './chat-mode-preference';
 
 /** Paths that must stay reachable even when chat mode is the preferred shell. */

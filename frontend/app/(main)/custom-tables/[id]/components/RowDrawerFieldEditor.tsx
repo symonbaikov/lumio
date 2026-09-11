@@ -1,10 +1,9 @@
 'use client';
 
+import { Box, Typography } from '@mui/material';
 import React from 'react';
-
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { Checkbox } from '@/app/components/ui/checkbox';
-import { Box, Typography } from '@mui/material';
 import { formatValue } from '../helpers/rowDrawerHelpers';
 import type { CustomTableColumn, CustomTableRowPatch } from '../utils/stylingUtils';
 

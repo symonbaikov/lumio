@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { ExchangeRate } from '../../entities/exchange-rate.entity';
 import { COINGECKO_IDS } from './crypto.constants';
-import { MAX_ATTEMPTS, isTransient, retryWaitMs, sleep } from './retry.util';
+import { isTransient, MAX_ATTEMPTS, retryWaitMs, sleep } from './retry.util';
 
 const COINGECKO_BASE_URL = 'https://api.coingecko.com/api/v3';
 const PRICE_SOURCE = 'coingecko';

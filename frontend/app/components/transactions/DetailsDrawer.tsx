@@ -6,10 +6,10 @@ import { AuditEventDrawer } from '@/app/audit/components/AuditEventDrawer';
 import { useIntlayer } from '@/app/i18n';
 
 import { DrawerShell } from '../ui/drawer-shell';
+import { useTransactionHistory } from './hooks/useTransactionHistory';
 import { TransactionDetailsTab } from './TransactionDetailsTab';
 import { TransactionFilesTab } from './TransactionFilesTab';
 import { TransactionHistoryTab } from './TransactionHistoryTab';
-import { useTransactionHistory } from './hooks/useTransactionHistory';
 import type { Category, Transaction } from './types';
 
 interface DetailsDrawerProps {

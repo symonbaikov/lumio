@@ -1,7 +1,7 @@
 import {
   DEFAULT_STATEMENT_FILTERS,
-  type StatementFilters,
   resetSingleStatementFilter,
+  type StatementFilters,
 } from './statement-filters';
 
 export type StatementFilterScreen =

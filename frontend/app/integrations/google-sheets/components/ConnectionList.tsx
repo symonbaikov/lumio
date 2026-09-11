@@ -1,8 +1,8 @@
 'use client';
 
-import { tokens } from '@/lib/theme-tokens';
 import { Box, Stack, Typography } from '@mui/material';
 import type React from 'react';
+import { tokens } from '@/lib/theme-tokens';
 import type { GoogleSheetConnection } from '../useGoogleSheetsPage';
 import { ConnectionCard } from './ConnectionCard';
 

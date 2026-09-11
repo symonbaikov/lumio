@@ -1,9 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Filter, Search, X } from '@/app/components/icons';
 import { useLocale } from '@/app/i18n';
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
-import { useEffect, useState } from 'react';
 import type { Category, FilterState } from './types';
 
 type FilterTranslations = {

@@ -5,7 +5,10 @@ import type { Transaction } from '../TransactionsView';
 export const getTransactionValue = ({
   transaction,
   key,
-}: { transaction: Transaction; key: string }): unknown => {
+}: {
+  transaction: Transaction;
+  key: string;
+}): unknown => {
   const record = transaction as unknown as Record<string, unknown>;
   return record[key];
 };

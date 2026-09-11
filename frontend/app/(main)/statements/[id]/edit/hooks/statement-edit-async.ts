@@ -1,14 +1,14 @@
+import type { Dispatch, SetStateAction } from 'react';
+import { toast } from 'react-hot-toast';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import { payablesApi } from '@/app/lib/payables-api';
-import { isStageActionBlocked, setStatementStage } from '@/app/lib/statement-workflow';
 import type {
   StatementStage,
   StatementStageAction,
   StatementStageActionId,
 } from '@/app/lib/statement-workflow';
-import type { Dispatch, SetStateAction } from 'react';
-import { toast } from 'react-hot-toast';
+import { isStageActionBlocked, setStatementStage } from '@/app/lib/statement-workflow';
 import type {
   BranchOption,
   CategoryOption,
@@ -112,9 +112,9 @@ export async function loadStatementData(
   }
 }
 
-function getExportTableId(response: { data?: { tableId?: string; id?: string } }):
-  | string
-  | undefined {
+function getExportTableId(response: {
+  data?: { tableId?: string; id?: string };
+}): string | undefined {
   return response?.data?.tableId ?? response?.data?.id;
 }
 

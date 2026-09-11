@@ -15,8 +15,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
+import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import { appError } from '../../common/errors/app-error';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -27,17 +27,17 @@ import type { User } from '../../entities/user.entity';
 import { Audit } from '../audit/decorators/audit.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CustomTableImportJobsService } from './custom-table-import-jobs.service';
+import { CustomTablesService } from './custom-tables.service';
 import { CustomTablesCacheService } from './custom-tables-cache.service';
 import { CustomTablesImportService } from './custom-tables-import.service';
-import { CustomTablesService } from './custom-tables.service';
 import { BatchCreateCustomTableRowsDto } from './dto/batch-create-custom-table-rows.dto';
 import { ClassifyPaidStatusDto } from './dto/classify-paid-status.dto';
+import { CreateCustomTableDto } from './dto/create-custom-table.dto';
 import { CreateCustomTableColumnDto } from './dto/create-custom-table-column.dto';
-import { CreateCustomTableFromDataEntryCustomTabDto } from './dto/create-custom-table-from-data-entry-custom-tab.dto';
 import { CreateCustomTableFromDataEntryDto } from './dto/create-custom-table-from-data-entry.dto';
+import { CreateCustomTableFromDataEntryCustomTabDto } from './dto/create-custom-table-from-data-entry-custom-tab.dto';
 import { CreateCustomTableFromStatementsDto } from './dto/create-custom-table-from-statements.dto';
 import { CreateCustomTableRowDto } from './dto/create-custom-table-row.dto';
-import { CreateCustomTableDto } from './dto/create-custom-table.dto';
 import { FillAiColumnDto } from './dto/fill-ai-column.dto';
 import { GoogleSheetsImportCommitDto } from './dto/google-sheets-import-commit.dto';
 import { GoogleSheetsImportPreviewDto } from './dto/google-sheets-import-preview.dto';
@@ -49,6 +49,7 @@ import {
   CustomTableRowSortDto,
 } from './dto/list-custom-table-rows.dto';
 import { ReorderCustomTableColumnsDto } from './dto/reorder-custom-table-columns.dto';
+import { UpdateCustomTableDto } from './dto/update-custom-table.dto';
 import { UpdateCustomTableColumnDto } from './dto/update-custom-table-column.dto';
 import { UpdateCustomTableRowDto } from './dto/update-custom-table-row.dto';
 import { UpdateCustomTableViewSettingsColumnDto } from './dto/update-custom-table-view-settings.dto';
@@ -56,7 +57,6 @@ import {
   UpdateCustomTableRulesDto,
   UpdateCustomTableViewsDto,
 } from './dto/update-custom-table-views.dto';
-import { UpdateCustomTableDto } from './dto/update-custom-table.dto';
 
 type GoogleSheetsCommitJobPayload = GoogleSheetsImportCommitDto;
 

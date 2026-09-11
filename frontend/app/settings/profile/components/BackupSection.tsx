@@ -1,10 +1,4 @@
 'use client';
-import { formatStoredDateTime } from '@/app/lib/user-format-store';
-
-import { Cloud, Download, FileUp, Lock, RefreshCw } from '@/app/components/icons';
-import { Alert } from '@/app/components/ui/alert';
-import { Spinner } from '@/app/components/ui/spinner';
-import apiClient from '@/app/lib/api';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -15,6 +9,11 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Cloud, Download, FileUp, Lock, RefreshCw } from '@/app/components/icons';
+import { Alert } from '@/app/components/ui/alert';
+import { Spinner } from '@/app/components/ui/spinner';
+import apiClient from '@/app/lib/api';
+import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
 type BackupConfig = {
   destinationKind: 'local' | 'nextcloud';

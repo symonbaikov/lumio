@@ -1,6 +1,5 @@
 'use client';
 
-import { getApiErrorMessage } from '@/app/lib/api-error';
 import type React from 'react';
 import {
   createContext,
@@ -11,6 +10,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { getApiErrorMessage } from '@/app/lib/api-error';
 import { api } from '../lib/api';
 
 type WorkspaceSettings = Record<string, unknown>;

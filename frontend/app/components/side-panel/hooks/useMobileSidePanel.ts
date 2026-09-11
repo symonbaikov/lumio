@@ -1,7 +1,7 @@
 'use client';
 
-import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import React from 'react';
+import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import type { SidePanelPageConfig } from '../types';
 
 type ClonableProps = Record<string, unknown>;

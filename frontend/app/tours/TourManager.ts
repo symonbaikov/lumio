@@ -2,9 +2,8 @@
  * Tour Manager - manages launching, navigation and state of tours
  */
 
-import { type DriveStep, type Driver, driver } from 'driver.js';
+import { type Driver, type DriveStep, driver } from 'driver.js';
 import {
-  TOUR_STORAGE_KEY,
   buildDriverConfig,
   createDismissListeners,
   getAnalyticsTracker,
@@ -13,10 +12,11 @@ import {
   markTourCompleted,
   saveTourStartProgress,
   saveTourState,
+  TOUR_STORAGE_KEY,
   updateTourProgress,
 } from './TourManagerHelpers';
 import { cleanupStableTourPopoverPositioning } from './TourPopoverPositioning';
-import { type StepContext, buildDriveStep } from './TourStepBuilder';
+import { buildDriveStep, type StepContext } from './TourStepBuilder';
 import {
   type TourConfig,
   type TourDriverConfig,

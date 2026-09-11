@@ -1,10 +1,10 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import type { User } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { MAX_AVATAR_SIZE_BYTES } from '@/app/lib/constants';
 import { getApiErrorMessage } from '@/app/settings/profile/profileHelpers';
-import { useEffect, useRef, useState } from 'react';
 
 export type UseAvatarUploadMessages = {
   sizeError: string;

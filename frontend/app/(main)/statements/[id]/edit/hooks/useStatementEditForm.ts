@@ -1,9 +1,9 @@
 'use client';
 
-import { useAutoSave } from '@/app/hooks/useAutoSave';
-import { getStatementStage } from '@/app/lib/statement-workflow';
-import type { StatementStageAction, StatementStageActionId } from '@/app/lib/statement-workflow';
 import { useCallback, useEffect } from 'react';
+import { useAutoSave } from '@/app/hooks/useAutoSave';
+import type { StatementStageAction, StatementStageActionId } from '@/app/lib/statement-workflow';
+import { getStatementStage } from '@/app/lib/statement-workflow';
 import type { Transaction } from '../editHelpers';
 import {
   convertDroppedSampleAction,

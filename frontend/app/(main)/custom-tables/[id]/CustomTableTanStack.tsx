@@ -1,7 +1,7 @@
 'use client';
 
-import { useIsMobile } from '@/app/hooks/useIsMobile';
 import type { SortingState } from '@tanstack/react-table';
+import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { DesktopTableView } from './components/DesktopTableView';
 import { MobileTableView } from './components/MobileTableView';
 import {

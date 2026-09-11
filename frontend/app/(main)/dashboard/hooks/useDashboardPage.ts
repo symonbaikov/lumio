@@ -1,5 +1,7 @@
 'use client';
 
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useMemo } from 'react';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import type { DashboardData } from '@/app/hooks/useDashboard';
@@ -9,8 +11,6 @@ import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { resolveDashboardEffectivePeriod } from '@/app/lib/dashboard-effective-window';
 import { resolveDashboardStatusHeading } from '@/app/lib/dashboard-status-heading';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo } from 'react';
 import {
   fillTemplate,
   formatDateOnly,
@@ -22,8 +22,8 @@ import {
   text,
 } from '../helpers/dashboard-helpers';
 import {
-  DEFAULT_DASHBOARD_TAB,
   type DashboardTabId,
+  DEFAULT_DASHBOARD_TAB,
   formatMonthParam,
   parseMonthParam,
   parseTabParam,

@@ -1,10 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
   type UseStatementFiltersReturn,
   useStatementFilters,
 } from '@/app/(main)/statements/hooks/useStatementFilters';
-import { useEffect, useState } from 'react';
 
 export type TopAnalyticsStateReturn<TFlow extends string, TSort extends string> = {
   activeFlowType: TFlow;

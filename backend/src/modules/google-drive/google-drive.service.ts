@@ -163,7 +163,7 @@ export class GoogleDriveService extends CloudStorageBaseService<DriveSettings> {
     const clientId = this.getClientId();
     const clientSecret = this.getClientSecret();
     const redirectUri = this.getRedirectUri();
-    if (!clientId || !clientSecret || !redirectUri) {
+    if (!(clientId && clientSecret && redirectUri)) {
       throw new BadRequestException('Google Drive OAuth is not configured');
     }
     return { clientId, clientSecret, redirectUri };
@@ -208,7 +208,7 @@ export class GoogleDriveService extends CloudStorageBaseService<DriveSettings> {
     const accessToken = token.access_token || '';
     const refreshToken = token.refresh_token || '';
 
-    if (!accessToken && !refreshToken) {
+    if (!(accessToken || refreshToken)) {
       return `${redirectBase}?status=error&reason=missing_tokens`;
     }
 

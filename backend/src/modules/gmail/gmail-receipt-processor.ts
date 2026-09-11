@@ -16,10 +16,10 @@ import {
 import { AuditService } from '../audit/audit.service';
 import type { ReceiptUncategorizedEvent } from '../notifications/events/notification-events';
 import type { GmailApi } from './gmail-api.types';
+import { GmailService } from './services/gmail.service';
 import { GmailReceiptCategoryService } from './services/gmail-receipt-category.service';
 import { GmailReceiptDuplicateService } from './services/gmail-receipt-duplicate.service';
 import { GmailReceiptParserService } from './services/gmail-receipt-parser.service';
-import { GmailService } from './services/gmail.service';
 
 const JOB_LOCK_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const WORKER_ID = `worker-${process.pid}-${Math.random().toString(36).substr(2, 9)}`;

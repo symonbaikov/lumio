@@ -1,9 +1,4 @@
 'use client';
-import { formatStoredDate } from '@/app/lib/user-format-store';
-
-import { Pencil } from '@/app/components/icons';
-import { Checkbox } from '@/app/components/ui/checkbox';
-import { useIntlayer, useLocale } from '@/app/i18n';
 import {
   Alert,
   Box,
@@ -32,8 +27,16 @@ import {
 } from '@mui/material';
 import CircularProgress from '@mui/material/CircularProgress';
 import Skeleton from '@mui/material/Skeleton';
-import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Pencil } from '@/app/components/icons';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import { formatStoredDate } from '@/app/lib/user-format-store';
+import { useWorkspaceId } from '../../hooks/useWorkspaceId';
 import apiClient from '../../lib/api';
+import { apiQuery } from '../../lib/query-fn';
+import { queryKeys } from '../../lib/query-keys';
 
 const USER_ROW_SKELETON_KEYS = ['user-0', 'user-1', 'user-2', 'user-3', 'user-4', 'user-5'];
 
@@ -115,8 +118,6 @@ export default function UsersManagementPage() {
     { value: 'google_sheet.sync', label: t.permissions.googleSheetSync.value },
   ];
 
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -124,26 +125,18 @@ export default function UsersManagementPage() {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const loadUsers = async () => {
-    setLoading(true);
-    setError(null);
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
 
-    await (async () => {
-      const response = await apiClient.get<{ data: User[] }>('/users');
-      setUsers(response.data.data || []);
-    })()
-      .catch(async (err: unknown) => {
-        const error = err as { response?: { data?: { message?: string } } };
-        setError(error.response?.data?.message || t.errors.loadUsers.value);
-      })
-      .finally(async () => {
-        setLoading(false);
-      });
+  const usersQuery = useQuery({
+    queryKey: queryKeys.adminUsers(workspaceId),
+    queryFn: ({ signal }) => apiQuery<User[]>({ url: '/users', signal }),
+  });
+
+  const users = usersQuery.data ?? [];
+  const loadUsers = (): void => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers(workspaceId) });
   };
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
 
   const handleEditPermissions = async (user: User) => {
     await (async () => {
@@ -243,9 +236,9 @@ export default function UsersManagementPage() {
 
       <Paper sx={{ mt: 3 }}>
         <Box sx={{ p: 3 }}>
-          {error && (
+          {(error || usersQuery.isError) && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
+              {error ?? t.errors.loadUsers.value}
             </Alert>
           )}
 
@@ -256,12 +249,12 @@ export default function UsersManagementPage() {
               onChange={e => setSearchTerm(e.target.value)}
               sx={{ flexGrow: 1 }}
             />
-            <Button variant="outlined" onClick={loadUsers} disabled={loading}>
+            <Button variant="outlined" onClick={loadUsers} disabled={usersQuery.isFetching}>
               {t.refresh}
             </Button>
           </Box>
 
-          {loading ? (
+          {usersQuery.isPending ? (
             <TableContainer>
               <Table>
                 <TableHead>
@@ -283,7 +276,10 @@ export default function UsersManagementPage() {
               </Table>
             </TableContainer>
           ) : (
-            <TableContainer>
+            // Мутации перезагружают список в фоне: таблица остаётся на месте.
+            <TableContainer
+              sx={{ opacity: usersQuery.isFetching ? 0.6 : 1, transition: 'opacity 150ms ease' }}
+            >
               <Table>
                 <TableHead>
                   <TableRow>

@@ -1,3 +1,5 @@
+import { useTheme } from 'next-themes';
+import { useMemo, useState } from 'react';
 import {
   buildSpendOverTimeLabels,
   createTx,
@@ -21,8 +23,6 @@ import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer } from '@/app/i18n';
 import { resolveCurrencyCode } from '@/app/lib/analytics-common';
-import { useTheme } from 'next-themes';
-import { useMemo, useState } from 'react';
 
 type WorkspaceLike = { id: string; name?: string | null };
 type SortKey = 'amount' | 'average' | 'operations';

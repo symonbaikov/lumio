@@ -1,8 +1,8 @@
 'use client';
 
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/app/lib/locale';
 import { useCallback, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/app/lib/locale';
 import type { AppLanguage } from '../helpers/navigation-config';
 
 interface Language {

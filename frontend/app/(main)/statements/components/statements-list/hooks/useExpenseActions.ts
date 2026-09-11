@@ -1,14 +1,14 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import apiClient from '@/app/lib/api';
 import { getApiErrorStatus } from '@/app/lib/api-error';
 import type { StatementCategoryNode } from '@/app/lib/statement-categories';
 import { type ManualExpenseDraft, type TaxRateOption } from '@/app/lib/statement-expense-drawer';
-import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
 import {
-  type StatementCategoryWithEnabled,
   filterEnabledCategories,
+  type StatementCategoryWithEnabled,
 } from '../../StatementsListView.utils';
 import {
   uploadReceiptScanFiles as runUploadReceiptScanFiles,

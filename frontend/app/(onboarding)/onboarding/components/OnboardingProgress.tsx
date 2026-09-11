@@ -1,7 +1,7 @@
 'use client';
 
-import { tokens } from '@/lib/theme-tokens';
 import { Box, Stack, Typography } from '@mui/material';
+import { tokens } from '@/lib/theme-tokens';
 
 interface OnboardingProgressProps {
   currentStep: number;

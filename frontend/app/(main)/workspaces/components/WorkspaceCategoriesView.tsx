@@ -1,22 +1,7 @@
 'use client';
 
 import {
-  Check,
-  ChevronRight,
-  FolderOpen,
-  Lock,
-  Plus,
-  Search as SearchIcon,
-  Tag,
-} from '@/app/components/icons';
-import { Checkbox } from '@/app/components/ui/checkbox';
-import { useAuth } from '@/app/hooks/useAuth';
-import { useIntlayer, useLocale } from '@/app/i18n';
-import apiClient from '@/app/lib/api';
-import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
-import { getCategoryDisplayName } from '@/app/lib/statement-categories';
-import { tokens } from '@/lib/theme-tokens';
-import {
+  alpha,
   Box,
   Button,
   Dialog,
@@ -31,11 +16,30 @@ import {
   Switch,
   TextField,
   Typography,
-  alpha,
   useTheme,
 } from '@mui/material';
-import { type ChangeEvent, useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { type ChangeEvent, useCallback, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import {
+  Check,
+  ChevronRight,
+  FolderOpen,
+  Lock,
+  Plus,
+  Search as SearchIcon,
+  Tag,
+} from '@/app/components/icons';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { useAuth } from '@/app/hooks/useAuth';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import apiClient from '@/app/lib/api';
+import { apiQuery } from '@/app/lib/query-fn';
+import { queryKeys } from '@/app/lib/query-keys';
+import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
+import { getCategoryDisplayName } from '@/app/lib/statement-categories';
+import { tokens } from '@/lib/theme-tokens';
 
 interface Category {
   id: string;
@@ -189,8 +193,8 @@ export default function WorkspaceCategoriesView() {
   const theme = useTheme();
   const { user } = useAuth();
   const tx = (path: string[], fallback: string) => resolveLabel(getNestedValue(t, path), fallback);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [uploadingIcon, setUploadingIcon] = useState(false);
@@ -199,7 +203,7 @@ export default function WorkspaceCategoriesView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [usageCounts, setUsageCounts] = useState<Record<string, CategoryUsageCount>>({});
+
   const [disableConfirm, setDisableConfirm] = useState<{
     category: Category;
     usage: CategoryUsageCount;
@@ -236,34 +240,42 @@ export default function WorkspaceCategoriesView() {
     parentId: '',
   });
 
+  const categoriesQuery = useQuery({
+    queryKey: queryKeys.categories(workspaceId),
+    queryFn: ({ signal }) => apiQuery<Category[]>({ url: '/categories', signal }),
+    enabled: Boolean(user),
+  });
+
+  const usageQuery = useQuery({
+    queryKey: queryKeys.categoryUsage(workspaceId),
+    queryFn: ({ signal }) =>
+      apiQuery<Record<string, CategoryUsageCount>>({ url: '/categories/usage/counts', signal }),
+    enabled: Boolean(user),
+  });
+
+  const categories = categoriesQuery.data ?? [];
+  const usageCounts = usageQuery.data ?? {};
+
+  /**
+   * Переключение галочки правит одну строку прямо в кэше — список не должен
+   * гаснуть скелетоном из-за одного чекбокса.
+   */
+  const setCategories = useCallback(
+    (update: (prev: Category[]) => Category[]) => {
+      queryClient.setQueryData<Category[]>(queryKeys.categories(workspaceId), previous =>
+        update(previous ?? []),
+      );
+    },
+    [queryClient, workspaceId],
+  );
+
+  const loadCategories = useCallback(async (): Promise<void> => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.categories(workspaceId) });
+  }, [queryClient, workspaceId]);
+
   const filteredCategories = categories.filter(cat => {
     return getCategoryDisplayName(cat, locale).toLowerCase().includes(searchQuery.toLowerCase());
   });
-
-  const loadCategories = async () => {
-    await (async () => {
-      setLoading(true);
-      const [categoriesRes, usageRes] = await Promise.all([
-        apiClient.get('/categories'),
-        apiClient.get('/categories/usage/counts'),
-      ]);
-      setCategories(categoriesRes.data);
-      setUsageCounts(usageRes.data);
-    })()
-      .catch(async err => {
-        console.error('Failed to load categories:', err);
-        toast.error(t.toasts.loadFailed.value);
-      })
-      .finally(async () => {
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    if (user) {
-      loadCategories();
-    }
-  }, [user]);
 
   const handleOpenDialog = (category?: Category) => {
     if (category) {
@@ -681,7 +693,7 @@ export default function WorkspaceCategoriesView() {
             <span>{tx(['enabled'], 'Enabled')}</span>
           </Box>
 
-          {loading ? (
+          {categoriesQuery.isPending ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, px: 1, pb: 2, pt: 1.5 }}>
               {CATEGORY_ROW_SKELETON_KEYS.map(key => (
                 <CategoryRowSkeleton key={key} />
@@ -730,7 +742,18 @@ export default function WorkspaceCategoriesView() {
               </button>
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, px: 1, pb: 2 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1.5,
+                px: 1,
+                pb: 2,
+                // Массовые действия перезагружают список в фоне, не гася строки.
+                opacity: categoriesQuery.isFetching ? 0.6 : 1,
+                transition: 'opacity 150ms ease',
+              }}
+            >
               {filteredCategories.map((category, index) => {
                 const categoryColor = category.color || '#2196F3';
                 const hasIcon = Boolean(category.icon?.trim());

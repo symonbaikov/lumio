@@ -1,10 +1,10 @@
 'use client';
 
+import { Box, Button, Stack, Typography, useTheme } from '@mui/material';
+import type { ReactNode } from 'react';
 import { CheckCircle2, Link2Off, RefreshCcw, XCircle } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, Button, Stack, Typography, useTheme } from '@mui/material';
-import type { ReactNode } from 'react';
 import type { IntegrationStatus } from '../types';
 
 type IntegrationStatusCardProps = {

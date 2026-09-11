@@ -1,8 +1,6 @@
 'use client';
-import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
-
-import { Calendar, Landmark, Receipt, TrendingDown, TrendingUp } from '@/app/components/icons';
 import {
+  alpha,
   Box,
   Chip,
   Divider,
@@ -15,10 +13,11 @@ import {
   TableHead,
   TableRow,
   Typography,
-  alpha,
 } from '@mui/material';
 
+import { Calendar, Landmark, Receipt, TrendingDown, TrendingUp } from '@/app/components/icons';
 import { useIntlayer } from '@/app/i18n';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import { tokens } from '@/lib/theme-tokens';
 
 export interface Transaction {

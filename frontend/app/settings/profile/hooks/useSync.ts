@@ -1,8 +1,7 @@
 'use client';
 
-import { statementsApi } from '@/app/lib/api';
-import apiClient from '@/app/lib/api';
 import { useCallback, useEffect, useState } from 'react';
+import apiClient, { statementsApi } from '@/app/lib/api';
 
 export type BankStat = {
   bank: string;

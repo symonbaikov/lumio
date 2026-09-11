@@ -1,9 +1,9 @@
 'use client';
 
+import React from 'react';
 import { AlertCircle, PanelLeftClose, PanelLeftOpen, RefreshCw } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
-import React from 'react';
 import { SectionRenderer } from './sections';
 import { RenderIcon } from './sections/components/RenderIcon';
 import type { ActionItem, SidePanelProps, SidePanelSection } from './types';

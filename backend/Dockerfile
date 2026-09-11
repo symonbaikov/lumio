@@ -11,9 +11,12 @@ WORKDIR /app
 
 # Python + pdfplumber for PDF parsing + pdf2image for thumbnails. Lives in the
 # first stage so it is cached independently of package.json and source changes.
+# Pillow comes from requirements.txt rather than the distro's python3-pil so the
+# pinned version is the one that actually ships.
+COPY requirements.txt ./
 RUN apt-get update && \
-  apt-get install -y --no-install-recommends python3 python3-pip python3-pil poppler-utils && \
-  pip3 install --no-cache-dir --break-system-packages pdfplumber==0.11.4 pdf2image==1.17.0 && \
+  apt-get install -y --no-install-recommends python3 python3-pip poppler-utils && \
+  pip3 install --no-cache-dir --break-system-packages -r requirements.txt && \
   rm -rf /var/lib/apt/lists/*
 
 # --- Deps: node_modules keyed only by the lockfile ---

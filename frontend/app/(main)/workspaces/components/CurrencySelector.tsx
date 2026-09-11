@@ -1,14 +1,14 @@
 'use client';
 
-import { Check, ChevronDown, Search, X } from '@/app/components/icons';
-import {
-  type CurrencySearchItem,
-  buildCurrencySearchIndex,
-} from '@/app/lib/statement-expense-drawer';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import React, { useMemo, useState } from 'react';
+import { Check, ChevronDown, Search, X } from '@/app/components/icons';
+import {
+  buildCurrencySearchIndex,
+  type CurrencySearchItem,
+} from '@/app/lib/statement-expense-drawer';
+import { tokens } from '@/lib/theme-tokens';
 
 interface CurrencySelectorProps {
   selectedCurrency: string | null;
@@ -28,7 +28,10 @@ const DEFAULT_RECENT_CURRENCIES = ['USD', 'EUR', 'KZT', 'RUB'] as const;
 function useCurrencyOpenState({
   open,
   onOpenChange,
-}: { open: boolean | undefined; onOpenChange?: (open: boolean) => void }): {
+}: {
+  open: boolean | undefined;
+  onOpenChange?: (open: boolean) => void;
+}): {
   isOpen: boolean;
   setOpenState: (v: boolean) => void;
 } {
@@ -45,7 +48,10 @@ function useCurrencyOpenState({
 function useCurrencySearch({
   selectedCurrency,
   setOpenState,
-}: { selectedCurrency: string | null; setOpenState: (v: boolean) => void }): {
+}: {
+  selectedCurrency: string | null;
+  setOpenState: (v: boolean) => void;
+}): {
   search: string;
   selectedCurrencyItem: CurrencySearchItem | undefined;
   currencyQuery: string;

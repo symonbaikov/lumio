@@ -1,5 +1,5 @@
 import * as os from 'node:os';
-import type { LogLevel, LoggerService } from '@nestjs/common';
+import type { LoggerService, LogLevel } from '@nestjs/common';
 import { RequestContext } from './request-context';
 
 type Level = 'error' | 'warn' | 'log' | 'debug' | 'verbose';

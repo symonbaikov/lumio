@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react';
+import { renderWithQuery } from '@/app/test/query-wrapper';
+import { fireEvent, screen } from '@testing-library/react';
 import React from 'react';
 import { act } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -215,6 +216,10 @@ vi.mock('@mui/material', async () => {
   };
 });
 
+vi.mock('@/app/contexts/WorkspaceContext', () => ({
+  useWorkspace: () => ({ currentWorkspace: { id: 'w1' } }),
+}));
+
 describe('CustomTablesPage', () => {
   it('uses dark-safe empty-state surfaces instead of light-only cards', async () => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -223,7 +228,7 @@ describe('CustomTablesPage', () => {
     const { default: CustomTablesPage } = await import('./page');
 
     act(() => {
-      render(<CustomTablesPage />);
+      renderWithQuery(<CustomTablesPage />);
     });
 
     const emptyTitle = await screen.findByText('No export tables yet');
@@ -248,7 +253,7 @@ describe('CustomTablesPage', () => {
     const { default: CustomTablesPage } = await import('./page');
 
     act(() => {
-      render(<CustomTablesPage />);
+      renderWithQuery(<CustomTablesPage />);
     });
 
     const createButton = screen.getByRole('button', { name: 'Create' });

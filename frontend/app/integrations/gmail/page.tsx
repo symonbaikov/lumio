@@ -1,6 +1,11 @@
 /* eslint-disable max-lines */
 'use client';
 
+import { Box, CircularProgress, Stack, Typography } from '@mui/material';
+import Image from 'next/image';
+import { useTheme } from 'next-themes';
+import { useCallback, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { CheckCircle2 } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Spinner } from '@/app/components/ui/spinner';
@@ -9,11 +14,6 @@ import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { formatDateTime } from '@/app/lib/format-datetime';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, CircularProgress, Stack, Typography } from '@mui/material';
-import { useTheme } from 'next-themes';
-import Image from 'next/image';
-import { useCallback, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
 import { IntegrationStatusCard } from '../components/IntegrationStatusCard';
 import { useIntegrationStatus } from '../hooks/useIntegrationStatus';
 

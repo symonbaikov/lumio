@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, IsUUID, IsUrl, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, IsUrl, IsUUID, Min } from 'class-validator';
 
 export enum GoogleSheetsImportLayoutType {
   AUTO = 'auto',

@@ -8,8 +8,8 @@ import {
   detectLocaleFromText,
 } from '../../../common/utils/language-detector.util';
 import {
-  type FieldType,
   detectFieldType,
+  type FieldType,
   getFieldSynonyms,
   getLanguagePatterns,
 } from '../../../common/utils/language-patterns.util';

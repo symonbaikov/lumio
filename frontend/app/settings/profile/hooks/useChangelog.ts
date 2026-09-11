@@ -1,8 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import type { ChangelogEntry } from '@/app/components/ChangelogModal';
 import type { ChangelogPayload } from '@/app/settings/profile/profileHelpers';
-import { useEffect, useState } from 'react';
 
 export type UseChangelogReturn = {
   changelogEntries: ChangelogEntry[];

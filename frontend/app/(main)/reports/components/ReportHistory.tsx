@@ -1,11 +1,4 @@
 'use client';
-import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
-
-import { Download } from '@/app/components/icons';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
-import { useIntlayer, useLocale } from '@/app/i18n';
-import apiClient from '@/app/lib/api';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
@@ -18,6 +11,12 @@ import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { Download } from '@/app/components/icons';
+import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import apiClient from '@/app/lib/api';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
+import { tokens } from '@/lib/theme-tokens';
 
 const HISTORY_SKELETON_KEYS = ['hist-0', 'hist-1', 'hist-2', 'hist-3', 'hist-4'];
 

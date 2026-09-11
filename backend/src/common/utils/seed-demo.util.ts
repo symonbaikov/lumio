@@ -1,3 +1,4 @@
+import type { Repository } from 'typeorm';
 import {
   BalanceAccount,
   Category,
@@ -11,7 +12,6 @@ import {
   WorkspaceRole,
 } from '@/entities';
 import { DEFAULT_BALANCE_ACCOUNTS } from '@/modules/balance/balance-default-accounts';
-import type { Repository } from 'typeorm';
 
 export const DEMO_EMAIL = 'demo@lumio.dev';
 export const DEMO_PASSWORD = 'demo123';

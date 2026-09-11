@@ -1,12 +1,12 @@
 'use client';
 
-import { Copy, Plus, Trash2 } from '@/app/components/icons';
-import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import { tokens } from '@/lib/theme-tokens';
 import { Box, Checkbox, FormControlLabel, TextField, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { Copy, Plus, Trash2 } from '@/app/components/icons';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { tokens } from '@/lib/theme-tokens';
 import { useWebhookEndpoints, useWebhookSubscriptions } from './useWebhooks';
 
 const EVENTS = [
@@ -93,7 +93,7 @@ export function WebhooksDrawer({ isOpen, onClose }: WebhooksDrawerProps) {
   };
 
   const handleCreateSubscription = async () => {
-    if (!subName.trim() || !subUrl.trim() || subSecret.length < 16 || subEvents.length === 0)
+    if (!(subName.trim() && subUrl.trim()) || subSecret.length < 16 || subEvents.length === 0)
       return;
     await createSubscription({
       name: subName.trim(),
@@ -476,8 +476,7 @@ export function WebhooksDrawer({ isOpen, onClose }: WebhooksDrawerProps) {
                     style={actionBtnStyle('primary')}
                     onClick={() => void handleCreateSubscription()}
                     disabled={
-                      !subName.trim() ||
-                      !subUrl.trim() ||
+                      !(subName.trim() && subUrl.trim()) ||
                       subSecret.length < 16 ||
                       subEvents.length === 0
                     }

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { renderWithQuery } from '@/app/test/query-wrapper';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/app/components/dashboard/test-setup';
 
@@ -66,6 +67,10 @@ vi.mock('react-hot-toast', () => ({
   },
 }));
 
+vi.mock('@/app/contexts/WorkspaceContext', () => ({
+  useWorkspace: () => ({ currentWorkspace: { id: 'w1' } }),
+}));
+
 describe('WorkspaceCategoriesView', () => {
   beforeEach(() => {
     apiGet.mockReset();
@@ -104,7 +109,7 @@ describe('WorkspaceCategoriesView', () => {
   it('renders parsing categories with parsing badge instead of system', async () => {
     const { default: WorkspaceCategoriesView } = await import('./WorkspaceCategoriesView');
 
-    render(<WorkspaceCategoriesView />);
+    renderWithQuery(<WorkspaceCategoriesView />);
 
     await waitFor(() => {
       expect(screen.getByText('Kaspi Delivery')).toBeInTheDocument();
@@ -149,7 +154,7 @@ describe('WorkspaceCategoriesView', () => {
       return Promise.reject(new Error(`Unexpected GET ${url}`));
     });
 
-    render(<WorkspaceCategoriesView />);
+    renderWithQuery(<WorkspaceCategoriesView />);
 
     await waitFor(() => {
       expect(screen.getByText('Rent')).toBeInTheDocument();
@@ -163,7 +168,7 @@ describe('WorkspaceCategoriesView', () => {
   it('uses dark-safe surfaces instead of white category rows', async () => {
     const { default: WorkspaceCategoriesView } = await import('./WorkspaceCategoriesView');
 
-    const { container } = render(<WorkspaceCategoriesView />);
+    const { container } = renderWithQuery(<WorkspaceCategoriesView />);
 
     await waitFor(() => {
       expect(screen.getByText('Kaspi Delivery')).toBeInTheDocument();
@@ -176,7 +181,7 @@ describe('WorkspaceCategoriesView', () => {
   it('renders category enabled controls as switches', async () => {
     const { default: WorkspaceCategoriesView } = await import('./WorkspaceCategoriesView');
 
-    render(<WorkspaceCategoriesView />);
+    renderWithQuery(<WorkspaceCategoriesView />);
 
     await waitFor(() => {
       expect(screen.getByText('Kaspi Delivery')).toBeInTheDocument();
@@ -188,7 +193,7 @@ describe('WorkspaceCategoriesView', () => {
   it('does not render ripple feedback for category enabled switches', async () => {
     const { default: WorkspaceCategoriesView } = await import('./WorkspaceCategoriesView');
 
-    const { container } = render(<WorkspaceCategoriesView />);
+    const { container } = renderWithQuery(<WorkspaceCategoriesView />);
 
     await waitFor(() => {
       expect(screen.getByText('Kaspi Delivery')).toBeInTheDocument();

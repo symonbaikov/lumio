@@ -1,26 +1,30 @@
 'use client';
 
+import { Box, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
+import { type CSSProperties, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { Tag as CategoryIconFallback, Sparkles } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Spinner } from '@/app/components/ui/spinner';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
-import { type WorksheetOption, getDefaultWorksheetName } from '@/app/lib/googleSheetsSelection';
+import { getDefaultWorksheetName, type WorksheetOption } from '@/app/lib/googleSheetsSelection';
 import { tokens } from '@/lib/theme-tokens';
-import { Box, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
-import { useTheme } from 'next-themes';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { type CSSProperties, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
 import { type SheetColumnRole, TransactionMappingCard } from './TransactionMappingCard';
 import {
   TransactionPreviewTable,
   type TransactionPreviewTableRow,
 } from './TransactionPreviewTable';
+
+/** Used only while the workspace (and therefore its currency) is still loading. */
+const FALLBACK_CURRENCY = 'USD';
 
 type ColumnType = 'text' | 'number' | 'date' | 'boolean' | 'select' | 'multi_select';
 type LayoutType = 'auto' | 'flat' | 'matrix';
@@ -140,6 +144,7 @@ async function fetchJobStatus(jobId: string): Promise<JobPollResult | null> {
 export default function GoogleSheetsImportPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const t = useIntlayer('customTablesImportGoogleSheetsPage');
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
@@ -166,7 +171,13 @@ export default function GoogleSheetsImportPage() {
 
   const [wallets, setWallets] = useState<WalletOption[]>([]);
   const [transactionRoles, setTransactionRoles] = useState<SheetColumnRole[]>([]);
-  const [transactionDefaultCurrency, setTransactionDefaultCurrency] = useState('KZT');
+  // Falls back to the workspace currency until the user picks another one, so a
+  // freshly opened import never proposes a currency the workspace does not use.
+  // `currentWorkspace` resolves asynchronously, hence the derived (not seeded)
+  // value: FALLBACK_CURRENCY only applies while it is null or has no currency.
+  const [currencyOverride, setCurrencyOverride] = useState<string | null>(null);
+  const transactionDefaultCurrency =
+    currencyOverride ?? currentWorkspace?.currency?.toUpperCase() ?? FALLBACK_CURRENCY;
   const [createMissingCategories, setCreateMissingCategories] = useState(false);
   const [walletName, setWalletName] = useState('');
   const [transactionPreview, setTransactionPreview] =
@@ -426,7 +437,7 @@ export default function GoogleSheetsImportPage() {
   }, [transactionRoles]);
 
   const handleCommit = async () => {
-    if (!preview || !canCommit) return;
+    if (!(preview && canCommit)) return;
     setCommitting(true);
 
     return await (async () => {
@@ -1006,7 +1017,7 @@ export default function GoogleSheetsImportPage() {
                   roles={transactionRoles}
                   onRolesChange={setTransactionRoles}
                   defaultCurrency={transactionDefaultCurrency}
-                  onDefaultCurrencyChange={setTransactionDefaultCurrency}
+                  onDefaultCurrencyChange={setCurrencyOverride}
                   createMissingCategories={createMissingCategories}
                   onCreateMissingCategoriesChange={setCreateMissingCategories}
                   wallets={wallets}

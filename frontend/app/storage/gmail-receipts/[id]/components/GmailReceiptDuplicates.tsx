@@ -1,13 +1,4 @@
 'use client';
-import { formatStoredDate } from '@/app/lib/user-format-store';
-
-import StatementCategoryDrawer from '@/app/(main)/statements/[id]/edit/StatementCategoryDrawer';
-import { AuditEventDrawer } from '@/app/audit/components/AuditEventDrawer';
-import { EntityHistoryTimeline } from '@/app/audit/components/EntityHistoryTimeline';
-import CustomDatePicker from '@/app/components/CustomDatePicker';
-import { CheckCircle2, ChevronDown } from '@/app/components/icons';
-import { Spinner } from '@/app/components/ui/spinner';
-import type { AuditEvent } from '@/lib/api/audit';
 import {
   Accordion,
   AccordionDetails,
@@ -19,6 +10,15 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+
+import StatementCategoryDrawer from '@/app/(main)/statements/[id]/edit/StatementCategoryDrawer';
+import { AuditEventDrawer } from '@/app/audit/components/AuditEventDrawer';
+import { EntityHistoryTimeline } from '@/app/audit/components/EntityHistoryTimeline';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
+import { CheckCircle2, ChevronDown } from '@/app/components/icons';
+import { Spinner } from '@/app/components/ui/spinner';
+import { formatStoredDate } from '@/app/lib/user-format-store';
+import type { AuditEvent } from '@/lib/api/audit';
 import type {
   EditableLineItem,
   EditableReceiptData,

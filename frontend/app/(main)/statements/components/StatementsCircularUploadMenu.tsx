@@ -1,14 +1,14 @@
 'use client';
 
-import { Cloud, Inbox, Plus, Receipt, Scan, ScanLine } from '@/app/components/icons';
-import {
-  type CloudImportProvider,
-  type ConnectedCloudProviders,
-  buildStatementUploadMenuModel,
-} from '@/app/lib/statement-upload-actions';
-import { tokens } from '@/lib/theme-tokens';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Cloud, Inbox, Plus, Receipt, Scan, ScanLine } from '@/app/components/icons';
+import {
+  buildStatementUploadMenuModel,
+  type CloudImportProvider,
+  type ConnectedCloudProviders,
+} from '@/app/lib/statement-upload-actions';
+import { tokens } from '@/lib/theme-tokens';
 
 type Props = {
   providers: ConnectedCloudProviders;

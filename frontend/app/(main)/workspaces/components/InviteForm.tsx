@@ -1,10 +1,10 @@
 'use client';
 
+import Button from '@mui/material/Button';
+import React, { useState } from 'react';
 import { Send as SendIcon } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { tokens } from '@/lib/theme-tokens';
-import Button from '@mui/material/Button';
-import React, { useState } from 'react';
 import type { InvitePermissions, WorkspaceRole } from './hooks/useMemberManagement';
 
 const PERMISSION_LABELS: Record<keyof InvitePermissions, string> = {

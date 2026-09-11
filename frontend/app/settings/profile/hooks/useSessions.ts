@@ -1,9 +1,9 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
-import { type UserSession, getApiErrorMessage } from '@/app/settings/profile/profileHelpers';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import apiClient from '@/app/lib/api';
+import { getApiErrorMessage, type UserSession } from '@/app/settings/profile/profileHelpers';
 
 export type UseSessionsMessages = {
   loadError: string;

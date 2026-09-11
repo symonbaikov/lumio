@@ -1,19 +1,6 @@
 'use client';
 
 import {
-  ArrowLeft,
-  ChevronDown,
-  CreditCard,
-  Layers,
-  Mail,
-  Receipt,
-  Send,
-  Share2,
-  Table,
-  TriangleAlert,
-} from '@/app/components/icons';
-import { Spinner } from '@/app/components/ui/spinner';
-import {
   Box,
   Button,
   ButtonGroup,
@@ -28,6 +15,19 @@ import {
 import Alert from '@mui/material/Alert';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import {
+  ArrowLeft,
+  ChevronDown,
+  CreditCard,
+  Layers,
+  Mail,
+  Receipt,
+  Send,
+  Share2,
+  Table,
+  TriangleAlert,
+} from '@/app/components/icons';
+import { Spinner } from '@/app/components/ui/spinner';
 import type { GmailReceipt, ReceiptCategoryOption } from '../hooks/useGmailReceiptData';
 
 interface GmailReceiptHeaderProps {

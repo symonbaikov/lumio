@@ -1,13 +1,13 @@
 'use client';
 
-import { Building2, CheckCircle2 } from '@/app/components/icons';
-import { useIntlayer } from '@/app/i18n';
-import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
-import { tokens } from '@/lib/theme-tokens';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import Image from 'next/image';
+import { Building2, CheckCircle2 } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
+import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
+import { tokens } from '@/lib/theme-tokens';
 
 type SupportedBankCard = {
   id: string;

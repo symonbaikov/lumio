@@ -5,8 +5,8 @@ import React from 'react';
 import type { FolderOption, StorageFile, TagOption } from '../storageHelpers';
 import { NO_FOLDER } from '../storageHelpers';
 import { DroppableFolderButton } from './DroppableFolderButton';
-import { FolderItem } from './FolderItem';
 import type { FolderItemProps } from './FolderItem';
+import { FolderItem } from './FolderItem';
 
 export interface FolderListProps {
   folders: FolderOption[];
@@ -96,7 +96,10 @@ function FolderListHeader({
 function buildItemProps({
   props,
   folder,
-}: { props: FolderListProps; folder: FolderOption }): FolderItemProps {
+}: {
+  props: FolderListProps;
+  folder: FolderOption;
+}): FolderItemProps {
   return {
     folder,
     tags: props.tags,

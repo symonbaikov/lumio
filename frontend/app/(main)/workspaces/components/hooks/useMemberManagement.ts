@@ -1,6 +1,6 @@
-import apiClient from '@/app/lib/api';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import apiClient from '@/app/lib/api';
 
 export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer';
 
@@ -123,7 +123,11 @@ function useMemberActions({
     email,
     role,
     permissions,
-  }: { email: string; role: WorkspaceRole; permissions: InvitePermissions }): Promise<void> => {
+  }: {
+    email: string;
+    role: WorkspaceRole;
+    permissions: InvitePermissions;
+  }): Promise<void> => {
     if (!wid) {
       return;
     }
@@ -251,7 +255,10 @@ function useInvitationActions({
   const copyInviteLink = async ({
     token,
     link: provided,
-  }: { token: string; link?: string }): Promise<void> => {
+  }: {
+    token: string;
+    link?: string;
+  }): Promise<void> => {
     await (async () => {
       await navigator.clipboard.writeText(provided || `${window.location.origin}/invite/${token}`);
       toast.success('Link copied');

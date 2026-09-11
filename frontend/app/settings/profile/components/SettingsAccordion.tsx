@@ -1,8 +1,5 @@
 'use client';
 
-import { ChevronDown } from '@/app/components/icons';
-import type { SettingsSectionId } from '@/app/settings/profile/helpers/settings-url-state';
-import { tokens } from '@/lib/theme-tokens';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -10,6 +7,9 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
 import type { ComponentType, ReactNode } from 'react';
+import { ChevronDown } from '@/app/components/icons';
+import type { SettingsSectionId } from '@/app/settings/profile/helpers/settings-url-state';
+import { tokens } from '@/lib/theme-tokens';
 
 type Props = {
   id: SettingsSectionId;

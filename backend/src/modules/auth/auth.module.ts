@@ -7,11 +7,11 @@ import type { StringValue } from 'ms';
 import { devDefault } from '../../common/utils/dev-defaults';
 import { AuthSession, User, Workspace, WorkspaceInvitation, WorkspaceMember } from '../../entities';
 import { CategoriesModule } from '../categories/categories.module';
-import { AuthDevBootstrapService } from './auth-dev-bootstrap.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+import { AuthDevBootstrapService } from './auth-dev-bootstrap.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { TwoFactorService } from './two-factor.service';
 
 @Module({

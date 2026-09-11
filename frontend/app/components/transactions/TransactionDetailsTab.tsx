@@ -1,6 +1,8 @@
 /* eslint-disable max-lines */
 'use client';
 
+import { useTheme } from 'next-themes';
+import { useCallback, useState } from 'react';
 import {
   Building2,
   Calendar,
@@ -9,17 +11,13 @@ import {
   TrendingDown,
   TrendingUp,
 } from '@/app/components/icons';
-import { useCallback, useState } from 'react';
-
 import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
-
 import { tokens } from '@/lib/theme-tokens';
-import { useTheme } from 'next-themes';
-import { SplitTransactionDialog } from './SplitTransactionDialog';
 import { formatAmount, formatDate } from './helpers/transactionFormatters';
 import { useTransactionSplit } from './hooks/useTransactionSplit';
+import { SplitTransactionDialog } from './SplitTransactionDialog';
 import type { Category, Transaction } from './types';
 
 interface TransactionDetailsTabProps {
@@ -64,7 +62,7 @@ export function TransactionDetailsTab({
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   const handleUpdateCategory = async () => {
-    if (!selectedCategoryId || !onUpdateCategory) return;
+    if (!(selectedCategoryId && onUpdateCategory)) return;
 
     await (async () => {
       setUpdating(true);

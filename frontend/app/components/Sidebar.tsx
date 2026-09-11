@@ -1,15 +1,15 @@
 'use client';
 
+import Skeleton from '@mui/material/Skeleton';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useCallback, useState } from 'react';
 import { Check, ChevronDown, Plus } from '@/app/components/icons';
 import { useMenuClickOutside } from '@/app/components/pdf-preview/hooks/useMenuClickOutside';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer } from '@/app/i18n';
-import Skeleton from '@mui/material/Skeleton';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useCallback, useState } from 'react';
 import { buildNavItems, isNavItemActive } from './navigation/helpers/navigation-config';
 
 // Matches buildNavItems() length so the skeleton doesn't jump when real items land.

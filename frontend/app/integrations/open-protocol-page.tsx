@@ -1,14 +1,14 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
-import { tokens } from '@/lib/theme-tokens';
 import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
 import ExtensionOutlinedIcon from '@mui/icons-material/ExtensionOutlined';
 import { Box, Stack, Typography } from '@mui/material';
-import { useTheme } from 'next-themes';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import apiClient from '@/app/lib/api';
+import { tokens } from '@/lib/theme-tokens';
 
 type ProtocolStatus = {
   connected: boolean;

@@ -1,15 +1,15 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
 import apiClient from '@/app/lib/api';
 import {
+  defaultNotificationChannels,
+  defaultNotificationSettings,
   type NotificationChannel,
   type NotificationDigestMode,
   type NotificationPreferences,
   type NotificationSettings,
-  defaultNotificationChannels,
-  defaultNotificationSettings,
 } from '@/app/settings/profile/profileHelpers';
-import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type UseNotificationsMessages = {
   loadError: string;

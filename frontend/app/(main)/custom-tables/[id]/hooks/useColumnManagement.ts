@@ -1,8 +1,8 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
 import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
+import apiClient from '@/app/lib/api';
 import type { ColumnType } from '../utils/stylingUtils';
 import type { CustomTablePageColumn } from '../utils/tableTypes';
 

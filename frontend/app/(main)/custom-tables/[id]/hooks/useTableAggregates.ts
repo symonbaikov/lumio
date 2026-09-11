@@ -1,7 +1,7 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import apiClient from '@/app/lib/api';
 import { isAbortError } from '../utils/pasteUtils';
 
 export const AGGREGATE_FNS = ['sum', 'avg', 'min', 'max', 'count'] as const;
@@ -52,7 +52,7 @@ export function useTableAggregates({
   const aggsKey = aggsParam.length ? JSON.stringify(aggsParam) : '';
 
   const load = useCallback(async () => {
-    if (!(tableId && isAuthenticated) || !aggsKey) {
+    if (!(tableId && isAuthenticated && aggsKey)) {
       setValues({});
       return;
     }

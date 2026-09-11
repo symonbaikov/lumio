@@ -1,15 +1,15 @@
 'use client';
 
-import apiClient from '@/app/lib/api';
-import { tokens } from '@/lib/theme-tokens';
 import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
 import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
 import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined';
 import { Box, Stack, Typography } from '@mui/material';
-import { useTheme } from 'next-themes';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import apiClient from '@/app/lib/api';
+import { tokens } from '@/lib/theme-tokens';
 
 type LocalCategorizationStatus = {
   connected: boolean;

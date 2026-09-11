@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import {
   Body,
   Controller,
@@ -13,8 +12,9 @@ import {
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
+import * as fs from 'fs';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
+import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import { buildContentDisposition } from '../../common/utils/http-file.util';
 import type { User } from '../../entities/user.entity';

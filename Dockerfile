@@ -39,9 +39,12 @@ ENV API_PORT=4000
 ENV HOSTNAME=0.0.0.0
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
-# Install Python + pdfplumber for PDF parsing + pdf2image for thumbnails
-RUN apk add --no-cache python3 py3-pip py3-pillow poppler-utils && \
-    pip3 install --no-cache-dir --break-system-packages pdfplumber==0.11.4 pdf2image==1.17.0
+# Install Python + pdfplumber for PDF parsing + pdf2image for thumbnails.
+# Pillow comes from requirements.txt rather than Alpine's py3-pillow so the
+# pinned version is the one that actually ships.
+COPY backend/requirements.txt ./backend/requirements.txt
+RUN apk add --no-cache python3 py3-pip poppler-utils && \
+    pip3 install --no-cache-dir --break-system-packages -r ./backend/requirements.txt
 
 # Backend runtime dependencies (already pruned)
 COPY --from=builder /app/backend/package*.json ./backend/

@@ -7,10 +7,10 @@ import { Workspace } from '../../entities/workspace.entity';
 import { AuditModule } from '../audit/audit.module';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { PayablesExportService } from './payables-export.service';
 import { PayablesController } from './payables.controller';
 import { PayablesScheduler } from './payables.scheduler';
 import { PayablesService } from './payables.service';
+import { PayablesExportService } from './payables-export.service';
 
 @Module({
   imports: [

@@ -1,16 +1,16 @@
 'use client';
 
-import { Clock3, MoonStar, Sparkles, Sun } from '@/app/components/icons';
-import {
-  type ThemePreference,
-  getScheduledTheme,
-  getStoredThemePreference,
-  getStoredThemeTimeZone,
-} from '@/app/lib/theme-preference';
-import { cn } from '@/app/lib/utils';
 import { useTheme } from 'next-themes';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { Clock3, MoonStar, Sparkles, Sun } from '@/app/components/icons';
+import {
+  getScheduledTheme,
+  getStoredThemePreference,
+  getStoredThemeTimeZone,
+  type ThemePreference,
+} from '@/app/lib/theme-preference';
+import { cn } from '@/app/lib/utils';
 
 type ModeToggleProps = {
   className?: string;

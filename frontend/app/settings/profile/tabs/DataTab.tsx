@@ -1,5 +1,7 @@
 'use client';
 
+import Stack from '@mui/material/Stack';
+import type React from 'react';
 import { Cloud, Shield, SlidersHorizontal } from '@/app/components/icons';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { MyDataSection } from '@/app/settings/profile/components/MyDataSection';
@@ -10,8 +12,6 @@ import { resolveOpenSection } from '@/app/settings/profile/helpers/settings-url-
 import { useProcessing } from '@/app/settings/profile/hooks/useProcessing';
 import { useSettingsText } from '@/app/settings/profile/hooks/useSettingsText';
 import { useSync } from '@/app/settings/profile/hooks/useSync';
-import Stack from '@mui/material/Stack';
-import type React from 'react';
 
 import type { SettingsTabProps } from './types';
 

@@ -1,11 +1,11 @@
 'use client';
 
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import apiClient, { gmailReceiptsApi } from '@/app/lib/api';
 import { isLowConfidenceDocument, normalizeReceiptLineItems } from '@/app/lib/financial-document';
 import type { AuditEvent } from '@/lib/api/audit';
 import { fetchEntityHistory } from '@/lib/api/audit';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { toast } from 'react-hot-toast';
 
 export interface GmailReceipt {
   id: string;

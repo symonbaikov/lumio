@@ -1,8 +1,4 @@
 'use client';
-import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
-
-import { Pencil, Trash2, UserPlus } from '@/app/components/icons';
-import { useIntlayer, useLocale } from '@/app/i18n';
 import {
   Alert,
   Box,
@@ -31,6 +27,9 @@ import {
   Typography,
 } from '@mui/material';
 import React, { useState } from 'react';
+import { Pencil, Trash2, UserPlus } from '@/app/components/icons';
+import { useIntlayer, useLocale } from '@/app/i18n';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import api from '../lib/api';
 
 interface Permission {

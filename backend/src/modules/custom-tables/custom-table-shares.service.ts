@@ -5,10 +5,10 @@ import { Repository } from 'typeorm';
 import { appError } from '../../common/errors/app-error';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { ActorType, AuditAction, EntityType, Severity } from '../../entities/audit-event.entity';
+import { CustomTable } from '../../entities/custom-table.entity';
 import { CustomTableColumn } from '../../entities/custom-table-column.entity';
 import { CustomTableRow } from '../../entities/custom-table-row.entity';
 import { CustomTableShare, CustomTableShareStatus } from '../../entities/custom-table-share.entity';
-import { CustomTable } from '../../entities/custom-table.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { AuditService } from '../audit/audit.service';
 

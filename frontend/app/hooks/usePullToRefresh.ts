@@ -78,7 +78,7 @@ export function usePullToRefresh({
 
   const movePull = useCallback(
     (event: TouchEvent) => {
-      if (!enabled || !pullActiveRef.current || touchStartYRef.current === null) return;
+      if (!(enabled && pullActiveRef.current) || touchStartYRef.current === null) return;
 
       const currentY = event.touches[0]?.clientY;
       if (typeof currentY !== 'number') return;
@@ -103,7 +103,7 @@ export function usePullToRefresh({
   );
 
   const completePull = useCallback(async () => {
-    if (!enabled || !pullActiveRef.current) {
+    if (!(enabled && pullActiveRef.current)) {
       resetPullState();
       return;
     }

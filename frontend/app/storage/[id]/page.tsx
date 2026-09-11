@@ -1,7 +1,10 @@
 /* eslint-disable max-lines */
 'use client';
-import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
-
+import { resolveBankLogo } from '@bank-logos';
+import { Box, Chip, Typography } from '@mui/material';
+import Skeleton from '@mui/material/Skeleton';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Download,
@@ -14,12 +17,8 @@ import {
 import { Spinner } from '@/app/components/ui/spinner';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { getApiErrorMessage, getApiErrorStatus } from '@/app/lib/api-error';
+import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import { tokens } from '@/lib/theme-tokens';
-import { resolveBankLogo } from '@bank-logos';
-import { Box, Chip, Typography } from '@mui/material';
-import Skeleton from '@mui/material/Skeleton';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
 import PermissionsPanel from '../../components/PermissionsPanel';
 import ShareDialog from '../../components/ShareDialog';
 import TransactionsView, {

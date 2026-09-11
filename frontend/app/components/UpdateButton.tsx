@@ -1,7 +1,7 @@
 'use client';
 
-import { Download } from '@/app/components/icons';
 import { useEffect, useState } from 'react';
+import { Download } from '@/app/components/icons';
 
 const REPO = 'symonbaikov/lumio';
 const LATEST_RELEASE_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
