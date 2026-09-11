@@ -154,7 +154,7 @@ export function TransactionMobileCard({
       })}
     >
       <div className="lumio-tx-card__body">
-        <div className="lumio-tx-card__checkbox" onClick={e => e.stopPropagation()}>
+        <div className="lumio-tx-card__checkbox">
           <Checkbox
             checked={isSelected}
             onCheckedChange={handlers.onSelectRow(tx.id)}
@@ -178,7 +178,7 @@ export function TransactionMobileCard({
             <p className="lumio-tx-card__purpose">{tx.paymentPurpose || '—'}</p>
           </button>
           <div className="lumio-tx-card__footer">
-            <div style={{ minWidth: 0 }} onClick={e => e.stopPropagation()}>
+            <div style={{ minWidth: 0 }}>
               <CategoryDropdown
                 tx={tx}
                 categories={categories}

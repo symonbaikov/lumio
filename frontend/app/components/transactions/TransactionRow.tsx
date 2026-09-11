@@ -107,14 +107,26 @@ export function TransactionRow({
         aria-label={`Transaction from ${tx.counterpartyName}`}
         className={rowCls}
       >
-        <td
-          className="lumio-tx-table__td--center"
-          onClick={handlers.onToggleExpansion(tx.id)}
-          aria-expanded={isExpanded}
-        >
-          <div className="lumio-tx-table__expand-btn">
+        <td className="lumio-tx-table__td--center">
+          <button
+            type="button"
+            className="lumio-tx-table__expand-btn"
+            onClick={handlers.onToggleExpansion(tx.id)}
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              border: 'none',
+              background: 'none',
+              color: 'inherit',
+              cursor: 'pointer',
+            }}
+          >
             {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </div>
+          </button>
         </td>
         <td className="lumio-tx-table__td" onClick={e => e.stopPropagation()}>
           <Checkbox

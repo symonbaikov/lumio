@@ -733,6 +733,7 @@ export default function TablesReportsView() {
                     boxShadow: tokens.shadow.lg,
                     borderRadius: tokens.radius.xl,
                   }}
+                  role="dialog"
                   aria-modal="true"
                   onClick={event => event.stopPropagation()}
                   onKeyDown={event => event.stopPropagation()}

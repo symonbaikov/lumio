@@ -807,6 +807,7 @@ export function StatementsListItem({
         : {};
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: whole-row click is a shortcut for the buttons rendered inside this row. Giving the row role=button would nest interactive elements inside an interactive role, which is worse than the current state.
     <div
       data-tour-id={dataTourId}
       className={`lumio-stmt-list-item${selected ? ' lumio-stmt-list-item--selected' : ''}${hasError && !isPossibleDuplicate ? ' lumio-stmt-list-item--error' : ''}`}

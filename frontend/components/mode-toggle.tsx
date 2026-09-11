@@ -139,6 +139,7 @@ export function ModeToggle({
     <div className={cn('space-y-4', className)}>
       <div
         className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-muted/70 p-1.5"
+        role="group"
         aria-label={copy.active}
       >
         {options.map(option => {
