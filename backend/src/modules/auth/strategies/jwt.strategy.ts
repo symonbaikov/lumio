@@ -2,11 +2,13 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
+import type { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { IsNull, type Repository } from 'typeorm';
 import { devDefault } from '../../../common/utils/dev-defaults';
 import { AuthSession } from '../../../entities/auth-session.entity';
 import { User } from '../../../entities/user.entity';
+import { ACCESS_TOKEN_COOKIE } from '../auth-cookies';
 
 export interface JwtPayload {
   sub: string;
@@ -41,7 +43,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       devDefault(configService.get<string>('JWT_SECRET'), 'JWT_SECRET');
 
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      // Cookie first, Authorization header second. Browsers get the httpOnly
+      // cookie (unreadable by injected script); programmatic clients that
+      // already send a bearer token keep working unchanged.
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (req: Request) => req?.cookies?.[ACCESS_TOKEN_COOKIE] ?? null,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
       secretOrKey: jwtSecret,
     });

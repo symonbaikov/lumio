@@ -19,6 +19,7 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { StatementsService } from '../statements/statements.service';
 import type { ImportDropboxFilesDto } from './dto/import-dropbox-files.dto';
+import { requireSecret } from '../../common/utils/required-secret.util';
 
 const DEFAULT_SYNC_TIME = '03:00';
 
@@ -110,7 +111,11 @@ export class DropboxService extends CloudStorageBaseService<DropboxSettings> {
   }
 
   protected getStateSecret() {
-    return process.env.DROPBOX_STATE_SECRET || process.env.JWT_SECRET || 'lumio-state';
+    return requireSecret(
+      'DROPBOX_STATE_SECRET or JWT_SECRET',
+      process.env.DROPBOX_STATE_SECRET,
+      process.env.JWT_SECRET,
+    );
   }
 
   protected getProvider(): IntegrationProvider {

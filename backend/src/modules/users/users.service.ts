@@ -18,6 +18,8 @@ import type { ChangePasswordDto } from './dto/change-password.dto';
 import type { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
 import type { UpdateMyPreferencesDto } from './dto/update-my-preferences.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
+import { hashPassword } from '../../common/utils/password-hash.util';
+import { EmailChangeService } from './services/email-change.service';
 
 @Injectable()
 export class UsersService {
@@ -27,14 +29,12 @@ export class UsersService {
     @InjectRepository(Workspace)
     private workspaceRepository: Repository<Workspace>,
     private readonly workspacesService: WorkspacesService,
+    private readonly emailChangeService: EmailChangeService,
   ) {}
 
-  private getUserFindAllOptions(workspaceId?: string | number, limit = 20) {
+  private getUserFindAllOptions(workspaceId: string, limit = 20) {
     return {
-      where:
-        workspaceId !== undefined && workspaceId !== null
-          ? ({ deletedAt: null, workspaceId: String(workspaceId) } as const)
-          : ({ deletedAt: null } as const),
+      where: { deletedAt: null, workspaceId } as const,
       take: limit,
       order: { createdAt: 'DESC' as const },
     };
@@ -62,6 +62,7 @@ export class UsersService {
         'locale',
         'timeZone',
         'themePreference',
+        'mapStylePreference',
         'avatarUrl',
         'onboardingCompletedAt',
         'disclaimerAcceptedAt',
@@ -77,19 +78,18 @@ export class UsersService {
     return user;
   }
 
-  async findAll(workspaceId?: string | number, limit = 20): Promise<User[]> {
+  // workspaceId is required, not optional: as an optional parameter the tenant
+  // filter silently disappeared whenever a caller passed the wrong argument,
+  // which is exactly what the controller used to do (it passed the page number).
+  async findAll(workspaceId: string, limit = 20): Promise<User[]> {
     if (typeof this.userRepository.createQueryBuilder === 'function') {
-      const query = this.userRepository
+      return this.userRepository
         .createQueryBuilder('user')
         .where('user.deletedAt IS NULL')
+        .andWhere('user.workspaceId = :workspaceId', { workspaceId })
         .orderBy('user.createdAt', 'DESC')
-        .take(limit);
-
-      if (workspaceId !== undefined && workspaceId !== null) {
-        query.andWhere('user.workspaceId = :workspaceId', { workspaceId: String(workspaceId) });
-      }
-
-      return query.getMany();
+        .take(limit)
+        .getMany();
     }
 
     return this.userRepository.find(this.getUserFindAllOptions(workspaceId, limit));
@@ -116,6 +116,7 @@ export class UsersService {
         'locale',
         'timeZone',
         'themePreference',
+        'mapStylePreference',
         'onboardingCompletedAt',
         'disclaimerAcceptedAt',
         'disclaimerVersion',
@@ -212,7 +213,12 @@ export class UsersService {
     return this.userRepository.save(user);
   }
 
-  async changeEmail(userId: string, dto: ChangeEmailDto): Promise<User> {
+  /**
+   * Confirms the caller owns the account, then hands off to EmailChangeService,
+   * which mails a confirmation link to the new address. The account keeps its
+   * current email until that link is opened.
+   */
+  async requestEmailChange(userId: string, dto: ChangeEmailDto): Promise<void> {
     const user = await this.findOneWithPassword(userId);
 
     const isPasswordValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
@@ -221,18 +227,7 @@ export class UsersService {
       throw new ForbiddenException('Current password is incorrect');
     }
 
-    if (dto.email !== user.email) {
-      const existingUser = await this.userRepository.findOne({
-        where: { email: dto.email },
-      });
-
-      if (existingUser && existingUser.id !== userId) {
-        throw new ConflictException('Email already in use');
-      }
-    }
-
-    user.email = dto.email;
-    return this.userRepository.save(user);
+    await this.emailChangeService.requestEmailChange(user, dto.email);
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
@@ -244,7 +239,7 @@ export class UsersService {
       throw new ForbiddenException('Current password is incorrect');
     }
 
-    user.passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    user.passwordHash = await hashPassword(dto.newPassword);
     user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     await this.userRepository.save(user);
   }
@@ -265,6 +260,10 @@ export class UsersService {
     if (dto.themePreference !== undefined) {
       user.themePreference = dto.themePreference;
     }
+    if (dto.mapStylePreference !== undefined) {
+      const style = dto.mapStylePreference;
+      user.mapStylePreference = style === null ? null : String(style).trim() || null;
+    }
     if (dto.dateFormat !== undefined) {
       user.dateFormat = dto.dateFormat;
     }
@@ -277,8 +276,18 @@ export class UsersService {
     if (dto.reduceMotion !== undefined) {
       user.reduceMotion = dto.reduceMotion;
     }
+    if (dto.contentBackground !== undefined) {
+      user.contentBackground = dto.contentBackground;
+    }
+    if (dto.contentBackgroundDim !== undefined) {
+      user.contentBackgroundDim = dto.contentBackgroundDim;
+    }
 
     return this.userRepository.save(user);
+  }
+
+  async updateMyContentBackground(userId: string, contentBackground: string): Promise<void> {
+    await this.userRepository.update(userId, { contentBackground });
   }
 
   async updateMyAvatar(userId: string, avatarUrl: string): Promise<User> {

@@ -21,8 +21,9 @@ type JobUnlockUpdate = { lockedAt: null; lockedBy: null };
 @Injectable()
 export class CustomTableImportJobsProcessor {
   private readonly logger = new Logger(CustomTableImportJobsProcessor.name);
-  private readonly instanceId =
-    process.env.RAILWAY_SERVICE_INSTANCE_ID || process.env.HOSTNAME || randomUUID();
+  // HOSTNAME is set by Docker and Kubernetes alike; the UUID covers a bare
+  // process run outside a container.
+  private readonly instanceId = process.env.HOSTNAME || randomUUID();
   private running = false;
   private readonly staleLockMs = Number(
     process.env.CUSTOM_TABLE_IMPORT_JOB_STALE_LOCK_MS || 10 * 60 * 1000,

@@ -1,7 +1,9 @@
 /* eslint-disable max-lines */
 'use client';
 
-import { Alert, Box, Button, Link, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, TextField, Typography } from '@mui/material';
+import MuiLink from '@mui/material/Link';
+import NextLink from 'next/link';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useSearchParams } from 'next/navigation';
 import React, { Suspense, useState } from 'react';
@@ -71,10 +73,10 @@ function LoginPageContent(): React.JSX.Element {
         return;
       }
 
-      const { access_token, refresh_token, user } = response.data;
+      // Токены пришли httpOnly-куками и в теле ответа их больше нет —
+      // хранить тут нечего, кроме профиля для первого рендера.
+      const { user } = response.data;
 
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('refresh_token', refresh_token);
       localStorage.setItem('user', JSON.stringify(user));
       syncLocaleFromUser(user);
       if (user.workspaceId) {
@@ -254,8 +256,23 @@ function LoginPageContent(): React.JSX.Element {
         >
           {loading ? <CircularProgress size={24} color="inherit" /> : t.submit}
         </Button>
-        <Box textAlign="center" sx={{ mt: 3 }}>
-          <Link
+        <Box textAlign="center" sx={{ mt: 2 }}>
+          <MuiLink
+            component={NextLink}
+            href="/forgot-password"
+            variant="body2"
+            sx={{
+              textDecoration: 'none',
+              color: 'text.secondary',
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            {t.forgotPassword}
+          </MuiLink>
+        </Box>
+        <Box textAlign="center" sx={{ mt: 2 }}>
+          <MuiLink
+            component={NextLink}
             href={
               nextPath
                 ? `/register?next=${encodeURIComponent(nextPath)}${
@@ -272,7 +289,7 @@ function LoginPageContent(): React.JSX.Element {
             }}
           >
             {t.noAccount}
-          </Link>
+          </MuiLink>
         </Box>
       </Box>
     </AuthLayout>

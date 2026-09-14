@@ -11,6 +11,20 @@ vi.mock('@/app/hooks/useIsMobile', () => ({
   useIsMobile: () => isMobileMock(),
 }));
 
+const deviceLocationMock = vi.hoisted(() => vi.fn());
+const locationAccessMock = vi.hoisted(() => ({
+  supported: true,
+  request: vi.fn(),
+}));
+
+vi.mock('@/app/lib/device-location', () => ({
+  getDeviceLocation: () => deviceLocationMock(),
+  isDeviceLocationSupported: () => locationAccessMock.supported,
+  requestLocationAccess: () => locationAccessMock.request(),
+}));
+
+const CAPTURE_KEY = 'lumio-receipt-location-capture';
+
 vi.mock('@mui/x-date-pickers/DatePicker', () => ({
   DatePicker: () => <input aria-label="Date" readOnly />,
 }));
@@ -221,6 +235,7 @@ describe('CreateExpenseDrawer mobile uploads', () => {
       files,
       allowDuplicates: true,
       requireManualCategorySelection: false,
+      deviceLocation: null,
     });
 
     await act(async () => {
@@ -294,6 +309,222 @@ describe('CreateExpenseDrawer mobile uploads', () => {
 
     await act(async () => {
       root.unmount();
+    });
+  });
+
+  const renderMobileScan = async (onSubmitScan: (payload: unknown) => Promise<void>) => {
+    isMobileMock.mockReturnValue(true);
+    const container = document.createElement('div');
+    document.body.innerHTML = '';
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <CreateExpenseDrawer
+          open
+          initialMode="scan"
+          categories={[]}
+          taxRates={[]}
+          onClose={() => undefined}
+          onSubmitScan={onSubmitScan}
+          onSubmitManual={async () => undefined}
+        />,
+      );
+    });
+
+    return root;
+  };
+
+  it('attaches the device position to a photo taken with the camera', async () => {
+    localStorage.setItem(CAPTURE_KEY, 'on');
+    const location = { latitude: 43.2383, longitude: 76.9453, accuracy: 15 };
+    deviceLocationMock.mockReset().mockResolvedValue(location);
+    const onSubmitScan = vi.fn(async (_payload: unknown) => undefined);
+    const root = await renderMobileScan(onSubmitScan);
+
+    const shot = new File(['shot'], 'shot.jpg', { type: 'image/jpeg' });
+    const cameraInput = document.querySelector('input[capture="environment"]') as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(cameraInput, { target: { files: [shot] } });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /upload receipt/i }));
+    });
+
+    expect(deviceLocationMock).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(onSubmitScan).toHaveBeenCalledWith(
+        expect.objectContaining({ files: [shot], deviceLocation: location }),
+      ),
+    );
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it('does not ask for location when the photo comes from the gallery', async () => {
+    deviceLocationMock.mockReset();
+    const onSubmitScan = vi.fn(async (_payload: unknown) => undefined);
+    const root = await renderMobileScan(onSubmitScan);
+
+    const photo = new File(['old'], 'old.jpg', { type: 'image/jpeg' });
+    const galleryInput = document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(galleryInput, { target: { files: [photo] } });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /upload receipt/i }));
+    });
+
+    expect(deviceLocationMock).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(onSubmitScan).toHaveBeenCalledWith(
+        expect.objectContaining({ files: [photo], deviceLocation: null }),
+      ),
+    );
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it('does not tag camera photos on a device where location was declined', async () => {
+    localStorage.setItem(CAPTURE_KEY, 'off');
+    deviceLocationMock.mockReset();
+    const onSubmitScan = vi.fn(async (_payload: unknown) => undefined);
+    const root = await renderMobileScan(onSubmitScan);
+
+    const shot = new File(['shot'], 'shot.jpg', { type: 'image/jpeg' });
+    const cameraInput = document.querySelector('input[capture="environment"]') as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(cameraInput, { target: { files: [shot] } });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /upload receipt/i }));
+    });
+
+    expect(deviceLocationMock).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(onSubmitScan).toHaveBeenCalledWith(expect.objectContaining({ deviceLocation: null })),
+    );
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  describe('location consent before the first camera shot', () => {
+    beforeEach(() => {
+      localStorage.removeItem(CAPTURE_KEY);
+      locationAccessMock.supported = true;
+      locationAccessMock.request.mockReset();
+    });
+
+    const cameraClickSpy = () =>
+      vi.spyOn(
+        document.querySelector('input[capture="environment"]') as HTMLInputElement,
+        'click',
+      );
+
+    it('asks first instead of opening the camera on an undecided device', async () => {
+      const root = await renderMobileScan(vi.fn(async (_payload: unknown) => undefined));
+      const clickSpy = cameraClickSpy();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /take photo/i }));
+      });
+
+      expect(clickSpy).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Allow' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /not now/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /upload receipt/i })).toBeDisabled();
+
+      await act(async () => {
+        root.unmount();
+      });
+    });
+
+    it('remembers "Not now" and opens the camera in the same tap', async () => {
+      const root = await renderMobileScan(vi.fn(async (_payload: unknown) => undefined));
+      const clickSpy = cameraClickSpy();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /take photo/i }));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /not now/i }));
+      });
+
+      expect(localStorage.getItem(CAPTURE_KEY)).toBe('off');
+      expect(clickSpy).toHaveBeenCalledTimes(1);
+      expect(locationAccessMock.request).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: /take photo/i })).toBeInTheDocument();
+
+      await act(async () => {
+        root.unmount();
+      });
+    });
+
+    it('asks the browser on Allow, then offers to open the camera', async () => {
+      locationAccessMock.request.mockResolvedValue('granted');
+      const root = await renderMobileScan(vi.fn(async (_payload: unknown) => undefined));
+      const clickSpy = cameraClickSpy();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /take photo/i }));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Allow' }));
+      });
+
+      expect(locationAccessMock.request).toHaveBeenCalledTimes(1);
+      expect(localStorage.getItem(CAPTURE_KEY)).toBe('on');
+      expect(clickSpy).not.toHaveBeenCalled();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /open camera/i }));
+      });
+      expect(clickSpy).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        root.unmount();
+      });
+    });
+
+    it('does not ask again once the device has a choice', async () => {
+      localStorage.setItem(CAPTURE_KEY, 'on');
+      const root = await renderMobileScan(vi.fn(async (_payload: unknown) => undefined));
+      const clickSpy = cameraClickSpy();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /take photo/i }));
+      });
+
+      expect(clickSpy).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('button', { name: 'Allow' })).not.toBeInTheDocument();
+
+      await act(async () => {
+        root.unmount();
+      });
+    });
+
+    it('skips the screen where the browser cannot share location', async () => {
+      locationAccessMock.supported = false;
+      const root = await renderMobileScan(vi.fn(async (_payload: unknown) => undefined));
+      const clickSpy = cameraClickSpy();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /take photo/i }));
+      });
+
+      expect(clickSpy).toHaveBeenCalledTimes(1);
+      expect(localStorage.getItem(CAPTURE_KEY)).toBeNull();
+
+      await act(async () => {
+        root.unmount();
+      });
     });
   });
 });

@@ -663,7 +663,13 @@ export class WorkspacesService {
       memberAdded = true;
     }
 
-    await this.userRepository.update(currentUser.id, { workspaceId: workspace.id });
+    // Only fill in a home workspace the user does not have yet. Overwriting it
+    // on every accepted invitation moved the user's default tenant into whoever
+    // invited them last, which is how data scoped through it changed hands.
+    // Membership is what grants access; `lastWorkspaceId` tracks the active one.
+    if (!currentUser.workspaceId) {
+      await this.userRepository.update(currentUser.id, { workspaceId: workspace.id });
+    }
 
     if (invitation.status === WorkspaceInvitationStatus.PENDING) {
       invitation.status = WorkspaceInvitationStatus.ACCEPTED;

@@ -1,6 +1,7 @@
 'use client';
 
 import type React from 'react';
+import { hasSessionCookie } from '@/app/lib/csrf';
 import {
   createContext,
   useCallback,
@@ -208,8 +209,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-    if (token) {
+    if (hasSessionCookie()) {
       void refreshWorkspaces();
     } else {
       setCurrentWorkspace(null);

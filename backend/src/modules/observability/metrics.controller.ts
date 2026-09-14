@@ -2,6 +2,7 @@ import { Controller, ForbiddenException, Get, Headers, Res } from '@nestjs/commo
 import type { Response } from 'express';
 import { Public } from '../auth/decorators/public.decorator';
 import { MetricsService } from './metrics.service';
+import { secretsMatch } from '../../common/utils/secret-compare.util';
 
 @Public()
 @Controller('metrics')
@@ -16,7 +17,7 @@ export class MetricsController {
     }
     if (token) {
       const expected = `Bearer ${token}`;
-      if ((authorization || '').trim() !== expected) {
+      if (!secretsMatch((authorization || '').trim(), expected)) {
         throw new ForbiddenException('Invalid metrics token');
       }
     }

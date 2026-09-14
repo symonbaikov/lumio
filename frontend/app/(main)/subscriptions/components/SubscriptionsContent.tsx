@@ -144,7 +144,7 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
   );
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, flex: 1, bgcolor: 'background.default' }}>
+    <Box sx={{ p: { xs: 2, md: 3 }, flex: 1 }}>
       <Box
         sx={{
           display: 'flex',
@@ -273,7 +273,8 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
               border: 1,
               borderColor: 'divider',
               borderRadius: 2,
-              bgcolor: 'background.paper',
+              // A CSS variable, not the theme colour: it turns translucent over a content background.
+              bgcolor: 'var(--card-bg)',
             }}
           >
             <Box
@@ -334,7 +335,8 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
               border: 1,
               borderColor: 'divider',
               borderRadius: 2,
-              bgcolor: 'background.paper',
+              // A CSS variable, not the theme colour: it turns translucent over a content background.
+              bgcolor: 'var(--card-bg)',
             }}
           >
             <Box

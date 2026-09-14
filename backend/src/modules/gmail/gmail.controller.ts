@@ -567,10 +567,10 @@ export class GmailController {
       throw new BadRequestException('Receipt not found');
     }
 
-    await this.duplicateService.markAsDuplicate(id, dto.originalReceiptId);
+    await this.duplicateService.markAsDuplicate(id, dto.originalReceiptId, user.id);
 
     return await this.receiptRepository.findOne({
-      where: { id },
+      where: { id, userId: user.id },
       relations: ['duplicateOf'],
     });
   }
@@ -586,10 +586,10 @@ export class GmailController {
       throw new BadRequestException('Receipt not found');
     }
 
-    await this.duplicateService.unmarkDuplicate(id);
+    await this.duplicateService.unmarkDuplicate(id, user.id);
 
     return await this.receiptRepository.findOne({
-      where: { id },
+      where: { id, userId: user.id },
     });
   }
 

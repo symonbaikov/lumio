@@ -28,7 +28,24 @@ export class ExchangeRatesService {
     this.apiKey = this.configService.get<string>('EXCHANGE_RATE_API_KEY');
   }
 
-  async getRate(from: string, to: string, date?: Date): Promise<number> {
+  async getRate(from: string, to: string, date?: Date | string): Promise<number> {
+    const rate = await this.getRateOrNull(from, to, date);
+    if (rate === null) {
+      this.logger.warn(
+        `No rate found for ${this.normalizeCurrencyCode(from)}→${this.normalizeCurrencyCode(to)}, returning 1`,
+      );
+      return 1;
+    }
+    return rate;
+  }
+
+  /**
+   * The same lookup chain as `getRate`, but NULL when no rate exists instead of 1.
+   *
+   * Tax figures need the difference: a silent 1 turns 1,000 USD into 1,000 EUR on
+   * a declaration, where a missing rate can at least be reported to the user.
+   */
+  async getRateOrNull(from: string, to: string, date?: Date | string): Promise<number | null> {
     const normalizedFrom = this.normalizeCurrencyCode(from);
     const normalizedTo = this.normalizeCurrencyCode(to);
 
@@ -124,17 +141,21 @@ export class ExchangeRatesService {
       return 1 / latestReverseRateValue;
     }
 
-    this.logger.warn(`No rate found for ${normalizedFrom}→${normalizedTo}, returning 1`);
-    return 1;
+    return null;
   }
 
-  async convert(amount: number, from: string, to: string, date?: Date): Promise<ConvertResult> {
+  async convert(
+    amount: number,
+    from: string,
+    to: string,
+    date?: Date | string,
+  ): Promise<ConvertResult> {
     const rate = await this.getRate(from, to, date);
     return { converted: amount * rate, rate, source: 'exchange-rates-service' };
   }
 
   async bulkConvert(
-    items: Array<{ amount: number; currency: string; date?: Date }>,
+    items: Array<{ amount: number; currency: string; date?: Date | string }>,
     targetCurrency: string,
   ): Promise<ConvertResult[]> {
     return Promise.all(
@@ -287,7 +308,26 @@ export class ExchangeRatesService {
       .execute();
   }
 
-  private toDateOnly(date: Date): string {
+  /**
+   * Accepts a string as well as a Date.
+   *
+   * TypeORM hands back a plain 'YYYY-MM-DD' string for a `type: 'date'` column,
+   * never a Date — and Transaction.transactionDate is declared `Date`, so the
+   * annotation lies and TypeScript could not catch it. Calling .toISOString()
+   * on that string threw, and the whole transactions list came back 500 as soon
+   * as a currency conversion was requested.
+   */
+  private toDateOnly(date: Date | string): string {
+    if (typeof date === 'string') {
+      const dateOnly = /^\d{4}-\d{2}-\d{2}/.exec(date);
+      if (dateOnly) {
+        return dateOnly[0];
+      }
+      const parsed = new Date(date);
+      return Number.isNaN(parsed.getTime())
+        ? new Date().toISOString().split('T')[0]
+        : parsed.toISOString().split('T')[0];
+    }
     return date.toISOString().split('T')[0];
   }
 

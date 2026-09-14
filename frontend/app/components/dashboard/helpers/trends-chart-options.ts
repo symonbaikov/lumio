@@ -1,7 +1,6 @@
 import { tokens } from '@/lib/theme-tokens';
 
 type TrendPoint = { date: string; income: number; expense: number };
-type CategoryPoint = { name: string; amount: number };
 
 function palette(isDark: boolean): {
   tooltipBg: string;
@@ -12,7 +11,6 @@ function palette(isDark: boolean): {
   expense: string;
   incomeArea: string;
   expenseArea: string;
-  surface: string;
 } {
   const c = isDark ? tokens.dark.color : tokens.color;
   return {
@@ -24,7 +22,6 @@ function palette(isDark: boolean): {
     expense: c.danger,
     incomeArea: isDark ? 'rgba(52, 211, 153, 0.12)' : 'rgba(16, 185, 129, 0.08)',
     expenseArea: isDark ? 'rgba(251, 113, 133, 0.12)' : 'rgba(225, 29, 72, 0.08)',
-    surface: c.surface,
   };
 }
 
@@ -166,50 +163,5 @@ export function buildDailyTrendOption({
       splitLine: { lineStyle: { color: p.grid } },
     },
     series,
-  };
-}
-
-interface CategoryRoseInput {
-  categories: CategoryPoint[];
-  isDark: boolean;
-  seriesName: string;
-  colorFor: (name: string) => string;
-}
-
-/** Rose pie without a built-in legend; the card renders its own icon list. */
-export function buildCategoryRoseOption({
-  categories,
-  isDark,
-  seriesName,
-  colorFor,
-}: CategoryRoseInput): object | null {
-  if (!categories.length) {
-    return null;
-  }
-  const p = palette(isDark);
-  return {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'item',
-      backgroundColor: p.tooltipBg,
-      borderColor: 'transparent',
-      textStyle: { color: p.tooltipText, fontSize: 12 },
-    },
-    series: [
-      {
-        name: seriesName,
-        type: 'pie',
-        radius: ['22%', '78%'],
-        center: ['50%', '50%'],
-        roseType: 'radius',
-        label: { show: false },
-        itemStyle: { borderColor: p.surface, borderWidth: 2, borderRadius: 4 },
-        data: categories.map(c => ({
-          name: c.name,
-          value: Number(c.amount.toFixed(2)),
-          itemStyle: { color: colorFor(c.name) },
-        })),
-      },
-    ],
   };
 }

@@ -2,10 +2,12 @@
 
 import Stack from '@mui/material/Stack';
 import type React from 'react';
-import { Cloud, Shield, SlidersHorizontal } from '@/app/components/icons';
+import { Cloud, MapPin, Shield, SlidersHorizontal } from '@/app/components/icons';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { useIntlayer } from '@/app/i18n';
 import { MyDataSection } from '@/app/settings/profile/components/MyDataSection';
 import { ProcessingSection } from '@/app/settings/profile/components/ProcessingSection';
+import { ReceiptLocationCaptureSection } from '@/app/settings/profile/components/ReceiptLocationCaptureSection';
 import { SettingsAccordion } from '@/app/settings/profile/components/SettingsAccordion';
 import { SyncSection } from '@/app/settings/profile/components/SyncSection';
 import { resolveOpenSection } from '@/app/settings/profile/helpers/settings-url-state';
@@ -18,6 +20,7 @@ import type { SettingsTabProps } from './types';
 export function DataTab({ section, user, logout }: SettingsTabProps): React.JSX.Element {
   const { currentWorkspace } = useWorkspace();
   const { tx } = useSettingsText();
+  const receiptLocationText = useIntlayer('receiptLocationConsent');
   const openSection = resolveOpenSection('data', section);
 
   const processing = useProcessing(!!user, currentWorkspace?.id, {
@@ -50,6 +53,16 @@ export function DataTab({ section, user, logout }: SettingsTabProps): React.JSX.
         defaultExpanded={openSection === 'processing'}
       >
         <ProcessingSection tx={tx} processing={processing} />
+      </SettingsAccordion>
+
+      <SettingsAccordion
+        id="receipt-location"
+        title={receiptLocationText.settingsTitle.value}
+        description={receiptLocationText.settingsDescription.value}
+        icon={MapPin}
+        defaultExpanded={openSection === 'receipt-location'}
+      >
+        <ReceiptLocationCaptureSection />
       </SettingsAccordion>
 
       <SettingsAccordion

@@ -141,3 +141,52 @@ export function createPublicEgressHttpAgents() {
     httpsAgent: new HttpsAgent({ lookup }),
   };
 }
+
+const MAX_EGRESS_REDIRECTS = 3;
+
+/**
+ * `fetch` for user-supplied destinations.
+ *
+ * `assertPublicEgressUrl` alone is not enough when it only runs at the moment a
+ * URL is saved: the host can start resolving somewhere private afterwards, and
+ * plain `fetch` follows redirects, so one 302 to 169.254.169.254 walks straight
+ * past a check done earlier. This re-validates on every hop and refuses to
+ * follow a redirect it has not validated.
+ *
+ * Residual risk worth naming: between the DNS lookup here and the socket the
+ * runtime opens, a hostile resolver can still answer differently (classic DNS
+ * rebinding). Closing that needs a dispatcher that pins the resolved address —
+ * `createPublicEgressHttpAgents` does it for the axios/node-http callers.
+ */
+export async function fetchPublicUrl(
+  url: string,
+  init: RequestInit = {},
+  redirectsLeft = MAX_EGRESS_REDIRECTS,
+): Promise<Response> {
+  await assertPublicEgressUrl(url);
+
+  const response = await fetch(url, { ...init, redirect: 'manual' });
+
+  if (response.status < 300 || response.status >= 400) {
+    return response;
+  }
+
+  const location = response.headers.get('location');
+  if (!location) {
+    return response;
+  }
+
+  if (redirectsLeft <= 0) {
+    throw new BadRequestException('Destination redirected too many times');
+  }
+
+  const target = new URL(location, url).toString();
+  // A redirect turns the follow-up into a GET unless it is 307/308, and the
+  // original body must not be replayed to a new host either way.
+  const isMethodPreserving = response.status === 307 || response.status === 308;
+  const nextInit: RequestInit = isMethodPreserving
+    ? init
+    : { ...init, method: 'GET', body: undefined };
+
+  return fetchPublicUrl(target, nextInit, redirectsLeft - 1);
+}

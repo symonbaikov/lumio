@@ -9,7 +9,13 @@ describe('queryKeys', () => {
   it('keeps every key shape stable', () => {
     expect({
       dashboard: queryKeys.dashboard({ workspaceId: 'w1', range: '30d', date: null }),
-      dashboardTrends: queryKeys.dashboardTrends({ workspaceId: 'w1', days: 30 }),
+      dashboardTrends: queryKeys.dashboardTrends({ workspaceId: 'w1', days: 30, month: '2026-07' }),
+      dashboardHealthHistory: queryKeys.dashboardHealthHistory({ workspaceId: 'w1', year: 2026 }),
+      dashboardCashFlow: queryKeys.dashboardCashFlow({
+        workspaceId: 'w1',
+        range: '12m',
+        month: '2026-07',
+      }),
       statements: queryKeys.statements({ workspaceId: 'w1', params: { stage: 'submit' } }),
       gmailReceipts: queryKeys.gmailReceipts({ workspaceId: 'w1', params: { limit: 50 } }),
       transactions: queryKeys.transactions({ workspaceId: 'w1', params: { limit: 500 } }),
@@ -44,7 +50,9 @@ describe('queryKeys', () => {
       notifications: queryKeys.notifications('w1'),
     }).toEqual({
       dashboard: ['dashboard', 'w1', '30d', null],
-      dashboardTrends: ['dashboard', 'trends', 'w1', 30],
+      dashboardTrends: ['dashboard', 'trends', 'w1', 30, '2026-07'],
+      dashboardHealthHistory: ['dashboard', 'health-history', 'w1', 2026],
+      dashboardCashFlow: ['dashboard', 'cash-flow', 'w1', '12m', '2026-07'],
       statements: ['statements', 'w1', { stage: 'submit' }],
       gmailReceipts: ['gmail-receipts', 'w1', { limit: 50 }],
       transactions: ['transactions', 'w1', { limit: 500 }],

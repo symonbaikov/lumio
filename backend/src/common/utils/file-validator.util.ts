@@ -140,6 +140,48 @@ export function validateFile(file: Express.Multer.File): void {
   }
 }
 
+// Avatars are the one upload that is served back from a @Public() route, so
+// they get their own image-only allowlist: `validateFile` above accepts PDF
+// and Office documents too, which must never be reachable through that route.
+const AVATAR_MAGIC_BYTES: ReadonlyMap<string, (buf: Buffer) => boolean> = new Map([
+  ['image/jpeg', (buf: Buffer) => buf.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))],
+  [
+    'image/png',
+    (buf: Buffer) =>
+      buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+  ],
+  [
+    'image/webp',
+    (buf: Buffer) =>
+      buf.subarray(0, 4).toString('latin1') === 'RIFF' &&
+      buf.subarray(8, 12).toString('latin1') === 'WEBP',
+  ],
+  ['image/gif', (buf: Buffer) => buf.subarray(0, 6).toString('latin1').startsWith('GIF8')],
+]);
+
+/**
+ * Verifies that an uploaded image's bytes match its declared MIME type.
+ * The declared type is client-controlled, so without this an HTML payload
+ * announced as image/png would be stored under a .png name.
+ */
+export function validateImageSignature(file: Express.Multer.File): void {
+  const checkSignature = AVATAR_MAGIC_BYTES.get(file.mimetype);
+  if (!checkSignature) {
+    throw new BadRequestException(`File type ${file.mimetype} is not allowed`);
+  }
+
+  if (!file.path) {
+    return;
+  }
+
+  const signature = readSignature(file.path);
+  if (signature && !checkSignature(signature)) {
+    throw new BadRequestException(
+      `File content does not match its declared type (${file.mimetype})`,
+    );
+  }
+}
+
 /**
  * Deletes every file in a batch from disk, ignoring individual failures.
  * Multer's diskStorage writes each upload before any application code runs,

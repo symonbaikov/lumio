@@ -46,6 +46,10 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    // Positioned, but deliberately not a stacking context: it paints after the
+    // background photo that precedes it in the DOM, while overlays inside it (the
+    // statements upload menu) still compete with body-level portals by z-index.
+    position: relative;
     background: $lumio-color-bg;
 
     @include dark {
@@ -644,5 +648,106 @@
 
   .lumio-shell__content > main {
     padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+// _content-background.scss — the user's photo behind the content area
+// (components/ContentBackground.tsx). The glass rules apply only while
+// html[data-content-bg] is set, so without a photo nothing here changes the look.
+// Dialogs, menus and popovers portal to <body>, outside this scope, and stay opaque.
+
+.lumio-content-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+
+  &__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 400ms ease;
+
+    &[data-loaded='true'] {
+      opacity: 1;
+    }
+  }
+
+  // The theme's own background colour rather than black: in light mode dark
+  // text sits straight on the photo, and darkening it would bury that text.
+  &__dim {
+    position: absolute;
+    inset: 0;
+    background: var(--background);
+  }
+}
+
+html[data-content-bg='true'] .lumio-shell__content {
+  --card: rgba(255, 255, 255, 0.72);
+  --card-bg: rgba(255, 255, 255, 0.72);
+  --content-row-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(15, 18, 16, 0.08);
+  --glass-blur: 12px;
+
+  background: transparent;
+
+  // Blur only on containers: every blurred element is repainted on each scroll
+  // frame, so rows inside them get a tint instead.
+  .lumio-topbar,
+  .lumio-tx-table,
+  .lumio-dashboard__card,
+  .MuiCard-root,
+  .MuiPaper-root {
+    background: var(--card);
+    border-color: var(--glass-border);
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
+  }
+
+  // A paper inside a glass container would stack a second tint and blur.
+  .MuiPaper-root .MuiPaper-root,
+  .lumio-dashboard__card .MuiPaper-root {
+    background: transparent;
+    backdrop-filter: none;
+  }
+
+  .lumio-stmt-item,
+  .lumio-stmt-list-item {
+    background: var(--content-row-bg);
+  }
+
+  .lumio-stmt-list-item--selected {
+    background: color-mix(in srgb, var(--primary) 12%, var(--content-row-bg));
+  }
+
+  .lumio-stmt-list-item--error {
+    background: color-mix(in srgb, #dc2626 10%, var(--content-row-bg));
+  }
+
+  @media (max-width: 768px) {
+    --card: rgba(255, 255, 255, 0.9);
+    --card-bg: rgba(255, 255, 255, 0.9);
+
+    .lumio-topbar,
+    .lumio-tx-table,
+    .lumio-dashboard__card,
+    .MuiCard-root,
+    .MuiPaper-root {
+      backdrop-filter: none;
+    }
+  }
+}
+
+html.dark[data-content-bg='true'] .lumio-shell__content {
+  --card: rgba(22, 27, 23, 0.72);
+  --card-bg: rgba(22, 27, 23, 0.72);
+  --content-row-bg: rgba(22, 27, 23, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  @media (max-width: 768px) {
+    --card: rgba(22, 27, 23, 0.9);
+    --card-bg: rgba(22, 27, 23, 0.9);
   }
 }

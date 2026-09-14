@@ -15,6 +15,8 @@ type DashboardTabContentProps = {
   formatAmount: (value: number) => string;
   isLoading: boolean;
   displayMonth: Date;
+  /** Switches the dashboard month (0-based `month`), as the header month strip does. */
+  onSelectMonth: (year: number, month: number) => void;
 };
 
 export function DashboardTabContent({
@@ -23,10 +25,18 @@ export function DashboardTabContent({
   formatAmount,
   isLoading,
   displayMonth,
+  onSelectMonth,
 }: DashboardTabContentProps): React.JSX.Element {
   return (
     <Box sx={{ width: '100%', px: { xs: 2, md: 4 }, pt: 2.5, flex: 1, pb: 6 }}>
-      {activeTab === 'finance-ops' && <FinanceOpsTab data={data} formatAmount={formatAmount} />}
+      {activeTab === 'finance-ops' && (
+        <FinanceOpsTab
+          data={data}
+          formatAmount={formatAmount}
+          displayMonth={displayMonth}
+          onSelectMonth={onSelectMonth}
+        />
+      )}
       {activeTab === 'overview' && (
         <OverviewTab
           data={data}
@@ -36,9 +46,20 @@ export function DashboardTabContent({
         />
       )}
       {activeTab === 'trends' && (
-        <TrendsTab data={data} formatAmount={formatAmount} displayMonth={displayMonth} />
+        <TrendsTab
+          formatAmount={formatAmount}
+          displayMonth={displayMonth}
+          onSelectMonth={onSelectMonth}
+        />
       )}
-      {activeTab === 'data-health' && <DataHealthTab data={data} formatAmount={formatAmount} />}
+      {activeTab === 'data-health' && (
+        <DataHealthTab
+          data={data}
+          formatAmount={formatAmount}
+          displayMonth={displayMonth}
+          onSelectMonth={onSelectMonth}
+        />
+      )}
     </Box>
   );
 }

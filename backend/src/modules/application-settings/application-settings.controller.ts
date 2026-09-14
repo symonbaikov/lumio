@@ -15,6 +15,14 @@ import { Permission } from '../../common/enums/permissions.enum';
 import { User, WorkspaceServiceSettingsKey } from '../../entities';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApplicationSettingsService } from './application-settings.service';
+import {
+  SaveAiSettingsDto,
+  SaveAppSettingsDto,
+  SaveLocalCategorizationDto,
+  SaveSmtpSettingsDto,
+  SaveTelegramSettingsDto,
+  TestLocalCategorizationDto,
+} from './dto/application-settings.dto';
 
 type UploadedModelArchive = {
   originalname?: string;
@@ -32,7 +40,7 @@ export class ApplicationSettingsController {
 
   @Put('integrations/ai')
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
-  saveAi(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
+  saveAi(@CurrentUser() user: User, @Body() body: SaveAiSettingsDto) {
     return this.applicationSettingsService.saveAiSettings(user, body);
   }
 
@@ -53,7 +61,7 @@ export class ApplicationSettingsController {
   }
 
   @Put('integrations/ai/personal')
-  savePersonalAi(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
+  savePersonalAi(@CurrentUser() user: User, @Body() body: SaveAiSettingsDto) {
     return this.applicationSettingsService.savePersonalAiSettings(user, body);
   }
 
@@ -69,12 +77,12 @@ export class ApplicationSettingsController {
 
   @Put('local-categorization')
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
-  saveLocalCategorization(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
+  saveLocalCategorization(@CurrentUser() user: User, @Body() body: SaveLocalCategorizationDto) {
     return this.applicationSettingsService.saveLocalCategorizationSettings(user, body);
   }
 
   @Post('local-categorization/test')
-  testLocalCategorization(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
+  testLocalCategorization(@CurrentUser() user: User, @Body() body: TestLocalCategorizationDto) {
     return this.applicationSettingsService.testLocalCategorization(user, body);
   }
 
@@ -100,7 +108,7 @@ export class ApplicationSettingsController {
 
   @Put('email/smtp')
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
-  saveSmtp(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
+  saveSmtp(@CurrentUser() user: User, @Body() body: SaveSmtpSettingsDto) {
     return this.applicationSettingsService.saveSmtpSettings(user, body);
   }
 
@@ -117,7 +125,7 @@ export class ApplicationSettingsController {
 
   @Put('notifications/telegram')
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
-  saveTelegram(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
+  saveTelegram(@CurrentUser() user: User, @Body() body: SaveTelegramSettingsDto) {
     return this.applicationSettingsService.saveTelegramSettings(user, body);
   }
 
@@ -134,7 +142,7 @@ export class ApplicationSettingsController {
 
   @Put('app')
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
-  saveApp(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
+  saveApp(@CurrentUser() user: User, @Body() body: SaveAppSettingsDto) {
     return this.applicationSettingsService.saveAppSettings(user, body);
   }
 

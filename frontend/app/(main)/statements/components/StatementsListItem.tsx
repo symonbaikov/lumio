@@ -463,12 +463,12 @@ export function StatementsListItem({
     resolvedTheme === 'dark'
       ? {
           borderColor: duplicateStyle.lineColor,
-          background: `color-mix(in srgb, ${duplicateStyle.lineColor} 10%, ${c.surface})`,
+          background: `color-mix(in srgb, ${duplicateStyle.lineColor} 10%, var(--content-row-bg, ${c.surface}))`,
           boxShadow: `inset 0 0 0 1px ${duplicateStyle.rowBorderColor}`,
         }
       : {
           borderColor: duplicateStyle.rowBorderColor,
-          backgroundColor: c.surface,
+          backgroundColor: `var(--content-row-bg, ${c.surface})`,
           boxShadow: `inset 0 0 0 1px ${duplicateStyle.rowBorderColor}`,
         };
   const handleView = () => {

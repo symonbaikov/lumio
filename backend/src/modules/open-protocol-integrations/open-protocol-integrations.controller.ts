@@ -5,6 +5,13 @@ import { IntegrationProvider } from '../../entities';
 import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { OpenProtocolIntegrationsService } from './open-protocol-integrations.service';
+import {
+  ImportFilesDto,
+  ListImapFoldersDto,
+  SaveImapSettingsDto,
+  SaveS3SettingsDto,
+  SaveWebdavSettingsDto,
+} from './dto/open-protocol-settings.dto';
 
 @Controller('integrations')
 export class OpenProtocolIntegrationsController {
@@ -17,7 +24,7 @@ export class OpenProtocolIntegrationsController {
 
   @Post('s3-compatible/settings')
   @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
-  saveS3Settings(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
+  saveS3Settings(@CurrentUser() user: User, @Body() body: SaveS3SettingsDto) {
     return this.openProtocolIntegrationsService.saveS3Settings(user, {
       endpoint: this.stringValue(body.endpoint),
       region: this.stringValue(body.region),
@@ -37,7 +44,7 @@ export class OpenProtocolIntegrationsController {
 
   @Post('s3-compatible/import')
   @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
-  importS3Files(@CurrentUser() user: User, @Body() body: { fileIds?: string[] }) {
+  importS3Files(@CurrentUser() user: User, @Body() body: ImportFilesDto) {
     return this.openProtocolIntegrationsService.importS3Files(user, this.getFileIds(body));
   }
 
@@ -60,7 +67,7 @@ export class OpenProtocolIntegrationsController {
 
   @Post('webdav/settings')
   @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
-  saveWebdavSettings(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
+  saveWebdavSettings(@CurrentUser() user: User, @Body() body: SaveWebdavSettingsDto) {
     return this.openProtocolIntegrationsService.saveWebdavSettings(user, {
       url: this.stringValue(body.url),
       rootPath: this.stringValue(body.rootPath),
@@ -76,7 +83,7 @@ export class OpenProtocolIntegrationsController {
 
   @Post('webdav/import')
   @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
-  importWebdavFiles(@CurrentUser() user: User, @Body() body: { fileIds?: string[] }) {
+  importWebdavFiles(@CurrentUser() user: User, @Body() body: ImportFilesDto) {
     return this.openProtocolIntegrationsService.importWebdavFiles(user, this.getFileIds(body));
   }
 
@@ -99,7 +106,7 @@ export class OpenProtocolIntegrationsController {
 
   @Post('imap/settings')
   @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
-  saveImapSettings(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
+  saveImapSettings(@CurrentUser() user: User, @Body() body: SaveImapSettingsDto) {
     return this.openProtocolIntegrationsService.saveImapSettings(user, {
       host: this.stringValue(body.host),
       port: this.numberValue(body.port),
@@ -112,7 +119,7 @@ export class OpenProtocolIntegrationsController {
 
   @Post('imap/folders')
   @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
-  listImapFolders(@Body() body: Record<string, unknown>) {
+  listImapFolders(@Body() body: ListImapFoldersDto) {
     return this.openProtocolIntegrationsService.listImapFolders({
       host: this.stringValue(body.host) ?? '',
       port: this.numberValue(body.port) ?? 993,

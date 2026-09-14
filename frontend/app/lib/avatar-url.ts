@@ -3,7 +3,7 @@ const API_PATH = '/api/v1';
 
 const normalizeBase = (value: string) => value.replace(/\/$/, '');
 
-function resolveApiBaseForAssets(): string {
+export function resolveApiBaseForAssets(): string {
   const envApiBase = process.env.NEXT_PUBLIC_API_URL;
 
   if (envApiBase && /^https?:\/\//i.test(envApiBase)) {

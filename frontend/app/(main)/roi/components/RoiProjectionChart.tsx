@@ -1,9 +1,8 @@
 'use client';
 
-import { useTheme } from 'next-themes';
 import { useMemo } from 'react';
-import { LazyECharts } from '@/app/components/ui/lazy-echarts';
-import { tokens } from '@/lib/theme-tokens';
+import { LazyRoiLines } from '@/app/components/charts/lazy-charts';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import type { ProjectionPoint } from '../roi-model';
 
 interface RoiProjectionChartProps {
@@ -17,50 +16,20 @@ export function RoiProjectionChart({
   compoundLabel,
   simpleLabel,
 }: RoiProjectionChartProps) {
-  const { resolvedTheme } = useTheme();
-  const color = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
-
-  const option = useMemo(
-    () => ({
-      backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis' },
-      legend: { top: 0, data: [compoundLabel, simpleLabel], textStyle: { fontSize: 12 } },
-      grid: { top: 32, left: 8, right: 16, bottom: 8, containLabel: true },
-      xAxis: {
-        type: 'category',
-        data: points.map(point => point.year),
-        boundaryGap: false,
-        axisLabel: { fontSize: 10, color: color.textSecondary },
-        axisLine: { lineStyle: { color: color.border } },
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { fontSize: 10, color: color.textSecondary },
-        splitLine: { lineStyle: { color: color.border } },
-      },
-      series: [
-        {
-          name: compoundLabel,
-          type: 'line',
-          smooth: true,
-          showSymbol: false,
-          data: points.map(point => Math.round(point.compound)),
-          lineStyle: { color: color.catTransport, width: 2 },
-          itemStyle: { color: color.catTransport },
-        },
-        {
-          name: simpleLabel,
-          type: 'line',
-          smooth: true,
-          showSymbol: false,
-          data: points.map(point => Math.round(point.simple)),
-          lineStyle: { color: color.catOther, width: 2, type: 'dashed' },
-          itemStyle: { color: color.catOther },
-        },
-      ],
-    }),
-    [points, compoundLabel, simpleLabel, color],
+  const t = useIntlayer('roiPage');
+  const { locale } = useLocale();
+  const formatter = useMemo(
+    () => new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }),
+    [locale],
   );
 
-  return <LazyECharts option={option} style={{ height: 260, width: '100%' }} notMerge />;
+  return (
+    <div className="lumio-chart__box">
+      <LazyRoiLines
+        points={points}
+        labels={{ compound: compoundLabel, simple: simpleLabel, year: t.yearColumn.value }}
+        formatValue={value => formatter.format(value)}
+      />
+    </div>
+  );
 }

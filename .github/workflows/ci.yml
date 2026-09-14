@@ -6,7 +6,6 @@ name: CI
     branches:
       - main
       - develop
-      - staging
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -101,7 +100,7 @@ jobs:
             -w /project \
             openpolicyagent/conftest:v0.56.0 \
             test -p policy/docker-compose \
-            docker-compose.yml docker-compose.dev.yml docker-compose.observability.yml
+            docker-compose.yml docker-compose.dev.yml
 
       - name: Conftest (GitHub workflows)
         run: |
@@ -111,15 +110,6 @@ jobs:
             openpolicyagent/conftest:v0.56.0 \
             test -p policy/github-actions \
             .github/workflows/*.yml
-
-      - name: Conftest (Railway)
-        run: |
-          docker run --rm \
-            -v "$GITHUB_WORKSPACE":/project \
-            -w /project \
-            openpolicyagent/conftest:v0.56.0 \
-            test -p policy/railway \
-            railway.json
 
   shellcheck:
     runs-on: ubuntu-latest
@@ -156,9 +146,7 @@ jobs:
             --config .hadolint.yaml \
             Dockerfile \
             backend/Dockerfile \
-            frontend/Dockerfile \
-            observability/grafana/Dockerfile \
-            observability/prometheus/Dockerfile
+            frontend/Dockerfile
 
   trivy-config:
     runs-on: ubuntu-latest
@@ -180,7 +168,6 @@ jobs:
             config . \
             --severity HIGH,CRITICAL \
             --exit-code 1 \
-            --ignorefile .trivyignore.yaml \
             --skip-dirs '**/node_modules' \
             --skip-dirs '**/dist' \
             --skip-dirs '**/.next' \

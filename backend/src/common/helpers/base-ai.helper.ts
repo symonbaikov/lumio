@@ -7,6 +7,7 @@ import {
   withAiConcurrency,
 } from '../../modules/parsing/helpers/ai-runtime.util';
 import { retry, TimeoutError, withTimeout } from '../utils/async.util';
+import { fetchPublicUrl } from '../utils/egress-url.util';
 
 type GenerateJsonOptions = {
   timeoutMs: number;
@@ -60,6 +61,14 @@ export abstract class BaseAiHelper {
   protected aiBaseUrl: string | null = null;
   protected aiApiKey: string | null = null;
   protected aiModel: string | null = null;
+  /**
+   * True when the endpoint came from the operator's own AI_BASE_URL env var,
+   * where a private address is a legitimate self-hosted setup (Ollama on
+   * localhost). Workspace- and user-supplied endpoints are not trusted that
+   * way — they already have to pass assertPublicEgressUrl when saved, so the
+   * call below enforces the same rule and refuses redirects off it.
+   */
+  private aiBaseUrlIsOperatorConfigured = false;
 
   constructor(apiKey: string | undefined = process.env.AI_API_KEY) {
     const baseUrl = process.env.AI_BASE_URL;
@@ -69,6 +78,7 @@ export abstract class BaseAiHelper {
       this.aiBaseUrl = baseUrl.replace(/\/+$/, '');
       this.aiApiKey = apiKey || null;
       this.aiModel = model;
+      this.aiBaseUrlIsOperatorConfigured = true;
     }
   }
 
@@ -77,12 +87,18 @@ export abstract class BaseAiHelper {
       this.aiBaseUrl = config.baseUrl.replace(/\/+$/, '');
       this.aiApiKey = config.apiKey || null;
       this.aiModel = config.model;
+      this.aiBaseUrlIsOperatorConfigured = false;
       return;
     }
 
     this.aiBaseUrl = null;
     this.aiApiKey = null;
     this.aiModel = null;
+    this.aiBaseUrlIsOperatorConfigured = false;
+  }
+
+  private aiFetch(url: string, init: RequestInit): Promise<Response> {
+    return this.aiBaseUrlIsOperatorConfigured ? fetch(url, init) : fetchPublicUrl(url, init);
   }
 
   isAvailable(): boolean {
@@ -102,7 +118,7 @@ export abstract class BaseAiHelper {
         () =>
           withTimeout(
             withAiConcurrency(() =>
-              fetch(`${this.aiBaseUrl}/v1/chat/completions`, {
+              this.aiFetch(`${this.aiBaseUrl}/v1/chat/completions`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',

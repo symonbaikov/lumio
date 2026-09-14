@@ -1,5 +1,6 @@
 import { BaseAiHelper } from '../../../common/helpers/base-ai.helper';
 import { unwrapAiJson } from '../../../common/utils/ai-response.util';
+import { normalizeMerchantAddress } from '../../../common/utils/receipt-extraction.util';
 import type {
   DocumentType,
   LineItem,
@@ -21,6 +22,7 @@ export interface AiExtractionResult {
   categoryHint?: string;
   paymentMethod?: string;
   documentNumber?: string;
+  merchantAddress?: string;
 }
 
 type RawAiLineItem = Partial<
@@ -40,7 +42,8 @@ type RawAiExtractionResult = Partial<
     | 'lineItems'
     | 'categoryHint'
     | 'paymentMethod'
-    | 'documentNumber',
+    | 'documentNumber'
+    | 'merchantAddress',
     unknown
   >
 >;
@@ -64,7 +67,8 @@ Output format:
   "lineItems": [{"description": "", "quantity": number, "unitPrice": number, "amount": number}],
   "categoryHint": "food|transport|entertainment|shopping|utilities|health|education|travel|other",
   "paymentMethod": "cash|card|bank_transfer|other",
-  "documentNumber": "string"
+  "documentNumber": "string",
+  "merchantAddress": "street, building, city as printed"
 }
 
 Rules:
@@ -72,6 +76,7 @@ Rules:
 - transactionType for receipts is usually expense, but refund/return should be income.
 - If a field is missing, omit it.
 - Preserve vendor name exactly as in source.
+- merchantAddress is the address of the store or branch where the purchase was made, as printed on the document. Never use a customer or delivery address. If only a legal/registered address is printed, use it.
 `;
 
 export class AiDocumentExtractor extends BaseAiHelper {
@@ -166,6 +171,7 @@ export class AiDocumentExtractor extends BaseAiHelper {
       categoryHint: typeof raw?.categoryHint === 'string' ? raw.categoryHint : undefined,
       paymentMethod: typeof raw?.paymentMethod === 'string' ? raw.paymentMethod : undefined,
       documentNumber: typeof raw?.documentNumber === 'string' ? raw.documentNumber : undefined,
+      merchantAddress: normalizeMerchantAddress(raw?.merchantAddress),
     };
   }
 

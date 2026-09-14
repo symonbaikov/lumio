@@ -269,20 +269,6 @@ build-docker: ## Build Docker images
 	@$(DOCKER_COMPOSE) build
 	@echo "✅ Docker images built!"
 
-##@ Monitoring
-
-observability: ## Start Prometheus and Grafana
-	@echo "📊 Starting observability stack..."
-	@docker compose -f docker-compose.observability.yml up -d
-	@echo "✅ Observability stack started!"
-	@echo "Prometheus: http://localhost:9090"
-	@echo "Grafana:    http://localhost:3002 (admin/admin)"
-
-observability-stop: ## Stop Prometheus and Grafana
-	@echo "🛑 Stopping observability stack..."
-	@docker compose -f docker-compose.observability.yml down
-	@echo "✅ Observability stack stopped!"
-
 ##@ Utilities
 
 shell-backend: ## Open shell in backend container

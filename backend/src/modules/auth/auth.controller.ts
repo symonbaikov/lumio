@@ -9,60 +9,104 @@ import {
   Query,
   Redirect,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import type { Request } from 'express';
+import { randomBytes } from 'crypto';
+import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface';
 import type { User } from '../../entities/user.entity';
 import { AuthService, type SessionContext } from './auth.service';
+import { clearAuthCookies, REFRESH_TOKEN_COOKIE, setAuthCookies, setCsrfCookie } from './auth-cookies';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
-import type { AuthResponseDto, LoginResultDto } from './dto/auth-response.dto';
+import type { AuthResponseDto, TwoFactorChallengeDto } from './dto/auth-response.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/password-reset.dto';
 import { RegisterDto } from './dto/register.dto';
 import { TwoFactorCodeDto, TwoFactorPasswordDto } from './dto/two-factor.dto';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import type { TwoFactorSetupDto, TwoFactorStatusDto } from './two-factor.service';
 import { TwoFactorService } from './two-factor.service';
+import { PasswordResetService } from './password-reset.service';
+import { SkipCsrf } from '../../common/decorators/skip-csrf.decorator';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly twoFactorService: TwoFactorService,
+    private readonly passwordResetService: PasswordResetService,
   ) {}
 
   private getFrontendBaseUrl() {
     return process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
   }
 
-  private extractSessionContext(req: Request): SessionContext {
-    const forwardedForHeader = req?.headers?.['x-forwarded-for'];
-    const forwardedFor = Array.isArray(forwardedForHeader)
-      ? forwardedForHeader[0]
-      : forwardedForHeader;
+  /**
+   * Moves freshly issued tokens into httpOnly cookies. They deliberately never
+   * appear in the response body any more: anything the page can read, injected
+   * script can read too, which is what made an XSS equal to account takeover.
+   */
+  private setSession(
+    res: Response,
+    tokens: { access_token: string; refresh_token: string },
+  ): void {
+    setAuthCookies(res, {
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+    });
+    setCsrfCookie(res, randomBytes(32).toString('hex'));
+  }
 
+  private extractSessionContext(req: Request): SessionContext {
     return {
       userAgent: req?.headers?.['user-agent'] || null,
-      ipAddress: forwardedFor || req?.ip || req?.socket?.remoteAddress || null,
+      // req.ip, not X-Forwarded-For: with `trust proxy` set in main.ts Express
+      // derives it from the hop we actually trust. Reading the raw header let
+      // any client forge the IP recorded in the session list and audit trail.
+      ipAddress: req?.ip || req?.socket?.remoteAddress || null,
     };
   }
 
   @Public()
+  @SkipCsrf()
+  // Unthrottled registration let the 409 "user already exists" response be used
+  // to enumerate accounts at the global 500 req/min ceiling.
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  async register(@Body() registerDto: RegisterDto, @Req() req: Request): Promise<AuthResponseDto> {
-    return this.authService.register(registerDto, this.extractSessionContext(req));
+  async register(
+    @Body() registerDto: RegisterDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ user: AuthResponseDto['user'] }> {
+    const result = await this.authService.register(registerDto, this.extractSessionContext(req));
+    this.setSession(res, result);
+    return { user: result.user };
   }
 
   @Public()
+  @SkipCsrf()
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 attempts per minute
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto, @Req() req: Request): Promise<LoginResultDto> {
-    return this.authService.login(loginDto, this.extractSessionContext(req));
+  async login(
+    @Body() loginDto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ user: AuthResponseDto['user'] } | TwoFactorChallengeDto> {
+    const result = await this.authService.login(loginDto, this.extractSessionContext(req));
+
+    // The 2FA challenge carries no tokens — no session to issue yet.
+    if ('twoFactorRequired' in result) {
+      return result;
+    }
+
+    this.setSession(res, result);
+    return { user: result.user };
   }
 
   @UseGuards(JwtAuthGuard)
@@ -147,13 +191,54 @@ export class AuthController {
     };
   }
 
+  /**
+   * Always answers 200, whether or not the address has an account: a different
+   * response for unknown addresses turns this into an account-enumeration
+   * oracle, which is the classic leak in a reset flow.
+   */
+  @Public()
+  @SkipCsrf()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<{ message: string }> {
+    await this.passwordResetService.requestReset(dto.email);
+    return { message: 'If that address has an account, a reset link is on its way.' };
+  }
+
+  @Public()
+  @SkipCsrf()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ message: string }> {
+    await this.passwordResetService.resetPassword(dto.token, dto.newPassword);
+    // The reset revoked every session; drop this browser's cookies too so it
+    // is not left holding credentials the server no longer honours.
+    clearAuthCookies(res);
+    return { message: 'Password updated. Please sign in with your new password.' };
+  }
+
   @Public()
   @UseGuards(JwtRefreshGuard)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Req() req: Request): Promise<{ access_token: string; refresh_token: string }> {
-    const refreshToken = req.headers.authorization?.replace('Bearer ', '');
-    return this.authService.refreshToken(refreshToken, this.extractSessionContext(req));
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ message: string }> {
+    // Cookie first, matching JwtRefreshStrategy's extraction order.
+    const refreshToken =
+      req.cookies?.[REFRESH_TOKEN_COOKIE] || req.headers.authorization?.replace('Bearer ', '');
+    const result = await this.authService.refreshToken(
+      refreshToken,
+      this.extractSessionContext(req),
+    );
+    this.setSession(res, result);
+    return { message: 'Token refreshed' };
   }
 
   @UseGuards(JwtAuthGuard)
@@ -162,16 +247,24 @@ export class AuthController {
   async logout(
     @CurrentUser() user: User,
     @Req() req: AuthenticatedRequest,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string }> {
     const currentSessionId = req?.user?.currentSessionId || null;
-    return this.authService.logout(user.id, currentSessionId);
+    const result = await this.authService.logout(user.id, currentSessionId);
+    clearAuthCookies(res);
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('logout-all')
   @HttpCode(HttpStatus.OK)
-  async logoutAll(@CurrentUser() user: User): Promise<{ message: string }> {
-    return this.authService.logoutAll(user.id);
+  async logoutAll(
+    @CurrentUser() user: User,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ message: string }> {
+    const result = await this.authService.logoutAll(user.id);
+    clearAuthCookies(res);
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)
@@ -187,8 +280,18 @@ export class AuthController {
   async logoutSession(
     @CurrentUser() user: User,
     @Param('sessionId') sessionId: string,
+    @Req() req: AuthenticatedRequest,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string }> {
-    return this.authService.logoutSession(user.id, sessionId);
+    const result = await this.authService.logoutSession(user.id, sessionId);
+
+    // Revoking your own session leaves a cookie the strategies will now reject;
+    // clear it so the browser is not left holding a dead credential.
+    if (req?.user?.currentSessionId === sessionId) {
+      clearAuthCookies(res);
+    }
+
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)

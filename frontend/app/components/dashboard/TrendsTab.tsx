@@ -3,27 +3,31 @@
 import Skeleton from '@mui/material/Skeleton';
 import { useTheme } from 'next-themes';
 import type React from 'react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import {
+  formatMonthParam,
+  parseMonthParam,
+} from '@/app/(main)/dashboard/helpers/dashboard-url-state';
+import { LazyCategoryDonut } from '@/app/components/charts/lazy-charts';
 import { LazyECharts } from '@/app/components/ui/lazy-echarts';
-import type { DashboardData, DashboardTrends } from '@/app/hooks/useDashboard';
+import type { DashboardTrends } from '@/app/hooks/useDashboard';
 import { useDashboardTrends } from '@/app/hooks/useDashboard';
 import { useIntlayer } from '@/app/i18n';
 import { categoryColorFor } from '@/app/lib/category-defaults';
-import { resolveDashboardEffectivePeriod } from '@/app/lib/dashboard-effective-window';
 import { CashFlowCard } from './CashFlowCard';
 import { CategoryIconBadge } from './CategoryIconBadge';
-import { buildCategoryRoseOption, buildDailyTrendOption } from './helpers/trends-chart-options';
-import { DAY_OPTIONS } from './helpers/trends-constants';
-import { Chip, ChipGroup, DashboardCard, KpiCard, ListRow } from './ui';
+import { buildDailyTrendOption } from './helpers/trends-chart-options';
+import { DashboardCard, KpiCard, ListRow } from './ui';
 import { useMonthLabel } from './use-month-label';
 
-const DEFAULT_DAYS = 30;
 const LEGEND_LIMIT = 10;
 
 interface TrendsTabProps {
-  data: DashboardData;
   formatAmount: (value: number) => string;
+  /** The dashboard's picked month; every section below the cash flow card is scoped to it. */
   displayMonth: Date;
+  /** Switches the dashboard month (0-based `month`), as the header month strip does. */
+  onSelectMonth: (year: number, month: number) => void;
 }
 
 type Formatter = (value: number) => string;
@@ -101,12 +105,10 @@ function CardState({
 
 function SpendTrendCard({
   state,
-  days,
-  onDaysChange,
+  monthLabel,
 }: {
   state: SectionState;
-  days: number;
-  onDaysChange: (days: number) => void;
+  monthLabel: string;
 }): React.JSX.Element {
   const t = useIntlayer('trendsTab');
   const { resolvedTheme } = useTheme();
@@ -128,23 +130,7 @@ function SpendTrendCard({
     [state.trends, resolvedTheme, t],
   );
   return (
-    <DashboardCard
-      title={t.spendTrendTitle}
-      action={
-        <ChipGroup size="sm">
-          {DAY_OPTIONS.map(opt => (
-            <Chip
-              key={opt.value}
-              size="sm"
-              active={days === opt.value}
-              onClick={() => onDaysChange(opt.value)}
-            >
-              {opt.label}
-            </Chip>
-          ))}
-        </ChipGroup>
-      }
-    >
+    <DashboardCard title={t.spendTrendTitle} subtitle={monthLabel}>
       <CardState state={state} emptyLabel={t.noTrendDataForPeriod}>
         {option ? (
           <div className="lumio-dashboard__chart">
@@ -171,30 +157,24 @@ function CategoryBreakdownCard({
   formatAmount: Formatter;
 }): React.JSX.Element {
   const t = useIntlayer('trendsTab');
-  const { resolvedTheme } = useTheme();
   const top = useMemo(() => state.trends?.categories.slice(0, LEGEND_LIMIT) ?? [], [state.trends]);
-  const option = useMemo(
+  const slices = useMemo(
     () =>
-      buildCategoryRoseOption({
-        categories: top,
-        isDark: resolvedTheme === 'dark',
-        seriesName: t.expenseCategoriesSeriesName.value,
-        colorFor: name => categoryColorFor(name),
-      }),
-    [top, resolvedTheme, t],
+      top.map(c => ({
+        key: c.name,
+        name: c.name,
+        value: c.amount,
+        color: categoryColorFor(c.name),
+      })),
+    [top],
   );
   return (
     <DashboardCard title={t.categoryBreakdownTitle}>
       <CardState state={state} emptyLabel={t.noTrendDataForPeriod}>
-        {option ? (
+        {slices.length > 0 ? (
           <>
             <div className="lumio-dashboard__donut lumio-dashboard__donut--wide">
-              <LazyECharts
-                style={{ height: '100%', width: '100%' }}
-                option={option}
-                notMerge
-                lazyUpdate
-              />
+              <LazyCategoryDonut slices={slices} formatAmount={formatAmount} />
             </div>
             <div className="lumio-dashboard__list">
               {top.map(c => (
@@ -215,28 +195,31 @@ function CategoryBreakdownCard({
   );
 }
 
-export function TrendsTab({ data, formatAmount, displayMonth }: TrendsTabProps): React.JSX.Element {
-  const t = useIntlayer('trendsTab');
-  const [days, setDays] = useState<number>(DEFAULT_DAYS);
+export function TrendsTab({
+  formatAmount,
+  displayMonth,
+  onSelectMonth,
+}: TrendsTabProps): React.JSX.Element {
+  const month = formatMonthParam(displayMonth);
   const monthLabel = useMonthLabel(displayMonth);
-  const { data: trends, isPending, error } = useDashboardTrends(days);
+  const { data: trends, isPending, error } = useDashboardTrends({ month });
   const state: SectionState = { loading: isPending, error, trends: trends ?? null };
-  const effectivePeriod = resolveDashboardEffectivePeriod(
-    trends?.effectiveSince,
-    trends?.effectiveEndDate,
-  );
 
   return (
     <div className="lumio-dashboard__tab">
-      {effectivePeriod && (
-        <div className="lumio-dashboard__period-banner">
-          {`${t.showingPeriodPrefix.value} ${effectivePeriod}`}
-        </div>
-      )}
-      <CashFlowCard data={data.cashFlow} monthLabel={monthLabel} />
+      <CashFlowCard
+        formatAmount={formatAmount}
+        activeMonth={month}
+        onSelectMonth={key => {
+          const picked = parseMonthParam(key);
+          if (picked) {
+            onSelectMonth(picked.getFullYear(), picked.getMonth());
+          }
+        }}
+      />
       {trends && <TrendsKpis trends={trends} formatAmount={formatAmount} />}
       <div className="lumio-dashboard__grid lumio-dashboard__grid--wide">
-        <SpendTrendCard state={state} days={days} onDaysChange={setDays} />
+        <SpendTrendCard state={state} monthLabel={monthLabel} />
         <CategoryBreakdownCard state={state} formatAmount={formatAmount} />
       </div>
     </div>

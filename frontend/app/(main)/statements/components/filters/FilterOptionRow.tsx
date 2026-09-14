@@ -44,7 +44,8 @@ export function FilterOptionRow({
         borderRadius: tokens.radius.xs,
         bgcolor: theme =>
           selected
-            ? theme.palette.primary.main
+            ? // Dark green in both themes; dark mode's primary.main is a light green.
+              (theme.palette.mode === 'dark' ? tokens.dark.color : tokens.color).primaryFill
             : theme.palette.mode === 'dark'
               ? 'rgba(232, 232, 240, 0.18)'
               : theme.palette.grey[100],

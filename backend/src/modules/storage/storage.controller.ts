@@ -11,8 +11,10 @@ import {
   Query,
   Res,
   UseGuards,
+  Headers,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
@@ -22,7 +24,6 @@ import { pipeFileStreamResponse } from '../../common/utils/stream-response.util'
 import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
-import { AccessSharedLinkDto } from './dto/access-shared-link.dto';
 import { BulkFileActionDto } from './dto/bulk-file-action.dto';
 import { CreateFileVersionDto } from './dto/create-file-version.dto';
 import { CreateFolderDto } from './dto/create-folder.dto';
@@ -42,6 +43,9 @@ import { StorageService } from './storage.service';
 /**
  * Storage controller for file management, sharing, and permissions
  */
+/** Lowercase: Nest matches @Headers() names case-insensitively, but this is the wire name. */
+export const SHARED_LINK_PASSWORD_HEADER = 'x-share-password';
+
 @Controller('storage')
 @UseGuards(JwtAuthGuard)
 export class StorageController {
@@ -483,11 +487,19 @@ export class StorageController {
   /**
    * Access shared link (public endpoint)
    * GET /api/v1/storage/shared/:token
+   *
+   * The password travels in a header, not a query parameter: query strings are
+   * written to proxy and server access logs and leak through the Referer of any
+   * resource the page loads afterwards.
    */
   @Public()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Get('shared/:token')
-  async accessSharedLink(@Param('token') token: string, @Query() query: AccessSharedLinkDto) {
-    return await this.storageService.accessSharedLink(token, query.password);
+  async accessSharedLink(
+    @Param('token') token: string,
+    @Headers(SHARED_LINK_PASSWORD_HEADER) password?: string,
+  ) {
+    return await this.storageService.accessSharedLink(token, password);
   }
 
   /**
@@ -495,16 +507,14 @@ export class StorageController {
    * GET /api/v1/storage/shared/:token/download
    */
   @Public()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Get('shared/:token/download')
   async downloadSharedFile(
     @Param('token') token: string,
-    @Query() query: AccessSharedLinkDto,
     @Res() res: Response,
+    @Headers(SHARED_LINK_PASSWORD_HEADER) password?: string,
   ) {
-    const { statement, canDownload } = await this.storageService.accessSharedLink(
-      token,
-      query.password,
-    );
+    const { statement, canDownload } = await this.storageService.accessSharedLink(token, password);
 
     if (!canDownload) {
       res.status(HttpStatus.FORBIDDEN).json({

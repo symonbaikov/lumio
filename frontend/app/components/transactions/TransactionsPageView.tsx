@@ -1,6 +1,7 @@
 'use client';
 
 import Box from '@mui/material/Box';
+import { getCsrfHeaders } from '@/app/lib/csrf';
 import Typography from '@mui/material/Typography';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -36,9 +37,10 @@ async function requestBulkCategorization(
     `${process.env.NEXT_PUBLIC_API_URL || '/api/v1'}/classification/bulk`,
     {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+        ...getCsrfHeaders(),
       },
       body: JSON.stringify({ transactionIds }),
     },

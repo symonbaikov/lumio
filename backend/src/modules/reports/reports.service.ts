@@ -53,6 +53,7 @@ import {
   writeReportFile,
 } from './report-document.util';
 import { renderReportLabels } from './report-export.translations';
+import { neutralizeSpreadsheetFormulaCell } from '../../common/utils/spreadsheet-formula.util';
 
 export interface StatementsSummaryResponse {
   totals: {
@@ -202,6 +203,10 @@ export interface CustomTablesReportDrillDownResponse {
     currency: string | null;
   }>;
 }
+
+/** Keeps the export cell inert while preserving the empty-string default. */
+const neutralize = (value: string | null | undefined): string =>
+  neutralizeSpreadsheetFormulaCell(value || '') as string;
 
 @Injectable()
 export class ReportsService {
@@ -1758,18 +1763,22 @@ export class ReportsService {
         ? this.toDateKey(transaction.transactionDate as unknown as Date)
         : '',
       transactionType: transaction.transactionType === TransactionType.INCOME ? 'Приход' : 'Расход',
-      counterpartyName: transaction.counterpartyName || '',
-      counterpartyBin: transaction.counterpartyBin || '',
-      paymentPurpose: transaction.paymentPurpose || '',
+      // Free-text fields come from parsed statements, receipt OCR and Gmail, so
+      // a value starting with = + - @ would execute as a formula when the CSV or
+      // XLSX is opened. Control fields below are ours and stay untouched so the
+      // summary can still match on them.
+      counterpartyName: neutralize(transaction.counterpartyName),
+      counterpartyBin: neutralize(transaction.counterpartyBin),
+      paymentPurpose: neutralize(transaction.paymentPurpose),
       debit: transaction.debit != null ? Number(transaction.debit) : null,
       credit: transaction.credit != null ? Number(transaction.credit) : null,
       amount: transaction.amount != null ? Number(transaction.amount) : null,
       currency: transaction.currency || 'KZT',
-      category: transaction.category?.name || 'Без категории',
-      branch: transaction.branch?.name || '',
-      wallet: transaction.wallet?.name || '',
-      documentNumber: transaction.documentNumber || '',
-      comments: transaction.comments || '',
+      category: neutralize(transaction.category?.name) || 'Без категории',
+      branch: neutralize(transaction.branch?.name),
+      wallet: neutralize(transaction.wallet?.name),
+      documentNumber: neutralize(transaction.documentNumber),
+      comments: neutralize(transaction.comments),
     }));
   }
 

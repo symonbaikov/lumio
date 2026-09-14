@@ -7,6 +7,7 @@ const nav = {
   tables: 'Tables',
   workspaces: 'Workspaces',
   reports: 'Reports',
+  taxDeclaration: 'Tax declaration',
   netWorth: 'Net worth',
   advice: 'Advice',
   budgets: 'Budgets',
@@ -46,6 +47,12 @@ describe('buildNavItems', () => {
     const items = buildNavItems(nav);
 
     expect(items.find(item => item.path === '/crypto')?.permission).toBe('wallet.view');
+  });
+
+  it('gates the tax declaration behind the report permission its endpoints use', () => {
+    const items = buildNavItems(nav);
+
+    expect(items.find(item => item.path === '/tax-declaration')?.permission).toBe('report.view');
   });
 
   it('lists net worth next to the other money views', () => {

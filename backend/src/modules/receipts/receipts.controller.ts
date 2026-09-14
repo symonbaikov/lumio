@@ -16,10 +16,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
+import { toCaptureLocation } from '../../common/utils/capture-location.util';
 import { validateFile } from '../../common/utils/file-validator.util';
 import { buildContentDisposition } from '../../common/utils/http-file.util';
 import { multerConfig } from '../../config/multer.config';
@@ -28,8 +30,10 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { BulkApproveDto } from './dto/bulk-approve.dto';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
 import { UpdateReceiptDto } from './dto/update-receipt.dto';
+import { UpdateReceiptLocationDto } from './dto/update-receipt-location.dto';
 import { UploadReceiptDto } from './dto/upload-receipt.dto';
 import { ReceiptsService } from './receipts.service';
+import { ReceiptLocationService } from './services/receipt-location.service';
 
 type MulterFile = Express.Multer.File;
 
@@ -44,7 +48,10 @@ const SUPPORTED_RECEIPT_MIME_TYPES = new Set([
 
 @Controller('receipts')
 export class ReceiptsController {
-  constructor(private readonly receiptsService: ReceiptsService) {}
+  constructor(
+    private readonly receiptsService: ReceiptsService,
+    private readonly locationService: ReceiptLocationService,
+  ) {}
 
   @Post('upload')
   @HttpCode(HttpStatus.CREATED)
@@ -72,6 +79,7 @@ export class ReceiptsController {
           workspaceId,
           files: [file],
           language: dto.language,
+          captureLocation: toCaptureLocation(dto),
         }),
       ),
     );
@@ -101,6 +109,7 @@ export class ReceiptsController {
       workspaceId,
       file,
       language: dto.language,
+      captureLocation: toCaptureLocation(dto),
     });
   }
 
@@ -114,6 +123,38 @@ export class ReceiptsController {
   @WorkspaceAuth(Permission.STATEMENT_VIEW)
   async findOne(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
     const receipt = await this.receiptsService.findOne(id, workspaceId);
+    if (!receipt) {
+      throw new BadRequestException('Receipt not found');
+    }
+    return receipt;
+  }
+
+  @Patch(':id/location')
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
+  @ApiOperation({ summary: 'Pin the receipt to a point chosen by the user' })
+  @ApiResponse({ status: 200, description: 'Receipt with location source "manual"' })
+  @ApiResponse({ status: 400, description: 'Receipt not found or coordinates out of range' })
+  async setLocation(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: UpdateReceiptLocationDto,
+  ) {
+    const receipt = await this.locationService.setManual(id, workspaceId, dto);
+    if (!receipt) {
+      throw new BadRequestException('Receipt not found');
+    }
+    return receipt;
+  }
+
+  @Delete(':id/location')
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
+  @ApiOperation({
+    summary: 'Drop the manual point and recompute it from the merchant address or photo',
+  })
+  @ApiResponse({ status: 200, description: 'Receipt with the automatically resolved location' })
+  @ApiResponse({ status: 400, description: 'Receipt not found' })
+  async resetLocation(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
+    const receipt = await this.locationService.resetToAuto(id, workspaceId);
     if (!receipt) {
       throw new BadRequestException('Receipt not found');
     }

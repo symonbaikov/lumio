@@ -144,6 +144,7 @@ export default function IntegrationsPage(): React.JSX.Element {
       },
       {
         key: 'workbook-import',
+        hasNoConnectionState: true,
         name: 'Workbook and Google Sheets import',
         description:
           'Import custom tables from XLSX, CSV, ODS, or a shared Google Sheets link without OAuth.',
@@ -194,6 +195,10 @@ export default function IntegrationsPage(): React.JSX.Element {
 
       await Promise.all(
         integrationMeta.map(async m => {
+          if (m.hasNoConnectionState) {
+            map[m.key] = false;
+            return;
+          }
           await (async () => {
             const resp = await apiClient.get(m.statusPath || `/integrations/${m.key}/status`);
             const data = resp.data || {};

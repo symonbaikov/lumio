@@ -8,7 +8,7 @@ import AdmZip from 'adm-zip';
 import nodemailer from 'nodemailer';
 import type { Repository } from 'typeorm';
 import { ANTHROPIC_API_VERSION, isAnthropicBaseUrl } from '../../common/utils/ai-provider.util';
-import { assertPublicEgressHost, assertPublicEgressUrl } from '../../common/utils/egress-url.util';
+import { assertPublicEgressHost, assertPublicEgressUrl, fetchPublicUrl } from '../../common/utils/egress-url.util';
 import { decryptText, encryptText } from '../../common/utils/encryption.util';
 import {
   User,
@@ -17,6 +17,14 @@ import {
   WorkspaceServiceSettingsKey,
 } from '../../entities';
 import { TransactionCategorizer } from '../classification/helpers/transaction-categorizer';
+import type {
+  SaveAiSettingsDto,
+  SaveAppSettingsDto,
+  SaveLocalCategorizationDto,
+  SaveSmtpSettingsDto,
+  SaveTelegramSettingsDto,
+  TestLocalCategorizationDto,
+} from './dto/application-settings.dto';
 
 export type AiRuntimeSettings = {
   enabled: boolean;
@@ -73,6 +81,11 @@ const DEFAULT_LOCAL_CATEGORIZATION_CATEGORIES = [
   'Коммунальные услуги',
 ];
 
+// The upload itself is capped at 500MB compressed (see the controller). These
+// bound what that is allowed to become once expanded.
+const MAX_MODEL_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024;
+const MAX_MODEL_ARCHIVE_ENTRIES = 10_000;
+
 @Injectable()
 export class ApplicationSettingsService {
   constructor(
@@ -99,7 +112,7 @@ export class ApplicationSettingsService {
     };
   }
 
-  async saveAiSettings(user: User, input: Record<string, unknown>) {
+  async saveAiSettings(user: User, input: SaveAiSettingsDto) {
     const existing = await this.findSettings(user, WorkspaceServiceSettingsKey.AI);
     const config = {
       enabled: this.booleanValue(input.enabled, true),
@@ -145,7 +158,7 @@ export class ApplicationSettingsService {
     };
   }
 
-  async savePersonalAiSettings(user: User, input: Record<string, unknown>) {
+  async savePersonalAiSettings(user: User, input: SaveAiSettingsDto) {
     const workspaceId = this.requireWorkspaceId(user);
     const existing = await this.findPersonalAiSettings(user);
     const config = {
@@ -226,7 +239,7 @@ export class ApplicationSettingsService {
     };
   }
 
-  async saveSmtpSettings(user: User, input: Record<string, unknown>) {
+  async saveSmtpSettings(user: User, input: SaveSmtpSettingsDto) {
     const existing = await this.findSettings(user, WorkspaceServiceSettingsKey.SMTP);
     const config = {
       host: this.requiredString(input.host, 'host'),
@@ -261,7 +274,7 @@ export class ApplicationSettingsService {
     };
   }
 
-  async saveTelegramSettings(user: User, input: Record<string, unknown>) {
+  async saveTelegramSettings(user: User, input: SaveTelegramSettingsDto) {
     const existing = await this.findSettings(user, WorkspaceServiceSettingsKey.TELEGRAM);
     const config = {
       timeoutMs: this.positiveNumber(input.timeoutMs, 10000),
@@ -285,7 +298,7 @@ export class ApplicationSettingsService {
     };
   }
 
-  async saveAppSettings(user: User, input: Record<string, unknown>) {
+  async saveAppSettings(user: User, input: SaveAppSettingsDto) {
     const publicUrl = this.normalizeOrigin(this.requiredString(input.publicUrl, 'publicUrl'));
     await this.saveSettings(user, WorkspaceServiceSettingsKey.APP, { publicUrl }, {});
     return this.getAppStatus(user);
@@ -317,7 +330,7 @@ export class ApplicationSettingsService {
     };
   }
 
-  async saveLocalCategorizationSettings(user: User, input: Record<string, unknown>) {
+  async saveLocalCategorizationSettings(user: User, input: SaveLocalCategorizationDto) {
     const existing = await this.findSettings(
       user,
       WorkspaceServiceSettingsKey.LOCAL_CATEGORIZATION,
@@ -372,7 +385,7 @@ export class ApplicationSettingsService {
     return this.getLocalCategorizationStatus(user);
   }
 
-  async testLocalCategorization(user: User, input: Record<string, unknown>) {
+  async testLocalCategorization(user: User, input: TestLocalCategorizationDto) {
     const runtime = await this.getLocalCategorizationSettings(user);
     const merchantName = this.requiredString(input.merchantName, 'merchantName');
     const categories = this.stringArrayValue(input.categories);
@@ -543,12 +556,15 @@ export class ApplicationSettingsService {
   private mergeSecrets(
     existing: { encryptedSecrets: Record<string, string> } | null,
     keys: string[],
-    input: Record<string, unknown>,
+    // `object`, not `Record<string, unknown>`: the callers now pass validated
+    // DTO instances, and a class instance has no index signature.
+    input: object,
   ): Record<string, string> {
+    const source = input as Record<string, unknown>;
     const previous = this.decryptSecrets(existing?.encryptedSecrets || {});
     const next: Record<string, string> = {};
     for (const key of keys) {
-      const incoming = this.stringValue(input[key]);
+      const incoming = this.stringValue(source[key]);
       next[key] = incoming === undefined || incoming === '' ? previous[key] || '' : incoming;
     }
     return next;
@@ -651,7 +667,19 @@ export class ApplicationSettingsService {
       throw new BadRequestException('Model archive must be a valid ZIP file');
     }
 
-    for (const entry of zip.getEntries()) {
+    const entries = zip.getEntries();
+    if (entries.length > MAX_MODEL_ARCHIVE_ENTRIES) {
+      throw new BadRequestException('Model archive contains too many files');
+    }
+
+    // A running total of what actually lands on disk, rather than trusting the
+    // archive's declared sizes. assertSafeZipDecompressionRatio deliberately
+    // passes on ZIP shapes it cannot fully model (ZIP64, streamed entries),
+    // which is exactly what large ML archives look like — so the upload path
+    // that accepts 500MB needs a cap that holds regardless of archive shape.
+    let writtenBytes = 0;
+
+    for (const entry of entries) {
       const normalizedName = path.normalize(entry.entryName);
       if (
         path.isAbsolute(normalizedName) ||
@@ -664,10 +692,17 @@ export class ApplicationSettingsService {
       const targetPath = path.join(destination, normalizedName);
       if (entry.isDirectory) {
         await fs.mkdir(targetPath, { recursive: true });
-      } else {
-        await fs.mkdir(path.dirname(targetPath), { recursive: true });
-        await fs.writeFile(targetPath, entry.getData());
+        continue;
       }
+
+      const data = entry.getData();
+      writtenBytes += data.length;
+      if (writtenBytes > MAX_MODEL_UNCOMPRESSED_BYTES) {
+        throw new BadRequestException('Model archive expands beyond the allowed size');
+      }
+
+      await fs.mkdir(path.dirname(targetPath), { recursive: true });
+      await fs.writeFile(targetPath, data);
     }
   }
 
@@ -723,7 +758,7 @@ export class ApplicationSettingsService {
     // request would fail a perfectly good key.
     const anthropic = isAnthropicBaseUrl(settings.baseUrl);
     try {
-      const response = await fetch(
+      const response = await fetchPublicUrl(
         anthropic ? `${settings.baseUrl}/v1/messages` : `${settings.baseUrl}/v1/chat/completions`,
         {
           method: 'POST',

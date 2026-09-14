@@ -30,6 +30,8 @@ import type { RegisterDto } from './dto/register.dto';
 import type { JwtPayload } from './strategies/jwt.strategy';
 import type { JwtRefreshPayload } from './strategies/jwt-refresh.strategy';
 import { TwoFactorService } from './two-factor.service';
+import { requireSecret } from '../../common/utils/required-secret.util';
+import { hashPassword } from '../../common/utils/password-hash.util';
 
 export interface SessionContext {
   userAgent?: string | null;
@@ -93,7 +95,7 @@ export class AuthService {
       select: ['id', 'email', 'passwordHash', 'role', 'isActive', 'name', 'workspaceId'],
     });
 
-    const passwordHash = await bcrypt.hash(DEV_DEFAULTS.ADMIN_PASSWORD, 10);
+    const passwordHash = await hashPassword(DEV_DEFAULTS.ADMIN_PASSWORD);
 
     if (!existing) {
       const created = await this.userRepository.save(
@@ -193,7 +195,7 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
 
-    const passwordHash = await bcrypt.hash(registerDto.password, 10);
+    const passwordHash = await hashPassword(registerDto.password);
 
     const user = this.userRepository.create({
       email: normalizedEmail,
@@ -236,6 +238,7 @@ export class AuthService {
         'locale',
         'timeZone',
         'themePreference',
+        'mapStylePreference',
         'onboardingCompletedAt',
         'avatarUrl',
         'isActive',
@@ -564,6 +567,7 @@ export class AuthService {
         locale: user.locale,
         timeZone: user.timeZone ?? null,
         themePreference: user.themePreference,
+        mapStylePreference: user.mapStylePreference ?? null,
         avatarUrl: user.avatarUrl ?? null,
         onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() ?? null,
       },
@@ -573,10 +577,11 @@ export class AuthService {
   }
 
   private hashRefreshToken(refreshToken: string): string {
-    const secret =
-      this.configService.get<string>('SESSION_TOKEN_SALT') ||
-      this.configService.get<string>('JWT_REFRESH_SECRET') ||
-      'session-default-secret';
+    const secret = requireSecret(
+      'SESSION_TOKEN_SALT or JWT_REFRESH_SECRET',
+      this.configService.get<string>('SESSION_TOKEN_SALT'),
+      this.configService.get<string>('JWT_REFRESH_SECRET'),
+    );
 
     return createHmac('sha256', secret).update(refreshToken).digest('hex');
   }

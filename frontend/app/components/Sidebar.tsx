@@ -3,17 +3,21 @@
 import Skeleton from '@mui/material/Skeleton';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { type MouseEvent, useCallback, useState } from 'react';
 import { Check, ChevronDown, Plus } from '@/app/components/icons';
 import { useMenuClickOutside } from '@/app/components/pdf-preview/hooks/useMenuClickOutside';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer } from '@/app/i18n';
+import {
+  type OpenExpenseDrawerEventDetail,
+  STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT,
+} from '@/app/lib/statement-expense-drawer';
 import { buildNavItems, isNavItemActive } from './navigation/helpers/navigation-config';
 
 // Matches buildNavItems() length so the skeleton doesn't jump when real items land.
-const NAV_ITEM_SKELETON_KEYS = Array.from({ length: 10 }, (_, i) => `nav-skeleton-${i}`);
+const NAV_ITEM_SKELETON_KEYS = Array.from({ length: 13 }, (_, i) => `nav-skeleton-${i}`);
 
 function WorkspaceSwitcher() {
   const { currentWorkspace, workspaces, switchWorkspace } = useWorkspace();
@@ -93,6 +97,17 @@ export function SidebarContent({ onNavClick }: SidebarProps) {
   const navItems = buildNavItems(nav as Parameters<typeof buildNavItems>[0]);
   const visibleNavItems = navItems.filter(item => hasPermission(item.permission));
 
+  // Already on the submit page: open the drawer in place instead of a
+  // /statements → /statements/submit redirect round-trip that remounts the page.
+  const handleNewStatementClick = (event: MouseEvent<HTMLAnchorElement>): void => {
+    if (pathname === '/statements/submit') {
+      event.preventDefault();
+      const detail: OpenExpenseDrawerEventDetail = { mode: 'scan' };
+      window.dispatchEvent(new CustomEvent(STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT, { detail }));
+    }
+    onNavClick?.();
+  };
+
   return (
     <>
       {/* Brand */}
@@ -120,7 +135,11 @@ export function SidebarContent({ onNavClick }: SidebarProps) {
           <Skeleton variant="text" width={90} height={16} />
         </div>
       ) : (
-        <Link href="/statements?upload=1" className="lumio-sidebar__cta" onClick={onNavClick}>
+        <Link
+          href="/statements?upload=1"
+          className="lumio-sidebar__cta"
+          onClick={handleNewStatementClick}
+        >
           <span className="lumio-sidebar__cta-icon">
             <Plus size={12} />
           </span>

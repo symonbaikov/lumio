@@ -1,7 +1,9 @@
 /* eslint-disable max-lines */
 'use client';
 
-import { Alert, Box, Button, Link, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, TextField, Typography } from '@mui/material';
+import MuiLink from '@mui/material/Link';
+import NextLink from 'next/link';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useSearchParams } from 'next/navigation';
 import React, { Suspense, useEffect, useState } from 'react';
@@ -87,10 +89,8 @@ function RegisterPageContent(): React.JSX.Element {
         invitationToken: inviteToken || undefined,
       });
 
-      const { access_token, refresh_token, user } = response.data;
+      const { user } = response.data;
 
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('refresh_token', refresh_token);
       localStorage.setItem('user', JSON.stringify(user));
       syncLocaleFromUser(user);
       if (user.workspaceId) {
@@ -262,7 +262,8 @@ function RegisterPageContent(): React.JSX.Element {
           {loading ? <CircularProgress size={24} color="inherit" /> : t.submit}
         </Button>
         <Box textAlign="center" sx={{ mt: 3 }}>
-          <Link
+          <MuiLink
+            component={NextLink}
             href={nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : '/login'}
             variant="body2"
             sx={{
@@ -273,7 +274,7 @@ function RegisterPageContent(): React.JSX.Element {
             }}
           >
             {t.haveAccount}
-          </Link>
+          </MuiLink>
         </Box>
       </Box>
     </AuthLayout>

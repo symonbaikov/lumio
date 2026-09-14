@@ -18,6 +18,7 @@ import { Statement, StatementStatus } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { StatementProcessingService } from '../parsing/services/statement-processing.service';
 import { ConflictResolutionMap, ImportSessionService } from './services/import-session.service';
+import { CommitImportDto } from './dto/commit-import.dto';
 
 @Controller()
 export class ImportSessionController {
@@ -66,7 +67,7 @@ export class ImportSessionController {
   @WorkspaceAuth(Permission.STATEMENT_EDIT)
   async commitImport(
     @Param('id') id: string,
-    @Body() body: { resolutions?: ConflictResolutionMap },
+    @Body() body: CommitImportDto,
     @WorkspaceId() workspaceId: string,
   ) {
     const statement = await this.statementRepository.findOne({

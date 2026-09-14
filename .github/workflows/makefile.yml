@@ -6,7 +6,6 @@ name: Makefile Targets
     branches:
       - main
       - develop
-      - staging
 
 permissions:
   contents: read

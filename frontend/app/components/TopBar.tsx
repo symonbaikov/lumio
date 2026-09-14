@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes';
 import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
 import { GlobalSearch } from '@/app/components/GlobalSearch';
-import { HelpCircle, Menu } from '@/app/components/icons';
+import { Bug, HelpCircle, Menu } from '@/app/components/icons';
 import { NotificationDropdown } from '@/app/components/NotificationDropdown';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
@@ -157,6 +157,16 @@ export default function TopBar() {
           <AiAssistantTopBarButton />
           <McpServerTopBarButton />
           <NotificationDropdown iconSize={18} />
+          <a
+            href="https://github.com/symonbaikov/lumio/issues/new?template=bug_report.yml"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="lumio-topbar__icon-btn"
+            title="Report a bug"
+            aria-label="Report a bug"
+          >
+            <Bug size={18} />
+          </a>
           <TourMenu
             trigger={
               <button type="button" className="lumio-topbar__icon-btn" title="Help">

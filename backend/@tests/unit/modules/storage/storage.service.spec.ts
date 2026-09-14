@@ -364,7 +364,21 @@ describe('StorageService', () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue({
         id: '2',
       } as User);
+      jest.spyOn(workspaceMemberRepository, 'findOne').mockResolvedValue({
+        userId: '2',
+        workspaceId: mockStatement.workspaceId,
+      } as WorkspaceMember);
       jest.spyOn(service as any, 'checkFileAccess').mockResolvedValue(undefined);
+    });
+
+    it('refuses to share with a user outside the file\'s workspace', async () => {
+      jest.spyOn(workspaceMemberRepository, 'findOne').mockResolvedValue(null);
+      const saveSpy = jest.spyOn(filePermissionRepository, 'save');
+
+      await expect(service.grantPermission('1', '1', grantDto)).rejects.toThrow(
+        'User not found in this workspace',
+      );
+      expect(saveSpy).not.toHaveBeenCalled();
     });
 
     it('should grant permission to user', async () => {

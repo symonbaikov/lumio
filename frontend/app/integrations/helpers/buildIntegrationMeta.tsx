@@ -21,6 +21,13 @@ export interface IntegrationMeta {
   icon: React.ReactNode;
   actions: IntegrationAction[];
   statusPath?: string;
+  /**
+   * Some entries are features rather than connections — file-based import has
+   * nothing to connect to and no status to report. Marking them keeps the
+   * integrations page from probing an endpoint that was never going to exist,
+   * which showed up as a 404 in the console on every visit.
+   */
+  hasNoConnectionState?: boolean;
 }
 
 interface CardT {

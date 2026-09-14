@@ -8,6 +8,14 @@ jest.mock('@anthropic-ai/sdk', () => {
   }));
 });
 
+// The egress guard has its own spec (common/utils/egress-url.util.spec.ts). Here
+// the hostnames are deliberately fake, so a real DNS lookup would fail for
+// reasons that have nothing to do with what these tests assert.
+jest.mock('@/common/utils/egress-url.util', () => ({
+  ...jest.requireActual('@/common/utils/egress-url.util'),
+  fetchPublicUrl: (url: string, init: RequestInit) => fetch(url, init),
+}));
+
 describe('ChatCompletionService', () => {
   const runtime = {
     enabled: true,

@@ -41,7 +41,12 @@ vi.mock('@/app/lib/api', () => ({
 }));
 
 vi.mock('@/app/lib/workspace-headers', () => ({
-  getWorkspaceHeaders: () => ({ Authorization: 'Bearer test-token' }),
+  getWorkspaceHeaders: () => ({ 'X-CSRF-Token': 'test-csrf' }),
+}));
+
+vi.mock('@/app/lib/csrf', () => ({
+  hasSessionCookie: () => true,
+  getCsrfHeaders: () => ({ 'X-CSRF-Token': 'test-csrf' }),
 }));
 
 vi.mock('react-hot-toast', () => ({
@@ -71,6 +76,13 @@ vi.mock('@mui/material/DialogActions', () => ({
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'receipt-1' }),
   useRouter: () => ({ push: routerMocks.push, back: routerMocks.back }),
+}));
+
+// The map pulls in Leaflet and React Query; its own test covers it.
+vi.mock('@/app/components/receipts/location/ReceiptLocationSection', () => ({
+  ReceiptLocationSection: ({ receipt }: { receipt: { id: string } }) => (
+    <section data-testid="receipt-location-section">Location of {receipt.id}</section>
+  ),
 }));
 
 describe('ReceiptDocumentPage', () => {
@@ -191,6 +203,9 @@ describe('ReceiptDocumentPage', () => {
     expect(container.querySelector('iframe[title="Magnum receipt"]')).toBeTruthy();
     expect(container.querySelector('input[aria-label="Vendor"]')).toBeTruthy();
     expect(container.querySelector('select[aria-label="Category"]')).toBeTruthy();
+    expect(
+      container.querySelector('[data-testid="receipt-location-section"]')?.textContent,
+    ).toContain('receipt-1');
 
     const pageLayout = Array.from(container.querySelectorAll('div')).find(element =>
       element.className.includes('max-w-7xl'),

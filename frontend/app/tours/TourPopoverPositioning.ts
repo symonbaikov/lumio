@@ -185,22 +185,21 @@ export function positionTourPopoverNearElement(
   const gap = 12;
   const side = placement.side ?? 'bottom';
   const align = placement.align ?? 'start';
+  // driver.js's `Side` is top/right/bottom/left, and TourStep narrows it to the
+  // same four, so there was no way to reach the 'over' branches these used to
+  // carry — TypeScript flagged both as impossible comparisons.
   const left =
     side === 'right'
       ? targetRect.right + gap
       : side === 'left'
         ? targetRect.left - popoverRect.width - gap
-        : side === 'over'
-          ? targetRect.left + targetRect.width / 2 - popoverRect.width / 2
-          : alignInline(targetRect, popoverRect, align);
+        : alignInline(targetRect, popoverRect, align);
   const top =
     side === 'bottom'
       ? targetRect.bottom + gap
       : side === 'top'
         ? targetRect.top - popoverRect.height - gap
-        : side === 'over'
-          ? targetRect.top + targetRect.height / 2 - popoverRect.height / 2
-          : alignBlock(targetRect, popoverRect, align);
+        : alignBlock(targetRect, popoverRect, align);
 
   setPopoverPosition(wrapper, left, top);
   clampTourPopoverToBounds(wrapper, bounds);

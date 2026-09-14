@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useLocale } from '@/app/i18n';
 import { getApiErrorMessage } from '@/app/lib/api-error';
+import { type DeviceLocation, getDeviceLocation } from '@/app/lib/device-location';
+import { getReceiptLocationCapture } from '@/app/lib/receipt-location-capture';
 import {
   flattenStatementCategories,
   type StatementCategoryNode,
@@ -30,7 +32,10 @@ type SubmitScanPayload = {
   files: File[];
   allowDuplicates: boolean;
   requireManualCategorySelection: boolean;
+  deviceLocation: DeviceLocation | null;
 };
+
+export type SelectedFilesOrigin = 'camera' | 'gallery';
 
 type SubmitManualPayload = {
   draft: ManualExpenseDraft;
@@ -94,7 +99,7 @@ export type UseExpenseFormReturn = {
   handleSelectCurrency: (currencyCode: string) => void;
   handleClose: () => void;
   handleBackClick: () => void;
-  handleFilesSelected: (selected: FileList | null) => void;
+  handleFilesSelected: (selected: FileList | null, origin?: SelectedFilesOrigin) => void;
   handleManualNext: () => void;
   handleSubmitScan: () => Promise<void>;
   handleSubmitManual: () => Promise<void>;
@@ -133,6 +138,7 @@ export function useExpenseForm({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const manualAmountInputRef = useRef<HTMLInputElement>(null);
+  const locationRequestRef = useRef<Promise<DeviceLocation | null> | null>(null);
 
   const currencyItems = useMemo(() => buildCurrencySearchIndex(), []);
   const currencyByCode = useMemo(
@@ -274,10 +280,18 @@ export function useExpenseForm({
     handleClose();
   };
 
-  const handleFilesSelected = (selected: FileList | null): void => {
+  const handleFilesSelected = (
+    selected: FileList | null,
+    origin: SelectedFilesOrigin = 'gallery',
+  ): void => {
     if (!selected) {
       return;
     }
+    // Only for a fresh camera shot the user agreed to tag (the consent screen
+    // before the first shot, or Settings). A gallery photo may be days old and
+    // taken anywhere, so it never gets a device point.
+    locationRequestRef.current =
+      origin === 'camera' && getReceiptLocationCapture() === 'on' ? getDeviceLocation() : null;
     setFiles(Array.from(selected));
     setError(null);
   };
@@ -298,14 +312,19 @@ export function useExpenseForm({
     }
 
     const filesToUpload = files;
+    const locationRequest = locationRequestRef.current;
+    locationRequestRef.current = null;
     setError(null);
     handleClose();
 
     await (async () => {
+      // Bounded by getDeviceLocation's timeout and usually settled by now.
+      const deviceLocation = locationRequest ? await locationRequest : null;
       await onSubmitScan({
         files: filesToUpload,
         allowDuplicates: ALWAYS_ALLOW_STATEMENT_DUPLICATES,
         requireManualCategorySelection: false,
+        deviceLocation,
       });
     })().catch(async (submitError: unknown) => {
       toast.error(getApiErrorMessage(submitError, 'Failed to upload files'));

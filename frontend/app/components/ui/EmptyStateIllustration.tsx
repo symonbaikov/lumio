@@ -15,6 +15,7 @@ const ILLUSTRATIONS = {
   notifications: { src: '/images/empty-states/notifications.svg', width: 812, height: 800 },
   payables: { src: '/images/empty-states/payables.svg', width: 960, height: 617 },
   plugins: { src: '/images/empty-states/plugins.svg', width: 960, height: 644 },
+  receivables: { src: '/images/empty-states/receivables.svg', width: 880, height: 600 },
   reports: { src: '/images/empty-states/reports.svg', width: 800, height: 590 },
   'spend-over-time': { src: '/images/empty-states/spend-over-time.svg', width: 711, height: 611 },
   statements: { src: '/images/empty-states/statements.svg', width: 778, height: 613 },

@@ -82,6 +82,50 @@ describe('AiDocumentExtractor', () => {
     expect(mockRecordAiSuccess).toHaveBeenCalled();
   });
 
+  it('extracts the merchant address with normalized spacing', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                totalAmount: 4590,
+                vendor: 'Magnum',
+                merchantAddress: '  г. Алматы,\n ул. Абая   10 ',
+              }),
+            },
+          },
+        ],
+      }),
+    } as Response);
+
+    const extractor = new AiDocumentExtractor('fake-api-key');
+    const result = await extractor.extractFromText('Magnum\nИТОГО 4590');
+
+    expect(result?.merchantAddress).toBe('г. Алматы, ул. Абая 10');
+  });
+
+  it('drops a merchant address that is not a string', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({ totalAmount: 1, merchantAddress: { street: 'Абая' } }),
+            },
+          },
+        ],
+      }),
+    } as Response);
+
+    const extractor = new AiDocumentExtractor('fake-api-key');
+    const result = await extractor.extractFromText('receipt');
+
+    expect(result?.merchantAddress).toBeUndefined();
+  });
+
   it('returns null when circuit breaker is open', async () => {
     mockIsAiCircuitOpen.mockReturnValue(true);
     const extractor = new AiDocumentExtractor('fake-api-key');

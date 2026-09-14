@@ -5,10 +5,19 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import type { StringValue } from 'ms';
 import { devDefault } from '../../common/utils/dev-defaults';
-import { AuthSession, User, Workspace, WorkspaceInvitation, WorkspaceMember } from '../../entities';
+import {
+  AuthSession,
+  PasswordResetToken,
+  User,
+  Workspace,
+  WorkspaceInvitation,
+  WorkspaceMember,
+} from '../../entities';
 import { CategoriesModule } from '../categories/categories.module';
+import { MailerModule } from '../mailer/mailer.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { PasswordResetService } from './password-reset.service';
 import { AuthDevBootstrapService } from './auth-dev-bootstrap.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
@@ -16,8 +25,16 @@ import { TwoFactorService } from './two-factor.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Workspace, WorkspaceInvitation, WorkspaceMember, AuthSession]),
+    TypeOrmModule.forFeature([
+      User,
+      Workspace,
+      WorkspaceInvitation,
+      WorkspaceMember,
+      AuthSession,
+      PasswordResetToken,
+    ]),
     CategoriesModule,
+    MailerModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -26,7 +43,7 @@ import { TwoFactorService } from './two-factor.service';
         return {
           secret,
           signOptions: {
-            expiresIn: (configService.get<string>('JWT_EXPIRES_IN') || '30d') as StringValue,
+            expiresIn: (configService.get<string>('JWT_EXPIRES_IN') || '30m') as StringValue,
           },
         };
       },
@@ -37,6 +54,7 @@ import { TwoFactorService } from './two-factor.service';
   providers: [
     AuthService,
     TwoFactorService,
+    PasswordResetService,
     AuthDevBootstrapService,
     JwtStrategy,
     JwtRefreshStrategy,

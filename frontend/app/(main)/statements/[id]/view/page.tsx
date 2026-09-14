@@ -212,11 +212,8 @@ export default function ViewStatementPage({ params }: { params: Promise<{ id: st
     const toastId = toast.loading(t.loading.value);
 
     await (async () => {
-      const token = localStorage.getItem('access_token');
       const response = await fetch(`${apiBaseUrl}/statements/edit`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {

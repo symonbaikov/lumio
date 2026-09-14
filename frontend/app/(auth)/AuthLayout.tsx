@@ -14,7 +14,7 @@ interface AuthLayoutProps {
 export default function AuthLayout({ children, sideContent, topRightAction }: AuthLayoutProps) {
   return (
     <Grid container sx={{ minHeight: '100vh', overflow: 'hidden' }}>
-      {/* Left Side - Form (White/Light) */}
+      {/* Left Side - Form */}
       <Grid
         size={{ xs: 12, md: 5, lg: 4 }}
         sx={{
@@ -22,11 +22,17 @@ export default function AuthLayout({ children, sideContent, topRightAction }: Au
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          bgcolor: 'background.paper',
+          // The CSS variable, not the MUI palette: next-themes sets the theme
+          // class on <html> in a blocking script before the first paint, while
+          // the MUI theme is built light until Providers flips `mounted` after
+          // its first effect. Reading the palette here painted this panel white
+          // for a frame on every load in dark mode.
+          bgcolor: 'var(--card-bg)',
+          color: 'var(--foreground)',
           p: 6,
           position: 'relative',
           zIndex: 20,
-          boxShadow: { md: '10px 0 30px rgba(0,0,0,0.1)' },
+          boxShadow: { md: '10px 0 30px rgba(0, 0, 0, 0.25)' },
         }}
       >
         {topRightAction ? (

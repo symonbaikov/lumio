@@ -29,6 +29,34 @@ vi.mock('@/app/i18n', async () => {
   };
 });
 
+const historyProps = vi.hoisted(() => vi.fn<(props: Record<string, unknown>) => void>());
+
+vi.mock('../MonthlyHistoryCard', async () => {
+  const actual = await vi.importActual<typeof import('../MonthlyHistoryCard')>(
+    '../MonthlyHistoryCard',
+  );
+  return {
+    ...actual,
+    MonthlyHistoryCard: (props: Record<string, unknown>) => {
+      historyProps(props);
+      return <div data-testid="monthly-history" />;
+    },
+  };
+});
+
+const onSelectMonth = vi.fn();
+const displayMonth = new Date(2026, 6, 1);
+
+const renderTab = () =>
+  render(
+    <FinanceOpsTab
+      data={data}
+      formatAmount={value => String(value)}
+      displayMonth={displayMonth}
+      onSelectMonth={onSelectMonth}
+    />,
+  );
+
 const data: DashboardData = {
   snapshot: {
     totalBalance: 0,
@@ -62,8 +90,20 @@ const data: DashboardData = {
 };
 
 describe('FinanceOpsTab', () => {
+  it('shows the by-month history for the picked month with the finance-ops queues', async () => {
+    const { FINANCE_OPS_HISTORY_METRICS } = await import('../MonthlyHistoryCard');
+    renderTab();
+
+    expect(screen.getByTestId('monthly-history')).toBeInTheDocument();
+    expect(historyProps).toHaveBeenLastCalledWith({
+      displayMonth,
+      metrics: FINANCE_OPS_HISTORY_METRICS,
+      onSelectMonth,
+    });
+  });
+
   it('hosts the quick actions card with backend and parsing rows', () => {
-    render(<FinanceOpsTab data={data} formatAmount={value => String(value)} />);
+    renderTab();
 
     expect(screen.getByText('Quick actions')).toBeInTheDocument();
     const overdue = screen.getByRole('link', { name: /overdue payments/i });
@@ -74,14 +114,14 @@ describe('FinanceOpsTab', () => {
   });
 
   it('hosts the upload drop zone linking to the scanner', () => {
-    render(<FinanceOpsTab data={data} formatAmount={value => String(value)} />);
+    renderTab();
 
     const zone = screen.getByRole('link', { name: /drop a statement here/i });
     expect(zone.getAttribute('href')).toBe('/statements?openExpenseDrawer=scan');
   });
 
   it('renders the checklist rows as links, saved-view chips with counts and status pills', () => {
-    render(<FinanceOpsTab data={data} formatAmount={value => String(value)} />);
+    renderTab();
 
     const checklist = screen.getByRole('link', { name: /checklist\.statementsImported/ });
     expect(checklist.getAttribute('href')).toBeTruthy();

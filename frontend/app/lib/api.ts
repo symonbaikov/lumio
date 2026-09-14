@@ -1,4 +1,5 @@
 import axios, { type AxiosResponse } from 'axios';
+import { clearCsrfCookie, CSRF_HEADER, getCsrfHeaders, getCsrfToken } from './csrf';
 import { getQueryClient } from './query-client';
 
 type GmailReceiptParsedDataUpdate = {
@@ -43,12 +44,14 @@ const apiClient = axios.create({
   withCredentials: true,
 });
 
-// Request interceptor for adding auth token and workspace context
+// Request interceptor for workspace context and CSRF.
+// Authentication itself rides on httpOnly cookies (withCredentials above), so
+// no token is read here — there is nothing in JS reach for an XSS to steal.
 apiClient.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      config.headers[CSRF_HEADER] = csrfToken;
     }
 
     // Add workspace context header
@@ -70,44 +73,31 @@ async function handleForbiddenError(error: unknown): Promise<never> {
   return Promise.reject(error);
 }
 
-async function requestNewAccessToken(): Promise<string> {
-  const refreshToken = localStorage.getItem('refresh_token');
-  if (!refreshToken) return Promise.reject(new Error('No refresh token'));
-
-  const response = await axios.post(
+async function requestNewAccessToken(): Promise<void> {
+  // Оба токена живут в httpOnly-куках: браузер отправляет refresh-куку сам, а
+  // бэкенд перезаписывает обе куки в ответе. Читать и хранить тут нечего.
+  await axios.post(
     `${apiBaseUrl}/auth/refresh`,
     {},
-    { headers: { Authorization: `Bearer ${refreshToken}` } },
+    { withCredentials: true, headers: { ...getCsrfHeaders() } },
   );
-
-  const { access_token, refresh_token } = response.data as {
-    access_token: string;
-    refresh_token?: string;
-  };
-  localStorage.setItem('access_token', access_token);
-  // Бэкенд ротирует refresh-токен на каждом обновлении — старый больше не примут.
-  if (refresh_token) {
-    localStorage.setItem('refresh_token', refresh_token);
-  }
-  return access_token;
 }
 
-let refreshInFlight: Promise<string> | null = null;
+let refreshInFlight: Promise<void> | null = null;
 
 /**
  * Все параллельные 401 ждут один рефреш: бэкенд ротирует refresh-токен, и второй
  * одновременный рефреш предъявил бы уже отозванный токен и разлогинил пользователя.
  *
- * Флаг сбрасывается внутри колбэков then, то есть после записи токенов в localStorage:
- * сброс до записи оставил бы окно, в котором следующий вызов прочитал бы старый refresh-токен.
+ * Флаг сбрасывается внутри колбэков then, то есть после того, как бэкенд перезаписал куки:
+ * сброс раньше оставил бы окно, в котором следующий вызов предъявил бы старую refresh-куку.
  * Обе ветки сбрасывают его — иначе один сетевой сбой навсегда отравил бы рефреш во вкладке.
  * Без `finally`: React Compiler пропускает код с finally, и кодовая база держится промис-цепочек.
  */
-function getFreshAccessToken(): Promise<string> {
+function getFreshAccessToken(): Promise<void> {
   refreshInFlight ??= requestNewAccessToken().then(
-    token => {
+    () => {
       refreshInFlight = null;
-      return token;
     },
     (error: unknown) => {
       refreshInFlight = null;
@@ -118,8 +108,13 @@ function getFreshAccessToken(): Promise<string> {
 }
 
 async function refreshAccessToken(originalRequest: Record<string, unknown>): Promise<unknown> {
-  const accessToken = await getFreshAccessToken();
-  (originalRequest.headers as Record<string, string>).Authorization = `Bearer ${accessToken}`;
+  await getFreshAccessToken();
+  // The refreshed cookies are already on the jar; the retry just needs the
+  // CSRF header re-read, since /auth/refresh rotates that value too.
+  const csrfToken = getCsrfToken();
+  if (csrfToken) {
+    (originalRequest.headers as Record<string, string>)[CSRF_HEADER] = csrfToken;
+  }
   return apiClient(originalRequest);
 }
 
@@ -174,12 +169,17 @@ apiClient.interceptors.response.use(
       try {
         return await refreshAccessToken(originalRequest);
       } catch (refreshError) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('currentWorkspaceId');
+        // Обязательно: пока эта кука на месте, AuthProvider считает, что сессия
+        // есть, снова зовёт /auth/me, снова получает 401 — и страница логина
+        // перезагружается по кругу.
+        clearCsrfCookie();
         // Редирект не мгновенный: запросы в полёте успели бы отрезолвиться
         // в кэш уже разлогиненного пользователя.
         getQueryClient().clear();
-        window.location.href = '/login';
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       }
     }
@@ -237,6 +237,8 @@ export const gmailReceiptsApi = {
   getStatus: (): Promise<AxiosResponse> => apiClient.get('/integrations/gmail/status'),
 };
 
+export type ReceiptLocationSource = 'merchant_address' | 'exif' | 'device' | 'manual' | 'fiscal_qr';
+
 export interface ReceiptRecord {
   id: string;
   statementId?: string | null;
@@ -258,6 +260,7 @@ export interface ReceiptRecord {
     amount?: number;
     currency?: string;
     vendor?: string;
+    merchantAddress?: string;
     date?: string;
     tax?: number;
     paymentMethod?: string;
@@ -268,6 +271,11 @@ export interface ReceiptRecord {
     confidence?: number;
     validationIssues?: string[];
   };
+  locationLat?: number | null;
+  locationLng?: number | null;
+  locationSource?: ReceiptLocationSource | null;
+  locationAccuracyM?: number | null;
+  locationUpdatedAt?: string | null;
 }
 
 export interface ReceiptListFilters {
@@ -298,6 +306,19 @@ export const receiptsApi = {
   updateReceipt: async (id: string, data: Partial<ReceiptRecord>): Promise<ReceiptRecord> => {
     const response = await apiClient.patch(`/receipts/${id}`, data);
     return response.data as ReceiptRecord;
+  },
+
+  updateReceiptLocation: async (
+    id: string,
+    point: { latitude: number; longitude: number },
+  ): Promise<ReceiptRecord> => {
+    const response = await apiClient.patch(`/receipts/${id}/location`, point);
+    return (response.data?.data ?? response.data) as ReceiptRecord;
+  },
+
+  resetReceiptLocation: async (id: string): Promise<ReceiptRecord> => {
+    const response = await apiClient.delete(`/receipts/${id}/location`);
+    return (response.data?.data ?? response.data) as ReceiptRecord;
   },
 
   approveReceipt: async (

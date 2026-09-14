@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import type { Repository } from 'typeorm';
 import { appError } from '../../../common/errors/app-error';
+import type { CaptureLocation } from '../../../common/utils/capture-location.util';
 import { calculateFileHash } from '../../../common/utils/file-hash.util';
 import { getFileTypeFromMime } from '../../../common/utils/file-validator.util';
 import { normalizeFilename } from '../../../common/utils/filename.util';
@@ -44,8 +45,9 @@ export class ReceiptStatementService {
     workspaceId: string;
     files: Express.Multer.File[];
     language?: string;
+    captureLocation?: CaptureLocation;
   }): Promise<Statement[]> {
-    const { user, workspaceId, files, language } = params;
+    const { user, workspaceId, files, language, captureLocation } = params;
     await this.ensureCanEditStatements(user.id, workspaceId);
 
     if (!files?.length) {
@@ -60,6 +62,7 @@ export class ReceiptStatementService {
         workspaceId,
         file,
         language,
+        captureLocation,
       });
       results.push(statement);
     }
@@ -141,8 +144,9 @@ export class ReceiptStatementService {
     workspaceId: string;
     file: Express.Multer.File;
     language?: string;
+    captureLocation?: CaptureLocation;
   }): Promise<Statement> {
-    const { user, workspaceId, file, language } = params;
+    const { user, workspaceId, file, language, captureLocation } = params;
     const fileName = normalizeFilename(file.originalname);
     const fileType = getFileTypeFromMime(file.mimetype) as FileType;
     const fileHash = await calculateFileHash(file.path);
@@ -152,6 +156,7 @@ export class ReceiptStatementService {
       workspaceId,
       file,
       language,
+      captureLocation,
     });
 
     if (receipt.status === ReceiptStatus.FAILED) {

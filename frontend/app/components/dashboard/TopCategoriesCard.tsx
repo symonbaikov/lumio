@@ -1,8 +1,8 @@
 'use client';
 
-import { useTheme } from 'next-themes';
 import { useMemo } from 'react';
-import { LazyECharts } from '@/app/components/ui/lazy-echarts';
+import type { DonutSlice } from '@/app/components/charts/CategoryDonut';
+import { LazyCategoryDonut } from '@/app/components/charts/lazy-charts';
 import type { DashboardData } from '@/app/hooks/useDashboard';
 import { useIntlayer } from '@/app/i18n';
 import { categoryColorFor } from '@/app/lib/category-defaults';
@@ -35,65 +35,30 @@ function categoryKey(cat: TopCategory): string {
 
 export function TopCategoriesCard({ categories, formatAmount }: TopCategoriesCardProps) {
   const t = useIntlayer('topCategoriesCard');
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
   const labels = useMemo(
     () => ({ uncategorized: t.uncategorized.value, other: t.other.value }),
     [t.uncategorized, t.other],
   );
 
-  const option = useMemo(() => {
-    if (!categories.length) {
-      return null;
-    }
+  const slices = useMemo<DonutSlice[]>(
+    () =>
+      categories.map(cat => ({
+        key: categoryKey(cat),
+        name: categoryDisplayName(cat, labels),
+        value: cat.amount,
+        color: cat.isOther ? cat.color : categoryColorFor(cat.name, cat.color),
+      })),
+    [categories, labels],
+  );
 
-    return {
-      backgroundColor: 'transparent',
-      tooltip: {
-        trigger: 'item',
-        backgroundColor: isDark ? '#151C24' : '#1a1a1a',
-        textStyle: { color: isDark ? '#E2E8F0' : '#F5F3EF', fontSize: 12 },
-        borderRadius: 8,
-        padding: [10, 12],
-        formatter: (params: { name: string; value: number; percent: number }) =>
-          `${params.name}: ${formatAmount(params.value)} (${params.percent}%)`,
-      },
-      series: [
-        {
-          name: 'Categories',
-          type: 'pie',
-          radius: ['64%', '88%'],
-          avoidLabelOverlap: false,
-          itemStyle: { borderColor: isDark ? '#151C24' : '#ffffff', borderWidth: 2 },
-          label: { show: false },
-          emphasis: {
-            label: { show: true, fontSize: 14, fontWeight: 'bold' },
-          },
-          data: categories.map(cat => ({
-            value: cat.amount,
-            name: categoryDisplayName(cat, labels),
-            itemStyle: { color: cat.isOther ? cat.color : categoryColorFor(cat.name, cat.color) },
-          })),
-        },
-      ],
-      animationDuration: 1400,
-      animationEasing: 'cubicOut',
-    };
-  }, [categories, labels, isDark, formatAmount]);
-
-  if (!option) {
+  if (!categories.length) {
     return <div className="lumio-dashboard__card-empty">{t.noCategoryData}</div>;
   }
 
   return (
     <div className="lumio-dashboard__categories">
       <div className="lumio-dashboard__donut">
-        <LazyECharts
-          style={{ height: '100%', width: '100%' }}
-          option={option}
-          notMerge
-          lazyUpdate
-        />
+        <LazyCategoryDonut slices={slices} formatAmount={formatAmount} />
       </div>
       <div className="lumio-dashboard__list">
         {categories.map(cat => (

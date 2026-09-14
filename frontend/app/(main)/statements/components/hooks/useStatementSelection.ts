@@ -226,10 +226,14 @@ export function useStatementSelection({
   ).length;
   const hasSelectedDuplicates = selectedDuplicateCount > 0;
 
-  // Deselect statements that scroll off-page / get filtered out
+  // Deselect statements that scroll off-page / get filtered out. Returning `prev`
+  // when nothing left the page keeps state unchanged, so a new-but-equal ids
+  // array from the parent cannot turn this effect into a render loop.
   useEffect(() => {
     const visibleSet = new Set(visibleStatementIds);
-    setSelectedStatementIds(prev => prev.filter(id => visibleSet.has(id)));
+    setSelectedStatementIds(prev =>
+      prev.every(id => visibleSet.has(id)) ? prev : prev.filter(id => visibleSet.has(id)),
+    );
   }, [visibleStatementIds]);
 
   // Close bulk-action menu when selection empties

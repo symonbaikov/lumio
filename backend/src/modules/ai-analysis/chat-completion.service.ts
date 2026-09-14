@@ -8,6 +8,7 @@ import {
 import { isAnthropicBaseUrl } from '../../common/utils/ai-provider.util';
 import type { AiRuntimeSettings } from '../application-settings/application-settings.service';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
+import { fetchPublicUrl } from '../../common/utils/egress-url.util';
 
 export interface ChatCompletionMessage {
   role: 'system' | 'user' | 'assistant';
@@ -165,7 +166,7 @@ export class ChatCompletionService {
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+      const response = await fetchPublicUrl(`${baseUrl}/v1/chat/completions`, {
         method: 'POST',
         signal: controller.signal,
         headers: {

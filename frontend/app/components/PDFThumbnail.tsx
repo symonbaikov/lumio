@@ -5,6 +5,7 @@ import { AlertCircle, FileText } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
 import { apiBaseUrl } from '@/app/lib/api';
 import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
+import { hasSessionCookie } from '@/app/lib/csrf';
 
 interface PdfThumbnailProps {
   fileId: string;
@@ -83,7 +84,7 @@ async function fetchThumbnail(params: FetchThumbnailParams): Promise<void> {
 
   try {
     const headers = getWorkspaceHeaders();
-    if (!headers.Authorization) {
+    if (!hasSessionCookie()) {
       setError(true);
       setLoading(false);
       return;

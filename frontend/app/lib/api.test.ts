@@ -10,16 +10,28 @@ interface MockRequestConfig {
 
 const originalAdapter = apiClient.defaults.adapter;
 
+const setCsrfCookie = (value: string): void => {
+  document.cookie = `csrf_token=${value}`;
+};
+
+const clearCookies = (): void => {
+  for (const part of document.cookie.split('; ')) {
+    const name = part.split('=')[0];
+    if (name) document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  }
+};
+
 /**
- * Отдаёт 401 на любой запрос со старым access-токеном и 200 — со свежим.
- * Так же ведёт себя бэкенд после протухания токена.
+ * Отдаёт 401 на запрос со старым CSRF-токеном и 200 — со свежим. Токены живут в
+ * httpOnly-куках, которые тест прочитать не может, поэтому ротация сессии здесь
+ * наблюдается через парную csrf-куку — ровно как её видит и сам клиент.
  */
 function installAdapter(): { requests: MockRequestConfig[] } {
   const requests: MockRequestConfig[] = [];
   apiClient.defaults.adapter = (config => {
     const typed = config as unknown as MockRequestConfig;
     requests.push(typed);
-    if (typed.headers.Authorization === 'Bearer fresh-access') {
+    if (typed.headers['X-CSRF-Token'] === 'fresh-csrf') {
       return Promise.resolve({
         data: { ok: true },
         status: 200,
@@ -35,8 +47,7 @@ function installAdapter(): { requests: MockRequestConfig[] } {
 
 describe('api single-flight refresh', () => {
   beforeEach(() => {
-    localStorage.setItem('access_token', 'stale-access');
-    localStorage.setItem('refresh_token', 'refresh-1');
+    setCsrfCookie('stale-csrf');
     Object.defineProperty(window, 'location', {
       configurable: true,
       writable: true,
@@ -46,14 +57,17 @@ describe('api single-flight refresh', () => {
 
   afterEach(() => {
     apiClient.defaults.adapter = originalAdapter;
+    clearCookies();
     localStorage.clear();
     vi.restoreAllMocks();
   });
 
   it('refreshes once for concurrent 401s and replays every request', async () => {
-    installAdapter();
-    const post = vi.spyOn(axios, 'post').mockResolvedValue({
-      data: { access_token: 'fresh-access', refresh_token: 'refresh-2' },
+    const { requests } = installAdapter();
+    const post = vi.spyOn(axios, 'post').mockImplementation(async () => {
+      // Бэкенд перезаписывает куки в ответе на /auth/refresh.
+      setCsrfCookie('fresh-csrf');
+      return { data: { message: 'Token refreshed' } };
     });
 
     const results = await Promise.all([
@@ -65,9 +79,26 @@ describe('api single-flight refresh', () => {
     expect(post).toHaveBeenCalledTimes(1);
     expect(post.mock.calls[0]?.[0]).toContain('/auth/refresh');
     expect(results.map(r => r.status)).toEqual([200, 200, 200]);
-    expect(localStorage.getItem('access_token')).toBe('fresh-access');
-    // Ротация: второй параллельный рефреш предъявил бы уже отозванный refresh-1.
-    expect(localStorage.getItem('refresh_token')).toBe('refresh-2');
+
+    // Повтор должен перечитать ротированный CSRF-токен, а не переиспользовать старый.
+    // axios переиспользует тот же объект config, поэтому считаем не элементы, а
+    // отмеченные ретраем запросы — у всех должен стоять свежий заголовок.
+    const retried = requests.filter(request => request._retry);
+    expect(retried.length).toBeGreaterThan(0);
+    expect(retried.every(request => request.headers['X-CSRF-Token'] === 'fresh-csrf')).toBe(true);
+  });
+
+  it('никогда не кладёт токены в localStorage', async () => {
+    installAdapter();
+    vi.spyOn(axios, 'post').mockImplementation(async () => {
+      setCsrfCookie('fresh-csrf');
+      return { data: { message: 'Token refreshed' } };
+    });
+
+    await apiClient.get('/dashboard');
+
+    expect(localStorage.getItem('access_token')).toBeNull();
+    expect(localStorage.getItem('refresh_token')).toBeNull();
   });
 
   it('clears the in-flight lock when the refresh fails, so a later 401 retries', async () => {
@@ -82,14 +113,14 @@ describe('api single-flight refresh', () => {
 
     expect(post).toHaveBeenCalledTimes(1);
     expect(settled.every(r => r.status === 'rejected')).toBe(true);
-    expect(localStorage.getItem('access_token')).toBeNull();
-    expect(localStorage.getItem('refresh_token')).toBeNull();
+    expect(localStorage.getItem('currentWorkspaceId')).toBeNull();
     expect(window.location.href).toBe('/login');
 
     // Лока обнулена на ветке ошибки: следующий 401 стартует новый рефреш.
-    localStorage.setItem('access_token', 'stale-access');
-    localStorage.setItem('refresh_token', 'refresh-3');
-    post.mockResolvedValue({ data: { access_token: 'fresh-access' } });
+    post.mockImplementation(async () => {
+      setCsrfCookie('fresh-csrf');
+      return { data: { message: 'Token refreshed' } };
+    });
 
     const response = await apiClient.get('/insights');
     expect(post).toHaveBeenCalledTimes(2);

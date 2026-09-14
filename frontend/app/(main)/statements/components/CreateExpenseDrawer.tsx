@@ -19,9 +19,12 @@ import {
   ScanLine,
   Search,
 } from '@/app/components/icons';
+import { ReceiptLocationConsent } from '@/app/components/receipts/location/ReceiptLocationConsent';
 import { Button } from '@/app/components/ui/button';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
+import { type DeviceLocation, isDeviceLocationSupported } from '@/app/lib/device-location';
+import { getReceiptLocationCapture } from '@/app/lib/receipt-location-capture';
 import { type StatementCategoryNode } from '@/app/lib/statement-categories';
 import {
   type CreateTaxRatePayload,
@@ -43,6 +46,7 @@ type Props = {
     files: File[];
     allowDuplicates: boolean;
     requireManualCategorySelection: boolean;
+    deviceLocation: DeviceLocation | null;
   }) => Promise<void>;
   onSubmitManual: (payload: {
     draft: ManualExpenseDraft;
@@ -164,6 +168,24 @@ export default function CreateExpenseDrawer({
   const isMobile = useIsMobile();
   const scanCameraInputRef = useRef<HTMLInputElement>(null);
   const scanGalleryInputRef = useRef<HTMLInputElement>(null);
+  // Shown instead of the camera the first time, until this device has a choice.
+  const [locationConsentOpen, setLocationConsentOpen] = useState(false);
+  useEffect(() => {
+    if (!open) {
+      setLocationConsentOpen(false);
+    }
+  }, [open]);
+  const openCamera = (): void => {
+    scanCameraInputRef.current?.click();
+    setLocationConsentOpen(false);
+  };
+  const handleTakePhoto = (): void => {
+    if (getReceiptLocationCapture() === null && isDeviceLocationSupported()) {
+      setLocationConsentOpen(true);
+      return;
+    }
+    openCamera();
+  };
   const [createdTaxRates, setCreatedTaxRates] = useState<TaxRateOption[]>([]);
   const mergedTaxRates = useMemo(() => {
     const existingIds = new Set(taxRates.map(taxRate => taxRate.id));
@@ -432,59 +454,65 @@ export default function CreateExpenseDrawer({
                     padding: 16,
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => scanCameraInputRef.current?.click()}
-                    style={{
-                      display: 'flex',
-                      minHeight: 72,
-                      width: '100%',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 12,
-                      borderRadius: tokens.radius.md,
-                      border: 'none',
-                      background: 'var(--primary-fill)',
-                      padding: '16px 20px',
-                      fontSize: 18,
-                      fontWeight: 700,
-                      color: '#fff',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <Camera size={20} />
-                    Take photo
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scanGalleryInputRef.current?.click()}
-                    style={{
-                      display: 'flex',
-                      minHeight: 72,
-                      width: '100%',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 12,
-                      borderRadius: tokens.radius.md,
-                      border: '1px solid var(--border-color)',
-                      background: 'var(--card-bg)',
-                      padding: '16px 20px',
-                      fontSize: 18,
-                      fontWeight: 700,
-                      color: 'var(--foreground)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <ImageIcon size={20} />
-                    Choose from gallery
-                  </button>
+                  {locationConsentOpen ? (
+                    <ReceiptLocationConsent onOpenCamera={openCamera} />
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleTakePhoto}
+                        style={{
+                          display: 'flex',
+                          minHeight: 72,
+                          width: '100%',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 12,
+                          borderRadius: tokens.radius.md,
+                          border: 'none',
+                          background: 'var(--primary-fill)',
+                          padding: '16px 20px',
+                          fontSize: 18,
+                          fontWeight: 700,
+                          color: '#fff',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Camera size={20} />
+                        Take photo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => scanGalleryInputRef.current?.click()}
+                        style={{
+                          display: 'flex',
+                          minHeight: 72,
+                          width: '100%',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 12,
+                          borderRadius: tokens.radius.md,
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--card-bg)',
+                          padding: '16px 20px',
+                          fontSize: 18,
+                          fontWeight: 700,
+                          color: 'var(--foreground)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <ImageIcon size={20} />
+                        Choose from gallery
+                      </button>
+                    </>
+                  )}
                   <input
                     ref={scanCameraInputRef}
                     type="file"
                     accept="image/*"
                     capture="environment"
                     style={{ display: 'none' }}
-                    onChange={event => handleFilesSelected(event.target.files)}
+                    onChange={event => handleFilesSelected(event.target.files, 'camera')}
                   />
                   <input
                     ref={scanGalleryInputRef}
@@ -891,6 +919,7 @@ export default function CreateExpenseDrawer({
               style={{ width: '100%', borderRadius: tokens.radius.md }}
               disabled={
                 submitting ||
+                locationConsentOpen ||
                 currencyPickerOpen ||
                 categoryDrawerOpen ||
                 taxRateDrawerOpen ||

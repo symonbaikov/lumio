@@ -8,6 +8,7 @@ import {
 import {
   buildCurrencyTokenPattern,
   extractLineItemsFromLines,
+  extractMerchantAddress,
   extractAmountFragments as extractSharedAmountFragments,
   isAddressLike as isSharedAddressLike,
   isDateRangeLike as isSharedDateRangeLike,
@@ -177,6 +178,7 @@ export class UniversalExtractorService {
     const currency = amount?.currency || this.extractCurrency(text) || 'KZT';
     const date = this.extractDate(text);
     const vendor = this.extractVendor(lines, context.sender, text);
+    const merchantAddress = extractMerchantAddress(lines);
     const tax = this.extractNumberByPatterns(text, TAX_PATTERNS);
     const subtotal = this.extractNumberByPatterns(text, SUBTOTAL_PATTERNS);
     const lineItems = await this.extractLineItems(lines);
@@ -211,6 +213,7 @@ export class UniversalExtractorService {
       currency,
       date,
       vendor,
+      merchantAddress,
       tax,
       taxRate,
       subtotal,
@@ -390,6 +393,9 @@ export class UniversalExtractorService {
       currency: primary.currency || aiResult.currency,
       date: primary.date || (aiResult.date ? new Date(aiResult.date) : undefined),
       vendor: primary.vendor || aiResult.vendor,
+      // Unlike the other fields the model wins here: it reads a multi-line store
+      // header far better than the single-line heuristic does.
+      merchantAddress: aiResult.merchantAddress || primary.merchantAddress,
       tax: primary.tax ?? aiResult.tax,
       taxRate: primary.taxRate ?? aiResult.taxRate,
       subtotal: primary.subtotal ?? aiResult.subtotal,

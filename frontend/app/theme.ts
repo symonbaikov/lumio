@@ -1,4 +1,6 @@
 import { alpha, createTheme, type ThemeOptions } from '@mui/material/styles';
+import { createSvgIcon } from '@mui/material/utils';
+import { createElement } from 'react';
 import { tokens } from '@/lib/theme-tokens';
 
 export type ThemeMode = 'light' | 'dark';
@@ -19,6 +21,42 @@ const SURFACE_TOKENS: Record<ThemeMode, AppSurfaceTokens> = {
  */
 const DARK_PRIMARY_FILL = '#168118';
 const DARK_PRIMARY_FILL_HOVER = '#1c9c22';
+
+// Checkbox glyphs matching the filter option indicator (FilterOptionRow): a filled
+// rounded 24px square, with the 16px Material check drawn in white when selected.
+const CHECKBOX_BOX = { width: 24, height: 24, rx: 6, fill: 'currentColor' };
+const CHECKBOX_MARK_COLOR = tokens.color.primaryContrast;
+
+const CheckboxBlankIcon = createSvgIcon(createElement('rect', CHECKBOX_BOX), 'LumioCheckboxBlank');
+
+const CheckboxCheckedIcon = createSvgIcon(
+  [
+    createElement('rect', { key: 'box', ...CHECKBOX_BOX }),
+    createElement('path', {
+      key: 'mark',
+      d: 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
+      fill: CHECKBOX_MARK_COLOR,
+      transform: 'translate(4 4) scale(0.6667)',
+    }),
+  ],
+  'LumioCheckboxChecked',
+);
+
+const CheckboxIndeterminateIcon = createSvgIcon(
+  [
+    createElement('rect', { key: 'box', ...CHECKBOX_BOX }),
+    createElement('rect', {
+      key: 'mark',
+      x: 7,
+      y: 11,
+      width: 10,
+      height: 2,
+      rx: 1,
+      fill: CHECKBOX_MARK_COLOR,
+    }),
+  ],
+  'LumioCheckboxIndeterminate',
+);
 
 const getSharedOptions = (
   mode: ThemeMode,
@@ -96,15 +134,32 @@ const getSharedOptions = (
         },
       },
       MuiCheckbox: {
+        defaultProps: {
+          icon: createElement(CheckboxBlankIcon),
+          checkedIcon: createElement(CheckboxCheckedIcon),
+          indeterminateIcon: createElement(CheckboxIndeterminateIcon),
+        },
         styleOverrides: {
           root: {
-            borderRadius: 0,
+            borderRadius: tokens.radius.xs,
             padding: 0,
-            '& .MuiSvgIcon-root': {
-              fontSize: 20,
+            color: mode === 'dark' ? 'rgba(232, 232, 240, 0.18)' : '#f5f5f5',
+            // Dark green fill in both themes: dark mode's primary (#5cc462) is a light green.
+            '&.Mui-checked, &.MuiCheckbox-indeterminate': {
+              color: c.primaryFill,
             },
-            '&.MuiCheckbox-sizeSmall .MuiSvgIcon-root': {
-              fontSize: 16,
+            '&.Mui-disabled': {
+              opacity: 0.55,
+            },
+            '& .MuiSvgIcon-root, &.MuiCheckbox-sizeSmall .MuiSvgIcon-root': {
+              fontSize: 24,
+            },
+            // Let clicks just outside the box still toggle it, without growing the layout.
+            '& .PrivateSwitchBase-input': {
+              top: -6,
+              left: -6,
+              width: 'calc(100% + 12px)',
+              height: 'calc(100% + 12px)',
             },
           },
         },

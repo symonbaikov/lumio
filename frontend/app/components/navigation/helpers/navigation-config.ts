@@ -6,6 +6,7 @@ import {
   CreditCard,
   FileText,
   Flag,
+  Landmark,
   LayoutDashboard,
   Lightbulb,
   MessageCircle,
@@ -38,6 +39,7 @@ export function buildNavItems(nav: {
   tables: unknown;
   workspaces: unknown;
   reports: unknown;
+  taxDeclaration: unknown;
   netWorth: unknown;
   advice: unknown;
   budgets: unknown;
@@ -76,6 +78,13 @@ export function buildNavItems(nav: {
       path: '/reports',
       icon: React.createElement(BarChart2, { size: 18 }),
       permission: 'statement.view',
+    },
+    {
+      label: nav.taxDeclaration as ReactNode,
+      path: '/tax-declaration',
+      icon: React.createElement(Landmark, { size: 18 }),
+      // Matches the draft endpoints' read guard (Permission.REPORT_VIEW).
+      permission: 'report.view',
     },
     {
       label: nav.netWorth as ReactNode,

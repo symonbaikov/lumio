@@ -126,6 +126,7 @@ export function DashboardContent({
         formatAmount={formatAmount}
         isLoading={loading}
         displayMonth={displayMonth}
+        onSelectMonth={changeMonth}
       />
     </>
   );

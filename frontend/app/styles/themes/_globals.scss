@@ -181,35 +181,29 @@ input[type='checkbox']:not(.PrivateSwitchBase-input) {
 }
 
 @supports (appearance: none) {
+  // Same look as the filter option checkboxes (FilterOptionRow) and the MUI theme icons.
   input[type='checkbox']:not(.PrivateSwitchBase-input) {
     position: relative;
-    width: 16px;
-    height: 16px;
+    width: 24px;
+    height: 24px;
     flex-shrink: 0;
     margin: 0;
     appearance: none;
     cursor: pointer;
     vertical-align: middle;
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 0;
+    background: #f5f5f5;
+    border: none;
+    border-radius: $lumio-radius-xs;
+
+    @include dark {
+      background: rgba(232, 232, 240, 0.18);
+    }
   }
 
   input[type='checkbox']:not(.PrivateSwitchBase-input):checked {
-    background: var(--primary);
-    border-color: var(--primary);
-  }
-
-  input[type='checkbox']:not(.PrivateSwitchBase-input):checked::after {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 4px;
-    height: 8px;
-    content: '';
-    border: solid var(--primary-foreground);
-    border-width: 0 2px 2px 0;
-    transform: translate(-50%, -58%) rotate(45deg);
+    background: var(--primary-fill)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
+      center / 16px no-repeat;
   }
 
   input[type='checkbox']:not(.PrivateSwitchBase-input):focus-visible {

@@ -75,9 +75,8 @@ export class CustomTableSyncService {
   async assertTableInWorkspace(workspaceId: string, tableId: string): Promise<CustomTable> {
     const table = await this.tableRepository
       .createQueryBuilder('table')
-      .leftJoin('table.user', 'owner')
       .where('table.id = :tableId', { tableId })
-      .andWhere('owner.workspaceId = :workspaceId', { workspaceId })
+      .andWhere('table.workspaceId = :workspaceId', { workspaceId })
       .getOne();
     if (!table) {
       throw new NotFoundException(appError('TABLE_NOT_FOUND'));

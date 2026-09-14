@@ -18,6 +18,7 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { StatementsService } from '../statements/statements.service';
 import type { ImportDriveFilesDto } from './dto/import-drive-files.dto';
+import { requireSecret } from '../../common/utils/required-secret.util';
 
 type GoogleDriveImportError = {
   response?: { data?: { message?: string } };
@@ -106,7 +107,11 @@ export class GoogleDriveService extends CloudStorageBaseService<DriveSettings> {
   }
 
   protected getStateSecret() {
-    return process.env.GOOGLE_DRIVE_STATE_SECRET || process.env.JWT_SECRET || 'lumio-state';
+    return requireSecret(
+      'GOOGLE_DRIVE_STATE_SECRET or JWT_SECRET',
+      process.env.GOOGLE_DRIVE_STATE_SECRET,
+      process.env.JWT_SECRET,
+    );
   }
 
   protected getProvider(): IntegrationProvider {

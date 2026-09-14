@@ -19,8 +19,14 @@ import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { BackupImportService } from './backup-import.service';
 import { BackupsService, type UpdateBackupConfiguration } from './backups.service';
+import { buildContentDisposition } from '../../common/utils/http-file.util';
 
 type MulterFile = Express.Multer.File;
+
+// FileInterceptor defaults to memory storage with no cap, so the whole body was
+// buffered before any handler ran. Backups are larger than ordinary uploads
+// (which cap at 10MB via multerConfig) but still need a ceiling.
+const BACKUP_UPLOAD_OPTIONS = { limits: { fileSize: 200 * 1024 * 1024 } };
 
 @Controller('backups')
 @UseGuards(JwtAuthGuard)
@@ -58,12 +64,12 @@ export class BackupsController {
   ): Promise<void> {
     const { fileName, contents } = await this.backupsService.downloadRun(user, id);
     response.setHeader('Content-Type', 'application/octet-stream');
-    response.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    response.setHeader('Content-Disposition', buildContentDisposition('attachment', fileName));
     response.send(contents);
   }
 
   @Post('import/preview')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', BACKUP_UPLOAD_OPTIONS))
   previewImport(
     @CurrentUser() user: User,
     @UploadedFile() file: MulterFile | undefined,
@@ -73,7 +79,7 @@ export class BackupsController {
   }
 
   @Post('imports/:id/restore')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', BACKUP_UPLOAD_OPTIONS))
   async restoreImport(
     @Param('id') importId: string,
     @CurrentUser() user: User,

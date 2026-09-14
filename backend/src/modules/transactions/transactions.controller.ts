@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -27,6 +28,7 @@ import type { User } from '../../entities/user.entity';
 import { Audit } from '../audit/decorators/audit.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { BulkUpdateItemDto } from './dto/bulk-update-transaction.dto';
+import { BulkUpdateRequestDto } from './dto/bulk-update-transaction.dto';
 import { BulkUpdateTransactionDto } from './dto/bulk-update-transaction.dto';
 import { SetTransactionTagsDto } from './dto/set-transaction-tags.dto';
 import { SplitTransactionDto } from './dto/split-transaction.dto';
@@ -35,11 +37,7 @@ import { CrossStatementDeduplicationService } from './services/cross-statement-d
 import { TransactionAttachmentsService } from './services/transaction-attachments.service';
 import { TransactionTagsService } from './services/transaction-tags.service';
 import { TransactionsService } from './transactions.service';
-
-interface LegacyBulkUpdateTransactionDto {
-  ids: string[];
-  updates: UpdateTransactionDto;
-}
+import { MarkDuplicatesDto, MergeDuplicatesDto } from './dto/duplicate-actions.dto';
 
 /**
  * Aliased on purpose: writing `Express.Multer.File` straight into a decorated
@@ -163,20 +161,22 @@ export class TransactionsController {
   @HttpCode(HttpStatus.OK)
   @WorkspaceAuth(Permission.TRANSACTION_BULK_UPDATE)
   async bulkUpdate(
-    @Body() body: BulkUpdateTransactionDto | LegacyBulkUpdateTransactionDto,
+    @Body() body: BulkUpdateRequestDto,
     @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
   ) {
     // Support both {items} and {ids, updates} formats for backward compatibility
     let items: BulkUpdateItemDto[];
 
-    if ('items' in body) {
+    if (body.items) {
       items = body.items;
-    } else if ('ids' in body && 'updates' in body) {
-      // Map {ids, updates} to items array
-      items = body.ids.map(id => ({ id, updates: body.updates }));
+    } else if (body.ids && body.updates) {
+      const updates = body.updates;
+      items = body.ids.map(id => ({ id, updates }));
     } else {
-      throw new Error('Invalid bulk update format. Expected {items} or {ids, updates}');
+      // BadRequestException, not Error: a plain Error leaves the exception
+      // filter with nothing to map and the client gets a 500 for bad input.
+      throw new BadRequestException('Invalid bulk update format. Expected {items} or {ids, updates}');
     }
 
     return this.transactionsService.bulkUpdate(workspaceId, user.id, items);
@@ -239,7 +239,7 @@ export class TransactionsController {
   @HttpCode(HttpStatus.OK)
   @WorkspaceAuth(Permission.TRANSACTION_EDIT)
   async markDuplicates(
-    @Body() body: { groups: Array<{ masterId: string; duplicateIds: string[] }> },
+    @Body() body: MarkDuplicatesDto,
     @CurrentUser() _user: User,
     @WorkspaceId() workspaceId: string,
   ) {
@@ -262,7 +262,7 @@ export class TransactionsController {
   @HttpCode(HttpStatus.OK)
   @WorkspaceAuth(Permission.TRANSACTION_EDIT)
   async mergeDuplicates(
-    @Body() body: { transactionIds: string[] },
+    @Body() body: MergeDuplicatesDto,
     @CurrentUser() _user: User,
     @WorkspaceId() workspaceId: string,
   ) {

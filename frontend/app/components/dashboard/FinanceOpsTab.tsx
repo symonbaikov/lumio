@@ -12,6 +12,7 @@ import {
   type FinanceOpsFeatureStatus,
   type FinanceOpsModel,
 } from './finance-ops-model';
+import { FINANCE_OPS_HISTORY_METRICS, MonthlyHistoryCard } from './MonthlyHistoryCard';
 import { QuickActionsCard } from './QuickActionsCard';
 import { UploadZoneCard } from './UploadZoneCard';
 import { CardLink, Chip, ChipGroup, DashboardCard, ListRow, SectionHeader } from './ui';
@@ -19,6 +20,8 @@ import { CardLink, Chip, ChipGroup, DashboardCard, ListRow, SectionHeader } from
 type FinanceOpsTabProps = {
   data: DashboardData;
   formatAmount: (value: number) => string;
+  displayMonth: Date;
+  onSelectMonth: (year: number, month: number) => void;
 };
 
 const STATUS_TONE: Record<FinanceOpsFeatureStatus, 'success' | 'info' | 'danger'> = {
@@ -111,7 +114,12 @@ function FeatureCard({ feature }: { feature: FinanceOpsFeature }): React.JSX.Ele
   );
 }
 
-export function FinanceOpsTab({ data, formatAmount }: FinanceOpsTabProps): React.JSX.Element {
+export function FinanceOpsTab({
+  data,
+  formatAmount,
+  displayMonth,
+  onSelectMonth,
+}: FinanceOpsTabProps): React.JSX.Element {
   const t = useIntlayer('financeOpsTab');
   const model = buildFinanceOpsModel(data, formatAmount, buildFinanceOpsLabels(t));
 
@@ -127,6 +135,11 @@ export function FinanceOpsTab({ data, formatAmount }: FinanceOpsTabProps): React
           <UploadZoneCard />
         </div>
       </div>
+      <MonthlyHistoryCard
+        displayMonth={displayMonth}
+        metrics={FINANCE_OPS_HISTORY_METRICS}
+        onSelectMonth={onSelectMonth}
+      />
       <section>
         <SectionHeader title={t.featuresTitle} />
         <div className="lumio-dashboard__grid lumio-dashboard__grid--cards">

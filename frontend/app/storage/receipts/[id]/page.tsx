@@ -10,6 +10,7 @@ import { useTheme } from 'next-themes';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Download, Table } from '@/app/components/icons';
+import { ReceiptLocationSection } from '@/app/components/receipts/location/ReceiptLocationSection';
 import { ReceiptParsedDataForm } from '@/app/components/receipts/ReceiptParsedDataForm';
 import type {
   EditableReceiptLineItem,
@@ -861,6 +862,8 @@ export default function ReceiptDocumentPage() {
             />
           </Box>
         </Box>
+
+        <ReceiptLocationSection receipt={receipt} onReceiptChange={setReceipt} />
       </Box>
 
       <Dialog
