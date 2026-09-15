@@ -178,10 +178,15 @@ export async function fetchPublicUrl(
   init: RequestInit = {},
   redirectsLeft = MAX_EGRESS_REDIRECTS,
 ): Promise<Response> {
-  await assertPublicEgressUrl(url);
+  const targetUrl = new URL(url);
+  if (targetUrl.protocol !== 'http:' && targetUrl.protocol !== 'https:') {
+    throw new BadRequestException('Destination URL must use http or https');
+  }
+  const normalizedUrl = targetUrl.toString();
+  await assertPublicEgressUrl(normalizedUrl);
 
   // `dispatcher` is undici's extension to fetch; lib.dom's RequestInit does not declare it.
-  const response = await fetch(url, {
+  const response = await fetch(normalizedUrl, {
     ...init,
     redirect: 'manual',
     dispatcher: publicEgressDispatcher,
@@ -200,7 +205,7 @@ export async function fetchPublicUrl(
     throw new BadRequestException('Destination redirected too many times');
   }
 
-  const target = new URL(location, url).toString();
+  const target = new URL(location, normalizedUrl).toString();
   // A redirect turns the follow-up into a GET unless it is 307/308, and the
   // original body must not be replayed to a new host either way.
   const isMethodPreserving = response.status === 307 || response.status === 308;
