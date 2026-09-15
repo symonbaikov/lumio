@@ -62,8 +62,6 @@
 > Built for finance teams, accountants, and developers who need to process and analyze bank statement data without proprietary SaaS lock-in.
 
 ---
-> ⚠️ The demo GIF and screenshots are based on **v1** and will be updated soon.
-
 <p align="center">
   <a href="https://bank.gov.ua/en/news/all/natsionalniy-bank-vidkriv-rahunok-dlya-gumanitarnoyi-dopomogi-ukrayintsyam-postrajdalim-vid-rosiyskoyi-agresiyi" target="_blank">
     <img
