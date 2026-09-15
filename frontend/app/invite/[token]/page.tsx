@@ -6,8 +6,8 @@ import { ShieldCheck } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
-import { hasSessionCookie } from '@/app/lib/csrf';
 import { getApiErrorMessage } from '@/app/lib/api-error';
+import { hasSessionCookie } from '@/app/lib/csrf';
 import { safeInternalPath } from '@/app/lib/safe-path';
 import { formatStoredDateTime } from '@/app/lib/user-format-store';
 

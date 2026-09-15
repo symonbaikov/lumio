@@ -570,7 +570,9 @@ export class IntelligentDeduplicationService {
 
         // Mark all indices as processed
         processed.add(i);
-        potentialDuplicates.forEach(dup => processed.add(dup.index));
+        for (const dup of potentialDuplicates) {
+          processed.add(dup.index);
+        }
       }
     }
 
@@ -807,7 +809,9 @@ export class IntelligentDeduplicationService {
 
     for (const result of highScoringResults) {
       totalScore += result.score * (weights[result.algorithm as keyof typeof weights] || 0);
-      result.fields.forEach(field => allFields.add(field));
+      for (const field of result.fields) {
+        allFields.add(field);
+      }
     }
 
     return {

@@ -2,13 +2,13 @@ import { CanActivate, type ExecutionContext, ForbiddenException, Injectable } fr
 import { Reflector } from '@nestjs/core';
 import { timingSafeEqual } from 'crypto';
 import type { Request } from 'express';
-import { SKIP_CSRF_KEY } from '../decorators/skip-csrf.decorator';
 import {
   ACCESS_TOKEN_COOKIE,
   CSRF_TOKEN_COOKIE,
   CSRF_TOKEN_HEADER,
   REFRESH_TOKEN_COOKIE,
 } from '../../modules/auth/auth-cookies';
+import { SKIP_CSRF_KEY } from '../decorators/skip-csrf.decorator';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 

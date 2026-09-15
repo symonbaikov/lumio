@@ -2,9 +2,9 @@
 'use client';
 
 import { Alert, Box, Button, TextField, Typography } from '@mui/material';
+import CircularProgress from '@mui/material/CircularProgress';
 import MuiLink from '@mui/material/Link';
 import NextLink from 'next/link';
-import CircularProgress from '@mui/material/CircularProgress';
 import { useSearchParams } from 'next/navigation';
 import React, { Suspense, useEffect, useState } from 'react';
 import { AuthGreeting } from '@/app/components/AuthGreeting';

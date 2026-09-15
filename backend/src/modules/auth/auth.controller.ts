@@ -15,11 +15,17 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { randomBytes } from 'crypto';
 import type { Request, Response } from 'express';
+import { SkipCsrf } from '../../common/decorators/skip-csrf.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface';
 import type { User } from '../../entities/user.entity';
 import { AuthService, type SessionContext } from './auth.service';
-import { clearAuthCookies, REFRESH_TOKEN_COOKIE, setAuthCookies, setCsrfCookie } from './auth-cookies';
+import {
+  clearAuthCookies,
+  REFRESH_TOKEN_COOKIE,
+  setAuthCookies,
+  setCsrfCookie,
+} from './auth-cookies';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import type { AuthResponseDto, TwoFactorChallengeDto } from './dto/auth-response.dto';
@@ -28,10 +34,9 @@ import { ForgotPasswordDto, ResetPasswordDto } from './dto/password-reset.dto';
 import { RegisterDto } from './dto/register.dto';
 import { TwoFactorCodeDto, TwoFactorPasswordDto } from './dto/two-factor.dto';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
+import { PasswordResetService } from './password-reset.service';
 import type { TwoFactorSetupDto, TwoFactorStatusDto } from './two-factor.service';
 import { TwoFactorService } from './two-factor.service';
-import { PasswordResetService } from './password-reset.service';
-import { SkipCsrf } from '../../common/decorators/skip-csrf.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -50,10 +55,7 @@ export class AuthController {
    * appear in the response body any more: anything the page can read, injected
    * script can read too, which is what made an XSS equal to account takeover.
    */
-  private setSession(
-    res: Response,
-    tokens: { access_token: string; refresh_token: string },
-  ): void {
+  private setSession(res: Response, tokens: { access_token: string; refresh_token: string }): void {
     setAuthCookies(res, {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,

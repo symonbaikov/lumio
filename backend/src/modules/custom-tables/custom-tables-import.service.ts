@@ -972,7 +972,7 @@ export class CustomTablesImportService {
     }>,
     override?: GoogleSheetsImportColumnDto[],
   ) {
-    if (!(override && override.length)) {
+    if (!override?.length) {
       return previewColumns.map(c => ({ ...c, include: true }));
     }
 

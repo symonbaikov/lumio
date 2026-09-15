@@ -1,6 +1,6 @@
 import { type ChangeEvent, type RefObject, useRef, useState } from 'react';
-import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { hasSessionCookie } from '@/app/lib/csrf';
+import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { apiBaseUrl, getFileEndpoint } from '../helpers/pdf-endpoints';
 
 type DownloadParams = {

@@ -98,7 +98,7 @@ export class ImportSessionService {
     @InjectRepository(ImportSession)
     private readonly importSessionRepository: Repository<ImportSession>,
     @InjectRepository(Transaction)
-    private readonly transactionRepository: Repository<Transaction>,
+    transactionRepository: Repository<Transaction>,
     @InjectRepository(Statement)
     private readonly statementRepository: Repository<Statement>,
     @InjectRepository(Workspace)

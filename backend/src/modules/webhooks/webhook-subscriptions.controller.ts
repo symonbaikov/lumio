@@ -16,7 +16,7 @@ export class WebhookSubscriptionsController {
   constructor(
     private readonly service: WebhookSubscriptionsService,
     private readonly deliveryService: WebhookDeliveryService,
-    private readonly dispatcher: WebhookDispatcherService,
+    dispatcher: WebhookDispatcherService,
   ) {}
 
   @Post()

@@ -283,7 +283,7 @@ export class Statement {
   tags: Tag[];
 
   @AfterLoad()
-  private normalizeFileNameAfterLoad() {
+  normalizeFileNameAfterLoad() {
     if (this.fileName) {
       this.fileName = normalizeFilename(this.fileName);
     }

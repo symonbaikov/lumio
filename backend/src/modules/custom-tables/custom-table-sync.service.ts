@@ -36,7 +36,7 @@ export class CustomTableSyncService {
     @InjectRepository(CustomTableColumn)
     private readonly columnRepository: Repository<CustomTableColumn>,
     @InjectRepository(CustomTableRow)
-    private readonly rowRepository: Repository<CustomTableRow>,
+    rowRepository: Repository<CustomTableRow>,
     @InjectRepository(GoogleSheet)
     private readonly googleSheetRepository: Repository<GoogleSheet>,
     @InjectRepository(WorkspaceMember)

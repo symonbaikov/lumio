@@ -27,11 +27,10 @@ export interface AuthenticatedUser extends User {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  private jwtSecret: string;
   private readonly dicebearBaseUrl = 'https://api.dicebear.com/7.x/identicon/svg';
 
   constructor(
-    private configService: ConfigService,
+    configService: ConfigService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(AuthSession)
@@ -53,8 +52,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ignoreExpiration: false,
       secretOrKey: jwtSecret,
     });
-
-    this.jwtSecret = jwtSecret;
   }
 
   async validate(payload: JwtPayload): Promise<AuthenticatedUser> {

@@ -10,10 +10,6 @@ import {
   extractLineItemsFromLines,
   extractMerchantAddress,
   extractAmountFragments as extractSharedAmountFragments,
-  isAddressLike as isSharedAddressLike,
-  isDateRangeLike as isSharedDateRangeLike,
-  isLikelySentence as isSharedLikelySentence,
-  isYearLikeAmount as isSharedYearLikeAmount,
 } from '../../../common/utils/receipt-extraction.util';
 import {
   AiDocumentExtractor,
@@ -501,21 +497,5 @@ export class UniversalExtractorService {
       validationIssues: [],
       language: undefined,
     };
-  }
-
-  private isLikelySentence(value: string): boolean {
-    return isSharedLikelySentence(value);
-  }
-
-  private isDateRangeLike(value: string): boolean {
-    return isSharedDateRangeLike(value);
-  }
-
-  private isAddressLike(value: string): boolean {
-    return isSharedAddressLike(value);
-  }
-
-  private isYearLikeAmount(amount: number, hasExplicitCurrency: boolean): boolean {
-    return isSharedYearLikeAmount(amount, hasExplicitCurrency);
   }
 }

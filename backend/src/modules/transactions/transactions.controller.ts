@@ -29,7 +29,7 @@ import { Audit } from '../audit/decorators/audit.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { BulkUpdateItemDto } from './dto/bulk-update-transaction.dto';
 import { BulkUpdateRequestDto } from './dto/bulk-update-transaction.dto';
-import { BulkUpdateTransactionDto } from './dto/bulk-update-transaction.dto';
+import { MarkDuplicatesDto, MergeDuplicatesDto } from './dto/duplicate-actions.dto';
 import { SetTransactionTagsDto } from './dto/set-transaction-tags.dto';
 import { SplitTransactionDto } from './dto/split-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
@@ -37,7 +37,6 @@ import { CrossStatementDeduplicationService } from './services/cross-statement-d
 import { TransactionAttachmentsService } from './services/transaction-attachments.service';
 import { TransactionTagsService } from './services/transaction-tags.service';
 import { TransactionsService } from './transactions.service';
-import { MarkDuplicatesDto, MergeDuplicatesDto } from './dto/duplicate-actions.dto';
 
 /**
  * Aliased on purpose: writing `Express.Multer.File` straight into a decorated
@@ -176,7 +175,9 @@ export class TransactionsController {
     } else {
       // BadRequestException, not Error: a plain Error leaves the exception
       // filter with nothing to map and the client gets a 500 for bad input.
-      throw new BadRequestException('Invalid bulk update format. Expected {items} or {ids, updates}');
+      throw new BadRequestException(
+        'Invalid bulk update format. Expected {items} or {ids, updates}',
+      );
     }
 
     return this.transactionsService.bulkUpdate(workspaceId, user.id, items);

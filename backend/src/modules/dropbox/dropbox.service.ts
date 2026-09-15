@@ -4,6 +4,7 @@ import * as path from 'path';
 import type { Repository } from 'typeorm';
 import { CloudStorageBaseService } from '../../common/services/cloud-storage-base.service';
 import { FileStorageService } from '../../common/services/file-storage.service';
+import { requireSecret } from '../../common/utils/required-secret.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import {
   ActorType,
@@ -19,7 +20,6 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { StatementsService } from '../statements/statements.service';
 import type { ImportDropboxFilesDto } from './dto/import-dropbox-files.dto';
-import { requireSecret } from '../../common/utils/required-secret.util';
 
 const DEFAULT_SYNC_TIME = '03:00';
 

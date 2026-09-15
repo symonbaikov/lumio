@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
 import {
   ConnectedSocket,
   MessageBody,
@@ -12,12 +13,11 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
-import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, type Repository } from 'typeorm';
 import { resolveAllowedOrigins } from '../../common/utils/cors-origins';
 import { AuthSession } from '../../entities/auth-session.entity';
-import { User } from '../../entities/user.entity';
 import { Notification } from '../../entities/notification.entity';
+import { User } from '../../entities/user.entity';
 import { ACCESS_TOKEN_COOKIE } from '../auth/auth-cookies';
 
 @WebSocketGateway({

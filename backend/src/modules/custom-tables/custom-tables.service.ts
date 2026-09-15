@@ -9,6 +9,7 @@ import { appError } from '../../common/errors/app-error';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { normalizeFilename } from '../../common/utils/filename.util';
 import { generateTransactionFingerprint } from '../../common/utils/fingerprint.util';
+import { neutralizeSpreadsheetFormulaCell } from '../../common/utils/spreadsheet-formula.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import {
   ActorType,
@@ -61,7 +62,6 @@ import type { UpdateCustomTableViewsDto } from './dto/update-custom-table-views.
 import { AiColumnFiller } from './helpers/ai-column.helper';
 import { AiPaidStatusClassifier, type PaidStatusInput } from './helpers/ai-paid-status.helper';
 import { assertValidFormula, evaluateFormula } from './helpers/formula-evaluator';
-import { neutralizeSpreadsheetFormulaCell } from '../../common/utils/spreadsheet-formula.util';
 
 type DataEntryFieldKey = 'date' | 'type' | 'amount' | 'currency' | 'note';
 type JsonObject = Record<string, unknown>;
@@ -132,7 +132,7 @@ export class CustomTablesService {
     @InjectRepository(Transaction)
     private readonly transactionRepository: Repository<Transaction>,
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    userRepository: Repository<User>,
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly auditService: AuditService,
@@ -162,10 +162,6 @@ export class CustomTablesService {
     }
     const source = (config as { source?: unknown }).source;
     return typeof source === 'object' && source !== null ? (source as ColumnSourceConfig) : null;
-  }
-
-  private getJsonMeta(meta?: JsonObject | null): JsonObject | null {
-    return meta ?? null;
   }
 
   private getViewSettingsObject(table: CustomTable): JsonObject {

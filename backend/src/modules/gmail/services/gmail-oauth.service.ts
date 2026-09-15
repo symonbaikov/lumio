@@ -6,6 +6,7 @@ import {
   type OAuthIntegrationSettingsRelationName,
 } from '../../../common/services/oauth-integration-base.service';
 import { decryptText, encryptText } from '../../../common/utils/encryption.util';
+import { requireSecret } from '../../../common/utils/required-secret.util';
 import {
   GmailSettings,
   Integration,
@@ -14,7 +15,6 @@ import {
   IntegrationToken,
   User,
 } from '../../../entities';
-import { requireSecret } from '../../../common/utils/required-secret.util';
 
 const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',

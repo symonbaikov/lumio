@@ -12,8 +12,8 @@ import { generateSecret, generateURI, verifySync } from 'otplib';
 import * as qrCode from 'qrcode';
 import type { Repository } from 'typeorm';
 import { decryptText, encryptText } from '../../common/utils/encryption.util';
-import { User } from '../../entities';
 import { requireSecret } from '../../common/utils/required-secret.util';
+import { User } from '../../entities';
 
 const ISSUER = 'Lumio';
 const RECOVERY_CODE_COUNT = 10;

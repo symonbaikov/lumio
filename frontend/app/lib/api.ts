@@ -1,5 +1,5 @@
 import axios, { type AxiosResponse } from 'axios';
-import { clearCsrfCookie, CSRF_HEADER, getCsrfHeaders, getCsrfToken } from './csrf';
+import { CSRF_HEADER, clearCsrfCookie, getCsrfHeaders, getCsrfToken } from './csrf';
 import { getQueryClient } from './query-client';
 
 type GmailReceiptParsedDataUpdate = {

@@ -5,8 +5,8 @@ import { Download, MoreVertical, X } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useIntlayer } from '@/app/i18n';
 import { apiBaseUrl } from '@/app/lib/api';
-import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { hasSessionCookie } from '@/app/lib/csrf';
+import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { configureBundledPdfWorker } from './pdf-preview/pdf-worker';
 import { ModalShell } from './ui/modal-shell';
 

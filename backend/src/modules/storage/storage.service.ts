@@ -13,6 +13,7 @@ import * as fs from 'fs';
 import { In, type Repository } from 'typeorm';
 import { appError } from '../../common/errors/app-error';
 import { FileStorageService } from '../../common/services/file-storage.service';
+import { hashPassword } from '../../common/utils/password-hash.util';
 import { neutralizeSpreadsheetFormulaCell } from '../../common/utils/spreadsheet-formula.util';
 import {
   Category,
@@ -44,7 +45,6 @@ import type { UpdateSharedLinkDto } from './dto/update-shared-link.dto';
 import type { UpdateTagDto } from './dto/update-tag.dto';
 import type { StorageViewFilters } from './interfaces/storage-view-filters.interface';
 import { buildStorageCategoryWhere } from './storage-category-scope.util';
-import { hashPassword } from '../../common/utils/password-hash.util';
 
 type FileAvailability = {
   onDisk: boolean;

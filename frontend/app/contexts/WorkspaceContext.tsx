@@ -1,7 +1,6 @@
 'use client';
 
 import type React from 'react';
-import { hasSessionCookie } from '@/app/lib/csrf';
 import {
   createContext,
   useCallback,
@@ -12,6 +11,7 @@ import {
   useState,
 } from 'react';
 import { getApiErrorMessage } from '@/app/lib/api-error';
+import { hasSessionCookie } from '@/app/lib/csrf';
 import { api } from '../lib/api';
 
 type WorkspaceSettings = Record<string, unknown>;

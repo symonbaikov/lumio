@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { AlertCircle, FileText } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
 import { apiBaseUrl } from '@/app/lib/api';
-import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { hasSessionCookie } from '@/app/lib/csrf';
+import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 
 interface PdfThumbnailProps {
   fileId: string;

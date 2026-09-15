@@ -8,7 +8,11 @@ import AdmZip from 'adm-zip';
 import nodemailer from 'nodemailer';
 import type { Repository } from 'typeorm';
 import { ANTHROPIC_API_VERSION, isAnthropicBaseUrl } from '../../common/utils/ai-provider.util';
-import { assertPublicEgressHost, assertPublicEgressUrl, fetchPublicUrl } from '../../common/utils/egress-url.util';
+import {
+  assertPublicEgressHost,
+  assertPublicEgressUrl,
+  fetchPublicUrl,
+} from '../../common/utils/egress-url.util';
 import { decryptText, encryptText } from '../../common/utils/encryption.util';
 import {
   User,

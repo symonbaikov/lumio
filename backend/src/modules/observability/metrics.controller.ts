@@ -1,8 +1,8 @@
 import { Controller, ForbiddenException, Get, Headers, Res } from '@nestjs/common';
 import type { Response } from 'express';
+import { secretsMatch } from '../../common/utils/secret-compare.util';
 import { Public } from '../auth/decorators/public.decorator';
 import { MetricsService } from './metrics.service';
-import { secretsMatch } from '../../common/utils/secret-compare.util';
 
 @Public()
 @Controller('metrics')

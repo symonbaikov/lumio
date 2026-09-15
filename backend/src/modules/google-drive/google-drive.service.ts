@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { CloudStorageBaseService } from '../../common/services/cloud-storage-base.service';
 import { FileStorageService } from '../../common/services/file-storage.service';
+import { requireSecret } from '../../common/utils/required-secret.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import {
   ActorType,
@@ -18,7 +19,6 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { StatementsService } from '../statements/statements.service';
 import type { ImportDriveFilesDto } from './dto/import-drive-files.dto';
-import { requireSecret } from '../../common/utils/required-secret.util';
 
 type GoogleDriveImportError = {
   response?: { data?: { message?: string } };

@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { appError } from '../../common/errors/app-error';
@@ -23,8 +23,6 @@ export interface SharedTableView {
 
 @Injectable()
 export class CustomTableSharesService {
-  private readonly logger = new Logger(CustomTableSharesService.name);
-
   constructor(
     @InjectRepository(CustomTableShare)
     private readonly shareRepository: Repository<CustomTableShare>,
@@ -139,7 +137,7 @@ export class CustomTableSharesService {
    * единственная точка, через которую данные уходят наружу без авторизации.
    */
   private async resolveActiveShare(token: string): Promise<CustomTableShare> {
-    if (!token || token.length !== 64) {
+    if (token?.length !== 64) {
       throw new NotFoundException(appError('SHARE_LINK_NOT_FOUND'));
     }
     const share = await this.shareRepository.findOne({ where: { token } });

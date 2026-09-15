@@ -20,7 +20,7 @@ export class GmailWatchService {
     @InjectRepository(GmailSettings)
     private readonly gmailSettingsRepository: Repository<GmailSettings>,
     @InjectRepository(ReceiptProcessingJob)
-    private readonly jobRepository: Repository<ReceiptProcessingJob>,
+    jobRepository: Repository<ReceiptProcessingJob>,
     private readonly gmailOAuthService: GmailOAuthService,
   ) {}
 

@@ -6,9 +6,9 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { isAnthropicBaseUrl } from '../../common/utils/ai-provider.util';
+import { fetchPublicUrl } from '../../common/utils/egress-url.util';
 import type { AiRuntimeSettings } from '../application-settings/application-settings.service';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
-import { fetchPublicUrl } from '../../common/utils/egress-url.util';
 
 export interface ChatCompletionMessage {
   role: 'system' | 'user' | 'assistant';

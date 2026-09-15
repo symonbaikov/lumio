@@ -1,9 +1,9 @@
 'use client';
 
 import { Alert, Box, Button, TextField, Typography } from '@mui/material';
+import CircularProgress from '@mui/material/CircularProgress';
 import MuiLink from '@mui/material/Link';
 import NextLink from 'next/link';
-import CircularProgress from '@mui/material/CircularProgress';
 import React, { useState } from 'react';
 import { AuthLanguageSwitcher } from '@/app/components/AuthLanguageSwitcher';
 import { useIntlayer } from '@/app/i18n';

@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import type { Repository } from 'typeorm';
 import { Permission } from '../../common/enums/permissions.enum';
+import { hashPassword } from '../../common/utils/password-hash.util';
 import { User, UserRole } from '../../entities/user.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { WorkspacesService } from '../workspaces/workspaces.service';
@@ -18,7 +19,6 @@ import type { ChangePasswordDto } from './dto/change-password.dto';
 import type { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
 import type { UpdateMyPreferencesDto } from './dto/update-my-preferences.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
-import { hashPassword } from '../../common/utils/password-hash.util';
 import { EmailChangeService } from './services/email-change.service';
 
 @Injectable()

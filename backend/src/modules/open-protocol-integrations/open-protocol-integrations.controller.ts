@@ -4,7 +4,6 @@ import { Permission } from '../../common/enums/permissions.enum';
 import { IntegrationProvider } from '../../entities';
 import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { OpenProtocolIntegrationsService } from './open-protocol-integrations.service';
 import {
   ImportFilesDto,
   ListImapFoldersDto,
@@ -12,6 +11,7 @@ import {
   SaveS3SettingsDto,
   SaveWebdavSettingsDto,
 } from './dto/open-protocol-settings.dto';
+import { OpenProtocolIntegrationsService } from './open-protocol-integrations.service';
 
 @Controller('integrations')
 export class OpenProtocolIntegrationsController {

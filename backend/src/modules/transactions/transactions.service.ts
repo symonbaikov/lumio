@@ -44,7 +44,7 @@ export class TransactionsService {
     @InjectRepository(Transaction)
     private transactionRepository: Repository<Transaction>,
     @InjectRepository(Statement)
-    private statementRepository: Repository<Statement>,
+    statementRepository: Repository<Statement>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(WorkspaceMember)

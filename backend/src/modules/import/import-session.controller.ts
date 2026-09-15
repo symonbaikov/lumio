@@ -17,8 +17,8 @@ import { Permission } from '../../common/enums/permissions.enum';
 import { Statement, StatementStatus } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { StatementProcessingService } from '../parsing/services/statement-processing.service';
-import { ConflictResolutionMap, ImportSessionService } from './services/import-session.service';
 import { CommitImportDto } from './dto/commit-import.dto';
+import { ImportSessionService } from './services/import-session.service';
 
 @Controller()
 export class ImportSessionController {

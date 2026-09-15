@@ -24,8 +24,9 @@ import * as fs from 'fs';
 import * as fsp from 'fs/promises';
 import { diskStorage } from 'multer';
 import * as path from 'path';
-import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
+import { SkipCsrf } from '../../common/decorators/skip-csrf.decorator';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
+import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import { appError } from '../../common/errors/app-error';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -43,9 +44,9 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { CURRENT_DISCLAIMER_VERSION } from './disclaimer.constant';
 import { ChangeEmailDto } from './dto/change-email.dto';
-import { ConfirmEmailChangeDto } from './dto/confirm-email-change.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
+import { ConfirmEmailChangeDto } from './dto/confirm-email-change.dto';
 import { DeleteMyAccountDto } from './dto/delete-my-account.dto';
 import { UpdateMyPreferencesDto } from './dto/update-my-preferences.dto';
 // Value import, not `import type`: a type-only import erases the DTO class, so
@@ -58,10 +59,9 @@ import {
 } from './dto/update-permissions.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AccountDataService } from './services/account-data.service';
+import { EmailChangeService } from './services/email-change.service';
 import { PermissionsService } from './services/permissions.service';
 import { UsersService } from './users.service';
-import { EmailChangeService } from './services/email-change.service';
-import { SkipCsrf } from '../../common/decorators/skip-csrf.decorator';
 
 // Aliased rather than written inline: `emitDecoratorMetadata` turns a
 // decorated parameter's type into a runtime reference, and the global

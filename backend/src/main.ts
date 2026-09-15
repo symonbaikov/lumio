@@ -90,6 +90,7 @@ async function bootstrap() {
   const publicPath = path.join(__dirname, 'public');
   for (const mount of resolveStaticAssetMounts(uploadsDir, publicPath)) {
     if (fs.existsSync(mount.root)) {
+      // biome-ignore lint/correctness/useHookAtTopLevel: NestJS app.use* methods are not React hooks
       app.useStaticAssets(mount.root, mount.prefix ? { prefix: mount.prefix } : undefined);
     }
   }
@@ -110,6 +111,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
 
   // Global validation pipe
+  // biome-ignore lint/correctness/useHookAtTopLevel: NestJS app.use* methods are not React hooks
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

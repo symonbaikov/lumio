@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpStatus,
   Param,
   Patch,
@@ -11,10 +12,9 @@ import {
   Query,
   Res,
   UseGuards,
-  Headers,
 } from '@nestjs/common';
-import type { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
+import type { Response } from 'express';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
@@ -581,22 +581,5 @@ export class StorageController {
   async revokePermission(@Param('id') permissionId: string, @CurrentUser() user: User) {
     await this.storageService.revokePermission(permissionId, user.id);
     return { message: 'Permission revoked successfully' };
-  }
-
-  /**
-   * Helper to get MIME type
-   */
-  private getMimeType(fileType: string): string {
-    const mimeTypes: Record<string, string> = {
-      pdf: 'application/pdf',
-      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      xls: 'application/vnd.ms-excel',
-      csv: 'text/csv',
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      png: 'image/png',
-    };
-
-    return mimeTypes[fileType.toLowerCase()] || 'application/octet-stream';
   }
 }

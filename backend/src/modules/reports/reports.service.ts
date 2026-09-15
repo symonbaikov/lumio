@@ -1,5 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import * as fs from 'fs';
@@ -8,6 +8,7 @@ import { Between, In, MoreThanOrEqual, type Repository } from 'typeorm';
 import * as xlsx from 'xlsx';
 import { appError } from '../../common/errors/app-error';
 import { formatMoney } from '../../common/utils/format-money.util';
+import { neutralizeSpreadsheetFormulaCell } from '../../common/utils/spreadsheet-formula.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { Branch } from '../../entities/branch.entity';
@@ -53,7 +54,6 @@ import {
   writeReportFile,
 } from './report-document.util';
 import { renderReportLabels } from './report-export.translations';
-import { neutralizeSpreadsheetFormulaCell } from '../../common/utils/spreadsheet-formula.util';
 
 export interface StatementsSummaryResponse {
   totals: {
@@ -210,8 +210,6 @@ const neutralize = (value: string | null | undefined): string =>
 
 @Injectable()
 export class ReportsService {
-  private readonly logger = new Logger(ReportsService.name);
-
   private toParsableDateInput(value: unknown): string | number | Date | null {
     if (typeof value === 'string' || typeof value === 'number' || value instanceof Date) {
       return value;
@@ -392,11 +390,11 @@ export class ReportsService {
     @InjectRepository(Transaction)
     private transactionRepository: Repository<Transaction>,
     @InjectRepository(Category)
-    private categoryRepository: Repository<Category>,
+    categoryRepository: Repository<Category>,
     @InjectRepository(Branch)
-    private branchRepository: Repository<Branch>,
+    branchRepository: Repository<Branch>,
     @InjectRepository(Wallet)
-    private walletRepository: Repository<Wallet>,
+    walletRepository: Repository<Wallet>,
     @InjectRepository(CustomTable)
     private customTableRepository: Repository<CustomTable>,
     @InjectRepository(CustomTableColumn)
@@ -404,7 +402,7 @@ export class ReportsService {
     @InjectRepository(CustomTableRow)
     private customTableRowRepository: Repository<CustomTableRow>,
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    userRepository: Repository<User>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly auditService: AuditService,
     @InjectRepository(ReportHistory)
@@ -579,7 +577,9 @@ export class ReportsService {
     }
 
     const tableById = new Map<string, CustomTable>();
-    tables.forEach(t => tableById.set(t.id, t));
+    for (const t of tables) {
+      tableById.set(t.id, t);
+    }
     const tableIds = tables.map(t => t.id);
 
     const columns = await this.customTableColumnRepository.find({
@@ -790,7 +790,9 @@ export class ReportsService {
     }
 
     const tableById = new Map<string, CustomTable>();
-    tables.forEach(table => tableById.set(table.id, table));
+    for (const table of tables) {
+      tableById.set(table.id, table);
+    }
     const tableIds = tables.map(table => table.id);
 
     const columns = await this.customTableColumnRepository.find({

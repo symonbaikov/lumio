@@ -13,6 +13,8 @@ import { createHmac, randomUUID } from 'crypto';
 import type { StringValue } from 'ms';
 import { IsNull, type Repository } from 'typeorm';
 import { DEV_DEFAULTS } from '../../common/utils/dev-defaults';
+import { hashPassword } from '../../common/utils/password-hash.util';
+import { requireSecret } from '../../common/utils/required-secret.util';
 import {
   AuthSession,
   User,
@@ -30,8 +32,6 @@ import type { RegisterDto } from './dto/register.dto';
 import type { JwtPayload } from './strategies/jwt.strategy';
 import type { JwtRefreshPayload } from './strategies/jwt-refresh.strategy';
 import { TwoFactorService } from './two-factor.service';
-import { requireSecret } from '../../common/utils/required-secret.util';
-import { hashPassword } from '../../common/utils/password-hash.util';
 
 export interface SessionContext {
   userAgent?: string | null;

@@ -514,11 +514,6 @@ export class UniversalDateParser {
     return !Number.isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100;
   }
 
-  // Helper method to get current year for 2-digit year parsing
-  private getCurrentYear(): number {
-    return new Date().getFullYear();
-  }
-
   // Method to add support for new languages
   addMonthNames(locale: string, names: { [key: string]: number }): void {
     this.monthNames[locale] = { ...this.monthNames[locale], ...names };

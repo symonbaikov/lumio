@@ -8,8 +8,8 @@ import { WorkspaceContextGuard } from '../../common/guards/workspace-context.gua
 import { Transaction } from '../../entities/transaction.entity';
 import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { ClassificationService } from './services/classification.service';
 import { ClassifyBulkDto, RecordLearningDto } from './dto/classification-body.dto';
+import { ClassificationService } from './services/classification.service';
 
 @Controller('classification')
 @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
