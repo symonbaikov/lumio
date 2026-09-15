@@ -179,7 +179,7 @@ jobs:
           emit_tags "${IMAGE_NAME}-frontend" frontend_tags
 
       - name: Set up QEMU (multi-arch)
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
 
