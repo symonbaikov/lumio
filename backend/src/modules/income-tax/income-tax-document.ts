@@ -33,7 +33,7 @@ const WARNING_TEXT: Record<string, string> = {
   es_single_client_excludes_allowance:
     'The single-client reduction excludes the 5% hard-to-justify allowance.',
   pl_health_cap_applied:
-    'Health contributions exceed the 12,900 PLN annual cap; only 12,900 PLN is counted.',
+    'Health contributions exceed the annual cap for the year; only the capped amount is counted.',
   pl_deductions_exceed_income:
     'Deductions exceed income; the remaining base is shown as 0. Check the figures.',
   pl_ryczalt_limit_exceeded:
@@ -47,6 +47,17 @@ const FX_RULE_TEXT: Record<string, string> = {
     'Rate for the transaction date (the official rule for this country is not verified)',
   nbp_previous_business_day:
     'NBP average rate of the last business day before the transaction (art. 11a PIT Act)',
+  bdi_reference_rate:
+    "Banca d'Italia reference rate of the transaction day or the nearest earlier day, else the monthly average (Redditi PF instructions)",
+};
+
+const RETENTION_TEXT: Record<string, string> = {
+  booking_documents: 'booking documents (invoices, receipts)',
+  books_and_records: 'books, records and annual accounts',
+  other_business_documents: 'other documents, including business letters',
+  tax_records: 'tax records (income, expenses, deductions)',
+  commercial_books: 'accounting books and supporting documents (traders)',
+  accounting_records: 'accounting records',
 };
 
 const DEADLINE_TEXT: Record<string, string> = {
@@ -56,6 +67,13 @@ const DEADLINE_TEXT: Record<string, string> = {
   adviser: 'via a tax adviser',
   online_pay_and_file: 'filing and paying online',
   no_assessment_received: 'if no assessment was received',
+  direct_debit: 'if paying by direct debit',
+  online_zone_1: 'online, départements 01–19 and non-residents',
+  online_zone_2: 'online, départements 20–54',
+  online_zone_3: 'online, départements 55–976',
+  higher_rate_income: 'if income taxed at the higher rate exceeds EUR 105,300',
+  with_extension: 'with an extension',
+  correction: 'deadline to correct the pre-filled return',
 };
 
 const ISSUE_TEXT: Record<string, string> = {
@@ -130,6 +148,16 @@ function summaryRows(draft: IncomeTaxDraft): Array<[string, string]> {
               .map(
                 deadline => `${deadline.date} (${DEADLINE_TEXT[deadline.kind] ?? deadline.kind})`,
               )
+              .join('; '),
+          ],
+        ] as Array<[string, string]>)
+      : []),
+    ...(draft.filingInfo?.retention
+      ? ([
+          [
+            'Keep records until',
+            draft.filingInfo.retention.periods
+              .map(period => `${period.until} (${RETENTION_TEXT[period.kind] ?? period.kind})`)
               .join('; '),
           ],
         ] as Array<[string, string]>)

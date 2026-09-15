@@ -33,9 +33,29 @@ export type DeadlineKind =
   | 'online'
   | 'adviser'
   | 'online_pay_and_file'
-  | 'no_assessment_received';
+  | 'no_assessment_received'
+  | 'direct_debit'
+  | 'online_zone_1'
+  | 'online_zone_2'
+  | 'online_zone_3'
+  | 'higher_rate_income'
+  | 'with_extension'
+  | 'correction';
 
 export type AuthorityPreparation = 'becomes_final' | 'prepared_needs_confirmation' | 'prepared';
+
+export type RetentionKind =
+  | 'booking_documents'
+  | 'books_and_records'
+  | 'other_business_documents'
+  | 'tax_records'
+  | 'commercial_books'
+  | 'accounting_records';
+
+export interface RetentionInfo {
+  periods: Array<{ kind: RetentionKind; years: number | null; until: string }>;
+  sourceUrl: string;
+}
 
 export interface FilingInfo {
   countryCode: string;
@@ -46,9 +66,11 @@ export interface FilingInfo {
   authorityPreparation: AuthorityPreparation | null;
   portal: string | null;
   sourceUrl: string;
+  /** Optional: drafts finalized before retention was recorded do not carry it. */
+  retention?: RetentionInfo | null;
 }
 
-export type FxRule = 'transaction_date' | 'nbp_previous_business_day';
+export type FxRule = 'transaction_date' | 'nbp_previous_business_day' | 'bdi_reference_rate';
 
 export interface IncomeTaxProfile {
   taxYear: number;

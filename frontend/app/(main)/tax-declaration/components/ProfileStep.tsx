@@ -231,23 +231,23 @@ export function ProfileStep({
             <MenuItem value="ryczalt">{t.plRegimeRyczalt}</MenuItem>
             <MenuItem value="skala">{t.plRegimeSkala}</MenuItem>
           </TextField>
+          {details.regime === 'liniowy' || details.regime === 'skala' ? (
+            <TreatmentField
+              label={t.plZusTreatment}
+              deductLabel={t.plTreatmentDeduct}
+              costLabel={t.plTreatmentCost}
+              value={details.zusTreatment}
+              onChange={value => setDetail('zusTreatment', value)}
+            />
+          ) : null}
           {details.regime === 'liniowy' ? (
-            <>
-              <TreatmentField
-                label={t.plZusTreatment}
-                deductLabel={t.plTreatmentDeduct}
-                costLabel={t.plTreatmentCost}
-                value={details.zusTreatment}
-                onChange={value => setDetail('zusTreatment', value)}
-              />
-              <TreatmentField
-                label={t.plHealthTreatment}
-                deductLabel={t.plTreatmentDeduct}
-                costLabel={t.plTreatmentCost}
-                value={details.healthTreatment}
-                onChange={value => setDetail('healthTreatment', value)}
-              />
-            </>
+            <TreatmentField
+              label={t.plHealthTreatment}
+              deductLabel={t.plTreatmentDeduct}
+              costLabel={t.plTreatmentCost}
+              value={details.healthTreatment}
+              onChange={value => setDetail('healthTreatment', value)}
+            />
           ) : null}
           {details.regime === 'ryczalt' ? (
             <TextField

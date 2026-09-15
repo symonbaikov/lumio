@@ -36,6 +36,10 @@ export function DraftStep({ draft }: { draft: IncomeTaxDraft }): React.ReactElem
   const warningLabels = t.warnings as unknown as Record<string, ReactNode>;
   const money = (value: number, currency = draft.currency): string =>
     formatMoney(value, currency, locale);
+  const fxNotes: Record<string, ReactNode> = {
+    nbp_previous_business_day: t.fxNbp,
+    bdi_reference_rate: t.fxBdi,
+  };
 
   const contributions = openFigure ? (draft.contributions[openFigure.key] ?? []) : [];
 
@@ -115,7 +119,7 @@ export function DraftStep({ draft }: { draft: IncomeTaxDraft }): React.ReactElem
       </Box>
 
       <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-        {draft.fxRule === 'nbp_previous_business_day' ? t.fxNbp : t.fxTransactionDate}
+        {fxNotes[draft.fxRule ?? 'transaction_date'] ?? t.fxTransactionDate}
       </Typography>
 
       {draft.taxEstimate ? (

@@ -6,12 +6,16 @@
  * assumption, not the country's official rule.
  */
 
-export type FxRule = 'transaction_date' | 'nbp_previous_business_day';
+export type FxRule = 'transaction_date' | 'nbp_previous_business_day' | 'bdi_reference_rate';
 
 const COUNTRY_FX_RULES: Record<string, FxRule> = {
   // Art. 11a ustawy o PIT: NBP average rate (table A) of the last business day
   // before the day the revenue is earned or the cost incurred.
   PL: 'nbp_previous_business_day',
+  // Redditi PF 2026 instructions, "Conversione delle valute estere": the reference
+  // rate of the day received or paid, or the nearest earlier day; failing that,
+  // the monthly average. The instructions point to Banca d'Italia for the rates.
+  IT: 'bdi_reference_rate',
 };
 
 export function fxRuleFor(countryCode: string): FxRule {

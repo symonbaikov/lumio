@@ -35,6 +35,7 @@ describe('IncomeTaxDraftService', () => {
   let exchangeRates: { getRateOrNull: jest.Mock };
   let completeness: { check: jest.Mock };
   let nbpRates: { getYearRates: jest.Mock };
+  let bdiRates: { getYearRates: jest.Mock };
 
   const tx = (over: Record<string, unknown>) => ({
     id: 'tx',
@@ -59,6 +60,7 @@ describe('IncomeTaxDraftService', () => {
     };
     completeness = { check: jest.fn().mockResolvedValue({ score: 77, issues: [] }) };
     nbpRates = { getYearRates: jest.fn().mockResolvedValue(null) };
+    bdiRates = { getYearRates: jest.fn().mockResolvedValue(null) };
 
     profileRepo.findOne.mockResolvedValue(null);
     mappingRepo.find.mockResolvedValue([
@@ -77,6 +79,7 @@ describe('IncomeTaxDraftService', () => {
       exchangeRates as never,
       completeness as never,
       nbpRates as never,
+      bdiRates as never,
     );
   });
 
@@ -207,6 +210,49 @@ describe('IncomeTaxDraftService', () => {
       fxRule: 'nbp_previous_business_day',
       pack: { formKey: 'pl-pit36l' },
       filingInfo: { formName: 'PIT-36L' },
+    });
+  });
+
+  it("converts Italian amounts at Banca d'Italia's rate of the nearest earlier day", async () => {
+    adoption.getCurrentJurisdiction.mockResolvedValue({
+      id: 'j-it',
+      code: 'IT',
+      name: 'Italy',
+      currency: 'EUR',
+    });
+    profileRepo.findOne.mockResolvedValue({ taxpayerType: 'self_employed', details: {} });
+    mappingRepo.find.mockResolvedValue([{ categoryId: 'cat-sales', lineKey: 'income' }]);
+    bdiRates.getYearRates.mockResolvedValue({
+      daily: [{ date: '2025-03-07', perEuro: 1.0827 }],
+      monthly: {},
+    });
+    transactionRepo.createQueryBuilder.mockReturnValue(
+      queryBuilder({
+        many: [
+          tx({
+            id: 'invoice-usd',
+            transactionDate: '2025-03-09',
+            transactionType: TransactionType.INCOME,
+            currency: 'USD',
+            amount: '100.00',
+            categoryId: 'cat-sales',
+            category: { name: 'Sales' },
+          }),
+        ],
+      }),
+    );
+
+    const draft = await service.compute('ws-1', 2025);
+
+    expect(bdiRates.getYearRates).toHaveBeenCalledWith('USD', 2025);
+    expect(exchangeRates.getRateOrNull).not.toHaveBeenCalled();
+    expect(draft.contributions.income[0]).toMatchObject({
+      rateDate: '2025-03-07',
+      amountConverted: 92.36,
+    });
+    expect(draft).toMatchObject({
+      fxRule: 'bdi_reference_rate',
+      filingInfo: { formName: 'Redditi Persone Fisiche 2026' },
     });
   });
 

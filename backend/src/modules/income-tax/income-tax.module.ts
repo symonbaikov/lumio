@@ -10,6 +10,7 @@ import { Statement } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
 import { TaxModule } from '../tax/tax.module';
+import { BdiRatesService } from './bdi-rates.service';
 import { IncomeTaxController } from './income-tax.controller';
 import { IncomeTaxCompletenessService } from './income-tax-completeness.service';
 import { IncomeTaxDisclaimerService } from './income-tax-disclaimer.service';
@@ -39,6 +40,7 @@ import { NbpRatesService } from './nbp-rates.service';
     IncomeTaxReturnsService,
     IncomeTaxDisclaimerService,
     NbpRatesService,
+    BdiRatesService,
   ],
 })
 export class IncomeTaxModule {}

@@ -2,6 +2,7 @@ import { deEuerPack } from './de/euer';
 import { esEdsPack } from './es/modelo100-eds';
 import { genericSummaryPack } from './generic/annual-summary';
 import { plPit28Pack } from './pl/pit28';
+import { plPit36Pack } from './pl/pit36';
 import { plPit36lPack } from './pl/pit36l';
 import type { RulePack, TaxpayerType } from './types';
 
@@ -13,7 +14,13 @@ export { genericSummaryPack };
  * figures have been checked against the published form; everything else falls
  * back to the generic summary.
  */
-const COUNTRY_PACKS: RulePack[] = [deEuerPack, esEdsPack, plPit36lPack, plPit28Pack];
+const COUNTRY_PACKS: RulePack[] = [
+  deEuerPack,
+  esEdsPack,
+  plPit36lPack,
+  plPit28Pack,
+  plPit36Pack,
+];
 
 export function resolvePack(
   countryCode: string | null,

@@ -11,6 +11,7 @@ import { Transaction, TransactionType } from '../../entities/transaction.entity'
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { JurisdictionAdoptionService } from '../tax/jurisdiction-adoption.service';
 import { toDateOnly } from '../tax/jurisdictions.service';
+import { type BdiRates, BdiRatesService, referenceRateFor } from './bdi-rates.service';
 import { filingInfoFor } from './filing-info';
 import type { DraftContribution, DraftSignals, IncomeTaxDraft } from './income-tax.types';
 import { IncomeTaxCompletenessService, taxYearBounds } from './income-tax-completeness.service';
@@ -103,6 +104,7 @@ export class IncomeTaxDraftService {
     private readonly exchangeRatesService: ExchangeRatesService,
     private readonly completenessService: IncomeTaxCompletenessService,
     private readonly nbpRatesService: NbpRatesService,
+    private readonly bdiRatesService: BdiRatesService,
   ) {}
 
   async getProfile(workspaceId: string, taxYear: number): Promise<IncomeTaxProfileView> {
@@ -287,6 +289,7 @@ export class IncomeTaxDraftService {
     const fxRule = fxRuleFor(jurisdiction.code);
     const rateCache = new Map<string, FxQuote | null>();
     const nbpTables = new Map<string, NbpRate[] | null>();
+    const bdiTables = new Map<string, BdiRates | null>();
     let uncategorizedCount = 0;
     let missingFxCount = 0;
 
@@ -323,6 +326,7 @@ export class IncomeTaxDraftService {
         fxRule,
         cache: rateCache,
         nbpTables,
+        bdiTables,
       });
       if (quote === null) {
         missingFxCount++;
@@ -449,9 +453,11 @@ export class IncomeTaxDraftService {
    * The rate for one transaction under the country's rule.
    *
    * Under art. 11a (Poland) that is NBP's table A rate of the last business day
-   * before the transaction; the whole year's table is fetched once per currency.
-   * Elsewhere it is the rate for the transaction's own date — an assumption the
-   * draft states, since no other country's official rule has been verified.
+   * before the transaction; in Italy, Banca d'Italia's reference rate of the day
+   * or the nearest earlier day, else the monthly average. Each year's rates are
+   * fetched once per currency. Elsewhere it is the rate for the transaction's
+   * own date — an assumption the draft states, since no other country's
+   * official rule has been verified.
    */
   private async rateFor(
     from: string,
@@ -462,10 +468,21 @@ export class IncomeTaxDraftService {
       fxRule: FxRule;
       cache: Map<string, FxQuote | null>;
       nbpTables: Map<string, NbpRate[] | null>;
+      bdiTables: Map<string, BdiRates | null>;
     },
   ): Promise<FxQuote | null> {
     if (from === to) {
       return { rate: 1, rateDate: date };
+    }
+
+    if (context.fxRule === 'bdi_reference_rate' && to === 'EUR') {
+      if (!context.bdiTables.has(from)) {
+        context.bdiTables.set(from, await this.bdiRatesService.getYearRates(from, context.taxYear));
+      }
+      const table = context.bdiTables.get(from);
+      const quote = table ? referenceRateFor(table, date) : null;
+      // Quoted as units of the currency per euro, so one unit is worth its inverse.
+      return quote ? { rate: 1 / quote.perEuro, rateDate: quote.rateDate } : null;
     }
 
     if (context.fxRule === 'nbp_previous_business_day' && to === 'PLN') {

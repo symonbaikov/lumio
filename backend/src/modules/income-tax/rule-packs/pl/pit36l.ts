@@ -7,6 +7,7 @@ import {
   type RulePack,
   sumItems,
 } from '../types';
+import { COST_CATEGORIES, REVENUE_CATEGORIES, treatment } from './common';
 
 /**
  * PIT-36L — business income taxed at the flat rate (art. 30c ustawy o PIT).
@@ -18,18 +19,11 @@ import {
  * rounding of the base were not verified.
  */
 
-/** Annual cap on the health contribution a flat-rate payer may claim, 2025. Indexed yearly. */
-const HEALTH_CAP_2025_MINOR = 12_900_00;
-
-type Treatment = 'deduct' | 'cost';
-
-/**
- * Both contributions can be either deducted from income or counted as costs,
- * never both. Deduction is the default because it is how the form lays them out.
- */
-function treatment(value: unknown): Treatment {
-  return value === 'cost' ? 'cost' : 'deduct';
-}
+/** Annual cap on the health contribution a flat-rate payer may claim, indexed yearly (podatki.gov.pl). */
+const HEALTH_CAP_MINOR: Record<number, number> = {
+  2025: 12_900_00,
+  2026: 14_100_00,
+};
 
 const LINES: FormLine[] = [
   {
@@ -38,7 +32,7 @@ const LINES: FormLine[] = [
     lineNo: 'E.1',
     fieldNo: 'b',
     label: 'Business revenue, net of VAT (przychód z pozarolniczej działalności gospodarczej)',
-    suggestedFor: ['Sales', 'Services'],
+    suggestedFor: REVENUE_CATEGORIES,
   },
   {
     key: 'costs',
@@ -46,19 +40,7 @@ const LINES: FormLine[] = [
     lineNo: 'E.1',
     fieldNo: 'c',
     label: 'Tax-deductible costs (koszty uzyskania przychodów)',
-    suggestedFor: [
-      'Advertising',
-      'Equipment',
-      'Fees and charges',
-      'Maintenance and repairs',
-      'Materials',
-      'Office supplies',
-      'Payroll',
-      'Professional services',
-      'Rent',
-      'Travel',
-      'Utilities',
-    ],
+    suggestedFor: COST_CATEGORIES,
   },
   {
     key: 'zus_social',
@@ -107,12 +89,13 @@ function compute(input: PackInput): PackResult {
   const healthPaid = Math.max(0, sumItems(input.items.health_contribution));
 
   // The cap covers cost and deduction together, so it is applied before the split.
-  const health = Math.min(healthPaid, HEALTH_CAP_2025_MINOR);
-  if (healthPaid > HEALTH_CAP_2025_MINOR) {
+  const cap = HEALTH_CAP_MINOR[input.taxYear];
+  const health = Math.min(healthPaid, cap);
+  if (healthPaid > cap) {
     warnings.push({
       code: 'pl_health_cap_applied',
       lineKey: 'health_contribution',
-      params: { capMinor: HEALTH_CAP_2025_MINOR, paidMinor: healthPaid },
+      params: { capMinor: cap, paidMinor: healthPaid },
     });
   }
 
@@ -149,7 +132,7 @@ function compute(input: PackInput): PackResult {
         'health_contribution',
         'poz. 41',
         null,
-        'Health contribution deducted from income (cap 12 900 PLN with costs, 2025)',
+        `Health contribution deducted from income (cap ${cap / 100} PLN with costs, ${input.taxYear})`,
         'expense',
         healthPaid,
         healthDeduction,
@@ -174,7 +157,8 @@ export const plPit36lPack: RulePack = {
   countryCode: 'PL',
   taxpayerTypes: ['self_employed'],
   regime: 'liniowy',
-  taxYears: [2025],
+  // 2026 uses the 2025 form's numbering until the 2026 edition is checked.
+  taxYears: [2025, 2026],
   formEditionYear: 2025,
   filingChannel:
     'Twój e-PIT (podatki.gov.pl) — not accepted automatically; complete and confirm it',

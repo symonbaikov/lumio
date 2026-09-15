@@ -18,6 +18,7 @@ export function FilingInfoCard({ info }: { info: FilingInfo }): React.ReactEleme
   const { locale } = useLocale();
   const kindLabels = t.deadlineKinds as unknown as Record<string, ReactNode>;
   const preparationLabels = t.authority as unknown as Record<string, ReactNode>;
+  const retentionLabels = t.retentionKinds as unknown as Record<string, ReactNode>;
 
   return (
     <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: tokens.radius.md, p: 2 }}>
@@ -50,6 +51,30 @@ export function FilingInfoCard({ info }: { info: FilingInfo }): React.ReactEleme
           <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
             {t.portalLabel}: {info.portal}
           </Typography>
+        ) : null}
+
+        {info.retention ? (
+          <Box>
+            <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{t.retentionTitle}</Typography>
+            <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
+              {info.retention.periods.map(period => (
+                <li key={period.kind}>
+                  <Typography component="span" sx={{ fontSize: 14 }}>
+                    {formatFilingDate(period.until, locale)} —{' '}
+                    {retentionLabels[period.kind] ?? period.kind}
+                  </Typography>
+                </li>
+              ))}
+            </Box>
+            <MuiLink
+              href={info.retention.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ fontSize: 12 }}
+            >
+              {t.retentionSourceLabel}
+            </MuiLink>
+          </Box>
         ) : null}
 
         {info.authorityPreparation ? (
