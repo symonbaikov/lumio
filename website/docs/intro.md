@@ -35,7 +35,7 @@ exports into reliable, queryable financial data.
   Sheets import, Telegram, webhooks, and API keys
 - Optional: self-hosted map tiles (tileserver-gl) and geocoding (Nominatim)
 - Observability: Prometheus-format metrics at `/api/v1/metrics` and structured JSON logs
-- Also in the repository: an Electron desktop app (`electron/`) and an MCP server (`mcp-server/`)
+- Also in the repository: an MCP server (`mcp-server/`)
 
 ## Where to start
 

@@ -51,7 +51,6 @@ environments and no smoke tests. It runs on `v*.*.*` tags or manual dispatch:
 - `scorecard.yml` - OpenSSF Scorecard, weekly
 - `makefile.yml` - checks that `make build` works
 - `docs.yml` - builds this site and deploys it to GitHub Pages when `website/` changes on `main`
-- `electron-build.yml` - desktop app builds
 - `release-please.yml` - semantic versioning and releases
 - `changelog.yml` - regenerates the in-app changelog data (`frontend/public/changelog.json`) on `main`
 

@@ -241,7 +241,7 @@ Setting expectations upfront:
 | Layer | Technology |
 |---|---|
 | Containerization | Docker + Docker Compose |
-| CI/CD | GitHub Actions (CI, CD, CodeQL, dependency-review, Scorecard, release-please, docs, Electron build) |
+| CI/CD | GitHub Actions (CI, CD, CodeQL, dependency-review, Scorecard, release-please, docs) |
 | Supply chain | Trivy scans, Conftest policies, cosign signatures, SPDX SBOM attestations |
 | Maps stack (optional) | Planetiler, tileserver-gl, Nominatim via Compose profiles |
 | Docs site | Docusaurus (`website/`) |
@@ -348,7 +348,6 @@ lumio/
 │   └── statements-examples/         # Sample bank statement files for testing
 ├── infra/
 │   └── maps/                        # Tile server assets and config for the `maps` profile
-├── electron/                        # Electron desktop app wrapper
 ├── mcp-server/                      # Claude MCP server integration
 ├── website/                         # Docusaurus documentation site
 ├── scripts/                         # Shell helper scripts
