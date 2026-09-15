@@ -11,7 +11,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
+import {
+  EmptyStateIllustration,
+  type EmptyStateIllustrationName,
+} from '@/app/components/ui/EmptyStateIllustration';
 import { AppPagination } from '@/app/components/ui/pagination';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 import type { Payable } from '@/app/lib/payables-api';
@@ -28,6 +31,7 @@ interface PayablesListProps {
   locale?: string;
   emptyTitle: string;
   emptyDescription: string;
+  emptyIllustration?: EmptyStateIllustrationName;
   labels: {
     vendor: string;
     dueDate: string;
@@ -74,6 +78,7 @@ function PayablesList({
   locale = 'en',
   emptyTitle,
   emptyDescription,
+  emptyIllustration = 'payables',
   labels,
   pagination,
   actionState,
@@ -89,7 +94,7 @@ function PayablesList({
   if (items.length === 0) {
     return (
       <div className="lumio-payable-list__empty">
-        <EmptyStateIllustration name="payables" size="md" />
+        <EmptyStateIllustration name={emptyIllustration} size="md" />
         <h3 style={{ fontSize: 18, fontWeight: 600, color: c.ink900 }}>{emptyTitle}</h3>
         <p style={{ marginTop: 8, fontSize: 14, color: c.ink500 }}>{emptyDescription}</p>
       </div>

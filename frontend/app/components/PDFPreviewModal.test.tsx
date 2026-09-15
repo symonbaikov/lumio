@@ -4,7 +4,12 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/app/lib/workspace-headers', () => ({
-  getWorkspaceHeaders: () => ({ Authorization: 'Bearer test-token' }),
+  getWorkspaceHeaders: () => ({ 'X-CSRF-Token': 'test-csrf' }),
+}));
+
+vi.mock('@/app/lib/csrf', () => ({
+  hasSessionCookie: () => true,
+  getCsrfHeaders: () => ({ 'X-CSRF-Token': 'test-csrf' }),
 }));
 
 vi.mock('@/app/i18n', () => ({

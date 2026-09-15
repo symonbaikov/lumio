@@ -50,4 +50,4 @@ make logs
 make logs-backend
 ```
 
-Next: [Railway Deployment](railway)
+Next: [CI/CD](ci-cd)

@@ -12,6 +12,11 @@ import { type StatementRecord, useStatementsQuery } from './useStatementsQuery';
 
 export type { StatementRecord } from './useStatementsQuery';
 
+// Stable fallbacks: `data ?? []` would mint a new array on every render while a
+// query has no data, re-running every memo and effect keyed on the list.
+const NO_STATEMENTS: never[] = [];
+const NO_GMAIL_RECEIPTS: GmailReceipt[] = [];
+
 interface UseStatementsListDataParams {
   appliedFilters: StatementFilters;
   categoryId?: string | null;
@@ -76,7 +81,7 @@ export function useStatementsListData<T extends StatementRecord = StatementRecor
     pageSize,
   });
 
-  const statements = statementsQuery.data ?? [];
+  const statements: T[] = statementsQuery.data ?? NO_STATEMENTS;
 
   useAutoOpenParsedStatement({ statements, enabled: Boolean(user), router });
 
@@ -110,7 +115,7 @@ export function useStatementsListData<T extends StatementRecord = StatementRecor
 
   return {
     statements,
-    gmailReceipts: gmailQuery.data ?? [],
+    gmailReceipts: gmailQuery.data ?? NO_GMAIL_RECEIPTS,
     isPending: statementsQuery.isPending,
     isFetching: statementsQuery.isFetching,
     gmailIsPending: gmailQuery.isPending,

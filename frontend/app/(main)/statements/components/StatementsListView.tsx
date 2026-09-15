@@ -12,6 +12,7 @@ import { useKeyboardShortcuts } from '@/app/hooks/use-keyboard-shortcuts';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import apiClient from '@/app/lib/api';
 import { getApiErrorStatus } from '@/app/lib/api-error';
+import type { DeviceLocation } from '@/app/lib/device-location';
 import { resolveLabel } from '@/app/lib/side-panel-utils';
 import type {
   CreateTaxRatePayload,
@@ -208,6 +209,7 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
     files: File[];
     allowDuplicates: boolean;
     requireManualCategorySelection: boolean;
+    deviceLocation?: DeviceLocation | null;
   }): Promise<void> => {
     const skeletonKeys = payload.files.map((_, index) => `local-upload-${Date.now()}-${index}`);
     v.setGmailSyncSkeletonKeys(prev => [...prev, ...skeletonKeys]);

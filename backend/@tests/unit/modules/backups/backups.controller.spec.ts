@@ -33,7 +33,12 @@ describe('BackupsController', () => {
 
     expect(service.downloadRun).toHaveBeenCalledWith(user, 'run-1');
     expect(response.setHeader).toHaveBeenCalledWith('Content-Type', 'application/octet-stream');
-    expect(response.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="backup.lumio-backup"');
+    // Built with the shared buildContentDisposition helper, which percent-encodes
+    // the name and adds the RFC 5987 form instead of interpolating it raw.
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Content-Disposition',
+      'attachment; filename="backup.lumio-backup"; filename*=UTF-8\'\'backup.lumio-backup',
+    );
     expect(response.send).toHaveBeenCalledWith(Buffer.from('backup'));
   });
 

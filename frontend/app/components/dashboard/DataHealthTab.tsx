@@ -14,11 +14,14 @@ import {
   type DataHealthQuickLink,
   getRelativeTime,
 } from './data-health-model';
+import { DATA_HEALTH_HISTORY_METRICS, MonthlyHistoryCard } from './MonthlyHistoryCard';
 import { Chip, ChipGroup, DashboardCard, KpiCard, SectionHeader } from './ui';
 
 interface DataHealthTabProps {
   data: DashboardData;
   formatAmount: (value: number) => string;
+  displayMonth: Date;
+  onSelectMonth: (year: number, month: number) => void;
 }
 
 type Health = DashboardData['dataHealth'];
@@ -101,7 +104,12 @@ function ActionRequiredCard({ links }: { links: DataHealthQuickLink[] }): React.
   );
 }
 
-export function DataHealthTab({ data, formatAmount }: DataHealthTabProps): React.JSX.Element {
+export function DataHealthTab({
+  data,
+  formatAmount,
+  displayMonth,
+  onSelectMonth,
+}: DataHealthTabProps): React.JSX.Element {
   const t = useIntlayer('dataHealthTab');
   const health = data.dataHealth;
   const labels = {
@@ -145,6 +153,11 @@ export function DataHealthTab({ data, formatAmount }: DataHealthTabProps): React
           ))}
         </div>
       </section>
+      <MonthlyHistoryCard
+        displayMonth={displayMonth}
+        metrics={DATA_HEALTH_HISTORY_METRICS}
+        onSelectMonth={onSelectMonth}
+      />
       <div className="lumio-dashboard__grid lumio-dashboard__grid--pair">
         <LastUploadCard health={health} />
         <UnapprovedCashCard health={health} formatAmount={formatAmount} />

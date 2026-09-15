@@ -7,7 +7,6 @@ import {
   buildDriverConfig,
   createDismissListeners,
   getAnalyticsTracker,
-  getDefaultTourState,
   loadTourState,
   markTourCompleted,
   saveTourStartProgress,
@@ -63,7 +62,9 @@ export class TourManager {
   }
 
   registerTours(tours: TourConfig[]): void {
-    tours.forEach(tour => this.registerTour(tour));
+    tours.forEach(tour => {
+      this.registerTour(tour);
+    });
   }
 
   getTour(tourId: string): TourConfig | undefined {
@@ -311,9 +312,6 @@ export class TourManager {
   }
   private saveState(state: TourState): void {
     saveTourState(state);
-  }
-  private getDefaultState(): TourState {
-    return getDefaultTourState();
   }
 
   private trackEvent(event: string, data: Partial<{ tourId: string; stepIndex?: number }>): void {

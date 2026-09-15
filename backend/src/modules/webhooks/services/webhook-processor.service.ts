@@ -12,7 +12,9 @@ import {
 import { WebhookDelivery, WebhookDeliveryStatus } from '../../../entities/webhook-delivery.entity';
 import { WebhookSubscription } from '../../../entities/webhook-subscription.entity';
 
-const LOCK_ID = `processor-${process.env.RAILWAY_SERVICE_INSTANCE_ID ?? process.env.HOSTNAME ?? randomUUID()}`;
+// HOSTNAME is set by Docker and Kubernetes alike; the UUID covers a bare
+// process run outside a container.
+const LOCK_ID = `processor-${process.env.HOSTNAME ?? randomUUID()}`;
 const HTTP_TIMEOUT_MS = Number.parseInt(process.env.WEBHOOK_HTTP_TIMEOUT_MS ?? '10000', 10);
 
 @Injectable()

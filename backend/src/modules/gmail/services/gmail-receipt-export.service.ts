@@ -30,7 +30,7 @@ export class GmailReceiptExportService {
     @InjectRepository(Receipt)
     private readonly receiptRepository: Repository<Receipt>,
     @InjectRepository(Category)
-    private readonly categoryRepository: Repository<Category>,
+    categoryRepository: Repository<Category>,
     private readonly gmailOAuthService: GmailOAuthService,
   ) {}
 

@@ -8,6 +8,7 @@ import { WorkspaceContextGuard } from '../../common/guards/workspace-context.gua
 import { Transaction } from '../../entities/transaction.entity';
 import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { ClassifyBulkDto, RecordLearningDto } from './dto/classification-body.dto';
 import { ClassificationService } from './services/classification.service';
 
 @Controller('classification')
@@ -48,7 +49,7 @@ export class ClassificationController {
   @Post('bulk')
   @HttpCode(HttpStatus.OK)
   async classifyBulk(
-    @Body() body: { transactionIds: string[] },
+    @Body() body: ClassifyBulkDto,
     @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
   ) {
@@ -111,7 +112,7 @@ export class ClassificationController {
   @Post('learn')
   @HttpCode(HttpStatus.OK)
   async recordLearning(
-    @Body() body: { transactionId: string; categoryId: string },
+    @Body() body: RecordLearningDto,
     @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
   ) {

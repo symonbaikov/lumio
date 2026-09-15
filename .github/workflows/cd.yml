@@ -1,21 +1,14 @@
 name: CD
 
+# Lumio is self-hosted: this pipeline builds, scans, signs and publishes the
+# images, and stops there. Where a given instance runs is the operator's
+# business, so there are no deployment environments and nothing to smoke-test
+# after the fact.
 "on":
   push:
-    branches:
-      - staging
     tags:
       - "v*.*.*"
   workflow_dispatch:
-    inputs:
-      environment:
-        description: "Target environment"
-        required: true
-        default: staging
-        type: choice
-        options:
-          - staging
-          - production
 
 concurrency:
   group: cd-${{ github.ref }}
@@ -45,7 +38,7 @@ jobs:
             -w /project \
             openpolicyagent/conftest:v0.56.0 \
             test -p policy/docker-compose \
-            docker-compose.yml docker-compose.dev.yml docker-compose.observability.yml
+            docker-compose.yml docker-compose.dev.yml
 
       - name: Conftest (GitHub workflows)
         run: |
@@ -56,28 +49,16 @@ jobs:
             test -p policy/github-actions \
             .github/workflows/*.yml
 
-      - name: Conftest (Railway)
-        run: |
-          docker run --rm \
-            -v "$GITHUB_WORKSPACE":/project \
-            -w /project \
-            openpolicyagent/conftest:v0.56.0 \
-            test -p policy/railway \
-            railway.json
-
   build-and-publish:
     name: Build & publish hardened image
     runs-on: ubuntu-latest
     needs: policy-as-code
-    environment:
-      name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || (github.ref == 'refs/heads/staging' && 'staging' || 'production') }}
     permissions:
       contents: write
       packages: write
       id-token: write
       attestations: write
     outputs:
-      target_env: ${{ steps.env.outputs.target_env }}
       primary_tag: ${{ steps.image.outputs.primary_tag }}
     steps:
       - name: Harden runner (audit egress)
@@ -89,17 +70,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-
-      - name: Derive target environment
-        id: env
-        run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            echo "target_env=${{ github.event.inputs.environment }}" >> "$GITHUB_OUTPUT"
-          elif [[ "${GITHUB_REF}" == "refs/heads/staging" ]]; then
-            echo "target_env=staging" >> "$GITHUB_OUTPUT"
-          else
-            echo "target_env=production" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Wait for CI to succeed
         uses: actions/github-script@v7
@@ -149,16 +119,12 @@ jobs:
           SUFFIXES="sha-${GITHUB_SHA::7}"
           PRIMARY_SUFFIX="sha-${GITHUB_SHA::7}"
 
-          if [[ "${GITHUB_REF}" == "refs/heads/staging" ]]; then
-            SUFFIXES="${SUFFIXES} staging staging-${GITHUB_SHA::7}"
-            PRIMARY_SUFFIX="staging-${GITHUB_SHA::7}"
-          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+          # A tagged release additionally publishes the version and `latest`;
+          # a manual run publishes only the commit-sha tag.
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             REF_NAME="${GITHUB_REF#refs/tags/}"
             SUFFIXES="${SUFFIXES} ${REF_NAME} latest"
             PRIMARY_SUFFIX="${REF_NAME}"
-          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.environment }}" == "staging" ]]; then
-            SUFFIXES="${SUFFIXES} staging staging-${GITHUB_SHA::7}"
-            PRIMARY_SUFFIX="staging-${GITHUB_SHA::7}"
           fi
 
           # One tag list per image: the combined image (root Dockerfile) plus the
@@ -250,7 +216,7 @@ jobs:
         with:
           image: ${{ steps.image.outputs.primary_tag }}
           format: spdx-json
-          output-file: sbom-${{ steps.env.outputs.target_env }}.spdx.json
+          output-file: sbom-${{ github.sha }}.spdx.json
           upload-artifact: false
 
       - name: SLSA SBOM attestation
@@ -258,14 +224,14 @@ jobs:
         with:
           subject-name: ${{ steps.image.outputs.image_name }}
           subject-digest: ${{ steps.build.outputs.digest }}
-          sbom-path: sbom-${{ steps.env.outputs.target_env }}.spdx.json
+          sbom-path: sbom-${{ github.sha }}.spdx.json
           push-to-registry: true
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sbom-${{ steps.env.outputs.target_env }}
-          path: sbom-${{ steps.env.outputs.target_env }}.spdx.json
+          name: sbom-${{ github.sha }}
+          path: sbom-${{ github.sha }}.spdx.json
 
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
@@ -278,67 +244,11 @@ jobs:
       - name: Attest SBOM
         env:
           COSIGN_EXPERIMENTAL: "true"
-        run: cosign attest --yes --predicate sbom-${{ steps.env.outputs.target_env }}.spdx.json --type spdxjson ${{ steps.image.outputs.primary_tag }}
+        run: cosign attest --yes --predicate sbom-${{ github.sha }}.spdx.json --type spdxjson ${{ steps.image.outputs.primary_tag }}
 
       - name: Publish GitHub release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: sbom-${{ steps.env.outputs.target_env }}.spdx.json
+          files: sbom-${{ github.sha }}.spdx.json
           generate_release_notes: true
-
-  smoke:
-    name: Post-deploy smoke check
-    runs-on: ubuntu-latest
-    needs: build-and-publish
-    if: needs.build-and-publish.outputs.target_env == 'staging' || needs.build-and-publish.outputs.target_env == 'production'
-    permissions:
-      id-token: write
-    environment:
-      name: ${{ needs.build-and-publish.outputs.target_env == 'production' && 'production' || 'staging' }}
-    # The secrets context is not available in `if:`, so the Vault settings are
-    # surfaced as env vars the conditional can read.
-    env:
-      VAULT_URL: ${{ secrets.VAULT_URL }}
-      VAULT_JWT_ROLE: ${{ secrets.VAULT_JWT_ROLE }}
-    steps:
-      - name: Harden runner (audit egress)
-        uses: step-security/harden-runner@v2
-        with:
-          egress-policy: audit
-
-      - name: Import smoke URL from Vault (OIDC, optional)
-        if: ${{ env.VAULT_URL != '' && env.VAULT_JWT_ROLE != '' }}
-        uses: hashicorp/vault-action@v3.0.0
-        with:
-          url: ${{ secrets.VAULT_URL }}
-          caCertificate: ${{ secrets.VAULT_CA_CERT }}
-          method: jwt
-          role: ${{ secrets.VAULT_JWT_ROLE }}
-          jwtGithubAudience: sigstore
-          secrets: |
-            secret/data/lumio/${{ needs.build-and-publish.outputs.target_env }} healthcheck_url | SMOKE_URL ;
-
-      - name: Run smoke check
-        env:
-          SMOKE_URL: >-
-            ${{ env.SMOKE_URL != '' && env.SMOKE_URL ||
-            (needs.build-and-publish.outputs.target_env == 'production' && secrets.PROD_HEALTHCHECK_URL || secrets.STAGING_HEALTHCHECK_URL) }}
-        run: |
-          if [ -z "$SMOKE_URL" ]; then
-            echo "No smoke URL configured; skipping smoke verification."
-            exit 0
-          fi
-
-          echo "Hitting $SMOKE_URL..."
-          for attempt in $(seq 1 10); do
-            if curl -fsS "$SMOKE_URL"; then
-              echo "Smoke check passed"
-              exit 0
-            fi
-            echo "Attempt ${attempt}/10 failed, retrying..."
-            sleep 6
-          done
-
-          echo "Smoke check failed after retries"
-          exit 1

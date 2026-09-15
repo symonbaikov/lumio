@@ -30,6 +30,49 @@ export interface DashboardCashFlowPoint {
   expense: number;
 }
 
+export type DashboardCashFlowRange = '12m' | 'this_year' | '5y' | 'all';
+
+export interface DashboardMonthlyCashFlowPoint {
+  /** YYYY-MM */
+  month: string;
+  income: number;
+  expense: number;
+  net: number;
+}
+
+/** `GET /dashboard/cash-flow`: whole calendar months, empty months zero-filled. */
+export interface DashboardMonthlyCashFlow {
+  range: DashboardCashFlowRange;
+  currency: string;
+  since: string | null;
+  endDate: string | null;
+  totals: { income: number; expense: number; net: number };
+  points: DashboardMonthlyCashFlowPoint[];
+}
+
+/**
+ * `GET /dashboard/health-history`: one month of queue counts. Items are counted in the month they
+ * are dated by (statement upload, transaction date, receipt date, payable due date).
+ */
+export interface DashboardHealthMonth {
+  /** YYYY-MM */
+  month: string;
+  transactions: number;
+  uncategorized: number;
+  statementsUploaded: number;
+  statementErrors: number;
+  statementsPendingReview: number;
+  statementsPendingSubmit: number;
+  parsingWarnings: number;
+  receiptsPendingReview: number;
+  overduePayments: number;
+}
+
+export interface DashboardHealthHistory {
+  year: number;
+  months: DashboardHealthMonth[];
+}
+
 export interface DashboardRecentTransaction {
   id: string;
   description: string;

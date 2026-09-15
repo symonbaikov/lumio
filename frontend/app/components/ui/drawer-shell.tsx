@@ -93,6 +93,8 @@ export function DrawerShell({
       className={className}
       sx={zIndex !== undefined ? { zIndex } : undefined}
       PaperProps={{
+        role: 'dialog',
+        'aria-labelledby': title ? 'drawer-title' : undefined,
         sx: [
           {
             width: drawerWidth,
@@ -115,7 +117,6 @@ export function DrawerShell({
             borderBottom: '1px solid',
             borderColor: 'rgba(0,0,0,0.12)',
           }}
-          aria-labelledby={title ? 'drawer-title' : undefined}
         >
           {title && (
             <Typography id="drawer-title" variant="h6" fontWeight={700}>

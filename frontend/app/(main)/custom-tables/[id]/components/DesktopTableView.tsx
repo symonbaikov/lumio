@@ -202,6 +202,8 @@ function ColumnResizer({
   const transform = isResizing ? 'scaleX(2)' : undefined;
   return (
     <div
+      role="separator"
+      aria-orientation="vertical"
       onMouseDown={e => onResizeMouseDown(columnId, e)}
       onTouchStart={e => onResizeMouseDown(columnId, e)}
       style={{

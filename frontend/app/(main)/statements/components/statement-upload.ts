@@ -1,6 +1,7 @@
 'use client';
 
 import apiClient from '@/app/lib/api';
+import type { DeviceLocation } from '@/app/lib/device-location';
 
 export const RECEIPT_SCAN_UPLOAD_BATCH_SIZE = 5;
 
@@ -25,6 +26,7 @@ type UploadStatementFilesParams = UploadCallbacks & {
 type UploadReceiptScanFilesParams = UploadCallbacks & {
   files: File[];
   labels: StatementUploadLabels;
+  deviceLocation?: DeviceLocation | null;
 };
 
 type UploadScanDrawerFilesParams = UploadCallbacks & {
@@ -33,6 +35,7 @@ type UploadScanDrawerFilesParams = UploadCallbacks & {
     files: File[];
     allowDuplicates: boolean;
     requireManualCategorySelection: boolean;
+    deviceLocation?: DeviceLocation | null;
   };
 };
 
@@ -106,6 +109,7 @@ export const uploadStatementFiles = async ({
 
 export const uploadReceiptScanFiles = async ({
   files,
+  deviceLocation,
   labels,
   onUploadSuccess,
   refreshAfterCreate,
@@ -119,6 +123,11 @@ export const uploadReceiptScanFiles = async ({
       const formData = new FormData();
       for (const file of batch) {
         formData.append('files', file);
+      }
+      if (deviceLocation) {
+        formData.append('latitude', String(deviceLocation.latitude));
+        formData.append('longitude', String(deviceLocation.longitude));
+        formData.append('accuracy', String(deviceLocation.accuracy));
       }
 
       await apiClient.post('/statements/upload-receipt', formData, {
@@ -146,6 +155,7 @@ export const uploadScanDrawerFiles = async ({
 
   await uploadReceiptScanFiles({
     files: payload.files,
+    deviceLocation: payload.deviceLocation,
     labels,
     onUploadSuccess,
     refreshAfterCreate,

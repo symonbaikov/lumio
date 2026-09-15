@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { BullModule } from '@nestjs/bullmq';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { CsrfGuard } from './common/guards/csrf.guard';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { getDatabaseConfig } from './config/database.config';
@@ -85,7 +87,9 @@ import { GmailModule } from './modules/gmail/gmail.module';
 import { GoalsModule } from './modules/goals/goals.module';
 import { GoogleDriveModule } from './modules/google-drive/google-drive.module';
 import { GoogleSheetsModule } from './modules/google-sheets/google-sheets.module';
+import { IncomeTaxModule } from './modules/income-tax/income-tax.module';
 import { InsightsModule } from './modules/insights/insights.module';
+import { MapsModule } from './modules/maps/maps.module';
 import { NetWorthModule } from './modules/net-worth/net-worth.module';
 import { NotesModule } from './modules/notes/notes.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -116,12 +120,25 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000, // 1 minute
-        limit: 500, // 500 requests per minute for authenticated users
+    // Counters live in Redis when it is configured. The default in-memory
+    // storage is per-process, so every additional instance multiplied every
+    // limit — the 5/min on login became 5 per instance per minute.
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const redisUrl = configService.get<string>('REDIS_URL');
+        return {
+          throttlers: [
+            {
+              ttl: 60000, // 1 minute
+              limit: 500, // 500 requests per minute for authenticated users
+            },
+          ],
+          ...(redisUrl ? { storage: new ThrottlerStorageRedisService(redisUrl) } : {}),
+        };
       },
-    ]),
+    }),
     CacheModule.registerAsync({
       isGlobal: true,
       imports: [ConfigModule],
@@ -221,10 +238,12 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     StorageModule,
     TelegramModule,
     TaxModule,
+    IncomeTaxModule,
     DataEntryModule,
     CustomTablesModule,
     WorkspacesModule,
     NotesModule,
+    MapsModule,
     NotificationsModule,
     InsightsModule,
     ObservabilityModule,
@@ -256,6 +275,12 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
+    },
+    // Registered before JwtAuthGuard: a forged cross-site request should be
+    // rejected before it reaches authentication or any handler.
+    {
+      provide: APP_GUARD,
+      useClass: CsrfGuard,
     },
     {
       provide: APP_GUARD,

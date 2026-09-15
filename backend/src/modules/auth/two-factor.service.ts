@@ -12,6 +12,7 @@ import { generateSecret, generateURI, verifySync } from 'otplib';
 import * as qrCode from 'qrcode';
 import type { Repository } from 'typeorm';
 import { decryptText, encryptText } from '../../common/utils/encryption.util';
+import { requireSecret } from '../../common/utils/required-secret.util';
 import { User } from '../../entities';
 
 const ISSUER = 'Lumio';
@@ -208,10 +209,11 @@ export class TwoFactorService {
   }
 
   private hashRecoveryCode(code: string): string {
-    const secret =
-      this.configService.get<string>('SESSION_TOKEN_SALT') ||
-      this.configService.get<string>('JWT_REFRESH_SECRET') ||
-      'session-default-secret';
+    const secret = requireSecret(
+      'SESSION_TOKEN_SALT or JWT_REFRESH_SECRET',
+      this.configService.get<string>('SESSION_TOKEN_SALT'),
+      this.configService.get<string>('JWT_REFRESH_SECRET'),
+    );
 
     return createHmac('sha256', secret).update(code).digest('hex');
   }

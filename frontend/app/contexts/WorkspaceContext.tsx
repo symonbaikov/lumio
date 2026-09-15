@@ -11,6 +11,7 @@ import {
   useState,
 } from 'react';
 import { getApiErrorMessage } from '@/app/lib/api-error';
+import { hasSessionCookie } from '@/app/lib/csrf';
 import { api } from '../lib/api';
 
 type WorkspaceSettings = Record<string, unknown>;
@@ -208,8 +209,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-    if (token) {
+    if (hasSessionCookie()) {
       void refreshWorkspaces();
     } else {
       setCurrentWorkspace(null);

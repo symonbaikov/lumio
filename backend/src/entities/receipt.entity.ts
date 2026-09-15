@@ -31,6 +31,16 @@ export enum ReceiptSource {
   IMAP = 'imap',
 }
 
+/** Where a receipt's point on the map came from, in the order auto-detection trusts them. */
+export enum ReceiptLocationSource {
+  MERCHANT_ADDRESS = 'merchant_address',
+  EXIF = 'exif',
+  DEVICE = 'device',
+  MANUAL = 'manual',
+  /** Reserved for the tax-authority QR lookup; nothing writes it yet. */
+  FISCAL_QR = 'fiscal_qr',
+}
+
 @Entity('receipts')
 @Index(['userId'])
 @Index(['status'])
@@ -97,6 +107,17 @@ export class Receipt {
     labels?: string[];
     snippet?: string;
     potentialDuplicates?: string[];
+    /**
+     * Raw point captured with the photo, kept apart from the resolved location
+     * so a reset to automatic can recompute without the upload request.
+     */
+    captureLocation?: {
+      lat: number;
+      lng: number;
+      accuracyM?: number;
+      source: 'exif' | 'device';
+      capturedAt: string;
+    };
   };
 
   @Column({ type: 'jsonb', nullable: true, name: 'parsed_data' })
@@ -104,6 +125,7 @@ export class Receipt {
     amount?: number;
     currency?: string;
     vendor?: string;
+    merchantAddress?: string;
     date?: string;
     category?: string;
     categoryId?: string;
@@ -153,6 +175,21 @@ export class Receipt {
 
   @Column({ name: 'is_duplicate', type: 'boolean', default: false })
   isDuplicate: boolean;
+
+  @Column({ name: 'location_lat', type: 'double precision', nullable: true })
+  locationLat: number | null;
+
+  @Column({ name: 'location_lng', type: 'double precision', nullable: true })
+  locationLng: number | null;
+
+  @Column({ name: 'location_source', type: 'varchar', length: 32, nullable: true })
+  locationSource: ReceiptLocationSource | null;
+
+  @Column({ name: 'location_accuracy_m', type: 'integer', nullable: true })
+  locationAccuracyM: number | null;
+
+  @Column({ name: 'location_updated_at', type: 'timestamptz', nullable: true })
+  locationUpdatedAt: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

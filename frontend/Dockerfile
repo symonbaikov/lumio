@@ -44,6 +44,12 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
+# OS security fixes newer than the base image; npm and corepack are not used at
+# runtime and only carry npm's bundled packages into the image scan.
+RUN apk upgrade --no-cache && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"

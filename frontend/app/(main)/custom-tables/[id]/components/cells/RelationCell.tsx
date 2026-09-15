@@ -82,6 +82,7 @@ export function RelationCell({ row, column, onUpdateCell, style, tableId }: Rela
   }
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: double-click-to-edit grid cell. Making this keyboard-reachable needs roving-tabindex navigation across the whole table (role=grid/gridcell); a per-cell tabIndex would add a tab stop to every cell instead.
     <div
       onDoubleClick={() => void startEditing()}
       style={{

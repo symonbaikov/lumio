@@ -8,6 +8,11 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "target": "ES2021",
+    // Node 20 ships the ES2022 library (Object.hasOwn, Array.at, Error.cause)
+    // while emit stays at ES2021. Without this the compiler rejects APIs the
+    // runtime has — custom-tables.service.ts uses Object.hasOwn and was the
+    // one standing type error in the tree.
+    "lib": ["ES2022"],
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",

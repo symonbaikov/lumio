@@ -302,8 +302,8 @@ export function PanelHeader({
 }
 
 type FooterProps = { footer: NonNullable<SidePanelProps['config']>['footer'] };
-export function PanelFooter({ footer }: FooterProps): React.JSX.Element {
-  if (!footer) return <></>;
+export function PanelFooter({ footer }: FooterProps): React.JSX.Element | null {
+  if (!footer) return null;
   const actions = footer.actions ?? [];
   return (
     <div style={{ padding: '12px 16px', flexShrink: 0, overflow: 'visible' }}>

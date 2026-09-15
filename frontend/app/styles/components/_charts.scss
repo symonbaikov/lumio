@@ -1,0 +1,128 @@
+// app/styles/components/_charts.scss
+// Chart design adapted from Aurum by ZProger (https://github.com/ZProger/Aurum).
+// Reimplemented for Lumio; no Aurum source code was copied.
+// Colours come from theme CSS variables, which already carry the `.dark` overrides.
+
+.lumio-chart {
+  &__box {
+    position: relative;
+    width: 100%;
+    height: 256px;
+
+    @media (max-width: 640px) {
+      height: 224px;
+    }
+
+    &--compact {
+      height: 200px;
+    }
+  }
+
+  &__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 14px;
+    color: var(--muted-foreground);
+    text-align: center;
+  }
+
+  &__total {
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    color: var(--foreground);
+
+    @media (max-width: 640px) {
+      font-size: 24px;
+    }
+  }
+
+  &__breakdown {
+    margin: 4px 0 12px;
+    font-size: 14px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted-foreground);
+
+    &-income {
+      color: var(--ff-dash-success);
+    }
+
+    &-expense {
+      color: var(--ff-dash-critical);
+    }
+  }
+
+  &__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+    color: var(--muted-foreground);
+  }
+
+  &__legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__legend-value {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--foreground);
+  }
+
+  &__swatch {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted-foreground);
+  }
+
+  &__tooltip {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--foreground);
+    font-family: var(--font-dashboard-sans);
+    font-size: 13px;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
+  }
+
+  &__tooltip-title {
+    margin-bottom: 2px;
+    color: var(--muted-foreground);
+  }
+
+  &__tooltip-row {
+    font-variant-numeric: tabular-nums;
+
+    &--positive {
+      color: var(--ff-dash-success);
+    }
+
+    &--negative {
+      color: var(--ff-dash-critical);
+    }
+
+    &--strong {
+      font-weight: 600;
+    }
+  }
+}

@@ -74,7 +74,9 @@ function buildManualExpenseFormData({
   }
   fd.append('date', date);
   fd.append('allowDuplicates', allowDuplicates ? 'true' : 'false');
-  files.forEach(f => fd.append('files', f));
+  files.forEach(f => {
+    fd.append('files', f);
+  });
   return fd;
 }
 

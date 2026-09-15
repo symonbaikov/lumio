@@ -27,6 +27,51 @@ export interface DashboardCashFlowPoint {
   expense: number;
 }
 
+export interface DashboardMonthlyCashFlowPoint {
+  /** Calendar month, YYYY-MM. */
+  month: string;
+  income: number;
+  expense: number;
+  net: number;
+}
+
+export interface DashboardMonthlyCashFlowResponse {
+  range: '12m' | 'this_year' | '5y' | 'all';
+  currency: string;
+  /** Window bounds (YYYY-MM-DD); `null` for `all` when there are no transactions. */
+  since: string | null;
+  endDate: string | null;
+  totals: { income: number; expense: number; net: number };
+  /** One point per calendar month, empty months zero-filled; `[]` when the window has no data. */
+  points: DashboardMonthlyCashFlowPoint[];
+}
+
+/**
+ * One month of Data Health / Finance Ops history. Items are counted in the month they are dated
+ * by (statements by upload, transactions by transaction date, receipts by receipt date, payables
+ * by due date); nothing is stored, so fixing old data changes old months.
+ */
+export interface DashboardHealthMonth {
+  /** YYYY-MM */
+  month: string;
+  transactions: number;
+  /** Uncategorized transactions plus uncategorized receipts. */
+  uncategorized: number;
+  statementsUploaded: number;
+  statementErrors: number;
+  statementsPendingReview: number;
+  statementsPendingSubmit: number;
+  parsingWarnings: number;
+  receiptsPendingReview: number;
+  overduePayments: number;
+}
+
+export interface DashboardHealthHistoryResponse {
+  year: number;
+  /** January up to the current month for the current year, all 12 for past years, `[]` for future years. */
+  months: DashboardHealthMonth[];
+}
+
 export interface DashboardRecentTransaction {
   id: string;
   description: string;

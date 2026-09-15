@@ -146,7 +146,11 @@ export function NetWorthContent() {
 
             {hasData ? (
               <Box sx={{ mt: 2 }}>
-                <NetWorthChart points={data.series} positive={isPositive} />
+                <NetWorthChart
+                  points={data.series}
+                  positive={isPositive}
+                  formatValue={value => formatMoney(value, currency, locale)}
+                />
               </Box>
             ) : (
               <EmptyState illustration="reports" description={t.empty} compact />

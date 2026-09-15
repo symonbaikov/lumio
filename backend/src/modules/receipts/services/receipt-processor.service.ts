@@ -2,10 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs/promises';
 import { Repository } from 'typeorm';
+import { readExifGps } from '../../../common/utils/exif-gps.util';
 import { Receipt, ReceiptJobStatus, ReceiptProcessingJob, ReceiptStatus } from '../../../entities';
 import { UniversalExtractorService } from '../../parsing/services/universal-extractor.service';
 import { ReceiptCategoryService } from './receipt-category.service';
 import { ReceiptDuplicateService } from './receipt-duplicate.service';
+import { ReceiptLocationService } from './receipt-location.service';
 
 const MANUAL_RECEIPT_WORKER_ID = 'manual-receipt-sync';
 
@@ -21,6 +23,7 @@ export class ReceiptProcessorService {
     private readonly extractor: UniversalExtractorService,
     private readonly duplicateService: ReceiptDuplicateService,
     private readonly categoryService: ReceiptCategoryService,
+    private readonly locationService: ReceiptLocationService,
   ) {}
 
   async processReceipt(job: ReceiptProcessingJob): Promise<Receipt | null> {
@@ -83,6 +86,7 @@ export class ReceiptProcessorService {
         amount: parsed.totalAmount,
         currency: parsed.currency,
         vendor: parsed.vendor,
+        merchantAddress: parsed.merchantAddress,
         date: parsed.date instanceof Date ? parsed.date.toISOString().slice(0, 10) : undefined,
         tax: parsed.tax,
         taxRate: parsed.taxRate,
@@ -96,6 +100,11 @@ export class ReceiptProcessorService {
       receipt.language = this.normalizeStoredLanguage(receipt.language ?? job.payload.historyId);
       receipt.extractionMethod = parsed.extractionMethod;
       receipt.confidence = parsed.confidence;
+
+      if (!isPdf) {
+        await this.captureExifLocation(receipt, fileBuffer);
+      }
+      await this.locationService.applyAutoLocation(receipt);
 
       if (typeof parsed.totalAmount === 'number' && Number.isFinite(parsed.totalAmount)) {
         const potentialDuplicates = await this.duplicateService.findPotentialDuplicates(receipt);
@@ -144,6 +153,20 @@ export class ReceiptProcessorService {
       await this.jobRepository.save(job);
       return receipt;
     }
+  }
+
+  // Where the photo was taken beats where it was uploaded from, so a GPS tag in
+  // the file replaces the device point sent with the request.
+  private async captureExifLocation(receipt: Receipt, fileBuffer: Buffer): Promise<void> {
+    const exifPoint = await readExifGps(fileBuffer);
+    if (!exifPoint) {
+      return;
+    }
+
+    receipt.metadata = {
+      ...receipt.metadata,
+      captureLocation: { ...exifPoint, source: 'exif', capturedAt: new Date().toISOString() },
+    };
   }
 
   private resolveOcrLanguages(language?: string | null, fallback?: string): string[] | undefined {

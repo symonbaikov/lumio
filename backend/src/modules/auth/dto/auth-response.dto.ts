@@ -8,6 +8,7 @@ export class AuthResponseDto {
     locale?: string;
     timeZone?: string | null;
     themePreference?: string;
+    mapStylePreference?: string | null;
     avatarUrl?: string | null;
     onboardingCompletedAt?: string | null;
   };

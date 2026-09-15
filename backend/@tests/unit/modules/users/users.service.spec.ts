@@ -2,6 +2,7 @@ import { User, UserRole } from '@/entities/user.entity';
 import { AuthSession } from '@/entities/auth-session.entity';
 import { WorkspaceMember } from '@/entities/workspace-member.entity';
 import { Workspace } from '@/entities/workspace.entity';
+import { EmailChangeService } from '@/modules/users/services/email-change.service';
 import { UsersService } from '@/modules/users/users.service';
 import { WorkspacesService } from '@/modules/workspaces/workspaces.service';
 import {
@@ -14,6 +15,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import type { Repository } from 'typeorm';
+import { passwordHashRounds } from '@/common/utils/password-hash.util';
 
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
@@ -77,6 +79,13 @@ describe('UsersService', () => {
           provide: WorkspacesService,
           useValue: {
             ensureUserWorkspace: jest.fn(),
+          },
+        },
+        {
+          provide: EmailChangeService,
+          useValue: {
+            requestEmailChange: jest.fn(),
+            confirmEmailChange: jest.fn(),
           },
         },
       ],
@@ -266,7 +275,9 @@ describe('UsersService', () => {
 
       await service.changePassword('1', changePasswordDto);
 
-      expect(hashSpy).toHaveBeenCalledWith('new_password', 10);
+      // Cost comes from passwordHashRounds() (12 by default, OWASP's current
+      // recommendation), not the hardcoded 10 this used to assert.
+      expect(hashSpy).toHaveBeenCalledWith('new_password', passwordHashRounds());
       const savedUser = saveSpy.mock.calls[0][0];
       expect(savedUser.passwordHash).toBe('new_hashed');
     });
@@ -298,11 +309,13 @@ describe('UsersService', () => {
   });
 
   describe('findAll', () => {
+    const WORKSPACE_ID = '11111111-1111-4111-8111-111111111111';
+
     it('should return all users in workspace', async () => {
       const users = [mockUser, { ...mockUser, id: '2' }];
       jest.spyOn(repository, 'find').mockResolvedValue(users as User[]);
 
-      const result = await service.findAll(1, 20);
+      const result = await service.findAll(WORKSPACE_ID, 20);
 
       expect(result).toHaveLength(2);
       expect(repository.find).toHaveBeenCalled();
@@ -311,7 +324,7 @@ describe('UsersService', () => {
     it('should not include deleted users', async () => {
       jest.spyOn(repository, 'find').mockResolvedValue([mockUser] as User[]);
 
-      await service.findAll(1, 20);
+      await service.findAll(WORKSPACE_ID, 20);
 
       expect(repository.find).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -325,12 +338,12 @@ describe('UsersService', () => {
     it('should filter by workspace access', async () => {
       const findSpy = jest.spyOn(repository, 'find').mockResolvedValue([mockUser] as User[]);
 
-      await service.findAll(1, 20);
+      await service.findAll(WORKSPACE_ID, 20);
 
       expect(findSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            workspaceId: '1',
+            workspaceId: WORKSPACE_ID,
           }),
         }),
       );
@@ -339,7 +352,7 @@ describe('UsersService', () => {
     it('should handle empty result', async () => {
       jest.spyOn(repository, 'find').mockResolvedValue([]);
 
-      const result = await service.findAll(1, 20);
+      const result = await service.findAll(WORKSPACE_ID, 20);
 
       expect(result).toEqual([]);
     });
@@ -394,6 +407,74 @@ describe('UsersService', () => {
         }),
       );
       expect(result.themePreference).toBe('auto');
+    });
+
+    it('stores a trimmed map style and clears it with null', async () => {
+      const userWithPassword = { ...mockUser, mapStylePreference: 'positron' } as User;
+
+      jest
+        .spyOn<any, any>(service as any, 'findOneWithPassword')
+        .mockResolvedValue(userWithPassword);
+      const saveSpy = jest
+        .spyOn(repository, 'save')
+        .mockImplementation(async (user: any) => user as User);
+
+      await service.updateMyPreferences('1', { mapStylePreference: ' dark-matter ' } as any);
+      expect(saveSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({ mapStylePreference: 'dark-matter' }),
+      );
+
+      await service.updateMyPreferences('1', { mapStylePreference: null } as any);
+      expect(saveSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({ mapStylePreference: null }),
+      );
+    });
+
+    it('stores a bundled background and clears it with null', async () => {
+      jest
+        .spyOn<any, any>(service as any, 'findOneWithPassword')
+        .mockResolvedValue({ ...mockUser, contentBackground: null } as User);
+      const saveSpy = jest
+        .spyOn(repository, 'save')
+        .mockImplementation(async (user: any) => user as User);
+      const preset = '/workspace-backgrounds/lightscape-LtnPejWDSAY-unsplash.jpg';
+
+      await service.updateMyPreferences('1', { contentBackground: preset } as any);
+      expect(saveSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({ contentBackground: preset }),
+      );
+
+      await service.updateMyPreferences('1', { contentBackground: null } as any);
+      expect(saveSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({ contentBackground: null }),
+      );
+    });
+
+    it('stores the background dim level', async () => {
+      jest
+        .spyOn<any, any>(service as any, 'findOneWithPassword')
+        .mockResolvedValue({ ...mockUser, contentBackgroundDim: 35 } as User);
+      const saveSpy = jest
+        .spyOn(repository, 'save')
+        .mockImplementation(async (user: any) => user as User);
+
+      await service.updateMyPreferences('1', { contentBackgroundDim: 60 } as any);
+
+      expect(saveSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({ contentBackgroundDim: 60 }),
+      );
+    });
+  });
+
+  describe('updateMyContentBackground', () => {
+    it('stores the uploaded image path', async () => {
+      const updateSpy = jest.spyOn(repository, 'update').mockResolvedValue({} as any);
+
+      await service.updateMyContentBackground('1', '/api/v1/users/backgrounds/abc.jpg');
+
+      expect(updateSpy).toHaveBeenCalledWith('1', {
+        contentBackground: '/api/v1/users/backgrounds/abc.jpg',
+      });
     });
   });
 

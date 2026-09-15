@@ -740,7 +740,9 @@ export class StatementProcessingService {
           );
           parsedStatement = aiResult.corrected;
           if (aiResult.notes.length) {
-            aiResult.notes.forEach(note => addLog('info', `[AI] ${note}`));
+            for (const note of aiResult.notes) {
+              addLog('info', `[AI] ${note}`);
+            }
           }
           addLog(
             'info',
@@ -773,7 +775,9 @@ export class StatementProcessingService {
       );
       if (schemaResult.warnings.length) {
         parsingDetails.warnings = parsingDetails.warnings || [];
-        schemaResult.warnings.forEach(w => parsingDetails.warnings?.push(w));
+        for (const w of schemaResult.warnings) {
+          parsingDetails.warnings?.push(w);
+        }
       }
       parsedStatement.transactions = schemaResult.valid;
       parsingDetails.transactionsFound = parsedStatement.transactions.length;
@@ -1341,15 +1345,6 @@ export class StatementProcessingService {
       // Re-throw to be caught by caller
       throw error;
     }
-  }
-
-  private serializePreviewTransactions(
-    transactions: ParsedTransaction[],
-  ): Array<Omit<ParsedTransaction, 'transactionDate'> & { transactionDate: string }> {
-    return transactions.map(tx => ({
-      ...tx,
-      transactionDate: tx.transactionDate.toISOString(),
-    }));
   }
 
   private hydratePreviewTransactions(raw: unknown): ParsedTransaction[] {

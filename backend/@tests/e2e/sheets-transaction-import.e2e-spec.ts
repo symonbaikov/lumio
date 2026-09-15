@@ -1,8 +1,9 @@
 import { type INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
+import { accessTokenOf, e2eTestingModule } from './helpers/e2e-app';
 import { DashboardService } from '../../src/modules/dashboard/dashboard.service';
 import { SheetSourceLoaderService } from '../../src/modules/google-sheets/services/sheet-source-loader.service';
 
@@ -109,7 +110,7 @@ describe('Sheets transaction import (e2e)', () => {
 
     return {
       userId,
-      accessToken: loginRes.body.access_token as string,
+      accessToken: accessTokenOf(loginRes),
       workspaceId: loginRes.body.user.workspaceId as string,
     };
   };
@@ -131,7 +132,7 @@ describe('Sheets transaction import (e2e)', () => {
   };
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduleFixture: TestingModule = await e2eTestingModule({
       imports: [AppModule],
     })
       .overrideProvider(SheetSourceLoaderService)

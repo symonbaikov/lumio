@@ -5,9 +5,11 @@ import { PermissionsGuard } from '../../../../src/common/guards/permissions.guar
 import { WorkspaceContextGuard } from '../../../../src/common/guards/workspace-context.guard';
 import { ReceiptsController } from '../../../../src/modules/receipts/receipts.controller';
 import { ReceiptsService } from '../../../../src/modules/receipts/receipts.service';
+import { ReceiptLocationService } from '../../../../src/modules/receipts/services/receipt-location.service';
 
 describe('ReceiptsController', () => {
   let controller: ReceiptsController;
+  let locationService: { setManual: jest.Mock; resetToAuto: jest.Mock };
   let service: {
     createFromUpload: jest.Mock;
     createFromScan: jest.Mock;
@@ -40,9 +42,17 @@ describe('ReceiptsController', () => {
       }),
     };
 
+    locationService = {
+      setManual: jest.fn().mockResolvedValue({ id: 'receipt-1', locationSource: 'manual' }),
+      resetToAuto: jest.fn().mockResolvedValue({ id: 'receipt-1', locationSource: 'device' }),
+    };
+
     const moduleBuilder = Test.createTestingModule({
       controllers: [ReceiptsController],
-      providers: [{ provide: ReceiptsService, useValue: service }],
+      providers: [
+        { provide: ReceiptsService, useValue: service },
+        { provide: ReceiptLocationService, useValue: locationService },
+      ],
     });
 
     moduleBuilder.overrideGuard(JwtAuthGuard).useValue({ canActivate: jest.fn().mockReturnValue(true) });
@@ -149,5 +159,57 @@ describe('ReceiptsController', () => {
     await controller.getFile('receipt-1', 'workspace-1', response);
 
     expect(response.status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+  });
+
+  it('forwards the device point sent with a scan', async () => {
+    await controller.scan(
+      {
+        originalname: 'scan.jpg',
+        mimetype: 'image/jpeg',
+        size: 1024,
+        filename: 'scan.jpg',
+        path: '/tmp/scan.jpg',
+      } as Express.Multer.File,
+      { language: 'eng', latitude: 43.2383, longitude: 76.9453, accuracy: 12.4 } as any,
+      { id: 'user-1' } as any,
+      'workspace-1',
+    );
+
+    expect(service.createFromScan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        captureLocation: { lat: 43.2383, lng: 76.9453, accuracyM: 12 },
+      }),
+    );
+  });
+
+  it('pins a manual location inside the workspace', async () => {
+    await expect(
+      controller.setLocation('receipt-1', 'workspace-1', { latitude: 1, longitude: 2 }),
+    ).resolves.toMatchObject({ locationSource: 'manual' });
+
+    expect(locationService.setManual).toHaveBeenCalledWith('receipt-1', 'workspace-1', {
+      latitude: 1,
+      longitude: 2,
+    });
+  });
+
+  it('rejects a manual location for a receipt outside the workspace', async () => {
+    locationService.setManual.mockResolvedValue(null);
+
+    await expect(
+      controller.setLocation('receipt-1', 'workspace-2', { latitude: 1, longitude: 2 }),
+    ).rejects.toThrow('Receipt not found');
+  });
+
+  it('resets the location to automatic', async () => {
+    await expect(controller.resetLocation('receipt-1', 'workspace-1')).resolves.toMatchObject({
+      locationSource: 'device',
+    });
+    expect(locationService.resetToAuto).toHaveBeenCalledWith('receipt-1', 'workspace-1');
+
+    locationService.resetToAuto.mockResolvedValue(null);
+    await expect(controller.resetLocation('receipt-1', 'workspace-2')).rejects.toThrow(
+      'Receipt not found',
+    );
   });
 });

@@ -85,14 +85,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       disconnectNotificationsSocket();
       return;
     }
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-    if (!token) {
-      disconnectNotificationsSocket();
-      return;
-    }
-
     // The socket is a module singleton; holding it in state only added a render.
-    const socket = getNotificationsSocket() ?? connectNotificationsSocket(token);
+    // `user` above is already the session check — the cookie travels on its own.
+    const socket = getNotificationsSocket() ?? connectNotificationsSocket();
 
     const onNotification = (notification: NotificationItem) => {
       if (workspaceId && notification.workspaceId && notification.workspaceId !== workspaceId) {

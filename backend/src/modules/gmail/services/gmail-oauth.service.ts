@@ -6,6 +6,7 @@ import {
   type OAuthIntegrationSettingsRelationName,
 } from '../../../common/services/oauth-integration-base.service';
 import { decryptText, encryptText } from '../../../common/utils/encryption.util';
+import { requireSecret } from '../../../common/utils/required-secret.util';
 import {
   GmailSettings,
   Integration,
@@ -80,7 +81,11 @@ export class GmailOAuthService extends OAuthIntegrationBaseService {
   }
 
   protected getStateSecret() {
-    return process.env.GMAIL_STATE_SECRET || process.env.JWT_SECRET || 'lumio-state';
+    return requireSecret(
+      'GMAIL_STATE_SECRET or JWT_SECRET',
+      process.env.GMAIL_STATE_SECRET,
+      process.env.JWT_SECRET,
+    );
   }
 
   private getOAuthConfig() {

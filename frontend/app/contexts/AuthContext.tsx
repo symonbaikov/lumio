@@ -12,6 +12,7 @@ import {
   useState,
 } from 'react';
 import apiClient from '@/app/lib/api';
+import { clearCsrfCookie, hasSessionCookie } from '@/app/lib/csrf';
 import { readLocaleFromCookie, syncLocaleFromUser } from '@/app/lib/locale';
 import { getQueryClient } from '@/app/lib/query-client';
 import {
@@ -39,6 +40,12 @@ export interface User {
   uiDensity?: 'comfortable' | 'compact';
   reduceMotion?: boolean;
   themePreference?: ThemePreference;
+  /** Tile style picked on receipt maps; null follows the server default. */
+  mapStylePreference?: string | null;
+  /** Bundled or uploaded photo behind the content area; null keeps the flat background. */
+  contentBackground?: string | null;
+  /** Opacity, in percent, of the theme-coloured layer over that photo. */
+  contentBackgroundDim?: number;
   lastLogin?: string | null;
   avatarUrl?: string | null;
   onboardingCompletedAt?: string | null;
@@ -59,9 +66,14 @@ const normalizeUser = (user: User): User => ({
 });
 
 const clearStoredSession = (): void => {
+  // Tokens now live in httpOnly cookies that only the server can clear. These
+  // two removals stay to evict values left over from before that migration.
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('user');
+  // The CSRF cookie is readable, so it is ours to clear — and it must be, or
+  // the next mount still believes there is a session.
+  clearCsrfCookie();
   // Кэш React Query переживает смену пользователя в той же вкладке, поэтому
   // чистится вместе с токенами — и на логауте, и на невалидном /auth/me.
   getQueryClient().clear();
@@ -84,25 +96,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  // Token the current profile was loaded for. Re-checked on navigation so a
-  // login (new token) or logout (token removed) in this tab is picked up
+  // Whether the profile has been loaded for the current session. The access
+  // token itself is httpOnly and unreadable now, so session presence is tracked
+  // through the companion CSRF cookie, which the server sets and clears
+  // alongside it. Re-checked on navigation so a logout in this tab is noticed
   // without a full reload.
-  const loadedTokenRef = useRef<string | null>(null);
+  const loadedSessionRef = useRef(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      if (loadedTokenRef.current !== null) {
-        loadedTokenRef.current = null;
+    if (!hasSessionCookie()) {
+      if (loadedSessionRef.current) {
+        loadedSessionRef.current = false;
         setUser(null);
       }
       setLoading(false);
       return;
     }
-    if (token === loadedTokenRef.current) {
+    if (loadedSessionRef.current) {
       return;
     }
-    loadedTokenRef.current = token;
+    loadedSessionRef.current = true;
 
     apiClient
       .get('/auth/me')
@@ -120,10 +133,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
         }
       })
       .catch(() => {
-        // Token invalid, clear storage
-        loadedTokenRef.current = null;
+        // Session invalid — drop the local copy and bounce to login. Guarded so
+        // an invalid session on the login page itself cannot re-navigate to it.
+        loadedSessionRef.current = false;
         clearStoredSession();
-        router.push('/login');
+        if (!window.location.pathname.startsWith('/login')) {
+          router.push('/login');
+        }
       })
       .finally(() => {
         setLoading(false);
@@ -135,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     await apiClient.post('/auth/logout').catch((error: unknown) => {
       console.error('Logout error:', error);
     });
-    loadedTokenRef.current = null;
+    loadedSessionRef.current = false;
     clearStoredSession();
     setUser(null);
     router.push('/login');

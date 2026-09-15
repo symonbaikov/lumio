@@ -71,7 +71,9 @@ export function useTourRegistration(options: TourRegistrationOptions): void {
   useEffect(() => {
     const tourManager = getTourManager();
     const allTours = buildAllTours(tourTexts, statementsTexts);
-    allTours.forEach(tour => tourManager.registerTour(tour));
+    allTours.forEach(tour => {
+      tourManager.registerTour(tour);
+    });
   }, [statementsTexts, tourTexts]);
 }
 

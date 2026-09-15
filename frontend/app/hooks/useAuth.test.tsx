@@ -34,7 +34,7 @@ describe('useAuth', () => {
   });
 
   it('syncs the saved user locale into the i18n cookie after auth bootstrap', async () => {
-    localStorage.setItem('access_token', 'token');
+    document.cookie = 'csrf_token=csrf-token';
     get.mockResolvedValue({
       data: {
         id: 'user-1',
@@ -56,7 +56,7 @@ describe('useAuth', () => {
   });
 
   it('does not overwrite an explicitly selected locale during auth bootstrap', async () => {
-    localStorage.setItem('access_token', 'token');
+    document.cookie = 'csrf_token=csrf-token';
     document.cookie = 'INTLAYER_LOCALE=kk; path=/';
 
     get.mockResolvedValue({

@@ -110,37 +110,26 @@ export function ModeToggle({
 
   const options = useMemo(
     () => [
-      {
-        key: 'light' as const,
-        label: copy.light,
-        icon: Sun,
-        hoverIconBg: 'group-hover:bg-amber-400/15 group-hover:text-amber-500',
-        activeIconBg: 'bg-amber-400/20 text-amber-500',
-      },
-      {
-        key: 'dark' as const,
-        label: copy.dark,
-        icon: MoonStar,
-        hoverIconBg: 'group-hover:bg-indigo-400/15 group-hover:text-indigo-400',
-        activeIconBg: 'bg-indigo-400/20 text-indigo-400',
-      },
-      {
-        key: 'auto' as const,
-        label: copy.auto,
-        icon: Clock3,
-        hoverIconBg: 'group-hover:bg-sky-400/15 group-hover:text-sky-500',
-        activeIconBg: 'bg-sky-400/20 text-sky-500',
-      },
+      { key: 'light' as const, label: copy.light, icon: Sun },
+      { key: 'dark' as const, label: copy.dark, icon: MoonStar },
+      { key: 'auto' as const, label: copy.auto, icon: Clock3 },
     ],
     [copy.auto, copy.dark, copy.light],
+  );
+  const activeIndex = Math.max(
+    0,
+    options.findIndex(option => option.key === selectedTheme),
   );
 
   return (
     <div className={cn('space-y-4', className)}>
       <div
-        className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-muted/70 p-1.5"
+        className="lumio-theme-toggle"
+        role="group"
         aria-label={copy.active}
+        style={{ '--theme-toggle-index': activeIndex } as React.CSSProperties}
       >
+        <span className="lumio-theme-toggle__thumb" aria-hidden="true" />
         {options.map(option => {
           const Icon = option.icon;
           const active = selectedTheme === option.key;
@@ -151,21 +140,13 @@ export function ModeToggle({
               onClick={() => handleChange(option.key)}
               aria-pressed={active}
               className={cn(
-                'group flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-medium transition-all duration-200',
-                active
-                  ? 'border-primary/40 bg-card text-foreground shadow-sm'
-                  : 'border-transparent text-muted-foreground hover:border-border hover:bg-card hover:text-foreground',
+                'lumio-theme-toggle__option',
+                `lumio-theme-toggle__option--${option.key}`,
+                active && 'lumio-theme-toggle__option--active',
               )}
             >
-              <span
-                className={cn(
-                  'flex h-6 w-6 items-center justify-center rounded-full transition-colors duration-200',
-                  active
-                    ? option.activeIconBg
-                    : cn('bg-transparent text-muted-foreground', option.hoverIconBg),
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
+              <span className="lumio-theme-toggle__icon">
+                <Icon />
               </span>
               <span>{option.label}</span>
             </button>

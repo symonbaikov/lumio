@@ -418,8 +418,7 @@ lumio/
 │   └── styles/              # Global styles
 │
 ├── docs/                     # Documentation
-├── scripts/                  # Helper scripts
-└── observability/           # Monitoring configs
+└── scripts/                  # Helper scripts
 ```
 
 ### Key Directories

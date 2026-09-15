@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+#### Aurum-style charts (2026-09-13)
+
+- **Cash flow on the Trends tab** is now monthly income/expense bars with a signed net total and an
+  All time / 5 years / 12 mo / This year switcher (`?cf=`), backed by the new
+  `GET /dashboard/cash-flow?range=` endpoint (whole calendar months, empty months zero-filled).
+- **Net worth, category donuts (Overview and Trends) and the ROI projection** moved from ECharts to
+  Recharts with the same look: no Y axis or grid, year ticks only across calendar years, first/last
+  label row, theme colours via CSS variables.
+- Chart design follows [Aurum](https://github.com/ZProger/Aurum) by ZProger; reimplemented, no Aurum
+  code included. The goal Sankey, the spend trend forecast and the statements charts stay on ECharts.
+
 ### Fixed
 
 #### API URL Path in Document Viewer (2025-01-20)

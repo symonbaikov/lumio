@@ -306,8 +306,8 @@ function PDFViewerArea({
   PageComponent,
   onSetNumPages,
   onPdfError,
-}: ViewerAreaProps): React.JSX.Element {
-  if (!pdfObjectUrl) return <></>;
+}: ViewerAreaProps): React.JSX.Element | null {
+  if (!pdfObjectUrl) return null;
   if (showImage)
     return (
       <PDFImageView
@@ -317,7 +317,7 @@ function PDFViewerArea({
         isReceiptImage={isReceiptImage}
       />
     );
-  if (!(showPDF && DocumentComponent && PageComponent)) return <></>;
+  if (!(showPDF && DocumentComponent && PageComponent)) return null;
   return (
     <PDFPagesView
       viewportRef={viewportRef}

@@ -5,7 +5,9 @@ import { Download, MoreVertical, X } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useIntlayer } from '@/app/i18n';
 import { apiBaseUrl } from '@/app/lib/api';
+import { hasSessionCookie } from '@/app/lib/csrf';
 import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
+import { configureBundledPdfWorker } from './pdf-preview/pdf-worker';
 import { ModalShell } from './ui/modal-shell';
 
 type ReactPdfComponentProps = Record<string, unknown>;
@@ -107,7 +109,7 @@ export function PDFPreviewModal({
         setError(null);
 
         const headers = getWorkspaceHeaders();
-        if (!headers.Authorization) {
+        if (!hasSessionCookie()) {
           setError(t.errors.authRequired.value);
           setLoading(false);
           return;
@@ -163,7 +165,7 @@ export function PDFPreviewModal({
     const loadPdfRenderer = async () => {
       await (async () => {
         const module = await loadReactPdf();
-        module.pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${module.pdfjs.version}/build/pdf.worker.min.mjs`;
+        configureBundledPdfWorker(module.pdfjs);
         if (active) {
           setPdfModule(module);
         }
@@ -227,7 +229,7 @@ export function PDFPreviewModal({
   const handleDownload = async () => {
     return await (async () => {
       const headers = getWorkspaceHeaders();
-      if (!headers.Authorization) {
+      if (!hasSessionCookie()) {
         alert(t.errors.authRequired.value);
         return;
       }
@@ -277,7 +279,7 @@ export function PDFPreviewModal({
 
     return await (async () => {
       const headers = getWorkspaceHeaders();
-      if (!headers.Authorization) {
+      if (!hasSessionCookie()) {
         setError(t.errors.authRequired.value);
         return;
       }
@@ -313,7 +315,7 @@ export function PDFPreviewModal({
   const handleStartReplaceParsing = async () => {
     return await (async () => {
       const headers = getWorkspaceHeaders();
-      if (!headers.Authorization) {
+      if (!hasSessionCookie()) {
         setError(t.errors.authRequired.value);
         return;
       }

@@ -12,6 +12,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -172,6 +173,7 @@ export class PublicCustomTableSharesController {
   constructor(private readonly sharesService: CustomTableSharesService) {}
 
   @Public()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Get(':token')
   // Ссылка не должна попасть в поисковую выдачу.
   @Header('X-Robots-Tag', 'noindex, nofollow')
@@ -181,6 +183,7 @@ export class PublicCustomTableSharesController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Get(':token/rows')
   @Header('X-Robots-Tag', 'noindex, nofollow')
   @Header('Cache-Control', 'no-store')

@@ -3,7 +3,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { devDefault } from '../../common/utils/dev-defaults';
-import { Notification, NotificationPreference, User, WorkspaceMember } from '../../entities';
+import {
+  AuthSession,
+  Notification,
+  NotificationPreference,
+  User,
+  WorkspaceMember,
+} from '../../entities';
 import { MailerModule } from '../mailer/mailer.module';
 import { TelegramModule } from '../telegram/telegram.module';
 import { NotificationDeliveryService } from './notification-delivery.service';
@@ -14,7 +20,13 @@ import { NotificationsService } from './notifications.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Notification, NotificationPreference, User, WorkspaceMember]),
+    TypeOrmModule.forFeature([
+      Notification,
+      NotificationPreference,
+      User,
+      WorkspaceMember,
+      AuthSession,
+    ]),
     MailerModule,
     TelegramModule,
     JwtModule.registerAsync({

@@ -66,8 +66,7 @@ export function useSessions(
         console.error('Logout-all error:', error);
       })
       .finally(async () => {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        // Cookies are cleared by the server on logout-all.
         localStorage.removeItem('user');
         router.push('/login');
       });
@@ -88,8 +87,6 @@ export function useSessions(
         await apiClient.post(`/auth/sessions/${session.id}/logout`);
 
         if (session.isCurrent) {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
           localStorage.removeItem('user');
           router.push('/login');
           return;

@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as xlsx from 'xlsx';
+import { neutralizeSpreadsheetFormulaCell } from '../../common/utils/spreadsheet-formula.util';
 
 export type ReportFileFormat = 'pdf' | 'excel' | 'csv';
 
@@ -76,7 +77,16 @@ function escapeCsvValue(value: ReportCell): string {
   return text;
 }
 
-/** Flattens the document into the sheet/CSV row model: header, blank, sections, footer. */
+/**
+ * Flattens the document into the sheet/CSV row model: header, blank, sections,
+ * footer.
+ *
+ * Every cell goes through the formula neutralizer on the way out. Report
+ * content comes from parsed statements, receipt OCR and Gmail ingestion, so a
+ * merchant name beginning with `=` would otherwise be a live formula the
+ * moment the export is opened in Excel or Sheets. Quoting alone does not help:
+ * spreadsheet apps evaluate the unquoted value.
+ */
 function toGridRows(doc: ReportDocument): ReportCell[][] {
   const rows: ReportCell[][] = [[doc.title], [doc.subtitle], []];
 
@@ -96,7 +106,7 @@ function toGridRows(doc: ReportDocument): ReportCell[][] {
     rows.push(line);
   }
 
-  return rows;
+  return rows.map(row => row.map(neutralizeSpreadsheetFormulaCell) as ReportCell[]);
 }
 
 function writeExcel(doc: ReportDocument, filePath: string): void {

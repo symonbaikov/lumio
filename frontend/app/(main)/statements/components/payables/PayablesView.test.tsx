@@ -378,6 +378,37 @@ describe('PayablesView', () => {
     });
   });
 
+  it('uses receivable wording and illustration for the receive direction', async () => {
+    apiMocks.list.mockResolvedValueOnce({ data: [], total: 0, page: 1, limit: 20, totalPages: 1 });
+
+    const { PayablesView } = await import('./PayablesView');
+    const { container } = render(<PayablesView direction="receivable" />);
+
+    expect(await screen.findByText('No receivables found')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Receivables' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add receivable' })).toBeInTheDocument();
+    expect(screen.getByText('To Receive')).toBeInTheDocument();
+    expect(screen.queryByText('Payables')).not.toBeInTheDocument();
+    expect(container.querySelector('img')?.getAttribute('src')).toContain('receivables.svg');
+    expect(apiMocks.getSummary).toHaveBeenCalledWith('receivable');
+  });
+
+  it('preselects the workspace currency when adding an entry', async () => {
+    workspaceState.currentWorkspace = { id: 'workspace-1', currency: 'usd' };
+
+    try {
+      const { PayablesView } = await import('./PayablesView');
+      render(<PayablesView />);
+
+      await screen.findByText('ACME LLC');
+      fireEvent.click(screen.getByRole('button', { name: 'Add payable' }));
+
+      expect(await screen.findByRole('button', { name: 'Currency' })).toHaveTextContent('USD');
+    } finally {
+      workspaceState.currentWorkspace = { id: 'workspace-1', currency: 'KZT' };
+    }
+  });
+
   it('does not offer mark paid for archived rows', async () => {
     apiMocks.list.mockResolvedValueOnce({
       data: [

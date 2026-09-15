@@ -128,7 +128,7 @@ Lumio is a full-stack financial operations platform built for teams that need to
 - **File Storage** — Document store with folders, tags, versioning, per-file permissions, and expiring shared links.
 - **In-App Notifications** — Real-time feed with per-category preferences and unread badge count.
 - **WebSocket Support** — Live updates via Socket.IO for notifications and import progress.
-- **Observability** — Prometheus metrics endpoint (`/api/v1/metrics`) with pre-built Grafana dashboards.
+- **Observability** — Prometheus-format metrics endpoint (`/api/v1/metrics`), structured JSON logs, and correlation IDs — point your own collector at it.
 - **Guided Onboarding** — 10 interactive feature tours in English, Russian, and Kazakh.
 
 </details>
@@ -209,7 +209,6 @@ Setting expectations upfront:
 | Layer | Technology |
 |---|---|
 | Containerization | Docker + Docker Compose |
-| Monitoring | Prometheus + Grafana |
 | CI/CD | GitHub Actions (CI, CD, CodeQL, dependency-review, Scorecard, release-please) |
 
 ---
@@ -310,13 +309,11 @@ lumio/
 ├── electron/                        # Electron desktop app wrapper
 ├── mcp-server/                      # Claude MCP server integration
 ├── website/                         # Marketing / documentation website
-├── observability/                   # Prometheus & Grafana configuration
 ├── scripts/                         # Shell helper scripts
 │   ├── generate-env.sh              # Generate .env files with random secrets
 │   └── generate-changelog.mjs       # Changelog generation script
 ├── docker-compose.yml               # Production Docker config (4 services)
 ├── docker-compose.dev.yml           # Development overrides with hot reload
-├── docker-compose.observability.yml # Prometheus + Grafana monitoring stack
 └── Makefile                         # All development commands
 ```
 
@@ -465,8 +462,7 @@ The development bootstrap supports and tests these paths:
 | Frontend | http://localhost:3000 | Next.js app |
 | Backend API | http://localhost:3001/api/v1 | All REST endpoints |
 | Swagger Docs | http://localhost:3001/api/docs | Interactive API explorer |
-| Prometheus | http://localhost:9090 | `make observability` |
-| Grafana | http://localhost:3002 | `make observability` · `admin` / `admin` |
+| Metrics | http://localhost:3001/api/v1/metrics | Prometheus-format metrics |
 
 ---
 
@@ -522,6 +518,29 @@ Configure S3-compatible storage, WebDAV storage, and IMAP inboxes from **Integra
 <summary><b>AI Auto-Categorization & Generic PDF Parsing</b></summary>
 
 Point Lumio at an OpenAI-compatible endpoint from **Integrations → AI-compatible endpoint**. `AI_API_KEY` may be omitted for local endpoints that do not require authentication. Env values remain supported only as server defaults.
+</details>
+
+<details>
+<summary><b>Receipt Maps (self-hosted tiles & geocoding)</b></summary>
+
+Receipt details end with a map of where the purchase was made. The point comes from, in order of trust: a pin the user placed, the merchant address printed on the receipt (geocoded), the GPS tag of the photo, or the phone's position when the receipt was shot with the in-app camera. Everything runs on your own infrastructure — no public map or geocoding service is called.
+
+```bash
+# Optional: the OSM extract for your region (defaults to Kazakhstan)
+echo 'MAP_PBF_URL=https://download.geofabrik.de/europe/switzerland-latest.osm.pbf' >> .env
+docker compose --profile maps --profile geocoder up -d
+```
+
+Then point the backend at the services and restart it:
+
+```bash
+TILESERVER_URL=http://tileserver:8080
+GEOCODER_URL=http://nominatim:8080
+```
+
+- `maps` builds vector tiles from the extract with Planetiler and renders four styles — OSM Bright, Positron, Dark Matter and Basic — through tileserver-gl. The backend proxies the tiles, so the tile server never needs a public port. Users switch styles on the map in one click; the choice is saved to their profile.
+- `geocoder` runs Nominatim on the same extract. The first import takes from minutes for a small country to hours for a large one, and needs several GB of disk.
+- Without these variables the feature stays off: receipts still get a photo or device point, and the map says tiles are not configured.
 </details>
 
 <details>
@@ -642,13 +661,6 @@ make format            # Format code with Biome
 make type-check        # TypeScript type checking
 make build             # Build backend + frontend for production
 make build-docker      # Build Docker images
-```
-
-**Monitoring**
-
-```bash
-make observability     # Start Prometheus + Grafana
-make observability-stop # Stop monitoring stack
 ```
 
 **Utilities**
@@ -813,13 +825,6 @@ npm test               # Run all tests with Vitest
 │  - 131 migrations     │   │  - Rate limiting      │
 │  - Full-text search   │   │  - Bull queues        │
 └───────────────────────┘   └───────────────────────┘
-
-                ┌─────────────────────────┐
-                │   Observability         │
-                │                         │
-                │  - Prometheus (metrics) │
-                │  - Grafana (dashboards) │
-                └─────────────────────────┘
 ```
 
 ### API Design
@@ -887,20 +892,18 @@ Upload request
 
 ## Monitoring & Observability
 
-```bash
-make observability        # Start Prometheus + Grafana
-make observability-stop   # Stop monitoring stack
-```
+Lumio exposes what a monitoring stack needs and leaves the stack itself to you —
+which collector, dashboards and alerting you run is a self-hosting decision.
 
-| Tool | URL | Purpose |
+| What | Where | Notes |
 |---|---|---|
-| Prometheus | http://localhost:9090 | Metrics collection and querying |
-| Grafana | http://localhost:3002 | Pre-configured dashboards, default `admin` / `admin` |
-| Metrics endpoint | http://localhost:3001/api/v1/metrics | Raw Prometheus metrics |
+| Metrics | `GET /api/v1/metrics` | Prometheus text format, via `prom-client` |
+| Logs | stdout | Structured JSON in production, with a correlation ID per request |
+| Health | `GET /api/v1/health`, `/health/ready` | For container health checks and orchestrators |
 
-Configuration files are in `observability/`:
-- `prometheus.yml` — scrape config (polls `/api/v1/metrics` every 15 s)
-- `grafana/` — Grafana datasource and dashboard JSON files
+Guard the metrics endpoint with `METRICS_AUTH_TOKEN` — it answers only to a
+matching `Authorization` header once that is set, and refuses all requests in
+production while it is not.
 
 ---
 
@@ -924,24 +927,12 @@ docker compose down
 
 Docker Compose runs four services: `postgres` (PostgreSQL 14-alpine), `redis` (Redis 7-alpine), `backend` (NestJS), and `frontend` (Next.js). Data is persisted in named volumes (`postgres_data`, `redis_data`, `backend_uploads`).
 
-### Railway
-
-Lumio can be deployed to [Railway](https://railway.app/) with automatic migrations on every deploy:
-
-1. Push to GitHub
-2. Connect Railway to your repository
-3. Set required environment variables (see [Configuration](#configuration))
-4. Deploys automatically on push to `main`
-
-See [RAILWAY.md](RAILWAY.md) for step-by-step instructions.
-
 ### Environment-Specific Compose Files
 
 | File | Purpose |
 |---|---|
 | `docker-compose.yml` | Production configuration |
 | `docker-compose.dev.yml` | Development overrides (hot reload, source mounts) |
-| `docker-compose.observability.yml` | Prometheus + Grafana monitoring stack |
 
 ---
 
@@ -953,7 +944,6 @@ See [RAILWAY.md](RAILWAY.md) for step-by-step instructions.
 | [SECURITY.md](SECURITY.md) | Security policy, vulnerability reporting, disclosure process |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community guidelines |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
-| [RAILWAY.md](RAILWAY.md) | Railway deployment step-by-step |
 | [docs/plans/](docs/plans/) | 35 feature design and implementation plan documents |
 | [docs/CI/](docs/CI/) | CI/CD pipeline documentation |
 | [docs/security/](docs/security/) | CVE allowlists and license exceptions |
@@ -1028,7 +1018,9 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 Built on great open-source foundations:
 
-[NestJS](https://nestjs.com/) · [Next.js](https://nextjs.org/) · [PostgreSQL](https://www.postgresql.org/) · [TypeORM](https://typeorm.io/) · [Redis](https://redis.io/) · [MUI](https://mui.com/) · [Emotion](https://emotion.sh/) · [TanStack Table](https://tanstack.com/table) · [ECharts](https://echarts.apache.org/) · [Tesseract.js](https://tesseract.projectnaptha.com/) · [Socket.IO](https://socket.io/) · [Intlayer](https://intlayer.org/) · [driver.js](https://driverjs.com/) · [Biome](https://biomejs.dev/) · and many more.
+[NestJS](https://nestjs.com/) · [Next.js](https://nextjs.org/) · [PostgreSQL](https://www.postgresql.org/) · [TypeORM](https://typeorm.io/) · [Redis](https://redis.io/) · [MUI](https://mui.com/) · [Emotion](https://emotion.sh/) · [TanStack Table](https://tanstack.com/table) · [ECharts](https://echarts.apache.org/) · [Recharts](https://recharts.org/) · [Tesseract.js](https://tesseract.projectnaptha.com/) · [Socket.IO](https://socket.io/) · [Intlayer](https://intlayer.org/) · [driver.js](https://driverjs.com/) · [Biome](https://biomejs.dev/) · and many more.
+
+The cash flow, net worth, category and ROI charts follow the chart design of [Aurum](https://github.com/ZProger/Aurum) by [ZProger](https://github.com/ZProger). They were reimplemented for Lumio; no Aurum source code is included (Aurum is licensed under PolyForm Noncommercial 1.0.0).
 
 ---
 

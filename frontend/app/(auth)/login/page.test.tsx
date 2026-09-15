@@ -85,8 +85,6 @@ describe('LoginPage locale persistence', () => {
   it('keeps the explicitly selected English locale after a successful login', async () => {
     apiPost.mockResolvedValue({
       data: {
-        access_token: 'token',
-        refresh_token: 'refresh',
         user: {
           id: 'user-1',
           email: 'user@example.com',
@@ -151,8 +149,6 @@ describe('LoginPage locale persistence', () => {
   it('redirects users with a workspace to the dashboard after login even without lastWorkspaceId', async () => {
     apiPost.mockResolvedValue({
       data: {
-        access_token: 'token',
-        refresh_token: 'refresh',
         user: {
           id: 'user-2',
           email: 'admin@example.com',

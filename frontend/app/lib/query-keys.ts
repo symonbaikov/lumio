@@ -11,8 +11,12 @@
 export const queryKeys = {
   dashboard: (o: { workspaceId: string | null; range: string; date: string | null }) =>
     ['dashboard', o.workspaceId, o.range, o.date] as const,
-  dashboardTrends: (o: { workspaceId: string | null; days: number }) =>
-    ['dashboard', 'trends', o.workspaceId, o.days] as const,
+  dashboardTrends: (o: { workspaceId: string | null; days: number; month: string | null }) =>
+    ['dashboard', 'trends', o.workspaceId, o.days, o.month] as const,
+  dashboardHealthHistory: (o: { workspaceId: string | null; year: number }) =>
+    ['dashboard', 'health-history', o.workspaceId, o.year] as const,
+  dashboardCashFlow: (o: { workspaceId: string | null; range: string; month: string | null }) =>
+    ['dashboard', 'cash-flow', o.workspaceId, o.range, o.month] as const,
   statements: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
     ['statements', o.workspaceId, o.params] as const,
   gmailReceipts: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
@@ -20,6 +24,8 @@ export const queryKeys = {
   transactions: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
     ['transactions', o.workspaceId, o.params] as const,
   categories: (workspaceId: string | null) => ['categories', workspaceId] as const,
+  // Tile-server configuration is the same in every workspace, hence no workspace segment.
+  mapStyles: () => ['map-styles'] as const,
   categoryUsage: (workspaceId: string | null) => ['categories', workspaceId, 'usage'] as const,
   goalsList: (workspaceId: string | null) => ['goals', 'list', workspaceId] as const,
   goalFlow: (o: { workspaceId: string | null; goalId: string; month: string }) =>
@@ -46,6 +52,15 @@ export const queryKeys = {
     ['storage-files', o.workspaceId, o.listMode] as const,
   taxReturn: (o: { workspaceId: string | null; periodStart: string; periodEnd: string }) =>
     ['tax-return', o.workspaceId, o.periodStart, o.periodEnd] as const,
+  // Prefix ['income-tax', workspaceId] invalidates every part of the declaration at once.
+  incomeTaxDisclaimer: (workspaceId: string | null) =>
+    ['income-tax', workspaceId, 'disclaimer'] as const,
+  incomeTaxProfile: (o: { workspaceId: string | null; taxYear: number }) =>
+    ['income-tax', o.workspaceId, 'profile', o.taxYear] as const,
+  incomeTaxMappings: (o: { workspaceId: string | null; taxYear: number }) =>
+    ['income-tax', o.workspaceId, 'mappings', o.taxYear] as const,
+  incomeTaxDraft: (o: { workspaceId: string | null; taxYear: number }) =>
+    ['income-tax', o.workspaceId, 'draft', o.taxYear] as const,
   subscriptions: (o: { workspaceId: string | null; status: string }) =>
     ['subscriptions', o.workspaceId, 'list', o.status] as const,
   subscriptionsSummary: (workspaceId: string | null) =>

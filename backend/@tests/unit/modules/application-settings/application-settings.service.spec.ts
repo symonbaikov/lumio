@@ -6,6 +6,9 @@ jest.mock('nodemailer', () => ({
 jest.mock('../../../../src/common/utils/egress-url.util', () => ({
   assertPublicEgressHost: jest.fn().mockResolvedValue(undefined),
   assertPublicEgressUrl: jest.fn().mockResolvedValue(new URL('https://example.com')),
+  // Egress policy is covered by common/utils/egress-url.util.spec.ts; here the
+  // provider hostnames are fixtures that no DNS server can resolve.
+  fetchPublicUrl: (url: string, init: RequestInit) => fetch(url, init),
 }));
 
 const mockCategorize = jest.fn();

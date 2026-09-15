@@ -141,6 +141,18 @@ const splitReferenceTokens = (tokens?: string[]) => {
   );
 };
 
+/**
+ * YYYY-MM-DD for a `date` column. Postgres returns loaded `date` values as
+ * strings although the entity types them as Date; only dates set in this
+ * request are Date objects.
+ */
+function dateOnly(value: Date | string | null): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  return (value instanceof Date ? value.toISOString() : String(value)).split('T')[0];
+}
+
 @Injectable()
 export class StatementsService {
   private readonly logger = new Logger(StatementsService.name);
@@ -882,7 +894,9 @@ export class StatementsService {
     }
 
     if (filters.statuses && filters.statuses.length > 0) {
-      qb.andWhere('LOWER(statement.status) IN (:...statuses)', {
+      // status is a Postgres enum: LOWER() has no enum overload, and comparing the
+      // enum to an unknown value errors, so compare as text.
+      qb.andWhere('CAST(statement.status AS text) IN (:...statuses)', {
         statuses: filters.statuses.map(status => status.toLowerCase()),
       });
     }
@@ -1203,12 +1217,8 @@ export class StatementsService {
           ...(statement.parsingDetails.metadataExtracted || {}),
           balanceStart: statement.balanceStart ?? undefined,
           balanceEnd: statement.balanceEnd ?? undefined,
-          dateFrom: statement.statementDateFrom
-            ? statement.statementDateFrom.toISOString().split('T')[0]
-            : undefined,
-          dateTo: statement.statementDateTo
-            ? statement.statementDateTo.toISOString().split('T')[0]
-            : undefined,
+          dateFrom: dateOnly(statement.statementDateFrom),
+          dateTo: dateOnly(statement.statementDateTo),
         },
       };
     }

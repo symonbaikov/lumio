@@ -5,15 +5,27 @@ import { useCallback, useState } from 'react';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
-import type { DashboardData, DashboardRange, DashboardTrends } from './useDashboard.types';
+import type {
+  DashboardCashFlowRange,
+  DashboardData,
+  DashboardHealthHistory,
+  DashboardMonthlyCashFlow,
+  DashboardRange,
+  DashboardTrends,
+} from './useDashboard.types';
 import { useWorkspaceId } from './useWorkspaceId';
 
 export type {
   DashboardActionItem,
   DashboardCashFlowPoint,
+  DashboardCashFlowRange,
   DashboardData,
   DashboardDataHealth,
   DashboardFinancialSnapshot,
+  DashboardHealthHistory,
+  DashboardHealthMonth,
+  DashboardMonthlyCashFlow,
+  DashboardMonthlyCashFlowPoint,
   DashboardNotification,
   DashboardRange,
   DashboardRecentTransaction,
@@ -51,12 +63,23 @@ interface DashboardState {
  * воркспейса A под названием воркспейса B (workspaceId — второй сегмент ключа).
  */
 
-export function useDashboardTrends(days = 30): TrendsState {
+/** `month` (YYYY-MM) wins over `days`: the dashboard asks for a calendar month. */
+export function useDashboardTrends({
+  days = 30,
+  month,
+}: {
+  days?: number;
+  month?: string;
+} = {}): TrendsState {
   const workspaceId = useWorkspaceId();
   const query = useQuery({
-    queryKey: queryKeys.dashboardTrends({ workspaceId, days }),
+    queryKey: queryKeys.dashboardTrends({ workspaceId, days, month: month ?? null }),
     queryFn: ({ signal }) =>
-      apiQuery<DashboardTrends>({ url: '/dashboard/trends', params: { days }, signal }),
+      apiQuery<DashboardTrends>({
+        url: '/dashboard/trends',
+        params: month ? { month } : { days },
+        signal,
+      }),
     placeholderData: (previous, previousQuery) =>
       previousQuery?.queryKey[2] === workspaceId ? previous : undefined,
   });
@@ -71,6 +94,61 @@ export function useDashboardTrends(days = 30): TrendsState {
     isFetching: query.isFetching,
     error: query.isError ? getApiErrorMessage(query.error, 'Failed to load trends') : null,
     refetch,
+  };
+}
+
+interface HealthHistoryState {
+  data: DashboardHealthHistory | undefined;
+  isPending: boolean;
+  error: string | null;
+}
+
+export function useDashboardHealthHistory(year: number): HealthHistoryState {
+  const workspaceId = useWorkspaceId();
+  const query = useQuery({
+    queryKey: queryKeys.dashboardHealthHistory({ workspaceId, year }),
+    queryFn: ({ signal }) =>
+      apiQuery<DashboardHealthHistory>({
+        url: '/dashboard/health-history',
+        params: { year },
+        signal,
+      }),
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[2] === workspaceId ? previous : undefined,
+  });
+
+  return {
+    data: query.data,
+    isPending: query.isPending,
+    error: query.isError ? getApiErrorMessage(query.error, 'Failed to load history') : null,
+  };
+}
+
+interface CashFlowState {
+  data: DashboardMonthlyCashFlow | undefined;
+  isPending: boolean;
+  error: string | null;
+}
+
+/** `month` (YYYY-MM) is where every range ends; without it the backend uses the current month. */
+export function useDashboardCashFlow(range: DashboardCashFlowRange, month?: string): CashFlowState {
+  const workspaceId = useWorkspaceId();
+  const query = useQuery({
+    queryKey: queryKeys.dashboardCashFlow({ workspaceId, range, month: month ?? null }),
+    queryFn: ({ signal }) =>
+      apiQuery<DashboardMonthlyCashFlow>({
+        url: '/dashboard/cash-flow',
+        params: month ? { range, month } : { range },
+        signal,
+      }),
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[2] === workspaceId ? previous : undefined,
+  });
+
+  return {
+    data: query.data,
+    isPending: query.isPending,
+    error: query.isError ? getApiErrorMessage(query.error, 'Failed to load cash flow') : null,
   };
 }
 

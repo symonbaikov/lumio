@@ -115,7 +115,9 @@ export class CrossStatementDeduplicationService {
         });
 
         processedIds.add(master.id);
-        duplicates.forEach(d => processedIds.add(d.transaction.id));
+        for (const d of duplicates) {
+          processedIds.add(d.transaction.id);
+        }
       }
     }
 

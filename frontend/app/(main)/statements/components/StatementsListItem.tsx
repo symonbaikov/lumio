@@ -369,7 +369,7 @@ export function StatementsListItem({
 
   const updatePreviewPosition = useCallback(() => {
     const trigger = thumbnailButtonRef.current;
-    if (!(trigger && trigger.isConnected) || typeof window === 'undefined') {
+    if (!trigger?.isConnected || typeof window === 'undefined') {
       closePreview();
       return;
     }
@@ -463,12 +463,12 @@ export function StatementsListItem({
     resolvedTheme === 'dark'
       ? {
           borderColor: duplicateStyle.lineColor,
-          background: `color-mix(in srgb, ${duplicateStyle.lineColor} 10%, ${c.surface})`,
+          background: `color-mix(in srgb, ${duplicateStyle.lineColor} 10%, var(--content-row-bg, ${c.surface}))`,
           boxShadow: `inset 0 0 0 1px ${duplicateStyle.rowBorderColor}`,
         }
       : {
           borderColor: duplicateStyle.rowBorderColor,
-          backgroundColor: c.surface,
+          backgroundColor: `var(--content-row-bg, ${c.surface})`,
           boxShadow: `inset 0 0 0 1px ${duplicateStyle.rowBorderColor}`,
         };
   const handleView = () => {
@@ -807,6 +807,7 @@ export function StatementsListItem({
         : {};
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: whole-row click is a shortcut for the buttons rendered inside this row. Giving the row role=button would nest interactive elements inside an interactive role, which is worse than the current state.
     <div
       data-tour-id={dataTourId}
       className={`lumio-stmt-list-item${selected ? ' lumio-stmt-list-item--selected' : ''}${hasError && !isPossibleDuplicate ? ' lumio-stmt-list-item--error' : ''}`}

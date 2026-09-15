@@ -50,7 +50,6 @@ const sidebars: SidebarsConfig = {
       label: 'Deployment',
       items: [
         'deployment/docker',
-        'deployment/railway',
         'deployment/ci-cd',
       ],
     },

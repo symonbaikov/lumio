@@ -7,6 +7,7 @@ import { Spinner } from '@/app/components/ui/spinner';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
+import { hasSessionCookie } from '@/app/lib/csrf';
 import { safeInternalPath } from '@/app/lib/safe-path';
 import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
@@ -67,8 +68,7 @@ export default function AcceptInvitePage() {
   }, [token, t.errors.loadFailed.value]);
 
   useEffect(() => {
-    const accessToken = localStorage.getItem('access_token');
-    if (!accessToken) return;
+    if (!hasSessionCookie()) return;
 
     setAuthLoading(true);
     apiClient
@@ -77,8 +77,6 @@ export default function AcceptInvitePage() {
         setUser(response.data);
       })
       .catch(() => {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         setUser(null);
       })
@@ -142,9 +140,10 @@ export default function AcceptInvitePage() {
       });
   };
 
-  const handleLoginAsAnother = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+  const handleLoginAsAnother = async () => {
+    // Session cookies are httpOnly — only the server can drop them, so a local
+    // cleanup is no longer enough to switch accounts.
+    await apiClient.post('/auth/logout').catch(() => undefined);
     localStorage.removeItem('user');
     router.push(loginHref);
   };
@@ -223,7 +222,7 @@ export default function AcceptInvitePage() {
                   <Alert severity="warning" sx={{ flex: 1 }}>
                     {t.messages.wrongAccount.value} <b>{invitation.email}</b>
                   </Alert>
-                  <Button variant="contained" onClick={handleLoginAsAnother}>
+                  <Button variant="contained" onClick={() => void handleLoginAsAnother()}>
                     {t.actions.loginAnother}
                   </Button>
                 </>

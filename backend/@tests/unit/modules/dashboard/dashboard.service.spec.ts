@@ -1,4 +1,4 @@
-import { In, IsNull } from 'typeorm';
+import { Between, In, IsNull } from 'typeorm';
 import { ReceiptStatus } from '../../../../src/entities/receipt.entity';
 import { BankName, StatementStatus } from '../../../../src/entities/statement.entity';
 import { TransactionType } from '../../../../src/entities/transaction.entity';
@@ -1130,6 +1130,327 @@ describe('DashboardService', () => {
 
       expect(result.horizonDays).toBe(365);
       expect(result.days).toHaveLength(365);
+    });
+  });
+
+  describe('getMonthlyCashFlow', () => {
+    beforeEach(() => {
+      jest.useFakeTimers({ now: new Date('2026-03-15T12:00:00'), doNotFake: ['nextTick'] });
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('zero-fills every month of the 12m window and converts currencies', async () => {
+      const qb = createQueryBuilderMock([
+        { date: '2026-01', currency: 'KZT', income: '1000', expense: '400' },
+        { date: '2026-01', currency: 'USD', income: '10', expense: '0' },
+        { date: '2025-06', currency: 'KZT', income: '0', expense: '250.5' },
+      ]);
+      transactionRepo.createQueryBuilder.mockReturnValue(qb);
+      exchangeRatesService.getRate.mockResolvedValue(500);
+
+      const result = await service.getMonthlyCashFlow('ws-1', '12m');
+
+      expect(qb.where).toHaveBeenCalledWith('s.workspaceId = :workspaceId', {
+        workspaceId: 'ws-1',
+      });
+      expect(result.currency).toBe('KZT');
+      expect(result.since).toBe('2025-04-01');
+      expect(result.endDate).toBe('2026-03-31');
+      expect(result.points).toHaveLength(12);
+      expect(result.points[0]).toEqual({ month: '2025-04', income: 0, expense: 0, net: 0 });
+      expect(result.points.find(point => point.month === '2026-01')).toEqual({
+        month: '2026-01',
+        income: 6000,
+        expense: 400,
+        net: 5600,
+      });
+      expect(result.totals).toEqual({ income: 6000, expense: 650.5, net: 5349.5 });
+    });
+
+    it('ends the window at a picked month instead of the current one', async () => {
+      const qb = createQueryBuilderMock([
+        { date: '2025-06', currency: 'KZT', income: '300', expense: '100' },
+      ]);
+      transactionRepo.createQueryBuilder.mockReturnValue(qb);
+
+      const result = await service.getMonthlyCashFlow('ws-1', '12m', '2025-06');
+
+      expect(result.since).toBe('2024-07-01');
+      expect(result.endDate).toBe('2025-06-30');
+      expect(result.points).toHaveLength(12);
+      expect(result.points.at(-1)).toEqual({
+        month: '2025-06',
+        income: 300,
+        expense: 100,
+        net: 200,
+      });
+    });
+
+    it('returns no points when the window has no transactions', async () => {
+      transactionRepo.createQueryBuilder.mockReturnValue(createQueryBuilderMock([]));
+
+      const result = await service.getMonthlyCashFlow('ws-1', 'this_year');
+
+      expect(result.points).toEqual([]);
+      expect(result.totals).toEqual({ income: 0, expense: 0, net: 0 });
+    });
+
+    it('starts all-time at the earliest transaction month', async () => {
+      const earliestQb = createQueryBuilderMock({ earliestTransactionDate: '2025-11-20' });
+      const sumsQb = createQueryBuilderMock([
+        { date: '2025-12', currency: 'KZT', income: '100', expense: '0' },
+      ]);
+      transactionRepo.createQueryBuilder.mockReturnValueOnce(earliestQb).mockReturnValue(sumsQb);
+
+      const result = await service.getMonthlyCashFlow('ws-1', 'all');
+
+      expect(result.points.map(point => point.month)).toEqual([
+        '2025-11',
+        '2025-12',
+        '2026-01',
+        '2026-02',
+        '2026-03',
+      ]);
+    });
+
+    it('returns an empty response for all-time when the workspace has no transactions (no sums query)', async () => {
+      const earliestQb = createQueryBuilderMock({ earliestTransactionDate: null });
+      transactionRepo.createQueryBuilder.mockReturnValue(earliestQb);
+
+      const result = await service.getMonthlyCashFlow('ws-1', 'all');
+
+      expect(result).toEqual({
+        range: 'all',
+        currency: 'KZT',
+        since: null,
+        endDate: null,
+        totals: { income: 0, expense: 0, net: 0 },
+        points: [],
+      });
+      expect(earliestQb.getRawMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('month-scoped queues', () => {
+    const july = {
+      since: new Date(2026, 6, 1),
+      endDate: new Date(2026, 6, 31, 23, 59, 59, 999),
+    };
+
+    const primeDataHealth = () => {
+      const uncategorizedTxQb = createQueryBuilderMock(3);
+      const unapprovedQb = createQueryBuilderMock({ unapprovedCash: '10' });
+      const receiptQb = createQueryBuilderMock(1);
+      const warningsQb = createQueryBuilderMock(2);
+      transactionRepo.createQueryBuilder
+        .mockReturnValueOnce(uncategorizedTxQb)
+        .mockReturnValueOnce(unapprovedQb);
+      receiptRepo.createQueryBuilder.mockReturnValue(receiptQb);
+      statementRepo.createQueryBuilder.mockReturnValue(warningsQb);
+      statementRepo.count.mockResolvedValue(0);
+      receiptRepo.count.mockResolvedValue(0);
+      statementRepo.findOne.mockResolvedValue({ createdAt: new Date('2026-08-02T10:00:00Z') });
+      return { uncategorizedTxQb, unapprovedQb, receiptQb, warningsQb };
+    };
+
+    it('getDataHealth counts only items dated inside the picked month', async () => {
+      const { uncategorizedTxQb, unapprovedQb, receiptQb, warningsQb } = primeDataHealth();
+      const inJuly = [
+        'BETWEEN :windowSince AND :windowEnd',
+        { windowSince: july.since, windowEnd: july.endDate },
+      ];
+
+      const result = await (service as any).getDataHealth('ws-1', july);
+
+      expect(statementRepo.count).toHaveBeenCalledWith({
+        where: expect.objectContaining({ createdAt: Between(july.since, july.endDate) }),
+      });
+      expect(receiptRepo.count).toHaveBeenCalledWith({
+        where: expect.objectContaining({ receivedAt: Between(july.since, july.endDate) }),
+      });
+      expect(uncategorizedTxQb.andWhere).toHaveBeenCalledWith(`t.transactionDate ${inJuly[0]}`, inJuly[1]);
+      expect(unapprovedQb.andWhere).toHaveBeenCalledWith(`t.transactionDate ${inJuly[0]}`, inJuly[1]);
+      expect(receiptQb.andWhere).toHaveBeenCalledWith(`r.receivedAt ${inJuly[0]}`, inJuly[1]);
+      expect(warningsQb.andWhere).toHaveBeenCalledWith(`s.createdAt ${inJuly[0]}`, inJuly[1]);
+      // The "never uploaded" empty state must not depend on the picked month.
+      expect(statementRepo.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { workspaceId: 'ws-1', deletedAt: IsNull() } }),
+      );
+      expect(result).toMatchObject({ uncategorizedTransactions: 4, parsingWarnings: 2 });
+    });
+
+    it('getDataHealth without a window keeps live all-time totals', async () => {
+      const { uncategorizedTxQb } = primeDataHealth();
+
+      await (service as any).getDataHealth('ws-1', null);
+
+      expect(statementRepo.count).not.toHaveBeenCalledWith({
+        where: expect.objectContaining({ createdAt: expect.anything() }),
+      });
+      expect(uncategorizedTxQb.andWhere).not.toHaveBeenCalledWith(
+        expect.stringContaining('BETWEEN :windowSince'),
+        expect.anything(),
+      );
+    });
+
+    it('getDashboard scopes queues to the month only in month mode', async () => {
+      jest.spyOn(service as any, 'getSnapshot').mockResolvedValue({ income30d: 1, expense30d: 0 });
+      jest.spyOn(service as any, 'getMemberRole').mockResolvedValue('member');
+      jest.spyOn(service as any, 'getCashFlow').mockResolvedValue([]);
+      jest.spyOn(service as any, 'getTopMerchants').mockResolvedValue([]);
+      jest.spyOn(service as any, 'getTopCategories').mockResolvedValue([]);
+      jest.spyOn(service as any, 'getRecentTransactions').mockResolvedValue([]);
+      const actions = jest.spyOn(service as any, 'getActions').mockResolvedValue([]);
+      const health = jest.spyOn(service as any, 'getDataHealth').mockResolvedValue({});
+
+      await service.getDashboard('user-1', 'ws-1', 'month', '2026-07-01');
+      const expected = createExpectedMonthWindow('2026-07-01T00:00:00');
+      expect(actions).toHaveBeenLastCalledWith('user-1', 'ws-1', expected);
+      expect(health).toHaveBeenLastCalledWith('ws-1', expected);
+
+      await service.getDashboard('user-1', 'ws-1', '30d', '2026-07-15');
+      expect(actions).toHaveBeenLastCalledWith('user-1', 'ws-1', null);
+      expect(health).toHaveBeenLastCalledWith('ws-1', null);
+    });
+  });
+
+  describe('getTrends for a picked month', () => {
+    const trendRows = {
+      dailyRows: [{ date: '2026-02-10', income: '100', expense: '40' }],
+      categoryRows: [{ name: 'Utilities', amount: '40', count: '1' }],
+      counterpartyRows: [],
+      sourceRows: { income: '100', expense: '40', rows: '2' },
+    };
+
+    beforeEach(() => {
+      jest.useFakeTimers({ now: new Date('2026-03-19T12:00:00'), doNotFake: ['nextTick'] });
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('uses the whole past month, never auto-shifts and has no forecast', async () => {
+      const trendData = jest.spyOn(service as any, 'getTrendData').mockResolvedValue(trendRows);
+      const forecast = jest.spyOn(service as any, 'computeForecast');
+      const latest = jest.spyOn(service as any, 'getLatestTransactionDate');
+
+      const result = await service.getTrends('ws-1', 30, '2026-02');
+
+      expect(trendData).toHaveBeenCalledWith(
+        'ws-1',
+        new Date(2026, 1, 1),
+        new Date(2026, 1, 28, 23, 59, 59, 999),
+        28,
+      );
+      expect(result.dailyTrend).toHaveLength(28);
+      expect(result.dailyTrend[9]).toEqual({ date: '2026-02-10', income: 100, expense: 40 });
+      expect(result.forecast).toEqual([]);
+      expect(result.effectiveSince).toBeUndefined();
+      expect(forecast).not.toHaveBeenCalled();
+      expect(latest).not.toHaveBeenCalled();
+    });
+
+    it('stops the current month at today and forecasts ahead', async () => {
+      const trendData = jest.spyOn(service as any, 'getTrendData').mockResolvedValue({
+        ...trendRows,
+        dailyRows: [{ date: '2026-03-02', income: '100', expense: '40' }],
+      });
+      jest
+        .spyOn(service as any, 'computeForecast')
+        .mockResolvedValue([{ date: '2026-03-20', income: 1, expense: 1 }]);
+
+      const result = await service.getTrends('ws-1', 30, '2026-03');
+
+      expect(trendData).toHaveBeenCalledWith(
+        'ws-1',
+        new Date(2026, 2, 1),
+        new Date(2026, 2, 19, 23, 59, 59, 999),
+        31,
+      );
+      expect(result.dailyTrend).toHaveLength(19);
+      expect(result.forecast).toEqual([{ date: '2026-03-20', income: 1, expense: 1 }]);
+    });
+  });
+
+  describe('getHealthHistory', () => {
+    beforeEach(() => {
+      jest.useFakeTimers({ now: new Date('2026-03-15T12:00:00'), doNotFake: ['nextTick'] });
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('zero-fills January to the current month and folds every queue into its month', async () => {
+      transactionRepo.createQueryBuilder.mockReturnValueOnce(
+        createQueryBuilderMock([{ month: '2026-02', total: '10', uncategorized: '3' }]),
+      );
+      receiptRepo.createQueryBuilder
+        .mockReturnValueOnce(createQueryBuilderMock([{ month: '2026-02', count: '1' }]))
+        .mockReturnValueOnce(createQueryBuilderMock([{ month: '2026-03', count: '2' }]));
+      statementRepo.createQueryBuilder
+        .mockReturnValueOnce(
+          createQueryBuilderMock([
+            { month: '2026-01', status: StatementStatus.ERROR, count: '1' },
+            { month: '2026-01', status: StatementStatus.PARSED, count: '2' },
+            { month: '2026-02', status: StatementStatus.UPLOADED, count: '1' },
+            { month: '2026-02', status: StatementStatus.COMPLETED, count: '5' },
+          ]),
+        )
+        .mockReturnValueOnce(createQueryBuilderMock([{ month: '2026-01', count: '1' }]));
+      payableRepo.createQueryBuilder.mockReturnValueOnce(
+        createQueryBuilderMock([
+          { month: '2026-03', count: '4' },
+          { month: '2026-04', count: '9' },
+        ]),
+      );
+
+      const result = await service.getHealthHistory('ws-1', 2026);
+
+      const zero = {
+        transactions: 0,
+        uncategorized: 0,
+        statementsUploaded: 0,
+        statementErrors: 0,
+        statementsPendingReview: 0,
+        statementsPendingSubmit: 0,
+        parsingWarnings: 0,
+        receiptsPendingReview: 0,
+        overduePayments: 0,
+      };
+      expect(result).toEqual({
+        year: 2026,
+        months: [
+          {
+            ...zero,
+            month: '2026-01',
+            statementsUploaded: 3,
+            statementErrors: 1,
+            statementsPendingReview: 2,
+            parsingWarnings: 1,
+          },
+          {
+            ...zero,
+            month: '2026-02',
+            transactions: 10,
+            uncategorized: 4,
+            statementsUploaded: 6,
+            statementsPendingSubmit: 1,
+          },
+          { ...zero, month: '2026-03', receiptsPendingReview: 2, overduePayments: 4 },
+        ],
+      });
+    });
+
+    it('returns no months for a future year without querying', async () => {
+      const result = await service.getHealthHistory('ws-1', 2027);
+
+      expect(result).toEqual({ year: 2027, months: [] });
+      expect(transactionRepo.createQueryBuilder).not.toHaveBeenCalled();
     });
   });
 });

@@ -610,11 +610,11 @@ export class BankProfileService {
       errors.push('Profile name is required');
     }
 
-    if (!profile.country || profile.country.length !== 2) {
+    if (profile.country?.length !== 2) {
       errors.push('Valid country code is required');
     }
 
-    if (!profile.currency || profile.currency.length !== 3) {
+    if (profile.currency?.length !== 3) {
       errors.push('Valid currency code is required');
     }
 

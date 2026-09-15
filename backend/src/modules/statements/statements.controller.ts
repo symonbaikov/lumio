@@ -23,6 +23,7 @@ import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import { IdempotencyService } from '../../common/services/idempotency.service';
+import { toCaptureLocation } from '../../common/utils/capture-location.util';
 import { unlinkAll, validateFile, validateFiles } from '../../common/utils/file-validator.util';
 import { pipeFileStreamResponse } from '../../common/utils/stream-response.util';
 import { multerConfig } from '../../config/multer.config';
@@ -179,6 +180,7 @@ export class StatementsController {
       workspaceId,
       files,
       language: body?.language,
+      captureLocation: toCaptureLocation(body),
     });
 
     return { data };
@@ -212,11 +214,11 @@ export class StatementsController {
     returnUnwrappedSingle: boolean,
   ) {
     if (!files || files.length === 0) {
-      throw new Error('No files provided');
+      throw new BadRequestException('No files provided');
     }
 
     if (files.length > 2) {
-      throw new Error('Maximum 2 files allowed');
+      throw new BadRequestException('Maximum 2 files allowed');
     }
 
     // Check idempotency key if provided

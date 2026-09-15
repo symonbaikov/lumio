@@ -39,6 +39,41 @@ export const isAddressLike = (value: string): boolean => {
   return /,\s*[A-Z]{2}\b/.test(value) && /\b\d{5}(?:-\d{4})?\b/.test(value);
 };
 
+const MAX_MERCHANT_ADDRESS_LENGTH = 300;
+const MERCHANT_ADDRESS_SCAN_LINES = 12;
+
+// isAddressLike only knows US "ST 12345" lines, which CIS receipts never carry,
+// so street and city markers are matched explicitly. \b is ASCII-only in JS, hence
+// the \p{L} guards around Cyrillic words.
+const ADDRESS_KEYWORD_REGEX =
+  /(?:^|[^\p{L}])(?:адрес|address|г\.|город|ул\.|улица|пр\.|пр-т|просп\.|проспект|мкр\.?|микрорайон|д\.|дом|street|st\.|ave\.?|avenue|road|rd\.|blvd\.?)(?![\p{L}])/iu;
+const ADDRESS_LABEL_REGEX = /^(?:адрес|address)\s*:?\s*/iu;
+const NON_ADDRESS_LINE_REGEX =
+  /(?:^|[^\p{L}])(?:total|итого|tax|vat|ндс|date|дата|amount|сумма|тел|phone)(?![\p{L}])/iu;
+
+export const normalizeMerchantAddress = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const collapsed = value.replace(/\s+/g, ' ').trim();
+  return collapsed ? collapsed.slice(0, MAX_MERCHANT_ADDRESS_LENGTH) : undefined;
+};
+
+/** Store addresses are printed in the receipt header, so only the top lines are scanned. */
+export const extractMerchantAddress = (lines: string[]): string | undefined => {
+  for (const rawLine of lines.slice(0, MERCHANT_ADDRESS_SCAN_LINES)) {
+    const line = rawLine.trim();
+    const hasHouseNumber = /\d/.test(line);
+    const looksLikeAddress = ADDRESS_KEYWORD_REGEX.test(line) || isAddressLike(line);
+    if (hasHouseNumber && looksLikeAddress && !NON_ADDRESS_LINE_REGEX.test(line)) {
+      return normalizeMerchantAddress(line.replace(ADDRESS_LABEL_REGEX, ''));
+    }
+  }
+
+  return undefined;
+};
+
 export const isYearLikeAmount = (amount: number, hasExplicitCurrency: boolean): boolean => {
   if (hasExplicitCurrency) {
     return false;

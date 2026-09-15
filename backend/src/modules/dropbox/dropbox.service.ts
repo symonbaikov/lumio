@@ -4,6 +4,7 @@ import * as path from 'path';
 import type { Repository } from 'typeorm';
 import { CloudStorageBaseService } from '../../common/services/cloud-storage-base.service';
 import { FileStorageService } from '../../common/services/file-storage.service';
+import { requireSecret } from '../../common/utils/required-secret.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import {
   ActorType,
@@ -110,7 +111,11 @@ export class DropboxService extends CloudStorageBaseService<DropboxSettings> {
   }
 
   protected getStateSecret() {
-    return process.env.DROPBOX_STATE_SECRET || process.env.JWT_SECRET || 'lumio-state';
+    return requireSecret(
+      'DROPBOX_STATE_SECRET or JWT_SECRET',
+      process.env.DROPBOX_STATE_SECRET,
+      process.env.JWT_SECRET,
+    );
   }
 
   protected getProvider(): IntegrationProvider {

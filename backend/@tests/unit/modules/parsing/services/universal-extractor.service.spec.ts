@@ -59,6 +59,13 @@ describe('UniversalExtractorService', () => {
       expect(result.vendor).toBeTruthy();
     });
 
+    it('extracts the store address from a CIS receipt header', async () => {
+      const text = 'ТОО Magnum\nг. Алматы, ул. Абая 10\nМолоко 450\nИТОГО 450';
+      const result = await service.extractFromText(text);
+
+      expect(result.merchantAddress).toBe('г. Алматы, ул. Абая 10');
+    });
+
     it('populates field confidence', async () => {
       const text = 'Receipt\nStore XYZ\nTotal: $45.99\nTax: $3.50';
       const result = await service.extractFromText(text);
@@ -100,6 +107,28 @@ describe('UniversalExtractorService', () => {
           expect(result.validationIssues.length).toBeGreaterThan(0);
         }
       }
+    });
+  });
+
+  describe('mergeResults', () => {
+    const primary = {
+      documentType: 'receipt',
+      transactionType: 'expense',
+      merchantAddress: 'ул. Абая 10',
+      lineItems: [],
+      confidence: 0.5,
+      extractionMethod: 'regex',
+      fieldConfidence: {},
+      validationIssues: [],
+    };
+
+    it('prefers the AI merchant address over the line heuristic', () => {
+      const merge = (service as any).mergeResults.bind(service);
+
+      expect(merge(primary, { merchantAddress: 'г. Алматы, ул. Абая 10' }).merchantAddress).toBe(
+        'г. Алматы, ул. Абая 10',
+      );
+      expect(merge(primary, {}).merchantAddress).toBe('ул. Абая 10');
     });
   });
 });

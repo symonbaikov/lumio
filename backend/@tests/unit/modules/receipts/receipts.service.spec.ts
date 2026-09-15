@@ -158,6 +158,35 @@ describe('ReceiptsService', () => {
     expect(result).toMatchObject({ id: 'receipt-1' });
   });
 
+  it('keeps the device point sent with a scan in receipt metadata', async () => {
+    await service.createFromScan({
+      userId: 'user-1',
+      workspaceId: 'workspace-1',
+      file: {
+        originalname: 'scan.jpg',
+        filename: 'scan-stored.jpg',
+        path: '/tmp/scan-stored.jpg',
+        mimetype: 'image/jpeg',
+        size: 321,
+      } as Express.Multer.File,
+      captureLocation: { lat: 43.2383, lng: 76.9453, accuracyM: 12 },
+    });
+
+    expect(receiptRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          captureLocation: {
+            lat: 43.2383,
+            lng: 76.9453,
+            accuracyM: 12,
+            source: 'device',
+            capturedAt: expect.any(String),
+          },
+        }),
+      }),
+    );
+  });
+
   it('lists receipts by workspace with filters', async () => {
     const result = await service.findAll('workspace-1', {
       page: 2,

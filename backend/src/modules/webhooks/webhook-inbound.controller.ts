@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Logger,
   Post,
   Req,
   UploadedFile,
@@ -26,8 +25,6 @@ type MulterFile = Express.Multer.File;
 @Public()
 @UseGuards(WebhookTokenGuard)
 export class WebhookInboundController {
-  private readonly logger = new Logger(WebhookInboundController.name);
-
   constructor(private readonly inboundService: WebhookInboundService) {}
 
   @Post('statements')

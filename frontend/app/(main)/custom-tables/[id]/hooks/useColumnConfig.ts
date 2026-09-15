@@ -221,7 +221,9 @@ export function useColumnConfig({
   useEffect(() => {
     return () => {
       const timers = columnWidthTimersRef.current;
-      Object.values(timers).forEach(timerId => window.clearTimeout(timerId));
+      Object.values(timers).forEach(timerId => {
+        window.clearTimeout(timerId);
+      });
     };
   }, []);
 

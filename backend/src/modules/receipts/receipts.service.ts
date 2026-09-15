@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import type { CaptureLocation } from '../../common/utils/capture-location.util';
 import { normalizePagination } from '../../common/utils/pagination.util';
 import {
   Category,
@@ -28,6 +29,7 @@ type UploadParams = {
   workspaceId: string;
   files: Express.Multer.File[];
   language?: string;
+  captureLocation?: CaptureLocation;
 };
 
 type ScanParams = {
@@ -35,6 +37,7 @@ type ScanParams = {
   workspaceId: string;
   file: Express.Multer.File;
   language?: string;
+  captureLocation?: CaptureLocation;
 };
 
 const MANUAL_RECEIPT_WORKER_ID = 'manual-receipt-sync';
@@ -66,6 +69,7 @@ export class ReceiptsService {
       source: ReceiptSource.UPLOAD,
       file,
       language: params.language,
+      captureLocation: params.captureLocation,
     });
 
     const savedReceipt = await this.receiptRepository.save(receipt);
@@ -91,6 +95,7 @@ export class ReceiptsService {
       source: ReceiptSource.SCAN,
       file: params.file,
       language: params.language,
+      captureLocation: params.captureLocation,
     });
 
     const savedReceipt = await this.receiptRepository.save(receipt);
@@ -377,6 +382,7 @@ export class ReceiptsService {
     source: ReceiptSource;
     file: Express.Multer.File;
     language?: string;
+    captureLocation?: CaptureLocation;
   }): Receipt {
     return this.receiptRepository.create({
       userId: params.userId,
@@ -398,6 +404,15 @@ export class ReceiptsService {
             size: params.file.size,
           },
         ],
+        ...(params.captureLocation
+          ? {
+              captureLocation: {
+                ...params.captureLocation,
+                source: 'device' as const,
+                capturedAt: new Date().toISOString(),
+              },
+            }
+          : {}),
       },
       language: params.language && params.language !== 'auto' ? params.language : null,
       extractionMethod: null,

@@ -6,6 +6,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { isAnthropicBaseUrl } from '../../common/utils/ai-provider.util';
+import { fetchPublicUrl } from '../../common/utils/egress-url.util';
 import type { AiRuntimeSettings } from '../application-settings/application-settings.service';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
 
@@ -165,7 +166,7 @@ export class ChatCompletionService {
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+      const response = await fetchPublicUrl(`${baseUrl}/v1/chat/completions`, {
         method: 'POST',
         signal: controller.signal,
         headers: {

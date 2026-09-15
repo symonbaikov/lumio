@@ -8,6 +8,7 @@ import {
   User,
 } from '../../entities';
 import { decryptText, encryptText } from '../utils/encryption.util';
+import { secretsMatch } from '../utils/secret-compare.util';
 
 export type OAuthRepositoryLike<T> = {
   findOne: (args: unknown) => Promise<T | null>;
@@ -61,7 +62,7 @@ export abstract class OAuthIntegrationBaseService {
     }
 
     const expected = this.signState(encoded);
-    if (expected !== signature) {
+    if (!secretsMatch(signature, expected)) {
       throw new BadRequestException('Invalid OAuth state signature');
     }
 

@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { secretsMatch } from '../../../common/utils/secret-compare.util';
 
 @Injectable()
 export class GoogleSheetsWebhookGuard implements CanActivate {
@@ -19,7 +20,7 @@ export class GoogleSheetsWebhookGuard implements CanActivate {
       throw new UnauthorizedException('Sheets webhook token is not configured');
     }
 
-    if (!providedToken || providedToken !== expectedToken) {
+    if (!secretsMatch(providedToken, expectedToken)) {
       throw new UnauthorizedException('Invalid webhook token');
     }
 

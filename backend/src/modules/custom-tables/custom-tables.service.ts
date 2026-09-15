@@ -9,6 +9,7 @@ import { appError } from '../../common/errors/app-error';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { normalizeFilename } from '../../common/utils/filename.util';
 import { generateTransactionFingerprint } from '../../common/utils/fingerprint.util';
+import { neutralizeSpreadsheetFormulaCell } from '../../common/utils/spreadsheet-formula.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import {
   ActorType,
@@ -131,7 +132,7 @@ export class CustomTablesService {
     @InjectRepository(Transaction)
     private readonly transactionRepository: Repository<Transaction>,
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    userRepository: Repository<User>,
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly auditService: AuditService,
@@ -161,10 +162,6 @@ export class CustomTablesService {
     }
     const source = (config as { source?: unknown }).source;
     return typeof source === 'object' && source !== null ? (source as ColumnSourceConfig) : null;
-  }
-
-  private getJsonMeta(meta?: JsonObject | null): JsonObject | null {
-    return meta ?? null;
   }
 
   private getViewSettingsObject(table: CustomTable): JsonObject {
@@ -356,10 +353,14 @@ export class CustomTablesService {
   }
 
   private escapeCsvValue(value: string): string {
-    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-      return `"${value.replaceAll('"', '""')}"`;
+    // Neutralize before quoting: quoting keeps the CSV well-formed but does not
+    // stop Excel or Sheets from evaluating a cell that begins with = + - @, and
+    // this content originates from imported statements and receipts.
+    const safe = neutralizeSpreadsheetFormulaCell(value) as string;
+    if (safe.includes(',') || safe.includes('"') || safe.includes('\n')) {
+      return `"${safe.replaceAll('"', '""')}"`;
     }
-    return value;
+    return safe;
   }
 
   private buildConvertedCsv(rows: ConvertedTransactionInput[]): Buffer {
@@ -405,9 +406,8 @@ export class CustomTablesService {
     try {
       const qb = this.categoryRepository
         .createQueryBuilder('category')
-        .leftJoin('category.user', 'owner')
         .where('category.id = :categoryId', { categoryId })
-        .andWhere('owner.workspaceId = :workspaceId', { workspaceId });
+        .andWhere('category.workspaceId = :workspaceId', { workspaceId });
 
       category = await qb.getOne();
     } catch (error) {
@@ -428,7 +428,7 @@ export class CustomTablesService {
         .createQueryBuilder('table')
         .leftJoinAndSelect('table.user', 'owner')
         .where('table.id = :tableId', { tableId })
-        .andWhere('owner.workspaceId = :workspaceId', { workspaceId });
+        .andWhere('table.workspaceId = :workspaceId', { workspaceId });
 
       const table = await qb.getOne();
       if (!table) {
@@ -730,8 +730,7 @@ export class CustomTablesService {
       const qb = this.customTableRepository
         .createQueryBuilder('table')
         .leftJoinAndSelect('table.category', 'category')
-        .leftJoin('table.user', 'owner')
-        .where('owner.workspaceId = :workspaceId', { workspaceId })
+        .where('table.workspaceId = :workspaceId', { workspaceId })
         .orderBy('table.createdAt', 'DESC');
 
       return await qb.getMany();
@@ -819,8 +818,7 @@ export class CustomTablesService {
     try {
       const qb = this.dataEntryRepository
         .createQueryBuilder('entry')
-        .leftJoin('entry.user', 'owner')
-        .where('owner.workspaceId = :workspaceId', { workspaceId })
+        .where('entry.workspaceId = :workspaceId', { workspaceId })
         .orderBy('entry.date', 'ASC')
         .addOrderBy('entry.createdAt', 'ASC');
 
@@ -1082,9 +1080,8 @@ export class CustomTablesService {
     try {
       const qb = this.dataEntryCustomFieldRepository
         .createQueryBuilder('customField')
-        .leftJoin('customField.user', 'owner')
         .where('customField.id = :id', { id: dto.customTabId })
-        .andWhere('owner.workspaceId = :workspaceId', { workspaceId });
+        .andWhere('customField.workspaceId = :workspaceId', { workspaceId });
 
       customTab = await qb.getOne();
     } catch (error) {
@@ -1098,9 +1095,8 @@ export class CustomTablesService {
     try {
       const qb = this.dataEntryRepository
         .createQueryBuilder('entry')
-        .leftJoin('entry.user', 'owner')
         .where('entry.customTabId = :customTabId', { customTabId: customTab.id })
-        .andWhere('owner.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('entry.workspaceId = :workspaceId', { workspaceId })
         .orderBy('entry.date', 'ASC')
         .addOrderBy('entry.createdAt', 'ASC');
 
@@ -1297,9 +1293,8 @@ export class CustomTablesService {
       const qb = this.customTableRepository
         .createQueryBuilder('table')
         .leftJoinAndSelect('table.columns', 'columns')
-        .leftJoin('table.user', 'owner')
         .where('table.id = :tableId', { tableId })
-        .andWhere('owner.workspaceId = :workspaceId', { workspaceId });
+        .andWhere('table.workspaceId = :workspaceId', { workspaceId });
 
       table = await qb.getOne();
     } catch (error) {
@@ -1318,8 +1313,7 @@ export class CustomTablesService {
     try {
       const qb = this.dataEntryRepository
         .createQueryBuilder('entry')
-        .leftJoin('entry.user', 'owner')
-        .where('owner.workspaceId = :workspaceId', { workspaceId })
+        .where('entry.workspaceId = :workspaceId', { workspaceId })
         .orderBy('entry.date', 'ASC')
         .addOrderBy('entry.createdAt', 'ASC');
 
@@ -1456,9 +1450,8 @@ export class CustomTablesService {
     try {
       const qb = this.statementRepository
         .createQueryBuilder('statement')
-        .leftJoin('statement.user', 'owner')
         .where('statement.id IN (:...ids)', { ids: statementIds })
-        .andWhere('owner.workspaceId = :workspaceId', { workspaceId })
+        .andWhere('statement.workspaceId = :workspaceId', { workspaceId })
         .orderBy('statement.createdAt', 'DESC');
 
       statements = await qb.getMany();
@@ -2732,7 +2725,7 @@ export class CustomTablesService {
       return '';
     }
     if (Array.isArray(raw)) {
-      return raw.map(v => String(v ?? '')).join(', ');
+      return neutralizeSpreadsheetFormulaCell(raw.map(v => String(v ?? '')).join(', '));
     }
     if (isNumericColumnType(columnType)) {
       const num = Number(raw);
@@ -2752,9 +2745,11 @@ export class CustomTablesService {
       return String(raw);
     }
     if (typeof raw === 'object') {
-      return JSON.stringify(raw);
+      return neutralizeSpreadsheetFormulaCell(JSON.stringify(raw));
     }
-    return String(raw);
+    // Numbers and booleans returned above stay typed; only free text can carry
+    // a leading formula character.
+    return neutralizeSpreadsheetFormulaCell(String(raw));
   }
 
   /**

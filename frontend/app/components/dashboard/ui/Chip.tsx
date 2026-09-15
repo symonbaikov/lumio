@@ -60,7 +60,7 @@ export function Chip(props: ChipProps): React.JSX.Element {
   }
   if (!(onClick || href)) {
     return (
-      <span className={className} aria-label={ariaLabel} title={title}>
+      <span className={className} title={title}>
         <ChipContent count={count}>{children}</ChipContent>
       </span>
     );

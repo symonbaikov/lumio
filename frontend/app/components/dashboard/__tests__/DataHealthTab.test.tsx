@@ -19,6 +19,24 @@ vi.mock('@/app/lib/user-format-store', () => ({
   formatStoredDateWithOptions: () => 'May 31, 2025',
 }));
 
+const historyProps = vi.hoisted(() => vi.fn<(props: Record<string, unknown>) => void>());
+
+vi.mock('../MonthlyHistoryCard', async () => {
+  const actual = await vi.importActual<typeof import('../MonthlyHistoryCard')>(
+    '../MonthlyHistoryCard',
+  );
+  return {
+    ...actual,
+    MonthlyHistoryCard: (props: Record<string, unknown>) => {
+      historyProps(props);
+      return <div data-testid="monthly-history" />;
+    },
+  };
+});
+
+const onSelectMonth = vi.fn();
+const displayMonth = new Date(2026, 6, 1);
+
 vi.mock('@/app/i18n', async () => {
   const { autoDictionary, value } = await import('./intlayer-mock');
   return {
@@ -49,10 +67,38 @@ vi.mock('@/app/i18n', async () => {
 });
 
 function renderTab(dataHealth: DataHealthTabData['dataHealth']): void {
-  render(<DataHealthTab data={{ dataHealth } as DataHealthTabData} formatAmount={v => `$${v}`} />);
+  render(
+    <DataHealthTab
+      data={{ dataHealth } as DataHealthTabData}
+      formatAmount={v => `$${v}`}
+      displayMonth={displayMonth}
+      onSelectMonth={onSelectMonth}
+    />,
+  );
 }
 
 describe('DataHealthTab', () => {
+  it('shows the by-month history for the picked month with the data-quality metrics', async () => {
+    const { DATA_HEALTH_HISTORY_METRICS } = await import('../MonthlyHistoryCard');
+    renderTab({
+      uncategorizedTransactions: 0,
+      statementsWithErrors: 0,
+      statementsPendingReview: 0,
+      statementsPendingSubmit: 0,
+      receiptsPendingReview: 0,
+      unapprovedCash: 0,
+      lastUploadDate: '2025-05-31T00:00:00.000Z',
+      parsingWarnings: 0,
+    });
+
+    expect(screen.getByTestId('monthly-history')).toBeInTheDocument();
+    expect(historyProps).toHaveBeenLastCalledWith({
+      displayMonth,
+      metrics: DATA_HEALTH_HISTORY_METRICS,
+      onSelectMonth,
+    });
+  });
+
   it('renders each metric as a linked KPI card with a severity tone', () => {
     renderTab({
       uncategorizedTransactions: 2,

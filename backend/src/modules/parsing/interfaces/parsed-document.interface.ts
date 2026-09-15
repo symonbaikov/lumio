@@ -19,6 +19,7 @@ export interface ParsedDocument {
   currency?: string;
   date?: Date;
   vendor?: string;
+  merchantAddress?: string;
   tax?: number;
   taxRate?: number;
   subtotal?: number;

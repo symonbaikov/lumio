@@ -57,7 +57,9 @@ export function useCamera() {
   }, []);
 
   const stopCamera = useCallback(() => {
-    stream?.getTracks().forEach(track => track.stop());
+    stream?.getTracks().forEach(track => {
+      track.stop();
+    });
     setStream(null);
   }, [stream]);
 

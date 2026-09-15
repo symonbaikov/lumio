@@ -83,3 +83,7 @@ graphify-out/*
 
 # Claude Code
 .claude/settings.local.json
+
+# SkillOpt-Sleep (staging, evidence logs with transcript excerpts)
+.skillopt-sleep/
+.skillopt-sleep-handoff/

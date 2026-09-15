@@ -607,13 +607,6 @@ export class ClassificationService {
     return [...dbRules, ...rules].sort((a, b) => b.priority - a.priority);
   }
 
-  private async getCategoryIdByName(
-    userId: string,
-    categoryName: string,
-  ): Promise<string | undefined> {
-    return this.ensureCategory(userId, categoryName);
-  }
-
   private async matchWorkspaceCategories(
     searchText: string,
     workspaceId: string,
@@ -918,7 +911,9 @@ export class ClassificationService {
     const words = text.split(/\s+/).filter(w => w.length >= 4 && !stopWords.has(w));
 
     const freq = new Map<string, number>();
-    words.forEach(w => freq.set(w, (freq.get(w) || 0) + 1));
+    for (const w of words) {
+      freq.set(w, (freq.get(w) || 0) + 1);
+    }
     const top = Array.from(freq.entries()).sort((a, b) => b[1] - a[1])[0];
     if (!top) {
       return '';

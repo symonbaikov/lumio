@@ -114,6 +114,7 @@ export function EditableHeader({
         width: '100%',
       }}
     >
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: double-click-to-edit grid cell. Making this keyboard-reachable needs roving-tabindex navigation across the whole table (role=grid/gridcell); a per-cell tabIndex would add a tab stop to every cell instead. */}
       <div
         onDoubleClick={() => !isSystemColumn && setIsEditing(true)}
         style={{
