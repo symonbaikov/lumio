@@ -371,7 +371,8 @@ const ENTRIES: Entry[] = [
           }
         : {},
     portal: 'OmaVero',
-    sourceUrl: 'https://www.vero.fi/yritykset-ja-yhteisot/verot-ja-maksut/liikkeen-tai-ammatinharjoittaja/',
+    sourceUrl:
+      'https://www.vero.fi/yritykset-ja-yhteisot/verot-ja-maksut/liikkeen-tai-ammatinharjoittaja/',
   },
   {
     countryCode: 'GR',
@@ -381,7 +382,8 @@ const ENTRIES: Entry[] = [
     deadlines: [{ kind: 'standard', date: '2026-07-24' }],
     // Ε3 comes prefilled from myDATA and can be changed; deemed filing was not verified.
     authorityPreparation: 'prepared_needs_confirmation',
-    forType: type => (type === 'employee' ? { formName: 'Ε1', authorityPreparation: 'prepared' } : {}),
+    forType: type =>
+      type === 'employee' ? { formName: 'Ε1', authorityPreparation: 'prepared' } : {},
     portal: null,
     sourceUrl: 'https://www.aade.gr/dilosi-forologias-eisodimatos-fp-e1-e2-e3',
   },

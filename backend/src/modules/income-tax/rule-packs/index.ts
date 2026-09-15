@@ -14,13 +14,7 @@ export { genericSummaryPack };
  * figures have been checked against the published form; everything else falls
  * back to the generic summary.
  */
-const COUNTRY_PACKS: RulePack[] = [
-  deEuerPack,
-  esEdsPack,
-  plPit36lPack,
-  plPit28Pack,
-  plPit36Pack,
-];
+const COUNTRY_PACKS: RulePack[] = [deEuerPack, esEdsPack, plPit36lPack, plPit28Pack, plPit36Pack];
 
 export function resolvePack(
   countryCode: string | null,
