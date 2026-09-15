@@ -27,7 +27,6 @@ describe('getDeviceLocation', () => {
   afterEach(() => {
     vi.useRealTimers();
     setGeolocation(undefined);
-    delete (window as { lumioDesktop?: unknown }).lumioDesktop;
   });
 
   it('resolves null when the browser has no geolocation API', async () => {
@@ -40,15 +39,6 @@ describe('getDeviceLocation', () => {
     const getCurrentPosition = vi.fn();
     setGeolocation(getCurrentPosition);
     setSecureContext(false);
-
-    await expect(getDeviceLocation()).resolves.toBeNull();
-    expect(getCurrentPosition).not.toHaveBeenCalled();
-  });
-
-  it('does not ask inside the desktop app', async () => {
-    const getCurrentPosition = vi.fn();
-    setGeolocation(getCurrentPosition);
-    (window as { lumioDesktop?: unknown }).lumioDesktop = { isDesktop: true };
 
     await expect(getDeviceLocation()).resolves.toBeNull();
     expect(getCurrentPosition).not.toHaveBeenCalled();
@@ -99,7 +89,6 @@ describe('requestLocationAccess', () => {
   afterEach(() => {
     vi.useRealTimers();
     setGeolocation(undefined);
-    delete (window as { lumioDesktop?: unknown }).lumioDesktop;
   });
 
   it('reports support only where a prompt can actually be shown', () => {
@@ -107,10 +96,6 @@ describe('requestLocationAccess', () => {
     expect(isDeviceLocationSupported()).toBe(true);
 
     setSecureContext(false);
-    expect(isDeviceLocationSupported()).toBe(false);
-
-    setSecureContext(true);
-    (window as { lumioDesktop?: unknown }).lumioDesktop = { isDesktop: true };
     expect(isDeviceLocationSupported()).toBe(false);
   });
 

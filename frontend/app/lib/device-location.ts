@@ -15,14 +15,10 @@ const ACCESS_PROMPT_TIMEOUT_MS = 30_000;
 const PERMISSION_DENIED = 1;
 
 /**
- * Browsers refuse location on insecure pages, and the Electron shell has no
- * location provider, so asking there would only stall.
+ * Browsers refuse location on insecure pages, so asking there would only stall.
  */
 export const isDeviceLocationSupported = (): boolean =>
-  typeof window !== 'undefined' &&
-  window.isSecureContext &&
-  Boolean(navigator.geolocation) &&
-  !(window as { lumioDesktop?: { isDesktop?: boolean } }).lumioDesktop?.isDesktop;
+  typeof window !== 'undefined' && window.isSecureContext && Boolean(navigator.geolocation);
 
 /**
  * Shows the browser's permission prompt. Call it from a click, so the prompt

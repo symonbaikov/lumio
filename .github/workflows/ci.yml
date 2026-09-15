@@ -409,7 +409,6 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             backend/package-lock.json
-            electron/package-lock.json
             frontend/package-lock.json
             website/package-lock.json
             mcp-server/package-lock.json
@@ -419,9 +418,6 @@ jobs:
 
       - name: Install backend deps (no scripts)
         run: npm ci --prefix backend --ignore-scripts
-
-      - name: Install electron deps (no scripts)
-        run: npm ci --prefix electron --ignore-scripts
 
       - name: Install frontend deps (no scripts)
         run: npm ci --prefix frontend --ignore-scripts
@@ -441,15 +437,11 @@ jobs:
         run: npm audit --audit-level=high --prefix frontend
 
       # Phase 1 of the Dependabot cleanup covers root/backend/frontend only.
-      # These three still carry known findings, so they report without failing
+      # These still carry known findings, so they report without failing
       # the build; flip continue-on-error off as each phase lands.
       - name: Root audit (high/critical)
         continue-on-error: true
         run: npm audit --audit-level=high
-
-      - name: Electron audit (high/critical)
-        continue-on-error: true
-        run: npm audit --audit-level=high --prefix electron
 
       - name: Website audit (high/critical)
         continue-on-error: true
@@ -464,9 +456,6 @@ jobs:
 
       - name: Backend license compliance
         run: npx license-checker@25.0.1 --excludePrivatePackages --onlyAllow "$ALLOWED_LICENSES" --start backend
-
-      - name: Electron license compliance
-        run: npx license-checker@25.0.1 --excludePackages lumio-desktop@1.0.0 --onlyAllow "$ALLOWED_LICENSES" --start electron
 
       - name: Frontend license compliance
         run: npx license-checker@25.0.1 --excludePrivatePackages --onlyAllow "$ALLOWED_LICENSES" --start frontend

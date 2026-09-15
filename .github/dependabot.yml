@@ -16,11 +16,6 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
   - package-ecosystem: "npm"
-    directory: "/electron"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-  - package-ecosystem: "npm"
     directory: "/website"
     schedule:
       interval: "weekly"
