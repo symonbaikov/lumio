@@ -36,7 +36,16 @@ export function AlertBanner() {
             border: '1px solid',
             borderColor: item.severity === 'critical' ? 'error.main' : 'warning.main',
             borderRadius: tokens.radius.sm,
-            bgcolor: item.severity === 'critical' ? 'error.light' : 'warning.light',
+            // In dark mode the palette's *.light shades are near-white, which
+            // washes out the light text — use the translucent soft tint instead.
+            bgcolor: theme =>
+              theme.palette.mode === 'dark'
+                ? item.severity === 'critical'
+                  ? tokens.dark.color.dangerSoft
+                  : tokens.dark.color.warningSoft
+                : item.severity === 'critical'
+                  ? 'error.light'
+                  : 'warning.light',
           }}
         >
           <AlertTriangle
