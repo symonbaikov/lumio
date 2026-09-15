@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "electron": "^35.1.2",
+    "electron": "^44.2.0",
     "electron-builder": "^25.1.8",
     "nodemon": "^3.1.9",
     "typescript": "^5.8.3"
