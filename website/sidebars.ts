@@ -21,6 +21,8 @@ const sidebars: SidebarsConfig = {
         'guides/workspaces-and-rbac',
         'guides/integrations',
         'guides/ai-categorization',
+        'guides/receipt-maps',
+        'guides/income-tax-declaration',
         'guides/observability',
       ],
     },

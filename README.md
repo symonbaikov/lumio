@@ -87,7 +87,9 @@ Lumio is a full-stack financial operations platform built for teams that need to
 - **Goals & Net Worth** — Savings goals with progress tracking, and net worth aggregated across accounts, wallets, and crypto holdings.
 - **Crypto Portfolio** — Crypto holdings with price and wallet sync, and transfer mapping into transactions.
 - **AI Chat & Semantic Search** — Ask questions about your data; embeddings-backed transaction search plus a global cross-entity search.
-- **Tax Engine** — Tax rates, rules, jurisdictions, thresholds, and tax return generation.
+- **Tax Engine** — VAT rates, rules, jurisdictions, thresholds, and VAT return generation.
+- **Income Tax Declaration** — Year-end draft for the self-employed, built only from the category → form-line mappings you confirm: Germany Anlage EÜR, Spain Modelo 100 (estimación directa simplificada), Poland PIT-36L / PIT-28 / PIT-36, and a generic income and expense summary everywhere else. Checks data completeness, converts currencies with the official source where one is verified (NBP for Poland, Banca d'Italia for Italy), shows filing deadlines and portals for 25 EU countries, and exports PDF or XLSX.
+- **Receipt Locations & Maps** — Every receipt can show where it was bought on a self-hosted map: a manual pin, the geocoded merchant address, the photo's GPS tag, or the device position.
 - **Backups** — Scheduled encrypted backups with export, import, and restore.
 - **Docker Ready** — One-command deployment with Docker Compose.
 
@@ -111,6 +113,7 @@ Lumio is a full-stack financial operations platform built for teams that need to
 ### Collaboration & Access Control
 
 - **Auth Sessions** — List and manage active login sessions per device. Revoke individual sessions or all at once.
+- **Account Security** — TOTP two-factor authentication with recovery codes, self-service password reset by email, and email changes that take effect only after the new address is confirmed.
 - **Workspace Invitations** — Email invitation flow with token-based acceptance.
 
 ### Finance & Reporting
@@ -129,7 +132,9 @@ Lumio is a full-stack financial operations platform built for teams that need to
 - **In-App Notifications** — Real-time feed with per-category preferences and unread badge count.
 - **WebSocket Support** — Live updates via Socket.IO for notifications and import progress.
 - **Observability** — Prometheus-format metrics endpoint (`/api/v1/metrics`), structured JSON logs, and correlation IDs — point your own collector at it.
-- **Guided Onboarding** — 10 interactive feature tours in English, Russian, and Kazakh.
+- **Guided Onboarding** — 9 interactive feature tours.
+- **Localization** — The UI ships in 21 languages via Intlayer; English is the default locale.
+- **Content Background** — A bundled or uploaded photo behind the app content, with adjustable dimming.
 
 </details>
 
@@ -141,7 +146,7 @@ Setting expectations upfront:
 
 - **Not a bank integration** — Lumio parses statement files you export from your bank. It does not connect to bank APIs or fetch transactions automatically.
 - **Not a full general ledger** — There is no double-entry bookkeeping, chart of accounts, or journal entry workflow.
-- **Not a filing service** — Lumio computes tax figures and generates tax return documents, but it does not submit anything to a tax authority on your behalf.
+- **Not a filing service or tax adviser** — Lumio computes tax figures and drafts VAT and income tax documents, but it does not submit anything to a tax authority on your behalf. An income tax draft is not tax advice — check it before you file.
 - **Not an invoicing tool** — There is no invoice creation, sending, or payment tracking.
 - **Not a replacement for accounting software** — Think of Lumio as the import and analysis layer that feeds your existing workflow, not a replacement for QuickBooks, Xero, or 1C.
 
@@ -173,12 +178,15 @@ Setting expectations upfront:
 | Language | TypeScript 5 (strict) |
 | Database | [PostgreSQL 14](https://www.postgresql.org/) via [TypeORM 0.3](https://typeorm.io/) |
 | Cache | [Redis 7](https://redis.io/) via `cache-manager` |
-| Auth | JWT (access 1 h / refresh 30 d), Passport.js, bcrypt |
-| File Processing | pdf-parse, pdf-lib, tesseract.js v5, sharp, xlsx |
+| Auth | JWT in HttpOnly cookies (access 30 min / refresh 30 d), double-submit CSRF, TOTP 2FA, Passport.js, bcrypt |
+| File Processing | pdfplumber (Python), pdf-parse, pdf-lib, tesseract.js v5, sharp, xlsx, exifr |
 | AI / LLM | OpenAI-compatible HTTP endpoint (Ollama, LocalAI, vLLM) |
 | Email | SMTP via nodemailer + React Email templates |
 | Real-time | Socket.IO 4 + @nestjs/websockets |
 | Scheduling | @nestjs/schedule (cron jobs for Telegram reports, backups, crypto sync) |
+| Queues | BullMQ on Redis (statement parsing) |
+| Hardening | helmet, @nestjs/throttler with Redis storage |
+| Maps (optional) | tileserver-gl + Nominatim, self-hosted and proxied by the backend |
 | Metrics | prom-client (Prometheus) |
 | Validation | class-validator + class-transformer (DTOs) |
 | API Docs | Swagger / OpenAPI at `/api/docs` |
@@ -192,16 +200,19 @@ Setting expectations upfront:
 | Runtime | React 19 |
 | Language | TypeScript 5 |
 | Styling | MUI v7 + Emotion |
-| Icons | Lucide React |
+| Icons | MUI Icons |
 | Tables | TanStack Table v8 + TanStack Virtual v3 |
-| Charts | ECharts v6 + echarts-for-react |
+| Charts | Recharts v3 (cash flow, net worth, categories, ROI) + ECharts v6 (goal Sankey, forecasts, statements) |
 | Drag & Drop | @dnd-kit/core + @dnd-kit/sortable |
-| HTTP | Axios v1 |
+| Data Fetching | TanStack Query v5 + Axios v1 (cookie credentials) |
 | Real-time | socket.io-client v4 |
-| i18n | Intlayer v7 + next-intlayer (English, Russian, Kazakh) |
+| i18n | Intlayer v7 + next-intlayer (21 locales) |
+| Maps | Leaflet 1.9 |
 | Onboarding | driver.js |
 | PDF Viewer | react-pdf v10 |
 | Animation | framer-motion v12 |
+| Compiler | React Compiler (babel-plugin-react-compiler) |
+| Linting | Biome + ESLint |
 | Tests | Vitest v4 |
 
 ### Infrastructure
@@ -209,7 +220,10 @@ Setting expectations upfront:
 | Layer | Technology |
 |---|---|
 | Containerization | Docker + Docker Compose |
-| CI/CD | GitHub Actions (CI, CD, CodeQL, dependency-review, Scorecard, release-please) |
+| CI/CD | GitHub Actions (CI, CD, CodeQL, dependency-review, Scorecard, release-please, docs, Electron build) |
+| Supply chain | Trivy scans, Conftest policies, cosign signatures, SPDX SBOM attestations |
+| Maps stack (optional) | Planetiler, tileserver-gl, Nominatim via Compose profiles |
+| Docs site | Docusaurus (`website/`) |
 
 ---
 
@@ -219,11 +233,11 @@ Setting expectations upfront:
 lumio/
 ├── backend/                         # NestJS API server
 │   ├── src/
-│   │   ├── modules/                 # 43 feature modules
+│   │   ├── modules/                 # 47 feature modules
 │   │   │   ├── api-keys/            # Programmatic API key management
 │   │   │   ├── application-settings/ # Runtime system configuration
-│   │   │   ├── auth/                # JWT auth, refresh tokens, session management
-│   │   │   ├── users/               # User CRUD, avatars, permission overrides
+│   │   │   ├── auth/                # Cookie sessions, CSRF, 2FA, password reset
+│   │   │   ├── users/               # User CRUD, avatars, backgrounds, email change, permissions
 │   │   │   ├── workspaces/          # Multi-tenant workspaces, RBAC, invitations
 │   │   │   ├── statements/          # Bank statement upload & lifecycle management
 │   │   │   ├── transactions/        # Transaction CRUD, search, deduplication
@@ -244,14 +258,18 @@ lumio/
 │   │   │   ├── custom-tables/       # User-defined data structures
 │   │   │   ├── data-entry/          # Manual expense/income entry
 │   │   │   ├── notifications/       # In-app notifications & preferences
+│   │   │   ├── notes/               # Notes on statements and receipts
 │   │   │   ├── insights/            # AI-generated financial insights
 │   │   │   ├── audit/               # Audit log with rollback
 │   │   │   ├── import/              # Import session tracking
 │   │   │   ├── branches/            # Branch reference data
 │   │   │   ├── wallets/             # Wallet reference data
-│   │   │   ├── tax/                 # Tax rates, rules, jurisdictions, tax returns
+│   │   │   ├── tax/                 # VAT rates, rules, jurisdictions, VAT returns
+│   │   │   ├── income-tax/          # Income tax declaration drafts, rule packs, FX sources
 │   │   │   ├── payables/            # Accounts payable workflow
-│   │   │   ├── receipts/            # Receipt management & browser
+│   │   │   ├── receipts/            # Receipt management, browser, locations
+│   │   │   ├── maps/                # Proxy to the self-hosted tile server
+│   │   │   ├── geocoding/           # Nominatim client for merchant addresses
 │   │   │   ├── subscriptions/       # Recurring billing detection & management
 │   │   │   ├── webhooks/            # Outbound event delivery to endpoints
 │   │   │   ├── open-protocol-integrations/ # S3, WebDAV, IMAP protocol handlers
@@ -263,15 +281,15 @@ lumio/
 │   │   │   ├── backups/             # Encrypted scheduled backups, export & restore
 │   │   │   ├── mailer/              # Transactional email delivery
 │   │   │   └── observability/       # Prometheus metrics endpoint
-│   │   ├── entities/                # 77 TypeORM entities
+│   │   ├── entities/                # 85 TypeORM entities
 │   │   ├── common/                  # Guards, decorators, interceptors, filters
 │   │   ├── config/                  # App configuration
-│   │   └── migrations/              # 131 database migrations (auto-applied on startup)
+│   │   └── migrations/              # 142 database migrations (auto-applied on startup)
 │   ├── scripts/                     # Admin, seed, parse debug, storage repair
 │   └── @tests/                      # Unit and E2E test suites
 ├── frontend/                        # Next.js application
 │   ├── app/
-│   │   ├── (auth)/                  # Login, register pages
+│   │   ├── (auth)/                  # Login, register, password reset, email verification
 │   │   ├── (onboarding)/            # Onboarding flow
 │   │   ├── (main)/                  # Protected app routes
 │   │   │   ├── dashboard/           # Dashboard
@@ -287,7 +305,8 @@ lumio/
 │   │   │   ├── ai-analysis/         # AI chat over your data
 │   │   │   ├── custom-tables/       # Custom table UI
 │   │   │   ├── workspaces/          # Workspace management
-│   │   │   └── supported-banks/     # Supported banks reference page
+│   │   │   ├── supported-banks/     # Supported banks reference page
+│   │   │   └── tax-declaration/     # Income tax declaration wizard
 │   │   ├── categories/              # Category management
 │   │   ├── chat/                    # AI chat UI
 │   │   ├── integrations/            # Integration hub (S3, WebDAV, IMAP, workbook import)
@@ -306,13 +325,15 @@ lumio/
 │   ├── CI/                          # CI/CD pipeline documentation
 │   ├── security/                    # CVE allowlists, license exceptions
 │   └── statements-examples/         # Sample bank statement files for testing
+├── infra/
+│   └── maps/                        # Tile server assets and config for the `maps` profile
 ├── electron/                        # Electron desktop app wrapper
 ├── mcp-server/                      # Claude MCP server integration
-├── website/                         # Marketing / documentation website
+├── website/                         # Docusaurus documentation site
 ├── scripts/                         # Shell helper scripts
 │   ├── generate-env.sh              # Generate .env files with random secrets
 │   └── generate-changelog.mjs       # Changelog generation script
-├── docker-compose.yml               # Production Docker config (4 services)
+├── docker-compose.yml               # Production Docker config (4 services + optional maps/geocoder)
 ├── docker-compose.dev.yml           # Development overrides with hot reload
 └── Makefile                         # All development commands
 ```
@@ -461,7 +482,7 @@ The development bootstrap supports and tests these paths:
 |---|---|---|
 | Frontend | http://localhost:3000 | Next.js app |
 | Backend API | http://localhost:3001/api/v1 | All REST endpoints |
-| Swagger Docs | http://localhost:3001/api/docs | Interactive API explorer |
+| Swagger Docs | http://localhost:3001/api/docs | Interactive API explorer (not served when `NODE_ENV=production`) |
 | Metrics | http://localhost:3001/api/v1/metrics | Prometheus-format metrics |
 
 ---
@@ -482,7 +503,7 @@ No manual environment setup is required for development. `npm run setup:dev` cre
 | `JWT_SECRET` | Generated local dev secret |
 | `JWT_REFRESH_SECRET` | Generated local dev secret |
 | `INTEGRATIONS_ENCRYPTION_KEY` | Generated local dev secret |
-| `JWT_EXPIRES_IN` | `30d` |
+| `JWT_EXPIRES_IN` | `30m` (code default; not written to env files) |
 | `JWT_REFRESH_EXPIRES_IN` | `30d` |
 
 To override backend values, edit `backend/.env`. Frontend overrides go in `frontend/.env.local`.
@@ -494,6 +515,7 @@ To override backend values, edit `backend/.env`. Frontend overrides go in `front
 | `DATABASE_URL` | PostgreSQL connection string |
 | `JWT_SECRET` | Secret for signing access tokens |
 | `JWT_REFRESH_SECRET` | Secret for signing refresh tokens |
+| `INTEGRATIONS_ENCRYPTION_KEY` | Key that encrypts integration credentials at rest |
 | `NEXT_PUBLIC_API_URL` | Backend API URL seen by the browser |
 
 Generate secure secrets with:
@@ -504,6 +526,22 @@ openssl rand -base64 32
 bash scripts/generate-env.sh
 ```
 
+### Sessions, CORS and Metrics
+
+Browsers authenticate with HttpOnly cookies, so the cookie and CORS settings have to match how you host Lumio:
+
+| Variable | Default | When to set it |
+|---|---|---|
+| `CORS_ORIGINS` | `FRONTEND_URL` | Comma-separated origins allowed to make credentialed requests. In production this is the whole allowlist. |
+| `AUTH_COOKIE_SAMESITE` | `lax` | `none` when the frontend and API sit on different registrable domains. It forces `Secure`, so HTTPS only. |
+| `AUTH_COOKIE_DOMAIN` | unset | Share the cookies across subdomains, e.g. `.example.com`. |
+| `JWT_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN` | `30m` / `30d` | Access and refresh token lifetimes; each cookie expires with its token. |
+| `PASSWORD_RESET_TOKEN_SECRET` | `JWT_SECRET` | A separate HMAC key for password reset tokens. |
+| `BCRYPT_ROUNDS` | `12` | Work factor for new password hashes (10–15). |
+| `METRICS_AUTH_TOKEN` | unset | Required to read `/api/v1/metrics` in production. |
+
+Scripts and other non-browser clients keep sending `Authorization: Bearer <token>` or `X-Api-Key: lum_…`; those requests are not subject to the CSRF check.
+
 ### Optional Integrations
 
 <details>
@@ -512,12 +550,14 @@ bash scripts/generate-env.sh
 Use open protocols and self-hostable services for file sync and receipt import.
 
 Configure S3-compatible storage, WebDAV storage, and IMAP inboxes from **Integrations**. Server env variables are only a temporary fallback for bootstrap or migration.
+
+Endpoints and hosts saved in the UI must resolve to public addresses: the egress guard rejects private and loopback hosts when the settings are saved and again on every connection, so a MinIO or Nextcloud reachable only on your LAN or Docker network cannot be configured there.
 </details>
 
 <details>
 <summary><b>AI Auto-Categorization & Generic PDF Parsing</b></summary>
 
-Point Lumio at an OpenAI-compatible endpoint from **Integrations → AI-compatible endpoint**. `AI_API_KEY` may be omitted for local endpoints that do not require authentication. Env values remain supported only as server defaults.
+Point Lumio at an OpenAI-compatible endpoint from **Integrations → AI-compatible endpoint**. Endpoints saved in the UI must resolve to a public address — the egress guard rejects private and loopback hosts. For a self-hosted model on your own network (Ollama on `localhost`, a LAN vLLM box), set `AI_BASE_URL` and `AI_MODEL` on the server instead; `AI_API_KEY` may be omitted when the endpoint needs no authentication.
 </details>
 
 <details>
@@ -558,7 +598,7 @@ Get a token from [@BotFather](https://t.me/botfather), then save the bot token i
 <details>
 <summary><b>Email (SMTP)</b></summary>
 
-Used for workspace invitation emails. Configure SMTP from **Integrations → SMTP email**. If neither UI settings nor env fallback are configured, invitation links are returned in the API response but no email is sent.
+Used for workspace invitations, password reset links (valid for 1 hour) and email change confirmations (valid for 24 hours). Configure SMTP from **Integrations → SMTP email**. Without SMTP, invitation links are returned in the API response but no email is sent, and password reset and email change cannot complete — their links travel only by email. An SMTP host saved in the UI must resolve to a public address; a relay on your private network goes in `SMTP_HOST` / `SMTP_FROM` on the server instead.
 </details>
 
 ---
@@ -655,8 +695,8 @@ make test-e2e          # End-to-end tests
 **Code Quality**
 
 ```bash
-make lint              # Run Biome linter with auto-fix
-make lint-check        # Check lint without auto-fix
+make lint              # Check lint: backend Biome, frontend Biome + ESLint (no auto-fix)
+make lint-check        # Same check; auto-fix with npm --prefix <app> run lint:fix
 make format            # Format code with Biome
 make type-check        # TypeScript type checking
 make build             # Build backend + frontend for production
@@ -677,7 +717,7 @@ make update            # Update npm dependencies
 
 ### Database Migrations
 
-Lumio uses TypeORM migrations exclusively (`synchronize: false`). Migrations run automatically on every startup unless `RUN_MIGRATIONS=false` is set. There are currently 131 migrations covering the entire schema history.
+Lumio uses TypeORM migrations exclusively (`synchronize: false`). Migrations run automatically on every startup unless `RUN_MIGRATIONS=false` is set. There are currently 142 migrations covering the entire schema history.
 
 ```bash
 # Apply all pending migrations (Docker)
@@ -785,6 +825,7 @@ npm test               # Run all tests with Vitest
 │  - React 19             │         │  - Workbook files           │
 │  - MUI + Emotion        │         │  - Telegram Bot             │
 │  - Real-time updates    │         │  - OpenAI-compatible AI     │
+│                         │         │  - tileserver-gl, Nominatim │
 └────────────┬────────────┘         └─────────────────────────────┘
              │
              │ REST API (/api/v1)
@@ -795,8 +836,8 @@ npm test               # Run all tests with Vitest
 │                                                                  │
 │  ┌─────────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │  Auth & RBAC    │  │   Parsing    │  │  Classification  │  │
-│  │  - JWT          │  │  - Kaspi     │  │  - AI Auto-Cat   │  │
-│  │  - Sessions     │  │  - Bereke    │  │  - ML Rules      │  │
+│  │  - JWT + CSRF   │  │  - Kaspi     │  │  - AI Auto-Cat   │  │
+│  │  - Sessions/2FA │  │  - Bereke    │  │  - ML Rules      │  │
 │  │  - Permissions  │  │  - CSV/XLSX  │  │  - Learning      │  │
 │  └─────────────────┘  │  - Generic   │  └──────────────────┘  │
 │                       │  - OCR       │                          │
@@ -811,9 +852,9 @@ npm test               # Run all tests with Vitest
 │  │  Audit Log      │                    │   Storage &      │  │
 │  │  - Events       │  ┌──────────────┐  │   Files          │  │
 │  │  - Rollback     │  │ Integrations │  │  - Versions      │  │
-│  └─────────────────┘  │ - Gmail      │  │  - Shared links  │  │
-│                       │ - Drive      │  └──────────────────┘  │
-│                       │ - Sheets     │                          │
+│  └─────────────────┘  │ - S3/WebDAV  │  │  - Shared links  │  │
+│                       │ - IMAP       │  └──────────────────┘  │
+│                       │ - Telegram   │                          │
 │                       └──────────────┘                          │
 └──────────┬────────────────────────────┬─────────────────────────┘
            │                            │
@@ -821,9 +862,9 @@ npm test               # Run all tests with Vitest
 ┌──────────▼────────────┐   ┌──────────▼────────────┐
 │   PostgreSQL 14       │   │     Redis 7           │
 │                       │   │                       │
-│  - 77 TypeORM entities│   │  - Session cache      │
-│  - 131 migrations     │   │  - Rate limiting      │
-│  - Full-text search   │   │  - Bull queues        │
+│  - 85 TypeORM entities│   │  - Cache              │
+│  - 142 migrations     │   │  - Rate limiting      │
+│  - Full-text search   │   │  - BullMQ queues      │
 └───────────────────────┘   └───────────────────────┘
 ```
 
@@ -831,13 +872,15 @@ npm test               # Run all tests with Vitest
 
 - All endpoints are prefixed `/api/v1`
 - Global `JwtAuthGuard` — use `@Public()` decorator to opt out for public endpoints
-- Global `ThrottlerGuard` — 100 req/hour unauthenticated, 500 req/min authenticated
+- Global `ThrottlerGuard` — 500 req/min per client, counted in Redis when `REDIS_URL` is set; auth routes are tighter (login, register and reset-password 5/min, forgot-password 3/min)
+- Global `CsrfGuard` — double-submit token (`csrf_token` cookie echoed in the `x-csrf-token` header) on cookie-authenticated writes; `@SkipCsrf()` exempts routes that start a session
+- `helmet` security headers and a CORS allowlist (`CORS_ORIGINS`)
 - `@RequirePermission()` + `PermissionsGuard` for fine-grained RBAC checks
 - `@Audit()` decorator on mutating operations for automatic audit-log recording
 - `@CurrentUser()` and `@WorkspaceId()` parameter decorators for clean controller code
 - Structured JSON logging with per-request correlation IDs
 - Global validation pipe with `class-validator` DTOs on all inputs
-- Max upload size: 10 MB · PDF parsing timeout: 30 s · Max parallel file uploads: 5
+- Max upload size: 10 MB · pdfplumber timeout: 60 s (`PDF_PARSE_TIMEOUT_MS`) · Up to 5 files per statement upload · 5 statements parsed concurrently (`STATEMENT_PARSING_CONCURRENCY`)
 
 ### Database
 
@@ -846,7 +889,7 @@ npm test               # Run all tests with Vitest
 - SHA-256 `fileHash` on statements for idempotent re-upload detection
 - `Idempotency-Key` header supported on upload endpoints (stored in `IdempotencyKey` entity)
 - Transaction fingerprinting for cross-statement duplicate detection
-- 77 TypeORM entities covering all domain objects (see `backend/src/entities/`)
+- 85 TypeORM entities covering all domain objects (see `backend/src/entities/`)
 
 ### Parsing Pipeline
 
@@ -854,12 +897,14 @@ npm test               # Run all tests with Vitest
 Upload request
   → SHA-256 hash check (idempotency)
   → ParserFactory (detects bank + file type)
-      ├── KaspiParser        (Kaspi Bank PDF)
       ├── BerekeNewParser    (Bereke Bank new format PDF)
       ├── BerekeOldParser    (Bereke Bank legacy PDF)
+      ├── KaspiParser        (Kaspi Bank PDF)
+      ├── HapoalimParser     (Bank Hapoalim / Isracard PDF)
+      ├── GenericPdfParser   (AI-assisted: OpenAI-compatible endpoint)
       ├── ExcelParser        (XLSX / XLS)
       ├── CsvParser          (CSV)
-      ├── GenericPdfParser   (AI-assisted: OpenAI-compatible endpoint)
+      ├── DocxParser         (DOCX tables)
       └── OCR Pipeline       (Tesseract.js for images)
   → ImportSession created (status: processing)
   → Transactions persisted
@@ -870,9 +915,14 @@ Upload request
 
 ### Security Model
 
-- JWT access tokens (1 h) + refresh tokens (30 d) stored per-device in `AuthSession`
+- Sessions live in HttpOnly cookies: access token (30 min) + refresh token (30 d), tracked per device in `AuthSession`; the login response body carries no token
 - Refresh token rotation on every use; old tokens invalidated
-- Bcrypt password hashing (12 rounds)
+- Double-submit CSRF protection for cookie-authenticated writes; header-authenticated clients (`Authorization`, `X-Api-Key`) are exempt
+- Optional TOTP two-factor authentication with recovery codes
+- Single-use password reset (1 h) and email change (24 h) tokens; the reset endpoint answers the same way for known and unknown addresses
+- Bcrypt password hashing (12 rounds by default, `BCRYPT_ROUNDS`)
+- helmet security headers, a CORS allowlist and Redis-backed rate limits
+- Outbound requests to user-supplied URLs go through an egress guard that blocks private and loopback addresses
 - RBAC enforced at controller level via guards — workspace roles enforced on every request
 - Audit log covers all mutating operations with rollback support for critical changes
 - CVE allowlists and license exceptions documented in `docs/security/`
@@ -927,6 +977,10 @@ docker compose down
 
 Docker Compose runs four services: `postgres` (PostgreSQL 14-alpine), `redis` (Redis 7-alpine), `backend` (NestJS), and `frontend` (Next.js). Data is persisted in named volumes (`postgres_data`, `redis_data`, `backend_uploads`).
 
+Two optional profiles add the self-hosted receipt maps: `maps` (`map-assets`, `map-tiles-init`, `tileserver`) and `geocoder` (`nominatim`). See **Receipt Maps** under [Optional Integrations](#optional-integrations).
+
+CD builds, scans, signs and publishes the images on version tags and stops there — where an instance runs is up to its operator.
+
 ### Environment-Specific Compose Files
 
 | File | Purpose |
@@ -944,6 +998,7 @@ Docker Compose runs four services: `postgres` (PostgreSQL 14-alpine), `redis` (R
 | [SECURITY.md](SECURITY.md) | Security policy, vulnerability reporting, disclosure process |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community guidelines |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
+| [website/docs/](website/docs/) | Documentation site: getting started, guides, architecture, API and deployment reference |
 | [docs/plans/](docs/plans/) | 35 feature design and implementation plan documents |
 | [docs/CI/](docs/CI/) | CI/CD pipeline documentation |
 | [docs/security/](docs/security/) | CVE allowlists and license exceptions |
@@ -963,7 +1018,7 @@ We welcome contributions from the community.
 - **Improve documentation** — fix typos, clarify guides, add examples
 - **Submit pull requests** — fix bugs, add features, write tests
 - **Add bank parsers** — support new banks by implementing the parser interface
-- **Translate** — help with English / Russian / Kazakh i18n content
+- **Translate** — improve any of the 21 UI locales (`*.content.ts` dictionaries)
 
 ### Development Workflow
 

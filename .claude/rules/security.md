@@ -6,9 +6,12 @@ paths:
 # Security & Privacy Standards
 
 ## 1. Authentication & Session Management
-- **JWT Storage**: Use `HttpOnly`, `Secure`, and `SameSite=Strict` cookies for storing access and refresh tokens. Never store sensitive tokens in `localStorage`.
-- **Token Rotation**: Implement refresh token rotation to detect and prevent token theft.
-- **Session Expiry**: Set reasonable expiration times for sessions (e.g., 15-30 minutes for access tokens).
+- **JWT Storage**: Store access and refresh tokens in `HttpOnly` cookies (`auth-cookies.ts`), `Secure` in production. Never return them in response bodies or store them in `localStorage`.
+- **SameSite**: The default is `Lax`, not `Strict` — OAuth callbacks come back as a cross-site top-level redirect, and `Strict` would drop the session on it. `AUTH_COOKIE_SAMESITE=none` is for split-domain HTTPS deployments. Don't "tighten" this to `Strict`.
+- **CSRF**: `CsrfGuard` is global. Cookie-authenticated `POST`/`PUT`/`PATCH`/`DELETE` must echo the `csrf_token` cookie in `x-csrf-token`; `Authorization`/`X-Api-Key` callers are exempt. Mark only session-establishing routes `@SkipCsrf()`.
+- **Token Rotation**: Refresh tokens rotate on every use.
+- **Session Expiry**: Access tokens default to 30 minutes, refresh tokens to 30 days.
+- **Secrets & Hashing**: Read secrets through `requireSecret` (no literal fallbacks); hash passwords through `hashPassword` (`BCRYPT_ROUNDS`).
 
 ## 2. Data Protection (PII)
 - **Encryption at Rest**: Sensitive data (bank details, personal names, keys) must be encrypted in the database using high-standard algorithms (AES-256).
@@ -21,6 +24,7 @@ paths:
 - **Tenant Isolation**: Every query must include a `workspaceId` or `ownerId` check to ensure the user cannot access data from other tenants.
 
 ## 4. API Security
-- **CORS**: Configure strict CORS policies, allowing only the designated frontend domain.
-- **Rate Limiting**: Implement rate limiting on sensitive endpoints (Login, Reset Password, Withdraw).
+- **CORS**: Only the `CORS_ORIGINS` allowlist (falling back to `FRONTEND_URL`) may make credentialed requests.
+- **Rate Limiting**: Add a tighter `@Throttle()` to sensitive endpoints (login, register, forgot/reset password, 2FA) on top of the global Redis-backed limit.
+- **Outbound Requests**: Fetch user-supplied URLs only through the egress guard (`egress-url.util.ts`).
 - **Security Headers**: Use `Helmet.js` to set `Content-Security-Policy`, `X-Frame-Options`, etc.

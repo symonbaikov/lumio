@@ -3,16 +3,20 @@ title: Introduction
 description: What Lumio is and who it helps
 ---
 
-Lumio is an open-source financial data platform for importing, processing, and analyzing bank statements. It
-combines a NestJS API, a Next.js web app, and a structured parsing pipeline so teams can turn messy exports into
-reliable, queryable financial data.
+Lumio is an open-source, self-hosted financial data platform for importing, processing, and analyzing bank
+statements. It combines a NestJS API, a Next.js web app, and a structured parsing pipeline so teams can turn messy
+exports into reliable, queryable financial data.
 
 ## What you can do with Lumio
 
-- Import statements from PDFs, CSV/XLSX exports, OCR scans, and Gmail receipts.
-- Normalize, deduplicate, and classify transactions with AI-assisted categorization.
+- Import statements from PDF, CSV, XLSX, DOCX, and image files, with OCR for scans and native parsers for Kaspi,
+  Bereke, and Bank Hapoalim / Isracard.
+- Normalize, deduplicate, and classify transactions with rules and AI-assisted categorization.
+- Collect receipts by upload or from an IMAP inbox and see where each was bought on a self-hosted map
+  ([Receipt Maps](guides/receipt-maps)).
 - Manage multi-tenant workspaces with RBAC and full audit history.
-- Automate reports and dashboards for finance and operations teams.
+- Build dashboards, reports, budgets, and goals; draft VAT returns and year-end income tax declarations
+  ([Income Tax Declaration](guides/income-tax-declaration)).
 
 ## Who Lumio is for
 
@@ -23,10 +27,13 @@ reliable, queryable financial data.
 ## Quick facts
 
 - Backend: NestJS 11 with TypeORM and PostgreSQL
-- Frontend: Next.js 16 with React 19
-- Data services: PostgreSQL 14 + Redis 7
-- Integrations: Gmail, Google Drive, Dropbox, Sheets, Telegram
-- Observability: Prometheus + Grafana
+- Frontend: Next.js 16 with React 19, UI in 21 languages
+- Data services: PostgreSQL 14 + Redis 7 (Docker Compose)
+- Integrations: OpenAI-compatible AI endpoint, SMTP, IMAP, S3-compatible and WebDAV storage, workbook and Google
+  Sheets import, Telegram, webhooks, and API keys
+- Optional: self-hosted map tiles (tileserver-gl) and geocoding (Nominatim)
+- Observability: Prometheus-format metrics at `/api/v1/metrics` and structured JSON logs
+- Also in the repository: an Electron desktop app (`electron/`) and an MCP server (`mcp-server/`)
 
 ## Where to start
 

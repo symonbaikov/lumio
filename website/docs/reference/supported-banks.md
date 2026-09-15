@@ -3,20 +3,22 @@ title: Supported Banks
 description: Statement format support matrix
 ---
 
-Lumio includes bank-specific parsers plus generic fallbacks for CSV/XLSX and OCR.
+Lumio includes bank-specific parsers plus generic fallbacks. The app shows the same list on the **Supported
+banks** page (`/supported-banks`).
 
 ## Native PDF support
 
-- Kaspi Bank (PDF)
-- Bereke Bank (old PDF layout)
-- Bereke Bank (new PDF layout)
+- Kaspi Bank (Kazakhstan)
+- Bereke Bank, old and new PDF layouts (Kazakhstan)
+- Bank Hapoalim / Isracard (Israel, Hebrew)
 
 ## Generic support
 
-- CSV exports (comma-separated)
-- XLSX exports (Excel)
-- OCR PDFs (scanned statements)
-- AI-assisted PDF extraction
+- CSV exports (delimiter detection)
+- XLSX / XLS exports
+- DOCX tables
+- Images and scanned documents through OCR
+- Any other PDF through AI-assisted extraction (requires an OpenAI-compatible endpoint)
 
 ## Adding a new bank
 
