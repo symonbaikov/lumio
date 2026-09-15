@@ -1,15 +1,17 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { type INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
+import { accessTokenOf, deleteUserByEmail, e2eTestingModule } from './helpers/e2e-app';
 
 describe('StatementsController (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
   let accessToken: string;
+  let workspaceId: string;
   let userId: string;
   let statementId: string;
 
@@ -20,7 +22,7 @@ describe('StatementsController (e2e)', () => {
   };
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduleFixture: TestingModule = await e2eTestingModule({
       imports: [AppModule],
     }).compile();
 
@@ -40,8 +42,9 @@ describe('StatementsController (e2e)', () => {
     // Register and login test user
     const registerRes = await request(app.getHttpServer()).post('/auth/register').send(testUser);
 
-    accessToken = registerRes.body.accessToken;
+    accessToken = accessTokenOf(registerRes);
     userId = registerRes.body.user.id;
+    workspaceId = registerRes.body.user.workspaceId;
   });
 
   afterAll(async () => {
@@ -52,7 +55,8 @@ describe('StatementsController (e2e)', () => {
         [userId],
       );
       await dataSource.query(`DELETE FROM statements WHERE user_id = $1`, [userId]);
-      await dataSource.query(`DELETE FROM users WHERE email = $1`, [testUser.email]);
+      await deleteUserByEmail(dataSource, testUser.email);
+      await deleteUserByEmail(dataSource, 'other@example.com');
     }
     await app.close();
   });
@@ -70,14 +74,16 @@ describe('StatementsController (e2e)', () => {
       return request(app.getHttpServer())
         .post('/statements')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .attach('file', testPdfPath)
         .expect(201)
         .expect(res => {
+          // Assigned first: the tests below all work on this statement.
+          statementId = res.body.id;
           expect(res.body).toHaveProperty('id');
-          expect(res.body).toHaveProperty('filename');
+          expect(res.body.fileName).toBe('test-statement.pdf');
           expect(res.body.fileType).toBe('pdf');
           expect(res.body.status).toBe('uploaded');
-          statementId = res.body.id;
         });
     });
 
@@ -92,6 +98,7 @@ describe('StatementsController (e2e)', () => {
       return request(app.getHttpServer())
         .post('/statements')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .expect(400);
     });
 
@@ -105,6 +112,7 @@ describe('StatementsController (e2e)', () => {
       return request(app.getHttpServer())
         .post('/statements')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .attach('file', testFilePath)
         .expect(400);
     });
@@ -115,11 +123,12 @@ describe('StatementsController (e2e)', () => {
       return request(app.getHttpServer())
         .post('/statements')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .attach('file', testPdfPath)
         .expect(409);
     });
 
-    it('should accept optional googleSheetId parameter', () => {
+    it('should reject a googleSheetId that is not a UUID', () => {
       const testPdfPath = path.join(__dirname, '../fixtures/unique-statement.pdf');
       if (!fs.existsSync(testPdfPath)) {
         fs.writeFileSync(testPdfPath, '%PDF-1.4\nunique content');
@@ -128,12 +137,10 @@ describe('StatementsController (e2e)', () => {
       return request(app.getHttpServer())
         .post('/statements')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .field('googleSheetId', 'sheet-123')
         .attach('file', testPdfPath)
-        .expect(201)
-        .expect(res => {
-          expect(res.body.googleSheetId).toBe('sheet-123');
-        });
+        .expect(400);
     });
   });
 
@@ -142,30 +149,45 @@ describe('StatementsController (e2e)', () => {
       return request(app.getHttpServer())
         .get('/statements')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .expect(200)
         .expect(res => {
-          expect(Array.isArray(res.body)).toBe(true);
-          expect(res.body.length).toBeGreaterThan(0);
+          expect(Array.isArray(res.body.data)).toBe(true);
+          expect(res.body.data.length).toBeGreaterThan(0);
         });
     });
 
-    it('should filter by status', () => {
-      return request(app.getHttpServer())
-        .get('/statements?status=uploaded')
+    it('should filter by status', async () => {
+      // Uploading starts parsing in the background, and this stand-in PDF ends in
+      // an error, so the statement may be at any of these steps by now.
+      const lifecycle = ['uploaded', 'processing', 'error'];
+      const matching = await request(app.getHttpServer())
+        .get(`/statements?statuses=${lifecycle.join(',')}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .expect(200)
-        .expect(res => {
-          expect(Array.isArray(res.body)).toBe(true);
-          res.body.forEach((statement: any) => {
-            expect(statement.status).toBe('uploaded');
-          });
-        });
+        .set('x-workspace-id', workspaceId)
+        .expect(200);
+      expect(matching.body.data.map((statement: { id: string }) => statement.id)).toContain(
+        statementId,
+      );
+      for (const statement of matching.body.data) {
+        expect(lifecycle).toContain(statement.status);
+      }
+
+      const completed = await request(app.getHttpServer())
+        .get('/statements?statuses=completed')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
+        .expect(200);
+      expect(completed.body.data.map((statement: { id: string }) => statement.id)).not.toContain(
+        statementId,
+      );
     });
 
-    it('should filter by bank name', () => {
+    it('should filter by search text', () => {
       return request(app.getHttpServer())
-        .get('/statements?bankName=tinkoff')
+        .get('/statements?search=test-statement')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .expect(200);
     });
 
@@ -175,9 +197,13 @@ describe('StatementsController (e2e)', () => {
 
     it('should paginate results', () => {
       return request(app.getHttpServer())
-        .get('/statements?limit=10&offset=0')
+        .get('/statements?page=1&limit=1')
         .set('Authorization', `Bearer ${accessToken}`)
-        .expect(200);
+        .set('x-workspace-id', workspaceId)
+        .expect(200)
+        .expect(res => {
+          expect(res.body.data.length).toBeLessThanOrEqual(1);
+        });
     });
   });
 
@@ -186,6 +212,7 @@ describe('StatementsController (e2e)', () => {
       return request(app.getHttpServer())
         .get(`/statements/${statementId}`)
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .expect(200)
         .expect(res => {
           expect(res.body.id).toBe(statementId);
@@ -197,6 +224,7 @@ describe('StatementsController (e2e)', () => {
       return request(app.getHttpServer())
         .get('/statements/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .expect(404);
     });
 
@@ -210,7 +238,7 @@ describe('StatementsController (e2e)', () => {
 
       const otherRes = await request(app.getHttpServer()).post('/auth/register').send(otherUser);
 
-      const otherToken = otherRes.body.accessToken;
+      const otherToken = accessTokenOf(otherRes);
 
       return request(app.getHttpServer())
         .get(`/statements/${statementId}`)
@@ -224,12 +252,13 @@ describe('StatementsController (e2e)', () => {
       return request(app.getHttpServer())
         .patch(`/statements/${statementId}`)
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .send({
-          bankName: 'kaspi',
+          balanceStart: 100,
         })
         .expect(200)
         .expect(res => {
-          expect(res.body.bankName).toBe('kaspi');
+          expect(Number(res.body.balanceStart)).toBe(100);
         });
     });
 
@@ -243,6 +272,7 @@ describe('StatementsController (e2e)', () => {
       return request(app.getHttpServer())
         .patch(`/statements/${statementId}`)
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .send({
           status: 'invalid_status',
         })
@@ -261,20 +291,24 @@ describe('StatementsController (e2e)', () => {
       const uploadRes = await request(app.getHttpServer())
         .post('/statements')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .attach('file', testPdfPath);
 
       const deleteId = uploadRes.body.id;
 
+      // Deleting moves the statement to the trash and answers without a body.
       return request(app.getHttpServer())
         .delete(`/statements/${deleteId}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .expect(200);
+        .set('x-workspace-id', workspaceId)
+        .expect(204);
     });
 
     it('should return 404 for already deleted statement', () => {
       return request(app.getHttpServer())
         .delete('/statements/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .expect(404);
     });
 
@@ -289,10 +323,11 @@ describe('StatementsController (e2e)', () => {
       return request(app.getHttpServer())
         .post(`/statements/${statementId}/reprocess`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .expect(200);
+        .set('x-workspace-id', workspaceId)
+        .expect(201);
     });
 
-    it('should reject reprocessing already processing statement', async () => {
+    it('should not start a second run for a statement already processing', async () => {
       // Set statement to processing status
       await dataSource.query(`UPDATE statements SET status = 'processing' WHERE id = $1`, [
         statementId,
@@ -300,9 +335,12 @@ describe('StatementsController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post(`/statements/${statementId}/reprocess`)
-        .set('Authorization', `Bearer ${accessToken}`);
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId);
 
-      expect(res.status).toBe(400);
+      // The running job is left alone: the statement comes back as it is.
+      expect(res.status).toBe(201);
+      expect(res.body.status).toBe('processing');
 
       // Reset status
       await dataSource.query(`UPDATE statements SET status = 'uploaded' WHERE id = $1`, [
@@ -328,6 +366,7 @@ describe('StatementsController (e2e)', () => {
       return request(app.getHttpServer())
         .get(`/statements/${statementId}`)
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
         .expect(200)
         .expect(res => {
           expect(res.body).toHaveProperty('transactions');

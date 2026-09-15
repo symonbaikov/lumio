@@ -1,7 +1,8 @@
 import { type INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
+import { accessTokenOf, e2eTestingModule } from './helpers/e2e-app';
 
 /**
  * The income-tax draft end to end: the disclaimer gate, the confirmed-only
@@ -36,7 +37,7 @@ describe('Income tax (e2e)', () => {
       .find(cookie => cookie.startsWith('access_token='))
       ?.slice('access_token='.length);
     const session = {
-      accessToken: login.body?.access_token ?? cookieToken,
+      accessToken: accessTokenOf(login) ?? cookieToken,
       workspaceId: login.body?.user?.workspaceId,
     };
     // A broken login would make every assertion below fail for the wrong reason.
@@ -50,7 +51,7 @@ describe('Income tax (e2e)', () => {
   }
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduleFixture: TestingModule = await e2eTestingModule({
       imports: [AppModule],
     }).compile();
 

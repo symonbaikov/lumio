@@ -1,8 +1,9 @@
 import { type INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
+import { accessTokenOf, e2eTestingModule } from './helpers/e2e-app';
 import { CURRENT_DISCLAIMER_VERSION } from '../../src/modules/users/disclaimer.constant';
 
 /**
@@ -18,7 +19,7 @@ describe('User disclaimer (e2e)', () => {
   const auth = (req: request.Test) => req.set('Authorization', `Bearer ${accessToken}`);
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduleFixture: TestingModule = await e2eTestingModule({
       imports: [AppModule],
     }).compile();
 
@@ -39,7 +40,7 @@ describe('User disclaimer (e2e)', () => {
       password: 'Test123!@#',
     });
 
-    accessToken = login.body?.access_token;
+    accessToken = accessTokenOf(login);
     userId = login.body?.user?.id;
 
     // Without this a broken fixture yields `Bearer undefined`, and assertions

@@ -1,8 +1,9 @@
 import { type INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
+import { accessTokenOf, e2eTestingModule } from './helpers/e2e-app';
 
 /**
  * Period arithmetic for tax rates lives in SQL — overlap predicates, a partial
@@ -19,7 +20,7 @@ describe('Tax jurisdictions (e2e)', () => {
     req.set('Authorization', `Bearer ${accessToken}`).set('x-workspace-id', workspaceId);
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduleFixture: TestingModule = await e2eTestingModule({
       imports: [AppModule],
     }).compile();
 
@@ -40,7 +41,7 @@ describe('Tax jurisdictions (e2e)', () => {
       password: 'Test123!@#',
     });
 
-    accessToken = login.body?.access_token;
+    accessToken = accessTokenOf(login);
     workspaceId = login.body?.user?.workspaceId;
 
     // Without this guard a broken login yields `Bearer undefined`, every request
@@ -78,7 +79,12 @@ describe('Tax jurisdictions (e2e)', () => {
         .expect(200);
 
       const codes = response.body.map((j: { code: string }) => j.code).sort();
-      expect(codes).toEqual(['AE', 'DE', 'GB', 'KZ', 'PL', 'US']);
+      // The original six plus the 25 EU member states added by AddEuTaxJurisdictions.
+      expect(codes).toEqual([
+        'AE', 'AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'GR', 'HR',
+        'HU', 'IE', 'IT', 'KZ', 'LT', 'LU', 'LV', 'MT', 'NL', 'PL', 'PT', 'RO', 'SE', 'SI', 'SK',
+        'US',
+      ]);
     });
 
     it('resolves statutory rates as of a date', async () => {
