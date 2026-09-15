@@ -1,18 +1,13 @@
-import { lookup as dnsLookup, promises as dns } from 'node:dns';
+import { promises as dns } from 'node:dns';
 import { Agent as HttpAgent } from 'node:http';
 import { Agent as HttpsAgent } from 'node:https';
+import type { LookupFunction } from 'node:net';
 import * as net from 'node:net';
 import { BadRequestException } from '@nestjs/common';
 import { Agent as UndiciAgent } from 'undici';
 
 type LookupResult = Array<{ address: string }>;
 type LookupFn = (host: string) => Promise<LookupResult>;
-type NodeLookupCallback = (
-  err: NodeJS.ErrnoException | null,
-  address: string,
-  family: 4 | 6,
-) => void;
-
 type EgressValidationOptions = {
   lookup?: LookupFn;
 };
@@ -111,8 +106,13 @@ export async function assertPublicEgressUrl(
   return parsed;
 }
 
-export function createPublicEgressLookup() {
-  return (hostname: string, _options: unknown, callback: NodeLookupCallback): void => {
+/**
+ * A socket lookup that refuses a host when any address it resolves to is
+ * blocked. Node 20 connects with autoSelectFamily, which asks for every address
+ * (`all: true`) and expects them as a list; other callers want the first one.
+ */
+export function createPublicEgressLookup(): LookupFunction {
+  return (hostname, options, callback) => {
     dns
       .lookup(hostname, { all: true })
       .then(records => {
@@ -127,8 +127,11 @@ export function createPublicEgressLookup() {
           callback(error, '', 4);
           return;
         }
-        const record = records[0];
-        callback(null, record.address, record.family as 4 | 6);
+        if (options?.all) {
+          callback(null, records);
+          return;
+        }
+        callback(null, records[0].address, records[0].family);
       })
       .catch(error => callback(error as NodeJS.ErrnoException, '', 4));
   };
@@ -143,38 +146,15 @@ export function createPublicEgressHttpAgents() {
   };
 }
 
-const safeLookup = createPublicEgressLookup();
-
-async function lookupPublicAddress(hostname: string): Promise<{ address: string; family: 4 | 6 }> {
-  return new Promise((resolve, reject) => {
-    safeLookup(hostname, {}, (err, address, family) => {
-      if (!err) {
-        resolve({ address, family });
-        return;
-      }
-      dnsLookup(hostname, (fallbackErr, fallbackAddress, fallbackFamily) => {
-        if (fallbackErr) {
-          reject(err);
-          return;
-        }
-        if (isBlockedEgressAddress(fallbackAddress)) {
-          reject(err);
-          return;
-        }
-        resolve({ address: fallbackAddress, family: fallbackFamily as 4 | 6 });
-      });
-    });
-  });
-}
-
-const publicEgressFetchDispatcher = new UndiciAgent({
-  connect: {
-    lookup(hostname, _options, callback) {
-      lookupPublicAddress(hostname)
-        .then(({ address, family }) => callback(null, address, family))
-        .catch(error => callback(error as NodeJS.ErrnoException, '', 4));
-    },
-  },
+/**
+ * Connects fetches only to addresses that pass the same check as the URL, so a
+ * resolver cannot answer the validation with a public address and the socket
+ * with a private one (DNS rebinding). There is no fallback to an unchecked
+ * lookup. The undici major matches the one Node 20 bundles, which global fetch
+ * requires of a dispatcher.
+ */
+const publicEgressDispatcher = new UndiciAgent({
+  connect: { lookup: createPublicEgressLookup() },
 });
 
 const MAX_EGRESS_REDIRECTS = 3;
@@ -188,10 +168,10 @@ const MAX_EGRESS_REDIRECTS = 3;
  * past a check done earlier. This re-validates on every hop and refuses to
  * follow a redirect it has not validated.
  *
- * Residual risk worth naming: between the DNS lookup here and the socket the
- * runtime opens, a hostile resolver can still answer differently (classic DNS
- * rebinding). Closing that needs a dispatcher that pins the resolved address —
- * `createPublicEgressHttpAgents` does it for the axios/node-http callers.
+ * The connection itself goes through `publicEgressDispatcher`, whose lookup
+ * repeats the address check, so a resolver that answers differently between
+ * this validation and the socket (DNS rebinding) cannot reach a private
+ * address. `createPublicEgressHttpAgents` does the same for axios/node-http.
  */
 export async function fetchPublicUrl(
   url: string,
@@ -200,11 +180,12 @@ export async function fetchPublicUrl(
 ): Promise<Response> {
   await assertPublicEgressUrl(url);
 
+  // `dispatcher` is undici's extension to fetch; lib.dom's RequestInit does not declare it.
   const response = await fetch(url, {
     ...init,
     redirect: 'manual',
-    dispatcher: publicEgressFetchDispatcher,
-  });
+    dispatcher: publicEgressDispatcher,
+  } as RequestInit);
 
   if (response.status < 300 || response.status >= 400) {
     return response;
