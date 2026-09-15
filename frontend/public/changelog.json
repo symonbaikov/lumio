@@ -1,14 +1,130 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "5aaf9d62a22cd38b212905d2a94c17f294c650e9"
+      "main": "b186398d6a444db775555424147615807b734513"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-15T11:17:03.238Z",
+    "lastGeneratedAt": "2026-09-15T14:17:09.398Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-09-15-b186398",
+      "version": "main-b186398",
+      "branch": "main",
+      "date": "2026-09-15T14:17:09.398Z",
+      "title": "Release update - September 15, 2026",
+      "summary": "This release includes routine maintenance updates.",
+      "markdown": "## Other\n- Routine maintenance updates.",
+      "commits": [
+        {
+          "sha": "2a76bb60a4f10a58b4e09fd0071050d45414b00b",
+          "shortSha": "2a76bb60",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-15T11:17:03Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "3c75106166a7c43a80a6313917c2d1e1411dd960",
+          "shortSha": "3c751061",
+          "subject": "docs: sync README, security policy and website docs with the current code",
+          "author": "Symon Baikov",
+          "date": "2026-09-15T14:50:42+03:00",
+          "files": [
+            ".claude/rules/security.md",
+            ".github/PULL_REQUEST_TEMPLATE.md",
+            "CHANGELOG.md",
+            "CONTRIBUTING.md",
+            "README.md",
+            "SECURITY.md",
+            "backend/README.md",
+            "backend/docs/DOCKER.md",
+            "frontend/README.md",
+            "policy/README.md",
+            "website/docs/architecture/backend.md",
+            "website/docs/architecture/database.md",
+            "website/docs/architecture/frontend.md",
+            "website/docs/architecture/overview.md",
+            "website/docs/architecture/parsing-pipeline.md",
+            "website/docs/contributing/adding-a-bank-parser.md",
+            "website/docs/contributing/coding-standards.md",
+            "website/docs/contributing/development-workflow.md",
+            "website/docs/contributing/testing.md",
+            "website/docs/deployment/ci-cd.md",
+            "website/docs/deployment/docker.md",
+            "website/docs/getting-started/configuration.md",
+            "website/docs/getting-started/demo-mode.md",
+            "website/docs/getting-started/local-development.md",
+            "website/docs/getting-started/quick-start.md",
+            "website/docs/guides/ai-categorization.md",
+            "website/docs/guides/importing-statements.md",
+            "website/docs/guides/income-tax-declaration.md",
+            "website/docs/guides/integrations.md",
+            "website/docs/guides/observability.md",
+            "website/docs/guides/receipt-maps.md",
+            "website/docs/guides/workspaces-and-rbac.md",
+            "website/docs/intro.md",
+            "website/docs/reference/api.md",
+            "website/docs/reference/makefile.md",
+            "website/docs/reference/supported-banks.md",
+            "website/sidebars.ts",
+            "website/static/img/architecture.svg"
+          ]
+        },
+        {
+          "sha": "30e252cdbc84a104769caf5b218988f49c4b3cac",
+          "shortSha": "30e252cd",
+          "subject": "Add screenshots to README",
+          "author": "Symon Baikov",
+          "date": "2026-09-15T17:04:18+03:00",
+          "files": [
+            "README.md"
+          ]
+        },
+        {
+          "sha": "ea0b7550e22f5b31c47a572911cdc544e7eb630d",
+          "shortSha": "ea0b7550",
+          "subject": "docs(readme): lay out screenshots like the Aurum README",
+          "author": "Symon Baikov",
+          "date": "2026-09-15T17:08:26+03:00",
+          "files": [
+            "README.md"
+          ]
+        },
+        {
+          "sha": "b186398d6a444db775555424147615807b734513",
+          "shortSha": "b186398d",
+          "subject": "docs(website): refresh the landing page and swap in the new screenshots",
+          "author": "Symon Baikov",
+          "date": "2026-09-15T17:16:34+03:00",
+          "files": [
+            "website/docs/guides/importing-statements.md",
+            "website/docs/guides/income-tax-declaration.md",
+            "website/docs/guides/workspaces-and-rbac.md",
+            "website/docs/intro.md",
+            "website/docusaurus.config.ts",
+            "website/src/css/custom.css",
+            "website/src/pages/index.tsx",
+            "website/static/img/og-card.svg",
+            "website/static/img/screenshots/advice.png",
+            "website/static/img/screenshots/audit-log.png",
+            "website/static/img/screenshots/budgets.png",
+            "website/static/img/screenshots/dashboard-overview.png",
+            "website/static/img/screenshots/dashboard-trends.png",
+            "website/static/img/screenshots/dashboard.png",
+            "website/static/img/screenshots/reports.png",
+            "website/static/img/screenshots/statements-top-categories.png",
+            "website/static/img/screenshots/tables.png",
+            "website/static/img/screenshots/tax-declaration.png",
+            "website/static/img/screenshots/upload.png"
+          ]
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-15-5aaf9d6",
       "version": "main-5aaf9d6",
