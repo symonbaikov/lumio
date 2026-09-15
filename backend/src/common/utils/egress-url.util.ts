@@ -178,12 +178,10 @@ export async function fetchPublicUrl(
   init: RequestInit = {},
   redirectsLeft = MAX_EGRESS_REDIRECTS,
 ): Promise<Response> {
-  const targetUrl = new URL(url);
-  if (targetUrl.protocol !== 'http:' && targetUrl.protocol !== 'https:') {
-    throw new BadRequestException('Destination URL must use http or https');
-  }
-  const normalizedUrl = targetUrl.toString();
-  await assertPublicEgressUrl(normalizedUrl);
+  // Fetch exactly what was validated: the parsed, normalised URL the check returns
+  // rather than the caller's raw string. An unparsable URL or a non-http(s)
+  // protocol is a 400 there, not a TypeError here.
+  const normalizedUrl = (await assertPublicEgressUrl(url)).toString();
 
   // `dispatcher` is undici's extension to fetch; lib.dom's RequestInit does not declare it.
   const response = await fetch(normalizedUrl, {

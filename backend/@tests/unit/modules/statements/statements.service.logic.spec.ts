@@ -284,6 +284,28 @@ describe('StatementsService — business logic', () => {
       );
     });
 
+    // Postgres returns loaded `date` columns as strings, not Date objects.
+    it('keeps metadata dates that were loaded from the database as strings', async () => {
+      setupFindOne({
+        statementDateFrom: '2025-01-01' as unknown as Date,
+        statementDateTo: '2025-01-31' as unknown as Date,
+        parsingDetails: { metadataExtracted: {} } as Statement['parsingDetails'],
+      });
+
+      await service.updateMetadata(STATEMENT_ID, OWNER_ID, WORKSPACE_ID, { balanceStart: 100 });
+
+      expect(statementRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          parsingDetails: expect.objectContaining({
+            metadataExtracted: expect.objectContaining({
+              dateFrom: '2025-01-01',
+              dateTo: '2025-01-31',
+            }),
+          }),
+        }),
+      );
+    });
+
     it('sets balanceStart to null when explicitly passed null', async () => {
       setupFindOne({ balanceStart: 1000 });
 

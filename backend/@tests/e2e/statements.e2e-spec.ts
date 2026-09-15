@@ -158,29 +158,45 @@ describe('StatementsController (e2e)', () => {
     });
 
     it('should filter by status', async () => {
-      // Uploading starts parsing in the background, and this stand-in PDF ends in
-      // an error, so the statement may be at any of these steps by now.
-      const lifecycle = ['uploaded', 'processing', 'error'];
-      const matching = await request(app.getHttpServer())
-        .get(`/statements?statuses=${lifecycle.join(',')}`)
+      // An upload is parsed in the background and ends differently depending on
+      // what the machine can parse, so the filter is checked on a manual expense,
+      // which is stored as completed straight away.
+      const categories = await request(app.getHttpServer())
+        .get('/categories?type=expense')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('x-workspace-id', workspaceId)
         .expect(200);
-      expect(matching.body.data.map((statement: { id: string }) => statement.id)).toContain(
-        statementId,
-      );
-      for (const statement of matching.body.data) {
-        expect(lifecycle).toContain(statement.status);
-      }
+      const manual = await request(app.getHttpServer())
+        .post('/statements/manual-expense')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
+        .field('amount', '42')
+        .field('currency', 'KZT')
+        .field('merchant', 'Status filter')
+        .field('categoryId', categories.body[0].id)
+        .field('date', '2026-02-20')
+        .expect(201);
+      expect(manual.body.status).toBe('completed');
+
+      const ids = (res: request.Response) =>
+        res.body.data.map((statement: { id: string }) => statement.id);
 
       const completed = await request(app.getHttpServer())
         .get('/statements?statuses=completed')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('x-workspace-id', workspaceId)
         .expect(200);
-      expect(completed.body.data.map((statement: { id: string }) => statement.id)).not.toContain(
-        statementId,
-      );
+      expect(ids(completed)).toContain(manual.body.id);
+      for (const statement of completed.body.data) {
+        expect(statement.status).toBe('completed');
+      }
+
+      const uploaded = await request(app.getHttpServer())
+        .get('/statements?statuses=uploaded')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-workspace-id', workspaceId)
+        .expect(200);
+      expect(ids(uploaded)).not.toContain(manual.body.id);
     });
 
     it('should filter by search text', () => {
