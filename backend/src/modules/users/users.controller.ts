@@ -21,7 +21,6 @@ import { Throttle } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
 import type { Response } from 'express';
 import * as fs from 'fs';
-import * as fsp from 'fs/promises';
 import { diskStorage } from 'multer';
 import * as path from 'path';
 import { SkipCsrf } from '../../common/decorators/skip-csrf.decorator';
@@ -36,7 +35,7 @@ import {
   resolveAvatarContentType,
   sanitizeAvatarFilename,
 } from '../../common/utils/avatar-filename.util';
-import { validateImageSignature } from '../../common/utils/file-validator.util';
+import { removeUploadedFile, validateImageSignature } from '../../common/utils/file-validator.util';
 import { deletedResponse } from '../../common/utils/responses.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import { type User, UserRole } from '../../entities/user.entity';
@@ -391,7 +390,7 @@ export class UsersController {
     try {
       validateImageSignature(file);
     } catch (error) {
-      await fsp.unlink(file.path).catch(() => undefined);
+      await removeUploadedFile(file);
       throw error;
     }
 
@@ -449,7 +448,7 @@ export class UsersController {
     try {
       validateImageSignature(file);
     } catch (error) {
-      await fsp.unlink(file.path).catch(() => undefined);
+      await removeUploadedFile(file);
       throw error;
     }
 

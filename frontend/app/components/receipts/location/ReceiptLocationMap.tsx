@@ -2,8 +2,7 @@
 
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { useEffect } from 'react';
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { useEffect, useRef } from 'react';
 import { apiBaseUrl } from '@/app/lib/api';
 
 export type LatLng = [number, number];
@@ -33,56 +32,84 @@ const buildPinIcon = (color: string): L.DivIcon =>
     iconAnchor: [14, 40],
   });
 
-function PickOnClick({ onPick }: { onPick: (point: LatLng) => void }): null {
-  useMapEvents({
-    click: event => onPick([event.latlng.lat, event.latlng.lng]),
-  });
-  return null;
-}
-
-// Follows the point when it changes from outside (saved, reset, first click).
-function FollowPosition({ lat, lng }: { lat: number | null; lng: number | null }): null {
-  const map = useMap();
-
-  useEffect(() => {
-    if (lat === null || lng === null) {
-      return;
-    }
-    map.setView([lat, lng], Math.max(map.getZoom(), POINT_ZOOM));
-  }, [map, lat, lng]);
-
-  return null;
-}
-
+/**
+ * Leaflet driven directly rather than through react-leaflet, whose Hippocratic
+ * licence is outside the project's licence allowlist. The map is created once;
+ * the tile layer, the view and the marker follow the props.
+ */
 export function ReceiptLocationMap({
   position,
   styleId,
   markerColor,
   onPick,
 }: ReceiptLocationMapProps): React.JSX.Element {
-  return (
-    <MapContainer
-      center={position ?? WORLD_CENTER}
-      zoom={position ? POINT_ZOOM : WORLD_ZOOM}
-      scrollWheelZoom={false}
-      style={{ height: '100%', width: '100%' }}
-    >
-      <TileLayer url={buildTileUrl(styleId)} attribution={TILE_ATTRIBUTION} maxZoom={19} />
-      <PickOnClick onPick={onPick} />
-      <FollowPosition lat={position?.[0] ?? null} lng={position?.[1] ?? null} />
-      {position ? (
-        <Marker
-          position={position}
-          draggable
-          icon={buildPinIcon(markerColor)}
-          eventHandlers={{
-            dragend: event => {
-              const { lat, lng } = (event.target as L.Marker).getLatLng();
-              onPick([lat, lng]);
-            },
-          }}
-        />
-      ) : null}
-    </MapContainer>
-  );
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  // Leaflet handlers are bound once, so they read the latest callback through a ref.
+  const onPickRef = useRef(onPick);
+  const lat = position?.[0] ?? null;
+  const lng = position?.[1] ?? null;
+
+  useEffect(() => {
+    onPickRef.current = onPick;
+  }, [onPick]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+    const map = L.map(container, { scrollWheelZoom: false }).setView(WORLD_CENTER, WORLD_ZOOM);
+    map.on('click', (event: L.LeafletMouseEvent) => {
+      onPickRef.current([event.latlng.lat, event.latlng.lng]);
+    });
+    mapRef.current = map;
+    return () => {
+      mapRef.current = null;
+      map.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+    const layer = L.tileLayer(buildTileUrl(styleId), {
+      attribution: TILE_ATTRIBUTION,
+      maxZoom: 19,
+    }).addTo(map);
+    return () => {
+      layer.remove();
+    };
+  }, [styleId]);
+
+  // Follows the point when it changes from outside (saved, reset, first click).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || lat === null || lng === null) {
+      return;
+    }
+    map.setView([lat, lng], Math.max(map.getZoom(), POINT_ZOOM));
+  }, [lat, lng]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || lat === null || lng === null) {
+      return;
+    }
+    const marker = L.marker([lat, lng], {
+      draggable: true,
+      icon: buildPinIcon(markerColor),
+    }).addTo(map);
+    marker.on('dragend', () => {
+      const point = marker.getLatLng();
+      onPickRef.current([point.lat, point.lng]);
+    });
+    return () => {
+      marker.remove();
+    };
+  }, [lat, lng, markerColor]);
+
+  return <div ref={containerRef} style={{ height: '100%', width: '100%' }} />;
 }

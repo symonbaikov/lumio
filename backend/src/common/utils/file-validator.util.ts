@@ -12,9 +12,15 @@ import { resolveUploadsDir } from './uploads.util';
 // Express.Multer.File's path on faith.
 const uploadsRoot = resolveUploadsDir();
 
-function isWithinUploadsDir(candidatePath: string): boolean {
-  const relative = path.relative(uploadsRoot, path.resolve(candidatePath));
-  return relative === '' || !(relative.startsWith('..') || path.isAbsolute(relative));
+/**
+ * The path resolved, or NULL when it falls outside the uploads directory. Callers
+ * repeat the prefix check next to the filesystem call so the bound is visible there.
+ */
+function resolveInUploadsDir(candidatePath: string): string | null {
+  const resolved = path.resolve(candidatePath);
+  return resolved === uploadsRoot || resolved.startsWith(`${uploadsRoot}${path.sep}`)
+    ? resolved
+    : null;
 }
 
 enum AllowedFileType {
@@ -85,12 +91,13 @@ const MAGIC_BYTES: ReadonlyMap<AllowedFileType, (buf: Buffer) => boolean> = new 
 // malicious payload — the declared-mimetype allowlist check still applies
 // either way.
 function readSignature(filePath: string): Buffer | null {
-  if (!isWithinUploadsDir(filePath)) {
+  const resolved = resolveInUploadsDir(filePath);
+  if (!resolved?.startsWith(`${uploadsRoot}${path.sep}`)) {
     return null;
   }
   let fd: number;
   try {
-    fd = fs.openSync(filePath, 'r');
+    fd = fs.openSync(resolved, 'r');
   } catch {
     return null;
   }
@@ -166,7 +173,7 @@ const AVATAR_MAGIC_BYTES: ReadonlyMap<string, (buf: Buffer) => boolean> = new Ma
  */
 export function validateImageSignature(file: Express.Multer.File): void {
   const checkSignature = AVATAR_MAGIC_BYTES.get(file.mimetype);
-  if (!checkSignature) {
+  if (typeof checkSignature !== 'function') {
     throw new BadRequestException(`File type ${file.mimetype} is not allowed`);
   }
 
@@ -188,16 +195,16 @@ export function validateImageSignature(file: Express.Multer.File): void {
  * so a rejected batch must be cleaned up explicitly or the files are
  * orphaned on disk forever.
  */
-async function unlinkIfWithinUploadsDir(file: Express.Multer.File): Promise<void> {
-  const filePath = file.path;
-  if (!(filePath && isWithinUploadsDir(filePath))) {
+export async function removeUploadedFile(file: Express.Multer.File): Promise<void> {
+  const resolved = file.path ? resolveInUploadsDir(file.path) : null;
+  if (!resolved?.startsWith(`${uploadsRoot}${path.sep}`)) {
     return;
   }
-  await fsp.unlink(filePath).catch(() => undefined);
+  await fsp.unlink(resolved).catch(() => undefined);
 }
 
 export async function unlinkAll(files: Express.Multer.File[]): Promise<void> {
-  await Promise.all(files.map(unlinkIfWithinUploadsDir));
+  await Promise.all(files.map(removeUploadedFile));
 }
 
 /**

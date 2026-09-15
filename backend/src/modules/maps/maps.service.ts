@@ -61,7 +61,8 @@ export class MapsService {
 
     // Only ids the tile server itself advertised reach the upstream path.
     const styles = await this.loadStyles();
-    if (!styles.some(style => style.id === styleId)) {
+    const style = styles.find(candidate => candidate.id === styleId);
+    if (!style) {
       return { status: 'invalid' };
     }
 
@@ -69,7 +70,7 @@ export class MapsService {
       // Plain fetch rather than fetchPublicUrl: the host is operator config and
       // lives on the private Docker network, which the SSRF guard would reject.
       const response = await fetch(
-        `${this.baseUrl}/styles/${styleId}/${coords.z}/${coords.x}/${coords.y}.png`,
+        `${this.baseUrl}/styles/${style.id}/${coords.z}/${coords.x}/${coords.y}.png`,
         { signal: AbortSignal.timeout(this.timeoutMs) },
       );
       if (!response.ok) {

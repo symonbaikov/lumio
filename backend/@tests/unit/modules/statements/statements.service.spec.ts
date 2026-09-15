@@ -487,7 +487,7 @@ describe('StatementsService', () => {
       expect(qb.skip).not.toHaveBeenCalled();
       expect(qb.take).toHaveBeenCalledWith(15);
       expect(qb.andWhere).toHaveBeenCalledWith('statement.fileType = :type', { type: 'pdf' });
-      expect(qb.andWhere).toHaveBeenCalledWith('LOWER(statement.status) IN (:...statuses)', {
+      expect(qb.andWhere).toHaveBeenCalledWith('CAST(statement.status AS text) IN (:...statuses)', {
         statuses: ['processing', 'error'],
       });
       expect(qb.andWhere).toHaveBeenCalledWith(

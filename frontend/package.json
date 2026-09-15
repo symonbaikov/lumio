@@ -60,7 +60,6 @@
     "react-dom": "19.2.0",
     "react-hot-toast": "^2.6.0",
     "react-intlayer": "^7.5.11",
-    "react-leaflet": "^5.0.0",
     "react-markdown": "^10.1.0",
     "react-pdf": "^10.3.0",
     "recharts": "3.10.1",

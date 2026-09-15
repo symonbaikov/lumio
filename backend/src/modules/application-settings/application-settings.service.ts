@@ -120,7 +120,7 @@ export class ApplicationSettingsService {
     const existing = await this.findSettings(user, WorkspaceServiceSettingsKey.AI);
     const config = {
       enabled: this.booleanValue(input.enabled, true),
-      baseUrl: this.requiredString(input.baseUrl, 'baseUrl').replace(/\/+$/, ''),
+      baseUrl: this.trimTrailingSlashes(this.requiredString(input.baseUrl, 'baseUrl')),
       model: this.requiredString(input.model, 'model'),
       timeoutMs: this.positiveNumber(input.timeoutMs, 20000),
     };
@@ -167,7 +167,7 @@ export class ApplicationSettingsService {
     const existing = await this.findPersonalAiSettings(user);
     const config = {
       enabled: this.booleanValue(input.enabled, true),
-      baseUrl: this.requiredString(input.baseUrl, 'baseUrl').replace(/\/+$/, ''),
+      baseUrl: this.trimTrailingSlashes(this.requiredString(input.baseUrl, 'baseUrl')),
       model: this.requiredString(input.model, 'model'),
       timeoutMs: this.positiveNumber(input.timeoutMs, 20000),
     };
@@ -585,7 +585,7 @@ export class ApplicationSettingsService {
     secrets: Record<string, string>,
     source: AiRuntimeSettings['source'],
   ): AiRuntimeSettings {
-    const baseUrl = this.stringValue(config.baseUrl)?.replace(/\/+$/, '') || null;
+    const baseUrl = this.trimTrailingSlashes(this.stringValue(config.baseUrl) ?? '') || null;
     const model = this.stringValue(config.model) || null;
     return {
       enabled: this.booleanValue(config.enabled, true),
@@ -836,6 +836,10 @@ export class ApplicationSettingsService {
     if (!settings.botToken) {
       throw new BadRequestException('Telegram botToken is required');
     }
+    // Bot tokens are "<digits>:<base64url>"; nothing else may shape the request path.
+    if (!/^\d+:[\w-]+$/.test(settings.botToken)) {
+      throw new BadRequestException('Telegram bot token is invalid');
+    }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), settings.timeoutMs);
     try {
@@ -870,6 +874,15 @@ export class ApplicationSettingsService {
       throw new BadRequestException(`${name} is required`);
     }
     return text;
+  }
+
+  /** A loop, not /\/+$/: that pattern backtracks polynomially on long runs of slashes. */
+  private trimTrailingSlashes(value: string): string {
+    let end = value.length;
+    while (end > 0 && value[end - 1] === '/') {
+      end--;
+    }
+    return value.slice(0, end);
   }
 
   private stringValue(value: unknown): string | undefined {

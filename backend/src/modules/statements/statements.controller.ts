@@ -214,11 +214,11 @@ export class StatementsController {
     returnUnwrappedSingle: boolean,
   ) {
     if (!files || files.length === 0) {
-      throw new Error('No files provided');
+      throw new BadRequestException('No files provided');
     }
 
     if (files.length > 2) {
-      throw new Error('Maximum 2 files allowed');
+      throw new BadRequestException('Maximum 2 files allowed');
     }
 
     // Check idempotency key if provided

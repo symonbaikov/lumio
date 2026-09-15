@@ -882,7 +882,9 @@ export class StatementsService {
     }
 
     if (filters.statuses && filters.statuses.length > 0) {
-      qb.andWhere('LOWER(statement.status) IN (:...statuses)', {
+      // status is a Postgres enum: LOWER() has no enum overload, and comparing the
+      // enum to an unknown value errors, so compare as text.
+      qb.andWhere('CAST(statement.status AS text) IN (:...statuses)', {
         statuses: filters.statuses.map(status => status.toLowerCase()),
       });
     }

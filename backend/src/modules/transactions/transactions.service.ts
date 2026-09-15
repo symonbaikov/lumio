@@ -319,7 +319,7 @@ export class TransactionsService {
         const transaction = await this.update(item.id, workspaceId, userId, item.updates, batchId);
         updatedTransactions.push(transaction);
       } catch (error) {
-        console.error(`Error updating transaction ${item.id}:`, error);
+        console.error('Error updating transaction %s:', item.id, error);
       }
     }
 
