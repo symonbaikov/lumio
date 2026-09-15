@@ -39,7 +39,7 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: 'img/og-card.svg',
+    image: 'img/screenshots/dashboard-overview.png',
     navbar: {
       title: 'Lumio',
       logo: {

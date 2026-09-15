@@ -11,6 +11,8 @@ Lumio does not file anything with a tax authority, and a draft is not tax advice
 before you file.
 :::
 
+![Tax declaration profile step for a German freelancer filing Anlage EÜR](/img/screenshots/tax-declaration.png)
+
 ## The wizard
 
 Before the first use, each user accepts a disclaimer. The wizard then has five steps:

@@ -42,6 +42,4 @@ The audit log tracks key mutations, including imports, deletions, and permission
 owners and admins can view it. Rolling back an event requires the global `admin` role and works only
 for events that support undo.
 
-![Audit log](/img/screenshots/audit-log.png)
-
 Next: [Integrations](integrations)

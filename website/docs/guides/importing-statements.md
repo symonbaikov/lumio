@@ -41,6 +41,6 @@ See [Integrations](integrations).
 - Upload one account per file when possible.
 - If a bank is unsupported, use a CSV/XLSX export or let the generic PDF parser try.
 
-![Upload flow](/img/screenshots/upload.png)
+![Statements work queue with spend analytics and top categories](/img/screenshots/statements-top-categories.png)
 
 Next: [Workspaces and RBAC](workspaces-and-rbac)

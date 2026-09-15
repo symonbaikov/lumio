@@ -7,6 +7,8 @@ Lumio is an open-source, self-hosted financial data platform for importing, proc
 statements. It combines a NestJS API, a Next.js web app, and a structured parsing pipeline so teams can turn messy
 exports into reliable, queryable financial data.
 
+![Lumio dashboard overview](/img/screenshots/dashboard-overview.png)
+
 ## What you can do with Lumio
 
 - Import statements from PDF, CSV, XLSX, DOCX, and image files, with OCR for scans and native parsers for Kaspi,
