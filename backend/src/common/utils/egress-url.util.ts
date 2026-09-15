@@ -1,8 +1,9 @@
-import { promises as dns } from 'node:dns';
+import { lookup as dnsLookup, promises as dns } from 'node:dns';
 import { Agent as HttpAgent } from 'node:http';
 import { Agent as HttpsAgent } from 'node:https';
 import * as net from 'node:net';
 import { BadRequestException } from '@nestjs/common';
+import { Agent as UndiciAgent } from 'undici';
 
 type LookupResult = Array<{ address: string }>;
 type LookupFn = (host: string) => Promise<LookupResult>;
@@ -142,6 +143,40 @@ export function createPublicEgressHttpAgents() {
   };
 }
 
+const safeLookup = createPublicEgressLookup();
+
+async function lookupPublicAddress(hostname: string): Promise<{ address: string; family: 4 | 6 }> {
+  return new Promise((resolve, reject) => {
+    safeLookup(hostname, {}, (err, address, family) => {
+      if (!err) {
+        resolve({ address, family });
+        return;
+      }
+      dnsLookup(hostname, (fallbackErr, fallbackAddress, fallbackFamily) => {
+        if (fallbackErr) {
+          reject(err);
+          return;
+        }
+        if (isBlockedEgressAddress(fallbackAddress)) {
+          reject(err);
+          return;
+        }
+        resolve({ address: fallbackAddress, family: fallbackFamily as 4 | 6 });
+      });
+    });
+  });
+}
+
+const publicEgressFetchDispatcher = new UndiciAgent({
+  connect: {
+    lookup(hostname, _options, callback) {
+      lookupPublicAddress(hostname)
+        .then(({ address, family }) => callback(null, address, family))
+        .catch(error => callback(error as NodeJS.ErrnoException, '', 4));
+    },
+  },
+});
+
 const MAX_EGRESS_REDIRECTS = 3;
 
 /**
@@ -165,7 +200,11 @@ export async function fetchPublicUrl(
 ): Promise<Response> {
   await assertPublicEgressUrl(url);
 
-  const response = await fetch(url, { ...init, redirect: 'manual' });
+  const response = await fetch(url, {
+    ...init,
+    redirect: 'manual',
+    dispatcher: publicEgressFetchDispatcher,
+  });
 
   if (response.status < 300 || response.status >= 400) {
     return response;
