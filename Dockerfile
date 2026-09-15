@@ -42,9 +42,16 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 # Install Python + pdfplumber for PDF parsing + pdf2image for thumbnails.
 # Pillow comes from requirements.txt rather than Alpine's py3-pillow so the
 # pinned version is the one that actually ships.
+# `apk upgrade` takes OS security fixes newer than the base image (e.g. OpenSSL).
 COPY backend/requirements.txt ./backend/requirements.txt
-RUN apk add --no-cache python3 py3-pip poppler-utils && \
+RUN apk upgrade --no-cache && \
+    apk add --no-cache python3 py3-pip poppler-utils && \
     pip3 install --no-cache-dir --break-system-packages -r ./backend/requirements.txt
+
+# The runtime only runs `node`. npm and corepack, with npm's bundled tar,
+# sigstore and pacote, would only add image-scan findings.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 # Backend runtime dependencies (already pruned)
 COPY --from=builder /app/backend/package*.json ./backend/

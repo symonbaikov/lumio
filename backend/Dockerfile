@@ -46,6 +46,11 @@ RUN npm run build && npm run build:scripts && npm prune --omit=dev
 # --- Production stage ---
 FROM base
 
+# The runtime only runs `node`; npm and corepack (kept in the earlier stages,
+# which install with them) would only carry npm's bundled packages into the image.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+  /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+
 RUN groupadd --system app && useradd --system --gid app app && \
   mkdir -p uploads/reports && chown -R app:app /app
 
