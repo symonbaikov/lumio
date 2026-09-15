@@ -19,7 +19,13 @@
 [Quick Start](#quick-start) • [Features](#features) • [Tech Stack](#tech-stack) • [Architecture](#architecture) • [Contributing](CONTRIBUTING.md)
 
 </div>
-<img width="1920" height="917" alt="Screenshot_20260828_141321" src="https://github.com/user-attachments/assets/a252b1d0-bc05-42dd-8479-0d29b064f2f6" />
+
+<img width="1893" height="947" alt="screenshot-2026-09-15_16-57-51" src="https://github.com/user-attachments/assets/818f6af4-13a8-45aa-b66a-e9ea97a16f52" />
+<img width="1895" height="947" alt="screenshot-2026-09-15_16-58-01" src="https://github.com/user-attachments/assets/fb81c17a-e181-4524-aacf-37251f9d3281" />
+<img width="1895" height="946" alt="screenshot-2026-09-15_16-59-05" src="https://github.com/user-attachments/assets/c10b025c-a4a6-4ab2-83f0-44d94418de82" />
+<img width="1897" height="946" alt="screenshot-2026-09-15_17-00-02" src="https://github.com/user-attachments/assets/2ba01cb1-e628-41d0-91c5-74e35dc6d0ec" />
+<img width="1889" height="950" alt="screenshot-2026-09-15_17-00-18" src="https://github.com/user-attachments/assets/ea7e9ab7-9731-4ee2-b9a6-7b97c6e4b80c" />
+<img width="1892" height="945" alt="screenshot-2026-09-15_17-00-30" src="https://github.com/user-attachments/assets/92c1ede2-f6a0-4813-aea1-2136bb2bf7e3" />
 
 
 ---
