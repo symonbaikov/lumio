@@ -1,14 +1,109 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "b186398d6a444db775555424147615807b734513"
+      "main": "914eee13cec4cd0a84697c2443525dac7db4bc15"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-15T14:17:09.398Z",
+    "lastGeneratedAt": "2026-09-15T16:30:05.500Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-09-15-914eee1",
+      "version": "main-914eee1",
+      "branch": "main",
+      "date": "2026-09-15T16:30:05.500Z",
+      "title": "Release update - September 15, 2026",
+      "summary": "This release includes 1 fix.",
+      "markdown": "## Fixes\n- **insights**: Keep the alert banner readable in dark theme",
+      "commits": [
+        {
+          "sha": "56da69cd3692f835e8e3a1698ae05b388f49bb6a",
+          "shortSha": "56da69cd",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-15T14:17:09Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "7d592a796ec03693ca43fc9189aa5eda4822f0a5",
+          "shortSha": "7d592a79",
+          "subject": "chore: remove the Electron desktop app and Railway deployment",
+          "author": "Symon Baikov",
+          "date": "2026-09-15T17:17:27+03:00",
+          "files": [
+            ".claude/rules/frontend-perf.md",
+            ".github/dependabot.yml",
+            ".github/workflows/ci.yml",
+            ".github/workflows/electron-build.yml",
+            ".railway/config.json",
+            ".railwayignore",
+            "README.md",
+            "backend/@tests/unit/electron/external-url-policy.spec.ts",
+            "docker-compose.dev.yml",
+            "electron/.gitignore",
+            "electron/build/entitlements.mac.plist",
+            "electron/electron-builder.yml",
+            "electron/package-lock.json",
+            "electron/package.json",
+            "electron/resources/icon.icns",
+            "electron/resources/icon.ico",
+            "electron/resources/icon.png",
+            "electron/resources/tray-icon.png",
+            "electron/resources/tray-icon@2x.png",
+            "electron/src/config.ts",
+            "electron/src/external-url-policy.ts",
+            "electron/src/main.ts",
+            "electron/src/offline.ts",
+            "electron/src/preload.ts",
+            "electron/src/tray.ts",
+            "electron/src/updater.ts",
+            "electron/src/window-state.ts",
+            "electron/tsconfig.json",
+            "frontend/app/lib/device-location.test.ts",
+            "frontend/app/lib/device-location.ts",
+            "frontend/types/lumio-desktop.d.ts",
+            "package.json",
+            "website/docs/deployment/ci-cd.md",
+            "website/docs/intro.md"
+          ]
+        },
+        {
+          "sha": "6797b609496566be38eaaf640f2da816a1cb2faf",
+          "shortSha": "6797b609",
+          "subject": "docs: drop the stale v1 screenshot notice and fix the docs site logo",
+          "author": "Symon Baikov",
+          "date": "2026-09-15T17:20:32+03:00",
+          "files": [
+            "README.md",
+            "website/static/img/logo.svg"
+          ]
+        },
+        {
+          "sha": "37e4e4d2b56bebff7d57be80f6a41d963434302e",
+          "shortSha": "37e4e4d2",
+          "subject": "Merge pull request #170 from symonbaikov/chore/remove-electron-railway",
+          "author": "Symon Baikov",
+          "date": "2026-09-15T17:28:08+03:00",
+          "files": [
+            "README.md"
+          ]
+        },
+        {
+          "sha": "914eee13cec4cd0a84697c2443525dac7db4bc15",
+          "shortSha": "914eee13",
+          "subject": "fix(insights): keep the alert banner readable in dark theme",
+          "author": "Symon Baikov",
+          "date": "2026-09-15T19:29:39+03:00",
+          "files": [
+            "frontend/app/components/insights/AlertBanner.tsx"
+          ]
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-15-b186398",
       "version": "main-b186398",
