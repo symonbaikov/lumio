@@ -83,6 +83,23 @@ async function requestNewAccessToken(): Promise<void> {
   );
 }
 
+/**
+ * Tabs share the refresh cookie, and the backend rotates it on every use: two
+ * tabs refreshing at once would present the same token and the one that lost
+ * the race would be logged out. A Web Lock makes tabs take turns, so the second
+ * presents the cookie the first has just received. Where the API is missing,
+ * the in-tab single flight below still holds.
+ */
+const REFRESH_LOCK_NAME = 'lumio-auth-refresh';
+
+function refreshAcrossTabs(): Promise<void> {
+  const locks = typeof navigator === 'undefined' ? undefined : navigator.locks;
+  // lib.dom types the lock's result as the callback's own promise; at runtime it is unwrapped.
+  return locks
+    ? locks.request(REFRESH_LOCK_NAME, () => requestNewAccessToken()).then(() => undefined)
+    : requestNewAccessToken();
+}
+
 let refreshInFlight: Promise<void> | null = null;
 
 /**
@@ -95,7 +112,7 @@ let refreshInFlight: Promise<void> | null = null;
  * Без `finally`: React Compiler пропускает код с finally, и кодовая база держится промис-цепочек.
  */
 function getFreshAccessToken(): Promise<void> {
-  refreshInFlight ??= requestNewAccessToken().then(
+  refreshInFlight ??= refreshAcrossTabs().then(
     () => {
       refreshInFlight = null;
     },

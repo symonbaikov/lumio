@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 const ACCESS_TOKEN_COOKIE = 'access_token';
+const REFRESH_TOKEN_COOKIE = 'refresh_token';
 
 /**
  * Routes that must stay reachable without a session: the auth screens
@@ -44,7 +45,11 @@ export function proxy(request: NextRequest): NextResponse {
     return NextResponse.next();
   }
 
-  if (request.cookies.has(ACCESS_TOKEN_COOKIE)) {
+  // Either cookie will do. The access cookie lapses after 30 minutes and the
+  // refresh cookie after 30 days; requiring the access cookie sent anyone who
+  // had been away for half an hour back to /login before the client could
+  // refresh the session.
+  if (request.cookies.has(ACCESS_TOKEN_COOKIE) || request.cookies.has(REFRESH_TOKEN_COOKIE)) {
     return NextResponse.next();
   }
 

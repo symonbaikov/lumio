@@ -59,6 +59,7 @@ describe('api single-flight refresh', () => {
     apiClient.defaults.adapter = originalAdapter;
     clearCookies();
     localStorage.clear();
+    Reflect.deleteProperty(navigator, 'locks');
     vi.restoreAllMocks();
   });
 
@@ -99,6 +100,31 @@ describe('api single-flight refresh', () => {
 
     expect(localStorage.getItem('access_token')).toBeNull();
     expect(localStorage.getItem('refresh_token')).toBeNull();
+  });
+
+  // Tabs share the refresh cookie; refreshing inside a Web Lock keeps two tabs
+  // from presenting the same rotated token at once.
+  it('refreshes inside a cross-tab Web Lock', async () => {
+    installAdapter();
+    const order: string[] = [];
+    const request = vi.fn(async (_name: string, callback: () => Promise<unknown>) => {
+      order.push('lock');
+      const result = await callback();
+      order.push('unlock');
+      return result;
+    });
+    Object.defineProperty(navigator, 'locks', { configurable: true, value: { request } });
+    vi.spyOn(axios, 'post').mockImplementation(async () => {
+      order.push('refresh');
+      setCsrfCookie('fresh-csrf');
+      return { data: { message: 'Token refreshed' } };
+    });
+
+    const response = await apiClient.get('/dashboard');
+
+    expect(request).toHaveBeenCalledWith('lumio-auth-refresh', expect.any(Function));
+    expect(order).toEqual(['lock', 'refresh', 'unlock']);
+    expect(response.status).toBe(200);
   });
 
   it('clears the in-flight lock when the refresh fails, so a later 401 retries', async () => {
