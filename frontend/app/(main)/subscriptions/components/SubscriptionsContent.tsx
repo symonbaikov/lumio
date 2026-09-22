@@ -13,12 +13,15 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 
 import { Pencil, Plus, Trash2 } from '@/app/components/icons';
 import { EmptyState } from '@/app/components/ui/EmptyState';
+import { VendorIcon } from '@/app/components/VendorIcon';
 import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import type {
+  SubscriptionChargeCalendar,
   SubscriptionFormData,
   SubscriptionItem,
   SubscriptionSummary,
@@ -29,9 +32,21 @@ import { SubscriptionDetailsDrawer } from './SubscriptionDetailsDrawer';
 import { SubscriptionFormDrawer } from './SubscriptionFormDrawer';
 import { filterSubscriptions } from './subscription-filter.utils';
 
+// Its own chunk: the matrix only renders for workspaces with enough
+// subscriptions to need it.
+const LazyChargeCalendar = dynamic(
+  () => import('./SubscriptionChargeCalendar').then(module => module.SubscriptionChargeCalendar),
+  { ssr: false, loading: () => <Skeleton variant="rounded" width="100%" height={220} /> },
+);
+
+// A workspace needs a handful of subscriptions before a matrix says more than
+// the table already does.
+const CALENDAR_MIN_SUBSCRIPTIONS = 5;
+
 interface SubscriptionsContentProps {
   subscriptions: SubscriptionItem[];
   summary: SubscriptionSummary;
+  chargeCalendar: SubscriptionChargeCalendar;
   workspaceCurrency: string;
   workspaceMembers: SubscriptionWorkspaceMember[];
   isPending: boolean;
@@ -113,6 +128,10 @@ function SubscriptionCardSkeleton(): React.JSX.Element {
 
 const formatAmount = (amount: number, currency: string) =>
   `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(amount)} ${currency}`;
+// Same helper and locale as the dates below, so the calendar header and the
+// table read alike until the page gets its translations.
+const formatMonthLabel = (month: string) =>
+  formatStoredDateWithOptions(`${month}-01`, { month: 'short', year: '2-digit' }, 'ru-RU');
 const formatDate = (date: string | null) =>
   date ? formatStoredDateWithOptions(date, { day: 'numeric', month: 'short' }, 'ru-RU') : '—';
 
@@ -142,6 +161,15 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
     ],
     [props.subscriptions],
   );
+
+  const monthLabels = useMemo(
+    () => props.chargeCalendar.months.map(month => formatMonthLabel(month)),
+    [props.chargeCalendar.months],
+  );
+  const showCalendar =
+    !props.isPending &&
+    props.summary.activeCount >= CALENDAR_MIN_SUBSCRIPTIONS &&
+    props.chargeCalendar.rows.length > 0;
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, flex: 1 }}>
@@ -196,6 +224,23 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
           </Card>
         ))}
       </Box>
+      {showCalendar && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
+            Upcoming charges
+          </Typography>
+          <LazyChargeCalendar
+            calendar={props.chargeCalendar}
+            monthLabels={monthLabels}
+            formatAmount={amount =>
+              formatAmount(amount, props.chargeCalendar.currency ?? props.workspaceCurrency)
+            }
+            renderVendor={row => (
+              <VendorIcon vendorName={row.vendorName} vendorDomain={row.vendorDomain} size={18} />
+            )}
+          />
+        </Box>
+      )}
       <Tabs
         value={props.statusFilter}
         onChange={(_, value) => props.setStatusFilter(value)}
@@ -364,10 +409,18 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
                 {visibleSubscriptions.map(subscription => (
                   <tr key={subscription.id} onClick={() => setSelected(subscription)}>
                     <td>
-                      <Typography fontWeight={600}>{subscription.vendorName}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {subscription.status}
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <VendorIcon
+                          vendorName={subscription.vendorName}
+                          vendorDomain={subscription.vendorDomain}
+                        />
+                        <Box>
+                          <Typography fontWeight={600}>{subscription.vendorName}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {subscription.status}
+                          </Typography>
+                        </Box>
+                      </Box>
                     </td>
                     <td>{formatAmount(subscription.amount, subscription.currency)}</td>
                     <td>{formatDate(subscription.nextChargeDate)}</td>

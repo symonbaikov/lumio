@@ -6,6 +6,7 @@ import { SubscriptionStatus } from '../../entities/subscription.entity';
 import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AssignSubscriptionOwnerDto } from './dto/assign-subscription-owner.dto';
+import { ChargeCalendarQueryDto } from './dto/charge-calendar-query.dto';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { RecordSubscriptionDecisionDto } from './dto/record-subscription-decision.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
@@ -25,6 +26,15 @@ export class SubscriptionsController {
   @WorkspaceAuth(Permission.SUBSCRIPTION_VIEW)
   async getSummary(@WorkspaceId() workspaceId: string) {
     return this.subscriptionsService.getSummary(workspaceId);
+  }
+
+  @Get('charge-calendar')
+  @WorkspaceAuth(Permission.SUBSCRIPTION_VIEW)
+  async getChargeCalendar(
+    @WorkspaceId() workspaceId: string,
+    @Query() query: ChargeCalendarQueryDto,
+  ) {
+    return this.subscriptionsService.getChargeCalendar(workspaceId, query.months);
   }
 
   @Get('upcoming')

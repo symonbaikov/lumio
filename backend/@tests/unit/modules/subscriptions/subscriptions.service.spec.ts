@@ -195,4 +195,80 @@ describe('SubscriptionsService', () => {
       expect(subscriptionRepository.save).toHaveBeenLastCalledWith(expect.objectContaining({ riskStatus: 'price_changed' }));
     });
   });
+
+  describe('getChargeCalendar', () => {
+    const sub = (over: Record<string, unknown> = {}) => ({
+      id: 'sub-1',
+      vendorName: 'Netflix',
+      vendorDomain: 'netflix.com',
+      amount: 100,
+      currency: 'USD',
+      frequency: SubscriptionFrequency.MONTHLY,
+      nextChargeDate: new Date(),
+      ...over,
+    });
+
+    it('reads only active subscriptions of the workspace', async () => {
+      subscriptionRepository.find.mockResolvedValue([]);
+      workspaceRepository.findOne.mockResolvedValue({ currency: 'USD' });
+
+      await service.getChargeCalendar('workspace-1', 6);
+
+      expect(subscriptionRepository.find).toHaveBeenCalledWith({
+        where: { workspaceId: 'workspace-1', status: SubscriptionStatus.ACTIVE },
+      });
+    });
+
+    it('converts foreign currencies into the workspace currency', async () => {
+      subscriptionRepository.find.mockResolvedValue([sub({ currency: 'EUR', amount: 10 })]);
+      workspaceRepository.findOne.mockResolvedValue({ currency: 'USD' });
+      exchangeRatesService.convert.mockResolvedValue({ converted: 11 });
+
+      const result = await service.getChargeCalendar('workspace-1', 2);
+
+      expect(exchangeRatesService.convert).toHaveBeenCalledWith(
+        10,
+        'EUR',
+        'USD',
+        expect.any(Date),
+      );
+      expect(result.currency).toBe('USD');
+      expect(result.rows[0].amounts).toEqual([11, 11]);
+    });
+
+    it('drops subscriptions with no charge date', async () => {
+      subscriptionRepository.find.mockResolvedValue([sub({ nextChargeDate: null })]);
+      workspaceRepository.findOne.mockResolvedValue({ currency: 'USD' });
+
+      const result = await service.getChargeCalendar('workspace-1', 3);
+
+      expect(result.rows).toEqual([]);
+      expect(result.monthTotals).toEqual([0, 0, 0]);
+    });
+
+    it('clamps the horizon to twelve months', async () => {
+      subscriptionRepository.find.mockResolvedValue([]);
+      workspaceRepository.findOne.mockResolvedValue({ currency: 'USD' });
+
+      const result = await service.getChargeCalendar('workspace-1', 99);
+
+      expect(result.months).toHaveLength(12);
+    });
+
+    it('totals each month across rows and sorts the biggest spender first', async () => {
+      subscriptionRepository.find.mockResolvedValue([
+        sub({ id: 'small', vendorName: 'GitHub', amount: 4 }),
+        sub({ id: 'big', vendorName: 'WeWork', amount: 690 }),
+      ]);
+      workspaceRepository.findOne.mockResolvedValue({ currency: 'USD' });
+
+      const result = await service.getChargeCalendar('workspace-1', 2);
+
+      expect(result.rows.map(row => row.vendorName)).toEqual(['WeWork', 'GitHub']);
+      result.monthTotals.forEach((total, index) => {
+        expect(total).toBe(result.rows.reduce((sum, row) => sum + row.amounts[index], 0));
+      });
+    });
+  });
+
 });

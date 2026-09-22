@@ -14,6 +14,7 @@ import {
 } from '@/app/lib/statement-expense-drawer';
 import { tokens } from '@/lib/theme-tokens';
 import type { SubscriptionFormData } from '../hooks/useSubscriptionsPage';
+import { guessVendorDomain } from './vendor-domain.utils';
 
 interface SubscriptionFormDrawerProps {
   open: boolean;
@@ -171,6 +172,15 @@ export function SubscriptionFormDrawer({
               value={formData.vendorName}
               onChange={event => setFormData({ ...formData, vendorName: event.target.value })}
               required
+              fullWidth
+            />
+
+            <TextField
+              label="Website"
+              value={formData.vendorDomain}
+              onChange={event => setFormData({ ...formData, vendorDomain: event.target.value })}
+              placeholder={guessVendorDomain(formData.vendorName)}
+              helperText="Used to show the vendor's icon"
               fullWidth
             />
 

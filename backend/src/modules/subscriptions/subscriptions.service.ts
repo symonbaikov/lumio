@@ -27,9 +27,12 @@ import { Workspace } from '../../entities/workspace.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { projectMonthlyCharges } from './charge-calendar.util';
 import type { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import type { RecordSubscriptionDecisionDto } from './dto/record-subscription-decision.dto';
 import type { UpdateSubscriptionDto } from './dto/update-subscription.dto';
+
+const DEFAULT_CALENDAR_MONTHS = 6;
 
 @Injectable()
 export class SubscriptionsService {
@@ -66,6 +69,7 @@ export class SubscriptionsService {
       currency: dto.currency ?? 'USD',
       categoryId: dto.categoryId ?? null,
       nextChargeDate: dto.nextChargeDate ? new Date(dto.nextChargeDate) : null,
+      vendorDomain: dto.vendorDomain ?? null,
       status: SubscriptionStatus.ACTIVE,
     });
     return this.subscriptionRepository.save(subscription);
@@ -116,6 +120,7 @@ export class SubscriptionsService {
     if (dto.categoryId !== undefined) subscription.categoryId = dto.categoryId;
     if (dto.nextChargeDate !== undefined)
       subscription.nextChargeDate = new Date(dto.nextChargeDate);
+    if (dto.vendorDomain !== undefined) subscription.vendorDomain = dto.vendorDomain;
     return this.subscriptionRepository.save(subscription);
   }
 
@@ -271,6 +276,87 @@ export class SubscriptionsService {
       overdueReviewCount,
       realizedAnnualSavings: Math.round(realizedAnnualSavings * 100) / 100,
     };
+  }
+
+  /**
+   * Expected charges per vendor per month for the months ahead.
+   *
+   * Always the active subscriptions of the whole workspace, never the status
+   * tab the page happens to show, and converted to the workspace currency by
+   * the same service as the monthly-cost summary so the two agree on screen.
+   */
+  async getChargeCalendar(
+    workspaceId: string,
+    months = DEFAULT_CALENDAR_MONTHS,
+  ): Promise<{
+    currency: string | null;
+    months: string[];
+    monthTotals: number[];
+    rows: {
+      subscriptionId: string;
+      vendorName: string;
+      vendorDomain: string | null;
+      amounts: number[];
+    }[];
+  }> {
+    const horizon = Math.min(Math.max(Math.trunc(months) || DEFAULT_CALENDAR_MONTHS, 1), 12);
+    const [active, workspace] = await Promise.all([
+      this.subscriptionRepository.find({
+        where: { workspaceId, status: SubscriptionStatus.ACTIVE },
+      }),
+      this.workspaceRepository.findOne({ where: { id: workspaceId } }),
+    ]);
+
+    const workspaceCurrency = workspace?.currency?.toUpperCase() ?? null;
+    const from = new Date();
+    const monthLabels = Array.from({ length: horizon }, (_, index) => {
+      const date = new Date(from.getFullYear(), from.getMonth() + index, 1);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    });
+
+    const rows = await Promise.all(
+      active.map(async sub => {
+        const occurrences = projectMonthlyCharges(
+          sub.nextChargeDate ? new Date(sub.nextChargeDate) : null,
+          sub.frequency,
+          from,
+          horizon,
+        );
+
+        let amount = Number(sub.amount);
+        if (workspaceCurrency && sub.currency.toUpperCase() !== workspaceCurrency) {
+          const converted = await this.exchangeRatesService.convert(
+            amount,
+            sub.currency,
+            workspaceCurrency,
+            new Date(),
+          );
+          amount = converted.converted;
+        }
+
+        return {
+          subscriptionId: sub.id,
+          vendorName: sub.vendorName,
+          vendorDomain: sub.vendorDomain ?? null,
+          amounts: occurrences.map(count => Math.round(amount * count * 100) / 100),
+        };
+      }),
+    );
+
+    const visibleRows = rows
+      .filter(row => row.amounts.some(value => value > 0))
+      .sort(
+        (a, b) =>
+          b.amounts.reduce((sum, value) => sum + value, 0) -
+          a.amounts.reduce((sum, value) => sum + value, 0),
+      );
+
+    const monthTotals = monthLabels.map(
+      (_, index) =>
+        Math.round(visibleRows.reduce((sum, row) => sum + row.amounts[index], 0) * 100) / 100,
+    );
+
+    return { currency: workspaceCurrency, months: monthLabels, monthTotals, rows: visibleRows };
   }
 
   async getUpcoming(workspaceId: string, days = 7): Promise<Subscription[]> {

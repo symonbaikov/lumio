@@ -108,6 +108,7 @@ import { TaxModule } from './modules/tax/tax.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
 import { UsersModule } from './modules/users/users.module';
+import { VendorIconsModule } from './modules/vendor-icons/vendor-icons.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
@@ -244,6 +245,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     WorkspacesModule,
     NotesModule,
     MapsModule,
+    VendorIconsModule,
     NotificationsModule,
     InsightsModule,
     ObservabilityModule,

@@ -2,6 +2,7 @@
 import { Box, Button, Card, CardContent, Chip, IconButton, Typography } from '@mui/material';
 
 import { Pencil, Trash2 } from '@/app/components/icons';
+import { VendorIcon } from '@/app/components/VendorIcon';
 import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import type { SubscriptionItem } from '../hooks/useSubscriptionsPage';
 
@@ -50,9 +51,15 @@ export function SubscriptionCard({
           sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}
         >
           <Box>
-            <Typography variant="subtitle1" fontWeight={600} noWrap>
-              {subscription.vendorName}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <VendorIcon
+                vendorName={subscription.vendorName}
+                vendorDomain={subscription.vendorDomain}
+              />
+              <Typography variant="subtitle1" fontWeight={600} noWrap>
+                {subscription.vendorName}
+              </Typography>
+            </Box>
             <Typography variant="h6" fontWeight={700} color="primary">
               {formatAmount(subscription.amount, subscription.currency)}
               <Typography component="span" variant="body2" color="text.secondary">
