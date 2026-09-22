@@ -1,5 +1,16 @@
-import { IsEnum, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { SubscriptionFrequency } from '../../../entities/subscription.entity';
+import { VENDOR_DOMAIN_PATTERN } from '../../vendor-icons/vendor-domain.util';
 
 export class CreateSubscriptionDto {
   @IsString()
@@ -23,4 +34,12 @@ export class CreateSubscriptionDto {
   @IsOptional()
   @IsString()
   nextChargeDate?: string;
+
+  // Normalised so a hand-typed "Netflix.COM " still matches the pattern.
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
+  @IsString()
+  @MaxLength(253)
+  @Matches(VENDOR_DOMAIN_PATTERN, { message: 'vendorDomain must be a domain name' })
+  vendorDomain?: string;
 }

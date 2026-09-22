@@ -6,11 +6,13 @@ import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import apiClient from '@/app/lib/api';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
+import { guessVendorDomain } from '../components/vendor-domain.utils';
 
 export interface SubscriptionItem {
   id: string;
   vendorName: string;
   vendorRaw: string | null;
+  vendorDomain: string | null;
   amount: number;
   currency: string;
   frequency: 'weekly' | 'monthly' | 'quarterly' | 'annual';
@@ -41,6 +43,18 @@ export interface SubscriptionSummary {
   realizedAnnualSavings: number;
 }
 
+export interface SubscriptionChargeCalendar {
+  currency: string | null;
+  months: string[];
+  monthTotals: number[];
+  rows: {
+    subscriptionId: string;
+    vendorName: string;
+    vendorDomain: string | null;
+    amounts: number[];
+  }[];
+}
+
 export interface SubscriptionWorkspaceMember {
   id: string;
   name?: string | null;
@@ -54,9 +68,18 @@ export interface SubscriptionFormData {
   currency: string;
   categoryId: string;
   nextChargeDate: string;
+  vendorDomain: string;
 }
 
 const DEFAULT_CURRENCY = 'USD';
+const CALENDAR_MONTHS = 6;
+
+const EMPTY_CALENDAR: SubscriptionChargeCalendar = {
+  currency: null,
+  months: [],
+  monthTotals: [],
+  rows: [],
+};
 
 const EMPTY_SUMMARY: SubscriptionSummary = {
   totalMonthlyCost: 0,
@@ -75,6 +98,7 @@ const makeEmptyForm = (currency: string): SubscriptionFormData => ({
   currency,
   categoryId: '',
   nextChargeDate: '',
+  vendorDomain: '',
 });
 
 export function useSubscriptionsPage() {
@@ -109,6 +133,20 @@ export function useSubscriptionsPage() {
     queryKey: queryKeys.subscriptionsSummary(workspaceId),
     queryFn: ({ signal }) =>
       apiQuery<SubscriptionSummary>({ url: '/subscriptions/summary', signal }),
+  });
+
+  // Deliberately not derived from `listQuery`: the calendar shows the whole
+  // workspace's active spend, so it must not follow the status tab or the
+  // client-side filters, and its amounts come converted by the same service as
+  // the monthly-cost summary.
+  const calendarQuery = useQuery({
+    queryKey: queryKeys.subscriptionsChargeCalendar({ workspaceId, months: CALENDAR_MONTHS }),
+    queryFn: ({ signal }) =>
+      apiQuery<SubscriptionChargeCalendar>({
+        url: '/subscriptions/charge-calendar',
+        params: { months: CALENDAR_MONTHS },
+        signal,
+      }),
   });
 
   const invalidate = useCallback((): Promise<void> => {
@@ -161,6 +199,7 @@ export function useSubscriptionsPage() {
       currency: sub.currency,
       categoryId: sub.categoryId ?? '',
       nextChargeDate: sub.nextChargeDate ?? '',
+      vendorDomain: sub.vendorDomain ?? '',
     });
     setDialogOpen(true);
   }, []);
@@ -180,6 +219,8 @@ export function useSubscriptionsPage() {
       currency: formData.currency || workspaceCurrency,
       categoryId: formData.categoryId || undefined,
       nextChargeDate: formData.nextChargeDate || undefined,
+      // The guess is only ever sent after the form showed it as a placeholder.
+      vendorDomain: formData.vendorDomain || guessVendorDomain(formData.vendorName) || undefined,
     };
     const editingId = editingSubscription?.id;
 
@@ -260,6 +301,7 @@ export function useSubscriptionsPage() {
   return {
     subscriptions: listQuery.data ?? [],
     summary: summaryQuery.data ?? EMPTY_SUMMARY,
+    chargeCalendar: calendarQuery.data ?? EMPTY_CALENDAR,
     workspaceMembers,
     workspaceCurrency,
     isPending: listQuery.isPending,

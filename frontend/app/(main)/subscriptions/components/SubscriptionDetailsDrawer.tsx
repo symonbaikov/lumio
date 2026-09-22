@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { VendorIcon } from '@/app/components/VendorIcon';
 import apiClient from '@/app/lib/api';
 import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { SubscriptionItem, SubscriptionWorkspaceMember } from '../hooks/useSubscriptionsPage';
@@ -84,6 +85,10 @@ export function SubscriptionDetailsDrawer({
     >
       <Stack spacing={2} sx={{ overflowY: 'auto', pr: 0.5 }}>
         <Stack direction="row" spacing={1} alignItems="center">
+          <VendorIcon
+            vendorName={subscription.vendorName}
+            vendorDomain={subscription.vendorDomain}
+          />
           <Chip
             label={subscription.status}
             size="small"
