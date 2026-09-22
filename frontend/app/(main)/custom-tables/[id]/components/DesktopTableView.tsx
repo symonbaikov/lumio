@@ -1,4 +1,9 @@
 'use client';
+// TanStack Table держит состояние в мутабельном объекте таблицы, а React
+// Compiler мемоизирует эти компоненты по ссылкам row/cell/table. Из-за этого
+// смена rowSelection не перерисовывала чекбоксы. Директива отключает
+// авто-мемоизацию для рендера грида — рекомендация самого TanStack.
+'use no memo';
 
 import { Popover } from '@mui/material';
 import { type Cell, flexRender, type Header, type Row, type Table } from '@tanstack/react-table';
@@ -39,6 +44,7 @@ interface DesktopTableViewProps {
   onResizeMouseDown: ResizeMouseDownFn;
   onCreateRow?: () => Promise<CustomTableGridRow | null>;
   columnTypeByKey: Record<string, string>;
+  columnTitleByKey: Record<string, string>;
   aggregateSelection: Record<string, AggregateFn>;
   aggregateValues: Record<string, number | string | null>;
   onAggregateChange: (columnKey: string, fn: AggregateFn | null) => void;
@@ -235,8 +241,12 @@ function HeaderSortToggle({
   sortClearLabel,
 }: HeaderSortToggleProps): React.JSX.Element {
   const sorted = header.column.getIsSorted();
+  // Подпись берём у самой таблицы: у числовых колонок TanStack первым кликом
+  // ставит desc (sortDescFirst), поэтому «следующее направление» нельзя
+  // выводить из текущего состояния — иначе кнопка обещает не то, что делает.
+  const nextOrder = header.column.getNextSortingOrder();
   const nextLabel =
-    sorted === false ? sortAscLabel : sorted === 'asc' ? sortDescLabel : sortClearLabel;
+    nextOrder === 'asc' ? sortAscLabel : nextOrder === 'desc' ? sortDescLabel : sortClearLabel;
   return (
     <button
       type="button"
@@ -349,6 +359,7 @@ function formatAggregateValue(value: number | string | null | undefined): string
 interface DesktopFooterCellProps {
   columnId: string;
   columnType: string | undefined;
+  columnTitle: string;
   isDark: boolean;
   stickyOffsets: StickyOffsets;
   width: number;
@@ -361,6 +372,7 @@ interface DesktopFooterCellProps {
 function DesktopFooterCell({
   columnId,
   columnType,
+  columnTitle,
   isDark,
   stickyOffsets,
   width,
@@ -385,7 +397,7 @@ function DesktopFooterCell({
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
         <select
-          aria-label={`${noneLabel}: ${columnId}`}
+          aria-label={`${noneLabel}: ${columnTitle}`}
           value={selectedFn ?? ''}
           onChange={event =>
             onAggregateChange(columnId, (event.target.value || null) as AggregateFn | null)
@@ -427,6 +439,7 @@ interface DesktopTableFooterProps {
   table: Table<CustomTableGridRow>;
   stickyOffsets: StickyOffsets;
   columnTypeByKey: Record<string, string>;
+  columnTitleByKey: Record<string, string>;
   aggregateSelection: Record<string, AggregateFn>;
   aggregateValues: Record<string, number | string | null>;
   aggregateLabels: Record<AggregateFn, string>;
@@ -438,6 +451,7 @@ function DesktopTableFooter({
   table,
   stickyOffsets,
   columnTypeByKey,
+  columnTitleByKey,
   aggregateSelection,
   aggregateValues,
   aggregateLabels,
@@ -472,6 +486,7 @@ function DesktopTableFooter({
               key={column.id}
               columnId={column.id}
               columnType={columnType}
+              columnTitle={columnTitleByKey[column.id] ?? column.id}
               isDark={isDark}
               stickyOffsets={stickyOffsets}
               width={column.getSize()}
@@ -912,6 +927,7 @@ function DesktopTableContent(p: P): React.JSX.Element {
           table={p.table}
           stickyOffsets={p.stickyOffsets}
           columnTypeByKey={p.columnTypeByKey}
+          columnTitleByKey={p.columnTitleByKey}
           aggregateSelection={p.aggregateSelection}
           aggregateValues={p.aggregateValues}
           aggregateLabels={p.labels.aggregateLabels}

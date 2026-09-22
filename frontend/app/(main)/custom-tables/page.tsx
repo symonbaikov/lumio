@@ -113,7 +113,13 @@ export default function CustomTablesPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { resolvedTheme } = useTheme();
-  const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
+  const [themeReady, setThemeReady] = useState(false);
+  useEffect(() => setThemeReady(true), []);
+  // Сервер тему не знает и всегда рендерит светлую, а на клиенте resolvedTheme
+  // уже 'dark' на первом рендере. Emotion в таком случае выдаёт другой класс на
+  // те же sx — React ругается несовпадением гидрации. До монтирования держим
+  // светлые токены, совпадающие с серверной разметкой.
+  const c = themeReady && resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   const t = useIntlayer('customTablesPage');
   const {
     items,

@@ -47,6 +47,8 @@ export interface UseCustomTableTanStackReturn {
   state: UseCustomTableStateReturn;
   /** Тип колонки по ключу — подвалу нужен, чтобы знать, что можно считать. */
   columnTypeByKey: Record<string, string>;
+  /** Заголовок колонки по ключу — для подписей в подвале. */
+  columnTitleByKey: Record<string, string>;
   isDark: boolean;
   colorPickerRowId: string | null;
   commonLabels: CommonLabels;
@@ -155,5 +157,21 @@ export function useCustomTableTanStack(
     return map;
   }, [params.columns]);
 
-  return { state, columnTypeByKey, isDark, colorPickerRowId, commonLabels, mobileLabels };
+  const columnTitleByKey = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const col of params.columns) {
+      map[col.key] = col.title || col.key;
+    }
+    return map;
+  }, [params.columns]);
+
+  return {
+    state,
+    columnTypeByKey,
+    columnTitleByKey,
+    isDark,
+    colorPickerRowId,
+    commonLabels,
+    mobileLabels,
+  };
 }

@@ -66,8 +66,6 @@ function render(props: {
       onUpdateRowStyle={vi.fn().mockResolvedValue(undefined)}
       onDeleteRow={vi.fn()}
       onPersistColumnWidth={vi.fn().mockResolvedValue(undefined)}
-      selectedColumnKeys={[]}
-      onSelectedColumnKeysChange={vi.fn()}
       onRenameColumnTitle={vi.fn().mockResolvedValue(undefined)}
       onSelectedRowIdsChange={vi.fn()}
       sorting={[]}
@@ -94,11 +92,11 @@ describe('custom table aggregate footer', () => {
   it('offers sum only on numeric columns, never on text ones', () => {
     const html = render({ aggregateSelection: {}, aggregateValues: {} });
 
-    // Ячейки подвала опознаём по aria-label селекта: он содержит ключ колонки.
+    // Ячейки подвала опознаём по aria-label селекта: он содержит заголовок колонки.
     const footer = html.slice(html.indexOf('<tfoot'));
     const cells = footer.split('</td>');
-    const amountCell = cells.find(cell => cell.includes('amount'));
-    const noteCell = cells.find(cell => cell.includes('note'));
+    const amountCell = cells.find(cell => cell.includes('Amount'));
+    const noteCell = cells.find(cell => cell.includes('Note'));
 
     expect(amountCell).toBeDefined();
     expect(amountCell).toContain('value="sum"');

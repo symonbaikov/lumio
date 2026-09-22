@@ -160,12 +160,16 @@ export function useColumnConfig({
   const [columnFilters, setColumnFilters] = useState<Record<string, ColumnFilterState>>({});
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const columnWidthTimersRef = useRef<Record<string, number>>({});
+  const skipInitialPersistRef = useRef(true);
 
   // Load column order + visibility from localStorage on mount
   useEffect(() => {
     if (!tableId) {
       return;
     }
+    // Прочитанное состояние попадёт в стейт только следующим рендером, поэтому
+    // первый прогон эффекта записи ниже нужно пропустить.
+    skipInitialPersistRef.current = true;
     const parsed = readStoredColumnSettings(`custom-table:${tableId}:columns`);
     if (!parsed) {
       return;
@@ -183,6 +187,12 @@ export function useColumnConfig({
     if (!tableId) {
       return;
     }
+    // Иначе на монтировании сюда приходит ещё пустой стейт и затирает в
+    // localStorage только что прочитанные порядок и скрытые колонки.
+    if (skipInitialPersistRef.current) {
+      skipInitialPersistRef.current = false;
+      return;
+    }
     writeStoredColumnSettings(`custom-table:${tableId}:columns`, {
       order: columnOrder,
       hidden: hiddenColumnKeys,
@@ -192,6 +202,12 @@ export function useColumnConfig({
   // Keep columnOrder in sync when orderedColumns changes (e.g. after a column is added/removed)
   useEffect(() => {
     const keys = orderedColumns.map(c => c.key);
+    // На первом рендере колонки ещё не пришли с сервера. Без этой проверки
+    // чистка по пустому списку стирала порядок и скрытые колонки, только что
+    // прочитанные из localStorage, — настройки не переживали перезагрузку.
+    if (!keys.length) {
+      return;
+    }
     setColumnOrder(prev => {
       if (!prev.length) {
         return keys;

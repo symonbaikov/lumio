@@ -878,7 +878,6 @@ export default function CustomTableDetailPage() {
   });
   const [gridFiltersParam, setGridFiltersParam] = useState<string | undefined>(undefined);
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[]>([]);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [activeTabId, setActiveTabId] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -1029,11 +1028,6 @@ export default function CustomTableDetailPage() {
   useEffect(() => {
     setSelectedRowIds([]);
   }, [normalizedActiveTabId]);
-
-  useEffect(() => {
-    const allowed = new Set(orderedColumns.map(c => c.key));
-    setSelectedColumnKeys(prev => prev.filter(k => allowed.has(k)));
-  }, [orderedColumns]);
 
   const gridColumnWidths = useMemo(() => {
     const next: Record<string, number> = {};
@@ -1796,8 +1790,6 @@ export default function CustomTableDetailPage() {
               onEditRow={rowId => openRowDrawer(rowId, 'edit')}
               onDeleteRow={rowId => requestDeleteRow(rows, rowId)}
               onPersistColumnWidth={persistColumnWidth}
-              selectedColumnKeys={selectedColumnKeys}
-              onSelectedColumnKeysChange={setSelectedColumnKeys}
               onRenameColumnTitle={renameColumnTitleFromGrid}
               onDeleteColumn={colKey => {
                 const targetColumn = orderedColumns.find(c => c.key === colKey);
