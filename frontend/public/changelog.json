@@ -1,14 +1,94 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "914eee13cec4cd0a84697c2443525dac7db4bc15"
+      "main": "f963202e2aedf41dfe6fe74587644e81efd21766"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-15T16:30:05.500Z",
+    "lastGeneratedAt": "2026-09-22T19:45:23.849Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-09-22-f963202",
+      "version": "main-f963202",
+      "branch": "main",
+      "date": "2026-09-22T19:45:23.849Z",
+      "title": "Release update - September 22, 2026",
+      "summary": "This release includes 3 fixes.",
+      "markdown": "## Fixes\n- **auth**: Keep users signed in while the refresh token is valid\n- **backend**: Wait longer for postgres on dev startup\n- **custom-tables**: Make grid checkboxes and column settings work",
+      "commits": [
+        {
+          "sha": "6a85df09d5f8d0bc289b27f578acd6360edfefd4",
+          "shortSha": "6a85df09",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-15T16:30:05Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "644f01436977dd6edfc6a0fb6a960d1fe88769bd",
+          "shortSha": "644f0143",
+          "subject": "fix(auth): keep users signed in while the refresh token is valid",
+          "author": "Symon Baikov",
+          "date": "2026-09-15T17:34:48+03:00",
+          "files": [
+            "frontend/app/lib/api.test.ts",
+            "frontend/app/lib/api.ts",
+            "frontend/proxy.test.ts",
+            "frontend/proxy.ts"
+          ]
+        },
+        {
+          "sha": "a2ab60f004d9b72dd6504941eb7c3a5bf8c6de64",
+          "shortSha": "a2ab60f0",
+          "subject": "fix(backend): wait longer for postgres on dev startup",
+          "author": "Symon Baikov",
+          "date": "2026-09-17T12:30:51+03:00",
+          "files": [
+            "backend/src/config/database.config.ts"
+          ]
+        },
+        {
+          "sha": "6ba58d8183954c0034733665da7ed056fe183c62",
+          "shortSha": "6ba58d81",
+          "subject": "fix(custom-tables): make grid checkboxes and column settings work",
+          "author": "Symon Baikov",
+          "date": "2026-09-22T22:23:31+03:00",
+          "files": [
+            "frontend/app/(main)/custom-tables/[id]/CustomTableAggregateFooter.test.tsx",
+            "frontend/app/(main)/custom-tables/[id]/CustomTableTanStack.test.tsx",
+            "frontend/app/(main)/custom-tables/[id]/CustomTableTanStack.tsx",
+            "frontend/app/(main)/custom-tables/[id]/components/ColumnsVisibilityPanel.test.tsx",
+            "frontend/app/(main)/custom-tables/[id]/components/ColumnsVisibilityPanel.tsx",
+            "frontend/app/(main)/custom-tables/[id]/components/CustomTableDetailView.tsx",
+            "frontend/app/(main)/custom-tables/[id]/components/DesktopTableView.tsx",
+            "frontend/app/(main)/custom-tables/[id]/grid-compiler-optout.test.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useColumnConfig.test.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useColumnConfig.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useCustomTablePage.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useCustomTableTanStack.ts",
+            "frontend/app/(main)/custom-tables/[id]/page-modals.content.ts",
+            "frontend/app/(main)/custom-tables/[id]/page.content.ts",
+            "frontend/app/(main)/custom-tables/[id]/page.tsx",
+            "frontend/app/(main)/custom-tables/page.test.tsx",
+            "frontend/app/(main)/custom-tables/page.tsx",
+            "frontend/app/components/ui/checkbox.tsx",
+            "frontend/app/plugins/mcp-server/useApiKeys.ts"
+          ]
+        },
+        {
+          "sha": "f963202e2aedf41dfe6fe74587644e81efd21766",
+          "shortSha": "f963202e",
+          "subject": "Merge pull request #180 from symonbaikov/fix/custom-tables-grid-bugs",
+          "author": "Symon Baikov",
+          "date": "2026-09-22T22:45:02+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-15-914eee1",
       "version": "main-914eee1",
