@@ -75,8 +75,6 @@ describe('CustomTableTanStack', () => {
         onUpdateRowStyle={vi.fn().mockResolvedValue(undefined)}
         onDeleteRow={vi.fn()}
         onPersistColumnWidth={vi.fn().mockResolvedValue(undefined)}
-        selectedColumnKeys={[]}
-        onSelectedColumnKeysChange={vi.fn()}
         onRenameColumnTitle={vi.fn().mockResolvedValue(undefined)}
         onSelectedRowIdsChange={vi.fn()}
         sorting={[]}
@@ -88,10 +86,13 @@ describe('CustomTableTanStack', () => {
       />,
     );
 
+    // Подвал с кнопкой лежит за таблицей и позиционируется инлайновыми стилями
+    // (Tailwind-классов в этом компоненте нет), поэтому проверяем их.
     expect(html).toMatch(/<\/table>[\s\S]*data-testid="custom-table-add-row"/);
-    expect(html).toMatch(/data-testid="custom-table-add-row"[^>]*\bsticky\b/);
-    expect(html).toMatch(/data-testid="custom-table-add-row"[^>]*\bleft-0\b/);
-    expect(html).toMatch(/data-testid="custom-table-add-row"[^>]*\bw-full\b/);
+    const addRowStyle = /data-testid="custom-table-add-row"[^>]*style="([^"]*)"/.exec(html)?.[1];
+    expect(addRowStyle).toContain('position:sticky');
+    expect(addRowStyle).toContain('left:0');
+    expect(addRowStyle).toContain('width:100%');
   });
 
   it('renders mobile cards instead of table on mobile viewport', () => {
@@ -141,8 +142,6 @@ describe('CustomTableTanStack', () => {
         onUpdateRowStyle={vi.fn().mockResolvedValue(undefined)}
         onDeleteRow={vi.fn()}
         onPersistColumnWidth={vi.fn().mockResolvedValue(undefined)}
-        selectedColumnKeys={[]}
-        onSelectedColumnKeysChange={vi.fn()}
         onRenameColumnTitle={vi.fn().mockResolvedValue(undefined)}
         onSelectedRowIdsChange={vi.fn()}
         sorting={[]}

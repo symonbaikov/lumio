@@ -87,6 +87,10 @@ export function ColumnsVisibilityPanel({
                     <Checkbox
                       checked={!isHidden}
                       onCheckedChange={() => toggleColumnHidden(col.key)}
+                      // Строка целиком уже переключает колонку, поэтому клик по
+                      // самому чекбоксу не должен всплывать: иначе переключение
+                      // срабатывает дважды и галочка остаётся на месте.
+                      onClick={event => event.stopPropagation()}
                       className="h-4 w-4"
                     />
                   </Box>

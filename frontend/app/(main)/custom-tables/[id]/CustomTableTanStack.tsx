@@ -1,4 +1,7 @@
 'use client';
+// См. комментарий в components/DesktopTableView.tsx: без этого React Compiler
+// кеширует элемент грида, пока меняется только состояние внутри table.
+'use no memo';
 
 import type { SortingState } from '@tanstack/react-table';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
@@ -42,8 +45,6 @@ interface CustomTableTanStackProps {
   onDeleteRow: (rowId: string) => void;
   // eslint-disable-next-line max-params
   onPersistColumnWidth: (columnKey: string, width: number) => Promise<void>;
-  selectedColumnKeys: string[];
-  onSelectedColumnKeysChange: (keys: string[]) => void;
   // eslint-disable-next-line max-params
   onRenameColumnTitle: (columnKey: string, nextTitle: string) => Promise<void>;
   onDeleteColumn?: (columnKey: string) => void;
@@ -110,6 +111,7 @@ function DesktopView({ props: p, ctx }: ViewProps): React.JSX.Element {
       onResizeMouseDown={ctx.state.handleResizeMouseDown}
       onCreateRow={p.onCreateRow}
       columnTypeByKey={ctx.columnTypeByKey}
+      columnTitleByKey={ctx.columnTitleByKey}
       aggregateSelection={p.aggregateSelection}
       aggregateValues={p.aggregateValues}
       onAggregateChange={p.onAggregateChange}

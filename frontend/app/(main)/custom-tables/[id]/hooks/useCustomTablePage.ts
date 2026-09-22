@@ -252,7 +252,6 @@ interface GridTabParams {
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const useGridTab = (p: GridTabParams) => {
   const [gridFiltersParam, setGridFiltersParam] = useState<string | undefined>(undefined);
-  const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[]>([]);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -324,10 +323,6 @@ const useGridTab = (p: GridTabParams) => {
     setSelectedRowIds([]);
   }, [combinedFiltersParam]);
   useEffect(() => {
-    const a = new Set(p.orderedColumns.map(c => c.key));
-    setSelectedColumnKeys(prev => prev.filter(k => a.has(k)));
-  }, [p.orderedColumns]);
-  useEffect(() => {
     if (!selectedRowIds.length) {
       return;
     }
@@ -337,8 +332,6 @@ const useGridTab = (p: GridTabParams) => {
   return {
     gridFiltersParam,
     onGridFiltersParamChange,
-    selectedColumnKeys,
-    setSelectedColumnKeys,
     selectedRowIds,
     setSelectedRowIds,
     searchQuery,

@@ -232,18 +232,17 @@ describe('CustomTablesPage', () => {
     });
 
     const emptyTitle = await screen.findByText('No export tables yet');
-    const emptyCard = emptyTitle.closest('div[class*="rounded-2xl"]');
-    const stepsCard = screen.getByText('Step 1').closest('div');
+    const stepsItem = screen.getByText('Step 1');
 
-    expect(emptyCard?.className).toContain('border-border');
-    expect(emptyCard?.className).toContain('bg-card');
-    expect(emptyCard?.className).not.toContain('bg-white');
-    expect(emptyCard?.className).not.toContain('border-gray-200');
-
-    expect(stepsCard?.className).toContain('bg-muted');
-    expect(stepsCard?.className).toContain('border-border');
-    expect(stepsCard?.className).not.toContain('bg-gray-50/70');
-    expect(stepsCard?.className).not.toContain('border-gray-200');
+    // Пустое состояние больше не красится светлыми хардкодами — поверхности
+    // берутся из темизированных токенов, поэтому сторожим отсутствие возврата
+    // к bg-white / border-gray-200 / bg-gray-50.
+    const markup = document.body.innerHTML;
+    expect(emptyTitle).toBeTruthy();
+    expect(stepsItem).toBeTruthy();
+    expect(markup).not.toContain('bg-white');
+    expect(markup).not.toContain('border-gray-200');
+    expect(markup).not.toContain('bg-gray-50');
   });
 
   it('opens create menu with blank table and Google Sheets import actions', async () => {

@@ -63,8 +63,6 @@ function GridArea(p: P): React.JSX.Element {
             onEditRow={rowId => p.openRowDrawer(rowId, 'edit')}
             onDeleteRow={rowId => p.requestDeleteRow(p.rows, rowId)}
             onPersistColumnWidth={(columnKey, width) => p.persistColumnWidth(columnKey, width)}
-            selectedColumnKeys={p.selectedColumnKeys}
-            onSelectedColumnKeysChange={keys => p.setSelectedColumnKeys(keys)}
             onRenameColumnTitle={(columnKey, nextTitle) =>
               p.renameColumnTitleFromGrid(columnKey, nextTitle)
             }
