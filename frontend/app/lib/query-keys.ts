@@ -37,6 +37,8 @@ export const queryKeys = {
   insights: (workspaceId: string | null) => ['insights', workspaceId] as const,
   integrationStatus: (o: { workspaceId: string | null; apiPath: string }) =>
     ['integration-status', o.workspaceId, o.apiPath] as const,
+  integrationCatalogStatuses: (workspaceId: string | null) =>
+    ['integration-status', workspaceId, 'catalog'] as const,
   webhookEndpoints: (workspaceId: string | null) => ['webhook-endpoints', workspaceId] as const,
   webhookSubscriptions: (workspaceId: string | null) =>
     ['webhook-subscriptions', workspaceId] as const,

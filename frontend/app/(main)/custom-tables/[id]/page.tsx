@@ -1368,6 +1368,7 @@ export default function CustomTableDetailPage() {
   } = useRowActions({
     tableId,
     paidColKey,
+    columns: orderedColumns,
     rows,
     displayRows,
     setRows,

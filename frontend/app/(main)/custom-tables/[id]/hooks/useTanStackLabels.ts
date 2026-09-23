@@ -11,10 +11,12 @@ export interface ColumnLabels {
   colorTooltipLabel: string;
   deleteLabel: string;
   addRowLabel: string;
+  draftRowHint: string;
 }
 
 export interface CommonLabels {
   addRowLabel: string;
+  draftRowHint: string;
   emptyTitle: string;
   emptySubtitle: string;
   loadingMore: string;
@@ -49,6 +51,11 @@ export function useTanStackLabels(t: TanStackT): TanStackLabels {
         path: ['grid', 'addRowLabel'],
         fallback: 'Add row',
       }),
+      draftRowHint: getTranslationValue({
+        root: t,
+        path: ['grid', 'draftRowHint'],
+        fallback: 'Draft: the row is saved once the required fields are filled in',
+      }),
     }),
     [t],
   );
@@ -59,6 +66,11 @@ export function useTanStackLabels(t: TanStackT): TanStackLabels {
         root: t,
         path: ['grid', 'addRowLabel'],
         fallback: 'Add row',
+      }),
+      draftRowHint: getTranslationValue({
+        root: t,
+        path: ['grid', 'draftRowHint'],
+        fallback: 'Draft: the row is saved once the required fields are filled in',
       }),
       emptyTitle: getTranslationValue({
         root: t,

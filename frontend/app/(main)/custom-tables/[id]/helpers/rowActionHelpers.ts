@@ -5,6 +5,7 @@ import type {
   CustomTableRowStyles,
 } from '../utils/stylingUtils';
 import { getCreatedRowResponse } from '../utils/tableHelpers';
+import { isDraftRowId } from './draftRowHelpers';
 
 export function applyRowDataPatch(
   rows: CustomTableGridRow[],
@@ -34,6 +35,12 @@ function extractPayload(data: unknown): unknown {
     return data;
   }
   const d = data as Record<string, unknown>;
+  // У самой строки есть поле data со значениями ячеек, поэтому конверт можно
+  // разворачивать только тогда, когда снаружи лежит не строка. Иначе вместо
+  // строки разбирались её же ячейки, id терялся и подставлялся временный.
+  if (typeof d.id === 'string' || typeof d.rowNumber === 'number') {
+    return data;
+  }
   return d.data ?? d.item ?? data;
 }
 
@@ -41,7 +48,9 @@ export function parseCreateRowResponse(data: unknown, rowCount: number): CustomT
   const payload = extractPayload(data);
   const raw = Array.isArray(payload) ? payload[0] : payload;
   const created = getCreatedRowResponse(raw);
-  if (!created) {
+  // Без серверного id строка осталась бы черновиком: getCreatedRowResponse
+  // подставляет временный id, и молча сохранять такую строку нельзя.
+  if (!created || isDraftRowId(created.id)) {
     return null;
   }
   created.rowNumber = created.rowNumber || rowCount + 1;
@@ -51,8 +60,9 @@ export function parseCreateRowResponse(data: unknown, rowCount: number): CustomT
 export async function createRowRequest(
   tableId: string,
   rowCount: number,
+  data: CustomTableRowPatch,
 ): Promise<CustomTableGridRow> {
-  const response = await apiClient.post(`/custom-tables/${tableId}/rows`, { data: {} });
+  const response = await apiClient.post(`/custom-tables/${tableId}/rows`, { data });
   const created = parseCreateRowResponse(response.data, rowCount);
   if (!created) {
     throw new Error('Invalid create row response');

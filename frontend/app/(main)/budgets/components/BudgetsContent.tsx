@@ -10,7 +10,7 @@ import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import type { BudgetFormData, BudgetItem } from '../hooks/useBudgetsPage';
 import { BudgetCard } from './BudgetCard';
-import { BudgetFormDialog } from './BudgetFormDialog';
+import { BudgetFormDrawer } from './BudgetFormDrawer';
 
 function BudgetCardSkeleton(): React.JSX.Element {
   return (
@@ -129,7 +129,7 @@ export function BudgetsContent({
         </Box>
       )}
 
-      <BudgetFormDialog
+      <BudgetFormDrawer
         open={dialogOpen}
         editing={editingBudget}
         formData={formData}

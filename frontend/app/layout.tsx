@@ -10,6 +10,7 @@ import AppChrome from './components/AppChrome';
 import ContentBackground from './components/ContentBackground';
 import DynamicPageTitle from './components/DynamicPageTitle';
 import MobileBottomBar from './components/mobile/MobileBottomBar';
+import { AppPanels } from './components/panels/AppPanels';
 import { ReactScan } from './components/ReactScan';
 import TopBar from './components/TopBar';
 import { normalizeLocale } from './lib/locale';
@@ -90,6 +91,7 @@ export default async function RootLayout({
                   <TopBar />
                   <main>{children}</main>
                   <MobileBottomBar />
+                  <AppPanels />
                   <div
                     id="fab-portal"
                     style={{ position: 'fixed', inset: 0, zIndex: 300, pointerEvents: 'none' }}

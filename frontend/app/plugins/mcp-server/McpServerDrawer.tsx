@@ -13,6 +13,7 @@ import { alpha } from '@mui/material/styles';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Copy, Lock, Plus, Trash2 } from '@/app/components/icons';
+import { PanelBackTitle } from '@/app/components/panels/panel-ui';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { formatStoredDate } from '@/app/lib/user-format-store';
 import { tokens } from '@/lib/theme-tokens';
@@ -21,6 +22,9 @@ import { useApiKeys } from './useApiKeys';
 interface McpServerDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Set when the drawer is the second layer of the plugins panel. */
+  onBack?: () => void;
+  zIndex?: number;
 }
 
 const sectionLabelStyle = {
@@ -93,7 +97,7 @@ function timeAgo(dateStr: string | null): string {
   return formatStoredDate(dateStr);
 }
 
-export function McpServerDrawer({ isOpen, onClose }: McpServerDrawerProps) {
+export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDrawerProps) {
   const { keys, loading, newKey, isActive, create, revoke, clearNewKey } = useApiKeys();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [keyName, setKeyName] = useState('');
@@ -114,7 +118,13 @@ export function McpServerDrawer({ isOpen, onClose }: McpServerDrawerProps) {
 
   return (
     <>
-      <DrawerShell isOpen={isOpen} onClose={onClose} title="MCP Server" width="md">
+      <DrawerShell
+        isOpen={isOpen}
+        onClose={onClose}
+        title={onBack ? <PanelBackTitle title="MCP Server" onBack={onBack} /> : 'MCP Server'}
+        width="md"
+        zIndex={zIndex}
+      >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, overflowY: 'auto', flex: 1 }}>
           {/* ── Status ── */}
           <Box>

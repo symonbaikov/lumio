@@ -1,15 +1,17 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import apiClient from '@/app/lib/api';
+import { createDraftRow, isDraftReadyToSave, isDraftRowId } from '../helpers/draftRowHelpers';
+import { parseCreateRowResponse } from '../helpers/rowActionHelpers';
 import type {
   CustomTableCellValue,
+  CustomTableColumn,
   CustomTableGridRow,
   CustomTableRowPatch,
   CustomTableRowStyles,
 } from '../utils/stylingUtils';
-import { getCreatedRowResponse } from '../utils/tableHelpers';
 
 interface UseRowActionsMessages {
   addRowLoading: string;
@@ -22,6 +24,8 @@ interface UseRowActionsMessages {
 interface UseRowActionsParams {
   tableId: string | null;
   paidColKey: string | null;
+  /** Все колонки таблицы, включая скрытые: по ним решается, готов ли черновик. */
+  columns: CustomTableColumn[];
   rows: CustomTableGridRow[];
   displayRows: CustomTableGridRow[];
   setRows: React.Dispatch<React.SetStateAction<CustomTableGridRow[]>>;
@@ -48,6 +52,7 @@ export interface UseRowActionsReturn {
 export function useRowActions({
   tableId,
   paidColKey,
+  columns,
   rows,
   displayRows,
   setRows,
@@ -56,46 +61,76 @@ export function useRowActions({
   closeRowDrawer,
   messages,
 }: UseRowActionsParams): UseRowActionsReturn {
+  const draftSeqRef = useRef(0);
+  // Строка, по которой POST уже летит: без этого две быстрые правки ячеек
+  // создали бы на сервере две строки вместо одной.
+  const promotingRef = useRef<Set<string>>(new Set());
+
+  // Строка создаётся локально: пустую строку бэкенд отвергает, пока в таблице
+  // есть колонка с isRequired. Запись — в promoteDraftRow.
   const createRow = useCallback(async (): Promise<CustomTableGridRow | null> => {
     if (!tableId) {
       return null;
     }
-    const toastId = toast.loading(messages.addRowLoading);
+    draftSeqRef.current += 1;
+    const draft = createDraftRow(draftSeqRef.current, rows.length + 1);
+    setRows(prev => [...prev, draft]);
+    return draft;
+  }, [tableId, rows.length, setRows]);
 
-    return await (async () => {
-      const response = await apiClient.post(`/custom-tables/${tableId}/rows`, { data: {} });
-      const payload = response.data?.data ?? response.data?.item ?? response.data;
-      const createdRaw = Array.isArray(payload) ? payload[0] : payload;
-      const created = getCreatedRowResponse(createdRaw);
-      if (!created) {
-        throw new Error('Invalid create row response');
+  const promoteDraftRow = useCallback(
+    async (rowId: string, nextData: CustomTableRowPatch): Promise<void> => {
+      if (!tableId || promotingRef.current.has(rowId)) {
+        return;
       }
-      created.rowNumber = created.rowNumber || rows.length + 1;
-      setRows(prev => [...prev, created]);
-      toast.success(messages.addRowSuccess, { id: toastId });
-      refreshStats();
-      return created;
-    })().catch(async error => {
-      console.error('Failed to add row:', error);
-      toast.error(messages.addRowFailed, { id: toastId });
-      return null;
-    });
-  }, [tableId, rows, setRows, refreshStats, messages]);
+      if (!isDraftReadyToSave(nextData, columns)) {
+        return;
+      }
+      promotingRef.current.add(rowId);
+      const toastId = toast.loading(messages.addRowLoading);
+
+      await (async () => {
+        const response = await apiClient.post(`/custom-tables/${tableId}/rows`, {
+          data: nextData,
+        });
+        const created = parseCreateRowResponse(response.data, rows.length);
+        if (!created) {
+          throw new Error('Invalid create row response');
+        }
+        setRows(prev =>
+          prev.map(r =>
+            r.id === rowId
+              ? { ...created, data: { ...nextData, ...(created.data || {}) }, styles: r.styles }
+              : r,
+          ),
+        );
+        toast.success(messages.addRowSuccess, { id: toastId });
+        refreshStats();
+      })()
+        .catch(async error => {
+          // Строка остаётся черновиком: следующая правка ячейки попробует снова.
+          console.error('Failed to add row:', error);
+          toast.error(messages.addRowFailed, { id: toastId });
+        })
+        .finally(async () => {
+          promotingRef.current.delete(rowId);
+        });
+    },
+    [tableId, columns, rows.length, setRows, refreshStats, messages],
+  );
 
   const updateCellFromGrid = useCallback(
     async (rowId: string, columnKey: string, value: CustomTableCellValue) => {
       if (!tableId) {
         return;
       }
-      if (rowId.startsWith('temp-')) {
-        setRows(prev =>
-          prev.map(r =>
-            r.id === rowId ? { ...r, data: { ...(r.data || {}), [columnKey]: value } } : r,
-          ),
-        );
+      if (isDraftRowId(rowId)) {
+        const nextData = { ...(rows.find(r => r.id === rowId)?.data || {}), [columnKey]: value };
+        setRows(prev => prev.map(r => (r.id === rowId ? { ...r, data: nextData } : r)));
         if (columnKey === paidColKey) {
           refreshStats();
         }
+        await promoteDraftRow(rowId, nextData);
         return;
       }
 
@@ -116,7 +151,7 @@ export function useRowActions({
         toast.error(messages.saveValueFailed);
       });
     },
-    [tableId, paidColKey, setRows, refreshStats, messages.saveValueFailed],
+    [tableId, paidColKey, rows, setRows, refreshStats, promoteDraftRow, messages.saveValueFailed],
   );
 
   const updateRowFromDrawer = useCallback(
@@ -127,13 +162,13 @@ export function useRowActions({
       if (!Object.keys(patchData).length) {
         return;
       }
-      if (rowId.startsWith('temp-')) {
-        setRows(prev =>
-          prev.map(r => (r.id === rowId ? { ...r, data: { ...(r.data || {}), ...patchData } } : r)),
-        );
+      if (isDraftRowId(rowId)) {
+        const nextData = { ...(rows.find(r => r.id === rowId)?.data || {}), ...patchData };
+        setRows(prev => prev.map(r => (r.id === rowId ? { ...r, data: nextData } : r)));
         if (paidColKey && Object.hasOwn(patchData, paidColKey)) {
           refreshStats();
         }
+        await promoteDraftRow(rowId, nextData);
         return;
       }
       await apiClient.patch(`/custom-tables/${tableId}/rows/${rowId}`, { data: patchData });
@@ -144,7 +179,7 @@ export function useRowActions({
         refreshStats();
       }
     },
-    [tableId, paidColKey, setRows, refreshStats],
+    [tableId, paidColKey, rows, setRows, refreshStats, promoteDraftRow],
   );
 
   const updateRowStyle = useCallback(
@@ -156,7 +191,7 @@ export function useRowActions({
       return await (async () => {
         const row = rows.find(r => r.id === rowId);
         const mergedStyles = { ...(row?.styles || {}), ...styles };
-        if (rowId.startsWith('temp-')) {
+        if (isDraftRowId(rowId)) {
           setRows(prev => prev.map(r => (r.id === rowId ? { ...r, styles: mergedStyles } : r)));
           return;
         }

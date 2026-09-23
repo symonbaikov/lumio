@@ -5,6 +5,7 @@ import { alpha } from '@mui/material/styles';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Copy, Plus, Trash2 } from '@/app/components/icons';
+import { PanelBackTitle } from '@/app/components/panels/panel-ui';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { tokens } from '@/lib/theme-tokens';
 import { useWebhookEndpoints, useWebhookSubscriptions } from './useWebhooks';
@@ -18,6 +19,9 @@ const EVENTS = [
 interface WebhooksDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Set when the drawer is the second layer of the plugins panel. */
+  onBack?: () => void;
+  zIndex?: number;
 }
 
 const tabBtnStyle = (active: boolean) => ({
@@ -53,7 +57,7 @@ const actionBtnStyle = (variant: 'danger' | 'default' | 'primary') => ({
   cursor: 'pointer',
 });
 
-export function WebhooksDrawer({ isOpen, onClose }: WebhooksDrawerProps) {
+export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDrawerProps) {
   const [activeTab, setActiveTab] = useState<'inbound' | 'outbound'>('inbound');
 
   const {
@@ -117,7 +121,14 @@ export function WebhooksDrawer({ isOpen, onClose }: WebhooksDrawerProps) {
   };
 
   return (
-    <DrawerShell isOpen={isOpen} onClose={onClose} title="Webhooks" position="right" width="lg">
+    <DrawerShell
+      isOpen={isOpen}
+      onClose={onClose}
+      title={onBack ? <PanelBackTitle title="Webhooks" onBack={onBack} /> : 'Webhooks'}
+      position="right"
+      width="lg"
+      zIndex={zIndex}
+    >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
         {/* Tab switcher */}
         <Box

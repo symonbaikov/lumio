@@ -1,11 +1,12 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { Plus, Trash2 } from '@/app/components/icons';
+import { PencilLine, Plus, Trash2 } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
+import { isDraftRowId } from '../helpers/draftRowHelpers';
 import type { CustomTableColumn, CustomTableGridRow } from '../utils/stylingUtils';
 import { getRowStyle } from '../utils/stylingUtils';
 import type { FormatMobileCellFn, SelectRowFn } from './MobileTableView.types';
@@ -36,6 +37,7 @@ interface MobileTableViewProps {
     viewLabel: string;
     editLabel: string;
     deleteLabel: string;
+    draftRowHint: string;
   };
   formatMobileCellValue: FormatMobileCellFn;
 }
@@ -73,7 +75,7 @@ interface MobileRowActionsProps {
   onViewRow?: (rowId: string) => void;
   onEditRow?: (rowId: string) => void;
   onDeleteRow: (rowId: string) => void;
-  labels: { viewLabel: string; editLabel: string; deleteLabel: string };
+  labels: { viewLabel: string; editLabel: string; deleteLabel: string; draftRowHint: string };
 }
 function MobileRowActions({
   row,
@@ -190,7 +192,13 @@ function MobileRowCard({
             onCheckedChange={checked => onSelectRow(row.id, Boolean(checked))}
             aria-label={`Select row ${row.rowNumber}`}
           />
-          <span>#{row.rowNumber}</span>
+          {isDraftRowId(row.id) ? (
+            <span title={labels.draftRowHint}>
+              <PencilLine size={14} aria-label={labels.draftRowHint} />
+            </span>
+          ) : (
+            <span>#{row.rowNumber}</span>
+          )}
         </div>
         <MobileRowActions
           row={row}

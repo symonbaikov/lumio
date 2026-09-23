@@ -49,8 +49,10 @@ export function createIntegrationsTour(texts: {
       {
         title: texts.steps.googleSheets.title,
         description: texts.steps.googleSheets.description,
-        selector: '[data-tour-id="integration-card-google-sheets"]',
-        side: 'right',
+        // The panel row for the spreadsheet import; there is no separate
+        // Google Sheets card any more.
+        selector: '[data-tour-id="integration-card-workbook-import"]',
+        side: 'left',
         align: 'start',
       },
       {

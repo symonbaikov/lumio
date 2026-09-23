@@ -63,6 +63,11 @@ export interface CustomTableColumn {
   type: ColumnType;
   position: number;
   config: CustomTableColumnConfig | null;
+  /**
+   * Грид типизирован этим интерфейсом, а не CustomTablePageColumn, но флаг ему
+   * нужен: по нему подсвечиваются незаполненные ячейки строки-черновика.
+   */
+  isRequired?: boolean;
   style?: {
     header?: SheetStyle;
     cell?: SheetStyle;

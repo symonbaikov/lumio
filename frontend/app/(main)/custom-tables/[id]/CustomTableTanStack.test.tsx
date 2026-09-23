@@ -1,8 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CustomTableTanStack } from './CustomTableTanStack';
 
 const viewportState = vi.hoisted(() => ({ isMobile: false }));
+// Гридом управляет виртуализатор: пока он отдаёт пустой список, строки не
+// рендерятся вовсе. По умолчанию 0, чтобы прежние тесты не поменяли поведение.
+const virtualState = vi.hoisted(() => ({ rowCount: 0 }));
 
 const createI18nProxy = () =>
   new Proxy(
@@ -39,12 +42,23 @@ vi.mock('@mui/material', async () => {
 
 vi.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: () => ({
-    getVirtualItems: () => [],
-    getTotalSize: () => 0,
+    getVirtualItems: () =>
+      Array.from({ length: virtualState.rowCount }, (_, index) => ({
+        index,
+        key: index,
+        start: index * 40,
+        end: (index + 1) * 40,
+        size: 40,
+      })),
+    getTotalSize: () => virtualState.rowCount * 40,
   }),
 }));
 
 describe('CustomTableTanStack', () => {
+  beforeEach(() => {
+    virtualState.rowCount = 0;
+  });
+
   it('keeps add row button centered during horizontal scroll', () => {
     viewportState.isMobile = false;
 
@@ -157,5 +171,63 @@ describe('CustomTableTanStack', () => {
     expect(html).toContain('Name');
     expect(html).toContain('Alice');
     expect(html).not.toContain('<table');
+  });
+
+  it('marks a draft row and highlights the required cell it still needs', () => {
+    viewportState.isMobile = false;
+    virtualState.rowCount = 1;
+
+    const html = renderToStaticMarkup(
+      <CustomTableTanStack
+        tableId="table-1"
+        columns={[
+          {
+            id: 'col-1',
+            key: 'client',
+            title: 'Client',
+            type: 'text',
+            position: 0,
+            config: null,
+            isRequired: true,
+          },
+          {
+            id: 'col-2',
+            key: 'project',
+            title: 'Project',
+            type: 'text',
+            position: 1,
+            config: null,
+          },
+        ]}
+        rows={[{ id: 'temp-1', rowNumber: 1, data: { project: 'Redesign' }, styles: null }]}
+        selectedRowIds={[]}
+        columnWidths={{}}
+        isFullscreen={false}
+        loadingRows={false}
+        hasMore={false}
+        stickyLeftColumnIds={[]}
+        stickyRightColumnIds={[]}
+        onLoadMore={vi.fn()}
+        onFiltersParamChange={vi.fn()}
+        onUpdateCell={vi.fn().mockResolvedValue(undefined)}
+        onUpdateRowStyle={vi.fn().mockResolvedValue(undefined)}
+        onDeleteRow={vi.fn()}
+        onPersistColumnWidth={vi.fn().mockResolvedValue(undefined)}
+        onRenameColumnTitle={vi.fn().mockResolvedValue(undefined)}
+        onSelectedRowIdsChange={vi.fn()}
+        sorting={[]}
+        onSortingChange={vi.fn()}
+        conditionalRules={[]}
+        aggregateSelection={{}}
+        aggregateValues={{}}
+        onAggregateChange={vi.fn()}
+      />,
+    );
+
+    // Маркер вместо номера строки и рамка на пустой обязательной ячейке.
+    expect(html).toContain('Draft: the row is saved once the required fields are filled in');
+    expect(html).toContain('inset 0 0 0 1px');
+    // Заполненная необязательная колонка подсвечиваться не должна.
+    expect(html.match(/inset 0 0 0 1px/g)).toHaveLength(1);
   });
 });

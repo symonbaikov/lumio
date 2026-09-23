@@ -383,6 +383,7 @@ const usePasteRow = (p: PasteRowParams) => {
   const rowState = useRowActions({
     tableId: p.tableId,
     paidColKey: p.paidColKey,
+    columns: p.orderedColumns,
     rows: p.rows,
     displayRows: p.rows,
     setRows: p.setRows,

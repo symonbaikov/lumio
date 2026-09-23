@@ -29,7 +29,7 @@ describe('createIntegrationsTour', () => {
       'body',
       '[data-tour-id="integrations-search"]',
       '[data-tour-id="integrations-available"]',
-      '[data-tour-id="integration-card-google-sheets"]',
+      '[data-tour-id="integration-card-workbook-import"]',
       'body',
     ]);
   });
@@ -69,13 +69,11 @@ describe('createIntegrationsTour', () => {
     expect(source).toContain('kk:');
   });
 
-  it('keeps integrations page anchors aligned with the current page source', () => {
-    const source = readSource('app', 'integrations', 'page.tsx');
+  it('keeps integrations anchors aligned with the panel source', () => {
+    const source = readSource('app', 'integrations', 'panel', 'IntegrationsListDrawer.tsx');
 
-    expect(source).toContain('data-tour-id="integrations-search"');
-    expect(source).toContain('data-tour-id="integrations-connected"');
+    expect(source).toContain('tourId="integrations-search"');
     expect(source).toContain('data-tour-id="integrations-available"');
-    expect(source).toContain("item.key === 'google-sheets'");
-    expect(source).toContain("'integration-card-google-sheets'");
+    expect(source).toContain('`integration-card-${entry.key}`');
   });
 });
