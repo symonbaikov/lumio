@@ -6,6 +6,7 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useEffectEvent } from 'react';
 import toast from 'react-hot-toast';
+import { openAppPanel } from '@/app/components/panels/app-panels-store';
 import apiClient from '@/app/lib/api';
 import { payablesApi } from '@/app/lib/payables-api';
 import {
@@ -208,24 +209,24 @@ export function useStatementsPanelActions(p: PanelActionsParams): PanelActions {
   const handleCloudImport = useCallback(
     async (provider: CloudImportProvider | null): Promise<void> => {
       if (!provider) {
-        router.push('/integrations');
+        openAppPanel('integrations');
         return;
       }
       await executeCloudImport(provider, navigateToSubmit);
     },
-    [navigateToSubmit, router],
+    [navigateToSubmit],
   );
 
   const handleGmailClick = useCallback((): void => {
     if (!connectedGmail) {
-      router.push('/integrations/imap');
+      openAppPanel('integrations', 'imap');
       return;
     }
     void apiClient
       .post('/integrations/imap/sync')
       .then(response => handleGmailSyncResponse(response, navigateToSubmit))
       .catch(() => toast.error('Failed to sync inbox'));
-  }, [connectedGmail, navigateToSubmit, router]);
+  }, [connectedGmail, navigateToSubmit]);
 
   return { navigateToSubmit, handleScanClick, handleCloudImport, handleGmailClick };
 }

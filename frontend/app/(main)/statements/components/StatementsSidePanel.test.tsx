@@ -5,6 +5,11 @@ import { createRoot } from 'react-dom/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pushMock = vi.hoisted(() => vi.fn());
+const openAppPanelMock = vi.hoisted(() => vi.fn());
+
+vi.mock('@/app/components/panels/app-panels-store', () => ({
+  openAppPanel: openAppPanelMock,
+}));
 const authState = vi.hoisted(() => ({
   user: null as null | { id: string },
 }));
@@ -140,7 +145,7 @@ describe('StatementsSidePanel FAB navigation', () => {
       onGmail?.();
     });
 
-    expect(pushMock).toHaveBeenCalledWith('/integrations/imap');
+    expect(openAppPanelMock).toHaveBeenCalledWith('integrations', 'imap');
     expect(vi.mocked(apiClient.post)).not.toHaveBeenCalledWith('/integrations/gmail/sync');
 
     await act(async () => {

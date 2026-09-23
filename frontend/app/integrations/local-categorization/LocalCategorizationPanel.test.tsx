@@ -17,17 +17,9 @@ vi.mock('@/app/lib/api', () => ({
   },
 }));
 
-vi.mock('next/link', () => ({
-  default: ({ href, children, ...props }: { href: string; children?: React.ReactNode }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
-
 const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0));
 
-describe('LocalCategorizationPage', () => {
+describe('LocalCategorizationPanel', () => {
   beforeEach(() => {
     (globalThis as Record<string, unknown>)[reactActEnvironmentFlag] = true;
     apiGet.mockReset();
@@ -82,18 +74,17 @@ describe('LocalCategorizationPage', () => {
       });
     });
 
-    const { default: LocalCategorizationPage } = await import('./page');
+    const { LocalCategorizationPanel } = await import('./LocalCategorizationPanel');
     const container = document.createElement('div');
     const root = createRoot(container);
 
     await act(async () => {
-      root.render(<LocalCategorizationPage />);
+      root.render(<LocalCategorizationPanel />);
     });
     await act(async () => {
       await flushPromises();
     });
 
-    expect(container.textContent).toContain('Local categorization');
     expect(container.textContent).toContain('Model missing');
 
     const saveButton = Array.from(container.querySelectorAll('button')).find(

@@ -14,6 +14,7 @@ import {
   ThumbsUp,
   User,
 } from '@/app/components/icons';
+import { openAppPanel } from '@/app/components/panels/app-panels-store';
 import { type SidePanelPageConfig, useSidePanelConfig } from '@/app/components/side-panel';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
@@ -351,7 +352,7 @@ export default function StatementsSidePanel({ activeItem }: Props) {
   const handleCloudImport = useCallback(
     async (provider: CloudImportProvider | null) => {
       if (!provider) {
-        router.push('/integrations');
+        openAppPanel('integrations');
         return;
       }
 
@@ -403,8 +404,8 @@ export default function StatementsSidePanel({ activeItem }: Props) {
       return;
     }
 
-    router.push('/integrations/imap');
-  }, [connectedCloudProviders.gmailConnected, navigateToSubmit, router]);
+    openAppPanel('integrations', 'imap');
+  }, [connectedCloudProviders.gmailConnected, navigateToSubmit]);
 
   const sidePanelConfig = useMemo<SidePanelPageConfig>(() => {
     const workQueueTitle = tx(

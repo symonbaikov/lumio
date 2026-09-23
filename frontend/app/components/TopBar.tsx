@@ -25,6 +25,7 @@ import { useLanguageSelection } from './navigation/hooks/useLanguageSelection';
 import { useThemePreference } from './navigation/hooks/useThemePreference';
 import { LanguageDrawer } from './navigation/LanguageDrawer';
 import { UserMenuTriggerAndDropdown } from './navigation/UserMenu';
+import { openAppPanel } from './panels/app-panels-store';
 
 const SIDEBAR_OPEN_EVENT = 'lumio-sidebar-open';
 const HIDDEN_PATHS = ['/onboarding', '/login', '/register', '/shared', '/invite', '/chat'];
@@ -60,8 +61,14 @@ export default function TopBar() {
     setMobileMenuOpen: () => {},
   });
 
+  // Integrations and plugins are panels, not pages: opening them must not take
+  // the user away from what they were looking at.
   const navigateFromUserMenu = useCallback(
     (path: string): void => {
+      if (path === '/integrations' || path === '/plugins') {
+        openAppPanel(path === '/integrations' ? 'integrations' : 'plugins');
+        return;
+      }
       router.push(path);
     },
     [router],

@@ -4,20 +4,30 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Link from 'next/link';
 import { Cloud, Shield, UserCircle } from '@/app/components/icons';
+import { type AppPanelKey, openAppPanel } from '@/app/components/panels/app-panels-store';
 import { tokens } from '@/lib/theme-tokens';
 
 type Tx = (path: string[], fallback: string) => string;
 
+type ElsewhereLink = {
+  key: string;
+  fallback: string;
+  icon: typeof UserCircle;
+  /** A route to open, or the panel this entry slides open over the page. */
+  href?: string;
+  panel?: AppPanelKey;
+};
+
 /**
- * Settings that live on their own routes. Without these the workspace page,
+ * Settings that live outside this page. Without these the workspace page,
  * the service integrations and the API keys are only reachable if you already
  * know where they are — people look for them here first.
  */
-const LINKS = [
+const LINKS: ElsewhereLink[] = [
   { href: '/workspaces/overview', key: 'workspace', fallback: 'Workspace', icon: UserCircle },
-  { href: '/integrations', key: 'integrations', fallback: 'Integrations', icon: Cloud },
-  { href: '/plugins', key: 'developer', fallback: 'API keys & webhooks', icon: Shield },
-] as const;
+  { panel: 'integrations', key: 'integrations', fallback: 'Integrations', icon: Cloud },
+  { panel: 'plugins', key: 'developer', fallback: 'API keys & webhooks', icon: Shield },
+];
 
 export function SettingsElsewhereLinks({ tx }: { tx: Tx }) {
   return (
@@ -31,10 +41,20 @@ export function SettingsElsewhereLinks({ tx }: { tx: Tx }) {
       </Typography>
       {LINKS.map(link => (
         <Box
-          key={link.href}
-          component={Link}
-          href={link.href}
+          key={link.key}
+          {...(link.panel
+            ? {
+                component: 'button' as const,
+                type: 'button' as const,
+                onClick: () => openAppPanel(link.panel as AppPanelKey),
+              }
+            : { component: Link, href: link.href as string })}
           sx={{
+            border: 'none',
+            bgcolor: 'transparent',
+            cursor: 'pointer',
+            textAlign: 'left',
+            font: 'inherit',
             display: 'flex',
             width: '100%',
             alignItems: 'center',
