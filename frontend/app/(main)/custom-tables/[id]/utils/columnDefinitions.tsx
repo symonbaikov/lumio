@@ -1,7 +1,7 @@
 'use client';
 
 import { type ColumnDef } from '@tanstack/react-table';
-import { Plus } from '@/app/components/icons';
+import { PencilLine, Plus } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { EditableBooleanCell } from '../components/cells/EditableBooleanCell';
 import { EditableDateCell } from '../components/cells/EditableDateCell';
@@ -12,6 +12,7 @@ import { FormulaCell } from '../components/cells/FormulaCell';
 import { RelationCell } from '../components/cells/RelationCell';
 import { ActionsCell } from '../components/columns/ActionsCell';
 import { EditableHeader } from '../components/headers/EditableHeader';
+import { isDraftRowId, isMissingRequiredCell } from '../helpers/draftRowHelpers';
 import type {
   DeleteColumnFn,
   DeleteRowFn,
@@ -42,6 +43,7 @@ export interface BuildColumnsParams {
   colorTooltipLabel: string;
   deleteLabel: string;
   addRowLabel: string;
+  draftRowHint: string;
 }
 
 type TRow = import('@tanstack/react-table').Row<CustomTableGridRow>;
@@ -99,6 +101,11 @@ function renderDataCell({
   const ruleStyle = conditionalStyleFor(conditionalRules, row.original, col.key);
   const baseStyle = mergeSheetStyle(col.style?.cell ?? {}, ruleStyle);
   const cellStyle = getCellStyle(row.original, col.key, baseStyle);
+  // Без этой подсветки черновик с незаполненной обязательной колонкой молча
+  // никогда не сохранится, и человеку негде узнать, чего не хватает.
+  if (isMissingRequiredCell(row.original, col)) {
+    cellStyle.boxShadow = 'inset 0 0 0 1px var(--warning, #b45309)';
+  }
   const commonProps: CellCommonProps = {
     row,
     column,
@@ -147,7 +154,7 @@ function buildSelectColumn(): ColumnDef<CustomTableGridRow> {
   };
 }
 
-function buildRowNumberColumn(): ColumnDef<CustomTableGridRow> {
+function buildRowNumberColumn(draftRowHint: string): ColumnDef<CustomTableGridRow> {
   return {
     id: '__rowNumber',
     header: '#',
@@ -156,19 +163,25 @@ function buildRowNumberColumn(): ColumnDef<CustomTableGridRow> {
     maxSize: 120,
     enableResizing: false,
     enableSorting: false,
-    cell: ({ row }) => (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '0.875rem',
-          color: 'var(--muted-foreground)',
-        }}
-      >
-        {row.original.rowNumber}
-      </div>
-    ),
+    cell: ({ row }) => {
+      // У черновика нет серверного номера, и показывать порядковый нельзя:
+      // строка ещё не сохранена, и её легко спутать с обычной.
+      const isDraft = isDraftRowId(row.original.id);
+      return (
+        <div
+          title={isDraft ? draftRowHint : undefined}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '0.875rem',
+            color: isDraft ? 'var(--warning, #b45309)' : 'var(--muted-foreground)',
+          }}
+        >
+          {isDraft ? <PencilLine size={14} aria-label={draftRowHint} /> : row.original.rowNumber}
+        </div>
+      );
+    },
   };
 }
 
@@ -297,10 +310,11 @@ export function buildColumns({
   deleteLabel,
   conditionalRules = [],
   tableId,
+  draftRowHint,
 }: BuildColumnsParams): ColumnDef<CustomTableGridRow>[] {
   return [
     buildSelectColumn(),
-    buildRowNumberColumn(),
+    buildRowNumberColumn(draftRowHint),
     ...orderedColumns.map(col =>
       buildDataColumn({
         col,

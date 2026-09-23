@@ -75,6 +75,7 @@ interface UseCustomTableStateParams {
     colorTooltipLabel: string;
     deleteLabel: string;
     addRowLabel: string;
+    draftRowHint: string;
   };
 }
 

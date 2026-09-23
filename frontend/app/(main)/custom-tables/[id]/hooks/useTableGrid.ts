@@ -185,7 +185,10 @@ export function useTableGrid({
           cleanupLoadState(controller, requestId);
         });
     },
-    [tableId, loadRowsFailedMessage, canStartLoad, handleLoadError], // eslint-disable-line react-hooks/exhaustive-deps
+    // Помощники пересоздаются каждый рендер, поэтому в зависимостях лежат
+    // только значения, которые они замыкают: иначе loadRows меняет идентичность
+    // на каждый рендер и эффект сброса ниже уходит в бесконечный цикл.
+    [tableId, loadRowsFailedMessage], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Reset and reload when filters, sort or tableId changes
