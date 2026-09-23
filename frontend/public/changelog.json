@@ -1,14 +1,179 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "f963202e2aedf41dfe6fe74587644e81efd21766"
+      "main": "3c735841cd41d7bb70e71da47f4d56d4ad86469d"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-22T19:45:23.849Z",
+    "lastGeneratedAt": "2026-09-23T14:47:36.598Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-09-23-3c73584",
+      "version": "main-3c73584",
+      "branch": "main",
+      "date": "2026-09-23T14:47:36.598Z",
+      "title": "Release update - September 23, 2026",
+      "summary": "This release includes 4 features.",
+      "markdown": "## Features\n- **subscriptions**: Add charge calendar matrix and vendor brand icons\n- **budgets**: Open the budget form in a side drawer\n- **integrations,plugins**: Turn both tabs into two-layer side panels\n- **custom-tables**: Add rows as a local draft before the first save",
+      "commits": [
+        {
+          "sha": "74eed017ffb063b4960ad02c575c5b17def202fc",
+          "shortSha": "74eed017",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-22T19:45:24Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "c4e6d672cafc957ec73e41e635b3c483932a41c2",
+          "shortSha": "c4e6d672",
+          "subject": "feat(subscriptions): add charge calendar matrix and vendor brand icons",
+          "author": "Symon Baikov",
+          "date": "2026-09-23T02:04:19+03:00",
+          "files": [
+            "backend/@tests/unit/modules/subscriptions/charge-calendar.util.spec.ts",
+            "backend/@tests/unit/modules/subscriptions/subscriptions.service.spec.ts",
+            "backend/@tests/unit/modules/vendor-icons/vendor-icons.controller.spec.ts",
+            "backend/@tests/unit/modules/vendor-icons/vendor-icons.service.spec.ts",
+            "backend/src/app.module.ts",
+            "backend/src/entities/subscription.entity.ts",
+            "backend/src/migrations/1786410000000-AddSubscriptionVendorDomain.ts",
+            "backend/src/modules/subscriptions/charge-calendar.util.ts",
+            "backend/src/modules/subscriptions/dto/charge-calendar-query.dto.ts",
+            "backend/src/modules/subscriptions/dto/create-subscription.dto.ts",
+            "backend/src/modules/subscriptions/dto/update-subscription.dto.ts",
+            "backend/src/modules/subscriptions/subscriptions.controller.ts",
+            "backend/src/modules/subscriptions/subscriptions.service.ts",
+            "backend/src/modules/vendor-icons/vendor-domain.util.ts",
+            "backend/src/modules/vendor-icons/vendor-icons.controller.ts",
+            "backend/src/modules/vendor-icons/vendor-icons.module.ts",
+            "backend/src/modules/vendor-icons/vendor-icons.service.ts",
+            "frontend/app/(main)/subscriptions/components/SubscriptionCard.tsx",
+            "frontend/app/(main)/subscriptions/components/SubscriptionChargeCalendar.test.tsx",
+            "frontend/app/(main)/subscriptions/components/SubscriptionChargeCalendar.tsx",
+            "frontend/app/(main)/subscriptions/components/SubscriptionDetailsDrawer.tsx",
+            "frontend/app/(main)/subscriptions/components/SubscriptionFormDrawer.tsx",
+            "frontend/app/(main)/subscriptions/components/SubscriptionsContent.test.tsx",
+            "frontend/app/(main)/subscriptions/components/SubscriptionsContent.tsx",
+            "frontend/app/(main)/subscriptions/components/charge-calendar.utils.test.ts",
+            "frontend/app/(main)/subscriptions/components/charge-calendar.utils.ts",
+            "frontend/app/(main)/subscriptions/components/vendor-domain.utils.test.ts",
+            "frontend/app/(main)/subscriptions/components/vendor-domain.utils.ts",
+            "frontend/app/(main)/subscriptions/hooks/useSubscriptionsPage.ts",
+            "frontend/app/components/VendorIcon.tsx",
+            "frontend/app/lib/query-keys.ts",
+            "frontend/app/styles/components/_charge-calendar.scss",
+            "frontend/app/styles/components/_index.scss",
+            "frontend/app/vendor-icons/__tests__/index.test.ts",
+            "frontend/app/vendor-icons/index.ts"
+          ]
+        },
+        {
+          "sha": "3a2975482c9b8d4a2f0632457cf3ba5255df5ce3",
+          "shortSha": "3a297548",
+          "subject": "Merge branch 'feat/subscription-charge-calendar-vendor-icons'",
+          "author": "Symon Baikov",
+          "date": "2026-09-23T02:05:09+03:00",
+          "files": []
+        },
+        {
+          "sha": "8552a92752891c45e06879d9828da881a5559f7a",
+          "shortSha": "8552a927",
+          "subject": "feat(budgets): open the budget form in a side drawer",
+          "author": "Symon Baikov",
+          "date": "2026-09-23T17:46:27+03:00",
+          "files": [
+            "frontend/app/(main)/budgets/components/BudgetFormDialog.tsx",
+            "frontend/app/(main)/budgets/components/BudgetFormDrawer.tsx",
+            "frontend/app/(main)/budgets/components/BudgetsContent.tsx"
+          ]
+        },
+        {
+          "sha": "ba19bb9608081e5f03f46e69175d05fa85bcb66b",
+          "shortSha": "ba19bb96",
+          "subject": "feat(integrations,plugins): turn both tabs into two-layer side panels",
+          "author": "Symon Baikov",
+          "date": "2026-09-23T17:46:39+03:00",
+          "files": [
+            "frontend/app/(main)/statements/components/StatementsSidePanel.test.tsx",
+            "frontend/app/(main)/statements/components/StatementsSidePanel.tsx",
+            "frontend/app/(main)/statements/components/side-panel-hooks.ts",
+            "frontend/app/components/TopBar.tsx",
+            "frontend/app/components/panels/AppPanels.tsx",
+            "frontend/app/components/panels/app-panels-store.ts",
+            "frontend/app/components/panels/panel-ui.tsx",
+            "frontend/app/integrations/[key]/page.tsx",
+            "frontend/app/integrations/ai-compatible/page.tsx",
+            "frontend/app/integrations/app-url/page.tsx",
+            "frontend/app/integrations/components/IntegrationCard.tsx",
+            "frontend/app/integrations/helpers/buildIntegrationMeta.tsx",
+            "frontend/app/integrations/imap/page.tsx",
+            "frontend/app/integrations/local-categorization/LocalCategorizationPanel.test.tsx",
+            "frontend/app/integrations/local-categorization/LocalCategorizationPanel.tsx",
+            "frontend/app/integrations/local-categorization/page.tsx",
+            "frontend/app/integrations/open-protocol-page.tsx",
+            "frontend/app/integrations/page.test.tsx",
+            "frontend/app/integrations/page.tsx",
+            "frontend/app/integrations/panel/IntegrationDetailDrawer.tsx",
+            "frontend/app/integrations/panel/IntegrationsListDrawer.test.tsx",
+            "frontend/app/integrations/panel/IntegrationsListDrawer.tsx",
+            "frontend/app/integrations/panel/IntegrationsPanel.tsx",
+            "frontend/app/integrations/panel/WorkbookImportPanel.tsx",
+            "frontend/app/integrations/panel/integration-catalog.tsx",
+            "frontend/app/integrations/s3-compatible/page.tsx",
+            "frontend/app/integrations/smtp/page.tsx",
+            "frontend/app/integrations/webdav/page.tsx",
+            "frontend/app/layout.tsx",
+            "frontend/app/lib/query-keys.ts",
+            "frontend/app/plugins/mcp-server/McpServerDrawer.tsx",
+            "frontend/app/plugins/page.tsx",
+            "frontend/app/plugins/panel/PluginsPanel.tsx",
+            "frontend/app/plugins/webhooks/WebhooksDrawer.tsx",
+            "frontend/app/settings/profile/components/SettingsElsewhereLinks.tsx",
+            "frontend/app/tours/integrations-tour.test.ts",
+            "frontend/app/tours/integrations-tour.ts"
+          ]
+        },
+        {
+          "sha": "4ade8bbb3a83a4695e8acb5a71131a3afb8a8355",
+          "shortSha": "4ade8bbb",
+          "subject": "feat(custom-tables): add rows as a local draft before the first save",
+          "author": "Symon Baikov",
+          "date": "2026-09-23T17:46:49+03:00",
+          "files": [
+            "docs/plans/2026-09-22-custom-tables-draft-row-design.md",
+            "frontend/app/(main)/custom-tables/[id]/CustomTableTanStack.test.tsx",
+            "frontend/app/(main)/custom-tables/[id]/components/MobileTableView.tsx",
+            "frontend/app/(main)/custom-tables/[id]/helpers/draftRowHelpers.ts",
+            "frontend/app/(main)/custom-tables/[id]/helpers/rowActionHelpers.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useCustomTablePage.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useCustomTableState.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useRowActions.test.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useRowActions.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useRowMutations.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useTableGrid.test.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useTableGrid.ts",
+            "frontend/app/(main)/custom-tables/[id]/hooks/useTanStackLabels.ts",
+            "frontend/app/(main)/custom-tables/[id]/page.content.ts",
+            "frontend/app/(main)/custom-tables/[id]/page.tsx",
+            "frontend/app/(main)/custom-tables/[id]/utils/columnDefinitions.tsx",
+            "frontend/app/(main)/custom-tables/[id]/utils/stylingUtils.ts"
+          ]
+        },
+        {
+          "sha": "3c735841cd41d7bb70e71da47f4d56d4ad86469d",
+          "shortSha": "3c735841",
+          "subject": "Merge branch 'feat/integrations-plugins-panels'",
+          "author": "Symon Baikov",
+          "date": "2026-09-23T17:47:09+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-22-f963202",
       "version": "main-f963202",
