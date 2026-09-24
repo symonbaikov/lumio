@@ -107,7 +107,7 @@ Lumio is a full-stack financial operations platform built for teams that need to
 - **Crypto Portfolio** — Crypto holdings with price and wallet sync, and transfer mapping into transactions.
 - **AI Chat & Semantic Search** — Ask questions about your data; embeddings-backed transaction search plus a global cross-entity search.
 - **Tax Engine** — VAT rates, rules, jurisdictions, thresholds, and VAT return generation.
-- **Double-Entry Ledger** — Every transaction is posted as a balanced journal entry into a chart of accounts built from your categories and bank accounts: VAT on its own account, other currencies converted into one base currency at the posting date, duplicates left out. Manual entries go through draft → post → reverse, and a posted entry can only be reversed, never edited. The database itself refuses an entry whose debits and credits differ. Trial balance, account ledger, profit and loss, and balance sheet are read straight from the journal, with each bank account reconciled against its latest statement. Opt in under Settings → Experimental.
+- **Double-Entry Ledger** — Every transaction is posted as a balanced journal entry into a chart of accounts built from your categories, bank accounts and wallets: VAT on its own account, other currencies converted into one base currency at the posting date, duplicates left out. Statement and wallet opening balances are booked against opening equity, and crypto transfers land on each crypto wallet's own account at the fiat value they were recorded at (not today's market value). Foreign-currency balances can be revalued at any day's rate, with the difference booked as FX gain or loss. Manual entries go through draft → post → reverse, and a posted entry can only be reversed, never edited. The database itself refuses an entry whose debits and credits differ. Trial balance, account ledger, profit and loss, and balance sheet are read straight from the journal, with each bank account reconciled against its latest statement. Opt in under Settings → Experimental.
 - **Income Tax Declaration** — Year-end draft for the self-employed, built only from the category → form-line mappings you confirm: Germany Anlage EÜR, Spain Modelo 100 (estimación directa simplificada), Poland PIT-36L / PIT-28 / PIT-36, and a generic income and expense summary everywhere else. Checks data completeness, converts currencies with the official source where one is verified (NBP for Poland, Banca d'Italia for Italy), shows filing deadlines and portals for 25 EU countries, and exports PDF or XLSX.
 - **Receipt Locations & Maps** — Every receipt can show where it was bought on a self-hosted map: a manual pin, the geocoded merchant address, the photo's GPS tag, or the device position.
 - **Backups** — Scheduled encrypted backups with export, import, and restore.
@@ -139,7 +139,7 @@ Lumio is a full-stack financial operations platform built for teams that need to
 ### Finance & Reporting
 
 - **Balance Sheet** — Account-level balance tracking with historical snapshots and export.
-- **Accounts Payable** — Pay-tab workflow for managing and tracking payable records.
+- **Accounts Payable** — Pay-tab workflow for managing and tracking payable records. Marking a bill paid links the bank transaction that settled it (matching candidates are suggested) or records a cash payment from a wallet, so the payment reaches the ledger.
 - **Custom Tables** — User-defined data structures with typed columns, batch editing, formula support, and Sheets import.
 - **Manual Data Entry** — Record cash expenses, income, and receipts manually with custom fields and file attachments.
 - **Categories** — Hierarchical transaction categories with usage counts and enable/disable toggle.
@@ -305,7 +305,7 @@ lumio/
 │   │   ├── entities/                # 89 TypeORM entities
 │   │   ├── common/                  # Guards, decorators, interceptors, filters
 │   │   ├── config/                  # App configuration
-│   │   └── migrations/              # 146 database migrations (auto-applied on startup)
+│   │   └── migrations/              # 149 database migrations (auto-applied on startup)
 │   ├── scripts/                     # Admin, seed, parse debug, storage repair
 │   └── @tests/                      # Unit and E2E test suites
 ├── frontend/                        # Next.js application
@@ -737,7 +737,7 @@ make update            # Update npm dependencies
 
 ### Database Migrations
 
-Lumio uses TypeORM migrations exclusively (`synchronize: false`). Migrations run automatically on every startup unless `RUN_MIGRATIONS=false` is set. There are currently 146 migrations covering the entire schema history.
+Lumio uses TypeORM migrations exclusively (`synchronize: false`). Migrations run automatically on every startup unless `RUN_MIGRATIONS=false` is set. There are currently 149 migrations covering the entire schema history.
 
 ```bash
 # Apply all pending migrations (Docker)
@@ -883,7 +883,7 @@ npm test               # Run all tests with Vitest
 │   PostgreSQL 14       │   │     Redis 7           │
 │                       │   │                       │
 │  - 89 TypeORM entities│   │  - Cache              │
-│  - 146 migrations     │   │  - Rate limiting      │
+│  - 149 migrations     │   │  - Rate limiting      │
 │  - Full-text search   │   │  - BullMQ queues      │
 └───────────────────────┘   └───────────────────────┘
 ```

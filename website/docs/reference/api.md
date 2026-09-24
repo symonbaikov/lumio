@@ -34,9 +34,13 @@ The Lumio API is served from the backend at `/api/v1`.
 - `/receipts` — receipts, including `PATCH` and `DELETE /receipts/:id/location`
 - `/documents` — parser operations and debug tools
 - `/dashboard`, `/reports` — dashboards and reporting (for example `GET /dashboard/cash-flow?range=`)
-- `/budgets`, `/goals`, `/subscriptions`, `/payables`, `/custom-tables`
+- `/budgets`, `/goals`, `/subscriptions`, `/custom-tables`
+- `/payables` — bills and receivables; `GET /payables/:id/payment-candidates` lists transactions that may have
+  settled one, and `PUT /payables/:id/mark-paid` takes either `linkedTransactionId` or `payFromWalletId`
+  (with optional `paidOn` and `categoryId`) to record a cash payment as a wallet transaction
 - `/ledger` — double-entry ledger: `settings` (switch on in a base currency) and `integrity`, `accounts` (chart of
-  accounts), `entries` (drafts, `:id/post`, `:id/reverse`), and `reports/trial-balance`, `reports/profit-and-loss`,
+  accounts), `entries` (drafts, `:id/post`, `:id/reverse`), `revaluations` (`POST {date}` revalues
+  foreign-currency balances at that day's rate), and `reports/trial-balance`, `reports/profit-and-loss`,
   `reports/balance-sheet`, `reports/accounts/:id`; reports answer `409 LEDGER_NOT_UP_TO_DATE` while transactions are
   still being posted unless `allowStale=true`
 - `/tax/jurisdictions`, `/tax/rules`, `/tax/returns`, `/tax-rates` — VAT
