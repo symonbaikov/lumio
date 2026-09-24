@@ -156,8 +156,8 @@ describe('ledger posting rules', () => {
     expect(balance(legs)).toBe(0);
   });
 
-  it('skips crypto and zero amounts, and falls back to debit/credit when amount is empty', () => {
-    expect(skipReason(facts({ cryptoWalletId: 'w' }))).toBe('crypto');
+  it('skips zero amounts but not crypto, and falls back to debit/credit when amount is empty', () => {
+    expect(skipReason(facts({ cryptoWalletId: 'w' }))).toBeNull();
     expect(skipReason(facts({ amount: '0.00' }))).toBe('zero_amount');
     expect(view(legsOf(facts({ amount: null, debit: '12.00' })))).toEqual([
       ['category', 'debit', 1200],

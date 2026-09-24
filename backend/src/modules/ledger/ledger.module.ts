@@ -5,6 +5,7 @@ import { IdempotencyService } from '../../common/services/idempotency.service';
 import {
   Branch,
   Category,
+  CryptoWallet,
   IdempotencyKey,
   JournalEntry,
   JournalLine,
@@ -40,6 +41,7 @@ import { LEDGER_SYNC_QUEUE, LedgerSyncQueue } from './queue/ledger-sync.queue';
       Transaction,
       Statement,
       Wallet,
+      CryptoWallet,
       Workspace,
       Branch,
       IdempotencyKey,

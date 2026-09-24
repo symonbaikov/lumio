@@ -106,6 +106,9 @@ export class LedgerAccount {
   @Column({ name: 'wallet_id', type: 'uuid', nullable: true })
   walletId: string | null;
 
+  @Column({ name: 'crypto_wallet_id', type: 'uuid', nullable: true })
+  cryptoWalletId: string | null;
+
   @Column({ name: 'statement_account_key', type: 'varchar', length: 255, nullable: true })
   statementAccountKey: string | null;
 

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { type EntityManager, IsNull, Not, type Repository } from 'typeorm';
 import {
+  CryptoWallet,
   JournalEntry,
   JournalEntrySource,
   JournalEntryStatus,
@@ -140,6 +141,8 @@ export class LedgerPostingService {
     private readonly statementRepository: Repository<Statement>,
     @InjectRepository(Wallet)
     private readonly walletRepository: Repository<Wallet>,
+    @InjectRepository(CryptoWallet)
+    private readonly cryptoWalletRepository: Repository<CryptoWallet>,
     private readonly accountsService: LedgerAccountsService,
     private readonly exchangeRatesService: ExchangeRatesService,
   ) {}
@@ -637,7 +640,7 @@ export class LedgerPostingService {
     };
   }
 
-  /** Statement first, then wallet; null sends the money to CASH_UNALLOCATED. */
+  /** Statement, then wallet, then crypto wallet; null sends the money to CASH_UNALLOCATED. */
   private async cashAccountOf(
     tx: Transaction,
     statement: Statement | null,
@@ -658,6 +661,15 @@ export class LedgerPostingService {
       });
       if (wallet) {
         return this.accountsService.walletCashAccountId(tx.workspaceId, wallet, currency);
+      }
+    }
+    if (tx.cryptoWalletId) {
+      const cryptoWallet = await this.cryptoWalletRepository.findOne({
+        where: { id: tx.cryptoWalletId, workspaceId: tx.workspaceId },
+        select: ['id', 'label', 'address'],
+      });
+      if (cryptoWallet) {
+        return this.accountsService.cryptoAccountId(tx.workspaceId, cryptoWallet);
       }
     }
     return null;

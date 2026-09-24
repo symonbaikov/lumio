@@ -419,18 +419,39 @@ export class LedgerAccountsService {
   }
 
   /**
+   * A crypto wallet's account, under ASSET_CRYPTO. It holds the fiat value
+   * each transfer was recorded at, not coins, so it takes no fixed currency.
+   */
+  async cryptoAccountId(
+    workspaceId: string,
+    cryptoWallet: { id: string; label: string | null; address: string },
+  ): Promise<string> {
+    const address = cryptoWallet.address;
+    const name = cryptoWallet.label || `${address.slice(0, 6)}…${address.slice(-4)}`;
+    return this.upsertCashAccount(
+      workspaceId,
+      { cryptoWalletId: cryptoWallet.id },
+      `CRYPTO_${cryptoWallet.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+      `${name} · crypto`,
+      null,
+      LEDGER_ACCOUNT_CODES.CRYPTO,
+    );
+  }
+
+  /**
    * Insert-if-absent, safe under concurrency: ON CONFLICT DO NOTHING covers
    * the partial unique indexes on the key and the code, and the row is read
    * back whichever request created it.
    */
   private async upsertCashAccount(
     workspaceId: string,
-    match: { statementAccountKey: string } | { walletId: string },
+    match: { statementAccountKey: string } | { walletId: string } | { cryptoWalletId: string },
     code: string,
     name: string,
-    currency: string,
+    currency: string | null,
+    parentCode: string = LEDGER_ACCOUNT_CODES.CASH,
   ): Promise<string> {
-    const cashHeader = (await this.systemAccountIds(workspaceId))[LEDGER_ACCOUNT_CODES.CASH];
+    const cashHeader = (await this.systemAccountIds(workspaceId))[parentCode];
     const existing = await this.accountRepository.findOne({
       where: { workspaceId, ...match },
       select: ['id'],
@@ -450,7 +471,7 @@ export class LedgerAccountsService {
         name: name.slice(0, 255),
         accountType: LedgerAccountType.ASSET,
         normalBalance: NormalBalance.DEBIT,
-        currency: currency.toUpperCase(),
+        currency: currency?.toUpperCase() ?? null,
         isPostable: true,
         isSystem: false,
         ...match,

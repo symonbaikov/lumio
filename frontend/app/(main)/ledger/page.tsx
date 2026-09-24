@@ -46,6 +46,7 @@ function useSystemAccountNames(): Record<string, string> {
     ASSET_CASH_UNALLOCATED: t.accCashUnallocated.value,
     ASSET_VAT_RECEIVABLE: t.accVatReceivable.value,
     ASSET_SUSPENSE: t.accSuspense.value,
+    ASSET_CRYPTO: t.accCrypto.value,
     LIABILITIES: t.accLiabilities.value,
     LIABILITY_VAT_PAYABLE: t.accVatPayable.value,
     LIABILITY_PAYABLES: t.accPayables.value,

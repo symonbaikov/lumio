@@ -7,6 +7,7 @@ export const LEDGER_ACCOUNT_CODES = {
   CASH_UNALLOCATED: 'ASSET_CASH_UNALLOCATED',
   VAT_RECEIVABLE: 'ASSET_VAT_RECEIVABLE',
   SUSPENSE: 'ASSET_SUSPENSE',
+  CRYPTO: 'ASSET_CRYPTO',
   LIABILITIES: 'LIABILITIES',
   VAT_PAYABLE: 'LIABILITY_VAT_PAYABLE',
   PAYABLES: 'LIABILITY_PAYABLES',
@@ -73,6 +74,15 @@ export const DEFAULT_LEDGER_ACCOUNTS: DefaultLedgerAccountDefinition[] = [
     parentCode: C.ASSETS,
     position: 2,
     isPostable: true,
+  },
+  // Parent of the per-wallet crypto accounts the posting engine opens.
+  {
+    code: C.CRYPTO,
+    name: 'Crypto assets',
+    accountType: LedgerAccountType.ASSET,
+    parentCode: C.ASSETS,
+    position: 3,
+    isPostable: false,
   },
 
   {

@@ -25,7 +25,7 @@ export interface BaseLine extends Leg {
   fxRate: number;
 }
 
-export type SkipReason = 'duplicate' | 'crypto' | 'zero_amount';
+export type SkipReason = 'duplicate' | 'zero_amount';
 
 export interface TransactionFacts {
   transactionType: 'income' | 'expense';
@@ -80,15 +80,11 @@ const grossMinor = (tx: TransactionFacts): number =>
 /**
  * Why a transaction is not booked at all, or null when it is. Checked before
  * any account is resolved, so a duplicate never opens a cash account.
- * Duplicates would count the money twice; crypto holdings are out of the
- * ledger's scope for now.
+ * Duplicates would count the money twice.
  */
 export function skipReason(tx: TransactionFacts): SkipReason | null {
   if (tx.isDuplicate) {
     return 'duplicate';
-  }
-  if (tx.cryptoWalletId) {
-    return 'crypto';
   }
   return grossMinor(tx) === 0 ? 'zero_amount' : null;
 }

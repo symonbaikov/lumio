@@ -21,6 +21,7 @@ import {
   BankName,
   Category,
   CategoryType,
+  CryptoWallet,
   ExchangeRate,
   FileType,
   JournalEntry,
@@ -565,6 +566,49 @@ describe('ledger posting engine (real Postgres)', () => {
       code: 'NOT_REVERSIBLE',
     });
     await expect(posting.reverseEntry(randomUUID(), opening.id)).rejects.toThrow(/not found/);
+  });
+
+  it('books crypto transfers to the wallet own account, and reverses them when the wallet goes', async () => {
+    const cryptoWallets = dataSource.getRepository(CryptoWallet);
+    const cryptoWallet = await cryptoWallets.save(
+      cryptoWallets.create({
+        workspaceId,
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        label: null,
+      }),
+    );
+    // Fiat value in the workspace currency; no category, like the chain sync writes it.
+    const received = await insertTransaction({
+      amount: 250,
+      credit: 250,
+      transactionType: TransactionType.INCOME,
+      currency: 'EUR',
+      cryptoWalletId: cryptoWallet.id,
+      cryptoAsset: 'ETH',
+      cryptoAmount: '0.1',
+    });
+
+    const outcome = await posting.postTransaction(workspaceId, received);
+
+    expect(outcome).toMatchObject({ status: 'posted' });
+    const [account] = await query<{ id: string; code: string; name: string; parent: string }>(
+      `SELECT a."id", a."code", a."name", p."code" AS "parent"
+         FROM "ledger_accounts" a JOIN "ledger_accounts" p ON p."id" = a."parent_id"
+        WHERE a."crypto_wallet_id" = $1`,
+      [cryptoWallet.id],
+    );
+    expect(account).toMatchObject({ parent: 'ASSET_CRYPTO', name: '0x1234…5678 · crypto' });
+    expect(account.code).toMatch(/^CRYPTO_[0-9A-F]{8}$/);
+    const lines = await query<{ account_id: string; base_debit: string }>(
+      `SELECT l."account_id", l."base_debit" FROM "journal_lines" l
+         JOIN "journal_entries" e ON e."id" = l."entry_id"
+        WHERE e."source_transaction_id" = $1 AND l."base_debit" > 0`,
+      [received],
+    );
+    expect(lines).toEqual([{ account_id: account.id, base_debit: '250.00' }]);
+
+    await cryptoWallets.delete(cryptoWallet.id);
+    expect(await posting.reverseOrphans(workspaceId)).toBe(1);
   });
 
   it('leaves the whole ledger balanced, entry by entry', async () => {
