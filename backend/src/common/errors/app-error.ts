@@ -220,6 +220,14 @@ export const ERR = {
     '{{pending}} transactions are still waiting to be booked; the report would be incomplete',
   LEDGER_BASE_CURRENCY_LOCKED:
     'The ledger already has entries in {{currency}}; its base currency can no longer change',
+
+  // Payables
+  PAYABLE_PAYMENT_AMBIGUOUS: 'Link a transaction or pay from a wallet, not both',
+  PAYABLE_WALLET_NOT_FOUND: 'Wallet not found in this workspace',
+  PAYABLE_WALLET_CURRENCY_MISMATCH:
+    'The wallet holds {{walletCurrency}}; the bill is in {{currency}}',
+  PAYABLE_ALREADY_LINKED: 'This bill is already linked to a transaction',
+  PAYABLE_CATEGORY_NOT_FOUND: 'Category not found in this workspace',
 } as const;
 
 export type ErrorCode = keyof typeof ERR;

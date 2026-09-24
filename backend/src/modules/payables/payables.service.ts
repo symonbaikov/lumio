@@ -1,8 +1,16 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { type EntityManager, IsNull, Repository } from 'typeorm';
+import { appError } from '../../common/errors/app-error';
 import { normalizePagination } from '../../common/utils/pagination.util';
 import { EntityType } from '../../entities/audit-event.entity';
+import { Category } from '../../entities/category.entity';
 import {
   NotificationCategory,
   NotificationSeverity,
@@ -15,14 +23,32 @@ import {
   PayableStatus,
 } from '../../entities/payable.entity';
 import { Statement } from '../../entities/statement.entity';
-import { Transaction } from '../../entities/transaction.entity';
+import { Transaction, TransactionType } from '../../entities/transaction.entity';
+import { Wallet } from '../../entities/wallet.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreatePayableDto } from './dto/create-payable.dto';
 import { ExportFormat, FilterPayablesDto, PayablesSortOption } from './dto/filter-payables.dto';
+import type { MarkPayablePaidDto } from './dto/mark-payable-paid.dto';
 import { UpdatePayableDto } from './dto/update-payable.dto';
 import { PayablesExportService } from './payables-export.service';
+
+/** A transaction that may be the payment of a bill. */
+export interface PaymentCandidate {
+  id: string;
+  transactionDate: string;
+  amount: string;
+  currency: string;
+  counterpartyName: string;
+  paymentPurpose: string;
+  /** The counterparty or purpose names the bill's vendor. */
+  vendorMatch: boolean;
+}
+
+const CANDIDATE_LIMIT = 10;
+/** How long before its due date (or creation) a bill may already have been paid. */
+const CANDIDATE_LOOKBACK_DAYS = 30;
 
 @Injectable()
 export class PayablesService {
@@ -119,19 +145,51 @@ export class PayablesService {
     return this.payableRepository.save(payable);
   }
 
+  /**
+   * Marks a bill paid: plainly, against an existing transaction, or — paid in
+   * cash — by recording the payment as a new transaction of a wallet. The
+   * payment then reaches the ledger like any other transaction.
+   *
+   * Idempotent by state: the bill's row is locked, and a bill that is already
+   * paid and linked is returned as it is, so a retried request never records
+   * the cash payment twice.
+   */
   async markAsPaid(
     id: string,
     workspaceId: string,
     userId: string,
-    payload: { linkedTransactionId?: string },
+    payload: MarkPayablePaidDto,
   ): Promise<Payable> {
-    const payable = await this.findOne(id, workspaceId);
+    if (payload.linkedTransactionId && payload.payFromWalletId) {
+      throw new BadRequestException(appError('PAYABLE_PAYMENT_AMBIGUOUS'));
+    }
+    await this.findOne(id, workspaceId);
     await this.assertLinkedTransactionInWorkspace(workspaceId, payload.linkedTransactionId ?? null);
-    payable.status = PayableStatus.PAID;
-    payable.linkedTransactionId = payload.linkedTransactionId || payable.linkedTransactionId;
-    payable.paidAt = payable.paidAt || new Date();
 
-    const saved = await this.payableRepository.save(payable);
+    const saved = await this.payableRepository.manager.transaction(async manager => {
+      const payable = await manager.getRepository(Payable).findOneOrFail({
+        where: { id, workspaceId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (payload.payFromWalletId) {
+        if (payable.status === PayableStatus.PAID && payable.linkedTransactionId) {
+          return payable;
+        }
+        if (payable.linkedTransactionId) {
+          throw new ConflictException(appError('PAYABLE_ALREADY_LINKED'));
+        }
+        payable.linkedTransactionId = await this.recordCashPayment(
+          manager,
+          payable,
+          payload.payFromWalletId,
+          payload,
+        );
+      }
+      payable.status = PayableStatus.PAID;
+      payable.linkedTransactionId = payload.linkedTransactionId || payable.linkedTransactionId;
+      payable.paidAt = payable.paidAt || new Date();
+      return manager.getRepository(Payable).save(payable);
+    });
 
     try {
       await this.notificationsService.createForWorkspaceMembers({
@@ -155,6 +213,128 @@ export class PayablesService {
     }
 
     return saved;
+  }
+
+  private async recordCashPayment(
+    manager: EntityManager,
+    payable: Payable,
+    walletId: string,
+    payload: Pick<MarkPayablePaidDto, 'paidOn' | 'categoryId'>,
+  ): Promise<string> {
+    const workspaceId = payable.workspaceId;
+    const wallet = await manager.getRepository(Wallet).findOne({
+      where: { id: walletId, workspaceId },
+      select: ['id', 'currency'],
+    });
+    if (!wallet) {
+      throw new BadRequestException(appError('PAYABLE_WALLET_NOT_FOUND'));
+    }
+    const currency = payable.currency.toUpperCase();
+    if (wallet.currency.toUpperCase() !== currency) {
+      throw new BadRequestException(
+        appError('PAYABLE_WALLET_CURRENCY_MISMATCH', {
+          walletCurrency: wallet.currency.toUpperCase(),
+          currency,
+        }),
+      );
+    }
+    if (payload.categoryId) {
+      const category = await manager.getRepository(Category).exists({
+        where: { id: payload.categoryId, workspaceId },
+      });
+      if (!category) {
+        throw new BadRequestException(appError('PAYABLE_CATEGORY_NOT_FOUND'));
+      }
+    }
+
+    const isIncome = payable.direction === PayableDirection.RECEIVABLE;
+    const amount = Number(payable.amount);
+    const transactions = manager.getRepository(Transaction);
+    const transaction = await transactions.save(
+      transactions.create({
+        workspaceId,
+        statementId: null,
+        walletId: wallet.id,
+        transactionDate: payload.paidOn ? new Date(payload.paidOn) : new Date(),
+        counterpartyName: payable.vendor,
+        paymentPurpose: payable.comment || payable.vendor,
+        amount,
+        debit: isIncome ? null : amount,
+        credit: isIncome ? amount : null,
+        currency,
+        transactionType: isIncome ? TransactionType.INCOME : TransactionType.EXPENSE,
+        categoryId: payload.categoryId ?? null,
+      }),
+    );
+    return transaction.id;
+  }
+
+  /**
+   * Transactions that may be the payment of a bill: same currency, amount and
+   * direction, dated from a month before it was due (or created) up to today,
+   * not a duplicate, not on a trashed statement and not settling another bill.
+   * Those naming the vendor come first, then the ones closest to the due date.
+   */
+  async findPaymentCandidates(id: string, workspaceId: string): Promise<PaymentCandidate[]> {
+    const payable = await this.findOne(id, workspaceId);
+    const anchor = payable.dueDate ?? payable.createdAt;
+    const rows: Array<{
+      id: string;
+      transaction_date: string;
+      amount: string;
+      currency: string;
+      counterparty_name: string;
+      payment_purpose: string;
+      vendor_match: boolean;
+    }> = await this.transactionRepository.query(
+      `SELECT t."id", t."transaction_date"::text AS "transaction_date",
+              coalesce(t."amount", t."debit", t."credit")::text AS "amount", t."currency",
+              t."counterparty_name", t."payment_purpose",
+              (position(lower($5) IN lower(t."counterparty_name")) > 0
+               OR position(lower($5) IN lower(t."payment_purpose")) > 0) AS "vendor_match"
+         FROM "transactions" t
+         LEFT JOIN "statements" s ON s."id" = t."statement_id"
+        WHERE t."workspace_id" = $1
+          AND upper(t."currency") = upper($2)
+          AND abs(coalesce(t."amount", t."debit", t."credit") - $3) <= 0.01
+          AND t."transaction_type" = $4
+          AND t."transaction_date" BETWEEN least($6::date, $7::date) - $8::int AND current_date
+          AND NOT t."is_duplicate"
+          AND (t."statement_id" IS NULL OR s."deleted_at" IS NULL)
+          AND NOT EXISTS (
+            SELECT 1 FROM "payables" p
+             WHERE p."linked_transaction_id" = t."id" AND p."id" <> $9 AND p."deleted_at" IS NULL
+          )
+        ORDER BY "vendor_match" DESC, abs(t."transaction_date" - $6::date), t."id"
+        LIMIT $10`,
+      [
+        workspaceId,
+        payable.currency,
+        payable.amount,
+        payable.direction === PayableDirection.RECEIVABLE
+          ? TransactionType.INCOME
+          : TransactionType.EXPENSE,
+        payable.vendor,
+        this.toDateString(anchor),
+        this.toDateString(payable.createdAt),
+        CANDIDATE_LOOKBACK_DAYS,
+        payable.id,
+        CANDIDATE_LIMIT,
+      ],
+    );
+    return rows.map(row => ({
+      id: row.id,
+      transactionDate: row.transaction_date,
+      amount: row.amount,
+      currency: row.currency,
+      counterpartyName: row.counterparty_name,
+      paymentPurpose: row.payment_purpose,
+      vendorMatch: row.vendor_match,
+    }));
+  }
+
+  private toDateString(value: Date | string): string {
+    return typeof value === 'string' ? value.slice(0, 10) : value.toISOString().slice(0, 10);
   }
 
   async archive(id: string, workspaceId: string, _userId: string): Promise<Payable> {

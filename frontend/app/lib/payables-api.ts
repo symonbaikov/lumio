@@ -88,7 +88,23 @@ export interface UpdatePayableInput {
 }
 
 export interface MarkPayablePaidInput {
+  /** An existing transaction that settled the bill. */
   linkedTransactionId?: string;
+  /** Paid in cash: the server records the payment as a transaction of this wallet. */
+  payFromWalletId?: string;
+  paidOn?: string;
+  categoryId?: string;
+}
+
+/** A transaction that may be the payment of a bill. */
+export interface PaymentCandidate {
+  id: string;
+  transactionDate: string;
+  amount: string;
+  currency: string;
+  counterpartyName: string;
+  paymentPurpose: string;
+  vendorMatch: boolean;
 }
 
 export interface ExportPayablesParams extends ListPayablesParams {
@@ -142,6 +158,11 @@ export const payablesApi = {
 
   async update(id: string, payload: UpdatePayableInput): Promise<Payable> {
     const response = await apiClient.put<Payable>(`/payables/${id}`, payload);
+    return unwrapData(response);
+  },
+
+  async paymentCandidates(id: string): Promise<PaymentCandidate[]> {
+    const response = await apiClient.get<PaymentCandidate[]>(`/payables/${id}/payment-candidates`);
     return unwrapData(response);
   },
 

@@ -60,6 +60,15 @@ export class PayablesController {
     return this.payablesService.findOne(id, workspaceId);
   }
 
+  @Get(':id/payment-candidates')
+  @WorkspaceAuth(Permission.PAYABLE_VIEW)
+  async findPaymentCandidates(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.payablesService.findPaymentCandidates(id, workspaceId);
+  }
+
   @Put(':id')
   @WorkspaceAuth(Permission.PAYABLE_EDIT)
   @Audit({ entityType: EntityType.PAYABLE, includeDiff: true, isUndoable: true })

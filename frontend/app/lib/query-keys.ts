@@ -24,6 +24,9 @@ export const queryKeys = {
   transactions: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
     ['transactions', o.workspaceId, o.params] as const,
   categories: (workspaceId: string | null) => ['categories', workspaceId] as const,
+  wallets: (workspaceId: string | null) => ['wallets', workspaceId] as const,
+  payablePaymentCandidates: (o: { workspaceId: string | null; payableId: string }) =>
+    ['payables', o.workspaceId, o.payableId, 'payment-candidates'] as const,
   // Tile-server configuration is the same in every workspace, hence no workspace segment.
   mapStyles: () => ['map-styles'] as const,
   categoryUsage: (workspaceId: string | null) => ['categories', workspaceId, 'usage'] as const,

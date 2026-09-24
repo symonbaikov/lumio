@@ -18,14 +18,26 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 
 function createRepositoryMock<T extends object>() {
-  return {
+  const repository: any = {
     create: jest.fn((data: Partial<T>) => data as T),
     save: jest.fn(async (data: Partial<T>) => data as T),
     find: jest.fn(),
     findOne: jest.fn(),
     softRemove: jest.fn(async (data: Partial<T>) => data as T),
     createQueryBuilder: jest.fn(),
-  } as unknown as Repository<T>;
+  };
+  // markAsPaid locks the row in a transaction; route it back to the same mocks.
+  repository.manager = {
+    transaction: jest.fn(async (work: (manager: unknown) => Promise<unknown>) =>
+      work({
+        getRepository: () => ({
+          findOneOrFail: (...args: unknown[]) => repository.findOne(...args),
+          save: (...args: unknown[]) => repository.save(...args),
+        }),
+      }),
+    ),
+  };
+  return repository as Repository<T>;
 }
 
 describe('PayablesService', () => {

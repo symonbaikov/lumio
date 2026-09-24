@@ -34,6 +34,22 @@ const toastMock = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
+// The dialog has its own test; here it only has to hand the choice back.
+vi.mock('./MarkPaidDialog', () => ({
+  MarkPaidDialog: (props: {
+    payable: { id: string } | null;
+    onConfirm: (payable: { id: string }, payload: Record<string, string>) => void;
+  }) =>
+    props.payable ? (
+      <button
+        type="button"
+        onClick={() => props.onConfirm(props.payable as { id: string }, { payFromWalletId: 'wallet-1' })}
+      >
+        Confirm payment
+      </button>
+    ) : null,
+}));
+
 vi.mock('@/app/hooks/useAuth', () => ({
   useAuth: () => authState,
 }));
@@ -303,15 +319,22 @@ describe('PayablesView', () => {
     expect(apiMocks.list).toHaveBeenCalledTimes(1);
   });
 
-  it('marks a payable as paid from the list action', async () => {
+  it('marks a payable as paid through the payment dialog', async () => {
     const { PayablesView } = await import('./PayablesView');
     render(<PayablesView />);
 
     const button = await screen.findByRole('button', { name: 'Mark paid' });
     fireEvent.click(button);
+    expect(apiMocks.markAsPaid).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm payment' }));
 
     await waitFor(() => {
-      expect(apiMocks.markAsPaid).toHaveBeenCalledWith('payable-1');
+      expect(apiMocks.markAsPaid).toHaveBeenCalledWith('payable-1', {
+        payFromWalletId: 'wallet-1',
+      });
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Confirm payment' })).not.toBeInTheDocument();
     });
     expect(toastMock.success).toHaveBeenCalledWith('Marked as paid');
   });
