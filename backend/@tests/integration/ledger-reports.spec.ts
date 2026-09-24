@@ -105,7 +105,7 @@ describe('ledger reports (real Postgres)', () => {
         LedgerAccountsService,
         { provide: LedgerSyncQueue, useValue: { enqueue: jest.fn() } },
         { provide: AuditService, useValue: { createEvent: jest.fn().mockResolvedValue(undefined) } },
-        { provide: ExchangeRatesService, useValue: { getRateOrNull: jest.fn().mockResolvedValue(null) } },
+        { provide: ExchangeRatesService, useValue: { getRateQuote: jest.fn().mockResolvedValue(null) } },
         ...ENTITIES.map(entity => ({
           provide: getRepositoryToken(entity),
           useValue: dataSource.getRepository(entity),

@@ -21,6 +21,7 @@ import {
   BankName,
   Category,
   CategoryType,
+  ExchangeRate,
   FileType,
   JournalEntry,
   JournalEntryStatus,
@@ -32,7 +33,10 @@ import {
   User,
   Workspace,
 } from '../../src/entities';
-import { ExchangeRatesService } from '../../src/modules/exchange-rates/exchange-rates.service';
+import {
+  ExchangeRatesService,
+  type RateQuoteOptions,
+} from '../../src/modules/exchange-rates/exchange-rates.service';
 import { LedgerAccountsService } from '../../src/modules/ledger/ledger-accounts.service';
 import { LEDGER_ACCOUNT_CODES } from '../../src/modules/ledger/ledger-default-accounts';
 import { LedgerPostingService } from '../../src/modules/ledger/ledger-posting.service';
@@ -88,7 +92,12 @@ describe('ledger posting engine (real Postgres)', () => {
   /** Called by the posting service; a test may swap the behaviour. */
   let onRateLookup: (from: string, to: string, date: string) => Promise<number | null>;
   const exchangeStub = {
-    getRateOrNull: jest.fn((from: string, to: string, date: string) => onRateLookup(from, to, date)),
+    getRateQuote: jest.fn(
+      async (from: string, to: string, date: string, _options?: RateQuoteOptions) => {
+        const rate = await onRateLookup(from, to, date);
+        return rate === null ? null : { rate, rateDate: date, stale: false };
+      },
+    ),
   };
   const defaultRates = async (from: string, to: string) =>
     from === 'USD' && to === 'EUR' ? USD_EUR : null;
@@ -431,6 +440,59 @@ describe('ledger posting engine (real Postgres)', () => {
       code: 'FX_RATE_MISSING',
     });
     expect(await entryCount()).toBe(before);
+  });
+
+  it('borrows a rate from an earlier day only within the allowed age', async () => {
+    // The real lookup over the scratch database; no API key and no network.
+    const realRates = new ExchangeRatesService(
+      dataSource.getRepository(ExchangeRate),
+      { get: jest.fn().mockResolvedValue(undefined), set: jest.fn() } as never,
+      { get: jest.fn().mockReturnValue(undefined) } as never,
+    );
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: false } as Response);
+    exchangeStub.getRateQuote.mockImplementation((from, to, date, options) =>
+      realRates.getRateQuote(from, to, date, options),
+    );
+    try {
+      await dataSource.getRepository(ExchangeRate).save([
+        { baseCurrency: 'CHF', targetCurrency: 'EUR', rate: 1.05, source: 'test', rateDate: new Date('2025-03-01') },
+        // Later than every booking below: must never be used for them.
+        { baseCurrency: 'CHF', targetCurrency: 'EUR', rate: 9.99, source: 'test', rateDate: new Date('2025-06-01') },
+      ]);
+      const tooOld = await insertTransaction({
+        amount: 10,
+        debit: 10,
+        currency: 'CHF',
+        categoryId: category.food,
+        transactionDate: new Date('2025-03-11'),
+      });
+      await expect(posting.postTransaction(workspaceId, tooOld)).rejects.toMatchObject({
+        code: 'FX_RATE_MISSING',
+      });
+
+      const recent = await insertTransaction({
+        amount: 10,
+        debit: 10,
+        currency: 'CHF',
+        categoryId: category.food,
+        transactionDate: new Date('2025-03-06'),
+      });
+      await expect(posting.postTransaction(workspaceId, recent)).resolves.toMatchObject({
+        status: 'posted',
+      });
+      const [line] = await query<{ fx_rate: string }>(
+        `SELECT l.fx_rate FROM journal_lines l JOIN journal_entries e ON e.id = l.entry_id
+          WHERE e.source_transaction_id = $1 AND l.currency = 'CHF' LIMIT 1`,
+        [recent],
+      );
+      expect(Number(line.fx_rate)).toBe(1.05);
+    } finally {
+      fetchSpy.mockRestore();
+      exchangeStub.getRateQuote.mockImplementation(async (from, to, date) => {
+        const rate = await onRateLookup(from, to, date);
+        return rate === null ? null : { rate, rateDate: date, stale: false };
+      });
+    }
   });
 
   it('refuses to book a transaction edited between planning and locking', async () => {

@@ -141,8 +141,10 @@ describe('ledger sync (real Postgres)', () => {
         {
           provide: ExchangeRatesService,
           useValue: {
-            getRateOrNull: jest.fn(async (from: string, to: string) =>
-              to === 'EUR' ? (rates[from] ?? null) : null,
+            getRateQuote: jest.fn(async (from: string, to: string, date: string) =>
+              to === 'EUR' && rates[from] !== undefined
+                ? { rate: rates[from], rateDate: date, stale: false }
+                : null,
             ),
           },
         },

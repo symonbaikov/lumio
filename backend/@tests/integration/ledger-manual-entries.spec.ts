@@ -114,8 +114,8 @@ describe('manual journal entries (real Postgres)', () => {
         {
           provide: ExchangeRatesService,
           useValue: {
-            getRateOrNull: jest.fn(async (from: string, to: string) =>
-              from === 'USD' && to === 'EUR' ? 0.9137 : null,
+            getRateQuote: jest.fn(async (from: string, to: string, date: string) =>
+              from === 'USD' && to === 'EUR' ? { rate: 0.9137, rateDate: date, stale: false } : null,
             ),
           },
         },

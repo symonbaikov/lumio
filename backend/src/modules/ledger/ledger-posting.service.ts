@@ -35,6 +35,9 @@ export type LedgerPostingErrorCode =
   | 'TRANSACTION_CHANGED'
   | 'NOT_REVERSIBLE';
 
+/** How far back a rate may be borrowed when none was quoted on the entry's own day. */
+export const LEDGER_MAX_RATE_AGE_DAYS = 7;
+
 /**
  * A posting that cannot go ahead as asked. `TRANSACTION_CHANGED` is the one a
  * caller should simply retry: the source was edited between reading it and
@@ -482,12 +485,18 @@ export class LedgerPostingService {
     });
   }
 
-  /** Rate from `currency` to the base on `date`; 1 for the base itself. */
+  /**
+   * Rate from `currency` to the base on `date`; 1 for the base itself. A rate
+   * borrowed from an earlier day is accepted up to LEDGER_MAX_RATE_AGE_DAYS old.
+   */
   async rateFor(currency: string, baseCurrency: string, date: string): Promise<number> {
-    const rate =
-      currency === baseCurrency
-        ? 1
-        : await this.exchangeRatesService.getRateOrNull(currency, baseCurrency, date);
+    if (currency.toUpperCase() === baseCurrency.toUpperCase()) {
+      return 1;
+    }
+    const quote = await this.exchangeRatesService.getRateQuote(currency, baseCurrency, date, {
+      maxStaleDays: LEDGER_MAX_RATE_AGE_DAYS,
+    });
+    const rate = quote?.rate ?? null;
     if (rate === null) {
       throw new LedgerPostingError(
         'FX_RATE_MISSING',
