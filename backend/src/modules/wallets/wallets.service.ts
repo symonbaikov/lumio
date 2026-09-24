@@ -14,9 +14,11 @@ export class WalletsService extends WorkspaceCrudBaseService<Wallet> {
     super(repository, 'Wallet');
   }
 
-  async create(workspaceId: string, createDto: CreateWalletDto): Promise<Wallet> {
+  async create(workspaceId: string, userId: string, createDto: CreateWalletDto): Promise<Wallet> {
+    // wallets.user_id is NOT NULL: without it every create failed with a 500.
     const wallet = this.repository.create({
       workspaceId,
+      userId,
       ...createDto,
       currency: createDto.currency || 'KZT',
       initialBalance: createDto.initialBalance || 0,

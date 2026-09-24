@@ -47,6 +47,8 @@ export function CandidateList(props: {
             key={candidate.id}
             value={candidate.id}
             control={<Radio size="small" />}
+            // The label is a block of its own; the default <p> wrapper cannot hold it.
+            disableTypography
             sx={{ alignItems: 'flex-start', mb: 1, minWidth: 0 }}
             label={<CandidateLabel candidate={candidate} locale={props.locale} />}
           />
@@ -61,7 +63,13 @@ function CandidateLabel(props: { candidate: PaymentCandidate; locale: string }):
   const { candidate } = props;
   return (
     <Box sx={{ minWidth: 0 }}>
-      <Typography variant="body2" fontWeight={600} sx={{ overflowWrap: 'anywhere' }}>
+      {/* A div, not a p: the chip inside it renders a div. */}
+      <Typography
+        component="div"
+        variant="body2"
+        fontWeight={600}
+        sx={{ overflowWrap: 'anywhere' }}
+      >
         {candidate.transactionDate} ·{' '}
         {formatMoney(Number(candidate.amount), candidate.currency, props.locale)}
         {candidate.vendorMatch && <Chip size="small" label={t.vendorMatch.value} sx={{ ml: 1 }} />}

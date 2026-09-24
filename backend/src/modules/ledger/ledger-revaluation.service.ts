@@ -216,13 +216,18 @@ export class LedgerRevaluationService {
          JOIN "journal_entries" e ON e."id" = l."entry_id"
          JOIN "ledger_accounts" a ON a."id" = l."account_id"
         WHERE e."workspace_id" = $1 AND e."status" <> 'draft' AND e."entry_date" <= $2
-          AND l."currency" <> $3 AND a."account_type" IN ('asset', 'liability')`,
-      [workspaceId, date, baseCurrency],
+          AND l."currency" <> $3 AND a."account_type" IN ('asset', 'liability')
+          AND a."code" <> $4`,
+      [workspaceId, date, baseCurrency, LEDGER_ACCOUNT_CODES.SUSPENSE],
     );
     return rows.map(row => row.currency);
   }
 
-  /** Asset and liability balances per account and foreign currency, as booked up to `date`. */
+  /**
+   * Asset and liability balances per account and foreign currency, as booked
+   * up to `date`. SUSPENSE is left out: it holds uncategorised income and
+   * expenses, which stay at their historical rates like the categorised ones.
+   */
   private async foreignBalances(
     manager: EntityManager,
     workspaceId: string,
@@ -240,10 +245,11 @@ export class LedgerRevaluationService {
            JOIN "ledger_accounts" a ON a."id" = l."account_id"
           WHERE e."workspace_id" = $1 AND e."status" <> 'draft' AND e."entry_date" <= $2
             AND l."currency" <> $3 AND a."account_type" IN ('asset', 'liability')
+            AND a."code" <> $5
             AND e."id" IS DISTINCT FROM $4
           GROUP BY l."account_id", l."currency"
           ORDER BY l."account_id", l."currency"`,
-        [workspaceId, date, baseCurrency, excludeEntryId],
+        [workspaceId, date, baseCurrency, excludeEntryId, LEDGER_ACCOUNT_CODES.SUSPENSE],
       );
     return rows.map(row => ({
       accountId: row.account_id,

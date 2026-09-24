@@ -316,6 +316,27 @@ describe('ledger FX revaluation (real Postgres)', () => {
     ]);
   });
 
+  it('leaves uncategorised amounts on SUSPENSE at their historical rate', async () => {
+    const before = await revaluation.list(workspaceId);
+    const uncategorised = await income(100, '2026-02-10');
+    await txRepo.update(uncategorised.id, { categoryId: null });
+    await sync.syncWorkspace(workspaceId);
+
+    // USD cash is revalued; SUSPENSE, which holds the other side, is not. The
+    // day's entry is replaced, so it carries the whole loss since January:
+    // 36.00 on the earlier 1,200 USD and 3.00 on the new 100 USD.
+    const result = await revaluation.revalue(workspaceId, userId, '2026-02-28');
+    expect(result).toMatchObject({ status: 'posted', revaluation: { gain: '0.00', loss: '39.00' } });
+    const suspense = await query<{ n: number }>(
+      `SELECT count(*)::int AS "n" FROM "journal_lines" l
+         JOIN "journal_entries" e ON e."id" = l."entry_id"
+        WHERE e."workspace_id" = $1 AND e."source" = 'fx_revaluation' AND l."account_id" = $2`,
+      [workspaceId, system[LEDGER_ACCOUNT_CODES.SUSPENSE]],
+    );
+    expect(suspense[0].n).toBe(0);
+    expect((await revaluation.list(workspaceId)).length).toBe(before.length);
+  });
+
   it('refuses a line with no amount anywhere but in a revaluation', async () => {
     const [usdAccount] = await query<{ id: string }>(
       `SELECT "id" FROM "ledger_accounts" WHERE "workspace_id" = $1 AND "currency" = 'USD'`,
