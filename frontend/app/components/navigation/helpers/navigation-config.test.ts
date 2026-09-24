@@ -15,6 +15,7 @@ const nav = {
   roi: 'Returns',
   subscriptions: 'Subscriptions',
   crypto: 'Crypto',
+  ledger: 'Ledger',
 };
 
 const userMenuNav = {
@@ -26,6 +27,13 @@ const userMenuNav = {
 };
 
 describe('buildNavItems', () => {
+  it('offers the ledger only in experimental mode, behind its own view permission', () => {
+    const ledger = buildNavItems(nav).find(item => item.path === '/ledger');
+
+    expect(ledger?.permission).toBe('ledger.view');
+    expect(ledger?.experimental).toBe(true);
+  });
+
   it('does not include the items that moved into the user menu', () => {
     const items = buildNavItems(nav);
 

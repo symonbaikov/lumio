@@ -52,6 +52,9 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'subscription.edit',
     'subscription.delete',
     'api_key.manage',
+    'ledger.view',
+    'ledger.post',
+    'ledger.manage_accounts',
   ],
   user: [
     // View-only permissions for regular users
@@ -69,6 +72,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'budget.view',
     'goal.view',
     'subscription.view',
+    'ledger.view',
   ],
   viewer: [
     // Read-only permissions
@@ -83,6 +87,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'budget.view',
     'goal.view',
     'subscription.view',
+    'ledger.view',
   ],
 };
 

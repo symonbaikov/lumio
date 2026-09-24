@@ -10,6 +10,7 @@ import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer } from '@/app/i18n';
+import { useExperimentalMode } from '@/app/lib/experimental-mode';
 import {
   type OpenExpenseDrawerEventDetail,
   STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT,
@@ -95,7 +96,10 @@ export function SidebarContent({ onNavClick }: SidebarProps) {
 
   const isLoading = authLoading || workspaceLoading;
   const navItems = buildNavItems(nav as Parameters<typeof buildNavItems>[0]);
-  const visibleNavItems = navItems.filter(item => hasPermission(item.permission));
+  const experimentalMode = useExperimentalMode();
+  const visibleNavItems = navItems.filter(
+    item => hasPermission(item.permission) && (!item.experimental || experimentalMode),
+  );
 
   // Already on the submit page: open the drawer in place instead of a
   // /statements → /statements/submit redirect round-trip that remounts the page.

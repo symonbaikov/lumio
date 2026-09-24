@@ -17,6 +17,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { HelpCircle, X } from '@/app/components/icons';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import { useExperimentalMode } from '@/app/lib/experimental-mode';
 import { tokens } from '@/lib/theme-tokens';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useAuth } from '../hooks/useAuth';
@@ -88,7 +89,10 @@ export default function Navigation() {
   }, [user?.avatarUrl]);
 
   const navItems = buildNavItems(nav as Parameters<typeof buildNavItems>[0]);
-  const visibleNavItems = navItems.filter(item => hasPermission(item.permission));
+  const experimentalMode = useExperimentalMode();
+  const visibleNavItems = navItems.filter(
+    item => hasPermission(item.permission) && (!item.experimental || experimentalMode),
+  );
 
   const navigateFromUserMenu = useCallback(
     (path: string): void => {

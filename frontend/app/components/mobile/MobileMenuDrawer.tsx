@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { HelpCircle, Settings, X } from '@/app/components/icons';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer } from '@/app/i18n';
+import { useExperimentalMode } from '@/app/lib/experimental-mode';
 import { buildNavItems, isNavItemActive } from '../navigation/helpers/navigation-config';
 
 interface MobileMenuDrawerProps {
@@ -19,7 +20,10 @@ export function MobileMenuDrawer({ open, onClose }: MobileMenuDrawerProps) {
   const { nav } = useIntlayer('navigation');
 
   const navItems = buildNavItems(nav as Parameters<typeof buildNavItems>[0]);
-  const visibleNavItems = navItems.filter(item => hasPermission(item.permission));
+  const experimentalMode = useExperimentalMode();
+  const visibleNavItems = navItems.filter(
+    item => hasPermission(item.permission) && (!item.experimental || experimentalMode),
+  );
 
   // Close on route change
   useEffect(() => {

@@ -193,6 +193,33 @@ export const ERR = {
   NOTE_TARGET_NOT_FOUND: 'The item this note belongs to was not found',
   NOTE_MENTION_NOT_A_MEMBER: 'One of the mentioned users is not a workspace member',
   NOTE_DELETE_FORBIDDEN: 'Only the author or a workspace admin can delete this note',
+
+  // ── ledger ────────────────────────────────────────────────────────────────
+  LEDGER_DISABLED: 'The ledger is not enabled for this workspace',
+  LEDGER_ENTRY_NOT_FOUND: 'Journal entry not found',
+  LEDGER_ENTRY_NOT_DRAFT: 'A posted journal entry cannot be changed; reverse it instead',
+  LEDGER_ENTRY_TOO_FEW_LINES: 'A journal entry needs at least two lines',
+  LEDGER_ENTRY_UNBALANCED: 'Debits and credits differ by {{difference}} {{currency}}',
+  LEDGER_ENTRY_NOT_REVERSIBLE: 'Only a posted entry that is not itself a reversal can be reversed',
+  LEDGER_ACCOUNT_NOT_FOUND: 'Ledger account not found',
+  LEDGER_ACCOUNT_SYSTEM_LOCKED: 'System accounts keep their code and parent and cannot be deleted',
+  LEDGER_ACCOUNT_PARENT_NOT_FOUND: 'Parent account not found',
+  LEDGER_ACCOUNT_PARENT_TYPE: 'Parent account must be of the same type',
+  LEDGER_ACCOUNT_PARENT_NOT_HEADER: 'Parent account must be a section header',
+  LEDGER_ACCOUNT_CYCLE: 'An account cannot be moved under its own sub-account',
+  LEDGER_ACCOUNT_HAS_CHILDREN: 'Move or delete the sub-accounts first',
+  LEDGER_ACCOUNT_HAS_LINES: 'The account has journal lines and cannot be deleted',
+  LEDGER_ACCOUNT_HAS_CATEGORIES: 'Categories book to this account; map them elsewhere first',
+  LEDGER_ACCOUNT_CODE_TAKEN: 'Account code {{code}} is already in use',
+  LEDGER_ACCOUNT_NOT_POSTABLE: 'Account {{code}} is a section header and takes no lines',
+  LEDGER_ACCOUNT_CURRENCY_MISMATCH: 'Account {{code}} only takes lines in {{currency}}',
+  LEDGER_LINE_REFERENCE_NOT_FOUND:
+    'Line {{line}} refers to a category or branch not in this workspace',
+  LEDGER_FX_RATE_MISSING: 'No {{from}} to {{to}} exchange rate for {{date}}',
+  LEDGER_NOT_UP_TO_DATE:
+    '{{pending}} transactions are still waiting to be booked; the report would be incomplete',
+  LEDGER_BASE_CURRENCY_LOCKED:
+    'The ledger already has entries in {{currency}}; its base currency can no longer change',
 } as const;
 
 export type ErrorCode = keyof typeof ERR;

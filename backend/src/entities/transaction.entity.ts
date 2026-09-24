@@ -234,6 +234,46 @@ export class Transaction {
   @Column({ name: 'tax_locked', default: false })
   taxLocked: boolean;
 
+  /**
+   * Ledger sync state. Set by database triggers whenever a fact the ledger
+   * entry depends on changes, cleared only by the posting worker in the
+   * transaction that books the row. Never written by the application:
+   * a stale value saved back from a loaded entity would lose a change.
+   */
+  @Column({ name: 'ledger_dirty', select: false, insert: false, update: false, default: true })
+  ledgerDirty: boolean;
+
+  @Column({
+    name: 'ledger_posted_at',
+    type: 'timestamptz',
+    nullable: true,
+    select: false,
+    insert: false,
+    update: false,
+  })
+  ledgerPostedAt: Date | null;
+
+  /** Why the last posting attempt failed; the row is retried after a pause. */
+  @Column({
+    name: 'ledger_error',
+    type: 'text',
+    nullable: true,
+    select: false,
+    insert: false,
+    update: false,
+  })
+  ledgerError: string | null;
+
+  @Column({
+    name: 'ledger_attempted_at',
+    type: 'timestamptz',
+    nullable: true,
+    select: false,
+    insert: false,
+    update: false,
+  })
+  ledgerAttemptedAt: Date | null;
+
   @Column({
     name: 'enrichment_confidence',
     type: 'decimal',

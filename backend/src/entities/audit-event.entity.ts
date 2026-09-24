@@ -36,6 +36,8 @@ export enum EntityType {
   CUSTOM_TABLE_COLUMN = 'custom_table_column',
   BUDGET = 'budget',
   SUBSCRIPTION = 'subscription',
+  LEDGER_ACCOUNT = 'ledger_account',
+  JOURNAL_ENTRY = 'journal_entry',
 }
 
 export enum AuditAction {

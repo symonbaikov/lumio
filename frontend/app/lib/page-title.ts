@@ -15,6 +15,7 @@ const TITLES_BY_PREFIX: Array<[string, string]> = [
   ['/workspaces/list', 'Lumio — Workspaces'],
   ['/workspaces', 'Lumio — Workspaces'],
   ['/reports', 'Lumio — Reports'],
+  ['/ledger', 'Lumio — Ledger'],
   ['/audit', 'Lumio — Audit log'],
   ['/settings', 'Lumio — Settings'],
 ];

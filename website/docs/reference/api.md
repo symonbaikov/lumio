@@ -30,11 +30,15 @@ The Lumio API is served from the backend at `/api/v1`.
 - `/statements` — upload, metadata, reprocessing, import preview (`/statements/:id/import-preview`) and commit
   (`/statements/:id/import-commit`)
 - `/import-sessions` — import session status and cancellation
-- `/transactions` — normalized ledger entries
+- `/transactions` — normalized bank transactions
 - `/receipts` — receipts, including `PATCH` and `DELETE /receipts/:id/location`
 - `/documents` — parser operations and debug tools
 - `/dashboard`, `/reports` — dashboards and reporting (for example `GET /dashboard/cash-flow?range=`)
 - `/budgets`, `/goals`, `/subscriptions`, `/payables`, `/custom-tables`
+- `/ledger` — double-entry ledger: `settings` (switch on in a base currency) and `integrity`, `accounts` (chart of
+  accounts), `entries` (drafts, `:id/post`, `:id/reverse`), and `reports/trial-balance`, `reports/profit-and-loss`,
+  `reports/balance-sheet`, `reports/accounts/:id`; reports answer `409 LEDGER_NOT_UP_TO_DATE` while transactions are
+  still being posted unless `allowStale=true`
 - `/tax/jurisdictions`, `/tax/rules`, `/tax/returns`, `/tax-rates` — VAT
 - `/income-tax` — income tax declaration: disclaimer, profile, line mappings, and `returns/:taxYear` with
   `finalize`, `reopen`, and `export?format=pdf|xlsx`

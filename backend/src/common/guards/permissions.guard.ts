@@ -143,7 +143,7 @@ export class PermissionsGuard implements CanActivate {
     }
 
     // Workspace owners/admins manage these workspace-scoped resources
-    // (budgets, wallets, payables, categories, branches, subscriptions)
+    // (budgets, wallets, payables, categories, branches, subscriptions, ledger)
     // even if their global user role only grants view access.
     const workspaceManagedPermissions = new Set<Permission>([
       PermissionEnum.BUDGET_CREATE,
@@ -164,6 +164,8 @@ export class PermissionsGuard implements CanActivate {
       PermissionEnum.SUBSCRIPTION_CREATE,
       PermissionEnum.SUBSCRIPTION_EDIT,
       PermissionEnum.SUBSCRIPTION_DELETE,
+      PermissionEnum.LEDGER_POST,
+      PermissionEnum.LEDGER_MANAGE_ACCOUNTS,
     ]);
 
     const isWorkspaceManagedPermission = requiredPermissions.every(permission =>
