@@ -235,11 +235,13 @@ export function fromLineColumns(row: {
   branchId: string | null;
 }): BaseLine {
   const debit = toMinor(row.debit);
-  const side: Side = debit > 0 ? 'debit' : 'credit';
+  const credit = toMinor(row.credit);
+  // A revaluation line has no document amount; its base amount gives the side.
+  const side: Side = debit > 0 || (credit === 0 && toMinor(row.baseDebit) > 0) ? 'debit' : 'credit';
   return {
     accountId: row.accountId,
     side,
-    amountMinor: side === 'debit' ? debit : toMinor(row.credit),
+    amountMinor: side === 'debit' ? debit : credit,
     currency: row.currency,
     baseMinor: side === 'debit' ? toMinor(row.baseDebit) : toMinor(row.baseCredit),
     fxRate: Number(row.fxRate),
@@ -312,4 +314,73 @@ export function manualBaseLines(
 /** Base debits minus base credits, in minor units. Zero means the entry can be posted. */
 export function baseDifference(lines: BaseLine[]): number {
   return lines.reduce((sum, line) => sum + signed(line.side, line.baseMinor), 0);
+}
+
+/** What a foreign-currency balance holds on the revaluation day, from its booked lines. */
+export interface ForeignBalance {
+  accountId: string;
+  currency: string;
+  /** Debits minus credits in the balance's own currency. */
+  docMinor: number;
+  /** Debits minus credits in the base currency, at the rates it was booked at. */
+  baseMinor: number;
+}
+
+/**
+ * Lines that bring foreign-currency balances to their value at `rateOf` —
+ * one base-only line per balance that moved, against FX gain or FX loss.
+ *
+ * One formula serves assets and liabilities alike: a liability's balance is
+ * negative, so a stronger foreign currency makes it more negative, and the
+ * base-only credit that follows lands on FX loss as it should. Revaluations
+ * are cumulative: each adjusts to the rate of its own day whatever the last
+ * one booked, so none needs reversing the next morning.
+ */
+export function revaluationLines(
+  balances: ForeignBalance[],
+  rateOf: (currency: string) => number,
+  baseCurrency: string,
+  accounts: { fxGain: string; fxLoss: string },
+): BaseLine[] {
+  const lines: BaseLine[] = [];
+  let gainMinor = 0;
+  let lossMinor = 0;
+  for (const balance of balances) {
+    const fxRate = Number(rateOf(balance.currency).toFixed(8));
+    if (!(Number.isFinite(fxRate) && fxRate > 0)) {
+      throw new Error(`Invalid exchange rate for ${balance.currency}->${baseCurrency}`);
+    }
+    const delta = roundHalfAwayFromZero(balance.docMinor * fxRate) - balance.baseMinor;
+    if (delta === 0) {
+      continue;
+    }
+    lines.push({
+      accountId: balance.accountId,
+      side: delta > 0 ? 'debit' : 'credit',
+      amountMinor: 0,
+      currency: balance.currency,
+      baseMinor: Math.abs(delta),
+      fxRate,
+    });
+    if (delta > 0) {
+      gainMinor += delta;
+    } else {
+      lossMinor -= delta;
+    }
+  }
+  const counter = (accountId: string, side: Side, amountMinor: number): BaseLine => ({
+    accountId,
+    side,
+    amountMinor,
+    currency: baseCurrency,
+    baseMinor: amountMinor,
+    fxRate: 1,
+  });
+  if (gainMinor > 0) {
+    lines.push(counter(accounts.fxGain, 'credit', gainMinor));
+  }
+  if (lossMinor > 0) {
+    lines.push(counter(accounts.fxLoss, 'debit', lossMinor));
+  }
+  return lines;
 }

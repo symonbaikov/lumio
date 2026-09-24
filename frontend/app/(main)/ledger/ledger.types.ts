@@ -43,6 +43,8 @@ export interface LedgerIntegrity {
     difference: string | null;
     hasOpeningBalance: boolean;
   }>;
+  /** Stale once a foreign-currency movement dated on or before it was booked after it. */
+  lastRevaluation: { date: string; entryNo: string | null; stale: boolean } | null;
   upToDate: boolean;
 }
 
@@ -168,3 +170,15 @@ export interface DraftLine {
   amount: string;
   currency: string;
 }
+
+export interface Revaluation {
+  entryId: string;
+  entryNo: string | null;
+  entryDate: string;
+  gain: string;
+  loss: string;
+}
+
+export type RevaluationResult =
+  | { status: 'posted' | 'unchanged'; revaluation: Revaluation }
+  | { status: 'nothing_to_revalue'; entryDate: string };

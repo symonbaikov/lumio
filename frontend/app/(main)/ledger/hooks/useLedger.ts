@@ -15,6 +15,7 @@ import type {
   LedgerIntegrity,
   LedgerSettings,
   Paginated,
+  RevaluationResult,
   Side,
   TrialBalance,
 } from '../ledger.types';
@@ -197,6 +198,20 @@ export function useLedgerMutations() {
     mutationFn: (id: string) => apiClient.delete(`/ledger/entries/${id}`),
     onSuccess: invalidate,
   });
+  const revalue = useMutation({
+    mutationFn: async (date: string) =>
+      (await apiClient.post<RevaluationResult>('/ledger/revaluations', { date })).data,
+    onSuccess: invalidate,
+  });
 
-  return { enable, createAccount, deleteAccount, saveDraft, postEntry, reverseEntry, deleteDraft };
+  return {
+    enable,
+    createAccount,
+    deleteAccount,
+    saveDraft,
+    postEntry,
+    reverseEntry,
+    deleteDraft,
+    revalue,
+  };
 }

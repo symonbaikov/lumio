@@ -24,6 +24,7 @@ import { useJournalEntries, useJournalEntry, useLedgerMutations } from '../hooks
 import type { EntrySource, EntryStatus, LedgerAccount } from '../ledger.types';
 import { EntryDetail } from './EntryDetail';
 import { EntryForm } from './EntryForm';
+import { RevaluationButton } from './RevaluationButton';
 
 interface JournalTabProps {
   baseCurrency: string;
@@ -168,6 +169,7 @@ export function JournalTab({
           ))}
         </TextField>
         <Box sx={{ flex: 1 }} />
+        {canPost ? <RevaluationButton /> : null}
         {canPost ? (
           <Button variant="contained" startIcon={<Plus size={16} />} onClick={() => setOpen('new')}>
             {t.newEntry}

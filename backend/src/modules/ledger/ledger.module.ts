@@ -25,6 +25,8 @@ import { LedgerEntriesService } from './ledger-entries.service';
 import { LedgerPostingService } from './ledger-posting.service';
 import { LedgerReportsController } from './ledger-reports.controller';
 import { LedgerReportsService } from './ledger-reports.service';
+import { LedgerRevaluationService } from './ledger-revaluation.service';
+import { LedgerRevaluationsController } from './ledger-revaluations.controller';
 import { LedgerSettingsController } from './ledger-settings.controller';
 import { LedgerSyncService } from './ledger-sync.service';
 import { LedgerSyncProcessor, LedgerSyncSweeper } from './queue/ledger-sync.processor';
@@ -55,6 +57,7 @@ import { LEDGER_SYNC_QUEUE, LedgerSyncQueue } from './queue/ledger-sync.queue';
     LedgerEntriesController,
     LedgerSettingsController,
     LedgerReportsController,
+    LedgerRevaluationsController,
   ],
   providers: [
     LedgerAccountsService,
@@ -62,6 +65,7 @@ import { LEDGER_SYNC_QUEUE, LedgerSyncQueue } from './queue/ledger-sync.queue';
     LedgerEntriesService,
     LedgerSyncService,
     LedgerReportsService,
+    LedgerRevaluationService,
     LedgerSyncQueue,
     LedgerSyncProcessor,
     LedgerSyncSweeper,

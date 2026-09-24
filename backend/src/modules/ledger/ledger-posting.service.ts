@@ -694,7 +694,8 @@ export class LedgerPostingService {
     );
   }
 
-  private async reverseWithin(
+  /** Books the reversal of `entry` in the caller's transaction and marks it reversed. */
+  async reverseWithin(
     manager: EntityManager,
     entry: JournalEntry,
     options: { userId?: string | null; date?: string } = {},

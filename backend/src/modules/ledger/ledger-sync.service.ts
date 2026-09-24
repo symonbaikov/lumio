@@ -69,6 +69,11 @@ export interface LedgerIntegrity {
   orphanEntries: number;
   unbalancedEntries: number;
   cashAccounts: CashReconciliation[];
+  /**
+   * The latest FX revaluation. `stale` once a foreign-currency line dated on
+   * or before it was booked after it: the balances it revalued have moved.
+   */
+  lastRevaluation: { date: string; entryNo: string | null; stale: boolean } | null;
   /** True when every transaction is booked and every booked entry balances. */
   upToDate: boolean;
 }
@@ -295,7 +300,7 @@ export class LedgerSyncService {
    */
   async integrity(workspaceId: string): Promise<LedgerIntegrity> {
     const settings = await this.getSettings(workspaceId);
-    const [failing, failures, orphans, unbalanced, cash] = await Promise.all([
+    const [failing, failures, orphans, unbalanced, cash, lastRevaluation] = await Promise.all([
       this.workspaceRepository.query(
         `SELECT count(*) AS n FROM "transactions"
           WHERE "workspace_id" = $1 AND "ledger_dirty" AND "ledger_error" IS NOT NULL`,
@@ -326,6 +331,7 @@ export class LedgerSyncService {
         [workspaceId],
       ) as Promise<Array<{ n: string }>>,
       this.cashReconciliation(workspaceId),
+      this.lastRevaluation(workspaceId),
     ]);
 
     const failingTransactions = count(failing);
@@ -337,12 +343,32 @@ export class LedgerSyncService {
       orphanEntries: orphans,
       unbalancedEntries: count(unbalanced),
       cashAccounts: cash,
+      lastRevaluation,
       upToDate:
         settings.enabled &&
         settings.pendingTransactions === 0 &&
         orphans === 0 &&
         count(unbalanced) === 0,
     };
+  }
+
+  private async lastRevaluation(workspaceId: string): Promise<LedgerIntegrity['lastRevaluation']> {
+    const [row]: Array<{ date: string; entry_no: string | null; stale: boolean }> =
+      await this.workspaceRepository.query(
+        `SELECT e."entry_date"::text AS "date", e."entry_no",
+                EXISTS (
+                  SELECT 1 FROM "journal_entries" x JOIN "journal_lines" l ON l."entry_id" = x."id"
+                   WHERE x."workspace_id" = e."workspace_id" AND x."status" <> 'draft'
+                     AND x."source" <> 'fx_revaluation' AND x."entry_date" <= e."entry_date"
+                     AND x."posted_at" > e."posted_at" AND l."currency" <> e."base_currency"
+                ) AS "stale"
+           FROM "journal_entries" e
+          WHERE e."workspace_id" = $1 AND e."source" = 'fx_revaluation'
+            AND e."status" = 'posted' AND e."reversal_of_id" IS NULL
+          ORDER BY e."entry_date" DESC LIMIT 1`,
+        [workspaceId],
+      );
+    return row ? { date: row.date, entryNo: row.entry_no, stale: row.stale } : null;
   }
 
   private async cashReconciliation(workspaceId: string): Promise<CashReconciliation[]> {

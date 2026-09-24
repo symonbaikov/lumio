@@ -220,6 +220,9 @@ export const ERR = {
     '{{pending}} transactions are still waiting to be booked; the report would be incomplete',
   LEDGER_BASE_CURRENCY_LOCKED:
     'The ledger already has entries in {{currency}}; its base currency can no longer change',
+  LEDGER_REVALUATION_FUTURE: 'Balances cannot be revalued at a future date',
+  LEDGER_REVALUATION_BACKDATED:
+    'Balances were already revalued on {{date}}; revalue on that day or later',
 
   // Payables
   PAYABLE_PAYMENT_AMBIGUOUS: 'Link a transaction or pay from a wallet, not both',

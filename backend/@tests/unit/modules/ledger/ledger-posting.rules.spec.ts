@@ -7,6 +7,7 @@ import {
   type Leg,
   openingBalanceLegs,
   reversedLines,
+  revaluationLines,
   sameLines,
   skipReason,
   type TransactionFacts,
@@ -316,5 +317,90 @@ describe('ledger posting rules', () => {
         ),
       ).toThrow(/Invalid exchange rate/);
     });
+  });
+});
+
+describe('revaluationLines', () => {
+  const FX = { fxGain: 'fx-gain', fxLoss: 'fx-loss' };
+  const usd = (docMinor: number, baseMinor: number, accountId = 'usd-cash') => ({
+    accountId,
+    currency: 'USD',
+    docMinor,
+    baseMinor,
+  });
+
+  it('books a gain when a foreign asset is worth more at the new rate', () => {
+    // 1,000.00 USD booked at 0.90 = 900.00 EUR, worth 950.00 at 0.95.
+    const lines = revaluationLines([usd(100000, 90000)], () => 0.95, 'EUR', FX);
+
+    expect(lines).toEqual([
+      { accountId: 'usd-cash', side: 'debit', amountMinor: 0, currency: 'USD', baseMinor: 5000, fxRate: 0.95 },
+      { accountId: 'fx-gain', side: 'credit', amountMinor: 5000, currency: 'EUR', baseMinor: 5000, fxRate: 1 },
+    ]);
+    expect(baseDifference(lines)).toBe(0);
+  });
+
+  it('books a loss when the foreign currency weakens', () => {
+    const lines = revaluationLines([usd(100000, 90000)], () => 0.85, 'EUR', FX);
+
+    expect(lines.map(line => [line.accountId, line.side, line.baseMinor])).toEqual([
+      ['usd-cash', 'credit', 5000],
+      ['fx-loss', 'debit', 5000],
+    ]);
+  });
+
+  it('books a loss when a foreign liability grows in base terms', () => {
+    // A 1,000.00 USD loan (credit balance) booked at 0.90 costs more at 0.95.
+    const lines = revaluationLines([usd(-100000, -90000, 'usd-loan')], () => 0.95, 'EUR', FX);
+
+    expect(lines.map(line => [line.accountId, line.side, line.baseMinor])).toEqual([
+      ['usd-loan', 'credit', 5000],
+      ['fx-loss', 'debit', 5000],
+    ]);
+  });
+
+  it('skips balances already at the rate, and books gains and losses side by side', () => {
+    const lines = revaluationLines(
+      [usd(100000, 95000), usd(100000, 90000, 'usd-bank'), { ...usd(-50000, -45000, 'gbp-loan'), currency: 'GBP' }],
+      currency => (currency === 'USD' ? 0.95 : 1),
+      'EUR',
+      FX,
+    );
+
+    expect(lines.map(line => [line.accountId, line.side, line.baseMinor])).toEqual([
+      ['usd-bank', 'debit', 5000],
+      ['gbp-loan', 'credit', 5000],
+      ['fx-gain', 'credit', 5000],
+      ['fx-loss', 'debit', 5000],
+    ]);
+    expect(baseDifference(lines)).toBe(0);
+  });
+
+  it('clears the base residue of a spent foreign balance', () => {
+    const lines = revaluationLines([usd(0, 120)], () => 0.95, 'EUR', FX);
+
+    expect(lines.map(line => [line.accountId, line.side, line.baseMinor])).toEqual([
+      ['usd-cash', 'credit', 120],
+      ['fx-loss', 'debit', 120],
+    ]);
+  });
+
+  it('round-trips a line with no document amount through the columns, and reverses it', () => {
+    const [line] = revaluationLines([usd(100000, 90000)], () => 0.95, 'EUR', FX);
+    const columns = toLineColumns(line);
+
+    expect(columns).toMatchObject({ debit: '0.00', credit: '0.00', baseDebit: '50.00', baseCredit: '0.00' });
+    expect(fromLineColumns({ ...columns, categoryId: null, branchId: null })).toEqual({
+      ...line,
+      categoryId: null,
+      branchId: null,
+    });
+    expect(toLineColumns(reversedLines([line])[0])).toMatchObject({ baseDebit: '0.00', baseCredit: '50.00' });
+  });
+
+  it('refuses a missing rate', () => {
+    expect(() => revaluationLines([usd(100, 90)], () => Number.NaN, 'EUR', FX)).toThrow(
+      /Invalid exchange rate/,
+    );
   });
 });
