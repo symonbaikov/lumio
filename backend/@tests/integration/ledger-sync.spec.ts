@@ -26,6 +26,7 @@ import {
   Transaction,
   TransactionType,
   User,
+  Wallet,
   Workspace,
 } from '../../src/entities';
 import { AuditService } from '../../src/modules/audit/audit.service';
@@ -368,6 +369,107 @@ describe('ledger sync (real Postgres)', () => {
     const fresh = (await dataSource.getRepository(Workspace).save({ name: 'Fresh WS' })).id;
     await sync.enable(fresh, userId, 'EUR');
     await expect(sync.enable(fresh, userId, 'USD')).resolves.toMatchObject({ baseCurrency: 'USD' });
+  });
+
+  describe('wallet opening balances', () => {
+    /** The live opening entry on a wallet's cash account. */
+    const walletOpening = (walletId: string) =>
+      query<{ entry_date: string; base_debit: string; base_credit: string }>(
+        `SELECT e."entry_date"::text AS "entry_date", l."base_debit", l."base_credit"
+           FROM "journal_entries" e
+           JOIN "journal_lines" l ON l."entry_id" = e."id"
+           JOIN "ledger_accounts" a ON a."id" = l."account_id"
+          WHERE a."wallet_id" = $1 AND e."source" = 'opening_balance'
+            AND e."status" = 'posted' AND e."reversal_of_id" IS NULL`,
+        [walletId],
+      );
+    const walletRecon = async (walletId: string) => {
+      const [account] = await query<{ id: string }>(
+        `SELECT "id" FROM "ledger_accounts" WHERE "wallet_id" = $1`,
+        [walletId],
+      );
+      return (await sync.integrity(workspaceId)).cashAccounts.find(
+        cash => cash.accountId === account?.id,
+      );
+    };
+
+    let walletId: string;
+
+    it('books the opening balance, dated by the first movement, and reconciles the wallet', async () => {
+      const wallets = dataSource.getRepository(Wallet);
+      walletId = (
+        await wallets.save(
+          wallets.create({ userId, workspaceId, name: 'Cash box', currency: 'EUR', initialBalance: 300 }),
+        )
+      ).id;
+      expect(await sync.workspacesNeedingSync()).toContain(workspaceId);
+      await insertTransaction({
+        amount: 40,
+        debit: 40,
+        statementId: null,
+        walletId,
+        transactionDate: new Date('2026-04-02'),
+      });
+
+      const report = await sync.syncWorkspace(workspaceId);
+
+      expect(report.openingBalances).toBe(1);
+      expect(await walletOpening(walletId)).toEqual([
+        { entry_date: '2026-04-02', base_debit: '300.00', base_credit: '0.00' },
+      ]);
+      expect(await walletRecon(walletId)).toMatchObject({
+        ledgerBalance: '260.00',
+        statementBalance: '260.00',
+        difference: '0.00',
+        hasOpeningBalance: true,
+      });
+      expect(await sync.workspacesNeedingSync()).not.toContain(workspaceId);
+    });
+
+    it('re-books it when the opening balance changes, and only then', async () => {
+      const wallets = dataSource.getRepository(Wallet);
+      await wallets.update(walletId, { name: 'Till' });
+      expect(await sync.workspacesNeedingSync()).not.toContain(workspaceId);
+
+      await wallets.update(walletId, { initialBalance: 350 });
+      expect(await sync.workspacesNeedingSync()).toContain(workspaceId);
+      expect((await sync.syncWorkspace(workspaceId)).openingBalances).toBe(1);
+      expect(await walletOpening(walletId)).toEqual([
+        expect.objectContaining({ base_debit: '350.00' }),
+      ]);
+      expect(await walletRecon(walletId)).toMatchObject({ ledgerBalance: '310.00', difference: '0.00' });
+
+      expect((await sync.syncWorkspace(workspaceId, { force: true })).openingBalances).toBe(0);
+    });
+
+    it('reverses it when the wallet is deactivated', async () => {
+      await dataSource.getRepository(Wallet).update(walletId, { isActive: false });
+      expect((await sync.syncWorkspace(workspaceId)).openingBalances).toBe(1);
+      expect(await walletOpening(walletId)).toEqual([]);
+    });
+
+    it('leaves a wallet that mirrors a bank account to its statements', async () => {
+      const wallets = dataSource.getRepository(Wallet);
+      const mirror = (
+        await wallets.save(
+          wallets.create({ userId, workspaceId, name: 'Bank', currency: 'EUR', initialBalance: 999 }),
+        )
+      ).id;
+      await insertTransaction({ amount: 5, debit: 5, walletId: mirror });
+
+      await sync.syncWorkspace(workspaceId);
+
+      expect(await walletOpening(mirror)).toEqual([]);
+    });
+
+    it('lets a workspace with wallets be deleted', async () => {
+      const doomed = (await dataSource.getRepository(Workspace).save({ name: 'Doomed WS' })).id;
+      const wallets = dataSource.getRepository(Wallet);
+      await wallets.save(
+        wallets.create({ userId, workspaceId: doomed, name: 'W', currency: 'EUR', initialBalance: 1 }),
+      );
+      await expect(dataSource.getRepository(Workspace).delete(doomed)).resolves.toBeDefined();
+    });
   });
 
   it('keeps every booked entry balanced through all of it', async () => {

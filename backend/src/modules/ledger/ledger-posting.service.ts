@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { type EntityManager, IsNull, type Repository } from 'typeorm';
+import { type EntityManager, IsNull, Not, type Repository } from 'typeorm';
 import {
   JournalEntry,
   JournalEntrySource,
@@ -65,7 +65,11 @@ export type PostingOutcome =
  * reports filter them out), so the ledger leaves them out too until the
  * statement is restored.
  */
-type NotBooked = SkipReason | 'statement_deleted' | 'no_balance_start';
+type NotBooked =
+  | SkipReason
+  | 'statement_deleted'
+  | 'no_balance_start'
+  | 'wallet_backed_by_statement';
 
 export interface EntryDraft {
   workspaceId: string;
@@ -279,6 +283,10 @@ export class LedgerPostingService {
    * its earliest statement against EQUITY_OPENING_BALANCE. A later statement's
    * starting balance is never used — the transactions before it are already
    * in the ledger, and it would count them twice. Idempotent per account.
+   *
+   * Likewise the `initial_balance` of every active wallet, on its own cash
+   * account. An opening whose source is gone (statements trashed, wallet
+   * deleted, deactivated or zeroed) is reversed.
    */
   async postOpeningBalances(
     workspaceId: string,
@@ -316,7 +324,17 @@ export class LedgerPostingService {
       );
     }
 
-    // A bank account whose statements are all in the trash keeps no opening balance.
+    const wallets = await this.walletRepository.find({
+      where: { workspaceId, isActive: true, initialBalance: Not(0) },
+      select: ['id', 'name', 'currency', 'initialBalance', 'createdAt'],
+    });
+    for (const wallet of wallets) {
+      results.push(
+        await this.postWalletOpeningBalance(workspaceId, wallet, baseCurrency, openingAccountId),
+      );
+    }
+
+    // An account none of the above booked keeps no opening balance.
     const visited = new Set(results.map(result => result.cashAccountId));
     for (const entry of await this.liveOpeningEntries(workspaceId)) {
       const cashLine = entry.lines.find(line => line.accountId !== openingAccountId);
@@ -382,7 +400,68 @@ export class LedgerPostingService {
           }
         : { skip: 'zero_amount' };
 
-    const outcome = await this.entryRepository.manager.transaction(async manager => {
+    const outcome = await this.reconcileOpening(workspaceId, cashAccountId, plan);
+    return { cashAccountId, outcome };
+  }
+
+  /**
+   * A wallet's `initial_balance`, dated by its first transaction (or by when
+   * the wallet was created). A wallet with statement rows mirrors a bank
+   * account whose statements already carry its opening balance; booking both
+   * would count it twice, so the statement wins.
+   */
+  private async postWalletOpeningBalance(
+    workspaceId: string,
+    wallet: Wallet,
+    baseCurrency: string,
+    openingAccountId: string,
+  ): Promise<{ cashAccountId: string | null; outcome: PostingOutcome }> {
+    const mirrorsStatement = await this.transactionRepository.exists({
+      where: { workspaceId, walletId: wallet.id, statementId: Not(IsNull()) },
+    });
+    if (mirrorsStatement) {
+      return {
+        cashAccountId: null,
+        outcome: { status: 'skipped', reason: 'wallet_backed_by_statement' },
+      };
+    }
+
+    const currency = wallet.currency.toUpperCase();
+    const cashAccountId = await this.accountsService.walletCashAccountId(
+      workspaceId,
+      wallet,
+      currency,
+    );
+    if (!cashAccountId) {
+      return { cashAccountId: null, outcome: { status: 'skipped', reason: 'not_found' } };
+    }
+    const first = await this.transactionRepository.findOne({
+      where: { workspaceId, walletId: wallet.id },
+      select: ['id', 'transactionDate'],
+      order: { transactionDate: 'ASC' },
+    });
+    const entryDate = toDateOnly(first?.transactionDate ?? wallet.createdAt);
+    const legs = openingBalanceLegs(wallet.initialBalance, cashAccountId, openingAccountId);
+    const plan: EntryPlan | { skip: NotBooked } =
+      legs.length > 0
+        ? {
+            entryDate,
+            baseCurrency,
+            memo: 'Opening balance',
+            lines: await this.convert(legs, currency, baseCurrency, entryDate),
+          }
+        : { skip: 'zero_amount' };
+
+    const outcome = await this.reconcileOpening(workspaceId, cashAccountId, plan);
+    return { cashAccountId, outcome };
+  }
+
+  private reconcileOpening(
+    workspaceId: string,
+    cashAccountId: string,
+    plan: EntryPlan | { skip: NotBooked },
+  ): Promise<PostingOutcome> {
+    return this.entryRepository.manager.transaction(async manager => {
       // Two runs for one workspace would both find no opening entry and both book one.
       await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
         `ledger-opening:${workspaceId}`,
@@ -393,7 +472,6 @@ export class LedgerPostingService {
         source: JournalEntrySource.OPENING_BALANCE,
       });
     });
-    return { cashAccountId, outcome };
   }
 
   /**

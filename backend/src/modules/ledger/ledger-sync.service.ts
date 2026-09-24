@@ -49,7 +49,11 @@ export interface CashReconciliation {
   name: string;
   currency: string | null;
   ledgerBalance: string;
-  /** `balance_end` of the latest live statement of this bank account. */
+  /**
+   * What the source says the account holds: `balance_end` of the latest live
+   * statement of this bank account, or for a wallet its opening balance plus
+   * the movements booked to it.
+   */
   statementBalance: string | null;
   statementDate: string | null;
   difference: string | null;
@@ -95,7 +99,10 @@ export class LedgerSyncService {
     private readonly queue: LedgerSyncQueue,
   ) {}
 
-  /** Workspaces with the ledger on and something to do: dirty rows or orphaned entries. */
+  /**
+   * Workspaces with the ledger on and something to do: dirty rows, orphaned
+   * entries, or opening balances queued by a wallet change.
+   */
   async workspacesNeedingSync(): Promise<string[]> {
     const rows: Array<{ workspace_id: string }> = await this.workspaceRepository.query(
       `SELECT DISTINCT t."workspace_id"
@@ -105,7 +112,10 @@ export class LedgerSyncService {
        UNION
        SELECT DISTINCT "workspace_id" FROM "journal_entries"
         WHERE "source" = 'transaction' AND "status" = 'posted'
-          AND "reversal_of_id" IS NULL AND "source_transaction_id" IS NULL`,
+          AND "reversal_of_id" IS NULL AND "source_transaction_id" IS NULL
+       UNION
+       SELECT "id" FROM "workspaces"
+        WHERE "ledger_openings_dirty" AND "ledger_base_currency" IS NOT NULL`,
       [LEDGER_RETRY_AFTER],
     );
     return rows.map(row => row.workspace_id);
@@ -157,7 +167,13 @@ export class LedgerSyncService {
 
     report.orphansReversed = await this.postingService.reverseOrphans(workspaceId);
 
-    if (options.force || report.processed > 0 || report.orphansReversed > 0) {
+    // Cleared before booking: a wallet changed meanwhile raises it again.
+    const [, queued] = await this.workspaceRepository.query(
+      `UPDATE "workspaces" SET "ledger_openings_dirty" = false
+        WHERE "id" = $1 AND "ledger_openings_dirty"`,
+      [workspaceId],
+    );
+    if (options.force || queued > 0 || report.processed > 0 || report.orphansReversed > 0) {
       try {
         const openings = await this.postingService.postOpeningBalances(workspaceId);
         report.openingBalances = openings.filter(result =>
@@ -335,11 +351,21 @@ export class LedgerSyncService {
       code: string;
       name: string;
       currency: string | null;
-      statement_account_key: string;
+      statement_account_key: string | null;
       balance: string;
       has_opening: boolean;
+      wallet_balance: string | null;
     }> = await this.workspaceRepository.query(
+      // A wallet's own rows book to it unless they sit on a statement, and
+      // duplicates are not booked at all: the expected balance follows suit.
       `SELECT a."id", a."code", a."name", a."currency", a."statement_account_key",
+              (w."initial_balance" + coalesce((
+                 SELECT sum(CASE WHEN t."transaction_type" = 'income' THEN 1 ELSE -1 END
+                            * coalesce(t."amount", t."debit", t."credit"))
+                   FROM "transactions" t
+                  WHERE t."wallet_id" = w."id" AND t."statement_id" IS NULL
+                    AND NOT t."is_duplicate" AND upper(t."currency") = upper(w."currency")
+               ), 0))::numeric(15,2) AS "wallet_balance",
               coalesce((SELECT sum(l."debit" - l."credit")
                           FROM "journal_lines" l JOIN "journal_entries" e ON e."id" = l."entry_id"
                          WHERE l."account_id" = a."id" AND e."status" <> 'draft'), 0)::numeric(15,2) AS "balance",
@@ -347,7 +373,9 @@ export class LedgerSyncService {
                        WHERE l."account_id" = a."id" AND e."source" = 'opening_balance'
                          AND e."status" = 'posted' AND e."reversal_of_id" IS NULL) AS "has_opening"
          FROM "ledger_accounts" a
-        WHERE a."workspace_id" = $1 AND a."statement_account_key" IS NOT NULL AND a."deleted_at" IS NULL
+         LEFT JOIN "wallets" w ON w."id" = a."wallet_id"
+        WHERE a."workspace_id" = $1 AND a."deleted_at" IS NULL
+          AND (a."statement_account_key" IS NOT NULL OR w."id" IS NOT NULL)
         ORDER BY a."name"`,
       [workspaceId],
     );
@@ -380,10 +408,13 @@ export class LedgerSyncService {
     }
 
     return accounts.map(account => {
-      const statement = latest.get(account.statement_account_key);
+      const statement = account.statement_account_key
+        ? latest.get(account.statement_account_key)
+        : undefined;
+      const sourceBalance = account.wallet_balance ?? statement?.balanceEnd;
       const statementBalance =
-        statement?.balanceEnd !== undefined && statement?.balanceEnd !== null
-          ? fromMinor(toMinor(statement.balanceEnd)).toFixed(2)
+        sourceBalance !== undefined && sourceBalance !== null
+          ? fromMinor(toMinor(sourceBalance)).toFixed(2)
           : null;
       return {
         accountId: account.id,
