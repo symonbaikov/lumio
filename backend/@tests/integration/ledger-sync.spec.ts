@@ -446,6 +446,8 @@ describe('ledger sync (real Postgres)', () => {
       await dataSource.getRepository(Wallet).update(walletId, { isActive: false });
       expect((await sync.syncWorkspace(workspaceId)).openingBalances).toBe(1);
       expect(await walletOpening(walletId)).toEqual([]);
+      // The reconciliation expects no opening either: no false difference.
+      expect(await walletRecon(walletId)).toMatchObject({ ledgerBalance: '-40.00', difference: '0.00' });
     });
 
     it('leaves a wallet that mirrors a bank account to its statements', async () => {
@@ -456,10 +458,51 @@ describe('ledger sync (real Postgres)', () => {
         )
       ).id;
       await insertTransaction({ amount: 5, debit: 5, walletId: mirror });
+      await insertTransaction({ amount: 10, debit: 10, walletId: mirror, statementId: null });
 
       await sync.syncWorkspace(workspaceId);
 
       expect(await walletOpening(mirror)).toEqual([]);
+      expect(await walletRecon(mirror)).toMatchObject({ ledgerBalance: '-10.00', difference: '0.00' });
+    });
+
+    it('books the other openings when one lacks a rate, and retries that one later', async () => {
+      const wallets = dataSource.getRepository(Wallet);
+      const euro = (
+        await wallets.save(
+          wallets.create({ userId, workspaceId, name: 'Euro till', currency: 'EUR', initialBalance: 70 }),
+        )
+      ).id;
+      const pounds = (
+        await wallets.save(
+          wallets.create({ userId, workspaceId, name: 'Pounds', currency: 'GBP', initialBalance: 100 }),
+        )
+      ).id;
+
+      await sync.syncWorkspace(workspaceId);
+
+      expect(await walletOpening(euro)).toEqual([expect.objectContaining({ base_debit: '70.00' })]);
+      expect(await walletOpening(pounds)).toEqual([]);
+      // Queued again, but not retried straight away.
+      const [flag] = await query<{ dirty: boolean; attempted: Date | null }>(
+        `SELECT "ledger_openings_dirty" AS "dirty", "ledger_openings_attempted_at" AS "attempted"
+           FROM "workspaces" WHERE "id" = $1`,
+        [workspaceId],
+      );
+      expect(flag.dirty).toBe(true);
+      expect(flag.attempted).not.toBeNull();
+      expect(await sync.workspacesNeedingSync()).not.toContain(workspaceId);
+
+      rates.GBP = 1.15;
+      await query(
+        `UPDATE "workspaces" SET "ledger_openings_attempted_at" = now() - interval '2 hours' WHERE "id" = $1`,
+        [workspaceId],
+      );
+      expect(await sync.workspacesNeedingSync()).toContain(workspaceId);
+      await sync.syncWorkspace(workspaceId);
+
+      expect(await walletOpening(pounds)).toEqual([expect.objectContaining({ base_debit: '115.00' })]);
+      expect(await sync.workspacesNeedingSync()).not.toContain(workspaceId);
     });
 
     it('lets a workspace with wallets be deleted', async () => {

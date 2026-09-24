@@ -120,7 +120,9 @@ export class LedgerSyncService {
           AND "reversal_of_id" IS NULL AND "source_transaction_id" IS NULL
        UNION
        SELECT "id" FROM "workspaces"
-        WHERE "ledger_openings_dirty" AND "ledger_base_currency" IS NOT NULL`,
+        WHERE "ledger_openings_dirty" AND "ledger_base_currency" IS NOT NULL
+          AND ("ledger_openings_attempted_at" IS NULL
+               OR "ledger_openings_attempted_at" < now() - $1::interval)`,
       [LEDGER_RETRY_AFTER],
     );
     return rows.map(row => row.workspace_id);
@@ -179,18 +181,44 @@ export class LedgerSyncService {
       [workspaceId],
     );
     if (options.force || queued > 0 || report.processed > 0 || report.orphansReversed > 0) {
-      try {
-        const openings = await this.postingService.postOpeningBalances(workspaceId);
-        report.openingBalances = openings.filter(result =>
-          ['posted', 'reposted', 'reversed'].includes(result.outcome.status),
-        ).length;
-      } catch (error) {
-        this.logger.warn(
-          `Opening balances for workspace ${workspaceId} not booked: ${(error as Error).message}`,
-        );
-      }
+      report.openingBalances = await this.refreshOpenings(workspaceId);
     }
     return report;
+  }
+
+  /**
+   * Books every opening balance; one that fails (a missing rate, usually)
+   * queues the openings again for a later attempt. Returns how many changed.
+   */
+  private async refreshOpenings(workspaceId: string): Promise<number> {
+    let booked = 0;
+    const failures: string[] = [];
+    try {
+      const openings = await this.postingService.postOpeningBalances(workspaceId);
+      booked = openings.filter(result =>
+        ['posted', 'reposted', 'reversed'].includes(result.outcome.status),
+      ).length;
+      for (const { outcome } of openings) {
+        if (outcome.status === 'failed') {
+          failures.push(outcome.error);
+        }
+      }
+    } catch (error) {
+      failures.push((error as Error).message);
+    }
+    if (failures.length > 0) {
+      this.logger.warn(
+        `Opening balances for workspace ${workspaceId} not all booked: ${failures.join('; ')}`,
+      );
+      // Queued again, but left alone for a while: a missing rate rarely appears at once.
+      await this.workspaceRepository.query(
+        `UPDATE "workspaces"
+            SET "ledger_openings_dirty" = true, "ledger_openings_attempted_at" = now()
+          WHERE "id" = $1`,
+        [workspaceId],
+      );
+    }
+    return booked;
   }
 
   private async postOne(
@@ -383,9 +411,17 @@ export class LedgerSyncService {
       wallet_balance: string | null;
     }> = await this.workspaceRepository.query(
       // A wallet's own rows book to it unless they sit on a statement, and
-      // duplicates are not booked at all: the expected balance follows suit.
+      // duplicates are not booked at all; its opening balance is booked only
+      // for an active wallet with no statement rows. The expected balance
+      // follows the same rules.
       `SELECT a."id", a."code", a."name", a."currency", a."statement_account_key",
-              (w."initial_balance" + coalesce((
+              -- NULL for a statement account, which has no wallet.
+              (CASE WHEN w."id" IS NULL THEN NULL
+                    WHEN w."is_active" AND NOT EXISTS (
+                      SELECT 1 FROM "transactions" st
+                       WHERE st."wallet_id" = w."id" AND st."statement_id" IS NOT NULL
+                    ) THEN w."initial_balance" ELSE 0 END
+               + coalesce((
                  SELECT sum(CASE WHEN t."transaction_type" = 'income' THEN 1 ELSE -1 END
                             * coalesce(t."amount", t."debit", t."credit"))
                    FROM "transactions" t

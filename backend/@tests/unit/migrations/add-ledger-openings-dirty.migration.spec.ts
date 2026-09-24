@@ -22,6 +22,11 @@ describe('AddLedgerOpeningsDirty migration', () => {
     },
   );
 
+  it('retries a failed attempt at once when a wallet changes', () => {
+    expect(up).toContain('ADD COLUMN IF NOT EXISTS "ledger_openings_attempted_at"');
+    expect(up).toContain('SET "ledger_openings_dirty" = true, "ledger_openings_attempted_at" = NULL');
+  });
+
   it('also fires when a wallet is created or deleted', () => {
     expect(up).toContain('AFTER INSERT OR DELETE ON "wallets"');
   });
@@ -31,5 +36,6 @@ describe('AddLedgerOpeningsDirty migration', () => {
     expect(down).toContain('DROP TRIGGER IF EXISTS "TRG_wallets_ledger_openings"');
     expect(down).toContain('DROP FUNCTION IF EXISTS "ledger_mark_openings_dirty"()');
     expect(down).toContain('DROP COLUMN IF EXISTS "ledger_openings_dirty"');
+    expect(down).toContain('DROP COLUMN IF EXISTS "ledger_openings_attempted_at"');
   });
 });

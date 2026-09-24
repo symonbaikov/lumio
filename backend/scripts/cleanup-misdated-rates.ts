@@ -7,6 +7,7 @@ Deletes exchange rates the paid API stored under a past date. Only its
 "latest" endpoint is on our tier, yet a lookup for a past day used to save
 those rates under that day, and saveRate never overwrites, so the wrong rate
 stuck. A deleted row is fetched again, for its real date, on the next lookup.
+Restart the backend afterwards: it caches historical rates in memory for good.
 
 Options:
   --dry-run   Count the rows, per currency pair, without deleting

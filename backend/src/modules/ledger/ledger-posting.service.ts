@@ -72,6 +72,15 @@ type NotBooked =
   | 'no_balance_start'
   | 'wallet_backed_by_statement';
 
+/**
+ * One opening balance's result. `failed` (a missing rate, usually) leaves that
+ * source as it was booked and does not stop the others.
+ */
+export interface OpeningResult {
+  cashAccountId: string | null;
+  outcome: PostingOutcome | { status: 'failed'; error: string };
+}
+
 export interface EntryDraft {
   workspaceId: string;
   entryDate: string;
@@ -291,9 +300,7 @@ export class LedgerPostingService {
    * account. An opening whose source is gone (statements trashed, wallet
    * deleted, deactivated or zeroed) is reversed.
    */
-  async postOpeningBalances(
-    workspaceId: string,
-  ): Promise<Array<{ cashAccountId: string | null; outcome: PostingOutcome }>> {
+  async postOpeningBalances(workspaceId: string): Promise<OpeningResult[]> {
     const baseCurrency = await this.baseCurrencyOf(workspaceId);
     const system = await this.accountsService.systemAccountIds(workspaceId);
     const statements = await this.statementRepository.find({
@@ -320,7 +327,7 @@ export class LedgerPostingService {
     }
 
     const openingAccountId = system[LEDGER_ACCOUNT_CODES.OPENING_BALANCE];
-    const results: Array<{ cashAccountId: string | null; outcome: PostingOutcome }> = [];
+    const results: OpeningResult[] = [];
     for (const statement of earliest.values()) {
       results.push(
         await this.postOpeningBalance(workspaceId, statement, baseCurrency, openingAccountId),
@@ -380,7 +387,7 @@ export class LedgerPostingService {
     statement: Statement,
     baseCurrency: string,
     openingAccountId: string,
-  ): Promise<{ cashAccountId: string | null; outcome: PostingOutcome }> {
+  ): Promise<OpeningResult> {
     const currency = statement.currency.toUpperCase();
     const cashAccountId = await this.accountsService.statementCashAccountId(
       workspaceId,
@@ -392,16 +399,12 @@ export class LedgerPostingService {
     const entryDate = toDateOnly(statement.statementDateFrom ?? statement.createdAt);
     // An unknown starting balance withdraws one booked earlier, like a zero one.
     const unknown = statement.balanceStart === null || statement.balanceStart === undefined;
-    const plan: EntryPlan | { skip: NotBooked } = unknown
-      ? { skip: 'no_balance_start' }
-      : legs.length > 0
-        ? {
-            entryDate,
-            baseCurrency,
-            memo: 'Opening balance',
-            lines: await this.convert(legs, currency, baseCurrency, entryDate),
-          }
-        : { skip: 'zero_amount' };
+    const plan = unknown
+      ? ({ skip: 'no_balance_start' } as const)
+      : await this.openingPlan(legs, currency, baseCurrency, entryDate);
+    if ('failed' in plan) {
+      return { cashAccountId, outcome: { status: 'failed', error: plan.failed } };
+    }
 
     const outcome = await this.reconcileOpening(workspaceId, cashAccountId, plan);
     return { cashAccountId, outcome };
@@ -418,7 +421,7 @@ export class LedgerPostingService {
     wallet: Wallet,
     baseCurrency: string,
     openingAccountId: string,
-  ): Promise<{ cashAccountId: string | null; outcome: PostingOutcome }> {
+  ): Promise<OpeningResult> {
     const mirrorsStatement = await this.transactionRepository.exists({
       where: { workspaceId, walletId: wallet.id, statementId: Not(IsNull()) },
     });
@@ -445,18 +448,38 @@ export class LedgerPostingService {
     });
     const entryDate = toDateOnly(first?.transactionDate ?? wallet.createdAt);
     const legs = openingBalanceLegs(wallet.initialBalance, cashAccountId, openingAccountId);
-    const plan: EntryPlan | { skip: NotBooked } =
-      legs.length > 0
-        ? {
-            entryDate,
-            baseCurrency,
-            memo: 'Opening balance',
-            lines: await this.convert(legs, currency, baseCurrency, entryDate),
-          }
-        : { skip: 'zero_amount' };
+    const plan = await this.openingPlan(legs, currency, baseCurrency, entryDate);
+    if ('failed' in plan) {
+      return { cashAccountId, outcome: { status: 'failed', error: plan.failed } };
+    }
 
     const outcome = await this.reconcileOpening(workspaceId, cashAccountId, plan);
     return { cashAccountId, outcome };
+  }
+
+  /** The opening entry to book, or why it cannot be booked right now. */
+  private async openingPlan(
+    legs: Leg[],
+    currency: string,
+    baseCurrency: string,
+    entryDate: string,
+  ): Promise<EntryPlan | { skip: NotBooked } | { failed: string }> {
+    if (legs.length === 0) {
+      return { skip: 'zero_amount' };
+    }
+    try {
+      return {
+        entryDate,
+        baseCurrency,
+        memo: 'Opening balance',
+        lines: await this.convert(legs, currency, baseCurrency, entryDate),
+      };
+    } catch (error) {
+      if (error instanceof LedgerPostingError) {
+        return { failed: `${error.code}: ${error.message}` };
+      }
+      throw error;
+    }
   }
 
   private reconcileOpening(

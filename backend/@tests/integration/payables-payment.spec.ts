@@ -367,5 +367,18 @@ describe('settling payables (real Postgres)', () => {
     await payables.update(payable.id, workspaceId, userId, { status: PayableStatus.TO_PAY });
 
     expect(await txRepo.existsBy({ id: paid.linkedTransactionId as string })).toBe(true);
+
+    // Linking a bank transaction now would book the payment twice; the same one is fine.
+    const bank = await transaction({ statementId });
+    expect(
+      await errorOf(
+        payables.markAsPaid(payable.id, workspaceId, userId, { linkedTransactionId: bank.id }),
+      ),
+    ).toEqual({ status: 409, code: 'PAYABLE_ALREADY_LINKED' });
+    await expect(
+      payables.markAsPaid(payable.id, workspaceId, userId, {
+        linkedTransactionId: paid.linkedTransactionId as string,
+      }),
+    ).resolves.toMatchObject({ status: PayableStatus.PAID });
   });
 });

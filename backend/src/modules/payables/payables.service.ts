@@ -185,6 +185,15 @@ export class PayablesService {
           payload,
         );
       }
+      // Swapping the payment silently would leave the old one (a recorded cash
+      // payment, say) in the books as well: the expense would count twice.
+      if (
+        payload.linkedTransactionId &&
+        payable.linkedTransactionId &&
+        payable.linkedTransactionId !== payload.linkedTransactionId
+      ) {
+        throw new ConflictException(appError('PAYABLE_ALREADY_LINKED'));
+      }
       payable.status = PayableStatus.PAID;
       payable.linkedTransactionId = payload.linkedTransactionId || payable.linkedTransactionId;
       payable.paidAt = payable.paidAt || new Date();

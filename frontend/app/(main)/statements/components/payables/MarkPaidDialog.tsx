@@ -125,8 +125,13 @@ function MarkPaidForm({
   // with the first candidate and the first wallet preselected.
   const mode: Mode = chosenMode ?? (options.candidates.length > 0 ? 'match' : 'plain');
   const selectedCash = { ...cash, walletId: cash.walletId ?? options.wallets[0]?.id ?? null };
+  // A bill already linked (paid, then marked unpaid) keeps its payment unless the user picks another.
+  const defaultTransaction =
+    options.candidates.find(candidate => candidate.id === payable.linkedTransactionId)?.id ??
+    options.candidates[0]?.id ??
+    null;
   const payload = buildPayload(mode, {
-    transactionId: transactionId ?? options.candidates[0]?.id ?? null,
+    transactionId: transactionId ?? defaultTransaction,
     cash: selectedCash,
   });
 
@@ -177,7 +182,7 @@ function MarkPaidForm({
           <CandidateList
             candidates={options.candidates}
             loading={options.candidatesLoading}
-            selected={transactionId ?? options.candidates[0]?.id ?? null}
+            selected={transactionId ?? defaultTransaction}
             onSelect={setTransactionId}
             locale={locale}
           />
