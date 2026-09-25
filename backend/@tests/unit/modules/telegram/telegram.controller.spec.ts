@@ -13,8 +13,12 @@ describe('TelegramController', () => {
     };
     const controller = new TelegramController(telegramService as any);
 
-    const connected = await controller.connect({ id: 'u1' } as any, { token: 'x' } as any);
+    const connected = await controller.connect({ id: 'u1' } as any, 'ws-open', { token: 'x' } as any);
     expect(connected).toEqual({ userId: 'u1', telegramId: 't', telegramChatId: 'c' });
+    // The bot is bound to the workspace open while connecting.
+    expect(telegramService.connectAccount).toHaveBeenCalledWith({ id: 'u1' }, 'ws-open', {
+      token: 'x',
+    });
 
     const reports = await controller.listReports({ id: 'u1' } as any, '2', '10');
     expect(reports).toEqual({ items: [], total: 0 });

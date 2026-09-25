@@ -9,6 +9,7 @@ import { formatMoney } from '../../common/utils/format-money.util';
 import type { Insight } from '../../entities/insight.entity';
 import { ReportStatus, ReportType, TelegramReport } from '../../entities/telegram-report.entity';
 import { User } from '../../entities/user.entity';
+import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
 import { GoalsService } from '../goals/goals.service';
 import { NetWorthService } from '../net-worth/net-worth.service';
@@ -98,6 +99,8 @@ export class TelegramService {
     private readonly statementsService: StatementsService,
     private readonly goalsService: GoalsService,
     private readonly netWorthService: NetWorthService,
+    @InjectRepository(WorkspaceMember)
+    private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     @Optional()
     private readonly applicationSettingsService?: ApplicationSettingsService,
   ) {
@@ -117,7 +120,8 @@ export class TelegramService {
     return Boolean(settings?.botToken || this.botToken);
   }
 
-  async connectAccount(user: User, dto: ConnectTelegramDto): Promise<User> {
+  /** The bot then answers for `workspaceId`, the workspace open when connecting. */
+  async connectAccount(user: User, workspaceId: string, dto: ConnectTelegramDto): Promise<User> {
     if (!dto.chatId) {
       throw new BadRequestException('chatId is required to connect Telegram');
     }
@@ -127,6 +131,7 @@ export class TelegramService {
     const updatedUser = this.userRepository.merge(user, {
       telegramId,
       telegramChatId: dto.chatId,
+      telegramWorkspaceId: workspaceId,
     });
 
     const savedUser = await this.userRepository.save(updatedUser);
@@ -142,7 +147,24 @@ export class TelegramService {
     return savedUser;
   }
 
-  async sendReport(user: User, dto: SendTelegramReportDto) {
+  /**
+   * The workspace the bot answers for: the one the chat was connected in or,
+   * for chats connected before that was recorded, the user's registration
+   * workspace. Null once the user is no longer a member of it.
+   */
+  async resolveWorkspaceId(user: User): Promise<string | null> {
+    const workspaceId = user.telegramWorkspaceId ?? user.workspaceId;
+    if (!workspaceId) {
+      return null;
+    }
+
+    const membership = await this.workspaceMemberRepository.findOne({
+      where: { workspaceId, userId: user.id },
+    });
+    return membership ? workspaceId : null;
+  }
+
+  async sendReport(user: User, dto: SendTelegramReportDto, workspaceId: string) {
     const chatId = dto.chatId || user.telegramChatId;
     if (!chatId) {
       throw new BadRequestException(
@@ -157,13 +179,13 @@ export class TelegramService {
     switch (dto.reportType) {
       case ReportType.DAILY: {
         const date = dto.date || this.formatDateOnly(new Date());
-        return this.handleDailyReport(user, chatId, date);
+        return this.handleDailyReport(user, workspaceId, chatId, date);
       }
       case ReportType.MONTHLY: {
         const now = new Date();
         const year = dto.year || now.getUTCFullYear();
         const month = dto.month || now.getUTCMonth() + 1;
-        return this.handleMonthlyReport(user, chatId, year, month);
+        return this.handleMonthlyReport(user, workspaceId, chatId, year, month);
       }
       default:
         throw new BadRequestException('Unsupported report type for Telegram');
@@ -214,7 +236,7 @@ export class TelegramService {
     }
   }
 
-  private async handleDailyReport(user: User, chatId: string, date: string) {
+  private async handleDailyReport(user: User, workspaceId: string, chatId: string, date: string) {
     const reportDate = this.toDateOnly(date);
     const existing = await this.findExisting(user.id, ReportType.DAILY, reportDate);
 
@@ -222,13 +244,19 @@ export class TelegramService {
       return { status: 'already_sent', report: existing };
     }
 
-    const dailyReport = await this.reportsService.generateDailyReport(user.id, date);
+    const dailyReport = await this.reportsService.generateDailyReport(workspaceId, date);
     const message = this.formatDailyReportMessage(user.locale || 'en', date, dailyReport);
 
     return this.persistAndSend(user, chatId, ReportType.DAILY, reportDate, message, existing);
   }
 
-  private async handleMonthlyReport(user: User, chatId: string, year: number, month: number) {
+  private async handleMonthlyReport(
+    user: User,
+    workspaceId: string,
+    chatId: string,
+    year: number,
+    month: number,
+  ) {
     const reportDate = this.toDateOnly(`${year}-${String(month).padStart(2, '0')}-01`);
     const existing = await this.findExisting(user.id, ReportType.MONTHLY, reportDate);
 
@@ -236,7 +264,7 @@ export class TelegramService {
       return { status: 'already_sent', report: existing };
     }
 
-    const monthlyReport = await this.reportsService.generateMonthlyReport(user.id, year, month);
+    const monthlyReport = await this.reportsService.generateMonthlyReport(workspaceId, year, month);
     const message = this.formatMonthlyReportMessage(
       user.locale || 'en',
       year,
@@ -469,8 +497,9 @@ export class TelegramService {
     }
 
     const user = await this.findUserByTelegram(telegramId, chatId);
+    const workspaceId = user ? await this.resolveWorkspaceId(user) : null;
 
-    if (!user) {
+    if (!(user && workspaceId)) {
       await this.sendMessage(
         chatId,
         renderTelegramMessage(fallbackLocale, 'user_not_connected', { telegramId }),
@@ -484,24 +513,36 @@ export class TelegramService {
     try {
       if (arg === 'monthly') {
         const now = new Date();
-        await this.sendReport(user, {
-          reportType: ReportType.MONTHLY,
-          chatId,
-          year: now.getUTCFullYear(),
-          month: now.getUTCMonth() + 1,
-        });
+        await this.sendReport(
+          user,
+          {
+            reportType: ReportType.MONTHLY,
+            chatId,
+            year: now.getUTCFullYear(),
+            month: now.getUTCMonth() + 1,
+          },
+          workspaceId,
+        );
       } else if (arg && /^\d{4}-\d{2}-\d{2}$/.test(arg)) {
-        await this.sendReport(user, {
-          reportType: ReportType.DAILY,
-          chatId,
-          date: arg,
-        });
+        await this.sendReport(
+          user,
+          {
+            reportType: ReportType.DAILY,
+            chatId,
+            date: arg,
+          },
+          workspaceId,
+        );
       } else {
-        await this.sendReport(user, {
-          reportType: ReportType.DAILY,
-          chatId,
-          date: this.formatDateOnly(new Date()),
-        });
+        await this.sendReport(
+          user,
+          {
+            reportType: ReportType.DAILY,
+            chatId,
+            date: this.formatDateOnly(new Date()),
+          },
+          workspaceId,
+        );
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -525,7 +566,8 @@ export class TelegramService {
     }
 
     const user = await this.findUserByTelegram(telegramId, chatId);
-    if (!user) {
+    const workspaceId = user ? await this.resolveWorkspaceId(user) : null;
+    if (!(user && workspaceId)) {
       await this.sendMessage(
         chatId,
         renderTelegramMessage(fallbackLocale, 'user_not_connected', { telegramId }),
@@ -534,7 +576,7 @@ export class TelegramService {
     }
 
     const locale = user.locale || 'en';
-    const goals = await this.goalsService.findAll(user.workspaceId);
+    const goals = await this.goalsService.findAll(workspaceId);
 
     if (goals.length === 0) {
       await this.sendMessage(chatId, renderTelegramMessage(locale, 'goals_empty'), user);
@@ -568,7 +610,8 @@ export class TelegramService {
     }
 
     const user = await this.findUserByTelegram(telegramId, chatId);
-    if (!user) {
+    const workspaceId = user ? await this.resolveWorkspaceId(user) : null;
+    if (!(user && workspaceId)) {
       await this.sendMessage(
         chatId,
         renderTelegramMessage(fallbackLocale, 'user_not_connected', { telegramId }),
@@ -577,7 +620,7 @@ export class TelegramService {
     }
 
     const locale = user.locale || 'en';
-    const netWorth = await this.netWorthService.getNetWorth(user.workspaceId, '30d', locale);
+    const netWorth = await this.netWorthService.getNetWorth(workspaceId, '30d', locale);
 
     const lines = [
       renderTelegramMessage(locale, 'networth_header', {
@@ -632,7 +675,8 @@ export class TelegramService {
     }
 
     const user = await this.findUserByTelegram(telegramId, chatId);
-    if (!user) {
+    const workspaceId = user ? await this.resolveWorkspaceId(user) : null;
+    if (!(user && workspaceId)) {
       await this.sendMessage(
         chatId,
         renderTelegramMessage(fallbackLocale, 'document_user_not_connected', { telegramId }),
@@ -657,7 +701,7 @@ export class TelegramService {
       const multerFile = await this.downloadTelegramFile(document.file_id, fileName, mimeType);
       const statement = await this.statementsService.create(
         user,
-        user.workspaceId,
+        workspaceId,
         multerFile as Express.Multer.File,
       );
       await this.sendMessage(
