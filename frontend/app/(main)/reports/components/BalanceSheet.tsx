@@ -16,6 +16,7 @@ import {
   Download,
   RefreshCcw,
 } from '@/app/components/icons';
+import { Select } from '@/app/components/ui/select';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { getApiErrorMessage } from '@/app/lib/api-error';
@@ -454,19 +455,17 @@ function BalanceSheet(): React.JSX.Element {
               }}
             >
               <CalendarDays size={16} style={{ color: 'var(--muted-foreground)' }} />
-              <select
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  fontSize: 14,
-                  color: 'var(--foreground)',
-                }}
+              <Select
+                variant="standard"
+                disableUnderline
+                sx={{ fontSize: 14, color: 'var(--foreground)' }}
                 value={filterMode}
-                onChange={event => setFilterMode(event.target.value as 'now' | 'date')}
-              >
-                <option value="now">{text('asOfNow', 'As of now')}</option>
-                <option value="date">{text('asOfDate', 'As of date')}</option>
-              </select>
+                onChange={value => setFilterMode(value as 'now' | 'date')}
+                options={[
+                  { value: 'now', label: text('asOfNow', 'As of now') },
+                  { value: 'date', label: text('asOfDate', 'As of date') },
+                ]}
+              />
             </Box>
 
             {filterMode === 'date' && (

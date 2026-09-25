@@ -121,7 +121,8 @@ export function solidifyBackground({ value, isDark }: { value: string; isDark: b
   if (fg.a >= 0.999) {
     return value;
   }
-  const base = parseColor(isDark ? '#111827' : '#ffffff');
+  // Подложка тёмной темы — зелёно-серая поверхность ($lumio-color-surface-dk), не slate.
+  const base = parseColor(isDark ? '#161b17' : '#ffffff');
   if (!base) {
     return value;
   }

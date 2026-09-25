@@ -7,16 +7,21 @@ import { EntityHistoryTimeline } from '@/app/audit/components/EntityHistoryTimel
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { Select } from '@/app/components/ui/select';
 import type { AuditEvent } from '@/lib/api/audit';
 import { fetchEntityHistory } from '@/lib/api/audit';
+import { formatValue, getColumnOptions } from '../helpers/rowDrawerHelpers';
 import type {
   ColumnType,
   CustomTableCellValue,
   CustomTableColumn,
   CustomTableGridRow,
   CustomTableRowPatch,
+  SelectOptionDef,
 } from '../utils/stylingUtils';
+import { OptionChip } from './cells/OptionChip';
 import { RowComments } from './RowComments';
+import { NumberDraftInput } from './RowDrawerFieldEditor';
 
 type DrawerMode = 'view' | 'edit';
 
@@ -33,12 +38,6 @@ interface RowDrawerProps {
   onSaveAndClose?: (rowId: string, patchData: CustomTableRowPatch) => Promise<void>;
   onSaveAndNext?: (rowId: string, patchData: CustomTableRowPatch) => Promise<void>;
 }
-
-const getColumnOptions = (column: CustomTableColumn): string[] => {
-  return Array.isArray(column.config?.options)
-    ? column.config.options.map(option => String(option))
-    : [];
-};
 
 const isNullish = (v: unknown): v is null | undefined | '' =>
   v === null || v === undefined || v === '';
@@ -79,25 +78,6 @@ const normalizeValue = (type: ColumnType, value: unknown): CustomTableCellValue 
   return fn ? fn(value) : value === null || value === undefined ? '' : String(value);
 };
 
-const formatValue = (type: ColumnType, value: unknown) => {
-  if (value === null || value === undefined) {
-    return '—';
-  }
-  if (type === 'boolean') {
-    return value ? 'Yes' : 'No';
-  }
-  if (type === 'multi_select') {
-    const arr = Array.isArray(value) ? value : [value];
-    const text = arr
-      .map(v => String(v))
-      .filter(Boolean)
-      .join(', ');
-    return text || '—';
-  }
-  const text = String(value);
-  return text.trim() ? text : '—';
-};
-
 function MultiSelectEditor({
   value,
   options,
@@ -105,28 +85,28 @@ function MultiSelectEditor({
   setDraft,
 }: {
   value: unknown;
-  options: string[];
+  options: SelectOptionDef[];
   colKey: string;
   setDraft: React.Dispatch<React.SetStateAction<CustomTableRowPatch>>;
 }) {
   return (
     <Box sx={{ mt: 1.5, display: 'grid', gridTemplateColumns: '1fr', gap: 1 }}>
       {options.map(opt => {
-        const selected = Array.isArray(value) && value.includes(opt);
+        const selected = Array.isArray(value) && value.includes(opt.value);
         return (
-          <Box key={opt} sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+          <Box key={opt.value} sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
             <Checkbox
               checked={selected}
               onCheckedChange={checked => {
                 const next = Array.isArray(value) ? [...value] : [];
                 const updated = checked
-                  ? Array.from(new Set([...next, opt]))
-                  : next.filter(v => v !== opt);
+                  ? Array.from(new Set([...next, opt.value]))
+                  : next.filter(v => v !== opt.value);
                 setDraft(prev => ({ ...prev, [colKey]: updated }));
               }}
               className="h-5 w-5"
             />
-            <Typography style={{ fontSize: 14, color: 'var(--foreground)' }}>{opt}</Typography>
+            <OptionChip option={opt} />
           </Box>
         );
       })}
@@ -143,7 +123,7 @@ function ColumnFieldEditor({
 }: {
   col: CustomTableColumn;
   value: unknown;
-  options: string[];
+  options: SelectOptionDef[];
   inputSx: React.CSSProperties;
   setDraft: React.Dispatch<React.SetStateAction<CustomTableRowPatch>>;
 }) {
@@ -164,16 +144,8 @@ function ColumnFieldEditor({
     );
   }
 
-  if (col.type === 'number') {
-    return (
-      <input
-        type="number"
-        step="any"
-        value={isNullish(value) ? '' : String(value)}
-        onChange={e => updateField(e.target.value.trim() === '' ? null : Number(e.target.value))}
-        style={inputSx}
-      />
-    );
+  if (col.type === 'number' || col.type === 'currency') {
+    return <NumberDraftInput value={value} onChange={updateField} style={inputSx} />;
   }
 
   if (col.type === 'date') {
@@ -187,18 +159,16 @@ function ColumnFieldEditor({
 
   if (col.type === 'select' && options.length) {
     return (
-      <select
+      <Select
+        fullWidth
         value={String(value ?? '')}
-        onChange={e => updateField(e.target.value)}
-        style={inputSx}
-      >
-        <option value="">—</option>
-        {options.map(opt => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
+        onChange={updateField}
+        options={[
+          { value: '', label: '—' },
+          ...options.map(opt => ({ value: opt.value, label: <OptionChip option={opt} /> })),
+        ]}
+        sx={{ mt: 1 }}
+      />
     );
   }
 
@@ -592,7 +562,7 @@ export function RowDrawer({
                           color: 'var(--foreground)',
                         }}
                       >
-                        {formatValue(col.type, value)}
+                        {formatValue(col.type, value, col.config)}
                       </Typography>
                     ) : (
                       <ColumnFieldEditor

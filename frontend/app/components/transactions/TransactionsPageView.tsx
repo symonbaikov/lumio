@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { Select } from '@/app/components/ui/select';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { getCsrfHeaders } from '@/app/lib/csrf';
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
@@ -211,20 +212,17 @@ export default function TransactionsPageView({
           </div>
 
           <div className="lumio-tx-bulk__controls">
-            <select
+            <Select
               value={bulkCategoryId}
-              onChange={e => setBulkCategoryId(e.target.value)}
-              className="lumio-tx-bulk__select"
-            >
-              <option value="">{t.selectCategory.value}</option>
-              {categories
-                .filter(cat => cat.isEnabled !== false)
-                .map(cat => (
-                  <option key={cat.id} value={cat.id}>
-                    {getCategoryDisplayName(cat, locale)}
-                  </option>
-                ))}
-            </select>
+              onChange={setBulkCategoryId}
+              options={[
+                { value: '', label: t.selectCategory.value },
+                ...categories
+                  .filter(cat => cat.isEnabled !== false)
+                  .map(cat => ({ value: cat.id, label: getCategoryDisplayName(cat, locale) })),
+              ]}
+              sx={{ flex: 1, maxWidth: 320 }}
+            />
 
             <button
               type="button"

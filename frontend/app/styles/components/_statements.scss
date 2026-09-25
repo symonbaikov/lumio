@@ -1274,28 +1274,6 @@
       align-items: center;
     }
   }
-
-  &__select {
-    height: 40px;
-    border-radius: $lumio-radius-md;
-    border: 1px solid $color-border;
-    background: $lumio-color-surface;
-    padding: 0 12px;
-    font-size: 14px;
-    color: $color-foreground;
-    outline: none;
-
-    @include dark {
-      border-color: $lumio-color-border-dk;
-      background: $lumio-color-surface-dk;
-      color: $lumio-color-text-primary-dk;
-    }
-
-    &:focus {
-      outline: none;
-      box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 30%, transparent);
-    }
-  }
 }
 
 .lumio-payable-list {
@@ -1569,28 +1547,6 @@
     }
   }
 
-  &__select {
-    width: 100%;
-    height: 40px;
-    border-radius: $lumio-radius-md;
-    border: 1px solid $color-border;
-    background: $lumio-color-surface;
-    padding: 0 12px;
-    font-size: 14px;
-    color: $color-foreground;
-    outline: none;
-
-    @include dark {
-      border-color: $lumio-color-border-dk;
-      background: $lumio-color-surface-dk;
-      color: $lumio-color-text-primary-dk;
-    }
-
-    &:focus {
-      box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 30%, transparent);
-    }
-  }
-
   &__currency-trigger {
     display: flex;
     width: 100%;
@@ -1778,32 +1734,6 @@
       border-color: $lumio-color-border-dk;
       background: $lumio-color-surface-dk;
       color: $lumio-color-ink-900-dk;
-    }
-
-    &:focus {
-      border-color: $color-primary;
-      box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 10%, transparent);
-    }
-  }
-
-  &__workspace-filter {
-    width: 100%;
-    border-radius: $lumio-radius-md;
-    border: 1px solid #e5e7eb;
-    background: $lumio-color-surface;
-    padding: 12px;
-    font-size: 14px;
-    color: #374151;
-    outline: none;
-
-    @include dark {
-      border-color: $lumio-color-border-dk;
-      background: $lumio-color-surface-dk;
-      color: $lumio-color-ink-700-dk;
-    }
-
-    @media (min-width: 640px) {
-      width: 240px;
     }
 
     &:focus {
@@ -3702,7 +3632,6 @@
       color: $lumio-color-text-secondary-dk;
     }
   }
-
 }
 
 /* ── UnapprovedCashView ──────────────────────────────────── */

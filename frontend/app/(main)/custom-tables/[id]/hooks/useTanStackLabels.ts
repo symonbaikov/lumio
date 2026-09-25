@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { ColumnMenuLabels } from '../components/headers/ColumnHeaderMenu';
 import { getTranslationValue } from '../utils/translationUtils';
 
 interface TanStackT {
@@ -12,6 +13,7 @@ export interface ColumnLabels {
   deleteLabel: string;
   addRowLabel: string;
   draftRowHint: string;
+  columnMenuLabels: ColumnMenuLabels;
 }
 
 export interface CommonLabels {
@@ -20,9 +22,6 @@ export interface CommonLabels {
   emptyTitle: string;
   emptySubtitle: string;
   loadingMore: string;
-  sortAscLabel: string;
-  sortDescLabel: string;
-  sortClearLabel: string;
   aggregateNone: string;
   aggregateLabels: Record<'sum' | 'avg' | 'min' | 'max' | 'count', string>;
 }
@@ -30,6 +29,32 @@ export interface CommonLabels {
 export interface TanStackLabels {
   columnLabels: ColumnLabels;
   commonLabels: CommonLabels;
+}
+
+const COLUMN_MENU_FALLBACKS: Record<keyof ColumnMenuLabels, [string[], string]> = {
+  menu: [['columnMenu', 'menu'], 'Column menu'],
+  rename: [['columnMenu', 'rename'], 'Rename'],
+  edit: [['columnMenu', 'edit'], 'Edit column…'],
+  headerColor: [['columnMenu', 'headerColor'], 'Header colour'],
+  columnColor: [['columnMenu', 'columnColor'], 'Column colour'],
+  custom: [['columnMenu', 'custom'], 'Custom…'],
+  clear: [['columnMenu', 'clear'], 'Clear'],
+  pin: [['columnMenu', 'pin'], 'Pin'],
+  unpin: [['columnMenu', 'unpin'], 'Unpin'],
+  hide: [['columnMenu', 'hide'], 'Hide'],
+  sortAsc: [['grid', 'sortAsc'], 'Sort ascending'],
+  sortDesc: [['grid', 'sortDesc'], 'Sort descending'],
+  sortClear: [['grid', 'sortClear'], 'Clear sorting'],
+  delete: [['columnMenu', 'delete'], 'Delete column'],
+};
+
+function buildColumnMenuLabels(t: TanStackT): ColumnMenuLabels {
+  const result = {} as ColumnMenuLabels;
+  for (const key of Object.keys(COLUMN_MENU_FALLBACKS) as Array<keyof ColumnMenuLabels>) {
+    const [path, fallback] = COLUMN_MENU_FALLBACKS[key];
+    result[key] = getTranslationValue({ root: t, path, fallback });
+  }
+  return result;
 }
 
 export function useTanStackLabels(t: TanStackT): TanStackLabels {
@@ -56,6 +81,7 @@ export function useTanStackLabels(t: TanStackT): TanStackLabels {
         path: ['grid', 'draftRowHint'],
         fallback: 'Draft: the row is saved once the required fields are filled in',
       }),
+      columnMenuLabels: buildColumnMenuLabels(t),
     }),
     [t],
   );
@@ -83,21 +109,6 @@ export function useTanStackLabels(t: TanStackT): TanStackLabels {
         fallback: '',
       }),
       loadingMore: String(t.grid?.loadingMore?.value ?? 'Loading...'),
-      sortAscLabel: getTranslationValue({
-        root: t,
-        path: ['grid', 'sortAsc'],
-        fallback: 'Sort ascending',
-      }),
-      sortDescLabel: getTranslationValue({
-        root: t,
-        path: ['grid', 'sortDesc'],
-        fallback: 'Sort descending',
-      }),
-      sortClearLabel: getTranslationValue({
-        root: t,
-        path: ['grid', 'sortClear'],
-        fallback: 'Clear sorting',
-      }),
       aggregateNone: getTranslationValue({
         root: t,
         path: ['grid', 'aggregateNone'],

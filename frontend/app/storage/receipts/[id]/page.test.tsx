@@ -202,7 +202,7 @@ describe('ReceiptDocumentPage', () => {
     expect(container.textContent).toContain('Export to table');
     expect(container.querySelector('iframe[title="Magnum receipt"]')).toBeTruthy();
     expect(container.querySelector('input[aria-label="Vendor"]')).toBeTruthy();
-    expect(container.querySelector('select[aria-label="Category"]')).toBeTruthy();
+    expect(container.querySelector('[role="combobox"][aria-label="Category"]')).toBeTruthy();
     expect(
       container.querySelector('[data-testid="receipt-location-section"]')?.textContent,
     ).toContain('receipt-1');

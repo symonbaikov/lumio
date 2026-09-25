@@ -8,6 +8,7 @@ import { ChevronLeft } from '@/app/components/icons';
 import { CurrencyDrawer } from '@/app/components/receipts/components/CurrencyDrawer';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { Input } from '@/app/components/ui/input';
+import { Select } from '@/app/components/ui/select';
 import type {
   CreatePayableInput,
   Payable,
@@ -309,20 +310,16 @@ export function CreatePayableDrawer({
                 <label className="lumio-payable-drawer__field-label" htmlFor="payable-source">
                   {labels.source}
                 </label>
-                <select
+                <Select
+                  fullWidth
                   id="payable-source"
-                  className="lumio-payable-drawer__select"
                   value={form.source}
-                  onChange={event =>
-                    setForm(prev => ({ ...prev, source: event.target.value as PayableSource }))
-                  }
-                >
-                  {Object.entries(labels.sourceOptions).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={value => setForm(prev => ({ ...prev, source: value as PayableSource }))}
+                  options={Object.entries(labels.sourceOptions).map(([value, label]) => ({
+                    value,
+                    label,
+                  }))}
+                />
               </div>
             </div>
 
@@ -330,20 +327,16 @@ export function CreatePayableDrawer({
               <label className="lumio-payable-drawer__field-label" htmlFor="payable-status">
                 {labels.status}
               </label>
-              <select
+              <Select
+                fullWidth
                 id="payable-status"
-                className="lumio-payable-drawer__select"
                 value={form.status}
-                onChange={event =>
-                  setForm(prev => ({ ...prev, status: event.target.value as PayableStatus }))
-                }
-              >
-                {Object.entries(labels.statusOptions).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+                onChange={value => setForm(prev => ({ ...prev, status: value as PayableStatus }))}
+                options={Object.entries(labels.statusOptions).map(([value, label]) => ({
+                  value,
+                  label,
+                }))}
+              />
             </div>
 
             <div className="lumio-payable-drawer__field-group">

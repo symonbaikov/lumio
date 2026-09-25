@@ -17,6 +17,7 @@ import {
   RefreshCcw,
   Trash2,
 } from '@/app/components/icons';
+import { Select } from '@/app/components/ui/select';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -506,31 +507,23 @@ export default function GoogleSheetsIntegrationPage(): React.JSX.Element {
                 <Typography style={{ fontSize: 14, fontWeight: 500, color: c.ink800 }}>
                   {t.step1.worksheetLabel}
                 </Typography>
-                <select
+                <Select
+                  fullWidth
                   value={worksheetName}
-                  onChange={e => setWorksheetName(e.target.value)}
+                  onChange={setWorksheetName}
                   data-tour-id="gs-integration-worksheet"
                   disabled={!selectedSpreadsheet || loadingWorksheets}
-                  style={{
-                    marginTop: 4,
-                    width: '100%',
-                    border: `1px solid ${c.ink150}`,
-                    borderRadius: tokens.radius.md,
-                    background: 'var(--card-bg)',
-                    padding: '8px 12px',
-                    fontSize: 14,
-                    opacity: !selectedSpreadsheet || loadingWorksheets ? 0.6 : 1,
-                  }}
-                >
-                  <option value="">
-                    {loadingWorksheets ? copy.step1.loadingWorksheets : copy.step1.selectWorksheet}
-                  </option>
-                  {worksheets.map(item => (
-                    <option key={item.title} value={item.title}>
-                      {item.title}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    {
+                      value: '',
+                      label: loadingWorksheets
+                        ? copy.step1.loadingWorksheets
+                        : copy.step1.selectWorksheet,
+                    },
+                    ...worksheets.map(item => ({ value: item.title, label: item.title })),
+                  ]}
+                  sx={{ mt: 0.5, backgroundColor: 'var(--card-bg)' }}
+                />
               </label>
 
               <label style={{ display: 'block' }}>

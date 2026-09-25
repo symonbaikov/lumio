@@ -4,10 +4,12 @@ import type { SortingState } from '@tanstack/react-table';
 import { useTheme } from 'next-themes';
 import { useCallback, useMemo, useState } from 'react';
 import { useIntlayer } from '@/app/i18n';
+import type { ColumnMenuActions } from '../utils/columnDefinitions';
 import type { ConditionalRule } from '../utils/conditionalRules';
 import type {
   CustomTableCellValue,
   CustomTableColumn,
+  CustomTableColumnConfig,
   CustomTableGridRow,
   CustomTableRowStyles,
 } from '../utils/stylingUtils';
@@ -25,8 +27,9 @@ interface RawCb {
   onSelectedRowIdsChange: (rowIds: string[]) => void;
 }
 
-export interface UseCustomTableTanStackParams extends RawCb {
+export interface UseCustomTableTanStackParams extends RawCb, ColumnMenuActions {
   tableId?: string;
+  defaultCurrency?: string;
   rows: CustomTableGridRow[];
   columns: CustomTableColumn[];
   selectedRowIds: string[];
@@ -49,6 +52,8 @@ export interface UseCustomTableTanStackReturn {
   columnTypeByKey: Record<string, string>;
   /** Заголовок колонки по ключу — для подписей в подвале. */
   columnTitleByKey: Record<string, string>;
+  /** Конфиг колонки по ключу — подвал форматирует итог как саму колонку. */
+  columnConfigByKey: Record<string, CustomTableColumnConfig | null>;
   isDark: boolean;
   colorPickerRowId: string | null;
   commonLabels: CommonLabels;
@@ -117,6 +122,7 @@ export function useCustomTableTanStack(
 
   const state = useCustomTableState({
     tableId: params.tableId,
+    defaultCurrency: params.defaultCurrency,
     rows: params.rows,
     columns: params.columns,
     selectedRowIds: params.selectedRowIds,
@@ -142,6 +148,10 @@ export function useCustomTableTanStack(
     onSelectedRowIdsChange: adapters.selection,
     onRenameColumnTitle: adapters.rename,
     onDeleteColumn: adapters.deleteCol,
+    onEditColumn: params.onEditColumn,
+    onSetColumnStyle: params.onSetColumnStyle,
+    onTogglePinColumn: params.onTogglePinColumn,
+    onHideColumn: params.onHideColumn,
   });
 
   const mobileLabels = useMemo(
@@ -165,10 +175,19 @@ export function useCustomTableTanStack(
     return map;
   }, [params.columns]);
 
+  const columnConfigByKey = useMemo(() => {
+    const map: Record<string, CustomTableColumnConfig | null> = {};
+    for (const col of params.columns) {
+      map[col.key] = col.config;
+    }
+    return map;
+  }, [params.columns]);
+
   return {
     state,
     columnTypeByKey,
     columnTitleByKey,
+    columnConfigByKey,
     isDark,
     colorPickerRowId,
     commonLabels,

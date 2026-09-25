@@ -4,6 +4,7 @@ import { Box, Typography } from '@mui/material';
 import { useTheme } from 'next-themes';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
+import { Select } from '@/app/components/ui/select';
 import { tokens } from '@/lib/theme-tokens';
 
 /** Kept in sync with `SheetRowIssue` in `backend/src/modules/import/sheets/map-sheet-rows.ts`. */
@@ -182,22 +183,18 @@ export function TransactionPreviewTable({ rows, summary, t }: TransactionPreview
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography style={{ fontSize: 12, color: c.ink500 }}>{t.filterLabel.value}</Typography>
-          <select
+          <Select
+            size="small"
             value={filter}
-            onChange={e => setFilter(e.target.value as FilterMode)}
-            aria-label={t.filterLabel.value}
-            style={{
-              border: `1px solid ${c.ink150}`,
-              background: 'var(--card-bg)',
-              padding: '6px 8px',
-              fontSize: 13,
-              color: c.ink800,
-            }}
-          >
-            <option value="all">{t.filterOptions.all}</option>
-            <option value="issues">{t.filterOptions.issues}</option>
-            <option value="duplicates">{t.filterOptions.duplicates}</option>
-          </select>
+            onChange={value => setFilter(value as FilterMode)}
+            inputProps={{ 'aria-label': t.filterLabel.value }}
+            options={[
+              { value: 'all', label: t.filterOptions.all },
+              { value: 'issues', label: t.filterOptions.issues },
+              { value: 'duplicates', label: t.filterOptions.duplicates },
+            ]}
+            sx={{ backgroundColor: 'var(--card-bg)', color: c.ink800 }}
+          />
         </Box>
       </Box>
 

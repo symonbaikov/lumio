@@ -3,6 +3,7 @@
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import React from 'react';
 import { Search, X } from '@/app/components/icons';
+import { Select } from '@/app/components/ui/select';
 import { tokens } from '@/lib/theme-tokens';
 import type {
   UnapprovedQueueFilters,
@@ -34,6 +35,8 @@ const INPUT_STYLE: React.CSSProperties = {
   color: 'var(--foreground)',
   borderRadius: tokens.radius.md,
 };
+
+const SELECT_SX = { backgroundColor: 'var(--card-bg)', color: 'var(--foreground)' };
 
 type SetFilters = (updater: (prev: UnapprovedQueueFilters) => UnapprovedQueueFilters) => void;
 
@@ -86,37 +89,31 @@ export function UnapprovedCashFilterBar({
             style={{ ...INPUT_STYLE, width: '100%', paddingLeft: 36, paddingRight: 12 }}
           />
         </div>
-        <select
+        <Select
           value={filters.reasons[0] || 'all'}
-          onChange={e => applyReasonFilter(e.target.value, setFilters)}
-          style={INPUT_STYLE}
-          aria-label={filterLabels.reason}
-        >
-          <option value="all">{`${filterLabels.reason}: ${filterLabels.allReasons}`}</option>
-          {reasonOptions.map(opt => (
-            <option key={opt.id} value={opt.id}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <select
+          onChange={value => applyReasonFilter(value, setFilters)}
+          inputProps={{ 'aria-label': filterLabels.reason }}
+          options={[
+            { value: 'all', label: `${filterLabels.reason}: ${filterLabels.allReasons}` },
+            ...reasonOptions.map(opt => ({ value: opt.id, label: opt.label })),
+          ]}
+          sx={SELECT_SX}
+        />
+        <Select
           value={filters.source}
-          onChange={e =>
+          onChange={value =>
             setFilters(prev => ({
               ...prev,
-              source: e.target.value as UnapprovedQueueFilters['source'],
+              source: value as UnapprovedQueueFilters['source'],
             }))
           }
-          style={INPUT_STYLE}
-          aria-label={filterLabels.source}
-        >
-          <option value="all">{`${filterLabels.source}: ${filterLabels.allSources}`}</option>
-          {sourceOptions.map(opt => (
-            <option key={opt.id} value={opt.id}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+          inputProps={{ 'aria-label': filterLabels.source }}
+          options={[
+            { value: 'all', label: `${filterLabels.source}: ${filterLabels.allSources}` },
+            ...sourceOptions.map(opt => ({ value: opt.id, label: opt.label })),
+          ]}
+          sx={SELECT_SX}
+        />
         <input
           type="number"
           value={filters.amountMin ?? ''}

@@ -15,9 +15,9 @@ import {
 import React, { useCallback, useMemo, useState } from 'react';
 import { Search as SearchIcon } from '@/app/components/icons';
 import { AppPagination } from '@/app/components/ui/pagination';
+import { Select } from '@/app/components/ui/select';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { formatStoredDate } from '@/app/lib/user-format-store';
-import { tokens } from '@/lib/theme-tokens';
 
 export interface Transaction {
   id: string;
@@ -341,24 +341,20 @@ export default function TransactionsView({ transactions }: TransactionsViewProps
             <span style={{ fontSize: 14, color: 'var(--foreground)' }}>
               {t.pagination.rowsPerPage.value}:
             </span>
-            <select
+            <Select
+              size="small"
               value={rowsPerPage}
-              onChange={e => {
-                setRowsPerPage(Number.parseInt(e.target.value, 10));
+              onChange={value => {
+                setRowsPerPage(Number.parseInt(value, 10));
                 setPage(0);
               }}
-              style={{
-                borderRadius: tokens.radius.md,
-                border: '1px solid var(--border-color)',
-                padding: '2px 8px',
-                fontSize: 14,
-              }}
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+              options={[
+                { value: 10, label: '10' },
+                { value: 25, label: '25' },
+                { value: 50, label: '50' },
+                { value: 100, label: '100' },
+              ]}
+            />
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

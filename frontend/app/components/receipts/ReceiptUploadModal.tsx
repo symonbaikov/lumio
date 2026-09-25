@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FileImage, FileText, UploadCloud, X } from '@/app/components/icons';
 import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
+import { FORM_CONTROL_SX, Input } from '@/app/components/ui/input';
 import { ModalShell } from '@/app/components/ui/modal-shell';
 import { Select } from '@/app/components/ui/select';
 import { tokens } from '@/lib/theme-tokens';
@@ -193,17 +193,14 @@ export function ReceiptUploadModal({ isOpen, onClose, onUploaded }: ReceiptUploa
             OCR language
           </label>
           <Select
+            fullWidth
             id="receipt-language"
-            aria-label="OCR language"
+            inputProps={{ 'aria-label': 'OCR language' }}
             value={language}
-            onChange={event => setLanguage(event.target.value)}
-          >
-            {LANGUAGE_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
+            onChange={setLanguage}
+            options={LANGUAGE_OPTIONS}
+            sx={FORM_CONTROL_SX}
+          />
         </Box>
 
         {visibleError ? (

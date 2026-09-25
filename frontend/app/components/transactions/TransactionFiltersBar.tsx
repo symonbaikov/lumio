@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Filter, Search, X } from '@/app/components/icons';
+import { Select } from '@/app/components/ui/select';
 import { useLocale } from '@/app/i18n';
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import type { Category, FilterState } from './types';
@@ -68,19 +69,18 @@ function StatusSelect({ filters, onFilterChange, t }: StatusSelectProps): React.
       <label htmlFor="status-filter" className="lumio-tx-filters__label">
         {t.statusFilter.value}
       </label>
-      <select
+      <Select
+        fullWidth
         id="status-filter"
         value={filters.status}
-        onChange={e =>
-          onFilterChange({ ...filters, status: e.target.value as FilterState['status'] })
-        }
-        className="lumio-tx-filters__select"
-      >
-        <option value="all">{t.statusAll.value}</option>
-        <option value="warnings">{t.statusWarnings.value}</option>
-        <option value="errors">{t.statusErrors.value}</option>
-        <option value="uncategorized">{t.statusUncategorized.value}</option>
-      </select>
+        onChange={value => onFilterChange({ ...filters, status: value as FilterState['status'] })}
+        options={[
+          { value: 'all', label: t.statusAll.value },
+          { value: 'warnings', label: t.statusWarnings.value },
+          { value: 'errors', label: t.statusErrors.value },
+          { value: 'uncategorized', label: t.statusUncategorized.value },
+        ]}
+      />
     </div>
   );
 }
@@ -104,19 +104,19 @@ function CategorySelect({
       <label htmlFor="category-filter" className="lumio-tx-filters__label">
         {t.categoryFilter.value}
       </label>
-      <select
+      <Select
+        fullWidth
         id="category-filter"
         value={filters.category ?? ''}
-        onChange={e => onFilterChange({ ...filters, category: e.target.value || null })}
-        className="lumio-tx-filters__select"
-      >
-        <option value="">{t.categoryAll.value}</option>
-        {categories.map(cat => (
-          <option key={cat.id} value={cat.id}>
-            {getCategoryDisplayName(cat, locale)}
-          </option>
-        ))}
-      </select>
+        onChange={value => onFilterChange({ ...filters, category: value || null })}
+        options={[
+          { value: '', label: t.categoryAll.value },
+          ...categories.map(cat => ({
+            value: cat.id,
+            label: getCategoryDisplayName(cat, locale),
+          })),
+        ]}
+      />
     </div>
   );
 }

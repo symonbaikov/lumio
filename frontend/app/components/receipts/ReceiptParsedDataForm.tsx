@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react';
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { Check, ChevronDown, ChevronLeft, Plus, Search, Trash2 } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import { Input } from '@/app/components/ui/input';
+import { FORM_CONTROL_SX, Input } from '@/app/components/ui/input';
 import { Select } from '@/app/components/ui/select';
 import { useLocale } from '@/app/i18n';
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
@@ -216,53 +216,60 @@ export function ReceiptParsedDataForm({
 
           <Field htmlFor="receipt-payment-method" label="Payment method">
             <Select
+              fullWidth
               id="receipt-payment-method"
-              aria-label="Payment method"
+              inputProps={{ 'aria-label': 'Payment method' }}
               value={value.paymentMethod}
-              onChange={event => onChange({ ...value, paymentMethod: event.target.value })}
-            >
-              <option value="">Select payment method</option>
-              <option value="card">Card</option>
-              <option value="cash">Cash</option>
-              <option value="bank_transfer">Bank transfer</option>
-              <option value="other">Other</option>
-            </Select>
+              onChange={paymentMethod => onChange({ ...value, paymentMethod })}
+              options={[
+                { value: '', label: 'Select payment method' },
+                { value: 'card', label: 'Card' },
+                { value: 'cash', label: 'Cash' },
+                { value: 'bank_transfer', label: 'Bank transfer' },
+                { value: 'other', label: 'Other' },
+              ]}
+              sx={FORM_CONTROL_SX}
+            />
           </Field>
 
           <Field htmlFor="receipt-transaction-type" label="Transaction type">
             <Select
+              fullWidth
               id="receipt-transaction-type"
-              aria-label="Transaction type"
+              inputProps={{ 'aria-label': 'Transaction type' }}
               value={value.transactionType}
-              onChange={event =>
+              onChange={transactionType =>
                 onChange({
                   ...value,
-                  transactionType: event.target
-                    .value as EditableReceiptParsedData['transactionType'],
+                  transactionType: transactionType as EditableReceiptParsedData['transactionType'],
                 })
               }
-            >
-              <option value="expense">Expense</option>
-              <option value="income">Income</option>
-              <option value="transfer">Transfer</option>
-              <option value="unknown">Unknown</option>
-            </Select>
+              options={[
+                { value: 'expense', label: 'Expense' },
+                { value: 'income', label: 'Income' },
+                { value: 'transfer', label: 'Transfer' },
+                { value: 'unknown', label: 'Unknown' },
+              ]}
+              sx={FORM_CONTROL_SX}
+            />
           </Field>
 
           <Field htmlFor="receipt-category" label="Category">
             <Select
+              fullWidth
               id="receipt-category"
-              aria-label="Category"
+              inputProps={{ 'aria-label': 'Category' }}
               value={value.categoryId}
-              onChange={event => onChange({ ...value, categoryId: event.target.value })}
-            >
-              <option value="">Select category</option>
-              {enabledCategories.map(category => (
-                <option key={category.id} value={category.id}>
-                  {getCategoryDisplayName(category, locale)}
-                </option>
-              ))}
-            </Select>
+              onChange={categoryId => onChange({ ...value, categoryId })}
+              options={[
+                { value: '', label: 'Select category' },
+                ...enabledCategories.map(category => ({
+                  value: category.id,
+                  label: getCategoryDisplayName(category, locale),
+                })),
+              ]}
+              sx={FORM_CONTROL_SX}
+            />
           </Field>
         </Box>
 

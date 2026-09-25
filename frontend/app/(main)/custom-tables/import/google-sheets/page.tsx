@@ -9,6 +9,7 @@ import { type CSSProperties, useEffect, useEffectEvent, useMemo, useRef, useStat
 import toast from 'react-hot-toast';
 import { Tag as CategoryIconFallback, Sparkles } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
+import { Select } from '@/app/components/ui/select';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
@@ -644,10 +645,11 @@ export default function GoogleSheetsImportPage() {
                 <span style={{ fontSize: 14, fontWeight: 500, color: c.ink800 }}>
                   Legacy saved connection
                 </span>
-                <select
+                <Select
+                  fullWidth
                   value={googleSheetId}
-                  onChange={e => {
-                    setGoogleSheetId(e.target.value);
+                  onChange={value => {
+                    setGoogleSheetId(value);
                     setSourceUrl('');
                     setPreview(null);
                     setColumns([]);
@@ -656,16 +658,19 @@ export default function GoogleSheetsImportPage() {
                     resetTransactionPreview();
                   }}
                   data-tour-id="gs-import-connection"
-                  style={inputStyle}
-                >
-                  <option value="">Use link above instead</option>
-                  {connections.map(c => (
-                    <option key={c.id} value={c.id} disabled={c.oauthConnected === false}>
-                      {c.sheetName}
-                      {c.oauthConnected === false ? t.source.oauthNeededSuffix.value : ''}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: 'Use link above instead' },
+                    ...connections.map(connection => ({
+                      value: connection.id,
+                      label:
+                        connection.oauthConnected === false
+                          ? `${connection.sheetName}${t.source.oauthNeededSuffix.value}`
+                          : connection.sheetName,
+                      disabled: connection.oauthConnected === false,
+                    })),
+                  ]}
+                  sx={{ mt: 0.5 }}
+                />
               </label>
             ) : null}
 
@@ -682,25 +687,23 @@ export default function GoogleSheetsImportPage() {
                   placeholder="Leave empty to use the first worksheet"
                 />
               ) : (
-                <select
+                <Select
+                  fullWidth
                   value={worksheetName}
-                  onChange={e => setWorksheetName(e.target.value)}
+                  onChange={setWorksheetName}
                   data-tour-id="gs-import-worksheet"
-                  style={{
-                    ...inputStyle,
-                    opacity: !selectedConnection || loadingWorksheets ? 0.6 : 1,
-                  }}
                   disabled={!selectedConnection || loadingWorksheets}
-                >
-                  <option value="">
-                    {loadingWorksheets ? t.source.worksheetLoading : t.source.worksheetPlaceholder}
-                  </option>
-                  {worksheetOptions.map(item => (
-                    <option key={item.title} value={item.title}>
-                      {item.title}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    {
+                      value: '',
+                      label: loadingWorksheets
+                        ? t.source.worksheetLoading
+                        : t.source.worksheetPlaceholder,
+                    },
+                    ...worksheetOptions.map(item => ({ value: item.title, label: item.title })),
+                  ]}
+                  sx={{ mt: 0.5 }}
+                />
               )}
               <span style={{ display: 'block', marginTop: 4, fontSize: 12, color: c.ink500 }}>
                 {t.source.worksheetHelp}
@@ -742,16 +745,18 @@ export default function GoogleSheetsImportPage() {
                 <span style={{ fontSize: 14, fontWeight: 500, color: c.ink800 }}>
                   {t.source.layoutLabel}
                 </span>
-                <select
+                <Select
+                  fullWidth
                   value={layoutType}
-                  onChange={e => setLayoutType(e.target.value as LayoutType)}
+                  onChange={value => setLayoutType(value as LayoutType)}
                   data-tour-id="gs-import-layout"
-                  style={inputStyle}
-                >
-                  <option value="auto">{t.source.layoutAuto}</option>
-                  <option value="flat">{t.source.layoutFlat}</option>
-                  <option value="matrix">{t.source.layoutMatrix}</option>
-                </select>
+                  options={[
+                    { value: 'auto', label: t.source.layoutAuto },
+                    { value: 'flat', label: t.source.layoutFlat },
+                    { value: 'matrix', label: t.source.layoutMatrix },
+                  ]}
+                  sx={{ mt: 0.5 }}
+                />
               </label>
             </Box>
 
@@ -844,19 +849,20 @@ export default function GoogleSheetsImportPage() {
                   <span style={{ fontSize: 14, fontWeight: 500, color: c.ink800 }}>
                     {t.result.categoryLabel}
                   </span>
-                  <select
+                  <Select
+                    fullWidth
                     value={categoryId}
-                    onChange={e => setCategoryId(e.target.value)}
+                    onChange={setCategoryId}
                     data-tour-id="gs-import-category"
-                    style={inputStyle}
-                  >
-                    <option value="">{t.result.noCategory}</option>
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: '', label: t.result.noCategory },
+                      ...categories.map(category => ({
+                        value: category.id,
+                        label: category.name,
+                      })),
+                    ]}
+                    sx={{ mt: 0.5 }}
+                  />
                   {categoryId && (
                     <Box
                       sx={{
@@ -1329,35 +1335,30 @@ export default function GoogleSheetsImportPage() {
                           />
                         </td>
                         <td style={{ padding: '8px 12px' }}>
-                          <select
+                          <Select
+                            fullWidth
                             value={col.suggestedType}
-                            onChange={e =>
+                            onChange={value =>
                               setColumns(prev =>
                                 prev.map(x =>
                                   x.index === col.index
                                     ? {
                                         ...x,
-                                        suggestedType: e.target.value as ColumnType,
+                                        suggestedType: value as ColumnType,
                                       }
                                     : x,
                                 ),
                               )
                             }
-                            style={{
-                              width: '100%',
-                              border: `1px solid ${c.ink150}`,
-                              background: 'var(--card-bg)',
-                              padding: '8px 12px',
-                              fontSize: 14,
-                            }}
-                          >
-                            <option value="text">{t.columns.types.text}</option>
-                            <option value="number">{t.columns.types.number}</option>
-                            <option value="date">{t.columns.types.date}</option>
-                            <option value="boolean">{t.columns.types.boolean}</option>
-                            <option value="select">{t.columns.types.select}</option>
-                            <option value="multi_select">{t.columns.types.multiSelect}</option>
-                          </select>
+                            options={[
+                              { value: 'text', label: t.columns.types.text },
+                              { value: 'number', label: t.columns.types.number },
+                              { value: 'date', label: t.columns.types.date },
+                              { value: 'boolean', label: t.columns.types.boolean },
+                              { value: 'select', label: t.columns.types.select },
+                              { value: 'multi_select', label: t.columns.types.multiSelect },
+                            ]}
+                          />
                         </td>
                       </tr>
                     ))}

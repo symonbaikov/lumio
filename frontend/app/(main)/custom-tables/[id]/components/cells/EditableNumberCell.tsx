@@ -2,6 +2,12 @@
 
 import type { Column, Row } from '@tanstack/react-table';
 import { type CSSProperties } from 'react';
+import {
+  formatCellNumber,
+  NEGATIVE_NUMBER_COLOR,
+  type NumberDisplayFormat,
+  parseLocalizedNumber,
+} from '../../utils/numberFormat';
 import type { CustomTableCellValue, CustomTableGridRow } from '../../utils/stylingUtils';
 import { useEditableCell } from './useEditableCell';
 
@@ -15,28 +21,7 @@ interface EditableNumberCellProps {
   currency?: string;
   /** Знаков после запятой; для денег по умолчанию 2. */
   precision?: number;
-}
-
-function formatNumberValue(value: number, currency?: string, precision?: number): string {
-  if (currency) {
-    try {
-      return new Intl.NumberFormat(undefined, {
-        style: 'currency',
-        currency,
-        minimumFractionDigits: precision ?? 2,
-        maximumFractionDigits: precision ?? 2,
-      }).format(value);
-    } catch {
-      // Неизвестный код валюты не должен ронять ячейку — показываем число с кодом.
-      return `${value.toFixed(precision ?? 2)} ${currency}`;
-    }
-  }
-  return typeof precision === 'number'
-    ? value.toLocaleString(undefined, {
-        minimumFractionDigits: precision,
-        maximumFractionDigits: precision,
-      })
-    : value.toLocaleString();
+  format?: NumberDisplayFormat;
 }
 
 export function EditableNumberCell({
@@ -46,6 +31,7 @@ export function EditableNumberCell({
   style,
   currency,
   precision,
+  format,
 }: EditableNumberCellProps) {
   const rawValue = row.original.data[column.id];
   const initialValue = rawValue === null || rawValue === undefined ? null : Number(rawValue);
@@ -58,7 +44,6 @@ export function EditableNumberCell({
     isSaving,
     inputRef,
     handleSave,
-    handleCancel,
     handleKeyDown,
   } = useEditableCell<number | null>({
     initialValue,
@@ -66,21 +51,16 @@ export function EditableNumberCell({
     columnKey: column.id,
     onUpdateCell,
     toInputString: v => (v === null || v === undefined ? '' : String(v)),
-    parseValue: raw => {
-      if (raw.trim() === '') {
-        return null;
-      }
-      const num = Number(raw);
-      return Number.isNaN(num) ? null : num;
-    },
+    // Текстовое поле вместо type=number: так принимаются «1 234,56» и «12,5 %».
+    parseValue: raw => (raw.trim() === '' ? null : parseLocalizedNumber(raw)),
   });
 
   if (isEditing) {
     return (
       <input
         ref={inputRef}
-        type="number"
-        step="any"
+        type="text"
+        inputMode="decimal"
         value={inputValue}
         onChange={e => setInputValue(e.target.value)}
         onBlur={handleSave}
@@ -90,8 +70,8 @@ export function EditableNumberCell({
           width: '100%',
           height: '100%',
           padding: '4px 8px',
-          border: '2px solid #3b82f6',
-          background: 'var(--color-info-soft-bg)',
+          border: '2px solid var(--primary-fill)',
+          background: 'var(--muted)',
           textAlign: 'right',
           ...style,
         }}
@@ -100,7 +80,12 @@ export function EditableNumberCell({
   }
 
   const displayValue =
-    initialValue != null ? formatNumberValue(Number(initialValue), currency, precision) : '—';
+    initialValue != null ? formatCellNumber(initialValue, { currency, precision, format }) : '—';
+  // Минус — красным, если правило или стиль колонки не задали свой цвет текста.
+  const negativeColor =
+    initialValue != null && initialValue < 0 && !style?.color
+      ? { color: NEGATIVE_NUMBER_COLOR }
+      : {};
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: double-click-to-edit grid cell. Making this keyboard-reachable needs roving-tabindex navigation across the whole table (role=grid/gridcell); a per-cell tabIndex would add a tab stop to every cell instead.
@@ -116,6 +101,7 @@ export function EditableNumberCell({
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
         ...style,
+        ...negativeColor,
       }}
       title="Double-click to edit"
     >
