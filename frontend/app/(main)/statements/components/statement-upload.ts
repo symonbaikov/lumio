@@ -27,6 +27,8 @@ type UploadReceiptScanFilesParams = UploadCallbacks & {
   files: File[];
   labels: StatementUploadLabels;
   deviceLocation?: DeviceLocation | null;
+  /** The workspace the upload was started in; the one open now when not given. */
+  workspaceId?: string | null;
   /** After each batch: offset of its first file and the created statement ids, in file order. */
   onBatchCreated?: (fileOffset: number, statementIds: string[]) => void;
 };
@@ -42,6 +44,10 @@ type UploadScanDrawerFilesParams = UploadCallbacks & {
     deviceLocationRequest?: Promise<DeviceLocation | null> | null;
   };
 };
+
+// Read once per upload: batches go out one after another, and switching
+// workspace in the meantime must not send the rest of them to the new one.
+const readOpenWorkspaceId = (): string | null => localStorage.getItem('currentWorkspaceId');
 
 const chunkFiles = (files: File[], size: number): File[][] => {
   const chunks: File[][] = [];
@@ -125,6 +131,7 @@ export const uploadStatementFiles = async ({
 export const uploadReceiptScanFiles = async ({
   files,
   deviceLocation,
+  workspaceId = readOpenWorkspaceId(),
   labels,
   onUploadSuccess,
   refreshAfterCreate,
@@ -148,7 +155,10 @@ export const uploadReceiptScanFiles = async ({
       }
 
       const response = await apiClient.post('/statements/upload-receipt', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(workspaceId ? { 'X-Workspace-Id': workspaceId } : {}),
+        },
       });
       onBatchCreated?.(fileOffset, readCreatedStatementIds(response?.data));
       fileOffset += batch.length;
@@ -173,11 +183,13 @@ export const uploadScanDrawerFiles = async ({
     throw new Error(labels.pickAtLeastOne);
   }
 
+  const workspaceId = readOpenWorkspaceId();
   // Bounded by getDeviceLocation's timeout and usually settled by now.
   const deviceLocation = payload.deviceLocationRequest ? await payload.deviceLocationRequest : null;
   await uploadReceiptScanFiles({
     files: payload.files,
     deviceLocation,
+    workspaceId,
     labels,
     onUploadSuccess,
     refreshAfterCreate,

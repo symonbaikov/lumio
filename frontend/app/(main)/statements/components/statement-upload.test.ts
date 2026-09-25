@@ -258,4 +258,42 @@ describe('statement-upload helpers', () => {
     expect(formData.has('latitude')).toBe(false);
     expect(formData.has('longitude')).toBe(false);
   });
+
+  it('sends every batch to the workspace the upload started in', async () => {
+    localStorage.setItem('currentWorkspaceId', 'ws-started');
+    let releaseLocation: (location: null) => void = () => undefined;
+    const deviceLocationRequest = new Promise<null>(resolve => {
+      releaseLocation = resolve;
+    });
+    apiMocks.post.mockImplementation(async () => {
+      // The user switches workspace while the upload is still running.
+      localStorage.setItem('currentWorkspaceId', 'ws-switched');
+      return { data: { data: [] } };
+    });
+
+    const upload = uploadScanDrawerFiles({
+      payload: {
+        files: Array.from(
+          { length: 6 },
+          (_, index) => new File(['receipt'], `r${index}.jpg`, { type: 'image/jpeg' }),
+        ),
+        allowDuplicates: false,
+        requireManualCategorySelection: false,
+        deviceLocationRequest,
+      },
+      labels,
+      onUploadSuccess: vi.fn(),
+      refreshAfterCreate: vi.fn().mockResolvedValue(undefined),
+    });
+    // ...or even before the first request, while the location is still pending.
+    localStorage.setItem('currentWorkspaceId', 'ws-switched');
+    releaseLocation(null);
+    await upload;
+
+    expect(apiMocks.post).toHaveBeenCalledTimes(2);
+    for (const [, , config] of apiMocks.post.mock.calls) {
+      expect(config.headers['X-Workspace-Id']).toBe('ws-started');
+    }
+    localStorage.clear();
+  });
 });
