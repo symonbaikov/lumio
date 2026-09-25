@@ -3,7 +3,7 @@ import type { TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
-import { accessTokenOf, e2eTestingModule } from './helpers/e2e-app';
+import { accessTokenOf, deleteUserByEmail, e2eTestingModule } from './helpers/e2e-app';
 
 /**
  * The welcome tutorial opens by itself only while `welcomeTutorialSeenAt` is
@@ -15,6 +15,8 @@ describe('User welcome tutorial (e2e)', () => {
   let dataSource: DataSource;
   let accessToken: string;
   let userId: string;
+  // Unique per run, and removed afterwards, so the suite can run again on the same database.
+  const email = `welcome-tutorial-${Date.now()}@example.com`;
 
   const auth = (req: request.Test) => req.set('Authorization', `Bearer ${accessToken}`);
 
@@ -30,13 +32,13 @@ describe('User welcome tutorial (e2e)', () => {
     dataSource = moduleFixture.get<DataSource>(DataSource);
 
     const register = await request(app.getHttpServer()).post('/auth/register').send({
-      email: 'welcome-tutorial-user@example.com',
+      email,
       password: 'Test123!@#',
       name: 'Tutorial Tester',
     });
 
     const login = await request(app.getHttpServer()).post('/auth/login').send({
-      email: 'welcome-tutorial-user@example.com',
+      email,
       password: 'Test123!@#',
     });
 
@@ -54,6 +56,7 @@ describe('User welcome tutorial (e2e)', () => {
   });
 
   afterAll(async () => {
+    await deleteUserByEmail(dataSource, email);
     await app.close();
   });
 

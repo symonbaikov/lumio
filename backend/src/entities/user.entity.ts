@@ -123,8 +123,16 @@ export class User {
   /**
    * When the user closed the welcome tutorial. NULL means it opens by itself,
    * which only new accounts get: existing ones were backfilled by the migration.
+   * Written only by UsersService.markWelcomeTutorialSeen's conditional UPDATE, so a
+   * whole-row save elsewhere cannot write back a NULL it loaded before the close.
    */
-  @Column({ name: 'welcome_tutorial_seen_at', type: 'timestamptz', nullable: true, default: null })
+  @Column({
+    name: 'welcome_tutorial_seen_at',
+    type: 'timestamptz',
+    nullable: true,
+    default: null,
+    update: false,
+  })
   welcomeTutorialSeenAt: Date | null;
 
   /** Base32 TOTP secret, encrypted at rest. Set during setup, before 2FA is confirmed. */
