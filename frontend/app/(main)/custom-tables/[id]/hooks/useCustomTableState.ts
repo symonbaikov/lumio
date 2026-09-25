@@ -15,7 +15,7 @@ import {
   buildStickyOffsets,
   formatMobileCellValue,
 } from '../helpers/tableStateHelpers';
-import { buildColumns } from '../utils/columnDefinitions';
+import { buildColumns, type ColumnMenuActions } from '../utils/columnDefinitions';
 import type { ConditionalRule } from '../utils/conditionalRules';
 import type {
   CustomTableCellValue,
@@ -25,6 +25,7 @@ import type {
 } from '../utils/stylingUtils';
 import { useColorPickerInteraction } from './useColorPickerInteraction';
 import { useMobileSelection } from './useMobileSelection';
+import type { ColumnLabels } from './useTanStackLabels';
 
 interface CellUpdateOpts {
   rowId: string;
@@ -44,8 +45,9 @@ interface RenameTitleOpts {
   nextTitle: string;
 }
 
-interface UseCustomTableStateParams {
+interface UseCustomTableStateParams extends ColumnMenuActions {
   tableId?: string;
+  defaultCurrency?: string;
   rows: CustomTableGridRow[];
   columns: CustomTableColumn[];
   selectedRowIds: string[];
@@ -70,13 +72,7 @@ interface UseCustomTableStateParams {
   onLoadMore: (opts?: { reset?: boolean; filtersParam?: string }) => void;
   colorPickerRowId: string | null;
   setColorPickerRowId: (id: string | null) => void;
-  columnLabels: {
-    actionsHeaderLabel: string;
-    colorTooltipLabel: string;
-    deleteLabel: string;
-    addRowLabel: string;
-    draftRowHint: string;
-  };
+  columnLabels: ColumnLabels;
 }
 
 export interface UseCustomTableStateReturn {
@@ -123,6 +119,7 @@ function buildRenameAdapter(
 export function useCustomTableState(params: UseCustomTableStateParams): UseCustomTableStateReturn {
   const {
     tableId,
+    defaultCurrency,
     rows,
     columns,
     selectedRowIds,
@@ -135,14 +132,20 @@ export function useCustomTableState(params: UseCustomTableStateParams): UseCusto
     onSortingChange,
     conditionalRules,
     onUpdateCell,
+    onUpdateRowStyle,
     onPersistColumnWidth,
     onSelectedRowIdsChange,
     onRenameColumnTitle,
     onDeleteColumn,
+    onEditColumn,
+    onSetColumnStyle,
+    onTogglePinColumn,
+    onHideColumn,
     onAddColumnClick,
     onLoadMore,
     onCreateRow,
     onDeleteRow,
+    colorPickerRowId,
     setColorPickerRowId,
     columnLabels,
   } = params;
@@ -150,7 +153,12 @@ export function useCustomTableState(params: UseCustomTableStateParams): UseCusto
   const [columnResizing, setColumnResizing] = useState<Record<string, number>>({});
   const [resizingColumnId, setResizingColumnId] = useState<string | null>(null);
   const mobile = useMobileSelection({ rows, selectedRowIds, onSelectedRowIdsChange });
-  const colorPicker = useColorPickerInteraction({ rows, setColorPickerRowId });
+  const colorPicker = useColorPickerInteraction({
+    rows,
+    colorPickerRowId,
+    setColorPickerRowId,
+    onUpdateRowStyle,
+  });
   const rowSelection = useMemo(() => buildRowSelectionState(selectedRowIds), [selectedRowIds]);
   const onRowSelectionChange = useCallback(
     (updater: RowSelectionState | ((prev: RowSelectionState) => RowSelectionState)): void => {
@@ -187,11 +195,17 @@ export function useCustomTableState(params: UseCustomTableStateParams): UseCusto
         onUpdateCell: cellAdapter,
         onRenameColumnTitle: renameAdapter,
         onDeleteColumn: onDeleteColumn ? deleteColAdapter : undefined,
+        onEditColumn,
+        onSetColumnStyle,
+        onTogglePinColumn,
+        onHideColumn,
+        pinnedColumnKeys: stickyLeftColumnIds,
         onAddColumnClick,
         onOpenColorPicker: colorPicker.openColorPickerForRow,
         onDeleteRow: deleteRowAdapter,
         conditionalRules,
         tableId,
+        defaultCurrency,
         ...columnLabels,
       }),
     [
@@ -201,11 +215,17 @@ export function useCustomTableState(params: UseCustomTableStateParams): UseCusto
       renameAdapter,
       onDeleteColumn,
       deleteColAdapter,
+      onEditColumn,
+      onSetColumnStyle,
+      onTogglePinColumn,
+      onHideColumn,
+      stickyLeftColumnIds,
       onAddColumnClick,
       colorPicker.openColorPickerForRow,
       deleteRowAdapter,
       conditionalRules,
       tableId,
+      defaultCurrency,
       columnLabels,
     ],
   );

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { selectOption } from '@/app/test/select';
 import {
   type SheetColumnRole,
   TransactionMappingCard,
@@ -76,16 +77,14 @@ describe('TransactionMappingCard', () => {
     expect(dataRows[1].cells[1].textContent).toBe('Amount');
     expect(dataRows[2].cells[1].textContent).toBe('Note');
 
-    const dateSelect = screen.getByLabelText('Role A') as HTMLSelectElement;
-    expect(dateSelect.value).toBe('date');
-    const amountSelect = screen.getByLabelText('Role B') as HTMLSelectElement;
-    expect(amountSelect.value).toBe('amount');
+    expect(screen.getByLabelText('Role A')).toHaveTextContent('Date');
+    expect(screen.getByLabelText('Role B')).toHaveTextContent('Amount');
   });
 
   it('interpolates the localized role label (not the raw intlayer node) into each aria-label', () => {
     const { container } = render(<TransactionMappingCard {...baseProps()} />);
 
-    const selects = container.querySelectorAll('select[aria-label]');
+    const selects = container.querySelectorAll('[role="combobox"][aria-label]');
     const ariaLabels = Array.from(selects).map(el => el.getAttribute('aria-label'));
 
     expect(ariaLabels).toEqual(['Role A', 'Role B', 'Role C']);
@@ -98,8 +97,7 @@ describe('TransactionMappingCard', () => {
     const props = baseProps();
     render(<TransactionMappingCard {...props} />);
 
-    const noteSelect = screen.getByLabelText('Role C');
-    fireEvent.change(noteSelect, { target: { value: 'counterparty' } });
+    selectOption(screen.getByLabelText('Role C'), 'Counterparty');
 
     expect(props.onRolesChange).toHaveBeenCalledTimes(1);
     expect(props.onRolesChange).toHaveBeenCalledWith(['date', 'amount', 'counterparty']);
@@ -110,8 +108,7 @@ describe('TransactionMappingCard', () => {
     render(<TransactionMappingCard {...props} />);
 
     // Column A already has 'date'; assign 'date' to column C too.
-    const noteSelect = screen.getByLabelText('Role C');
-    fireEvent.change(noteSelect, { target: { value: 'date' } });
+    selectOption(screen.getByLabelText('Role C'), 'Date');
 
     expect(props.onRolesChange).toHaveBeenCalledTimes(1);
     expect(props.onRolesChange).toHaveBeenCalledWith(['ignore', 'amount', 'date']);
@@ -121,8 +118,7 @@ describe('TransactionMappingCard', () => {
     const props = baseProps();
     render(<TransactionMappingCard {...props} />);
 
-    const dateSelect = screen.getByLabelText('Role A');
-    fireEvent.change(dateSelect, { target: { value: 'ignore' } });
+    selectOption(screen.getByLabelText('Role A'), 'Ignore');
 
     expect(props.onRolesChange).toHaveBeenCalledTimes(1);
     expect(props.onRolesChange).toHaveBeenCalledWith(['ignore', 'amount', 'description']);

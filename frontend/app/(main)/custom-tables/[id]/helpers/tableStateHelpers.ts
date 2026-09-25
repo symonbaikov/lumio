@@ -2,6 +2,7 @@
 
 import type { RowSelectionState } from '@tanstack/react-table';
 import { formatStoredDate } from '@/app/lib/user-format-store';
+import { formatCellNumber } from '../utils/numberFormat';
 import type { CustomTableColumn, CustomTableGridRow } from '../utils/stylingUtils';
 
 export function buildRowSelectionState(selectedRowIds: string[]): RowSelectionState {
@@ -47,7 +48,22 @@ function formatTypedCellValue(column: CustomTableColumn, raw: unknown): string {
   if (column.type === 'multi_select' && Array.isArray(raw)) {
     return raw.join(', ');
   }
+  if (isNumericColumn(column.type)) {
+    const num = Number(raw);
+    if (Number.isFinite(num)) {
+      return formatCellNumber(num, {
+        currency: typeof column.config?.currency === 'string' ? column.config.currency : undefined,
+        precision:
+          typeof column.config?.precision === 'number' ? column.config.precision : undefined,
+        format: column.config?.format === 'percent' ? 'percent' : undefined,
+      });
+    }
+  }
   return String(raw);
+}
+
+function isNumericColumn(type: CustomTableColumn['type']): boolean {
+  return type === 'number' || type === 'currency' || type === 'formula';
 }
 
 export function formatMobileCellValue(column: CustomTableColumn, row: CustomTableGridRow): string {

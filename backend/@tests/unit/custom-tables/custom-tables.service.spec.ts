@@ -188,6 +188,7 @@ const buildCustomTablesService = () => {
     customTableRepository,
     customTableColumnRepository,
     customTableRowRepository,
+    customTableColumnStyleRepository,
     statementRepository,
     transactionRepository,
     workspaceMemberRepository,
@@ -575,5 +576,99 @@ describe('CustomTablesService.convertToStatement', () => {
     await expect(service.convertToStatement('user-1', 'workspace-1', TABLE_ID)).rejects.toMatchObject({ response: { code: 'STATEMENTS_EDIT_FORBIDDEN' } });
     expect(customTableColumnRepository.find).not.toHaveBeenCalled();
     expect(customTableRowRepository.find).not.toHaveBeenCalled();
+  });
+});
+
+describe('CustomTablesService.updateColumnStyle', () => {
+  const COLUMN_ID = '22222222-2222-4222-8222-222222222222';
+
+  const setup = (existingStyle: Record<string, unknown> | null) => {
+    const built = buildCustomTablesService();
+    mockRequireTable(built.customTableRepository);
+    built.workspaceMemberRepository.findOne.mockResolvedValue({ role: 'owner', permissions: {} });
+    built.customTableColumnRepository.findOne.mockResolvedValue({ id: COLUMN_ID, key: 'col_a' });
+    built.customTableColumnStyleRepository.findOne.mockResolvedValue(
+      existingStyle ? { id: 'style-1', tableId: TABLE_ID, columnKey: 'col_a', style: existingStyle } : null,
+    );
+    built.customTableColumnStyleRepository.save.mockImplementation(async (value: unknown) => value);
+    return built;
+  };
+
+  it('creates a style row when none exists', async () => {
+    const { service, customTableColumnStyleRepository, auditService } = setup(null);
+
+    const result = await service.updateColumnStyle('user-1', 'workspace-1', TABLE_ID, COLUMN_ID, {
+      header: { backgroundColor: '#ff0000', textFormat: { bold: true } },
+    });
+
+    expect(customTableColumnStyleRepository.findOne).toHaveBeenCalledWith({
+      where: { tableId: TABLE_ID, columnKey: 'col_a' },
+    });
+    expect(customTableColumnStyleRepository.save).toHaveBeenCalledWith({
+      tableId: TABLE_ID,
+      columnKey: 'col_a',
+      style: { header: { backgroundColor: '#ff0000', textFormat: { bold: true } } },
+    });
+    expect(customTableColumnStyleRepository.delete).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      columnKey: 'col_a',
+      style: { header: { backgroundColor: '#ff0000', textFormat: { bold: true } } },
+    });
+    expect(auditService.createEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: EntityType.CUSTOM_TABLE_COLUMN,
+        entityId: COLUMN_ID,
+        action: AuditAction.UPDATE,
+        meta: { tableId: TABLE_ID, columnKey: 'col_a', columnStyle: true },
+      }),
+    );
+  });
+
+  it('clears one part with null and keeps the other', async () => {
+    const { service, customTableColumnStyleRepository } = setup({
+      header: { backgroundColor: '#ff0000' },
+      cell: { backgroundColor: '#00ff00' },
+    });
+
+    const result = await service.updateColumnStyle('user-1', 'workspace-1', TABLE_ID, COLUMN_ID, {
+      header: null,
+    });
+
+    expect(customTableColumnStyleRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'style-1', style: { cell: { backgroundColor: '#00ff00' } } }),
+    );
+    expect(customTableColumnStyleRepository.delete).not.toHaveBeenCalled();
+    expect(result).toEqual({ columnKey: 'col_a', style: { cell: { backgroundColor: '#00ff00' } } });
+  });
+
+  it('deletes the row when both parts end up empty', async () => {
+    const { service, customTableColumnStyleRepository } = setup({
+      header: { backgroundColor: '#ff0000' },
+    });
+
+    const result = await service.updateColumnStyle('user-1', 'workspace-1', TABLE_ID, COLUMN_ID, {
+      header: null,
+      cell: {},
+    });
+
+    expect(customTableColumnStyleRepository.delete).toHaveBeenCalledWith({ id: 'style-1' });
+    expect(customTableColumnStyleRepository.save).not.toHaveBeenCalled();
+    expect(result).toEqual({ columnKey: 'col_a', style: {} });
+  });
+
+  it('rejects a column that does not belong to the table', async () => {
+    const { service, customTableColumnRepository, customTableColumnStyleRepository } = setup(null);
+    customTableColumnRepository.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.updateColumnStyle('user-1', 'workspace-1', TABLE_ID, COLUMN_ID, {
+        header: { backgroundColor: '#ff0000' },
+      }),
+    ).rejects.toMatchObject({ response: { code: 'COLUMN_NOT_FOUND' } });
+    expect(customTableColumnRepository.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: COLUMN_ID, tableId: TABLE_ID } }),
+    );
+    expect(customTableColumnStyleRepository.findOne).not.toHaveBeenCalled();
+    expect(customTableColumnStyleRepository.save).not.toHaveBeenCalled();
   });
 });

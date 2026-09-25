@@ -31,12 +31,18 @@ export const resolveCurrencyCode = (
  * @param currency  - ISO 4217 currency code (e.g. 'KZT', 'USD').
  * @param locale    - App locale key ('en' | 'ru' | 'kk').  Defaults to 'en'.
  */
-export const formatMoney = (value: number, currency: string, locale = 'en'): string => {
+export const formatMoney = (
+  value: number,
+  currency: string,
+  locale = 'en',
+  options: { fractionDigits?: number } = {},
+): string => {
   if (Number.isNaN(value)) return '—';
+  const fractionDigits = options.fractionDigits ?? 2;
   return new Intl.NumberFormat(resolveLocale(locale), {
     style: 'currency',
     currency: resolveCurrencyCode(currency),
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   }).format(value);
 };

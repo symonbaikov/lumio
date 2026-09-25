@@ -269,4 +269,65 @@ describe('CustomTablesPage', () => {
 
     expect(push).toHaveBeenCalledWith('/custom-tables/import/google-sheets');
   });
+
+  it('creates a table from a finance template and posts its columns in order', async () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    apiGet.mockImplementation(() => Promise.resolve({ data: { data: [] } }));
+    const api = (await import('@/app/lib/api')).default;
+    let columnSeq = 0;
+    vi.mocked(api.post).mockImplementation(async (url: string) => {
+      if (url === '/custom-tables') {
+        return { data: { data: { id: 'tbl-1', name: 'Sales pipeline' } } };
+      }
+      columnSeq += 1;
+      return { data: { data: { key: `srv_${columnSeq}` } } };
+    });
+
+    const { default: CustomTablesPage } = await import('./page');
+    act(() => {
+      renderWithQuery(<CustomTablesPage />);
+    });
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    });
+    act(() => {
+      fireEvent.click(screen.getByText('Create blank table'));
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole('radio', { name: /Sales pipeline/ }));
+    });
+    // Имя подставилось из шаблона, поэтому кнопка «создать» активна.
+    expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Sales pipeline');
+
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'Create' }).at(-1) as HTMLElement);
+      await Promise.resolve();
+    });
+
+    await screen.findByRole('button', { name: 'Create' });
+    const calls = vi.mocked(api.post).mock.calls;
+    expect(calls[0][0]).toBe('/custom-tables');
+    const columnCalls = calls.slice(1);
+    expect(columnCalls).toHaveLength(8);
+    expect(columnCalls.every(([url]) => url === '/custom-tables/tbl-1/columns')).toBe(true);
+    const titles = columnCalls.map(([, body]) => (body as { title: string }).title);
+    expect(titles).toEqual([
+      'Deal',
+      'Company',
+      'Stage',
+      'Amount',
+      'Probability',
+      'Weighted value',
+      'Expected close',
+      'Owner',
+    ]);
+    // Формула ссылается на серверные ключи, а не на ключи шаблона.
+    const weighted = columnCalls[5][1] as { config: { expression: string } };
+    expect(weighted.config.expression).toBe('[srv_4] * [srv_5] / 100');
+    // Деньги — в валюте воркспейса (в тесте её нет → KZT по умолчанию).
+    const amount = columnCalls[3][1] as { config: { currency: string; precision: number } };
+    expect(amount.config).toEqual({ precision: 2, currency: 'KZT' });
+    expect(push).toHaveBeenCalledWith('/custom-tables/tbl-1');
+  });
 });

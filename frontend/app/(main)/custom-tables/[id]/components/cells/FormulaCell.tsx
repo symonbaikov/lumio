@@ -2,6 +2,11 @@
 
 import type { Column, Row } from '@tanstack/react-table';
 import type { CSSProperties } from 'react';
+import {
+  formatCellNumber,
+  NEGATIVE_NUMBER_COLOR,
+  type NumberDisplayFormat,
+} from '../../utils/numberFormat';
 import type { CustomTableGridRow } from '../../utils/stylingUtils';
 
 interface FormulaCellProps {
@@ -10,18 +15,34 @@ interface FormulaCellProps {
   style?: CSSProperties;
   /** Показываем в подсказке, чтобы было видно, откуда взялось число. */
   expression?: string;
+  /** Формула, считающая деньги, показывается с валютой. */
+  currency?: string;
+  precision?: number;
+  format?: NumberDisplayFormat;
 }
 
 /**
  * Значение считает сервер, поэтому ячейка только для чтения: редактировать
  * результат формулы бессмысленно — он всё равно пересчитается.
  */
-export function FormulaCell({ row, column, style, expression }: FormulaCellProps) {
+export function FormulaCell({
+  row,
+  column,
+  style,
+  expression,
+  currency,
+  precision,
+  format,
+}: FormulaCellProps) {
   const raw = row.original.data[column.id];
   const display =
-    typeof raw === 'number'
-      ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(raw)
-      : '—';
+    typeof raw === 'number' ? formatCellNumber(raw, { currency, precision, format }) : '—';
+  const color =
+    raw === null || raw === undefined
+      ? 'var(--muted-foreground)'
+      : typeof raw === 'number' && raw < 0 && !style?.color
+        ? NEGATIVE_NUMBER_COLOR
+        : undefined;
 
   return (
     <div
@@ -34,8 +55,8 @@ export function FormulaCell({ row, column, style, expression }: FormulaCellProps
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
-        color: raw === null || raw === undefined ? 'var(--muted-foreground)' : undefined,
         ...style,
+        ...(color ? { color } : {}),
       }}
     >
       {display}

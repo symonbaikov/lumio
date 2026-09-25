@@ -12,12 +12,16 @@ import { type CSSProperties, useRef } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { ArrowDown, ArrowUp, Plus } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
+import { Select } from '@/app/components/ui/select';
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
 import type { AggregateFn } from '../hooks/useTableAggregates';
 import { solidifyBackground } from '../utils/colorUtils';
-import type { CustomTableGridRow } from '../utils/stylingUtils';
-import { getRowStyle } from '../utils/stylingUtils';
+import { readGridColumnMeta } from '../utils/columnDefinitions.types';
+import type { ConditionalRule } from '../utils/conditionalRules';
+import { formatCellNumber, NEGATIVE_NUMBER_COLOR } from '../utils/numberFormat';
+import type { CustomTableColumnConfig, CustomTableGridRow } from '../utils/stylingUtils';
+import { resolveCellBackground, resolveRowStyle, sheetStyleToCss } from '../utils/stylingUtils';
 import type { ResizeMouseDownFn } from './DesktopTableView.types';
 
 interface StickyOffsets {
@@ -33,6 +37,7 @@ interface DesktopTableViewProps {
   virtualItems: VirtualItem[];
   rowVirtualizer: Virtualizer<HTMLDivElement, Element>;
   stickyOffsets: StickyOffsets;
+  conditionalRules: ConditionalRule[];
   colorPickerRowId: string | null;
   colorPickerValue: string;
   colorPickerAnchorPosition: { top: number; left: number } | null;
@@ -45,6 +50,8 @@ interface DesktopTableViewProps {
   onCreateRow?: () => Promise<CustomTableGridRow | null>;
   columnTypeByKey: Record<string, string>;
   columnTitleByKey: Record<string, string>;
+  columnConfigByKey: Record<string, CustomTableColumnConfig | null>;
+  defaultCurrency?: string;
   aggregateSelection: Record<string, AggregateFn>;
   aggregateValues: Record<string, number | string | null>;
   onAggregateChange: (columnKey: string, fn: AggregateFn | null) => void;
@@ -53,9 +60,6 @@ interface DesktopTableViewProps {
     emptyTitle: string;
     emptySubtitle: string;
     loadingMore: string;
-    sortAscLabel: string;
-    sortDescLabel: string;
-    sortClearLabel: string;
     aggregateNone: string;
     aggregateLabels: Record<AggregateFn, string>;
   };
@@ -97,13 +101,17 @@ function resolveStickyBg({
   isHeader,
   isDark,
   bodyBackground,
+  headerBackground,
 }: {
   isHeader: boolean;
   isDark: boolean;
   bodyBackground?: string;
+  headerBackground?: string;
 }): string | undefined {
   if (isHeader) {
-    return isDark ? '#1f2937' : 'var(--muted)';
+    return headerBackground
+      ? solidifyBackground({ value: headerBackground, isDark })
+      : 'var(--muted)';
   }
   if (bodyBackground) {
     return solidifyBackground({ value: bodyBackground, isDark });
@@ -115,12 +123,14 @@ function buildStickyStyle({
   columnId,
   isHeader,
   bodyBackground,
+  headerBackground,
   stickyOffsets,
   isDark,
 }: {
   columnId: string;
   isHeader: boolean;
   bodyBackground?: string;
+  headerBackground?: string;
   stickyOffsets: StickyOffsets;
   isDark: boolean;
 }): CSSProperties {
@@ -135,7 +145,7 @@ function buildStickyStyle({
     left,
     right,
     zIndex: isHeader ? 4 : 2,
-    backgroundColor: resolveStickyBg({ isHeader, isDark, bodyBackground }),
+    backgroundColor: resolveStickyBg({ isHeader, isDark, bodyBackground, headerBackground }),
   };
 }
 
@@ -177,7 +187,6 @@ function DesktopColorPicker({
       open={Boolean(colorPickerRowId && colorPickerAnchorPosition)}
       anchorReference="anchorPosition"
       anchorPosition={colorPickerAnchorPosition || { top: 0, left: 0 }}
-      keepMounted
       disableAutoFocus
       disableEnforceFocus
       disableRestoreFocus
@@ -204,7 +213,7 @@ function ColumnResizer({
   isDark,
   onResizeMouseDown,
 }: ColumnResizerProps): React.JSX.Element {
-  const bg = isResizing ? '#3b82f6' : isDark ? '#4b5563' : 'var(--border-color)';
+  const bg = isResizing ? 'var(--primary-fill)' : 'var(--border-color)';
   const transform = isResizing ? 'scaleX(2)' : undefined;
   return (
     <div
@@ -228,47 +237,19 @@ function ColumnResizer({
   );
 }
 
-interface HeaderSortToggleProps {
-  header: Header<CustomTableGridRow, unknown>;
-  sortAscLabel: string;
-  sortDescLabel: string;
-  sortClearLabel: string;
-}
-function HeaderSortToggle({
+function SortIndicator({
   header,
-  sortAscLabel,
-  sortDescLabel,
-  sortClearLabel,
-}: HeaderSortToggleProps): React.JSX.Element {
+}: {
+  header: Header<CustomTableGridRow, unknown>;
+}): React.JSX.Element | null {
   const sorted = header.column.getIsSorted();
-  // Подпись берём у самой таблицы: у числовых колонок TanStack первым кликом
-  // ставит desc (sortDescFirst), поэтому «следующее направление» нельзя
-  // выводить из текущего состояния — иначе кнопка обещает не то, что делает.
-  const nextOrder = header.column.getNextSortingOrder();
-  const nextLabel =
-    nextOrder === 'asc' ? sortAscLabel : nextOrder === 'desc' ? sortDescLabel : sortClearLabel;
+  if (!sorted) {
+    return null;
+  }
   return (
-    <button
-      type="button"
-      aria-label={nextLabel}
-      title={nextLabel}
-      onClick={header.column.getToggleSortingHandler()}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginLeft: 4,
-        padding: 2,
-        border: 'none',
-        borderRadius: 4,
-        background: 'transparent',
-        cursor: 'pointer',
-        color: 'inherit',
-        opacity: sorted ? 1 : 0.35,
-      }}
-    >
+    <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: 4, opacity: 0.8 }}>
       {sorted === 'desc' ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
-    </button>
+    </span>
   );
 }
 
@@ -277,21 +258,19 @@ interface DesktopHeaderCellProps {
   isDark: boolean;
   stickyOffsets: StickyOffsets;
   onResizeMouseDown: ResizeMouseDownFn;
-  sortAscLabel: string;
-  sortDescLabel: string;
-  sortClearLabel: string;
 }
 function DesktopHeaderCell({
   header,
   isDark,
   stickyOffsets,
   onResizeMouseDown,
-  sortAscLabel,
-  sortDescLabel,
-  sortClearLabel,
 }: DesktopHeaderCellProps): React.JSX.Element {
-  const color = isDark ? '#d1d5db' : 'var(--foreground)';
-  const bg = isDark ? '#1f2937' : 'var(--muted)';
+  // Цвет заголовка приходит с сервера в column.style.header (импорт из Sheets
+  // или меню колонки); без него — штатный фон шапки.
+  const headerStyle = readGridColumnMeta(header.column.columnDef)?.gridColumn.style?.header;
+  const headerCss = headerStyle ? sheetStyleToCss(headerStyle) : undefined;
+  const color = headerCss?.color ?? 'var(--foreground)';
+  const bg = headerCss?.backgroundColor ?? 'var(--muted)';
   return (
     <th
       style={{
@@ -307,19 +286,18 @@ function DesktopHeaderCell({
         width: header.getSize(),
         minWidth: header.column.columnDef.minSize,
         maxWidth: header.column.columnDef.maxSize,
-        ...buildStickyStyle({ columnId: header.column.id, isHeader: true, stickyOffsets, isDark }),
+        ...buildStickyStyle({
+          columnId: header.column.id,
+          isHeader: true,
+          headerBackground: headerCss?.backgroundColor,
+          stickyOffsets,
+          isDark,
+        }),
       }}
     >
-      <span style={{ display: 'inline-flex', alignItems: 'center', maxWidth: '100%' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', width: '100%' }}>
         {flexRender(header.column.columnDef.header, header.getContext())}
-        {header.column.getCanSort() && (
-          <HeaderSortToggle
-            header={header}
-            sortAscLabel={sortAscLabel}
-            sortDescLabel={sortDescLabel}
-            sortClearLabel={sortClearLabel}
-          />
-        )}
+        {header.column.getCanSort() && <SortIndicator header={header} />}
       </span>
       {header.column.getCanResize() && (
         <ColumnResizer
@@ -346,19 +324,40 @@ function allowedAggregateFns(columnType: string | undefined): AggregateFn[] {
   return ['count'];
 }
 
-function formatAggregateValue(value: number | string | null | undefined): string {
+interface AggregateFormat {
+  fn: AggregateFn;
+  columnType?: string;
+  config: CustomTableColumnConfig | null | undefined;
+  defaultCurrency?: string;
+}
+
+/** Итог показывается как сама колонка: сумма денег — с валютой, процентов — с «%». */
+function formatAggregateValue(
+  value: number | string | null | undefined,
+  { fn, columnType, config, defaultCurrency }: AggregateFormat,
+): string {
   if (value === null || value === undefined) {
     return '—';
   }
-  if (typeof value === 'number') {
-    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
+  if (typeof value !== 'number') {
+    return value;
   }
-  return value;
+  if (fn === 'count') {
+    return formatCellNumber(value, { precision: 0 });
+  }
+  const ownCurrency = typeof config?.currency === 'string' ? config.currency : undefined;
+  return formatCellNumber(value, {
+    currency: ownCurrency ?? (columnType === 'currency' ? defaultCurrency : undefined),
+    precision: typeof config?.precision === 'number' ? config.precision : undefined,
+    format: config?.format === 'percent' ? 'percent' : undefined,
+  });
 }
 
 interface DesktopFooterCellProps {
   columnId: string;
   columnType: string | undefined;
+  columnConfig: CustomTableColumnConfig | null | undefined;
+  defaultCurrency?: string;
   columnTitle: string;
   isDark: boolean;
   stickyOffsets: StickyOffsets;
@@ -372,6 +371,8 @@ interface DesktopFooterCellProps {
 function DesktopFooterCell({
   columnId,
   columnType,
+  columnConfig,
+  defaultCurrency,
   columnTitle,
   isDark,
   stickyOffsets,
@@ -383,40 +384,32 @@ function DesktopFooterCell({
   onAggregateChange,
 }: DesktopFooterCellProps): React.JSX.Element {
   const options = allowedAggregateFns(columnType);
-  const bg = isDark ? '#1f2937' : 'var(--muted)';
+  const bg = 'var(--muted)';
+  const isNegative = typeof value === 'number' && value < 0;
   return (
     <td
       style={{
         padding: '8px 16px',
         width,
         fontSize: '0.8125rem',
-        color: isDark ? '#d1d5db' : 'var(--foreground)',
+        color: 'var(--foreground)',
         backgroundColor: bg,
         ...buildStickyStyle({ columnId, isHeader: false, stickyOffsets, isDark }),
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-        <select
-          aria-label={`${noneLabel}: ${columnTitle}`}
+        <Select
+          variant="standard"
+          disableUnderline
+          inputProps={{ 'aria-label': `${noneLabel}: ${columnTitle}` }}
           value={selectedFn ?? ''}
-          onChange={event =>
-            onAggregateChange(columnId, (event.target.value || null) as AggregateFn | null)
-          }
-          style={{
-            fontSize: '0.6875rem',
-            border: 'none',
-            background: 'transparent',
-            color: 'var(--muted-foreground)',
-            cursor: 'pointer',
-          }}
-        >
-          <option value="">{noneLabel}</option>
-          {options.map(fn => (
-            <option key={fn} value={fn}>
-              {aggregateLabels[fn]}
-            </option>
-          ))}
-        </select>
+          onChange={value => onAggregateChange(columnId, (value || null) as AggregateFn | null)}
+          options={[
+            { value: '', label: noneLabel },
+            ...options.map(fn => ({ value: fn, label: aggregateLabels[fn] })),
+          ]}
+          sx={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}
+        />
         {selectedFn && (
           <span
             style={{
@@ -424,9 +417,15 @@ function DesktopFooterCell({
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
+              ...(isNegative ? { color: NEGATIVE_NUMBER_COLOR } : {}),
             }}
           >
-            {formatAggregateValue(value)}
+            {formatAggregateValue(value, {
+              fn: selectedFn,
+              columnType,
+              config: columnConfig,
+              defaultCurrency,
+            })}
           </span>
         )}
       </div>
@@ -440,6 +439,8 @@ interface DesktopTableFooterProps {
   stickyOffsets: StickyOffsets;
   columnTypeByKey: Record<string, string>;
   columnTitleByKey: Record<string, string>;
+  columnConfigByKey: Record<string, CustomTableColumnConfig | null>;
+  defaultCurrency?: string;
   aggregateSelection: Record<string, AggregateFn>;
   aggregateValues: Record<string, number | string | null>;
   aggregateLabels: Record<AggregateFn, string>;
@@ -452,16 +453,18 @@ function DesktopTableFooter({
   stickyOffsets,
   columnTypeByKey,
   columnTitleByKey,
+  columnConfigByKey,
+  defaultCurrency,
   aggregateSelection,
   aggregateValues,
   aggregateLabels,
   noneLabel,
   onAggregateChange,
 }: DesktopTableFooterProps): React.JSX.Element {
-  const bg = isDark ? '#1f2937' : 'var(--muted)';
+  const bg = 'var(--muted)';
   return (
     <tfoot style={{ backgroundColor: bg }}>
-      <tr style={{ borderTop: isDark ? '1px solid #374151' : '1px solid var(--border-color)' }}>
+      <tr style={{ borderTop: '1px solid var(--border-color)' }}>
         {table.getVisibleLeafColumns().map(column => {
           const columnType = columnTypeByKey[column.id];
           // Служебные колонки (выбор, номер, действия) итогов не имеют.
@@ -486,6 +489,8 @@ function DesktopTableFooter({
               key={column.id}
               columnId={column.id}
               columnType={columnType}
+              columnConfig={columnConfigByKey[column.id]}
+              defaultCurrency={defaultCurrency}
               columnTitle={columnTitleByKey[column.id] ?? column.id}
               isDark={isDark}
               stickyOffsets={stickyOffsets}
@@ -510,9 +515,6 @@ interface DesktopTableHeaderProps {
   table: Table<CustomTableGridRow>;
   stickyOffsets: StickyOffsets;
   onResizeMouseDown: ResizeMouseDownFn;
-  sortAscLabel: string;
-  sortDescLabel: string;
-  sortClearLabel: string;
 }
 function DesktopTableHeader({
   isDark,
@@ -521,21 +523,18 @@ function DesktopTableHeader({
   table,
   stickyOffsets,
   onResizeMouseDown,
-  sortAscLabel,
-  sortDescLabel,
-  sortClearLabel,
 }: DesktopTableHeaderProps): React.JSX.Element {
   const position = isPrintMode ? 'static' : 'sticky';
   const top = isPrintMode ? 0 : isFullscreen ? 0 : 'var(--global-nav-height, 0px)';
   const zIndex = isPrintMode ? 'auto' : 10;
-  const bg = isDark ? '#1f2937' : 'var(--muted)';
+  const bg = 'var(--muted)';
   return (
     <thead style={{ position, top, zIndex, backgroundColor: bg }}>
       {table.getHeaderGroups().map(headerGroup => (
         <tr
           key={headerGroup.id}
           style={{
-            borderBottom: isDark ? '1px solid #374151' : '1px solid var(--border-color)',
+            borderBottom: '1px solid var(--border-color)',
             backgroundColor: bg,
           }}
         >
@@ -546,9 +545,6 @@ function DesktopTableHeader({
               isDark={isDark}
               stickyOffsets={stickyOffsets}
               onResizeMouseDown={onResizeMouseDown}
-              sortAscLabel={sortAscLabel}
-              sortDescLabel={sortDescLabel}
-              sortClearLabel={sortClearLabel}
             />
           ))}
         </tr>
@@ -561,29 +557,37 @@ interface DesktopTableCellProps {
   cell: Cell<CustomTableGridRow, unknown>;
   isDark: boolean;
   stickyOffsets: StickyOffsets;
+  conditionalRules: ConditionalRule[];
   rowBackground?: string;
-  hasRowFill: boolean;
 }
 function DesktopTableCell({
   cell,
   isDark,
   stickyOffsets,
+  conditionalRules,
   rowBackground,
-  hasRowFill,
 }: DesktopTableCellProps): React.JSX.Element {
-  const color = isDark ? '#f3f4f6' : 'var(--foreground)';
+  const color = 'var(--foreground)';
+  const meta = readGridColumnMeta(cell.column.columnDef);
+  const background = meta
+    ? resolveCellBackground({
+        row: cell.row.original,
+        col: meta.gridColumn,
+        rules: conditionalRules,
+        rowBackground,
+      })
+    : rowBackground;
   return (
     <td
       style={{
         padding: '12px 16px',
         fontSize: '0.875rem',
         color,
-        ...(hasRowFill ? {} : { backgroundColor: 'var(--card-bg)' }),
-        ...(rowBackground ? { backgroundColor: rowBackground } : {}),
+        backgroundColor: background ?? 'var(--card-bg)',
         ...buildStickyStyle({
           columnId: cell.column.id,
           isHeader: false,
-          bodyBackground: rowBackground,
+          bodyBackground: background,
           stickyOffsets,
           isDark,
         }),
@@ -600,6 +604,7 @@ interface DesktopPrintRowProps {
   rowBackground?: string;
   isDark: boolean;
   stickyOffsets: StickyOffsets;
+  conditionalRules: ConditionalRule[];
 }
 function DesktopPrintRow({
   row,
@@ -607,9 +612,9 @@ function DesktopPrintRow({
   rowBackground,
   isDark,
   stickyOffsets,
+  conditionalRules,
 }: DesktopPrintRowProps): React.JSX.Element {
-  const hasRowFill = Boolean(rowBackground);
-  const border = isDark ? '1px solid #1f2937' : '1px solid var(--border-color)';
+  const border = '1px solid var(--border-color)';
   return (
     <tr style={{ borderBottom: border, ...rowStyle }}>
       {row.getVisibleCells().map(cell => (
@@ -618,8 +623,8 @@ function DesktopPrintRow({
           cell={cell}
           isDark={isDark}
           stickyOffsets={stickyOffsets}
+          conditionalRules={conditionalRules}
           rowBackground={rowBackground}
-          hasRowFill={hasRowFill}
         />
       ))}
     </tr>
@@ -633,6 +638,7 @@ interface DesktopVirtualRowProps {
   rowBackground?: string;
   isDark: boolean;
   stickyOffsets: StickyOffsets;
+  conditionalRules: ConditionalRule[];
 }
 function DesktopVirtualRow({
   row,
@@ -641,9 +647,9 @@ function DesktopVirtualRow({
   rowBackground,
   isDark,
   stickyOffsets,
+  conditionalRules,
 }: DesktopVirtualRowProps): React.JSX.Element {
-  const hasRowFill = Boolean(rowBackground);
-  const border = isDark ? '1px solid #1f2937' : '1px solid var(--border-color)';
+  const border = '1px solid var(--border-color)';
   return (
     <tr style={{ borderBottom: border, height: `${virtualRow.size}px`, ...rowStyle }}>
       {row.getVisibleCells().map(cell => (
@@ -652,8 +658,8 @@ function DesktopVirtualRow({
           cell={cell}
           isDark={isDark}
           stickyOffsets={stickyOffsets}
+          conditionalRules={conditionalRules}
           rowBackground={rowBackground}
-          hasRowFill={hasRowFill}
         />
       ))}
     </tr>
@@ -672,15 +678,17 @@ function PrintRows({
   isDark,
   table,
   stickyOffsets,
+  conditionalRules,
 }: {
   isDark: boolean;
   table: Table<CustomTableGridRow>;
   stickyOffsets: StickyOffsets;
+  conditionalRules: ConditionalRule[];
 }): React.JSX.Element {
   return (
     <>
       {table.getRowModel().rows.map(row => {
-        const rowStyle = getRowStyle(row.original);
+        const rowStyle = resolveRowStyle(row.original, conditionalRules);
         const rowBackground = getBackgroundColor(rowStyle);
         return (
           <DesktopPrintRow
@@ -690,6 +698,7 @@ function PrintRows({
             rowBackground={rowBackground}
             isDark={isDark}
             stickyOffsets={stickyOffsets}
+            conditionalRules={conditionalRules}
           />
         );
       })}
@@ -702,11 +711,13 @@ function VirtualRows({
   table,
   virtualItems,
   stickyOffsets,
+  conditionalRules,
 }: {
   isDark: boolean;
   table: Table<CustomTableGridRow>;
   virtualItems: VirtualItem[];
   stickyOffsets: StickyOffsets;
+  conditionalRules: ConditionalRule[];
 }): React.JSX.Element {
   return (
     <>
@@ -715,7 +726,7 @@ function VirtualRows({
         if (!row) {
           return null;
         }
-        const rowStyle = getRowStyle(row.original);
+        const rowStyle = resolveRowStyle(row.original, conditionalRules);
         const rowBackground = getBackgroundColor(rowStyle);
         return (
           <DesktopVirtualRow
@@ -726,6 +737,7 @@ function VirtualRows({
             rowBackground={rowBackground}
             isDark={isDark}
             stickyOffsets={stickyOffsets}
+            conditionalRules={conditionalRules}
           />
         );
       })}
@@ -740,6 +752,7 @@ interface DesktopTableBodyProps {
   virtualItems: VirtualItem[];
   rowVirtualizer: Virtualizer<HTMLDivElement, Element>;
   stickyOffsets: StickyOffsets;
+  conditionalRules: ConditionalRule[];
 }
 function DesktopTableBody({
   isDark,
@@ -748,6 +761,7 @@ function DesktopTableBody({
   virtualItems,
   rowVirtualizer,
   stickyOffsets,
+  conditionalRules,
 }: DesktopTableBodyProps): React.JSX.Element {
   const { top: paddingTop, bottom: paddingBottom } = getVirtualPadding({
     virtualItems,
@@ -760,13 +774,19 @@ function DesktopTableBody({
     <tbody>
       {showTop && <PaddingRow height={paddingTop} colCount={colCount} />}
       {isPrintMode ? (
-        <PrintRows isDark={isDark} table={table} stickyOffsets={stickyOffsets} />
+        <PrintRows
+          isDark={isDark}
+          table={table}
+          stickyOffsets={stickyOffsets}
+          conditionalRules={conditionalRules}
+        />
       ) : (
         <VirtualRows
           isDark={isDark}
           table={table}
           virtualItems={virtualItems}
           stickyOffsets={stickyOffsets}
+          conditionalRules={conditionalRules}
         />
       )}
       {showBottom && <PaddingRow height={paddingBottom} colCount={colCount} />}
@@ -826,7 +846,7 @@ function DesktopAddRowFooter({
   onCreateRow,
   label,
 }: DesktopAddRowFooterProps): React.JSX.Element {
-  const bg = isDark ? '#1f2937' : 'var(--muted)';
+  const bg = 'var(--muted)';
   return (
     <div
       ref={footerRef}
@@ -910,9 +930,6 @@ function DesktopTableContent(p: P): React.JSX.Element {
           table={p.table}
           stickyOffsets={p.stickyOffsets}
           onResizeMouseDown={p.onResizeMouseDown}
-          sortAscLabel={p.labels.sortAscLabel}
-          sortDescLabel={p.labels.sortDescLabel}
-          sortClearLabel={p.labels.sortClearLabel}
         />
         <DesktopTableBody
           isDark={p.isDark}
@@ -921,6 +938,7 @@ function DesktopTableContent(p: P): React.JSX.Element {
           virtualItems={p.virtualItems}
           rowVirtualizer={p.rowVirtualizer}
           stickyOffsets={p.stickyOffsets}
+          conditionalRules={p.conditionalRules}
         />
         <DesktopTableFooter
           isDark={p.isDark}
@@ -928,6 +946,8 @@ function DesktopTableContent(p: P): React.JSX.Element {
           stickyOffsets={p.stickyOffsets}
           columnTypeByKey={p.columnTypeByKey}
           columnTitleByKey={p.columnTitleByKey}
+          columnConfigByKey={p.columnConfigByKey}
+          defaultCurrency={p.defaultCurrency}
           aggregateSelection={p.aggregateSelection}
           aggregateValues={p.aggregateValues}
           aggregateLabels={p.labels.aggregateLabels}
@@ -944,8 +964,14 @@ function DesktopTableContent(p: P): React.JSX.Element {
 // treats an object holding a ref as a ref and refuses to compile reads of it.
 function DesktopScrollBody({ tableContainerRef, ...p }: P): React.JSX.Element {
   const overflow = p.isPrintMode ? 'visible' : 'auto';
-  const border = p.isDark ? '1px solid #374151' : '1px solid var(--border-color)';
-  const height = p.isPrintMode ? 'auto' : p.isFullscreen ? 'calc(100vh - 150px)' : '600px';
+  const border = '1px solid var(--border-color)';
+  // В полноэкранном режиме высоту задаёт flex-колонка страницы, а не магическое
+  // число: тулбар выше или ниже — грид всё равно заканчивается у края окна.
+  const sizing = p.isPrintMode
+    ? { height: 'auto' }
+    : p.isFullscreen
+      ? { flex: '1 1 auto', minHeight: 0 }
+      : { height: '600px' };
   return (
     <div
       ref={tableContainerRef}
@@ -957,7 +983,7 @@ function DesktopScrollBody({ tableContainerRef, ...p }: P): React.JSX.Element {
         border,
         borderTop: 'none',
         backgroundColor: 'var(--card-bg)',
-        height,
+        ...sizing,
       }}
     >
       <DesktopTableContent {...p} tableContainerRef={tableContainerRef} />
@@ -967,8 +993,12 @@ function DesktopScrollBody({ tableContainerRef, ...p }: P): React.JSX.Element {
 
 export function DesktopTableView(p: DesktopTableViewProps): React.JSX.Element {
   const containerClass = p.isDark ? 'custom-table-container dark' : 'custom-table-container';
+  const layout =
+    p.isFullscreen && !p.isPrintMode
+      ? { display: 'flex', flexDirection: 'column' as const, flex: '1 1 auto', minHeight: 0 }
+      : undefined;
   return (
-    <div className={containerClass}>
+    <div className={containerClass} style={layout}>
       <DesktopScrollBody {...p} />
     </div>
   );

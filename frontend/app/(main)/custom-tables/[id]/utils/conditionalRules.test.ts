@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { type ConditionalRule, conditionalStyleFor, matchesRule } from './conditionalRules';
-import type { CustomTableGridRow } from './stylingUtils';
+import {
+  type CustomTableColumn,
+  type CustomTableGridRow,
+  resolveCellBackground,
+  resolveRowStyle,
+} from './stylingUtils';
 
 const row = (data: Record<string, unknown>): CustomTableGridRow =>
   ({ id: 'r1', rowNumber: 1, data }) as CustomTableGridRow;
@@ -79,5 +84,73 @@ describe('conditionalStyleFor', () => {
     expect(conditionalStyleFor(rules, row({ amount: '500' }), 'amount')).toEqual({
       textFormat: { foregroundColor: '#f00', bold: true },
     });
+  });
+});
+
+describe('resolveRowStyle', () => {
+  it('paints the row for a row-scoped rule', () => {
+    const rules = [rule({ target: 'row', style: { backgroundColor: '#fee', color: '#900' } })];
+
+    expect(resolveRowStyle(row({ amount: '500' }), rules)).toEqual({
+      backgroundColor: '#fee',
+      color: '#900',
+    });
+  });
+
+  it('ignores cell-scoped rules at row level', () => {
+    expect(resolveRowStyle(row({ amount: '500' }), [rule({ target: 'cell' })])).toEqual({});
+  });
+
+  it('lets a manual fill win over the rule', () => {
+    const r = { ...row({ amount: '500' }), styles: { manualFill: '#abc' } };
+
+    expect(resolveRowStyle(r, [rule({ target: 'row' })])).toEqual({ backgroundColor: '#abc' });
+  });
+});
+
+describe('resolveCellBackground', () => {
+  const col = (style?: CustomTableColumn['style']): CustomTableColumn => ({
+    id: 'c1',
+    key: 'amount',
+    title: 'Amount',
+    type: 'number',
+    position: 0,
+    config: null,
+    style,
+  });
+
+  it('falls back to the column colour', () => {
+    const bg = resolveCellBackground({
+      row: row({ amount: '1' }),
+      col: col({ cell: { backgroundColor: '#eef' } }),
+      rules: [],
+    });
+    expect(bg).toBe('#eef');
+  });
+
+  it('prefers the row background over the column colour', () => {
+    const bg = resolveCellBackground({
+      row: row({ amount: '1' }),
+      col: col({ cell: { backgroundColor: '#eef' } }),
+      rules: [],
+      rowBackground: '#abc',
+    });
+    expect(bg).toBe('#abc');
+  });
+
+  it('prefers a matching cell rule over the row background', () => {
+    const bg = resolveCellBackground({
+      row: row({ amount: '500' }),
+      col: col({ cell: { backgroundColor: '#eef' } }),
+      rules: [rule({ target: 'cell' })],
+      rowBackground: '#abc',
+    });
+    expect(bg).toBe('#fee');
+  });
+
+  it('lets an imported per-cell style win over the rule', () => {
+    const r = { ...row({ amount: '500' }), styles: { amount: { backgroundColor: '#123' } } };
+    const bg = resolveCellBackground({ row: r, col: col(), rules: [rule({ target: 'cell' })] });
+    expect(bg).toBe('#123');
   });
 });

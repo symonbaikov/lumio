@@ -45,6 +45,7 @@ import {
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { AppPagination } from '@/app/components/ui/pagination';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
@@ -56,7 +57,9 @@ import {
   type CustomTableActionEventDetail,
   type CustomTableViewEventDetail,
 } from '@/app/lib/custom-table-actions';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
 import { CustomTablesFiltersDrawer } from './components/CustomTablesFiltersDrawer';
+import { TableTemplatePicker } from './components/TableTemplatePicker';
 import {
   buildStatementSelectionOptions,
   filterStatementSelectionOptions,
@@ -65,6 +68,12 @@ import {
   type StatementGroupBy,
 } from './create-from-statements-utils';
 import { useCustomTablesData } from './hooks/useCustomTablesData';
+import {
+  applyTemplate,
+  buildTemplateColumnPayloads,
+  TABLE_TEMPLATES,
+  type TableTemplateId,
+} from './templates';
 
 interface Category {
   id: string;
@@ -163,11 +172,48 @@ export default function CustomTablesPage() {
   const [statementsLoading, setStatementsLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<TableTemplateId | null>(null);
   const [form, setForm] = useState({
     name: '',
     description: '',
     categoryId: '',
   });
+  const { currentWorkspace } = useWorkspace();
+  // Словарь может не знать новых ключей (старые сборки, тесты) — тогда
+  // берём английские подписи из самого шаблона.
+  const templateText = useCallback(
+    (path: string[], fallback: string): string => {
+      let node: unknown = (t as Record<string, unknown>).create;
+      for (const key of path) {
+        node =
+          node && typeof node === 'object' ? (node as Record<string, unknown>)[key] : undefined;
+      }
+      const value = node && typeof node === 'object' ? (node as { value?: unknown }).value : node;
+      return typeof value === 'string' && value ? value : fallback;
+    },
+    [t],
+  );
+  const templateCards = useMemo(
+    () => [
+      {
+        id: null,
+        name: templateText(['templates', 'blank', 'name'], 'Blank table'),
+        description: templateText(['templates', 'blank', 'description'], 'Start from scratch.'),
+        columnCount: 0,
+      },
+      ...TABLE_TEMPLATES.map(template => ({
+        id: template.id,
+        name: templateText(['templates', template.id, 'name'], template.name),
+        description: templateText(['templates', template.id, 'description'], template.description),
+        columnCount: template.columns.length,
+      })),
+    ],
+    [templateText],
+  );
+  const selectedTemplate = useMemo(
+    () => TABLE_TEMPLATES.find(template => template.id === selectedTemplateId) ?? null,
+    [selectedTemplateId],
+  );
   const [createFromStatementsOpen, setCreateFromStatementsOpen] = useState(false);
   const [createFromStatementsForm, setCreateFromStatementsForm] = useState<{
     name: string;
@@ -266,8 +312,38 @@ export default function CustomTablesPage() {
         categoryId: form.categoryId ? form.categoryId : undefined,
       });
       const created = response.data?.data || response.data;
-      toast.success(t.toasts.created.value);
+      if (created?.id && selectedTemplate) {
+        const toastId = toast.loading(templateText(['templates', 'applying'], 'Adding columns...'));
+        const titles = Object.fromEntries(
+          selectedTemplate.columns.map(column => [
+            column.key,
+            templateText(['templates', 'columns', column.key], column.title),
+          ]),
+        );
+        const { failed } = await applyTemplate({
+          tableId: created.id,
+          payloads: buildTemplateColumnPayloads(selectedTemplate, {
+            titles,
+            currency: resolveCurrencyCode(currentWorkspace?.currency),
+          }),
+          post: async (url, body) => {
+            const columnResponse = await apiClient.post(url, body);
+            return columnResponse.data?.data ?? columnResponse.data ?? null;
+          },
+        });
+        if (failed.length) {
+          toast.error(
+            templateText(['templates', 'partialFailed'], 'Some template columns were not created'),
+            { id: toastId },
+          );
+        } else {
+          toast.success(t.toasts.created.value, { id: toastId });
+        }
+      } else {
+        toast.success(t.toasts.created.value);
+      }
       setCreateOpen(false);
+      setSelectedTemplateId(null);
       setForm({ name: '', description: '', categoryId: '' });
       if (created?.id) {
         router.push(`/custom-tables/${created.id}`);
@@ -2059,6 +2135,27 @@ export default function CustomTablesPage() {
         <Dialog open={createOpen} onClose={() => setCreateOpen(false)} fullWidth maxWidth="md">
           <DialogTitle>{t.create.title}</DialogTitle>
           <DialogContent dividers>
+            <TableTemplatePicker
+              cards={templateCards}
+              selectedId={selectedTemplateId}
+              onSelect={id => {
+                const template = TABLE_TEMPLATES.find(item => item.id === id) ?? null;
+                setSelectedTemplateId(template?.id ?? null);
+                // Имя подставляем только в пустое поле — набранное человеком не трогаем.
+                if (template && !form.name.trim()) {
+                  setForm(prev => ({
+                    ...prev,
+                    name: templateText(['templates', template.id, 'name'], template.name),
+                  }));
+                }
+              }}
+              columnsLabel={count =>
+                templateText(['templates', 'columnsCount'], '{{count}} columns').replace(
+                  '{{count}}',
+                  String(count),
+                )
+              }
+            />
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, md: 4 }}>
                 <TextField

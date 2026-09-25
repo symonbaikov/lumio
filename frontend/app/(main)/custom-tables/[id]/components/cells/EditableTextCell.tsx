@@ -48,8 +48,8 @@ export function EditableTextCell({ row, column, onUpdateCell, style }: EditableT
           width: '100%',
           height: '100%',
           padding: '4px 8px',
-          border: '2px solid #3b82f6',
-          background: 'var(--color-info-soft-bg)',
+          border: '2px solid var(--primary-fill)',
+          background: 'var(--muted)',
           ...style,
         }}
       />

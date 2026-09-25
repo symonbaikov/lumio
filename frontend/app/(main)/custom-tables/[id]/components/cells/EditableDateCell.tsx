@@ -4,6 +4,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import type { Column, Row, Table } from '@tanstack/react-table';
 import { format, isValid } from 'date-fns';
 import { type CSSProperties, useState } from 'react';
+import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { CustomTableCellValue, CustomTableGridRow } from '../../utils/stylingUtils';
 
 interface EditableDateCellProps {
@@ -79,68 +80,37 @@ export function EditableDateCell({ row, column, onUpdateCell, style }: EditableD
     setIsEditing(true);
   };
 
-  const displayValue = initialValue ? format(new Date(initialValue), 'dd.MM.yyyy') : '—';
+  const displayValue = initialValue ? formatStoredDate(new Date(initialValue)) : '—';
 
+  // Календарь MUI живёт в портале и сам подстраивается под вьюпорт, поэтому
+  // никакой обёртки внутри ячейки не нужно: она только вылезала из узких колонок.
   if (isEditing) {
     return (
-      <div style={{ position: 'relative', zIndex: 20, minWidth: 220, ...style }}>
-        <div
-          style={{
-            border: '1px solid var(--border-color)',
-            background: 'var(--card-bg)',
-            padding: 8,
-            boxShadow: '0 4px 16px -4px rgba(12,12,20,0.08)',
+      <div style={{ width: '100%', ...style }}>
+        <DatePicker
+          value={toDate(selectedValue)}
+          onChange={date => {
+            const nextValue = date && isValid(date) ? format(date, 'yyyy-MM-dd') : null;
+            setSelectedValue(nextValue);
+            void handleSave(nextValue);
           }}
-        >
-          <DatePicker
-            value={toDate(selectedValue)}
-            onChange={date => {
-              const nextValue = date && isValid(date) ? format(date, 'yyyy-MM-dd') : null;
-              setSelectedValue(nextValue);
-              void handleSave(nextValue);
-            }}
-            open={isEditing}
-            onOpen={() => setIsEditing(true)}
-            onClose={() => {
-              if (!isSaving) {
-                setIsEditing(false);
-              }
-            }}
-            disabled={isSaving}
-            slotProps={{
-              textField: {
-                size: 'small',
-                fullWidth: true,
-                'aria-label': 'Select date',
-              },
-            }}
-          />
-          <div
-            style={{
-              marginTop: 8,
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: 8,
-              borderTop: '1px solid var(--border-color)',
-              paddingTop: 8,
-            }}
-          >
-            <button
-              type="button"
-              onClick={handleCancel}
-              style={{
-                padding: '4px 12px',
-                fontSize: 14,
-                color: 'var(--foreground)',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+          open={isEditing}
+          onOpen={() => setIsEditing(true)}
+          onClose={() => {
+            if (!isSaving) {
+              handleCancel();
+            }
+          }}
+          disabled={isSaving}
+          slotProps={{
+            textField: {
+              size: 'small',
+              variant: 'standard',
+              fullWidth: true,
+              'aria-label': 'Select date',
+            },
+          }}
+        />
       </div>
     );
   }

@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useColumnConfig } from './useColumnConfig';
 
@@ -40,7 +40,26 @@ describe('useColumnConfig', () => {
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY) as string)).toEqual({
       order: ['col_b', 'col_a'],
       hidden: ['col_b'],
+      pinned: [],
     });
+  });
+
+  it('persists pinned columns next to order and visibility', async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ order: ['col_a', 'col_b'], pinned: ['col_b'] }));
+
+    const { result } = renderColumnConfig(COLUMNS);
+
+    await waitFor(() => expect(result.current.pinnedColumnKeys).toEqual(['col_b']));
+
+    act(() => result.current.toggleColumnPinned('col_a'));
+    await waitFor(() => expect(result.current.pinnedColumnKeys).toEqual(['col_b', 'col_a']));
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) as string).pinned).toEqual([
+      'col_b',
+      'col_a',
+    ]);
+
+    act(() => result.current.toggleColumnPinned('col_b'));
+    await waitFor(() => expect(result.current.pinnedColumnKeys).toEqual(['col_a']));
   });
 
   // Регрессия: на первом рендере колонки ещё не пришли с сервера, и чистка по

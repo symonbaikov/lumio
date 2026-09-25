@@ -5,6 +5,7 @@ import { type CSSProperties, type ReactNode, useMemo, useState } from 'react';
 import { ChevronDown } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { CurrencyPickerDrawer } from '@/app/components/ui/currency-picker-drawer';
+import { Select } from '@/app/components/ui/select';
 import {
   buildCurrencySearchIndex,
   type CurrencySearchItem,
@@ -254,26 +255,14 @@ export function TransactionMappingCard({
                     {column.samples.slice(0, 3).join(', ')}
                   </td>
                   <td style={{ padding: '8px 12px' }}>
-                    <select
-                      aria-label={`${t.columnHeaders.role.value} ${column.a1}`}
+                    <Select
+                      fullWidth
+                      size="small"
+                      inputProps={{ 'aria-label': `${t.columnHeaders.role.value} ${column.a1}` }}
                       value={roles[column.index] ?? 'ignore'}
-                      onChange={e =>
-                        handleRoleChange(column.index, e.target.value as SheetColumnRole)
-                      }
-                      style={{
-                        width: '100%',
-                        border: '1px solid rgba(0, 0, 0, 0.15)',
-                        background: 'var(--card-bg)',
-                        padding: '6px 8px',
-                        fontSize: 13,
-                      }}
-                    >
-                      {ROLE_ORDER.map(role => (
-                        <option key={role} value={role}>
-                          {t.roles[role]}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={value => handleRoleChange(column.index, value as SheetColumnRole)}
+                      options={ROLE_ORDER.map(role => ({ value: role, label: t.roles[role] }))}
+                    />
                   </td>
                 </tr>
               ))}
@@ -314,18 +303,16 @@ export function TransactionMappingCard({
 
         <label style={{ display: 'block' }}>
           <span style={{ fontSize: 14, fontWeight: 500 }}>{t.walletLabel}</span>
-          <select
+          <Select
+            fullWidth
             value={walletName}
-            onChange={e => onWalletNameChange(e.target.value)}
-            style={inputStyle}
-          >
-            <option value="">{t.walletNone}</option>
-            {wallets.map(wallet => (
-              <option key={wallet.id} value={wallet.name}>
-                {wallet.name}
-              </option>
-            ))}
-          </select>
+            onChange={onWalletNameChange}
+            options={[
+              { value: '', label: t.walletNone },
+              ...wallets.map(wallet => ({ value: wallet.name, label: wallet.name })),
+            ]}
+            sx={{ mt: 0.5 }}
+          />
         </label>
       </Box>
 
