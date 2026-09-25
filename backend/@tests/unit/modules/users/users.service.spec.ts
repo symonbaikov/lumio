@@ -430,52 +430,6 @@ describe('UsersService', () => {
       );
     });
 
-    it('stores a bundled background and clears it with null', async () => {
-      jest
-        .spyOn<any, any>(service as any, 'findOneWithPassword')
-        .mockResolvedValue({ ...mockUser, contentBackground: null } as User);
-      const saveSpy = jest
-        .spyOn(repository, 'save')
-        .mockImplementation(async (user: any) => user as User);
-      const preset = '/workspace-backgrounds/lightscape-LtnPejWDSAY-unsplash.jpg';
-
-      await service.updateMyPreferences('1', { contentBackground: preset } as any);
-      expect(saveSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({ contentBackground: preset }),
-      );
-
-      await service.updateMyPreferences('1', { contentBackground: null } as any);
-      expect(saveSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({ contentBackground: null }),
-      );
-    });
-
-    it('stores the background dim level', async () => {
-      jest
-        .spyOn<any, any>(service as any, 'findOneWithPassword')
-        .mockResolvedValue({ ...mockUser, contentBackgroundDim: 35 } as User);
-      const saveSpy = jest
-        .spyOn(repository, 'save')
-        .mockImplementation(async (user: any) => user as User);
-
-      await service.updateMyPreferences('1', { contentBackgroundDim: 60 } as any);
-
-      expect(saveSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({ contentBackgroundDim: 60 }),
-      );
-    });
-  });
-
-  describe('updateMyContentBackground', () => {
-    it('stores the uploaded image path', async () => {
-      const updateSpy = jest.spyOn(repository, 'update').mockResolvedValue({} as any);
-
-      await service.updateMyContentBackground('1', '/api/v1/users/backgrounds/abc.jpg');
-
-      expect(updateSpy).toHaveBeenCalledWith('1', {
-        contentBackground: '/api/v1/users/backgrounds/abc.jpg',
-      });
-    });
   });
 
   describe('completeOnboarding', () => {

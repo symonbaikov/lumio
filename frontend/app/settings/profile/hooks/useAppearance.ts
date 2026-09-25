@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import type { User } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
-import { DEFAULT_CONTENT_BACKGROUND_DIM, toPresetBackground } from '@/app/lib/content-background';
 import {
   resolveThemePreference,
   THEME_STORAGE_EVENT,
@@ -28,21 +27,9 @@ export type UseAppearanceReturn = {
   setDensity: (value: UiDensity) => void;
   reduceMotion: boolean;
   setReduceMotion: (value: boolean) => void;
-  contentBackground: string | null;
-  contentBackgroundDim: number;
-  previewContentBackgroundDim: (value: number) => void;
-  saveContentBackgroundDim: (value: number) => void;
-  selectPresetBackground: (fileName: string) => void;
-  uploadContentBackground: (file: File) => Promise<void>;
-  removeContentBackground: () => void;
 };
 
-type AppearancePatch = {
-  uiDensity?: UiDensity;
-  reduceMotion?: boolean;
-  contentBackground?: string | null;
-  contentBackgroundDim?: number;
-};
+type AppearancePatch = { uiDensity?: UiDensity; reduceMotion?: boolean };
 
 export function useAppearance(
   user: User | null | undefined,
@@ -98,39 +85,6 @@ export function useAppearance(
     void savePatch({ reduceMotion: value });
   };
 
-  /** Follows the slider without a request; the value is saved on release. */
-  const previewContentBackgroundDim = (value: number) => {
-    setUser({ ...(user || {}), contentBackgroundDim: value } as User);
-  };
-
-  const saveContentBackgroundDim = (value: number) => {
-    void savePatch({ contentBackgroundDim: value });
-  };
-
-  const selectPresetBackground = (fileName: string) => {
-    void savePatch({ contentBackground: toPresetBackground(fileName) });
-  };
-
-  const removeContentBackground = () => {
-    void savePatch({ contentBackground: null });
-  };
-
-  /** Throws on failure, so the card can show the error next to the upload button. */
-  const uploadContentBackground = async (file: File) => {
-    const formData = new FormData();
-    formData.append('background', file);
-    const response = await apiClient.post('/users/me/content-background', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    const nextUser = {
-      ...(user || {}),
-      contentBackground: response.data?.contentBackground ?? null,
-    } as User;
-
-    setUser(nextUser);
-    localStorage.setItem('user', JSON.stringify(nextUser));
-  };
-
   const handleThemePreferenceChange = async (nextThemePreference: ThemePreference) => {
     setAppearanceMessage(null);
     setAppearanceError(null);
@@ -180,12 +134,5 @@ export function useAppearance(
     setDensity,
     reduceMotion,
     setReduceMotion,
-    contentBackground: user?.contentBackground ?? null,
-    contentBackgroundDim: user?.contentBackgroundDim ?? DEFAULT_CONTENT_BACKGROUND_DIM,
-    previewContentBackgroundDim,
-    saveContentBackgroundDim,
-    selectPresetBackground,
-    uploadContentBackground,
-    removeContentBackground,
   };
 }

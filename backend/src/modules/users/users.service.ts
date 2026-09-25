@@ -276,18 +276,8 @@ export class UsersService {
     if (dto.reduceMotion !== undefined) {
       user.reduceMotion = dto.reduceMotion;
     }
-    if (dto.contentBackground !== undefined) {
-      user.contentBackground = dto.contentBackground;
-    }
-    if (dto.contentBackgroundDim !== undefined) {
-      user.contentBackgroundDim = dto.contentBackgroundDim;
-    }
 
     return this.userRepository.save(user);
-  }
-
-  async updateMyContentBackground(userId: string, contentBackground: string): Promise<void> {
-    await this.userRepository.update(userId, { contentBackground });
   }
 
   async updateMyAvatar(userId: string, avatarUrl: string): Promise<User> {

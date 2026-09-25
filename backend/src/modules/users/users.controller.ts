@@ -18,7 +18,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
-import { randomUUID } from 'crypto';
 import type { Response } from 'express';
 import * as fs from 'fs';
 import { diskStorage } from 'multer';
@@ -66,8 +65,6 @@ import { UsersService } from './users.service';
 // decorated parameter's type into a runtime reference, and the global
 // `Express` namespace has no runtime value. A type alias is erased.
 type MulterFile = Express.Multer.File;
-
-const CONTENT_BACKGROUNDS_DIR = 'user-backgrounds';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -169,31 +166,6 @@ export class UsersController {
         'X-Content-Type-Options': 'nosniff',
         'Content-Type': contentType ?? 'application/octet-stream',
         ...(contentType ? {} : { 'Content-Disposition': 'attachment' }),
-      },
-    });
-  }
-
-  // Public like avatars: the image is loaded by a plain <img>, which carries no
-  // auth header. Upload names are random, so a file cannot be guessed.
-  @Public()
-  @Get('backgrounds/:fileName')
-  getContentBackground(@Param('fileName') fileName: string, @Res() res: Response) {
-    const safeFileName = path.basename(fileName);
-    const filePath = path.join(resolveUploadsDir(), CONTENT_BACKGROUNDS_DIR, safeFileName);
-    // Every stored name carries an allowlisted image extension; anything else
-    // was never written by the upload route.
-    const contentType = resolveAvatarContentType(safeFileName);
-
-    if (!(contentType && fs.existsSync(filePath))) {
-      return res.status(404).send('Background not found');
-    }
-
-    return res.sendFile(filePath, {
-      headers: {
-        // A name is never reused, so the file can be cached for good.
-        'Cache-Control': 'public, max-age=31536000, immutable',
-        'X-Content-Type-Options': 'nosniff',
-        'Content-Type': contentType,
       },
     });
   }
@@ -344,59 +316,6 @@ export class UsersController {
     const updatedUser = await this.usersService.updateMyPreferences(currentUser.id, dto);
     const safeUser = this.toSafeUser(updatedUser);
     return { user: safeUser, message: 'Profile updated successfully' };
-  }
-
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
-  @Post('me/content-background')
-  @UseInterceptors(
-    FileInterceptor('background', {
-      storage: diskStorage({
-        destination: (_req, _file, cb) => {
-          const targetDir = path.join(resolveUploadsDir(), CONTENT_BACKGROUNDS_DIR);
-          fs.mkdirSync(targetDir, { recursive: true });
-          cb(null, targetDir);
-        },
-        filename: (_req, file, cb) => {
-          try {
-            // The extension comes from the allowlisted MIME type, never the client name.
-            const extension = path.extname(sanitizeAvatarFilename('background', file.mimetype));
-            cb(null, `${randomUUID()}${extension}`);
-          } catch {
-            cb(new BadRequestException('Unsupported image type'), '');
-          }
-        },
-      }),
-      fileFilter: (_req, file, cb) => {
-        if (!isAllowedAvatarMime(file.mimetype)) {
-          return cb(
-            new BadRequestException('Only JPEG, PNG, WebP and GIF images are allowed'),
-            false,
-          );
-        }
-        cb(null, true);
-      },
-      limits: { fileSize: 10_000_000 },
-    }),
-  )
-  async uploadMyContentBackground(
-    @CurrentUser() currentUser: User,
-    @UploadedFile() file: MulterFile | undefined,
-  ) {
-    if (!file) {
-      throw new BadRequestException(appError('FILE_NOT_UPLOADED'));
-    }
-
-    // Confirm the bytes match the declared type before the public route serves them.
-    try {
-      validateImageSignature(file);
-    } catch (error) {
-      await removeUploadedFile(file);
-      throw error;
-    }
-
-    const contentBackground = `/api/v1/users/backgrounds/${encodeURIComponent(file.filename)}`;
-    await this.usersService.updateMyContentBackground(currentUser.id, contentBackground);
-    return { contentBackground };
   }
 
   @Post('me/avatar')

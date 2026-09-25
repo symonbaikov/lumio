@@ -7,7 +7,6 @@ import { IntlayerServerProvider } from 'react-intlayer/server';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ChatModeRedirect } from './chat/ChatModeRedirect';
 import AppChrome from './components/AppChrome';
-import ContentBackground from './components/ContentBackground';
 import DynamicPageTitle from './components/DynamicPageTitle';
 import MobileBottomBar from './components/mobile/MobileBottomBar';
 import { AppPanels } from './components/panels/AppPanels';
@@ -86,7 +85,6 @@ export default async function RootLayout({
               <DynamicPageTitle />
               <div className="lumio-shell">
                 <AppChrome />
-                <ContentBackground />
                 <div className="lumio-shell__content">
                   <TopBar />
                   <main>{children}</main>

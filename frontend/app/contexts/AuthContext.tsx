@@ -42,10 +42,6 @@ export interface User {
   themePreference?: ThemePreference;
   /** Tile style picked on receipt maps; null follows the server default. */
   mapStylePreference?: string | null;
-  /** Bundled or uploaded photo behind the content area; null keeps the flat background. */
-  contentBackground?: string | null;
-  /** Opacity, in percent, of the theme-coloured layer over that photo. */
-  contentBackgroundDim?: number;
   lastLogin?: string | null;
   avatarUrl?: string | null;
   onboardingCompletedAt?: string | null;
