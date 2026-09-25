@@ -72,38 +72,6 @@ export abstract class OAuthIntegrationBaseService {
     return JSON.parse(this.base64UrlDecode(encoded));
   }
 
-  protected async getWorkspaceId(userId: string): Promise<string | null> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      select: ['id', 'workspaceId'],
-    });
-
-    return user?.workspaceId ?? null;
-  }
-
-  protected async findIntegrationForUser(userId: string) {
-    const workspaceId = await this.getWorkspaceId(userId);
-    const where = workspaceId
-      ? { workspaceId, provider: this.getProvider() }
-      : { connectedByUserId: userId, provider: this.getProvider() };
-
-    const integration = await this.integrationRepository.findOne({
-      where,
-      relations: ['token', this.getSettingsRelationName()],
-    });
-
-    return { integration, workspaceId };
-  }
-
-  protected async ensureIntegration(userId: string) {
-    const { integration } = await this.findIntegrationForUser(userId);
-    if (!integration) {
-      throw new NotFoundException(`${this.getProviderName()} integration not found`);
-    }
-
-    return integration;
-  }
-
   /** A workspace has at most one integration per provider (UQ_integrations_workspace_provider). */
   protected findWorkspaceIntegration(workspaceId: string): Promise<Integration | null> {
     return this.integrationRepository.findOne({
@@ -173,13 +141,15 @@ export abstract class OAuthIntegrationBaseService {
     }
   }
 
+  /** The integration is bound to `workspaceId`, the workspace the user connects from. */
   protected buildProviderAuthUrl(
-    user: Pick<User, 'id' | 'workspaceId'>,
+    user: Pick<User, 'id'>,
+    workspaceId: string,
     buildUrl: (state: string) => string,
   ): string {
     const state = this.buildState({
       userId: user.id,
-      workspaceId: user.workspaceId || null,
+      workspaceId,
       redirect: `${this.getFrontendBaseUrl()}/integrations/${this.getProviderRouteSegment()}`,
     });
 
@@ -199,8 +169,14 @@ export abstract class OAuthIntegrationBaseService {
     params: { code?: string; state?: string; error?: string },
     select: Array<keyof User>,
   ): Promise<
-    | { redirectBase: string; user: TUser }
-    | { redirectUrl: string; code?: undefined; user?: undefined; redirectBase?: undefined }
+    | { redirectBase: string; user: TUser; workspaceId: string }
+    | {
+        redirectUrl: string;
+        code?: undefined;
+        user?: undefined;
+        redirectBase?: undefined;
+        workspaceId?: undefined;
+      }
   > {
     const redirectBase = `${this.getFrontendBaseUrl()}/integrations/${this.getProviderRouteSegment()}`;
 
@@ -233,24 +209,30 @@ export abstract class OAuthIntegrationBaseService {
       return { redirectUrl: this.buildIntegrationRedirect('error', 'user_not_found') };
     }
 
-    return { redirectBase, user: user as unknown as TUser };
+    const workspaceId = await this.resolveStateWorkspaceId(state, userId);
+    if (!workspaceId) {
+      return { redirectUrl: this.buildIntegrationRedirect('error', 'workspace_forbidden') };
+    }
+
+    return { redirectBase, user: user as unknown as TUser, workspaceId };
   }
 
   protected async upsertConnectedIntegration(
     existing: Integration | null,
-    user: Pick<User, 'id' | 'workspaceId'>,
+    user: Pick<User, 'id'>,
+    workspaceId: string,
     scopes: string[],
   ): Promise<Integration> {
     const integration =
       existing ||
       this.integrationRepository.create?.({
         provider: this.getProvider(),
-        workspaceId: user.workspaceId || null,
+        workspaceId,
         connectedByUserId: user.id,
       }) ||
       ({
         provider: this.getProvider(),
-        workspaceId: user.workspaceId || null,
+        workspaceId,
         connectedByUserId: user.id,
       } as Integration);
 

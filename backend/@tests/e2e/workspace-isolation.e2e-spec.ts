@@ -271,6 +271,46 @@ describe('Workspace isolation (e2e)', () => {
     });
   });
 
+  describe('Cloud storage integrations', () => {
+    beforeAll(async () => {
+      await dataSource.query(
+        `INSERT INTO integrations (workspace_id, provider, status, connected_by_user_id)
+         VALUES ($1, 'dropbox', 'connected', $2)`,
+        [owner.workspaceId, owner.userId],
+      );
+    });
+
+    afterAll(async () => {
+      await dataSource.query(
+        "DELETE FROM integrations WHERE provider = 'dropbox' AND connected_by_user_id = $1",
+        [owner.userId],
+      );
+    });
+
+    it('shows the integration only in the workspace it was connected in', async () => {
+      // No token was stored, so the connected one reads as needing re-authorisation.
+      const first = await as(owner, request(server()).get('/integrations/dropbox/status')).expect(
+        200,
+      );
+      expect(first.body.status).toBe('needs_reauth');
+
+      const second = await as(
+        owner,
+        request(server()).get('/integrations/dropbox/status'),
+        secondWorkspaceId,
+      ).expect(200);
+      expect(second.body).toMatchObject({ connected: false, status: 'disconnected' });
+    });
+
+    it('leaves managing it to those who manage the workspace', () => {
+      return as(
+        member,
+        request(server()).post('/integrations/dropbox/sync'),
+        secondWorkspaceId,
+      ).expect(403);
+    });
+  });
+
   describe('Storage', () => {
     /** Statements the owner booked, keyed by the workspace they went into. */
     const statementIn: Record<'first' | 'second', string> = { first: '', second: '' };
