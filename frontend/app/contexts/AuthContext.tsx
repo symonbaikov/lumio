@@ -45,6 +45,8 @@ export interface User {
   lastLogin?: string | null;
   avatarUrl?: string | null;
   onboardingCompletedAt?: string | null;
+  /** When the welcome tutorial was closed; null opens it after sign-up. */
+  welcomeTutorialSeenAt?: string | null;
 }
 
 export interface AuthContextValue {
