@@ -184,6 +184,14 @@ export class User {
   @Column({ name: 'telegram_chat_id', nullable: true })
   telegramChatId: string | null;
 
+  /**
+   * The workspace the Telegram bot serves: the one open when the chat was
+   * connected. Null for chats connected before it was recorded, which keep
+   * using the registration workspace.
+   */
+  @Column({ name: 'telegram_workspace_id', type: 'uuid', nullable: true })
+  telegramWorkspaceId: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
