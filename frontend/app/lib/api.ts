@@ -54,9 +54,10 @@ apiClient.interceptors.request.use(
       config.headers[CSRF_HEADER] = csrfToken;
     }
 
-    // Add workspace context header
+    // Add workspace context header, unless the caller picked a workspace itself
+    // (an upload pinned to where it started, a per-workspace analytics fetch).
     const workspaceId = localStorage.getItem('currentWorkspaceId');
-    if (workspaceId) {
+    if (workspaceId && !config.headers.has('X-Workspace-Id')) {
       config.headers['X-Workspace-Id'] = workspaceId;
     }
 

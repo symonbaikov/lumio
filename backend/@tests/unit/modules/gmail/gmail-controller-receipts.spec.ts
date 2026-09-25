@@ -1,7 +1,9 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Category, GmailSettings, Receipt, Transaction, User } from '../../../../src/entities';
+import { Category, GmailSettings, Receipt, Transaction } from '../../../../src/entities';
+import { PermissionsGuard } from '../../../../src/common/guards/permissions.guard';
+import { WorkspaceContextGuard } from '../../../../src/common/guards/workspace-context.guard';
 import { GmailController } from '../../../../src/modules/gmail/gmail.controller';
 import { GmailMerchantReparseService } from '../../../../src/modules/gmail/services/gmail-merchant-reparse.service';
 import { GmailOAuthService } from '../../../../src/modules/gmail/services/gmail-oauth.service';
@@ -32,11 +34,7 @@ describe('GmailController - Receipts List Endpoint', () => {
     find: jest.fn(),
   };
 
-  const mockUser: Partial<User> = {
-    id: 'user-123',
-    workspaceId: 'ws-123',
-    email: 'test@example.com',
-  };
+  const workspaceId = 'ws-123';
 
   beforeEach(async () => {
     queryBuilder.where.mockReturnValue(queryBuilder);
@@ -72,7 +70,12 @@ describe('GmailController - Receipts List Endpoint', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(WorkspaceContextGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<GmailController>(GmailController);
   });
@@ -81,8 +84,16 @@ describe('GmailController - Receipts List Endpoint', () => {
     jest.clearAllMocks();
   });
 
+  it('lists the receipts of the current workspace, not of the user', async () => {
+    await (controller as any).listReceipts(workspaceId);
+
+    expect(queryBuilder.where).toHaveBeenCalledWith('receipt.workspaceId = :workspaceId', {
+      workspaceId,
+    });
+  });
+
   it('filters out failed and amountless receipts by default', async () => {
-    await (controller as any).listReceipts(mockUser as User);
+    await (controller as any).listReceipts(workspaceId);
 
     expect(queryBuilder.andWhere).toHaveBeenCalledWith('receipt.status != :failedStatus', {
       failedStatus: 'failed',
@@ -94,7 +105,7 @@ describe('GmailController - Receipts List Endpoint', () => {
 
   it('keeps amountless scans that already have a statement when includeLinkedScans=true', async () => {
     await (controller as any).listReceipts(
-      mockUser as User,
+      workspaceId,
       undefined,
       undefined,
       undefined,
@@ -115,7 +126,7 @@ describe('GmailController - Receipts List Endpoint', () => {
 
   it('allows invalid receipts when includeInvalid=true', async () => {
     await (controller as any).listReceipts(
-      mockUser as User,
+      workspaceId,
       undefined,
       undefined,
       undefined,
@@ -132,7 +143,7 @@ describe('GmailController - Receipts List Endpoint', () => {
 
   it('returns only receipts without amount when hasAmount=false', async () => {
     await (controller as any).listReceipts(
-      mockUser as User,
+      workspaceId,
       undefined,
       undefined,
       undefined,
@@ -152,7 +163,7 @@ describe('GmailController - Receipts List Endpoint', () => {
     ]);
     categoryRepository.find.mockResolvedValue([{ id: 'cat-1', name: 'Office supplies' }]);
 
-    const result = await (controller as any).listReceipts(mockUser as User);
+    const result = await (controller as any).listReceipts(workspaceId);
 
     expect(result.receipts[0]).toMatchObject({
       id: 'receipt-1',
@@ -163,7 +174,7 @@ describe('GmailController - Receipts List Endpoint', () => {
 
   it('filters uncategorized receipts with compatible category id types', async () => {
     await (controller as any).listReceipts(
-      mockUser as User,
+      workspaceId,
       undefined,
       undefined,
       undefined,

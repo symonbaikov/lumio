@@ -10,11 +10,11 @@ export class GmailReceiptDuplicateService {
     return this.receiptDuplicateService.findPotentialDuplicates(receipt);
   }
 
-  markAsDuplicate(receiptId: string, originalId: string, userId: string): Promise<void> {
-    return this.receiptDuplicateService.markAsDuplicate(receiptId, originalId, userId);
+  markAsDuplicate(receiptId: string, originalId: string, workspaceId: string): Promise<void> {
+    return this.receiptDuplicateService.markAsDuplicate(receiptId, originalId, workspaceId);
   }
 
-  unmarkDuplicate(receiptId: string, userId: string): Promise<void> {
-    return this.receiptDuplicateService.unmarkDuplicate(receiptId, userId);
+  unmarkDuplicate(receiptId: string, workspaceId: string): Promise<void> {
+    return this.receiptDuplicateService.unmarkDuplicate(receiptId, workspaceId);
   }
 }

@@ -43,6 +43,7 @@ export enum ReceiptLocationSource {
 
 @Entity('receipts')
 @Index(['userId'])
+@Index('IDX_receipts_workspace_received_at', ['workspaceId', 'receivedAt'])
 @Index(['status'])
 @Index(['gmailMessageId'])
 @Index(['receivedAt'])

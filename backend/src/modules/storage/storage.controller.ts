@@ -56,8 +56,10 @@ export class StorageController {
    * GET /api/v1/storage/files
    */
   @Get('files')
+  @UseGuards(WorkspaceContextGuard)
   async getStorageFiles(
     @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
     @Query('search') search?: string,
     @Query('bank') bankName?: string,
     @Query('availability') availability?: 'disk' | 'db' | 'both' | 'missing',
@@ -74,7 +76,7 @@ export class StorageController {
             .map(value => value.trim())
             .filter(Boolean)
         : undefined;
-    return await this.storageService.getStorageFiles(user.id, {
+    return await this.storageService.getStorageFiles(user.id, workspaceId, {
       search,
       bankName,
       availability,
@@ -223,8 +225,13 @@ export class StorageController {
    * POST /api/v1/storage/folders
    */
   @Post('folders')
-  async createFolder(@Body() dto: CreateFolderDto, @CurrentUser() user: User) {
-    return await this.storageService.createFolder(dto, user.id);
+  @UseGuards(WorkspaceContextGuard)
+  async createFolder(
+    @Body() dto: CreateFolderDto,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return await this.storageService.createFolder(dto, user.id, workspaceId);
   }
 
   /**
@@ -232,8 +239,9 @@ export class StorageController {
    * GET /api/v1/storage/folders
    */
   @Get('folders')
-  async listFolders(@CurrentUser() user: User) {
-    return await this.storageService.listFolders(user.id);
+  @UseGuards(WorkspaceContextGuard)
+  async listFolders(@CurrentUser() user: User, @WorkspaceId() workspaceId: string) {
+    return await this.storageService.listFolders(user.id, workspaceId);
   }
 
   /**
@@ -241,12 +249,14 @@ export class StorageController {
    * PATCH /api/v1/storage/folders/:id
    */
   @Patch('folders/:id')
+  @UseGuards(WorkspaceContextGuard)
   async updateFolder(
     @Param('id') folderId: string,
     @Body() dto: UpdateFolderDto,
     @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
   ) {
-    return await this.storageService.updateFolder(folderId, dto, user.id);
+    return await this.storageService.updateFolder(folderId, dto, user.id, workspaceId);
   }
 
   /**
@@ -254,12 +264,19 @@ export class StorageController {
    * DELETE /api/v1/storage/folders/:id
    */
   @Delete('folders/:id')
+  @UseGuards(WorkspaceContextGuard)
   async deleteFolder(
     @Param('id') folderId: string,
     @Query('deleteFiles') deleteFiles: string | undefined,
     @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
   ) {
-    return await this.storageService.deleteFolder(folderId, user.id, deleteFiles === 'true');
+    return await this.storageService.deleteFolder(
+      folderId,
+      user.id,
+      workspaceId,
+      deleteFiles === 'true',
+    );
   }
 
   /**

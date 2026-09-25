@@ -11,8 +11,8 @@ type ReceiptCategoryServiceLike = {
 
 type ReceiptDuplicateServiceLike = {
   findPotentialDuplicates: (receipt: Receipt) => Promise<Receipt[]>;
-  markAsDuplicate: (receiptId: string, originalId: string, userId: string) => Promise<void>;
-  unmarkDuplicate: (receiptId: string, userId: string) => Promise<void>;
+  markAsDuplicate: (receiptId: string, originalId: string, workspaceId: string) => Promise<void>;
+  unmarkDuplicate: (receiptId: string, workspaceId: string) => Promise<void>;
 };
 
 describe('Gmail receipt service wrappers', () => {
@@ -45,15 +45,15 @@ describe('Gmail receipt service wrappers', () => {
     );
 
     await expect(service.findPotentialDuplicates(receipt)).resolves.toEqual(duplicates);
-    await service.markAsDuplicate('receipt-1', 'receipt-2', 'user-1');
-    await service.unmarkDuplicate('receipt-1', 'user-1');
+    await service.markAsDuplicate('receipt-1', 'receipt-2', 'ws-1');
+    await service.unmarkDuplicate('receipt-1', 'ws-1');
 
     expect(receiptDuplicateService.findPotentialDuplicates).toHaveBeenCalledWith(receipt);
     expect(receiptDuplicateService.markAsDuplicate).toHaveBeenCalledWith(
       'receipt-1',
       'receipt-2',
-      'user-1',
+      'ws-1',
     );
-    expect(receiptDuplicateService.unmarkDuplicate).toHaveBeenCalledWith('receipt-1', 'user-1');
+    expect(receiptDuplicateService.unmarkDuplicate).toHaveBeenCalledWith('receipt-1', 'ws-1');
   });
 });

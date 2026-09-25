@@ -2,6 +2,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Category, GmailSettings, Receipt, Transaction, User } from '../../../../src/entities';
+import { PermissionsGuard } from '../../../../src/common/guards/permissions.guard';
+import { WorkspaceContextGuard } from '../../../../src/common/guards/workspace-context.guard';
 import { GmailController } from '../../../../src/modules/gmail/gmail.controller';
 import { GmailMerchantReparseService } from '../../../../src/modules/gmail/services/gmail-merchant-reparse.service';
 import { GmailOAuthService } from '../../../../src/modules/gmail/services/gmail-oauth.service';
@@ -57,7 +59,12 @@ describe('GmailController - Sync Endpoint', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(WorkspaceContextGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<GmailController>(GmailController);
     gmailSyncService = module.get(GmailSyncService);

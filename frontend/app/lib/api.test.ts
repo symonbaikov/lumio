@@ -153,3 +153,37 @@ describe('api single-flight refresh', () => {
     expect(response.status).toBe(200);
   });
 });
+
+describe('api workspace header', () => {
+  afterEach(() => {
+    apiClient.defaults.adapter = originalAdapter;
+    localStorage.clear();
+  });
+
+  const captureWorkspaceHeader = (): { sent: Array<string | undefined> } => {
+    const sent: Array<string | undefined> = [];
+    apiClient.defaults.adapter = (config => {
+      sent.push(String(config.headers.get('X-Workspace-Id') ?? '') || undefined);
+      return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+    }) as typeof apiClient.defaults.adapter;
+    return { sent };
+  };
+
+  it('sends the workspace that is open', async () => {
+    localStorage.setItem('currentWorkspaceId', 'ws-open');
+    const { sent } = captureWorkspaceHeader();
+
+    await apiClient.get('/statements');
+
+    expect(sent).toEqual(['ws-open']);
+  });
+
+  it('keeps a workspace the caller asked for explicitly', async () => {
+    localStorage.setItem('currentWorkspaceId', 'ws-open');
+    const { sent } = captureWorkspaceHeader();
+
+    await apiClient.get('/statements', { headers: { 'X-Workspace-Id': 'ws-other' } });
+
+    expect(sent).toEqual(['ws-other']);
+  });
+});
