@@ -1,14 +1,331 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "3c735841cd41d7bb70e71da47f4d56d4ad86469d"
+      "main": "c74d1838ea080dd4c57075ddda91d3108dfc55d5"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-23T14:47:36.598Z",
+    "lastGeneratedAt": "2026-09-25T11:45:11.606Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-09-25-c74d183",
+      "version": "main-c74d183",
+      "branch": "main",
+      "date": "2026-09-25T11:45:11.606Z",
+      "title": "Release update - September 25, 2026",
+      "summary": "This release includes 5 features and 5 fixes.",
+      "markdown": "## Features\n- **ledger**: Add double-entry general ledger\n- **ledger**: Book wallet opening balances\n- **ledger**: Book crypto transfers at their recorded fiat value\n- **payables**: Settle a bill against its bank transaction or in cash\n- **ledger**: Revalue foreign-currency balances on request\n\n## Fixes\n- **exchange-rates**: Never borrow a rate from after the requested day\n- **balance,net-worth**: Convert every amount into the workspace currency\n- Issues the UI walkthrough of the ledger gaps turned up\n- Defects the behaviour review of the ledger gaps confirmed\n- **deps**: Bump adm-zip to 0.6.1 to clear GHSA-7q85-xj36-vmfc",
+      "commits": [
+        {
+          "sha": "ce18ed1a069d26a5edbd4724f42462c704e5441a",
+          "shortSha": "ce18ed1a",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-23T14:47:37Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "7bc90989eb5d30a71ce3630420c348f06ef2ed1e",
+          "shortSha": "7bc90989",
+          "subject": "feat(ledger): add double-entry general ledger",
+          "author": "Symon Baikov",
+          "date": "2026-09-24T13:32:06+03:00",
+          "files": [
+            "README.md",
+            "backend/@tests/e2e/ledger-accounts.e2e-spec.ts",
+            "backend/@tests/e2e/ledger-entries.e2e-spec.ts",
+            "backend/@tests/e2e/ledger-sync.e2e-spec.ts",
+            "backend/@tests/integration/ledger-double-entry.spec.ts",
+            "backend/@tests/integration/ledger-manual-entries.spec.ts",
+            "backend/@tests/integration/ledger-posting.spec.ts",
+            "backend/@tests/integration/ledger-reports.spec.ts",
+            "backend/@tests/integration/ledger-sync.spec.ts",
+            "backend/@tests/unit/entities/ledger-account.entity.spec.ts",
+            "backend/@tests/unit/migrations/add-ledger-base-currency.migration.spec.ts",
+            "backend/@tests/unit/migrations/add-ledger-sync.migration.spec.ts",
+            "backend/@tests/unit/migrations/create-ledger.migration.spec.ts",
+            "backend/@tests/unit/modules/ledger/ledger-accounts.service.spec.ts",
+            "backend/@tests/unit/modules/ledger/ledger-default-accounts.spec.ts",
+            "backend/@tests/unit/modules/ledger/ledger-posting.rules.spec.ts",
+            "backend/src/app.module.ts",
+            "backend/src/common/enums/permissions.enum.ts",
+            "backend/src/common/errors/app-error.ts",
+            "backend/src/common/guards/permissions.guard.ts",
+            "backend/src/entities/audit-event.entity.ts",
+            "backend/src/entities/category.entity.ts",
+            "backend/src/entities/index.ts",
+            "backend/src/entities/journal-entry.entity.ts",
+            "backend/src/entities/journal-line.entity.ts",
+            "backend/src/entities/ledger-account.entity.ts",
+            "backend/src/entities/ledger-counter.entity.ts",
+            "backend/src/entities/transaction.entity.ts",
+            "backend/src/entities/workspace.entity.ts",
+            "backend/src/migrations/1786420000000-CreateLedger.ts",
+            "backend/src/migrations/1786430000000-AddLedgerBaseCurrency.ts",
+            "backend/src/migrations/1786440000000-AddLedgerSync.ts",
+            "backend/src/modules/audit/description/audit-description.service.ts",
+            "backend/src/modules/ledger/dto/create-ledger-account.dto.ts",
+            "backend/src/modules/ledger/dto/enable-ledger.dto.ts",
+            "backend/src/modules/ledger/dto/journal-entry-input.dto.ts",
+            "backend/src/modules/ledger/dto/journal-entry-response.dto.ts",
+            "backend/src/modules/ledger/dto/ledger-account-response.dto.ts",
+            "backend/src/modules/ledger/dto/ledger-report-query.dto.ts",
+            "backend/src/modules/ledger/dto/list-journal-entries.dto.ts",
+            "backend/src/modules/ledger/dto/update-ledger-account.dto.ts",
+            "backend/src/modules/ledger/ledger-accounts.service.ts",
+            "backend/src/modules/ledger/ledger-default-accounts.ts",
+            "backend/src/modules/ledger/ledger-entries.controller.ts",
+            "backend/src/modules/ledger/ledger-entries.service.ts",
+            "backend/src/modules/ledger/ledger-posting.rules.ts",
+            "backend/src/modules/ledger/ledger-posting.service.ts",
+            "backend/src/modules/ledger/ledger-reports.controller.ts",
+            "backend/src/modules/ledger/ledger-reports.service.ts",
+            "backend/src/modules/ledger/ledger-settings.controller.ts",
+            "backend/src/modules/ledger/ledger-sync.service.ts",
+            "backend/src/modules/ledger/ledger.controller.ts",
+            "backend/src/modules/ledger/ledger.module.ts",
+            "backend/src/modules/ledger/queue/ledger-sync.processor.ts",
+            "backend/src/modules/ledger/queue/ledger-sync.queue.ts",
+            "frontend/app/(main)/ledger/components/AccountCardTab.tsx",
+            "frontend/app/(main)/ledger/components/AccountsTab.tsx",
+            "frontend/app/(main)/ledger/components/EnableLedger.tsx",
+            "frontend/app/(main)/ledger/components/EntryDetail.tsx",
+            "frontend/app/(main)/ledger/components/EntryForm.tsx",
+            "frontend/app/(main)/ledger/components/JournalTab.tsx",
+            "frontend/app/(main)/ledger/components/LedgerFreshness.tsx",
+            "frontend/app/(main)/ledger/components/PeriodPicker.tsx",
+            "frontend/app/(main)/ledger/components/TrialBalanceTab.tsx",
+            "frontend/app/(main)/ledger/hooks/useLedger.ts",
+            "frontend/app/(main)/ledger/ledger.helpers.test.ts",
+            "frontend/app/(main)/ledger/ledger.helpers.ts",
+            "frontend/app/(main)/ledger/ledger.types.ts",
+            "frontend/app/(main)/ledger/page.content.ts",
+            "frontend/app/(main)/ledger/page.tsx",
+            "frontend/app/components/Navigation.tsx",
+            "frontend/app/components/Sidebar.tsx",
+            "frontend/app/components/mobile/MobileMenuDrawer.tsx",
+            "frontend/app/components/navigation.content.ts",
+            "frontend/app/components/navigation/helpers/navigation-config.test.ts",
+            "frontend/app/components/navigation/helpers/navigation-config.ts",
+            "frontend/app/hooks/usePermissions.ts",
+            "frontend/app/lib/apiErrors.content.ts",
+            "frontend/app/lib/page-title.ts",
+            "frontend/app/lib/query-keys.ts",
+            "website/docs/architecture/backend.md",
+            "website/docs/reference/api.md"
+          ]
+        },
+        {
+          "sha": "faa65e3fbfc75dfa1c2b498f3c3b391d21471f30",
+          "shortSha": "faa65e3f",
+          "subject": "fix(exchange-rates): never borrow a rate from after the requested day",
+          "author": "Symon Baikov",
+          "date": "2026-09-24T13:40:20+03:00",
+          "files": [
+            "backend/@tests/integration/ledger-manual-entries.spec.ts",
+            "backend/@tests/integration/ledger-posting.spec.ts",
+            "backend/@tests/integration/ledger-reports.spec.ts",
+            "backend/@tests/integration/ledger-sync.spec.ts",
+            "backend/@tests/unit/modules/exchange-rates/exchange-rates.service.spec.ts",
+            "backend/package.json",
+            "backend/scripts/cleanup-misdated-rates.ts",
+            "backend/src/modules/exchange-rates/exchange-rates.service.ts",
+            "backend/src/modules/ledger/ledger-posting.service.ts"
+          ]
+        },
+        {
+          "sha": "31f250dc91db19ef7f0d144de539d9c84320bf06",
+          "shortSha": "31f250dc",
+          "subject": "fix(balance,net-worth): convert every amount into the workspace currency",
+          "author": "Symon Baikov",
+          "date": "2026-09-24T13:49:09+03:00",
+          "files": [
+            "backend/@tests/unit/modules/balance/balance-classification.spec.ts",
+            "backend/@tests/unit/modules/balance/balance.service.spec.ts",
+            "backend/@tests/unit/modules/net-worth/net-worth.service.spec.ts",
+            "backend/src/modules/balance/balance.module.ts",
+            "backend/src/modules/balance/balance.service.ts",
+            "backend/src/modules/exchange-rates/currency-converter.ts",
+            "backend/src/modules/net-worth/net-worth.module.ts",
+            "backend/src/modules/net-worth/net-worth.service.ts",
+            "frontend/app/(main)/net-worth/components/NetWorthContent.tsx",
+            "frontend/app/(main)/net-worth/hooks/useNetWorth.ts",
+            "frontend/app/(main)/net-worth/page.content.ts",
+            "frontend/app/(main)/reports/components/BalanceSheet.tsx",
+            "frontend/app/(main)/reports/page.content.ts"
+          ]
+        },
+        {
+          "sha": "d10a61898da3bacae696a3dc9a20861cdaff500e",
+          "shortSha": "d10a6189",
+          "subject": "feat(ledger): book wallet opening balances",
+          "author": "Symon Baikov",
+          "date": "2026-09-24T13:53:23+03:00",
+          "files": [
+            "backend/@tests/integration/ledger-sync.spec.ts",
+            "backend/@tests/unit/migrations/add-ledger-openings-dirty.migration.spec.ts",
+            "backend/src/migrations/1786450000000-AddLedgerOpeningsDirty.ts",
+            "backend/src/modules/ledger/ledger-posting.service.ts",
+            "backend/src/modules/ledger/ledger-sync.service.ts",
+            "frontend/app/(main)/ledger/page.content.ts"
+          ]
+        },
+        {
+          "sha": "fca6275227813531d593a8e9d6e9db50b7b93c01",
+          "shortSha": "fca62752",
+          "subject": "feat(ledger): book crypto transfers at their recorded fiat value",
+          "author": "Symon Baikov",
+          "date": "2026-09-24T13:58:57+03:00",
+          "files": [
+            "backend/@tests/integration/ledger-posting.spec.ts",
+            "backend/@tests/unit/migrations/add-ledger-crypto-accounts.migration.spec.ts",
+            "backend/@tests/unit/modules/ledger/ledger-posting.rules.spec.ts",
+            "backend/src/entities/ledger-account.entity.ts",
+            "backend/src/migrations/1786460000000-AddLedgerCryptoAccounts.ts",
+            "backend/src/modules/crypto/crypto-sync.service.ts",
+            "backend/src/modules/ledger/ledger-accounts.service.ts",
+            "backend/src/modules/ledger/ledger-default-accounts.ts",
+            "backend/src/modules/ledger/ledger-posting.rules.ts",
+            "backend/src/modules/ledger/ledger-posting.service.ts",
+            "backend/src/modules/ledger/ledger.module.ts",
+            "frontend/app/(main)/ledger/page.content.ts",
+            "frontend/app/(main)/ledger/page.tsx"
+          ]
+        },
+        {
+          "sha": "de3c0d77d8bc6d5dd8778be55d872a25266d26b0",
+          "shortSha": "de3c0d77",
+          "subject": "feat(payables): settle a bill against its bank transaction or in cash",
+          "author": "Symon Baikov",
+          "date": "2026-09-24T14:10:44+03:00",
+          "files": [
+            "backend/@tests/integration/payables-payment.spec.ts",
+            "backend/@tests/unit/modules/payables/payables.service.spec.ts",
+            "backend/src/common/errors/app-error.ts",
+            "backend/src/modules/payables/dto/mark-payable-paid.dto.ts",
+            "backend/src/modules/payables/payables.controller.ts",
+            "backend/src/modules/payables/payables.module.ts",
+            "backend/src/modules/payables/payables.service.ts",
+            "frontend/app/(main)/statements/components/payables/MarkPaidDialog.test.tsx",
+            "frontend/app/(main)/statements/components/payables/MarkPaidDialog.tsx",
+            "frontend/app/(main)/statements/components/payables/MarkPaidFields.tsx",
+            "frontend/app/(main)/statements/components/payables/PayablesView.test.tsx",
+            "frontend/app/(main)/statements/components/payables/PayablesView.tsx",
+            "frontend/app/(main)/statements/components/payables/markPaidDialog.content.ts",
+            "frontend/app/lib/apiErrors.content.ts",
+            "frontend/app/lib/payables-api.ts",
+            "frontend/app/lib/query-keys.ts"
+          ]
+        },
+        {
+          "sha": "c26151fa735bc71db0e9f8c100b9e0745c7653b8",
+          "shortSha": "c26151fa",
+          "subject": "feat(ledger): revalue foreign-currency balances on request",
+          "author": "Symon Baikov",
+          "date": "2026-09-24T14:20:24+03:00",
+          "files": [
+            "backend/@tests/integration/ledger-revaluation.spec.ts",
+            "backend/@tests/unit/migrations/allow-ledger-revaluation-lines.migration.spec.ts",
+            "backend/@tests/unit/modules/ledger/ledger-posting.rules.spec.ts",
+            "backend/src/common/errors/app-error.ts",
+            "backend/src/migrations/1786470000000-AllowLedgerRevaluationLines.ts",
+            "backend/src/modules/ledger/dto/revalue-ledger.dto.ts",
+            "backend/src/modules/ledger/ledger-posting.rules.ts",
+            "backend/src/modules/ledger/ledger-posting.service.ts",
+            "backend/src/modules/ledger/ledger-revaluation.service.ts",
+            "backend/src/modules/ledger/ledger-revaluations.controller.ts",
+            "backend/src/modules/ledger/ledger-sync.service.ts",
+            "backend/src/modules/ledger/ledger.module.ts",
+            "frontend/app/(main)/ledger/components/JournalTab.tsx",
+            "frontend/app/(main)/ledger/components/LedgerFreshness.tsx",
+            "frontend/app/(main)/ledger/components/RevaluationButton.tsx",
+            "frontend/app/(main)/ledger/hooks/useLedger.ts",
+            "frontend/app/(main)/ledger/ledger.types.ts",
+            "frontend/app/(main)/ledger/page.content.ts",
+            "frontend/app/lib/apiErrors.content.ts"
+          ]
+        },
+        {
+          "sha": "83260b1a9cb8a8deebbf6091c9d828ebe168a4f7",
+          "shortSha": "83260b1a",
+          "subject": "docs: describe wallet openings, crypto, revaluation and bill payments",
+          "author": "Symon Baikov",
+          "date": "2026-09-24T14:21:21+03:00",
+          "files": [
+            "README.md",
+            "website/docs/reference/api.md"
+          ]
+        },
+        {
+          "sha": "2478152446a04f42be81abf90e9fbb98958ef287",
+          "shortSha": "24781524",
+          "subject": "fix: issues the UI walkthrough of the ledger gaps turned up",
+          "author": "Symon Baikov",
+          "date": "2026-09-24T14:35:04+03:00",
+          "files": [
+            "backend/@tests/integration/ledger-revaluation.spec.ts",
+            "backend/@tests/unit/modules/wallets/wallets.controller.spec.ts",
+            "backend/@tests/unit/modules/wallets/wallets.service.spec.ts",
+            "backend/src/modules/ledger/ledger-revaluation.service.ts",
+            "backend/src/modules/wallets/wallets.controller.ts",
+            "backend/src/modules/wallets/wallets.service.ts",
+            "frontend/app/(main)/statements/components/payables/MarkPaidFields.tsx"
+          ]
+        },
+        {
+          "sha": "5d06dccbd8c08de14b8ad3e4247046d0c36c928c",
+          "shortSha": "5d06dccb",
+          "subject": "fix: defects the behaviour review of the ledger gaps confirmed",
+          "author": "Symon Baikov",
+          "date": "2026-09-24T14:51:44+03:00",
+          "files": [
+            "backend/@tests/integration/ledger-sync.spec.ts",
+            "backend/@tests/integration/payables-payment.spec.ts",
+            "backend/@tests/unit/migrations/add-ledger-openings-dirty.migration.spec.ts",
+            "backend/scripts/cleanup-misdated-rates.ts",
+            "backend/src/migrations/1786450000000-AddLedgerOpeningsDirty.ts",
+            "backend/src/modules/ledger/ledger-posting.service.ts",
+            "backend/src/modules/ledger/ledger-sync.service.ts",
+            "backend/src/modules/payables/payables.service.ts",
+            "frontend/app/(main)/statements/components/payables/MarkPaidDialog.tsx"
+          ]
+        },
+        {
+          "sha": "b01f748f3b70300c4f22c6dfdc584ff7c6a46fc4",
+          "shortSha": "b01f748f",
+          "subject": "chore(claude): add a behaviour-first code-reviewer agent",
+          "author": "Symon Baikov",
+          "date": "2026-09-24T14:54:06+03:00",
+          "files": [
+            ".claude/agents/code-reviewer.md"
+          ]
+        },
+        {
+          "sha": "8453dbeee63d9497a0dc5cc3acb90a42f4daa1c8",
+          "shortSha": "8453dbee",
+          "subject": "fix(deps): bump adm-zip to 0.6.1 to clear GHSA-7q85-xj36-vmfc",
+          "author": "Symon Baikov",
+          "date": "2026-09-24T15:16:57+03:00",
+          "files": [
+            "backend/audit-ci.json",
+            "backend/package-lock.json",
+            "backend/package.json"
+          ]
+        },
+        {
+          "sha": "c74d1838ea080dd4c57075ddda91d3108dfc55d5",
+          "shortSha": "c74d1838",
+          "subject": "Merge pull request #181 from symonbaikov/feat/ledger",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T14:44:46+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-23-3c73584",
       "version": "main-3c73584",
