@@ -13,6 +13,7 @@ import {
   PiggyBank,
   Plug,
   Puzzle,
+  Scale,
   ScrollText,
   Sparkles,
   Table,
@@ -47,6 +48,7 @@ export function buildNavItems(nav: {
   roi: unknown;
   subscriptions: unknown;
   crypto: unknown;
+  ledger: unknown;
 }): NavItem[] {
   return [
     {
@@ -78,6 +80,14 @@ export function buildNavItems(nav: {
       path: '/reports',
       icon: React.createElement(BarChart2, { size: 18 }),
       permission: 'statement.view',
+    },
+    {
+      label: nav.ledger as ReactNode,
+      path: '/ledger',
+      icon: React.createElement(Scale, { size: 18 }),
+      permission: 'ledger.view',
+      // Behind experimental mode until the ledger has been used on real books for a while.
+      experimental: true,
     },
     {
       label: nav.taxDeclaration as ReactNode,

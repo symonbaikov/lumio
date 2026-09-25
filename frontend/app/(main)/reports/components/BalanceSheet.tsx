@@ -53,6 +53,8 @@ type BalanceSheetResponse = {
   };
   difference: number;
   isBalanced: boolean;
+  /** Currencies left out of the totals because no exchange rate was found. */
+  missingRates?: string[];
 };
 
 const resolveLocale = (locale: string): string => {
@@ -594,6 +596,12 @@ function BalanceSheet(): React.JSX.Element {
       )}
 
       {balanceWarning && <Alert severity="warning">{balanceWarning}</Alert>}
+
+      {sheet?.missingRates && sheet.missingRates.length > 0 && (
+        <Alert severity="warning">
+          {`${text('missingRates', 'No exchange rate, left out of the totals')}: ${sheet.missingRates.join(', ')}`}
+        </Alert>
+      )}
 
       {sheetQuery.isPending ? (
         <Box

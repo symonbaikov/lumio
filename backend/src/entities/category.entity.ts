@@ -81,6 +81,14 @@ export class Category {
   @Column({ nullable: true })
   icon: string | null;
 
+  /**
+   * The income or expense account this category books to. Set on root
+   * categories when the chart is seeded; a child without one books to its
+   * parent's account.
+   */
+  @Column({ name: 'ledger_account_id', type: 'uuid', nullable: true })
+  ledgerAccountId: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

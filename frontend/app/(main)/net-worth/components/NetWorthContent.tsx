@@ -1,5 +1,6 @@
 'use client';
 
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import ToggleButton from '@mui/material/ToggleButton';
@@ -143,6 +144,12 @@ export function NetWorthContent() {
                 {t.overPeriod}
               </Typography>
             </Box>
+
+            {data.missingRates && data.missingRates.length > 0 && (
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                {`${t.missingRates.value}: ${data.missingRates.join(', ')}`}
+              </Alert>
+            )}
 
             {hasData ? (
               <Box sx={{ mt: 2 }}>

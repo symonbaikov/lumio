@@ -10,10 +10,12 @@ import { Button } from '@/app/components/ui/button';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import { getApiErrorMessage } from '@/app/lib/api-error';
 import {
   type CreatePayableInput,
   type ExportPayablesParams,
   type ListPayablesParams,
+  type MarkPayablePaidInput,
   type Payable,
   type PayableDirection,
   type PayablesExportFormat,
@@ -24,6 +26,7 @@ import {
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import { tokens } from '@/lib/theme-tokens';
 import { CreatePayableDrawer } from './CreatePayableDrawer';
+import { MarkPaidDialog } from './MarkPaidDialog';
 import PayableFiltersBar from './PayableFiltersBar';
 import PayableSummaryCards from './PayableSummaryCards';
 import PayablesList from './PayablesList';
@@ -196,6 +199,7 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
   const [editingPayable, setEditingPayable] = useState<Payable | null>(null);
   const [saving, setSaving] = useState(false);
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+  const [payingPayable, setPayingPayable] = useState<Payable | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [exporting, setExporting] = useState<PayablesExportFormat | null>(null);
@@ -531,15 +535,24 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
   };
 
   const handleMarkPaid = async (payable: Payable): Promise<void> => {
+    setPayingPayable(payable);
+  };
+
+  const confirmMarkPaid = async (
+    payable: Payable,
+    payload: MarkPayablePaidInput,
+  ): Promise<void> => {
     setMarkingPaidId(payable.id);
 
     await (async () => {
-      await payablesApi.markAsPaid(payable.id);
+      await payablesApi.markAsPaid(payable.id, payload);
+      setPayingPayable(null);
       toast.success(labels.toasts.markPaidSuccess);
       await loadData({ silent: true });
     })()
       .catch(async error => {
-        toast.error(getErrorMessage(error, labels.toasts.markPaidFailed));
+        // The payment refusals are coded, so they read in the user's language.
+        toast.error(getApiErrorMessage(error, labels.toasts.markPaidFailed));
       })
       .finally(async () => {
         setMarkingPaidId(null);
@@ -763,6 +776,13 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
           />
         </div>
       </div>
+
+      <MarkPaidDialog
+        payable={payingPayable}
+        submitting={markingPaidId !== null}
+        onClose={() => setPayingPayable(null)}
+        onConfirm={(payable, payload) => void confirmMarkPaid(payable, payload)}
+      />
 
       <CreatePayableDrawer
         open={drawerOpen}

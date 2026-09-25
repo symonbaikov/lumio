@@ -1,20 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, type Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 import {
   BalanceAccount,
   BalanceAccountType,
   BalanceSnapshot,
   CapitalRole,
   RiskLevel,
-  Statement,
-  StatementStatus,
   Transaction,
-  Wallet,
   Workspace,
-  WorkspaceMember,
 } from '../../entities';
 import { BalanceService, CASH_ACCOUNT_CODE } from '../balance/balance.service';
+import { CurrencyConverter, normalizeCurrencyCode } from '../exchange-rates/currency-converter';
+import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import type { NetWorthRange } from './dto/net-worth-query.dto';
 
 export interface NetWorthPoint {
@@ -64,6 +62,8 @@ export interface NetWorthResponse {
   /** Share of assets sitting in medium or high risk. */
   riskyPercent: number;
   assetLines: NetWorthAssetLine[];
+  /** Currencies left out of the figures because no rate to `currency` was found. */
+  missingRates: string[];
 }
 
 /** Days back from today for each range. `all` is resolved from the data. */
@@ -101,17 +101,12 @@ export class NetWorthService {
     private readonly balanceAccountRepository: Repository<BalanceAccount>,
     @InjectRepository(BalanceSnapshot)
     private readonly balanceSnapshotRepository: Repository<BalanceSnapshot>,
-    @InjectRepository(Wallet)
-    private readonly walletRepository: Repository<Wallet>,
     @InjectRepository(Transaction)
     private readonly transactionRepository: Repository<Transaction>,
-    @InjectRepository(Statement)
-    private readonly statementRepository: Repository<Statement>,
-    @InjectRepository(WorkspaceMember)
-    private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     @InjectRepository(Workspace)
     private readonly workspaceRepository: Repository<Workspace>,
     private readonly balanceService: BalanceService,
+    private readonly exchangeRatesService: ExchangeRatesService,
   ) {}
 
   async getNetWorth(
@@ -128,17 +123,41 @@ export class NetWorthService {
     const [accounts, snapshots, cashByDate, currency] = await Promise.all([
       this.balanceAccountRepository.find({ where: { workspaceId } }),
       this.loadSnapshots(workspaceId, to),
-      this.loadCashSeries(workspaceId, dates),
+      this.balanceService.getCashSeries(workspaceId, dates),
       this.resolveCurrency(workspaceId),
     ]);
 
     const leaves = findLeaves(accounts);
     const snapshotsByAccount = groupSnapshots(snapshots);
 
-    const valueAt = (accountId: string, code: string, date: string): number =>
-      code === CASH_ACCOUNT_CODE
-        ? (cashByDate.get(date) ?? 0)
-        : latestOnOrBefore(snapshotsByAccount.get(accountId), date);
+    // Each point is converted at the rate of its own day.
+    const snapshotCurrencies = [
+      ...new Set(snapshots.map(snapshot => normalizeCurrencyCode(snapshot.currency || currency))),
+    ];
+    const converter = await CurrencyConverter.load(
+      this.exchangeRatesService,
+      currency,
+      dates.flatMap(date =>
+        [...(cashByDate.get(date)?.keys() ?? []), ...snapshotCurrencies].map(code => ({
+          currency: code,
+          date,
+        })),
+      ),
+    );
+
+    const valueAt = (accountId: string, code: string, date: string): number => {
+      if (code === CASH_ACCOUNT_CODE) {
+        return converter.convertAll(cashByDate.get(date) ?? new Map(), date);
+      }
+      const snapshot = latestOnOrBefore(snapshotsByAccount.get(accountId), date);
+      return snapshot
+        ? converter.convert(
+            toNumber(snapshot.amount),
+            normalizeCurrencyCode(snapshot.currency || currency),
+            date,
+          )
+        : 0;
+    };
 
     const series = dates.map(date => {
       let assets = 0;
@@ -210,6 +229,7 @@ export class NetWorthService {
           .reduce((sum, item) => sum + item.percent, 0),
       ),
       assetLines,
+      missingRates: converter.missing,
     };
   }
 
@@ -301,137 +321,17 @@ export class NetWorthService {
   private async loadSnapshots(workspaceId: string, to: string): Promise<BalanceSnapshot[]> {
     return this.balanceSnapshotRepository
       .createQueryBuilder('snapshot')
-      .select(['snapshot.accountId', 'snapshot.snapshotDate', 'snapshot.amount'])
+      .select([
+        'snapshot.accountId',
+        'snapshot.snapshotDate',
+        'snapshot.amount',
+        'snapshot.currency',
+      ])
       .where('snapshot.workspaceId = :workspaceId', { workspaceId })
       .andWhere('snapshot.snapshotDate <= :to', { to })
       .orderBy('snapshot.snapshotDate', 'ASC')
       .addOrderBy('snapshot.updatedAt', 'ASC')
       .getMany();
-  }
-
-  /**
-   * Cash at each sample date, in one pass instead of one query per point.
-   *
-   * The historical points follow the same rule as the balance sheet's cash
-   * line — wallets when the workspace has any, the latest bank statement
-   * otherwise — but they are a second implementation of it, so today's point
-   * is overwritten with BalanceService's own answer. That keeps the headline
-   * number, the one a user checks against the balance sheet, identical by
-   * construction; only the shape of the line behind it is computed here.
-   */
-  private async loadCashSeries(workspaceId: string, dates: string[]): Promise<Map<string, number>> {
-    const series = await this.loadHistoricalCashSeries(workspaceId, dates);
-
-    const to = dates[dates.length - 1];
-    series.set(to, await this.balanceService.getCashBalance(workspaceId, to));
-
-    return series;
-  }
-
-  private async loadHistoricalCashSeries(
-    workspaceId: string,
-    dates: string[],
-  ): Promise<Map<string, number>> {
-    const members = await this.workspaceMemberRepository.find({
-      where: { workspaceId },
-      select: ['userId'],
-    });
-    const memberIds = [...new Set(members.map(member => member.userId))];
-
-    // Обязательно фильтруем по workspaceId: участник может состоять в нескольких
-    // воркспейсах, и без фильтра сюда утекали бы кошельки чужого тенанта.
-    const wallets =
-      memberIds.length > 0
-        ? await this.walletRepository.find({
-            where: { workspaceId, userId: In(memberIds), isActive: true },
-            select: ['id', 'initialBalance'],
-          })
-        : [];
-
-    return wallets.length > 0
-      ? this.loadWalletCashSeries(workspaceId, wallets, dates)
-      : this.loadStatementCashSeries(workspaceId, dates);
-  }
-
-  private async loadWalletCashSeries(
-    workspaceId: string,
-    wallets: Array<Pick<Wallet, 'id' | 'initialBalance'>>,
-    dates: string[],
-  ): Promise<Map<string, number>> {
-    const walletIds = wallets.map(wallet => wallet.id);
-    const initialBalance = wallets.reduce(
-      (sum, wallet) => sum + toNumber(wallet.initialBalance),
-      0,
-    );
-    const to = dates[dates.length - 1];
-
-    const rows = await this.transactionRepository
-      .createQueryBuilder('transaction')
-      .select('transaction.transactionDate', 'date')
-      .addSelect('COALESCE(SUM(transaction.credit), 0)', 'credit')
-      .addSelect('COALESCE(SUM(transaction.debit), 0)', 'debit')
-      .where('transaction.workspaceId = :workspaceId', { workspaceId })
-      .andWhere('transaction.walletId IN (:...walletIds)', { walletIds })
-      .andWhere('transaction.transactionDate <= :to', { to })
-      .groupBy('transaction.transactionDate')
-      .orderBy('transaction.transactionDate', 'ASC')
-      .getRawMany<{ date: string; credit: string; debit: string }>();
-
-    const deltas = rows.map(row => ({
-      date: isoDate(new Date(row.date)),
-      delta: toNumber(row.credit) - toNumber(row.debit),
-    }));
-
-    const series = new Map<string, number>();
-    let running = initialBalance;
-    let index = 0;
-    for (const date of dates) {
-      while (index < deltas.length && deltas[index].date <= date) {
-        running += deltas[index].delta;
-        index += 1;
-      }
-      series.set(date, round2(running));
-    }
-
-    return series;
-  }
-
-  private async loadStatementCashSeries(
-    workspaceId: string,
-    dates: string[],
-  ): Promise<Map<string, number>> {
-    const rows = await this.statementRepository
-      .createQueryBuilder('statement')
-      .select('statement.statementDateTo', 'date')
-      .addSelect('statement.balanceEnd', 'balanceEnd')
-      .addSelect('statement.createdAt', 'createdAt')
-      .where('statement.workspaceId = :workspaceId', { workspaceId })
-      .andWhere('statement.balanceEnd IS NOT NULL')
-      .andWhere('statement.statementDateTo IS NOT NULL')
-      .andWhere('statement.status IN (:...statuses)', {
-        statuses: [StatementStatus.PARSED, StatementStatus.VALIDATED, StatementStatus.COMPLETED],
-      })
-      .orderBy('statement.statementDateTo', 'ASC')
-      .addOrderBy('statement.createdAt', 'ASC')
-      .getRawMany<{ date: string; balanceEnd: string; createdAt: string }>();
-
-    const balances = rows.map(row => ({
-      date: isoDate(new Date(row.date)),
-      value: toNumber(row.balanceEnd),
-    }));
-
-    const series = new Map<string, number>();
-    let latest = 0;
-    let index = 0;
-    for (const date of dates) {
-      while (index < balances.length && balances[index].date <= date) {
-        latest = balances[index].value;
-        index += 1;
-      }
-      series.set(date, round2(latest));
-    }
-
-    return series;
   }
 }
 
@@ -494,19 +394,18 @@ function groupSnapshots(snapshots: BalanceSnapshot[]): Map<string, BalanceSnapsh
 }
 
 /** Forward fill: an account holds its last entered value until the next one. */
-function latestOnOrBefore(snapshots: BalanceSnapshot[] | undefined, date: string): number {
-  if (!snapshots) {
-    return 0;
-  }
-
-  let value = 0;
-  for (const snapshot of snapshots) {
+function latestOnOrBefore(
+  snapshots: BalanceSnapshot[] | undefined,
+  date: string,
+): BalanceSnapshot | null {
+  let latest: BalanceSnapshot | null = null;
+  for (const snapshot of snapshots ?? []) {
     if (isoDate(new Date(snapshot.snapshotDate)) > date) {
       break;
     }
-    value = toNumber(snapshot.amount);
+    latest = snapshot;
   }
-  return value;
+  return latest;
 }
 
 /** `count` evenly spaced dates from `from` to `to`, inclusive of both ends. */

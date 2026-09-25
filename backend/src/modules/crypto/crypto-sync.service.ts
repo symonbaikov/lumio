@@ -196,7 +196,8 @@ export class CryptoSyncService {
 
   /**
    * Returns true when a new row was written. A transfer we already hold, or one
-   * whose asset cannot be priced, is skipped rather than booked at zero.
+   * whose asset or USD value cannot be priced, is skipped rather than booked at
+   * zero or at a made-up 1:1 rate; the next sync tries it again.
    */
   private async persistTransfer(
     wallet: CryptoWallet,
@@ -209,9 +210,12 @@ export class CryptoSyncService {
       return false;
     }
 
+    const usdRate = await this.exchangeRatesService.getRateOrNull('USD', currency, date);
+    if (usdRate === null) {
+      return false;
+    }
     const usdValue = Number(transfer.amount) * usdPrice;
-    const { converted } = await this.exchangeRatesService.convert(usdValue, 'USD', currency, date);
-    const fiatAmount = Math.round(converted * 100) / 100;
+    const fiatAmount = Math.round(usdValue * usdRate * 100) / 100;
     const isIncome = transfer.direction === 'in';
 
     const result = await this.transactionRepo

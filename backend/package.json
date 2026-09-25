@@ -38,7 +38,8 @@
     "parse:diff": "ts-node -r tsconfig-paths/register scripts/parse-diff.ts",
     "storage:verify": "ts-node -r tsconfig-paths/register scripts/storage-verify.ts",
     "storage:repair": "ts-node -r tsconfig-paths/register scripts/storage-verify.ts --repair",
-    "cleanup:gmail-receipts": "ts-node -r tsconfig-paths/register scripts/cleanup-gmail-receipts.ts"
+    "cleanup:gmail-receipts": "ts-node -r tsconfig-paths/register scripts/cleanup-gmail-receipts.ts",
+    "cleanup:misdated-rates": "ts-node -r tsconfig-paths/register scripts/cleanup-misdated-rates.ts"
   },
   "keywords": [],
   "author": "",
@@ -66,7 +67,7 @@
     "@nestjs/websockets": "^11.1.13",
     "@react-email/components": "^1.0.4",
     "@react-email/render": "^2.0.2",
-    "adm-zip": "^0.6.0",
+    "adm-zip": "^0.6.1",
     "archiver": "^7.0.1",
     "bcrypt": "^6.0.0",
     "bullmq": "^6.1.2",
@@ -152,7 +153,7 @@
     },
     "multer": "^2.3.0",
     "sharp": "^0.35.4",
-    "adm-zip": "^0.6.0",
+    "adm-zip": "^0.6.1",
     "deepmerge-ts": "^8.0.1"
   }
 }

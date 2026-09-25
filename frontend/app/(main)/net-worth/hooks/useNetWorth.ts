@@ -63,6 +63,8 @@ export interface NetWorthData {
   byRole: NetWorthClassificationItem[];
   riskyPercent: number;
   assetLines: NetWorthAssetLine[];
+  /** Currencies left out of the figures because no exchange rate was found. */
+  missingRates?: string[];
 }
 
 export type ClassificationPatch = {

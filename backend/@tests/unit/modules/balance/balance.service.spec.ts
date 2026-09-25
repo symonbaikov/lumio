@@ -3,6 +3,26 @@ import { DEFAULT_BALANCE_ACCOUNTS } from '@/modules/balance/balance-default-acco
 import { BalanceService } from '@/modules/balance/balance.service';
 import { BadRequestException } from '@nestjs/common';
 
+/** A chainable query builder that answers `getRawMany` with `rows`. */
+function queryBuilderReturning(rows: unknown[]) {
+  const builder: any = {};
+  for (const method of [
+    'leftJoin',
+    'select',
+    'addSelect',
+    'where',
+    'andWhere',
+    'groupBy',
+    'addGroupBy',
+    'orderBy',
+    'addOrderBy',
+  ]) {
+    builder[method] = jest.fn(() => builder);
+  }
+  builder.getRawMany = jest.fn(async () => rows);
+  return builder;
+}
+
 function createRepoMock() {
   // seedDefaultAccounts() сидит в транзакции; менеджер прокидывает вызовы
   // в тот же мок-репозиторий, чтобы ассерты не менялись.
@@ -33,6 +53,7 @@ describe('BalanceService', () => {
   const workspaceMemberRepository = createRepoMock();
   const workspaceRepository = createRepoMock();
   const auditService = { createEvent: jest.fn() } as any;
+  const exchangeRatesService = { getRateOrNull: jest.fn() } as any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -48,6 +69,7 @@ describe('BalanceService', () => {
       workspaceMemberRepository,
       workspaceRepository,
       auditService,
+      exchangeRatesService,
     );
   });
 
@@ -145,8 +167,10 @@ describe('BalanceService', () => {
     jest
       .spyOn(service as any, 'getLatestSnapshotMap')
       .mockResolvedValue(new Map([['asset-fixed', { amount: 100 } as BalanceSnapshot]]));
-    jest.spyOn(service as any, 'getAutoComputedCashBalance').mockResolvedValue(300);
-    jest.spyOn(service as any, 'getRetainedEarnings').mockResolvedValue(400);
+    jest
+      .spyOn(service as any, 'getAutoComputedCashBalance')
+      .mockResolvedValue(new Map([['KZT', 300]]));
+    jest.spyOn(service as any, 'getRetainedEarnings').mockResolvedValue(new Map([['KZT', 400]]));
 
     const result = await service.getBalanceSheet('ws-1', '2026-02-15');
 
@@ -177,8 +201,10 @@ describe('BalanceService', () => {
     ]);
 
     jest.spyOn(service as any, 'getLatestSnapshotMap').mockResolvedValue(new Map());
-    jest.spyOn(service as any, 'getAutoComputedCashBalance').mockResolvedValue(1000);
-    jest.spyOn(service as any, 'getRetainedEarnings').mockResolvedValue(0);
+    jest
+      .spyOn(service as any, 'getAutoComputedCashBalance')
+      .mockResolvedValue(new Map([['KZT', 1000]]));
+    jest.spyOn(service as any, 'getRetainedEarnings').mockResolvedValue(new Map());
 
     const resultEn = await service.getBalanceSheet('ws-1', '2026-04-02', 'en');
     expect(resultEn.assets.sections[0].name).toBe('III. Cash');
@@ -211,8 +237,10 @@ describe('BalanceService', () => {
     ]);
 
     jest.spyOn(service as any, 'getLatestSnapshotMap').mockResolvedValue(new Map());
-    jest.spyOn(service as any, 'getAutoComputedCashBalance').mockResolvedValue(1000);
-    jest.spyOn(service as any, 'getRetainedEarnings').mockResolvedValue(0);
+    jest
+      .spyOn(service as any, 'getAutoComputedCashBalance')
+      .mockResolvedValue(new Map([['KZT', 1000]]));
+    jest.spyOn(service as any, 'getRetainedEarnings').mockResolvedValue(new Map());
 
     const payload = await service.exportBalanceSheet(
       'ws-1',
@@ -228,6 +256,112 @@ describe('BalanceService', () => {
     expect(rows[2][2]).toContain('Liabilities');
     expect(rows[rows.length - 2][0]).toBe('Total');
     expect(rows[rows.length - 1][0]).toBe('Difference');
+  });
+
+  describe('currencies', () => {
+    const cashLeaf = {
+      id: 'asset-cash',
+      code: 'ASSET_CASH',
+      name: 'Cash',
+      accountType: BalanceAccountType.ASSET,
+      subType: BalanceAccountSubType.CASH,
+      isEditable: false,
+      isAutoComputed: true,
+      isExpandable: false,
+      position: 0,
+      parentId: null,
+      createdAt: new Date(),
+    };
+    const fixedLeaf = {
+      ...cashLeaf,
+      id: 'asset-fixed',
+      code: 'ASSET_FIXED',
+      name: 'Fixed',
+      subType: BalanceAccountSubType.NON_CURRENT_ASSET,
+      isEditable: true,
+      isAutoComputed: false,
+      position: 1,
+    };
+
+    beforeEach(() => {
+      balanceAccountRepository.count.mockResolvedValue(2);
+      balanceAccountRepository.find.mockResolvedValue([cashLeaf, fixedLeaf]);
+      jest.spyOn(service as any, 'getRetainedEarnings').mockResolvedValue(new Map());
+    });
+
+    it('converts cash and snapshots into the workspace currency at the report date', async () => {
+      jest
+        .spyOn(service as any, 'getAutoComputedCashBalance')
+        .mockResolvedValue(new Map([['KZT', 1000], ['USD', 10]]));
+      jest
+        .spyOn(service as any, 'getLatestSnapshotMap')
+        .mockResolvedValue(new Map([['asset-fixed', { amount: '20', currency: 'EUR' }]]));
+      exchangeRatesService.getRateOrNull.mockImplementation(async (from: string) =>
+        from === 'USD' ? 450 : 500,
+      );
+
+      const result = await service.getBalanceSheet('ws-1', '2026-02-15');
+
+      expect(result.assets.total).toBe(1000 + 10 * 450 + 20 * 500);
+      expect(result.missingRates).toEqual([]);
+      expect(exchangeRatesService.getRateOrNull).toHaveBeenCalledWith('USD', 'KZT', '2026-02-15');
+      expect(exchangeRatesService.getRateOrNull).toHaveBeenCalledWith('EUR', 'KZT', '2026-02-15');
+    });
+
+    it('leaves out an amount without a rate instead of counting it 1:1', async () => {
+      jest
+        .spyOn(service as any, 'getAutoComputedCashBalance')
+        .mockResolvedValue(new Map([['KZT', 1000], ['CHF', 10]]));
+      jest.spyOn(service as any, 'getLatestSnapshotMap').mockResolvedValue(new Map());
+      exchangeRatesService.getRateOrNull.mockResolvedValue(null);
+
+      const result = await service.getBalanceSheet('ws-1', '2026-02-15');
+
+      expect(result.assets.total).toBe(1000);
+      expect(result.missingRates).toEqual(['CHF']);
+    });
+  });
+
+  describe('getCashSeries', () => {
+    beforeEach(() => {
+      workspaceMemberRepository.find.mockResolvedValue([{ userId: 'user-1' }]);
+    });
+
+    it('keeps wallet balances per currency and skips rows of trashed statements', async () => {
+      walletRepository.find.mockResolvedValue([
+        { id: 'w-kzt', initialBalance: '100', currency: 'KZT' },
+        { id: 'w-usd', initialBalance: '5', currency: 'usd' },
+      ]);
+      const builder = queryBuilderReturning([
+        { date: '2026-01-10', currency: 'KZT', credit: '50', debit: '20' },
+        { date: '2026-02-10', currency: 'USD', credit: '0', debit: '2' },
+      ]);
+      transactionRepository.createQueryBuilder.mockReturnValue(builder);
+
+      const series = await service.getCashSeries('ws-1', ['2026-01-31', '2026-02-28']);
+
+      expect(series.get('2026-01-31')).toEqual(new Map([['KZT', 130], ['USD', 5]]));
+      expect(series.get('2026-02-28')).toEqual(new Map([['KZT', 130], ['USD', 3]]));
+      expect(builder.andWhere).toHaveBeenCalledWith(
+        '(transaction.statementId IS NULL OR statement.deletedAt IS NULL)',
+      );
+    });
+
+    it('sums the latest live statement of each bank account', async () => {
+      walletRepository.find.mockResolvedValue([]);
+      const builder = queryBuilderReturning([
+        { bankName: 'bank', accountNumber: 'A', currency: 'EUR', balanceEnd: '100', date: '2026-01-31' },
+        { bankName: 'bank', accountNumber: 'B', currency: 'KZT', balanceEnd: '7000', date: '2026-01-31' },
+        { bankName: 'bank', accountNumber: 'A', currency: 'EUR', balanceEnd: '150', date: '2026-02-28' },
+      ]);
+      statementRepository.createQueryBuilder.mockReturnValue(builder);
+
+      const series = await service.getCashSeries('ws-1', ['2026-02-01', '2026-03-01']);
+
+      expect(series.get('2026-02-01')).toEqual(new Map([['EUR', 100], ['KZT', 7000]]));
+      expect(series.get('2026-03-01')).toEqual(new Map([['EUR', 150], ['KZT', 7000]]));
+      expect(builder.andWhere).toHaveBeenCalledWith('statement.deletedAt IS NULL');
+    });
   });
 
   it('rejects updates for non-editable accounts', async () => {

@@ -24,6 +24,9 @@ export const queryKeys = {
   transactions: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
     ['transactions', o.workspaceId, o.params] as const,
   categories: (workspaceId: string | null) => ['categories', workspaceId] as const,
+  wallets: (workspaceId: string | null) => ['wallets', workspaceId] as const,
+  payablePaymentCandidates: (o: { workspaceId: string | null; payableId: string }) =>
+    ['payables', o.workspaceId, o.payableId, 'payment-candidates'] as const,
   // Tile-server configuration is the same in every workspace, hence no workspace segment.
   mapStyles: () => ['map-styles'] as const,
   categoryUsage: (workspaceId: string | null) => ['categories', workspaceId, 'usage'] as const,
@@ -81,4 +84,20 @@ export const queryKeys = {
   noteCounts: (o: { workspaceId: string | null; entityType: string; entityIds: string[] }) =>
     ['notes', 'counts', o.workspaceId, o.entityType, o.entityIds] as const,
   workspaceMembers: (workspaceId: string | null) => ['workspace-members', workspaceId] as const,
+  // Every ledger key starts ['ledger', workspaceId]: one invalidation refreshes the whole ledger
+  // after a posting, since an entry moves the journal, the reports and the backlog at once.
+  ledgerSettings: (workspaceId: string | null) => ['ledger', workspaceId, 'settings'] as const,
+  ledgerIntegrity: (workspaceId: string | null) => ['ledger', workspaceId, 'integrity'] as const,
+  ledgerAccounts: (workspaceId: string | null) => ['ledger', workspaceId, 'accounts'] as const,
+  ledgerEntries: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
+    ['ledger', o.workspaceId, 'entries', o.params] as const,
+  ledgerEntry: (o: { workspaceId: string | null; id: string | null }) =>
+    ['ledger', o.workspaceId, 'entry', o.id] as const,
+  ledgerTrialBalance: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
+    ['ledger', o.workspaceId, 'trial-balance', o.params] as const,
+  ledgerAccountCard: (o: {
+    workspaceId: string | null;
+    accountId: string | null;
+    params: Record<string, unknown>;
+  }) => ['ledger', o.workspaceId, 'account-card', o.accountId, o.params] as const,
 } as const;

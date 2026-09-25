@@ -17,10 +17,10 @@ export class WalletsController {
   @WorkspaceAuth(Permission.WALLET_CREATE)
   async create(
     @Body() createDto: CreateWalletDto,
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
   ) {
-    return this.walletsService.create(workspaceId, createDto);
+    return this.walletsService.create(workspaceId, user.id, createDto);
   }
 
   @Get()

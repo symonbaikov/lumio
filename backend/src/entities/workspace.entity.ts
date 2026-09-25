@@ -36,6 +36,13 @@ export class Workspace {
   currency: string | null;
 
   /**
+   * Currency the double-entry ledger balances in. NULL means the ledger is off
+   * for this workspace; it is chosen explicitly when the ledger is enabled.
+   */
+  @Column({ name: 'ledger_base_currency', type: 'varchar', length: 10, nullable: true })
+  ledgerBaseCurrency: string | null;
+
+  /**
    * Tax jurisdiction this workspace files in. NULL means tax is not configured,
    * which is the state every pre-existing workspace starts in.
    */

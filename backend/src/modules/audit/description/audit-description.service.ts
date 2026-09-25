@@ -64,6 +64,8 @@ const ENTITY_LABELS_EN: Record<EntityType, string> = {
   [EntityType.CUSTOM_TABLE_COLUMN]: 'table column',
   [EntityType.BUDGET]: 'budget',
   [EntityType.SUBSCRIPTION]: 'subscription',
+  [EntityType.LEDGER_ACCOUNT]: 'ledger account',
+  [EntityType.JOURNAL_ENTRY]: 'journal entry',
 };
 
 const FIELD_LABELS_EN: Partial<Record<EntityType, Record<string, string>>> = {

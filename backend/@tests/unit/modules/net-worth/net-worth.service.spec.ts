@@ -18,6 +18,7 @@ interface SnapshotSeed {
   accountId: string;
   snapshotDate: string;
   amount: number;
+  currency?: string;
 }
 
 /** The default chart of accounts, trimmed to what these tests care about. */
@@ -39,8 +40,10 @@ function daysAgo(days: number): string {
 function createService(options: {
   accounts?: AccountSeed[];
   snapshots?: SnapshotSeed[];
-  cashBalance?: number;
-  walletCash?: { initialBalance: number; deltas: Array<{ date: string; credit: number; debit: number }> };
+  /** Cash per currency, the same at every sample date. */
+  cash?: Record<string, number>;
+  /** Rate to KZT by currency; absent means no rate. */
+  rates?: Record<string, number | ((date: string) => number)>;
 }) {
   const accounts = (options.accounts ?? ACCOUNTS).map(account => ({
     parentId: null,
@@ -53,8 +56,7 @@ function createService(options: {
     ...account,
   }));
 
-  const snapshots = (options.snapshots ?? []).map(snapshot => ({ ...snapshot }));
-  const hasWallets = options.walletCash !== undefined;
+  const snapshots = (options.snapshots ?? []).map(snapshot => ({ currency: 'KZT', ...snapshot }));
 
   const snapshotQueryBuilder: any = {
     select: jest.fn(() => snapshotQueryBuilder),
@@ -68,53 +70,35 @@ function createService(options: {
 
   const transactionQueryBuilder: any = {
     select: jest.fn(() => transactionQueryBuilder),
-    addSelect: jest.fn(() => transactionQueryBuilder),
     where: jest.fn(() => transactionQueryBuilder),
-    andWhere: jest.fn(() => transactionQueryBuilder),
-    groupBy: jest.fn(() => transactionQueryBuilder),
-    orderBy: jest.fn(() => transactionQueryBuilder),
-    addOrderBy: jest.fn(() => transactionQueryBuilder),
-    getRawMany: jest.fn(async () =>
-      (options.walletCash?.deltas ?? []).map(delta => ({
-        date: delta.date,
-        credit: String(delta.credit),
-        debit: String(delta.debit),
-      })),
-    ),
     getRawOne: jest.fn(async () => ({ earliest: null })),
-  };
-
-  const statementQueryBuilder: any = {
-    select: jest.fn(() => statementQueryBuilder),
-    addSelect: jest.fn(() => statementQueryBuilder),
-    where: jest.fn(() => statementQueryBuilder),
-    andWhere: jest.fn(() => statementQueryBuilder),
-    orderBy: jest.fn(() => statementQueryBuilder),
-    addOrderBy: jest.fn(() => statementQueryBuilder),
-    getRawMany: jest.fn(async () => []),
   };
 
   const balanceService = {
     seedDefaultAccounts: jest.fn(async () => undefined),
-    getCashBalance: jest.fn(async () => options.cashBalance ?? 0),
+    getCashSeries: jest.fn(
+      async (_workspaceId: string, dates: string[]) =>
+        new Map(dates.map(date => [date, new Map(Object.entries(options.cash ?? {}))])),
+    ),
+  } as any;
+
+  const exchangeRates = {
+    getRateOrNull: jest.fn(async (from: string, _to: string, date: string) => {
+      const rate = options.rates?.[from];
+      return typeof rate === 'function' ? rate(date) : (rate ?? null);
+    }),
   } as any;
 
   const service = new NetWorthService(
     { find: jest.fn(async () => accounts) } as any,
     { createQueryBuilder: jest.fn(() => snapshotQueryBuilder) } as any,
-    {
-      find: jest.fn(async () =>
-        hasWallets ? [{ id: 'wallet-1', initialBalance: options.walletCash?.initialBalance ?? 0 }] : [],
-      ),
-    } as any,
     { createQueryBuilder: jest.fn(() => transactionQueryBuilder) } as any,
-    { createQueryBuilder: jest.fn(() => statementQueryBuilder) } as any,
-    { find: jest.fn(async () => [{ userId: 'user-1' }]) } as any,
     { findOne: jest.fn(async () => ({ currency: 'KZT' })) } as any,
     balanceService,
+    exchangeRates,
   );
 
-  return { service, balanceService };
+  return { service, balanceService, exchangeRates };
 }
 
 describe('NetWorthService', () => {
@@ -125,7 +109,7 @@ describe('NetWorthService', () => {
         { accountId: 'l-borrowed', snapshotDate: daysAgo(200), amount: 400 },
         { accountId: 'e-authorized', snapshotDate: daysAgo(200), amount: 900 },
       ],
-      cashBalance: 200,
+      cash: { KZT: 200 },
     });
 
     const result = await service.getNetWorth(WORKSPACE_ID, '90d');
@@ -143,7 +127,6 @@ describe('NetWorthService', () => {
         { accountId: 'a-fixed', snapshotDate: daysAgo(80), amount: 500 },
         { accountId: 'a-fixed', snapshotDate: daysAgo(10), amount: 900 },
       ],
-      cashBalance: 0,
     });
 
     const result = await service.getNetWorth(WORKSPACE_ID, '90d');
@@ -154,35 +137,45 @@ describe('NetWorthService', () => {
     expect(values[values.length - 1]).toBe(900);
   });
 
-  it('takes today’s cash from the balance sheet rather than recomputing it', async () => {
-    const { service, balanceService } = createService({
-      cashBalance: 777,
-      walletCash: { initialBalance: 100, deltas: [] },
-    });
+  it('reads cash for every sample date from the balance sheet', async () => {
+    const { service, balanceService } = createService({ cash: { KZT: 777 } });
 
     const result = await service.getNetWorth(WORKSPACE_ID, '30d');
 
-    expect(balanceService.getCashBalance).toHaveBeenCalledWith(
+    expect(balanceService.getCashSeries).toHaveBeenCalledWith(
       WORKSPACE_ID,
-      result.series[result.series.length - 1].date,
+      result.series.map(point => point.date),
     );
     expect(result.current).toBe(777);
   });
 
-  it('builds the historical cash line from wallet movements', async () => {
-    const { service } = createService({
-      cashBalance: 0,
-      walletCash: {
-        initialBalance: 100,
-        deltas: [{ date: daysAgo(60), credit: 50, debit: 20 }],
-      },
+  it('converts cash and snapshots in other currencies at the rate of each date', async () => {
+    const lastDate = new Date().toISOString().split('T')[0];
+    const { service, exchangeRates } = createService({
+      snapshots: [{ accountId: 'a-fixed', snapshotDate: daysAgo(200), amount: 10, currency: 'EUR' }],
+      cash: { KZT: 100, USD: 2 },
+      // The rate moves: today EUR is worth more than it was.
+      rates: { EUR: date => (date === lastDate ? 600 : 500), USD: 450 },
     });
 
     const result = await service.getNetWorth(WORKSPACE_ID, '90d');
-    const values = result.series.map(point => point.value);
 
-    expect(values[0]).toBe(100); // opening balance only
-    expect(values).toContain(130); // after +50 −20
+    expect(result.series[0].value).toBe(10 * 500 + 100 + 2 * 450);
+    expect(result.current).toBe(10 * 600 + 100 + 2 * 450);
+    expect(result.missingRates).toEqual([]);
+    expect(exchangeRates.getRateOrNull).toHaveBeenCalledWith('EUR', 'KZT', lastDate);
+  });
+
+  it('leaves out an amount without a rate and names its currency', async () => {
+    const { service } = createService({
+      snapshots: [{ accountId: 'a-fixed', snapshotDate: daysAgo(10), amount: 50, currency: 'CHF' }],
+      cash: { KZT: 100 },
+    });
+
+    const result = await service.getNetWorth(WORKSPACE_ID, '30d');
+
+    expect(result.current).toBe(100);
+    expect(result.missingRates).toEqual(['CHF']);
   });
 
   it('reports the change across the window and its percentage', async () => {
@@ -191,7 +184,6 @@ describe('NetWorthService', () => {
         { accountId: 'a-fixed', snapshotDate: daysAgo(200), amount: 1000 },
         { accountId: 'a-fixed', snapshotDate: daysAgo(5), amount: 1500 },
       ],
-      cashBalance: 0,
     });
 
     const result = await service.getNetWorth(WORKSPACE_ID, '90d');
@@ -205,7 +197,6 @@ describe('NetWorthService', () => {
   it('omits the percentage when there is nothing to take a percentage of', async () => {
     const { service } = createService({
       snapshots: [{ accountId: 'a-fixed', snapshotDate: daysAgo(5), amount: 1500 }],
-      cashBalance: 0,
     });
 
     const result = await service.getNetWorth(WORKSPACE_ID, '90d');
@@ -217,7 +208,7 @@ describe('NetWorthService', () => {
   it('groups the allocation by top-level section and drops empty ones', async () => {
     const { service } = createService({
       snapshots: [{ accountId: 'a-fixed', snapshotDate: daysAgo(30), amount: 750 }],
-      cashBalance: 250,
+      cash: { KZT: 250 },
     });
 
     const result = await service.getNetWorth(WORKSPACE_ID, '90d');
@@ -239,7 +230,7 @@ describe('NetWorthService', () => {
           riskLevel: RiskLevel.HIGH,
         },
       ],
-      cashBalance: 500,
+      cash: { KZT: 500 },
     });
 
     const result = await service.getNetWorth(WORKSPACE_ID, '90d');
@@ -317,7 +308,7 @@ describe('NetWorthService', () => {
   });
 
   it('returns a flat zero series for a workspace with nothing in it', async () => {
-    const { service } = createService({ cashBalance: 0 });
+    const { service } = createService({});
 
     const result = await service.getNetWorth(WORKSPACE_ID, 'all');
 

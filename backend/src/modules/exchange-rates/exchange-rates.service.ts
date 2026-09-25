@@ -3,8 +3,26 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Cache } from 'cache-manager';
-import { Repository } from 'typeorm';
+import { LessThanOrEqual, Repository } from 'typeorm';
 import { ExchangeRate } from '../../entities/exchange-rate.entity';
+
+/**
+ * A rate and the day it was quoted for. `stale` marks a rate borrowed from an
+ * earlier day because none was found for the requested one.
+ */
+export interface RateQuote {
+  rate: number;
+  rateDate: string;
+  stale: boolean;
+}
+
+export interface RateQuoteOptions {
+  /** Refuse a borrowed rate quoted more than this many days before the requested day. */
+  maxStaleDays?: number;
+}
+
+const FALLBACK_CACHE_TTL_MS = 3600 * 1000;
+const DAY_MS = 24 * 3600 * 1000;
 
 export interface ConvertResult {
   converted: number;
@@ -46,14 +64,68 @@ export class ExchangeRatesService {
    * a declaration, where a missing rate can at least be reported to the user.
    */
   async getRateOrNull(from: string, to: string, date?: Date | string): Promise<number | null> {
+    const quote = await this.getRateQuote(from, to, date);
+    return quote ? quote.rate : null;
+  }
+
+  /**
+   * The rate for `date`, or failing that the latest rate quoted on or before it.
+   *
+   * A rate from after the requested day is never used: converting a March
+   * payment at a September rate would be silently wrong. `maxStaleDays` bounds
+   * how far back the borrowed rate may be.
+   */
+  async getRateQuote(
+    from: string,
+    to: string,
+    date?: Date | string,
+    options: RateQuoteOptions = {},
+  ): Promise<RateQuote | null> {
     const normalizedFrom = this.normalizeCurrencyCode(from);
     const normalizedTo = this.normalizeCurrencyCode(to);
+    const rateDate = this.toDateOnly(date ?? new Date());
 
     if (normalizedFrom === normalizedTo) {
-      return 1;
+      return { rate: 1, rateDate, stale: false };
     }
 
-    const rateDate = this.toDateOnly(date ?? new Date());
+    const stored = await this.lookupStoredRate(normalizedFrom, normalizedTo, rateDate);
+    if (stored !== null) {
+      return { rate: stored, rateDate, stale: false };
+    }
+
+    // A day already known to be missing skips the network until the cache expires.
+    const cachedFallback = await this.lookupEarlierRateCached(
+      normalizedFrom,
+      normalizedTo,
+      rateDate,
+    );
+    const fetched = cachedFallback
+      ? null
+      : await this.fetchRate(normalizedFrom, normalizedTo, rateDate);
+    if (fetched !== null) {
+      return { rate: fetched, rateDate, stale: false };
+    }
+
+    const quote =
+      cachedFallback ?? (await this.lookupEarlierRate(normalizedFrom, normalizedTo, rateDate));
+    if (!quote) {
+      return null;
+    }
+    const ageDays = Math.round(
+      (new Date(rateDate).getTime() - new Date(quote.rateDate).getTime()) / DAY_MS,
+    );
+    if (options.maxStaleDays !== undefined && ageDays > options.maxStaleDays) {
+      return null;
+    }
+    return quote;
+  }
+
+  private async lookupStoredRate(
+    normalizedFrom: string,
+    normalizedTo: string,
+    rateDate: string,
+  ): Promise<number | null> {
     const cacheKey = `exchange_rate:${normalizedFrom}:${normalizedTo}:${rateDate}`;
 
     // 1. Redis cache
@@ -90,6 +162,16 @@ export class ExchangeRatesService {
       return invertedRate;
     }
 
+    return null;
+  }
+
+  private async fetchRate(
+    normalizedFrom: string,
+    normalizedTo: string,
+    rateDate: string,
+  ): Promise<number | null> {
+    const cacheKey = `exchange_rate:${normalizedFrom}:${normalizedTo}:${rateDate}`;
+
     // 3. Try to compute via USD base (e.g., EUR→KZT = (1/USD→EUR) * USD→KZT)
     if (normalizedFrom !== 'USD' && normalizedTo !== 'USD') {
       const rateFromUsd = await this.getRateFromApi('USD', normalizedFrom, rateDate);
@@ -117,31 +199,79 @@ export class ExchangeRatesService {
       return publicApiRate;
     }
 
-    // 5. Fallback: most recent rate from DB
-    const latestRate = await this.exchangeRateRepository.findOne({
-      where: { baseCurrency: normalizedFrom, targetCurrency: normalizedTo },
-      order: { rateDate: 'DESC' },
-    });
-    if (latestRate) {
-      this.logger.warn(
-        `Using stale rate ${normalizedFrom}→${normalizedTo} from ${latestRate.rateDate}`,
-      );
-      return Number(latestRate.rate);
-    }
-
-    const latestReverseRate = await this.exchangeRateRepository.findOne({
-      where: { baseCurrency: normalizedTo, targetCurrency: normalizedFrom },
-      order: { rateDate: 'DESC' },
-    });
-    const latestReverseRateValue = Number(latestReverseRate?.rate);
-    if (Number.isFinite(latestReverseRateValue) && latestReverseRateValue > 0) {
-      this.logger.warn(
-        `Using stale inverse rate ${normalizedTo}→${normalizedFrom} from ${latestReverseRate?.rateDate}`,
-      );
-      return 1 / latestReverseRateValue;
-    }
-
     return null;
+  }
+
+  /**
+   * 5. Fallback: the most recent stored rate on or before `rateDate`. Cached
+   * briefly so a missing day does not repeat the network lookups on every call.
+   */
+  private async lookupEarlierRateCached(
+    normalizedFrom: string,
+    normalizedTo: string,
+    rateDate: string,
+  ): Promise<RateQuote | null> {
+    const cached = await this.cacheManager.get<RateQuote>(
+      this.fallbackCacheKey(normalizedFrom, normalizedTo, rateDate),
+    );
+    return cached ?? null;
+  }
+
+  private async lookupEarlierRate(
+    normalizedFrom: string,
+    normalizedTo: string,
+    rateDate: string,
+  ): Promise<RateQuote | null> {
+    const cacheKey = this.fallbackCacheKey(normalizedFrom, normalizedTo, rateDate);
+    const quote = await this.findEarlierStoredRate(normalizedFrom, normalizedTo, rateDate);
+    if (quote) {
+      this.logger.warn(
+        `Using stale rate ${normalizedFrom}→${normalizedTo} from ${quote.rateDate} for ${rateDate}`,
+      );
+      await this.cacheManager.set(cacheKey, quote, FALLBACK_CACHE_TTL_MS);
+    }
+    return quote;
+  }
+
+  private fallbackCacheKey(normalizedFrom: string, normalizedTo: string, rateDate: string): string {
+    return `exchange_rate_fallback:${normalizedFrom}:${normalizedTo}:${rateDate}`;
+  }
+
+  private async findEarlierStoredRate(
+    normalizedFrom: string,
+    normalizedTo: string,
+    rateDate: string,
+  ): Promise<RateQuote | null> {
+    const onOrBefore = LessThanOrEqual(new Date(rateDate));
+    const direct = await this.exchangeRateRepository.findOne({
+      where: { baseCurrency: normalizedFrom, targetCurrency: normalizedTo, rateDate: onOrBefore },
+      order: { rateDate: 'DESC' },
+    });
+    const reverse = await this.exchangeRateRepository.findOne({
+      where: { baseCurrency: normalizedTo, targetCurrency: normalizedFrom, rateDate: onOrBefore },
+      order: { rateDate: 'DESC' },
+    });
+
+    const candidates: RateQuote[] = [];
+    const directRate = Number(direct?.rate);
+    if (direct && Number.isFinite(directRate) && directRate > 0) {
+      candidates.push({
+        rate: directRate,
+        rateDate: this.toDateOnly(direct.rateDate),
+        stale: true,
+      });
+    }
+    const reverseRate = Number(reverse?.rate);
+    if (reverse && Number.isFinite(reverseRate) && reverseRate > 0) {
+      candidates.push({
+        rate: 1 / reverseRate,
+        rateDate: this.toDateOnly(reverse.rateDate),
+        stale: true,
+      });
+    }
+    // The closer of the two to the requested day.
+    candidates.sort((a, b) => b.rateDate.localeCompare(a.rateDate));
+    return candidates[0] ?? null;
   }
 
   async convert(
@@ -203,12 +333,14 @@ export class ExchangeRatesService {
   }
 
   private async getRateFromApi(from: string, to: string, rateDate: string): Promise<number | null> {
-    if (!this.apiKey) {
+    // Only the latest rates are on our tier (the historical endpoint needs a
+    // higher one), and storing them under a past date would fix a wrong rate
+    // there for good: saveRate never overwrites.
+    if (!(this.apiKey && this.isToday(rateDate))) {
       return null;
     }
 
     try {
-      // Use latest rates endpoint (historical endpoint requires higher tier)
       const url = `${this.apiBaseUrl}/${this.apiKey}/latest/${from}`;
       const response = await fetch(url);
       if (!response.ok) {

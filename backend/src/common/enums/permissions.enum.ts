@@ -76,6 +76,11 @@ export enum Permission {
   // API Keys
   API_KEY_MANAGE = 'api_key.manage',
 
+  // Ledger (double-entry)
+  LEDGER_VIEW = 'ledger.view',
+  LEDGER_POST = 'ledger.post',
+  LEDGER_MANAGE_ACCOUNTS = 'ledger.manage_accounts',
+
   // Workspace configuration
   WORKSPACE_SETTINGS_MANAGE = 'workspace_settings.manage',
   INTEGRATION_MANAGE = 'integration.manage',
@@ -101,6 +106,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     Permission.BUDGET_VIEW,
     Permission.GOAL_VIEW,
     Permission.SUBSCRIPTION_VIEW,
+    Permission.LEDGER_VIEW,
   ],
   viewer: [
     // Read-only permissions
@@ -115,5 +121,6 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     Permission.BUDGET_VIEW,
     Permission.GOAL_VIEW,
     Permission.SUBSCRIPTION_VIEW,
+    Permission.LEDGER_VIEW,
   ],
 };
