@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { User } from '@/app/contexts/AuthContext';
 
 const mocks = vi.hoisted(() => ({
+  mounts: 0,
   pathname: '/dashboard',
   post: vi.fn(),
   setUser: vi.fn(),
@@ -15,17 +16,25 @@ vi.mock('@/app/hooks/useAuth', () => ({
   useAuth: () => ({ user: mocks.user, loading: false, setUser: mocks.setUser }),
 }));
 vi.mock('@/app/lib/api', () => ({ default: { post: mocks.post } }));
-// The real dialog is lazy-loaded and has its own tests; a stand-in shows whether it is open.
-vi.mock('next/dynamic', () => ({
-  default: () =>
-    function DialogStandIn(props: { open: boolean; onClose: () => void }) {
-      return props.open ? (
-        <button type="button" onClick={props.onClose}>
-          close tutorial
-        </button>
-      ) : null;
-    },
-}));
+// The real dialog is lazy-loaded and tested in WelcomeTutorialDialog.test.tsx; a stand-in
+// shows whether it is open.
+vi.mock('next/dynamic', async () => {
+  const { useEffect } = await import('react');
+  return {
+    default: () =>
+      function DialogStandIn(props: { open: boolean; onClose: () => void }) {
+        // Counts mounts: every opening is meant to start a fresh dialog (from its intro).
+        useEffect(() => {
+          mocks.mounts += 1;
+        }, []);
+        return props.open ? (
+          <button type="button" onClick={props.onClose}>
+            close tutorial
+          </button>
+        ) : null;
+      },
+  };
+});
 
 const newAccount: User = {
   id: 'user-1',
@@ -43,17 +52,24 @@ async function renderHost() {
     import('./WelcomeTutorialHost'),
     import('./welcome-tutorial-store'),
   ]);
-  render(<WelcomeTutorialHost />);
+  const view = render(<WelcomeTutorialHost />);
   await act(async () => {
     await vi.advanceTimersByTimeAsync(1000);
   });
-  return store;
+  return { store, view, WelcomeTutorialHost };
 }
+
+const closeTutorial = async (): Promise<void> => {
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'close tutorial' }));
+  });
+};
 
 describe('WelcomeTutorialHost', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.useFakeTimers();
+    mocks.mounts = 0;
     mocks.pathname = '/dashboard';
     mocks.user = newAccount;
     mocks.post.mockReset().mockResolvedValue({ data: { welcomeTutorialSeenAt: '2026-09-25T12:00:00.000Z' } });
@@ -90,9 +106,7 @@ describe('WelcomeTutorialHost', () => {
 
   it('records the close once and updates the user in place', async () => {
     await renderHost();
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'close tutorial' }));
-    });
+    await closeTutorial();
 
     expect(screen.queryByRole('button', { name: 'close tutorial' })).toBeNull();
     expect(mocks.post).toHaveBeenCalledTimes(1);
@@ -107,13 +121,36 @@ describe('WelcomeTutorialHost', () => {
 
   it('opens from the avatar menu for anyone, without recording it again', async () => {
     mocks.user = { ...newAccount, welcomeTutorialSeenAt: '2026-09-20T09:00:00.000Z' };
-    const store = await renderHost();
+    const { store } = await renderHost();
 
     act(() => store.openWelcomeTutorial());
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'close tutorial' }));
-    });
+    await closeTutorial();
 
     expect(mocks.post).not.toHaveBeenCalled();
+  });
+
+  // The workspace switch remounts part of the tree; the local user may not have the
+  // server's timestamp yet, so only the one-opening claim keeps it from coming back.
+  it('opens by itself only once per page load, even after a remount', async () => {
+    const { view, WelcomeTutorialHost } = await renderHost();
+    await closeTutorial();
+    view.unmount();
+
+    render(<WelcomeTutorialHost />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(screen.queryByRole('button', { name: 'close tutorial' })).toBeNull();
+  });
+
+  it('starts every opening from a fresh dialog', async () => {
+    const { store } = await renderHost();
+    await closeTutorial();
+
+    act(() => store.openWelcomeTutorial());
+
+    expect(screen.getByRole('button', { name: 'close tutorial' })).toBeTruthy();
+    expect(mocks.mounts).toBe(2);
   });
 });

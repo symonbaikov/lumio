@@ -49,9 +49,14 @@ export const headerSx = {
 } satisfies SxProps<Theme>;
 
 export const closeButtonSx = {
-  ml: 'auto',
+  // Logical, not `ml`: the app has no RTL style plugin, and right to left the button
+  // has to stay at the far end of the header.
+  marginInlineStart: 'auto',
   color: 'var(--muted-foreground)',
 } satisfies SxProps<Theme>;
+
+/** Headings take programmatic focus when their screen appears; they are not controls. */
+export const focusableTitleSx = { '&:focus': { outline: 'none' } } as const;
 
 export const stepperListSx = {
   display: 'flex',

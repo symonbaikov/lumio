@@ -128,7 +128,8 @@ export const scrollerSx = {
   overflowX: 'auto',
   scrollSnapType: 'x mandatory',
   // Snap to the padding, not to the edge, so the first frame's number stays visible.
-  scrollPaddingInline: 2,
+  // Not a theme spacing key: sx passes it through as pixels.
+  scrollPaddingInline: '16px',
   scrollbarWidth: 'none',
 } satisfies SxProps<Theme>;
 

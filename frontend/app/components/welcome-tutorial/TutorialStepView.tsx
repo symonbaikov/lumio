@@ -9,8 +9,16 @@ import { useIntlayer } from '@/app/i18n';
 import { TutorialFooter } from './TutorialFooter';
 import { TutorialFragments } from './TutorialFragments';
 import { TutorialStepper } from './TutorialStepper';
+import { useFocusTitleOnMount } from './useFocusTitleOnMount';
 import type { TutorialPager } from './useTutorialPager';
-import { closeButtonSx, enterSx, headerSx, TITLE_ID, wordmarkSx } from './welcome-tutorial.styles';
+import {
+  closeButtonSx,
+  enterSx,
+  focusableTitleSx,
+  headerSx,
+  TITLE_ID,
+  wordmarkSx,
+} from './welcome-tutorial.styles';
 import {
   bodySx,
   demoNoteSx,
@@ -54,7 +62,7 @@ function StepText({ step }: { step: TutorialStep }): React.JSX.Element {
         {step.icon}
         {step.label}
       </Box>
-      <Typography id={TITLE_ID} component="h2" sx={taglineSx}>
+      <Typography id={TITLE_ID} component="h2" tabIndex={-1} sx={[taglineSx, focusableTitleSx]}>
         {text.tagline}
       </Typography>
       <Typography sx={descriptionSx}>{text.description}</Typography>
@@ -69,6 +77,8 @@ export function TutorialStepView({
   onClose,
 }: TutorialStepViewProps): React.JSX.Element {
   const { controls } = useIntlayer('welcomeTutorial');
+  // Once per arrival from the intro or the outro; Next and the stepper keep their own focus.
+  useFocusTitleOnMount();
   const index = pager.state.index;
   const step = steps[index];
   return (

@@ -10,7 +10,8 @@ import { useIntlayer } from '@/app/i18n';
 import { DEFAULT_APP_ROUTE } from '@/app/lib/default-app-route';
 import { BackIcon } from './TutorialFooter';
 import { TutorialHeader } from './TutorialStepView';
-import { enterSx, footerSx, TITLE_ID } from './welcome-tutorial.styles';
+import { useFocusTitleOnMount } from './useFocusTitleOnMount';
+import { enterSx, focusableTitleSx, footerSx, TITLE_ID } from './welcome-tutorial.styles';
 import {
   hintIconSx,
   hintSx,
@@ -75,9 +76,24 @@ function OutroActions({ onClose }: Pick<TutorialOutroProps, 'onClose'>): React.J
   );
 }
 
+function OutroFooter({ onBack, onClose }: TutorialOutroProps): React.JSX.Element {
+  const { controls } = useIntlayer('welcomeTutorial');
+  return (
+    <Box component="footer" sx={[footerSx, { justifyContent: 'space-between' }]}>
+      <Button variant="outlined" onClick={onBack} startIcon={BackIcon}>
+        {controls.back}
+      </Button>
+      <Button variant="contained" onClick={onClose}>
+        {controls.finish}
+      </Button>
+    </Box>
+  );
+}
+
 /** The end of the tour: where to start, and where to find help later. */
 export function TutorialOutro({ onBack, onClose }: TutorialOutroProps): React.JSX.Element {
-  const { outro, controls } = useIntlayer('welcomeTutorial');
+  const { outro } = useIntlayer('welcomeTutorial');
+  useFocusTitleOnMount();
   return (
     <>
       <TutorialHeader onClose={onClose} />
@@ -86,21 +102,19 @@ export function TutorialOutro({ onBack, onClose }: TutorialOutroProps): React.JS
           <Check size={32} />
         </Box>
         <Box sx={[eyebrowSx, { mt: 4 }]}>{outro.eyebrow}</Box>
-        <Typography id={TITLE_ID} component="h2" sx={outroTitleSx}>
+        <Typography
+          id={TITLE_ID}
+          component="h2"
+          tabIndex={-1}
+          sx={[outroTitleSx, focusableTitleSx]}
+        >
           {outro.title}
         </Typography>
         <Typography sx={outroTextSx}>{outro.text}</Typography>
         <OutroActions onClose={onClose} />
         <OutroHints />
       </Box>
-      <Box component="footer" sx={[footerSx, { justifyContent: 'space-between' }]}>
-        <Button variant="outlined" onClick={onBack} startIcon={BackIcon}>
-          {controls.back}
-        </Button>
-        <Button variant="contained" onClick={onClose}>
-          {controls.finish}
-        </Button>
-      </Box>
+      <OutroFooter onBack={onBack} onClose={onClose} />
     </>
   );
 }

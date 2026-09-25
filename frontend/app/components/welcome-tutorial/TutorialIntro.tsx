@@ -10,7 +10,8 @@ import type React from 'react';
 import { PlayCircle, X } from '@/app/components/icons';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer } from '@/app/i18n';
-import { enterSx, TITLE_ID } from './welcome-tutorial.styles';
+import { useFocusTitleOnMount } from './useFocusTitleOnMount';
+import { enterSx, focusableTitleSx, TITLE_ID } from './welcome-tutorial.styles';
 import {
   collageCardSx,
   collageSx,
@@ -64,7 +65,10 @@ function useIntroTitle(): string {
   const { intro } = useIntlayer('welcomeTutorial');
   const { user } = useAuth();
   const firstName = user?.name?.trim().split(/\s+/)[0];
-  return firstName ? intro.title.value.replace('{{name}}', firstName) : intro.titleNoName.value;
+  // A function, so a `$` in the name is not read as a replacement pattern.
+  return firstName
+    ? intro.title.value.replace('{{name}}', () => firstName)
+    : intro.titleNoName.value;
 }
 
 function IntroText({ onStart, onClose }: TutorialIntroProps): React.JSX.Element {
@@ -77,7 +81,7 @@ function IntroText({ onStart, onClose }: TutorialIntroProps): React.JSX.Element 
         <PlayCircle size={16} />
         {intro.eyebrow}
       </Box>
-      <Typography id={TITLE_ID} component="h2" sx={introTitleSx}>
+      <Typography id={TITLE_ID} component="h2" tabIndex={-1} sx={[introTitleSx, focusableTitleSx]}>
         {title}
       </Typography>
       <Typography sx={introSubtitleSx}>{intro.subtitle}</Typography>
@@ -96,6 +100,7 @@ function IntroText({ onStart, onClose }: TutorialIntroProps): React.JSX.Element 
 
 export function TutorialIntro(props: TutorialIntroProps): React.JSX.Element {
   const { controls } = useIntlayer('welcomeTutorial');
+  useFocusTitleOnMount();
   return (
     <Box sx={introSx}>
       <IconButton aria-label={controls.close.value} onClick={props.onClose} sx={introCloseSx}>
