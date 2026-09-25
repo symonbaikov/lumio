@@ -6,7 +6,10 @@ import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
 import { hasProcessingStatements } from '@/app/lib/statement-status';
 import type { StatementFilters } from '../filters/statement-filters';
-import { buildStatementRequestParams } from '../StatementsListView.utils';
+import {
+  buildStatementRequestParams,
+  isReceiptDerivedStatement,
+} from '../StatementsListView.utils';
 
 /** Minimal shape required by the data-loading hook. */
 export interface StatementRecord {
@@ -21,10 +24,16 @@ const POLL_INTERVAL_MS = 4000;
  * Пока хоть одна выписка обрабатывается — опрашиваем раз в 4с, иначе не
  * опрашиваем вовсе. Функция от данных, а не эффект с интервалом: предикат
  * считается по свежеполученному ответу и интервал не пересоздаётся на каждый тик.
+ *
+ * Выписки из скана чеков в счёт не идут: скан разбирается прямо в запросе
+ * загрузки, и без суммы такая выписка остаётся `uploaded` навсегда.
  */
 export function statementsRefetchInterval(data: unknown): number | false {
   if (!Array.isArray(data)) return false;
-  return hasProcessingStatements(data as Parameters<typeof hasProcessingStatements>[0])
+  const rows = data as Array<
+    Parameters<typeof isReceiptDerivedStatement>[0] & { status?: string | null }
+  >;
+  return hasProcessingStatements(rows.filter(row => !isReceiptDerivedStatement(row)))
     ? POLL_INTERVAL_MS
     : false;
 }

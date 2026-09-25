@@ -29,6 +29,8 @@ export function useGmailReceiptsQuery({
     limit: pageSize,
     offset: Math.max(0, (page - 1) * pageSize),
     includeInvalid: false,
+    // Scans without a recognised amount still belong in the list (as "Needs review").
+    includeLinkedScans: true,
     ...(categoryId ? { categoryId } : {}),
     ...(receiptStatus ? { status: receiptStatus } : {}),
   };

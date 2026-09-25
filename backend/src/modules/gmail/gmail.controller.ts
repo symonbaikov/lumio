@@ -29,6 +29,7 @@ import {
   GmailSettings,
   IntegrationStatus,
   Receipt,
+  ReceiptSource,
   ReceiptStatus,
   Transaction,
   TransactionType,
@@ -339,9 +340,11 @@ export class GmailController {
     @Query('includeInvalid') includeInvalid?: string,
     @Query('hasAmount') hasAmount?: string,
     @Query('categoryId') categoryId?: string,
+    @Query('includeLinkedScans') includeLinkedScans?: string,
   ) {
     const includeInvalidReceipts = this.parseBooleanQuery(includeInvalid, false);
     const hasAmountFilter = this.parseOptionalBooleanQuery(hasAmount);
+    const includeLinkedScanReceipts = this.parseBooleanQuery(includeLinkedScans, false);
 
     const queryBuilder = this.receiptRepository
       .createQueryBuilder('receipt')
@@ -361,7 +364,16 @@ export class GmailController {
     } else if (!(includeInvalidReceipts || status)) {
       // When browsing without an explicit status filter, hide receipts with no parsed amount
       // to reduce noise. When a status is explicitly requested (e.g. needs_review), show all.
-      queryBuilder.andWhere(AMOUNT_PRESENT_SQL);
+      // A scan the user uploaded already has its statement, so the statements list keeps it
+      // on request even without an amount; it shows there as needing review.
+      if (includeLinkedScanReceipts) {
+        queryBuilder.andWhere(
+          `(${AMOUNT_PRESENT_SQL} OR (receipt.source = :scanSource AND receipt.statement_id IS NOT NULL))`,
+          { scanSource: ReceiptSource.SCAN },
+        );
+      } else {
+        queryBuilder.andWhere(AMOUNT_PRESENT_SQL);
+      }
     }
 
     if (status) {

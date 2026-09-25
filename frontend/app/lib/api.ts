@@ -241,6 +241,7 @@ export const gmailReceiptsApi = {
     limit?: number;
     offset?: number;
     includeInvalid?: boolean;
+    includeLinkedScans?: boolean;
     hasAmount?: boolean;
     categoryId?: string;
   }): Promise<AxiosResponse> => apiClient.get('/integrations/gmail/receipts', { params }),

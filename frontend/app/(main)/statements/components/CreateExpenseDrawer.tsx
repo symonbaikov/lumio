@@ -46,7 +46,7 @@ type Props = {
     files: File[];
     allowDuplicates: boolean;
     requireManualCategorySelection: boolean;
-    deviceLocation: DeviceLocation | null;
+    deviceLocationRequest: Promise<DeviceLocation | null> | null;
   }) => Promise<void>;
   onSubmitManual: (payload: {
     draft: ManualExpenseDraft;
