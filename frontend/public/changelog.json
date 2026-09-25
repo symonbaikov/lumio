@@ -1,14 +1,228 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "f8cc2d49a91c9f965fcb0f721c6e4b846d88344a"
+      "main": "1de94bc72b535c514d1480b98b2e9f0168dcd780"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-25T16:07:37.108Z",
+    "lastGeneratedAt": "2026-09-25T21:04:44.209Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-09-25-1de94bc",
+      "version": "main-1de94bc",
+      "branch": "main",
+      "date": "2026-09-25T21:04:44.209Z",
+      "title": "Release update - September 25, 2026",
+      "summary": "This release includes 4 features and 2 fixes.",
+      "markdown": "## Features\n- **tours**: Start page tours only from the help menu\n- **users**: Record when the welcome tutorial was closed\n- **tutorial**: Add welcome tutorial texts in all 21 locales\n- **tutorial**: Show new accounts a welcome tutorial of the sidebar pages\n\n## Fixes\n- **users**: Mark the welcome tutorial seen with one conditional update\n- **tutorial**: Focus, RTL and name handling; test the dialog itself",
+      "commits": [
+        {
+          "sha": "234c2c479a91fdeb56b79fbb7246c050780f0c5e",
+          "shortSha": "234c2c47",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-25T16:07:37Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "609590dd4021c9a6c301d3357ffc8005e79e51b5",
+          "shortSha": "609590dd",
+          "subject": "feat(tours): start page tours only from the help menu",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T20:02:53+03:00",
+          "files": [
+            "frontend/app/providers.test.tsx",
+            "frontend/app/providers.tsx",
+            "frontend/app/tours/components/TourAutoStarter.tsx"
+          ]
+        },
+        {
+          "sha": "9c5666f9add8df622c61320c5d0517b3920c9b68",
+          "shortSha": "9c5666f9",
+          "subject": "feat(users): record when the welcome tutorial was closed",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T20:02:53+03:00",
+          "files": [
+            "backend/@tests/e2e/user-welcome-tutorial.e2e-spec.ts",
+            "backend/@tests/unit/modules/users/users.controller.public-routes.spec.ts",
+            "backend/@tests/unit/modules/users/users.controller.welcome-tutorial.spec.ts",
+            "backend/@tests/unit/modules/users/users.service.spec.ts",
+            "backend/src/entities/user.entity.ts",
+            "backend/src/migrations/1786510000000-AddUserWelcomeTutorialSeenAt.ts",
+            "backend/src/modules/users/users.controller.ts",
+            "backend/src/modules/users/users.service.ts"
+          ]
+        },
+        {
+          "sha": "6396afa07cc1b34504087aa13f2dea37fb6e35d3",
+          "shortSha": "6396afa0",
+          "subject": "chore(tutorial): add welcome tutorial screenshots and their capture script",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T21:27:38+03:00",
+          "files": [
+            "frontend/app/components/welcome-tutorial/screens/advice-forecast-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/advice-forecast-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/advice-prices-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/advice-prices-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/budgets-cards-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/budgets-cards-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/budgets-over-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/budgets-over-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/crypto-connect-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/crypto-connect-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/crypto-portfolio-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/crypto-portfolio-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/dashboard-categories-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/dashboard-categories-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/dashboard-month-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/dashboard-month-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/dashboard-recent-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/dashboard-recent-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/goals-list-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/goals-list-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/goals-progress-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/goals-progress-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/net-worth-allocation-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/net-worth-allocation-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/net-worth-chart-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/net-worth-chart-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/net-worth-risk-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/net-worth-risk-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/reports-history-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/reports-history-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/reports-schedules-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/reports-schedules-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/reports-templates-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/reports-templates-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/roi-chart-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/roi-chart-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/roi-inputs-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/roi-inputs-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/roi-table-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/roi-table-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/statements-list-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/statements-list-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/statements-upload-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/statements-upload-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/subscriptions-calendar-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/subscriptions-calendar-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/subscriptions-kpis-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/subscriptions-kpis-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/subscriptions-list-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/subscriptions-list-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/tables-grid-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/tables-grid-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/tables-list-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/tables-list-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/tax-declaration-checks-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/tax-declaration-checks-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/tax-declaration-draft-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/tax-declaration-draft-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/tax-declaration-profile-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/tax-declaration-profile-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/workspaces-categories-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/workspaces-categories-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/workspaces-invitations-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/workspaces-invitations-light.webp",
+            "frontend/app/components/welcome-tutorial/screens/workspaces-list-dark.webp",
+            "frontend/app/components/welcome-tutorial/screens/workspaces-list-light.webp",
+            "frontend/scripts/capture-tutorial-screenshots.mjs"
+          ]
+        },
+        {
+          "sha": "bb78cfa7fde3a1cf1dd0f01ff34c747799698730",
+          "shortSha": "bb78cfa7",
+          "subject": "feat(tutorial): add welcome tutorial texts in all 21 locales",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T21:38:58+03:00",
+          "files": [
+            "frontend/app/components/navigation.content.ts",
+            "frontend/app/components/welcome-tutorial/welcome-tutorial-steps.content.ts",
+            "frontend/app/components/welcome-tutorial/welcome-tutorial.content.ts"
+          ]
+        },
+        {
+          "sha": "3bd2365f14898fc0392c8d949648f90275573ae3",
+          "shortSha": "3bd2365f",
+          "subject": "feat(tutorial): show new accounts a welcome tutorial of the sidebar pages",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T21:59:10+03:00",
+          "files": [
+            "frontend/app/components/TopBar.tsx",
+            "frontend/app/components/navigation/UserMenu.test.tsx",
+            "frontend/app/components/navigation/UserMenu.tsx",
+            "frontend/app/components/welcome-tutorial/TutorialFooter.tsx",
+            "frontend/app/components/welcome-tutorial/TutorialFragments.tsx",
+            "frontend/app/components/welcome-tutorial/TutorialIntro.tsx",
+            "frontend/app/components/welcome-tutorial/TutorialOutro.tsx",
+            "frontend/app/components/welcome-tutorial/TutorialStepView.tsx",
+            "frontend/app/components/welcome-tutorial/TutorialStepper.tsx",
+            "frontend/app/components/welcome-tutorial/WelcomeTutorialDialog.tsx",
+            "frontend/app/components/welcome-tutorial/WelcomeTutorialHost.test.tsx",
+            "frontend/app/components/welcome-tutorial/WelcomeTutorialHost.tsx",
+            "frontend/app/components/welcome-tutorial/tutorial-pager.test.ts",
+            "frontend/app/components/welcome-tutorial/tutorial-pager.ts",
+            "frontend/app/components/welcome-tutorial/useMarkWelcomeTutorialSeen.ts",
+            "frontend/app/components/welcome-tutorial/useTutorialPager.ts",
+            "frontend/app/components/welcome-tutorial/useTutorialSteps.ts",
+            "frontend/app/components/welcome-tutorial/useWelcomeTutorialAutoOpen.ts",
+            "frontend/app/components/welcome-tutorial/welcome-tutorial-hero.styles.ts",
+            "frontend/app/components/welcome-tutorial/welcome-tutorial-routes.test.ts",
+            "frontend/app/components/welcome-tutorial/welcome-tutorial-routes.ts",
+            "frontend/app/components/welcome-tutorial/welcome-tutorial-screens.ts",
+            "frontend/app/components/welcome-tutorial/welcome-tutorial-step.styles.ts",
+            "frontend/app/components/welcome-tutorial/welcome-tutorial-steps.test.ts",
+            "frontend/app/components/welcome-tutorial/welcome-tutorial-steps.ts",
+            "frontend/app/components/welcome-tutorial/welcome-tutorial-store.ts",
+            "frontend/app/components/welcome-tutorial/welcome-tutorial.styles.ts",
+            "frontend/app/contexts/AuthContext.tsx",
+            "frontend/app/layout.tsx"
+          ]
+        },
+        {
+          "sha": "d3bd716dcbb9374ad9a468fc7418bdd4e70a49c4",
+          "shortSha": "d3bd716d",
+          "subject": "fix(users): mark the welcome tutorial seen with one conditional update",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T23:22:53+03:00",
+          "files": [
+            "backend/@tests/e2e/user-welcome-tutorial.e2e-spec.ts",
+            "backend/@tests/unit/modules/users/users.service.spec.ts",
+            "backend/src/entities/user.entity.ts",
+            "backend/src/modules/users/users.service.ts"
+          ]
+        },
+        {
+          "sha": "2714d97a2b402b52b8ffa5c4e5286b6422879b81",
+          "shortSha": "2714d97a",
+          "subject": "fix(tutorial): focus, RTL and name handling; test the dialog itself",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T23:22:53+03:00",
+          "files": [
+            "frontend/app/components/welcome-tutorial/TutorialIntro.tsx",
+            "frontend/app/components/welcome-tutorial/TutorialOutro.tsx",
+            "frontend/app/components/welcome-tutorial/TutorialStepView.tsx",
+            "frontend/app/components/welcome-tutorial/WelcomeTutorialDialog.test.tsx",
+            "frontend/app/components/welcome-tutorial/WelcomeTutorialHost.test.tsx",
+            "frontend/app/components/welcome-tutorial/useFocusTitleOnMount.ts",
+            "frontend/app/components/welcome-tutorial/welcome-tutorial-step.styles.ts",
+            "frontend/app/components/welcome-tutorial/welcome-tutorial.styles.ts"
+          ]
+        },
+        {
+          "sha": "1de94bc72b535c514d1480b98b2e9f0168dcd780",
+          "shortSha": "1de94bc7",
+          "subject": "Merge pull request #196 from symonbaikov/feat/welcome-tutorial",
+          "author": "Symon Baikov",
+          "date": "2026-09-26T00:04:21+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-25-f8cc2d4",
       "version": "main-f8cc2d4",
