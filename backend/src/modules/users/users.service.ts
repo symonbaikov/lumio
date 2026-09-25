@@ -67,6 +67,7 @@ export class UsersService {
         'onboardingCompletedAt',
         'disclaimerAcceptedAt',
         'disclaimerVersion',
+        'welcomeTutorialSeenAt',
         'tokenVersion',
       ],
     });
@@ -120,6 +121,7 @@ export class UsersService {
         'onboardingCompletedAt',
         'disclaimerAcceptedAt',
         'disclaimerVersion',
+        'welcomeTutorialSeenAt',
       ],
     });
 
@@ -211,6 +213,20 @@ export class UsersService {
     user.disclaimerVersion = CURRENT_DISCLAIMER_VERSION;
 
     return this.userRepository.save(user);
+  }
+
+  /**
+   * Stops the welcome tutorial from opening by itself. A single conditional UPDATE:
+   * the first close wins even when several arrive at once (two tabs), and no other
+   * column of the user is read back and rewritten.
+   */
+  async markWelcomeTutorialSeen(userId: string): Promise<Date | null> {
+    await this.userRepository.query(
+      'UPDATE "users" SET "welcome_tutorial_seen_at" = NOW() WHERE "id" = $1 AND "welcome_tutorial_seen_at" IS NULL',
+      [userId],
+    );
+    const { welcomeTutorialSeenAt } = await this.findOne(userId);
+    return welcomeTutorialSeenAt;
   }
 
   /**

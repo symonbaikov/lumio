@@ -14,7 +14,7 @@ import {
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import type { Repository } from 'typeorm';
+import { getMetadataArgsStorage, type Repository } from 'typeorm';
 import { passwordHashRounds } from '@/common/utils/password-hash.util';
 
 jest.mock('bcrypt', () => ({
@@ -58,6 +58,7 @@ describe('UsersService', () => {
             update: jest.fn(),
             delete: jest.fn(),
             softDelete: jest.fn(),
+            query: jest.fn(),
           },
         },
         {
@@ -515,6 +516,63 @@ describe('UsersService', () => {
           onboardingCompletedAt: alreadyCompleted.onboardingCompletedAt,
         }),
       );
+    });
+  });
+
+  describe('markWelcomeTutorialSeen', () => {
+    it('stamps the time with one conditional update and returns the stored time', async () => {
+      const seenAt = new Date('2026-09-25T12:00:00.000Z');
+      const querySpy = jest.spyOn(repository, 'query').mockResolvedValue([]);
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValue({ ...mockUserWithoutPasswordHash, welcomeTutorialSeenAt: seenAt } as User);
+      const saveSpy = jest.spyOn(repository, 'save');
+
+      await expect(service.markWelcomeTutorialSeen('1')).resolves.toEqual(seenAt);
+      // Only a still-NULL stamp is set: the first close wins, even for concurrent ones,
+      // and no other column is rewritten.
+      expect(querySpy).toHaveBeenCalledWith(
+        expect.stringMatching(/SET "welcome_tutorial_seen_at" = NOW\(\).*"welcome_tutorial_seen_at" IS NULL/),
+        ['1'],
+      );
+      expect(saveSpy).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException for an unknown user', async () => {
+      jest.spyOn(repository, 'query').mockResolvedValue([]);
+      jest.spyOn(repository, 'findOne').mockResolvedValue(null);
+
+      await expect(service.markWelcomeTutorialSeen('999')).rejects.toThrow(NotFoundException);
+    });
+
+    // Preferences, avatar and onboarding saves load the whole user; they must not be
+    // able to write back a NULL they read before the tutorial was closed.
+    it('keeps the column out of whole-row saves', () => {
+      const column = getMetadataArgsStorage().columns.find(
+        args => args.target === User && args.propertyName === 'welcomeTutorialSeenAt',
+      );
+      expect(column?.options.update).toBe(false);
+    });
+
+    // The onboarding page replaces its copy of the user with the response, and
+    // the tutorial opens only when the field is explicitly null — so every
+    // profile the service returns has to load it.
+    it('loads the flag in the profile and in the onboarding response', async () => {
+      // The completeOnboarding cases above stub this loader, and clearAllMocks
+      // keeps stubs; the real one has to run to expose its select list.
+      jest.spyOn<any, any>(service as any, 'findOneWithPassword').mockRestore();
+      const findOneSpy = jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValue({ ...mockUser, onboardingCompletedAt: new Date() } as User);
+      jest.spyOn(repository, 'save').mockResolvedValue({} as User);
+
+      await service.findOne('1');
+      await service.completeOnboarding('1', {});
+
+      expect(findOneSpy).toHaveBeenCalledTimes(2);
+      for (const [options] of findOneSpy.mock.calls) {
+        expect((options as { select: string[] }).select).toContain('welcomeTutorialSeenAt');
+      }
     });
   });
 });

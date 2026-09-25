@@ -2,7 +2,15 @@
 
 import { Divider, ListItemIcon, ListItemText, MenuItem, Menu as MuiMenu } from '@mui/material';
 import React from 'react';
-import { BookOpen, Globe, LogOut, Settings, Trash2, User } from '@/app/components/icons';
+import {
+  BookOpen,
+  Globe,
+  LogOut,
+  PlayCircle,
+  Settings,
+  Trash2,
+  User,
+} from '@/app/components/icons';
 import { getRecord, resolveLabel } from '@/app/lib/side-panel-utils';
 import type { NavItem } from './helpers/navigation-config';
 
@@ -148,6 +156,17 @@ export function UserMenuTriggerAndDropdown({
             <BookOpen size={18} />
           </ListItemIcon>
           <ListItemText>{userMenu.knowledgeBase as React.ReactNode}</ListItemText>
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            onAction('welcomeTutorial');
+          }}
+        >
+          <ListItemIcon>
+            <PlayCircle size={18} />
+          </ListItemIcon>
+          <ListItemText>{userMenu.welcomeTutorial as React.ReactNode}</ListItemText>
         </MenuItem>
 
         <Divider />

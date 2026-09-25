@@ -12,6 +12,7 @@ import MobileBottomBar from './components/mobile/MobileBottomBar';
 import { AppPanels } from './components/panels/AppPanels';
 import { ReactScan } from './components/ReactScan';
 import TopBar from './components/TopBar';
+import { WelcomeTutorialHost } from './components/welcome-tutorial/WelcomeTutorialHost';
 import { normalizeLocale } from './lib/locale';
 import { Providers } from './providers';
 
@@ -97,6 +98,7 @@ export default async function RootLayout({
                   </main>
                   <MobileBottomBar />
                   <AppPanels />
+                  <WelcomeTutorialHost />
                   <div
                     id="fab-portal"
                     style={{ position: 'fixed', inset: 0, zIndex: 300, pointerEvents: 'none' }}

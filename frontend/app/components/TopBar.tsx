@@ -26,6 +26,7 @@ import { useThemePreference } from './navigation/hooks/useThemePreference';
 import { LanguageDrawer } from './navigation/LanguageDrawer';
 import { UserMenuTriggerAndDropdown } from './navigation/UserMenu';
 import { openAppPanel } from './panels/app-panels-store';
+import { openWelcomeTutorial } from './welcome-tutorial/welcome-tutorial-store';
 
 const HIDDEN_PATHS = ['/onboarding', '/login', '/register', '/shared', '/invite', '/chat'];
 
@@ -90,6 +91,9 @@ export default function TopBar() {
         },
         knowledgeBase: () => {
           window.open('https://symonbaikov.github.io/lumio/', '_blank', 'noopener,noreferrer');
+        },
+        welcomeTutorial: () => {
+          openWelcomeTutorial();
         },
         logout: () => {
           void logout();
