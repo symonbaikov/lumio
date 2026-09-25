@@ -8,7 +8,7 @@ describe('BackupsService', () => {
     const configurationRepository = repository();
     const service = createService({ configurationRepository });
 
-    const result = await service.configure(user, {
+    const result = await service.configure(user, 'workspace-1', {
       destinationKind: BackupDestinationKind.LOCAL,
       destinationPath: 'nightly',
       dailyTime: '02:30',
@@ -47,7 +47,7 @@ describe('BackupsService', () => {
     const archive = { create: jest.fn().mockResolvedValue(Buffer.from('encrypted archive')) };
     const service = createService({ configurationRepository, runRepository, destination, archive });
 
-    const run = await service.createRun(user, BackupRunTrigger.MANUAL);
+    const run = await service.createRun(user, 'workspace-1', BackupRunTrigger.MANUAL);
 
     expect(archive.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -84,7 +84,7 @@ describe('BackupsService', () => {
     const destination = { load: jest.fn().mockResolvedValue(Buffer.from('archive')) };
     const service = createService({ configurationRepository, runRepository, destination });
 
-    const result = await service.downloadRun(user, 'run-1');
+    const result = await service.downloadRun(user, 'workspace-1', 'run-1');
 
     expect(destination.load).toHaveBeenCalledWith(configuration, 'nightly-workspace-1/backup.lumio-backup');
     expect(result).toEqual({ fileName: 'backup.lumio-backup', contents: Buffer.from('archive') });
@@ -104,7 +104,28 @@ describe('BackupsService', () => {
       { store: jest.fn(), load: jest.fn() } as never,
     );
 
-    await expect(service.getConfiguration(user)).rejects.toThrow('Only the workspace owner');
+    await expect(service.getConfiguration(user, 'workspace-1')).rejects.toThrow(
+      'Only the workspace owner',
+    );
+  });
+
+  it('manages the backups of the workspace of the request', async () => {
+    const workspaceRepository = {
+      findOne: jest.fn().mockResolvedValue({ id: 'workspace-2', ownerId: 'user-1', name: 'Second' }),
+    };
+    const service = new BackupsService(
+      repository() as never,
+      repository() as never,
+      workspaceRepository as never,
+      { initializeEncryption: jest.fn(), create: jest.fn() } as never,
+      { encryptDataKey: jest.fn(), decryptDataKey: jest.fn() } as never,
+      { collect: jest.fn() } as never,
+      { store: jest.fn(), load: jest.fn() } as never,
+    );
+
+    await service.getConfiguration(user, 'workspace-2');
+
+    expect(workspaceRepository.findOne).toHaveBeenCalledWith({ where: { id: 'workspace-2' } });
   });
 });
 

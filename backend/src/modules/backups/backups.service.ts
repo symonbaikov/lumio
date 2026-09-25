@@ -47,16 +47,16 @@ export class BackupsService {
     private readonly destinationService: BackupDestinationService,
   ) {}
 
-  async getConfiguration(user: User) {
-    const workspace = await this.requireOwner(user);
+  async getConfiguration(user: User, workspaceId: string) {
+    const workspace = await this.requireOwner(user, workspaceId);
     const configuration = await this.configurationRepository.findOne({
       where: { workspaceId: workspace.id },
     });
     return configuration ? this.publicConfiguration(configuration) : null;
   }
 
-  async configure(user: User, input: UpdateBackupConfiguration) {
-    const workspace = await this.requireOwner(user);
+  async configure(user: User, workspaceId: string, input: UpdateBackupConfiguration) {
+    const workspace = await this.requireOwner(user, workspaceId);
     this.validateConfiguration(input);
     const existing = await this.configurationRepository.findOne({
       where: { workspaceId: workspace.id },
@@ -88,8 +88,8 @@ export class BackupsService {
     return this.publicConfiguration(saved);
   }
 
-  async listRuns(user: User): Promise<BackupRun[]> {
-    const workspace = await this.requireOwner(user);
+  async listRuns(user: User, workspaceId: string): Promise<BackupRun[]> {
+    const workspace = await this.requireOwner(user, workspaceId);
     return this.runRepository.find({
       where: { workspaceId: workspace.id },
       order: { createdAt: 'DESC' },
@@ -99,9 +99,10 @@ export class BackupsService {
 
   async createRun(
     user: User,
+    workspaceId: string,
     trigger: BackupRunTrigger = BackupRunTrigger.MANUAL,
   ): Promise<BackupRun> {
-    const workspace = await this.requireOwner(user);
+    const workspace = await this.requireOwner(user, workspaceId);
     const configuration = await this.configurationRepository.findOne({
       where: { workspaceId: workspace.id },
     });
@@ -111,8 +112,12 @@ export class BackupsService {
     return this.runConfiguration(workspace, configuration, trigger);
   }
 
-  async downloadRun(user: User, runId: string): Promise<{ fileName: string; contents: Buffer }> {
-    const workspace = await this.requireOwner(user);
+  async downloadRun(
+    user: User,
+    workspaceId: string,
+    runId: string,
+  ): Promise<{ fileName: string; contents: Buffer }> {
+    const workspace = await this.requireOwner(user, workspaceId);
     const run = await this.runRepository.findOne({
       where: { id: runId, workspaceId: workspace.id },
     });
@@ -197,9 +202,9 @@ export class BackupsService {
     }
   }
 
-  private async requireOwner(user: User): Promise<Workspace> {
-    if (!user.workspaceId) throw new BadRequestException('User workspace is required');
-    const workspace = await this.workspaceRepository.findOne({ where: { id: user.workspaceId } });
+  /** Backups are the open workspace's, and only its owner manages them. */
+  private async requireOwner(user: User, workspaceId: string): Promise<Workspace> {
+    const workspace = await this.workspaceRepository.findOne({ where: { id: workspaceId } });
     if (!workspace) throw new NotFoundException('Workspace not found');
     if (workspace.ownerId !== user.id) {
       throw new ForbiddenException('Only the workspace owner can manage backups');

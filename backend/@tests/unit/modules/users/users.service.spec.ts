@@ -335,7 +335,7 @@ describe('UsersService', () => {
       );
     });
 
-    it('should filter by workspace access', async () => {
+    it('lists the members of the workspace, whichever workspace they registered with', async () => {
       const findSpy = jest.spyOn(repository, 'find').mockResolvedValue([mockUser] as User[]);
 
       await service.findAll(WORKSPACE_ID, 20);
@@ -343,7 +343,7 @@ describe('UsersService', () => {
       expect(findSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            workspaceId: WORKSPACE_ID,
+            workspaceMemberships: { workspaceId: WORKSPACE_ID },
           }),
         }),
       );
