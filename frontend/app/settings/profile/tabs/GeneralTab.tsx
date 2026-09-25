@@ -15,7 +15,6 @@ import {
   ThemeSection,
 } from '@/app/settings/profile/components/AppearanceSection';
 import { AvatarUploadButton } from '@/app/settings/profile/components/AvatarUploadButton';
-import { ContentBackgroundCard } from '@/app/settings/profile/components/ContentBackgroundCard';
 import { ProfileSection } from '@/app/settings/profile/components/ProfileSection';
 import { SettingsAccordion } from '@/app/settings/profile/components/SettingsAccordion';
 import { TimeZoneDrawer } from '@/app/settings/profile/components/TimeZoneDrawer';
@@ -87,13 +86,6 @@ export function GeneralTab({ section, user, setUser }: SettingsTabProps): React.
     setDensity,
     reduceMotion,
     setReduceMotion,
-    contentBackground,
-    contentBackgroundDim,
-    previewContentBackgroundDim,
-    saveContentBackgroundDim,
-    selectPresetBackground,
-    uploadContentBackground,
-    removeContentBackground,
   } = useAppearance(user, setUser, {
     successFallback: t.appearanceCard.title.value,
     errorFallback: t.profileCard.errorFallback.value,
@@ -187,17 +179,6 @@ export function GeneralTab({ section, user, setUser }: SettingsTabProps): React.
         appearanceLoading={appearanceLoading}
         themePreference={themePreference}
         handleThemePreferenceChange={handleThemePreferenceChange}
-      />
-
-      <ContentBackgroundCard
-        tx={tx}
-        contentBackground={contentBackground}
-        dim={contentBackgroundDim}
-        onPreviewDim={previewContentBackgroundDim}
-        onSaveDim={saveContentBackgroundDim}
-        onSelectPreset={selectPresetBackground}
-        onUpload={uploadContentBackground}
-        onRemove={removeContentBackground}
       />
 
       <SettingsAccordion

@@ -96,17 +96,6 @@ export class User {
   @Column({ name: 'map_style_preference', type: 'varchar', length: 64, nullable: true })
   mapStylePreference: string | null;
 
-  /**
-   * Photo behind the content area: a bundled /workspace-backgrounds/ path or an
-   * uploaded /api/v1/users/backgrounds/ file. Null keeps the flat background.
-   */
-  @Column({ name: 'content_background', type: 'varchar', length: 255, nullable: true })
-  contentBackground: string | null;
-
-  /** Opacity, in percent, of the theme-coloured layer laid over the background photo. */
-  @Column({ name: 'content_background_dim', type: 'smallint', default: 35 })
-  contentBackgroundDim: number;
-
   @Column({ name: 'onboarding_completed_at', type: 'timestamptz', nullable: true, default: null })
   onboardingCompletedAt: Date | null;
 

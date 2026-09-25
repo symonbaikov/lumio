@@ -4,15 +4,11 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  Matches,
   Max,
   MaxLength,
   Min,
 } from 'class-validator';
 import { DateFormatPreference, ThemePreference, UiDensity } from '@/entities/user.entity';
-
-/** A photo bundled with the frontend, e.g. /workspace-backgrounds/lightscape-LtnPejWDSAY-unsplash.jpg. */
-const PRESET_BACKGROUND_PATTERN = /^\/workspace-backgrounds\/[A-Za-z0-9_-]+\.jpg$/;
 
 export enum AppLocale {
   RU = 'ru',
@@ -61,18 +57,4 @@ export class UpdateMyPreferencesDto {
   @IsString()
   @MaxLength(64)
   mapStylePreference?: string | null;
-
-  /**
-   * A bundled photo, or null to clear. Uploads go through
-   * POST /users/me/content-background, so no other URL is accepted here.
-   */
-  @IsOptional()
-  @Matches(PRESET_BACKGROUND_PATTERN)
-  contentBackground?: string | null;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(80)
-  contentBackgroundDim?: number;
 }
