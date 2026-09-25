@@ -29,7 +29,6 @@ import { useWorkspace, WorkspaceProvider } from './contexts/WorkspaceContext';
 import { useAutoTheme } from './hooks/useAutoTheme';
 import { useHTMLLanguage } from './hooks/useHTMLLanguage';
 import { createAppTheme } from './theme';
-import { TourAutoStarter } from './tours/components/TourAutoStarter';
 
 const TOASTER_OPTS = {
   duration: 3000,
@@ -133,7 +132,6 @@ export function Providers({
     <IntlayerProviderContent locale={locale} setLocale={handleLocaleChange}>
       <HtmlLanguageSync />
       <ThemePreferenceSync />
-      <TourAutoStarter />
       <ThemeProvider theme={muiTheme}>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           {/* Выше AuthProvider и WorkspaceProvider: их собственные запросы —

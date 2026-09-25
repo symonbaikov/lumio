@@ -92,10 +92,6 @@ vi.mock('./theme', () => ({
   createAppTheme: () => ({}),
 }));
 
-vi.mock('./tours/components/TourAutoStarter', () => ({
-  TourAutoStarter: () => null,
-}));
-
 describe('Providers', () => {
   // Клиент — модульный синглтон, иначе тесты делили бы один кэш.
   afterEach(() => {
