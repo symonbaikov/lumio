@@ -100,6 +100,7 @@ describe('Workspace isolation (e2e)', () => {
         'DELETE FROM transactions WHERE id IN (SELECT transaction_id FROM receipts WHERE user_id = $1)',
         [owner?.userId],
       );
+      await dataSource.query('DELETE FROM folders WHERE user_id = $1', [owner?.userId]);
       for (const email of Object.values(emails)) {
         await deleteUserByEmail(dataSource, email);
       }
@@ -198,6 +199,114 @@ describe('Workspace isolation (e2e)', () => {
         res.body.transaction.id,
       ]);
       expect(row.workspace_id).toBe(secondWorkspaceId);
+    });
+  });
+
+  describe('Storage', () => {
+    /** Statements the owner booked, keyed by the workspace they went into. */
+    const statementIn: Record<'first' | 'second', string> = { first: '', second: '' };
+    const fileIds = (res: request.Response) => (res.body as ListedReceipt[]).map(file => file.id);
+
+    async function bookExpense(workspaceId: string): Promise<string> {
+      const categories = await as(
+        owner,
+        request(server()).get('/categories?type=expense'),
+        workspaceId,
+      ).expect(200);
+      const statement = await as(
+        owner,
+        request(server()).post('/statements/manual-expense'),
+        workspaceId,
+      )
+        .field('amount', '42')
+        .field('currency', 'EUR')
+        .field('merchant', 'Iso Store')
+        .field('categoryId', categories.body[0].id)
+        .field('date', '2026-09-02')
+        .expect(201);
+      return statement.body.id;
+    }
+
+    beforeAll(async () => {
+      statementIn.first = await bookExpense(owner.workspaceId);
+      statementIn.second = await bookExpense(secondWorkspaceId);
+    });
+
+    it('lists each workspace’s files only there', async () => {
+      const first = await as(owner, request(server()).get('/storage/files')).expect(200);
+      expect(fileIds(first)).toContain(statementIn.first);
+      expect(fileIds(first)).not.toContain(statementIn.second);
+
+      const second = await as(
+        owner,
+        request(server()).get('/storage/files'),
+        secondWorkspaceId,
+      ).expect(200);
+      expect(fileIds(second)).toContain(statementIn.second);
+      expect(fileIds(second)).not.toContain(statementIn.first);
+    });
+
+    it('opens a file for members of its own workspace only', async () => {
+      // The member registered with a workspace of their own; access follows
+      // membership in the file's workspace, not the one they registered with.
+      const res = await as(
+        member,
+        request(server()).get(`/storage/files/${statementIn.second}`),
+        secondWorkspaceId,
+      ).expect(200);
+      expect(res.body.statement.id).toBe(statementIn.second);
+
+      await as(other, request(server()).get(`/storage/files/${statementIn.second}`)).expect(403);
+    });
+
+    it('keeps the trash per workspace too', async () => {
+      await as(owner, request(server()).post(`/storage/files/${statementIn.first}/trash`)).expect(
+        201,
+      );
+
+      const second = await as(
+        owner,
+        request(server()).get('/storage/files?deleted=only'),
+        secondWorkspaceId,
+      ).expect(200);
+      expect(fileIds(second)).not.toContain(statementIn.first);
+
+      const first = await as(owner, request(server()).get('/storage/files?deleted=only')).expect(
+        200,
+      );
+      expect(fileIds(first)).toContain(statementIn.first);
+    });
+
+    it('creates a folder in the current workspace and lists it only there', async () => {
+      const created = await as(owner, request(server()).post('/storage/folders'), secondWorkspaceId)
+        .send({ name: 'Iso folder' })
+        .expect(201);
+
+      const second = await as(
+        owner,
+        request(server()).get('/storage/folders'),
+        secondWorkspaceId,
+      ).expect(200);
+      expect(fileIds(second)).toContain(created.body.id);
+
+      const first = await as(owner, request(server()).get('/storage/folders')).expect(200);
+      expect(fileIds(first)).not.toContain(created.body.id);
+    });
+
+    it('does not list another tenant’s workspace-wide folders', async () => {
+      const [folder] = await dataSource.query(
+        `INSERT INTO folders (name, user_id, workspace_id) VALUES ('Foreign', NULL, $1) RETURNING id`,
+        [other.workspaceId],
+      );
+      try {
+        const res = await as(owner, request(server()).get('/storage/folders')).expect(200);
+        expect(fileIds(res)).not.toContain(folder.id);
+
+        const own = await as(other, request(server()).get('/storage/folders')).expect(200);
+        expect(fileIds(own)).toContain(folder.id);
+      } finally {
+        await dataSource.query('DELETE FROM folders WHERE id = $1', [folder.id]);
+      }
     });
   });
 });

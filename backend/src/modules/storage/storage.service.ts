@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
-import { In, type Repository } from 'typeorm';
+import { In, IsNull, type Repository } from 'typeorm';
 import { appError } from '../../common/errors/app-error';
 import { FileStorageService } from '../../common/services/file-storage.service';
 import { hashPassword } from '../../common/utils/password-hash.util';
@@ -28,7 +28,6 @@ import {
   StorageView,
   Tag,
   Transaction,
-  User,
   WorkspaceMember,
   WorkspaceRole,
 } from '../../entities';
@@ -85,8 +84,6 @@ export class StorageService {
     private readonly folderRepository: Repository<Folder>,
     @InjectRepository(Tag)
     private readonly tagRepository: Repository<Tag>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly fileStorageService: FileStorageService,
@@ -101,37 +98,29 @@ export class StorageService {
     private readonly metricsService?: MetricsService,
   ) {}
 
-  private async getUserContext(userId: string) {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      select: ['id', 'workspaceId'],
+  /** The caller's membership in a file's own workspace, the anchor for access to it. */
+  private findMembership(workspaceId: string, userId: string) {
+    return this.workspaceMemberRepository.findOne({
+      where: { workspaceId, userId },
+      select: ['role', 'permissions'],
     });
-    return {
-      workspaceId: user?.workspaceId ?? null,
-    };
   }
 
   /**
-   * Get all files (statements) in storage for a user
+   * Get all files (statements) of the current workspace
    */
-  async getStorageFiles(userId: string, filters?: StorageViewFilters) {
+  async getStorageFiles(userId: string, workspaceId: string, filters?: StorageViewFilters) {
     try {
-      const { workspaceId } = await this.getUserContext(userId);
-
-      // Get all statements owned by user or workspace
+      // Scoped on the workspace the caller has open (the request header), not on
+      // the user's own `workspaceId`: that is only the workspace they registered
+      // with, so it showed the same files in every workspace they switched to.
       const ownedStatements = await this.statementRepository
         .createQueryBuilder('statement')
         .leftJoinAndSelect('statement.category', 'category')
         .leftJoinAndSelect('statement.user', 'owner')
         .leftJoinAndSelect('statement.folder', 'folder')
         .leftJoinAndSelect('statement.tags', 'tags')
-        .where(
-          // Scope on the statement's own workspace, not the owner's current
-          // "home" workspace: the latter is rewritten whenever the owner
-          // accepts an invitation, which silently moved their files with them.
-          workspaceId ? 'statement.workspaceId = :workspaceId' : 'statement.userId = :userId',
-          workspaceId ? { workspaceId } : { userId },
-        )
+        .where('statement.workspaceId = :workspaceId', { workspaceId })
         .orderBy('statement.createdAt', 'DESC')
         .distinct(true)
         .getMany();
@@ -157,9 +146,11 @@ export class StorageService {
         console.warn('File permissions table may not exist yet:', getErrorMessage(error));
       }
 
+      // A file is only ever shared with members of its own workspace, so the
+      // ones from other workspaces belong to those workspaces' lists.
       const sharedStatements = sharedPermissions
         .map(perm => perm.statement)
-        .filter(stmt => stmt !== null);
+        .filter(stmt => stmt !== null && stmt.workspaceId === workspaceId);
 
       // Combine and deduplicate
       const allStatements = [...ownedStatements];
@@ -172,12 +163,7 @@ export class StorageService {
       }
 
       // Enrich with permissions info
-      const workspaceRole = workspaceId
-        ? await this.workspaceMemberRepository.findOne({
-            where: { workspaceId, userId },
-            select: ['role'],
-          })
-        : null;
+      const workspaceRole = await this.findMembership(workspaceId, userId);
 
       const statementsWithFileData = this.fileStorageService.getStatementsWithFileData
         ? await this.fileStorageService.getStatementsWithFileData(allStatements.map(s => s.id))
@@ -186,7 +172,7 @@ export class StorageService {
       const enrichedStatements = await Promise.all(
         allStatements.map(async statement => {
           const isOwner = statement.userId === userId;
-          const isWorkspacePeer = Boolean(workspaceId) && statement.workspaceId === workspaceId;
+          const isWorkspacePeer = statement.workspaceId === workspaceId;
           let permission = null;
           let sharedLinks = 0;
 
@@ -329,8 +315,7 @@ export class StorageService {
 
     const isOwner = statement.userId === userId;
     const userPermission = await this.getUserPermissionForStatement(userId, statementId);
-    const { workspaceId } = await this.getUserContext(userId);
-    const isWorkspacePeer = Boolean(workspaceId) && statement.workspaceId === workspaceId;
+    const isWorkspacePeer = Boolean(await this.findMembership(statement.workspaceId, userId));
 
     const fileAvailability = await this.fileStorageService.getFileAvailability(statement);
 
@@ -457,16 +442,24 @@ export class StorageService {
     return await this.tagRepository.remove(tag);
   }
 
-  async createFolder(dto: CreateFolderDto, userId: string) {
+  // Folders are the caller's own plus the workspace-wide ones (no owner), matched
+  // with IsNull(): TypeORM drops a plain `null` from `where`, so `{ userId: null }`
+  // never listed the workspace-wide folders, and `{ id, userId: null }` matched
+  // any tenant's folder by id alone.
+  private folderScope(workspaceId: string, userId: string, id?: string) {
+    const byId = id ? { id } : {};
+    return [
+      { ...byId, workspaceId, userId },
+      { ...byId, workspaceId, userId: IsNull() },
+    ];
+  }
+
+  async createFolder(dto: CreateFolderDto, userId: string, workspaceId: string) {
     let tag = null;
     const tagId = dto.tagId === '' ? null : dto.tagId;
     if (tagId) {
-      tag = await this.tagRepository.findOne({
-        where: [
-          { id: tagId, userId },
-          { id: tagId, userId: null },
-        ],
-      });
+      // Tags are shared across the workspace (see listTags).
+      tag = await this.tagRepository.findOne({ where: { id: tagId, workspaceId } });
       if (!tag) {
         throw new NotFoundException('Tag not found');
       }
@@ -474,23 +467,24 @@ export class StorageService {
     const folder = this.folderRepository.create({
       name: dto.name,
       userId,
+      workspaceId,
       tagId: tag?.id ?? null,
       tag,
     });
     return await this.folderRepository.save(folder);
   }
 
-  async listFolders(userId: string) {
+  async listFolders(userId: string, workspaceId: string) {
     return await this.folderRepository.find({
-      where: [{ userId }, { userId: null }],
+      where: this.folderScope(workspaceId, userId),
       order: { name: 'ASC' },
       relations: ['tag'],
     });
   }
 
-  async updateFolder(folderId: string, dto: UpdateFolderDto, userId: string) {
+  async updateFolder(folderId: string, dto: UpdateFolderDto, userId: string, workspaceId: string) {
     const folder = await this.folderRepository.findOne({
-      where: { id: folderId, userId },
+      where: { id: folderId, userId, workspaceId },
     });
     if (!folder) {
       throw new NotFoundException('Folder not found');
@@ -502,12 +496,7 @@ export class StorageService {
     if (dto.tagId !== undefined) {
       const tagId = dto.tagId === '' ? null : dto.tagId;
       if (tagId) {
-        const tag = await this.tagRepository.findOne({
-          where: [
-            { id: tagId, userId },
-            { id: tagId, userId: null },
-          ],
-        });
+        const tag = await this.tagRepository.findOne({ where: { id: tagId, workspaceId } });
         if (!tag) {
           throw new NotFoundException('Tag not found');
         }
@@ -522,9 +511,9 @@ export class StorageService {
     return await this.folderRepository.save(folder);
   }
 
-  async deleteFolder(folderId: string, userId: string, deleteFiles: boolean) {
+  async deleteFolder(folderId: string, userId: string, workspaceId: string, deleteFiles: boolean) {
     const folder = await this.folderRepository.findOne({
-      where: { id: folderId, userId },
+      where: { id: folderId, userId, workspaceId },
     });
     if (!folder) {
       throw new NotFoundException('Folder not found');
@@ -564,14 +553,10 @@ export class StorageService {
 
     let folder: Folder | null = null;
     if (folderId) {
-      // Same scoping as listFolders: the caller's own folders plus the shared
-      // (userId: null) ones. An unscoped lookup let a file be moved into
-      // another tenant's folder.
+      // Same scoping as listFolders, in the file's own workspace. An unscoped
+      // lookup let a file be moved into another tenant's folder.
       folder = await this.folderRepository.findOne({
-        where: [
-          { id: folderId, userId },
-          { id: folderId, userId: null },
-        ],
+        where: this.folderScope(statement.workspaceId, userId, folderId),
       });
       if (!folder) {
         throw new NotFoundException('Folder not found');
@@ -1335,14 +1320,9 @@ export class StorageService {
       throw new NotFoundException('File not found');
     }
 
-    const { workspaceId } = await this.getUserContext(userId);
-
-    const membership = workspaceId
-      ? await this.workspaceMemberRepository.findOne({
-          where: { workspaceId, userId },
-          select: ['role', 'permissions'],
-        })
-      : null;
+    // Access follows membership in the file's own workspace, whichever
+    // workspace the caller registered with.
+    const membership = await this.findMembership(statement.workspaceId, userId);
 
     // Owner has all permissions
     if (statement.userId === userId) {
@@ -1358,8 +1338,7 @@ export class StorageService {
     }
 
     // Workspace members: allow view/download; admins/owners can edit/share
-    const isSameWorkspace = Boolean(workspaceId) && statement.workspaceId === workspaceId;
-    if (isSameWorkspace) {
+    if (membership) {
       if (requiredAction === 'view' || requiredAction === 'download') {
         return;
       }

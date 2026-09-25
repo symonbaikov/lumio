@@ -237,16 +237,30 @@ describe('StorageService', () => {
     });
 
     it('should return all files for user', async () => {
-      const result = await service.getStorageFiles('1');
+      const result = await service.getStorageFiles('1', 'ws-open');
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it('should include workspace files', async () => {
-      await service.getStorageFiles('1');
+    it('lists the files of the workspace the caller has open', async () => {
+      await service.getStorageFiles('1', 'ws-open');
 
-      expect(statementRepository.createQueryBuilder).toHaveBeenCalled();
+      const queryBuilder = (statementRepository.createQueryBuilder as jest.Mock).mock.results[0]
+        .value;
+      expect(queryBuilder.where).toHaveBeenCalledWith('statement.workspaceId = :workspaceId', {
+        workspaceId: 'ws-open',
+      });
+    });
+
+    it('leaves out files shared from other workspaces', async () => {
+      jest.spyOn(filePermissionRepository, 'find').mockResolvedValue([
+        { statement: { ...mockStatement, id: 'elsewhere', workspaceId: 'ws-other' } },
+      ] as any);
+
+      const result = await service.getStorageFiles('1', 'ws-open');
+
+      expect(result.map(file => file.id)).not.toContain('elsewhere');
     });
 
     it('should include file metadata', async () => {
@@ -256,7 +270,7 @@ describe('StorageService', () => {
         status: 'both',
       });
 
-      const result = await service.getStorageFiles('1');
+      const result = await service.getStorageFiles('1', 'ws-open');
 
       expect(result).toBeDefined();
     });
