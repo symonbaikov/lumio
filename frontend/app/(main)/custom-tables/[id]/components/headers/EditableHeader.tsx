@@ -2,25 +2,41 @@
 
 import type { Column, Table } from '@tanstack/react-table';
 import { useEffect, useRef, useState } from 'react';
-import { Tag, X } from '@/app/components/icons';
+import { Tag } from '@/app/components/icons';
 import type { CustomTableGridRow } from '../../utils/stylingUtils';
+import { ColumnHeaderMenu, type ColumnMenuLabels, type ColumnStylePatch } from './ColumnHeaderMenu';
 
 interface EditableHeaderProps {
   column: Column<CustomTableGridRow>;
   table: Table<CustomTableGridRow>;
   title: string;
   icon?: string | null;
+  labels: ColumnMenuLabels;
+  isPinned: boolean;
+  headerColor?: string;
+  columnColor?: string;
   onRename: (columnKey: string, nextTitle: string) => Promise<void>;
   onDelete?: (columnKey: string) => void;
+  onEdit?: (columnKey: string) => void;
+  onSetStyle?: (opts: { columnKey: string; style: ColumnStylePatch }) => Promise<void>;
+  onTogglePin?: (columnKey: string) => void;
+  onHide?: (columnKey: string) => void;
 }
 
 export function EditableHeader({
   column,
-  table,
   title,
   icon,
+  labels,
+  isPinned,
+  headerColor,
+  columnColor,
   onRename,
   onDelete,
+  onEdit,
+  onSetStyle,
+  onTogglePin,
+  onHide,
 }: EditableHeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(title);
@@ -75,11 +91,14 @@ export function EditableHeader({
     }
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onDelete) {
-      onDelete(column.id);
+  // Сортировку переключаем методами колонки: TanStack читает текущее состояние
+  // сам, поэтому в меню не нужно знать, как отсортировано сейчас.
+  const handleSort = (direction: 'asc' | 'desc' | null): void => {
+    if (direction === null) {
+      column.clearSorting();
+      return;
     }
+    column.toggleSorting(direction === 'desc');
   };
 
   if (isEditing) {
@@ -96,7 +115,7 @@ export function EditableHeader({
           width: '100%',
           padding: '4px 8px',
           fontSize: 14,
-          border: '1px solid #3b82f6',
+          border: '1px solid var(--primary-fill)',
           background: 'var(--card-bg)',
           boxSizing: 'border-box',
         }}
@@ -125,7 +144,7 @@ export function EditableHeader({
           minWidth: 0,
           cursor: !isSystemColumn ? 'pointer' : 'default',
         }}
-        title={!isSystemColumn ? 'Double-click to rename' : undefined}
+        title={!isSystemColumn ? labels.rename : undefined}
       >
         {icon && (
           <span style={{ flexShrink: 0 }}>
@@ -143,23 +162,24 @@ export function EditableHeader({
         </span>
       </div>
 
-      {!isSystemColumn && onDelete && (
-        <button
-          type="button"
-          onClick={handleDelete}
-          style={{
-            flexShrink: 0,
-            padding: 4,
-            border: 'none',
-            background: 'transparent',
-            cursor: 'pointer',
-            color: 'var(--muted-foreground)',
-            lineHeight: 0,
-          }}
-          title="Delete column"
-        >
-          <X className="h-3 w-3" />
-        </button>
+      {!isSystemColumn && (
+        <ColumnHeaderMenu
+          labels={labels}
+          isPinned={isPinned}
+          headerColor={headerColor}
+          columnColor={columnColor}
+          onRename={() => setIsEditing(true)}
+          onEdit={onEdit ? () => onEdit(column.id) : undefined}
+          onSetStyle={
+            onSetStyle
+              ? patch => void onSetStyle({ columnKey: column.id, style: patch })
+              : undefined
+          }
+          onTogglePin={onTogglePin ? () => onTogglePin(column.id) : undefined}
+          onHide={onHide ? () => onHide(column.id) : undefined}
+          onSort={handleSort}
+          onDelete={onDelete ? () => onDelete(column.id) : undefined}
+        />
       )}
     </div>
   );

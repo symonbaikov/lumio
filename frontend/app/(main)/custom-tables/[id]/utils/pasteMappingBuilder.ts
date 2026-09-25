@@ -5,6 +5,7 @@ import type {
   PasteFieldKey,
   PasteMappingSelection,
 } from './pasteTypes';
+import { optionValues } from './selectOptions';
 import type { ColumnType } from './stylingUtils';
 
 // ---------------------------------------------------------------------------
@@ -188,7 +189,7 @@ const toExistingMapping = (
   field,
   columnKey: column.key,
   label: column.title || column.key,
-  options: column.config?.options,
+  options: optionValues(column.config),
   mode: 'existing',
 });
 

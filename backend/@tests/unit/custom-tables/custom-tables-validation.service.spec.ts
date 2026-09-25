@@ -126,3 +126,78 @@ describe('row validation against column flags', () => {
     ).rejects.toMatchObject({ response: { code: 'COLUMN_REQUIRED_VALUE' } });
   });
 });
+
+describe('column number config validation', () => {
+  const USER_ID = '33333333-3333-4333-8333-333333333333';
+  const WORKSPACE_ID = '44444444-4444-4444-8444-444444444444';
+
+  const addColumn = (dto: Record<string, unknown>) => {
+    const { service } = buildService();
+    return service.addColumn(USER_ID, WORKSPACE_ID, TABLE_ID, {
+      title: 'Сумма',
+      type: CustomTableColumnType.CURRENCY,
+      ...dto,
+    } as never);
+  };
+
+  it('rejects a currency that is not a 3-letter code', async () => {
+    await expect(addColumn({ config: { currency: 'kzt1' } })).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'COLUMN_CURRENCY_INVALID' }),
+    });
+  });
+
+  it('rejects a precision outside 0..6', async () => {
+    await expect(addColumn({ config: { currency: 'USD', precision: 7 } })).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'COLUMN_PRECISION_INVALID' }),
+    });
+  });
+
+  it('rejects an unknown number format', async () => {
+    await expect(
+      addColumn({ type: CustomTableColumnType.NUMBER, config: { format: 'money' } }),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'COLUMN_FORMAT_INVALID' }),
+    });
+  });
+
+  it('normalises a lowercase currency code instead of rejecting it', async () => {
+    const dto = { config: { currency: 'usd', precision: 0 } };
+    await addColumn(dto).catch(() => undefined);
+    expect(dto.config.currency).toBe('USD');
+  });
+});
+
+describe('column select options validation', () => {
+  const USER_ID = '33333333-3333-4333-8333-333333333333';
+  const WORKSPACE_ID = '44444444-4444-4444-8444-444444444444';
+
+  const addSelect = (options: unknown) => {
+    const { service } = buildService();
+    return service.addColumn(USER_ID, WORKSPACE_ID, TABLE_ID, {
+      title: 'Статус',
+      type: CustomTableColumnType.SELECT,
+      config: { options },
+    } as never);
+  };
+
+  it('rejects duplicate values', async () => {
+    await expect(addSelect(['Won', { value: 'Won', color: '#22c55e' }])).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'COLUMN_OPTIONS_INVALID' }),
+    });
+  });
+
+  it('rejects a colour that is not #rrggbb', async () => {
+    await expect(addSelect([{ value: 'Won', color: 'green' }])).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'COLUMN_OPTIONS_INVALID' }),
+    });
+  });
+
+  it('accepts strings mixed with coloured objects', async () => {
+    await expect(
+      addSelect(['Lead', { value: 'Won', color: '#22c55e', label: 'Won' }]).catch(error => {
+        // Сохранение в моках может упасть дальше по цепочке — важно, что не на валидации.
+        if (error?.response?.code === 'COLUMN_OPTIONS_INVALID') throw error;
+      }),
+    ).resolves.not.toThrow();
+  });
+});

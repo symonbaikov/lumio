@@ -1,8 +1,9 @@
 'use client';
 
 import { Box } from '@mui/material';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ModalShell } from '@/app/components/ui/modal-shell';
+import { Select } from '@/app/components/ui/select';
 import type { ConditionalOp, ConditionalRule } from '../utils/conditionalRules';
 
 const OPS: ConditionalOp[] = [
@@ -67,6 +68,15 @@ export function ConditionalRulesModal({
     style: { backgroundColor: '#fee2e2' },
   });
 
+  // Колонки могут прийти позже первого рендера: тогда черновик остался бы с
+  // пустой колонкой и кнопка «добавить» молча ничего не делала.
+  useEffect(() => {
+    if (columns.length === 0 || columns.some(col => col.key === draft.col)) {
+      return;
+    }
+    setDraft(prev => ({ ...prev, col: columns[0].key }));
+  }, [columns, draft.col]);
+
   const addRule = (): void => {
     if (!draft.col) {
       return;
@@ -80,30 +90,20 @@ export function ConditionalRulesModal({
     <ModalShell isOpen={isOpen} onClose={onClose} size="xl" title={labels.title}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
-          <select
-            aria-label={labels.column}
+          <Select
+            size="small"
+            inputProps={{ 'aria-label': labels.column }}
             value={draft.col}
-            onChange={e => setDraft(prev => ({ ...prev, col: e.target.value }))}
-            style={controlStyle}
-          >
-            {columns.map(col => (
-              <option key={col.key} value={col.key}>
-                {col.title}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label={labels.condition}
+            onChange={value => setDraft(prev => ({ ...prev, col: value }))}
+            options={columns.map(col => ({ value: col.key, label: col.title }))}
+          />
+          <Select
+            size="small"
+            inputProps={{ 'aria-label': labels.condition }}
             value={draft.op}
-            onChange={e => setDraft(prev => ({ ...prev, op: e.target.value as ConditionalOp }))}
-            style={controlStyle}
-          >
-            {OPS.map(op => (
-              <option key={op} value={op}>
-                {labels.ops[op]}
-              </option>
-            ))}
-          </select>
+            onChange={value => setDraft(prev => ({ ...prev, op: value as ConditionalOp }))}
+            options={OPS.map(op => ({ value: op, label: labels.ops[op] }))}
+          />
           {!OPS_WITHOUT_VALUE.has(draft.op) && (
             <input
               aria-label={labels.value}
@@ -121,21 +121,21 @@ export function ConditionalRulesModal({
             }
             style={{ ...controlStyle, padding: 2, width: 44 }}
           />
-          <select
-            aria-label={labels.target}
+          <Select
+            size="small"
+            inputProps={{ 'aria-label': labels.target }}
             value={draft.target}
-            onChange={e =>
-              setDraft(prev => ({ ...prev, target: e.target.value as 'cell' | 'row' }))
-            }
-            style={controlStyle}
-          >
-            <option value="cell">{labels.targetCell}</option>
-            <option value="row">{labels.targetRow}</option>
-          </select>
+            onChange={value => setDraft(prev => ({ ...prev, target: value as 'cell' | 'row' }))}
+            options={[
+              { value: 'cell', label: labels.targetCell },
+              { value: 'row', label: labels.targetRow },
+            ]}
+          />
           <Box
             component="button"
             type="button"
             onClick={addRule}
+            disabled={!draft.col}
             sx={{
               ...controlStyle,
               cursor: 'pointer',

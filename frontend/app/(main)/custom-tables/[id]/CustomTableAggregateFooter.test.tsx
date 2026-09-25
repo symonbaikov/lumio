@@ -1,3 +1,4 @@
+import { fireEvent, render as renderComponent } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { CustomTableTanStack } from './CustomTableTanStack';
@@ -43,12 +44,14 @@ const COLUMNS = [
   { id: 'col-2', key: 'note', title: 'Note', type: 'text' as const, position: 1, config: null },
 ];
 
-function render(props: {
+type FooterProps = {
   aggregateSelection: Record<string, 'sum' | 'avg' | 'min' | 'max' | 'count'>;
   aggregateValues: Record<string, number | string | null>;
-}): string {
+};
+
+function table(props: FooterProps): React.ReactElement {
   viewportState.isMobile = false;
-  return renderToStaticMarkup(
+  return (
     <CustomTableTanStack
       tableId="table-1"
       columns={COLUMNS}
@@ -74,9 +77,12 @@ function render(props: {
       aggregateSelection={props.aggregateSelection}
       aggregateValues={props.aggregateValues}
       onAggregateChange={vi.fn()}
-    />,
+    />
   );
 }
+
+const render = (props: FooterProps): string => renderToStaticMarkup(table(props));
+const renderIntoDom = (props: FooterProps) => renderComponent(table(props));
 
 describe('custom table aggregate footer', () => {
   it('renders the aggregate value for a column with a selected function', () => {
@@ -90,20 +96,81 @@ describe('custom table aggregate footer', () => {
   });
 
   it('offers sum only on numeric columns, never on text ones', () => {
-    const html = render({ aggregateSelection: {}, aggregateValues: {} });
+    // На десктопе селект подвала — меню MUI, поэтому опции появляются в DOM
+    // только после открытия, а их значения лежат в data-value.
+    const offeredFns = (columnIndex: number): string[] => {
+      const { container, unmount } = renderIntoDom({
+        aggregateSelection: {},
+        aggregateValues: {},
+      });
+      const trigger = container.querySelectorAll('tfoot [role="combobox"]')[columnIndex];
+      fireEvent.mouseDown(trigger);
+      const fns = Array.from(document.querySelectorAll('[role="option"]')).map(option =>
+        option.getAttribute('data-value'),
+      );
+      unmount();
+      return fns.filter((fn): fn is string => fn !== null);
+    };
 
-    // Ячейки подвала опознаём по aria-label селекта: он содержит заголовок колонки.
-    const footer = html.slice(html.indexOf('<tfoot'));
-    const cells = footer.split('</td>');
-    const amountCell = cells.find(cell => cell.includes('Amount'));
-    const noteCell = cells.find(cell => cell.includes('Note'));
-
-    expect(amountCell).toBeDefined();
-    expect(amountCell).toContain('value="sum"');
+    expect(offeredFns(0)).toContain('sum');
     // Текстовую колонку можно только считать по количеству — суммировать нечего.
-    expect(noteCell).toBeDefined();
-    expect(noteCell).not.toContain('value="sum"');
-    expect(noteCell).toContain('value="count"');
+    const noteFns = offeredFns(1);
+    expect(noteFns).not.toContain('sum');
+    expect(noteFns).toContain('count');
+  });
+
+  it('formats a money total with the column currency and a percent total with %', () => {
+    const html = renderToStaticMarkup(
+      <CustomTableTanStack
+        tableId="table-1"
+        columns={[
+          {
+            id: 'col-1',
+            key: 'amount',
+            title: 'Amount',
+            type: 'currency',
+            position: 0,
+            config: { currency: 'USD' },
+          },
+          {
+            id: 'col-2',
+            key: 'share',
+            title: 'Share',
+            type: 'number',
+            position: 1,
+            config: { format: 'percent', precision: 1 },
+          },
+        ]}
+        rows={[]}
+        selectedRowIds={[]}
+        columnWidths={{}}
+        isFullscreen={false}
+        loadingRows={false}
+        hasMore={false}
+        stickyLeftColumnIds={[]}
+        stickyRightColumnIds={[]}
+        onLoadMore={vi.fn()}
+        onFiltersParamChange={vi.fn()}
+        onUpdateCell={vi.fn().mockResolvedValue(undefined)}
+        onUpdateRowStyle={vi.fn().mockResolvedValue(undefined)}
+        onDeleteRow={vi.fn()}
+        onPersistColumnWidth={vi.fn().mockResolvedValue(undefined)}
+        onRenameColumnTitle={vi.fn().mockResolvedValue(undefined)}
+        onSelectedRowIdsChange={vi.fn()}
+        sorting={[]}
+        onSortingChange={vi.fn()}
+        conditionalRules={[]}
+        aggregateSelection={{ amount: 'sum', share: 'avg' }}
+        aggregateValues={{ amount: -1520.5, share: 12.34 }}
+        onAggregateChange={vi.fn()}
+      />,
+    );
+
+    const tfoot = html.slice(html.indexOf('<tfoot'));
+    expect(tfoot).toContain('-$1,520.50');
+    expect(tfoot).toContain('12.3%');
+    // Отрицательная сумма — красным.
+    expect(tfoot).toContain('color:var(--destructive)');
   });
 
   it('shows a dash when the aggregate came back empty', () => {

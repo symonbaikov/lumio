@@ -57,6 +57,18 @@ export function parseCreateRowResponse(data: unknown, rowCount: number): CustomT
   return created;
 }
 
+/**
+ * Данные строки из ответа PATCH/POST: сервер возвращает их вместе с
+ * посчитанными формулами, поэтому грид берёт их вместо локальной правки.
+ */
+export function extractRowData(data: unknown): CustomTableRowPatch {
+  const payload = extractPayload(data);
+  const raw = (Array.isArray(payload) ? payload[0] : payload) as { data?: unknown } | null;
+  return raw && typeof raw === 'object' && raw.data && typeof raw.data === 'object'
+    ? (raw.data as CustomTableRowPatch)
+    : {};
+}
+
 export async function createRowRequest(
   tableId: string,
   rowCount: number,

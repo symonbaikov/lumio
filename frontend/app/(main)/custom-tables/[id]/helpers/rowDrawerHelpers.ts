@@ -1,9 +1,14 @@
-import type { ColumnType, CustomTableColumn } from '../utils/stylingUtils';
+import { formatCellNumber, parseLocalizedNumber } from '../utils/numberFormat';
+import { normalizeSelectOptions } from '../utils/selectOptions';
+import type {
+  ColumnType,
+  CustomTableColumn,
+  CustomTableColumnConfig,
+  SelectOptionDef,
+} from '../utils/stylingUtils';
 
-export function getColumnOptions(column: CustomTableColumn): string[] {
-  return Array.isArray(column.config?.options)
-    ? column.config.options.map((option: unknown) => String(option))
-    : [];
+export function getColumnOptions(column: CustomTableColumn): SelectOptionDef[] {
+  return normalizeSelectOptions(column.config);
 }
 
 function normalizeMultiSelect(value: unknown): string[] {
@@ -28,9 +33,18 @@ function normalizeText(value: unknown): string {
   return value === null || value === undefined ? '' : String(value);
 }
 
+// Деньги и числа принимают «1 234,56»; без этого в jsonb уезжала строка.
+function normalizeNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  return typeof value === 'number' ? value : parseLocalizedNumber(String(value));
+}
+
 const normalizers: Record<string, (value: unknown) => unknown> = {
   boolean: v => Boolean(v),
-  number: v => (v === null || v === undefined || v === '' ? null : Number(v)),
+  number: normalizeNumber,
+  currency: normalizeNumber,
   multi_select: normalizeMultiSelect,
   date: normalizeNullableString,
   select: normalizeSelect,
@@ -55,13 +69,26 @@ const formatters: Record<string, (value: unknown) => string> = {
   multi_select: formatMultiSelect,
 };
 
-export function formatValue(type: ColumnType, value: unknown): string {
+const NUMERIC_TYPES = new Set<ColumnType>(['number', 'currency', 'formula']);
+
+export function formatValue(
+  type: ColumnType,
+  value: unknown,
+  config?: CustomTableColumnConfig | null,
+): string {
   if (value === null || value === undefined) {
     return '—';
   }
   const formatter = formatters[type];
   if (formatter) {
     return formatter(value);
+  }
+  if (NUMERIC_TYPES.has(type) && Number.isFinite(Number(value)) && String(value).trim()) {
+    return formatCellNumber(Number(value), {
+      currency: typeof config?.currency === 'string' ? config.currency : undefined,
+      precision: typeof config?.precision === 'number' ? config.precision : undefined,
+      format: config?.format === 'percent' ? 'percent' : undefined,
+    });
   }
   const text = String(value);
   return text.trim() ? text : '—';

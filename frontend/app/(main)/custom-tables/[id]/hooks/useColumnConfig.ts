@@ -40,6 +40,9 @@ export interface UseColumnConfigReturn {
   setColumnOrder: React.Dispatch<React.SetStateAction<string[]>>;
   hiddenColumnKeys: string[];
   setHiddenColumnKeys: React.Dispatch<React.SetStateAction<string[]>>;
+  /** Закреплённые слева колонки; живут в localStorage вместе с порядком. */
+  pinnedColumnKeys: string[];
+  toggleColumnPinned: (key: string) => void;
   columnFilters: Record<string, ColumnFilterState>;
   setColumnFilters: React.Dispatch<React.SetStateAction<Record<string, ColumnFilterState>>>;
   columnWidths: Record<string, number>;
@@ -85,12 +88,16 @@ function persistLocalColumnWidths(storageKey: string, widths: Record<string, num
   }
 }
 
-function readStoredColumnSettings(
-  storageKey: string,
-): { order?: string[]; hidden?: string[] } | null {
+interface StoredColumnSettings {
+  order?: string[];
+  hidden?: string[];
+  pinned?: string[];
+}
+
+function readStoredColumnSettings(storageKey: string): StoredColumnSettings | null {
   try {
     const raw = localStorage.getItem(storageKey);
-    return raw ? (JSON.parse(raw) as { order?: string[]; hidden?: string[] }) : null;
+    return raw ? (JSON.parse(raw) as StoredColumnSettings) : null;
   } catch (error) {
     console.warn('Failed to load column settings:', error);
     return null;
@@ -99,7 +106,7 @@ function readStoredColumnSettings(
 
 function writeStoredColumnSettings(
   storageKey: string,
-  settings: { order: string[]; hidden: string[] },
+  settings: { order: string[]; hidden: string[]; pinned: string[] },
 ): void {
   try {
     localStorage.setItem(storageKey, JSON.stringify(settings));
@@ -157,6 +164,7 @@ export function useColumnConfig({
 }: UseColumnConfigParams): UseColumnConfigReturn {
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
   const [hiddenColumnKeys, setHiddenColumnKeys] = useState<string[]>([]);
+  const [pinnedColumnKeys, setPinnedColumnKeys] = useState<string[]>([]);
   const [columnFilters, setColumnFilters] = useState<Record<string, ColumnFilterState>>({});
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const columnWidthTimersRef = useRef<Record<string, number>>({});
@@ -180,6 +188,9 @@ export function useColumnConfig({
     if (Array.isArray(parsed.hidden)) {
       setHiddenColumnKeys(parsed.hidden);
     }
+    if (Array.isArray(parsed.pinned)) {
+      setPinnedColumnKeys(parsed.pinned);
+    }
   }, [tableId]);
 
   // Persist column order + visibility to localStorage
@@ -196,8 +207,9 @@ export function useColumnConfig({
     writeStoredColumnSettings(`custom-table:${tableId}:columns`, {
       order: columnOrder,
       hidden: hiddenColumnKeys,
+      pinned: pinnedColumnKeys,
     });
-  }, [tableId, columnOrder, hiddenColumnKeys]);
+  }, [tableId, columnOrder, hiddenColumnKeys, pinnedColumnKeys]);
 
   // Keep columnOrder in sync when orderedColumns changes (e.g. after a column is added/removed)
   useEffect(() => {
@@ -221,6 +233,7 @@ export function useColumnConfig({
       return next;
     });
     setHiddenColumnKeys(prev => prev.filter(k => keys.includes(k)));
+    setPinnedColumnKeys(prev => prev.filter(k => keys.includes(k)));
   }, [orderedColumns]);
 
   // Initialize column widths from localStorage + server view settings
@@ -303,6 +316,12 @@ export function useColumnConfig({
     );
   };
 
+  const toggleColumnPinned = (key: string) => {
+    setPinnedColumnKeys(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key],
+    );
+  };
+
   const moveColumn = (key: string, direction: 'up' | 'down') => {
     setColumnOrder(prev => {
       const order = prev.length ? [...prev] : orderedColumns.map(c => c.key);
@@ -323,6 +342,7 @@ export function useColumnConfig({
 
   const resetColumns = () => {
     setHiddenColumnKeys([]);
+    setPinnedColumnKeys([]);
     setColumnOrder(orderedColumns.map(c => c.key));
   };
 
@@ -331,6 +351,8 @@ export function useColumnConfig({
     setColumnOrder,
     hiddenColumnKeys,
     setHiddenColumnKeys,
+    pinnedColumnKeys,
+    toggleColumnPinned,
     columnFilters,
     setColumnFilters,
     columnWidths,

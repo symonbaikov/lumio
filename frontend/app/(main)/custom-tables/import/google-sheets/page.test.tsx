@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 // @vitest-environment jsdom
 import { act } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { selectOption } from '@/app/test/select';
 
 const push = vi.hoisted(() => vi.fn());
 const apiGet = vi.hoisted(() => vi.fn());
@@ -418,14 +419,9 @@ describe('GoogleSheetsImportPage target selector', () => {
     // internals (and the async work already settled above) aren't affected.
     vi.useFakeTimers();
     try {
-      const roleSelectA = screen.getByLabelText('Role A');
-      act(() => {
-        fireEvent.change(roleSelectA, { target: { value: 'amount' } });
-      });
+      selectOption(screen.getByLabelText('Role A'), 'Amount');
       // A second, fast change should cancel the first pending debounce timer.
-      act(() => {
-        fireEvent.change(roleSelectA, { target: { value: 'debit' } });
-      });
+      selectOption(screen.getByLabelText('Role A'), 'Debit');
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(400);

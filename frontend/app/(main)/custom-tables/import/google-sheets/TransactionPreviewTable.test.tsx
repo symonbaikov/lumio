@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { vi } from 'vitest';
+import { selectOption } from '@/app/test/select';
 import {
   TransactionPreviewTable,
   type TransactionPreviewTableContent,
@@ -134,7 +135,7 @@ describe('TransactionPreviewTable', () => {
   it('filters to only error rows when "issues" is selected', () => {
     render(<TransactionPreviewTable {...baseProps()} />);
 
-    fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'issues' } });
+    selectOption(screen.getByLabelText('Filter'), 'Issues only');
 
     expect(screen.getByText('error')).toBeInTheDocument();
     expect(screen.queryByText('new')).not.toBeInTheDocument();
@@ -145,7 +146,7 @@ describe('TransactionPreviewTable', () => {
   it('filters to only duplicate rows when "duplicates" is selected', () => {
     render(<TransactionPreviewTable {...baseProps()} />);
 
-    fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'duplicates' } });
+    selectOption(screen.getByLabelText('Filter'), 'Duplicates only');
 
     expect(screen.getByText('duplicate')).toBeInTheDocument();
     expect(screen.queryByText('new')).not.toBeInTheDocument();
@@ -157,8 +158,8 @@ describe('TransactionPreviewTable', () => {
     render(<TransactionPreviewTable {...baseProps()} />);
 
     const select = screen.getByLabelText('Filter');
-    fireEvent.change(select, { target: { value: 'duplicates' } });
-    fireEvent.change(select, { target: { value: 'all' } });
+    selectOption(select, 'Duplicates only');
+    selectOption(select, 'All');
 
     expect(screen.getByText('new')).toBeInTheDocument();
     expect(screen.getByText('duplicate')).toBeInTheDocument();
@@ -176,7 +177,7 @@ describe('TransactionPreviewTable', () => {
     // Only new/skipped rows: the "duplicates" filter matches none of them.
     render(<TransactionPreviewTable {...baseProps([newRow, skippedRow])} />);
 
-    fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'duplicates' } });
+    selectOption(screen.getByLabelText('Filter'), 'Duplicates only');
 
     expect(screen.getByText('No rows match this filter')).toBeInTheDocument();
   });

@@ -1,47 +1,62 @@
 'use client';
 
 import { Box } from '@mui/material';
+import { useEffect, useState } from 'react';
 import { Save } from '@/app/components/icons';
 import { ModalShell } from '@/app/components/ui/modal-shell';
-import { emptyColumnDraft, type NewColumnDraft } from '../hooks/useColumnManagement';
+import {
+  draftFromColumn,
+  EMPTY_COLUMN_DRAFT,
+  type NewColumnDraft,
+} from '../hooks/useColumnManagement';
 import { tx } from '../utils/tableHelpers';
+import type { CustomTablePageColumn } from '../utils/tableTypes';
 import { ColumnFieldsForm, type ColumnTypeOption } from './ColumnFieldsForm';
 
-interface AddColumnModalProps {
+interface EditColumnModalProps {
   t: unknown;
-  isOpen: boolean;
+  /** Колонка на редактировании; null — окно закрыто. */
+  column: CustomTablePageColumn | null;
   onClose: () => void;
-  newColumn: NewColumnDraft;
-  setNewColumn: React.Dispatch<React.SetStateAction<NewColumnDraft>>;
-  createColumn: () => Promise<void>;
   columnTypes: ColumnTypeOption[];
-  /** Таблицы того же воркспейса — цели для колонки-связи. */
   relationTargets?: Array<{ id: string; name: string }>;
-  defaultCurrency?: string;
+  onSave: (opts: { columnId: string; draft: NewColumnDraft }) => Promise<void>;
 }
 
-export function AddColumnModal({
+export function EditColumnModal({
   t,
-  isOpen,
+  column,
   onClose,
-  newColumn,
-  setNewColumn,
-  createColumn,
   columnTypes,
   relationTargets,
-  defaultCurrency,
-}: AddColumnModalProps) {
-  const handleClose = () => {
-    onClose();
-    setNewColumn(emptyColumnDraft(defaultCurrency));
+  onSave,
+}: EditColumnModalProps): React.JSX.Element {
+  const [draft, setDraft] = useState<NewColumnDraft>(EMPTY_COLUMN_DRAFT);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (column) {
+      setDraft(draftFromColumn(column));
+    }
+  }, [column]);
+
+  const handleSave = async (): Promise<void> => {
+    if (!(column && draft.title.trim()) || saving) {
+      return;
+    }
+    setSaving(true);
+    await onSave({ columnId: column.id, draft })
+      .then(() => onClose())
+      .catch(() => undefined)
+      .finally(() => setSaving(false));
   };
 
   return (
     <ModalShell
-      isOpen={isOpen}
-      onClose={handleClose}
+      isOpen={column !== null}
+      onClose={onClose}
       size="xl"
-      title={tx(t, ['addColumn', 'modalTitle'], tx(t, ['addColumn', 'titleLabel'], ''))}
+      title={tx(t, ['editColumn', 'title'], 'Edit column')}
       footer={
         <Box
           sx={{
@@ -54,7 +69,7 @@ export function AddColumnModal({
           <Box
             component="button"
             type="button"
-            onClick={handleClose}
+            onClick={onClose}
             sx={{
               border: '1px solid var(--border-color)',
               bgcolor: 'background.paper',
@@ -67,13 +82,13 @@ export function AddColumnModal({
               '&:hover': { bgcolor: 'action.hover' },
             }}
           >
-            {tx(t, ['addColumn', 'cancel'], 'Cancel')}
+            {tx(t, ['editColumn', 'cancel'], 'Cancel')}
           </Box>
           <Box
             component="button"
             type="button"
-            onClick={createColumn}
-            disabled={!newColumn.title.trim()}
+            onClick={() => void handleSave()}
+            disabled={!draft.title.trim() || saving}
             sx={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -91,20 +106,29 @@ export function AddColumnModal({
             }}
           >
             <Save className="h-4 w-4" />
-            {tx(t, ['addColumn', 'save'], 'Save')}
+            {tx(t, ['editColumn', 'save'], 'Save')}
           </Box>
         </Box>
       }
     >
       <ColumnFieldsForm
         t={t}
-        draft={newColumn}
-        setDraft={setNewColumn}
+        draft={draft}
+        setDraft={setDraft}
         columnTypes={columnTypes}
         relationTargets={relationTargets}
-        onSubmit={() => void createColumn()}
-        idPrefix="new-column"
+        onSubmit={() => void handleSave()}
+        idPrefix="edit-column"
       />
+      {column && draft.type !== column.type && (
+        <p style={{ marginTop: 12, fontSize: 12, color: 'var(--warning, #b45309)' }}>
+          {tx(
+            t,
+            ['editColumn', 'typeChangeHint'],
+            'Changing the type does not convert existing values.',
+          )}
+        </p>
+      )}
     </ModalShell>
   );
 }

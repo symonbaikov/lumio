@@ -2,6 +2,7 @@
 
 import type { Column, Row, Table } from '@tanstack/react-table';
 import { type CSSProperties, useCallback, useState } from 'react';
+import { Select } from '@/app/components/ui/select';
 import apiClient from '@/app/lib/api';
 import type { CustomTableCellValue, CustomTableGridRow } from '../../utils/stylingUtils';
 
@@ -59,25 +60,23 @@ export function RelationCell({ row, column, onUpdateCell, style, tableId }: Rela
 
   if (isEditing) {
     return (
-      <select
+      <Select
         // biome-ignore lint/a11y/noAutofocus: ячейка открыта пользователем намеренно
         autoFocus
         disabled={loading}
         value={typeof rawValue === 'string' ? rawValue : ''}
-        onChange={async e => {
-          await onUpdateCell(row.original.id, column.id, e.target.value || null);
+        onChange={async nextValue => {
+          await onUpdateCell(row.original.id, column.id, nextValue || null);
           setIsEditing(false);
         }}
         onBlur={() => setIsEditing(false)}
-        style={{ width: '100%', height: '100%', padding: '4px 8px', ...style }}
-      >
-        <option value="">—</option>
-        {options.map(option => (
-          <option key={option.id} value={option.id}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        options={[
+          { value: '', label: '—' },
+          ...options.map(option => ({ value: option.id, label: option.label })),
+        ]}
+        style={style}
+        sx={{ width: '100%', height: '100%', '& .MuiSelect-select': { padding: '4px 8px' } }}
+      />
     );
   }
 

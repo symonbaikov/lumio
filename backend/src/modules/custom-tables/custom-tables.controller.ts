@@ -51,6 +51,7 @@ import {
 import { ReorderCustomTableColumnsDto } from './dto/reorder-custom-table-columns.dto';
 import { UpdateCustomTableDto } from './dto/update-custom-table.dto';
 import { UpdateCustomTableColumnDto } from './dto/update-custom-table-column.dto';
+import { UpdateCustomTableColumnStyleDto } from './dto/update-custom-table-column-style.dto';
 import { UpdateCustomTableRowDto } from './dto/update-custom-table-row.dto';
 import { UpdateCustomTableViewSettingsColumnDto } from './dto/update-custom-table-view-settings.dto';
 import {
@@ -347,6 +348,26 @@ export class CustomTablesController {
     await this.customTablesCache.bumpTable(workspaceId, tableId);
     await this.customTablesCache.bumpRows(workspaceId, tableId);
     return column;
+  }
+
+  @Patch(':id/columns/:columnId/style')
+  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
+  async updateColumnStyle(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('id', new ParseUUIDPipe()) tableId: string,
+    @Param('columnId', new ParseUUIDPipe()) columnId: string,
+    @Body() dto: UpdateCustomTableColumnStyleDto,
+  ) {
+    const result = await this.customTablesService.updateColumnStyle(
+      user.id,
+      workspaceId,
+      tableId,
+      columnId,
+      dto,
+    );
+    await this.customTablesCache.bumpTable(workspaceId, tableId);
+    return result;
   }
 
   @Delete(':id/columns/:columnId')

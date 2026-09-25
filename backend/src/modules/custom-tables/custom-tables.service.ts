@@ -56,6 +56,10 @@ import {
 import type { ReorderCustomTableColumnsDto } from './dto/reorder-custom-table-columns.dto';
 import type { UpdateCustomTableDto } from './dto/update-custom-table.dto';
 import type { UpdateCustomTableColumnDto } from './dto/update-custom-table-column.dto';
+import type {
+  ColumnStylePartDto,
+  UpdateCustomTableColumnStyleDto,
+} from './dto/update-custom-table-column-style.dto';
 import type { UpdateCustomTableRowDto } from './dto/update-custom-table-row.dto';
 import type { UpdateCustomTableViewSettingsColumnDto } from './dto/update-custom-table-view-settings.dto';
 import type { UpdateCustomTableViewsDto } from './dto/update-custom-table-views.dto';
@@ -1901,6 +1905,91 @@ export class CustomTablesService {
   }
 
   /**
+   * Опции select: строки или объекты { value, label?, color? }; значения
+   * уникальны, цвет — #rrggbb. В ячейке хранится только value.
+   */
+  private validateSelectConfig(
+    type: CustomTableColumnType | undefined,
+    config: Record<string, unknown> | null | undefined,
+  ): void {
+    if (
+      !config ||
+      config.options === undefined ||
+      (type !== CustomTableColumnType.SELECT && type !== CustomTableColumnType.MULTI_SELECT)
+    ) {
+      return;
+    }
+    const raw = config.options;
+    if (!Array.isArray(raw)) {
+      throw new BadRequestException(appError('COLUMN_OPTIONS_INVALID'));
+    }
+    const seen = new Set<string>();
+    for (const item of raw) {
+      const value =
+        typeof item === 'string'
+          ? item.trim()
+          : item &&
+              typeof item === 'object' &&
+              typeof (item as { value?: unknown }).value === 'string'
+            ? ((item as { value: string }).value ?? '').trim()
+            : '';
+      const color =
+        item && typeof item === 'object' ? (item as { color?: unknown }).color : undefined;
+      const label =
+        item && typeof item === 'object' ? (item as { label?: unknown }).label : undefined;
+      const colorOk =
+        color === undefined || (typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color));
+      const labelOk = label === undefined || typeof label === 'string';
+      if (!value || seen.has(value) || !colorOk || !labelOk) {
+        throw new BadRequestException(appError('COLUMN_OPTIONS_INVALID'));
+      }
+      seen.add(value);
+    }
+  }
+
+  /**
+   * Валюта, точность и формат числовых колонок: невалидный код валюты ронял
+   * бы Intl в браузере, а точность вне 0..6 бессмысленна для денег.
+   * Код валюты нормализуется к верхнему регистру прямо в конфиге.
+   */
+  private validateNumberConfig(
+    type: CustomTableColumnType | undefined,
+    config: Record<string, unknown> | null | undefined,
+  ): void {
+    if (!config) {
+      return;
+    }
+    const numeric =
+      type === CustomTableColumnType.NUMBER ||
+      type === CustomTableColumnType.CURRENCY ||
+      type === CustomTableColumnType.FORMULA;
+    if (!numeric) {
+      return;
+    }
+    if (config.currency !== undefined) {
+      const code = String(config.currency).trim().toUpperCase();
+      if (!/^[A-Z]{3}$/.test(code)) {
+        throw new BadRequestException(appError('COLUMN_CURRENCY_INVALID'));
+      }
+      config.currency = code;
+    }
+    if (config.precision !== undefined) {
+      const precision = config.precision;
+      if (
+        typeof precision !== 'number' ||
+        !Number.isInteger(precision) ||
+        precision < 0 ||
+        precision > 6
+      ) {
+        throw new BadRequestException(appError('COLUMN_PRECISION_INVALID'));
+      }
+    }
+    if (config.format !== undefined && config.format !== 'plain' && config.format !== 'percent') {
+      throw new BadRequestException(appError('COLUMN_FORMAT_INVALID'));
+    }
+  }
+
+  /**
    * Формула проверяется при сохранении колонки: здесь ошибку надо показать,
    * в отличие от вычисления строк, где сбой даёт пустую ячейку.
    */
@@ -1941,6 +2030,8 @@ export class CustomTablesService {
     await this.ensureCanEditCustomTables(userId, workspaceId);
     await this.requireTable(workspaceId, tableId);
 
+    this.validateNumberConfig(dto.type, dto.config);
+    this.validateSelectConfig(dto.type, dto.config);
     await this.validateFormulaConfig(tableId, dto.type, dto.config, null);
     await this.validateRelationConfig(workspaceId, dto.type, dto.config);
 
@@ -2021,6 +2112,8 @@ export class CustomTablesService {
       column.config = dto.config ?? null;
     }
 
+    this.validateNumberConfig(column.type, column.config);
+    this.validateSelectConfig(column.type, column.config);
     await this.validateFormulaConfig(tableId, column.type, column.config, column.key);
     await this.validateRelationConfig(workspaceId, column.type, column.config);
 
@@ -2040,6 +2133,118 @@ export class CustomTablesService {
       meta: { tableId },
     });
     return saved;
+  }
+
+  /**
+   * Оформление колонки (заголовок/ячейки) живёт отдельной строкой в
+   * custom_table_column_styles. Часть, которой нет в dto, не трогаем; null
+   * сбрасывает её; пустой результат удаляет строку целиком.
+   */
+  async updateColumnStyle(
+    userId: string,
+    workspaceId: string,
+    tableId: string,
+    columnId: string,
+    dto: UpdateCustomTableColumnStyleDto,
+  ): Promise<{ columnKey: string; style: JsonObject }> {
+    await this.ensureCanEditCustomTables(userId, workspaceId);
+    await this.requireTable(workspaceId, tableId);
+    if (!this.isUuid(columnId)) {
+      throw new BadRequestException(appError('COLUMN_ID_INVALID'));
+    }
+    let column: CustomTableColumn | null = null;
+    try {
+      column = await this.customTableColumnRepository.findOne({
+        where: { id: columnId, tableId },
+        select: ['id', 'key'],
+      });
+    } catch (error) {
+      this.throwHelpfulSchemaError(error);
+    }
+    if (!column) {
+      throw new NotFoundException(appError('COLUMN_NOT_FOUND'));
+    }
+    const columnKey = column.key;
+
+    let existing: CustomTableColumnStyle | null = null;
+    try {
+      existing = await this.customTableColumnStyleRepository.findOne({
+        where: { tableId, columnKey },
+      });
+    } catch (error) {
+      this.throwHelpfulSchemaError(error);
+    }
+
+    const before = existing?.style ?? null;
+    const next = this.mergeColumnStyle(before, dto);
+    const hasStyle = Object.keys(next).length > 0;
+
+    try {
+      if (!hasStyle) {
+        if (existing) {
+          await this.customTableColumnStyleRepository.delete({ id: existing.id });
+        }
+      } else if (existing) {
+        existing.style = next;
+        await this.customTableColumnStyleRepository.save(existing);
+      } else {
+        await this.customTableColumnStyleRepository.save(
+          this.customTableColumnStyleRepository.create({ tableId, columnKey, style: next }),
+        );
+      }
+    } catch (error) {
+      this.throwHelpfulSchemaError(error);
+    }
+
+    await this.logEvent({
+      userId,
+      workspaceId,
+      entityType: EntityType.CUSTOM_TABLE_COLUMN,
+      entityId: columnId,
+      action: AuditAction.UPDATE,
+      diff: { before, after: hasStyle ? next : null },
+      meta: { tableId, columnKey, columnStyle: true },
+    });
+    return { columnKey, style: hasStyle ? next : {} };
+  }
+
+  private mergeColumnStyle(
+    before: JsonObject | null,
+    dto: UpdateCustomTableColumnStyleDto,
+  ): JsonObject {
+    const next: JsonObject = { ...(before ?? {}) };
+    for (const part of ['header', 'cell'] as const) {
+      const value = dto[part];
+      if (value === undefined) {
+        continue;
+      }
+      const normalized = value === null ? null : this.normalizeColumnStylePart(value);
+      if (normalized) {
+        next[part] = normalized;
+      } else {
+        delete next[part];
+      }
+    }
+    return next;
+  }
+
+  /** Оставляем только заполненные поля; пустая часть превращается в null. */
+  private normalizeColumnStylePart(part: ColumnStylePartDto): JsonObject | null {
+    const result: JsonObject = {};
+    if (part.backgroundColor) {
+      result.backgroundColor = part.backgroundColor;
+    }
+    const textFormat: JsonObject = {};
+    if (part.textFormat?.foregroundColor) {
+      textFormat.foregroundColor = part.textFormat.foregroundColor;
+    }
+    if (typeof part.textFormat?.bold === 'boolean') {
+      textFormat.bold = part.textFormat.bold;
+    }
+    if (Object.keys(textFormat).length) {
+      result.textFormat = textFormat;
+    }
+    return Object.keys(result).length ? result : null;
   }
 
   async reorderColumns(
@@ -3396,6 +3601,12 @@ export class CustomTablesService {
       diff: { before: null, after: saved },
       meta: { tableId, rowNumber: saved.rowNumber },
     });
+    // В ответе — уже посчитанные формулы: грид обновляет строку из ответа,
+    // не перечитывая таблицу, и без этого формульные ячейки отставали бы.
+    this.applyFormulaColumns(
+      [saved],
+      await this.customTableColumnRepository.find({ where: { tableId } }),
+    );
     return saved;
   }
 
@@ -3483,6 +3694,12 @@ export class CustomTablesService {
         },
       });
     }
+    // В ответе — уже посчитанные формулы: грид обновляет строку из ответа,
+    // не перечитывая таблицу, и без этого формульные ячейки отставали бы.
+    this.applyFormulaColumns(
+      [saved],
+      await this.customTableColumnRepository.find({ where: { tableId } }),
+    );
     return saved;
   }
 

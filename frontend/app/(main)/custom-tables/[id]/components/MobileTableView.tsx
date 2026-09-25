@@ -7,8 +7,9 @@ import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustrati
 import { Spinner } from '@/app/components/ui/spinner';
 import { tokens } from '@/lib/theme-tokens';
 import { isDraftRowId } from '../helpers/draftRowHelpers';
+import type { ConditionalRule } from '../utils/conditionalRules';
 import type { CustomTableColumn, CustomTableGridRow } from '../utils/stylingUtils';
-import { getRowStyle } from '../utils/stylingUtils';
+import { resolveCellBackground, resolveRowStyle } from '../utils/stylingUtils';
 import type { FormatMobileCellFn, SelectRowFn } from './MobileTableView.types';
 
 interface MobileTableViewProps {
@@ -29,6 +30,7 @@ interface MobileTableViewProps {
   onSelectRow: SelectRowFn;
   onScroll: () => void;
   tableContainerRef: React.RefObject<HTMLDivElement | null>;
+  conditionalRules: ConditionalRule[];
   labels: {
     addRowLabel: string;
     emptyTitle: string;
@@ -108,16 +110,20 @@ interface MobileRowFieldsProps {
   row: CustomTableGridRow;
   orderedColumns: CustomTableColumn[];
   isDark: boolean;
+  conditionalRules: ConditionalRule[];
+  rowBackground?: string;
   formatMobileCellValue: FormatMobileCellFn;
 }
 function MobileRowFields({
   row,
   orderedColumns,
   isDark,
+  conditionalRules,
+  rowBackground,
   formatMobileCellValue,
 }: MobileRowFieldsProps): React.JSX.Element {
-  const dtColor = isDark ? '#9ca3af' : 'var(--muted-foreground)';
-  const ddColor = isDark ? '#f3f4f6' : 'var(--foreground)';
+  const dtColor = 'var(--muted-foreground)';
+  const ddColor = 'var(--foreground)';
   return (
     <dl style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
       {orderedColumns.map(column => (
@@ -140,7 +146,19 @@ function MobileRowFields({
           >
             {column.title}
           </dt>
-          <dd style={{ color: ddColor }}>{formatMobileCellValue(column, row)}</dd>
+          <dd
+            style={{
+              color: ddColor,
+              backgroundColor: resolveCellBackground({
+                row,
+                col: column,
+                rules: conditionalRules,
+                rowBackground,
+              }),
+            }}
+          >
+            {formatMobileCellValue(column, row)}
+          </dd>
         </div>
       ))}
     </dl>
@@ -150,6 +168,7 @@ function MobileRowFields({
 interface MobileRowCardProps extends MobileRowActionsProps {
   orderedColumns: CustomTableColumn[];
   isDark: boolean;
+  conditionalRules: ConditionalRule[];
   selectedRowsSet: Set<string>;
   onSelectRow: SelectRowFn;
   formatMobileCellValue: FormatMobileCellFn;
@@ -163,12 +182,15 @@ function MobileRowCard({
   onViewRow,
   onEditRow,
   onDeleteRow,
+  conditionalRules,
   formatMobileCellValue,
   labels,
 }: MobileRowCardProps): React.JSX.Element {
-  const rowStyle = getRowStyle(row);
-  const border = isDark ? '1px solid #374151' : '1px solid var(--border-color)';
-  const headerColor = isDark ? '#e5e7eb' : 'var(--foreground)';
+  const rowStyle = resolveRowStyle(row, conditionalRules);
+  const rowBackground =
+    typeof rowStyle.backgroundColor === 'string' ? rowStyle.backgroundColor : undefined;
+  const border = '1px solid var(--border-color)';
+  const headerColor = 'var(--foreground)';
   return (
     <article
       data-testid={`custom-table-mobile-card-${row.id}`}
@@ -212,6 +234,8 @@ function MobileRowCard({
         row={row}
         orderedColumns={orderedColumns}
         isDark={isDark}
+        conditionalRules={conditionalRules}
+        rowBackground={rowBackground}
         formatMobileCellValue={formatMobileCellValue}
       />
     </article>
@@ -268,8 +292,8 @@ function MobileBottomAddRow({
   onCreateRow,
   label,
 }: MobileBottomAddRowProps): React.JSX.Element {
-  const borderTop = isDark ? '1px solid #374151' : '1px solid var(--border-color)';
-  const bg = isDark ? '#1f2937' : 'var(--muted)';
+  const borderTop = '1px solid var(--border-color)';
+  const bg = 'var(--muted)';
   return (
     <div style={{ borderTop, backgroundColor: bg, padding: 12 }}>
       <button
@@ -320,8 +344,8 @@ function MobileScrollHeader({
   onCreateRow,
   label,
 }: MobileScrollHeaderProps): React.JSX.Element {
-  const border = isDark ? '1px solid #374151' : '1px solid var(--border-color)';
-  const color = isDark ? '#e5e7eb' : 'var(--foreground)';
+  const border = '1px solid var(--border-color)';
+  const color = 'var(--foreground)';
   return (
     <div
       style={{
@@ -403,6 +427,7 @@ function MobileRowsContent(p: P): React.JSX.Element {
               onViewRow={p.onViewRow}
               onEditRow={p.onEditRow}
               onDeleteRow={p.onDeleteRow}
+              conditionalRules={p.conditionalRules}
               formatMobileCellValue={p.formatMobileCellValue}
               labels={p.labels}
             />
@@ -425,7 +450,7 @@ function MobileRowsContent(p: P): React.JSX.Element {
 // The container ref is destructured out of the props object: React Compiler
 // treats an object holding a ref as a ref and refuses to compile reads of it.
 function MobileScrollBody({ tableContainerRef, ...p }: P): React.JSX.Element {
-  const border = p.isDark ? '1px solid #374151' : '1px solid var(--border-color)';
+  const border = '1px solid var(--border-color)';
   const height = p.isFullscreen ? 'calc(100vh - 150px)' : '600px';
   return (
     <div

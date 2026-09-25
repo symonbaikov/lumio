@@ -40,6 +40,11 @@ export const ERR = {
   COLUMN_NOT_RELATION: 'Column is not a relation',
   RELATION_COLUMN_REQUIRED: 'No relation column specified',
   COLUMN_FORMULA_REQUIRED: 'A formula column requires a formula',
+  COLUMN_CURRENCY_INVALID: 'Currency must be a 3-letter ISO 4217 code',
+  COLUMN_PRECISION_INVALID: 'Decimal places must be a whole number from 0 to 6',
+  COLUMN_FORMAT_INVALID: 'Number format must be "plain" or "percent"',
+  COLUMN_OPTIONS_INVALID:
+    'Select options must be unique non-empty values with optional #rrggbb colours',
   COLUMN_NOT_AI: 'Column is not an AI column',
   COLUMN_AI_PROMPT_MISSING: 'The AI column has no prompt',
   COLUMN_DISPLAY_INVALID: 'Invalid display column',

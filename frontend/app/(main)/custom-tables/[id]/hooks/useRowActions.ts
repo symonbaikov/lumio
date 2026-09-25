@@ -4,7 +4,7 @@ import { useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import apiClient from '@/app/lib/api';
 import { createDraftRow, isDraftReadyToSave, isDraftRowId } from '../helpers/draftRowHelpers';
-import { parseCreateRowResponse } from '../helpers/rowActionHelpers';
+import { extractRowData, parseCreateRowResponse } from '../helpers/rowActionHelpers';
 import type {
   CustomTableCellValue,
   CustomTableColumn,
@@ -30,6 +30,8 @@ interface UseRowActionsParams {
   displayRows: CustomTableGridRow[];
   setRows: React.Dispatch<React.SetStateAction<CustomTableGridRow[]>>;
   refreshStats: () => Promise<void>;
+  /** Любая сохранённая правка строк — итоги и группы считает сервер, их надо перечитать. */
+  onRowsMutated?: () => void;
   openRowDrawer: (rowId: string, mode: 'view' | 'edit') => void;
   closeRowDrawer: () => void;
   messages: UseRowActionsMessages;
@@ -57,6 +59,7 @@ export function useRowActions({
   displayRows,
   setRows,
   refreshStats,
+  onRowsMutated,
   openRowDrawer,
   closeRowDrawer,
   messages,
@@ -106,6 +109,7 @@ export function useRowActions({
         );
         toast.success(messages.addRowSuccess, { id: toastId });
         refreshStats();
+        onRowsMutated?.();
       })()
         .catch(async error => {
           // Строка остаётся черновиком: следующая правка ячейки попробует снова.
@@ -116,7 +120,7 @@ export function useRowActions({
           promotingRef.current.delete(rowId);
         });
     },
-    [tableId, columns, rows.length, setRows, refreshStats, messages],
+    [tableId, columns, rows.length, setRows, refreshStats, onRowsMutated, messages],
   );
 
   const updateCellFromGrid = useCallback(
@@ -135,23 +139,36 @@ export function useRowActions({
       }
 
       await (async () => {
-        await apiClient.patch(`/custom-tables/${tableId}/rows/${rowId}`, {
+        const response = await apiClient.patch(`/custom-tables/${tableId}/rows/${rowId}`, {
           data: { [columnKey]: value },
         });
+        const returned = extractRowData(response?.data);
         setRows(prev =>
           prev.map(r =>
-            r.id === rowId ? { ...r, data: { ...(r.data || {}), [columnKey]: value } } : r,
+            r.id === rowId
+              ? { ...r, data: { ...(r.data || {}), [columnKey]: value, ...returned } }
+              : r,
           ),
         );
         if (columnKey === paidColKey) {
           refreshStats();
         }
+        onRowsMutated?.();
       })().catch(async error => {
         console.error('Failed to update cell:', error);
         toast.error(messages.saveValueFailed);
       });
     },
-    [tableId, paidColKey, rows, setRows, refreshStats, promoteDraftRow, messages.saveValueFailed],
+    [
+      tableId,
+      paidColKey,
+      rows,
+      setRows,
+      refreshStats,
+      onRowsMutated,
+      promoteDraftRow,
+      messages.saveValueFailed,
+    ],
   );
 
   const updateRowFromDrawer = useCallback(
@@ -171,15 +188,21 @@ export function useRowActions({
         await promoteDraftRow(rowId, nextData);
         return;
       }
-      await apiClient.patch(`/custom-tables/${tableId}/rows/${rowId}`, { data: patchData });
+      const response = await apiClient.patch(`/custom-tables/${tableId}/rows/${rowId}`, {
+        data: patchData,
+      });
+      const returned = extractRowData(response?.data);
       setRows(prev =>
-        prev.map(r => (r.id === rowId ? { ...r, data: { ...(r.data || {}), ...patchData } } : r)),
+        prev.map(r =>
+          r.id === rowId ? { ...r, data: { ...(r.data || {}), ...patchData, ...returned } } : r,
+        ),
       );
       if (paidColKey && Object.hasOwn(patchData, paidColKey)) {
         refreshStats();
       }
+      onRowsMutated?.();
     },
-    [tableId, paidColKey, rows, setRows, refreshStats, promoteDraftRow],
+    [tableId, paidColKey, rows, setRows, refreshStats, onRowsMutated, promoteDraftRow],
   );
 
   const updateRowStyle = useCallback(

@@ -18,16 +18,21 @@ import {
   Upload,
   XCircle,
 } from '@/app/components/icons';
+import { COMPACT_SELECT_SX, Select } from '@/app/components/ui/select';
+import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
+import { resolveCurrencyCode } from '@/app/lib/format-money';
+import { tokens } from '@/lib/theme-tokens';
 import { downloadTableExport } from '../exportTable';
 import { CustomTableTanStack } from './CustomTableTanStack';
 import { AddColumnModal } from './components/AddColumnModal';
 import { ColumnsVisibilityPanel } from './components/ColumnsVisibilityPanel';
 import { ConditionalRulesModal } from './components/ConditionalRulesModal';
 import { DuplicatesModal } from './components/DuplicatesModal';
+import { EditColumnModal } from './components/EditColumnModal';
 import { PastePreviewModal } from './components/PastePreviewModal';
 import { RowDrawer } from './components/RowDrawer';
 import { ShareTableModal } from './components/ShareTableModal';
@@ -128,12 +133,44 @@ function updateBodyClasses(
   };
 }
 
+// Все контролы тулбара одной высоты и с одним скруглением — как у MUI-селекта
+// размера small из темы (34px, radius.md), иначе ряд выглядит разнокалиберным.
+const TOOLBAR_CONTROL_SX = {
+  display: 'inline-flex',
+  flexShrink: 0,
+  alignItems: 'center',
+  gap: 1,
+  height: 34,
+  boxSizing: 'border-box' as const,
+  px: 1.5,
+  py: 0,
+  whiteSpace: 'nowrap' as const,
+  border: '1px solid var(--border-color)',
+  borderRadius: tokens.radius.md,
+  bgcolor: 'var(--card-bg)',
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  fontWeight: 500,
+  lineHeight: 1,
+  cursor: 'pointer',
+  '& svg': { width: 14, height: 14, flexShrink: 0 },
+  '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' },
+  '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
+};
+const TOOLBAR_SELECT_SX = {
+  ...COMPACT_SELECT_SX,
+  flexShrink: 0,
+  height: 34,
+  borderRadius: tokens.radius.md,
+  '& .MuiSelect-select': { fontSize: 12, py: 0, display: 'flex', alignItems: 'center' },
+};
+
+// Шапка — обычный flex-элемент, а не fixed: грид получает ровно остаток
+// высоты, без магического отступа, который расходился с реальной высотой тулбара.
 function buildFullscreenSx(isPrintMode: boolean, showColumnsTab: boolean) {
   return {
-    position: 'fixed' as const,
-    top: 0,
-    left: 0,
-    right: 0,
+    flex: showColumnsTab ? '1 1 auto' : '0 0 auto',
+    minHeight: 0,
     zIndex: 50,
     bgcolor: 'background.paper',
     px: { xs: 2, sm: 3 },
@@ -141,7 +178,7 @@ function buildFullscreenSx(isPrintMode: boolean, showColumnsTab: boolean) {
     borderLeft: '1px solid var(--border-color)',
     borderRight: '1px solid var(--border-color)',
     borderTop: '1px solid var(--border-color)',
-    ...(showColumnsTab ? { bottom: 0, overflowY: 'auto' as const, pb: 3 } : { pb: 0 }),
+    ...(showColumnsTab ? { overflowY: 'auto' as const, pb: 3 } : { pb: 0 }),
   };
 }
 
@@ -411,33 +448,24 @@ function SavedViewsControl({
     share: string;
   };
 }) {
-  const controlSx = {
-    border: '1px solid var(--border-color)',
-    background: 'var(--card-bg)',
-    color: 'var(--text-secondary)',
-    fontSize: 12,
-    padding: '6px 8px',
-    cursor: 'pointer',
-  };
+  const controlSx = TOOLBAR_CONTROL_SX;
   return (
     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
-      <select
-        aria-label={labels.viewsPlaceholder}
+      <Select
+        size="small"
+        inputProps={{ 'aria-label': labels.viewsPlaceholder }}
         value={activeViewId ?? ''}
-        onChange={e => {
-          if (e.target.value) {
-            onApplyView(e.target.value);
+        onChange={value => {
+          if (value) {
+            onApplyView(value);
           }
         }}
-        style={controlSx}
-      >
-        <option value="">{labels.viewsPlaceholder}</option>
-        {views.map(view => (
-          <option key={view.id} value={view.id}>
-            {view.name}
-          </option>
-        ))}
-      </select>
+        options={[
+          { value: '', label: labels.viewsPlaceholder },
+          ...views.map(view => ({ value: view.id, label: view.name })),
+        ]}
+        sx={TOOLBAR_SELECT_SX}
+      />
       <Box
         component="button"
         type="button"
@@ -447,7 +475,7 @@ function SavedViewsControl({
             void onSaveView(name);
           }
         }}
-        sx={{ ...controlSx, whiteSpace: 'nowrap' }}
+        sx={controlSx}
       >
         {labels.saveView}
       </Box>
@@ -456,7 +484,7 @@ function SavedViewsControl({
           component="button"
           type="button"
           onClick={() => void onDeleteView(activeViewId)}
-          sx={{ ...controlSx, whiteSpace: 'nowrap' }}
+          sx={controlSx}
         >
           {labels.deleteView}
         </Box>
@@ -538,23 +566,7 @@ function TableActionToolbar({
   const paidLabel = bulkMarking === 'paid' ? labels.markingPaid : labels.markPaid;
   const unpaidLabel = bulkMarking === 'unpaid' ? labels.markingUnpaid : labels.markUnpaid;
   const actionColor = canAct ? 'var(--text-secondary)' : 'var(--muted-foreground)';
-  const baseBtnSx = {
-    display: 'inline-flex',
-    flexShrink: 0,
-    alignItems: 'center',
-    gap: { xs: 0.75, sm: 1 },
-    whiteSpace: 'nowrap',
-    border: '1px solid var(--border-color)',
-    px: { xs: 1.25, sm: 2 },
-    py: { xs: 0.5, sm: 0.75 },
-    fontSize: { xs: 11, sm: 12 },
-    fontWeight: 500,
-    color: actionColor,
-    bgcolor: 'transparent',
-    cursor: 'pointer',
-    '&:hover': { bgcolor: 'var(--muted)' },
-    '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
-  };
+  const baseBtnSx = { ...TOOLBAR_CONTROL_SX, color: actionColor };
 
   return (
     <Box sx={{ mt: 1.5, width: '100%', px: 1, pb: 1.5 }}>
@@ -583,9 +595,7 @@ function TableActionToolbar({
             disabled={!canAct}
             sx={baseBtnSx}
           >
-            <CheckCircle
-              style={{ width: 14, height: 14, color: canAct ? '#22c55e' : 'rgba(34,197,94,0.5)' }}
-            />
+            <CheckCircle style={{ color: canAct ? '#22c55e' : 'rgba(34,197,94,0.5)' }} />
             <span>{paidLabel}</span>
           </Box>
           <Box
@@ -595,31 +605,10 @@ function TableActionToolbar({
             disabled={!canAct}
             sx={baseBtnSx}
           >
-            <XCircle
-              style={{ width: 14, height: 14, color: canAct ? '#ef4444' : 'rgba(239,68,68,0.5)' }}
-            />
+            <XCircle style={{ color: canAct ? '#ef4444' : 'rgba(239,68,68,0.5)' }} />
             <span>{unpaidLabel}</span>
           </Box>
-          <Box
-            component="button"
-            onClick={onPrint}
-            sx={{
-              display: 'inline-flex',
-              flexShrink: 0,
-              alignItems: 'center',
-              gap: { xs: 0.75, sm: 1 },
-              whiteSpace: 'nowrap',
-              border: '1px solid var(--border-color)',
-              px: { xs: 1.25, sm: 2 },
-              py: { xs: 0.5, sm: 0.75 },
-              fontSize: { xs: 11, sm: 12 },
-              fontWeight: 500,
-              color: 'var(--text-secondary)',
-              bgcolor: 'transparent',
-              cursor: 'pointer',
-              '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' },
-            }}
-          >
+          <Box component="button" onClick={onPrint} sx={TOOLBAR_CONTROL_SX}>
             <Printer className="h-3.5 w-3.5" />
             <span>{labels.print}</span>
           </Box>
@@ -627,45 +616,12 @@ function TableActionToolbar({
             component="button"
             onClick={onExportView}
             disabled={exportingView}
-            sx={{
-              display: 'inline-flex',
-              flexShrink: 0,
-              alignItems: 'center',
-              gap: { xs: 0.75, sm: 1 },
-              whiteSpace: 'nowrap',
-              border: '1px solid var(--border-color)',
-              px: { xs: 1.25, sm: 2 },
-              py: { xs: 0.5, sm: 0.75 },
-              fontSize: { xs: 11, sm: 12 },
-              fontWeight: 500,
-              color: 'var(--text-secondary)',
-              bgcolor: 'transparent',
-              cursor: 'pointer',
-              '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
-              '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' },
-            }}
+            sx={TOOLBAR_CONTROL_SX}
           >
             <Download className="h-3.5 w-3.5" />
             <span>{exportingView ? labels.exportingView : labels.exportView}</span>
           </Box>
-          <Box
-            component="label"
-            sx={{
-              display: 'inline-flex',
-              flexShrink: 0,
-              alignItems: 'center',
-              gap: { xs: 0.75, sm: 1 },
-              whiteSpace: 'nowrap',
-              border: '1px solid var(--border-color)',
-              px: { xs: 1.25, sm: 2 },
-              py: { xs: 0.5, sm: 0.75 },
-              fontSize: { xs: 11, sm: 12 },
-              fontWeight: 500,
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' },
-            }}
-          >
+          <Box component="label" sx={TOOLBAR_CONTROL_SX}>
             <Upload className="h-3.5 w-3.5" />
             <span>{labels.importFile}</span>
             <input
@@ -682,86 +638,24 @@ function TableActionToolbar({
               }}
             />
           </Box>
-          <Box
-            component="select"
-            aria-label={labels.groupByPlaceholder}
+          <Select
+            size="small"
+            inputProps={{ 'aria-label': labels.groupByPlaceholder }}
             value={groupByKey ?? ''}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              onGroupByChange(e.target.value || null)
-            }
-            sx={{
-              flexShrink: 0,
-              border: '1px solid var(--border-color)',
-              background: 'var(--card-bg)',
-              color: 'var(--text-secondary)',
-              fontSize: 12,
-              px: 1,
-              py: 0.75,
-              cursor: 'pointer',
-            }}
-          >
-            <option value="">{labels.groupByPlaceholder}</option>
-            {groupableColumns.map(col => (
-              <option key={col.key} value={col.key}>
-                {col.title}
-              </option>
-            ))}
-          </Box>
-          <Box
-            component="button"
-            type="button"
-            onClick={onOpenRules}
-            sx={{
-              flexShrink: 0,
-              border: '1px solid var(--border-color)',
-              background: 'var(--card-bg)',
-              color: 'var(--text-secondary)',
-              fontSize: 12,
-              px: 1,
-              py: 0.75,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' },
-            }}
-          >
+            onChange={value => onGroupByChange(value || null)}
+            options={[
+              { value: '', label: labels.groupByPlaceholder },
+              ...groupableColumns.map(col => ({ value: col.key, label: col.title })),
+            ]}
+            sx={TOOLBAR_SELECT_SX}
+          />
+          <Box component="button" type="button" onClick={onOpenRules} sx={TOOLBAR_CONTROL_SX}>
             {labels.rules}
           </Box>
-          <Box
-            component="button"
-            type="button"
-            onClick={onOpenDuplicates}
-            sx={{
-              flexShrink: 0,
-              border: '1px solid var(--border-color)',
-              background: 'var(--card-bg)',
-              color: 'var(--text-secondary)',
-              fontSize: 12,
-              px: 1,
-              py: 0.75,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' },
-            }}
-          >
+          <Box component="button" type="button" onClick={onOpenDuplicates} sx={TOOLBAR_CONTROL_SX}>
             {labels.duplicates}
           </Box>
-          <Box
-            component="button"
-            type="button"
-            onClick={onOpenShare}
-            sx={{
-              flexShrink: 0,
-              border: '1px solid var(--border-color)',
-              background: 'var(--card-bg)',
-              color: 'var(--text-secondary)',
-              fontSize: 12,
-              px: 1,
-              py: 0.75,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              '&:hover': { bgcolor: 'var(--muted)', color: 'var(--foreground)' },
-            }}
-          >
+          <Box component="button" type="button" onClick={onOpenShare} sx={TOOLBAR_CONTROL_SX}>
             {labels.share}
           </Box>
           <SavedViewsControl
@@ -777,25 +671,12 @@ function TableActionToolbar({
             onClick={onBulkDelete}
             disabled={!hasSelection}
             sx={{
-              display: 'inline-flex',
-              flexShrink: 0,
-              alignItems: 'center',
-              gap: { xs: 0.75, sm: 1 },
-              whiteSpace: 'nowrap',
-              border: '1px solid var(--border-color)',
-              px: { xs: 1.25, sm: 2 },
-              py: { xs: 0.5, sm: 0.75 },
-              fontSize: { xs: 11, sm: 12 },
-              fontWeight: 500,
-              color: 'var(--text-secondary)',
-              bgcolor: 'transparent',
-              cursor: 'pointer',
+              ...TOOLBAR_CONTROL_SX,
               '&:hover': {
                 borderColor: '#fecaca',
                 bgcolor: 'var(--color-error-soft-bg)',
                 color: 'var(--destructive)',
               },
-              '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
             }}
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -870,6 +751,12 @@ export default function CustomTableDetailPage() {
       });
     });
   }, []);
+  const { currentWorkspace } = useWorkspace();
+  // Валюта воркспейса: новые денежные колонки и колонки без своей валюты считают в ней.
+  const defaultCurrency = useMemo(
+    () => resolveCurrencyCode(currentWorkspace?.currency),
+    [currentWorkspace?.currency],
+  );
   const { table, setTable, loading, loadTable } = useTableData({
     tableId,
     isAuthenticated: Boolean(user),
@@ -946,6 +833,8 @@ export default function CustomTableDetailPage() {
     getColumnWidth,
     persistColumnWidth,
     toggleColumnHidden,
+    pinnedColumnKeys,
+    toggleColumnPinned,
     resetColumns,
   } = useColumnConfig({
     tableId,
@@ -962,6 +851,10 @@ export default function CustomTableDetailPage() {
     isAuthenticated: Boolean(user),
     paidColKey,
   });
+  // Итоги в подвале и группы считает сервер; после любой правки строк их надо
+  // перечитать, а не только когда меняется число строк.
+  const [mutationVersion, setMutationVersion] = useState(0);
+  const bumpMutationVersion = useCallback(() => setMutationVersion(v => v + 1), []);
 
   const orderedVisibleColumns = useMemo(
     () => buildVisibleColumns(orderedColumns, columnOrder, hiddenColumnKeys),
@@ -975,13 +868,22 @@ export default function CustomTableDetailPage() {
 
   const paidColumnLabel = tx(t, ['paidColumn'], '');
   const displayColumns = useMemo(() => {
-    if (!paidColKey) {
-      return orderedVisibleColumns;
+    const titled = paidColKey
+      ? orderedVisibleColumns.map(c =>
+          c.key === paidColKey ? { ...c, title: paidColumnLabel || c.title } : c,
+        )
+      : orderedVisibleColumns;
+    // Закреплённые колонки уходят в начало: sticky слева работает только для
+    // ведущих колонок, иначе они наезжали бы на соседей при прокрутке.
+    if (!pinnedColumnKeys.length) {
+      return titled;
     }
-    return orderedVisibleColumns.map(c =>
-      c.key === paidColKey ? { ...c, title: paidColumnLabel || c.title } : c,
-    );
-  }, [orderedVisibleColumns, paidColKey, paidColumnLabel]);
+    // Грид сортирует колонки по position, поэтому порядок надо закрепить в нём.
+    return [
+      ...titled.filter(c => pinnedColumnKeys.includes(c.key)),
+      ...titled.filter(c => !pinnedColumnKeys.includes(c.key)),
+    ].map((c, index) => ({ ...c, position: index }));
+  }, [orderedVisibleColumns, paidColKey, paidColumnLabel, pinnedColumnKeys]);
 
   const dateColKey = useMemo(() => {
     const col = orderedColumns.find(c => c.type === 'date');
@@ -990,7 +892,10 @@ export default function CustomTableDetailPage() {
 
   const counterpartyColKey = useMemo(() => findCounterpartyKey(orderedColumns), [orderedColumns]);
 
-  const stickyLeftColumnIds = useMemo(() => [], []);
+  const stickyLeftColumnIds = useMemo(
+    () => pinnedColumnKeys.filter(key => displayColumns.some(c => c.key === key)),
+    [pinnedColumnKeys, displayColumns],
+  );
 
   const stickyRightColumnIds = useMemo(() => [], []);
 
@@ -1148,7 +1053,7 @@ export default function CustomTableDetailPage() {
     isAuthenticated: Boolean(user),
     combinedFiltersParam,
     selection: aggregateSelection,
-    refreshToken: rows.length,
+    refreshToken: rows.length * 1_000_003 + mutationVersion,
   });
 
   const [conditionalRules, setConditionalRules] = useState<ConditionalRule[]>([]);
@@ -1197,7 +1102,7 @@ export default function CustomTableDetailPage() {
     groupBy: groupByKey,
     combinedFiltersParam,
     aggregates: aggregateSelection,
-    refreshToken: rows.length,
+    refreshToken: rows.length * 1_000_003 + mutationVersion,
   });
 
   const savedViews = useSavedViews({
@@ -1334,7 +1239,7 @@ export default function CustomTableDetailPage() {
       if (shouldIgnoreKeyEvent(event.target as HTMLElement | null)) {
         return;
       }
-      handleFullscreenEscapeNavigation(event.key, handleBackNavigation);
+      handleFullscreenEscapeNavigation(event, handleBackNavigation);
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -1373,6 +1278,7 @@ export default function CustomTableDetailPage() {
     displayRows,
     setRows,
     refreshStats,
+    onRowsMutated: bumpMutationVersion,
     openRowDrawer,
     closeRowDrawer,
     messages: {
@@ -1427,12 +1333,27 @@ export default function CustomTableDetailPage() {
     newColumn,
     setNewColumn,
     createColumn,
+    updateColumn,
     deleteColumn,
     renameColumnTitleFromGrid,
+    setColumnStyle,
   } = useColumnManagement({
     tableId,
+    defaultCurrency,
     orderedColumns,
     loadTable,
+    applyColumnStyle: useCallback(
+      ({ columnKey, style }: { columnKey: string; style: CustomTablePageColumn['style'] }) =>
+        setTable(prev =>
+          prev
+            ? {
+                ...prev,
+                columns: prev.columns.map(c => (c.key === columnKey ? { ...c, style } : c)),
+              }
+            : prev,
+        ),
+      [setTable],
+    ),
     deleteColumnTarget,
     closeDeleteColumnModal,
     messages: {
@@ -1444,15 +1365,20 @@ export default function CustomTableDetailPage() {
       deleteColumnFailed: t.deleteColumn.failed.value,
       renameColumnSuccess: t.renameColumn.success.value,
       renameColumnFailed: t.renameColumn.failed.value,
+      updateColumnLoading: tx(t, ['editColumn', 'loading'], 'Saving column...'),
+      updateColumnSuccess: tx(t, ['editColumn', 'success'], 'Column updated'),
+      updateColumnFailed: tx(t, ['editColumn', 'failed'], 'Failed to update column'),
+      columnStyleFailed: tx(t, ['editColumn', 'styleFailed'], 'Failed to save column colour'),
     },
   });
+  const [editColumnTarget, setEditColumnTarget] = useState<CustomTablePageColumn | null>(null);
 
   const [relationTargets, setRelationTargets] = useState<Array<{ id: string; name: string }>>([]);
 
   // Цели для колонки-связи — таблицы того же воркспейса; сам список отдаёт бэк
   // уже отфильтрованным по доступу.
   useEffect(() => {
-    if (!(user && newColumnOpen)) {
+    if (!(user && (newColumnOpen || editColumnTarget))) {
       return;
     }
     let cancelled = false;
@@ -1478,9 +1404,11 @@ export default function CustomTableDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [user, newColumnOpen]);
+  }, [user, newColumnOpen, editColumnTarget]);
 
-  const notReady = authLoading || loading || !mounted;
+  // Лоадер на весь экран — только пока таблицы ещё нет: перезагрузка после
+  // переименования или новой колонки не должна гасить грид и открытые меню.
+  const notReady = authLoading || (loading && !table) || !mounted;
   if (notReady) {
     return (
       <Box sx={{ p: { xs: 2, sm: 3 } }}>
@@ -1535,15 +1463,21 @@ export default function CustomTableDetailPage() {
   const showColumnsTab = normalizedActiveTabId === columnsTabId;
   const printControlsClass = isPrintMode ? 'custom-table-print-controls' : undefined;
   const overflow = isPrintMode ? 'visible' : 'hidden';
-  const outerSx = { height: '100vh', width: '100vw', bgcolor: 'background.paper', overflow };
-  const outerStyle = { paddingTop: isPrintMode ? '0' : '150px' };
+  const outerSx = {
+    height: '100vh',
+    width: '100vw',
+    bgcolor: 'background.paper',
+    overflow,
+    display: isPrintMode ? 'block' : 'flex',
+    flexDirection: 'column' as const,
+  };
   const headerSx = buildFullscreenSx(isPrintMode, showColumnsTab);
   const loadButtonLabel = getLoadButtonLabel(loadingRows, hasMore, t);
   const deleteRowMessage = buildDeleteRowMessage(deleteRowTarget, t);
   const bulkDeleteCount = getBulkDeleteCount(bulkDeleteRowIds, selectedRowIds);
 
   return (
-    <Box sx={outerSx} style={outerStyle}>
+    <Box sx={outerSx}>
       <Box sx={headerSx} className={printControlsClass}>
         {/* Row 1: Tabs */}
         <Box
@@ -1734,14 +1668,29 @@ export default function CustomTableDetailPage() {
           createColumn={createColumn}
           columnTypes={columnTypes}
           relationTargets={relationTargets}
+          defaultCurrency={defaultCurrency}
+        />
+        <EditColumnModal
+          t={t}
+          column={editColumnTarget}
+          onClose={() => setEditColumnTarget(null)}
+          columnTypes={columnTypes}
+          relationTargets={relationTargets}
+          onSave={updateColumn}
         />
       </Box>
 
-      <Box sx={{ height: '100%', width: '100%', pt: 0 }} className="custom-table-print-target">
+      <Box
+        sx={{ flex: '1 1 auto', minHeight: 0, width: '100%', display: 'flex' }}
+        className="custom-table-print-target"
+      >
         <Box
           sx={{
-            height: '100%',
+            flex: '1 1 auto',
+            minHeight: 0,
             width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
             bgcolor: 'background.paper',
             maxWidth: 1920,
             mx: 'auto',
@@ -1786,6 +1735,7 @@ export default function CustomTableDetailPage() {
               onFiltersParamChange={onGridFiltersParamChange}
               onUpdateCell={updateCellFromGrid}
               onUpdateRowStyle={updateRowStyle}
+              defaultCurrency={defaultCurrency}
               onCreateRow={createRow}
               onViewRow={rowId => openRowDrawer(rowId, 'view')}
               onEditRow={rowId => openRowDrawer(rowId, 'edit')}
@@ -1796,6 +1746,12 @@ export default function CustomTableDetailPage() {
                 const targetColumn = orderedColumns.find(c => c.key === colKey);
                 if (targetColumn) openDeleteColumnModal(targetColumn);
               }}
+              onEditColumn={colKey =>
+                setEditColumnTarget(orderedColumns.find(c => c.key === colKey) ?? null)
+              }
+              onSetColumnStyle={setColumnStyle}
+              onTogglePinColumn={toggleColumnPinned}
+              onHideColumn={toggleColumnHidden}
               onSelectedRowIdsChange={setSelectedRowIds}
               onAddColumnClick={() => setNewColumnOpen(true)}
               isPrintMode={isPrintMode}
@@ -1812,7 +1768,7 @@ export default function CustomTableDetailPage() {
 
       {!showColumnsTab && (
         <Box
-          sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          sx={{ py: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           className={printControlsClass}
         >
           <Box

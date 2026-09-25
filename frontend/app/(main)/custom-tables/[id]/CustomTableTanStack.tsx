@@ -13,6 +13,7 @@ import {
   useCustomTableTanStack,
 } from './hooks/useCustomTableTanStack';
 import type { AggregateFn, AggregateSelection, AggregateValues } from './hooks/useTableAggregates';
+import type { SetColumnStyleFn } from './utils/columnDefinitions';
 import type { ConditionalRule } from './utils/conditionalRules';
 import type {
   CustomTableCellValue,
@@ -48,6 +49,12 @@ interface CustomTableTanStackProps {
   // eslint-disable-next-line max-params
   onRenameColumnTitle: (columnKey: string, nextTitle: string) => Promise<void>;
   onDeleteColumn?: (columnKey: string) => void;
+  /** Валюта воркспейса для денежных колонок без своей валюты. */
+  defaultCurrency?: string;
+  onEditColumn?: (columnKey: string) => void;
+  onSetColumnStyle?: SetColumnStyleFn;
+  onTogglePinColumn?: (columnKey: string) => void;
+  onHideColumn?: (columnKey: string) => void;
   onSelectedRowIdsChange: (rowIds: string[]) => void;
   onAddColumnClick?: () => void;
   isPrintMode?: boolean;
@@ -86,6 +93,7 @@ function MobileView({ props: p, ctx }: ViewProps): React.JSX.Element {
       tableContainerRef={ctx.state.tableContainerRef}
       labels={ctx.mobileLabels}
       formatMobileCellValue={ctx.state.formatMobileCellValue}
+      conditionalRules={p.conditionalRules}
     />
   );
 }
@@ -100,6 +108,7 @@ function DesktopView({ props: p, ctx }: ViewProps): React.JSX.Element {
       virtualItems={ctx.state.virtualItems}
       rowVirtualizer={ctx.state.rowVirtualizer}
       stickyOffsets={ctx.state.stickyOffsets}
+      conditionalRules={p.conditionalRules}
       colorPickerRowId={ctx.colorPickerRowId}
       colorPickerValue={ctx.state.colorPickerValue}
       colorPickerAnchorPosition={ctx.state.colorPickerAnchorPosition}
@@ -112,6 +121,8 @@ function DesktopView({ props: p, ctx }: ViewProps): React.JSX.Element {
       onCreateRow={p.onCreateRow}
       columnTypeByKey={ctx.columnTypeByKey}
       columnTitleByKey={ctx.columnTitleByKey}
+      columnConfigByKey={ctx.columnConfigByKey}
+      defaultCurrency={p.defaultCurrency}
       aggregateSelection={p.aggregateSelection}
       aggregateValues={p.aggregateValues}
       onAggregateChange={p.onAggregateChange}
@@ -123,6 +134,7 @@ function DesktopView({ props: p, ctx }: ViewProps): React.JSX.Element {
 function propsToHookParams(props: CustomTableTanStackProps): UseCustomTableTanStackParams {
   return {
     tableId: props.tableId,
+    defaultCurrency: props.defaultCurrency,
     rows: props.rows,
     columns: props.columns,
     selectedRowIds: props.selectedRowIds,
@@ -139,6 +151,10 @@ function propsToHookParams(props: CustomTableTanStackProps): UseCustomTableTanSt
     onSelectedRowIdsChange: props.onSelectedRowIdsChange,
     onRenameColumnTitle: props.onRenameColumnTitle,
     onDeleteColumn: props.onDeleteColumn,
+    onEditColumn: props.onEditColumn,
+    onSetColumnStyle: props.onSetColumnStyle,
+    onTogglePinColumn: props.onTogglePinColumn,
+    onHideColumn: props.onHideColumn,
     onAddColumnClick: props.onAddColumnClick,
     onLoadMore: props.onLoadMore,
     sorting: props.sorting,

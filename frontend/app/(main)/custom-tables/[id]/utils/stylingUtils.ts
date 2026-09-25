@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { type ConditionalRule, conditionalStyleFor } from './conditionalRules';
 
 export type ColumnType =
   | 'text'
@@ -15,12 +16,23 @@ export type ColumnType =
 export type CustomTableCellValue = string | number | boolean | string[] | null;
 export type CustomTableRowPatch = Record<string, CustomTableCellValue>;
 
+/** Опция select: в ячейке хранится value; label и цвет — только для показа. */
+export interface SelectOptionDef {
+  value: string;
+  label?: string;
+  /** #rrggbb — подложка чипа с прозрачностью, текст — этим цветом. */
+  color?: string;
+}
+
 export interface CustomTableColumnConfig {
-  options?: string[];
+  /** Строки (старые таблицы, импорт) или объекты с цветом. */
+  options?: Array<string | SelectOptionDef>;
   /** Код валюты (ISO 4217) для колонок типа currency. */
   currency?: string;
   /** Знаков после запятой для числовых и денежных колонок. */
   precision?: number;
+  /** Как показывать число: как есть или как процент (12.5 → «12,5 %»). */
+  format?: 'plain' | 'percent';
   /** Выражение для колонок типа formula, например "[a] * [b]". */
   expression?: string;
   /** Таблица-цель для колонок типа relation. */
@@ -276,11 +288,61 @@ export const getRowStyle = (row: CustomTableGridRow): CSSProperties => {
 
   const tag = styles.manualTag;
   if (tag === 'heading') {
-    return { backgroundColor: '#111827', color: '#fff', fontWeight: 600 };
+    return { backgroundColor: 'var(--muted)', color: 'var(--foreground)', fontWeight: 600 };
   }
   if (tag === 'total') {
-    return { backgroundColor: '#0f172a', color: '#fff', fontWeight: 700 };
+    return { backgroundColor: 'var(--muted)', color: 'var(--foreground)', fontWeight: 700 };
   }
 
   return {};
+};
+
+/** Стиль всей строки: ручная заливка или тег важнее правила на строку. */
+export const resolveRowStyle = (
+  row: CustomTableGridRow,
+  rules: ConditionalRule[],
+): CSSProperties => {
+  const manual = getRowStyle(row);
+  const rowRules = rules.filter(rule => rule.target === 'row');
+  const ruleStyle = rowRules.length ? conditionalStyleFor(rowRules, row, '') : undefined;
+  if (!ruleStyle) {
+    return manual;
+  }
+  const css = sheetStyleToCss(ruleStyle);
+  return {
+    ...(css.backgroundColor ? { backgroundColor: css.backgroundColor } : {}),
+    ...(css.color ? { color: css.color } : {}),
+    ...(css.fontWeight ? { fontWeight: css.fontWeight } : {}),
+    ...manual,
+  };
+};
+
+/**
+ * Фон ячейки для самого <td>: точечный цвет (правило на ячейку или ручной стиль
+ * ячейки) > фон строки > цвет колонки. Красить надо td, а не вложенный div —
+ * иначе заливка выглядит вставкой внутри отступов ячейки.
+ */
+export const resolveCellBackground = ({
+  row,
+  col,
+  rules,
+  rowBackground,
+}: {
+  row: CustomTableGridRow;
+  col: CustomTableColumn;
+  rules: ConditionalRule[];
+  rowBackground?: string;
+}): string | undefined => {
+  const cellRules = rules.filter(rule => rule.target === 'cell');
+  const cellRule = cellRules.length ? conditionalStyleFor(cellRules, row, col.key) : undefined;
+  const rawOverride = row.styles?.[col.key];
+  const override = isPlainObject(rawOverride) ? (rawOverride as SheetStyle) : undefined;
+  const specific = sheetStyleToCss(mergeSheetStyle(cellRule, override)).backgroundColor;
+  if (specific) {
+    return specific;
+  }
+  if (rowBackground) {
+    return rowBackground;
+  }
+  return col.style?.cell ? sheetStyleToCss(col.style.cell).backgroundColor : undefined;
 };
