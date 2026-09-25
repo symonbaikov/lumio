@@ -1,5 +1,6 @@
 'use client';
 
+import Modal from '@mui/material/Modal';
 import { AnalyticsSourceBadge } from '@/app/(main)/statements/components/analytics/AnalyticsSourceBadge';
 import type {
   TopSpenderAggregateRow,
@@ -7,6 +8,7 @@ import type {
   TopSpenderSourceChannel,
 } from '@/app/(main)/statements/components/top-spenders/top-spenders.types';
 import { X } from '@/app/components/icons';
+import { closeOnBackdropClick } from '@/app/components/ui/backdrop-click';
 import { formatMoney } from '@/app/lib/analytics-common';
 import { formatStoredDate } from '@/app/lib/user-format-store';
 import { tokens } from '@/lib/theme-tokens';
@@ -96,61 +98,71 @@ export function TopSpendersDrillDown({
   sourceLabels,
   labels,
 }: Props): React.JSX.Element {
+  // Modal traps focus inside the drill-down, closes on Escape and restores focus on unmount.
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 40,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0,0,0,0.3)',
-        padding: 16,
-      }}
-    >
+    <Modal open onClose={onClose} hideBackdrop>
+      {/* biome-ignore lint/a11y: the dimmed backdrop is a mouse-only dismiss surface; keyboard users close with Escape (Modal). */}
       <div
+        tabIndex={-1}
+        onClick={closeOnBackdropClick(onClose)}
         style={{
-          maxHeight: '85vh',
-          width: '100%',
-          maxWidth: 896,
-          overflow: 'hidden',
-          border: '1px solid var(--border-color)',
-          background: 'var(--card-bg)',
-          borderRadius: tokens.radius.xl,
+          position: 'fixed',
+          inset: 0,
+          zIndex: 40,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(0,0,0,0.3)',
+          padding: 16,
+          outline: 'none',
         }}
       >
-        <DrillDownHeader
-          selectedRow={selectedRow}
-          sourceLabels={sourceLabels}
-          labels={labels}
-          onClose={onClose}
-        />
-        <div style={{ maxHeight: '65vh', overflowY: 'auto', padding: '16px 20px' }}>
-          {drillDownRecords.length === 0 ? (
-            <div
-              style={{
-                border: '1px dashed var(--border-color)',
-                padding: 32,
-                textAlign: 'center',
-                fontSize: 14,
-                color: 'var(--muted-foreground)',
-                borderRadius: tokens.radius.lg,
-              }}
-            >
-              {labels.noOperations}
-            </div>
-          ) : (
-            <DrillDownTable
-              records={drillDownRecords}
-              currency={currency}
-              sourceLabels={sourceLabels}
-              labels={labels}
-            />
-          )}
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${selectedRow.company} - ${labels.drillDown}`}
+          style={{
+            maxHeight: '85vh',
+            width: '100%',
+            maxWidth: 896,
+            overflow: 'hidden',
+            border: '1px solid var(--border-color)',
+            background: 'var(--card-bg)',
+            borderRadius: tokens.radius.xl,
+          }}
+        >
+          <DrillDownHeader
+            selectedRow={selectedRow}
+            sourceLabels={sourceLabels}
+            labels={labels}
+            onClose={onClose}
+          />
+          <div style={{ maxHeight: '65vh', overflowY: 'auto', padding: '16px 20px' }}>
+            {drillDownRecords.length === 0 ? (
+              <div
+                style={{
+                  border: '1px dashed var(--border-color)',
+                  padding: 32,
+                  textAlign: 'center',
+                  fontSize: 14,
+                  color: 'var(--muted-foreground)',
+                  borderRadius: tokens.radius.lg,
+                }}
+              >
+                {labels.noOperations}
+              </div>
+            ) : (
+              <DrillDownTable
+                records={drillDownRecords}
+                currency={currency}
+                sourceLabels={sourceLabels}
+                labels={labels}
+              />
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 

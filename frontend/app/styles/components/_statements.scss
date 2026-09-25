@@ -2172,6 +2172,11 @@
     @include dark {
       background: rgba(0, 0, 0, 0.6);
     }
+
+    // Focused by the modal's focus trap; the backdrop itself needs no ring.
+    &:focus {
+      outline: none;
+    }
   }
 
   &__drill-modal {

@@ -219,4 +219,49 @@ describe('StatementsCircularUploadMenu', () => {
     expect(whiteAction).toBeUndefined();
     expect(mutedAction).toBeTruthy();
   });
+
+  it('keeps hidden actions and the backdrop out of the Tab order', () => {
+    act(() => {
+      root.render(
+        <StatementsCircularUploadMenu
+          providers={{
+            gmailConnected: false,
+            googleDriveConnected: false,
+            dropboxConnected: false,
+          }}
+          onScan={vi.fn()}
+          onCloudImport={vi.fn()}
+          onGmail={vi.fn()}
+          onLocalUpload={vi.fn()}
+        />,
+      );
+    });
+
+    const backdrop = document.querySelector(
+      'button[data-statements-fab-backdrop="true"]',
+    ) as HTMLButtonElement;
+    const actionButtons = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('button[title]'),
+    );
+    const scanButton = container.querySelector('button[aria-label="Scan"]') as HTMLButtonElement;
+    const toggleButton = container.querySelector(
+      'button[aria-label="Open upload actions"]',
+    ) as HTMLButtonElement;
+
+    expect(backdrop.tabIndex).toBe(-1);
+    actionButtons.forEach(button => {
+      expect(button.closest('[inert]')).not.toBeNull();
+    });
+    expect(scanButton.closest('[inert]')).toBeNull();
+
+    act(() => {
+      toggleButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(backdrop.tabIndex).toBe(-1);
+    actionButtons.forEach(button => {
+      expect(button.closest('[inert]')).toBeNull();
+    });
+    expect(scanButton.closest('[inert]')).not.toBeNull();
+  });
 });

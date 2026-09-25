@@ -69,11 +69,16 @@ export default async function RootLayout({
   const locale = await getLocale();
   const resolvedLocale = normalizeLocale(typeof locale === 'string' ? locale : undefined);
   const direction = resolvedLocale.startsWith('ar') ? 'rtl' : 'ltr';
+  const t = getIntlayer('layout', locale);
 
   return (
     <html lang={resolvedLocale} dir={direction} suppressHydrationWarning>
       {process.env.NODE_ENV === 'development' ? <ReactScan /> : null}
       <body className={FONT_CLASS_NAMES} style={BODY_STYLE} suppressHydrationWarning>
+        {/* First Tab stop: jumps past the sidebar and top bar; shown only while focused. */}
+        <a href="#main-content" className="lumio-skip-link">
+          {t.skipToContent.value}
+        </a>
         <IntlayerServerProvider>
           <ThemeProvider
             attribute="class"
@@ -89,7 +94,9 @@ export default async function RootLayout({
                 <ContentBackground />
                 <div className="lumio-shell__content">
                   <TopBar />
-                  <main>{children}</main>
+                  <main id="main-content" tabIndex={-1}>
+                    {children}
+                  </main>
                   <MobileBottomBar />
                   <AppPanels />
                   <div

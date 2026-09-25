@@ -83,11 +83,7 @@ function WorkspaceSwitcher() {
   );
 }
 
-type SidebarProps = {
-  onNavClick?: () => void;
-};
-
-export function SidebarContent({ onNavClick }: SidebarProps) {
+function SidebarContent() {
   const pathname = usePathname();
   const { hasPermission } = usePermissions();
   const { loading: authLoading } = useAuth();
@@ -109,13 +105,12 @@ export function SidebarContent({ onNavClick }: SidebarProps) {
       const detail: OpenExpenseDrawerEventDetail = { mode: 'scan' };
       window.dispatchEvent(new CustomEvent(STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT, { detail }));
     }
-    onNavClick?.();
   };
 
   return (
     <>
       {/* Brand */}
-      <Link href="/" className="lumio-sidebar__brand" onClick={onNavClick} aria-label="Lumio home">
+      <Link href="/" className="lumio-sidebar__brand" aria-label="Lumio home">
         <div className="lumio-sidebar__brand-name">LUMIO</div>
       </Link>
 
@@ -169,7 +164,6 @@ export function SidebarContent({ onNavClick }: SidebarProps) {
                   key={item.path}
                   href={item.path}
                   className={`lumio-sidebar__nav-item${active ? ' lumio-sidebar__nav-item--active' : ''}`}
-                  onClick={onNavClick}
                 >
                   <span className="lumio-sidebar__nav-icon">{item.icon}</span>
                   <span className="lumio-sidebar__nav-label">{item.label}</span>

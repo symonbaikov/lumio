@@ -147,7 +147,7 @@
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 2px;
+    @include focus-room;
 
     &::-webkit-scrollbar {
       display: none;

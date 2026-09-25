@@ -1,5 +1,6 @@
 'use client';
 
+import Modal from '@mui/material/Modal';
 import { AnalyticsSourceBadge } from '@/app/(main)/statements/components/analytics/AnalyticsSourceBadge';
 import type {
   SpendOverTimePoint,
@@ -7,6 +8,7 @@ import type {
   SpendOverTimeSourceChannel,
 } from '@/app/(main)/statements/components/spend-over-time.utils';
 import { X } from '@/app/components/icons';
+import { closeOnBackdropClick } from '@/app/components/ui/backdrop-click';
 import { formatMoney } from '@/app/lib/analytics-common';
 import { formatStoredDate } from '@/app/lib/user-format-store';
 
@@ -101,38 +103,52 @@ export function SpendOverTimeDrillDown({
   sourceLabels,
   labels,
 }: Props): React.JSX.Element {
+  // Modal renders above the whole app (side-panel buttons included), traps focus inside the
+  // drill-down, closes on Escape and restores focus on unmount.
   return (
-    <div className="lumio-view-page__drill-backdrop">
-      <div className="lumio-view-page__drill-modal">
-        <div className="lumio-view-page__drill-header">
-          <div>
-            <h4 className="lumio-view-page__drill-title">
-              {selectedPoint.label} - {labels.drillDown}
-            </h4>
-            <p className="lumio-view-page__drill-subtitle">{groupBy}</p>
+    <Modal open onClose={onClose} hideBackdrop>
+      {/* biome-ignore lint/a11y: the dimmed backdrop is a mouse-only dismiss surface; keyboard users close with Escape (Modal). */}
+      <div
+        className="lumio-view-page__drill-backdrop"
+        tabIndex={-1}
+        onClick={closeOnBackdropClick(onClose)}
+      >
+        <div
+          className="lumio-view-page__drill-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${selectedPoint.label} - ${labels.drillDown}`}
+        >
+          <div className="lumio-view-page__drill-header">
+            <div>
+              <h4 className="lumio-view-page__drill-title">
+                {selectedPoint.label} - {labels.drillDown}
+              </h4>
+              <p className="lumio-view-page__drill-subtitle">{groupBy}</p>
+            </div>
+            <button
+              type="button"
+              className="lumio-view-page__drill-close"
+              onClick={onClose}
+              aria-label={labels.close}
+            >
+              <X size={16} />
+            </button>
           </div>
-          <button
-            type="button"
-            className="lumio-view-page__drill-close"
-            onClick={onClose}
-            aria-label={labels.close}
-          >
-            <X size={16} />
-          </button>
-        </div>
-        <div className="lumio-view-page__drill-body">
-          {drillDownRecords.length === 0 ? (
-            <div className="lumio-view-page__drill-empty">{labels.noOperations}</div>
-          ) : (
-            <DrillDownTable
-              records={drillDownRecords}
-              currency={currency}
-              sourceLabels={sourceLabels}
-              labels={labels}
-            />
-          )}
+          <div className="lumio-view-page__drill-body">
+            {drillDownRecords.length === 0 ? (
+              <div className="lumio-view-page__drill-empty">{labels.noOperations}</div>
+            ) : (
+              <DrillDownTable
+                records={drillDownRecords}
+                currency={currency}
+                sourceLabels={sourceLabels}
+                labels={labels}
+              />
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -13,7 +13,11 @@
     left: 0;
     right: 0;
     height: calc(56px + env(safe-area-inset-bottom, 0px));
-    padding-bottom: env(safe-area-inset-bottom, 0);
+    // Room for the tabs' focus rings: the bar sits on the viewport edges, and the raised
+    // FAB would paint over a neighbour's ring without the gap.
+    gap: $lumio-focus-ring-reach;
+    padding: $lumio-focus-ring-reach $lumio-focus-ring-reach
+      calc(env(safe-area-inset-bottom, 0px) + #{$lumio-focus-ring-reach});
     background: $lumio-color-surface;
     border-top: 1px solid $lumio-color-border;
     z-index: 40;

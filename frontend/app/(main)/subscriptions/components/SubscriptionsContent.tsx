@@ -244,7 +244,8 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
       <Tabs
         value={props.statusFilter}
         onChange={(_, value) => props.setStatusFilter(value)}
-        sx={{ mb: 2 }}
+        // 12px + the theme's 4px focus-ring room around scrollable tabs.
+        sx={{ mb: 1.5 }}
         variant="scrollable"
         allowScrollButtonsMobile
       >

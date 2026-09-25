@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Typography } from '@mui/material';
+import { Box, Modal, Typography } from '@mui/material';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -226,99 +226,108 @@ export function FolderContextMenu({
     typeof window !== 'undefined' && folderContextMenu.x + 200 > window.innerWidth
       ? folderContextMenu.x - 200
       : folderContextMenu.x;
+  // Modal keeps focus inside the menu, closes it on Escape and restores focus.
   return (
-    <Box
-      sx={{
-        position: 'fixed',
-        zIndex: 100,
-        minWidth: 200,
-        overflow: 'hidden',
-        border: `1px solid ${c.ink150}`,
-        bgcolor: 'background.paper',
-        boxShadow: 24,
-      }}
-      style={{ top: topOffset, left: leftOffset }}
-      onClick={e => e.stopPropagation()}
-      onKeyDown={e => e.stopPropagation()}
-      role="presentation"
-    >
-      <Box sx={{ p: 0.75, display: 'flex', flexDirection: 'column' }}>
-        <Box
-          component="button"
-          type="button"
-          onClick={() => {
-            setFolderTagPickerId(folderContextMenu.folder.id);
-            setFolderContextMenu(null);
-          }}
-          sx={{
-            display: 'flex',
-            width: '100%',
-            alignItems: 'center',
-            gap: 1,
-            px: 1.5,
-            py: 1,
-            fontSize: 14,
-            color: c.ink800,
-            bgcolor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            textAlign: 'left',
-            '&:hover': { bgcolor: c.ink50 },
-          }}
-        >
-          <span>{tagsTitle}</span>
-        </Box>
-        <Box
-          component="button"
-          type="button"
-          onClick={() => {
-            handleStartEditFolder(folderContextMenu.folder);
-            setFolderContextMenu(null);
-          }}
-          sx={{
-            display: 'flex',
-            width: '100%',
-            alignItems: 'center',
-            gap: 1,
-            px: 1.5,
-            py: 1,
-            fontSize: 14,
-            color: c.ink800,
-            bgcolor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            textAlign: 'left',
-            '&:hover': { bgcolor: c.ink50 },
-          }}
-        >
-          <span>{renameTooltip}</span>
-        </Box>
-        <Box
-          component="button"
-          type="button"
-          onClick={() => {
-            confirmDeleteFolder(folderContextMenu.folder);
-            setFolderContextMenu(null);
-          }}
-          sx={{
-            display: 'flex',
-            width: '100%',
-            alignItems: 'center',
-            gap: 1,
-            px: 1.5,
-            py: 1,
-            fontSize: 14,
-            color: c.danger,
-            bgcolor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            textAlign: 'left',
-            '&:hover': { bgcolor: c.dangerSoft },
-          }}
-        >
-          <span>{deleteTooltip}</span>
+    <Modal open onClose={() => setFolderContextMenu(null)} hideBackdrop>
+      <Box
+        tabIndex={-1}
+        sx={{
+          position: 'fixed',
+          zIndex: 100,
+          minWidth: 200,
+          overflow: 'hidden',
+          border: `1px solid ${c.ink150}`,
+          bgcolor: 'background.paper',
+          boxShadow: 24,
+          outline: 'none',
+        }}
+        style={{ top: topOffset, left: leftOffset }}
+        onClick={e => e.stopPropagation()}
+        onKeyDown={e => {
+          if (e.key !== 'Escape') {
+            e.stopPropagation();
+          }
+        }}
+        role="presentation"
+      >
+        <Box sx={{ p: 0.75, display: 'flex', flexDirection: 'column' }}>
+          <Box
+            component="button"
+            type="button"
+            onClick={() => {
+              setFolderTagPickerId(folderContextMenu.folder.id);
+              setFolderContextMenu(null);
+            }}
+            sx={{
+              display: 'flex',
+              width: '100%',
+              alignItems: 'center',
+              gap: 1,
+              px: 1.5,
+              py: 1,
+              fontSize: 14,
+              color: c.ink800,
+              bgcolor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left',
+              '&:hover': { bgcolor: c.ink50 },
+            }}
+          >
+            <span>{tagsTitle}</span>
+          </Box>
+          <Box
+            component="button"
+            type="button"
+            onClick={() => {
+              handleStartEditFolder(folderContextMenu.folder);
+              setFolderContextMenu(null);
+            }}
+            sx={{
+              display: 'flex',
+              width: '100%',
+              alignItems: 'center',
+              gap: 1,
+              px: 1.5,
+              py: 1,
+              fontSize: 14,
+              color: c.ink800,
+              bgcolor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left',
+              '&:hover': { bgcolor: c.ink50 },
+            }}
+          >
+            <span>{renameTooltip}</span>
+          </Box>
+          <Box
+            component="button"
+            type="button"
+            onClick={() => {
+              confirmDeleteFolder(folderContextMenu.folder);
+              setFolderContextMenu(null);
+            }}
+            sx={{
+              display: 'flex',
+              width: '100%',
+              alignItems: 'center',
+              gap: 1,
+              px: 1.5,
+              py: 1,
+              fontSize: 14,
+              color: c.danger,
+              bgcolor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left',
+              '&:hover': { bgcolor: c.dangerSoft },
+            }}
+          >
+            <span>{deleteTooltip}</span>
+          </Box>
         </Box>
       </Box>
-    </Box>
+    </Modal>
   );
 }

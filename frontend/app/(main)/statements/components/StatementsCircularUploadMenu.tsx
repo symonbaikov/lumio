@@ -182,6 +182,8 @@ export default function StatementsCircularUploadMenu({
           data-statements-fab-backdrop="true"
           type="button"
           aria-label="Close upload actions"
+          // Mouse-only dismiss surface; keyboard users close with Escape or the toggle.
+          tabIndex={-1}
           onClick={() => setIsOpen(false)}
           style={{
             position: 'fixed',
@@ -243,6 +245,7 @@ export default function StatementsCircularUploadMenu({
               pointerEvents: isOpen ? 'auto' : 'none',
               opacity: isOpen ? 1 : 0,
             }}
+            inert={!isOpen}
           >
             <button
               data-statements-fab-interactive="true"
@@ -333,6 +336,7 @@ export default function StatementsCircularUploadMenu({
           pointerEvents: isOpen ? 'none' : 'auto',
           opacity: isOpen ? 0 : 1,
         }}
+        inert={isOpen}
         aria-label="Scan"
       >
         <Scan size={24} />

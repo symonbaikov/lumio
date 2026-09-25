@@ -24,6 +24,16 @@ type UserMenuProps = {
   onNavigate?: (path: string) => void;
 };
 
+/**
+ * Non-interactive heading at the top of the menu. The static flag makes MUI's MenuList skip
+ * it (as it skips Divider) when picking the item that gets focus on open; otherwise focus
+ * stays on the menu paper and neither the arrow keys nor Tab reach the items.
+ */
+function MenuTitle({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return <div className="lumio-navigation__menu-title">{children}</div>;
+}
+MenuTitle.muiSkipListHighlight = true;
+
 // eslint-disable-next-line max-lines-per-function, complexity
 export function UserMenuTriggerAndDropdown({
   user,
@@ -72,9 +82,7 @@ export function UserMenuTriggerAndDropdown({
         transformOrigin={{ vertical: 'top', horizontal: mobile ? 'left' : 'right' }}
         PaperProps={{ sx: { width: 320, mt: 0.5 } }}
       >
-        <div className="lumio-navigation__menu-title">
-          {resolveLabel(getRecord(userMenu)?.userActions, 'User Actions')}
-        </div>
+        <MenuTitle>{resolveLabel(getRecord(userMenu)?.userActions, 'User Actions')}</MenuTitle>
 
         <Divider />
 

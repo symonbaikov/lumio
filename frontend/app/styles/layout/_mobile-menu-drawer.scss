@@ -45,6 +45,11 @@
     &--open {
       transform: translateX(0);
     }
+
+    // Focused programmatically by the focus trap; the drawer itself needs no ring.
+    &:focus {
+      outline: none;
+    }
   }
 
   &__header {

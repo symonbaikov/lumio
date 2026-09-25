@@ -18,6 +18,7 @@
     "type-check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:profile": "vitest run app/settings/profile/page.test.tsx",
+    "audit:focus": "node scripts/focus-audit.mjs",
     "lint:css": "stylelint \"app/styles/**/*.scss\" \"app/components/**/*.scss\""
   },
   "overrides": {
@@ -84,6 +85,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^16.5.0",
     "jsdom": "^24.0.0",
+    "playwright-core": "^1.63.0",
     "react-scan": "^0.5.7",
     "sass": "^1.99.0",
     "stylelint": "^16.26.1",

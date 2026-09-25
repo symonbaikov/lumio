@@ -249,6 +249,8 @@ const getSharedOptions = (
             boxShadow: '0 4px 16px -4px rgba(12, 12, 20, 0.08), 0 1px 2px rgba(12, 12, 20, 0.04)',
             border: `1px solid ${c.ink150}`,
           },
+          // The paper clips overflow; full-width items need room for their focus ring.
+          list: { paddingInline: tokens.focusRing.reach },
         },
       },
       MuiPopover: {
@@ -280,6 +282,26 @@ const getSharedOptions = (
             fontWeight: 600,
             textTransform: 'none',
             minHeight: 44,
+          },
+        },
+      },
+      // Tabs clip their strip. A fixed strip doesn't need to; a scrollable one must, so it
+      // gets inner room for the focus ring, taken back with a negative margin on the root.
+      MuiTabs: {
+        styleOverrides: {
+          root: {
+            '&:has(> .MuiTabs-fixed)': { overflow: 'visible' },
+            '&:has(> .MuiTabs-scrollableX)': { margin: -tokens.focusRing.reach },
+          },
+          scroller: {
+            '&.MuiTabs-fixed': { overflow: 'visible' },
+            '&.MuiTabs-scrollableX': {
+              padding: tokens.focusRing.reach,
+              scrollPaddingInline: tokens.focusRing.reach,
+            },
+          },
+          indicator: {
+            '.MuiTabs-scrollableX > &': { bottom: tokens.focusRing.reach },
           },
         },
       },
