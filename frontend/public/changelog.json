@@ -1,14 +1,90 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "c74d1838ea080dd4c57075ddda91d3108dfc55d5"
+      "main": "ef4ca779b55fbf505b67f51b2b5e7b61b00f1c2d"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-25T11:45:11.606Z",
+    "lastGeneratedAt": "2026-09-25T12:06:09.060Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-09-25-ef4ca77",
+      "version": "main-ef4ca77",
+      "branch": "main",
+      "date": "2026-09-25T12:06:09.060Z",
+      "title": "Release update - September 25, 2026",
+      "summary": "This release includes 2 fixes.",
+      "markdown": "## Fixes\n- **auth**: Keep users signed in while the refresh token is valid\n- **statements**: Keep one upload skeleton per file until its row arrives",
+      "commits": [
+        {
+          "sha": "4f39e2cdbfd2a567db00228a1ec5103beaef8609",
+          "shortSha": "4f39e2cd",
+          "subject": "fix(auth): keep users signed in while the refresh token is valid",
+          "author": "Symon Baikov",
+          "date": "2026-09-15T17:34:48+03:00",
+          "files": [
+            "frontend/app/lib/api.test.ts",
+            "frontend/app/lib/api.ts",
+            "frontend/proxy.test.ts",
+            "frontend/proxy.ts"
+          ]
+        },
+        {
+          "sha": "a24d30fab977e45ae7acec58f7bd8010a89067c5",
+          "shortSha": "a24d30fa",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-25T11:45:12Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "790a31a790c39583560d689d49042b0a6cf2c940",
+          "shortSha": "790a31a7",
+          "subject": "Merge pull request #178 from symonbaikov/fix/session-persistence",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T15:01:20+03:00",
+          "files": []
+        },
+        {
+          "sha": "f1dbaf7a364a2950703587c0bf092aee4aea0ce8",
+          "shortSha": "f1dbaf7a",
+          "subject": "fix(statements): keep one upload skeleton per file until its row arrives",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T15:03:23+03:00",
+          "files": [
+            "backend/@tests/unit/modules/gmail/gmail-controller-receipts.spec.ts",
+            "backend/src/modules/gmail/gmail.controller.ts",
+            "frontend/app/(main)/statements/components/CreateExpenseDrawer.test.tsx",
+            "frontend/app/(main)/statements/components/CreateExpenseDrawer.tsx",
+            "frontend/app/(main)/statements/components/StatementsListView.tsx",
+            "frontend/app/(main)/statements/components/hooks/useExpenseForm.ts",
+            "frontend/app/(main)/statements/components/hooks/useGmailReceiptsQuery.ts",
+            "frontend/app/(main)/statements/components/hooks/useStatementsQuery.test.ts",
+            "frontend/app/(main)/statements/components/hooks/useStatementsQuery.ts",
+            "frontend/app/(main)/statements/components/hooks/useStatementsView.ts",
+            "frontend/app/(main)/statements/components/hooks/useUploadSkeletonKeys.test.ts",
+            "frontend/app/(main)/statements/components/hooks/useUploadSkeletonKeys.ts",
+            "frontend/app/(main)/statements/components/pending-uploads-store.test.ts",
+            "frontend/app/(main)/statements/components/pending-uploads-store.ts",
+            "frontend/app/(main)/statements/components/statement-upload.test.ts",
+            "frontend/app/(main)/statements/components/statement-upload.ts",
+            "frontend/app/lib/api.ts"
+          ]
+        },
+        {
+          "sha": "ef4ca779b55fbf505b67f51b2b5e7b61b00f1c2d",
+          "shortSha": "ef4ca779",
+          "subject": "Merge pull request #187 from symonbaikov/fix/statement-upload-skeletons",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T15:05:45+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-25-c74d183",
       "version": "main-c74d183",
