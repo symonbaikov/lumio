@@ -11,7 +11,7 @@ import { EmptyState } from '@/app/components/ui/EmptyState';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { formatMoney } from '@/app/lib/format-money';
-import { ConnectWalletDialog } from './components/ConnectWalletDialog';
+import { ConnectWalletDrawer } from './components/ConnectWalletDrawer';
 import { CryptoWalletCard } from './components/CryptoWalletCard';
 import { useCrypto } from './hooks/useCrypto';
 
@@ -30,14 +30,14 @@ export default function CryptoPage(): React.JSX.Element {
     removeWallet,
   } = useCrypto();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const currency = summary?.currency ?? 'USD';
   const money = (value: number): string => formatMoney(value, currency, locale);
 
   // A duplicate address belongs next to the field the user must change; every
   // other failure is a page-level problem and is reported above the list.
-  const dialogServerError = error === 'duplicate' ? t.duplicate.value : null;
+  const drawerServerError = error === 'duplicate' ? t.duplicate.value : null;
 
   return (
     <Box component="main" sx={{ px: { xs: 2, md: 4 }, py: 3, width: '100%' }}>
@@ -62,7 +62,7 @@ export default function CryptoPage(): React.JSX.Element {
         <Button
           variant="contained"
           startIcon={<Plus size={18} />}
-          onClick={() => setDialogOpen(true)}
+          onClick={() => setDrawerOpen(true)}
         >
           {t.connect}
         </Button>
@@ -143,10 +143,10 @@ export default function CryptoPage(): React.JSX.Element {
         ))}
       </Box>
 
-      <ConnectWalletDialog
-        open={dialogOpen}
+      <ConnectWalletDrawer
+        open={drawerOpen}
         saving={connecting}
-        serverError={dialogServerError}
+        serverError={drawerServerError}
         labels={{
           title: t.connect.value,
           useMetaMask: t.useMetaMask.value,
@@ -159,7 +159,7 @@ export default function CryptoPage(): React.JSX.Element {
           connect: t.connect.value,
           cancel: t.cancel.value,
         }}
-        onClose={() => setDialogOpen(false)}
+        onClose={() => setDrawerOpen(false)}
         onSubmit={connectWallet}
       />
     </Box>
