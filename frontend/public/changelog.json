@@ -1,14 +1,94 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "ef4ca779b55fbf505b67f51b2b5e7b61b00f1c2d"
+      "main": "c8daebc29bcc8737a7060c34f7975e4df6824dd6"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-25T12:06:09.060Z",
+    "lastGeneratedAt": "2026-09-25T14:22:21.673Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-09-25-c8daebc",
+      "version": "main-c8daebc",
+      "branch": "main",
+      "date": "2026-09-25T14:22:21.673Z",
+      "title": "Release update - September 25, 2026",
+      "summary": "This release includes 3 fixes.",
+      "markdown": "## Fixes\n- **gmail**: Scope receipt routes to the current workspace\n- **storage**: List files and folders of the current workspace\n- **frontend**: Keep the workspace a request was meant for",
+      "commits": [
+        {
+          "sha": "a6851a62992827bb467546fcc9fb7d401422e393",
+          "shortSha": "a6851a62",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-25T12:06:09Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "1752f16160194cb9a0e9ed167a08a3d37f93c6b9",
+          "shortSha": "1752f161",
+          "subject": "fix(gmail): scope receipt routes to the current workspace",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T16:22:45+03:00",
+          "files": [
+            "backend/@tests/e2e/workspace-isolation.e2e-spec.ts",
+            "backend/@tests/unit/migrations/add-receipts-workspace-index.migration.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-controller-receipts.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-controller-status.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-controller-sync.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-controller-thumbnail.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-controller.security.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-merchant-reparse.service.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-receipt-service-wrappers.spec.ts",
+            "backend/src/entities/receipt.entity.ts",
+            "backend/src/migrations/1786480000000-AddReceiptsWorkspaceIndex.ts",
+            "backend/src/modules/gmail/gmail.controller.ts",
+            "backend/src/modules/gmail/services/gmail-merchant-reparse.service.ts",
+            "backend/src/modules/gmail/services/gmail-receipt-duplicate.service.ts",
+            "backend/src/modules/gmail/services/gmail-receipt-export.service.ts",
+            "backend/src/modules/receipts/services/receipt-duplicate.service.ts"
+          ]
+        },
+        {
+          "sha": "144b2737b53a9fa1494a174ac124ede229bba4e9",
+          "shortSha": "144b2737",
+          "subject": "fix(storage): list files and folders of the current workspace",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T16:28:16+03:00",
+          "files": [
+            "backend/@tests/e2e/workspace-isolation.e2e-spec.ts",
+            "backend/@tests/unit/modules/storage/storage.service.spec.ts",
+            "backend/src/modules/storage/storage.controller.ts",
+            "backend/src/modules/storage/storage.service.ts"
+          ]
+        },
+        {
+          "sha": "aa244ae5788891181d50f67cfbdedd2972b56372",
+          "shortSha": "aa244ae5",
+          "subject": "fix(frontend): keep the workspace a request was meant for",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T16:31:10+03:00",
+          "files": [
+            "frontend/app/(main)/statements/components/statement-upload.test.ts",
+            "frontend/app/(main)/statements/components/statement-upload.ts",
+            "frontend/app/lib/api.test.ts",
+            "frontend/app/lib/api.ts"
+          ]
+        },
+        {
+          "sha": "c8daebc29bcc8737a7060c34f7975e4df6824dd6",
+          "shortSha": "c8daebc2",
+          "subject": "Merge pull request #188 from symonbaikov/fix/workspace-isolation",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T17:21:57+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-25-ef4ca77",
       "version": "main-ef4ca77",
