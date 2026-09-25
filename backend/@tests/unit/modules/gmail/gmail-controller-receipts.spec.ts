@@ -92,6 +92,27 @@ describe('GmailController - Receipts List Endpoint', () => {
     );
   });
 
+  it('keeps amountless scans that already have a statement when includeLinkedScans=true', async () => {
+    await (controller as any).listReceipts(
+      mockUser as User,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'true',
+    );
+
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      "(NULLIF(TRIM(receipt.parsed_data->>'amount'), '') IS NOT NULL OR (receipt.source = :scanSource AND receipt.statement_id IS NOT NULL))",
+      { scanSource: 'scan' },
+    );
+    expect(queryBuilder.andWhere).not.toHaveBeenCalledWith(
+      "NULLIF(TRIM(receipt.parsed_data->>'amount'), '') IS NOT NULL",
+    );
+  });
+
   it('allows invalid receipts when includeInvalid=true', async () => {
     await (controller as any).listReceipts(
       mockUser as User,

@@ -27,15 +27,19 @@ type UploadReceiptScanFilesParams = UploadCallbacks & {
   files: File[];
   labels: StatementUploadLabels;
   deviceLocation?: DeviceLocation | null;
+  /** After each batch: offset of its first file and the created statement ids, in file order. */
+  onBatchCreated?: (fileOffset: number, statementIds: string[]) => void;
 };
 
 type UploadScanDrawerFilesParams = UploadCallbacks & {
   labels: StatementUploadLabels;
+  onBatchCreated?: UploadReceiptScanFilesParams['onBatchCreated'];
   payload: {
     files: File[];
     allowDuplicates: boolean;
     requireManualCategorySelection: boolean;
-    deviceLocation?: DeviceLocation | null;
+    /** Still pending when the drawer hands the files over; awaited before the first request. */
+    deviceLocationRequest?: Promise<DeviceLocation | null> | null;
   };
 };
 
@@ -47,6 +51,17 @@ const chunkFiles = (files: File[], size: number): File[][] => {
   }
 
   return chunks;
+};
+
+const readCreatedStatementIds = (responseData: unknown): string[] => {
+  const created = (responseData as { data?: unknown } | null)?.data;
+  if (!Array.isArray(created)) {
+    return [];
+  }
+  return created.flatMap(statement => {
+    const id = (statement as { id?: unknown } | null)?.id;
+    return typeof id === 'string' ? [id] : [];
+  });
 };
 
 // eslint-disable-next-line complexity
@@ -113,12 +128,14 @@ export const uploadReceiptScanFiles = async ({
   labels,
   onUploadSuccess,
   refreshAfterCreate,
+  onBatchCreated,
 }: UploadReceiptScanFilesParams): Promise<void> => {
   if (files.length === 0) {
     throw new Error(labels.pickAtLeastOne);
   }
 
   try {
+    let fileOffset = 0;
     for (const batch of chunkFiles(files, RECEIPT_SCAN_UPLOAD_BATCH_SIZE)) {
       const formData = new FormData();
       for (const file of batch) {
@@ -130,9 +147,11 @@ export const uploadReceiptScanFiles = async ({
         formData.append('accuracy', String(deviceLocation.accuracy));
       }
 
-      await apiClient.post('/statements/upload-receipt', formData, {
+      const response = await apiClient.post('/statements/upload-receipt', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      onBatchCreated?.(fileOffset, readCreatedStatementIds(response?.data));
+      fileOffset += batch.length;
     }
 
     onUploadSuccess(labels.uploadedProcessing);
@@ -148,16 +167,20 @@ export const uploadScanDrawerFiles = async ({
   labels,
   onUploadSuccess,
   refreshAfterCreate,
+  onBatchCreated,
 }: UploadScanDrawerFilesParams): Promise<void> => {
   if (payload.files.length === 0) {
     throw new Error(labels.pickAtLeastOne);
   }
 
+  // Bounded by getDeviceLocation's timeout and usually settled by now.
+  const deviceLocation = payload.deviceLocationRequest ? await payload.deviceLocationRequest : null;
   await uploadReceiptScanFiles({
     files: payload.files,
-    deviceLocation: payload.deviceLocation,
+    deviceLocation,
     labels,
     onUploadSuccess,
     refreshAfterCreate,
+    onBatchCreated,
   });
 };

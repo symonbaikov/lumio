@@ -1,5 +1,6 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -10,6 +11,7 @@ import { NoteCountsProvider } from '@/app/components/notes/NoteCountsContext';
 import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { useKeyboardShortcuts } from '@/app/hooks/use-keyboard-shortcuts';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import apiClient from '@/app/lib/api';
 import { getApiErrorStatus } from '@/app/lib/api-error';
 import type { DeviceLocation } from '@/app/lib/device-location';
@@ -22,12 +24,22 @@ import type {
 import type { StatementStage } from '@/app/lib/statement-workflow';
 import type { MergeDuplicatesPlan } from './hooks/useStatementSelection';
 import { useStatementsView } from './hooks/useStatementsView';
+import {
+  addPendingUploads,
+  removePendingUploads,
+  resolvePendingUploads,
+} from './pending-uploads-store';
 import { StatementsListHeader } from './StatementsListHeader';
 import { StatementsListTable } from './StatementsListTable';
 import { isGmailStatement, resolveStatementViewAction } from './StatementsListView.utils';
 import { uploadScanDrawerFiles as runUploadScanDrawerFiles } from './statement-upload';
 
 type Props = { stage: StatementStage };
+
+// A created row normally replaces its placeholder within one refetch. The
+// fallback covers a row the list never shows (hidden by search or a filter) or
+// a failed refetch, and outlasts two 6s receipt polls.
+const LISTED_UPLOAD_FALLBACK_MS = 20_000;
 
 // ---- Manual expense form builder ----
 
@@ -178,6 +190,8 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
   const searchParams = useSearchParams();
   const listScrollRef = useRef<HTMLDivElement | null>(null);
   const v = useStatementsView({ stage, router, searchParams, listScrollRef });
+  const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceId();
 
   useLockBodyScroll(v.expenseDrawerOpen);
 
@@ -205,21 +219,49 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
     toast.success(msg);
   };
 
+  // Scan uploads come back as receipt rows, so the receipts list has to be
+  // refetched too, not only statements.
+  const refreshListsAfterScan = async (): Promise<void> => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['gmail-receipts', workspaceId] }),
+      queryClient.invalidateQueries({ queryKey: ['statements', workspaceId] }),
+    ]);
+  };
+
   const uploadScanDrawerFiles = async (payload: {
     files: File[];
     allowDuplicates: boolean;
     requireManualCategorySelection: boolean;
-    deviceLocation?: DeviceLocation | null;
+    deviceLocationRequest: Promise<DeviceLocation | null> | null;
   }): Promise<void> => {
-    const skeletonKeys = payload.files.map((_, index) => `local-upload-${Date.now()}-${index}`);
-    v.setGmailSyncSkeletonKeys(prev => [...prev, ...skeletonKeys]);
+    v.setPage(1);
+    const keys = addPendingUploads(workspaceId, payload.files.length);
+    const resolvedKeys = new Set<string>();
+    // A key without a statement id can never be matched to a row.
+    const dropUnresolved = (): void => {
+      removePendingUploads(keys.filter(key => !resolvedKeys.has(key)));
+    };
+
     await runUploadScanDrawerFiles({
       payload,
       labels: uploadLabels,
       onUploadSuccess: onUploadSuccess,
-      refreshAfterCreate: refreshAfterCreate,
-    }).finally(() => {
-      v.setGmailSyncSkeletonKeys(prev => prev.filter(key => !skeletonKeys.includes(key)));
+      refreshAfterCreate: refreshListsAfterScan,
+      onBatchCreated: (fileOffset, statementIds) => {
+        const batchKeys = keys.slice(fileOffset, fileOffset + statementIds.length);
+        resolvePendingUploads(batchKeys, statementIds);
+        for (const key of batchKeys) {
+          resolvedKeys.add(key);
+        }
+        window.setTimeout(() => removePendingUploads(batchKeys), LISTED_UPLOAD_FALLBACK_MS);
+      },
+    }).then(dropUnresolved, (error: unknown) => {
+      dropUnresolved();
+      // Earlier batches may have gone through before this one failed.
+      if (resolvedKeys.size > 0) {
+        void refreshListsAfterScan();
+      }
+      throw error;
     });
   };
 
@@ -391,7 +433,7 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
             loading={v.isPending}
             displayStatements={v.displayStatements}
             paginatedStatements={v.paginatedDisplayStatements}
-            gmailSyncSkeletonKeys={v.gmailSyncSkeletonKeys}
+            gmailSyncSkeletonKeys={v.listSkeletonKeys}
             allVisibleSelected={v.allVisibleSelected}
             selectedCount={v.selectedCount}
             selectedStatementIds={v.selectedStatementIds}

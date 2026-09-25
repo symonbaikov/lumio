@@ -32,7 +32,7 @@ type SubmitScanPayload = {
   files: File[];
   allowDuplicates: boolean;
   requireManualCategorySelection: boolean;
-  deviceLocation: DeviceLocation | null;
+  deviceLocationRequest: Promise<DeviceLocation | null> | null;
 };
 
 export type SelectedFilesOrigin = 'camera' | 'gallery';
@@ -317,16 +317,14 @@ export function useExpenseForm({
     setError(null);
     handleClose();
 
-    await (async () => {
-      // Bounded by getDeviceLocation's timeout and usually settled by now.
-      const deviceLocation = locationRequest ? await locationRequest : null;
-      await onSubmitScan({
-        files: filesToUpload,
-        allowDuplicates: ALWAYS_ALLOW_STATEMENT_DUPLICATES,
-        requireManualCategorySelection: false,
-        deviceLocation,
-      });
-    })().catch(async (submitError: unknown) => {
+    // Handed over unresolved: the list shows the placeholder rows at once, not
+    // after the location lookup.
+    await onSubmitScan({
+      files: filesToUpload,
+      allowDuplicates: ALWAYS_ALLOW_STATEMENT_DUPLICATES,
+      requireManualCategorySelection: false,
+      deviceLocationRequest: locationRequest,
+    }).catch(async (submitError: unknown) => {
       toast.error(getApiErrorMessage(submitError, 'Failed to upload files'));
     });
   };

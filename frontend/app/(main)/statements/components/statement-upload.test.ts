@@ -138,6 +138,57 @@ describe('statement-upload helpers', () => {
     expect(refreshAfterCreate).toHaveBeenCalledTimes(1);
   });
 
+  it('reports the statements created by each batch against the offset of its first file', async () => {
+    const files = Array.from(
+      { length: 7 },
+      (_, index) => new File([`receipt-${index}`], `receipt-${index}.jpg`, { type: 'image/jpeg' }),
+    );
+    apiMocks.post
+      .mockResolvedValueOnce({ data: { data: ['a', 'b', 'c', 'd', 'e'].map(id => ({ id })) } })
+      .mockResolvedValueOnce({ data: { data: [{ id: 'f' }, { id: 'g' }] } });
+    const onBatchCreated = vi.fn();
+
+    await uploadReceiptScanFiles({
+      files,
+      labels,
+      onUploadSuccess: vi.fn(),
+      refreshAfterCreate: vi.fn().mockResolvedValue(undefined),
+      onBatchCreated,
+    });
+
+    expect(onBatchCreated.mock.calls).toEqual([
+      [0, ['a', 'b', 'c', 'd', 'e']],
+      [5, ['f', 'g']],
+    ]);
+  });
+
+  it('waits for the pending device location before the first request', async () => {
+    apiMocks.post.mockResolvedValue({ data: { data: [{ id: 'stmt-1' }] } });
+    let settleLocation: ((value: null) => void) | undefined;
+    const deviceLocationRequest = new Promise<null>(resolve => {
+      settleLocation = resolve;
+    });
+
+    const upload = uploadScanDrawerFiles({
+      payload: {
+        files: [new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' })],
+        allowDuplicates: true,
+        requireManualCategorySelection: false,
+        deviceLocationRequest,
+      },
+      labels,
+      onUploadSuccess: vi.fn(),
+      refreshAfterCreate: vi.fn().mockResolvedValue(undefined),
+    });
+
+    await Promise.resolve();
+    expect(apiMocks.post).not.toHaveBeenCalled();
+
+    settleLocation?.(null);
+    await upload;
+    expect(apiMocks.post).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps statement uploads on the statement endpoint without receipt chunking', async () => {
     const onUploadSuccess = vi.fn();
     const refreshAfterCreate = vi.fn().mockResolvedValue(undefined);
@@ -173,7 +224,11 @@ describe('statement-upload helpers', () => {
         files,
         allowDuplicates: true,
         requireManualCategorySelection: false,
-        deviceLocation: { latitude: 43.2383, longitude: 76.9453, accuracy: 15 },
+        deviceLocationRequest: Promise.resolve({
+          latitude: 43.2383,
+          longitude: 76.9453,
+          accuracy: 15,
+        }),
       },
       labels,
       onUploadSuccess: vi.fn(),

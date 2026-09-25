@@ -6,6 +6,7 @@ import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
+import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { useIntlayer } from '@/app/i18n';
 import { fetchExchangeRate } from '@/app/lib/exchange-rate';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
@@ -53,6 +54,7 @@ import { type MergeDuplicatesPlan, useStatementSelection } from './useStatementS
 import { useStatementsDuplicates } from './useStatementsDuplicates';
 import { useStatementsFilterState } from './useStatementsFilterState';
 import { useStatementsListData } from './useStatementsListData';
+import { useUploadSkeletonKeys } from './useUploadSkeletonKeys';
 
 interface StagedStatementsParams {
   statements: Statement[];
@@ -184,8 +186,8 @@ export function useStatementsView({
   closePreview: ReturnType<typeof useStatementPreview>['closePreview'];
   // data
   isPending: boolean;
-  gmailSyncSkeletonKeys: string[];
-  setGmailSyncSkeletonKeys: React.Dispatch<React.SetStateAction<string[]>>;
+  /** Placeholder rows above the list: local uploads first, then Gmail sync. */
+  listSkeletonKeys: string[];
   refetchStatements: ReturnType<typeof useStatementsListData>['refetchStatements'];
   refetchGmailReceipts: ReturnType<typeof useStatementsListData>['refetchGmailReceipts'];
   refreshActiveStatements: ReturnType<typeof useStatementsListData>['refreshActiveStatements'];
@@ -241,6 +243,7 @@ export function useStatementsView({
 } {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
+  const workspaceId = useWorkspaceId();
   const isMobile = useIsMobile();
   const t = useIntlayer('statementsPage');
 
@@ -412,6 +415,18 @@ export function useStatementsView({
     const mapped = mapGmailReceiptsToStatements(gmailReceipts);
     return mapped;
   }, [gmailReceipts, stage]);
+
+  const uploadSkeletonKeys = useUploadSkeletonKeys({
+    workspaceId,
+    enabled: stage === 'submit',
+    receiptRows: gmailReceipts,
+    statements,
+    limit: PAGE_SIZE,
+  });
+  const listSkeletonKeys = useMemo(
+    () => [...uploadSkeletonKeys, ...gmailSyncSkeletonKeys],
+    [uploadSkeletonKeys, gmailSyncSkeletonKeys],
+  );
 
   const stagedStatements = useMemo(
     () => buildStagedStatements({ statements, stage, search, receiptStatements }),
@@ -633,8 +648,7 @@ export function useStatementsView({
     openPreview,
     closePreview,
     isPending: listIsPending,
-    gmailSyncSkeletonKeys,
-    setGmailSyncSkeletonKeys,
+    listSkeletonKeys,
     refetchStatements,
     refetchGmailReceipts,
     refreshActiveStatements,

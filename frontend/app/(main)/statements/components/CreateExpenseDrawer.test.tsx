@@ -235,7 +235,7 @@ describe('CreateExpenseDrawer mobile uploads', () => {
       files,
       allowDuplicates: true,
       requireManualCategorySelection: false,
-      deviceLocation: null,
+      deviceLocationRequest: null,
     });
 
     await act(async () => {
@@ -353,11 +353,35 @@ describe('CreateExpenseDrawer mobile uploads', () => {
     });
 
     expect(deviceLocationMock).toHaveBeenCalledTimes(1);
-    await waitFor(() =>
-      expect(onSubmitScan).toHaveBeenCalledWith(
-        expect.objectContaining({ files: [shot], deviceLocation: location }),
-      ),
+    expect(onSubmitScan).toHaveBeenCalledWith(
+      expect.objectContaining({ files: [shot], deviceLocationRequest: expect.any(Promise) }),
     );
+    const [payload] = onSubmitScan.mock.calls[0] as [{ deviceLocationRequest: Promise<unknown> }];
+    await expect(payload.deviceLocationRequest).resolves.toEqual(location);
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it('hands the files over before the location lookup settles', async () => {
+    localStorage.setItem(CAPTURE_KEY, 'on');
+    deviceLocationMock.mockReset().mockReturnValue(new Promise(() => undefined));
+    const onSubmitScan = vi.fn(async (_payload: unknown) => undefined);
+    const root = await renderMobileScan(onSubmitScan);
+
+    const shot = new File(['shot'], 'shot.jpg', { type: 'image/jpeg' });
+    const cameraInput = document.querySelector('input[capture="environment"]') as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(cameraInput, { target: { files: [shot] } });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /upload receipt/i }));
+    });
+
+    // The list puts up its placeholder rows from this call; it must not wait
+    // for a location that may take seconds or never come.
+    expect(onSubmitScan).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       root.unmount();
@@ -381,7 +405,7 @@ describe('CreateExpenseDrawer mobile uploads', () => {
     expect(deviceLocationMock).not.toHaveBeenCalled();
     await waitFor(() =>
       expect(onSubmitScan).toHaveBeenCalledWith(
-        expect.objectContaining({ files: [photo], deviceLocation: null }),
+        expect.objectContaining({ files: [photo], deviceLocationRequest: null }),
       ),
     );
 
@@ -407,7 +431,9 @@ describe('CreateExpenseDrawer mobile uploads', () => {
 
     expect(deviceLocationMock).not.toHaveBeenCalled();
     await waitFor(() =>
-      expect(onSubmitScan).toHaveBeenCalledWith(expect.objectContaining({ deviceLocation: null })),
+      expect(onSubmitScan).toHaveBeenCalledWith(
+        expect.objectContaining({ deviceLocationRequest: null }),
+      ),
     );
 
     await act(async () => {
