@@ -21,6 +21,9 @@ import { Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Repository } from 'typeorm';
+import { WorkspaceId } from '../../common/decorators/workspace.decorator';
+import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
+import { Permission } from '../../common/enums/permissions.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { runExecutable } from '../../common/utils/thumbnail-command.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
@@ -129,7 +132,7 @@ export class GmailController {
     return path.join(resolveUploadsDir(), storedPath);
   }
 
-  private async ensureAttachmentOnDisk(receipt: Receipt, userId: string): Promise<string | null> {
+  private async ensureAttachmentOnDisk(receipt: Receipt): Promise<string | null> {
     const storedPath = (receipt.attachmentPaths || []).find(Boolean);
     if (!storedPath) {
       return null;
@@ -152,7 +155,7 @@ export class GmailController {
 
     try {
       const newPath = await this.gmailService.downloadAttachment(
-        userId,
+        receipt.userId,
         receipt.gmailMessageId,
         attachmentMeta.id,
         attachmentMeta.filename,
@@ -331,9 +334,10 @@ export class GmailController {
   }
 
   @Get('receipts')
+  @WorkspaceAuth(Permission.STATEMENT_VIEW)
   @ApiOperation({ summary: 'List receipts' })
   async listReceipts(
-    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
     @Query('status') status?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
@@ -348,7 +352,7 @@ export class GmailController {
 
     const queryBuilder = this.receiptRepository
       .createQueryBuilder('receipt')
-      .where('receipt.userId = :userId', { userId: user.id })
+      .where('receipt.workspaceId = :workspaceId', { workspaceId })
       .orderBy('receipt.receivedAt', 'DESC');
 
     if (!includeInvalidReceipts) {
@@ -403,7 +407,7 @@ export class GmailController {
     return {
       // The picked category lives in `parsedData.categoryId`; the list renders
       // its name, so it is resolved here rather than by every caller.
-      receipts: await attachReceiptCategories(receipts, this.categoryRepository, user.workspaceId),
+      receipts: await attachReceiptCategories(receipts, this.categoryRepository, workspaceId),
       total,
       limit: take,
       offset: skip,
@@ -411,14 +415,15 @@ export class GmailController {
   }
 
   @Patch('receipts/:id')
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
   @ApiOperation({ summary: 'Update receipt' })
   async updateReceipt(
-    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Body() dto: UpdateReceiptDto,
   ) {
     const receipt = await this.receiptRepository.findOne({
-      where: { id, userId: user.id },
+      where: { id, workspaceId },
     });
 
     if (!receipt) {
@@ -441,14 +446,15 @@ export class GmailController {
   }
 
   @Post('receipts/:id/approve')
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
   @ApiOperation({ summary: 'Approve receipt and create transaction' })
   async approveReceipt(
-    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Body() dto: ApproveReceiptDto,
   ) {
     const receipt = await this.receiptRepository.findOne({
-      where: { id, userId: user.id },
+      where: { id, workspaceId },
     });
 
     if (!receipt) {
@@ -458,7 +464,7 @@ export class GmailController {
     // Create transaction with workspaceId
     const transaction = this.transactionRepository.create({
       statementId: null,
-      workspaceId: user.workspaceId,
+      workspaceId,
       transactionDate: new Date(dto.date),
       counterpartyName: dto.description || receipt.parsedData?.vendor || 'Unknown',
       paymentPurpose: dto.description || receipt.parsedData?.vendor || '',
@@ -482,10 +488,11 @@ export class GmailController {
   }
 
   @Get('receipts/:id')
+  @WorkspaceAuth(Permission.STATEMENT_VIEW)
   @ApiOperation({ summary: 'Get single receipt with details' })
-  async getReceipt(@CurrentUser() user: User, @Param('id') id: string) {
+  async getReceipt(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const receipt = await this.receiptRepository.findOne({
-      where: { id, userId: user.id },
+      where: { id, workspaceId },
       relations: ['transaction', 'duplicateOf'],
     });
 
@@ -512,14 +519,15 @@ export class GmailController {
   }
 
   @Patch('receipts/:id/parsed-data')
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
   @ApiOperation({ summary: 'Update parsed receipt data' })
   async updateParsedData(
-    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Body() dto: UpdateParsedDataDto,
   ) {
     const receipt = await this.receiptRepository.findOne({
-      where: { id, userId: user.id },
+      where: { id, workspaceId },
     });
 
     if (!receipt) {
@@ -565,49 +573,52 @@ export class GmailController {
   }
 
   @Post('receipts/:id/mark-duplicate')
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
   @ApiOperation({ summary: 'Mark receipt as duplicate' })
   async markDuplicate(
-    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Body() dto: MarkDuplicateDto,
   ) {
     const receipt = await this.receiptRepository.findOne({
-      where: { id, userId: user.id },
+      where: { id, workspaceId },
     });
 
     if (!receipt) {
       throw new BadRequestException('Receipt not found');
     }
 
-    await this.duplicateService.markAsDuplicate(id, dto.originalReceiptId, user.id);
+    await this.duplicateService.markAsDuplicate(id, dto.originalReceiptId, workspaceId);
 
     return await this.receiptRepository.findOne({
-      where: { id, userId: user.id },
+      where: { id, workspaceId },
       relations: ['duplicateOf'],
     });
   }
 
   @Post('receipts/:id/unmark-duplicate')
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
   @ApiOperation({ summary: 'Unmark receipt as duplicate' })
-  async unmarkDuplicate(@CurrentUser() user: User, @Param('id') id: string) {
+  async unmarkDuplicate(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const receipt = await this.receiptRepository.findOne({
-      where: { id, userId: user.id },
+      where: { id, workspaceId },
     });
 
     if (!receipt) {
       throw new BadRequestException('Receipt not found');
     }
 
-    await this.duplicateService.unmarkDuplicate(id, user.id);
+    await this.duplicateService.unmarkDuplicate(id, workspaceId);
 
     return await this.receiptRepository.findOne({
-      where: { id, userId: user.id },
+      where: { id, workspaceId },
     });
   }
 
   @Post('receipts/bulk-approve')
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
   @ApiOperation({ summary: 'Approve multiple receipts at once' })
-  async bulkApprove(@CurrentUser() user: User, @Body() dto: BulkApproveDto) {
+  async bulkApprove(@WorkspaceId() workspaceId: string, @Body() dto: BulkApproveDto) {
     const results: {
       approved: number;
       failed: number;
@@ -621,7 +632,7 @@ export class GmailController {
     for (const receiptId of dto.receiptIds) {
       try {
         const receipt = await this.receiptRepository.findOne({
-          where: { id: receiptId, userId: user.id },
+          where: { id: receiptId, workspaceId },
         });
 
         if (!receipt) {
@@ -639,7 +650,7 @@ export class GmailController {
         // Create transaction with workspaceId
         const transaction = this.transactionRepository.create({
           statementId: null,
-          workspaceId: user.workspaceId,
+          workspaceId,
           transactionDate: new Date(receipt.parsedData.date),
           counterpartyName: receipt.parsedData.vendor || receipt.subject || 'Unknown',
           paymentPurpose: receipt.parsedData.vendor || receipt.subject || '',
@@ -670,11 +681,12 @@ export class GmailController {
   }
 
   @Post('receipts/export-sheets')
+  @WorkspaceAuth(Permission.STATEMENT_VIEW)
   @ApiOperation({ summary: 'Export receipts to Google Sheets' })
-  async exportToSheets(@CurrentUser() user: User, @Body() dto: ExportSheetsDto) {
+  async exportToSheets(@WorkspaceId() workspaceId: string, @Body() dto: ExportSheetsDto) {
     try {
       const result = await this.exportService.exportToSheets(
-        user.id,
+        workspaceId,
         dto.receiptIds,
         dto.spreadsheetId,
       );
@@ -687,10 +699,15 @@ export class GmailController {
   }
 
   @Post('receipts/:id/export-draft')
+  @WorkspaceAuth(Permission.STATEMENT_VIEW)
   @ApiOperation({ summary: 'Export receipt as Gmail draft' })
-  async exportToDraft(@CurrentUser() user: User, @Param('id') id: string) {
+  async exportToDraft(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
     try {
-      const result = await this.exportService.createGmailDraft(user.id, id);
+      const result = await this.exportService.createGmailDraft(user.id, workspaceId, id);
       return { success: true, data: result };
     } catch (error) {
       throw new BadRequestException(
@@ -700,24 +717,26 @@ export class GmailController {
   }
 
   @Post('receipts/reparse-merchants')
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
   @ApiOperation({ summary: 'Reparse merchant names for existing receipts' })
-  async reparseMerchants(@CurrentUser() user: User, @Body() dto: ReparseMerchantsDto) {
-    return this.merchantReparseService.reparseAll(user.id, {
+  async reparseMerchants(@WorkspaceId() workspaceId: string, @Body() dto: ReparseMerchantsDto) {
+    return this.merchantReparseService.reparseAll(workspaceId, {
       dryRun: dto.dryRun,
       limit: dto.limit,
     });
   }
 
   @Get('receipts/:id/thumbnail')
+  @WorkspaceAuth(Permission.STATEMENT_VIEW)
   @ApiOperation({ summary: 'Get receipt PDF thumbnail' })
   async getReceiptThumbnail(
-    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Query('width') width: string | undefined,
     @Res() res: Response,
   ) {
     const receipt = await this.receiptRepository.findOne({
-      where: { id, userId: user.id },
+      where: { id, workspaceId },
     });
 
     if (!receipt) {
@@ -736,7 +755,7 @@ export class GmailController {
       return res.send(Buffer.from(cached, 'base64'));
     }
 
-    const attachmentPath = await this.ensureAttachmentOnDisk(receipt, user.id);
+    const attachmentPath = await this.ensureAttachmentOnDisk(receipt);
 
     if (!attachmentPath) {
       res.setHeader('Cache-Control', 'public, max-age=60');
@@ -809,17 +828,22 @@ export class GmailController {
   }
 
   @Get('receipts/:id/file')
+  @WorkspaceAuth(Permission.STATEMENT_VIEW)
   @ApiOperation({ summary: 'Get receipt PDF file' })
-  async getReceiptFile(@CurrentUser() user: User, @Param('id') id: string, @Res() res: Response) {
+  async getReceiptFile(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
     const receipt = await this.receiptRepository.findOne({
-      where: { id, userId: user.id },
+      where: { id, workspaceId },
     });
 
     if (!receipt) {
       return res.status(HttpStatus.NOT_FOUND).json({ error: 'Receipt not found' });
     }
 
-    const attachmentPath = await this.ensureAttachmentOnDisk(receipt, user.id);
+    const attachmentPath = await this.ensureAttachmentOnDisk(receipt);
 
     if (!attachmentPath) {
       return res.status(HttpStatus.NOT_FOUND).json({ error: 'No attachment found' });
@@ -849,10 +873,11 @@ export class GmailController {
   }
 
   @Get('receipts/:id/preview')
+  @WorkspaceAuth(Permission.STATEMENT_VIEW)
   @ApiOperation({ summary: 'Get receipt preview (email body or attachment)' })
-  async getReceiptPreview(@CurrentUser() user: User, @Param('id') id: string) {
+  async getReceiptPreview(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const receipt = await this.receiptRepository.findOne({
-      where: { id, userId: user.id },
+      where: { id, workspaceId },
     });
 
     if (!receipt) {
@@ -860,7 +885,7 @@ export class GmailController {
     }
 
     // Get Gmail message
-    const message = await this.gmailService.getMessage(user.id, receipt.gmailMessageId);
+    const message = await this.gmailService.getMessage(receipt.userId, receipt.gmailMessageId);
 
     // Extract email body
     const emailBody = this.findMessageBody(message.payload || undefined);
@@ -873,7 +898,7 @@ export class GmailController {
       for (const attachment of attachments) {
         try {
           const data = await this.gmailService.getAttachmentData(
-            user.id,
+            receipt.userId,
             receipt.gmailMessageId,
             attachment.id,
           );
@@ -930,7 +955,7 @@ export class GmailController {
       return;
     }
     const transaction = await this.transactionRepository.findOne({
-      where: { id: receipt.transactionId },
+      where: { id: receipt.transactionId, workspaceId: receipt.workspaceId },
     });
     if (!transaction) {
       return;

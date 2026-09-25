@@ -9,6 +9,8 @@ import {
   Transaction,
   User,
 } from '../../../../src/entities';
+import { PermissionsGuard } from '../../../../src/common/guards/permissions.guard';
+import { WorkspaceContextGuard } from '../../../../src/common/guards/workspace-context.guard';
 import { GmailController } from '../../../../src/modules/gmail/gmail.controller';
 import { GmailMerchantReparseService } from '../../../../src/modules/gmail/services/gmail-merchant-reparse.service';
 import { GmailOAuthService } from '../../../../src/modules/gmail/services/gmail-oauth.service';
@@ -58,7 +60,12 @@ describe('GmailController - Status Endpoint', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(WorkspaceContextGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<GmailController>(GmailController);
     gmailOAuthService = module.get(GmailOAuthService);

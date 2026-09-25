@@ -39,7 +39,7 @@ export class GmailReceiptExportService {
   }
 
   async exportToSheets(
-    userId: string,
+    workspaceId: string,
     receiptIds: string[],
     spreadsheetId?: string,
   ): Promise<{ spreadsheetId: string; url: string }> {
@@ -48,7 +48,7 @@ export class GmailReceiptExportService {
       const receipts = await this.receiptRepository.find({
         where: {
           id: In(receiptIds),
-          userId,
+          workspaceId,
         },
         order: {
           receivedAt: 'DESC',
@@ -121,10 +121,11 @@ export class GmailReceiptExportService {
 
   async createGmailDraft(
     userId: string,
+    workspaceId: string,
     receiptId: string,
   ): Promise<{ draftId: string; url: string }> {
     const receipt = await this.receiptRepository.findOne({
-      where: { id: receiptId, userId },
+      where: { id: receiptId, workspaceId },
     });
 
     if (!receipt) {

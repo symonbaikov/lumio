@@ -2,7 +2,9 @@ import * as fs from 'node:fs';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Category, GmailSettings, Receipt, Transaction, User } from '../../../../src/entities';
+import { Category, GmailSettings, Receipt, Transaction } from '../../../../src/entities';
+import { PermissionsGuard } from '../../../../src/common/guards/permissions.guard';
+import { WorkspaceContextGuard } from '../../../../src/common/guards/workspace-context.guard';
 import { GmailController } from '../../../../src/modules/gmail/gmail.controller';
 import { GmailMerchantReparseService } from '../../../../src/modules/gmail/services/gmail-merchant-reparse.service';
 import { GmailOAuthService } from '../../../../src/modules/gmail/services/gmail-oauth.service';
@@ -17,11 +19,7 @@ describe('GmailController - Receipt Thumbnail Endpoint', () => {
   let controller: GmailController;
   let receiptRepository: { findOne: jest.Mock };
 
-  const mockUser: Partial<User> = {
-    id: 'user-123',
-    workspaceId: 'ws-123',
-    email: 'test@example.com',
-  };
+  const workspaceId = 'ws-123';
 
   const createMockResponse = () => {
     return {
@@ -61,7 +59,12 @@ describe('GmailController - Receipt Thumbnail Endpoint', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(WorkspaceContextGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<GmailController>(GmailController);
     receiptRepository = module.get(getRepositoryToken(Receipt));
@@ -72,14 +75,14 @@ describe('GmailController - Receipt Thumbnail Endpoint', () => {
     const res = createMockResponse();
 
     await (controller as any).getReceiptThumbnail(
-      mockUser as User,
+      workspaceId,
       'missing-receipt',
       undefined,
       res,
     );
 
     expect(receiptRepository.findOne).toHaveBeenCalledWith({
-      where: { id: 'missing-receipt', userId: 'user-123' },
+      where: { id: 'missing-receipt', workspaceId: 'ws-123' },
     });
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ error: 'Receipt not found' });
@@ -95,7 +98,7 @@ describe('GmailController - Receipt Thumbnail Endpoint', () => {
     const accessSpy = jest.spyOn(fs.promises, 'access').mockResolvedValue(undefined);
     const res = createMockResponse();
 
-    await (controller as any).getReceiptThumbnail(mockUser as User, 'receipt-1', undefined, res);
+    await (controller as any).getReceiptThumbnail(workspaceId, 'receipt-1', undefined, res);
 
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ error: 'No PDF attachment found' });
@@ -107,7 +110,7 @@ describe('GmailController - Receipt Thumbnail Endpoint', () => {
     receiptRepository.findOne.mockResolvedValue(null);
     const res = createMockResponse();
 
-    await (controller as any).getReceiptFile(mockUser as User, 'missing-receipt', res);
+    await (controller as any).getReceiptFile(workspaceId, 'missing-receipt', res);
 
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ error: 'Receipt not found' });
@@ -124,7 +127,7 @@ describe('GmailController - Receipt Thumbnail Endpoint', () => {
     const readFileSpy = jest.spyOn(fs.promises, 'readFile').mockRejectedValue(new Error('read failed'));
     const res = createMockResponse();
 
-    await (controller as any).getReceiptFile(mockUser as User, 'receipt-1', res);
+    await (controller as any).getReceiptFile(workspaceId, 'receipt-1', res);
 
     expect(res.status).toHaveBeenCalledWith(503);
     expect(res.json).toHaveBeenCalledWith({
@@ -158,7 +161,7 @@ describe('GmailController - Receipt Thumbnail Endpoint', () => {
     const readFileSpy = jest.spyOn(fs.promises, 'readFile').mockResolvedValue(Buffer.from('image'));
     const res = createMockResponse();
 
-    await (controller as any).getReceiptFile(mockUser as User, 'receipt-image-1', res);
+    await (controller as any).getReceiptFile(workspaceId, 'receipt-image-1', res);
 
     expect(res.status).not.toHaveBeenCalledWith(404);
     expect(res.json).not.toHaveBeenCalled();
@@ -195,7 +198,7 @@ describe('GmailController - Receipt Thumbnail Endpoint', () => {
       .mockResolvedValue(Buffer.from('thumbnail-image'));
     const res = createMockResponse();
 
-    await (controller as any).getReceiptThumbnail(mockUser as User, 'receipt-thumb-1', '240', res);
+    await (controller as any).getReceiptThumbnail(workspaceId, 'receipt-thumb-1', '240', res);
 
     expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'image/jpeg');
     expect(res.send).toHaveBeenCalledWith(Buffer.from('thumbnail-image'));
