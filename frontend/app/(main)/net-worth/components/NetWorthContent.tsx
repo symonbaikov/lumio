@@ -8,6 +8,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Typography from '@mui/material/Typography';
 import { ArrowDownRight, ArrowUpRight } from '@/app/components/icons';
 import { EmptyState } from '@/app/components/ui/EmptyState';
+import { useAttentionFocus } from '@/app/hooks/useAttentionFocus';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { formatMoney } from '@/app/lib/format-money';
 import { tokens } from '@/lib/theme-tokens';
@@ -50,6 +51,7 @@ function NetWorthSkeleton(): React.JSX.Element {
 
 export function NetWorthContent() {
   const t = useIntlayer('netWorthPage');
+  useAttentionFocus();
   const { locale } = useLocale();
   const { data, isPending, isFetching, error, range, setRange, classify } = useNetWorth();
 

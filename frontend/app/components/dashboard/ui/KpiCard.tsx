@@ -14,6 +14,8 @@ export interface KpiCardProps {
   spark?: { points: number[] };
   /** Renders the whole card as a link. */
   href?: string;
+  /** Marks the card as the target of a `?focus=` deep link. */
+  attentionId?: string;
 }
 
 export function KpiCard({
@@ -23,6 +25,7 @@ export function KpiCard({
   caption,
   spark,
   href,
+  attentionId,
 }: KpiCardProps): React.JSX.Element {
   const body = (
     <>
@@ -55,10 +58,18 @@ export function KpiCard({
   );
   if (href) {
     return (
-      <Link href={href} className="lumio-dashboard__stat lumio-dashboard__stat--link">
+      <Link
+        href={href}
+        className="lumio-dashboard__stat lumio-dashboard__stat--link"
+        data-attention={attentionId}
+      >
         {body}
       </Link>
     );
   }
-  return <div className="lumio-dashboard__stat">{body}</div>;
+  return (
+    <div className="lumio-dashboard__stat" data-attention={attentionId}>
+      {body}
+    </div>
+  );
 }

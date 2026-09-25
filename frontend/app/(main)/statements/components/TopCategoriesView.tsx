@@ -9,6 +9,7 @@ import {
   type TopCategoriesViewModelReturn,
   useTopCategoriesViewModel,
 } from '@/app/(main)/statements/components/top-categories/hooks/useTopCategoriesViewModel';
+import { useAttentionFocus } from '@/app/hooks/useAttentionFocus';
 import { tokens } from '@/lib/theme-tokens';
 
 type VmProps = { vm: TopCategoriesViewModelReturn };
@@ -39,6 +40,7 @@ function TopCategoriesBody({ vm }: VmProps): React.JSX.Element {
 
 export default function TopCategoriesView(): React.JSX.Element {
   const vm = useTopCategoriesViewModel();
+  useAttentionFocus();
   return (
     <div className="container-shared lumio-view-page">
       <TopCategoriesPageHeader vm={vm} />
