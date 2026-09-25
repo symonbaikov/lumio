@@ -143,6 +143,17 @@ export class UsersController {
     };
   }
 
+  /**
+   * Called when the user closes the welcome tutorial, so it stops opening by
+   * itself. Returns only the timestamp: the client merges it into the user it
+   * already has instead of replacing that with a partial profile.
+   */
+  @Post('me/welcome-tutorial')
+  async markWelcomeTutorialSeen(@CurrentUser() currentUser: User) {
+    const welcomeTutorialSeenAt = await this.usersService.markWelcomeTutorialSeen(currentUser.id);
+    return { welcomeTutorialSeenAt };
+  }
+
   @Public()
   @Get('avatars/:fileName')
   getAvatar(@Param('fileName') fileName: string, @Res() res: Response) {

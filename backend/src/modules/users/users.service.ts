@@ -67,6 +67,7 @@ export class UsersService {
         'onboardingCompletedAt',
         'disclaimerAcceptedAt',
         'disclaimerVersion',
+        'welcomeTutorialSeenAt',
         'tokenVersion',
       ],
     });
@@ -120,6 +121,7 @@ export class UsersService {
         'onboardingCompletedAt',
         'disclaimerAcceptedAt',
         'disclaimerVersion',
+        'welcomeTutorialSeenAt',
       ],
     });
 
@@ -211,6 +213,23 @@ export class UsersService {
     user.disclaimerVersion = CURRENT_DISCLAIMER_VERSION;
 
     return this.userRepository.save(user);
+  }
+
+  /**
+   * Stops the welcome tutorial from opening by itself. The first close wins, so
+   * a second tab closing it later keeps the original time.
+   */
+  async markWelcomeTutorialSeen(userId: string): Promise<Date> {
+    const user = await this.findOne(userId);
+
+    if (user.welcomeTutorialSeenAt) {
+      return user.welcomeTutorialSeenAt;
+    }
+
+    user.welcomeTutorialSeenAt = new Date();
+    await this.userRepository.save(user);
+
+    return user.welcomeTutorialSeenAt;
   }
 
   /**

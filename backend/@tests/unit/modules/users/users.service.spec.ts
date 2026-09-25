@@ -517,4 +517,58 @@ describe('UsersService', () => {
       );
     });
   });
+
+  describe('markWelcomeTutorialSeen', () => {
+    it('stamps the time the first time the tutorial is closed', async () => {
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValue({ ...mockUserWithoutPasswordHash, welcomeTutorialSeenAt: null } as User);
+      const saveSpy = jest.spyOn(repository, 'save').mockResolvedValue({} as User);
+
+      const result = await service.markWelcomeTutorialSeen('1');
+
+      expect(result).toBeInstanceOf(Date);
+      expect(saveSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ id: '1', welcomeTutorialSeenAt: result }),
+      );
+    });
+
+    it('keeps the first time when the tutorial was already closed', async () => {
+      const seenAt = new Date('2026-09-01T10:00:00.000Z');
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValue({ ...mockUserWithoutPasswordHash, welcomeTutorialSeenAt: seenAt } as User);
+      const saveSpy = jest.spyOn(repository, 'save');
+
+      await expect(service.markWelcomeTutorialSeen('1')).resolves.toEqual(seenAt);
+      expect(saveSpy).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException for an unknown user', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValue(null);
+
+      await expect(service.markWelcomeTutorialSeen('999')).rejects.toThrow(NotFoundException);
+    });
+
+    // The onboarding page replaces its copy of the user with the response, and
+    // the tutorial opens only when the field is explicitly null — so every
+    // profile the service returns has to load it.
+    it('loads the flag in the profile and in the onboarding response', async () => {
+      // The completeOnboarding cases above stub this loader, and clearAllMocks
+      // keeps stubs; the real one has to run to expose its select list.
+      jest.spyOn<any, any>(service as any, 'findOneWithPassword').mockRestore();
+      const findOneSpy = jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValue({ ...mockUser, onboardingCompletedAt: new Date() } as User);
+      jest.spyOn(repository, 'save').mockResolvedValue({} as User);
+
+      await service.findOne('1');
+      await service.completeOnboarding('1', {});
+
+      expect(findOneSpy).toHaveBeenCalledTimes(2);
+      for (const [options] of findOneSpy.mock.calls) {
+        expect((options as { select: string[] }).select).toContain('welcomeTutorialSeenAt');
+      }
+    });
+  });
 });
