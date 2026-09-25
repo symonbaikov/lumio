@@ -77,6 +77,8 @@ function createService(options: {
   users?: Partial<User>[];
   goals?: unknown[];
   netWorth?: unknown;
+  /** Whether the user is still a member of the workspace the bot serves. */
+  member?: boolean;
 } = {}) {
   const userRepository = createUserRepoMock(options.users ?? []);
   const telegramReportRepository = createReportRepoMock();
@@ -87,6 +89,9 @@ function createService(options: {
     generateMonthlyReport: jest.fn(),
   } as any;
   const statementsService = { create: jest.fn() } as any;
+  const workspaceMemberRepository = {
+    findOne: jest.fn(async () => (options.member === false ? null : { role: 'owner' })),
+  } as any;
 
   const service = new TelegramService(
     createConfigMock(),
@@ -96,9 +101,18 @@ function createService(options: {
     statementsService,
     goalsService,
     netWorthService,
+    workspaceMemberRepository,
   );
 
-  return { service, userRepository, telegramReportRepository, goalsService, netWorthService };
+  return {
+    service,
+    userRepository,
+    telegramReportRepository,
+    goalsService,
+    netWorthService,
+    reportsService,
+    workspaceMemberRepository,
+  };
 }
 
 /** Captures every `sendMessage` payload the service posts to Telegram. */
@@ -120,7 +134,7 @@ describe('TelegramService locale resolution', () => {
     const calls = mockFetchOk();
     const { service } = createService();
 
-    await service.connectAccount(user({ locale: 'en' }), { chatId: 'chat-1' });
+    await service.connectAccount(user({ locale: 'en' }), 'workspace-1', { chatId: 'chat-1' });
 
     expect(calls).toHaveLength(1);
     expect(calls[0].text).toContain('Telegram connected');
@@ -332,5 +346,63 @@ describe('TelegramService.pushInsightDigest', () => {
     ]);
 
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe('TelegramService workspace', () => {
+  it('binds the chat to the workspace it was connected from', async () => {
+    mockFetchOk();
+    const { service, userRepository } = createService();
+
+    await service.connectAccount(user({ workspaceId: 'ws-home' }), 'ws-open', { chatId: 'chat-1' });
+
+    expect(userRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ telegramChatId: 'chat-1', telegramWorkspaceId: 'ws-open' }),
+    );
+  });
+
+  it('answers for the linked workspace, not the one the user registered with', async () => {
+    mockFetchOk();
+    const { service, goalsService } = createService({
+      users: [user({ locale: 'en', telegramId: 'tg-9', telegramWorkspaceId: 'ws-open' })],
+    });
+
+    await service.handleUpdate({
+      message: { chat: { id: 'chat-1' }, text: '/goals', from: { id: 'tg-9' } },
+    });
+
+    expect(goalsService.findAll).toHaveBeenCalledWith('ws-open');
+  });
+
+  it('treats a chat whose user left that workspace as not connected', async () => {
+    const calls = mockFetchOk();
+    const { service, goalsService } = createService({
+      users: [user({ locale: 'en', telegramId: 'tg-9', telegramWorkspaceId: 'ws-left' })],
+      member: false,
+    });
+
+    await service.handleUpdate({
+      message: { chat: { id: 'chat-1' }, text: '/goals', from: { id: 'tg-9' } },
+    });
+
+    expect(goalsService.findAll).not.toHaveBeenCalled();
+    expect(calls[0].text).toContain('No account is connected to Telegram ID tg-9');
+  });
+
+  it('builds reports for the workspace, not for the user id', async () => {
+    mockFetchOk();
+    const { service, reportsService } = createService();
+    reportsService.generateDailyReport.mockResolvedValue({
+      date: '2026-09-01',
+      income: { totalAmount: 0, transactionCount: 0, topCounterparties: [] },
+      expense: { totalAmount: 0, transactionCount: 0, topCategories: [] },
+      summary: { startBalance: 0, endBalance: 0, difference: 0 },
+    });
+
+    await service
+      .sendReport(user(), { reportType: 'daily' as any, date: '2026-09-01' }, 'ws-open')
+      .catch(() => undefined);
+
+    expect(reportsService.generateDailyReport).toHaveBeenCalledWith('ws-open', '2026-09-01');
   });
 });

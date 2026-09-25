@@ -99,9 +99,13 @@ export class ApplicationSettingsService {
     private readonly userAiSettingsRepository: Repository<UserAiSettings>,
   ) {}
 
-  async getAiStatus(user: User) {
-    const settings = await this.findSettings(user, WorkspaceServiceSettingsKey.AI);
-    const runtime = await this.getAiSettings(user);
+  async getAiStatus(user: User, requestWorkspaceId?: string) {
+    const settings = await this.findSettings(
+      user,
+      WorkspaceServiceSettingsKey.AI,
+      requestWorkspaceId,
+    );
+    const runtime = await this.getAiSettings(user, requestWorkspaceId);
     return {
       connected: runtime.source !== 'disabled',
       status: runtime.source !== 'disabled' ? 'connected' : 'disconnected',
@@ -116,8 +120,12 @@ export class ApplicationSettingsService {
     };
   }
 
-  async saveAiSettings(user: User, input: SaveAiSettingsDto) {
-    const existing = await this.findSettings(user, WorkspaceServiceSettingsKey.AI);
+  async saveAiSettings(user: User, input: SaveAiSettingsDto, requestWorkspaceId?: string) {
+    const existing = await this.findSettings(
+      user,
+      WorkspaceServiceSettingsKey.AI,
+      requestWorkspaceId,
+    );
     const config = {
       enabled: this.booleanValue(input.enabled, true),
       baseUrl: this.trimTrailingSlashes(this.requiredString(input.baseUrl, 'baseUrl')),
@@ -128,8 +136,14 @@ export class ApplicationSettingsService {
     const runtime = this.aiRuntimeFromParts(config, secrets, 'workspace');
     await assertPublicEgressUrl(runtime.baseUrl);
     await this.assertAiConnection(runtime);
-    await this.saveSettings(user, WorkspaceServiceSettingsKey.AI, config, secrets);
-    return this.getAiStatus(user);
+    await this.saveSettings(
+      user,
+      WorkspaceServiceSettingsKey.AI,
+      config,
+      secrets,
+      requestWorkspaceId,
+    );
+    return this.getAiStatus(user, requestWorkspaceId);
   }
 
   /**
@@ -138,8 +152,8 @@ export class ApplicationSettingsService {
    * set them, and they are never resolved for background jobs — a personal key
    * pays only for the chat its owner is typing in.
    */
-  async getPersonalAiStatus(user: User) {
-    const existing = await this.findPersonalAiSettings(user);
+  async getPersonalAiStatus(user: User, requestWorkspaceId?: string) {
+    const existing = await this.findPersonalAiSettings(user, requestWorkspaceId);
     const runtime = existing
       ? this.aiRuntimeFromParts(
           existing.config,
@@ -162,9 +176,9 @@ export class ApplicationSettingsService {
     };
   }
 
-  async savePersonalAiSettings(user: User, input: SaveAiSettingsDto) {
-    const workspaceId = this.requireWorkspaceId(user);
-    const existing = await this.findPersonalAiSettings(user);
+  async savePersonalAiSettings(user: User, input: SaveAiSettingsDto, requestWorkspaceId?: string) {
+    const workspaceId = this.requireWorkspaceId(user, requestWorkspaceId);
+    const existing = await this.findPersonalAiSettings(user, requestWorkspaceId);
     const config = {
       enabled: this.booleanValue(input.enabled, true),
       baseUrl: this.trimTrailingSlashes(this.requiredString(input.baseUrl, 'baseUrl')),
@@ -182,11 +196,11 @@ export class ApplicationSettingsService {
     entity.encryptedSecrets = this.encryptSecrets(secrets);
     await this.userAiSettingsRepository.save(entity);
 
-    return this.getPersonalAiStatus(user);
+    return this.getPersonalAiStatus(user, requestWorkspaceId);
   }
 
-  async disconnectPersonalAi(user: User) {
-    const workspaceId = this.requireWorkspaceId(user);
+  async disconnectPersonalAi(user: User, requestWorkspaceId?: string) {
+    const workspaceId = this.requireWorkspaceId(user, requestWorkspaceId);
     await this.userAiSettingsRepository.delete({ userId: user.id, workspaceId });
     return { ok: true };
   }
@@ -218,14 +232,21 @@ export class ApplicationSettingsService {
     return this.getAiSettingsForWorkspaceId(workspaceId);
   }
 
-  private async findPersonalAiSettings(user: User): Promise<UserAiSettings | null> {
-    const workspaceId = this.requireWorkspaceId(user);
+  private async findPersonalAiSettings(
+    user: User,
+    requestWorkspaceId?: string,
+  ): Promise<UserAiSettings | null> {
+    const workspaceId = this.requireWorkspaceId(user, requestWorkspaceId);
     return this.userAiSettingsRepository.findOne({ where: { userId: user.id, workspaceId } });
   }
 
-  async getSmtpStatus(user: User) {
-    const settings = await this.findSettings(user, WorkspaceServiceSettingsKey.SMTP);
-    const runtime = await this.getSmtpSettings(user);
+  async getSmtpStatus(user: User, requestWorkspaceId?: string) {
+    const settings = await this.findSettings(
+      user,
+      WorkspaceServiceSettingsKey.SMTP,
+      requestWorkspaceId,
+    );
+    const runtime = await this.getSmtpSettings(user, requestWorkspaceId);
     return {
       connected: runtime.source !== 'disabled',
       status: runtime.source !== 'disabled' ? 'connected' : 'disconnected',
@@ -243,8 +264,12 @@ export class ApplicationSettingsService {
     };
   }
 
-  async saveSmtpSettings(user: User, input: SaveSmtpSettingsDto) {
-    const existing = await this.findSettings(user, WorkspaceServiceSettingsKey.SMTP);
+  async saveSmtpSettings(user: User, input: SaveSmtpSettingsDto, requestWorkspaceId?: string) {
+    const existing = await this.findSettings(
+      user,
+      WorkspaceServiceSettingsKey.SMTP,
+      requestWorkspaceId,
+    );
     const config = {
       host: this.requiredString(input.host, 'host'),
       port: this.positiveNumber(input.port, 587),
@@ -258,13 +283,23 @@ export class ApplicationSettingsService {
     const runtime = this.smtpRuntimeFromParts(config, secrets, 'workspace');
     await assertPublicEgressHost(runtime.host);
     await this.assertSmtpConnection(runtime);
-    await this.saveSettings(user, WorkspaceServiceSettingsKey.SMTP, config, secrets);
-    return this.getSmtpStatus(user);
+    await this.saveSettings(
+      user,
+      WorkspaceServiceSettingsKey.SMTP,
+      config,
+      secrets,
+      requestWorkspaceId,
+    );
+    return this.getSmtpStatus(user, requestWorkspaceId);
   }
 
-  async getTelegramStatus(user: User) {
-    const settings = await this.findSettings(user, WorkspaceServiceSettingsKey.TELEGRAM);
-    const runtime = await this.getTelegramSettings(user);
+  async getTelegramStatus(user: User, requestWorkspaceId?: string) {
+    const settings = await this.findSettings(
+      user,
+      WorkspaceServiceSettingsKey.TELEGRAM,
+      requestWorkspaceId,
+    );
+    const runtime = await this.getTelegramSettings(user, requestWorkspaceId);
     return {
       connected: runtime.source !== 'disabled',
       status: runtime.source !== 'disabled' ? 'connected' : 'disconnected',
@@ -278,20 +313,34 @@ export class ApplicationSettingsService {
     };
   }
 
-  async saveTelegramSettings(user: User, input: SaveTelegramSettingsDto) {
-    const existing = await this.findSettings(user, WorkspaceServiceSettingsKey.TELEGRAM);
+  async saveTelegramSettings(
+    user: User,
+    input: SaveTelegramSettingsDto,
+    requestWorkspaceId?: string,
+  ) {
+    const existing = await this.findSettings(
+      user,
+      WorkspaceServiceSettingsKey.TELEGRAM,
+      requestWorkspaceId,
+    );
     const config = {
       timeoutMs: this.positiveNumber(input.timeoutMs, 10000),
     };
     const secrets = this.mergeSecrets(existing, ['botToken'], input);
     const runtime = this.telegramRuntimeFromParts(config, secrets, 'workspace');
     await this.assertTelegramConnection(runtime);
-    await this.saveSettings(user, WorkspaceServiceSettingsKey.TELEGRAM, config, secrets);
-    return this.getTelegramStatus(user);
+    await this.saveSettings(
+      user,
+      WorkspaceServiceSettingsKey.TELEGRAM,
+      config,
+      secrets,
+      requestWorkspaceId,
+    );
+    return this.getTelegramStatus(user, requestWorkspaceId);
   }
 
-  async getAppStatus(user: User) {
-    const runtime = await this.getAppSettings(user);
+  async getAppStatus(user: User, requestWorkspaceId?: string) {
+    const runtime = await this.getAppSettings(user, requestWorkspaceId);
     return {
       connected: runtime.source !== 'disabled',
       status: runtime.source !== 'disabled' ? 'connected' : 'disconnected',
@@ -302,20 +351,26 @@ export class ApplicationSettingsService {
     };
   }
 
-  async saveAppSettings(user: User, input: SaveAppSettingsDto) {
+  async saveAppSettings(user: User, input: SaveAppSettingsDto, requestWorkspaceId?: string) {
     const publicUrl = this.normalizeOrigin(this.requiredString(input.publicUrl, 'publicUrl'));
-    await this.saveSettings(user, WorkspaceServiceSettingsKey.APP, { publicUrl }, {});
-    return this.getAppStatus(user);
+    await this.saveSettings(
+      user,
+      WorkspaceServiceSettingsKey.APP,
+      { publicUrl },
+      {},
+      requestWorkspaceId,
+    );
+    return this.getAppStatus(user, requestWorkspaceId);
   }
 
-  async disconnect(user: User, key: WorkspaceServiceSettingsKey) {
-    const workspaceId = this.requireWorkspaceId(user);
+  async disconnect(user: User, key: WorkspaceServiceSettingsKey, requestWorkspaceId?: string) {
+    const workspaceId = this.requireWorkspaceId(user, requestWorkspaceId);
     await this.settingsRepository.delete({ workspaceId, key });
     return { ok: true };
   }
 
-  async getLocalCategorizationStatus(user: User) {
-    const runtime = await this.getLocalCategorizationSettings(user);
+  async getLocalCategorizationStatus(user: User, requestWorkspaceId?: string) {
+    const runtime = await this.getLocalCategorizationSettings(user, requestWorkspaceId);
     const modelInstalled = runtime.localModelPath
       ? await this.hasLocalCategorizationModelFiles(runtime.localModelPath, runtime.modelId)
       : false;
@@ -334,10 +389,15 @@ export class ApplicationSettingsService {
     };
   }
 
-  async saveLocalCategorizationSettings(user: User, input: SaveLocalCategorizationDto) {
+  async saveLocalCategorizationSettings(
+    user: User,
+    input: SaveLocalCategorizationDto,
+    requestWorkspaceId?: string,
+  ) {
     const existing = await this.findSettings(
       user,
       WorkspaceServiceSettingsKey.LOCAL_CATEGORIZATION,
+      requestWorkspaceId,
     );
     const previous = existing
       ? this.localCategorizationRuntimeFromParts(existing.config, 'workspace')
@@ -352,16 +412,26 @@ export class ApplicationSettingsService {
       localModelPath: this.stringValue(input.localModelPath) || previous?.localModelPath || null,
     };
 
-    await this.saveSettings(user, WorkspaceServiceSettingsKey.LOCAL_CATEGORIZATION, config, {});
-    return this.getLocalCategorizationStatus(user);
+    await this.saveSettings(
+      user,
+      WorkspaceServiceSettingsKey.LOCAL_CATEGORIZATION,
+      config,
+      {},
+      requestWorkspaceId,
+    );
+    return this.getLocalCategorizationStatus(user, requestWorkspaceId);
   }
 
-  async installLocalCategorizationModel(user: User, file: UploadedModelArchive) {
+  async installLocalCategorizationModel(
+    user: User,
+    file: UploadedModelArchive,
+    requestWorkspaceId?: string,
+  ) {
     if (!file?.buffer?.length) {
       throw new BadRequestException('Model archive is required');
     }
 
-    const existing = await this.getLocalCategorizationSettings(user);
+    const existing = await this.getLocalCategorizationSettings(user, requestWorkspaceId);
     const modelId = existing.modelId || DEFAULT_LOCAL_CATEGORIZATION_MODEL_ID;
     const modelRoot = this.getLocalCategorizationModelRoot();
     const targetDir = this.resolveLocalModelDirectory(modelRoot, modelId);
@@ -379,18 +449,26 @@ export class ApplicationSettingsService {
       await fs.rm(stagingDir, { recursive: true, force: true });
     }
 
-    await this.saveLocalCategorizationSettings(user, {
-      enabled: true,
-      modelId,
-      threshold: existing.threshold,
-      localModelPath: modelRoot,
-    });
+    await this.saveLocalCategorizationSettings(
+      user,
+      {
+        enabled: true,
+        modelId,
+        threshold: existing.threshold,
+        localModelPath: modelRoot,
+      },
+      requestWorkspaceId,
+    );
 
-    return this.getLocalCategorizationStatus(user);
+    return this.getLocalCategorizationStatus(user, requestWorkspaceId);
   }
 
-  async testLocalCategorization(user: User, input: TestLocalCategorizationDto) {
-    const runtime = await this.getLocalCategorizationSettings(user);
+  async testLocalCategorization(
+    user: User,
+    input: TestLocalCategorizationDto,
+    requestWorkspaceId?: string,
+  ) {
+    const runtime = await this.getLocalCategorizationSettings(user, requestWorkspaceId);
     const merchantName = this.requiredString(input.merchantName, 'merchantName');
     const categories = this.stringArrayValue(input.categories);
     const categorizer = new TransactionCategorizer({
@@ -411,8 +489,10 @@ export class ApplicationSettingsService {
     };
   }
 
-  async getAiSettings(user?: User | null): Promise<AiRuntimeSettings> {
-    const workspace = user ? await this.findSettings(user, WorkspaceServiceSettingsKey.AI) : null;
+  async getAiSettings(user?: User | null, requestWorkspaceId?: string): Promise<AiRuntimeSettings> {
+    const workspace = user
+      ? await this.findSettings(user, WorkspaceServiceSettingsKey.AI, requestWorkspaceId)
+      : null;
     if (workspace) {
       return this.aiRuntimeFromParts(
         workspace.config,
@@ -433,9 +513,14 @@ export class ApplicationSettingsService {
 
   async getLocalCategorizationSettings(
     user?: User | null,
+    requestWorkspaceId?: string,
   ): Promise<LocalCategorizationRuntimeSettings> {
     const workspace = user
-      ? await this.findSettings(user, WorkspaceServiceSettingsKey.LOCAL_CATEGORIZATION)
+      ? await this.findSettings(
+          user,
+          WorkspaceServiceSettingsKey.LOCAL_CATEGORIZATION,
+          requestWorkspaceId,
+        )
       : null;
     if (workspace) {
       return this.localCategorizationRuntimeFromParts(workspace.config, 'workspace');
@@ -469,8 +554,13 @@ export class ApplicationSettingsService {
     return this.getAiSettings(null);
   }
 
-  async getSmtpSettings(user?: User | null): Promise<SmtpRuntimeSettings> {
-    const workspace = user ? await this.findSettings(user, WorkspaceServiceSettingsKey.SMTP) : null;
+  async getSmtpSettings(
+    user?: User | null,
+    requestWorkspaceId?: string,
+  ): Promise<SmtpRuntimeSettings> {
+    const workspace = user
+      ? await this.findSettings(user, WorkspaceServiceSettingsKey.SMTP, requestWorkspaceId)
+      : null;
     if (workspace) {
       return this.smtpRuntimeFromParts(
         workspace.config,
@@ -492,9 +582,12 @@ export class ApplicationSettingsService {
     return env.host && env.from ? { ...env, source: 'env' } : { ...env, source: 'disabled' };
   }
 
-  async getTelegramSettings(user?: User | null): Promise<TelegramRuntimeSettings> {
+  async getTelegramSettings(
+    user?: User | null,
+    requestWorkspaceId?: string,
+  ): Promise<TelegramRuntimeSettings> {
     const workspace = user
-      ? await this.findSettings(user, WorkspaceServiceSettingsKey.TELEGRAM)
+      ? await this.findSettings(user, WorkspaceServiceSettingsKey.TELEGRAM, requestWorkspaceId)
       : null;
     if (workspace) {
       return this.telegramRuntimeFromParts(
@@ -511,8 +604,13 @@ export class ApplicationSettingsService {
     return env.botToken ? { ...env, source: 'env' } : { ...env, source: 'disabled' };
   }
 
-  async getAppSettings(user?: User | null): Promise<AppRuntimeSettings> {
-    const workspace = user ? await this.findSettings(user, WorkspaceServiceSettingsKey.APP) : null;
+  async getAppSettings(
+    user?: User | null,
+    requestWorkspaceId?: string,
+  ): Promise<AppRuntimeSettings> {
+    const workspace = user
+      ? await this.findSettings(user, WorkspaceServiceSettingsKey.APP, requestWorkspaceId)
+      : null;
     if (workspace) {
       const publicUrl = this.stringValue(workspace.config.publicUrl);
       return publicUrl
@@ -524,8 +622,12 @@ export class ApplicationSettingsService {
     return publicUrl ? { publicUrl, source: 'env' } : { publicUrl: null, source: 'disabled' };
   }
 
-  private async findSettings(user: User, key: WorkspaceServiceSettingsKey) {
-    const workspaceId = this.requireWorkspaceId(user);
+  private async findSettings(
+    user: User,
+    key: WorkspaceServiceSettingsKey,
+    requestWorkspaceId?: string,
+  ) {
+    const workspaceId = this.requireWorkspaceId(user, requestWorkspaceId);
     return this.settingsRepository.findOne({ where: { workspaceId, key } });
   }
 
@@ -534,8 +636,9 @@ export class ApplicationSettingsService {
     key: WorkspaceServiceSettingsKey,
     config: Record<string, unknown>,
     secrets: Record<string, string>,
+    requestWorkspaceId?: string,
   ) {
-    const workspaceId = this.requireWorkspaceId(user);
+    const workspaceId = this.requireWorkspaceId(user, requestWorkspaceId);
     const existing = await this.settingsRepository.findOne({ where: { workspaceId, key } });
     const entity =
       existing ||
@@ -860,8 +963,10 @@ export class ApplicationSettingsService {
     }
   }
 
-  private requireWorkspaceId(user: User): string {
-    const workspaceId = user.workspaceId || user.lastWorkspaceId;
+  private requireWorkspaceId(user: User, requestWorkspaceId?: string): string {
+    // The workspace open in the request; the user's own only for callers
+    // without one (mail, scheduled reports).
+    const workspaceId = requestWorkspaceId || user.workspaceId || user.lastWorkspaceId;
     if (!workspaceId) {
       throw new BadRequestException('Workspace is required');
     }

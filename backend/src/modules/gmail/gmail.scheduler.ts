@@ -91,7 +91,7 @@ export class GmailScheduler {
             continue;
           }
 
-          await this.gmailWatchService.renewWatch(integration, integration.connectedByUserId);
+          await this.gmailWatchService.renewWatch(integration);
 
           this.logger.log(`Successfully renewed watch for integration ${integration.id}`);
         } catch (error) {

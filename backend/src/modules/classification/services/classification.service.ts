@@ -125,12 +125,12 @@ export class ClassificationService {
 
     // Auto-determine wallet if not set
     if (!classification.walletId) {
-      classification.walletId = await this.autoDetermineWallet(transaction, userId);
+      classification.walletId = await this.autoDetermineWallet(transaction, userId, workspaceId);
     }
 
     // Auto-determine branch if not set
     if (!classification.branchId) {
-      classification.branchId = await this.autoDetermineBranch(transaction, userId);
+      classification.branchId = await this.autoDetermineBranch(transaction, userId, workspaceId);
     }
 
     // Cache result for 5 minutes
@@ -372,15 +372,23 @@ export class ClassificationService {
     return result || null;
   }
 
+  // Wallets and branches of the transaction's workspace, like the category
+  // lookup above; by user alone they came from any workspace of theirs.
+  private ownerScope(userId: string, workspaceId: string | null) {
+    return workspaceId ? { workspaceId } : { userId };
+  }
+
   private async autoDetermineWallet(
     transaction: Transaction,
     userId: string,
+    workspaceId: string | null,
   ): Promise<string | undefined> {
+    const scope = this.ownerScope(userId, workspaceId);
     // Try to match by account number if available
     if (transaction.counterpartyAccount) {
       const wallet = await this.walletRepository.findOne({
         where: {
-          userId,
+          ...scope,
           accountNumber: transaction.counterpartyAccount,
         },
       });
@@ -391,7 +399,7 @@ export class ClassificationService {
     }
 
     // Match by wallet name presence in purpose/counterparty
-    const wallets = await this.walletRepository.find({ where: { userId } });
+    const wallets = await this.walletRepository.find({ where: scope });
     const searchText =
       `${transaction.counterpartyName} ${transaction.paymentPurpose}`.toLowerCase();
     const walletMatch = wallets.find(w => searchText.includes((w.name || '').toLowerCase()));
@@ -401,7 +409,7 @@ export class ClassificationService {
 
     // Get default wallet for user
     const defaultWallet = await this.walletRepository.findOne({
-      where: { userId },
+      where: scope,
       order: { createdAt: 'ASC' },
     });
 
@@ -411,9 +419,10 @@ export class ClassificationService {
   private async autoDetermineBranch(
     transaction: Transaction,
     userId: string,
+    workspaceId: string | null,
   ): Promise<string | undefined> {
     const branches = await this.branchRepository.find({
-      where: { userId },
+      where: this.ownerScope(userId, workspaceId),
       order: { createdAt: 'ASC' },
     });
 

@@ -34,7 +34,7 @@ export class UsersService {
 
   private getUserFindAllOptions(workspaceId: string, limit = 20) {
     return {
-      where: { deletedAt: null, workspaceId } as const,
+      where: { deletedAt: null, workspaceMemberships: { workspaceId } } as const,
       take: limit,
       order: { createdAt: 'DESC' as const },
     };
@@ -81,12 +81,21 @@ export class UsersService {
   // workspaceId is required, not optional: as an optional parameter the tenant
   // filter silently disappeared whenever a caller passed the wrong argument,
   // which is exactly what the controller used to do (it passed the page number).
+  // The workspace's users are its members; users.workspace_id is only the one
+  // each registered with, which left out members who registered elsewhere.
   async findAll(workspaceId: string, limit = 20): Promise<User[]> {
     if (typeof this.userRepository.createQueryBuilder === 'function') {
       return this.userRepository
         .createQueryBuilder('user')
+        .innerJoin(
+          'user.workspaceMemberships',
+          'membership',
+          'membership.workspaceId = :workspaceId',
+          {
+            workspaceId,
+          },
+        )
         .where('user.deletedAt IS NULL')
-        .andWhere('user.workspaceId = :workspaceId', { workspaceId })
         .orderBy('user.createdAt', 'DESC')
         .take(limit)
         .getMany();

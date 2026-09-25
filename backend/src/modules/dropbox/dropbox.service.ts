@@ -16,6 +16,7 @@ import {
   IntegrationToken,
   Statement,
   User,
+  WorkspaceMember,
 } from '../../entities';
 import { AuditService } from '../audit/audit.service';
 import { StatementsService } from '../statements/statements.service';
@@ -82,6 +83,8 @@ export class DropboxService extends CloudStorageBaseService<DropboxSettings> {
     private readonly statementRepository: Repository<Statement>,
     @InjectRepository(User)
     userRepository: Repository<User>,
+    @InjectRepository(WorkspaceMember)
+    workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly statementsService: StatementsService,
     private readonly fileStorageService: FileStorageService,
     private readonly auditService: AuditService,
@@ -91,6 +94,7 @@ export class DropboxService extends CloudStorageBaseService<DropboxSettings> {
       integrationTokenRepository,
       dropboxSettingsRepository,
       userRepository,
+      workspaceMemberRepository,
     );
   }
 
@@ -181,7 +185,7 @@ export class DropboxService extends CloudStorageBaseService<DropboxSettings> {
     return { clientId, clientSecret };
   }
 
-  getAuthUrl(user: User): string {
+  getAuthUrl(user: User, workspaceId: string): string {
     const clientId = this.getClientId();
     const redirectUri = this.getRedirectUri();
     if (!(clientId && redirectUri)) {
@@ -190,6 +194,7 @@ export class DropboxService extends CloudStorageBaseService<DropboxSettings> {
 
     return this.buildProviderAuthUrl(
       user,
+      workspaceId,
       state =>
         `https://www.dropbox.com/oauth2/authorize?${new URLSearchParams({
           client_id: clientId,
@@ -206,14 +211,15 @@ export class DropboxService extends CloudStorageBaseService<DropboxSettings> {
     state?: string;
     error?: string;
   }): Promise<string> {
-    const callbackContext = await this.resolveOAuthCallbackUser<
-      Pick<User, 'id' | 'workspaceId' | 'timeZone'>
-    >(params, ['id', 'workspaceId', 'timeZone']);
+    const callbackContext = await this.resolveOAuthCallbackUser<Pick<User, 'id' | 'timeZone'>>(
+      params,
+      ['id', 'timeZone'],
+    );
     if ('redirectUrl' in callbackContext) {
       return callbackContext.redirectUrl;
     }
 
-    const { redirectBase, user } = callbackContext;
+    const { redirectBase, user, workspaceId } = callbackContext;
 
     const redirectUri = this.getRedirectUri();
 
@@ -236,8 +242,8 @@ export class DropboxService extends CloudStorageBaseService<DropboxSettings> {
       return `${redirectBase}?status=error&reason=missing_tokens`;
     }
 
-    const { integration: existing } = await this.findIntegrationForUser(user.id);
-    const savedIntegration = await this.upsertConnectedIntegration(existing, user, [
+    const existing = await this.findWorkspaceIntegration(workspaceId);
+    const savedIntegration = await this.upsertConnectedIntegration(existing, user, workspaceId, [
       'files.content.read',
       'files.content.write',
     ]);
@@ -411,10 +417,11 @@ export class DropboxService extends CloudStorageBaseService<DropboxSettings> {
     return settings;
   }
 
-  async importFiles(userId: string, dto: ImportDropboxFilesDto) {
+  async importFiles(userId: string, workspaceId: string, dto: ImportDropboxFilesDto) {
     const uploadsDir = resolveUploadsDir();
     return this.importFilesWithClient({
       userId,
+      workspaceId,
       fileIds: dto.fileIds,
       uploadsDir,
       getClient: integration => this.getDropboxClientWithAuth(integration),
@@ -452,7 +459,7 @@ export class DropboxService extends CloudStorageBaseService<DropboxSettings> {
       importFile: (user, file) =>
         this.statementsService.create(
           user,
-          user.workspaceId,
+          workspaceId,
           file,
           undefined,
           undefined,

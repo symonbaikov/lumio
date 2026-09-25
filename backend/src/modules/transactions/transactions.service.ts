@@ -1,17 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import {
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import { type EntityTarget, In, type Repository } from 'typeorm';
-import { appError } from '../../common/errors/app-error';
+import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { toMinor } from '../../common/utils/money.util';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { Branch } from '../../entities/branch.entity';
@@ -22,7 +16,7 @@ import { Statement } from '../../entities/statement.entity';
 import { TaxSource, Transaction, TransactionType } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { Wallet } from '../../entities/wallet.entity';
-import { WorkspaceMember, WorkspaceRole } from '../../entities/workspace-member.entity';
+import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { AuditService } from '../audit/audit.service';
 import { ClassificationService } from '../classification/services/classification.service';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
@@ -70,31 +64,15 @@ export class TransactionsService {
     await this.cacheManager.set(key, Date.now().toString(), 0);
   }
 
-  private async ensureCanEditStatements(userId: string): Promise<void> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      select: ['id', 'workspaceId'],
-    });
-    const workspaceId = user?.workspaceId ?? null;
-    if (!workspaceId) {
-      return;
-    }
-
-    const membership = await this.workspaceMemberRepository.findOne({
-      where: { workspaceId, userId },
-      select: ['role', 'permissions'],
-    });
-
-    if (!membership) {
-      return;
-    }
-    if ([WorkspaceRole.ADMIN, WorkspaceRole.OWNER].includes(membership.role)) {
-      return;
-    }
-
-    if (membership.permissions?.canEditStatements === false) {
-      throw new ForbiddenException(appError('STATEMENTS_EDIT_FORBIDDEN'));
-    }
+  /** Checked in the workspace being edited, not the one the user registered with. */
+  private async ensureCanEditStatements(userId: string, workspaceId: string): Promise<void> {
+    await ensureCanEdit(
+      this.workspaceMemberRepository,
+      workspaceId,
+      userId,
+      'canEditStatements',
+      'STATEMENTS_EDIT_FORBIDDEN',
+    );
   }
 
   async findAll(
@@ -241,7 +219,7 @@ export class TransactionsService {
     updateDto: UpdateTransactionDto,
     batchId?: string | null,
   ): Promise<Transaction> {
-    await this.ensureCanEditStatements(userId);
+    await this.ensureCanEditStatements(userId, workspaceId);
     const transaction = await this.findOne(id, workspaceId);
     await this.assertWorkspaceOwnedRefs(updateDto, workspaceId);
     const before = { ...transaction };
@@ -310,7 +288,7 @@ export class TransactionsService {
     userId: string,
     items: BulkUpdateItemDto[],
   ): Promise<Transaction[]> {
-    await this.ensureCanEditStatements(userId);
+    await this.ensureCanEditStatements(userId, workspaceId);
     const updatedTransactions: Transaction[] = [];
     const batchId = items.length > 1 ? randomUUID() : null;
 
@@ -513,7 +491,7 @@ export class TransactionsService {
     userId: string,
     dto: SplitTransactionDto,
   ): Promise<Transaction[]> {
-    await this.ensureCanEditStatements(userId);
+    await this.ensureCanEditStatements(userId, workspaceId);
     const original = await this.findOne(id, workspaceId);
     await this.assertWorkspaceOwned(
       Category,
@@ -649,7 +627,7 @@ export class TransactionsService {
    * cannot be restored; that loss is accepted, not an oversight.
    */
   async unsplit(id: string, workspaceId: string, userId: string): Promise<Transaction> {
-    await this.ensureCanEditStatements(userId);
+    await this.ensureCanEditStatements(userId, workspaceId);
 
     // Fast path only: reject an obviously invalid request before opening a DB
     // transaction and taking row locks. The authoritative read is the locked one.
@@ -795,7 +773,7 @@ export class TransactionsService {
   }
 
   async remove(id: string, workspaceId: string, userId: string): Promise<void> {
-    await this.ensureCanEditStatements(userId);
+    await this.ensureCanEditStatements(userId, workspaceId);
     const transaction = await this.findOne(id, workspaceId);
     // Use delete for simplicity; entity already validated for ownership.
 

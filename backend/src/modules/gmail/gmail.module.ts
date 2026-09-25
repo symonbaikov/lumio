@@ -11,6 +11,7 @@ import {
   Transaction,
   User,
   Workspace,
+  WorkspaceMember,
 } from '../../entities';
 import { AuditModule } from '../audit/audit.module';
 import { ParsingModule } from '../parsing/parsing.module';
@@ -43,6 +44,7 @@ import { GmailWebhookService } from './services/gmail-webhook.service';
       User,
       Transaction,
       Workspace,
+      WorkspaceMember,
       Category,
     ]),
     AuditModule,
