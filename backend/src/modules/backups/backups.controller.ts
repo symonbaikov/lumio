@@ -13,7 +13,9 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
+import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
 import { buildContentDisposition } from '../../common/utils/http-file.util';
 import { BackupRunTrigger } from '../../entities';
 import type { User } from '../../entities/user.entity';
@@ -37,32 +39,42 @@ export class BackupsController {
   ) {}
 
   @Get('config')
-  getConfiguration(@CurrentUser() user: User) {
-    return this.backupsService.getConfiguration(user);
+  @UseGuards(WorkspaceContextGuard)
+  getConfiguration(@CurrentUser() user: User, @WorkspaceId() workspaceId: string) {
+    return this.backupsService.getConfiguration(user, workspaceId);
   }
 
   @Put('config')
-  configure(@CurrentUser() user: User, @Body() body: UpdateBackupConfiguration) {
-    return this.backupsService.configure(user, body);
+  @UseGuards(WorkspaceContextGuard)
+  configure(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Body() body: UpdateBackupConfiguration,
+  ) {
+    return this.backupsService.configure(user, workspaceId, body);
   }
 
   @Get('runs')
-  listRuns(@CurrentUser() user: User) {
-    return this.backupsService.listRuns(user);
+  @UseGuards(WorkspaceContextGuard)
+  listRuns(@CurrentUser() user: User, @WorkspaceId() workspaceId: string) {
+    return this.backupsService.listRuns(user, workspaceId);
   }
 
   @Post('runs')
-  createRun(@CurrentUser() user: User) {
-    return this.backupsService.createRun(user, BackupRunTrigger.MANUAL);
+  @UseGuards(WorkspaceContextGuard)
+  createRun(@CurrentUser() user: User, @WorkspaceId() workspaceId: string) {
+    return this.backupsService.createRun(user, workspaceId, BackupRunTrigger.MANUAL);
   }
 
   @Get('runs/:id/download')
+  @UseGuards(WorkspaceContextGuard)
   async downloadRun(
     @Param('id') id: string,
     @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
     @Res() response: Response,
   ): Promise<void> {
-    const { fileName, contents } = await this.backupsService.downloadRun(user, id);
+    const { fileName, contents } = await this.backupsService.downloadRun(user, workspaceId, id);
     response.setHeader('Content-Type', 'application/octet-stream');
     response.setHeader('Content-Disposition', buildContentDisposition('attachment', fileName));
     response.send(contents);
