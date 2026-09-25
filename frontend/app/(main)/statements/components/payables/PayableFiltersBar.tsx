@@ -3,6 +3,7 @@
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { format, isValid, parseISO } from 'date-fns';
 import React from 'react';
+import { Select } from '@/app/components/ui/select';
 import type { PayableSource, PayableStatus } from '@/app/lib/payables-api';
 
 const toDate = (s: string): Date | null => {
@@ -53,33 +54,35 @@ function PayableFiltersBar({
     <div className="lumio-payable-filters">
       <div className="lumio-payable-filters__inner">
         <div className="lumio-payable-filters__grid">
-          <select
-            className="lumio-payable-filters__select"
+          <Select
+            fullWidth
+            size="small"
             value={value.status}
-            onChange={event => update('status', event.target.value as PayableStatus | 'all')}
-            aria-label={labels.status}
-          >
-            <option value="all">{labels.allStatuses}</option>
-            {Object.entries(labels.statusOptions).map(([optionValue, optionLabel]) => (
-              <option key={optionValue} value={optionValue}>
-                {optionLabel}
-              </option>
-            ))}
-          </select>
+            onChange={next => update('status', next as PayableStatus | 'all')}
+            inputProps={{ 'aria-label': labels.status }}
+            options={[
+              { value: 'all', label: labels.allStatuses },
+              ...Object.entries(labels.statusOptions).map(([optionValue, optionLabel]) => ({
+                value: optionValue,
+                label: optionLabel,
+              })),
+            ]}
+          />
 
-          <select
-            className="lumio-payable-filters__select"
+          <Select
+            fullWidth
+            size="small"
             value={value.source}
-            onChange={event => update('source', event.target.value as PayableSource | 'all')}
-            aria-label={labels.source}
-          >
-            <option value="all">{labels.allSources}</option>
-            {Object.entries(labels.sourceOptions).map(([optionValue, optionLabel]) => (
-              <option key={optionValue} value={optionValue}>
-                {optionLabel}
-              </option>
-            ))}
-          </select>
+            onChange={next => update('source', next as PayableSource | 'all')}
+            inputProps={{ 'aria-label': labels.source }}
+            options={[
+              { value: 'all', label: labels.allSources },
+              ...Object.entries(labels.sourceOptions).map(([optionValue, optionLabel]) => ({
+                value: optionValue,
+                label: optionLabel,
+              })),
+            ]}
+          />
 
           <DatePicker
             label={labels.dueFrom}

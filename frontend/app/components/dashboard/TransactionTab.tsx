@@ -14,6 +14,7 @@ import TransactionsTable from '@/app/components/transactions/TransactionsTable';
 import type { FilterState, Transaction } from '@/app/components/transactions/types';
 import { CurrencyDisplayToggle } from '@/app/components/ui/CurrencyDisplayToggle';
 import { CurrencyFilterDropdown } from '@/app/components/ui/CurrencyFilterDropdown';
+import { Select } from '@/app/components/ui/select';
 import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
@@ -217,27 +218,17 @@ export function TransactionTab() {
           </Box>
 
           <Box sx={{ display: 'flex', flex: 1, alignItems: 'center', gap: 1 }}>
-            <select
+            <Select
               value={bulkCategoryId}
-              onChange={e => setBulkCategoryId(e.target.value)}
-              style={{
-                flex: 1,
-                maxWidth: 320,
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--card-bg)',
-                padding: '8px 12px',
-                fontSize: 14,
-              }}
-            >
-              <option value="">{t.selectCategory?.value || 'Select category...'}</option>
-              {categories
-                .filter(cat => cat.isEnabled !== false)
-                .map(cat => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-            </select>
+              onChange={setBulkCategoryId}
+              options={[
+                { value: '', label: t.selectCategory?.value || 'Select category...' },
+                ...categories
+                  .filter(cat => cat.isEnabled !== false)
+                  .map(cat => ({ value: cat.id, label: cat.name })),
+              ]}
+              sx={{ flex: 1, maxWidth: 320, backgroundColor: 'var(--card-bg)' }}
+            />
 
             <button
               type="button"

@@ -4,6 +4,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import { useTheme } from 'next-themes';
 import { useMemo } from 'react';
+import { FORM_CONTROL_SX } from '@/app/components/ui/input';
 import { Select } from '@/app/components/ui/select';
 import { useIntlayer } from '@/app/i18n';
 import { SUPPORTED_LOCALES } from '@/app/lib/locale';
@@ -136,8 +137,8 @@ function LocaleSelector(props: LocaleSelectorProps): React.ReactElement {
   const textSecondary =
     resolvedTheme === 'dark' ? tokens.dark.color.textSecondary : tokens.color.textSecondary;
 
-  const handleChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
-    onLocaleChange(event.target.value as SupportedLocale);
+  const handleChange = (value: string): void => {
+    onLocaleChange(value as SupportedLocale);
   };
 
   return (
@@ -145,13 +146,14 @@ function LocaleSelector(props: LocaleSelectorProps): React.ReactElement {
       <label style={makeLabelStyle(textSecondary)} htmlFor="onboarding-locale">
         {label}
       </label>
-      <Select id="onboarding-locale" value={locale} onChange={handleChange}>
-        {languageOptions.map(option => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </Select>
+      <Select
+        fullWidth
+        id="onboarding-locale"
+        value={locale}
+        onChange={handleChange}
+        options={languageOptions}
+        sx={FORM_CONTROL_SX}
+      />
     </div>
   );
 }

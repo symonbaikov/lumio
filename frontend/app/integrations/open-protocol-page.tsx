@@ -6,6 +6,7 @@ import { Box, Stack, Typography } from '@mui/material';
 import { useTheme } from 'next-themes';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { Select } from '@/app/components/ui/select';
 import apiClient from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
 
@@ -374,19 +375,15 @@ export function ProtocolIntegrationPage({
                   ) : field.browseAction ? (
                     <Box sx={{ display: 'flex', gap: 1 }}>
                       {browseOptions[field.name]?.length ? (
-                        <select
+                        <Select
                           value={String(form[field.name] ?? '')}
-                          onChange={event =>
-                            setForm(prev => ({ ...prev, [field.name]: event.target.value }))
-                          }
-                          style={{ ...inputStyle(c), flex: 1 }}
-                        >
-                          {browseOptions[field.name].map(opt => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={value => setForm(prev => ({ ...prev, [field.name]: value }))}
+                          options={browseOptions[field.name].map(opt => ({
+                            value: opt,
+                            label: opt,
+                          }))}
+                          sx={{ flex: 1, backgroundColor: c.surface, color: c.ink900 }}
+                        />
                       ) : (
                         <input
                           type="text"

@@ -300,6 +300,39 @@ describe('TablesReportsView', () => {
     expect(screen.getAllByText('Manual')).toHaveLength(2);
   });
 
+  it('keeps focus inside the drill-down and closes it with Escape', async () => {
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <TablesReportsView />
+        </QueryClientProvider>,
+      );
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('row', { name: /Vendor A/i }));
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const dialog = screen.getByRole('dialog', { name: /Vendor A — Drill-down/i });
+    expect(dialog.parentElement?.contains(document.activeElement)).toBe(true);
+
+    await act(async () => {
+      fireEvent.keyDown(dialog, { key: 'Escape' });
+    });
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('includes dark theme surface classes for the main controls and cards', async () => {
     themeMock.resolvedTheme = 'dark';
 

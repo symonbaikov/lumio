@@ -526,28 +526,6 @@
     align-items: center;
     gap: 16px;
   }
-
-  &__select {
-    border: 1px solid $lumio-color-ink-150;
-    border-radius: $lumio-radius-md;
-    padding: 4px 8px;
-    font-size: 14px;
-    outline: none;
-
-    @include dark {
-      border-color: $lumio-color-ink-150-dk;
-      background-color: $lumio-color-surface-dk;
-      color: $lumio-color-ink-900-dk;
-    }
-
-    &:focus {
-      border-color: $color-primary;
-
-      @include dark {
-        border-color: $color-primary-dk;
-      }
-    }
-  }
 }
 
 // Filters bar
@@ -727,30 +705,6 @@
 
     @include dark {
       color: $lumio-color-ink-700-dk;
-    }
-  }
-
-  &__select {
-    width: 100%;
-    border: 1px solid $lumio-color-ink-150;
-    border-radius: $lumio-radius-md;
-    background-color: $lumio-color-surface;
-    padding: 8px 12px;
-    font-size: 14px;
-    outline: none;
-
-    @include dark {
-      border-color: $lumio-color-ink-150-dk;
-      background-color: $lumio-color-surface-dk;
-      color: $lumio-color-ink-900-dk;
-    }
-
-    &:focus {
-      border-color: $color-primary;
-
-      @include dark {
-        border-color: $color-primary-dk;
-      }
     }
   }
 
@@ -1351,28 +1305,6 @@
       opacity: 0.5;
     }
   }
-
-  &__select {
-    flex: 1;
-    border: 1px solid $lumio-color-ink-150;
-    padding: 8px 12px;
-    font-size: 14px;
-    outline: none;
-
-    @include dark {
-      border-color: $lumio-color-ink-150-dk;
-      background-color: $lumio-color-surface-dk;
-      color: $lumio-color-ink-900-dk;
-    }
-
-    &:focus {
-      border-color: $color-primary;
-
-      @include dark {
-        border-color: $color-primary-dk;
-      }
-    }
-  }
 }
 
 // Export modal
@@ -1522,22 +1454,6 @@
     flex: 1;
     align-items: center;
     gap: 8px;
-  }
-
-  &__select {
-    flex: 1;
-    max-width: 320px;
-    border: 1px solid $lumio-color-ink-150;
-    background-color: $lumio-color-surface;
-    padding: 8px 12px;
-    font-size: 14px;
-    outline: none;
-
-    @include dark {
-      border-color: $lumio-color-ink-150-dk;
-      background-color: $lumio-color-surface-dk;
-      color: $lumio-color-ink-900-dk;
-    }
   }
 
   &__apply-btn {

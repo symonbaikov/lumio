@@ -4,6 +4,7 @@ import { Box, TextField, Typography } from '@mui/material';
 import { useTheme } from 'next-themes';
 import React from 'react';
 import { FileText, Filter, Folder, Search, Trash2 } from '@/app/components/icons';
+import { Select } from '@/app/components/ui/select';
 import { tokens } from '@/lib/theme-tokens';
 import { listToggleSx } from '../helpers/storageStyling';
 import type { StorageFile } from '../storageHelpers';
@@ -309,26 +310,20 @@ function StorageSortSelect({
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   return (
     <Box sx={{ position: 'relative', width: { xs: '100%', md: 224 } }}>
-      <select
+      <Select
+        fullWidth
         value={sortKey}
-        onChange={e => onSortChange(e.target.value)}
-        style={{
-          width: '100%',
-          border: `1px solid ${c.ink150}`,
-          background: 'var(--card-bg)',
-          padding: '8px 40px 8px 12px',
-          fontSize: 14,
-          color: c.ink900,
-          appearance: 'auto',
-        }}
-      >
-        <option value="createdAt:desc">{sortNewest}</option>
-        <option value="createdAt:asc">{sortOldest}</option>
-        <option value="fileName:asc">{sortNameAsc}</option>
-        <option value="fileName:desc">{sortNameDesc}</option>
-        <option value="bankName:asc">{sortBankAsc}</option>
-        <option value="bankName:desc">{sortBankDesc}</option>
-      </select>
+        onChange={onSortChange}
+        options={[
+          { value: 'createdAt:desc', label: sortNewest },
+          { value: 'createdAt:asc', label: sortOldest },
+          { value: 'fileName:asc', label: sortNameAsc },
+          { value: 'fileName:desc', label: sortNameDesc },
+          { value: 'bankName:asc', label: sortBankAsc },
+          { value: 'bankName:desc', label: sortBankDesc },
+        ]}
+        sx={{ backgroundColor: 'var(--card-bg)', color: c.ink900 }}
+      />
     </Box>
   );
 }

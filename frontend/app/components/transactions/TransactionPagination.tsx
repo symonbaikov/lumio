@@ -1,6 +1,7 @@
 'use client';
 
 import { AppPagination } from '../ui/pagination';
+import { Select } from '../ui/select';
 
 interface TransactionPaginationProps {
   page: number;
@@ -32,20 +33,15 @@ export function TransactionPagination({
     <div className="lumio-tx-pagination">
       <div className="lumio-tx-pagination__left">
         <span style={{ fontSize: 14, color: 'var(--foreground)' }}>{rowsPerPageLabel}:</span>
-        <select
+        <Select
+          size="small"
           value={rowsPerPage}
-          onChange={e => {
-            onRowsPerPageChange(Number(e.target.value));
+          onChange={value => {
+            onRowsPerPageChange(Number(value));
             onPageChange(0);
           }}
-          className="lumio-tx-pagination__select"
-        >
-          {PAGE_SIZES.map(n => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
+          options={PAGE_SIZES.map(n => ({ value: n, label: String(n) }))}
+        />
       </div>
       <div className="lumio-tx-pagination__right">
         <span style={{ fontSize: 14, color: 'var(--foreground)' }}>

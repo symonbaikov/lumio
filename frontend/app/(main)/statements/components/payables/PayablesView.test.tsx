@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { act } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { selectOption } from '@/app/test/select';
 
 const navigationState = vi.hoisted(() => ({
   searchParams: new URLSearchParams(),
@@ -375,9 +376,7 @@ describe('PayablesView', () => {
     await screen.findByText('ACME LLC');
     const selects = screen.getAllByRole('combobox');
 
-    await act(async () => {
-      fireEvent.change(selects[0] as HTMLSelectElement, { target: { value: 'paid' } });
-    });
+    selectOption(selects[0], 'Paid');
 
     await waitFor(() => {
       expect(apiMocks.list).toHaveBeenLastCalledWith(

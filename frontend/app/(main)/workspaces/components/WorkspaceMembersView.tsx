@@ -20,6 +20,7 @@ import {
   Users,
 } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
+import { Select } from '@/app/components/ui/select';
 import { useAuth } from '@/app/hooks/useAuth';
 import apiClient from '@/app/lib/api';
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
@@ -662,27 +663,18 @@ export default function WorkspaceMembersView() {
                 >
                   Role
                 </label>
-                <select
+                <Select
+                  fullWidth
                   id="invite-role"
                   value={inviteRole}
-                  onChange={event => setInviteRole(event.target.value as WorkspaceRole)}
+                  onChange={value => setInviteRole(value as WorkspaceRole)}
                   disabled={!isOwnerOrAdmin}
-                  style={{
-                    width: '100%',
-                    border: '1px solid var(--border)',
-                    background: 'var(--background)',
-                    padding: '8px 12px',
-                    fontSize: 14,
-                    color: 'var(--foreground)',
-                    borderRadius: tokens.radius.md,
-                    opacity: !isOwnerOrAdmin ? 0.6 : 1,
-                    cursor: !isOwnerOrAdmin ? 'not-allowed' : 'auto',
-                  }}
-                >
-                  <option value="member">Member</option>
-                  <option value="viewer">Viewer</option>
-                  <option value="admin">Admin</option>
-                </select>
+                  options={[
+                    { value: 'member', label: 'Member' },
+                    { value: 'viewer', label: 'Viewer' },
+                    { value: 'admin', label: 'Admin' },
+                  ]}
+                />
               </Box>
             </Box>
 

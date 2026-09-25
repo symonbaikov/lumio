@@ -17,6 +17,7 @@ import {
   Trash2,
 } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
+import { Select } from '@/app/components/ui/select';
 import { tokens } from '@/lib/theme-tokens';
 import type { CategoryOption, FileAvailability, StorageFile, TagOption } from '../storageHelpers';
 
@@ -272,33 +273,22 @@ export const DraggableFileRow = React.memo(
 
         <td style={{ padding: '20px 24px', whiteSpace: 'nowrap', fontSize: 14, color: c.ink800 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            <select
+            <Select
               value={file.categoryId || ''}
-              onChange={e => handleCategoryChange(file.id, e.target.value)}
+              onChange={value => handleCategoryChange(file.id, value)}
               disabled={
                 isTrashView ||
                 categoriesLoading ||
                 (!file.isOwner && file.permissionType !== 'editor')
               }
-              style={{
-                minWidth: 160,
-                borderRadius: tokens.radius.md,
-                border: `1px solid ${c.ink150}`,
-                background: 'var(--card-bg)',
-                padding: '8px 12px',
-                fontSize: 14,
-                color: c.ink900,
-              }}
-            >
-              <option value="">{categoryNoneLabel}</option>
-              {categories
-                .filter(cat => cat.isEnabled !== false)
-                .map(cat => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-            </select>
+              options={[
+                { value: '', label: categoryNoneLabel },
+                ...categories
+                  .filter(cat => cat.isEnabled !== false)
+                  .map(cat => ({ value: cat.id, label: cat.name })),
+              ]}
+              sx={{ minWidth: 160, backgroundColor: 'var(--card-bg)', color: c.ink900 }}
+            />
             {file.category?.isEnabled === false ? (
               <Typography style={{ fontSize: 12, fontWeight: 500, color: c.danger }}>
                 {file.category.name} - choose category

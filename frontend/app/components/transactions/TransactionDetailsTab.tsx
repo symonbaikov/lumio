@@ -11,6 +11,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from '@/app/components/icons';
+import { Select } from '@/app/components/ui/select';
 import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
@@ -355,21 +356,18 @@ export function TransactionDetailsTab({
               {t.setCategory.value}
             </label>
             <div className="lumio-tx-detail__set-cat">
-              <select
+              <Select
                 id="category-select"
                 value={selectedCategoryId}
-                onChange={e => setSelectedCategoryId(e.target.value)}
-                className="lumio-tx-detail__select"
-              >
-                <option value="">{t.selectCategory.value}</option>
-                {categories
-                  .filter(cat => cat.isEnabled !== false)
-                  .map(cat => (
-                    <option key={cat.id} value={cat.id}>
-                      {getCategoryDisplayName(cat, locale)}
-                    </option>
-                  ))}
-              </select>
+                onChange={setSelectedCategoryId}
+                options={[
+                  { value: '', label: t.selectCategory.value },
+                  ...categories
+                    .filter(cat => cat.isEnabled !== false)
+                    .map(cat => ({ value: cat.id, label: getCategoryDisplayName(cat, locale) })),
+                ]}
+                sx={{ flex: 1 }}
+              />
               <button
                 type="button"
                 onClick={handleUpdateCategory}

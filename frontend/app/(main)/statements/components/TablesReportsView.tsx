@@ -1,10 +1,13 @@
 'use client';
 
+import Modal from '@mui/material/Modal';
 import Skeleton from '@mui/material/Skeleton';
 import { useQuery } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { closeOnBackdropClick } from '@/app/components/ui/backdrop-click';
 import { LazyECharts } from '@/app/components/ui/lazy-echarts';
+import { Select } from '@/app/components/ui/select';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import apiClient from '@/app/lib/api';
 import { queryKeys } from '@/app/lib/query-keys';
@@ -169,6 +172,11 @@ export default function TablesReportsView() {
     },
     [activeFlowType, selectedDays, selectedTableIds],
   );
+
+  const closeDrillDown = useCallback(() => {
+    setSelectedCounterparty(null);
+    setDrillDown(null);
+  }, []);
 
   const timeseries = report?.timeseries;
   const trendChartOption = useMemo(() => {
@@ -440,17 +448,18 @@ export default function TablesReportsView() {
               </div>
             ) : null}
           </div>
-          <select
+          <Select
             value={selectedDays}
-            onChange={event => setSelectedDays(Number(event.target.value))}
-            style={{ ...subtlePanelStyle, appearance: 'none', paddingRight: 36 }}
-          >
-            <option value={7}>Last 7 days</option>
-            <option value={30}>Last 30 days</option>
-            <option value={90}>Last 90 days</option>
-            <option value={365}>Last 365 days</option>
-            <option value={-1}>Year to date</option>
-          </select>
+            onChange={value => setSelectedDays(Number(value))}
+            options={[
+              { value: 7, label: 'Last 7 days' },
+              { value: 30, label: 'Last 30 days' },
+              { value: 90, label: 'Last 90 days' },
+              { value: 365, label: 'Last 365 days' },
+              { value: -1, label: 'Year to date' },
+            ]}
+            sx={{ backgroundColor: 'var(--card-bg)', color: c.ink800 }}
+          />
         </div>
 
         <div
@@ -709,8 +718,12 @@ export default function TablesReportsView() {
               </table>
             </div>
 
-            {selectedCounterparty ? (
+            {/* Modal traps focus inside the drill-down, closes on Escape and restores focus. */}
+            <Modal open={Boolean(selectedCounterparty)} onClose={closeDrillDown} hideBackdrop>
+              {/* biome-ignore lint/a11y: the dimmed backdrop is a mouse-only dismiss surface; keyboard users close with Escape (Modal). */}
               <div
+                tabIndex={-1}
+                onClick={closeOnBackdropClick(closeDrillDown)}
                 style={{
                   position: 'fixed',
                   inset: 0,
@@ -720,8 +733,8 @@ export default function TablesReportsView() {
                   justifyContent: 'center',
                   background: 'rgba(0,0,0,0.4)',
                   padding: '0 16px',
+                  outline: 'none',
                 }}
-                aria-hidden="true"
               >
                 <div
                   style={{
@@ -735,8 +748,13 @@ export default function TablesReportsView() {
                   }}
                   role="dialog"
                   aria-modal="true"
+                  aria-labelledby="tables-reports-drilldown-title"
                   onClick={event => event.stopPropagation()}
-                  onKeyDown={event => event.stopPropagation()}
+                  onKeyDown={event => {
+                    if (event.key !== 'Escape') {
+                      event.stopPropagation();
+                    }
+                  }}
                 >
                   <div
                     style={{
@@ -747,15 +765,15 @@ export default function TablesReportsView() {
                       padding: '16px 24px',
                     }}
                   >
-                    <h2 style={{ fontSize: 18, fontWeight: 600, color: c.ink900 }}>
+                    <h2
+                      id="tables-reports-drilldown-title"
+                      style={{ fontSize: 18, fontWeight: 600, color: c.ink900 }}
+                    >
                       {`${drillDown?.counterparty || selectedCounterparty} — Drill-down`}
                     </h2>
                     <button
                       type="button"
-                      onClick={() => {
-                        setSelectedCounterparty(null);
-                        setDrillDown(null);
-                      }}
+                      onClick={closeDrillDown}
                       style={{
                         color: c.ink500,
                         background: 'none',
@@ -832,7 +850,7 @@ export default function TablesReportsView() {
                   </div>
                 </div>
               </div>
-            ) : null}
+            </Modal>
           </div>
         )}
       </div>
