@@ -1,16 +1,62 @@
 'use client';
 
 import Box from '@mui/material/Box';
+import ButtonBase from '@mui/material/ButtonBase';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
+import Link from 'next/link';
 import { useEffect } from 'react';
-import { Lightbulb } from '@/app/components/icons';
+import { ArrowRight, Lightbulb } from '@/app/components/icons';
+import { insightHref } from '@/app/components/insights/insight-href';
 import { EmptyState } from '@/app/components/ui/EmptyState';
-import { useInsights, useRefreshInsights } from '@/app/hooks/useInsights';
+import { type Insight, useInsights, useRefreshInsights } from '@/app/hooks/useInsights';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 
 const ADVICE_SKELETON_KEYS = ['advice-0', 'advice-1', 'advice-2', 'advice-3'];
+
+const adviceCardSx = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: 2,
+  p: 2.5,
+  border: '1px solid',
+  borderColor: 'divider',
+  borderRadius: tokens.radius.md,
+  bgcolor: 'background.paper',
+} as const;
+
+function AdviceCard({ item, openLabel }: { item: Insight; openLabel: string }): React.JSX.Element {
+  const href = insightHref(item);
+  const body = (
+    <>
+      <Lightbulb size={20} color={tokens.color.info} />
+      <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+        <Typography variant="body1" fontWeight={600}>
+          {item.title}
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          {item.message}
+        </Typography>
+      </Box>
+      {href === null ? null : <ArrowRight size={18} />}
+    </>
+  );
+
+  // No dismiss control here, so the whole card can be the link.
+  return href === null ? (
+    <Box sx={adviceCardSx}>{body}</Box>
+  ) : (
+    <ButtonBase
+      component={Link}
+      href={href}
+      aria-label={`${item.title}. ${openLabel}`}
+      sx={{ ...adviceCardSx, width: '100%', textAlign: 'left' }}
+    >
+      {body}
+    </ButtonBase>
+  );
+}
 
 function AdviceCardSkeleton(): React.JSX.Element {
   return (
@@ -68,28 +114,7 @@ export default function AdvicePage() {
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {items.map(item => (
-          <Box
-            key={item.id}
-            sx={{
-              display: 'flex',
-              gap: 2,
-              p: 2.5,
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: tokens.radius.md,
-              bgcolor: 'background.paper',
-            }}
-          >
-            <Lightbulb size={20} color={tokens.color.info} />
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="body1" fontWeight={600}>
-                {item.title}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                {item.message}
-              </Typography>
-            </Box>
-          </Box>
+          <AdviceCard key={item.id} item={item} openLabel={t.openLabel.value} />
         ))}
       </Box>
     </Box>

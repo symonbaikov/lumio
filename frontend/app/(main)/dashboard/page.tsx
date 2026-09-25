@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import type React from 'react';
 import { Suspense } from 'react';
 import { Spinner } from '@/app/components/ui/spinner';
+import { useAttentionFocus } from '@/app/hooks/useAttentionFocus';
 import { DashboardContent } from './components/DashboardContent';
 import { DashboardPullIndicator } from './components/DashboardPullIndicator';
 import { useDashboardPage } from './hooks/useDashboardPage';
@@ -21,6 +22,7 @@ const MAIN_SX = {
 };
 
 function DashboardPageInner(): React.JSX.Element {
+  useAttentionFocus();
   const {
     isRedirecting,
     isMobile,

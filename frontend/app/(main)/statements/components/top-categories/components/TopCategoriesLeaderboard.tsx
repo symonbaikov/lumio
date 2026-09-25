@@ -81,7 +81,12 @@ function LeaderboardRow({ row, sourceLabels, onRowClick }: RowProps): React.JSX.
     ? { color: row.color }
     : { color: 'var(--primary)' };
   return (
-    <tr style={{ color: 'var(--foreground)', borderTop: '1px solid var(--muted)' }}>
+    <tr
+      // Target for `?focus=category:<name>` deep links; the leaderboard has no
+      // category ids, rows are keyed by name.
+      data-attention={`category:${row.category.trim().toLowerCase()}`}
+      style={{ color: 'var(--foreground)', borderTop: '1px solid var(--muted)' }}
+    >
       <td style={{ padding: '8px 16px 8px 0', fontWeight: 500, color: 'var(--foreground)' }}>
         <button
           type="button"

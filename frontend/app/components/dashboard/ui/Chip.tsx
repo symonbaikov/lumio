@@ -100,6 +100,13 @@ export const ChipGroup = forwardRef<HTMLDivElement, ChipGroupProps>(
         ref={ref}
         role="group"
         aria-label={props['aria-label']}
+        // Chrome leaves a partly visible element in place on focus, so in a scrolling row a
+        // keyboard-focused chip (and its ring) stays cut at the edge; bring it into view.
+        onFocus={
+          scroll
+            ? event => event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+            : undefined
+        }
         className={clsx(
           'lumio-chip-group',
           scroll && 'lumio-chip-group--scroll',

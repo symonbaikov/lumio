@@ -71,6 +71,7 @@ export function RiskCard({
 
   return (
     <Box
+      data-attention="card:risk"
       sx={{
         border: '1px solid',
         borderColor: 'divider',

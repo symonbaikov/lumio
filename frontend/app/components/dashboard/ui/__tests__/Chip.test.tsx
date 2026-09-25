@@ -68,4 +68,18 @@ describe('Chip', () => {
     const group = screen.getByRole('group', { name: 'Months' });
     expect(group.className).toContain('lumio-chip-group--scroll');
   });
+
+  it('scrolls a keyboard-focused chip fully into view in a scrolling group', () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    render(
+      <ChipGroup scroll aria-label="Months">
+        <Chip onClick={vi.fn()}>Jul</Chip>
+      </ChipGroup>,
+    );
+
+    fireEvent.focus(screen.getByRole('button', { name: 'Jul' }));
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', inline: 'nearest' });
+  });
 });

@@ -50,7 +50,7 @@ interface BudgetsContentProps {
   formData: BudgetFormData;
   saving: boolean;
   setFormData: (data: BudgetFormData) => void;
-  openCreate: () => void;
+  openCreate: (categoryId?: string) => void;
   openEdit: (budget: BudgetItem) => void;
   closeDialog: () => void;
   handleSave: () => void;
@@ -80,7 +80,7 @@ export function BudgetsContent({
         <Typography variant="h5" fontWeight={700}>
           Budgets
         </Typography>
-        <Button variant="contained" startIcon={<Plus size={18} />} onClick={openCreate}>
+        <Button variant="contained" startIcon={<Plus size={18} />} onClick={() => openCreate()}>
           New Budget
         </Button>
       </Box>
@@ -105,7 +105,7 @@ export function BudgetsContent({
           illustration="top-categories"
           description={t.emptyDescription}
           action={
-            <Button variant="outlined" onClick={openCreate}>
+            <Button variant="outlined" onClick={() => openCreate()}>
               {t.createFirst}
             </Button>
           }

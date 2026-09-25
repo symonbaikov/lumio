@@ -1,7 +1,8 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
@@ -131,6 +132,10 @@ export function useBudgetsPage() {
   const workspaceId = useWorkspaceId();
   const queryClient = useQueryClient();
 
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const query = useQuery({
     queryKey: queryKeys.budgets(workspaceId),
     queryFn: ({ signal }) => apiQuery<BudgetItem[]>({ url: '/budgets', signal }),
@@ -140,11 +145,31 @@ export function useBudgetsPage() {
     return queryClient.invalidateQueries({ queryKey: queryKeys.budgets(workspaceId) });
   }, [queryClient, workspaceId]);
 
-  const openCreate = useCallback(() => {
-    setEditingBudget(null);
-    setFormData(makeEmptyForm(workspaceCurrency));
-    setDialogOpen(true);
-  }, [workspaceCurrency]);
+  /** `categoryId` preseeds the form for the "this category has no budget"
+   * insight, which links here precisely because nothing exists to open yet. */
+  const openCreate = useCallback(
+    (categoryId?: string) => {
+      setEditingBudget(null);
+      setFormData({ ...makeEmptyForm(workspaceCurrency), categoryId: categoryId ?? '' });
+      setDialogOpen(true);
+    },
+    [workspaceCurrency],
+  );
+
+  // `?newBudgetCategory=<id>` comes from the "top category has no budget"
+  // insight. Stripped once honoured, the same way the statements list handles
+  // `openExpenseDrawer` — left in place it would reopen the drawer on close.
+  useEffect(() => {
+    const categoryId = searchParams.get('newBudgetCategory');
+    if (!categoryId) {
+      return;
+    }
+    openCreate(categoryId);
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete('newBudgetCategory');
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+  }, [searchParams, openCreate, router, pathname]);
 
   const openEdit = useCallback((budget: BudgetItem) => {
     setEditingBudget(budget);

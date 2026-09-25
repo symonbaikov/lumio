@@ -111,6 +111,7 @@ function KpiRow({ data, formatAmount, monthLabel, isLoading }: KpiRowProps): Rea
         value={spinner || (savingsRate === null ? '—' : `${Math.round(savingsRate)}%`)}
         tone={savingsRate === null ? 'neutral' : savingsRate >= 0 ? 'positive' : 'negative'}
         caption={t.savingsRateCaption.value}
+        attentionId="kpi:savings-rate"
       />
     </div>
   );
