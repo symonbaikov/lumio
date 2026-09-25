@@ -71,6 +71,7 @@ export default function MobileBottomBar() {
       {/* FAB radial menu (upward) */}
       <div
         className={`lumio-bottom-bar__fab-menu${fabOpen ? ' lumio-bottom-bar__fab-menu--open' : ''}`}
+        inert={!fabOpen}
       >
         {FAB_ACTIONS.map((action, index) => (
           <button

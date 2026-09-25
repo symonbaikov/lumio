@@ -6,10 +6,12 @@ import {
   Box,
   Button,
   MenuItem,
+  Modal,
   Paper,
   TextField,
   Typography,
 } from '@mui/material';
+import { useId } from 'react';
 
 import StatementCategoryDrawer from '@/app/(main)/statements/[id]/edit/StatementCategoryDrawer';
 import { AuditEventDrawer } from '@/app/audit/components/AuditEventDrawer';
@@ -431,93 +433,95 @@ export function BulkCategoryDialog({
   onCategoryChange,
   onApply,
 }: BulkCategoryDialogProps): React.ReactElement {
+  const titleId = useId();
+  // Modal traps focus inside, closes on Escape and restores focus on close.
   return (
-    <Box
-      component="dialog"
-      open={open}
-      sx={{
-        display: open ? 'block' : 'none',
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1300,
-        bgcolor: 'rgba(0,0,0,0.5)',
-        border: 'none',
-        p: 0,
-        m: 0,
-        width: '100%',
-        height: '100%',
-      }}
-      onClick={onClose}
-    >
+    <Modal open={open} onClose={onClose} hideBackdrop>
       <Box
+        tabIndex={-1}
         sx={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%,-50%)',
-          bgcolor: 'background.paper',
-          p: 3,
-          minWidth: 360,
-          maxWidth: 480,
-          border: '1px solid',
-          borderColor: 'grey.200',
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1300,
+          bgcolor: 'rgba(0,0,0,0.5)',
+          outline: 'none',
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={onClose}
       >
-        <Typography
+        <Box
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
           sx={{
-            fontWeight: 600,
-            fontSize: '1rem',
-            color: 'text.primary',
-            letterSpacing: '-0.01em',
-            pb: 1,
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%,-50%)',
+            bgcolor: 'background.paper',
+            p: 3,
+            minWidth: 360,
+            maxWidth: 480,
+            border: '1px solid',
+            borderColor: 'grey.200',
           }}
+          onClick={e => e.stopPropagation()}
         >
-          Assign category to {selectedRowsSize} item(s)
-        </Typography>
-        <Box sx={{ pt: 3 }}>
-          <TextField
-            select
-            label="Category"
-            fullWidth
-            value={bulkCategoryId}
-            onChange={e => onCategoryChange(e.target.value)}
-            helperText="Choose a category to assign to all selected line items"
+          <Typography
+            id={titleId}
             sx={{
-              '& .MuiOutlinedInput-root': { '&:hover fieldset': { borderColor: 'primary.main' } },
-            }}
-          >
-            <MenuItem value="">Not selected</MenuItem>
-            {enabledCategories.map(cat => (
-              <MenuItem key={cat.id} value={cat.id}>
-                {cat.name}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, pt: 3 }}>
-          <Button
-            onClick={onClose}
-            sx={{ textTransform: 'none', fontWeight: 500, color: 'text.secondary' }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<CheckCircle2 size={18} />}
-            onClick={onApply}
-            disabled={!bulkCategoryId}
-            sx={{
-              textTransform: 'none',
               fontWeight: 600,
-              boxShadow: 'none',
-              '&:hover': { boxShadow: 'none' },
+              fontSize: '1rem',
+              color: 'text.primary',
+              letterSpacing: '-0.01em',
+              pb: 1,
             }}
           >
-            Apply
-          </Button>
+            Assign category to {selectedRowsSize} item(s)
+          </Typography>
+          <Box sx={{ pt: 3 }}>
+            <TextField
+              select
+              label="Category"
+              fullWidth
+              value={bulkCategoryId}
+              onChange={e => onCategoryChange(e.target.value)}
+              helperText="Choose a category to assign to all selected line items"
+              sx={{
+                '& .MuiOutlinedInput-root': { '&:hover fieldset': { borderColor: 'primary.main' } },
+              }}
+            >
+              <MenuItem value="">Not selected</MenuItem>
+              {enabledCategories.map(cat => (
+                <MenuItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, pt: 3 }}>
+            <Button
+              onClick={onClose}
+              sx={{ textTransform: 'none', fontWeight: 500, color: 'text.secondary' }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<CheckCircle2 size={18} />}
+              onClick={onApply}
+              disabled={!bulkCategoryId}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                boxShadow: 'none',
+                '&:hover': { boxShadow: 'none' },
+              }}
+            >
+              Apply
+            </Button>
+          </Box>
         </Box>
       </Box>
-    </Box>
+    </Modal>
   );
 }

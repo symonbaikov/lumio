@@ -60,13 +60,15 @@ export function SectionWrapper({
           )}
         </button>
       )}
+      {/* Clip only while collapsed: an always-on overflow cuts the focus ring of the first row. */}
       <div
         style={{
           transition: 'all 200ms',
-          overflow: 'hidden',
+          overflow: isCollapsed ? 'hidden' : 'visible',
           maxHeight: isCollapsed ? 0 : 2000,
           opacity: isCollapsed ? 0 : 1,
         }}
+        inert={isCollapsed}
       >
         <div
           style={{ padding: section.title ? '0 16px 12px' : '12px 16px' }}

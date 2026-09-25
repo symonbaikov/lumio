@@ -19,6 +19,9 @@ export const tokens = {
     xl: '20px',
     full: '999px',
   },
+  /** Keyboard focus ring (mirrors $lumio-focus-ring-* in _variables.scss). `reach` is how far,
+   *  in px, it extends outside an element: the room a clipping container leaves its items. */
+  focusRing: { reach: 4 },
   space: {
     0: '0',
     1: '4px',

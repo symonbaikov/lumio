@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/.focus-audit
 
 # next.js
 /.next/

@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes';
 import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
 import { GlobalSearch } from '@/app/components/GlobalSearch';
-import { Bug, HelpCircle, Menu } from '@/app/components/icons';
+import { Bug, HelpCircle } from '@/app/components/icons';
 import { NotificationDropdown } from '@/app/components/NotificationDropdown';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
@@ -27,7 +27,6 @@ import { LanguageDrawer } from './navigation/LanguageDrawer';
 import { UserMenuTriggerAndDropdown } from './navigation/UserMenu';
 import { openAppPanel } from './panels/app-panels-store';
 
-const SIDEBAR_OPEN_EVENT = 'lumio-sidebar-open';
 const HIDDEN_PATHS = ['/onboarding', '/login', '/register', '/shared', '/invite', '/chat'];
 
 export default function TopBar() {
@@ -142,15 +141,6 @@ export default function TopBar() {
   return (
     <>
       <header className="lumio-topbar">
-        <button
-          type="button"
-          className="lumio-topbar__hamburger"
-          aria-label="Open navigation"
-          onClick={() => window.dispatchEvent(new Event(SIDEBAR_OPEN_EVENT))}
-        >
-          <Menu size={20} />
-        </button>
-
         <Link href="/dashboard" className="lumio-topbar__mobile-logo" aria-label="Lumio home">
           <span className="lumio-topbar__mobile-logo-text">LUMIO</span>
         </Link>

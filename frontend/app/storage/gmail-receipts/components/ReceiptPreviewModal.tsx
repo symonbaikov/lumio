@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, IconButton, Typography } from '@mui/material';
+import { Box, IconButton, Modal, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { X, ZoomIn, ZoomOut } from '@/app/components/icons';
 import { gmailReceiptsApi } from '@/app/lib/api';
@@ -190,84 +190,82 @@ export function ReceiptPreviewModal({
     );
   };
 
+  // Modal traps focus inside, closes on Escape and restores focus on unmount.
   return (
-    <>
-      <Box
-        sx={{
-          position: 'fixed',
-          inset: 0,
-          bgcolor: 'rgba(0,0,0,0.75)',
-          zIndex: 50,
-        }}
-        role="button"
-        tabIndex={0}
-        onClick={onClose}
-        onKeyDown={event => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            onClose();
-          }
-        }}
-        aria-label="Close receipt preview"
-      />
-      <Box
-        sx={{
-          position: 'fixed',
-          inset: 16,
-          bgcolor: 'background.paper',
-          borderRadius: tokens.radius.xl,
-          zIndex: 50,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
+    <Modal open onClose={onClose} hideBackdrop>
+      <Box tabIndex={-1} sx={{ outline: 'none' }}>
         <Box
           sx={{
+            position: 'fixed',
+            inset: 0,
+            bgcolor: 'rgba(0,0,0,0.75)',
+            zIndex: 50,
+          }}
+          aria-hidden="true"
+          onClick={onClose}
+        />
+        <Box
+          role="dialog"
+          aria-modal="true"
+          aria-label="Receipt Preview"
+          sx={{
+            position: 'fixed',
+            inset: 16,
+            bgcolor: 'background.paper',
+            borderRadius: tokens.radius.xl,
+            zIndex: 50,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            p: 2,
-            borderBottom: '1px solid var(--border-color)',
+            flexDirection: 'column',
           }}
         >
-          <Typography style={{ fontSize: 18, fontWeight: 700 }}>Receipt Preview</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton
-              size="small"
-              onClick={handleZoomOut}
-              title="Zoom Out"
-              sx={{ borderRadius: tokens.radius.sm }}
-            >
-              <ZoomOut style={{ width: 20, height: 20 }} />
-            </IconButton>
-            <Typography style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
-              {zoom}%
-            </Typography>
-            <IconButton
-              size="small"
-              onClick={handleZoomIn}
-              title="Zoom In"
-              sx={{ borderRadius: tokens.radius.sm }}
-            >
-              <ZoomIn style={{ width: 20, height: 20 }} />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={onClose}
-              title="Close"
-              sx={{ ml: 2, borderRadius: tokens.radius.sm }}
-            >
-              <X style={{ width: 20, height: 20 }} />
-            </IconButton>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              p: 2,
+              borderBottom: '1px solid var(--border-color)',
+            }}
+          >
+            <Typography style={{ fontSize: 18, fontWeight: 700 }}>Receipt Preview</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <IconButton
+                size="small"
+                onClick={handleZoomOut}
+                title="Zoom Out"
+                sx={{ borderRadius: tokens.radius.sm }}
+              >
+                <ZoomOut style={{ width: 20, height: 20 }} />
+              </IconButton>
+              <Typography style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+                {zoom}%
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={handleZoomIn}
+                title="Zoom In"
+                sx={{ borderRadius: tokens.radius.sm }}
+              >
+                <ZoomIn style={{ width: 20, height: 20 }} />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={onClose}
+                title="Close"
+                sx={{ ml: 2, borderRadius: tokens.radius.sm }}
+              >
+                <X style={{ width: 20, height: 20 }} />
+              </IconButton>
+            </Box>
+          </Box>
+
+          <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+            <div style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top left' }}>
+              {renderPreviewContent()}
+            </div>
           </Box>
         </Box>
-
-        <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-          <div style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top left' }}>
-            {renderPreviewContent()}
-          </div>
-        </Box>
       </Box>
-    </>
+    </Modal>
   );
 }

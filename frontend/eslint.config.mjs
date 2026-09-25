@@ -28,6 +28,8 @@ export default tseslint.config(
       'storybook-static/**',
       '**/*.config.{js,mjs,cjs,ts}',
       'next-env.d.ts',
+      // Node dev tooling (plain .mjs, outside the TS project); Biome still checks it.
+      'scripts/**',
     ],
   },
 

@@ -102,6 +102,13 @@ $lumio-radius-lg:   16px;
 $lumio-radius-xl:   20px;
 $lumio-radius-full: 999px;
 
+// ── Keyboard focus ring ───────────────────────────────────────
+// Drawn outside the element (utils/_focus.scss). Containers that clip their children leave
+// $lumio-focus-ring-reach of room around focusable items (@mixin focus-room).
+$lumio-focus-ring-width:  2px;
+$lumio-focus-ring-offset: 2px;
+$lumio-focus-ring-reach:  $lumio-focus-ring-width + $lumio-focus-ring-offset;
+
 // ── Shadows ───────────────────────────────────────────────────
 $lumio-shadow-xs: 0 1px 0 0 rgba(12, 12, 20, 0.04);
 $lumio-shadow-sm: 0 1px 2px 0 rgba(12, 12, 20, 0.05), 0 1px 0 0 rgba(12, 12, 20, 0.02);

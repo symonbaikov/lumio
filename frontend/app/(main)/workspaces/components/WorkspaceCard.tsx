@@ -191,6 +191,7 @@ export function WorkspaceCard({ workspace, onClick, onFavoriteToggle }: Workspac
           borderRadius: tokens.radius.full,
           transition: 'opacity 0.2s',
           opacity: isHovered || isFavorite ? 1 : 0,
+          '&:focus-visible': { opacity: 1 },
           bgcolor: 'transparent',
           color: '#ffffff',
           '&:hover': {

@@ -357,6 +357,9 @@ export function StatementsListHeader({
             alignItems: 'center',
             gap: 8,
             overflowX: 'auto',
+            // Room for the chips' focus rings inside the clipping row, taken back by the margin.
+            padding: tokens.focusRing.reach,
+            margin: -tokens.focusRing.reach,
           }}
           data-tour-id="statements-filters"
         >

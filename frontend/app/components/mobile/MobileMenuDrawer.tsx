@@ -1,5 +1,6 @@
 'use client';
 
+import FocusTrap from '@mui/material/Unstable_TrapFocus';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
@@ -59,63 +60,72 @@ export function MobileMenuDrawer({ open, onClose }: MobileMenuDrawerProps) {
         aria-hidden="true"
       />
 
-      {/* Drawer panel */}
-      <aside
-        className={`lumio-mobile-drawer${open ? ' lumio-mobile-drawer--open' : ''}`}
-        aria-label="Menu"
-      >
-        <div className="lumio-mobile-drawer__header">
-          <span className="lumio-mobile-drawer__title">Menu</span>
-          <button
-            type="button"
-            className="lumio-mobile-drawer__close"
-            onClick={onClose}
-            aria-label="Close menu"
-          >
-            <X size={20} />
-          </button>
-        </div>
+      {/* Drawer panel: inert while slid off-canvas; when open, focus moves in, stays inside
+          and returns to the trigger on close. */}
+      <FocusTrap open={open}>
+        <aside
+          className={`lumio-mobile-drawer${open ? ' lumio-mobile-drawer--open' : ''}`}
+          aria-label="Menu"
+          inert={!open}
+          tabIndex={-1}
+        >
+          <div className="lumio-mobile-drawer__header">
+            <span className="lumio-mobile-drawer__title">Menu</span>
+            <button
+              type="button"
+              className="lumio-mobile-drawer__close"
+              onClick={onClose}
+              aria-label="Close menu"
+            >
+              <X size={20} />
+            </button>
+          </div>
 
-        <nav className="lumio-mobile-drawer__nav">
-          <div className="lumio-mobile-drawer__section-label">Workspace</div>
-          {visibleNavItems.map(item => {
-            const active = isNavItemActive(pathname ?? '', item.path);
-            return (
-              <Link
-                key={item.path}
-                href={item.path}
-                className={`lumio-mobile-drawer__item${active ? ' lumio-mobile-drawer__item--active' : ''}`}
-                onClick={onClose}
-              >
-                <span className="lumio-mobile-drawer__item-icon">{item.icon}</span>
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+          <nav className="lumio-mobile-drawer__nav">
+            <div className="lumio-mobile-drawer__section-label">Workspace</div>
+            {visibleNavItems.map(item => {
+              const active = isNavItemActive(pathname ?? '', item.path);
+              return (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  className={`lumio-mobile-drawer__item${active ? ' lumio-mobile-drawer__item--active' : ''}`}
+                  onClick={onClose}
+                >
+                  <span className="lumio-mobile-drawer__item-icon">{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
 
-        <div className="lumio-mobile-drawer__footer">
-          <Link href="/settings/profile" className="lumio-mobile-drawer__item" onClick={onClose}>
-            <span className="lumio-mobile-drawer__item-icon">
-              <Settings size={18} />
-            </span>
-            <span>Settings</span>
-          </Link>
-          <button
-            type="button"
-            className="lumio-mobile-drawer__item"
-            onClick={() => {
-              window.open('https://symonbaikov.github.io/lumio/', '_blank', 'noopener,noreferrer');
-              onClose();
-            }}
-          >
-            <span className="lumio-mobile-drawer__item-icon">
-              <HelpCircle size={18} />
-            </span>
-            <span>Help</span>
-          </button>
-        </div>
-      </aside>
+          <div className="lumio-mobile-drawer__footer">
+            <Link href="/settings/profile" className="lumio-mobile-drawer__item" onClick={onClose}>
+              <span className="lumio-mobile-drawer__item-icon">
+                <Settings size={18} />
+              </span>
+              <span>Settings</span>
+            </Link>
+            <button
+              type="button"
+              className="lumio-mobile-drawer__item"
+              onClick={() => {
+                window.open(
+                  'https://symonbaikov.github.io/lumio/',
+                  '_blank',
+                  'noopener,noreferrer',
+                );
+                onClose();
+              }}
+            >
+              <span className="lumio-mobile-drawer__item-icon">
+                <HelpCircle size={18} />
+              </span>
+              <span>Help</span>
+            </button>
+          </div>
+        </aside>
+      </FocusTrap>
     </>
   );
 }

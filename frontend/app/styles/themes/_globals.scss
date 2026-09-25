@@ -217,14 +217,6 @@ input[type='checkbox']:not(.PrivateSwitchBase-input) {
   }
 }
 
-:focus-visible {
-  outline: 2px solid $color-primary;
-  outline-offset: 2px;
-  border-radius: $lumio-radius-xs;
-
-  @include dark { outline-color: $color-primary-dk; }
-}
-
 // ── Font helper classes ───────────────────────────────────────
 .ff-dashboard-sans { font-family: $lumio-font-family; }
 .ff-dashboard-mono { font-family: $lumio-font-family-mono; }
@@ -304,20 +296,25 @@ body.ff-table-fullscreen {
 
 body.ff-col-resizing { user-select: none; }
 
+// ── Custom table column menu ──────────────────────────────────
+// Кнопка меню колонки не должна шуметь в каждой шапке: видна при наведении,
+// фокусе и пока меню открыто.
+.custom-table-container th .ct-column-menu-trigger {
+  opacity: 0.35;
+  transition: opacity 0.15s;
+}
+
+.custom-table-container th:hover .ct-column-menu-trigger,
+.custom-table-container th:focus-within .ct-column-menu-trigger,
+.custom-table-container th .ct-column-menu-trigger[aria-expanded="true"] {
+  opacity: 1;
+}
+
 // ── Side panel + breadcrumbs ──────────────────────────────────
 @media (min-width: 1024px) {
   body[data-side-panel-active="true"] [data-global-breadcrumbs] {
     display: none;
   }
-}
-
-// ── Custom table row fill ─────────────────────────────────────
-.custom-table-container tr.row-fill td {
-  background-color: inherit;
-
-  input,
-  select,
-  textarea { background-color: transparent; }
 }
 
 // ── MUI hover in light mode ───────────────────────────────────

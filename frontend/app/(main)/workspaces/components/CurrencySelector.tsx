@@ -1,9 +1,11 @@
 'use client';
 
 import Box from '@mui/material/Box';
+import Modal from '@mui/material/Modal';
 import Typography from '@mui/material/Typography';
 import React, { useMemo, useState } from 'react';
 import { Check, ChevronDown, Search, X } from '@/app/components/icons';
+import { closeOnBackdropClick } from '@/app/components/ui/backdrop-click';
 import {
   buildCurrencySearchIndex,
   type CurrencySearchItem,
@@ -446,8 +448,11 @@ export function CurrencySelector({
         </button>
       )}
       {isOpen && mode === 'inline' && <Box sx={{ mt: minimal ? 0.5 : 1.5 }}>{panel}</Box>}
-      {isOpen && mode !== 'inline' && (
+      {/* Modal traps focus inside the picker, closes on Escape and restores focus. */}
+      <Modal open={isOpen && mode !== 'inline'} onClose={handleClose} hideBackdrop>
         <Box
+          tabIndex={-1}
+          onClick={closeOnBackdropClick(handleClose)}
           sx={{
             position: 'fixed',
             inset: 0,
@@ -456,11 +461,19 @@ export function CurrencySelector({
             alignItems: 'center',
             justifyContent: 'center',
             p: 2,
+            outline: 'none',
           }}
         >
-          <Box sx={{ width: '100%', maxWidth: 896 }}>{panel}</Box>
+          <Box
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+            sx={{ width: '100%', maxWidth: 896 }}
+          >
+            {panel}
+          </Box>
         </Box>
-      )}
+      </Modal>
     </Box>
   );
 }
