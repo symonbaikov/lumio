@@ -121,9 +121,17 @@ export class GmailReceiptProcessor {
         throw new Error('Integration not found');
       }
 
-      // Check if receipt already exists
+      // The receipt goes into the workspace the mailbox was connected in.
+      const workspaceId = integration.workspaceId || integration.workspace?.id || null;
+
+      if (!workspaceId) {
+        throw new Error('No workspace found for integration');
+      }
+
+      // Check if receipt already exists; per workspace, as the same mailbox may
+      // be connected in several workspaces.
       const existing = await this.receiptRepository.findOne({
-        where: { gmailMessageId: job.payload.gmailMessageId },
+        where: { workspaceId, gmailMessageId: job.payload.gmailMessageId },
       });
 
       if (existing) {
@@ -135,7 +143,7 @@ export class GmailReceiptProcessor {
       }
 
       // Fetch message from Gmail
-      const message = await this.gmailService.getMessage(job.userId, job.payload.gmailMessageId);
+      const message = await this.gmailService.getMessage(workspaceId, job.payload.gmailMessageId);
 
       // Extract metadata
       const headers = message.payload?.headers || [];
@@ -171,7 +179,7 @@ export class GmailReceiptProcessor {
       for (const attachment of attachments) {
         try {
           const filePath = await this.gmailService.downloadAttachment(
-            job.userId,
+            workspaceId,
             job.payload.gmailMessageId,
             attachment.id,
             attachment.filename,
@@ -235,13 +243,6 @@ export class GmailReceiptProcessor {
           this.logger.error('Failed to parse receipt from email body', error);
           initialStatus = ReceiptStatus.NEEDS_REVIEW;
         }
-      }
-
-      // Get workspace ID
-      const workspaceId = integration.workspaceId || integration.workspace?.id || null;
-
-      if (!workspaceId) {
-        throw new Error('No workspace found for integration');
       }
 
       // Create receipt

@@ -1,7 +1,7 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Category, GmailSettings, Receipt, Transaction, User } from '../../../../src/entities';
+import { Category, GmailSettings, Receipt, Transaction } from '../../../../src/entities';
 import { PermissionsGuard } from '../../../../src/common/guards/permissions.guard';
 import { WorkspaceContextGuard } from '../../../../src/common/guards/workspace-context.guard';
 import { GmailController } from '../../../../src/modules/gmail/gmail.controller';
@@ -18,12 +18,6 @@ describe('GmailController - Sync Endpoint', () => {
   let controller: GmailController;
   let gmailSyncService: jest.Mocked<GmailSyncService>;
 
-  const mockUser: Partial<User> = {
-    id: 'user-123',
-    workspaceId: 'ws-123',
-    email: 'test@example.com',
-  };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [GmailController],
@@ -31,7 +25,7 @@ describe('GmailController - Sync Endpoint', () => {
         {
           provide: GmailSyncService,
           useValue: {
-            syncForUser: jest.fn().mockResolvedValue({
+            syncForWorkspace: jest.fn().mockResolvedValue({
               messagesFound: 5,
               jobsCreated: 3,
               skipped: 2,
@@ -72,9 +66,9 @@ describe('GmailController - Sync Endpoint', () => {
 
   describe('POST /integrations/gmail/sync', () => {
     it('should trigger manual sync and return results', async () => {
-      const result = await controller.triggerSync(mockUser as User);
+      const result = await controller.triggerSync('ws-123');
 
-      expect(gmailSyncService.syncForUser).toHaveBeenCalledWith('user-123');
+      expect(gmailSyncService.syncForWorkspace).toHaveBeenCalledWith('ws-123');
       expect(result).toEqual({
         success: true,
         messagesFound: 5,
@@ -86,9 +80,9 @@ describe('GmailController - Sync Endpoint', () => {
     });
 
     it('should handle sync errors', async () => {
-      gmailSyncService.syncForUser.mockRejectedValue(new Error('Gmail API error'));
+      gmailSyncService.syncForWorkspace.mockRejectedValue(new Error('Gmail API error'));
 
-      await expect(controller.triggerSync(mockUser as User)).rejects.toThrow();
+      await expect(controller.triggerSync('ws-123')).rejects.toThrow();
     });
   });
 });

@@ -6,6 +6,8 @@ import {
   IntegrationStatus,
   IntegrationToken,
   User,
+  WorkspaceMember,
+  WorkspaceRole,
 } from '../../entities';
 import { decryptText, encryptText } from '../utils/encryption.util';
 import { secretsMatch } from '../utils/secret-compare.util';
@@ -29,6 +31,7 @@ export abstract class OAuthIntegrationBaseService {
     protected readonly integrationRepository: OAuthRepositoryLike<Integration>,
     protected readonly integrationTokenRepository: OAuthRepositoryLike<IntegrationToken>,
     protected readonly userRepository: OAuthRepositoryLike<User>,
+    protected readonly workspaceMemberRepository?: OAuthRepositoryLike<WorkspaceMember>,
   ) {}
 
   protected abstract getProvider(): IntegrationProvider;
@@ -99,6 +102,46 @@ export abstract class OAuthIntegrationBaseService {
     }
 
     return integration;
+  }
+
+  /** A workspace has at most one integration per provider (UQ_integrations_workspace_provider). */
+  protected findWorkspaceIntegration(workspaceId: string): Promise<Integration | null> {
+    return this.integrationRepository.findOne({
+      where: { workspaceId, provider: this.getProvider() },
+      relations: ['token', this.getSettingsRelationName()],
+    });
+  }
+
+  protected async ensureWorkspaceIntegration(workspaceId: string): Promise<Integration> {
+    const integration = await this.findWorkspaceIntegration(workspaceId);
+    if (!integration) {
+      throw new NotFoundException(`${this.getProviderName()} integration not found`);
+    }
+
+    return integration;
+  }
+
+  /**
+   * The workspace an OAuth callback connects: the one the signed state carries,
+   * as long as the user still manages that workspace's integrations. The
+   * provider redirects back without the workspace header, so the state is the
+   * only record of where the connection was started.
+   */
+  protected async resolveStateWorkspaceId(
+    state: Record<string, unknown>,
+    userId: string,
+  ): Promise<string | null> {
+    const workspaceId = typeof state.workspaceId === 'string' ? state.workspaceId : null;
+    if (!(workspaceId && this.workspaceMemberRepository)) {
+      return null;
+    }
+
+    const membership = await this.workspaceMemberRepository.findOne({
+      where: { workspaceId, userId },
+    });
+    const canManage =
+      membership && [WorkspaceRole.OWNER, WorkspaceRole.ADMIN].includes(membership.role);
+    return canManage ? workspaceId : null;
   }
 
   protected async ensureValidAccessToken(integration: Integration): Promise<string> {

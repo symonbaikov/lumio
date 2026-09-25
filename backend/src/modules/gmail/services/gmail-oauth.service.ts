@@ -14,6 +14,7 @@ import {
   IntegrationStatus,
   IntegrationToken,
   User,
+  WorkspaceMember,
 } from '../../../entities';
 
 const GMAIL_SCOPES = [
@@ -44,8 +45,15 @@ export class GmailOAuthService extends OAuthIntegrationBaseService {
     private readonly gmailSettingsRepository: Repository<GmailSettings>,
     @InjectRepository(User)
     userRepository: Repository<User>,
+    @InjectRepository(WorkspaceMember)
+    workspaceMemberRepository: Repository<WorkspaceMember>,
   ) {
-    super(integrationRepository, integrationTokenRepository, userRepository);
+    super(
+      integrationRepository,
+      integrationTokenRepository,
+      userRepository,
+      workspaceMemberRepository,
+    );
   }
 
   protected getProvider(): IntegrationProvider {
@@ -116,19 +124,20 @@ export class GmailOAuthService extends OAuthIntegrationBaseService {
     return (await response.json()) as GoogleTokenResponse;
   }
 
-  override async findIntegrationForUser(userId: string) {
-    return super.findIntegrationForUser(userId);
+  override findWorkspaceIntegration(workspaceId: string) {
+    return super.findWorkspaceIntegration(workspaceId);
   }
 
-  override async ensureIntegration(userId: string) {
-    return super.ensureIntegration(userId);
+  override ensureWorkspaceIntegration(workspaceId: string) {
+    return super.ensureWorkspaceIntegration(workspaceId);
   }
 
-  getAuthUrl(user: User): string {
+  /** The integration is bound to `workspaceId`, the workspace the user connects from. */
+  getAuthUrl(user: User, workspaceId: string): string {
     const { clientId, redirectUri } = this.getOAuthConfig();
     const state = this.buildState({
       userId: user.id,
-      workspaceId: user.workspaceId || null,
+      workspaceId,
       redirect: `${this.getFrontendBaseUrl()}/integrations/gmail`,
     });
 
@@ -174,11 +183,16 @@ export class GmailOAuthService extends OAuthIntegrationBaseService {
 
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      select: ['id', 'workspaceId'],
+      select: ['id'],
     });
 
     if (!user) {
       return { redirectUrl: `${redirectBase}?status=error&reason=user_not_found` };
+    }
+
+    const workspaceId = await this.resolveStateWorkspaceId(state, user.id);
+    if (!workspaceId) {
+      return { redirectUrl: `${redirectBase}?status=error&reason=workspace_forbidden` };
     }
 
     const tokens = await this.requestToken({
@@ -192,14 +206,8 @@ export class GmailOAuthService extends OAuthIntegrationBaseService {
       return { redirectUrl: `${redirectBase}?status=error&reason=missing_tokens` };
     }
 
-    const workspaceId = user.workspaceId || null;
     const existing = await this.integrationRepository.findOne({
-      where: workspaceId
-        ? { workspaceId, provider: IntegrationProvider.GMAIL }
-        : {
-            connectedByUserId: user.id,
-            provider: IntegrationProvider.GMAIL,
-          },
+      where: { workspaceId, provider: IntegrationProvider.GMAIL },
       relations: ['token', 'gmailSettings'],
     });
 
@@ -327,8 +335,8 @@ export class GmailOAuthService extends OAuthIntegrationBaseService {
     }
   }
 
-  async getGmailClient(userId: string) {
-    const integration = await this.ensureIntegration(userId);
+  async getGmailClient(workspaceId: string) {
+    const integration = await this.ensureWorkspaceIntegration(workspaceId);
 
     // If the integration is already marked as needing re-auth, fail fast
     if (integration.status === IntegrationStatus.NEEDS_REAUTH) {
@@ -380,8 +388,8 @@ export class GmailOAuthService extends OAuthIntegrationBaseService {
     return { accessToken, integration };
   }
 
-  async disconnect(userId: string): Promise<void> {
-    const integration = await this.ensureIntegration(userId);
+  async disconnect(workspaceId: string): Promise<void> {
+    const integration = await this.ensureWorkspaceIntegration(workspaceId);
 
     // Delete token
     await this.integrationTokenRepository.delete({ integrationId: integration.id });

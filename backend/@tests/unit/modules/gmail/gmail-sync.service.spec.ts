@@ -132,14 +132,23 @@ describe('GmailSyncService', () => {
     });
   });
 
-  describe('syncForUser', () => {
+  describe('syncForWorkspace', () => {
     it('should create processing jobs for new messages', async () => {
       integrationRepo.findOne.mockResolvedValue(mockIntegration as Integration);
       gmailService.listMessages.mockResolvedValue(mockMessages);
       receiptRepo.findOne.mockResolvedValue(null);
 
-      const result = await service.syncForUser('user-123');
+      const result = await service.syncForWorkspace('ws-123');
 
+      expect(integrationRepo.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ workspaceId: 'ws-123' }),
+        }),
+      );
+      // Deduplicated within the workspace: another workspace may hold the same message.
+      expect(receiptRepo.findOne).toHaveBeenCalledWith({
+        where: { workspaceId: 'ws-123', gmailMessageId: mockMessages[0].id },
+      });
       expect(jobRepo.create).toHaveBeenCalledTimes(2);
       expect(jobRepo.save).toHaveBeenCalledTimes(2);
       expect(result.messagesFound).toBe(2);
@@ -154,7 +163,7 @@ describe('GmailSyncService', () => {
         .mockResolvedValueOnce({ id: 'existing-receipt' } as Receipt)
         .mockResolvedValueOnce(null);
 
-      const result = await service.syncForUser('user-123');
+      const result = await service.syncForWorkspace('ws-123');
 
       expect(result.jobsCreated).toBe(1);
       expect(result.skipped).toBe(1);
@@ -164,11 +173,11 @@ describe('GmailSyncService', () => {
       integrationRepo.findOne.mockResolvedValue(mockIntegration as Integration);
       gmailService.listMessages.mockResolvedValue([]);
 
-      await service.syncForUser('user-123');
+      await service.syncForWorkspace('ws-123');
 
       expect(gmailService.listMessages).toHaveBeenNthCalledWith(
         1,
-        'user-123',
+        'ws-123',
         expect.stringContaining('has:attachment'),
         { includeLabelFilter: true },
       );
@@ -186,7 +195,7 @@ describe('GmailSyncService', () => {
       integrationRepo.findOne.mockResolvedValue(firstSyncIntegration);
       gmailService.listMessages.mockResolvedValue([]);
 
-      await service.syncForUser('user-123');
+      await service.syncForWorkspace('ws-123');
 
       const [, query] = gmailService.listMessages.mock.calls[0];
       expect(query).not.toContain('label:');
@@ -198,7 +207,7 @@ describe('GmailSyncService', () => {
       receiptRepo.count.mockResolvedValue(2);
       gmailService.listMessages.mockResolvedValue([]);
 
-      await service.syncForUser('user-123');
+      await service.syncForWorkspace('ws-123');
 
       const [, query, options] = gmailService.listMessages.mock.calls[0];
       expect(options).toEqual({ includeLabelFilter: true });
@@ -219,7 +228,7 @@ describe('GmailSyncService', () => {
       receiptRepo.count.mockResolvedValue(0);
       gmailService.listMessages.mockResolvedValue([]);
 
-      await service.syncForUser('user-123');
+      await service.syncForWorkspace('ws-123');
 
       const [, query] = gmailService.listMessages.mock.calls[0];
       expect(query).not.toContain('after:');
