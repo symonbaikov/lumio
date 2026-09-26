@@ -1,14 +1,174 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "89ac9e92a32ec6925fe9df7f9d24c0d6c7357057"
+      "main": "9472c11912ae58be03c502a364315ee2c5cceec3"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-26T21:14:36.890Z",
+    "lastGeneratedAt": "2026-09-26T21:19:23.580Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-09-26-9472c11",
+      "version": "main-9472c11",
+      "branch": "main",
+      "date": "2026-09-26T21:19:23.580Z",
+      "title": "Release update - September 26, 2026",
+      "summary": "This release includes 3 features.",
+      "markdown": "## Features\n- **search**: Turn header search into a drawer with Search and Favorites tabs\n- **invoices**: Add clients, itemized invoices, PDF export and recurrence\n- **security**: Add a download button for 2FA recovery codes",
+      "commits": [
+        {
+          "sha": "b0be46f94ff5e63d14d80c0f0b6baa736ce717bd",
+          "shortSha": "b0be46f9",
+          "subject": "feat(search): turn header search into a drawer with Search and Favorites tabs",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:14:04+03:00",
+          "files": [
+            "backend/@tests/unit/modules/search/search.service.spec.ts",
+            "backend/src/entities/index.ts",
+            "backend/src/entities/statement-favorite.entity.ts",
+            "backend/src/migrations/1786520000000-CreateStatementFavorites.ts",
+            "backend/src/modules/search/search.controller.ts",
+            "backend/src/modules/search/search.module.ts",
+            "backend/src/modules/search/search.service.ts",
+            "frontend/app/components/GlobalSearch.test.tsx",
+            "frontend/app/components/GlobalSearch.tsx",
+            "frontend/app/components/icons/index.tsx",
+            "frontend/app/components/panels/panel-ui.tsx",
+            "frontend/app/components/ui/EmptyStateIllustration.tsx",
+            "frontend/app/lib/query-keys.test.ts",
+            "frontend/app/lib/query-keys.ts",
+            "frontend/public/images/empty-states/favorites.svg"
+          ]
+        },
+        {
+          "sha": "abf6412d2b88643055d83766249848689e394565",
+          "shortSha": "abf6412d",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-26T21:14:37Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "6b534ac2714cfa8036bf5fb409f9f0cf0e88ca46",
+          "shortSha": "6b534ac2",
+          "subject": "feat(invoices): add clients, itemized invoices, PDF export and recurrence",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:15:46+03:00",
+          "files": [
+            "README.md",
+            "backend/@tests/integration/ledger-posting.spec.ts",
+            "backend/@tests/unit/entities/ledger-account.entity.spec.ts",
+            "backend/@tests/unit/modules/invoices/invoices.scheduler.spec.ts",
+            "backend/@tests/unit/modules/invoices/invoices.service.spec.ts",
+            "backend/src/app.module.ts",
+            "backend/src/common/enums/permissions.enum.ts",
+            "backend/src/common/errors/app-error.ts",
+            "backend/src/common/guards/permissions.guard.ts",
+            "backend/src/entities/audit-event.entity.ts",
+            "backend/src/entities/client.entity.ts",
+            "backend/src/entities/index.ts",
+            "backend/src/entities/invoice-counter.entity.ts",
+            "backend/src/entities/invoice-line-item.entity.ts",
+            "backend/src/entities/invoice.entity.ts",
+            "backend/src/entities/journal-entry.entity.ts",
+            "backend/src/migrations/1786530000000-CreateClients.ts",
+            "backend/src/migrations/1786540000000-CreateInvoiceCounters.ts",
+            "backend/src/migrations/1786550000000-CreateInvoices.ts",
+            "backend/src/migrations/1786560000000-CreateInvoiceLineItems.ts",
+            "backend/src/migrations/1786570000000-AllowInvoiceJournalEntrySource.ts",
+            "backend/src/migrations/1786580000000-AddInvoiceAndClientToAuditEntityTypeEnum.ts",
+            "backend/src/modules/audit/description/audit-description.service.ts",
+            "backend/src/modules/invoices/clients.controller.ts",
+            "backend/src/modules/invoices/clients.service.ts",
+            "backend/src/modules/invoices/dto/create-client.dto.ts",
+            "backend/src/modules/invoices/dto/create-invoice.dto.ts",
+            "backend/src/modules/invoices/dto/filter-invoices.dto.ts",
+            "backend/src/modules/invoices/dto/invoice-line-item.dto.ts",
+            "backend/src/modules/invoices/dto/update-client.dto.ts",
+            "backend/src/modules/invoices/dto/update-invoice.dto.ts",
+            "backend/src/modules/invoices/invoice-document.ts",
+            "backend/src/modules/invoices/invoice-recurrence.util.ts",
+            "backend/src/modules/invoices/invoices.controller.ts",
+            "backend/src/modules/invoices/invoices.module.ts",
+            "backend/src/modules/invoices/invoices.scheduler.ts",
+            "backend/src/modules/invoices/invoices.service.ts",
+            "backend/src/modules/ledger/ledger-default-accounts.ts",
+            "backend/src/modules/ledger/ledger-posting.service.ts",
+            "backend/src/modules/ledger/ledger.module.ts",
+            "frontend/app/(main)/invoices/[id]/page.tsx",
+            "frontend/app/(main)/invoices/clients/page.tsx",
+            "frontend/app/(main)/invoices/components/ClientDrawer.tsx",
+            "frontend/app/(main)/invoices/components/ClientsView.tsx",
+            "frontend/app/(main)/invoices/components/InvoiceDetailView.tsx",
+            "frontend/app/(main)/invoices/components/InvoicesListView.tsx",
+            "frontend/app/(main)/invoices/components/invoices-format.ts",
+            "frontend/app/(main)/invoices/page.content.ts",
+            "frontend/app/(main)/invoices/page.tsx",
+            "frontend/app/(main)/statements/components/payables/CreatePayableDrawer.tsx",
+            "frontend/app/components/navigation.content.ts",
+            "frontend/app/components/navigation/helpers/navigation-config.test.ts",
+            "frontend/app/components/navigation/helpers/navigation-config.ts",
+            "frontend/app/hooks/useCurrencyPickerState.ts",
+            "frontend/app/hooks/usePermissions.ts",
+            "frontend/app/lib/invoices-api.ts",
+            "frontend/app/lib/query-keys.ts"
+          ]
+        },
+        {
+          "sha": "0abc5fb3ad152030ba1ed0ff80ae0c87372bd646",
+          "shortSha": "0abc5fb3",
+          "subject": "feat(security): add a download button for 2FA recovery codes",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:16:56+03:00",
+          "files": [
+            "frontend/app/settings/profile/components/RecoveryCodesDownloadButton.test.tsx",
+            "frontend/app/settings/profile/components/RecoveryCodesDownloadButton.tsx",
+            "frontend/app/settings/profile/components/TwoFactorPanels.tsx",
+            "frontend/app/settings/profile/components/TwoFactorSection.tsx",
+            "frontend/app/settings/profile/helpers/recovery-codes-file.test.ts",
+            "frontend/app/settings/profile/helpers/recovery-codes-file.ts",
+            "frontend/app/settings/profile/page.content.ts",
+            "frontend/app/settings/profile/page.tsx",
+            "frontend/app/settings/profile/tabs/SecurityTab.tsx",
+            "frontend/package-lock.json",
+            "frontend/package.json"
+          ]
+        },
+        {
+          "sha": "ead23fbbb83ef4776014e44ed69cafadb9b136cd",
+          "shortSha": "ead23fbb",
+          "subject": "Merge pull request #202 from symonbaikov/feat/invoices",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:17:50+03:00",
+          "files": [
+            "README.md"
+          ]
+        },
+        {
+          "sha": "ae5f4845588f174d912c4c17cf4bc6e9254901e7",
+          "shortSha": "ae5f4845",
+          "subject": "Merge pull request #203 from symonbaikov/feat/recovery-codes-download",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:18:31+03:00",
+          "files": []
+        },
+        {
+          "sha": "9472c11912ae58be03c502a364315ee2c5cceec3",
+          "shortSha": "9472c119",
+          "subject": "Merge pull request #201 from symonbaikov/feat/search-drawer",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:18:50+03:00",
+          "files": [
+            "backend/src/entities/index.ts",
+            "frontend/app/lib/query-keys.ts"
+          ]
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-26-89ac9e9",
       "version": "main-89ac9e9",
