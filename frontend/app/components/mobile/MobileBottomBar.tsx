@@ -13,10 +13,11 @@ import {
   ScanLine,
   Upload,
 } from '@/app/components/icons';
+import { AUTH_ROUTE_PREFIXES } from '@/app/lib/auth-routes';
 import { isNavItemActive } from '../navigation/helpers/navigation-config';
 import { MobileMenuDrawer } from './MobileMenuDrawer';
 
-const HIDDEN_PATHS = ['/onboarding', '/login', '/register', '/shared', '/invite', '/chat'];
+const HIDDEN_PATHS = ['/onboarding', ...AUTH_ROUTE_PREFIXES, '/shared', '/invite', '/chat'];
 
 const FAB_ACTIONS = [
   {

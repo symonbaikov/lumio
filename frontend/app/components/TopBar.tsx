@@ -12,6 +12,7 @@ import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import { AUTH_ROUTE_PREFIXES } from '@/app/lib/auth-routes';
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
 import { useExperimentalMode } from '@/app/lib/experimental-mode';
 import { getRecord, resolveLabel } from '@/app/lib/side-panel-utils';
@@ -27,7 +28,7 @@ import { UserMenuTriggerAndDropdown } from './navigation/UserMenu';
 import { openAppPanel } from './panels/app-panels-store';
 import { openWelcomeTutorial } from './welcome-tutorial/welcome-tutorial-store';
 
-const HIDDEN_PATHS = ['/onboarding', '/login', '/register', '/shared', '/invite', '/chat'];
+const HIDDEN_PATHS = ['/onboarding', ...AUTH_ROUTE_PREFIXES, '/shared', '/invite', '/chat'];
 
 export default function TopBar() {
   const pathname = usePathname();

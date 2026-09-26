@@ -3,6 +3,7 @@
 import { NotificationDropdown } from '@/app/components/NotificationDropdown';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
+import { AUTH_ROUTE_PREFIXES } from '@/app/lib/auth-routes';
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
 import { getRecord, resolveLabel } from '@/app/lib/side-panel-utils';
 import { TourMenu } from '@/app/tours/components/TourMenu';
@@ -36,7 +37,7 @@ import { MobileDrawer } from './navigation/MobileDrawer';
 import { UserMenuTriggerAndDropdown } from './navigation/UserMenu';
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['800', '900'] });
-const HIDDEN_PATHS = ['/onboarding', '/login', '/register', '/shared', '/invite'];
+const HIDDEN_PATHS = ['/onboarding', ...AUTH_ROUTE_PREFIXES, '/shared', '/invite'];
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types, max-lines-per-function, complexity
 export default function Navigation() {
