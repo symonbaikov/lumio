@@ -53,19 +53,20 @@ vi.mock('@/app/contexts/WorkspaceContext', () => ({
   useWorkspace: () => workspaceState,
 }));
 
-vi.mock('@/app/components/side-panel', () => ({
-  useSidePanelConfig: ({ config }: { config: unknown }) => {
-    capturedConfigRef.current = config as {
-      footer?: {
-        content?: React.ReactElement<{
-          onScan: () => void;
-          onGmail: () => void;
-          onLocalUpload: () => void;
-        }>;
-      };
-    };
-  },
-}));
+// Renders the config hook the way the shell does and keeps what it returns.
+async function importPanel() {
+  const { useStatementsSidePanelConfig } = await import('./StatementsSidePanel');
+  return function StatementsSidePanel({
+    activeItem,
+  }: {
+    activeItem?: Parameters<typeof useStatementsSidePanelConfig>[0];
+  }) {
+    capturedConfigRef.current = useStatementsSidePanelConfig(activeItem) as NonNullable<
+      typeof capturedConfigRef.current
+    >;
+    return null;
+  };
+}
 
 vi.mock('@/app/lib/api', () => ({
   default: {
@@ -91,7 +92,7 @@ describe('StatementsSidePanel FAB navigation', () => {
   });
 
   it('redirects to submit with scan drawer query from non-submit pages', async () => {
-    const { default: StatementsSidePanel } = await import('./StatementsSidePanel');
+    const StatementsSidePanel = await importPanel();
     const container = document.createElement('div');
     const root = createRoot(container);
 
@@ -116,7 +117,7 @@ describe('StatementsSidePanel FAB navigation', () => {
   it('routes inbox sync to IMAP setup when mailbox is not connected', async () => {
     const { default: apiClient } = await import('@/app/lib/api');
     const { payablesApi } = await import('@/app/lib/payables-api');
-    const { default: StatementsSidePanel } = await import('./StatementsSidePanel');
+    const StatementsSidePanel = await importPanel();
     authState.user = { id: 'user-1' };
 
     vi.mocked(apiClient.get).mockResolvedValue({ data: { connected: false } });
@@ -153,11 +154,8 @@ describe('StatementsSidePanel FAB navigation', () => {
     });
   });
 
-  it('uses Ban icon for unapproved cash navigation item', async () => {
-    const [{ default: StatementsSidePanel }, { Ban }] = await Promise.all([
-      import('./StatementsSidePanel'),
-      import('@/app/components/icons'),
-    ]);
+  it('keeps the navigation items text-only', async () => {
+    const StatementsSidePanel = await importPanel();
     const container = document.createElement('div');
     const root = createRoot(container);
 
@@ -165,12 +163,10 @@ describe('StatementsSidePanel FAB navigation', () => {
       root.render(<StatementsSidePanel activeItem="unapproved-cash" />);
     });
 
-    const unapprovedCashItem = capturedConfigRef.current?.sections
-      ?.flatMap(section => section.items ?? [])
-      .find(item => item.id === 'unapproved-cash');
+    const items = capturedConfigRef.current?.sections?.flatMap(section => section.items ?? []);
 
-    expect(React.isValidElement(unapprovedCashItem?.icon)).toBe(true);
-    expect((unapprovedCashItem?.icon as React.ReactElement).type).toBe(Ban);
+    expect(items?.length).toBeGreaterThan(0);
+    expect(items?.filter(item => item.icon)).toEqual([]);
 
     await act(async () => {
       root.unmount();
@@ -180,7 +176,7 @@ describe('StatementsSidePanel FAB navigation', () => {
   it('uses payables summary counts for the pay badge', async () => {
     const { default: apiClient } = await import('@/app/lib/api');
     const { payablesApi } = await import('@/app/lib/payables-api');
-    const { default: StatementsSidePanel } = await import('./StatementsSidePanel');
+    const StatementsSidePanel = await importPanel();
     authState.user = { id: 'user-1' };
 
     vi.mocked(payablesApi.getSummary).mockResolvedValue({
@@ -244,7 +240,7 @@ describe('StatementsSidePanel FAB navigation', () => {
   it('keeps pay badge from payables summary when statement flow fails', async () => {
     const { default: apiClient } = await import('@/app/lib/api');
     const { payablesApi } = await import('@/app/lib/payables-api');
-    const { default: StatementsSidePanel } = await import('./StatementsSidePanel');
+    const StatementsSidePanel = await importPanel();
     authState.user = { id: 'user-1' };
 
     vi.mocked(payablesApi.getSummary).mockResolvedValue({
@@ -304,7 +300,7 @@ describe('StatementsSidePanel FAB navigation', () => {
   it('does not show tables reports navigation item', async () => {
     const { default: apiClient } = await import('@/app/lib/api');
     const { payablesApi } = await import('@/app/lib/payables-api');
-    const { default: StatementsSidePanel } = await import('./StatementsSidePanel');
+    const StatementsSidePanel = await importPanel();
     authState.user = { id: 'user-1' };
 
     vi.mocked(payablesApi.getSummary).mockResolvedValue({

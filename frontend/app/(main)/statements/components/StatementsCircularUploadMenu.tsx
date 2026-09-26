@@ -384,6 +384,26 @@ export default function StatementsCircularUploadMenu({
     return null;
   }
 
+  // In the desktop side panel the menu is portaled out of the panel column, which
+  // is its own stacking context (sticky + z-index): inside it the menu could not
+  // rise over the page-wide backdrop. The shell pins it back over the panel
+  // footer (.lumio-shell__panel-fab); a spacer keeps the footer's height.
+  if (placement === 'panel' && portalReady) {
+    const portalTarget = document.querySelector('.lumio-shell') ?? document.body;
+    return (
+      <>
+        <div aria-hidden="true" style={styles.containerStyle} />
+        {backdrop}
+        {createPortal(
+          <div className="lumio-shell__panel-fab" style={{ zIndex: isOpen ? 310 : 36 }}>
+            {menu}
+          </div>,
+          portalTarget,
+        )}
+      </>
+    );
+  }
+
   if (placement === 'floating' && portalReady) {
     const portalTarget = document.getElementById('fab-portal') ?? document.body;
     return createPortal(

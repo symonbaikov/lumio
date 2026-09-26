@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import ShellSidePanel from './ShellSidePanel';
 import Sidebar from './Sidebar';
 
 function shouldHideChrome(pathname: string | null) {
@@ -25,5 +26,10 @@ export default function AppChrome() {
   }
 
   // Desktop sidebar (hidden on mobile via CSS; the bottom bar menu replaces it there)
-  return <Sidebar />;
+  return (
+    <>
+      <Sidebar />
+      <ShellSidePanel />
+    </>
+  );
 }

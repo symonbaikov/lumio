@@ -1,18 +1,33 @@
 // _shell.scss — BEM block for the vertical sidebar shell
 @use '../abstracts' as *;
 
+// Height of the logo block atop the main sidebar, top margin included. Fixed, so
+// the second sidebar can put its first heading level with "Workspace" in CSS alone.
+$lumio-sidebar-brand-height: 92px;
+// The logo-lockup.svg viewBox, cropped to the artwork, so the lockup can be sized by height alone.
+// Quoted: it is a CSS `aspect-ratio` value, not a division for Sass to fold.
+$lumio-logo-lockup-ratio: '1716 / 370';
+// Vertical centre of the logo text inside that block.
+$lumio-sidebar-brand-center: $lumio-focus-ring-reach +
+  ($lumio-sidebar-brand-height - $lumio-focus-ring-reach) * 0.5;
+
 // ── Layout shell ──
 .lumio-shell {
+  // Shared with the logo, which centres itself on the sidebar's right edge.
+  --lumio-sidebar-width: 192px;
+  // Top padding of the sidebar section label, which the panel heading lines up to.
+  --lumio-nav-label-pad-top: 8px;
+
   display: flex;
   min-height: 100vh;
 
   &__sidebar {
-    width: 248px;
+    width: var(--lumio-sidebar-width);
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     background: $lumio-color-surface;
-    border-right: 1px solid $lumio-color-border;
+    // No divider: the second sidebar (ShellSidePanel) sits right next to it.
     position: sticky;
     top: 0;
     height: 100vh;
@@ -22,7 +37,44 @@
 
     @include dark {
       background: $lumio-color-surface-dk;
-      border-right-color: $lumio-color-border-dk;
+    }
+  }
+
+  // Second sidebar (ShellSidePanel): full height, beside the main one. Hidden in
+  // CSS rather than JS so the server HTML already has it on desktop; phones use
+  // the drawer from MainSidePanelLayout.
+  &__side-panel {
+    display: none;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    z-index: 35;
+
+    @media (min-width: 1200px) {
+      display: block;
+    }
+
+    // First heading on the same line as the main sidebar's "Workspace" label;
+    // 6px is the heading's own top padding.
+    [data-side-panel-sections] {
+      padding-top: calc(#{$lumio-sidebar-brand-height} + var(--lumio-nav-label-pad-top) - 6px);
+    }
+  }
+
+  // The side panel's upload menu, portaled out of the panel column so it can rise
+  // over the page backdrop (StatementsCircularUploadMenu). Pinned where the panel
+  // footer puts it: the column starts at the sidebar's edge and fills the viewport
+  // height; 16px/12px are the footer's padding.
+  &__panel-fab {
+    display: none;
+    position: fixed;
+    left: calc(var(--lumio-sidebar-width) + 16px);
+    bottom: 12px;
+    pointer-events: none;
+
+    @media (min-width: 1200px) {
+      display: block;
     }
   }
 
@@ -44,25 +96,25 @@
 .lumio-sidebar__brand {
   display: flex;
   align-items: center;
+  // The logo alone heads the sidebar now (no workspace switcher or CTA under it),
+  // so it is larger and given the room those two used to take.
   margin: $lumio-focus-ring-reach $lumio-focus-ring-reach 0;
-  padding: 18px - $lumio-focus-ring-reach 16px - $lumio-focus-ring-reach 14px;
+  height: $lumio-sidebar-brand-height - $lumio-focus-ring-reach;
+  padding: 0 16px - $lumio-focus-ring-reach;
+  box-sizing: border-box;
   flex-shrink: 0;
   width: calc(100% - #{2 * $lumio-focus-ring-reach});
   text-decoration: none;
 
-  &-name {
-    flex: 1 1 auto;
-    min-width: 0;
-    font-family: var(--font-manrope), 'Manrope', sans-serif;
-    font-size: 20px;
-    font-weight: 700;
-    color: $lumio-color-text-primary;
-    letter-spacing: 0.32em;
-    text-transform: uppercase;
-    line-height: 1;
-    white-space: nowrap;
+  // An SVG loaded as a background cannot reach `currentColor`, so dark mode swaps
+  // in a variant whose wording is white and whose emblem stays green.
+  &-mark {
+    flex: 0 0 auto;
+    height: 33px;
+    aspect-ratio: #{$lumio-logo-lockup-ratio};
+    background: url('/images/logo-lockup.svg') no-repeat center / contain;
 
-    @include dark { color: $lumio-color-text-primary-dk; }
+    @include dark { background-image: url('/images/logo-lockup-dark.svg'); }
   }
 
   &-meta {
@@ -81,219 +133,25 @@
   }
 }
 
-// ── Workspace switcher ──
-.lumio-sidebar__ws-switcher {
-  margin: 0 10px 8px;
-  padding: 8px;
-  border-radius: $lumio-radius-md;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  position: relative;
-  border: 1px solid transparent;
-  transition: background 0.12s, border-color 0.12s;
-  flex-shrink: 0;
-
-  &:hover {
-    background: $lumio-color-ink-50;
-    border-color: $lumio-color-border;
-
-    @include dark {
-      background: $lumio-color-ink-100-dk;
-    }
-  }
-}
-
-.lumio-sidebar__ws-chip {
-  width: 28px;
-  height: 28px;
-  border-radius: $lumio-radius-sm;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.lumio-sidebar__ws-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.lumio-sidebar__ws-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: $lumio-color-text-primary;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  @include dark { color: $lumio-color-text-primary-dk; }
-}
-
-.lumio-sidebar__ws-role {
-  font-size: 11px;
-  color: $lumio-color-text-secondary;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  @include dark { color: $lumio-color-text-secondary-dk; }
-}
-
-.lumio-sidebar__ws-chevron {
-  color: $lumio-color-ink-400;
-
-  @include dark { color: $lumio-color-ink-400-dk; }
-  flex-shrink: 0;
-  transition: transform 0.15s;
-
-  &--open {
-    transform: rotate(180deg);
-  }
-}
-
-// Workspace dropdown
-.lumio-sidebar__ws-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: $lumio-color-surface;
-  border: 1px solid $lumio-color-border;
-  border-radius: $lumio-radius-md;
-  box-shadow: $lumio-shadow-md;
-  padding: 4px;
-  z-index: 50;
-
-  @include dark {
-    background: $lumio-color-surface-dk;
-    border-color: $lumio-color-border-dk;
-  }
-
-  &-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: $lumio-color-ink-400;
-    padding: 4px 8px 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-
-    @include dark { color: $lumio-color-ink-400-dk; }
-  }
-}
-
-.lumio-sidebar__ws-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 6px 8px;
-  border-radius: $lumio-radius-sm;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 13px;
-  color: $lumio-color-text-primary;
-  text-align: left;
-  transition: background 0.1s;
-
-  @include dark { color: $lumio-color-text-primary-dk; }
-
-  &:hover {
-    background: $lumio-color-ink-50;
-
-    @include dark {
-      background: $lumio-color-ink-100-dk;
-    }
-  }
-
-  &--active {
-    font-weight: 600;
-  }
-
-  &-name {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-// ── CTA button ──
-.lumio-sidebar__cta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 10px 12px;
-  padding: 9px 14px;
-  border-radius: $lumio-radius-full;
-  background: $lumio-color-forest;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  transition: background 0.15s, transform 0.06s;
-  box-shadow: none;
-
-  &:hover {
-    background: $lumio-color-primary-dark;
-  }
-
-  &:active {
-    transform: translateY(1px);
-  }
-
-  @include dark {
-    background: $lumio-color-primary-fill-dk;
-
-    &:hover {
-      background: $lumio-color-primary-fill-hover-dk;
-    }
-  }
-
-  &-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    border-radius: $lumio-radius-xs;
-    background: rgba(255, 255, 255, 0.15);
-  }
-}
-
-.lumio-sidebar__kbd {
-  margin-left: auto;
-  font-size: 10px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: $lumio-radius-xs;
-  padding: 1px 5px;
-  letter-spacing: 0.01em;
-}
-
 // ── Navigation ──
 .lumio-sidebar__nav {
   flex: 1;
+  // Column so the items can share the spare height (see __nav-item).
+  display: flex;
+  flex-direction: column;
   // Bottom room keeps the last item's focus ring inside the scroll area.
   padding: 0 10px $lumio-focus-ring-reach;
   overflow-y: auto;
 }
 
 .lumio-sidebar__section-label {
+  flex-shrink: 0;
   font-size: 10.5px;
   font-weight: 600;
   color: $lumio-color-ink-400;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  padding: 8px 8px 4px;
+  padding: var(--lumio-nav-label-pad-top) 8px 4px;
 
   @include dark { color: $lumio-color-ink-400-dk; }
 }
@@ -303,7 +161,12 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 8px 14px;
+  // Rows grow into the height left under the menu instead of leaving it empty
+  // on tall screens, and shrink back to 36px (then scroll) on short ones.
+  flex: 1 1 auto;
+  min-height: 36px;
+  max-height: 56px;
+  padding: 7px 10px;
   border-radius: $lumio-radius-full;
   background: transparent;
   border: none;
@@ -449,16 +312,15 @@
   align-items: center;
   gap: 8px;
   padding: 0 20px;
-  background: $lumio-color-surface;
-  border-bottom: 1px solid $lumio-color-border;
+  // Same colour as the page behind it, no divider: the bar blends into the page.
+  background: $lumio-color-bg;
   position: sticky;
   top: 0;
   z-index: 30;
   flex-shrink: 0;
 
   @include dark {
-    background: $lumio-color-surface-dk;
-    border-bottom-color: $lumio-color-border-dk;
+    background: $lumio-color-bg-dk;
   }
 
   &__mobile-logo {
@@ -468,25 +330,14 @@
     flex-shrink: 0;
     text-decoration: none;
 
-    // Same wordmark as the desktop sidebar brand.
-    &-text {
-      font-family: var(--font-manrope), 'Manrope', sans-serif;
-      font-size: 18px;
-      font-weight: 700;
-      color: $lumio-color-text-primary;
-      letter-spacing: 0.32em;
-      text-transform: uppercase;
-      line-height: 1;
-      white-space: nowrap;
+    // Same lockup as the desktop sidebar brand, sized for the top bar.
+    &-mark {
+      height: 16px;
+      aspect-ratio: #{$lumio-logo-lockup-ratio};
+      background: url('/images/logo-lockup.svg') no-repeat center / contain;
 
-      @include dark { color: $lumio-color-text-primary-dk; }
+      @include dark { background-image: url('/images/logo-lockup-dark.svg'); }
     }
-  }
-
-  &__breadcrumbs {
-    flex: 1;
-    margin-left: -20px;
-    min-width: 0;
   }
 
   &__right {
@@ -494,6 +345,7 @@
     align-items: center;
     gap: 4px;
     flex-shrink: 0;
+    margin-left: auto;
   }
 
   &__icon-btn {
@@ -555,22 +407,47 @@
 }
 
 // ── Responsive ──
-@media (max-width: 1023px) {
-  .lumio-shell__sidebar {
-    display: none;
+// With the second sidebar showing (ShellSidePanel, same 1200px breakpoint) the
+// logo sits centred on the seam between the two columns. Fixed positioning lets it
+// out of the sidebar's overflow clip; the brand block keeps its fixed height, so
+// the room it took in the sidebar stays.
+@media (min-width: 1200px) {
+  .lumio-sidebar__brand-mark {
+    position: fixed;
+    top: $lumio-sidebar-brand-center;
+    left: var(--lumio-sidebar-width);
+    z-index: 45;
+    transform: translate(-50%, -50%);
+  }
+}
+
+// Wide screens: a wider sidebar and larger type, so it doesn't look tiny.
+@media (min-width: 1600px) {
+  .lumio-shell {
+    --lumio-sidebar-width: 220px;
+    --lumio-nav-label-pad-top: 12px;
   }
 
-  .lumio-topbar__breadcrumbs {
+  .lumio-sidebar__nav-item {
+    gap: 12px;
+    padding: 8px 12px;
+    font-size: 14.5px;
+  }
+
+  .lumio-sidebar__section-label {
+    font-size: 11px;
+    padding: var(--lumio-nav-label-pad-top) 12px 6px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .lumio-shell__sidebar {
     display: none;
   }
 
   .lumio-topbar__mobile-logo {
     display: flex;
     flex: 1;
-  }
-
-  .lumio-topbar__right {
-    margin-left: auto;
   }
 
   // Strip container to avatar-only on mobile (.lumio-topbar parent raises specificity)
