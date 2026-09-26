@@ -2,11 +2,12 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { AUTH_ROUTE_PREFIXES } from '@/app/lib/auth-routes';
 import { isExperimentalModeEnabled } from '@/app/lib/experimental-mode';
 import { isChatModePreferred } from './chat-mode-preference';
 
 /** Paths that must stay reachable even when chat mode is the preferred shell. */
-const EXEMPT_PREFIXES = ['/chat', '/login', '/register', '/onboarding', '/shared', '/invite'];
+const EXEMPT_PREFIXES = ['/chat', ...AUTH_ROUTE_PREFIXES, '/onboarding', '/shared', '/invite'];
 
 /**
  * Sends users who chose chat mode straight to /chat on app entry. Runs once

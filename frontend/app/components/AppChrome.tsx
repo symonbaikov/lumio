@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { AUTH_ROUTE_PREFIXES } from '@/app/lib/auth-routes';
 import Sidebar from './Sidebar';
 
 function shouldHideChrome(pathname: string | null) {
@@ -9,8 +10,7 @@ function shouldHideChrome(pathname: string | null) {
   }
   return (
     pathname.startsWith('/onboarding') ||
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/register') ||
+    AUTH_ROUTE_PREFIXES.some(prefix => pathname.startsWith(prefix)) ||
     pathname.startsWith('/shared') ||
     pathname.startsWith('/invite') ||
     pathname.startsWith('/chat')
