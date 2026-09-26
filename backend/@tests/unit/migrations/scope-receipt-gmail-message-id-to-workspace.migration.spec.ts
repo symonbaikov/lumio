@@ -7,7 +7,7 @@ describe('ScopeReceiptGmailMessageIdToWorkspace migration', () => {
       process.cwd(),
       'src',
       'migrations',
-      '1786490000000-ScopeReceiptGmailMessageIdToWorkspace.ts',
+      '1786530000000-ScopeReceiptGmailMessageIdToWorkspace.ts',
     );
 
     expect(existsSync(filePath)).toBe(true);

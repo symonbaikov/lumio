@@ -7,7 +7,7 @@ describe('AddUserTelegramWorkspace migration', () => {
       process.cwd(),
       'src',
       'migrations',
-      '1786500000000-AddUserTelegramWorkspace.ts',
+      '1786540000000-AddUserTelegramWorkspace.ts',
     );
 
     expect(existsSync(filePath)).toBe(true);

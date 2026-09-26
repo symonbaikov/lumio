@@ -5,8 +5,8 @@ import type { MigrationInterface, QueryRunner } from 'typeorm';
  * (goals, net worth, reports, uploaded statements). Existing links have none
  * recorded and keep falling back to the user's registration workspace.
  */
-export class AddUserTelegramWorkspace1786500000000 implements MigrationInterface {
-  name = 'AddUserTelegramWorkspace1786500000000';
+export class AddUserTelegramWorkspace1786540000000 implements MigrationInterface {
+  name = 'AddUserTelegramWorkspace1786540000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

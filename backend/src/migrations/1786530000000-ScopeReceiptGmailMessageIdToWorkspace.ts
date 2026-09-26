@@ -9,8 +9,8 @@ import type { MigrationInterface, QueryRunner } from 'typeorm';
  * `down` restores the global index and fails once a message has been
  * imported into two workspaces; remove those copies first.
  */
-export class ScopeReceiptGmailMessageIdToWorkspace1786490000000 implements MigrationInterface {
-  name = 'ScopeReceiptGmailMessageIdToWorkspace1786490000000';
+export class ScopeReceiptGmailMessageIdToWorkspace1786530000000 implements MigrationInterface {
+  name = 'ScopeReceiptGmailMessageIdToWorkspace1786530000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
