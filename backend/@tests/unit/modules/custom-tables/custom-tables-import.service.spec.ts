@@ -61,6 +61,17 @@ describe('CustomTablesImportService', () => {
     );
   });
 
+  it('accepts only a category of the workspace the rows are imported into', async () => {
+    categoryRepository.findOne = jest.fn(async () => null);
+
+    await expect((service as any).resolveCategoryId('ws-1', 'cat-elsewhere')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(categoryRepository.findOne).toHaveBeenCalledWith({
+      where: { id: 'cat-elsewhere', workspaceId: 'ws-1' },
+    });
+  });
+
   it('previewGoogleSheets infers column types and builds usedRange', async () => {
     googleSheetRepository.findOne = jest.fn(async () => ({
       id: 'gs1',

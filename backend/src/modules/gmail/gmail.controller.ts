@@ -25,6 +25,7 @@ import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
 import { runExecutable } from '../../common/utils/thumbnail-command.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import {
@@ -155,7 +156,7 @@ export class GmailController {
 
     try {
       const newPath = await this.gmailService.downloadAttachment(
-        receipt.userId,
+        receipt.workspaceId,
         receipt.gmailMessageId,
         attachmentMeta.id,
         attachmentMeta.filename,
@@ -197,9 +198,10 @@ export class GmailController {
   }
 
   @Get('status')
+  @UseGuards(WorkspaceContextGuard)
   @ApiOperation({ summary: 'Get Gmail integration status' })
-  async getStatus(@CurrentUser() user: User) {
-    const { integration } = await this.gmailOAuthService.findIntegrationForUser(user.id);
+  async getStatus(@WorkspaceId() workspaceId: string) {
+    const integration = await this.gmailOAuthService.findWorkspaceIntegration(workspaceId);
 
     if (!integration) {
       return {
@@ -219,9 +221,10 @@ export class GmailController {
   }
 
   @Get('connect')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   @ApiOperation({ summary: 'Get Gmail OAuth URL' })
-  getConnectUrl(@CurrentUser() user: User) {
-    const authUrl = this.gmailOAuthService.getAuthUrl(user);
+  getConnectUrl(@CurrentUser() user: User, @WorkspaceId() workspaceId: string) {
+    const authUrl = this.gmailOAuthService.getAuthUrl(user, workspaceId);
     return { url: authUrl };
   }
 
@@ -243,16 +246,10 @@ export class GmailController {
     // If integration was created successfully, set up Gmail environment
     if (result.integration?.connectedByUserId) {
       try {
-        await this.gmailService.setupGmailEnvironment(
-          result.integration,
-          result.integration.connectedByUserId,
-        );
+        await this.gmailService.setupGmailEnvironment(result.integration);
 
         // Start watch
-        await this.gmailWatchService.setupWatch(
-          result.integration,
-          result.integration.connectedByUserId,
-        );
+        await this.gmailWatchService.setupWatch(result.integration);
       } catch (setupError) {
         console.error('Failed to setup Gmail environment or watch:', setupError);
       }
@@ -262,29 +259,31 @@ export class GmailController {
   }
 
   @Post('disconnect')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   @ApiOperation({ summary: 'Disconnect Gmail integration' })
-  async disconnect(@CurrentUser() user: User) {
-    const integration = await this.gmailOAuthService.ensureIntegration(user.id);
+  async disconnect(@WorkspaceId() workspaceId: string) {
+    const integration = await this.gmailOAuthService.ensureWorkspaceIntegration(workspaceId);
 
     if (integration.connectedByUserId) {
       // Stop watch
       try {
-        await this.gmailWatchService.stopWatch(integration, integration.connectedByUserId);
+        await this.gmailWatchService.stopWatch(integration);
       } catch (error) {
         console.error('Failed to stop watch:', error);
       }
     }
 
-    await this.gmailOAuthService.disconnect(user.id);
+    await this.gmailOAuthService.disconnect(workspaceId);
 
     return { success: true, message: 'Gmail integration disconnected' };
   }
 
   @Post('sync')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   @ApiOperation({ summary: 'Trigger manual Gmail sync' })
-  async triggerSync(@CurrentUser() user: User) {
+  async triggerSync(@WorkspaceId() workspaceId: string) {
     try {
-      const result = await this.gmailSyncService.syncForUser(user.id);
+      const result = await this.gmailSyncService.syncForWorkspace(workspaceId);
 
       return {
         success: true,
@@ -303,9 +302,10 @@ export class GmailController {
   }
 
   @Post('settings')
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   @ApiOperation({ summary: 'Update Gmail settings' })
-  async updateSettings(@CurrentUser() user: User, @Body() dto: UpdateGmailSettingsDto) {
-    const integration = await this.gmailOAuthService.ensureIntegration(user.id);
+  async updateSettings(@WorkspaceId() workspaceId: string, @Body() dto: UpdateGmailSettingsDto) {
+    const integration = await this.gmailOAuthService.ensureWorkspaceIntegration(workspaceId);
 
     if (!integration.gmailSettings) {
       throw new BadRequestException('Gmail settings not found');
@@ -699,15 +699,11 @@ export class GmailController {
   }
 
   @Post('receipts/:id/export-draft')
-  @WorkspaceAuth(Permission.STATEMENT_VIEW)
+  @WorkspaceAuth(Permission.INTEGRATION_MANAGE)
   @ApiOperation({ summary: 'Export receipt as Gmail draft' })
-  async exportToDraft(
-    @CurrentUser() user: User,
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  async exportToDraft(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     try {
-      const result = await this.exportService.createGmailDraft(user.id, workspaceId, id);
+      const result = await this.exportService.createGmailDraft(workspaceId, id);
       return { success: true, data: result };
     } catch (error) {
       throw new BadRequestException(
@@ -885,7 +881,7 @@ export class GmailController {
     }
 
     // Get Gmail message
-    const message = await this.gmailService.getMessage(receipt.userId, receipt.gmailMessageId);
+    const message = await this.gmailService.getMessage(receipt.workspaceId, receipt.gmailMessageId);
 
     // Extract email body
     const emailBody = this.findMessageBody(message.payload || undefined);
@@ -898,7 +894,7 @@ export class GmailController {
       for (const attachment of attachments) {
         try {
           const data = await this.gmailService.getAttachmentData(
-            receipt.userId,
+            receipt.workspaceId,
             receipt.gmailMessageId,
             attachment.id,
           );

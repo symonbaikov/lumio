@@ -119,8 +119,8 @@ export class GmailReceiptExportService {
     ];
   }
 
+  /** Drafted in the mailbox connected to the receipt's workspace. */
   async createGmailDraft(
-    userId: string,
     workspaceId: string,
     receiptId: string,
   ): Promise<{ draftId: string; url: string }> {
@@ -132,7 +132,7 @@ export class GmailReceiptExportService {
       throw new Error('Receipt not found');
     }
 
-    const { accessToken, integration } = await this.gmailOAuthService.getGmailClient(userId);
+    const { accessToken, integration } = await this.gmailOAuthService.getGmailClient(workspaceId);
 
     // Check for compose scope specifically for draft creation
     const scopes = Array.isArray(integration.scopes)

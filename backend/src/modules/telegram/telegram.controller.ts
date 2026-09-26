@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import type { User } from '../../entities/user.entity';
@@ -13,8 +14,12 @@ export class TelegramController {
 
   @Post('connect')
   @WorkspaceAuth(Permission.TELEGRAM_CONNECT)
-  async connect(@CurrentUser() user: User, @Body() dto: ConnectTelegramDto) {
-    const updated = await this.telegramService.connectAccount(user, dto);
+  async connect(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: ConnectTelegramDto,
+  ) {
+    const updated = await this.telegramService.connectAccount(user, workspaceId, dto);
     return {
       userId: updated.id,
       telegramId: updated.telegramId,
@@ -36,7 +41,11 @@ export class TelegramController {
 
   @Post('send-report')
   @WorkspaceAuth(Permission.TELEGRAM_SEND)
-  async sendReport(@CurrentUser() user: User, @Body() dto: SendTelegramReportDto) {
-    return this.telegramService.sendReport(user, dto);
+  async sendReport(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: SendTelegramReportDto,
+  ) {
+    return this.telegramService.sendReport(user, dto, workspaceId);
   }
 }

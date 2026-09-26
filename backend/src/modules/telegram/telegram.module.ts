@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TelegramReport } from '../../entities/telegram-report.entity';
 import { User } from '../../entities/user.entity';
+import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { ApplicationSettingsModule } from '../application-settings/application-settings.module';
 import { AuditModule } from '../audit/audit.module';
 import { GoalsModule } from '../goals/goals.module';
@@ -17,7 +18,7 @@ import { TelegramWebhookGuard } from './telegram-webhook.guard';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([TelegramReport, User]),
+    TypeOrmModule.forFeature([TelegramReport, User, WorkspaceMember]),
     ApplicationSettingsModule,
     ReportsModule,
     StatementsModule,

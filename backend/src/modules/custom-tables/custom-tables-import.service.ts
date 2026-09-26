@@ -510,11 +510,12 @@ export class CustomTablesImportService {
     throw error;
   }
 
-  private async resolveCategoryId(userId: string, categoryId: string): Promise<string> {
+  /** A category of the workspace the rows are imported into. */
+  private async resolveCategoryId(workspaceId: string, categoryId: string): Promise<string> {
     let category: Category | null = null;
     try {
       category = await this.categoryRepository.findOne({
-        where: { id: categoryId, userId },
+        where: { id: categoryId, workspaceId },
       });
     } catch (error) {
       this.throwHelpfulSchemaError(error);
@@ -690,7 +691,7 @@ export class CustomTablesImportService {
     const categoryId =
       dto.categoryId === null || dto.categoryId === undefined
         ? null
-        : await this.resolveCategoryId(dto.importUserId, dto.categoryId);
+        : await this.resolveCategoryId(workspaceId, dto.categoryId);
 
     let table: CustomTable;
     try {
@@ -1075,7 +1076,7 @@ export class CustomTablesImportService {
     const categoryId =
       dto.categoryId === null || dto.categoryId === undefined
         ? null
-        : await this.resolveCategoryId(sheet.userId, dto.categoryId);
+        : await this.resolveCategoryId(workspaceId, dto.categoryId);
 
     let table: CustomTable;
     try {
