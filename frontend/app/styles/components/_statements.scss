@@ -1460,6 +1460,54 @@
   }
 }
 
+/* ── Invoice line-item editor ────────────────────────────── */
+/* Its own table skin: `lumio-payable-list__table` is sized for compact
+   read-only rows, not for hosting 48px-tall form inputs — reusing it left
+   the header cells and the fixed-width input cells out of step. */
+.lumio-invoice-lines {
+  &__table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  &__th {
+    padding: 8px 12px 12px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+
+    @include dark {
+      color: $lumio-color-ink-400-dk;
+    }
+
+    &--right {
+      text-align: right;
+    }
+  }
+
+  &__row {
+    border-top: 1px solid #f3f4f6;
+
+    @include dark {
+      border-top-color: $lumio-color-border-dk;
+    }
+  }
+
+  &__td {
+    padding: 8px 12px;
+    vertical-align: middle;
+
+    &--right {
+      text-align: right;
+    }
+  }
+}
+
 /* ── Payable drawer back button ──────────────────────────── */
 .lumio-payable-drawer {
   &__back-btn {

@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { AUTH_ROUTE_PREFIXES } from '@/app/lib/auth-routes';
+import ShellSidePanel from './ShellSidePanel';
 import Sidebar from './Sidebar';
 
 function shouldHideChrome(pathname: string | null) {
