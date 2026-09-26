@@ -15,6 +15,7 @@ import {
   IntegrationToken,
   Statement,
   User,
+  WorkspaceMember,
 } from '../../entities';
 import { AuditService } from '../audit/audit.service';
 import { StatementsService } from '../statements/statements.service';
@@ -78,6 +79,8 @@ export class GoogleDriveService extends CloudStorageBaseService<DriveSettings> {
     private readonly statementRepository: Repository<Statement>,
     @InjectRepository(User)
     userRepository: Repository<User>,
+    @InjectRepository(WorkspaceMember)
+    workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly statementsService: StatementsService,
     private readonly fileStorageService: FileStorageService,
     private readonly auditService: AuditService,
@@ -87,6 +90,7 @@ export class GoogleDriveService extends CloudStorageBaseService<DriveSettings> {
       integrationTokenRepository,
       driveSettingsRepository,
       userRepository,
+      workspaceMemberRepository,
     );
   }
 
@@ -174,11 +178,12 @@ export class GoogleDriveService extends CloudStorageBaseService<DriveSettings> {
     return { clientId, clientSecret, redirectUri };
   }
 
-  getAuthUrl(user: User): string {
+  getAuthUrl(user: User, workspaceId: string): string {
     const { clientId, redirectUri } = this.getOAuthConfig();
 
     return this.buildProviderAuthUrl(
       user,
+      workspaceId,
       state =>
         `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
           client_id: clientId,
@@ -197,14 +202,15 @@ export class GoogleDriveService extends CloudStorageBaseService<DriveSettings> {
     state?: string;
     error?: string;
   }): Promise<string> {
-    const callbackContext = await this.resolveOAuthCallbackUser<
-      Pick<User, 'id' | 'workspaceId' | 'timeZone'>
-    >(params, ['id', 'workspaceId', 'timeZone']);
+    const callbackContext = await this.resolveOAuthCallbackUser<Pick<User, 'id' | 'timeZone'>>(
+      params,
+      ['id', 'timeZone'],
+    );
     if ('redirectUrl' in callbackContext) {
       return callbackContext.redirectUrl;
     }
 
-    const { redirectBase, user } = callbackContext;
+    const { redirectBase, user, workspaceId } = callbackContext;
 
     const token = await this.requestToken({
       grant_type: 'authorization_code',
@@ -217,11 +223,11 @@ export class GoogleDriveService extends CloudStorageBaseService<DriveSettings> {
       return `${redirectBase}?status=error&reason=missing_tokens`;
     }
 
-    const workspaceId = user.workspaceId || null;
-    const { integration: existing } = await this.findIntegrationForUser(user.id);
+    const existing = await this.findWorkspaceIntegration(workspaceId);
     const savedIntegration = await this.upsertConnectedIntegration(
       existing,
       user,
+      workspaceId,
       token.scope ? token.scope.split(' ') : existing?.scopes || DRIVE_SCOPES,
     );
 
@@ -351,10 +357,11 @@ export class GoogleDriveService extends CloudStorageBaseService<DriveSettings> {
     return settings;
   }
 
-  async importFiles(userId: string, dto: ImportDriveFilesDto) {
+  async importFiles(userId: string, workspaceId: string, dto: ImportDriveFilesDto) {
     const uploadsDir = resolveUploadsDir();
     return this.importFilesWithClient({
       userId,
+      workspaceId,
       fileIds: dto.fileIds,
       uploadsDir,
       getClient: integration => this.getDriveClient(integration),
@@ -378,7 +385,7 @@ export class GoogleDriveService extends CloudStorageBaseService<DriveSettings> {
       importFile: (user, file) =>
         this.statementsService.create(
           user,
-          user.workspaceId,
+          workspaceId,
           file,
           undefined,
           undefined,

@@ -3,11 +3,10 @@ jest.mock('webdav', () => ({
 }));
 
 import { OpenProtocolIntegrationsService } from '../../../../src/modules/open-protocol-integrations/open-protocol-integrations.service';
-import { IntegrationStatus } from '../../../../src/entities';
+import { IntegrationProvider, IntegrationStatus } from '../../../../src/entities';
 
 describe('OpenProtocolIntegrationsService', () => {
   const originalEnv = process.env;
-  const user = { id: 'user-1', workspaceId: 'workspace-1' } as never;
   const integrationRepository = {
     findOne: jest.fn().mockResolvedValue(null),
   };
@@ -41,7 +40,7 @@ describe('OpenProtocolIntegrationsService', () => {
     process.env.S3_ACCESS_KEY_ID = 'access-key';
     process.env.S3_SECRET_ACCESS_KEY = 'secret-key';
 
-    const status = await createService().s3Status(user);
+    const status = await createService().s3Status('workspace-1');
 
     expect(status.connected).toBe(true);
     expect(status.status).toBe(IntegrationStatus.CONNECTED);
@@ -59,7 +58,7 @@ describe('OpenProtocolIntegrationsService', () => {
     process.env.WEBDAV_USERNAME = 'user';
     process.env.WEBDAV_PASSWORD = 'password';
 
-    const status = await createService().webdavStatus(user);
+    const status = await createService().webdavStatus('workspace-1');
 
     expect(status.connected).toBe(true);
     expect(status.settings).toMatchObject({
@@ -74,13 +73,22 @@ describe('OpenProtocolIntegrationsService', () => {
     delete process.env.IMAP_HOST;
     process.env.IMAP_USER = 'receipts@example.com';
 
-    const status = await createService().imapStatus(user);
+    const status = await createService().imapStatus('workspace-1');
 
     expect(status.connected).toBe(false);
     expect(status.status).toBe(IntegrationStatus.DISCONNECTED);
     expect(status.settings).toMatchObject({
       host: null,
       usernameConfigured: false,
+    });
+  });
+
+  it('reads the integration of the workspace it is given', async () => {
+    await createService().s3Status('ws-open');
+
+    expect(integrationRepository.findOne).toHaveBeenCalledWith({
+      where: { workspaceId: 'ws-open', provider: IntegrationProvider.S3_COMPATIBLE },
+      relations: ['openProtocolSettings'],
     });
   });
 });
