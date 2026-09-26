@@ -16,6 +16,7 @@ const nav = {
   subscriptions: 'Subscriptions',
   crypto: 'Crypto',
   ledger: 'Ledger',
+  invoices: 'Invoices',
 };
 
 const userMenuNav = {

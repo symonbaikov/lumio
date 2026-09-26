@@ -13,6 +13,7 @@ import {
   PiggyBank,
   Plug,
   Puzzle,
+  ReceiptText,
   Scale,
   ScrollText,
   Sparkles,
@@ -49,6 +50,7 @@ export function buildNavItems(nav: {
   subscriptions: unknown;
   crypto: unknown;
   ledger: unknown;
+  invoices: unknown;
 }): NavItem[] {
   return [
     {
@@ -143,6 +145,12 @@ export function buildNavItems(nav: {
       // so the item is offered to exactly the roles that can open it.
       icon: React.createElement(Wallet, { size: 18 }),
       permission: 'wallet.view',
+    },
+    {
+      label: nav.invoices as ReactNode,
+      path: '/invoices',
+      icon: React.createElement(ReceiptText, { size: 18 }),
+      permission: 'invoice.view',
     },
   ];
 }

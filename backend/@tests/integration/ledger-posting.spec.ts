@@ -27,6 +27,10 @@ import {
   JournalEntry,
   JournalEntryStatus,
   LedgerAccount,
+  Payable,
+  PayableDirection,
+  PayableSource,
+  PayableStatus,
   Statement,
   StatementStatus,
   Transaction,
@@ -39,7 +43,10 @@ import {
   type RateQuoteOptions,
 } from '../../src/modules/exchange-rates/exchange-rates.service';
 import { LedgerAccountsService } from '../../src/modules/ledger/ledger-accounts.service';
-import { LEDGER_ACCOUNT_CODES } from '../../src/modules/ledger/ledger-default-accounts';
+import {
+  categoryAccountCode,
+  LEDGER_ACCOUNT_CODES,
+} from '../../src/modules/ledger/ledger-default-accounts';
 import { LedgerPostingService } from '../../src/modules/ledger/ledger-posting.service';
 
 const BASE_URL =
@@ -609,6 +616,64 @@ describe('ledger posting engine (real Postgres)', () => {
 
     await cryptoWallets.delete(cryptoWallet.id);
     expect(await posting.reverseOrphans(workspaceId)).toBe(1);
+  });
+
+  it('books an invoice accrual entry across accounts receivable, revenue and VAT payable', async () => {
+    const entry = await entryRepo.manager.transaction(manager =>
+      posting.postInvoice(manager, {
+        workspaceId,
+        entryDate: '2026-03-15',
+        currency: 'EUR',
+        lines: [
+          { amount: 100, taxAmount: 21, categoryId: category.consulting },
+          { amount: 50, taxAmount: 0, categoryId: null },
+        ],
+        memo: 'Invoice INV-TEST-1',
+      }),
+    );
+
+    expect(entry.status).toBe(JournalEntryStatus.POSTED);
+    const lines = await linesOf(entry.id);
+    const byCode = Object.fromEntries(lines.map(line => [line.code, line]));
+    expect(byCode[LEDGER_ACCOUNT_CODES.RECEIVABLES]).toMatchObject({ debit: '171.00', credit: '0.00' });
+    expect(byCode[LEDGER_ACCOUNT_CODES.VAT_PAYABLE]).toMatchObject({ credit: '21.00' });
+    expect(byCode[categoryAccountCode('income', category.consulting)]).toMatchObject({
+      credit: '100.00',
+    });
+    expect(byCode[LEDGER_ACCOUNT_CODES.SALES_REVENUE]).toMatchObject({ credit: '50.00' });
+  });
+
+  it('settles an invoice-sourced receivable against accounts receivable, not income', async () => {
+    const payables = dataSource.getRepository(Payable);
+    // A category is set on purpose: the override must still win over it.
+    const settlement = await insertTransaction({
+      amount: 300,
+      credit: 300,
+      transactionType: TransactionType.INCOME,
+      categoryId: category.consulting,
+      statementId: eurStatementId,
+    });
+    await payables.save(
+      payables.create({
+        workspaceId,
+        vendor: 'Invoice client',
+        amount: 300,
+        currency: 'EUR',
+        status: PayableStatus.PAID,
+        direction: PayableDirection.RECEIVABLE,
+        source: PayableSource.INVOICE,
+        linkedTransactionId: settlement,
+        isRecurring: false,
+      }),
+    );
+
+    const outcome = await posting.postTransaction(workspaceId, settlement);
+    expect(outcome).toMatchObject({ status: 'posted' });
+    const entryId = (outcome as { entryId: string }).entryId;
+
+    const codes = (await linesOf(entryId)).map(line => line.code);
+    expect(codes).toContain(LEDGER_ACCOUNT_CODES.RECEIVABLES);
+    expect(codes).not.toContain(categoryAccountCode('income', category.consulting));
   });
 
   it('leaves the whole ledger balanced, entry by entry', async () => {

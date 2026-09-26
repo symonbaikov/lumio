@@ -35,6 +35,18 @@ export enum Permission {
   PAYABLE_EDIT = 'payable.edit',
   PAYABLE_DELETE = 'payable.delete',
 
+  // Invoices
+  INVOICE_VIEW = 'invoice.view',
+  INVOICE_CREATE = 'invoice.create',
+  INVOICE_EDIT = 'invoice.edit',
+  INVOICE_DELETE = 'invoice.delete',
+
+  // Clients
+  CLIENT_VIEW = 'client.view',
+  CLIENT_CREATE = 'client.create',
+  CLIENT_EDIT = 'client.edit',
+  CLIENT_DELETE = 'client.delete',
+
   // Reports
   REPORT_VIEW = 'report.view',
   REPORT_EXPORT = 'report.export',
@@ -98,6 +110,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     Permission.BRANCH_VIEW,
     Permission.WALLET_VIEW,
     Permission.PAYABLE_VIEW,
+    Permission.INVOICE_VIEW,
+    Permission.CLIENT_VIEW,
     Permission.REPORT_VIEW,
     Permission.GOOGLE_SHEET_VIEW,
     Permission.TELEGRAM_VIEW,
@@ -116,6 +130,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     Permission.BRANCH_VIEW,
     Permission.WALLET_VIEW,
     Permission.PAYABLE_VIEW,
+    Permission.INVOICE_VIEW,
+    Permission.CLIENT_VIEW,
     Permission.REPORT_VIEW,
     Permission.TELEGRAM_VIEW,
     Permission.BUDGET_VIEW,

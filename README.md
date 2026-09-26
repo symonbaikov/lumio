@@ -140,6 +140,7 @@ Lumio is a full-stack financial operations platform built for teams that need to
 
 - **Balance Sheet** — Account-level balance tracking with historical snapshots and export.
 - **Accounts Payable** — Pay-tab workflow for managing and tracking payable records. Marking a bill paid links the bank transaction that settled it (matching candidates are suggested) or records a cash payment from a wallet, so the payment reaches the ledger.
+- **Invoicing** — Clients, itemized invoices with per-line tax rates, and server-generated PDFs. Sending an invoice assigns it a sequential number, opens a receivable that is chased and paid the same way as a bill, and (when the double-entry ledger is enabled) books the accrual entry straight away — Dr Accounts Receivable, Cr Revenue and VAT payable. Recurring invoices generate their next draft automatically.
 - **Custom Tables** — User-defined data structures with typed columns, batch editing, formula support, and Sheets import.
 - **Manual Data Entry** — Record cash expenses, income, and receipts manually with custom fields and file attachments.
 - **Categories** — Hierarchical transaction categories with usage counts and enable/disable toggle.
@@ -167,8 +168,7 @@ Setting expectations upfront:
 - **Not a bank integration** — Lumio parses statement files you export from your bank. It does not connect to bank APIs or fetch transactions automatically.
 - **Not an accrual accounting suite** — The ledger records what your statements and manual entries say. There is no automatic accrual, depreciation schedule, or period-end closing workflow.
 - **Not a filing service or tax adviser** — Lumio computes tax figures and drafts VAT and income tax documents, but it does not submit anything to a tax authority on your behalf. An income tax draft is not tax advice — check it before you file.
-- **Not an invoicing tool** — There is no invoice creation, sending, or payment tracking.
-- **Not a replacement for accounting software** — Lumio keeps double-entry books of your bank activity, but it does not issue invoices, run payroll, or file statutory reports. Use it next to QuickBooks, Xero, or 1C rather than instead of them.
+- **Not a replacement for accounting software** — Lumio keeps double-entry books of your bank activity and issues invoices, but it does not run payroll or file statutory reports. Use it next to QuickBooks, Xero, or 1C rather than instead of them.
 
 ---
 
@@ -288,6 +288,7 @@ lumio/
 │   │   │   ├── tax/                 # VAT rates, rules, jurisdictions, VAT returns
 │   │   │   ├── income-tax/          # Income tax declaration drafts, rule packs, FX sources
 │   │   │   ├── payables/            # Accounts payable workflow
+│   │   │   ├── invoices/            # Invoicing: clients, invoices, line items, PDF, recurrence
 │   │   │   ├── receipts/            # Receipt management, browser, locations
 │   │   │   ├── maps/                # Proxy to the self-hosted tile server
 │   │   │   ├── geocoding/           # Nominatim client for merchant addresses
