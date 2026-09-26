@@ -1,12 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { type EntityManager, IsNull, Not, type Repository } from 'typeorm';
+import { toMinor } from '../../common/utils/money.util';
 import {
   CryptoWallet,
   JournalEntry,
   JournalEntrySource,
   JournalEntryStatus,
   JournalLine,
+  Payable,
+  PayableSource,
   Statement,
   Transaction,
   Wallet,
@@ -95,6 +98,24 @@ export interface EntryDraft {
 
 type EntryPlan = Pick<EntryDraft, 'entryDate' | 'baseCurrency' | 'memo' | 'lines'>;
 
+export interface InvoicePostingLine {
+  /** Net amount, before tax, major units. */
+  amount: number;
+  /** Tax on this line, major units; 0 when untaxed. */
+  taxAmount: number;
+  /** Income category the line's revenue books to; falls back to Sales revenue. */
+  categoryId?: string | null;
+}
+
+export interface PostInvoiceParams {
+  workspaceId: string;
+  entryDate: string;
+  currency: string;
+  lines: InvoicePostingLine[];
+  memo?: string | null;
+  userId?: string | null;
+}
+
 const MEMO_LIMIT = 500;
 
 /** `date` columns arrive as 'YYYY-MM-DD' strings; tests and callers may pass Dates. */
@@ -152,6 +173,8 @@ export class LedgerPostingService {
     private readonly walletRepository: Repository<Wallet>,
     @InjectRepository(CryptoWallet)
     private readonly cryptoWalletRepository: Repository<CryptoWallet>,
+    @InjectRepository(Payable)
+    private readonly payableRepository: Repository<Payable>,
     private readonly accountsService: LedgerAccountsService,
     private readonly exchangeRatesService: ExchangeRatesService,
   ) {}
@@ -222,6 +245,69 @@ export class LedgerPostingService {
         [transactionId],
       );
       return outcome;
+    });
+  }
+
+  /**
+   * Books the accrual entry for a sent invoice: Dr Accounts Receivable for
+   * the full amount, Cr each line's income account (or Sales revenue with no
+   * category) for its net amount, Cr VAT payable for the tax total. Booked in
+   * the caller's transaction, alongside assigning the invoice's number and
+   * opening its receivable, so all three either happen together or not at all.
+   */
+  async postInvoice(manager: EntityManager, params: PostInvoiceParams): Promise<JournalEntry> {
+    const baseCurrency = await this.baseCurrencyOf(params.workspaceId);
+    const system = await this.accountsService.systemAccountIds(params.workspaceId);
+    const receivablesAccountId = system[LEDGER_ACCOUNT_CODES.RECEIVABLES];
+    const salesRevenueAccountId = system[LEDGER_ACCOUNT_CODES.SALES_REVENUE];
+
+    const legs: Leg[] = [];
+    let grossMinor = 0;
+    let taxMinor = 0;
+    for (const line of params.lines) {
+      const netLineMinor = toMinor(line.amount);
+      const taxLineMinor = toMinor(line.taxAmount || 0);
+      if (netLineMinor === 0 && taxLineMinor === 0) {
+        continue;
+      }
+      const counterpartAccountId = line.categoryId
+        ? ((await this.accountsService.categoryAccountId(params.workspaceId, line.categoryId)) ??
+          salesRevenueAccountId)
+        : salesRevenueAccountId;
+      if (netLineMinor !== 0) {
+        legs.push({
+          accountId: counterpartAccountId,
+          side: 'credit',
+          amountMinor: netLineMinor,
+          categoryId: line.categoryId ?? null,
+        });
+      }
+      grossMinor += netLineMinor + taxLineMinor;
+      taxMinor += taxLineMinor;
+    }
+    if (taxMinor !== 0) {
+      legs.push({
+        accountId: system[LEDGER_ACCOUNT_CODES.VAT_PAYABLE],
+        side: 'credit',
+        amountMinor: taxMinor,
+      });
+    }
+    if (grossMinor === 0) {
+      throw new BadRequestException('Cannot post a zero-amount invoice to the ledger');
+    }
+    legs.push({ accountId: receivablesAccountId, side: 'debit', amountMinor: grossMinor });
+
+    const currency = params.currency.toUpperCase();
+    const lines = await this.convert(legs, currency, baseCurrency, params.entryDate);
+
+    return this.book(manager, {
+      workspaceId: params.workspaceId,
+      entryDate: params.entryDate,
+      baseCurrency,
+      memo: params.memo ?? null,
+      source: JournalEntrySource.INVOICE,
+      lines,
+      userId: params.userId ?? null,
     });
   }
 
@@ -632,9 +718,21 @@ export class LedgerPostingService {
 
     const currency = tx.currency.toUpperCase();
     const system = await this.accountsService.systemAccountIds(tx.workspaceId);
-    const counterpart = tx.categoryId
-      ? await this.accountsService.categoryAccountId(tx.workspaceId, tx.categoryId)
-      : null;
+    // Settling an invoice-sourced receivable clears Accounts Receivable rather
+    // than booking new income: the revenue was already booked when the
+    // invoice was sent, and booking it again here would count it twice.
+    const settlesInvoice = await this.payableRepository.exists({
+      where: {
+        workspaceId: tx.workspaceId,
+        linkedTransactionId: tx.id,
+        source: PayableSource.INVOICE,
+      },
+    });
+    const counterpart = settlesInvoice
+      ? system[LEDGER_ACCOUNT_CODES.RECEIVABLES]
+      : tx.categoryId
+        ? await this.accountsService.categoryAccountId(tx.workspaceId, tx.categoryId)
+        : null;
     const cash = await this.cashAccountOf(tx, statement, currency);
 
     const result = transactionLegs(facts, {

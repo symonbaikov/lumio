@@ -3,19 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import {
-  Ban,
-  Banknote,
-  CalendarRange,
-  Folder,
-  PiggyBank,
-  Send,
-  ShoppingCart,
-  ThumbsUp,
-  User,
-} from '@/app/components/icons';
 import { openAppPanel } from '@/app/components/panels/app-panels-store';
-import { type SidePanelPageConfig, useSidePanelConfig } from '@/app/components/side-panel';
+import type { SidePanelPageConfig } from '@/app/components/side-panel';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer } from '@/app/i18n';
@@ -37,21 +26,26 @@ import { countStatementStages, getStatementStageMap } from '@/app/lib/statement-
 import StatementsCircularUploadMenu from './StatementsCircularUploadMenu';
 import { buildUnapprovedStatementQueue } from './unapproved-cash-utils';
 
-type ActiveItem =
-  | 'submit'
-  | 'approve'
-  | 'pay'
-  | 'receive'
-  | 'unapproved-cash'
-  | 'spend-over-time'
-  | 'top-spenders'
-  | 'top-merchants'
-  | 'top-categories'
-  | 'transactions';
+const ACTIVE_ITEMS = [
+  'submit',
+  'approve',
+  'pay',
+  'receive',
+  'unapproved-cash',
+  'spend-over-time',
+  'top-spenders',
+  'top-merchants',
+  'top-categories',
+  'transactions',
+] as const;
 
-type Props = {
-  activeItem: ActiveItem;
-};
+type ActiveItem = (typeof ACTIVE_ITEMS)[number];
+
+// The panel's item for a URL: /statements/<item>[/...]; nothing elsewhere.
+export function getStatementsActiveItem(pathname: string | null): ActiveItem | undefined {
+  const segment = pathname?.match(/^\/statements\/([^/]+)/)?.[1];
+  return ACTIVE_ITEMS.find(item => item === segment);
+}
 
 type StatementListItem = {
   id?: string;
@@ -183,7 +177,8 @@ async function loadSidePanelData(): Promise<SidePanelData> {
   };
 }
 
-export default function StatementsSidePanel({ activeItem }: Props) {
+// Built by the app shell, which renders it on every page (ShellSidePanel).
+export function useStatementsSidePanelConfig(activeItem?: ActiveItem): SidePanelPageConfig {
   const router = useRouter();
   const t = useIntlayer('statementsPage');
   const tx = useCallback(
@@ -239,7 +234,8 @@ export default function StatementsSidePanel({ activeItem }: Props) {
       });
     };
 
-    setCountsLoading(true);
+    // Only the first load shows spinners; refreshes on page switches swap the
+    // numbers in place so the panel doesn't flicker.
     void loadCounts();
 
     return () => {
@@ -429,7 +425,6 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             {
               id: 'submit',
               label: tx(['sidePanel', 'submit'], 'Submit'),
-              icon: Send,
               badge: counts.submit,
               badgeLoading: countsLoading,
               badgeVariant: getQueueBadgeVariant(counts.submit),
@@ -440,7 +435,6 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             {
               id: 'approve',
               label: tx(['sidePanel', 'approve'], 'Approve'),
-              icon: ThumbsUp,
               badge: counts.approve,
               badgeLoading: countsLoading,
               badgeVariant: getQueueBadgeVariant(counts.approve),
@@ -451,7 +445,6 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             {
               id: 'pay',
               label: tx(['sidePanel', 'pay'], 'Pay'),
-              icon: Banknote,
               badge: payCount,
               badgeLoading: payCountLoading,
               badgeVariant: getQueueBadgeVariant(payCount),
@@ -462,7 +455,6 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             {
               id: 'receive',
               label: tx(['sidePanel', 'receive'], 'Receive'),
-              icon: PiggyBank,
               emphasis: 'high',
               active: activeItem === 'receive',
               href: '/statements/receive',
@@ -478,7 +470,6 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             {
               id: 'unapproved-cash',
               label: tx(['sidePanel', 'unapprovedCash'], 'Unapproved cash'),
-              icon: <Ban size={20} />,
               badge: counts.unapprovedCash,
               badgeLoading: countsLoading,
               badgeVariant: getQueueBadgeVariant(counts.unapprovedCash),
@@ -497,7 +488,6 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             {
               id: 'spend-over-time',
               label: tx(['sidePanel', 'spendOverTime'], 'Spend over time'),
-              icon: CalendarRange,
               emphasis: 'low',
               href: '/statements/spend-over-time',
               active: activeItem === 'spend-over-time',
@@ -505,7 +495,6 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             {
               id: 'top-spenders',
               label: tx(['sidePanel', 'topSpenders'], 'Top spenders'),
-              icon: User,
               badge: topSenders.length,
               badgeLoading: countsLoading,
               badgeVariant: 'default',
@@ -516,7 +505,6 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             {
               id: 'top-merchants',
               label: tx(['sidePanel', 'topMerchants'], 'Top merchants'),
-              icon: <ShoppingCart size={20} />,
               badge: topMerchantsCount,
               badgeLoading: countsLoading,
               badgeVariant: 'default',
@@ -527,7 +515,6 @@ export default function StatementsSidePanel({ activeItem }: Props) {
             {
               id: 'top-categories',
               label: tx(['sidePanel', 'topCategories'], 'Top categories'),
-              icon: Folder,
               badge: topCategoriesCount,
               badgeLoading: countsLoading,
               badgeVariant: 'default',
@@ -567,7 +554,5 @@ export default function StatementsSidePanel({ activeItem }: Props) {
     countsLoading,
   ]);
 
-  useSidePanelConfig({ config: sidePanelConfig, autoRegister: true });
-
-  return null;
+  return sidePanelConfig;
 }

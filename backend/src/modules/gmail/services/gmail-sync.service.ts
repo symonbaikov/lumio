@@ -93,10 +93,10 @@ export class GmailSyncService {
     return result;
   }
 
-  async syncForUser(userId: string): Promise<UserSyncResult> {
+  async syncForWorkspace(workspaceId: string): Promise<UserSyncResult> {
     const integration = await this.integrationRepository.findOne({
       where: {
-        connectedByUserId: userId,
+        workspaceId,
         provider: IntegrationProvider.GMAIL,
         status: IntegrationStatus.CONNECTED,
       },
@@ -104,7 +104,7 @@ export class GmailSyncService {
     });
 
     if (!integration) {
-      throw new Error('No connected Gmail integration found for user');
+      throw new Error('No connected Gmail integration found for this workspace');
     }
 
     return this.syncForIntegration(integration);
@@ -127,7 +127,7 @@ export class GmailSyncService {
     let effectiveSettings = integration.gmailSettings;
     if (integration.gmailSettings?.lastSyncAt) {
       const existingReceipts = await this.receiptRepository.count({
-        where: { userId },
+        where: { workspaceId: integration.workspaceId },
       });
       if (existingReceipts === 0) {
         effectiveSettings = {
@@ -142,7 +142,7 @@ export class GmailSyncService {
       effectiveSettings?.filterEnabled !== false && Boolean(effectiveSettings?.labelId);
 
     this.logger.log(`Gmail sync query for ${userId}: ${query || '(empty)'}`);
-    let messages = await this.gmailService.listMessages(userId, query, {
+    let messages = await this.gmailService.listMessages(integration.workspaceId, query, {
       includeLabelFilter: useLabelFilter,
     });
 
@@ -153,7 +153,7 @@ export class GmailSyncService {
       result.warnings.push(fallbackWarning);
 
       try {
-        await this.gmailService.setupGmailEnvironment(integration, userId);
+        await this.gmailService.setupGmailEnvironment(integration);
       } catch (error) {
         result.errors.push(
           `Failed to refresh Gmail label/filter setup: ${
@@ -162,7 +162,7 @@ export class GmailSyncService {
         );
       }
 
-      messages = await this.gmailService.listMessages(userId, query, {
+      messages = await this.gmailService.listMessages(integration.workspaceId, query, {
         includeLabelFilter: false,
       });
     }
@@ -171,8 +171,9 @@ export class GmailSyncService {
 
     for (const message of messages) {
       try {
+        // Per workspace: the same mailbox may be connected in several workspaces.
         const existingReceipt = await this.receiptRepository.findOne({
-          where: { gmailMessageId: message.id },
+          where: { workspaceId: integration.workspaceId, gmailMessageId: message.id },
         });
 
         if (existingReceipt) {

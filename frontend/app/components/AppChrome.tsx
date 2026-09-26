@@ -25,5 +25,10 @@ export default function AppChrome() {
   }
 
   // Desktop sidebar (hidden on mobile via CSS; the bottom bar menu replaces it there)
-  return <Sidebar />;
+  return (
+    <>
+      <Sidebar />
+      <ShellSidePanel />
+    </>
+  );
 }

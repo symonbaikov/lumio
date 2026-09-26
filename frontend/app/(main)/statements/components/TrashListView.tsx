@@ -31,10 +31,6 @@ import {
 const PAGE_SIZE = 30;
 const DEFAULT_TRASH_TTL_DAYS = 30;
 
-type Props = {
-  onCountChange?: (count: number) => void;
-};
-
 type TrashFile = TrashListItemModel & {
   status?: string;
   itemType?: string | null;
@@ -83,7 +79,7 @@ function TrashListRowSkeleton(): React.JSX.Element {
   );
 }
 
-export default function TrashListView({ onCountChange }: Props) {
+export default function TrashListView() {
   const t = useIntlayer('statementsPage');
   const { locale } = useLocale();
   const { user } = useAuth();
@@ -275,10 +271,6 @@ export default function TrashListView({ onCountChange }: Props) {
     }
     void loadTrashFiles();
   }, [user]);
-
-  useEffect(() => {
-    onCountChange?.(files.length);
-  }, [files, onCountChange]);
 
   const filteredFiles = useMemo(() => {
     const filtered = search

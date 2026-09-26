@@ -310,13 +310,6 @@ body.ff-col-resizing { user-select: none; }
   opacity: 1;
 }
 
-// ── Side panel + breadcrumbs ──────────────────────────────────
-@media (min-width: 1024px) {
-  body[data-side-panel-active="true"] [data-global-breadcrumbs] {
-    display: none;
-  }
-}
-
 // ── MUI hover in light mode ───────────────────────────────────
 // Use html:not(.dark) so these don't bleed into MUI portals rendered on <body>
 // (which don't inherit the .dark class from <html>)

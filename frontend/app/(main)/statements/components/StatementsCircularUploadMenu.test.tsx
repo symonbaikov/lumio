@@ -10,6 +10,8 @@ describe('StatementsCircularUploadMenu', () => {
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement('div');
+    // The app shell: the panel menu portals itself into it (see below).
+    container.className = 'lumio-shell';
     document.body.appendChild(container);
     root = createRoot(container);
   });
@@ -20,6 +22,32 @@ describe('StatementsCircularUploadMenu', () => {
     });
     container.remove();
     container = null as unknown as HTMLDivElement;
+  });
+
+  it('lifts the panel menu out of the side panel into the shell, leaving a spacer', () => {
+    const panel = document.createElement('aside');
+    container.append(panel);
+    const panelRoot = createRoot(panel);
+    act(() => {
+      panelRoot.render(
+        <StatementsCircularUploadMenu
+          providers={{ gmailConnected: false, googleDriveConnected: false, dropboxConnected: false }}
+          onScan={vi.fn()}
+          onCloudImport={vi.fn()}
+          onGmail={vi.fn()}
+          onLocalUpload={vi.fn()}
+        />,
+      );
+    });
+
+    const toggle = container.querySelector('button[aria-label="Open upload actions"]');
+    expect(toggle?.closest('.lumio-shell__panel-fab')?.parentElement).toBe(container);
+    expect(panel.contains(toggle)).toBe(false);
+    expect(panel.querySelector('[aria-hidden="true"]')).not.toBeNull();
+
+    act(() => {
+      panelRoot.unmount();
+    });
   });
 
   it('uses larger readable menu actions and labels when opened', () => {

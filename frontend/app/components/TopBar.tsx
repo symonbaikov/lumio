@@ -20,7 +20,6 @@ import { canAccessWorkspaceActivity } from '@/app/lib/workspace-activity-access'
 import { AiAssistantTopBarButton } from '@/app/plugins/ai-assistant/AiAssistantTopBarButton';
 import { McpServerTopBarButton } from '@/app/plugins/mcp-server/McpServerTopBarButton';
 import { TourMenu } from '@/app/tours/components/TourMenu';
-import GlobalBreadcrumbs from './GlobalBreadcrumbs';
 import { buildUserMenuNavItems } from './navigation/helpers/navigation-config';
 import { useLanguageSelection } from './navigation/hooks/useLanguageSelection';
 import { useThemePreference } from './navigation/hooks/useThemePreference';
@@ -147,12 +146,8 @@ export default function TopBar() {
     <>
       <header className="lumio-topbar">
         <Link href="/dashboard" className="lumio-topbar__mobile-logo" aria-label="Lumio home">
-          <span className="lumio-topbar__mobile-logo-text">LUMIO</span>
+          <span className="lumio-topbar__mobile-logo-mark" />
         </Link>
-
-        <div className="lumio-topbar__breadcrumbs">
-          <GlobalBreadcrumbs variant="topbar" />
-        </div>
 
         <div className="lumio-topbar__right">
           <GlobalSearch />

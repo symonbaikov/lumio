@@ -18,7 +18,6 @@ describe('GmailController security metadata', () => {
     ['getReceiptFile', Permission.STATEMENT_VIEW],
     ['getReceiptPreview', Permission.STATEMENT_VIEW],
     ['exportToSheets', Permission.STATEMENT_VIEW],
-    ['exportToDraft', Permission.STATEMENT_VIEW],
     ['updateReceipt', Permission.STATEMENT_EDIT],
     ['approveReceipt', Permission.STATEMENT_EDIT],
     ['updateParsedData', Permission.STATEMENT_EDIT],
@@ -26,6 +25,12 @@ describe('GmailController security metadata', () => {
     ['unmarkDuplicate', Permission.STATEMENT_EDIT],
     ['bulkApprove', Permission.STATEMENT_EDIT],
     ['reparseMerchants', Permission.STATEMENT_EDIT],
+    // Integration routes: the mailbox belongs to the workspace it was connected in.
+    ['getConnectUrl', Permission.INTEGRATION_MANAGE],
+    ['disconnect', Permission.INTEGRATION_MANAGE],
+    ['triggerSync', Permission.INTEGRATION_MANAGE],
+    ['updateSettings', Permission.INTEGRATION_MANAGE],
+    ['exportToDraft', Permission.INTEGRATION_MANAGE],
   ])('scopes %s to the current workspace with %s', (methodName, permission) => {
     const handler = GmailController.prototype[methodName as keyof GmailController] as (
       ...args: never[]
@@ -35,5 +40,11 @@ describe('GmailController security metadata', () => {
       expect.arrayContaining([WorkspaceContextGuard, PermissionsGuard]),
     );
     expect(Reflect.getMetadata(PERMISSIONS_KEY, handler)).toEqual([permission]);
+  });
+
+  it('reads the status of the current workspace’s integration', () => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, GmailController.prototype.getStatus)).toEqual(
+      expect.arrayContaining([WorkspaceContextGuard]),
+    );
   });
 });

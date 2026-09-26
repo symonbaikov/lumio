@@ -139,7 +139,12 @@ export function SecurityTab({ section, user }: SettingsTabProps): React.JSX.Elem
         icon={ShieldCheck}
         defaultExpanded={openSection === 'two-factor'}
       >
-        <TwoFactorSection tx={tx} twoFactor={twoFactor} />
+        <TwoFactorSection
+          tx={tx}
+          twoFactor={twoFactor}
+          email={user.email}
+          formatPreferences={formatPreferences}
+        />
       </SettingsAccordion>
 
       <SettingsAccordion

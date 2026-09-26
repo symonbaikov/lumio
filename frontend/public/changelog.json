@@ -1,14 +1,448 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "1de94bc72b535c514d1480b98b2e9f0168dcd780"
+      "main": "9472c11912ae58be03c502a364315ee2c5cceec3"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-25T21:04:44.209Z",
+    "lastGeneratedAt": "2026-09-26T21:19:23.580Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-09-26-9472c11",
+      "version": "main-9472c11",
+      "branch": "main",
+      "date": "2026-09-26T21:19:23.580Z",
+      "title": "Release update - September 26, 2026",
+      "summary": "This release includes 3 features.",
+      "markdown": "## Features\n- **search**: Turn header search into a drawer with Search and Favorites tabs\n- **invoices**: Add clients, itemized invoices, PDF export and recurrence\n- **security**: Add a download button for 2FA recovery codes",
+      "commits": [
+        {
+          "sha": "b0be46f94ff5e63d14d80c0f0b6baa736ce717bd",
+          "shortSha": "b0be46f9",
+          "subject": "feat(search): turn header search into a drawer with Search and Favorites tabs",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:14:04+03:00",
+          "files": [
+            "backend/@tests/unit/modules/search/search.service.spec.ts",
+            "backend/src/entities/index.ts",
+            "backend/src/entities/statement-favorite.entity.ts",
+            "backend/src/migrations/1786520000000-CreateStatementFavorites.ts",
+            "backend/src/modules/search/search.controller.ts",
+            "backend/src/modules/search/search.module.ts",
+            "backend/src/modules/search/search.service.ts",
+            "frontend/app/components/GlobalSearch.test.tsx",
+            "frontend/app/components/GlobalSearch.tsx",
+            "frontend/app/components/icons/index.tsx",
+            "frontend/app/components/panels/panel-ui.tsx",
+            "frontend/app/components/ui/EmptyStateIllustration.tsx",
+            "frontend/app/lib/query-keys.test.ts",
+            "frontend/app/lib/query-keys.ts",
+            "frontend/public/images/empty-states/favorites.svg"
+          ]
+        },
+        {
+          "sha": "abf6412d2b88643055d83766249848689e394565",
+          "shortSha": "abf6412d",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-26T21:14:37Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "6b534ac2714cfa8036bf5fb409f9f0cf0e88ca46",
+          "shortSha": "6b534ac2",
+          "subject": "feat(invoices): add clients, itemized invoices, PDF export and recurrence",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:15:46+03:00",
+          "files": [
+            "README.md",
+            "backend/@tests/integration/ledger-posting.spec.ts",
+            "backend/@tests/unit/entities/ledger-account.entity.spec.ts",
+            "backend/@tests/unit/modules/invoices/invoices.scheduler.spec.ts",
+            "backend/@tests/unit/modules/invoices/invoices.service.spec.ts",
+            "backend/src/app.module.ts",
+            "backend/src/common/enums/permissions.enum.ts",
+            "backend/src/common/errors/app-error.ts",
+            "backend/src/common/guards/permissions.guard.ts",
+            "backend/src/entities/audit-event.entity.ts",
+            "backend/src/entities/client.entity.ts",
+            "backend/src/entities/index.ts",
+            "backend/src/entities/invoice-counter.entity.ts",
+            "backend/src/entities/invoice-line-item.entity.ts",
+            "backend/src/entities/invoice.entity.ts",
+            "backend/src/entities/journal-entry.entity.ts",
+            "backend/src/migrations/1786530000000-CreateClients.ts",
+            "backend/src/migrations/1786540000000-CreateInvoiceCounters.ts",
+            "backend/src/migrations/1786550000000-CreateInvoices.ts",
+            "backend/src/migrations/1786560000000-CreateInvoiceLineItems.ts",
+            "backend/src/migrations/1786570000000-AllowInvoiceJournalEntrySource.ts",
+            "backend/src/migrations/1786580000000-AddInvoiceAndClientToAuditEntityTypeEnum.ts",
+            "backend/src/modules/audit/description/audit-description.service.ts",
+            "backend/src/modules/invoices/clients.controller.ts",
+            "backend/src/modules/invoices/clients.service.ts",
+            "backend/src/modules/invoices/dto/create-client.dto.ts",
+            "backend/src/modules/invoices/dto/create-invoice.dto.ts",
+            "backend/src/modules/invoices/dto/filter-invoices.dto.ts",
+            "backend/src/modules/invoices/dto/invoice-line-item.dto.ts",
+            "backend/src/modules/invoices/dto/update-client.dto.ts",
+            "backend/src/modules/invoices/dto/update-invoice.dto.ts",
+            "backend/src/modules/invoices/invoice-document.ts",
+            "backend/src/modules/invoices/invoice-recurrence.util.ts",
+            "backend/src/modules/invoices/invoices.controller.ts",
+            "backend/src/modules/invoices/invoices.module.ts",
+            "backend/src/modules/invoices/invoices.scheduler.ts",
+            "backend/src/modules/invoices/invoices.service.ts",
+            "backend/src/modules/ledger/ledger-default-accounts.ts",
+            "backend/src/modules/ledger/ledger-posting.service.ts",
+            "backend/src/modules/ledger/ledger.module.ts",
+            "frontend/app/(main)/invoices/[id]/page.tsx",
+            "frontend/app/(main)/invoices/clients/page.tsx",
+            "frontend/app/(main)/invoices/components/ClientDrawer.tsx",
+            "frontend/app/(main)/invoices/components/ClientsView.tsx",
+            "frontend/app/(main)/invoices/components/InvoiceDetailView.tsx",
+            "frontend/app/(main)/invoices/components/InvoicesListView.tsx",
+            "frontend/app/(main)/invoices/components/invoices-format.ts",
+            "frontend/app/(main)/invoices/page.content.ts",
+            "frontend/app/(main)/invoices/page.tsx",
+            "frontend/app/(main)/statements/components/payables/CreatePayableDrawer.tsx",
+            "frontend/app/components/navigation.content.ts",
+            "frontend/app/components/navigation/helpers/navigation-config.test.ts",
+            "frontend/app/components/navigation/helpers/navigation-config.ts",
+            "frontend/app/hooks/useCurrencyPickerState.ts",
+            "frontend/app/hooks/usePermissions.ts",
+            "frontend/app/lib/invoices-api.ts",
+            "frontend/app/lib/query-keys.ts"
+          ]
+        },
+        {
+          "sha": "0abc5fb3ad152030ba1ed0ff80ae0c87372bd646",
+          "shortSha": "0abc5fb3",
+          "subject": "feat(security): add a download button for 2FA recovery codes",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:16:56+03:00",
+          "files": [
+            "frontend/app/settings/profile/components/RecoveryCodesDownloadButton.test.tsx",
+            "frontend/app/settings/profile/components/RecoveryCodesDownloadButton.tsx",
+            "frontend/app/settings/profile/components/TwoFactorPanels.tsx",
+            "frontend/app/settings/profile/components/TwoFactorSection.tsx",
+            "frontend/app/settings/profile/helpers/recovery-codes-file.test.ts",
+            "frontend/app/settings/profile/helpers/recovery-codes-file.ts",
+            "frontend/app/settings/profile/page.content.ts",
+            "frontend/app/settings/profile/page.tsx",
+            "frontend/app/settings/profile/tabs/SecurityTab.tsx",
+            "frontend/package-lock.json",
+            "frontend/package.json"
+          ]
+        },
+        {
+          "sha": "ead23fbbb83ef4776014e44ed69cafadb9b136cd",
+          "shortSha": "ead23fbb",
+          "subject": "Merge pull request #202 from symonbaikov/feat/invoices",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:17:50+03:00",
+          "files": [
+            "README.md"
+          ]
+        },
+        {
+          "sha": "ae5f4845588f174d912c4c17cf4bc6e9254901e7",
+          "shortSha": "ae5f4845",
+          "subject": "Merge pull request #203 from symonbaikov/feat/recovery-codes-download",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:18:31+03:00",
+          "files": []
+        },
+        {
+          "sha": "9472c11912ae58be03c502a364315ee2c5cceec3",
+          "shortSha": "9472c119",
+          "subject": "Merge pull request #201 from symonbaikov/feat/search-drawer",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:18:50+03:00",
+          "files": [
+            "backend/src/entities/index.ts",
+            "frontend/app/lib/query-keys.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "changelog-2026-09-26-89ac9e9",
+      "version": "main-89ac9e9",
+      "branch": "main",
+      "date": "2026-09-26T21:14:36.890Z",
+      "title": "Release update - September 26, 2026",
+      "summary": "This release includes 1 feature and 1 fix.",
+      "markdown": "## Features\n- **nav**: Unify the statements panel into one shell sidebar, drop breadcrumbs\n\n## Fixes\n- **statements**: PUT only changed fields when saving an inline transaction edit",
+      "commits": [
+        {
+          "sha": "9a4272b4bc2221ced036c5ec45581e4a074011b2",
+          "shortSha": "9a4272b4",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-26T20:47:58Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "289622bf43c05188df8fce605e97d62b41a333e1",
+          "shortSha": "289622bf",
+          "subject": "fix(statements): PUT only changed fields when saving an inline transaction edit",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:05:34+03:00",
+          "files": [
+            "frontend/app/(main)/statements/[id]/edit/hooks/statement-edit-sync.test.ts",
+            "frontend/app/(main)/statements/[id]/edit/hooks/statement-edit-sync.ts",
+            "frontend/app/(main)/statements/[id]/edit/hooks/useStatementEditForm.ts"
+          ]
+        },
+        {
+          "sha": "5bcd0b99bef374d99bd1e3149a5dfa543dd63e60",
+          "shortSha": "5bcd0b99",
+          "subject": "feat(nav): unify the statements panel into one shell sidebar, drop breadcrumbs",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:11:30+03:00",
+          "files": [
+            "frontend/app/(main)/statements/approve/page.tsx",
+            "frontend/app/(main)/statements/components/StatementsCircularUploadMenu.test.tsx",
+            "frontend/app/(main)/statements/components/StatementsCircularUploadMenu.tsx",
+            "frontend/app/(main)/statements/components/StatementsSidePanel.test.tsx",
+            "frontend/app/(main)/statements/components/StatementsSidePanel.tsx",
+            "frontend/app/(main)/statements/components/TrashListView.tsx",
+            "frontend/app/(main)/statements/components/TrashSidePanel.tsx",
+            "frontend/app/(main)/statements/pay/page.tsx",
+            "frontend/app/(main)/statements/receive/page.tsx",
+            "frontend/app/(main)/statements/spend-over-time/page.tsx",
+            "frontend/app/(main)/statements/submit/page.tsx",
+            "frontend/app/(main)/statements/tables-reports/page.tsx",
+            "frontend/app/(main)/statements/top-categories/page.tsx",
+            "frontend/app/(main)/statements/top-merchants/page.tsx",
+            "frontend/app/(main)/statements/top-spenders/page.tsx",
+            "frontend/app/(main)/statements/transactions/page.tsx",
+            "frontend/app/(main)/statements/trash/page.tsx",
+            "frontend/app/(main)/statements/unapproved-cash/page.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceSidePanel.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceTabShell.test.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceTabShell.tsx",
+            "frontend/app/(main)/workspaces/list/page.tsx",
+            "frontend/app/components/AppChrome.test.tsx",
+            "frontend/app/components/AppChrome.tsx",
+            "frontend/app/components/Breadcrumbs.tsx",
+            "frontend/app/components/GlobalBreadcrumbs.tsx",
+            "frontend/app/components/ShellSidePanel.test.tsx",
+            "frontend/app/components/ShellSidePanel.tsx",
+            "frontend/app/components/Sidebar.tsx",
+            "frontend/app/components/TopBar.tsx",
+            "frontend/app/components/breadcrumbs.content.ts",
+            "frontend/app/components/insights/AlertBanner.tsx",
+            "frontend/app/components/side-panel/MainSidePanelLayout.test.tsx",
+            "frontend/app/components/side-panel/MainSidePanelLayout.tsx",
+            "frontend/app/components/side-panel/SidePanel.tsx",
+            "frontend/app/components/side-panel/sections/NavigationSection.tsx",
+            "frontend/app/components/side-panel/sections/components/SectionWrapper.tsx",
+            "frontend/app/components/welcome-tutorial/TutorialOutro.tsx",
+            "frontend/app/layout.tsx",
+            "frontend/app/styles/components/_breadcrumbs.scss",
+            "frontend/app/styles/components/_index.scss",
+            "frontend/app/styles/layout/_shell.scss",
+            "frontend/app/styles/themes/_globals.scss",
+            "frontend/public/images/favicon-new.png",
+            "frontend/public/images/logo-lockup-dark.svg",
+            "frontend/public/images/logo-lockup.svg"
+          ]
+        },
+        {
+          "sha": "04a227deb532429386fff0bcfb2eae3fe4f754c8",
+          "shortSha": "04a227de",
+          "subject": "Merge pull request #198 from symonbaikov/fix/transaction-inline-edit-save",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:13:47+03:00",
+          "files": []
+        },
+        {
+          "sha": "89ac9e92a32ec6925fe9df7f9d24c0d6c7357057",
+          "shortSha": "89ac9e92",
+          "subject": "Merge pull request #200 from symonbaikov/feat/nav-shell-rework",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:14:12+03:00",
+          "files": []
+        }
+      ]
+    },
+    {
+      "id": "changelog-2026-09-26-03081b8",
+      "version": "main-03081b8",
+      "branch": "main",
+      "date": "2026-09-26T20:47:57.712Z",
+      "title": "Release update - September 26, 2026",
+      "summary": "This release includes 5 fixes.",
+      "markdown": "## Fixes\n- **gmail**: Bind the integration to the workspace it was connected in\n- **integrations**: Bind Google Drive and Dropbox to their workspace\n- **integrations**: Scope S3, WebDAV, IMAP and service settings to the request\n- Check the workspace being edited in the remaining request paths\n- **telegram**: Answer for the workspace the chat was connected in",
+      "commits": [
+        {
+          "sha": "734ee5873607ab03bbc1a0e7ea17de2a30dec92c",
+          "shortSha": "734ee587",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-25T21:04:44Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "7b3e95de09a0cb36e59338290cef2f04ecce250e",
+          "shortSha": "7b3e95de",
+          "subject": "fix(gmail): bind the integration to the workspace it was connected in",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T16:49:40+03:00",
+          "files": [
+            "backend/@tests/e2e/workspace-isolation.e2e-spec.ts",
+            "backend/@tests/unit/migrations/scope-receipt-gmail-message-id-to-workspace.migration.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-controller-status.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-controller-sync.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-controller.security.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-oauth.service.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-receipt-processor.spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-sync.service.spec.ts",
+            "backend/src/common/services/oauth-integration-base.service.ts",
+            "backend/src/migrations/1786490000000-ScopeReceiptGmailMessageIdToWorkspace.ts",
+            "backend/src/modules/gmail/gmail-receipt-processor.ts",
+            "backend/src/modules/gmail/gmail.controller.ts",
+            "backend/src/modules/gmail/gmail.module.ts",
+            "backend/src/modules/gmail/gmail.scheduler.ts",
+            "backend/src/modules/gmail/services/gmail-oauth.service.ts",
+            "backend/src/modules/gmail/services/gmail-receipt-export.service.ts",
+            "backend/src/modules/gmail/services/gmail-sync.service.ts",
+            "backend/src/modules/gmail/services/gmail-watch.service.ts",
+            "backend/src/modules/gmail/services/gmail-webhook.service.ts",
+            "backend/src/modules/gmail/services/gmail.service.ts"
+          ]
+        },
+        {
+          "sha": "673e7333cd2dd0028a9c254ef1fc3c3de08af5ae",
+          "shortSha": "673e7333",
+          "subject": "fix(integrations): bind Google Drive and Dropbox to their workspace",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T16:55:51+03:00",
+          "files": [
+            "backend/@tests/e2e/workspace-isolation.e2e-spec.ts",
+            "backend/@tests/unit/common/services/cloud-storage-base.service.spec.ts",
+            "backend/@tests/unit/common/services/oauth-integration-base.service.spec.ts",
+            "backend/@tests/unit/modules/dropbox/dropbox.service.spec.ts",
+            "backend/@tests/unit/modules/google-drive/google-drive.service.spec.ts",
+            "backend/@tests/unit/modules/workspace-guard/cloud-storage-controllers.security.spec.ts",
+            "backend/src/common/services/cloud-storage-base.service.ts",
+            "backend/src/common/services/oauth-integration-base.service.ts",
+            "backend/src/modules/dropbox/dropbox.controller.ts",
+            "backend/src/modules/dropbox/dropbox.service.ts",
+            "backend/src/modules/google-drive/google-drive.controller.ts",
+            "backend/src/modules/google-drive/google-drive.service.ts"
+          ]
+        },
+        {
+          "sha": "79fede6e2993d1e559e94be8dfd3183d2852129b",
+          "shortSha": "79fede6e",
+          "subject": "fix(integrations): scope S3, WebDAV, IMAP and service settings to the request",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T17:02:18+03:00",
+          "files": [
+            "backend/@tests/unit/modules/application-settings/application-settings.controller.security.spec.ts",
+            "backend/@tests/unit/modules/application-settings/application-settings.service.spec.ts",
+            "backend/@tests/unit/modules/open-protocol-integrations/imap-sync-already-seen.spec.ts",
+            "backend/@tests/unit/modules/open-protocol-integrations/open-protocol-integrations.controller.security.spec.ts",
+            "backend/@tests/unit/modules/open-protocol-integrations/open-protocol-integrations.service.spec.ts",
+            "backend/src/modules/application-settings/application-settings.controller.ts",
+            "backend/src/modules/application-settings/application-settings.service.ts",
+            "backend/src/modules/open-protocol-integrations/open-protocol-integrations.controller.ts",
+            "backend/src/modules/open-protocol-integrations/open-protocol-integrations.service.ts"
+          ]
+        },
+        {
+          "sha": "c8fb7266ba271f0fab350d581c97ada8c7b8fa93",
+          "shortSha": "c8fb7266",
+          "subject": "fix: check the workspace being edited in the remaining request paths",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T17:08:42+03:00",
+          "files": [
+            "backend/@tests/unit/modules/backups/backups.controller.spec.ts",
+            "backend/@tests/unit/modules/backups/backups.service.spec.ts",
+            "backend/@tests/unit/modules/classification/services/classification.service.spec.ts",
+            "backend/@tests/unit/modules/custom-tables/custom-tables-import.service.spec.ts",
+            "backend/@tests/unit/modules/transactions/transactions.split.spec.ts",
+            "backend/@tests/unit/modules/users/users.service.spec.ts",
+            "backend/src/modules/backups/backups.controller.ts",
+            "backend/src/modules/backups/backups.service.ts",
+            "backend/src/modules/classification/services/classification.service.ts",
+            "backend/src/modules/custom-tables/custom-tables-import.service.ts",
+            "backend/src/modules/transactions/transactions.service.ts",
+            "backend/src/modules/users/users.service.ts"
+          ]
+        },
+        {
+          "sha": "1c4625e40d7f6bd64bacc318f7e82bae3bc1d3a9",
+          "shortSha": "1c4625e4",
+          "subject": "fix(telegram): answer for the workspace the chat was connected in",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T17:12:31+03:00",
+          "files": [
+            "backend/@tests/unit/migrations/add-user-telegram-workspace.migration.spec.ts",
+            "backend/@tests/unit/modules/telegram/telegram.controller.spec.ts",
+            "backend/@tests/unit/modules/telegram/telegram.scheduler.spec.ts",
+            "backend/@tests/unit/modules/telegram/telegram.service.spec.ts",
+            "backend/src/entities/user.entity.ts",
+            "backend/src/migrations/1786500000000-AddUserTelegramWorkspace.ts",
+            "backend/src/modules/telegram/telegram.controller.ts",
+            "backend/src/modules/telegram/telegram.module.ts",
+            "backend/src/modules/telegram/telegram.scheduler.ts",
+            "backend/src/modules/telegram/telegram.service.ts"
+          ]
+        },
+        {
+          "sha": "55cb7ba2b546618845c4cb8686651d4012f9540d",
+          "shortSha": "55cb7ba2",
+          "subject": "test: keep user.workspaceId reads to the files that own them",
+          "author": "Symon Baikov",
+          "date": "2026-09-25T17:13:15+03:00",
+          "files": [
+            "backend/@tests/unit/common/user-workspace-reads.spec.ts"
+          ]
+        },
+        {
+          "sha": "db4bf316bacde7333bbe16997db1cacf98c6aa28",
+          "shortSha": "db4bf316",
+          "subject": "chore(migrations): renumber the workspace migrations after main's latest",
+          "author": "Symon Baikov",
+          "date": "2026-09-26T14:07:12+03:00",
+          "files": [
+            "backend/@tests/unit/migrations/add-user-telegram-workspace.migration.spec.ts",
+            "backend/@tests/unit/migrations/scope-receipt-gmail-message-id-to-workspace.migration.spec.ts",
+            "backend/src/migrations/1786530000000-ScopeReceiptGmailMessageIdToWorkspace.ts",
+            "backend/src/migrations/1786540000000-AddUserTelegramWorkspace.ts"
+          ]
+        },
+        {
+          "sha": "2d2b4799b7b5f8b7528b5e539694ecf04f287aba",
+          "shortSha": "2d2b4799",
+          "subject": "Add new image to README",
+          "author": "Symon Baikov",
+          "date": "2026-09-26T23:45:18+03:00",
+          "files": [
+            "README.md"
+          ]
+        },
+        {
+          "sha": "03081b8accbb95835163fa78d1adbb34c52eb8f6",
+          "shortSha": "03081b8a",
+          "subject": "Merge pull request #197 from symonbaikov/fix/workspace-isolation-integrations-main",
+          "author": "Symon Baikov",
+          "date": "2026-09-26T23:47:32+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-25-1de94bc",
       "version": "main-1de94bc",

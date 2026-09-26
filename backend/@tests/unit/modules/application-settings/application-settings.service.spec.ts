@@ -198,6 +198,25 @@ describe('ApplicationSettingsService', () => {
     expect(assertPublicEgressHost).toHaveBeenCalledWith('mail.example.com');
   });
 
+  it('writes to the workspace of the request, not the one the user registered with', async () => {
+    const service = createService();
+
+    await service.saveAppSettings(user, { publicUrl: 'https://b.example.com' }, 'workspace-2');
+    await service.savePersonalAiSettings(
+      user,
+      { baseUrl: 'https://api.openai.com', model: 'gpt-4.1-mini', apiKey: 'sk-personal' },
+      'workspace-2',
+    );
+    await service.disconnect(user, WorkspaceServiceSettingsKey.TELEGRAM, 'workspace-2');
+
+    expect(saved[WorkspaceServiceSettingsKey.APP]).toMatchObject({ workspaceId: 'workspace-2' });
+    expect(personalSaved).toMatchObject({ userId: 'user-1', workspaceId: 'workspace-2' });
+    expect(repository.delete).toHaveBeenCalledWith({
+      workspaceId: 'workspace-2',
+      key: WorkspaceServiceSettingsKey.TELEGRAM,
+    });
+  });
+
   it('deletes workspace settings on disconnect', async () => {
     await createService().disconnect(user, WorkspaceServiceSettingsKey.TELEGRAM);
 

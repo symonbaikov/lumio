@@ -521,6 +521,28 @@ describe('ClassificationService', () => {
 
       expect(result).toBeUndefined();
     });
+
+    it('picks wallets and branches of the transaction’s workspace', async () => {
+      const walletFind = jest.spyOn(walletRepository, 'find').mockResolvedValue([]);
+      const walletFindOne = jest.spyOn(walletRepository, 'findOne').mockResolvedValue(null);
+      const branchFind = jest.spyOn(branchRepository, 'find').mockResolvedValue([]);
+      const transaction = {
+        ...mockTransaction,
+        workspaceId: 'ws-1',
+        counterpartyAccount: 'KZ00',
+      } as Transaction;
+
+      await (service as any).autoDetermineWallet(transaction, '1', 'ws-1');
+      await (service as any).autoDetermineBranch(transaction, '1', 'ws-1');
+
+      expect(walletFindOne).toHaveBeenCalledWith({
+        where: { workspaceId: 'ws-1', accountNumber: 'KZ00' },
+      });
+      expect(walletFind).toHaveBeenCalledWith({ where: { workspaceId: 'ws-1' } });
+      expect(branchFind).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { workspaceId: 'ws-1' } }),
+      );
+    });
   });
 
   describe('ensureCategory', () => {

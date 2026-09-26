@@ -700,7 +700,7 @@ describe('TransactionsService.unsplit', () => {
   it('checks edit permission before merging', async () => {
     await service.unsplit('tx-1', 'ws-1', 'u-1');
 
-    expect((service as any).ensureCanEditStatements).toHaveBeenCalledWith('u-1');
+    expect((service as any).ensureCanEditStatements).toHaveBeenCalledWith('u-1', 'ws-1');
   });
 
   it('merges into part 0 even when called with a non-part-0 id', async () => {

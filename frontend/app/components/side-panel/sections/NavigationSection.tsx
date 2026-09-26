@@ -48,11 +48,12 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
               minWidth: 20,
               height: 20,
               padding: '0 6px',
-              fontSize: 10,
-              fontWeight: 600,
+              fontSize: 11,
+              // Counts stay quiet: grey, no fill. Only the current item's count is green.
+              fontWeight: item.active ? 600 : 500,
               borderRadius: tokens.radius.full,
-              backgroundColor: 'var(--primary-fill)',
-              color: 'white',
+              backgroundColor: item.active ? 'var(--primary-fill)' : 'transparent',
+              color: item.active ? 'white' : 'var(--muted-foreground)',
             }}
           >
             {item.badge}
@@ -78,9 +79,8 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
-    padding: '10px 16px',
-    margin: '2px 0',
-    fontSize: 14,
+    padding: '10px 10px',
+    fontSize: 13.5,
     textDecoration: 'none',
     transition: 'background-color 200ms',
     border: 'none',

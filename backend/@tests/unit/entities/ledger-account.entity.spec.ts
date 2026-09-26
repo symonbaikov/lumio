@@ -25,6 +25,7 @@ describe('ledger enums', () => {
       'manual',
       'opening_balance',
       'fx_revaluation',
+      'invoice',
     ]);
   });
 

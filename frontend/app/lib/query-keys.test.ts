@@ -48,6 +48,9 @@ describe('queryKeys', () => {
       cryptoWallets: queryKeys.cryptoWallets('w1'),
       cryptoSummary: queryKeys.cryptoSummary('w1'),
       notifications: queryKeys.notifications('w1'),
+      searchRecent: queryKeys.searchRecent('w1'),
+      searchFavorites: queryKeys.searchFavorites('w1'),
+      search: queryKeys.search({ workspaceId: 'w1', q: 'rent' }),
     }).toEqual({
       dashboard: ['dashboard', 'w1', '30d', null],
       dashboardTrends: ['dashboard', 'trends', 'w1', 30, '2026-07'],
@@ -81,6 +84,9 @@ describe('queryKeys', () => {
       cryptoWallets: ['crypto', 'wallets', 'w1'],
       cryptoSummary: ['crypto', 'summary', 'w1'],
       notifications: ['notifications', 'w1'],
+      searchRecent: ['search', 'w1', 'recent'],
+      searchFavorites: ['search', 'w1', 'favorites'],
+      search: ['search', 'w1', 'query', 'rent'],
     });
   });
 

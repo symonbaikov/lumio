@@ -2,6 +2,7 @@
 
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
+import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight, X } from '@/app/components/icons';
@@ -12,8 +13,8 @@ import { tokens } from '@/lib/theme-tokens';
 
 const bodySx = {
   display: 'flex',
-  alignItems: 'flex-start',
-  gap: 1.5,
+  alignItems: 'center',
+  gap: 1.25,
   flexGrow: 1,
   minWidth: 0,
 } as const;
@@ -35,16 +36,22 @@ function AlertBannerItem({
   const href = insightHref(item);
   const body = (
     <>
-      <AlertTriangle size={18} color={isCritical ? tokens.color.danger : tokens.color.warning} />
-      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-        <Typography variant="body2" fontWeight={600}>
+      <AlertTriangle
+        size={16}
+        color={isCritical ? tokens.color.danger : tokens.color.warning}
+        style={{ flexShrink: 0 }}
+      />
+      {/* Title and message on one line: a slim strip that doesn't outshout the page heading. */}
+      <Typography variant="body2" sx={{ flexGrow: 1, minWidth: 0 }}>
+        <Box component="span" sx={{ fontWeight: 600 }}>
           {item.title}
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+        </Box>
+        <Box component="span" sx={{ color: 'text.secondary' }}>
+          {' · '}
           {item.message}
-        </Typography>
-      </Box>
-      {href === null ? null : <ArrowRight size={16} />}
+        </Box>
+      </Typography>
+      {href === null ? null : <ArrowRight size={14} style={{ flexShrink: 0, opacity: 0.6 }} />}
     </>
   );
 
@@ -53,23 +60,24 @@ function AlertBannerItem({
       role="status"
       sx={{
         display: 'flex',
-        alignItems: 'flex-start',
-        gap: 1.5,
-        px: 2,
-        py: 1.5,
+        alignItems: 'center',
+        gap: 1,
+        pl: 1.5,
+        pr: 0.5,
+        py: 0.5,
+        // Quiet by design: the soft tint of the severity colour and a hairline
+        // of it, instead of a saturated fill and border.
         border: '1px solid',
-        borderColor: isCritical ? 'error.main' : 'warning.main',
+        borderColor: alpha(isCritical ? tokens.color.danger : tokens.color.warning, 0.25),
         borderRadius: tokens.radius.sm,
-        // In dark mode the palette's *.light shades are near-white, which
-        // washes out the light text — use the translucent soft tint instead.
         bgcolor: theme =>
           theme.palette.mode === 'dark'
             ? isCritical
               ? tokens.dark.color.dangerSoft
               : tokens.dark.color.warningSoft
             : isCritical
-              ? 'error.light'
-              : 'warning.light',
+              ? tokens.color.dangerSoft
+              : tokens.color.warningSoft,
       }}
     >
       {/* The body is a link and the dismiss button its sibling, never its

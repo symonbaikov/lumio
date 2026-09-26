@@ -9,6 +9,7 @@ import type React from 'react';
 const ILLUSTRATIONS = {
   activity: { src: '/images/empty-states/activity.svg', width: 929, height: 744 },
   dashboard: { src: '/images/empty-states/dashboard.svg', width: 792, height: 399 },
+  favorites: { src: '/images/empty-states/favorites.svg', width: 675, height: 424 },
   integrations: { src: '/images/empty-states/integrations.svg', width: 867, height: 673 },
   'no-data': { src: '/images/empty-states/no-data.svg', width: 648, height: 632 },
   'no-results': { src: '/images/empty-states/no-results.svg', width: 619, height: 800 },
