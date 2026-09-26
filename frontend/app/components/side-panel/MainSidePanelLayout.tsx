@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation';
 import React from 'react';
 import { X } from '@/app/components/icons';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
-import { SidePanel, SidePanelProvider, useCurrentSidePanelConfig, useSidePanel } from './index';
+import { SidePanel, useCurrentSidePanelConfig, useSidePanel } from './index';
 
 type ClonableProps = Record<string, unknown>;
 const MOBILE_MENU_VISIBILITY_EVENT = 'lumio-mobile-menu-visibility';
@@ -261,21 +261,7 @@ function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
           : {}),
       }}
     >
-      {config ? (
-        <Box
-          sx={{
-            display: { xs: 'none', lg: 'flex' },
-            flexShrink: 0,
-            ...(isStatementsPage ? { height: '100%' } : {}),
-          }}
-        >
-          <SidePanel
-            config={config}
-            showCollapseToggle={false}
-            style={isStatementsPage ? { height: '100%' } : undefined}
-          />
-        </Box>
-      ) : null}
+      {/* The desktop panel lives in the shell (ShellSidePanel), full height beside the sidebar. */}
       <div
         style={{
           flex: 1,
@@ -403,15 +389,6 @@ function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types
 export function MainSidePanelLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <SidePanelProvider
-      defaultWidth="md"
-      defaultPosition="left"
-      defaultCollapsed={false}
-      persistState={true}
-      storageKey="lumio-side-panel"
-    >
-      <MainSidePanelLayoutInner>{children}</MainSidePanelLayoutInner>
-    </SidePanelProvider>
-  );
+  // SidePanelProvider sits in the root layout so the shell can render the panel.
+  return <MainSidePanelLayoutInner>{children}</MainSidePanelLayoutInner>;
 }

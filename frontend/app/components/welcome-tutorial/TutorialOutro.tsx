@@ -29,7 +29,7 @@ interface TutorialOutroProps {
   onClose: () => void;
 }
 
-// Same link as the sidebar's "New statement" button.
+// Opens the statements upload flow.
 const UPLOAD_ROUTE = '/statements?upload=1';
 
 function OutroHints(): React.JSX.Element {

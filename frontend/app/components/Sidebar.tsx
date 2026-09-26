@@ -3,85 +3,15 @@
 import Skeleton from '@mui/material/Skeleton';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { type MouseEvent, useCallback, useState } from 'react';
-import { Check, ChevronDown, Plus } from '@/app/components/icons';
-import { useMenuClickOutside } from '@/app/components/pdf-preview/hooks/useMenuClickOutside';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer } from '@/app/i18n';
 import { useExperimentalMode } from '@/app/lib/experimental-mode';
-import {
-  type OpenExpenseDrawerEventDetail,
-  STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT,
-} from '@/app/lib/statement-expense-drawer';
 import { buildNavItems, isNavItemActive } from './navigation/helpers/navigation-config';
 
 // Matches buildNavItems() length so the skeleton doesn't jump when real items land.
-const NAV_ITEM_SKELETON_KEYS = Array.from({ length: 13 }, (_, i) => `nav-skeleton-${i}`);
-
-function WorkspaceSwitcher() {
-  const { currentWorkspace, workspaces, switchWorkspace } = useWorkspace();
-  const [open, setOpen] = useState(false);
-  const close = useCallback(() => setOpen(false), []);
-  const switcherRef = useMenuClickOutside({ menuOpen: open, onClose: close });
-
-  if (!currentWorkspace) return null;
-
-  const initials = (currentWorkspace.name ?? '?').slice(0, 1).toUpperCase();
-  const color = currentWorkspace.color ?? '#168118';
-  const role = currentWorkspace.memberRole;
-
-  return (
-    <div
-      ref={switcherRef}
-      className="lumio-sidebar__ws-switcher"
-      onClick={() => setOpen(prev => !prev)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') setOpen(prev => !prev);
-      }}
-      aria-expanded={open}
-    >
-      <div className="lumio-sidebar__ws-chip" style={{ background: color }}>
-        {initials}
-      </div>
-      <div className="lumio-sidebar__ws-info">
-        <div className="lumio-sidebar__ws-name">{currentWorkspace.name}</div>
-        {role && <div className="lumio-sidebar__ws-role">{role}</div>}
-      </div>
-      <ChevronDown
-        size={14}
-        className={`lumio-sidebar__ws-chevron${open ? ' lumio-sidebar__ws-chevron--open' : ''}`}
-      />
-
-      {open && (
-        <div className="lumio-sidebar__ws-dropdown" onClick={e => e.stopPropagation()} role="menu">
-          <div className="lumio-sidebar__ws-dropdown-label">Switch workspace</div>
-          {workspaces.map(ws => (
-            <button
-              key={ws.id}
-              type="button"
-              className={`lumio-sidebar__ws-item${ws.id === currentWorkspace.id ? ' lumio-sidebar__ws-item--active' : ''}`}
-              onClick={() => {
-                void switchWorkspace(ws.id);
-                setOpen(false);
-              }}
-              role="menuitem"
-            >
-              <div className="lumio-sidebar__ws-chip" style={{ background: ws.color ?? '#168118' }}>
-                {(ws.name ?? '?').slice(0, 1).toUpperCase()}
-              </div>
-              <span className="lumio-sidebar__ws-item-name">{ws.name}</span>
-              {ws.id === currentWorkspace.id && <Check size={13} />}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+const NAV_ITEM_SKELETON_KEYS = Array.from({ length: 14 }, (_, i) => `nav-skeleton-${i}`);
 
 function SidebarContent() {
   const pathname = usePathname();
@@ -97,55 +27,12 @@ function SidebarContent() {
     item => hasPermission(item.permission) && (!item.experimental || experimentalMode),
   );
 
-  // Already on the submit page: open the drawer in place instead of a
-  // /statements → /statements/submit redirect round-trip that remounts the page.
-  const handleNewStatementClick = (event: MouseEvent<HTMLAnchorElement>): void => {
-    if (pathname === '/statements/submit') {
-      event.preventDefault();
-      const detail: OpenExpenseDrawerEventDetail = { mode: 'scan' };
-      window.dispatchEvent(new CustomEvent(STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT, { detail }));
-    }
-  };
-
   return (
     <>
       {/* Brand */}
       <Link href="/" className="lumio-sidebar__brand" aria-label="Lumio home">
-        <div className="lumio-sidebar__brand-name">LUMIO</div>
+        <div className="lumio-sidebar__brand-mark" />
       </Link>
-
-      {/* Workspace switcher */}
-      {isLoading ? (
-        <div className="lumio-sidebar__ws-switcher">
-          <Skeleton variant="rounded" width={28} height={28} />
-          <div className="lumio-sidebar__ws-info">
-            <Skeleton variant="text" width="70%" height={16} />
-            <Skeleton variant="text" width="40%" height={13} />
-          </div>
-        </div>
-      ) : (
-        <WorkspaceSwitcher />
-      )}
-
-      {/* CTA */}
-      {isLoading ? (
-        <div className="lumio-sidebar__cta">
-          <Skeleton variant="rounded" width={18} height={18} />
-          <Skeleton variant="text" width={90} height={16} />
-        </div>
-      ) : (
-        <Link
-          href="/statements?upload=1"
-          className="lumio-sidebar__cta"
-          onClick={handleNewStatementClick}
-        >
-          <span className="lumio-sidebar__cta-icon">
-            <Plus size={12} />
-          </span>
-          <span>New statement</span>
-          <span className="lumio-sidebar__kbd">⌘ N</span>
-        </Link>
-      )}
 
       {/* Navigation */}
       <nav className="lumio-sidebar__nav" aria-label="Main navigation">

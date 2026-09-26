@@ -11,6 +11,7 @@ import DynamicPageTitle from './components/DynamicPageTitle';
 import MobileBottomBar from './components/mobile/MobileBottomBar';
 import { AppPanels } from './components/panels/AppPanels';
 import { ReactScan } from './components/ReactScan';
+import { SidePanelProvider } from './components/side-panel/SidePanelContext';
 import TopBar from './components/TopBar';
 import { WelcomeTutorialHost } from './components/welcome-tutorial/WelcomeTutorialHost';
 import { normalizeLocale } from './lib/locale';
@@ -89,24 +90,32 @@ export default async function RootLayout({
             <Providers initialLocale={resolvedLocale}>
               <ChatModeRedirect />
               <DynamicPageTitle />
-              <div className="lumio-shell">
-                <AppChrome />
-                <div className="lumio-shell__content">
-                  <TopBar />
-                  <main id="main-content" tabIndex={-1}>
-                    {children}
-                  </main>
-                  <MobileBottomBar />
-                  <AppPanels />
-                  <WelcomeTutorialHost />
-                  <div
-                    id="fab-portal"
-                    style={{ position: 'fixed', inset: 0, zIndex: 300, pointerEvents: 'none' }}
-                  >
-                    <div style={{ position: 'relative', height: '100%', width: '100%' }} />
+              <SidePanelProvider
+                defaultWidth="md"
+                defaultPosition="left"
+                defaultCollapsed={false}
+                persistState={true}
+                storageKey="lumio-side-panel"
+              >
+                <div className="lumio-shell">
+                  <AppChrome />
+                  <div className="lumio-shell__content">
+                    <TopBar />
+                    <main id="main-content" tabIndex={-1}>
+                      {children}
+                    </main>
+                    <MobileBottomBar />
+                    <AppPanels />
+                    <WelcomeTutorialHost />
+                    <div
+                      id="fab-portal"
+                      style={{ position: 'fixed', inset: 0, zIndex: 300, pointerEvents: 'none' }}
+                    >
+                      <div style={{ position: 'relative', height: '100%', width: '100%' }} />
+                    </div>
                   </div>
                 </div>
-              </div>
+              </SidePanelProvider>
             </Providers>
           </ThemeProvider>
         </IntlayerServerProvider>

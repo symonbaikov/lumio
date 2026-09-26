@@ -377,9 +377,11 @@ export function SidePanel({
                 </p>
               </div>
             ) : (
-              filteredSections.map(section => (
-                <SectionRenderer key={section.id} section={section} />
-              ))
+              <div data-side-panel-sections>
+                {filteredSections.map(section => (
+                  <SectionRenderer key={section.id} section={section} />
+                ))}
+              </div>
             )}
           </div>
 
