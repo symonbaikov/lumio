@@ -9,6 +9,7 @@ import Typography from '@mui/material/Typography';
 import { useState } from 'react';
 import { Alert } from '@/app/components/ui/alert';
 import { Spinner } from '@/app/components/ui/spinner';
+import type { UserFormatPreferences } from '@/app/lib/user-format';
 import {
   PasswordPrompt,
   RecoveryCodesPanel,
@@ -97,9 +98,14 @@ function DisabledPanel({
   );
 }
 
-type Props = { tx: Tx; twoFactor: UseTwoFactorReturn };
+type Props = {
+  tx: Tx;
+  twoFactor: UseTwoFactorReturn;
+  email: string;
+  formatPreferences: UserFormatPreferences;
+};
 
-export function TwoFactorSection({ tx, twoFactor }: Props) {
+export function TwoFactorSection({ tx, twoFactor, email, formatPreferences }: Props) {
   const { status, setup, recoveryCodes, loading, busy, error, message } = twoFactor;
 
   return (
@@ -108,7 +114,13 @@ export function TwoFactorSection({ tx, twoFactor }: Props) {
       {error ? <Alert variant="error">{error}</Alert> : null}
 
       {recoveryCodes ? (
-        <RecoveryCodesPanel tx={tx} codes={recoveryCodes} onDone={twoFactor.dismissRecoveryCodes} />
+        <RecoveryCodesPanel
+          tx={tx}
+          codes={recoveryCodes}
+          email={email}
+          formatPreferences={formatPreferences}
+          onDone={twoFactor.dismissRecoveryCodes}
+        />
       ) : null}
 
       {loading && !status ? <Spinner size={20} /> : null}
