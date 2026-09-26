@@ -101,20 +101,21 @@ export function CashFields(props: {
         <Alert severity="info">{t.noWallets.value.replace('{currency}', props.currency)}</Alert>
       ) : (
         <Box>
-          <Typography component="label" htmlFor="mark-paid-wallet" variant="caption">
+          <Typography
+            component="label"
+            id="mark-paid-wallet-label"
+            htmlFor="mark-paid-wallet"
+            variant="caption"
+          >
             {t.wallet.value}
           </Typography>
           <Select
             id="mark-paid-wallet"
+            labelId="mark-paid-wallet-label"
             value={value.walletId ?? ''}
-            onChange={event => onChange({ ...value, walletId: event.target.value })}
-          >
-            {props.wallets.map(wallet => (
-              <option key={wallet.id} value={wallet.id}>
-                {wallet.name}
-              </option>
-            ))}
-          </Select>
+            options={props.wallets.map(wallet => ({ value: wallet.id, label: wallet.name }))}
+            onChange={walletId => onChange({ ...value, walletId })}
+          />
         </Box>
       )}
       <Box>
@@ -130,21 +131,24 @@ export function CashFields(props: {
         />
       </Box>
       <Box>
-        <Typography component="label" htmlFor="mark-paid-category" variant="caption">
+        <Typography
+          component="label"
+          id="mark-paid-category-label"
+          htmlFor="mark-paid-category"
+          variant="caption"
+        >
           {t.category.value}
         </Typography>
         <Select
           id="mark-paid-category"
+          labelId="mark-paid-category-label"
           value={value.categoryId}
-          onChange={event => onChange({ ...value, categoryId: event.target.value })}
-        >
-          <option value="">{t.noCategory.value}</option>
-          {props.categories.map(category => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </Select>
+          options={[
+            { value: '', label: t.noCategory.value },
+            ...props.categories.map(category => ({ value: category.id, label: category.name })),
+          ]}
+          onChange={categoryId => onChange({ ...value, categoryId })}
+        />
       </Box>
       <Alert severity="info">{t.cashHint.value}</Alert>
     </Box>

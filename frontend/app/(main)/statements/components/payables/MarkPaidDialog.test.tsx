@@ -91,12 +91,18 @@ describe('MarkPaidDialog', () => {
     const onConfirm = renderDialog();
 
     fireEvent.click(await screen.findByRole('button', { name: 'modeCash' }));
-    await waitFor(() => {
-      expect(screen.getByRole('option', { name: 'Till' })).toBeInTheDocument();
-    });
+
+    // The only wallet in the bill's currency is preselected; the dollar one is not offered.
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'wallet' })).toHaveTextContent('Till'));
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'wallet' }));
     expect(screen.queryByRole('option', { name: 'Dollars' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('option', { name: 'Till' }));
+
+    // Paying out, so the income category is not offered either.
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'category' }));
     expect(screen.queryByRole('option', { name: 'Sales' })).not.toBeInTheDocument();
-    fireEvent.change(screen.getByDisplayValue('noCategory'), { target: { value: 'cat-out' } });
+    fireEvent.click(screen.getByRole('option', { name: 'Services' }));
+
     fireEvent.click(screen.getByRole('button', { name: 'confirm' }));
 
     expect(onConfirm).toHaveBeenCalledWith(payable, {
