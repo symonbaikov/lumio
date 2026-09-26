@@ -24,6 +24,8 @@ export enum EntityType {
   STATEMENT = 'statement',
   RECEIPT = 'receipt',
   PAYABLE = 'payable',
+  INVOICE = 'invoice',
+  CLIENT = 'client',
   CATEGORY = 'category',
   RULE = 'rule',
   WORKSPACE = 'workspace',

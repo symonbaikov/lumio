@@ -22,6 +22,7 @@ export enum JournalEntrySource {
   MANUAL = 'manual',
   OPENING_BALANCE = 'opening_balance',
   FX_REVALUATION = 'fx_revaluation',
+  INVOICE = 'invoice',
 }
 
 /**

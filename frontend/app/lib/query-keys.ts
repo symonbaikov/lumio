@@ -100,4 +100,11 @@ export const queryKeys = {
     accountId: string | null;
     params: Record<string, unknown>;
   }) => ['ledger', o.workspaceId, 'account-card', o.accountId, o.params] as const,
+  invoices: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
+    ['invoices', o.workspaceId, o.params] as const,
+  invoice: (o: { workspaceId: string | null; id: string | null }) =>
+    ['invoices', o.workspaceId, o.id] as const,
+  invoiceSettings: (workspaceId: string | null) => ['invoices', workspaceId, 'settings'] as const,
+  clients: (workspaceId: string | null) => ['clients', workspaceId] as const,
+  taxRateOptions: (workspaceId: string | null) => ['tax-rates', workspaceId, 'options'] as const,
 } as const;

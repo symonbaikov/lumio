@@ -236,6 +236,13 @@ export const ERR = {
     'The wallet holds {{walletCurrency}}; the bill is in {{currency}}',
   PAYABLE_ALREADY_LINKED: 'This bill is already linked to a transaction',
   PAYABLE_CATEGORY_NOT_FOUND: 'Category not found in this workspace',
+
+  // ── invoices ─────────────────────────────────────────────────────────────
+  INVOICE_NOT_DRAFT: 'Only a draft invoice can be edited',
+  INVOICE_ALREADY_SENT: 'This invoice was already sent',
+  INVOICE_ZERO_TOTAL: 'An invoice with no line items cannot be sent',
+  INVOICE_NOT_VOIDABLE: 'A paid invoice cannot be voided',
+  INVOICE_CLIENT_NOT_FOUND: 'Client not found in this workspace',
 } as const;
 
 export type ErrorCode = keyof typeof ERR;

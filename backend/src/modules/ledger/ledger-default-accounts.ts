@@ -6,6 +6,7 @@ export const LEDGER_ACCOUNT_CODES = {
   CASH: 'ASSET_CASH',
   CASH_UNALLOCATED: 'ASSET_CASH_UNALLOCATED',
   VAT_RECEIVABLE: 'ASSET_VAT_RECEIVABLE',
+  RECEIVABLES: 'ASSET_RECEIVABLES',
   SUSPENSE: 'ASSET_SUSPENSE',
   CRYPTO: 'ASSET_CRYPTO',
   LIABILITIES: 'LIABILITIES',
@@ -16,6 +17,7 @@ export const LEDGER_ACCOUNT_CODES = {
   RETAINED_EARNINGS: 'EQUITY_RETAINED_EARNINGS',
   INCOME: 'INCOME',
   FX_GAIN: 'INCOME_FX_GAIN',
+  SALES_REVENUE: 'INCOME_SALES_REVENUE',
   EXPENSES: 'EXPENSES',
   FX_LOSS: 'EXPENSE_FX_LOSS',
 } as const;
@@ -68,11 +70,19 @@ export const DEFAULT_LEDGER_ACCOUNTS: DefaultLedgerAccountDefinition[] = [
     isPostable: true,
   },
   {
+    code: C.RECEIVABLES,
+    name: 'Accounts receivable',
+    accountType: LedgerAccountType.ASSET,
+    parentCode: C.ASSETS,
+    position: 2,
+    isPostable: true,
+  },
+  {
     code: C.SUSPENSE,
     name: 'Suspense (uncategorised)',
     accountType: LedgerAccountType.ASSET,
     parentCode: C.ASSETS,
-    position: 2,
+    position: 3,
     isPostable: true,
   },
   // Parent of the per-wallet crypto accounts the posting engine opens.
@@ -81,7 +91,7 @@ export const DEFAULT_LEDGER_ACCOUNTS: DefaultLedgerAccountDefinition[] = [
     name: 'Crypto assets',
     accountType: LedgerAccountType.ASSET,
     parentCode: C.ASSETS,
-    position: 3,
+    position: 4,
     isPostable: false,
   },
 
@@ -150,6 +160,15 @@ export const DEFAULT_LEDGER_ACCOUNTS: DefaultLedgerAccountDefinition[] = [
     accountType: LedgerAccountType.INCOME,
     parentCode: C.INCOME,
     position: 0,
+    isPostable: true,
+  },
+  // Fallback for invoice line items with no category of their own.
+  {
+    code: C.SALES_REVENUE,
+    name: 'Sales revenue',
+    accountType: LedgerAccountType.INCOME,
+    parentCode: C.INCOME,
+    position: 1,
     isPostable: true,
   },
   {

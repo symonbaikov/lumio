@@ -52,6 +52,8 @@ const ENTITY_LABELS_EN: Record<EntityType, string> = {
   [EntityType.STATEMENT]: 'statement',
   [EntityType.RECEIPT]: 'receipt',
   [EntityType.PAYABLE]: 'payable',
+  [EntityType.INVOICE]: 'invoice',
+  [EntityType.CLIENT]: 'client',
   [EntityType.CATEGORY]: 'category',
   [EntityType.RULE]: 'rule',
   [EntityType.WORKSPACE]: 'workspace',

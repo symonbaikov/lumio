@@ -89,6 +89,7 @@ import { GoogleDriveModule } from './modules/google-drive/google-drive.module';
 import { GoogleSheetsModule } from './modules/google-sheets/google-sheets.module';
 import { IncomeTaxModule } from './modules/income-tax/income-tax.module';
 import { InsightsModule } from './modules/insights/insights.module';
+import { InvoicesModule } from './modules/invoices/invoices.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
 import { MapsModule } from './modules/maps/maps.module';
 import { NetWorthModule } from './modules/net-worth/net-worth.module';
@@ -255,6 +256,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     DashboardModule,
     SearchModule,
     PayablesModule,
+    InvoicesModule,
     ExchangeRatesModule,
     SubscriptionsModule,
     CryptoModule,
