@@ -1,14 +1,81 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "9472c11912ae58be03c502a364315ee2c5cceec3"
+      "main": "dbadb75753d46baec294e3034729bee603450793"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-26T21:19:23.580Z",
+    "lastGeneratedAt": "2026-09-26T21:51:27.586Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-09-26-dbadb75",
+      "version": "main-dbadb75",
+      "branch": "main",
+      "date": "2026-09-26T21:51:27.586Z",
+      "title": "Release update - September 26, 2026",
+      "summary": "This release includes 1 feature and 1 fix.",
+      "markdown": "## Features\n- **website**: Carry the new brand emblem into the docs site marks\n\n## Fixes\n- **auth**: Hide app chrome on forgot-password, reset-password and verify-email",
+      "commits": [
+        {
+          "sha": "6f89717a25e510a5e4fb7131da81b4ec60f22036",
+          "shortSha": "6f89717a",
+          "subject": "fix(auth): hide app chrome on forgot-password, reset-password and verify-email",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:08:32+03:00",
+          "files": [
+            "frontend/app/chat/ChatModeRedirect.tsx",
+            "frontend/app/components/AppChrome.tsx",
+            "frontend/app/components/Navigation.tsx",
+            "frontend/app/components/TopBar.tsx",
+            "frontend/app/components/mobile/MobileBottomBar.tsx",
+            "frontend/app/lib/auth-routes.ts"
+          ]
+        },
+        {
+          "sha": "e9c411abb4e6407f3d79e6138307a5daa00c109f",
+          "shortSha": "e9c411ab",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-26T21:19:23Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "1df80efe45e25ab438632b899f9a39b0126579c9",
+          "shortSha": "1df80efe",
+          "subject": "Merge branch 'main' into fix/auth-route-chrome",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:19:53+03:00",
+          "files": [
+            "frontend/app/components/AppChrome.tsx",
+            "frontend/app/components/TopBar.tsx"
+          ]
+        },
+        {
+          "sha": "92e403d8c0edff30ee3a34e7b10a09c40a76980b",
+          "shortSha": "92e403d8",
+          "subject": "Merge pull request #199 from symonbaikov/fix/auth-route-chrome",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:35:17+03:00",
+          "files": []
+        },
+        {
+          "sha": "dbadb75753d46baec294e3034729bee603450793",
+          "shortSha": "dbadb757",
+          "subject": "feat(website): carry the new brand emblem into the docs site marks",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:51:01+03:00",
+          "files": [
+            ".claude/launch.json",
+            "website/static/img/favicon.svg",
+            "website/static/img/logo.svg"
+          ]
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-26-9472c11",
       "version": "main-9472c11",
