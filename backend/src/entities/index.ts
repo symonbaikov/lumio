@@ -60,6 +60,7 @@ export * from './report-history.entity';
 export * from './report-schedule.entity';
 export * from './shared-link.entity';
 export * from './statement.entity';
+export * from './statement-favorite.entity';
 export * from './storage-view.entity';
 export * from './subscription.entity';
 export * from './subscription-charge.entity';

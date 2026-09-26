@@ -31,11 +31,15 @@ export function PanelSearchField({
   placeholder,
   onChange,
   tourId,
+  autoFocus,
+  ariaLabel,
 }: {
   value: string;
   placeholder: string;
   onChange: (value: string) => void;
   tourId?: string;
+  autoFocus?: boolean;
+  ariaLabel?: string;
 }): React.JSX.Element {
   return (
     <Box sx={{ position: 'relative' }}>
@@ -57,6 +61,8 @@ export function PanelSearchField({
         component="input"
         type="text"
         data-tour-id={tourId}
+        autoFocus={autoFocus}
+        aria-label={ariaLabel}
         value={value}
         placeholder={placeholder}
         onChange={(event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
