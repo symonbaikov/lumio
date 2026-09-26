@@ -1,14 +1,118 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "03081b8accbb95835163fa78d1adbb34c52eb8f6"
+      "main": "89ac9e92a32ec6925fe9df7f9d24c0d6c7357057"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-26T20:47:57.712Z",
+    "lastGeneratedAt": "2026-09-26T21:14:36.890Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-09-26-89ac9e9",
+      "version": "main-89ac9e9",
+      "branch": "main",
+      "date": "2026-09-26T21:14:36.890Z",
+      "title": "Release update - September 26, 2026",
+      "summary": "This release includes 1 feature and 1 fix.",
+      "markdown": "## Features\n- **nav**: Unify the statements panel into one shell sidebar, drop breadcrumbs\n\n## Fixes\n- **statements**: PUT only changed fields when saving an inline transaction edit",
+      "commits": [
+        {
+          "sha": "9a4272b4bc2221ced036c5ec45581e4a074011b2",
+          "shortSha": "9a4272b4",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-26T20:47:58Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "289622bf43c05188df8fce605e97d62b41a333e1",
+          "shortSha": "289622bf",
+          "subject": "fix(statements): PUT only changed fields when saving an inline transaction edit",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:05:34+03:00",
+          "files": [
+            "frontend/app/(main)/statements/[id]/edit/hooks/statement-edit-sync.test.ts",
+            "frontend/app/(main)/statements/[id]/edit/hooks/statement-edit-sync.ts",
+            "frontend/app/(main)/statements/[id]/edit/hooks/useStatementEditForm.ts"
+          ]
+        },
+        {
+          "sha": "5bcd0b99bef374d99bd1e3149a5dfa543dd63e60",
+          "shortSha": "5bcd0b99",
+          "subject": "feat(nav): unify the statements panel into one shell sidebar, drop breadcrumbs",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:11:30+03:00",
+          "files": [
+            "frontend/app/(main)/statements/approve/page.tsx",
+            "frontend/app/(main)/statements/components/StatementsCircularUploadMenu.test.tsx",
+            "frontend/app/(main)/statements/components/StatementsCircularUploadMenu.tsx",
+            "frontend/app/(main)/statements/components/StatementsSidePanel.test.tsx",
+            "frontend/app/(main)/statements/components/StatementsSidePanel.tsx",
+            "frontend/app/(main)/statements/components/TrashListView.tsx",
+            "frontend/app/(main)/statements/components/TrashSidePanel.tsx",
+            "frontend/app/(main)/statements/pay/page.tsx",
+            "frontend/app/(main)/statements/receive/page.tsx",
+            "frontend/app/(main)/statements/spend-over-time/page.tsx",
+            "frontend/app/(main)/statements/submit/page.tsx",
+            "frontend/app/(main)/statements/tables-reports/page.tsx",
+            "frontend/app/(main)/statements/top-categories/page.tsx",
+            "frontend/app/(main)/statements/top-merchants/page.tsx",
+            "frontend/app/(main)/statements/top-spenders/page.tsx",
+            "frontend/app/(main)/statements/transactions/page.tsx",
+            "frontend/app/(main)/statements/trash/page.tsx",
+            "frontend/app/(main)/statements/unapproved-cash/page.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceSidePanel.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceTabShell.test.tsx",
+            "frontend/app/(main)/workspaces/components/WorkspaceTabShell.tsx",
+            "frontend/app/(main)/workspaces/list/page.tsx",
+            "frontend/app/components/AppChrome.test.tsx",
+            "frontend/app/components/AppChrome.tsx",
+            "frontend/app/components/Breadcrumbs.tsx",
+            "frontend/app/components/GlobalBreadcrumbs.tsx",
+            "frontend/app/components/ShellSidePanel.test.tsx",
+            "frontend/app/components/ShellSidePanel.tsx",
+            "frontend/app/components/Sidebar.tsx",
+            "frontend/app/components/TopBar.tsx",
+            "frontend/app/components/breadcrumbs.content.ts",
+            "frontend/app/components/insights/AlertBanner.tsx",
+            "frontend/app/components/side-panel/MainSidePanelLayout.test.tsx",
+            "frontend/app/components/side-panel/MainSidePanelLayout.tsx",
+            "frontend/app/components/side-panel/SidePanel.tsx",
+            "frontend/app/components/side-panel/sections/NavigationSection.tsx",
+            "frontend/app/components/side-panel/sections/components/SectionWrapper.tsx",
+            "frontend/app/components/welcome-tutorial/TutorialOutro.tsx",
+            "frontend/app/layout.tsx",
+            "frontend/app/styles/components/_breadcrumbs.scss",
+            "frontend/app/styles/components/_index.scss",
+            "frontend/app/styles/layout/_shell.scss",
+            "frontend/app/styles/themes/_globals.scss",
+            "frontend/public/images/favicon-new.png",
+            "frontend/public/images/logo-lockup-dark.svg",
+            "frontend/public/images/logo-lockup.svg"
+          ]
+        },
+        {
+          "sha": "04a227deb532429386fff0bcfb2eae3fe4f754c8",
+          "shortSha": "04a227de",
+          "subject": "Merge pull request #198 from symonbaikov/fix/transaction-inline-edit-save",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:13:47+03:00",
+          "files": []
+        },
+        {
+          "sha": "89ac9e92a32ec6925fe9df7f9d24c0d6c7357057",
+          "shortSha": "89ac9e92",
+          "subject": "Merge pull request #200 from symonbaikov/feat/nav-shell-rework",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:14:12+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-26-03081b8",
       "version": "main-03081b8",
