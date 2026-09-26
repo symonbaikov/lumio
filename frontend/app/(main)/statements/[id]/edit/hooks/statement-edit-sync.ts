@@ -1,8 +1,74 @@
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
+import { getQueryClient } from '@/app/lib/query-client';
 import type { Transaction } from '../editHelpers';
 
+// What PUT /transactions/:id accepts (UpdateTransactionDto). The row being edited
+// is a copy of the whole transaction (id, category, branch, …), and the API's
+// validation rejects any field it doesn't know.
+const EDITABLE_FIELDS = [
+  'transactionDate',
+  'documentNumber',
+  'counterpartyName',
+  'counterpartyBin',
+  'counterpartyAccount',
+  'counterpartyBank',
+  'debit',
+  'credit',
+  'amountForeign',
+  'exchangeRate',
+  'currency',
+  'paymentPurpose',
+  'categoryId',
+  'branchId',
+  'walletId',
+  'article',
+  'transactionType',
+  'comments',
+] as const satisfies ReadonlyArray<keyof Transaction>;
+
+const NUMERIC_FIELDS = new Set<keyof Transaction>([
+  'debit',
+  'credit',
+  'amountForeign',
+  'exchangeRate',
+]);
+const ID_FIELDS = new Set<keyof Transaction>(['categoryId', 'branchId', 'walletId']);
+
+// Inputs hand back strings: amounts go out as numbers, a cleared select as null
+// (an empty string fails the API's UUID check).
+function toApiValue(field: keyof Transaction, value: unknown): unknown {
+  if (NUMERIC_FIELDS.has(field)) {
+    return value === '' || value === null || value === undefined ? null : Number(value);
+  }
+  if (ID_FIELDS.has(field)) {
+    return value === '' ? null : value;
+  }
+  return value;
+}
+
+/** Only the fields the user actually changed, in the shape the API validates. */
+export function buildTransactionUpdate(
+  original: Transaction | undefined,
+  edited: Partial<Transaction>,
+): Partial<Record<keyof Transaction, unknown>> {
+  const update: Partial<Record<keyof Transaction, unknown>> = {};
+  for (const field of EDITABLE_FIELDS) {
+    if (!(field in edited)) {
+      continue;
+    }
+    const next = toApiValue(field, edited[field]);
+    // Unchanged amounts may differ only in type ("100.00" from the API vs 100).
+    if (next === toApiValue(field, original?.[field] ?? null)) {
+      continue;
+    }
+    update[field] = next;
+  }
+  return update;
+}
+
 type SaveCtx = {
+  original: Transaction | undefined;
   setTransactions: (fn: (prev: Transaction[]) => Transaction[]) => void;
   setEditingRow: (v: string | null) => void;
   setSuccess: (v: boolean) => void;
@@ -13,9 +79,18 @@ type SaveCtx = {
 
 export async function saveTransactionAction(txId: string, ctx: SaveCtx): Promise<void> {
   try {
-    const updates = ctx.editedData[txId];
-    await apiClient.patch(`/transactions/${txId}`, updates);
-    ctx.setTransactions(prev => prev.map(t => (t.id === txId ? { ...t, ...updates } : t)));
+    const updates = buildTransactionUpdate(ctx.original, ctx.editedData[txId] ?? {});
+    if (Object.keys(updates).length > 0) {
+      // PUT: the API has no PATCH route for transactions.
+      await apiClient.put(`/transactions/${txId}`, updates);
+      ctx.setTransactions(prev =>
+        prev.map(t => (t.id === txId ? ({ ...t, ...updates } as Transaction) : t)),
+      );
+      // The dashboard and transaction lists show these rows too.
+      const queryClient = getQueryClient();
+      void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      void queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    }
     ctx.setEditingRow(null);
     ctx.setSuccess(true);
     setTimeout(() => ctx.setSuccess(false), 3000);

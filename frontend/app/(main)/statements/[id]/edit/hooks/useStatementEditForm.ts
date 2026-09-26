@@ -156,6 +156,7 @@ export function useStatementEditForm({
 
   const handleSave = async (transactionId: string): Promise<void> => {
     await saveTransactionAction(transactionId, {
+      original: s.transactions.find(t => t.id === transactionId),
       setTransactions: s.setTransactions,
       setEditingRow: s.setEditingRow,
       setSuccess: s.setSuccess,
