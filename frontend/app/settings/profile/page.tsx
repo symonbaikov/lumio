@@ -1,7 +1,6 @@
 'use client';
 
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
 import React, { type ComponentType, Suspense, useEffect } from 'react';
 import { Alert } from '@/app/components/ui/alert';
 import { useAuth } from '@/app/hooks/useAuth';
@@ -69,9 +68,9 @@ function ProfileSettingsPageInner(): React.JSX.Element {
     <Box className="container-shared" sx={{ px: 2, py: 4 }}>
       <Box>
         <SettingsTabs activeTab={activeTab} onTabChange={setActiveTab} labels={labels} />
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 600, mb: 2 }}>
-          {labels[activeTab]}
-        </Typography>
+        {/* The selected tab already names the section on screen; the heading stays
+            for screen readers only. */}
+        <h1 className="sr-only">{labels[activeTab]}</h1>
         <ActiveTab section={section} user={user} setUser={setUser} logout={logout} />
       </Box>
     </Box>
