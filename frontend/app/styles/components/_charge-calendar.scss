@@ -61,6 +61,10 @@
     color: var(--muted-foreground);
   }
 
+  &__peak {
+    font-weight: 700;
+  }
+
   tfoot th,
   tfoot td {
     font-weight: 600;

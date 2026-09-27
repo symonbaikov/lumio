@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import type { SubscriptionChargeCalendar } from '../hooks/useSubscriptionsPage';
-import { cellIntensity, monthPeaks } from './charge-calendar.utils';
+import { isPeakAmount, monthPeaks } from './charge-calendar.utils';
 
 interface SubscriptionChargeCalendarProps {
   calendar: SubscriptionChargeCalendar;
@@ -49,22 +49,16 @@ export function SubscriptionChargeCalendar({
               </th>
               {monthLabels.map((label, index) => {
                 const amount = row.amounts[index] ?? 0;
-                const intensity = cellIntensity(amount, peaks[index]);
+                const isPeak = isPeakAmount(amount, peaks[index]);
                 return (
                   <td
                     key={label}
-                    className={amount > 0 ? undefined : 'lumio-charge-calendar__empty'}
-                    // Capped at 80% so the amount stays readable on the tint,
-                    // and mixed with the card background rather than with
-                    // transparency, which would show the content photo through.
-                    style={
-                      intensity > 0
-                        ? {
-                            background: `color-mix(in srgb, var(--ff-dash-primary) ${Math.round(
-                              intensity * 80,
-                            )}%, var(--card-bg))`,
-                          }
-                        : undefined
+                    className={
+                      amount > 0
+                        ? isPeak
+                          ? 'lumio-charge-calendar__peak'
+                          : undefined
+                        : 'lumio-charge-calendar__empty'
                     }
                   >
                     {amount > 0 ? (

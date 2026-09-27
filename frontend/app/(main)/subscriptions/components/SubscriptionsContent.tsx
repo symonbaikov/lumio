@@ -19,7 +19,11 @@ import { useMemo, useState } from 'react';
 import { Pencil, Plus, Trash2 } from '@/app/components/icons';
 import { EmptyState } from '@/app/components/ui/EmptyState';
 import { VendorIcon } from '@/app/components/VendorIcon';
-import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
+import { resolveLocaleTag } from '@/app/lib/user-format';
+import {
+  formatStoredDateWithOptions,
+  readStoredFormatPreferences,
+} from '@/app/lib/user-format-store';
 import type {
   SubscriptionChargeCalendar,
   SubscriptionFormData,
@@ -127,13 +131,11 @@ function SubscriptionCardSkeleton(): React.JSX.Element {
 }
 
 const formatAmount = (amount: number, currency: string) =>
-  `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(amount)} ${currency}`;
-// Same helper and locale as the dates below, so the calendar header and the
-// table read alike until the page gets its translations.
+  `${new Intl.NumberFormat(resolveLocaleTag(readStoredFormatPreferences().locale), { maximumFractionDigits: 0 }).format(amount)} ${currency}`;
 const formatMonthLabel = (month: string) =>
-  formatStoredDateWithOptions(`${month}-01`, { month: 'short', year: '2-digit' }, 'ru-RU');
+  formatStoredDateWithOptions(`${month}-01`, { month: 'short', year: '2-digit' });
 const formatDate = (date: string | null) =>
-  date ? formatStoredDateWithOptions(date, { day: 'numeric', month: 'short' }, 'ru-RU') : '—';
+  date ? formatStoredDateWithOptions(date, { day: 'numeric', month: 'short' }) : '—';
 
 export function SubscriptionsContent(props: SubscriptionsContentProps) {
   const [search, setSearch] = useState('');
@@ -224,37 +226,23 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
           </Card>
         ))}
       </Box>
-      {showCalendar && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
-            Upcoming charges
-          </Typography>
-          <LazyChargeCalendar
-            calendar={props.chargeCalendar}
-            monthLabels={monthLabels}
-            formatAmount={amount =>
-              formatAmount(amount, props.chargeCalendar.currency ?? props.workspaceCurrency)
-            }
-            renderVendor={row => (
-              <VendorIcon vendorName={row.vendorName} vendorDomain={row.vendorDomain} size={18} />
-            )}
-          />
-        </Box>
-      )}
-      <Tabs
-        value={props.statusFilter}
-        onChange={(_, value) => props.setStatusFilter(value)}
-        // 12px + the theme's 4px focus-ring room around scrollable tabs.
-        sx={{ mb: 1.5 }}
-        variant="scrollable"
-        allowScrollButtonsMobile
-      >
-        <Tab value="all" label="All" />
-        <Tab value="detected" label="Detected" />
-        <Tab value="active" label="Active" />
-        <Tab value="paused" label="Paused" />
-        <Tab value="cancelled" label="Cancelled" />
-      </Tabs>
+      {/* The MuiTabs root itself gets a negative margin from the theme's
+          scrollable-tabs focus-ring override, which cancels an sx margin
+          set directly on it — so the spacing lives on this wrapper instead. */}
+      <Box sx={{ mt: 3, mb: 4 }}>
+        <Tabs
+          value={props.statusFilter}
+          onChange={(_, value) => props.setStatusFilter(value)}
+          variant="scrollable"
+          allowScrollButtonsMobile
+        >
+          <Tab value="all" label="All" />
+          <Tab value="detected" label="Detected" />
+          <Tab value="active" label="Active" />
+          <Tab value="paused" label="Paused" />
+          <Tab value="cancelled" label="Cancelled" />
+        </Tabs>
+      </Box>
       <Box
         sx={{
           display: 'grid',
@@ -310,6 +298,23 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
           <MenuItem value="missing_charge">Missing charge</MenuItem>
         </Select>
       </Box>
+      {showCalendar && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
+            Upcoming charges
+          </Typography>
+          <LazyChargeCalendar
+            calendar={props.chargeCalendar}
+            monthLabels={monthLabels}
+            formatAmount={amount =>
+              formatAmount(amount, props.chargeCalendar.currency ?? props.workspaceCurrency)
+            }
+            renderVendor={row => (
+              <VendorIcon vendorName={row.vendorName} vendorDomain={row.vendorDomain} size={18} />
+            )}
+          />
+        </Box>
+      )}
       {props.isPending ? (
         <>
           <Box
