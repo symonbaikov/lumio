@@ -262,7 +262,11 @@ export default function TablesReportsView() {
       className="container-shared"
       style={{
         display: 'flex',
-        height: 'calc(100vh - var(--global-nav-height,0px))',
+        // The parent layout wrapper already caps height to 100vh - nav on
+        // /statements/* routes; recomputing it here made this box taller
+        // than the parent whenever a sibling (e.g. AlertBanner) also took
+        // up space.
+        height: '100%',
         minHeight: 0,
         flexDirection: 'column',
         overflow: 'hidden',

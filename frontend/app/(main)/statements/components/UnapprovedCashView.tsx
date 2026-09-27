@@ -15,7 +15,10 @@ import { tokens } from '@/lib/theme-tokens';
 
 const CONTAINER_STYLE: React.CSSProperties = {
   display: 'flex',
-  height: 'calc(100vh - var(--global-nav-height,0px))',
+  // The parent layout wrapper already caps height to 100vh - nav on
+  // /statements/* routes; recomputing it here made this box taller than the
+  // parent whenever a sibling (e.g. AlertBanner) also took up space.
+  height: '100%',
   minHeight: 0,
   flexDirection: 'column',
   overflow: 'hidden',

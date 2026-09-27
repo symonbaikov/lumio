@@ -11,6 +11,28 @@
   }
 }
 
+/* ── Statements route shell ───────────────────────────────
+   Wraps AlertBanner + the page view (see MainSidePanelLayout). Giving the
+   page view its own "height: 100%" only matches the wrapper's total height,
+   not the space actually left after AlertBanner renders above it — that
+   still overflowed the wrapper's overflow:hidden by AlertBanner's height.
+   A flex column here lets the last child (the page view) shrink to fill
+   exactly what AlertBanner didn't take, regardless of how tall it is. */
+.lumio-statements-shell {
+  display: flex;
+  flex-direction: column;
+
+  > * {
+    flex-shrink: 0;
+  }
+
+  > *:last-child {
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
 /* ── Statement list item ──────────────────────────────── */
 .lumio-stmt-item {
   position: relative;
@@ -1657,7 +1679,10 @@
 .lumio-view-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - $global-nav-height);
+  // See .lumio-stmt-list-view below: fill the parent's already-capped
+  // height instead of recomputing it, or a sibling like AlertBanner clips
+  // the bottom.
+  height: 100%;
   min-height: 0;
   overflow: hidden;
   padding: 24px 16px;
@@ -2457,7 +2482,10 @@
 .lumio-trash-list {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - $global-nav-height);
+  // See .lumio-stmt-list-view below: fill the parent's already-capped
+  // height instead of recomputing it, or a sibling like AlertBanner clips
+  // the bottom.
+  height: 100%;
   min-height: 0;
   overflow: hidden;
   padding: 24px 16px;
@@ -2923,7 +2951,11 @@
 .lumio-stmt-list-view {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - $global-nav-height);
+  // The parent MainSidePanelLayout wrapper already caps height to
+  // 100vh - nav on /statements/* routes; recomputing it here (instead of
+  // filling that parent) made this box taller than the parent whenever a
+  // sibling (e.g. AlertBanner) also took up space, clipping the bottom rows.
+  height: 100%;
   min-height: 0;
   overflow: hidden;
   padding: 16px;
