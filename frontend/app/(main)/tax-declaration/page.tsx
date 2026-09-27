@@ -4,6 +4,7 @@ import {
   Alert,
   Box,
   CircularProgress,
+  LinearProgress,
   MenuItem,
   Stack,
   Tab,
@@ -25,6 +26,7 @@ import { ProfileStep } from './components/ProfileStep';
 import { TaxDisclaimerGate } from './components/TaxDisclaimerGate';
 import { useTaxDeclaration } from './hooks/useTaxDeclaration';
 import {
+  completenessTone,
   parseStep,
   parseTaxYear,
   STEPS,
@@ -138,7 +140,7 @@ function TaxDeclarationContent(): React.ReactElement {
 
     return (
       <Stack spacing={2.5}>
-        <AccuracyBanner score={draft.data?.completeness.score ?? null} />
+        <AccuracyBanner />
 
         {state.actionError ? (
           <Alert severity="error">
@@ -187,20 +189,35 @@ function TaxDeclarationContent(): React.ReactElement {
           </Typography>
         </Box>
         {accepted ? (
-          <TextField
-            select
-            size="small"
-            label={t.taxYearLabel.value}
-            value={taxYear}
-            onChange={event => updateQuery({ year: event.target.value })}
-            sx={{ minWidth: 140 }}
-          >
-            {taxYearOptions().map(year => (
-              <MenuItem key={year} value={year}>
-                {year}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Stack direction="row" spacing={2} alignItems="center">
+            {draft.data ? (
+              <Box sx={{ minWidth: 120 }}>
+                <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 0.5 }}>
+                  {t.completenessLabel}: {draft.data.completeness.score}/100
+                </Typography>
+                <LinearProgress
+                  variant="determinate"
+                  value={draft.data.completeness.score}
+                  color={completenessTone(draft.data.completeness.score)}
+                  sx={{ height: 5, borderRadius: 999 }}
+                />
+              </Box>
+            ) : null}
+            <TextField
+              select
+              size="small"
+              label={t.taxYearLabel.value}
+              value={taxYear}
+              onChange={event => updateQuery({ year: event.target.value })}
+              sx={{ minWidth: 140 }}
+            >
+              {taxYearOptions().map(year => (
+                <MenuItem key={year} value={year}>
+                  {year}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Stack>
         ) : null}
       </Box>
 
