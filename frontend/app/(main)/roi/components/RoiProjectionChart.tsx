@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { LazyRoiLines } from '@/app/components/charts/lazy-charts';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import { COMPACT_NOTATION_CEILING } from '@/app/lib/format-money';
 import type { ProjectionPoint } from '../roi-model';
 
 interface RoiProjectionChartProps {
@@ -18,17 +19,25 @@ export function RoiProjectionChart({
 }: RoiProjectionChartProps) {
   const t = useIntlayer('roiPage');
   const { locale } = useLocale();
-  const formatter = useMemo(
-    () => new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }),
+  const compactFormatter = useMemo(
+    () => new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }),
     [locale],
   );
+  const scientificFormatter = useMemo(
+    () => new Intl.NumberFormat(locale, { notation: 'scientific', maximumFractionDigits: 1 }),
+    [locale],
+  );
+  const formatValue = (value: number) =>
+    Math.abs(value) >= COMPACT_NOTATION_CEILING
+      ? scientificFormatter.format(value)
+      : compactFormatter.format(value);
 
   return (
     <div className="lumio-chart__box">
       <LazyRoiLines
         points={points}
         labels={{ compound: compoundLabel, simple: simpleLabel, year: t.yearColumn.value }}
-        formatValue={value => formatter.format(value)}
+        formatValue={formatValue}
       />
     </div>
   );

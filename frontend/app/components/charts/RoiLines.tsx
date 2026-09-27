@@ -5,7 +5,7 @@
 'use client';
 
 import type React from 'react';
-import { Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
+import { Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartTooltipCard } from './ChartParts';
 import { CHART_MARGIN, CHART_TICK, LEGEND_STYLE } from './chart-theme';
 
@@ -41,6 +41,8 @@ export function RoiLines({ points, labels, formatValue }: RoiLinesProps): React.
           tickLine={false}
           tick={CHART_TICK}
         />
+        {/* Log scale: reinvested vs. cash-aside can differ by orders of magnitude. */}
+        <YAxis hide scale="log" domain={['auto', 'auto']} allowDataOverflow />
         <Tooltip
           cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
           content={({ active, payload }) => {
