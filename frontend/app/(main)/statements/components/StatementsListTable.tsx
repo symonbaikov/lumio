@@ -315,7 +315,7 @@ function TableDesktopHeader({
                 />
               </button>
             ) : column.id === 'receipt' ? (
-              <span className="sr-only">{column.label || labels.receipt}</span>
+              <span className="u-visually-hidden">{column.label || labels.receipt}</span>
             ) : (
               column.label
             )}
@@ -380,17 +380,6 @@ export function StatementsListTable({
     <>
       <div className="lumio-stmt-list-view__table-scroll">
         <div className="lumio-stmt-list-view__table" style={{ minWidth: tableMinWidth }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px' }}>
-            <Checkbox
-              checked={allVisibleSelected}
-              indeterminate={selectedCount > 0 && !allVisibleSelected}
-              onCheckedChange={onToggleSelectAll}
-              aria-label="Select all statements"
-            />
-            <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)' }}>
-              Select all
-            </span>
-          </div>
           <TableDesktopHeader
             allVisibleSelected={allVisibleSelected}
             selectedCount={selectedCount}

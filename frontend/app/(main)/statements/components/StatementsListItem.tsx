@@ -570,6 +570,7 @@ export function StatementsListItem({
             fileId={statement.id}
             source={previewSource}
             size={28}
+            muted
           />
         </span>
       </button>
