@@ -251,9 +251,20 @@ $lumio-sidebar-brand-center: $lumio-focus-ring-reach +
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
 
+  @include dark {
+    border-color: $lumio-color-primary-100-dk;
+    background: $lumio-color-primary-50-dk;
+    color: $lumio-color-primary-dk;
+  }
+
   &:hover {
     border-color: $lumio-color-primary-200;
     background: $lumio-color-primary-100;
+
+    @include dark {
+      border-color: $lumio-color-primary-200-dk;
+      background: $lumio-color-primary-100-dk;
+    }
   }
 }
 
