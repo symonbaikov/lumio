@@ -212,7 +212,12 @@ export function ReceiptLocationSection({
     <Box
       component="section"
       aria-labelledby="receipt-location-title"
-      sx={{ border: `1px solid ${c.ink150}`, bgcolor: 'background.paper', p: 3 }}
+      sx={{
+        border: `1px solid ${c.ink150}`,
+        borderRadius: tokens.radius.lg,
+        bgcolor: 'background.paper',
+        p: 3,
+      }}
     >
       <Box
         sx={{
@@ -261,6 +266,7 @@ export function ReceiptLocationSection({
           height: MAP_HEIGHT,
           overflow: 'hidden',
           border: `1px solid ${c.ink150}`,
+          borderRadius: tokens.radius.md,
           // Leaflet stacks its panes up to z-index 1000; keep them inside this box.
           isolation: 'isolate',
         }}

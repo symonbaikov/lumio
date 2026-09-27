@@ -1,6 +1,7 @@
 'use client';
 
 import Box from '@mui/material/Box';
+import { visuallyHidden } from '@mui/utils';
 import React, { type ComponentType, Suspense, useEffect } from 'react';
 import { Alert } from '@/app/components/ui/alert';
 import { useAuth } from '@/app/hooks/useAuth';
@@ -70,7 +71,7 @@ function ProfileSettingsPageInner(): React.JSX.Element {
         <SettingsTabs activeTab={activeTab} onTabChange={setActiveTab} labels={labels} />
         {/* The selected tab already names the section on screen; the heading stays
             for screen readers only. */}
-        <h1 className="sr-only">{labels[activeTab]}</h1>
+        <h1 style={visuallyHidden}>{labels[activeTab]}</h1>
         <ActiveTab section={section} user={user} setUser={setUser} logout={logout} />
       </Box>
     </Box>

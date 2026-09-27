@@ -307,9 +307,6 @@ export function ReceiptParsedDataForm({
               display: 'flex',
               flexDirection: 'column',
               gap: 1.5,
-              border: `1px solid ${c.ink150}`,
-              bgcolor: 'var(--muted)',
-              p: 2,
             }}
           >
             {/* eslint-disable-next-line max-lines-per-function, max-params */}

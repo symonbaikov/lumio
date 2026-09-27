@@ -4,6 +4,8 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { format, isValid, parseISO } from 'date-fns';
 import type React from 'react';
 import { FORM_CONTROL_SX } from '@/app/components/ui/input';
+import { resolvePickerFormat } from '@/app/lib/user-format';
+import { useUserFormat } from '@/app/lib/user-format-store';
 
 interface CustomDatePickerProps {
   value?: string | null;
@@ -47,6 +49,8 @@ export default function CustomDatePicker({
   large,
 }: CustomDatePickerProps) {
   const dateValue = normalizeToDate(value);
+  const { preferences } = useUserFormat();
+  const displayFormat = resolvePickerFormat(preferences);
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   const handleChange = (date: Date | null) => {
@@ -63,6 +67,7 @@ export default function CustomDatePicker({
         label={label}
         value={dateValue}
         onChange={handleChange}
+        format={displayFormat}
         slotProps={{
           textField: {
             fullWidth: true,

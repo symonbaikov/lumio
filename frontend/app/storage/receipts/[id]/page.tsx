@@ -40,6 +40,15 @@ function buildLineItems(receipt: ReceiptRecord | null): EditableReceiptLineItem[
   }));
 }
 
+function buildReceiptDisplayTitle(receipt: ReceiptRecord): string {
+  const vendor = receipt.parsedData?.vendor?.trim();
+  if (!vendor) {
+    return receipt.subject;
+  }
+  const date = receipt.parsedData?.date || receipt.receivedAt;
+  return `${vendor} Receipt — ${formatStoredDate(date)}`;
+}
+
 function buildInitialForm(receipt: ReceiptRecord | null): EditableReceiptParsedData {
   return {
     vendor: receipt?.parsedData?.vendor ?? '',
@@ -201,6 +210,7 @@ function ReceiptPreviewContent({
           minHeight: 760,
           width: '100%',
           border: `1px solid ${borderColor}`,
+          borderRadius: tokens.radius.md,
           background: 'var(--card-bg)',
           display: 'block',
         }}
@@ -681,6 +691,7 @@ export default function ReceiptDocumentPage() {
   const attachment = receipt.metadata?.attachments?.[0];
   const isPdf = (previewMimeType || attachment?.mimeType || '').includes('pdf');
   const canExportToTable = Boolean(receipt);
+  const displayTitle = buildReceiptDisplayTitle(receipt);
 
   return (
     <Box
@@ -749,8 +760,13 @@ export default function ReceiptDocumentPage() {
                   color: c.ink900,
                 }}
               >
-                {receipt.subject}
+                {displayTitle}
               </Typography>
+              {displayTitle !== receipt.subject && (
+                <Typography style={{ marginTop: 4, fontSize: 12, color: c.ink500 }}>
+                  {receipt.subject}
+                </Typography>
+              )}
               <Typography style={{ marginTop: 8, fontSize: 14, color: c.ink700 }}>
                 {receipt.source} · {formatStoredDate(receipt.receivedAt)}
               </Typography>
@@ -803,6 +819,7 @@ export default function ReceiptDocumentPage() {
                 flexDirection: 'column',
                 overflow: 'hidden',
                 border: `1px solid ${c.ink150}`,
+                borderRadius: tokens.radius.lg,
                 bgcolor: 'background.paper',
               }}
             >
@@ -830,6 +847,7 @@ export default function ReceiptDocumentPage() {
             sx={{
               height: '100%',
               border: `1px solid ${c.ink150}`,
+              borderRadius: tokens.radius.lg,
               bgcolor: 'background.paper',
               p: 3,
             }}
