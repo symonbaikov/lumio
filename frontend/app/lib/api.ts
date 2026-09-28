@@ -256,7 +256,47 @@ export const gmailReceiptsApi = {
   getStatus: (): Promise<AxiosResponse> => apiClient.get('/integrations/gmail/status'),
 };
 
-export type ReceiptLocationSource = 'merchant_address' | 'exif' | 'device' | 'manual' | 'fiscal_qr';
+export type ReceiptLocationSource =
+  | 'merchant_address'
+  | 'exif'
+  | 'device'
+  | 'manual'
+  | 'fiscal_qr'
+  | 'place';
+
+/** An OpenStreetMap place the user picked for a receipt. */
+export interface ReceiptPlace {
+  name: string;
+  category: string | null;
+  osmType: string;
+  osmId: string;
+}
+
+export interface PlaceCandidate {
+  name: string;
+  category: string;
+  type: string;
+  address: string | null;
+  locality: string | null;
+  lat: number;
+  lng: number;
+  osmType: string;
+  osmId: string;
+  distanceM: number;
+  matchesVendor: boolean;
+}
+
+export type PlaceSuggestions =
+  | { needed: false }
+  | {
+      needed: true;
+      receiptId: string;
+      vendor: string | null;
+      amount: number | null;
+      currency: string | null;
+      date: string | null;
+      candidates: PlaceCandidate[];
+    };
 
 export interface ReceiptTransactionMatch {
   transactionIds: string[];
@@ -306,6 +346,7 @@ export interface ReceiptRecord {
       size?: number;
     }>;
     transactionMatch?: ReceiptTransactionMatch | null;
+    place?: ReceiptPlace;
   };
   parsedData?: {
     amount?: number;
@@ -361,10 +402,21 @@ export const receiptsApi = {
 
   updateReceiptLocation: async (
     id: string,
-    point: { latitude: number; longitude: number },
+    point: { latitude: number; longitude: number; place?: ReceiptPlace },
   ): Promise<ReceiptRecord> => {
     const response = await apiClient.patch(`/receipts/${id}/location`, point);
     return (response.data?.data ?? response.data) as ReceiptRecord;
+  },
+
+  /** Shops near a fix taken after a scan that had none; the body keeps the position out of URLs. */
+  getPlaceSuggestions: async (fix: {
+    statementId: string;
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+  }): Promise<PlaceSuggestions> => {
+    const response = await apiClient.post('/receipts/place-suggestions', fix);
+    return (response.data?.data ?? response.data) as PlaceSuggestions;
   },
 
   resetReceiptLocation: async (id: string): Promise<ReceiptRecord> => {

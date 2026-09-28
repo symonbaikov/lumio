@@ -9,10 +9,12 @@ import { ReceiptLocationService } from '../../../../src/modules/receipts/service
 import { ReceiptStageService } from '../../../../src/modules/receipts/services/receipt-stage.service';
 import { ReceiptMatchService } from '../../../../src/modules/receipts/services/receipt-match.service';
 import { ReceiptSplitService } from '../../../../src/modules/receipts/services/receipt-split.service';
+import { ReceiptPlaceSuggestionService } from '../../../../src/modules/receipts/services/receipt-place-suggestion.service';
 
 describe('ReceiptsController', () => {
   let controller: ReceiptsController;
   let locationService: { setManual: jest.Mock; resetToAuto: jest.Mock };
+  let placeSuggestionService: { suggest: jest.Mock };
   let service: {
     createFromUpload: jest.Mock;
     createFromScan: jest.Mock;
@@ -50,6 +52,8 @@ describe('ReceiptsController', () => {
       resetToAuto: jest.fn().mockResolvedValue({ id: 'receipt-1', locationSource: 'device' }),
     };
 
+    placeSuggestionService = { suggest: jest.fn().mockResolvedValue({ needed: false }) };
+
     const moduleBuilder = Test.createTestingModule({
       controllers: [ReceiptsController],
       providers: [
@@ -58,6 +62,7 @@ describe('ReceiptsController', () => {
         { provide: ReceiptStageService, useValue: {} },
         { provide: ReceiptMatchService, useValue: { refresh: jest.fn(), candidates: jest.fn() } },
         { provide: ReceiptSplitService, useValue: { suggest: jest.fn(), apply: jest.fn() } },
+        { provide: ReceiptPlaceSuggestionService, useValue: placeSuggestionService },
       ],
     });
 
@@ -244,6 +249,38 @@ describe('ReceiptsController', () => {
 
     locationService.resetToAuto.mockResolvedValue(null);
     await expect(controller.resetLocation('receipt-1', 'workspace-2', user)).rejects.toThrow(
+      'Receipt not found',
+    );
+  });
+
+  it('passes a picked shop through to the location service', async () => {
+    const place = { name: 'Carrefour', category: 'shop', osmType: 'node', osmId: '274497719' };
+    locationService.setManual.mockResolvedValue({ id: 'receipt-1', locationSource: 'place' });
+
+    await expect(
+      controller.setLocation('receipt-1', 'workspace-1', { latitude: 1, longitude: 2, place }, {
+        id: 'user-1',
+      } as any),
+    ).resolves.toMatchObject({ locationSource: 'place' });
+    expect(locationService.setManual).toHaveBeenCalledWith(
+      'receipt-1',
+      'workspace-1',
+      { latitude: 1, longitude: 2, place },
+      'user-1',
+    );
+  });
+
+  it('suggests places for a statement inside the workspace', async () => {
+    const dto = { statementId: 'statement-1', latitude: 43.73, longitude: 7.417, accuracy: 30 };
+    placeSuggestionService.suggest.mockResolvedValue({ needed: true, candidates: [] });
+
+    await expect(controller.placeSuggestions('workspace-1', dto)).resolves.toMatchObject({
+      needed: true,
+    });
+    expect(placeSuggestionService.suggest).toHaveBeenCalledWith('statement-1', 'workspace-1', dto);
+
+    placeSuggestionService.suggest.mockResolvedValue(null);
+    await expect(controller.placeSuggestions('workspace-2', dto)).rejects.toThrow(
       'Receipt not found',
     );
   });

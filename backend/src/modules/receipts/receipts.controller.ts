@@ -29,6 +29,7 @@ import type { User } from '../../entities';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApproveReceiptDto } from './dto/approve-receipt.dto';
 import { BulkApproveDto } from './dto/bulk-approve.dto';
+import { PlaceSuggestionsDto } from './dto/place-suggestions.dto';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
 import { UpdateReceiptDto } from './dto/update-receipt.dto';
 import { UpdateReceiptLocationDto } from './dto/update-receipt-location.dto';
@@ -37,6 +38,7 @@ import { UploadReceiptDto } from './dto/upload-receipt.dto';
 import { ReceiptsService } from './receipts.service';
 import { ReceiptLocationService } from './services/receipt-location.service';
 import { ReceiptMatchService } from './services/receipt-match.service';
+import { ReceiptPlaceSuggestionService } from './services/receipt-place-suggestion.service';
 import { ReceiptSplitService } from './services/receipt-split.service';
 import { ReceiptStageService } from './services/receipt-stage.service';
 
@@ -59,6 +61,7 @@ export class ReceiptsController {
     private readonly receiptStageService: ReceiptStageService,
     private readonly receiptMatchService: ReceiptMatchService,
     private readonly receiptSplitService: ReceiptSplitService,
+    private readonly placeSuggestionService: ReceiptPlaceSuggestionService,
   ) {}
 
   @Post('upload')
@@ -121,6 +124,29 @@ export class ReceiptsController {
     });
   }
 
+  // POST although it only reads: the body carries where the user is, and a
+  // query string would put that in access logs.
+  @Post('place-suggestions')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
+  @ApiOperation({ summary: 'Shops near a GPS fix taken after a scan that had none' })
+  @ApiResponse({
+    status: 200,
+    description: '{ needed: false } when the store is already known, else the candidates',
+  })
+  @ApiResponse({ status: 400, description: 'No receipt for this statement in the workspace' })
+  async placeSuggestions(@WorkspaceId() workspaceId: string, @Body() dto: PlaceSuggestionsDto) {
+    const suggestions = await this.placeSuggestionService.suggest(
+      dto.statementId,
+      workspaceId,
+      dto,
+    );
+    if (!suggestions) {
+      throw new BadRequestException('Receipt not found');
+    }
+    return suggestions;
+  }
+
   @Get()
   @WorkspaceAuth(Permission.STATEMENT_VIEW)
   async findAll(@WorkspaceId() workspaceId: string, @Query() query: ReceiptQueryDto) {
@@ -140,7 +166,10 @@ export class ReceiptsController {
   @Patch(':id/location')
   @WorkspaceAuth(Permission.STATEMENT_EDIT)
   @ApiOperation({ summary: 'Pin the receipt to a point chosen by the user' })
-  @ApiResponse({ status: 200, description: 'Receipt with location source "manual"' })
+  @ApiResponse({
+    status: 200,
+    description: 'Receipt with location source "manual", or "place" when a shop was picked',
+  })
   @ApiResponse({ status: 400, description: 'Receipt not found or coordinates out of range' })
   async setLocation(
     @Param('id') id: string,
