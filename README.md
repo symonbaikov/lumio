@@ -1,5 +1,6 @@
 <div align="center">
-<img width="1366" height="475" alt="Home (1)" src="https://github.com/user-attachments/assets/05bfa6c8-3981-4619-9657-9a5d65becd1b" />
+<img width="1584" height="396" alt="White and Blue Simple Gradient Business Profile LinkedIn Banner" src="https://github.com/user-attachments/assets/2b23ef6c-2bd5-4e12-8223-b0df2c15d421" />
+
 
 
 ---
