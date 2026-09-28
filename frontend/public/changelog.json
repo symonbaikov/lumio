@@ -1,14 +1,78 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "dbadb75753d46baec294e3034729bee603450793"
+      "main": "7a26ad4f4ac7f8d923bfd62b33a768ce51fc678c"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-26T21:51:27.586Z",
+    "lastGeneratedAt": "2026-09-28T21:38:43.048Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-09-28-7a26ad4",
+      "version": "main-7a26ad4",
+      "branch": "main",
+      "date": "2026-09-28T21:38:43.048Z",
+      "title": "Release update - September 28, 2026",
+      "summary": "This release includes 2 fixes.",
+      "markdown": "## Fixes\n- **nav**: Import ShellSidePanel, style the invoice line-item editor\n- **payables**: Move the cash fields onto the shared Select",
+      "commits": [
+        {
+          "sha": "00fa4749ad957eef830e2355632ae793bf64f1e5",
+          "shortSha": "00fa4749",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-26T21:51:28Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "93e9b8eb6eca4984bd2df44aa6788182e967e7bf",
+          "shortSha": "93e9b8eb",
+          "subject": "fix(nav): import ShellSidePanel, style the invoice line-item editor",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T00:56:07+03:00",
+          "files": [
+            "frontend/app/components/AppChrome.tsx",
+            "frontend/app/styles/components/_statements.scss"
+          ]
+        },
+        {
+          "sha": "8181050d5078d82ad4a63831f55fcc901adfa910",
+          "shortSha": "8181050d",
+          "subject": "fix(payables): move the cash fields onto the shared Select",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T02:20:47+03:00",
+          "files": [
+            "frontend/app/(main)/statements/components/payables/MarkPaidDialog.test.tsx",
+            "frontend/app/(main)/statements/components/payables/MarkPaidFields.tsx",
+            "frontend/app/(main)/statements/transactions/page.tsx"
+          ]
+        },
+        {
+          "sha": "0a2a0653ab90a420a4403492e3ff8ebe304401e0",
+          "shortSha": "0a2a0653",
+          "subject": "chore(biome): stop linting frontend/public",
+          "author": "Symon Baikov",
+          "date": "2026-09-27T02:38:49+03:00",
+          "files": [
+            "biome.json"
+          ]
+        },
+        {
+          "sha": "7a26ad4f4ac7f8d923bfd62b33a768ce51fc678c",
+          "shortSha": "7a26ad4f",
+          "subject": "Add new image to README",
+          "author": "Symon Baikov",
+          "date": "2026-09-29T00:38:17+03:00",
+          "files": [
+            "README.md"
+          ]
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-26-dbadb75",
       "version": "main-dbadb75",
