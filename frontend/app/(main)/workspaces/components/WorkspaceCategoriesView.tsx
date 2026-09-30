@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
@@ -18,17 +19,17 @@ import {
   TextField,
   type Theme,
   Typography,
-  useTheme,
 } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { type ChangeEvent, useCallback, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Check, ChevronRight, Lock, Search as SearchIcon, Tag } from '@/app/components/icons';
+import { Check, ChevronRight, Lock, Search as SearchIcon } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
+import { CATEGORY_ICON_CHOICES, categoryIconFor } from '@/app/lib/category-icon-choices';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
@@ -85,59 +86,23 @@ const resolveIconUrl = (iconValue?: string) => {
   return null;
 };
 
-const PREDEFINED_ICONS = [
-  'mdi:home',
-  'mdi:food',
-  'mdi:car',
-  'mdi:shopping',
-  'mdi:cart',
-  'mdi:medical-bag',
-  'mdi:school',
-  'mdi:briefcase',
-  'mdi:airplane',
-  'mdi:gift',
-  'mdi:gamepad-variant',
-  'mdi:dumbbell',
-  'mdi:bank',
-  'mdi:cash',
-  'mdi:chart-line',
-  'mdi:credit-card',
-  'mdi:shield-check',
-  'mdi:cog',
-  'mdi:wrench',
-  'mdi:tag',
-  'mdi:coffee',
-  'mdi:monitor',
-  'mdi:phone',
-  'mdi:music',
-  'mdi:camera',
-  'mdi:book',
-  'mdi:heart',
-  'mdi:star',
-  'mdi:flag',
-  'mdi:bell',
+// Tailwind 500 tones: even saturation, readable as icon tints on light and dark.
+const PREDEFINED_COLORS = [
+  '#10b981', // emerald
+  '#14b8a6', // teal
+  '#0ea5e9', // sky
+  '#3b82f6', // blue
+  '#6366f1', // indigo
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#f43f5e', // rose
+  '#f97316', // orange
+  '#f59e0b', // amber
+  '#84cc16', // lime
+  '#64748b', // slate
 ];
 
-const PREDEFINED_COLORS = [
-  '#F44336',
-  '#E91E63',
-  '#9C27B0',
-  '#673AB7',
-  '#3F51B5',
-  '#2196F3',
-  '#03A9F4',
-  '#009688',
-  '#4CAF50',
-  '#8BC34A',
-  '#CDDC39',
-  '#FFEB3B',
-  '#FFC107',
-  '#FF9800',
-  '#FF5722',
-  '#795548',
-  '#9E9E9E',
-  '#607D8B',
-];
+const DEFAULT_CATEGORY_COLOR = '#3b82f6';
 
 const CATEGORY_ROW_SKELETON_KEYS = [
   'row-0',
@@ -231,7 +196,6 @@ function CategoryRowSkeleton(): React.JSX.Element {
 export default function WorkspaceCategoriesView() {
   const t = useIntlayer('categoriesPage');
   const { locale } = useLocale();
-  const theme = useTheme();
   const { user } = useAuth();
   const tx = (path: string[], fallback: string) => resolveLabel(getNestedValue(t, path), fallback);
   const workspaceId = useWorkspaceId();
@@ -278,11 +242,12 @@ export default function WorkspaceCategoriesView() {
   const [formData, setFormData] = useState({
     name: '',
     type: 'expense' as 'income' | 'expense',
-    color: '#2196F3',
+    color: DEFAULT_CATEGORY_COLOR,
     icon: 'mdi:tag',
     withoutIcon: false,
     parentId: '',
   });
+  const SelectedGlyph = categoryIconFor(formData.icon);
 
   const categoriesQuery = useQuery({
     queryKey: queryKeys.categories(workspaceId),
@@ -327,7 +292,7 @@ export default function WorkspaceCategoriesView() {
       setFormData({
         name: category.name,
         type: category.type,
-        color: category.color || '#2196F3',
+        color: category.color || DEFAULT_CATEGORY_COLOR,
         icon: category.icon || 'mdi:tag',
         withoutIcon: !category.icon,
         parentId: category.parentId || '',
@@ -337,7 +302,7 @@ export default function WorkspaceCategoriesView() {
       setFormData({
         name: '',
         type: 'expense',
-        color: '#2196F3',
+        color: DEFAULT_CATEGORY_COLOR,
         icon: 'mdi:tag',
         withoutIcon: false,
         parentId: '',
@@ -748,6 +713,7 @@ export default function WorkspaceCategoriesView() {
                 const categoryColor = category.color || '#2196F3';
                 const hasIcon = Boolean(category.icon?.trim());
                 const iconUrl = resolveIconUrl(category.icon);
+                const CategoryGlyph = categoryIconFor(category.icon);
                 const badgeLabel = getCategoryBadgeLabel(category);
                 const badgeSource = getCategoryBadgeSource(category);
                 const badgeColors = badgeSource ? SOURCE_BADGE_COLORS[badgeSource] : null;
@@ -782,7 +748,7 @@ export default function WorkspaceCategoriesView() {
                               sx={{ width: 16, height: 16, objectFit: 'contain' }}
                             />
                           ) : (
-                            <Tag size={16} />
+                            <CategoryGlyph size={16} />
                           )}
                         </Box>
                       ) : (
@@ -928,7 +894,7 @@ export default function WorkspaceCategoriesView() {
         </DialogTitle>
         <DialogContent dividers>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
-            {/* Name and Type */}
+            {/* Name and Type; the prefix previews the category as it is being built. */}
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
                 label={t.dialog.nameLabel.value}
@@ -936,6 +902,47 @@ export default function WorkspaceCategoriesView() {
                 fullWidth
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Box
+                          aria-hidden
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: tokens.radius.sm,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            bgcolor: alpha(formData.color, 0.14),
+                            color: formData.color,
+                          }}
+                        >
+                          {formData.withoutIcon ? (
+                            <Box
+                              sx={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                bgcolor: formData.color,
+                              }}
+                            />
+                          ) : resolveIconUrl(formData.icon) ? (
+                            <Box
+                              component="img"
+                              src={resolveIconUrl(formData.icon) as string}
+                              alt=""
+                              sx={{ width: 18, height: 18, objectFit: 'contain' }}
+                            />
+                          ) : (
+                            <SelectedGlyph size={18} />
+                          )}
+                        </Box>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
               />
               <FormControl sx={{ minWidth: 120 }}>
                 <InputLabel>{t.type.label}</InputLabel>
@@ -957,9 +964,25 @@ export default function WorkspaceCategoriesView() {
 
             {/* Icon Picker */}
             <Box>
-              <Typography variant="subtitle2" gutterBottom>
-                {t.dialog.chooseIcon}
-              </Typography>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 2,
+                  mb: 1,
+                }}
+              >
+                <Typography variant="subtitle2">{t.dialog.chooseIcon}</Typography>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={triggerIconUpload}
+                  disabled={uploadingIcon}
+                >
+                  {uploadingIcon ? t.dialog.uploading : t.dialog.uploadIcon}
+                </Button>
+              </Box>
               <input
                 type="file"
                 accept="image/*"
@@ -971,43 +994,41 @@ export default function WorkspaceCategoriesView() {
                 sx={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fill, minmax(40px, 1fr))',
-                  gap: 1,
-                  maxHeight: 200,
-                  overflowY: 'auto',
-                  p: 1,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: tokens.radius.lg,
+                  gap: 0.5,
                 }}
               >
-                {PREDEFINED_ICONS.map(iconName => (
-                  <Box
-                    key={iconName}
-                    onClick={() => setFormData({ ...formData, icon: iconName, withoutIcon: false })}
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: tokens.radius.sm,
-                      cursor: 'pointer',
-                      bgcolor:
-                        formData.icon === iconName ? alpha(formData.color, 0.2) : 'transparent',
-                      color: formData.icon === iconName ? formData.color : 'text.secondary',
-                      border:
-                        formData.icon === iconName
-                          ? `2px solid ${formData.color}`
-                          : '1px solid transparent',
-                      '&:hover': {
-                        bgcolor: alpha(formData.color || theme.palette.primary.main, 0.1),
-                        color: formData.color || theme.palette.primary.main,
-                      },
-                    }}
-                  >
-                    <Tag size={24} />
-                  </Box>
-                ))}
+                {CATEGORY_ICON_CHOICES.map(({ value, Icon }) => {
+                  const selected = !formData.withoutIcon && formData.icon === value;
+                  return (
+                    <Box
+                      key={value}
+                      component="button"
+                      type="button"
+                      aria-label={value.replace('mdi:', '')}
+                      aria-pressed={selected}
+                      onClick={() => setFormData({ ...formData, icon: value, withoutIcon: false })}
+                      sx={{
+                        height: 40,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        p: 0,
+                        border: 'none',
+                        borderRadius: tokens.radius.sm,
+                        cursor: 'pointer',
+                        bgcolor: selected ? alpha(formData.color, 0.14) : 'transparent',
+                        color: selected ? formData.color : 'text.secondary',
+                        boxShadow: selected ? `inset 0 0 0 1.5px ${formData.color}` : 'none',
+                        '&:hover': {
+                          bgcolor: alpha(formData.color, 0.1),
+                          color: formData.color,
+                        },
+                      }}
+                    >
+                      <Icon size={22} />
+                    </Box>
+                  );
+                })}
               </Box>
               <Box sx={{ mt: 1.5 }}>
                 <label
@@ -1028,45 +1049,6 @@ export default function WorkspaceCategoriesView() {
                   {tx(['dialog', 'withoutIcon'], 'Without icon')}
                 </label>
               </Box>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  mt: 1.5,
-                  gap: 2,
-                }}
-              >
-                {!formData.withoutIcon && resolveIconUrl(formData.icon) && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {t.dialog.uploadedIcon}
-                    </Typography>
-                    <Box
-                      component="img"
-                      src={resolveIconUrl(formData.icon) || formData.icon}
-                      alt=""
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: tokens.radius.sm,
-                        objectFit: 'contain',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                      }}
-                    />
-                  </Box>
-                )}
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={triggerIconUpload}
-                  disabled={uploadingIcon}
-                  sx={{ ml: 'auto' }}
-                >
-                  {uploadingIcon ? t.dialog.uploading : t.dialog.uploadIcon}
-                </Button>
-              </Box>
             </Box>
 
             {/* Color Picker */}
@@ -1074,74 +1056,37 @@ export default function WorkspaceCategoriesView() {
               <Typography variant="subtitle2" gutterBottom>
                 {t.dialog.chooseColor}
               </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {PREDEFINED_COLORS.map(color => (
-                  <Box
-                    key={color}
-                    onClick={() => setFormData({ ...formData, color })}
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: tokens.radius.full,
-                      bgcolor: color,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: formData.color === color ? 3 : 0,
-                      transform: formData.color === color ? 'scale(1.1)' : 'scale(1)',
-                      transition: 'transform 0.2s',
-                      border: formData.color === color ? '2px solid white' : 'none',
-                      outline: formData.color === color ? `2px solid ${color}` : 'none',
-                    }}
-                  >
-                    {formData.color === color && <Check size={20} style={{ color: 'white' }} />}
-                  </Box>
-                ))}
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, p: 0.5 }}>
+                {PREDEFINED_COLORS.map(color => {
+                  const selected = formData.color === color;
+                  return (
+                    <Box
+                      key={color}
+                      component="button"
+                      type="button"
+                      aria-label={color}
+                      aria-pressed={selected}
+                      onClick={() => setFormData({ ...formData, color })}
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        p: 0,
+                        border: 'none',
+                        borderRadius: tokens.radius.full,
+                        bgcolor: color,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        outline: selected ? `2px solid ${color}` : 'none',
+                        outlineOffset: 2,
+                      }}
+                    >
+                      {selected && <Check size={16} style={{ color: 'white' }} />}
+                    </Box>
+                  );
+                })}
               </Box>
-            </Box>
-
-            {/* Preview */}
-            <Box
-              sx={{
-                mt: 2,
-                p: 2,
-                bgcolor: 'background.default',
-                borderRadius: tokens.radius.lg,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                {t.dialog.preview}
-              </Typography>
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: tokens.radius.sm,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: alpha(formData.color || '#2196F3', 0.1),
-                  color: formData.color || '#2196F3',
-                }}
-              >
-                {!formData.withoutIcon && resolveIconUrl(formData.icon) ? (
-                  <Box
-                    component="img"
-                    src={resolveIconUrl(formData.icon) as string}
-                    alt=""
-                    sx={{ width: 28, height: 28, objectFit: 'contain' }}
-                  />
-                ) : !formData.withoutIcon ? (
-                  <Tag size={28} />
-                ) : null}
-              </Box>
-              <Typography variant="subtitle1" fontWeight="bold">
-                {formData.name || t.dialog.placeholderName}
-              </Typography>
             </Box>
           </Box>
         </DialogContent>
