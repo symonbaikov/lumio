@@ -141,8 +141,9 @@ export class ReceiptsController {
     @Param('id') id: string,
     @WorkspaceId() workspaceId: string,
     @Body() dto: UpdateReceiptLocationDto,
+    @CurrentUser() user: User,
   ) {
-    const receipt = await this.locationService.setManual(id, workspaceId, dto);
+    const receipt = await this.locationService.setManual(id, workspaceId, dto, user.id);
     if (!receipt) {
       throw new BadRequestException('Receipt not found');
     }
@@ -156,8 +157,12 @@ export class ReceiptsController {
   })
   @ApiResponse({ status: 200, description: 'Receipt with the automatically resolved location' })
   @ApiResponse({ status: 400, description: 'Receipt not found' })
-  async resetLocation(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    const receipt = await this.locationService.resetToAuto(id, workspaceId);
+  async resetLocation(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    const receipt = await this.locationService.resetToAuto(id, workspaceId, user.id);
     if (!receipt) {
       throw new BadRequestException('Receipt not found');
     }
@@ -170,8 +175,9 @@ export class ReceiptsController {
     @Param('id') id: string,
     @WorkspaceId() workspaceId: string,
     @Body() dto: UpdateReceiptDto,
+    @CurrentUser() user: User,
   ) {
-    const receipt = await this.receiptsService.update(id, workspaceId, dto);
+    const receipt = await this.receiptsService.update(id, workspaceId, dto, user.id);
     if (!receipt) {
       throw new BadRequestException('Receipt not found');
     }
@@ -193,8 +199,12 @@ export class ReceiptsController {
 
   @Post(':id/approve')
   @WorkspaceAuth(Permission.STATEMENT_EDIT)
-  async approve(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    const result = await this.receiptsService.approve(id, workspaceId);
+  async approve(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    const result = await this.receiptsService.approve(id, workspaceId, user.id);
     if (!result) {
       throw new BadRequestException('Receipt not found');
     }
@@ -203,15 +213,23 @@ export class ReceiptsController {
 
   @Post('bulk-approve')
   @WorkspaceAuth(Permission.STATEMENT_EDIT)
-  async bulkApprove(@Body() dto: BulkApproveDto, @WorkspaceId() workspaceId: string) {
-    return this.receiptsService.bulkApprove(dto.receiptIds, workspaceId, dto.categoryId);
+  async bulkApprove(
+    @Body() dto: BulkApproveDto,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.receiptsService.bulkApprove(dto.receiptIds, workspaceId, user.id, dto.categoryId);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @WorkspaceAuth(Permission.STATEMENT_EDIT)
-  async delete(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    await this.receiptsService.delete(id, workspaceId);
+  async delete(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    await this.receiptsService.delete(id, workspaceId, user.id);
   }
 
   @Get(':id/file')

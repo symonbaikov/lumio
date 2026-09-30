@@ -5,23 +5,41 @@ export type AuditJsonValue = string | number | boolean | null | AuditJsonObject 
 export type AuditJsonObject = { [key: string]: AuditJsonValue };
 
 export type ActorType = 'user' | 'system' | 'integration';
-export type EntityType =
-  | 'transaction'
-  | 'statement'
-  | 'receipt'
-  | 'category'
-  | 'rule'
-  | 'workspace'
-  | 'integration'
-  | 'table_row'
-  | 'table_cell'
-  | 'branch'
-  | 'wallet'
-  | 'custom_table'
-  | 'custom_table_column'
-  | 'payable'
-  | 'budget'
-  | 'subscription';
+/** Mirrors the backend `EntityType` enum; the audit filter offers them in this order. */
+export const ENTITY_TYPES = [
+  'transaction',
+  'statement',
+  'receipt',
+  'category',
+  'rule',
+  'payable',
+  'invoice',
+  'client',
+  'budget',
+  'goal',
+  'subscription',
+  'crypto_wallet',
+  'tax_return',
+  'tax_rate',
+  'tax_rule',
+  'ledger_account',
+  'journal_entry',
+  'custom_table',
+  'custom_table_column',
+  'table_row',
+  'table_cell',
+  'workspace',
+  'workspace_member',
+  'integration',
+  'branch',
+  'wallet',
+  'api_key',
+  'webhook',
+  'backup',
+  'user',
+] as const;
+
+export type EntityType = (typeof ENTITY_TYPES)[number];
 
 export type AuditAction =
   | 'create'

@@ -1,18 +1,24 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { Permission, ROLE_PERMISSIONS } from '../../../common/enums/permissions.enum';
+import { AuditAction, EntityType, Severity } from '../../../entities/audit-event.entity';
 import { User, UserRole } from '../../../entities/user.entity';
 import { WorkspaceMember } from '../../../entities/workspace-member.entity';
+import { AuditService } from '../../audit/audit.service';
+import { recordSecurityEvent } from '../../auth/security-audit.util';
 import { findUserOrThrow, getCurrentPermissions, withCurrentPermissions } from './permissions.util';
 
 @Injectable()
 export class PermissionsService {
+  private readonly logger = new Logger(PermissionsService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(WorkspaceMember)
     private workspaceMemberRepository: Repository<WorkspaceMember>,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -100,9 +106,12 @@ export class PermissionsService {
   ): Promise<User> {
     this.assertCanGrant(actor, permissions);
     const user = await this.findUserInWorkspace(userId, workspaceId);
+    const before = user.permissions ?? null;
 
     user.permissions = permissions;
-    return this.userRepository.save(user);
+    const saved = await this.userRepository.save(user);
+    await this.recordPermissionChange(workspaceId, actor.id, userId, before, saved, 'update');
+    return saved;
   }
 
   /**
@@ -120,7 +129,16 @@ export class PermissionsService {
     return withCurrentPermissions(user, async (loadedUser, currentPermissions) => {
       if (!currentPermissions.includes(permission)) {
         loadedUser.permissions = [...currentPermissions, permission];
-        return this.userRepository.save(loadedUser);
+        const saved = await this.userRepository.save(loadedUser);
+        await this.recordPermissionChange(
+          workspaceId,
+          actor.id,
+          userId,
+          currentPermissions,
+          saved,
+          'add',
+        );
+        return saved;
       }
 
       return loadedUser;
@@ -134,22 +152,55 @@ export class PermissionsService {
     userId: string,
     permission: Permission,
     workspaceId: string,
+    actorId: string,
   ): Promise<User> {
     const user = await this.findUserInWorkspace(userId, workspaceId);
 
-    return withCurrentPermissions(user, (loadedUser, currentPermissions) => {
+    return withCurrentPermissions(user, async (loadedUser, currentPermissions) => {
       loadedUser.permissions = currentPermissions.filter(p => p !== permission);
-      return this.userRepository.save(loadedUser);
+      const saved = await this.userRepository.save(loadedUser);
+      await this.recordPermissionChange(
+        workspaceId,
+        actorId,
+        userId,
+        currentPermissions,
+        saved,
+        'remove',
+      );
+      return saved;
     });
   }
 
   /**
    * Reset user permissions to role defaults
    */
-  async resetPermissions(userId: string, workspaceId: string): Promise<User> {
+  async resetPermissions(userId: string, workspaceId: string, actorId: string): Promise<User> {
     const user = await this.findUserInWorkspace(userId, workspaceId);
+    const before = user.permissions ?? null;
 
     user.permissions = null;
-    return this.userRepository.save(user);
+    const saved = await this.userRepository.save(user);
+    await this.recordPermissionChange(workspaceId, actorId, userId, before, saved, 'reset');
+    return saved;
+  }
+
+  private async recordPermissionChange(
+    workspaceId: string,
+    actorId: string,
+    targetUserId: string,
+    before: string[] | null,
+    saved: User,
+    operation: 'update' | 'add' | 'remove' | 'reset',
+  ): Promise<void> {
+    await recordSecurityEvent(this.auditService, this.logger, {
+      workspaceId,
+      actorId,
+      entityType: EntityType.USER,
+      entityId: targetUserId,
+      action: AuditAction.UPDATE,
+      severity: Severity.WARN,
+      diff: { before: { permissions: before }, after: { permissions: saved.permissions ?? null } },
+      meta: { permissionChange: operation },
+    });
   }
 }

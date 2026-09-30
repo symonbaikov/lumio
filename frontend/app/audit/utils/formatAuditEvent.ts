@@ -35,6 +35,20 @@ const ENTITY_LABELS: Record<EntityType, string> = {
   payable: 'Payable',
   budget: 'Budget',
   subscription: 'Subscription',
+  invoice: 'Invoice',
+  client: 'Client',
+  ledger_account: 'Ledger account',
+  journal_entry: 'Journal entry',
+  goal: 'Goal',
+  crypto_wallet: 'Crypto wallet',
+  tax_rate: 'Tax rate',
+  tax_rule: 'Tax rule',
+  tax_return: 'Tax return',
+  workspace_member: 'Workspace member',
+  api_key: 'API key',
+  webhook: 'Webhook',
+  backup: 'Backup',
+  user: 'User account',
 };
 
 const ACTION_VERBS: Record<AuditAction, string> = {

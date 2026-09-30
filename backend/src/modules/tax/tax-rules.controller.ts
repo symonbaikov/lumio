@@ -3,6 +3,8 @@ import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import { deletedResponse } from '../../common/utils/responses.util';
+import type { User } from '../../entities/user.entity';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateTaxRuleDto } from './dto/create-tax-rule.dto';
 import { UpdateTaxRuleDto } from './dto/update-tax-rule.dto';
 import { TaxRulesService } from './tax-rules.service';
@@ -27,8 +29,12 @@ export class TaxRulesController {
   // behind settings management rather than category permissions.
   @Post()
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
-  async create(@Body() dto: CreateTaxRuleDto, @WorkspaceId() workspaceId: string) {
-    return this.taxRulesService.create(workspaceId, dto);
+  async create(
+    @Body() dto: CreateTaxRuleDto,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.taxRulesService.create(workspaceId, dto, user.id);
   }
 
   @Put(':id')
@@ -37,14 +43,19 @@ export class TaxRulesController {
     @Param('id') id: string,
     @Body() dto: UpdateTaxRuleDto,
     @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
   ) {
-    return this.taxRulesService.update(id, workspaceId, dto);
+    return this.taxRulesService.update(id, workspaceId, dto, user.id);
   }
 
   @Delete(':id')
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
-  async remove(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    await this.taxRulesService.remove(id, workspaceId);
+  async remove(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    await this.taxRulesService.remove(id, workspaceId, user.id);
     return deletedResponse('Tax rule');
   }
 }

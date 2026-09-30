@@ -7,6 +7,7 @@ import { TaxReturn } from '../../entities/tax-return.entity';
 import { TaxRule } from '../../entities/tax-rule.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
+import { AuditModule } from '../audit/audit.module';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
 import { JurisdictionAdoptionService } from './jurisdiction-adoption.service';
 import { JurisdictionsController } from './jurisdictions.controller';
@@ -33,6 +34,7 @@ import { WorkspaceTaxController } from './workspace-tax.controller';
       Workspace,
     ]),
     ExchangeRatesModule,
+    AuditModule,
   ],
   controllers: [
     TaxRatesController,

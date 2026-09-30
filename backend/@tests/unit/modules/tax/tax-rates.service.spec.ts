@@ -1,10 +1,12 @@
 import { createRepoMock } from '../../../helpers/create-repo-mock';
 import { TaxRatesService } from '@/modules/tax/tax-rates.service';
+import { AuditAction, EntityType } from '@/entities/audit-event.entity';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('TaxRatesService', () => {
   let service: TaxRatesService;
   let repo: ReturnType<typeof createRepoMock>;
+  let auditService: { createEvent: jest.Mock };
 
   /**
    * Default clearing is period-scoped, so it runs through a query builder
@@ -28,7 +30,8 @@ describe('TaxRatesService', () => {
     repo = createRepoMock();
     repo.create.mockImplementation((input: unknown) => input);
     repo.save.mockImplementation(async (input: unknown) => input);
-    service = new TaxRatesService(repo);
+    auditService = { createEvent: jest.fn().mockResolvedValue(undefined) };
+    service = new TaxRatesService(repo, auditService as never);
   });
 
   // ─── findAll ───────────────────────────────────────────────
@@ -200,6 +203,81 @@ describe('TaxRatesService', () => {
     it('throws NotFoundException for nonexistent rate', async () => {
       repo.findOne.mockResolvedValue(null);
       await expect(service.remove('nope', 'ws-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ─── audit ─────────────────────────────────────────────────
+
+  describe('audit', () => {
+    it('records a CREATE with the workspace and actor', async () => {
+      repo.findOne.mockResolvedValue(null);
+      repo.save.mockImplementation(async (input: object) => ({ id: 'rate-9', ...input }));
+
+      await service.create('ws-1', { name: 'VAT', rate: 20 }, 'user-1');
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws-1',
+          actorId: 'user-1',
+          entityType: EntityType.TAX_RATE,
+          entityId: 'rate-9',
+          action: AuditAction.CREATE,
+          diff: { before: null, after: expect.objectContaining({ name: 'VAT', rate: 20 }) },
+        }),
+      );
+    });
+
+    it('records an UPDATE with before and after', async () => {
+      repo.findOne
+        .mockResolvedValueOnce({ id: 'rate-1', workspaceId: 'ws-1', name: 'Old', rate: 10 })
+        .mockResolvedValueOnce(null);
+
+      await service.update('rate-1', 'ws-1', { name: 'New', rate: 25 }, 'user-1');
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws-1',
+          entityId: 'rate-1',
+          action: AuditAction.UPDATE,
+          diff: {
+            before: expect.objectContaining({ name: 'Old', rate: 10 }),
+            after: expect.objectContaining({ name: 'New', rate: 25 }),
+          },
+        }),
+      );
+    });
+
+    it('records a DELETE with the removed rate as before', async () => {
+      repo.findOne.mockResolvedValue({ id: 'rate-1', workspaceId: 'ws-1', name: 'VAT' });
+
+      await service.remove('rate-1', 'ws-1', 'user-1');
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws-1',
+          entityType: EntityType.TAX_RATE,
+          entityId: 'rate-1',
+          action: AuditAction.DELETE,
+          diff: { before: expect.objectContaining({ name: 'VAT' }), after: null },
+        }),
+      );
+    });
+
+    it('does not fail the write when the audit log fails', async () => {
+      repo.findOne.mockResolvedValue({ id: 'rate-1', workspaceId: 'ws-1', name: 'VAT' });
+      auditService.createEvent.mockRejectedValue(new Error('audit down'));
+
+      await expect(service.remove('rate-1', 'ws-1', 'user-1')).resolves.toBeUndefined();
+      expect(repo.remove).toHaveBeenCalled();
+    });
+
+    it('logs nothing when the write is refused', async () => {
+      repo.findOne.mockResolvedValue({ id: 'existing', name: 'VAT' });
+
+      await expect(service.create('ws-1', { name: 'VAT', rate: 20 }, 'user-1')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(auditService.createEvent).not.toHaveBeenCalled();
     });
   });
 

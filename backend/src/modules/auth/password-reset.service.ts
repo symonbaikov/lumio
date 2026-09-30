@@ -5,10 +5,13 @@ import { createHmac, randomBytes } from 'crypto';
 import { IsNull, LessThan, type Repository } from 'typeorm';
 import { hashPassword } from '../../common/utils/password-hash.util';
 import { requireSecret } from '../../common/utils/required-secret.util';
+import { AuditAction, EntityType, Severity } from '../../entities/audit-event.entity';
 import { AuthSession } from '../../entities/auth-session.entity';
 import { PasswordResetToken } from '../../entities/password-reset-token.entity';
 import { User } from '../../entities/user.entity';
+import { AuditService } from '../audit/audit.service';
 import { MailerService } from '../mailer/mailer.service';
+import { recordSecurityEvent } from './security-audit.util';
 
 const TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -25,6 +28,7 @@ export class PasswordResetService {
     private readonly authSessionRepository: Repository<AuthSession>,
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -125,6 +129,16 @@ export class PasswordResetService {
 
     record.usedAt = new Date();
     await this.tokenRepository.save(record);
+
+    await recordSecurityEvent(this.auditService, this.logger, {
+      workspaceId: user.workspaceId,
+      actorId: user.id,
+      entityType: EntityType.USER,
+      entityId: user.id,
+      action: AuditAction.UPDATE,
+      severity: Severity.WARN,
+      meta: { password: 'reset', sessions: 'all-revoked' },
+    });
   }
 
   /** Housekeeping so spent and stale grants do not accumulate forever. */

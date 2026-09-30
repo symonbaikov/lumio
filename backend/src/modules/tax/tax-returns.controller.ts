@@ -4,6 +4,8 @@ import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import { buildContentDisposition } from '../../common/utils/http-file.util';
+import type { User } from '../../entities/user.entity';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TaxReturnPeriodDto } from './dto/tax-return-period.dto';
 import { TaxReturnsService } from './tax-returns.service';
 
@@ -43,14 +45,22 @@ export class TaxReturnsController {
   // settings management rather than the view permission.
   @Post('file')
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
-  async file(@WorkspaceId() workspaceId: string, @Body() dto: TaxReturnPeriodDto) {
-    return this.taxReturnsService.file(workspaceId, dto.periodStart, dto.periodEnd);
+  async file(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: TaxReturnPeriodDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.taxReturnsService.file(workspaceId, dto.periodStart, dto.periodEnd, user.id);
   }
 
   @Post('reopen')
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
-  async reopen(@WorkspaceId() workspaceId: string, @Body() dto: TaxReturnPeriodDto) {
-    return this.taxReturnsService.reopen(workspaceId, dto.periodStart, dto.periodEnd);
+  async reopen(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: TaxReturnPeriodDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.taxReturnsService.reopen(workspaceId, dto.periodStart, dto.periodEnd, user.id);
   }
 
   /**
