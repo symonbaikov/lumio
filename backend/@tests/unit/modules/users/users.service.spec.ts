@@ -410,6 +410,22 @@ describe('UsersService', () => {
       expect(result.themePreference).toBe('auto');
     });
 
+    it('turns the daily quote off and leaves the other preferences alone', async () => {
+      const userWithPassword = { ...mockUser, showDailyQuote: true, reduceMotion: true } as User;
+      jest
+        .spyOn<any, any>(service as any, 'findOneWithPassword')
+        .mockResolvedValue(userWithPassword);
+      const saveSpy = jest
+        .spyOn(repository, 'save')
+        .mockImplementation(async user => user as User);
+
+      await service.updateMyPreferences('1', { showDailyQuote: false } as any);
+
+      expect(saveSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ showDailyQuote: false, reduceMotion: true }),
+      );
+    });
+
     it('stores a trimmed map style and clears it with null', async () => {
       const userWithPassword = { ...mockUser, mapStylePreference: 'positron' } as User;
 

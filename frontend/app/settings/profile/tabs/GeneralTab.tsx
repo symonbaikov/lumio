@@ -86,6 +86,8 @@ export function GeneralTab({ section, user, setUser }: SettingsTabProps): React.
     setDensity,
     reduceMotion,
     setReduceMotion,
+    showDailyQuote,
+    setShowDailyQuote,
   } = useAppearance(user, setUser, {
     successFallback: t.appearanceCard.title.value,
     errorFallback: t.profileCard.errorFallback.value,
@@ -224,6 +226,8 @@ export function GeneralTab({ section, user, setUser }: SettingsTabProps): React.
           setDensity={setDensity}
           reduceMotion={reduceMotion}
           setReduceMotion={setReduceMotion}
+          showDailyQuote={showDailyQuote}
+          setShowDailyQuote={setShowDailyQuote}
         />
       </SettingsAccordion>
 

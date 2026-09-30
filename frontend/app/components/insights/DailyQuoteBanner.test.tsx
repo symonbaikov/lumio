@@ -5,9 +5,11 @@ import { todayKey } from '@/app/hooks/useDailyQuote';
 import { DailyQuoteBanner } from './DailyQuoteBanner';
 
 const apiMocks = vi.hoisted(() => ({ get: vi.fn() }));
+const auth = vi.hoisted(() => ({ user: { showDailyQuote: true } as { showDailyQuote?: boolean } }));
 
 vi.mock('@/app/lib/api', () => ({ default: apiMocks }));
 vi.mock('@/app/hooks/useWorkspaceId', () => ({ useWorkspaceId: () => 'ws-1' }));
+vi.mock('@/app/hooks/useAuth', () => ({ useAuth: () => auth }));
 vi.mock('@/app/i18n', () => ({
   useLocale: () => ({ locale: 'de' }),
   useIntlayer: () =>
@@ -47,6 +49,16 @@ describe('DailyQuoteBanner', () => {
     expect(
       screen.getByRole('link', { name: 'quoteWhy Leisure takes more than you planned' }),
     ).toBeTruthy();
+  });
+
+  it('shows nothing and asks for no quote when turned off in settings', async () => {
+    auth.user = { showDailyQuote: false };
+    renderWithQuery(<DailyQuoteBanner />);
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(screen.queryByText(quote.quote.text)).toBeNull();
+    expect(apiMocks.get).not.toHaveBeenCalledWith('/insights/daily-quote', expect.anything());
+    auth.user = { showDailyQuote: true };
   });
 
   it('stays hidden for the rest of the day once closed', async () => {

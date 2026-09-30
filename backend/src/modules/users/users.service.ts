@@ -301,6 +301,9 @@ export class UsersService {
     if (dto.reduceMotion !== undefined) {
       user.reduceMotion = dto.reduceMotion;
     }
+    if (dto.showDailyQuote !== undefined) {
+      user.showDailyQuote = dto.showDailyQuote;
+    }
 
     return this.userRepository.save(user);
   }
