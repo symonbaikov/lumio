@@ -17,6 +17,10 @@ vi.mock('@/app/contexts/WorkspaceContext', () => ({
   useWorkspace: () => ({ currentWorkspace: { id: 'workspace-1' } }),
 }));
 
+vi.mock('@/app/i18n', () => ({
+  useLocale: () => ({ locale: 'de' }),
+}));
+
 import { createTestQueryClient, renderHookWithQuery } from '../test/query-wrapper';
 import { type InsightSeverity, useInsights, useRefreshInsights } from './useInsights';
 
@@ -51,6 +55,18 @@ describe('useInsights', () => {
 
     await waitFor(() => expect(result.current.items).toHaveLength(2));
     expect(result.current.items.map(item => item.id)).toEqual(['a', 'c']);
+  });
+
+  it('asks for the feed in the interface language, not the profile one', async () => {
+    apiMocks.get.mockResolvedValue({ data: { items: [] } });
+
+    const { result } = renderHookWithQuery(() => useInsights({ severities: ['info'] }));
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(apiMocks.get).toHaveBeenCalledWith(
+      '/insights',
+      expect.objectContaining({ params: { limit: 50, locale: 'de' } }),
+    );
   });
 
   it('serves both consumers of the shared feed from a single request', async () => {

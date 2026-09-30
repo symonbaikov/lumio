@@ -7,7 +7,13 @@ import type { InsightCandidate } from './analyzers/analyzer.interface';
 import { FinancialAnalyzer } from './analyzers/financial.analyzer';
 import { OperationalAnalyzer } from './analyzers/operational.analyzer';
 import { StoicAnalyzer } from './analyzers/stoic.analyzer';
-import { formatInsightParams, INSIGHT_TRANSLATIONS, renderInsight } from './insight-translations';
+import {
+  formatInsightParams,
+  INSIGHT_TRANSLATIONS,
+  type InsightMessageKey,
+  renderInsight,
+} from './insight-translations';
+import { isStoicKey } from './stoic-texts';
 import { type PhrasedText, StoicPhrasingService } from './stoic-phrasing.service';
 
 type ListInsightsParams = {
@@ -16,6 +22,8 @@ type ListInsightsParams = {
   category?: string;
   limit?: number;
   offset?: number;
+  /** Interface language of the reader; keyed rows are rendered into it. */
+  locale?: string;
 };
 
 @Injectable()
@@ -158,11 +166,36 @@ export class InsightsService {
     const [items, total] = await queryBuilder.getManyAndCount();
 
     return {
-      items,
+      items: items.map(item => this.localize(item, params.locale)),
       total,
       limit: normalizedLimit,
       offset: normalizedOffset,
     };
+  }
+
+  /**
+   * The stored title and message are in the language of whichever write wrote
+   * them last, which is not necessarily the one the reader is looking at now:
+   * a row written by the cron, or before the reader switched languages, would
+   * otherwise stay in the old language until the next refresh happens to run.
+   * The key and params are kept alongside exactly so the text can be built
+   * again here, in the reader's language, on every read.
+   *
+   * Left alone: rows without a key (nothing to render from) and rows whose
+   * stored text is already in this language — that text may be the model's
+   * wording, which is better than the template it was drafted from.
+   */
+  private localize(insight: Insight, locale?: string): Insight {
+    const key = insight.messageKey;
+    const params = insight.messageParams;
+    if (!(locale && key && params) || params.locale === locale) {
+      return insight;
+    }
+    if (!(isStoicKey(key) || key in INSIGHT_TRANSLATIONS.en)) {
+      return insight;
+    }
+    const { title, message } = renderInsight(locale, key as InsightMessageKey, params);
+    return { ...insight, title, message } as Insight;
   }
 
   async getSummary(userId: string, workspaceId: string) {

@@ -31,6 +31,7 @@ export class InsightsController {
     @Query('category') category?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('locale') locale?: string,
   ) {
     return this.insightsService.list({
       userId: user.id,
@@ -38,6 +39,7 @@ export class InsightsController {
       category,
       limit: limit ? Number(limit) : 30,
       offset: offset ? Number(offset) : 0,
+      locale,
     });
   }
 
