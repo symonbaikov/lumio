@@ -206,7 +206,8 @@ export default function CryptoPage(): React.JSX.Element {
         serverError={drawerServerError}
         labels={{
           title: t.connect.value,
-          useMetaMask: t.useMetaMask.value,
+          walletsLabel: t.walletsLabel.value,
+          install: t.install.value,
           manualHint: t.manualHint.value,
           addressLabel: t.addressLabel.value,
           nameLabel: t.nameLabel.value,
