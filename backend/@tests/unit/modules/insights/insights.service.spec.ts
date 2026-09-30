@@ -260,6 +260,109 @@ describe('InsightsService', () => {
     });
   });
 
+  it('renders keyed advice into the reader language on every read', async () => {
+    const listQb = createQueryBuilderMock();
+    listQb.getManyAndCount.mockResolvedValueOnce([
+      [
+        {
+          id: 'insight-1',
+          messageKey: 'stoic.total_over_plan',
+          messageParams: {
+            locale: 'en',
+            variant: 2,
+            percent: 20,
+            currency: 'EUR',
+            spentAmount: 2662,
+            plannedAmount: 2210,
+          },
+          title: 'Your plan and your month disagree',
+          message: 'stale English body',
+        },
+        // Уже на языке читателя — там может стоять текст модели, он ценнее шаблона.
+        {
+          id: 'insight-2',
+          messageKey: 'stoic.total_over_plan',
+          messageParams: { locale: 'de', variant: 0 },
+          title: 'Vom Modell geschrieben',
+          message: 'Bleibt unverändert',
+        },
+        // Без ключа рендерить не из чего.
+        { id: 'insight-3', messageKey: null, messageParams: null, title: 'Hand-written', message: 'As is' },
+      ],
+      3,
+    ]);
+    insightRepository.createQueryBuilder.mockReturnValueOnce(listQb);
+
+    const { items } = await service.list({
+      userId: 'user-1',
+      workspaceId: 'workspace-1',
+      locale: 'de',
+    });
+
+    expect(items[0].title).toBe('Plan und Monat sind sich uneins');
+    expect(items[0].message).toContain('2.662');
+    expect(items[1].title).toBe('Vom Modell geschrieben');
+    expect(items[2].title).toBe('Hand-written');
+  });
+
+  it('credits the expert by their name in the reader language', async () => {
+    const listQb = createQueryBuilderMock();
+    listQb.getManyAndCount.mockResolvedValueOnce([
+      [
+        {
+          id: 'insight-1',
+          messageKey: 'expert.rule_50_30_20',
+          // Уже на языке читателя: текст не перерисовывается, а подпись обязана.
+          messageParams: { locale: 'ru', variant: 0 },
+          title: 'Формула сбалансированных денег',
+          message: 'unchanged',
+          data: {
+            expert: 'Elizabeth Warren & Amelia Warren Tyagi',
+            work: 'All Your Worth (2005)',
+            target: 'budgets',
+          },
+        },
+      ],
+      1,
+    ]);
+    insightRepository.createQueryBuilder.mockReturnValueOnce(listQb);
+
+    const { items } = await service.list({
+      userId: 'user-1',
+      workspaceId: 'workspace-1',
+      locale: 'ru',
+    });
+
+    expect(items[0].data).toEqual({
+      expert: 'Элизабет Уоррен и Амелия Уоррен Тьяги',
+      // Название книги остаётся как издано — так же цитирует источник баннер.
+      work: 'All Your Worth (2005)',
+      target: 'budgets',
+    });
+    expect(items[0].title).toBe('Формула сбалансированных денег');
+  });
+
+  it('leaves the stored text alone when no locale is asked for', async () => {
+    const listQb = createQueryBuilderMock();
+    listQb.getManyAndCount.mockResolvedValueOnce([
+      [
+        {
+          id: 'insight-1',
+          messageKey: 'stoic.total_over_plan',
+          messageParams: { locale: 'en', variant: 2 },
+          title: 'Your plan and your month disagree',
+          message: 'unchanged',
+        },
+      ],
+      1,
+    ]);
+    insightRepository.createQueryBuilder.mockReturnValueOnce(listQb);
+
+    const { items } = await service.list({ userId: 'user-1', workspaceId: 'workspace-1' });
+
+    expect(items[0].title).toBe('Your plan and your month disagree');
+  });
+
   describe('Stoic phrasing', () => {
     const stoicCandidate: InsightCandidate = {
       type: InsightType.STOIC_INTENT_GAP,
