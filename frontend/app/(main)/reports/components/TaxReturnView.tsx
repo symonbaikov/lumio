@@ -13,12 +13,12 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  TextField,
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
@@ -61,7 +61,7 @@ function Figure({
   emphasis?: boolean;
 }): React.ReactElement {
   return (
-    <Box sx={{ minWidth: 160 }}>
+    <Box sx={{ flex: { xs: '1 1 140px', md: '0 0 auto' }, minWidth: { md: 160 } }}>
       <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{label}</Typography>
       <Typography
         sx={{ fontSize: emphasis ? 22 : 18, fontWeight: 600, color: 'text.primary', mt: 0.25 }}
@@ -152,7 +152,7 @@ export function TaxReturnView(): React.ReactElement {
 
   return (
     <Stack spacing={2.5}>
-      <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+      <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
         {PRESETS.map(preset => (
           <Button
             key={preset.key}
@@ -164,22 +164,20 @@ export function TaxReturnView(): React.ReactElement {
             {t[preset.label]}
           </Button>
         ))}
-        <TextField
-          size="small"
-          type="date"
-          label={t.from.value}
-          value={period.periodStart}
-          onChange={event => setPeriod(p => ({ ...p, periodStart: event.target.value }))}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-        <TextField
-          size="small"
-          type="date"
-          label={t.to.value}
-          value={period.periodEnd}
-          onChange={event => setPeriod(p => ({ ...p, periodEnd: event.target.value }))}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
+        <Box sx={{ flex: { xs: '1 1 140px', sm: '0 0 180px' } }}>
+          <CustomDatePicker
+            label={t.from.value}
+            value={period.periodStart}
+            onChange={periodStart => setPeriod(p => ({ ...p, periodStart }))}
+          />
+        </Box>
+        <Box sx={{ flex: { xs: '1 1 140px', sm: '0 0 180px' } }}>
+          <CustomDatePicker
+            label={t.to.value}
+            value={period.periodEnd}
+            onChange={periodEnd => setPeriod(p => ({ ...p, periodEnd }))}
+          />
+        </Box>
       </Stack>
 
       {error || returnQuery.isError ? (
@@ -236,10 +234,10 @@ export function TaxReturnView(): React.ReactElement {
         >
           <Stack
             direction="row"
-            spacing={3}
             sx={{
               flexWrap: 'wrap',
-              gap: 2,
+              columnGap: 3,
+              rowGap: 2,
               borderRadius: tokens.radius.lg,
               border: '1px solid',
               borderColor: 'divider',
@@ -261,7 +259,16 @@ export function TaxReturnView(): React.ReactElement {
               value={formatMoney(Math.abs(Number(totals?.netPayable ?? 0)), currency)}
               emphasis
             />
-            <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box
+              sx={{
+                ml: { md: 'auto' },
+                width: { xs: '100%', md: 'auto' },
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
               <Chip
                 size="small"
                 label={isFiled ? t.statusFiled.value : t.statusDraft.value}
@@ -287,7 +294,12 @@ export function TaxReturnView(): React.ReactElement {
                 variant={isFiled ? 'outlined' : 'contained'}
                 disabled={busy || actMutation.isPending}
                 onClick={() => act(isFiled ? 'reopen' : 'file')}
-                sx={{ borderRadius: tokens.radius.md, textTransform: 'none', fontWeight: 600 }}
+                sx={{
+                  borderRadius: tokens.radius.md,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  flex: { xs: '1 1 auto', md: '0 0 auto' },
+                }}
               >
                 {isFiled ? t.reopenPeriod : t.fileAndLock}
               </Button>

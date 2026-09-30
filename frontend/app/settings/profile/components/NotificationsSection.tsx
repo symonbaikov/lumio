@@ -26,8 +26,10 @@ type ToggleChannel = (
   value: boolean,
 ) => Promise<void>;
 
-/** Label column plus one narrow column per channel; scrolls rather than squashing. */
-const ROW_GRID = { display: 'grid', gridTemplateColumns: 'minmax(140px, 1fr) repeat(3, 64px)' };
+/** Label column plus one narrow column per channel. The label track may shrink
+ * to nothing so the three channel columns still fit a phone: a 140px floor plus
+ * `minWidth: 360` below pushed the Telegram column past the card's edge. */
+const ROW_GRID = { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) repeat(3, 64px)' };
 
 const CHANNEL_FALLBACKS: Record<NotificationChannel, string> = {
   inApp: 'Bell',
@@ -147,7 +149,7 @@ function NotificationGroup({
         </Typography>
       </Box>
       <CardContent sx={{ overflowX: 'auto' }}>
-        <Box sx={{ minWidth: 360 }}>
+        <Box>
           <ChannelHeader tx={tx} />
           <Stack spacing={1.5}>
             {keys.map(setting => (

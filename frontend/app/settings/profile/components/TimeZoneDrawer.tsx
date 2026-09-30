@@ -38,7 +38,7 @@ export function TimeZoneDrawer({
       onClose={onClose}
       title={labels.title}
       position="right"
-      width="lg"
+      width="sm"
       showCloseButton={false}
     >
       <Box sx={{ display: 'flex', height: '100%', flexDirection: 'column' }}>

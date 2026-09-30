@@ -7,8 +7,8 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import Typography from '@mui/material/Typography';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
 import type { Category } from '@/app/components/transactions/types';
-import { Input } from '@/app/components/ui/input';
 import { Select } from '@/app/components/ui/select';
 import { useIntlayer } from '@/app/i18n';
 import { formatMoney } from '@/app/lib/format-money';
@@ -122,12 +122,12 @@ export function CashFields(props: {
         <Typography component="label" htmlFor="mark-paid-date" variant="caption">
           {t.paidOn.value}
         </Typography>
-        <Input
+        <CustomDatePicker
           id="mark-paid-date"
-          type="date"
+          large
           value={value.paidOn}
-          max={today()}
-          onChange={event => onChange({ ...value, paidOn: event.target.value })}
+          maxDate={today()}
+          onChange={paidOn => onChange({ ...value, paidOn })}
         />
       </Box>
       <Box>

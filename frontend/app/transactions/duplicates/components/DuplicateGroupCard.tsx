@@ -96,10 +96,19 @@ export default function DuplicateGroupCard({ group, selected, onToggle }: Duplic
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
         <Checkbox checked={selected} onChange={onToggle} sx={{ mt: 0.5, p: 0 }} />
 
-        <Box sx={{ flex: 1 }}>
+        {/* minWidth: 0 — without it this flex child keeps its content width and
+            pushes the card's inner boxes past the card on a phone. */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
           {/* Header */}
           <Box
-            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 1,
+              mb: 2,
+            }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Chip
@@ -147,7 +156,7 @@ export default function DuplicateGroupCard({ group, selected, onToggle }: Duplic
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' },
+                gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(4, minmax(0, 1fr))' },
                 gap: 2,
               }}
             >
@@ -161,7 +170,7 @@ export default function DuplicateGroupCard({ group, selected, onToggle }: Duplic
                   {formatAmount(group.master.amount)}
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
                 <User size={16} style={{ color: 'var(--muted-foreground)' }} />
                 <Typography
                   variant="body2"
@@ -233,7 +242,7 @@ export default function DuplicateGroupCard({ group, selected, onToggle }: Duplic
                 <Box
                   sx={{
                     display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' },
+                    gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(4, minmax(0, 1fr))' },
                     gap: 2,
                   }}
                 >
@@ -247,7 +256,7 @@ export default function DuplicateGroupCard({ group, selected, onToggle }: Duplic
                       {formatAmount(duplicate.amount)}
                     </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
                     <User size={16} style={{ color: 'var(--muted-foreground)' }} />
                     <Typography
                       variant="body2"
