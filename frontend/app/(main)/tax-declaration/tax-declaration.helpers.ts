@@ -75,3 +75,53 @@ export function exportFileName(
 ): string {
   return `income-tax-${countryCode.toLowerCase()}-${taxYear}.${format}`;
 }
+
+// German home-office allowances. Mirrors `homeOfficeMinor` in the backend's
+// rule-packs/de/euer.ts — keep the two in step, or the preview and the draft
+// will show different numbers.
+export const DE_HOME_OFFICE_DAILY_EUR = 6;
+export const DE_HOME_OFFICE_CAP_EUR = 1260;
+const DE_HOME_STUDY_MONTHLY_EUR = 105;
+/** Days at which the daily allowance reaches the annual cap. */
+export const DE_HOME_OFFICE_CAP_DAYS = DE_HOME_OFFICE_CAP_EUR / DE_HOME_OFFICE_DAILY_EUR;
+
+export interface HomeOfficeAllowance {
+  amount: number;
+  basis: 'days' | 'study' | null;
+  /** The count the amount is based on: days or study months. */
+  units: number;
+  capped: boolean;
+  /** Both were entered; the law allows only one, so only the study counts. */
+  exclusive: boolean;
+}
+
+function wholeNumber(value: unknown, max: number): number {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return 0;
+  return Math.min(Math.floor(number), max);
+}
+
+export function deHomeOfficeAllowance(details: Record<string, unknown>): HomeOfficeAllowance {
+  const days = wholeNumber(details.homeOfficeDays, 366);
+  const months = wholeNumber(details.homeStudyMonths, 12);
+
+  if (months > 0) {
+    return {
+      amount: DE_HOME_OFFICE_CAP_EUR - DE_HOME_STUDY_MONTHLY_EUR * (12 - months),
+      basis: 'study',
+      units: months,
+      capped: months === 12,
+      exclusive: days > 0,
+    };
+  }
+  if (days > 0) {
+    return {
+      amount: Math.min(days * DE_HOME_OFFICE_DAILY_EUR, DE_HOME_OFFICE_CAP_EUR),
+      basis: 'days',
+      units: days,
+      capped: days >= DE_HOME_OFFICE_CAP_DAYS,
+      exclusive: false,
+    };
+  }
+  return { amount: 0, basis: null, units: 0, capped: false, exclusive: false };
+}

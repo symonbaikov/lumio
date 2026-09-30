@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import apiClient from '@/app/lib/api';
 import { isAbortError } from '../utils/pasteUtils';
-import type { CustomTableGridRow } from '../utils/stylingUtils';
+import type { CustomTableGridRow } from '../utils/types';
 
 const getRowIdentity = (row: unknown): string => {
   if (!row || typeof row !== 'object') {
@@ -30,6 +30,8 @@ export interface UseTableGridReturn {
   setRows: React.Dispatch<React.SetStateAction<CustomTableGridRow[]>>;
   loadingRows: boolean;
   hasMore: boolean;
+  /** Server-side total for the current filters; null until the first reply. */
+  total: number | null;
   loadRows: (opts?: { reset?: boolean; filtersParam?: string }) => Promise<void>;
 }
 
@@ -49,8 +51,11 @@ export function useTableGrid({
   loadRowsFailedMessage,
 }: UseTableGridParams): UseTableGridReturn {
   const [rows, setRows] = useState<CustomTableGridRow[]>([]);
-  const [loadingRows, setLoadingRows] = useState(false);
+  // Loading from the start, so the grid shows its skeleton, not the empty state,
+  // before the first request goes out.
+  const [loadingRows, setLoadingRows] = useState(Boolean(tableId));
   const [hasMore, setHasMore] = useState(true);
+  const [total, setTotal] = useState<number | null>(null);
 
   const rowsRef = useRef<CustomTableGridRow[]>([]);
   const rowsRequestSeqRef = useRef(0);
@@ -95,6 +100,15 @@ export function useTableGrid({
   }): unknown[] => {
     const items = response.data?.items || response.data?.data?.items || [];
     return Array.isArray(items) ? items : [];
+  };
+
+  const extractTotal = (response: { data?: unknown }): number | null => {
+    const root = (response.data ?? {}) as {
+      meta?: { total?: unknown };
+      data?: { meta?: { total?: unknown } };
+    };
+    const candidate = root.meta?.total ?? root.data?.meta?.total;
+    return typeof candidate === 'number' ? candidate : null;
   };
 
   const dedupeRows = <T>(merged: T[]): T[] => {
@@ -176,6 +190,7 @@ export function useTableGrid({
         }
         const next = extractRows(response);
         applyFetchedRows(next, shouldReset);
+        setTotal(extractTotal(response));
         setHasMore(next.length >= 50);
       })()
         .catch(async error => {
@@ -211,5 +226,5 @@ export function useTableGrid({
     };
   }, []);
 
-  return { rows, setRows, loadingRows, hasMore, loadRows };
+  return { rows, setRows, loadingRows, hasMore, total, loadRows };
 }

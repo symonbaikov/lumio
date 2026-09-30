@@ -1,14 +1,6 @@
-/**
- * How strongly a cell should be tinted: its share of the biggest charge in the
- * same month. Colour is decoration only — every non-empty cell also prints its
- * amount — so this never has to carry meaning on its own.
- */
-export const cellIntensity = (amount: number, monthPeak: number): number => {
-  if (!(amount > 0 && monthPeak > 0)) {
-    return 0;
-  }
-  return Math.min(1, amount / monthPeak);
-};
+/** Whether a cell is the largest charge in its month column, so it can print bold. */
+export const isPeakAmount = (amount: number, monthPeak: number): boolean =>
+  amount > 0 && monthPeak > 0 && amount === monthPeak;
 
 /** The largest single charge in each month, used to scale that column's tint. */
 export const monthPeaks = (rows: { amounts: number[] }[], months: number): number[] =>

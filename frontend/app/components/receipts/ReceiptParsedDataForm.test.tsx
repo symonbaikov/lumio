@@ -11,8 +11,11 @@ type CustomDatePickerMockProps = {
   containerTestId?: string;
 };
 
-vi.mock('@/app/i18n', () => ({
+vi.mock('@/app/i18n', async () => ({
   useLocale: () => ({ locale: 'en' }),
+  // Real dictionaries; without a provider they resolve to the default locale (English).
+  useIntlayer: (await vi.importActual<typeof import('react-intlayer')>('react-intlayer'))
+    .useIntlayer,
 }));
 
 vi.mock('@/app/components/CustomDatePicker', () => ({

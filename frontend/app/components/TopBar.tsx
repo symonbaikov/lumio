@@ -37,7 +37,13 @@ export default function TopBar() {
   const { currentWorkspace } = useWorkspace();
   const { setTheme } = useTheme();
   const { locale, availableLocales, setLocale } = useLocale();
-  const { nav, userMenu, languageModal, languages: languageNames } = useIntlayer('navigation');
+  const {
+    nav,
+    userMenu,
+    languageModal,
+    languages: languageNames,
+    shell,
+  } = useIntlayer('navigation');
   const router = useRouter();
   const [avatarError, setAvatarError] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -145,7 +151,7 @@ export default function TopBar() {
   return (
     <>
       <header className="lumio-topbar">
-        <Link href="/dashboard" className="lumio-topbar__mobile-logo" aria-label="Lumio home">
+        <Link href="/dashboard" className="lumio-topbar__mobile-logo" aria-label={shell.home.value}>
           <span className="lumio-topbar__mobile-logo-mark" />
         </Link>
 
@@ -159,14 +165,14 @@ export default function TopBar() {
             target="_blank"
             rel="noopener noreferrer"
             className="lumio-topbar__icon-btn"
-            title="Report a bug"
-            aria-label="Report a bug"
+            title={shell.reportBug.value}
+            aria-label={shell.reportBug.value}
           >
             <Bug size={18} />
           </a>
           <TourMenu
             trigger={
-              <button type="button" className="lumio-topbar__icon-btn" title="Help">
+              <button type="button" className="lumio-topbar__icon-btn" title={shell.help.value}>
                 <HelpCircle size={18} />
               </button>
             }

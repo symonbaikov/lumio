@@ -1,8 +1,9 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useIntlayer } from '@/app/i18n';
 import type { SubscriptionChargeCalendar } from '../hooks/useSubscriptionsPage';
-import { cellIntensity, monthPeaks } from './charge-calendar.utils';
+import { isPeakAmount, monthPeaks } from './charge-calendar.utils';
 
 interface SubscriptionChargeCalendarProps {
   calendar: SubscriptionChargeCalendar;
@@ -18,18 +19,19 @@ export function SubscriptionChargeCalendar({
   formatAmount,
   renderVendor,
 }: SubscriptionChargeCalendarProps) {
+  const t = useIntlayer('subscriptionsPage');
   const peaks = monthPeaks(calendar.rows, monthLabels.length);
 
   return (
     <div className="lumio-charge-calendar">
       <table className="lumio-charge-calendar__table">
         <caption className="lumio-charge-calendar__caption">
-          Expected subscription charges by vendor for the next {monthLabels.length} months
+          {t.calendarCaption.value.replace('{count}', String(monthLabels.length))}
         </caption>
         <thead>
           <tr>
             <th scope="col" className="lumio-charge-calendar__vendor">
-              Vendor
+              {t.colVendor}
             </th>
             {monthLabels.map(label => (
               <th scope="col" key={label}>
@@ -49,22 +51,16 @@ export function SubscriptionChargeCalendar({
               </th>
               {monthLabels.map((label, index) => {
                 const amount = row.amounts[index] ?? 0;
-                const intensity = cellIntensity(amount, peaks[index]);
+                const isPeak = isPeakAmount(amount, peaks[index]);
                 return (
                   <td
                     key={label}
-                    className={amount > 0 ? undefined : 'lumio-charge-calendar__empty'}
-                    // Capped at 80% so the amount stays readable on the tint,
-                    // and mixed with the card background rather than with
-                    // transparency, which would show the content photo through.
-                    style={
-                      intensity > 0
-                        ? {
-                            background: `color-mix(in srgb, var(--ff-dash-primary) ${Math.round(
-                              intensity * 80,
-                            )}%, var(--card-bg))`,
-                          }
-                        : undefined
+                    className={
+                      amount > 0
+                        ? isPeak
+                          ? 'lumio-charge-calendar__peak'
+                          : undefined
+                        : 'lumio-charge-calendar__empty'
                     }
                   >
                     {amount > 0 ? (
@@ -74,7 +70,7 @@ export function SubscriptionChargeCalendar({
                         {/* A bare aria-label on a span is ignored, so the
                             dash is hidden and the words are read instead. */}
                         <span aria-hidden="true">—</span>
-                        <span className="lumio-charge-calendar__sr-only">No charge</span>
+                        <span className="lumio-charge-calendar__sr-only">{t.noCharge}</span>
                       </>
                     )}
                   </td>
@@ -86,7 +82,7 @@ export function SubscriptionChargeCalendar({
         <tfoot>
           <tr>
             <th scope="row" className="lumio-charge-calendar__vendor">
-              Total
+              {t.total}
             </th>
             {monthLabels.map((label, index) => (
               <td key={label}>{formatAmount(calendar.monthTotals[index] ?? 0)}</td>

@@ -1,5 +1,5 @@
 import { IsBoolean, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
-import { CategoryType } from '../../../entities/category.entity';
+import { CategoryType, StoicClass } from '../../../entities/category.entity';
 
 export class CreateCategoryDto {
   @IsString()
@@ -23,4 +23,15 @@ export class CreateCategoryDto {
   @IsBoolean()
   @IsOptional()
   isEnabled?: boolean;
+
+  /** Null clears the user's choice and returns the category to the suggestion
+   * (IsOptional lets null through). */
+  @IsEnum(StoicClass)
+  @IsOptional()
+  stoicClass?: StoicClass | null;
+
+  /** Null returns the category to the name-based guess. */
+  @IsBoolean()
+  @IsOptional()
+  helpsOthers?: boolean | null;
 }

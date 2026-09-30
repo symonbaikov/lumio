@@ -49,7 +49,7 @@ function LeaderboardRowSkeleton(): React.JSX.Element {
 export function AnalyticsLeaderboardSkeleton(): React.JSX.Element {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+      <div className="lumio-stat-tiles">
         {STAT_CARD_KEYS.map(key => (
           <StatCardSkeleton key={key} />
         ))}

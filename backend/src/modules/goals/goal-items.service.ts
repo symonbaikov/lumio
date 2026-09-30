@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { assertFound } from '../../common/utils/assert-found.util';
 import { Goal } from '../../entities';
+import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { GoalItem, GoalItemStatus } from '../../entities/goal-item.entity';
+import { AuditService } from '../audit/audit.service';
+import type { CreateAuditEventDto } from '../audit/interfaces/audit-event.interface';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import type { CreateGoalItemDto } from './dto/create-goal-item.dto';
 import type { UpdateGoalItemDto } from './dto/update-goal-item.dto';
@@ -43,6 +46,18 @@ export interface GoalItemsResponse {
   };
 }
 
+function itemSnapshot(item: GoalItem) {
+  return {
+    name: item.name,
+    estimatedAmount: toNumber(item.estimatedAmount),
+    actualAmount: item.actualAmount === null ? null : toNumber(item.actualAmount),
+    currency: item.currency,
+    dueMonth: item.dueMonth,
+    status: item.status,
+    note: item.note,
+  };
+}
+
 /**
  * The cost breakdown behind a goal.
  *
@@ -53,12 +68,15 @@ export interface GoalItemsResponse {
  */
 @Injectable()
 export class GoalItemsService {
+  private readonly logger = new Logger(GoalItemsService.name);
+
   constructor(
     @InjectRepository(GoalItem)
     private readonly itemRepository: Repository<GoalItem>,
     @InjectRepository(Goal)
     private readonly goalRepository: Repository<Goal>,
     private readonly exchangeRatesService: ExchangeRatesService,
+    private readonly auditService: AuditService,
   ) {}
 
   async list(goalId: string, workspaceId: string): Promise<GoalItemsResponse> {
@@ -94,7 +112,18 @@ export class GoalItemsService {
       status: dto.status ?? GoalItemStatus.PLANNED,
       note: dto.note ?? null,
     });
-    await this.itemRepository.save(item);
+    const saved = await this.itemRepository.save(item);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.GOAL,
+      entityId: goalId,
+      action: AuditAction.UPDATE,
+      description: `Added cost line "${saved.name}" to goal "${goal.name}"`,
+      diff: { before: null, after: itemSnapshot(saved) },
+      meta: { item: { id: saved.id, name: saved.name }, change: 'item_added' },
+    });
 
     return this.list(goalId, workspaceId);
   }
@@ -103,12 +132,14 @@ export class GoalItemsService {
     goalId: string,
     itemId: string,
     workspaceId: string,
+    userId: string,
     dto: UpdateGoalItemDto,
   ): Promise<GoalItemsResponse> {
     const item = await this.itemRepository.findOne({
       where: { id: itemId, goalId, workspaceId },
     });
     assertFound(item, 'Goal item');
+    const before = itemSnapshot(item);
 
     if (dto.name !== undefined) {
       item.name = dto.name;
@@ -133,17 +164,58 @@ export class GoalItemsService {
     }
 
     await this.itemRepository.save(item);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.GOAL,
+      entityId: goalId,
+      action: AuditAction.UPDATE,
+      description: `Updated cost line "${item.name}"`,
+      diff: { before, after: itemSnapshot(item) },
+      meta: { item: { id: item.id, name: item.name }, change: 'item_updated' },
+    });
     return this.list(goalId, workspaceId);
   }
 
-  async remove(goalId: string, itemId: string, workspaceId: string): Promise<GoalItemsResponse> {
+  async remove(
+    goalId: string,
+    itemId: string,
+    workspaceId: string,
+    userId: string,
+  ): Promise<GoalItemsResponse> {
     const item = await this.itemRepository.findOne({
       where: { id: itemId, goalId, workspaceId },
     });
     assertFound(item, 'Goal item');
+    const before = itemSnapshot(item);
 
     await this.itemRepository.remove(item);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.GOAL,
+      entityId: goalId,
+      action: AuditAction.UPDATE,
+      description: `Removed cost line "${before.name}"`,
+      diff: { before, after: null },
+      meta: { item: { id: itemId, name: before.name }, change: 'item_removed' },
+    });
     return this.list(goalId, workspaceId);
+  }
+
+  /** The audit trail is a side record: failing to write it must not fail the item change. */
+  private async audit(event: CreateAuditEventDto): Promise<void> {
+    try {
+      await this.auditService.createEvent(event);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to record audit event for goal ${event.entityId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   /**

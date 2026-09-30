@@ -29,6 +29,8 @@ interface TransactionFiltersBarProps {
   onToggleFilters: () => void;
   onClearFilters: () => void;
   t: FilterTranslations;
+  /** Controls shown on the search row, before the Filters button (e.g. the currency toggle). */
+  toolbarExtra?: React.ReactNode;
 }
 
 interface FilterToggleButtonProps {
@@ -167,6 +169,7 @@ export function TransactionFiltersBar({
   onToggleFilters,
   onClearFilters,
   t,
+  toolbarExtra,
 }: TransactionFiltersBarProps): React.ReactElement {
   const activeCount = (filters.status !== 'all' ? 1 : 0) + (filters.category ? 1 : 0);
 
@@ -207,12 +210,15 @@ export function TransactionFiltersBar({
             </button>
           )}
         </div>
-        <FilterToggleButton
-          hasActiveFilters={hasActiveFilters}
-          activeCount={activeCount}
-          filterLabel={t.filters.value}
-          onClick={onToggleFilters}
-        />
+        <div className="lumio-tx-filters__actions">
+          {toolbarExtra}
+          <FilterToggleButton
+            hasActiveFilters={hasActiveFilters}
+            activeCount={activeCount}
+            filterLabel={t.filters.value}
+            onClick={onToggleFilters}
+          />
+        </div>
       </div>
       {showFilters && (
         <FilterPanel

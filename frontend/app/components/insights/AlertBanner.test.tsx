@@ -16,6 +16,7 @@ vi.mock('@/app/contexts/WorkspaceContext', () => ({
 }));
 
 vi.mock('@/app/i18n', () => ({
+  useLocale: () => ({ locale: 'en' }),
   useIntlayer: () => ({
     dismiss: { value: 'Dismiss' },
     openLabel: { value: 'Open' },

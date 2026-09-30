@@ -1,6 +1,6 @@
 import { parseCurrencyCell, parseDateCell, parseNumberCell, parsePaidCell } from './pasteParser';
 import type { PasteColumnMapping, PasteErrorKey, PastePreviewCell } from './pasteTypes';
-import type { CustomTableCellValue, CustomTableRowPatch } from './stylingUtils';
+import type { CustomTableCellValue, CustomTableRowPatch } from './types';
 
 // ---------------------------------------------------------------------------
 // Row data builder

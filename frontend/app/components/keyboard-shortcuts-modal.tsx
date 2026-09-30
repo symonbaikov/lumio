@@ -3,6 +3,7 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { ModalShell } from '@/app/components/ui/modal-shell';
+import { useIntlayer } from '@/app/i18n';
 import {
   GLOBAL_SHORTCUTS,
   type ShortcutEntry,
@@ -39,9 +40,10 @@ function Kbd({ children }: { children: string }): React.JSX.Element {
 }
 
 function ShortcutRow({ entry }: { entry: ShortcutEntry }): React.JSX.Element {
+  const { labels } = useIntlayer('keyboardShortcutsModal');
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.75 }}>
-      <Typography variant="body2">{entry.label}</Typography>
+      <Typography variant="body2">{labels[entry.labelKey]}</Typography>
       <Kbd>{entry.keys}</Kbd>
     </Box>
   );
@@ -51,7 +53,7 @@ function ShortcutGroup({
   title,
   entries,
 }: {
-  title: string;
+  title: React.ReactNode;
   entries: ShortcutEntry[];
 }): React.JSX.Element {
   return (
@@ -70,15 +72,16 @@ export function KeyboardShortcutsModal({
   isOpen,
   onClose,
 }: KeyboardShortcutsModalProps): React.JSX.Element {
+  const t = useIntlayer('keyboardShortcutsModal');
   const navigation = GLOBAL_SHORTCUTS.filter(s => s.category === 'navigation');
   const globalActions = GLOBAL_SHORTCUTS.filter(s => s.category === 'action');
 
   return (
-    <ModalShell isOpen={isOpen} onClose={onClose} title="Keyboard Shortcuts" size="sm">
+    <ModalShell isOpen={isOpen} onClose={onClose} title={t.title} size="sm">
       <Box sx={{ p: 1 }}>
-        <ShortcutGroup title="Navigation" entries={navigation} />
-        <ShortcutGroup title="Actions" entries={globalActions} />
-        <ShortcutGroup title="Statements Page" entries={STATEMENTS_SHORTCUTS} />
+        <ShortcutGroup title={t.groups.navigation} entries={navigation} />
+        <ShortcutGroup title={t.groups.actions} entries={globalActions} />
+        <ShortcutGroup title={t.groups.statements} entries={STATEMENTS_SHORTCUTS} />
       </Box>
     </ModalShell>
   );

@@ -278,8 +278,14 @@ export class CategoriesService {
     const before = this.snapshotCategory(category);
 
     if (category.isSystem) {
+      // A system category's name and shape are fixed, but whether it is on and
+      // how the user judges its spending are theirs to decide.
       const nonToggleUpdates = Object.entries(updateDto).filter(
-        ([key, value]) => key !== 'isEnabled' && value !== undefined,
+        ([key, value]) =>
+          key !== 'isEnabled' &&
+          key !== 'stoicClass' &&
+          key !== 'helpsOthers' &&
+          value !== undefined,
       );
 
       if (nonToggleUpdates.length > 0) {
@@ -298,6 +304,13 @@ export class CategoriesService {
       }
     }
 
+    // A save that changes nothing (the editor re-submitting unchanged fields) is not an
+    // event: logging it filled the audit log with identical "updated" rows.
+    const changed = Object.entries(updateDto).some(
+      ([key, value]) =>
+        value !== undefined &&
+        JSON.stringify(value) !== JSON.stringify(category[key as keyof Category] ?? null),
+    );
     Object.assign(category, updateDto);
     const saved = await this.categoryRepository.save(category);
     await this.invalidateCache(workspaceId);
@@ -306,19 +319,21 @@ export class CategoriesService {
     const parentChanged = before.parentId !== saved.parentId;
     // Audit: track category updates with before/after diff.
     try {
-      await this.auditService.createEvent({
-        workspaceId,
-        actorType: ActorType.USER,
-        actorId: userId,
-        entityType: EntityType.CATEGORY,
-        entityId: saved.id,
-        action: AuditAction.UPDATE,
-        diff: { before, after },
-        meta: parentChanged
-          ? { parentChange: { from: before.parentId ?? null, to: saved.parentId ?? null } }
-          : undefined,
-        isUndoable: true,
-      });
+      if (changed) {
+        await this.auditService.createEvent({
+          workspaceId,
+          actorType: ActorType.USER,
+          actorId: userId,
+          entityType: EntityType.CATEGORY,
+          entityId: saved.id,
+          action: AuditAction.UPDATE,
+          diff: { before, after },
+          meta: parentChanged
+            ? { parentChange: { from: before.parentId ?? null, to: saved.parentId ?? null } }
+            : undefined,
+          isUndoable: true,
+        });
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn(`Audit event failed for category ${saved.id}: ${message}`);

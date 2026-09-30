@@ -3,7 +3,6 @@
 import {
   Box,
   Button,
-  Chip,
   MenuItem,
   Stack,
   Table,
@@ -14,16 +13,37 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { alpha, type SxProps, type Theme } from '@mui/material/styles';
 import type React from 'react';
 import { useIntlayer } from '@/app/i18n';
 import { formatLineRef, linesForCategory, suggestionEntries } from '../tax-declaration.helpers';
 import type { MappingEntry, MappingStatus, MappingsResponse } from '../tax-declaration.types';
 
-const STATUS_COLOR: Record<MappingStatus, 'success' | 'warning' | 'default'> = {
-  confirmed: 'success',
-  suggested: 'warning',
-  unmapped: 'default',
+// A status is a detail of the row, not its headline: a small dot and muted text.
+const STATUS_DOT: Record<MappingStatus, string> = {
+  confirmed: 'success.main',
+  suggested: 'warning.main',
+  unmapped: 'text.disabled',
 };
+
+// Rows are separated by one hairline in the theme's divider colour.
+const TABLE_SX = {
+  '& .MuiTableCell-root': { borderBottomColor: 'divider' },
+} satisfies SxProps<Theme>;
+
+// Flat select: plain text on the row until hovered or focused, so a column of
+// fifteen selects does not read as fifteen boxes. The chevron fades in on hover;
+// touch screens have no hover, so there it stays visible.
+const FLAT_SELECT_SX = {
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'transparent',
+    transition: 'border-color 120ms ease',
+  },
+  '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
+  '& .MuiSelect-icon': { color: 'text.secondary', opacity: 0.35, transition: 'opacity 120ms ease' },
+  '& .MuiOutlinedInput-root:hover .MuiSelect-icon, & .Mui-focused .MuiSelect-icon': { opacity: 1 },
+  '@media (hover: none)': { '& .MuiSelect-icon': { opacity: 1 } },
+} satisfies SxProps<Theme>;
 
 interface MappingStepProps {
   mappings: MappingsResponse;
@@ -67,7 +87,7 @@ export function MappingStep({ mappings, saving, onSave }: MappingStepProps): Rea
       </Box>
 
       <Box sx={{ overflowX: 'auto' }}>
-        <Table size="small">
+        <Table size="small" sx={TABLE_SX}>
           <TableHead>
             <TableRow>
               <TableCell>{t.mappingCategory}</TableCell>
@@ -87,6 +107,7 @@ export function MappingStep({ mappings, saving, onSave }: MappingStepProps): Rea
                     size="small"
                     fullWidth
                     disabled={saving}
+                    sx={FLAT_SELECT_SX}
                     value={category.lineKey ?? ''}
                     SelectProps={{ displayEmpty: true }}
                     inputProps={{ 'aria-label': `${t.mappingLine.value}: ${category.name}` }}
@@ -106,11 +127,28 @@ export function MappingStep({ mappings, saving, onSave }: MappingStepProps): Rea
                   </TextField>
                 </TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                  <Chip
-                    size="small"
-                    label={statusLabel[category.status]}
-                    color={STATUS_COLOR[category.status]}
-                  />
+                  <Box
+                    component="span"
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.75,
+                      fontSize: 12,
+                      color: theme => alpha(theme.palette.text.primary, 0.7),
+                    }}
+                  >
+                    <Box
+                      component="span"
+                      aria-hidden
+                      sx={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        bgcolor: STATUS_DOT[category.status],
+                      }}
+                    />
+                    {statusLabel[category.status]}
+                  </Box>
                   {category.status === 'suggested' && category.lineKey ? (
                     <Button
                       size="small"

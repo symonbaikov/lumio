@@ -1,3 +1,4 @@
+import { AuditAction, EntityType, Severity } from '@/entities/audit-event.entity';
 import { PasswordResetService } from '@/modules/auth/password-reset.service';
 import { BadRequestException } from '@nestjs/common';
 import { IsNull } from 'typeorm';
@@ -17,6 +18,7 @@ describe('PasswordResetService', () => {
   };
   let authSessionRepository: { update: jest.Mock };
   let mailerService: { send: jest.Mock };
+  let auditService: { createEvent: jest.Mock };
   let service: PasswordResetService;
 
   const activeUser = {
@@ -38,6 +40,7 @@ describe('PasswordResetService', () => {
     };
     authSessionRepository = { update: jest.fn() };
     mailerService = { send: jest.fn().mockResolvedValue(true) };
+    auditService = { createEvent: jest.fn().mockResolvedValue({}) };
 
     service = new PasswordResetService(
       userRepository as never,
@@ -45,6 +48,7 @@ describe('PasswordResetService', () => {
       authSessionRepository as never,
       mailerService as never,
       { get: (key: string) => (key === 'JWT_SECRET' ? SECRET : undefined) } as never,
+      auditService as never,
     );
   });
 
@@ -135,6 +139,39 @@ describe('PasswordResetService', () => {
       expect(tokenRepository.save.mock.calls[0][0].usedAt).toBeInstanceOf(Date);
     });
 
+    it('logs the completed reset without the password, hash or token', async () => {
+      tokenRepository.findOne.mockResolvedValue(validRecord());
+      userRepository.findOne.mockResolvedValue({ ...activeUser });
+
+      await service.resetPassword('plain-token', 'BrandNewPass1');
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws-1',
+          actorId: 'user-1',
+          entityType: EntityType.USER,
+          entityId: 'user-1',
+          action: AuditAction.UPDATE,
+          severity: Severity.WARN,
+          meta: { password: 'reset', sessions: 'all-revoked' },
+        }),
+      );
+      const payload = JSON.stringify(auditService.createEvent.mock.calls);
+      const { passwordHash } = userRepository.save.mock.calls[0][0];
+      for (const leaked of ['plain-token', 'BrandNewPass1', passwordHash]) {
+        expect(payload).not.toContain(leaked);
+      }
+    });
+
+    it('completes the reset when the audit write fails', async () => {
+      tokenRepository.findOne.mockResolvedValue(validRecord());
+      userRepository.findOne.mockResolvedValue({ ...activeUser });
+      auditService.createEvent.mockRejectedValue(new Error('audit down'));
+
+      await expect(service.resetPassword('plain-token', 'BrandNewPass1')).resolves.toBeUndefined();
+      expect(tokenRepository.save.mock.calls[0][0].usedAt).toBeInstanceOf(Date);
+    });
+
     it('rejects a token that was already used', async () => {
       tokenRepository.findOne.mockResolvedValue({ ...validRecord(), usedAt: new Date() });
 
@@ -142,6 +179,7 @@ describe('PasswordResetService', () => {
         BadRequestException,
       );
       expect(userRepository.save).not.toHaveBeenCalled();
+      expect(auditService.createEvent).not.toHaveBeenCalled();
     });
 
     it('rejects an expired token', async () => {

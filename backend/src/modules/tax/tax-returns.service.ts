@@ -2,12 +2,14 @@ import { BadRequestException, ConflictException, Injectable, Logger } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Not, Repository } from 'typeorm';
 import { fromMinor, roundHalfAwayFromZero, toMinor } from '../../common/utils/money.util';
+import { ActorType, AuditAction, EntityType, Severity } from '../../entities/audit-event.entity';
 import {
   TaxReturn,
   type TaxReturnSnapshotLine,
   TaxReturnStatus,
 } from '../../entities/tax-return.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
+import { AuditService } from '../audit/audit.service';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { JurisdictionAdoptionService } from './jurisdiction-adoption.service';
 import { JurisdictionsService, toDateOnly } from './jurisdictions.service';
@@ -48,7 +50,46 @@ export class TaxReturnsService {
     private readonly adoptionService: JurisdictionAdoptionService,
     private readonly exchangeRatesService: ExchangeRatesService,
     private readonly jurisdictionsService: JurisdictionsService,
+    private readonly auditService: AuditService,
   ) {}
+
+  /**
+   * Records a filing-status change against the persisted return row. Audit
+   * failure is logged, never allowed to undo a filing that already committed.
+   */
+  private async recordStatusChange(
+    workspaceId: string,
+    userId: string | undefined,
+    before: TaxReturn | null,
+    after: TaxReturn,
+    severity?: Severity,
+  ): Promise<void> {
+    const snapshot = (row: TaxReturn) => ({
+      status: row.status,
+      filedAt: row.filedAt ?? null,
+      outputTax: row.outputTax,
+      inputTax: row.inputTax,
+      netPayable: row.netPayable,
+      currency: row.currency,
+    });
+
+    try {
+      await this.auditService.createEvent({
+        workspaceId,
+        actorType: ActorType.USER,
+        actorId: userId ?? null,
+        entityType: EntityType.TAX_RETURN,
+        entityId: after.id,
+        action: AuditAction.UPDATE,
+        diff: { before: before ? snapshot(before) : null, after: snapshot(after) },
+        meta: { periodStart: after.periodStart, periodEnd: after.periodEnd, status: after.status },
+        ...(severity ? { severity } : {}),
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Audit event failed for tax return ${after.id}: ${message}`);
+    }
+  }
 
   /**
    * Totals for a period, in the jurisdiction's currency.
@@ -200,7 +241,12 @@ export class TaxReturnsService {
    * locks must land together, or a crash between them would leave a return
    * claiming to be filed over transactions that are still editable.
    */
-  async file(workspaceId: string, periodStart: string, periodEnd: string): Promise<TaxReturn> {
+  async file(
+    workspaceId: string,
+    periodStart: string,
+    periodEnd: string,
+    userId?: string,
+  ): Promise<TaxReturn> {
     const existing = await this.returnRepository.findOne({
       where: { workspaceId, periodStart, periodEnd },
     });
@@ -212,7 +258,7 @@ export class TaxReturnsService {
     const totals = await this.computeTotals(workspaceId, periodStart, periodEnd);
     const jurisdiction = await this.adoptionService.getCurrentJurisdiction(workspaceId);
 
-    return this.returnRepository.manager.transaction(async manager => {
+    const filed = await this.returnRepository.manager.transaction(async manager => {
       const saved = await manager.save(TaxReturn, {
         ...(existing ?? {}),
         workspaceId,
@@ -246,6 +292,9 @@ export class TaxReturnsService {
 
       return saved;
     });
+
+    await this.recordStatusChange(workspaceId, userId, existing, filed);
+    return filed;
   }
 
   /**
@@ -255,7 +304,12 @@ export class TaxReturnsService {
    * unlocks the transactions and discards the record of what was submitted, so
    * it should be a decision, not a side effect of editing something.
    */
-  async reopen(workspaceId: string, periodStart: string, periodEnd: string): Promise<TaxReturn> {
+  async reopen(
+    workspaceId: string,
+    periodStart: string,
+    periodEnd: string,
+    userId?: string,
+  ): Promise<TaxReturn> {
     const existing = await this.returnRepository.findOne({
       where: { workspaceId, periodStart, periodEnd },
     });
@@ -266,7 +320,7 @@ export class TaxReturnsService {
 
     const lockedIds = (existing.snapshot ?? []).map(line => line.transactionId);
 
-    return this.returnRepository.manager.transaction(async manager => {
+    const reopened = await this.returnRepository.manager.transaction(async manager => {
       if (lockedIds.length > 0) {
         await manager
           .createQueryBuilder()
@@ -283,6 +337,11 @@ export class TaxReturnsService {
         snapshot: null,
       });
     });
+
+    // Reopening unlocks transactions and discards what was submitted, so it is
+    // flagged for review rather than logged as routine.
+    await this.recordStatusChange(workspaceId, userId, existing, reopened, Severity.WARN);
+    return reopened;
   }
 
   /**

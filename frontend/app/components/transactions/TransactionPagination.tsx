@@ -32,7 +32,7 @@ export function TransactionPagination({
   return (
     <div className="lumio-tx-pagination">
       <div className="lumio-tx-pagination__left">
-        <span style={{ fontSize: 14, color: 'var(--foreground)' }}>{rowsPerPageLabel}:</span>
+        <span style={{ fontSize: 14, color: 'var(--foreground)' }}>{rowsPerPageLabel}</span>
         <Select
           size="small"
           value={rowsPerPage}

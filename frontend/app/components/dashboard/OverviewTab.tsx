@@ -43,6 +43,10 @@ function sparkSeries(data: DashboardData): {
   };
 }
 
+function monthKey(displayMonth: Date): string {
+  return `${displayMonth.getFullYear()}-${String(displayMonth.getMonth() + 1).padStart(2, '0')}`;
+}
+
 function monthRangeHref(displayMonth: Date): string {
   const start = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
   const end = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 0);
@@ -141,12 +145,16 @@ export function OverviewTab({
         monthLabel={monthLabel}
         isLoading={isLoading}
       />
-      <CryptoPortfolioCard formatAmount={formatAmount} />
+      <CryptoPortfolioCard
+        formatAmount={formatAmount}
+        month={monthKey(displayMonth)}
+        monthLabel={monthLabel}
+      />
       <div className="lumio-dashboard__grid lumio-dashboard__grid--split">
         <DashboardCard
           title={t.topCategoriesTitle}
           subtitle={monthLabel}
-          action={<CardLink href="/reports">{t.viewAll}</CardLink>}
+          action={<CardLink href="/statements/top-categories">{t.viewAll}</CardLink>}
         >
           <TopCategoriesCard categories={data.topCategories ?? []} formatAmount={formatAmount} />
         </DashboardCard>

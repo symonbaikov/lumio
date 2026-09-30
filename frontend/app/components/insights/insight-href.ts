@@ -21,6 +21,38 @@ const STATIC_ROUTES: Record<string, string> = {
   'trend.savings_rate': '/dashboard?tab=overview&focus=kpi:savings-rate',
   'forecast.monthly': '/dashboard?tab=overview',
   'pattern.detected': '/subscriptions',
+  'stoic.unclassified': '/budgets?focus=stoic:unclassified',
+  'stoic.habit': '/statements/top-merchants',
+  // Income and the cash runway both live on the dashboard overview.
+  'stoic.fortune': '/dashboard?tab=overview',
+  'stoic.commitments': '/dashboard?tab=overview',
+  'stoic.subscriptions': '/subscriptions',
+};
+
+/** Stoic advice about a whole class lands on that class's card in Budgets. */
+const stoicClassRoute = (data: InsightData): string => {
+  const stoicClass = readString(data, 'stoicClass');
+  return stoicClass === null ? '/budgets' : `/budgets?focus=stoic:${stoicClass}`;
+};
+
+const EXPERT_TARGETS: Record<string, string> = {
+  budgets: '/budgets',
+  goals: '/goals',
+  dashboard: '/dashboard?tab=overview',
+  merchants: '/statements/top-merchants',
+};
+
+/** Advice about one budget lands on its card; otherwise on its class. */
+const budgetRoute = (data: InsightData): string => {
+  const categoryId = readString(data, 'categoryId');
+  return categoryId === null
+    ? stoicClassRoute(data)
+    : `/budgets?focus=${encodeURIComponent(`budget:${categoryId}`)}`;
+};
+
+const goalRoute = (data: InsightData): string | null => {
+  const goalId = readString(data, 'goalId');
+  return goalId === null ? null : `/goals/${encodeURIComponent(goalId)}`;
 };
 
 /**
@@ -46,6 +78,16 @@ const DATA_ROUTES: Record<string, (data: InsightData) => string | null> = {
       ? '/budgets'
       : `/budgets?newBudgetCategory=${encodeURIComponent(categoryId)}`;
   },
+  'stoic.intent_gap': stoicClassRoute,
+  'stoic.virtue_neglected': stoicClassRoute,
+  'stoic.praise': data => goalRoute(data) ?? stoicClassRoute(data),
+  // Either a class that keeps drifting or one budget that keeps breaking its limit.
+  'stoic.repeated': budgetRoute,
+  'stoic.plan': budgetRoute,
+  'stoic.generosity': stoicClassRoute,
+  // A principle points at where its numbers live.
+  'expert.principle': data => EXPERT_TARGETS[readString(data, 'target') ?? ''] ?? '/advice',
+  'stoic.goal': data => goalRoute(data) ?? '/goals',
   // Free-form text from the local model; `periodKey` is the only handle it
   // carries, and it is already the YYYY-MM the dashboard expects.
   'ai.summary': data => {

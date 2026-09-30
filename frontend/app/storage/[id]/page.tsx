@@ -511,7 +511,7 @@ export default function FileDetailsPage() {
             component="button"
             type="button"
             onClick={() => router.push('/statements')}
-            aria-label="Back to storage"
+            aria-label={t.actions.backToStorage.value}
             sx={{
               borderRadius: tokens.radius.full,
               border: '1px solid var(--border-color)',
@@ -546,9 +546,9 @@ export default function FileDetailsPage() {
                   borderRadius: tokens.radius.sm,
                   fontSize: 12,
                   fontWeight: 600,
-                  bgcolor: 'rgba(22,129,24,0.1)',
+                  bgcolor: 'rgba(var(--primary-rgb),0.1)',
                   color: 'primary.main',
-                  border: '1px solid rgba(22,129,24,0.2)',
+                  border: '1px solid rgba(var(--primary-rgb),0.2)',
                 }}
               />
               <Chip

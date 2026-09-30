@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { AuditAction, EntityType } from '@/entities/audit-event.entity';
 import { BudgetPeriodType } from '@/entities/budget.entity';
 import { BudgetsService } from '@/modules/budgets/budgets.service';
 
@@ -25,17 +26,25 @@ describe('BudgetsService', () => {
   const notificationsService = {
     createForWorkspaceMembers: jest.fn(),
   };
+  const auditService = {
+    createEvent: jest.fn(),
+  };
 
   let service: BudgetsService;
 
   beforeEach(() => {
     jest.resetAllMocks();
+    // resetAllMocks drops the pass-through implementations, and the service
+    // now reads the saved entity back to record it in the audit trail.
+    budgetRepository.create.mockImplementation((data: unknown) => data);
+    budgetRepository.save.mockImplementation(async (data: unknown) => data);
     jest.useFakeTimers().setSystemTime(new Date('2026-05-08T12:00:00.000Z'));
     service = new BudgetsService(
       budgetRepository as any,
       transactionRepository as any,
       goalRepository as any,
       notificationsService as any,
+      auditService as any,
     );
   });
 
@@ -107,7 +116,7 @@ describe('BudgetsService', () => {
     };
     budgetRepository.findOne.mockResolvedValue(budget);
 
-    await service.update('budget-1', 'workspace-1', {
+    await service.update('budget-1', 'workspace-1', 'user-1', {
       name: 'Rent updated',
       limitAmount: 12000,
     });
@@ -185,7 +194,7 @@ describe('BudgetsService', () => {
     goalRepository.findOne.mockResolvedValue(null);
 
     await expect(
-      service.update('budget-1', 'workspace-1', { goalId: 'goal-of-another-tenant' }),
+      service.update('budget-1', 'workspace-1', 'user-1', { goalId: 'goal-of-another-tenant' }),
     ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(budgetRepository.save).not.toHaveBeenCalled();
@@ -199,7 +208,7 @@ describe('BudgetsService', () => {
       goalId: 'goal-1',
     });
 
-    await service.update('budget-1', 'workspace-1', { goalId: null });
+    await service.update('budget-1', 'workspace-1', 'user-1', { goalId: null });
 
     expect(goalRepository.findOne).not.toHaveBeenCalled();
     expect(budgetRepository.save).toHaveBeenCalledWith(
@@ -354,6 +363,88 @@ describe('BudgetsService', () => {
       await service.checkBudgetAlerts('workspace-1');
 
       expect(notificationsService.createForWorkspaceMembers).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('audit trail', () => {
+    const stored = () => ({
+      id: 'budget-1',
+      workspaceId: 'workspace-1',
+      categoryId: 'category-1',
+      name: 'Rent',
+      limitAmount: '10000.00',
+      currency: 'KZT',
+      periodType: BudgetPeriodType.MONTHLY,
+      goalId: null,
+      startsOn: null,
+      endsOn: null,
+    });
+
+    it('records the creation with the workspace and the acting user', async () => {
+      budgetRepository.findOne.mockResolvedValue(null);
+      budgetRepository.save.mockImplementation(async (data: any) => ({ id: 'budget-new', ...data }));
+
+      await service.create('workspace-1', 'user-1', {
+        name: 'Rent',
+        categoryId: 'category-1',
+        limitAmount: 10000,
+        currency: 'KZT',
+        periodType: BudgetPeriodType.MONTHLY,
+      });
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'workspace-1',
+          actorId: 'user-1',
+          entityType: EntityType.BUDGET,
+          entityId: 'budget-new',
+          action: AuditAction.CREATE,
+          diff: { before: null, after: expect.objectContaining({ name: 'Rent', limitAmount: 10000 }) },
+        }),
+      );
+    });
+
+    it('records an update as before and after, without flagging an untouched decimal limit', async () => {
+      budgetRepository.findOne.mockResolvedValue(stored());
+      budgetRepository.save.mockImplementation(async (data: any) => data);
+
+      await service.update('budget-1', 'workspace-1', 'user-1', { name: 'Rent 2027' });
+
+      const event = auditService.createEvent.mock.calls[0][0];
+      expect(event).toMatchObject({
+        workspaceId: 'workspace-1',
+        actorId: 'user-1',
+        entityType: EntityType.BUDGET,
+        entityId: 'budget-1',
+        action: AuditAction.UPDATE,
+      });
+      expect(event.diff.before).toMatchObject({ name: 'Rent', limitAmount: 10000 });
+      expect(event.diff.after).toMatchObject({ name: 'Rent 2027', limitAmount: 10000 });
+    });
+
+    it('records the deletion', async () => {
+      budgetRepository.findOne.mockResolvedValue(stored());
+
+      await service.remove('budget-1', 'workspace-1', 'user-1');
+
+      expect(budgetRepository.remove).toHaveBeenCalled();
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'workspace-1',
+          entityType: EntityType.BUDGET,
+          entityId: 'budget-1',
+          action: AuditAction.DELETE,
+          diff: { before: expect.objectContaining({ name: 'Rent' }), after: null },
+        }),
+      );
+    });
+
+    it('does not fail the change when the audit write fails', async () => {
+      budgetRepository.findOne.mockResolvedValue(stored());
+      auditService.createEvent.mockRejectedValue(new Error('audit down'));
+
+      await expect(service.remove('budget-1', 'workspace-1', 'user-1')).resolves.toBeUndefined();
+      expect(budgetRepository.remove).toHaveBeenCalled();
     });
   });
 });

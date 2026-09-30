@@ -8,6 +8,7 @@ import { usePathname } from 'next/navigation';
 import React from 'react';
 import { X } from '@/app/components/icons';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
+import { useIntlayer } from '@/app/i18n';
 import { SidePanel, useCurrentSidePanelConfig, useSidePanel } from './index';
 
 type ClonableProps = Record<string, unknown>;
@@ -81,6 +82,7 @@ function computeDragX(
 function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
   const config = useCurrentSidePanelConfig();
   const sidePanel = useSidePanel();
+  const t = useIntlayer('sidePanel');
   const pathname = usePathname();
   const isStatementsPage = pathname?.startsWith('/statements');
   const [mobileSidePanelOpen, setMobileSidePanelOpen] = React.useState(false);
@@ -263,6 +265,7 @@ function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
     >
       {/* The desktop panel lives in the shell (ShellSidePanel), full height beside the sidebar. */}
       <div
+        className={isStatementsPage ? 'lumio-statements-shell' : undefined}
         style={{
           flex: 1,
           // A flex item defaults to min-width:auto; without this, wide nowrap
@@ -297,7 +300,7 @@ function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
               cursor: 'pointer',
               width: '100%',
             }}
-            aria-label="Close side panel"
+            aria-label={t.closeSidePanel.value}
             onClick={() => setMobileSidePanelOpen(false)}
           />
 
@@ -344,12 +347,12 @@ function MainSidePanelLayoutInner({ children }: { children: React.ReactNode }) {
                 }}
               >
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {mobileDialogConfig.header?.title ?? 'Sections'}
+                  {mobileDialogConfig.header?.title ?? t.sections}
                 </Typography>
                 <IconButton
                   size="small"
                   onClick={() => setMobileSidePanelOpen(false)}
-                  aria-label="Close side panel"
+                  aria-label={t.closeSidePanel.value}
                 >
                   <X size={18} />
                 </IconButton>

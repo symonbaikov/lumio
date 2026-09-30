@@ -62,7 +62,7 @@
 
   &__mark-all {
     font-size: 12px;
-    color: $color-primary;
+    color: var(--primary);
     background: none;
     border: none;
     cursor: pointer;
@@ -121,7 +121,9 @@
     transition: background-color 200ms;
 
     @include dark {
-      border-bottom-color: rgba($color-border-dk, 0.7);
+      // Not rgba($color-border-dk, …): that token is already translucent white,
+      // and Sass's rgba() replaces its alpha, turning the divider bright white.
+      border-bottom-color: $color-border-dk;
     }
 
     &:hover {
@@ -133,7 +135,7 @@
     }
 
     &--unread {
-      background-color: rgba($color-primary, 0.05);
+      background-color: color-mix(in srgb, var(--primary) 5%, transparent);
 
       @include dark {
         background-color: rgba($color-primary-dk, 0.05);
@@ -183,7 +185,7 @@
     width: 8px;
     height: 8px;
     border-radius: $lumio-radius-full;
-    background-color: $color-primary;
+    background-color: var(--primary-fill);
     flex-shrink: 0;
     display: inline-block;
 
@@ -227,7 +229,7 @@
 
   &__settings-link {
     font-size: 12px;
-    color: $color-primary;
+    color: var(--primary);
     text-decoration: none;
     opacity: 1;
     transition: opacity 150ms;

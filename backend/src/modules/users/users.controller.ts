@@ -271,8 +271,14 @@ export class UsersController {
     @Param('id') id: string,
     @Body() dto: RemovePermissionDto,
     @WorkspaceId() workspaceId: string,
+    @CurrentUser() currentUser: User,
   ) {
-    const user = await this.permissionsService.removePermission(id, dto.permission, workspaceId);
+    const user = await this.permissionsService.removePermission(
+      id,
+      dto.permission,
+      workspaceId,
+      currentUser.id,
+    );
     return {
       userId: id,
       permissions: user.permissions,
@@ -282,8 +288,12 @@ export class UsersController {
 
   @Post(':id/permissions/reset')
   @WorkspaceAuth(Permission.USER_MANAGE)
-  async resetPermissions(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    const user = await this.permissionsService.resetPermissions(id, workspaceId);
+  async resetPermissions(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() currentUser: User,
+  ) {
+    const user = await this.permissionsService.resetPermissions(id, workspaceId, currentUser.id);
     return {
       userId: id,
       permissions: user.permissions,

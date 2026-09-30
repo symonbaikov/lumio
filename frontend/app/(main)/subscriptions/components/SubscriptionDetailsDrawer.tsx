@@ -12,11 +12,14 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { VendorIcon } from '@/app/components/VendorIcon';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { SubscriptionItem, SubscriptionWorkspaceMember } from '../hooks/useSubscriptionsPage';
+import { RISK_LABELS, STATUS_LABELS } from './SubscriptionCard';
 
 interface SubscriptionDetailsDrawerProps {
   subscription: SubscriptionItem | null;
@@ -29,6 +32,16 @@ interface SubscriptionDetailsDrawerProps {
     values?: { note?: string; reviewAt?: string; realizedAnnualSavings?: number },
   ) => Promise<void>;
 }
+
+const DECISION_LABELS: Record<
+  string,
+  'keep' | 'markReview' | 'statusCancelled' | 'decisionPriceReduced'
+> = {
+  keep: 'keep',
+  review: 'markReview',
+  cancelled: 'statusCancelled',
+  price_reduced: 'decisionPriceReduced',
+};
 
 const formatDate = (value: string | null): string =>
   value ? formatStoredDate(value, 'ru-RU') : '—';
@@ -57,6 +70,7 @@ export function SubscriptionDetailsDrawer({
   onAssignOwner,
   onDecision,
 }: SubscriptionDetailsDrawerProps) {
+  const t = useIntlayer('subscriptionsPage');
   const [ownerId, setOwnerId] = useState('');
   const [note, setNote] = useState('');
   const [reviewAt, setReviewAt] = useState('');
@@ -90,22 +104,27 @@ export function SubscriptionDetailsDrawer({
             vendorDomain={subscription.vendorDomain}
           />
           <Chip
-            label={subscription.status}
+            label={t[STATUS_LABELS[subscription.status]].value}
             size="small"
             color={subscription.status === 'active' ? 'success' : 'default'}
           />
           {subscription.riskStatus !== 'none' && (
-            <Chip label={subscription.riskStatus.replace('_', ' ')} size="small" color="warning" />
+            <Chip
+              label={t[RISK_LABELS[subscription.riskStatus]].value}
+              size="small"
+              color="warning"
+            />
           )}
         </Stack>
         <Typography variant="h5" fontWeight={700}>
           {subscription.amount} {subscription.currency}
         </Typography>
         <Typography color="text.secondary">
-          Expected charge: {formatDate(subscription.nextChargeDate)} · Last charge:{' '}
-          {formatDate(subscription.lastChargeDate)}
+          {t.expectedLastCharge.value
+            .replace('{next}', formatDate(subscription.nextChargeDate))
+            .replace('{last}', formatDate(subscription.lastChargeDate))}
         </Typography>
-        <Typography variant="subtitle2">Charge history</Typography>
+        <Typography variant="subtitle2">{t.chargeHistory}</Typography>
         {details?.charges.length ? (
           details.charges.map(charge => (
             <Typography key={charge.id} variant="body2">
@@ -115,21 +134,21 @@ export function SubscriptionDetailsDrawer({
           ))
         ) : (
           <Typography variant="body2" color="text.secondary">
-            No linked charges yet.
+            {t.noCharges}
           </Typography>
         )}
         <Divider />
-        <Typography variant="subtitle2">Accountability</Typography>
+        <Typography variant="subtitle2">{t.accountability}</Typography>
         <FormControl fullWidth size="small">
-          <InputLabel id="subscription-owner-label">Owner</InputLabel>
+          <InputLabel id="subscription-owner-label">{t.colOwner}</InputLabel>
           <Select
             labelId="subscription-owner-label"
-            label="Owner"
+            label={t.colOwner.value}
             value={assignableOwnerId}
             onChange={event => setOwnerId(event.target.value)}
           >
             <MenuItem value="">
-              <em>Unassigned</em>
+              <em>{t.unassigned}</em>
             </MenuItem>
             {members.map(member => (
               <MenuItem key={member.id} value={member.id}>
@@ -143,16 +162,12 @@ export function SubscriptionDetailsDrawer({
           disabled={!ownerId || ownerId === subscription.ownerId}
           onClick={() => void onAssignOwner(subscription.id, ownerId)}
         >
-          Assign owner
+          {t.assignOwner}
         </Button>
-        <TextField
-          label="Review date"
-          type="date"
+        <CustomDatePicker
+          label={t.reviewDate.value}
           value={reviewAt || subscription.reviewAt?.slice(0, 10) || ''}
-          onChange={event => setReviewAt(event.target.value)}
-          InputLabelProps={{ shrink: true }}
-          fullWidth
-          size="small"
+          onChange={setReviewAt}
         />
         <Stack direction="row" spacing={1}>
           <Button
@@ -162,7 +177,7 @@ export function SubscriptionDetailsDrawer({
               void onDecision(subscription.id, 'keep', { reviewAt: reviewAt || undefined })
             }
           >
-            Keep
+            {t.keep}
           </Button>
           <Button
             fullWidth
@@ -171,13 +186,13 @@ export function SubscriptionDetailsDrawer({
               void onDecision(subscription.id, 'review', { reviewAt: reviewAt || undefined })
             }
           >
-            Review
+            {t.markReview}
           </Button>
         </Stack>
         <Divider />
-        <Typography variant="subtitle2">Record a decision</Typography>
+        <Typography variant="subtitle2">{t.recordDecision}</Typography>
         <TextField
-          label="Reason"
+          label={t.reason.value}
           value={note}
           onChange={event => setNote(event.target.value)}
           multiline
@@ -185,7 +200,7 @@ export function SubscriptionDetailsDrawer({
           fullWidth
         />
         <TextField
-          label="Realized annual savings"
+          label={t.realizedAnnualSavings.value}
           type="number"
           value={annualSavings}
           onChange={event => setAnnualSavings(event.target.value)}
@@ -203,7 +218,7 @@ export function SubscriptionDetailsDrawer({
               })
             }
           >
-            Record cancellation
+            {t.recordCancellation}
           </Button>
           <Button
             variant="outlined"
@@ -214,20 +229,23 @@ export function SubscriptionDetailsDrawer({
               })
             }
           >
-            Record price reduction
+            {t.recordPriceReduction}
           </Button>
         </Stack>
-        <Typography variant="subtitle2">Decision history</Typography>
+        <Typography variant="subtitle2">{t.decisionHistory}</Typography>
         {details?.decisions.length ? (
           details.decisions.map(decision => (
             <Typography key={decision.id} variant="body2">
-              {formatDate(decision.createdAt)} · {decision.decision}
+              {formatDate(decision.createdAt)} ·{' '}
+              {DECISION_LABELS[decision.decision]
+                ? t[DECISION_LABELS[decision.decision]]
+                : decision.decision}
               {decision.note ? ` — ${decision.note}` : ''}
             </Typography>
           ))
         ) : (
           <Typography variant="body2" color="text.secondary">
-            No decisions recorded yet.
+            {t.noDecisions}
           </Typography>
         )}
       </Stack>

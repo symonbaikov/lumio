@@ -20,6 +20,12 @@
   --primary-fill-hover: #{$color-primary-hover};
   --primary-foreground: #{$lumio-color-primary-contrast};
   --primary-light:      #{$lumio-color-primary-100};
+  // Tints and the darker hover green, as vars so styles switch with the theme
+  // instead of baking in the light-mode $lumio-color-primary-* values.
+  --primary-50:         #{$lumio-color-primary-50};
+  --primary-100:        #{$lumio-color-primary-100};
+  --primary-200:        #{$lumio-color-primary-200};
+  --primary-strong:     #{$lumio-color-primary-dark};
   --primary-rgb:        22, 129, 24;
   --color-primary:      #{$color-primary};
   --color-primary-rgb:  22, 129, 24;
@@ -95,9 +101,14 @@
   --primary-fill-hover: #{$lumio-color-primary-fill-hover-dk};
   --primary-foreground: #{$lumio-color-primary-contrast};
   --primary-light:      #{$lumio-color-primary-100-dk};
-  --primary-rgb:        92, 196, 98;
+  --primary-50:         #{$lumio-color-primary-50-dk};
+  --primary-100:        #{$lumio-color-primary-100-dk};
+  --primary-200:        #{$lumio-color-primary-200-dk};
+  // A darker green would sink into the dark page; the hover accent reads instead.
+  --primary-strong:     #{$lumio-color-primary-hover-dk};
+  --primary-rgb:        52, 211, 153;
   --color-primary:      #{$lumio-color-primary-dk};
-  --color-primary-rgb:  92, 196, 98;
+  --color-primary-rgb:  52, 211, 153;
   --secondary:          #{$lumio-color-ink-200-dk};
   --secondary-foreground: #{$lumio-color-ink-900-dk};
   --muted:              #{$lumio-color-ink-100-dk};
@@ -112,7 +123,7 @@
   --ring:               #{$lumio-color-primary-dk};
   --destructive:        #{$lumio-color-danger-dk};
   --destructive-foreground: #ffffff;
-  --surface-glow:         rgba(92, 196, 98, 0.24);
+  --surface-glow:         rgba(52, 211, 153, 0.24);
   --surface-success-glow: rgba(52, 211, 153, 0.2);
   --text-primary:       #{$lumio-color-text-primary-dk};
   --text-secondary:     #{$lumio-color-text-secondary-dk};
@@ -294,21 +305,6 @@ body.ff-table-fullscreen {
   }
 }
 
-body.ff-col-resizing { user-select: none; }
-
-// ── Custom table column menu ──────────────────────────────────
-// Кнопка меню колонки не должна шуметь в каждой шапке: видна при наведении,
-// фокусе и пока меню открыто.
-.custom-table-container th .ct-column-menu-trigger {
-  opacity: 0.35;
-  transition: opacity 0.15s;
-}
-
-.custom-table-container th:hover .ct-column-menu-trigger,
-.custom-table-container th:focus-within .ct-column-menu-trigger,
-.custom-table-container th .ct-column-menu-trigger[aria-expanded="true"] {
-  opacity: 1;
-}
 
 // ── MUI hover in light mode ───────────────────────────────────
 // Use html:not(.dark) so these don't bleed into MUI portals rendered on <body>

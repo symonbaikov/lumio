@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Cloud, Download, FileUp, Lock, RefreshCw } from '@/app/components/icons';
 import { Alert } from '@/app/components/ui/alert';
 import { Spinner } from '@/app/components/ui/spinner';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { formatStoredDateTime } from '@/app/lib/user-format-store';
 
@@ -49,6 +50,7 @@ const defaultConfig: BackupConfig = {
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This settings panel owns its related async form actions.
 export function BackupSection() {
+  const t = useIntlayer('settingsBackupSection');
   const [config, setConfig] = useState<BackupConfig>(defaultConfig);
   const [runs, setRuns] = useState<BackupRun[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,12 +84,12 @@ export function BackupSection() {
       setError(null);
     })()
       .catch(async () => {
-        setError('Could not load backup settings. Only workspace owners can manage backups.');
+        setError(t.errors.loadFailed.value);
       })
       .finally(async () => {
         setLoading(false);
       });
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void refresh();
@@ -95,9 +97,7 @@ export function BackupSection() {
 
   const save = async () => {
     if (!(config.passwordConfigured || password)) {
-      setError(
-        'Set a recovery password before enabling backups. It is required to restore a backup.',
-      );
+      setError(t.errors.passwordRequired.value);
       return;
     }
     setSaving(true);
@@ -111,10 +111,10 @@ export function BackupSection() {
       });
       setConfig(response.data);
       setPassword('');
-      setMessage('Backup settings saved.');
+      setMessage(t.messages.saved.value);
     })()
       .catch(async () => {
-        setError('Could not save backup settings. Check the destination and try again.');
+        setError(t.errors.saveFailed.value);
       })
       .finally(async () => {
         setSaving(false);
@@ -128,11 +128,11 @@ export function BackupSection() {
 
     await (async () => {
       await apiClient.post('/backups/runs');
-      setMessage('Backup created successfully.');
+      setMessage(t.messages.created.value);
       await refresh();
     })()
       .catch(async () => {
-        setError('Backup failed. Your last successful backup was kept unchanged.');
+        setError(t.errors.createFailed.value);
         await refresh();
       })
       .finally(async () => {
@@ -152,13 +152,13 @@ export function BackupSection() {
       link.click();
       URL.revokeObjectURL(url);
     })().catch(async () => {
-      setError('Could not download this backup.');
+      setError(t.errors.downloadFailed.value);
     });
   };
 
   const importBackup = async (restore: boolean) => {
     if (!(importFile && importPassword)) {
-      setError('Choose a .lumio-backup file and enter its recovery password.');
+      setError(t.errors.importMissing.value);
       return;
     }
     setImporting(true);
@@ -177,7 +177,7 @@ export function BackupSection() {
         body,
       );
       if (restore) {
-        setMessage(`Restored “${response.data.workspaceName}” into a new workspace.`);
+        setMessage(t.messages.restored.value.replace('{name}', response.data.workspaceName));
         setPreview(null);
         setImportFile(null);
         setImportPassword('');
@@ -186,7 +186,7 @@ export function BackupSection() {
       }
     })()
       .catch(async () => {
-        setError('The backup could not be verified. Check the file and recovery password.');
+        setError(t.errors.verifyFailed.value);
       })
       .finally(async () => {
         setImporting(false);
@@ -210,21 +210,20 @@ export function BackupSection() {
             >
               <Box>
                 <Typography variant="subtitle1" fontWeight={600}>
-                  Backups
+                  {t.title.value}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, maxWidth: 680 }}>
-                  Encrypted snapshots include workspace data and original documents. Keep the
-                  recovery password safe: Lumio cannot restore a backup without it.
+                  {t.intro.value}
                 </Typography>
               </Box>
               <Button
-                aria-label="Refresh backup status"
+                aria-label={t.refreshAria.value}
                 onClick={() => void refresh()}
                 disabled={loading}
                 size="small"
                 startIcon={<RefreshCw size={16} />}
               >
-                Refresh
+                {t.refresh.value}
               </Button>
             </Box>
 
@@ -236,7 +235,7 @@ export function BackupSection() {
                   <TextField
                     select
                     fullWidth
-                    label="Destination"
+                    label={t.destination.value}
                     value={config.destinationKind}
                     onChange={event =>
                       setConfig(current => ({
@@ -245,14 +244,14 @@ export function BackupSection() {
                       }))
                     }
                   >
-                    <MenuItem value="local">Server folder</MenuItem>
+                    <MenuItem value="local">{t.destinationLocal.value}</MenuItem>
                     <MenuItem value="nextcloud">Nextcloud (WebDAV)</MenuItem>
                   </TextField>
                   <TextField
                     fullWidth
-                    label="Backup folder"
+                    label={t.backupFolder.value}
                     value={config.destinationPath}
-                    helperText="Letters, numbers, _ and - only"
+                    helperText={t.backupFolderHelp.value}
                     onChange={event =>
                       setConfig(current => ({ ...current, destinationPath: event.target.value }))
                     }
@@ -262,7 +261,7 @@ export function BackupSection() {
                   <TextField
                     fullWidth
                     type="time"
-                    label="Daily time"
+                    label={t.dailyTime.value}
                     value={config.dailyTime}
                     InputLabelProps={{ shrink: true }}
                     onChange={event =>
@@ -271,7 +270,7 @@ export function BackupSection() {
                   />
                   <TextField
                     fullWidth
-                    label="Time zone"
+                    label={t.timeZone.value}
                     value={config.timeZone}
                     onChange={event =>
                       setConfig(current => ({ ...current, timeZone: event.target.value }))
@@ -281,7 +280,7 @@ export function BackupSection() {
                     fullWidth
                     type="number"
                     inputProps={{ min: 1, max: 365 }}
-                    label="Versions to keep"
+                    label={t.versionsToKeep.value}
                     value={config.retentionCount}
                     onChange={event =>
                       setConfig(current => ({
@@ -296,15 +295,13 @@ export function BackupSection() {
                   type="password"
                   label={
                     config.passwordConfigured
-                      ? 'New recovery password (optional)'
-                      : 'Recovery password'
+                      ? t.newRecoveryPassword.value
+                      : t.recoveryPassword.value
                   }
                   value={password}
                   onChange={event => setPassword(event.target.value)}
                   helperText={
-                    config.passwordConfigured
-                      ? 'Leave empty to keep the current password.'
-                      : 'Required once; it is never stored in plain text.'
+                    config.passwordConfigured ? t.keepPasswordHelp.value : t.requiredOnceHelp.value
                   }
                 />
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
@@ -314,7 +311,7 @@ export function BackupSection() {
                     disabled={saving}
                     startIcon={saving ? <Spinner size={16} /> : <Lock size={16} />}
                   >
-                    Save backup settings
+                    {t.save.value}
                   </Button>
                   <Button
                     variant="outlined"
@@ -322,11 +319,14 @@ export function BackupSection() {
                     disabled={running || !config.passwordConfigured}
                     startIcon={running ? <Spinner size={16} /> : <Cloud size={16} />}
                   >
-                    Create now
+                    {t.createNow.value}
                   </Button>
                   {config.lastSuccessfulAt ? (
                     <Typography variant="body2" color="text.secondary">
-                      Last successful: {formatStoredDateTime(config.lastSuccessfulAt)}
+                      {t.lastSuccessful.value.replace(
+                        '{date}',
+                        formatStoredDateTime(config.lastSuccessfulAt),
+                      )}
                     </Typography>
                   ) : null}
                 </Box>
@@ -339,12 +339,12 @@ export function BackupSection() {
       <Card variant="outlined">
         <CardContent>
           <Typography variant="subtitle1" fontWeight={600}>
-            Recent backups
+            {t.recentBackups.value}
           </Typography>
           <Stack spacing={1} sx={{ mt: 1.5 }}>
             {runs.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
-                No backups yet.
+                {t.noBackups.value}
               </Typography>
             ) : (
               runs.map(run => (
@@ -362,7 +362,7 @@ export function BackupSection() {
                 >
                   <Box>
                     <Typography variant="body2">
-                      {formatStoredDateTime(run.createdAt)} · {run.trigger}
+                      {formatStoredDateTime(run.createdAt)} · {t.trigger[run.trigger].value}
                     </Typography>
                     {run.errorMessage ? (
                       <Typography variant="caption" color="error">
@@ -373,7 +373,7 @@ export function BackupSection() {
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Chip
                       size="small"
-                      label={run.status}
+                      label={t.status[run.status].value}
                       color={
                         run.status === 'succeeded'
                           ? 'success'
@@ -388,7 +388,7 @@ export function BackupSection() {
                         onClick={() => void download(run)}
                         startIcon={<Download size={15} />}
                       >
-                        Download
+                        {t.download.value}
                       </Button>
                     ) : null}
                   </Stack>
@@ -404,11 +404,10 @@ export function BackupSection() {
           <Stack spacing={1.5}>
             <Box>
               <Typography variant="subtitle1" fontWeight={600}>
-                Import a backup
+                {t.importTitle.value}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                Import always creates a separate workspace. Existing data is never replaced or
-                merged.
+                {t.importIntro.value}
               </Typography>
             </Box>
             <input
@@ -427,12 +426,12 @@ export function BackupSection() {
                 onClick={() => importInput.current?.click()}
                 startIcon={<FileUp size={16} />}
               >
-                {importFile?.name || 'Choose backup file'}
+                {importFile?.name || t.chooseFile.value}
               </Button>
               <TextField
                 fullWidth
                 type="password"
-                label="Recovery password"
+                label={t.recoveryPassword.value}
                 value={importPassword}
                 onChange={event => setImportPassword(event.target.value)}
               />
@@ -443,7 +442,7 @@ export function BackupSection() {
                 onClick={() => void importBackup(false)}
                 disabled={importing}
               >
-                Preview import
+                {t.previewImport.value}
               </Button>
               {preview ? (
                 <Button
@@ -452,14 +451,17 @@ export function BackupSection() {
                   onClick={() => void importBackup(true)}
                   disabled={importing}
                 >
-                  {importing ? 'Restoring…' : `Restore “${preview.workspaceName}” as new workspace`}
+                  {importing
+                    ? t.restoring.value
+                    : t.restoreAs.value.replace('{name}', preview.workspaceName)}
                 </Button>
               ) : null}
             </Box>
             {preview ? (
               <Typography variant="body2" color="text.secondary">
-                Verified: {preview.workspaceName}, {preview.fileCount} document(s). Confirming will
-                create a new workspace.
+                {t.verified.value
+                  .replace('{name}', preview.workspaceName)
+                  .replace('{count}', String(preview.fileCount))}
               </Typography>
             ) : null}
           </Stack>

@@ -1,9 +1,5 @@
 import { COLOR_PRESETS } from './[id]/utils/colorPalette';
-import type {
-  ColumnType,
-  CustomTableColumnConfig,
-  SelectOptionDef,
-} from './[id]/utils/stylingUtils';
+import type { ColumnType, CustomTableColumnConfig, SelectOptionDef } from './[id]/utils/types';
 
 export type TableTemplateId = 'invoices' | 'payables' | 'budget' | 'pipeline' | 'subscriptions';
 

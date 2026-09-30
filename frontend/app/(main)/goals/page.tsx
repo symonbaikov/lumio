@@ -5,13 +5,12 @@ import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import { useState } from 'react';
-import { Plus } from '@/app/components/icons';
 import { EmptyState } from '@/app/components/ui/EmptyState';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
-import { ContributionDialog } from './components/ContributionDialog';
+import { ContributionDrawer } from './components/ContributionDrawer';
 import { GoalCard } from './components/GoalCard';
-import { GoalFormDialog } from './components/GoalFormDialog';
+import { GoalFormDrawer } from './components/GoalFormDrawer';
 import { EMPTY_GOAL_FORM, type Goal, type GoalFormData, useGoals } from './hooks/useGoals';
 
 function GoalCardSkeleton(): React.JSX.Element {
@@ -127,7 +126,7 @@ export default function GoalsPage() {
             {t.subtitle}
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<Plus size={18} />} onClick={openCreate}>
+        <Button variant="contained" onClick={openCreate}>
           {t.newGoal}
         </Button>
       </Box>
@@ -180,7 +179,7 @@ export default function GoalsPage() {
         ))}
       </Box>
 
-      <GoalFormDialog
+      <GoalFormDrawer
         open={formOpen}
         title={editing ? t.edit.value : t.newGoal.value}
         form={form}
@@ -197,7 +196,7 @@ export default function GoalsPage() {
         onSave={() => void saveGoal()}
       />
 
-      <ContributionDialog
+      <ContributionDrawer
         open={contributing !== null}
         title={contributing?.name ?? ''}
         amount={amount}

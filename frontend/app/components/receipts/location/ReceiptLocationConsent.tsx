@@ -92,7 +92,7 @@ export function ReceiptLocationConsent({
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: '50%',
-          background: 'var(--primary-soft-bg, rgba(22,129,24,0.1))',
+          background: 'var(--primary-soft-bg, rgba(var(--primary-rgb),0.1))',
           color: step === 'denied' ? 'var(--muted-foreground)' : 'var(--primary-fill)',
         }}
       >

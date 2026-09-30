@@ -2,18 +2,23 @@ import Image from 'next/image';
 import type React from 'react';
 
 /**
- * Decorative illustrations shown when a page has no user content yet.
- * Sources: unDraw (https://undraw.co) — free for commercial use, no attribution required.
+ * Decorative illustrations shown when a page has no user content yet, or could not load it.
+ * Sources: unDraw (https://undraw.co) — free for commercial use, no attribution required;
+ * `load-error` (a broken app window), `clients` (contact cards) and `page-error`
+ * (a window under repair) are drawn in-house in the same flat style.
  * Recolored to the Lumio palette so they read on both light and dark themes.
  */
 const ILLUSTRATIONS = {
   activity: { src: '/images/empty-states/activity.svg', width: 929, height: 744 },
+  clients: { src: '/images/empty-states/clients.svg', width: 640, height: 480 },
   dashboard: { src: '/images/empty-states/dashboard.svg', width: 792, height: 399 },
   favorites: { src: '/images/empty-states/favorites.svg', width: 675, height: 424 },
   integrations: { src: '/images/empty-states/integrations.svg', width: 867, height: 673 },
+  'load-error': { src: '/images/empty-states/load-error.svg', width: 640, height: 480 },
   'no-data': { src: '/images/empty-states/no-data.svg', width: 648, height: 632 },
   'no-results': { src: '/images/empty-states/no-results.svg', width: 619, height: 800 },
   notifications: { src: '/images/empty-states/notifications.svg', width: 812, height: 800 },
+  'page-error': { src: '/images/empty-states/page-error.svg', width: 640, height: 480 },
   payables: { src: '/images/empty-states/payables.svg', width: 960, height: 617 },
   plugins: { src: '/images/empty-states/plugins.svg', width: 960, height: 644 },
   receivables: { src: '/images/empty-states/receivables.svg', width: 880, height: 600 },

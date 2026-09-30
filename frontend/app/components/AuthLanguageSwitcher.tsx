@@ -13,7 +13,7 @@ import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types, max-lines-per-function
 export function AuthLanguageSwitcher() {
   const { locale, setLocale, availableLocales } = useLocale();
-  const { languages: languageNames, languageModal } = useIntlayer('navigation');
+  const { languages: languageNames, languageModal, shell } = useIntlayer('navigation');
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
   const [languageSearch, setLanguageSearch] = useState('');
 
@@ -98,7 +98,7 @@ export function AuthLanguageSwitcher() {
                 setLanguageSearch('');
               }}
               className="lumio-language-switcher__back-btn"
-              aria-label="Close language drawer"
+              aria-label={shell.closeLanguageDrawer.value}
             >
               <ChevronLeft size={20} />
             </button>
@@ -121,7 +121,7 @@ export function AuthLanguageSwitcher() {
                 type="text"
                 value={languageSearch}
                 onChange={event => setLanguageSearch(event.target.value)}
-                placeholder="Search"
+                placeholder={shell.search.value}
                 className="lumio-language-switcher__search-input"
               />
             </div>
@@ -143,7 +143,7 @@ export function AuthLanguageSwitcher() {
                   );
                 })
               ) : (
-                <p className="lumio-language-switcher__empty">No languages found</p>
+                <p className="lumio-language-switcher__empty">{shell.noLanguagesFound}</p>
               )}
             </div>
           </div>

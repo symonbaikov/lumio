@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ChevronDown, ChevronRight } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { Checkbox } from '../ui/checkbox';
 import { CategoryDropdown } from './CategoryDropdown';
 import { TransactionExpandedRow } from './TransactionExpandedRow';
@@ -87,6 +88,7 @@ export function TransactionRow({
   columnBinLabel,
   columnDateLabel,
 }: TransactionRowProps): React.ReactElement {
+  const t = useIntlayer('transactionsTable');
   const rowCls = buildRowClass({
     isSelected,
     hasErrors: tx.hasErrors,
@@ -104,7 +106,7 @@ export function TransactionRow({
         onClick={() => handlers.onRowClick(tx)}
         onKeyDown={handleKey}
         tabIndex={0}
-        aria-label={`Transaction from ${tx.counterpartyName}`}
+        aria-label={t.transactionFrom.value.replace('{name}', tx.counterpartyName)}
         className={rowCls}
       >
         <td className="lumio-tx-table__td--center">
@@ -113,7 +115,7 @@ export function TransactionRow({
             className="lumio-tx-table__expand-btn"
             onClick={handlers.onToggleExpansion(tx.id)}
             aria-expanded={isExpanded}
-            aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
+            aria-label={isExpanded ? t.collapseRow.value : t.expandRow.value}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -121,7 +123,6 @@ export function TransactionRow({
               padding: 0,
               border: 'none',
               background: 'none',
-              color: 'inherit',
               cursor: 'pointer',
             }}
           >
@@ -163,7 +164,7 @@ export function TransactionRow({
                   whiteSpace: 'nowrap',
                 }}
               >
-                Split
+                {t.splitBadge}
               </span>
             )}
           </div>

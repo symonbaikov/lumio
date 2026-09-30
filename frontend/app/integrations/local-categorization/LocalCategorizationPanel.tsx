@@ -5,6 +5,7 @@ import { Box, Stack, Typography } from '@mui/material';
 import { useTheme } from 'next-themes';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
 
@@ -18,6 +19,14 @@ type LocalCategorizationStatus = {
     modelInstalled?: boolean;
   };
 };
+
+type MessageKey =
+  | 'loadFailed'
+  | 'saved'
+  | 'saveFailed'
+  | 'modelInstalled'
+  | 'installFailed'
+  | 'testFailed';
 
 type LocalCategorizationTestResult = {
   ready: boolean;
@@ -34,6 +43,7 @@ const DEFAULT_CATEGORIES = ['Groceries', 'Transport', 'Entertainment', 'Health',
 export function LocalCategorizationPanel(): React.JSX.Element {
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
+  const t = useIntlayer('localCategorizationPanel');
   const [status, setStatus] = useState<LocalCategorizationStatus | null>(null);
   const [enabled, setEnabled] = useState(true);
   const [modelId, setModelId] = useState(DEFAULT_MODEL_ID);
@@ -41,7 +51,7 @@ export function LocalCategorizationPanel(): React.JSX.Element {
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES.join('\n'));
   const [merchantName, setMerchantName] = useState('Fresh Market');
   const [testResult, setTestResult] = useState<LocalCategorizationTestResult | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<MessageKey | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -66,7 +76,7 @@ export function LocalCategorizationPanel(): React.JSX.Element {
       })
       .catch(() => {
         if (mounted) {
-          setMessage('Unable to load local categorization settings.');
+          setMessage('loadFailed');
         }
       });
 
@@ -89,10 +99,10 @@ export function LocalCategorizationPanel(): React.JSX.Element {
         },
       );
       applyStatus(response.data);
-      setMessage('Settings saved.');
+      setMessage('saved');
     })()
       .catch(async () => {
-        setMessage('Unable to save settings.');
+        setMessage('saveFailed');
       })
       .finally(async () => {
         setSaving(false);
@@ -115,10 +125,10 @@ export function LocalCategorizationPanel(): React.JSX.Element {
         { headers: { 'Content-Type': 'multipart/form-data' } },
       );
       applyStatus(response.data);
-      setMessage('Model installed.');
+      setMessage('modelInstalled');
     })()
       .catch(async () => {
-        setMessage('Unable to install model archive.');
+        setMessage('installFailed');
       })
       .finally(async () => {
         setUploading(false);
@@ -140,7 +150,7 @@ export function LocalCategorizationPanel(): React.JSX.Element {
       setTestResult(response.data);
     })()
       .catch(async () => {
-        setMessage('Unable to test local categorization.');
+        setMessage('testFailed');
       })
       .finally(async () => {
         setTesting(false);
@@ -148,14 +158,16 @@ export function LocalCategorizationPanel(): React.JSX.Element {
   };
 
   const modelInstalled = Boolean(status?.settings?.modelInstalled);
-  const statusLabel = modelInstalled ? 'Model ready' : 'Model missing';
+  const statusLabel = modelInstalled ? t.modelReady : t.modelMissing;
 
   return (
     <Stack spacing={2}>
       <Panel>
         <Stack spacing={2}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-            <Typography sx={{ color: c.ink900, fontSize: 18, fontWeight: 650 }}>Status</Typography>
+            <Typography sx={{ color: c.ink900, fontSize: 18, fontWeight: 650 }}>
+              {t.status}
+            </Typography>
             <Typography
               sx={{
                 color: modelInstalled ? c.success : c.ink600,
@@ -168,12 +180,11 @@ export function LocalCategorizationPanel(): React.JSX.Element {
             </Typography>
           </Box>
           <Typography sx={{ color: c.ink600, fontSize: 14, lineHeight: 1.6 }}>
-            Categorization runs locally. The model archive is stored by the backend and remote model
-            loading stays disabled during tests.
+            {t.runsLocally}
           </Typography>
           {status?.settings?.localModelPath ? (
             <Typography sx={{ color: c.ink500, fontSize: 12 }}>
-              Installed path: {status.settings.localModelPath}
+              {t.installedPath.value.replace('{path}', status.settings.localModelPath)}
             </Typography>
           ) : null}
         </Stack>
@@ -181,14 +192,14 @@ export function LocalCategorizationPanel(): React.JSX.Element {
 
       <Panel>
         <Stack spacing={2}>
-          <SectionHeader title="Settings">
+          <SectionHeader title={t.settings}>
             <button
               type="button"
               onClick={() => void saveSettings()}
               disabled={saving}
               style={buttonStyle(c.primary, c.surface)}
             >
-              {saving ? 'Saving...' : 'Save settings'}
+              {saving ? t.saving : t.saveSettings}
             </button>
           </SectionHeader>
 
@@ -200,7 +211,7 @@ export function LocalCategorizationPanel(): React.JSX.Element {
             }}
           >
             <label style={{ display: 'grid', gap: 6 }}>
-              <Typography sx={labelSx(c)}>Model</Typography>
+              <Typography sx={labelSx(c)}>{t.model}</Typography>
               <input
                 name="modelId"
                 value={modelId}
@@ -209,7 +220,7 @@ export function LocalCategorizationPanel(): React.JSX.Element {
               />
             </label>
             <label style={{ display: 'grid', gap: 6 }}>
-              <Typography sx={labelSx(c)}>Threshold</Typography>
+              <Typography sx={labelSx(c)}>{t.threshold}</Typography>
               <input
                 name="threshold"
                 type="number"
@@ -229,19 +240,17 @@ export function LocalCategorizationPanel(): React.JSX.Element {
               checked={enabled}
               onChange={event => setEnabled(event.target.checked)}
             />
-            <Typography sx={{ color: c.ink700, fontSize: 14 }}>
-              Enable local categorization
-            </Typography>
+            <Typography sx={{ color: c.ink700, fontSize: 14 }}>{t.enable}</Typography>
           </label>
         </Stack>
       </Panel>
 
       <Panel>
         <Stack spacing={2}>
-          <SectionHeader title="Model archive">
+          <SectionHeader title={t.modelArchive}>
             <label style={buttonStyle(c.primary, c.surface)}>
               <UploadFileOutlinedIcon sx={{ fontSize: 16, mr: 0.75 }} aria-hidden="true" />
-              {uploading ? 'Installing...' : 'Upload ZIP'}
+              {uploading ? t.installing : t.uploadZip}
               <input
                 type="file"
                 accept=".zip,application/zip"
@@ -252,22 +261,21 @@ export function LocalCategorizationPanel(): React.JSX.Element {
             </label>
           </SectionHeader>
           <Typography sx={{ color: c.ink600, fontSize: 14, lineHeight: 1.6 }}>
-            Upload a ZIP that contains a Transformers.js model with config.json and an onnx model
-            file. The app will install it into the workspace model folder.
+            {t.uploadHint}
           </Typography>
         </Stack>
       </Panel>
 
       <Panel>
         <Stack spacing={2}>
-          <SectionHeader title="Test merchant">
+          <SectionHeader title={t.testMerchant}>
             <button
               type="button"
               onClick={() => void testMerchant()}
               disabled={testing}
               style={buttonStyle(c.primary, c.surface)}
             >
-              {testing ? 'Testing...' : 'Test merchant'}
+              {testing ? t.testing : t.testMerchant}
             </button>
           </SectionHeader>
 
@@ -275,7 +283,7 @@ export function LocalCategorizationPanel(): React.JSX.Element {
             sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}
           >
             <label style={{ display: 'grid', gap: 6 }}>
-              <Typography sx={labelSx(c)}>Merchant name</Typography>
+              <Typography sx={labelSx(c)}>{t.merchantName}</Typography>
               <input
                 name="merchantName"
                 value={merchantName}
@@ -284,7 +292,7 @@ export function LocalCategorizationPanel(): React.JSX.Element {
               />
             </label>
             <label style={{ display: 'grid', gap: 6 }}>
-              <Typography sx={labelSx(c)}>Categories</Typography>
+              <Typography sx={labelSx(c)}>{t.categories}</Typography>
               <textarea
                 value={categories}
                 onChange={event => setCategories(event.target.value)}
@@ -305,13 +313,13 @@ export function LocalCategorizationPanel(): React.JSX.Element {
                 fontSize: 14,
               }}
             >
-              Result: {testResult.category ?? 'Not determined'}
+              {t.result.value.replace('{category}', testResult.category ?? t.notDetermined.value)}
               {testResult.modelLoadError ? ` (${testResult.modelLoadError})` : ''}
             </Box>
           ) : null}
 
           {message ? (
-            <Typography sx={{ color: c.ink600, fontSize: 14 }}>{message}</Typography>
+            <Typography sx={{ color: c.ink600, fontSize: 14 }}>{t.messages[message]}</Typography>
           ) : null}
         </Stack>
       </Panel>
@@ -340,7 +348,7 @@ function SectionHeader({
   title,
 }: {
   children: React.ReactNode;
-  title: string;
+  title: React.ReactNode;
 }): React.JSX.Element {
   return (
     <Box

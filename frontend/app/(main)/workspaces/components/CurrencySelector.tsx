@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import React, { useMemo, useState } from 'react';
 import { Check, ChevronDown, Search, X } from '@/app/components/icons';
 import { closeOnBackdropClick } from '@/app/components/ui/backdrop-click';
+import { useIntlayer } from '@/app/i18n';
 import {
   buildCurrencySearchIndex,
   type CurrencySearchItem,
@@ -160,6 +161,7 @@ type RecentsListProps = {
   onSelect: (code: string) => void;
 };
 function RecentsList({ items, minimal, onSelect }: RecentsListProps): React.JSX.Element | null {
+  const t = useIntlayer('workspaceCurrencySelector');
   if (items.length === 0) return null;
   return (
     <Box>
@@ -174,7 +176,7 @@ function RecentsList({ items, minimal, onSelect }: RecentsListProps): React.JSX.
             color: 'var(--muted-foreground)',
           }}
         >
-          Recents
+          {t.recents}
         </Typography>
       )}
       <Box sx={{ mt: minimal ? 0.75 : 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -201,6 +203,7 @@ function AllCurrenciesList({
   minimal,
   onSelect,
 }: AllCurrenciesListProps): React.JSX.Element {
+  const t = useIntlayer('workspaceCurrencySelector');
   return (
     <Box>
       {!minimal && (
@@ -214,7 +217,7 @@ function AllCurrenciesList({
             color: 'var(--muted-foreground)',
           }}
         >
-          All
+          {t.all}
         </Typography>
       )}
       <Box sx={{ mt: minimal ? 0.75 : 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -225,7 +228,7 @@ function AllCurrenciesList({
         ) : (
           <Box sx={{ bgcolor: 'var(--muted)', borderRadius: tokens.radius.md, px: 1.5, py: 1.25 }}>
             <Typography variant="body2" sx={{ color: 'var(--muted-foreground)' }}>
-              No currencies found
+              {t.noCurrencies}
             </Typography>
           </Box>
         )}
@@ -264,6 +267,7 @@ function CurrencyPanel({
   onClose,
   onSelect,
 }: PanelProps): React.JSX.Element {
+  const t = useIntlayer('workspaceCurrencySelector');
   return (
     <Box
       sx={
@@ -302,7 +306,7 @@ function CurrencyPanel({
               border: 'none',
               cursor: 'pointer',
             }}
-            aria-label="Close currency picker"
+            aria-label={t.closePicker.value}
           >
             <X size={16} />
           </button>
@@ -324,7 +328,7 @@ function CurrencyPanel({
           type="text"
           value={search}
           onChange={e => onSearchChange(e.target.value)}
-          placeholder="Search"
+          placeholder={t.search.value}
           style={{
             width: '100%',
             border: minimal ? '1px solid transparent' : '1px solid var(--border)',
@@ -373,10 +377,12 @@ export function CurrencySelector({
   onOpenChange,
   showLabel = true,
   showTrigger = true,
-  title = 'Select a currency',
+  title: titleProp,
   minimal = false,
   showPanelHeader = true,
 }: CurrencySelectorProps): React.JSX.Element {
+  const t = useIntlayer('workspaceCurrencySelector');
+  const title = titleProp ?? t.selectCurrency.value;
   const { isOpen, setOpenState } = useCurrencyOpenState({ open, onOpenChange });
   const {
     search,
@@ -419,7 +425,7 @@ export function CurrencySelector({
     <Box>
       {showLabel && (
         <Typography variant="body2" fontWeight={500} sx={{ mb: 1, color: 'var(--foreground)' }}>
-          Currency
+          {t.label}
         </Typography>
       )}
       {showTrigger && (
@@ -442,7 +448,7 @@ export function CurrencySelector({
           }}
         >
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {selectedCurrencyItem?.label || 'Select a currency'}
+            {selectedCurrencyItem?.label || t.selectCurrency}
           </span>
           <ChevronDown size={16} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
         </button>
