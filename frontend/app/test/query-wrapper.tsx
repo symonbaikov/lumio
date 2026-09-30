@@ -5,6 +5,8 @@ import {
   render,
   renderHook,
 } from '@testing-library/react';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import React from 'react';
 
 /**
@@ -37,11 +39,19 @@ export function renderHookWithQuery<TProps, TResult>(
   return renderHook(render, { wrapper, initialProps: options?.initialProps });
 }
 
-/** Тот же клиент, но для компонентных тестов: render внутри провайдера. */
+/**
+ * Тот же клиент, но для компонентных тестов: render внутри провайдера. Пикеры
+ * дат в приложении живут под LocalizationProvider из providers.tsx — здесь он
+ * тоже есть, иначе любой компонент с календарём падает при рендере.
+ */
 export function renderWithQuery(
   ui: React.ReactElement,
   options?: { client?: QueryClient },
 ): RenderResult {
   const client = options?.client ?? createTestQueryClient();
-  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={client}>
+      <LocalizationProvider dateAdapter={AdapterDateFns}>{ui}</LocalizationProvider>
+    </QueryClientProvider>,
+  );
 }

@@ -6,10 +6,10 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
 import { useState } from 'react';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { useIntlayer } from '@/app/i18n';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import { useLedgerMutations } from '../hooks/useLedger';
@@ -60,12 +60,12 @@ export function RevaluationButton(): React.ReactElement {
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             {t.revalueHint}
           </Typography>
-          <TextField
-            type="date"
+          <CustomDatePicker
             label={t.revalueDate.value}
+            size="medium"
             value={date}
-            onChange={event => setDate(event.target.value)}
-            slotProps={{ inputLabel: { shrink: true }, htmlInput: { max: today() } }}
+            maxDate={today()}
+            onChange={setDate}
           />
           {revalue.data ? <ResultAlert result={revalue.data} /> : null}
           {revalue.isError ? (
