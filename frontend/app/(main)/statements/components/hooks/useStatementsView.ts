@@ -17,7 +17,7 @@ import {
   type StatementExpenseMode,
 } from '@/app/lib/statement-expense-drawer';
 import { STATEMENTS_GMAIL_SYNC_STORAGE_KEY } from '@/app/lib/statement-upload-actions';
-import { getStatementStage, type StatementStage } from '@/app/lib/statement-workflow';
+import { resolveStatementStage, type StatementStage } from '@/app/lib/statement-workflow';
 import { mapGmailReceiptsToStatements } from '../gmail-receipt-mapping';
 import {
   buildColumnLabels,
@@ -117,10 +117,10 @@ function buildStagedStatements({
   receiptStatements,
 }: StagedStatementsParams): Statement[] {
   const baseStatements = statements.filter(s => {
-    return getStatementStage(s.id) === stage && !isReceiptDerivedStatement(s);
+    return resolveStatementStage(s) === stage && !isReceiptDerivedStatement(s);
   });
 
-  if (stage !== 'submit') {
+  if (stage === 'pay') {
     return baseStatements;
   }
 
@@ -213,6 +213,7 @@ export function useStatementsView({
   handleToggleSelectAll: (checked: boolean) => void;
   handleExportSelected: () => Promise<void>;
   handleDeleteSelected: () => Promise<void>;
+  handleMoveSelectedToStage: (target: StatementStage) => Promise<void>;
   handleMarkSelectedAsDuplicate: () => void;
   handleDismissSelectedDuplicates: () => void;
   handleSelectDetectedDuplicates: () => void;
@@ -406,10 +407,11 @@ export function useStatementsView({
   // Gmail-чеки вливаются в тот же список, поэтому на submit ждём оба запроса —
   // иначе строки досыпаются в уже отрисованную таблицу. Гейт по stage зеркалит
   // `enabled` самого запроса: выключенный запрос в RQ v5 навсегда `pending`.
-  const listIsPending = isPending || (stage === 'submit' && gmailIsPending);
+  const listIsPending = isPending || (stage !== 'pay' && gmailIsPending);
 
+  // The receipts query is already narrowed to this page's stage on the server.
   const receiptStatements = useMemo<Statement[]>(() => {
-    if (stage !== 'submit') {
+    if (stage === 'pay') {
       return [];
     }
     const mapped = mapGmailReceiptsToStatements(gmailReceipts);
@@ -482,6 +484,7 @@ export function useStatementsView({
     handleToggleSelectAll,
     handleExportSelected,
     handleDeleteSelected,
+    handleMoveSelectedToStage,
     handleMarkSelectedAsDuplicate,
     handleDismissSelectedDuplicates,
     handleSelectDetectedDuplicates,
@@ -672,6 +675,7 @@ export function useStatementsView({
     handleToggleSelectAll,
     handleExportSelected,
     handleDeleteSelected,
+    handleMoveSelectedToStage,
     handleMarkSelectedAsDuplicate,
     handleDismissSelectedDuplicates,
     handleSelectDetectedDuplicates,

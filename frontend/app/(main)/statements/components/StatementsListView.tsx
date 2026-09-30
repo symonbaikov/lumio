@@ -12,6 +12,7 @@ import { PDFPreviewModal } from '@/app/components/PDFPreviewModal';
 import { useKeyboardShortcuts } from '@/app/hooks/use-keyboard-shortcuts';
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorStatus } from '@/app/lib/api-error';
 import type { DeviceLocation } from '@/app/lib/device-location';
@@ -90,6 +91,7 @@ async function submitManualExpense(
   payload: ManualExpensePayload,
   taxRateId: string,
   onSuccess: () => Promise<void>,
+  messages: { created: string; failed: string; unavailable: string },
 ): Promise<void> {
   const formData = buildManualExpenseFormData(payload, taxRateId);
   const endpoints = ['/statements/manual-expense', '/expenses/manual', '/expenses'];
@@ -97,15 +99,15 @@ async function submitManualExpense(
 
   for (const result of results) {
     if (result.status === 'fulfilled' && result.value === 'ok') {
-      toast.success('Manual expense created');
+      toast.success(messages.created);
       await onSuccess();
       return;
     }
     if (result.status === 'fulfilled' && result.value === 'fail') {
-      throw new Error('Failed to create manual expense');
+      throw new Error(messages.failed);
     }
   }
-  throw new Error('Manual expense creation is not available yet');
+  throw new Error(messages.unavailable);
 }
 
 // ---- Pull indicator sub-component ----
@@ -123,13 +125,14 @@ function PullToRefreshIndicator({
   pullRefreshing,
   isReadyToRefresh,
 }: PullIndicatorProps): React.JSX.Element | null {
+  const listText = useIntlayer('statementsListUi');
   if (!isMobile || (pullDistance <= 0 && !pullRefreshing)) return null;
   const badgeClass = `lumio-stmt-list-view__pull-badge${isReadyToRefresh || pullRefreshing ? ' lumio-stmt-list-view__pull-badge--ready' : ''}`;
   const label = pullRefreshing
-    ? 'Refreshing...'
+    ? listText.refreshing
     : isReadyToRefresh
-      ? 'Release to refresh'
-      : 'Pull to refresh';
+      ? listText.releaseToRefresh
+      : listText.pullToRefresh;
   return (
     <div className="lumio-stmt-list-view__pull-indicator">
       <div className={badgeClass}>
@@ -148,31 +151,35 @@ function MergeDuplicatesSummary({
 }: {
   plan: MergeDuplicatesPlan | null;
 }): React.JSX.Element | null {
+  const listText = useIntlayer('statementsListUi');
   if (!plan) {
     return null;
   }
   const trashCount = plan.statementIds.length + plan.receiptIds.length;
   const lines: string[] = [];
   if (plan.gmailEntries.length > 0) {
-    lines.push(`${plan.gmailEntries.length} Gmail receipt(s) will be marked as duplicate.`);
+    lines.push(
+      listText.mergeGmailMarked.value.replace('{count}', String(plan.gmailEntries.length)),
+    );
   }
   if (plan.receiptIds.length > 0) {
-    lines.push(`${plan.receiptIds.length} receipt(s) will be moved to trash.`);
+    lines.push(
+      listText.mergeReceiptsTrash.value.replace('{count}', String(plan.receiptIds.length)),
+    );
   }
   if (plan.statementIds.length > 0) {
-    lines.push(`${plan.statementIds.length} statement(s) will be moved to trash.`);
+    lines.push(
+      listText.mergeStatementsTrash.value.replace('{count}', String(plan.statementIds.length)),
+    );
   }
   if (plan.skippedGmailCount > 0) {
-    lines.push(
-      `${plan.skippedGmailCount} Gmail item(s) will be skipped because the primary record is not a Gmail receipt.`,
-    );
+    lines.push(listText.mergeGmailSkipped.value.replace('{count}', String(plan.skippedGmailCount)));
   }
 
   return (
     <div style={{ color: 'var(--text-secondary)', lineHeight: 1.625 }}>
       <p style={{ marginBottom: 12 }}>
-        Primary records are kept. {trashCount} duplicate item(s) will be moved to trash and can be
-        restored from there.
+        {listText.mergeSummary.value.replace('{count}', String(trashCount))}
       </p>
       <ul style={{ margin: 0, paddingInlineStart: 20 }}>
         {lines.map(line => (
@@ -192,6 +199,7 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
   const v = useStatementsView({ stage, router, searchParams, listScrollRef });
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceId();
+  const listText = useIntlayer('statementsListUi');
 
   useLockBodyScroll(v.expenseDrawerOpen);
 
@@ -203,6 +211,18 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
   });
 
   const { t, filterState, listHeaderLabels, paginationLabels, uploadLabels } = v;
+
+  // Pay is left out: moving to Pay creates a payable from each statement's
+  // transactions, which the statement page does one statement at a time.
+  const bulkStageMove =
+    stage === 'submit'
+      ? { label: listText.submit.value, onMove: () => void v.handleMoveSelectedToStage('approve') }
+      : stage === 'approve'
+        ? {
+            label: listText.unapprove.value,
+            onMove: () => void v.handleMoveSelectedToStage('submit'),
+          }
+        : undefined;
 
   // Опции загрузчика растворились: search — часть ключа запроса, ошибку
   // рапортует сам хук данных. Остаётся только сбросить страницу и перезапросить.
@@ -267,7 +287,11 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
 
   const handleCreateManualExpense = async (payload: ManualExpensePayload): Promise<void> => {
     const fallbackId = v.manualExpenseTaxRates.find(tr => tr.isEnabled && tr.isDefault)?.id ?? '';
-    await submitManualExpense(payload, payload.draft.taxRateId ?? fallbackId, refreshAfterCreate);
+    await submitManualExpense(payload, payload.draft.taxRateId ?? fallbackId, refreshAfterCreate, {
+      created: listText.manualExpenseCreated.value,
+      failed: listText.manualExpenseFailed.value,
+      unavailable: listText.manualExpenseUnavailable.value,
+    });
   };
 
   const handleCreateTaxRate = async (payload: CreateTaxRatePayload): Promise<TaxRateOption> => {
@@ -376,6 +400,7 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
         onMarkDuplicate={v.handleMarkSelectedAsDuplicate}
         onExport={v.handleExportSelected}
         onDelete={v.handleDeleteSelected}
+        stageMove={bulkStageMove}
         onSelectDetectedDuplicates={v.handleSelectDetectedDuplicates}
         onTypeDropdownChange={filterState.setTypeDropdownOpen}
         onStatusDropdownChange={filterState.setStatusDropdownOpen}

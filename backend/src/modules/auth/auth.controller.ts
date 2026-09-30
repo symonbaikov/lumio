@@ -6,8 +6,6 @@ import {
   HttpStatus,
   Param,
   Post,
-  Query,
-  Redirect,
   Req,
   Res,
   UseGuards,
@@ -45,10 +43,6 @@ export class AuthController {
     private readonly twoFactorService: TwoFactorService,
     private readonly passwordResetService: PasswordResetService,
   ) {}
-
-  private getFrontendBaseUrl() {
-    return process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
-  }
 
   /**
    * Moves freshly issued tokens into httpOnly cookies. They deliberately never
@@ -157,40 +151,6 @@ export class AuthController {
     @Body() dto: TwoFactorPasswordDto,
   ): Promise<{ recoveryCodes: string[] }> {
     return this.twoFactorService.regenerateRecoveryCodes(user.id, dto.password);
-  }
-
-  @Public()
-  @Get('google/callback')
-  @Redirect()
-  handleGoogleCallback(
-    @Query('state') state?: string,
-    @Query('code') code?: string,
-    @Query('error') error?: string,
-  ) {
-    if (state === 'integrations/google-sheets') {
-      const frontendBaseUrl = this.getFrontendBaseUrl();
-      const params = new URLSearchParams();
-
-      if (code) {
-        params.set('code', code);
-      }
-      if (state) {
-        params.set('state', state);
-      }
-      if (error) {
-        params.set('error', error);
-      }
-
-      return {
-        statusCode: 302,
-        url: `${frontendBaseUrl}/google-sheets/callback?${params.toString()}`,
-      };
-    }
-
-    return {
-      statusCode: 302,
-      url: `${this.getFrontendBaseUrl()}/login?google_callback=unsupported`,
-    };
   }
 
   /**

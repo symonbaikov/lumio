@@ -19,7 +19,6 @@ const RESTORE_ORDER = [
   'folders',
   'tags',
   'balance_accounts',
-  'google_sheets',
   'custom_tables',
   'statements',
   'file_versions',
@@ -30,8 +29,14 @@ const RESTORE_ORDER = [
   'custom_table_rows',
   'custom_table_column_styles',
   'custom_table_cell_styles',
-  'google_sheet_rows',
 ];
+
+/**
+ * Collections that older backups may carry but whose tables no longer exist
+ * (the Google Sheets import jobs went with the integration). Skipped on
+ * restore so those archives still restore instead of failing as unsupported.
+ */
+const REMOVED_COLLECTIONS = new Set(['custom_table_import_jobs']);
 
 const USER_REFERENCE_PROPERTIES = new Set([
   'userId',
@@ -158,7 +163,7 @@ export class BackupRestoreService {
     collections: Record<string, unknown[]>,
   ): Array<[string, Record<string, unknown>[]]> {
     const entries = Object.entries(collections)
-      .filter(([tableName]) => tableName !== 'workspace')
+      .filter(([tableName]) => tableName !== 'workspace' && !REMOVED_COLLECTIONS.has(tableName))
       .map(
         ([tableName, rows]) =>
           [tableName, rows as Record<string, unknown>[]] as [string, Record<string, unknown>[]],

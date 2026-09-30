@@ -16,7 +16,7 @@ Each file may be up to 10 MB, and one upload request takes up to 5 files. See
 [Supported Banks](../reference/supported-banks) for the native parsers.
 
 Files can also come in without a manual upload: S3-compatible and WebDAV storage sync, an IMAP inbox
-for receipts and invoice attachments, and workbook or Google Sheets link import into custom tables.
+for receipts and invoice attachments. CSV and Excel files can also be imported into a custom table.
 See [Integrations](integrations).
 
 ## Import flow

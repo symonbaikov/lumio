@@ -10,7 +10,6 @@ import {
 } from '../../../../entities/statement.entity';
 import { Transaction } from '../../../../entities/transaction.entity';
 import { ClassificationService } from '../../../classification/services/classification.service';
-import { GoogleSheetsService } from '../../../google-sheets/google-sheets.service';
 import { MetricsService } from '../../../observability/metrics.service';
 import { ExtractedMetadata, MetadataExtractionService } from '../metadata-extraction.service';
 import { ParserFactoryService } from '../parser-factory.service';
@@ -96,10 +95,6 @@ describe('StatementProcessingService - Headers Integration', () => {
       convertToParsedStatementMetadata: jest.fn(),
     };
 
-    const mockGoogleSheetsService: Pick<GoogleSheetsService, 'syncStatementTransactions'> = {
-      syncStatementTransactions: jest.fn(),
-    };
-
     const mockMetricsService = {
       statementParsingDurationSeconds: {
         observe: jest.fn(),
@@ -134,10 +129,6 @@ describe('StatementProcessingService - Headers Integration', () => {
         {
           provide: MetadataExtractionService,
           useValue: mockMetadataExtractionService,
-        },
-        {
-          provide: GoogleSheetsService,
-          useValue: mockGoogleSheetsService,
         },
         {
           provide: MetricsService,

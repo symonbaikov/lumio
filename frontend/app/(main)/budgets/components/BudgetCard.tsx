@@ -5,15 +5,18 @@ import IconButton from '@mui/material/IconButton';
 import LinearProgress from '@mui/material/LinearProgress';
 import Typography from '@mui/material/Typography';
 import { Pencil, Trash2 } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import type { BudgetItem } from '../hooks/useBudgetsPage';
+import type { StoicClass } from '../hooks/useStoicBalance';
+import { StoicClassChip } from './StoicBalance';
 
-const PERIOD_LABELS: Record<string, string> = {
-  weekly: 'Weekly',
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  annual: 'Annual',
-};
+const PERIOD_LABEL_KEYS = {
+  weekly: 'periodWeekly',
+  monthly: 'periodMonthly',
+  quarterly: 'periodQuarterly',
+  annual: 'periodAnnual',
+} as const;
 
 function getProgressColor(percent: number): 'success' | 'warning' | 'error' {
   if (percent >= 100) return 'error';
@@ -32,16 +35,20 @@ function formatAmount(amount: number, currency: string): string {
 
 interface BudgetCardProps {
   budget: BudgetItem;
+  /** How the budget's category is judged; null while nobody has decided. */
+  stoicClass?: StoicClass | null;
   onEdit: (budget: BudgetItem) => void;
   onDelete: (id: string) => void;
 }
 
-export function BudgetCard({ budget, onEdit, onDelete }: BudgetCardProps) {
+export function BudgetCard({ budget, stoicClass = null, onEdit, onDelete }: BudgetCardProps) {
+  const t = useIntlayer('budgetsPage');
   const color = getProgressColor(budget.percentUsed);
   const progressValue = Math.min(budget.percentUsed, 100);
 
   return (
     <Box
+      data-attention={`budget:${budget.categoryId}`}
       sx={{
         p: 2.5,
         borderRadius: tokens.radius.lg,
@@ -59,7 +66,13 @@ export function BudgetCard({ budget, onEdit, onDelete }: BudgetCardProps) {
             {budget.name}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {budget.category?.name ?? 'Unknown category'} · {PERIOD_LABELS[budget.periodType]}
+            {budget.category?.name ?? t.unknownCategory} · {t[PERIOD_LABEL_KEYS[budget.periodType]]}
+            {stoicClass && (
+              <>
+                {' · '}
+                <StoicClassChip stoicClass={stoicClass} />
+              </>
+            )}
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 0.5 }}>

@@ -63,13 +63,13 @@ export default function AdminPage() {
     await (async () => {
       const result = await rollbackEvent(event.id);
       assertRollbackSucceeded(result);
-      toast.success('Rollback successful');
+      toast.success(t.toasts.rollbackSuccess.value);
       setModalOpen(false);
       setSelectedEvent(null);
       void loadAuditLogs();
     })()
       .catch(async () => {
-        toast.error('Rollback failed');
+        toast.error(t.toasts.rollbackFailed.value);
       })
       .finally(async () => {
         setRollbackLoading(false);

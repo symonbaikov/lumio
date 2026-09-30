@@ -7,6 +7,7 @@ import { useTheme } from 'next-themes';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { Select } from '@/app/components/ui/select';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
 
@@ -85,6 +86,7 @@ export function ProtocolIntegrationPage({
 }: ProtocolIntegrationPageProps): React.JSX.Element {
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
+  const t = useIntlayer('protocolIntegrationPage');
   const [status, setStatus] = useState<ProtocolStatus | null>(null);
   const [files, setFiles] = useState<ProtocolFile[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
@@ -133,10 +135,10 @@ export function ProtocolIntegrationPage({
       setStatus(response.data);
       setForm(buildInitialForm(fields, response.data.settings || {}));
       void onConnectionStatusChange?.(Boolean(response.data.connected));
-      setActionMessage('Connected');
+      setActionMessage(t.messages.connected.value);
     })()
       .catch(async () => {
-        setActionMessage('Connection failed. Check the fields and try again.');
+        setActionMessage(t.messages.connectionFailed.value);
       })
       .finally(async () => {
         setSaving(false);
@@ -152,10 +154,10 @@ export function ProtocolIntegrationPage({
       const response = await apiClient.get<ProtocolStatus>(statusPath);
       setStatus(response.data);
       void onConnectionStatusChange?.(Boolean(response.data.connected));
-      setActionMessage('Disconnected');
+      setActionMessage(t.messages.disconnected.value);
     })()
       .catch(async () => {
-        setActionMessage('Unable to disconnect');
+        setActionMessage(t.messages.disconnectFailed.value);
       })
       .finally(async () => {
         setSaving(false);
@@ -172,7 +174,7 @@ export function ProtocolIntegrationPage({
       setFiles(response.data.files || []);
     })()
       .catch(async () => {
-        setActionMessage('Unable to load files');
+        setActionMessage(t.messages.loadFilesFailed.value);
       })
       .finally(async () => {
         setLoadingFiles(false);
@@ -185,9 +187,9 @@ export function ProtocolIntegrationPage({
 
     await (async () => {
       await apiClient.post(importPath, { fileIds: [file.id] });
-      setActionMessage(`Imported ${file.name}`);
+      setActionMessage(t.messages.imported.value.replace('{name}', file.name));
     })().catch(async () => {
-      setActionMessage(`Unable to import ${file.name}`);
+      setActionMessage(t.messages.importFailed.value.replace('{name}', file.name));
     });
   };
 
@@ -202,7 +204,7 @@ export function ProtocolIntegrationPage({
       setBrowseOptions(prev => ({ ...prev, [field.name]: response.data }));
     })()
       .catch(async () => {
-        setActionMessage('Could not load options. Check the credentials above.');
+        setActionMessage(t.messages.browseFailed.value);
       })
       .finally(async () => {
         setBrowsing(null);
@@ -216,9 +218,9 @@ export function ProtocolIntegrationPage({
     await (async () => {
       const response = await apiClient.post<{ uploaded?: number; imported?: number }>(syncPath);
       const count = response.data.uploaded ?? response.data.imported ?? 0;
-      setActionMessage(`Sync complete: ${count}`);
+      setActionMessage(t.messages.syncComplete.value.replace('{count}', String(count)));
     })().catch(async () => {
-      setActionMessage('Sync failed');
+      setActionMessage(t.messages.syncFailed.value);
     });
   };
 
@@ -274,7 +276,7 @@ export function ProtocolIntegrationPage({
           <Stack spacing={2}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography sx={{ color: c.ink900, fontSize: 18, fontWeight: 650 }}>
-                Status
+                {t.status}
               </Typography>
               <Typography
                 sx={{
@@ -284,7 +286,7 @@ export function ProtocolIntegrationPage({
                   textTransform: 'uppercase',
                 }}
               >
-                {connected ? 'Configured' : 'Not configured'}
+                {connected ? t.configured : t.notConfigured}
               </Typography>
             </Box>
             <Typography sx={{ color: c.ink600, fontSize: 14, lineHeight: 1.6 }}>
@@ -312,7 +314,7 @@ export function ProtocolIntegrationPage({
               }}
             >
               <Typography sx={{ color: c.ink900, fontSize: 18, fontWeight: 650 }}>
-                Connection
+                {t.connection}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 <button
@@ -321,7 +323,7 @@ export function ProtocolIntegrationPage({
                   disabled={saving}
                   style={buttonStyle(c.primary, c.surface)}
                 >
-                  {saving ? 'Checking...' : connected ? 'Update connection' : 'Connect'}
+                  {saving ? t.checking : connected ? t.updateConnection : t.connect}
                 </button>
                 {canDisconnect && (
                   <button
@@ -330,7 +332,7 @@ export function ProtocolIntegrationPage({
                     disabled={saving}
                     style={buttonStyle(c.ink800, c.surface, c.ink150)}
                   >
-                    Disconnect
+                    {t.disconnect}
                   </button>
                 )}
               </Box>
@@ -339,7 +341,7 @@ export function ProtocolIntegrationPage({
             {presets?.length ? (
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Typography sx={{ color: c.ink600, fontSize: 13, fontWeight: 600 }}>
-                  Presets
+                  {t.presets}
                 </Typography>
                 {presets.map(preset => (
                   <button
@@ -451,7 +453,7 @@ export function ProtocolIntegrationPage({
                 }}
               >
                 <Typography sx={{ color: c.ink900, fontSize: 18, fontWeight: 650 }}>
-                  Actions
+                  {t.actions}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   {filesPath && (
@@ -461,7 +463,7 @@ export function ProtocolIntegrationPage({
                       disabled={!connected || loadingFiles}
                       style={buttonStyle(c.primary, c.surface)}
                     >
-                      {loadingFiles ? 'Loading...' : 'Browse files'}
+                      {loadingFiles ? t.loading : t.browseFiles}
                     </button>
                   )}
                   {syncPath && (
@@ -471,7 +473,7 @@ export function ProtocolIntegrationPage({
                       disabled={!connected}
                       style={buttonStyle(c.ink800, c.surface, c.ink150)}
                     >
-                      Sync now
+                      {t.syncNow}
                     </button>
                   )}
                 </Box>
@@ -507,7 +509,7 @@ export function ProtocolIntegrationPage({
                           onClick={() => void importFile(file)}
                           style={buttonStyle(c.primary, c.surface)}
                         >
-                          Import
+                          {t.import}
                         </button>
                       )}
                     </Box>

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -16,6 +17,9 @@ import {
   Transaction,
   TransactionType,
 } from '../../entities';
+import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
+import { AuditService } from '../audit/audit.service';
+import type { CreateAuditEventDto } from '../audit/interfaces/audit-event.interface';
 import { ReceiptApprovedEvent } from '../notifications/events/notification-events';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
 import {
@@ -59,6 +63,7 @@ export class ReceiptsService {
     private readonly categoryRepository: Repository<Category>,
     private readonly receiptProcessor: ReceiptProcessorService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly auditService: AuditService,
   ) {}
 
   async createFromUpload(params: UploadParams): Promise<Receipt> {
@@ -81,11 +86,12 @@ export class ReceiptsService {
     );
     await this.receiptProcessor.processReceipt(job);
 
-    return (
+    const result =
       (await this.receiptRepository.findOne({
         where: { id: savedReceipt.id, workspaceId: params.workspaceId },
-      })) ?? savedReceipt
-    );
+      })) ?? savedReceipt;
+    await this.recordCreate(result, params.userId, params.workspaceId);
+    return result;
   }
 
   async createFromScan(params: ScanParams): Promise<Receipt> {
@@ -107,11 +113,12 @@ export class ReceiptsService {
     );
     await this.receiptProcessor.processReceipt(job);
 
-    return (
+    const result =
       (await this.receiptRepository.findOne({
         where: { id: savedReceipt.id, workspaceId: params.workspaceId },
-      })) ?? savedReceipt
-    );
+      })) ?? savedReceipt;
+    await this.recordCreate(result, params.userId, params.workspaceId);
+    return result;
   }
 
   async findAll(workspaceId: string, query: ReceiptQueryDto) {
@@ -156,11 +163,14 @@ export class ReceiptsService {
       parsedData?: Record<string, unknown>;
       statementId?: string | null;
     },
+    // Only a user's edit is audited; the scan linking its own statement passes none.
+    userId?: string,
   ) {
     const receipt = await this.receiptRepository.findOne({ where: { id, workspaceId } });
     if (!receipt) {
       return null;
     }
+    const before = this.changedFields(receipt, dto);
 
     if (dto.status) {
       receipt.status = dto.status;
@@ -179,6 +189,18 @@ export class ReceiptsService {
 
     const saved = await this.receiptRepository.save(receipt);
     await this.syncStatementCategory(saved, workspaceId);
+
+    if (userId) {
+      await this.recordAudit({
+        workspaceId,
+        actorType: ActorType.USER,
+        actorId: userId,
+        entityType: EntityType.RECEIPT,
+        entityId: saved.id,
+        action: AuditAction.UPDATE,
+        diff: { before, after: this.changedFields(saved, dto) },
+      });
+    }
 
     return saved;
   }
@@ -227,37 +249,86 @@ export class ReceiptsService {
     }
   }
 
-  async approve(id: string, workspaceId: string) {
-    const receipt = await this.receiptRepository.findOne({ where: { id, workspaceId } });
-    if (!receipt) {
+  async approve(id: string, workspaceId: string, userId: string) {
+    const result = await this.approveOnce(id, workspaceId, receipt =>
+      this.buildTransactionFromReceipt(receipt, workspaceId),
+    );
+    if (!result) {
       return null;
     }
-
-    const savedTransaction = await this.createTransactionFromReceipt(receipt, workspaceId);
-    receipt.status = ReceiptStatus.APPROVED;
-    receipt.transactionId = savedTransaction.id;
-    const savedReceipt = await this.receiptRepository.save(receipt);
-
-    this.eventEmitter
-      .emitAsync('receipt.approved', {
-        workspaceId: savedReceipt.workspaceId,
-        receiptId: savedReceipt.id,
-        transactionId: savedTransaction.id,
-      } satisfies ReceiptApprovedEvent)
-      .catch(err => this.logger.error('Failed to emit receipt.approved event', err));
-
-    return {
-      receipt: savedReceipt,
-      transaction: savedTransaction,
-    };
+    if (result.created) {
+      await this.recordAudit(this.approveEvent(result, userId, workspaceId));
+    }
+    return { receipt: result.receipt, transaction: result.transaction };
   }
 
-  async bulkApprove(receiptIds: string[], workspaceId: string, categoryId?: string) {
+  /**
+   * Turns a receipt into its transaction at most once. The receipt row is locked
+   * for the duration, so a repeated or concurrent approve finds the transaction
+   * the first one made and returns it instead of booking the expense twice.
+   * Every approve path (here and the Gmail receipts endpoints) goes through it;
+   * `buildTransaction` only decides the new transaction's fields.
+   */
+  async approveOnce(
+    receiptId: string,
+    workspaceId: string,
+    buildTransaction: (receipt: Receipt) => Partial<Transaction>,
+  ): Promise<{
+    receipt: Receipt;
+    transaction: Transaction;
+    created: boolean;
+    previousStatus: ReceiptStatus;
+  } | null> {
+    const result = await this.receiptRepository.manager.transaction(async manager => {
+      const receipts = manager.getRepository(Receipt);
+      const transactions = manager.getRepository(Transaction);
+      const receipt = await receipts.findOne({
+        where: { id: receiptId, workspaceId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!receipt) {
+        return null;
+      }
+      if (receipt.transactionId) {
+        const existing = await transactions.findOne({
+          where: { id: receipt.transactionId, workspaceId },
+        });
+        if (existing) {
+          return { receipt, transaction: existing, created: false, previousStatus: receipt.status };
+        }
+      }
+      const transaction = await transactions.save(transactions.create(buildTransaction(receipt)));
+      const previousStatus = receipt.status;
+      receipt.status = ReceiptStatus.APPROVED;
+      receipt.transactionId = transaction.id;
+      const saved = await receipts.save(receipt);
+      return { receipt: saved, transaction, created: true, previousStatus };
+    });
+
+    if (result?.created) {
+      this.eventEmitter
+        .emitAsync('receipt.approved', {
+          workspaceId: result.receipt.workspaceId,
+          receiptId: result.receipt.id,
+          transactionId: result.transaction.id,
+        } satisfies ReceiptApprovedEvent)
+        .catch(err => this.logger.error('Failed to emit receipt.approved event', err));
+    }
+    return result;
+  }
+
+  async bulkApprove(
+    receiptIds: string[],
+    workspaceId: string,
+    userId: string,
+    categoryId?: string,
+  ) {
     const results = {
       approved: 0,
       failed: 0,
       errors: [] as Array<{ receiptId: string; error: string }>,
     };
+    const auditEvents: CreateAuditEventDto[] = [];
 
     for (const receiptId of receiptIds) {
       try {
@@ -277,22 +348,18 @@ export class ReceiptsService {
           continue;
         }
 
-        const savedTransaction = await this.createTransactionFromReceipt(
-          receipt,
-          workspaceId,
-          categoryId,
+        const approved = await this.approveOnce(receiptId, workspaceId, locked =>
+          this.buildTransactionFromReceipt(locked, workspaceId, categoryId),
         );
-        receipt.status = ReceiptStatus.APPROVED;
-        receipt.transactionId = savedTransaction.id;
-        const savedReceipt = await this.receiptRepository.save(receipt);
-        this.eventEmitter
-          .emitAsync('receipt.approved', {
-            workspaceId: receipt.workspaceId,
-            receiptId: savedReceipt.id,
-            transactionId: savedTransaction.id,
-          } satisfies ReceiptApprovedEvent)
-          .catch(err => this.logger.error('Failed to emit receipt.approved event', err));
+        if (!approved) {
+          results.failed += 1;
+          results.errors.push({ receiptId, error: 'Receipt not found' });
+          continue;
+        }
         results.approved += 1;
+        if (approved.created) {
+          auditEvents.push(this.approveEvent(approved, userId, workspaceId));
+        }
       } catch (error) {
         results.failed += 1;
         results.errors.push({
@@ -302,11 +369,14 @@ export class ReceiptsService {
       }
     }
 
+    await this.recordBatchAudit(auditEvents);
+
     return results;
   }
 
-  async delete(id: string, workspaceId: string) {
+  async delete(id: string, workspaceId: string, userId: string) {
     const receipt = await this.receiptRepository.findOne({ where: { id, workspaceId } });
+    let statementDeleted = false;
 
     if (receipt?.statementId) {
       const statement = await this.statementRepository.findOne({
@@ -316,6 +386,7 @@ export class ReceiptsService {
       if (statement && !statement.deletedAt) {
         statement.deletedAt = new Date();
         await this.statementRepository.save(statement);
+        statementDeleted = true;
       }
     }
 
@@ -328,7 +399,100 @@ export class ReceiptsService {
     }
 
     await this.receiptRepository.delete({ id, workspaceId });
+
+    if (receipt) {
+      await this.recordAudit({
+        workspaceId,
+        actorType: ActorType.USER,
+        actorId: userId,
+        entityType: EntityType.RECEIPT,
+        entityId: receipt.id,
+        action: AuditAction.DELETE,
+        diff: { before: receiptAuditSnapshot(receipt), after: null },
+        meta: { statementId: receipt.statementId ?? null, statementDeleted },
+      });
+    }
     return { success: true };
+  }
+
+  private async recordCreate(receipt: Receipt, userId: string, workspaceId: string) {
+    await this.recordAudit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.RECEIPT,
+      entityId: receipt.id,
+      action: AuditAction.CREATE,
+      diff: { before: null, after: receiptAuditSnapshot(receipt) },
+      meta: { source: receipt.source, fileName: receipt.subject },
+    });
+  }
+
+  private approveEvent(
+    result: { receipt: Receipt; transaction: Transaction; previousStatus: ReceiptStatus },
+    userId: string,
+    workspaceId: string,
+  ): CreateAuditEventDto {
+    return {
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.RECEIPT,
+      entityId: result.receipt.id,
+      action: AuditAction.UPDATE,
+      diff: {
+        before: { status: result.previousStatus, transactionId: null },
+        after: { status: result.receipt.status, transactionId: result.transaction.id },
+      },
+      meta: { approved: true },
+    };
+  }
+
+  /** The fields an update touches, so the diff shows only what the user changed. */
+  private changedFields(
+    receipt: Receipt,
+    dto: {
+      status?: ReceiptStatus;
+      parsedData?: Record<string, unknown>;
+      statementId?: string | null;
+    },
+  ): Record<string, unknown> {
+    const fields: Record<string, unknown> = {};
+    if (dto.status) {
+      fields.status = receipt.status;
+    }
+    if (dto.statementId !== undefined) {
+      fields.statementId = receipt.statementId ?? null;
+    }
+    if (dto.parsedData) {
+      const parsed = (receipt.parsedData ?? {}) as Record<string, unknown>;
+      fields.parsedData = Object.fromEntries(
+        Object.keys(dto.parsedData).map(key => [key, parsed[key] ?? null]),
+      );
+    }
+    return fields;
+  }
+
+  private async recordBatchAudit(events: CreateAuditEventDto[]): Promise<void> {
+    if (events.length === 0) {
+      return;
+    }
+    try {
+      await this.auditService.createBatchEvents(events, randomUUID());
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Audit events failed for bulk receipt approval: ${message}`);
+    }
+  }
+
+  // An audit failure must never fail the user's operation.
+  private async recordAudit(event: CreateAuditEventDto): Promise<void> {
+    try {
+      await this.auditService.createEvent(event);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Audit event failed for receipt ${event.entityId}: ${message}`);
+    }
   }
 
   async getFilePayload(id: string, workspaceId: string) {
@@ -421,17 +585,17 @@ export class ReceiptsService {
     });
   }
 
-  private async createTransactionFromReceipt(
+  private buildTransactionFromReceipt(
     receipt: Receipt,
     workspaceId: string,
     categoryId?: string,
-  ) {
+  ): Partial<Transaction> {
     const transactionType =
       receipt.parsedData?.transactionType === 'income'
         ? TransactionType.INCOME
         : TransactionType.EXPENSE;
 
-    const transaction = this.transactionRepository.create({
+    return {
       statementId: null,
       workspaceId,
       transactionDate: receipt.parsedData?.date ? new Date(receipt.parsedData.date) : new Date(),
@@ -441,8 +605,22 @@ export class ReceiptsService {
       currency: receipt.parsedData?.currency || 'KZT',
       categoryId: categoryId ?? (receipt.parsedData?.categoryId || null),
       transactionType,
-    });
-
-    return this.transactionRepository.save(transaction);
+    };
   }
+}
+
+/** Plain fields of a receipt for the audit diff: no file paths, metadata or relations. */
+export function receiptAuditSnapshot(receipt: Receipt): Record<string, unknown> {
+  return {
+    source: receipt.source,
+    status: receipt.status,
+    subject: receipt.subject,
+    vendor: receipt.parsedData?.vendor ?? null,
+    amount: receipt.parsedData?.amount ?? null,
+    currency: receipt.parsedData?.currency ?? null,
+    date: receipt.parsedData?.date ?? null,
+    categoryId: receipt.parsedData?.categoryId ?? null,
+    statementId: receipt.statementId ?? null,
+    transactionId: receipt.transactionId ?? null,
+  };
 }

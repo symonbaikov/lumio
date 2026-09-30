@@ -13,7 +13,7 @@ export interface ReportTemplate {
   description: string;
   icon: LucideIcon;
   category: 'financial' | 'operational' | 'tax';
-  formats: Array<'pdf' | 'excel' | 'csv' | 'google-sheets'>;
+  formats: Array<'pdf' | 'excel' | 'csv'>;
 }
 
 interface ReportTemplateCardProps {

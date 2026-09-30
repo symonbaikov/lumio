@@ -6,7 +6,7 @@ import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
-import { Plus, Trash2 } from '@/app/components/icons';
+import { Trash2 } from '@/app/components/icons';
 import { useIntlayer } from '@/app/i18n';
 import { formatMoney } from '@/app/lib/format-money';
 import type { GoalItem, GoalItemsResponse } from '@/app/lib/goals-api';
@@ -52,7 +52,7 @@ export function GoalItemsCard({
         <Typography variant="subtitle1" fontWeight={600}>
           {t.itemsTitle}
         </Typography>
-        <Button size="small" startIcon={<Plus size={16} />} onClick={onAdd}>
+        <Button size="small" onClick={onAdd}>
           {t.itemsAdd}
         </Button>
       </Box>

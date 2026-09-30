@@ -40,6 +40,16 @@ export enum EntityType {
   SUBSCRIPTION = 'subscription',
   LEDGER_ACCOUNT = 'ledger_account',
   JOURNAL_ENTRY = 'journal_entry',
+  GOAL = 'goal',
+  CRYPTO_WALLET = 'crypto_wallet',
+  TAX_RATE = 'tax_rate',
+  TAX_RULE = 'tax_rule',
+  TAX_RETURN = 'tax_return',
+  WORKSPACE_MEMBER = 'workspace_member',
+  API_KEY = 'api_key',
+  WEBHOOK = 'webhook',
+  BACKUP = 'backup',
+  USER = 'user',
 }
 
 export enum AuditAction {
@@ -90,8 +100,6 @@ export interface AuditEventMeta {
   provider?: string;
   fileId?: string;
   rowsCount?: number;
-  sheetId?: string;
-  spreadsheetId?: string;
   cell?: {
     row?: number;
     column?: string;

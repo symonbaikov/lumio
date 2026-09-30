@@ -18,7 +18,7 @@ function SidebarContent() {
   const { hasPermission } = usePermissions();
   const { loading: authLoading } = useAuth();
   const { loading: workspaceLoading } = useWorkspace();
-  const { nav, supportProject } = useIntlayer('navigation');
+  const { nav, supportProject, shell, userMenu } = useIntlayer('navigation');
 
   const isLoading = authLoading || workspaceLoading;
   const navItems = buildNavItems(nav as Parameters<typeof buildNavItems>[0]);
@@ -30,13 +30,13 @@ function SidebarContent() {
   return (
     <>
       {/* Brand */}
-      <Link href="/" className="lumio-sidebar__brand" aria-label="Lumio home">
+      <Link href="/" className="lumio-sidebar__brand" aria-label={shell.home.value}>
         <div className="lumio-sidebar__brand-mark" />
       </Link>
 
       {/* Navigation */}
-      <nav className="lumio-sidebar__nav" aria-label="Main navigation">
-        <div className="lumio-sidebar__section-label">Workspace</div>
+      <nav className="lumio-sidebar__nav" aria-label={shell.mainNavigation.value}>
+        <div className="lumio-sidebar__section-label">{userMenu.workspace}</div>
         {isLoading
           ? NAV_ITEM_SKELETON_KEYS.map(key => (
               <div className="lumio-sidebar__nav-item" key={key}>

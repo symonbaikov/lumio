@@ -195,7 +195,6 @@ describe('StatementsListView utils', () => {
   it('derives visible filter screens from currently visible columns', () => {
     const result = deriveVisibleFilterScreens([
       { id: 'receipt', visible: true },
-      { id: 'date', visible: true },
       { id: 'amount', visible: true },
       { id: 'approved', visible: false },
     ]);
@@ -216,7 +215,6 @@ describe('StatementsListView utils', () => {
     const result = reconcileFiltersWithColumns({
       columns: [
         { id: 'receipt', label: 'Receipt', visible: true, order: 0 },
-        { id: 'date', label: 'Date', visible: true, order: 1 },
         { id: 'amount', label: 'Amount', visible: false, order: 2 },
         { id: 'approved', label: 'Approved', visible: false, order: 3 },
       ],

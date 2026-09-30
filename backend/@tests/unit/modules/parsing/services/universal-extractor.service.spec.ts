@@ -59,6 +59,50 @@ describe('UniversalExtractorService', () => {
       expect(result.vendor).toBeTruthy();
     });
 
+    it('skips a page-number line when picking the vendor', async () => {
+      const text = '1 / 4\nWise ILS LTD\n121 Menachem Begin Street\nTotal: 8,36 EUR';
+      const result = await service.extractFromText(text);
+
+      expect(result.vendor).toBe('Wise ILS LTD');
+    });
+
+    it.each([
+      'DESCRIPTION PRICE DURATION QTY AMOUNT',
+      'DESCRIPTIONPRICEDURATIONQTYAMOUNT',
+    ])('skips the column-header line "%s" when picking the vendor', async header => {
+      const text = `${header}\nSpaceship Inc\nFinal cost $9.08`;
+      const result = await service.extractFromText(text);
+
+      expect(result.vendor).toBe('Spaceship Inc');
+    });
+
+    it('keeps an uppercase merchant name as the vendor', async () => {
+      const text = 'AMAZON EU SARL\n12.09.2026\nTotal: 23,99 EUR';
+      const result = await service.extractFromText(text);
+
+      expect(result.vendor).toBe('AMAZON EU SARL');
+      expect(result.totalAmount).toBe(23.99);
+    });
+
+    it('prefers a Cyrillic total line over a larger glued table number', async () => {
+      // pdf-parse glues the "times used / times charged / fee" columns: "1", "0", "0 EUR" -> "100 EUR".
+      const text = [
+        '1 / 4',
+        'Wise ILS LTD',
+        'Выписка по комиссиям',
+        'Комиссия за пополнение11',
+        '8,36 ',
+        'EUR',
+        'Комиссия за перемещение100 EUR',
+        'Комиссия за снятие наличных в банкомате000 EUR',
+        'Общая сумма заплаченных комиссий8,36 EUR',
+      ].join('\n');
+      const result = await service.extractFromText(text);
+
+      expect(result.totalAmount).toBe(8.36);
+      expect(result.currency).toBe('EUR');
+    });
+
     it('extracts the store address from a CIS receipt header', async () => {
       const text = 'ТОО Magnum\nг. Алматы, ул. Абая 10\nМолоко 450\nИТОГО 450';
       const result = await service.extractFromText(text);

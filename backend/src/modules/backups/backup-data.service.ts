@@ -12,8 +12,6 @@ const EXCLUDED_TABLES = new Set([
   'backup_configurations',
   'backup_runs',
   'gmail_watch_subscriptions',
-  'google_sheets',
-  'google_sheets_credentials',
   'idempotency_keys',
   'import_sessions',
   'integration_tokens',
@@ -143,12 +141,6 @@ export class BackupDataService {
       'custom_table_cell_styles',
       'rowId',
       this.ids(collections.custom_table_rows),
-      collections,
-    );
-    await this.collectByReference(
-      'google_sheet_rows',
-      'googleSheetId',
-      this.ids(collections.google_sheets),
       collections,
     );
     await this.collectByReference(

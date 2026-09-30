@@ -4,17 +4,18 @@ import { Box, Checkbox, FormControlLabel, TextField, Typography } from '@mui/mat
 import { alpha } from '@mui/material/styles';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { Copy, Plus, Trash2 } from '@/app/components/icons';
+import { Copy, Trash2 } from '@/app/components/icons';
 import { PanelBackTitle } from '@/app/components/panels/panel-ui';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import { useWebhookEndpoints, useWebhookSubscriptions } from './useWebhooks';
 
 const EVENTS = [
-  { value: 'transaction.created', label: 'Transaction Created' },
-  { value: 'statement.processed', label: 'Statement Processed' },
-  { value: 'receipt.approved', label: 'Receipt Approved' },
-];
+  { value: 'transaction.created', labelKey: 'transactionCreated' },
+  { value: 'statement.processed', labelKey: 'statementProcessed' },
+  { value: 'receipt.approved', labelKey: 'receiptApproved' },
+] as const;
 
 interface WebhooksDrawerProps {
   isOpen: boolean;
@@ -58,6 +59,7 @@ const actionBtnStyle = (variant: 'danger' | 'default' | 'primary') => ({
 });
 
 export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDrawerProps) {
+  const t = useIntlayer('webhooksDrawer');
   const [activeTab, setActiveTab] = useState<'inbound' | 'outbound'>('inbound');
 
   const {
@@ -113,7 +115,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
   };
 
   const handleCopyToken = (token: string) => {
-    void navigator.clipboard.writeText(token).then(() => toast.success('Token copied'));
+    void navigator.clipboard.writeText(token).then(() => toast.success(t.toasts.tokenCopied.value));
   };
 
   const toggleEvent = (value: string) => {
@@ -124,7 +126,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
     <DrawerShell
       isOpen={isOpen}
       onClose={onClose}
-      title={onBack ? <PanelBackTitle title="Webhooks" onBack={onBack} /> : 'Webhooks'}
+      title={onBack ? <PanelBackTitle title={t.title} onBack={onBack} /> : t.title}
       position="right"
       width="lg"
       zIndex={zIndex}
@@ -146,14 +148,14 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
             style={tabBtnStyle(activeTab === 'inbound')}
             onClick={() => setActiveTab('inbound')}
           >
-            Inbound
+            {t.inbound}
           </button>
           <button
             type="button"
             style={tabBtnStyle(activeTab === 'outbound')}
             onClick={() => setActiveTab('outbound')}
           >
-            Outbound
+            {t.outbound}
           </button>
         </Box>
 
@@ -161,7 +163,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
         {activeTab === 'inbound' && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, overflow: 'auto' }}>
             <Typography sx={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              Inbound endpoints receive data from external tools via a unique URL and token.
+              {t.inboundHint}
             </Typography>
 
             {/* New token banner */}
@@ -175,7 +177,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
                 })}
               >
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'success.main', mb: 1 }}>
-                  Copy this token — it won&apos;t be shown again
+                  {t.tokenOnce}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography
@@ -201,7 +203,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
                     style={actionBtnStyle('default')}
                     onClick={() => setNewToken(null)}
                   >
-                    Dismiss
+                    {t.dismiss}
                   </button>
                 </Box>
               </Box>
@@ -210,11 +212,11 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
             {/* Endpoint list */}
             {endpointsLoading ? (
               <Typography sx={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                Loading...
+                {t.loading}
               </Typography>
             ) : endpoints.length === 0 && !showEndpointForm ? (
               <Typography sx={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                No endpoints yet.
+                {t.noEndpoints}
               </Typography>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -262,7 +264,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
                       })}
                       onClick={() => void toggleEndpoint(ep.id, ep.isActive)}
                     >
-                      {ep.isActive ? 'Active' : 'Paused'}
+                      {ep.isActive ? t.active : t.paused}
                     </Box>
                     <button
                       type="button"
@@ -290,7 +292,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
               >
                 <TextField
                   size="small"
-                  label="Endpoint name"
+                  label={t.endpointName}
                   value={endpointName}
                   onChange={e => setEndpointName(e.target.value)}
                   onKeyDown={e => {
@@ -304,7 +306,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
                     style={actionBtnStyle('primary')}
                     onClick={() => void handleCreateEndpoint()}
                   >
-                    Create
+                    {t.create}
                   </button>
                   <button
                     type="button"
@@ -314,7 +316,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
                       setEndpointName('');
                     }}
                   >
-                    Cancel
+                    {t.cancel}
                   </button>
                 </Box>
               </Box>
@@ -330,7 +332,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
                 }}
                 onClick={() => setShowEndpointForm(true)}
               >
-                <Plus size={14} /> New Endpoint
+                {t.newEndpoint}
               </button>
             )}
           </Box>
@@ -340,17 +342,17 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
         {activeTab === 'outbound' && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, overflow: 'auto' }}>
             <Typography sx={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              Outbound subscriptions deliver event notifications to your external URLs.
+              {t.outboundHint}
             </Typography>
 
             {/* Subscription list */}
             {subsLoading ? (
               <Typography sx={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                Loading...
+                {t.loading}
               </Typography>
             ) : subscriptions.length === 0 && !showSubForm ? (
               <Typography sx={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                No subscriptions yet.
+                {t.noSubscriptions}
               </Typography>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -391,7 +393,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
                         style={actionBtnStyle('default')}
                         onClick={() => void testPing(sub.id)}
                       >
-                        Test
+                        {t.test}
                       </button>
                       <button
                         type="button"
@@ -438,7 +440,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
               >
                 <TextField
                   size="small"
-                  label="Name"
+                  label={t.name}
                   value={subName}
                   onChange={e => setSubName(e.target.value)}
                 />
@@ -451,21 +453,17 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
                 />
                 <TextField
                   size="small"
-                  label="Secret (min 16 chars)"
+                  label={t.secret}
                   value={subSecret}
                   onChange={e => setSubSecret(e.target.value)}
                   error={subSecret.length > 0 && subSecret.length < 16}
-                  helperText={
-                    subSecret.length > 0 && subSecret.length < 16
-                      ? 'Secret must be at least 16 characters'
-                      : ''
-                  }
+                  helperText={subSecret.length > 0 && subSecret.length < 16 ? t.secretTooShort : ''}
                 />
                 <Box>
                   <Typography
                     sx={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', mb: 0.5 }}
                   >
-                    Events
+                    {t.eventsLabel}
                   </Typography>
                   {EVENTS.map(evt => (
                     <FormControlLabel
@@ -477,7 +475,9 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
                           onChange={() => toggleEvent(evt.value)}
                         />
                       }
-                      label={<Typography sx={{ fontSize: 13 }}>{evt.label}</Typography>}
+                      label={
+                        <Typography sx={{ fontSize: 13 }}>{t.events[evt.labelKey]}</Typography>
+                      }
                     />
                   ))}
                 </Box>
@@ -492,7 +492,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
                       subEvents.length === 0
                     }
                   >
-                    Create
+                    {t.create}
                   </button>
                   <button
                     type="button"
@@ -505,7 +505,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
                       setSubEvents([]);
                     }}
                   >
-                    Cancel
+                    {t.cancel}
                   </button>
                 </Box>
               </Box>
@@ -521,7 +521,7 @@ export function WebhooksDrawer({ isOpen, onClose, onBack, zIndex }: WebhooksDraw
                 }}
                 onClick={() => setShowSubForm(true)}
               >
-                <Plus size={14} /> New Subscription
+                {t.newSubscription}
               </button>
             )}
           </Box>

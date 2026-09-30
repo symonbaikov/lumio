@@ -9,6 +9,7 @@ import { closeOnBackdropClick } from '@/app/components/ui/backdrop-click';
 import { LazyECharts } from '@/app/components/ui/lazy-echarts';
 import { Select } from '@/app/components/ui/select';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { queryKeys } from '@/app/lib/query-keys';
 import { tokens } from '@/lib/theme-tokens';
@@ -29,6 +30,8 @@ import {
 
 export default function TablesReportsView() {
   const { resolvedTheme } = useTheme();
+  const reportsT = useIntlayer('statementsTablesReports');
+  const manualLabel = reportsT.sourceManual.value;
   const workspaceId = useWorkspaceId();
   const [availableTables, setAvailableTables] = useState<AvailableTable[]>([]);
   const [searchInput, setSearchInput] = useState('');
@@ -200,14 +203,11 @@ export default function TablesReportsView() {
       series: [
         {
           type: 'pie',
-          data: [
-            { value: report.sourceSplit.manual, name: 'Manual' },
-            { value: report.sourceSplit.googleSheets, name: 'Google Sheets' },
-          ],
+          data: [{ value: report.sourceSplit.manual, name: manualLabel }],
         },
       ],
     };
-  }, [report]);
+  }, [report, manualLabel]);
 
   const aggregatedRows = report?.aggregatedRows;
   const topRowsBarOption = useMemo(() => {
@@ -262,7 +262,11 @@ export default function TablesReportsView() {
       className="container-shared"
       style={{
         display: 'flex',
-        height: 'calc(100vh - var(--global-nav-height,0px))',
+        // The parent layout wrapper already caps height to 100vh - nav on
+        // /statements/* routes; recomputing it here made this box taller
+        // than the parent whenever a sibling (e.g. AlertBanner) also took
+        // up space.
+        height: '100%',
         minHeight: 0,
         flexDirection: 'column',
         overflow: 'hidden',
@@ -272,10 +276,8 @@ export default function TablesReportsView() {
       <div style={{ marginBottom: 20, flexShrink: 0 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 600, color: c.ink900 }}>Tables reports</h1>
-            <p style={{ fontSize: 14, color: c.ink500 }}>
-              Aggregated insights from your custom tables
-            </p>
+            <h1 style={{ fontSize: 24, fontWeight: 600, color: c.ink900 }}>{reportsT.title}</h1>
+            <p style={{ fontSize: 14, color: c.ink500 }}>{reportsT.subtitle}</p>
           </div>
           <div
             style={{
@@ -303,7 +305,7 @@ export default function TablesReportsView() {
                 boxShadow: activeFlowType === 'all' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
               }}
             >
-              All
+              {reportsT.flowAll}
             </button>
             <button
               type="button"
@@ -320,7 +322,7 @@ export default function TablesReportsView() {
                 boxShadow: activeFlowType === 'expense' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
               }}
             >
-              Expenses
+              {reportsT.flowExpenses}
             </button>
             <button
               type="button"
@@ -337,7 +339,7 @@ export default function TablesReportsView() {
                 boxShadow: activeFlowType === 'income' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
               }}
             >
-              Income
+              {reportsT.flowIncome}
             </button>
           </div>
         </div>
@@ -347,7 +349,7 @@ export default function TablesReportsView() {
             type="search"
             value={searchInput}
             onChange={event => setSearchInput(event.target.value)}
-            placeholder="Search counterparties, categories, tables..."
+            placeholder={reportsT.searchPlaceholder.value}
             style={{
               width: '100%',
               border: `1px solid ${c.ink150}`,
@@ -364,7 +366,7 @@ export default function TablesReportsView() {
               onClick={() => setTableDropdownOpen(open => !open)}
               style={subtlePanelStyle}
             >
-              Tables
+              {reportsT.tables}
               {selectedTablesCount > 0 ? ` (${selectedTablesCount})` : ''}
             </button>
 
@@ -399,7 +401,7 @@ export default function TablesReportsView() {
                     borderRadius: tokens.radius.sm,
                   }}
                 >
-                  All tables
+                  {reportsT.allTables}
                 </button>
                 {availableTables.map(table => {
                   const checked = selectedTableIds.includes(table.id);
@@ -419,7 +421,7 @@ export default function TablesReportsView() {
                     >
                       <input
                         type="checkbox"
-                        aria-label={`Select table ${table.name}`}
+                        aria-label={reportsT.selectTable.value.replace('{name}', table.name)}
                         checked={checked}
                         onChange={() =>
                           setSelectedTableIds(current =>
@@ -440,7 +442,7 @@ export default function TablesReportsView() {
                         {table.name}
                       </span>
                       <span style={{ fontSize: 12, color: c.ink400 }}>
-                        {getSourceLabel(table.source)}
+                        {getSourceLabel(table.source, manualLabel)}
                       </span>
                     </label>
                   );
@@ -452,11 +454,11 @@ export default function TablesReportsView() {
             value={selectedDays}
             onChange={value => setSelectedDays(Number(value))}
             options={[
-              { value: 7, label: 'Last 7 days' },
-              { value: 30, label: 'Last 30 days' },
-              { value: 90, label: 'Last 90 days' },
-              { value: 365, label: 'Last 365 days' },
-              { value: -1, label: 'Year to date' },
+              { value: 7, label: reportsT.last7Days.value },
+              { value: 30, label: reportsT.last30Days.value },
+              { value: 90, label: reportsT.last90Days.value },
+              { value: 365, label: reportsT.last365Days.value },
+              { value: -1, label: reportsT.yearToDate.value },
             ]}
             sx={{ backgroundColor: 'var(--card-bg)', color: c.ink800 }}
           />
@@ -497,7 +499,7 @@ export default function TablesReportsView() {
                 fontSize: 12,
               }}
             >
-              {table.name} · {getSourceLabel(table.source)}
+              {table.name} · {getSourceLabel(table.source, manualLabel)}
             </button>
           ))}
         </div>
@@ -506,7 +508,7 @@ export default function TablesReportsView() {
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {reportQuery.isPending ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-            {['total', 'manual', 'googleSheets', 'operations'].map(key => (
+            {['total', 'manual', 'operations'].map(key => (
               <div key={key} style={panelStyle}>
                 <Skeleton variant="text" width="40%" height={16} />
                 <Skeleton variant="rounded" width="60%" height={24} style={{ marginTop: 4 }} />
@@ -514,9 +516,7 @@ export default function TablesReportsView() {
             ))}
           </div>
         ) : !report || report.totals.operations === 0 ? (
-          <div style={{ padding: '40px 0', fontSize: 14, color: c.ink500 }}>
-            No data found for the selected period.
-          </div>
+          <div style={{ padding: '40px 0', fontSize: 14, color: c.ink500 }}>{reportsT.noData}</div>
         ) : (
           // Смена фильтра перезагружает отчёт в фоне: цифры и графики не гаснут.
           <div
@@ -527,7 +527,7 @@ export default function TablesReportsView() {
           >
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
               <div style={panelStyle}>
-                <div style={{ fontSize: 12, color: c.ink500 }}>Total</div>
+                <div style={{ fontSize: 12, color: c.ink500 }}>{reportsT.total}</div>
                 <div style={{ marginTop: 4, fontSize: 20, fontWeight: 600, color: c.ink900 }}>
                   {formatAmount(report.totals.total)}
                 </div>
@@ -547,19 +547,13 @@ export default function TablesReportsView() {
                 </div>
               </div>
               <div style={panelStyle}>
-                <div style={{ fontSize: 12, color: c.ink500 }}>Manual tables</div>
+                <div style={{ fontSize: 12, color: c.ink500 }}>{reportsT.manualTables}</div>
                 <div style={{ marginTop: 4, fontSize: 20, fontWeight: 600, color: c.ink900 }}>
                   {formatAmount(report.totals.manualTotal)}
                 </div>
               </div>
               <div style={panelStyle}>
-                <div style={{ fontSize: 12, color: c.ink500 }}>Google Sheets</div>
-                <div style={{ marginTop: 4, fontSize: 20, fontWeight: 600, color: c.ink900 }}>
-                  {formatAmount(report.totals.googleSheetsTotal)}
-                </div>
-              </div>
-              <div style={panelStyle}>
-                <div style={{ fontSize: 12, color: c.ink500 }}>Operations</div>
+                <div style={{ fontSize: 12, color: c.ink500 }}>{reportsT.operations}</div>
                 <div style={{ marginTop: 4, fontSize: 20, fontWeight: 600, color: c.ink900 }}>
                   {report.totals.operations}
                 </div>
@@ -569,7 +563,7 @@ export default function TablesReportsView() {
             <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
               <div style={{ ...panelStyle, gridColumn: 'span 2' }}>
                 <div style={{ marginBottom: 12, fontSize: 14, fontWeight: 500, color: c.ink800 }}>
-                  Trend
+                  {reportsT.trend}
                 </div>
                 {trendChartOption ? (
                   <LazyECharts
@@ -581,7 +575,7 @@ export default function TablesReportsView() {
               </div>
               <div style={panelStyle}>
                 <div style={{ marginBottom: 12, fontSize: 14, fontWeight: 500, color: c.ink800 }}>
-                  Source split
+                  {reportsT.sourceSplit}
                 </div>
                 {sourceSplitOption ? (
                   <LazyECharts
@@ -596,7 +590,7 @@ export default function TablesReportsView() {
             {topRowsBarOption ? (
               <div style={{ marginTop: 24, ...panelStyle }}>
                 <div style={{ marginBottom: 12, fontSize: 14, fontWeight: 500, color: c.ink800 }}>
-                  Top counterparties
+                  {reportsT.topCounterparties}
                 </div>
                 <LazyECharts option={topRowsBarOption} style={{ height: 320 }} theme={chartTheme} />
               </div>
@@ -619,7 +613,11 @@ export default function TablesReportsView() {
                     cursor: 'pointer',
                   }}
                 >
-                  {key === 'amount' ? 'Amount' : key === 'average' ? 'Average' : 'Operations'}
+                  {key === 'amount'
+                    ? reportsT.amount
+                    : key === 'average'
+                      ? reportsT.average
+                      : reportsT.operations}
                 </button>
               ))}
             </div>
@@ -627,7 +625,9 @@ export default function TablesReportsView() {
             <div
               style={{
                 marginTop: 16,
-                overflow: 'hidden',
+                // Seven columns do not fit a phone: `hidden` cut the last four
+                // off with no way to reach them, so the wrapper scrolls instead.
+                overflowX: 'auto',
                 border: `1px solid ${c.ink150}`,
                 background: 'var(--card-bg)',
                 borderRadius: tokens.radius.lg,
@@ -643,13 +643,17 @@ export default function TablesReportsView() {
                       color: c.ink500,
                     }}
                   >
-                    <th style={{ padding: '12px 16px' }}>Counterparty</th>
-                    <th style={{ padding: '12px 16px' }}>Source</th>
-                    <th style={{ padding: '12px 16px' }}>Table</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>Operations</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>Average</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>Amount</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>Last operation</th>
+                    <th style={{ padding: '12px 16px' }}>{reportsT.counterparty}</th>
+                    <th style={{ padding: '12px 16px' }}>{reportsT.source}</th>
+                    <th style={{ padding: '12px 16px' }}>{reportsT.table}</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      {reportsT.operations}
+                    </th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>{reportsT.average}</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>{reportsT.amount}</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      {reportsT.lastOperation}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -678,20 +682,14 @@ export default function TablesReportsView() {
                           style={{
                             display: 'inline-flex',
                             borderRadius: tokens.radius.sm,
-                            background:
-                              row.source === 'google_sheets_import'
-                                ? 'var(--color-success-soft-bg)'
-                                : c.ink50,
+                            background: c.ink50,
                             padding: '2px 8px',
                             fontSize: 12,
                             fontWeight: 500,
-                            color:
-                              row.source === 'google_sheets_import'
-                                ? 'var(--color-success-soft-text)'
-                                : c.ink700,
+                            color: c.ink700,
                           }}
                         >
-                          {getSourceLabel(row.source)}
+                          {getSourceLabel(row.source, manualLabel)}
                         </span>
                       </td>
                       <td style={{ padding: '12px 16px', color: c.ink500 }}>{row.tableName}</td>
@@ -769,7 +767,10 @@ export default function TablesReportsView() {
                       id="tables-reports-drilldown-title"
                       style={{ fontSize: 18, fontWeight: 600, color: c.ink900 }}
                     >
-                      {`${drillDown?.counterparty || selectedCounterparty} — Drill-down`}
+                      {reportsT.drillDownTitle.value.replace(
+                        '{counterparty}',
+                        drillDown?.counterparty || selectedCounterparty || '',
+                      )}
                     </h2>
                     <button
                       type="button"
@@ -782,7 +783,7 @@ export default function TablesReportsView() {
                         fontSize: 14,
                       }}
                     >
-                      Close
+                      {reportsT.close}
                     </button>
                   </div>
 
@@ -798,11 +799,13 @@ export default function TablesReportsView() {
                               color: c.ink500,
                             }}
                           >
-                            <th style={{ padding: '12px 16px' }}>Date</th>
-                            <th style={{ padding: '12px 16px' }}>Source</th>
-                            <th style={{ padding: '12px 16px' }}>Table</th>
-                            <th style={{ padding: '12px 16px' }}>Category</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>Amount</th>
+                            <th style={{ padding: '12px 16px' }}>{reportsT.date}</th>
+                            <th style={{ padding: '12px 16px' }}>{reportsT.source}</th>
+                            <th style={{ padding: '12px 16px' }}>{reportsT.table}</th>
+                            <th style={{ padding: '12px 16px' }}>{reportsT.category}</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>
+                              {reportsT.amount}
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -817,20 +820,14 @@ export default function TablesReportsView() {
                                   style={{
                                     display: 'inline-flex',
                                     borderRadius: tokens.radius.sm,
-                                    background:
-                                      item.source === 'google_sheets_import'
-                                        ? 'var(--color-success-soft-bg)'
-                                        : c.ink50,
+                                    background: c.ink50,
                                     padding: '2px 8px',
                                     fontSize: 12,
                                     fontWeight: 500,
-                                    color:
-                                      item.source === 'google_sheets_import'
-                                        ? 'var(--color-success-soft-text)'
-                                        : c.ink700,
+                                    color: c.ink700,
                                   }}
                                 >
-                                  {getSourceLabel(item.source)}
+                                  {getSourceLabel(item.source, manualLabel)}
                                 </span>
                               </td>
                               <td style={{ padding: '12px 16px' }}>{item.tableName}</td>
@@ -844,7 +841,7 @@ export default function TablesReportsView() {
                       </table>
                     ) : (
                       <div style={{ padding: '32px 24px', fontSize: 14, color: c.ink500 }}>
-                        No records found
+                        {reportsT.noRecords}
                       </div>
                     )}
                   </div>

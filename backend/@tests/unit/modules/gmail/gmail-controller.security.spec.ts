@@ -17,7 +17,7 @@ describe('GmailController security metadata', () => {
     ['getReceiptThumbnail', Permission.STATEMENT_VIEW],
     ['getReceiptFile', Permission.STATEMENT_VIEW],
     ['getReceiptPreview', Permission.STATEMENT_VIEW],
-    ['exportToSheets', Permission.STATEMENT_VIEW],
+    ['exportToXlsx', Permission.STATEMENT_VIEW],
     ['updateReceipt', Permission.STATEMENT_EDIT],
     ['approveReceipt', Permission.STATEMENT_EDIT],
     ['updateParsedData', Permission.STATEMENT_EDIT],

@@ -25,8 +25,11 @@ function TransactionTabSkeleton(): React.JSX.Element {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
-        <Skeleton variant="rounded" width={120} height={32} />
-        <Skeleton variant="rounded" width={140} height={32} />
+        <Skeleton variant="rounded" width={448} height={38} sx={{ maxWidth: '100%' }} />
+        <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+          <Skeleton variant="rounded" width={200} height={32} />
+          <Skeleton variant="rounded" width={96} height={38} />
+        </Box>
       </Box>
       <Box className="lumio-tx-table__thead" sx={{ display: 'flex', gap: 2, px: 2, py: 1 }}>
         <Skeleton variant="rounded" width={16} height={16} />
@@ -170,16 +173,6 @@ export function TransactionTab() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Currency Controls */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
-        <CurrencyDisplayToggle />
-        <CurrencyFilterDropdown
-          currencies={availableCurrencies}
-          value={currencyFilter}
-          onChange={setCurrencyFilter}
-        />
-      </Box>
-
       {/* Bulk Actions Toolbar */}
       {selectedIds.length > 0 && (
         <Box
@@ -279,6 +272,16 @@ export function TransactionTab() {
         onUpdateCategory={handleSingleUpdateCategory}
         filters={filters}
         onFilterChange={setFilters}
+        toolbarExtra={
+          <>
+            <CurrencyDisplayToggle />
+            <CurrencyFilterDropdown
+              currencies={availableCurrencies}
+              value={currencyFilter}
+              onChange={setCurrencyFilter}
+            />
+          </>
+        }
       />
 
       {/* Details Drawer */}

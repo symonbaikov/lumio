@@ -130,9 +130,11 @@ export function GmailSection({
             <Image src="/icons/gmail.png" alt="Gmail" width={20} height={20} />
           </Box>
           <Box>
-            <Typography style={{ fontSize: 14, color: c.ink500 }}>Gmail Receipts</Typography>
+            <Typography style={{ fontSize: 14, color: c.ink500 }}>
+              {tx(['gmail', 'title'], 'Gmail Receipts')}
+            </Typography>
             <Typography style={{ fontWeight: 600, color: c.ink900 }}>
-              Auto-imported receipts from Gmail
+              {tx(['gmail', 'subtitle'], 'Auto-imported receipts from Gmail')}
             </Typography>
           </Box>
         </Box>

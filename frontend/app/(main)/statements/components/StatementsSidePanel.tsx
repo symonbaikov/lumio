@@ -22,7 +22,11 @@ import {
   type CloudImportProvider,
   type ConnectedCloudProviders,
 } from '@/app/lib/statement-upload-actions';
-import { countStatementStages, getStatementStageMap } from '@/app/lib/statement-workflow';
+import {
+  countStatementStages,
+  migrateLocalStatementStages,
+  type StatementStage,
+} from '@/app/lib/statement-workflow';
 import StatementsCircularUploadMenu from './StatementsCircularUploadMenu';
 import { buildUnapprovedStatementQueue } from './unapproved-cash-utils';
 
@@ -53,6 +57,7 @@ type StatementListItem = {
   totalDebit?: number | string | null;
   totalCredit?: number | string | null;
   status?: string | null;
+  stage?: StatementStage | null;
   errorMessage?: string | null;
   fileType?: string | null;
   parsingDetails?: {
@@ -137,13 +142,10 @@ type SidePanelData = {
 };
 
 async function loadSidePanelData(): Promise<SidePanelData> {
+  await migrateLocalStatementStages();
   const allStatements = await fetchAllPaginated<StatementListItem>('/statements');
 
-  const statementIds = allStatements
-    .map(statement => statement.id)
-    .filter((id): id is string => Boolean(id));
-
-  const stageCounts = countStatementStages(statementIds, getStatementStageMap());
+  const stageCounts = countStatementStages(allStatements);
   const topBankSenders = getTopBankSenders(allStatements, 5);
 
   const topMerchantsItems = await fetchAllPaginated<TransactionListItem>('/transactions');
@@ -181,6 +183,7 @@ async function loadSidePanelData(): Promise<SidePanelData> {
 export function useStatementsSidePanelConfig(activeItem?: ActiveItem): SidePanelPageConfig {
   const router = useRouter();
   const t = useIntlayer('statementsPage');
+  const tSync = useIntlayer('statementsSidePanelSync');
   const tx = useCallback(
     (path: string[], fallback: string) => resolveLabel(getNestedValue(t, path), fallback),
     [t],
@@ -358,18 +361,20 @@ export function useStatementsSidePanelConfig(activeItem?: ActiveItem): SidePanel
       await (async () => {
         await apiClient.post(endpoint);
         toast.success(
-          provider === 'dropbox' ? 'Dropbox import started' : 'Google Drive import started',
+          provider === 'dropbox'
+            ? tSync.dropboxImportStarted.value
+            : tSync.googleDriveImportStarted.value,
         );
         navigateToSubmit();
       })().catch(async () => {
         toast.error(
           provider === 'dropbox'
-            ? 'Failed to import from Dropbox'
-            : 'Failed to import from Google Drive',
+            ? tSync.dropboxImportFailed.value
+            : tSync.googleDriveImportFailed.value,
         );
       });
     },
-    [navigateToSubmit, router],
+    [navigateToSubmit, router, tSync],
   );
 
   const handleGmailClick = useCallback(() => {
@@ -381,27 +386,31 @@ export function useStatementsSidePanelConfig(activeItem?: ActiveItem): SidePanel
           const imported = Number(response.data?.imported ?? 0);
 
           if (imported > 0) {
-            toast.success(`Inbox sync imported ${imported} receipt${imported === 1 ? '' : 's'}`);
+            toast.success(
+              imported === 1
+                ? tSync.inboxImportedOne.value
+                : tSync.inboxImportedMany.value.replace('{count}', String(imported)),
+            );
             navigateToSubmit();
             return;
           }
 
           if (scanned === 0) {
-            toast.error('No unread emails found in IMAP inbox');
+            toast.error(tSync.noUnreadEmails.value);
             return;
           }
 
-          toast.error('No new receipt attachments found in IMAP inbox');
+          toast.error(tSync.noNewAttachments.value);
           navigateToSubmit();
         })
         .catch(() => {
-          toast.error('Failed to sync inbox');
+          toast.error(tSync.syncInboxFailed.value);
         });
       return;
     }
 
     openAppPanel('integrations', 'imap');
-  }, [connectedCloudProviders.gmailConnected, navigateToSubmit]);
+  }, [connectedCloudProviders.gmailConnected, navigateToSubmit, tSync]);
 
   const sidePanelConfig = useMemo<SidePanelPageConfig>(() => {
     const workQueueTitle = tx(

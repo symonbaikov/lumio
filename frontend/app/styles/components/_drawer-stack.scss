@@ -1,0 +1,19 @@
+// A sidebar opened on top of another sidebar or a dialog hides the one beneath it
+// (see `useHideOverlaysBelow` in drawer-shell.tsx). The whole overlay fades,
+// backdrop included: the drawer paper carries MUI's inline slide transition,
+// which would swallow an opacity transition set on the paper itself.
+$cover-fade: 200ms;
+
+.MuiDrawer-root,
+.MuiDialog-root {
+  transition: opacity $cover-fade ease;
+}
+
+[data-lumio-covered] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity $cover-fade ease,
+    visibility 0s linear $cover-fade;
+}

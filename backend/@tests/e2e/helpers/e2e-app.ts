@@ -77,7 +77,7 @@ export async function deleteUserByEmail(dataSource: DataSource, email: string): 
       'DELETE FROM transactions WHERE statement_id IN (SELECT id FROM statements WHERE user_id = $1)',
       [id],
     );
-    for (const table of ['statements', 'categories', 'branches', 'wallets', 'google_sheets']) {
+    for (const table of ['statements', 'categories', 'branches', 'wallets']) {
       await dataSource.query(`DELETE FROM ${table} WHERE user_id = $1`, [id]);
     }
     await dataSource.query('DELETE FROM users WHERE id = $1', [id]);

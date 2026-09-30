@@ -121,7 +121,7 @@ describe('StatementsListItem', () => {
     expect(container.querySelector('img[alt="Gmail"]')).not.toBeNull();
   });
 
-  it('renders a single column layout container', () => {
+  it('renders a stacked phone layout next to the column layout', () => {
     const root = createRoot(container);
 
     const statement: Statement = {
@@ -157,7 +157,15 @@ describe('StatementsListItem', () => {
       );
     });
 
-    expect(container.querySelector('[data-testid="statement-item-mobile-statement-1"]')).toBeNull();
+    // CSS shows one or the other at 768px; the phone row must carry who, how much and when.
+    const mobile = container.querySelector('[data-testid="statement-item-mobile-statement-1"]');
+    expect(mobile?.querySelector('.lumio-stmt-list-item__mobile-merchant')?.textContent).toBe(
+      'Kaspi',
+    );
+    expect(mobile?.querySelector('.lumio-stmt-list-item__mobile-amount')?.textContent).toBe(
+      '1,200 KZT',
+    );
+    expect(mobile?.textContent).toContain('01/31/2026');
     expect(
       container.querySelector('[data-testid="statement-item-desktop-statement-1"]'),
     ).toBeTruthy();
@@ -640,7 +648,8 @@ describe('StatementsListItem', () => {
     });
 
     expect(container.textContent).not.toContain('0 KZT');
-    expect(container.querySelectorAll('[aria-label="Loading"]')).toHaveLength(1);
+    // One loader in the column layout, one in the phone layout.
+    expect(container.querySelectorAll('[aria-label="Loading"]')).toHaveLength(2);
   });
 
   it('uses the primary color for amounts in dark mode', () => {
@@ -679,7 +688,10 @@ describe('StatementsListItem', () => {
       );
     });
 
-    const amountNodes = Array.from(container.querySelectorAll('p, span')).filter(node =>
+    const desktop = container.querySelector(
+      '[data-testid="statement-item-desktop-statement-dark-amount"]',
+    ) as HTMLElement;
+    const amountNodes = Array.from(desktop.querySelectorAll('p, span')).filter(node =>
       node.textContent?.includes('702,799.13KZT'),
     );
 
@@ -821,7 +833,6 @@ describe('StatementsListItem', () => {
       currency: 'USD',
       category: { id: 'cat-1', name: 'Software' },
       tags: [{ id: 'tag-1', name: 'SaaS' }],
-      googleSheet: { id: 'sheet-1', sheetName: 'Expenses export' },
       transactionSummary: {
         description: 'Cloud subscription',
         exchangeRate: '4.5500',
@@ -851,7 +862,6 @@ describe('StatementsListItem', () => {
             { id: 'description', label: 'Description', visible: true, order: 2 },
             { id: 'exchangeRate', label: 'Exchange rate', visible: true, order: 3 },
             { id: 'card', label: 'Card', visible: true, order: 4 },
-            { id: 'exportedTo', label: 'Exported to', visible: true, order: 5 },
           ]}
         />,
       );
@@ -865,7 +875,6 @@ describe('StatementsListItem', () => {
     expect(desktopContainer?.textContent).toContain('Cloud subscription');
     expect(desktopContainer?.textContent).toContain('1 USD = 512.34 KZT');
     expect(desktopContainer?.textContent).toContain('Corporate card');
-    expect(desktopContainer?.textContent).toContain('Expenses export');
   });
 
   it('uses the current USD exchange rate for non-USD statement rows', () => {

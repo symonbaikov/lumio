@@ -29,6 +29,7 @@ export function DocumentTypeIcon(props: {
   source?: 'statement' | 'gmail' | 'receipt';
   size?: number;
   className?: string;
+  muted?: boolean;
 }) {
   const size = props.size ?? 20;
   const type = normalizeType(props.fileType, props.fileName);
@@ -45,6 +46,7 @@ export function DocumentTypeIcon(props: {
           source={props.source}
           size={size}
           className={props.className}
+          muted={props.muted}
         />
       );
     }

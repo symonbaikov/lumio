@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
@@ -34,6 +35,7 @@ export interface WebhookSubscription {
 export function useWebhookEndpoints() {
   const workspaceId = useWorkspaceId();
   const queryClient = useQueryClient();
+  const t = useIntlayer('webhooksDrawer');
   const [newToken, setNewToken] = useState<string | null>(null);
 
   const query = useQuery({
@@ -49,23 +51,23 @@ export function useWebhookEndpoints() {
     mutationFn: (name: string) => apiClient.post('/webhook-endpoints', { name }),
     onSuccess: response => {
       setNewToken((response.data as WebhookEndpointFull).token);
-      toast.success('Webhook endpoint created');
+      toast.success(t.toasts.endpointCreated.value);
     },
-    onError: () => toast.error('Failed to create webhook endpoint'),
+    onError: () => toast.error(t.toasts.endpointCreateFailed.value),
     onSettled: invalidate,
   });
 
   const removeMutation = useMutation({
     mutationFn: (id: string) => apiClient.delete(`/webhook-endpoints/${id}`),
-    onSuccess: () => toast.success('Webhook endpoint deleted'),
-    onError: () => toast.error('Failed to delete webhook endpoint'),
+    onSuccess: () => toast.success(t.toasts.endpointDeleted.value),
+    onError: () => toast.error(t.toasts.endpointDeleteFailed.value),
     onSettled: invalidate,
   });
 
   const toggleMutation = useMutation({
     mutationFn: (variables: { id: string; isActive: boolean }) =>
       apiClient.patch(`/webhook-endpoints/${variables.id}`, { isActive: !variables.isActive }),
-    onError: () => toast.error('Failed to update webhook endpoint'),
+    onError: () => toast.error(t.toasts.endpointUpdateFailed.value),
     onSettled: invalidate,
   });
 
@@ -109,6 +111,7 @@ export function useWebhookEndpoints() {
 export function useWebhookSubscriptions() {
   const workspaceId = useWorkspaceId();
   const queryClient = useQueryClient();
+  const t = useIntlayer('webhooksDrawer');
 
   const query = useQuery({
     queryKey: queryKeys.webhookSubscriptions(workspaceId),
@@ -125,15 +128,15 @@ export function useWebhookSubscriptions() {
   const createMutation = useMutation({
     mutationFn: (data: { name: string; url: string; secret: string; events: string[] }) =>
       apiClient.post('/webhook-subscriptions', data),
-    onSuccess: () => toast.success('Webhook subscription created'),
-    onError: () => toast.error('Failed to create webhook subscription'),
+    onSuccess: () => toast.success(t.toasts.subscriptionCreated.value),
+    onError: () => toast.error(t.toasts.subscriptionCreateFailed.value),
     onSettled: invalidate,
   });
 
   const removeMutation = useMutation({
     mutationFn: (id: string) => apiClient.delete(`/webhook-subscriptions/${id}`),
-    onSuccess: () => toast.success('Webhook subscription deleted'),
-    onError: () => toast.error('Failed to delete webhook subscription'),
+    onSuccess: () => toast.success(t.toasts.subscriptionDeleted.value),
+    onError: () => toast.error(t.toasts.subscriptionDeleteFailed.value),
     onSettled: invalidate,
   });
 
@@ -155,14 +158,17 @@ export function useWebhookSubscriptions() {
     [removeMutation.mutate],
   );
 
-  const testPing = useCallback(async (id: string) => {
-    await (async () => {
-      await apiClient.post(`/webhook-subscriptions/${id}/test`);
-      toast.success('Test delivery queued');
-    })().catch(async () => {
-      toast.error('Failed to send test ping');
-    });
-  }, []);
+  const testPing = useCallback(
+    async (id: string) => {
+      await (async () => {
+        await apiClient.post(`/webhook-subscriptions/${id}/test`);
+        toast.success(t.toasts.testQueued.value);
+      })().catch(async () => {
+        toast.error(t.toasts.testFailed.value);
+      });
+    },
+    [t.toasts.testQueued, t.toasts.testFailed],
+  );
 
   return {
     subscriptions: query.data ?? [],

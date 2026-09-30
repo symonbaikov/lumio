@@ -49,7 +49,7 @@ The Lumio API is served from the backend at `/api/v1`.
 - `/maps` — tile styles and proxied tiles for receipt maps
 - `/audit-events` — audit history
 - `/integrations` — S3-compatible, WebDAV, and IMAP settings, plus the legacy `/integrations/gmail`,
-  `/integrations/google-drive`, `/integrations/dropbox`, and `/integrations/google-sheets`
+  `/integrations/google-drive`, and `/integrations/dropbox`
 - `/telegram`, `/webhook-endpoints`, `/webhook-subscriptions`, `/webhook-deliveries`, `/api-keys`
 - `/health`, `/health/ready`, `/metrics`
 

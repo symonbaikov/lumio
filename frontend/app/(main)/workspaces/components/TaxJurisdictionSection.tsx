@@ -15,6 +15,7 @@ import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/app/lib/api';
 import { tokens } from '@/lib/theme-tokens';
+import { SettingsSection } from './SettingsSection';
 import {
   flagFor,
   formatRate,
@@ -161,121 +162,108 @@ export function TaxJurisdictionSection({
     );
   }
 
+  // A flat section like the rest of the Overview tab, not a card of its own.
   return (
-    <Stack
-      spacing={2}
-      sx={{
-        borderRadius: tokens.radius.lg,
-        border: '1px solid',
-        borderColor: 'divider',
-        bgcolor: 'background.paper',
-        p: { xs: 2, sm: 3 },
-      }}
-    >
-      <Box>
-        <Typography sx={{ fontSize: 16, fontWeight: 600, color: 'text.primary' }}>
-          {labels.title}
-        </Typography>
-        <Typography sx={{ mt: 0.5, fontSize: 14, color: 'text.secondary' }}>
-          {labels.description}
-        </Typography>
-      </Box>
+    <SettingsSection title={labels.title} description={labels.description}>
+      <Stack spacing={2}>
+        {failed === 'load' ? <Alert severity="error">{labels.loadError}</Alert> : null}
+        {failed === 'save' ? <Alert severity="error">{labels.saveError}</Alert> : null}
+        {saved ? <Alert severity="success">{labels.saved}</Alert> : null}
 
-      {failed === 'load' ? <Alert severity="error">{labels.loadError}</Alert> : null}
-      {failed === 'save' ? <Alert severity="error">{labels.saveError}</Alert> : null}
-      {saved ? <Alert severity="success">{labels.saved}</Alert> : null}
-
-      <Select
-        value={selectedCode}
-        onChange={event => {
-          setSelectedCode(event.target.value);
-          setSaved(false);
-        }}
-        displayEmpty
-        size="small"
-        inputProps={{ 'aria-label': labels.title }}
-        sx={{ maxWidth: 360, borderRadius: tokens.radius.md }}
-      >
-        <MenuItem value="">
-          <Typography sx={{ fontSize: 14, color: 'text.secondary' }}>
-            {labels.placeholder}
-          </Typography>
-        </MenuItem>
-        {jurisdictions.map(jurisdiction => (
-          <MenuItem key={jurisdiction.code} value={jurisdiction.code}>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <FlagIcon code={jurisdiction.code} />
-              <span>{jurisdiction.name}</span>
-              <Typography component="span" sx={{ fontSize: 13, color: 'text.secondary' }}>
-                {jurisdiction.taxName}
-              </Typography>
-            </Stack>
-          </MenuItem>
-        ))}
-      </Select>
-
-      {isSwitch ? <Alert severity="warning">{labels.switchWarning}</Alert> : null}
-
-      {selectedCode ? (
-        <Box>
-          <Typography sx={{ mb: 1, fontSize: 13, fontWeight: 600, color: 'text.primary' }}>
-            {labels.ratesTitle}
-          </Typography>
-          {rates.length === 0 ? (
-            <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{labels.noRates}</Typography>
-          ) : (
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-              {rates.map(rate => (
-                <Chip
-                  key={`${rate.code}-${rate.validFrom}`}
-                  size="small"
-                  label={`${rate.name} · ${formatRate(rate.rate)}`}
-                  variant={rate.isDefault ? 'filled' : 'outlined'}
-                />
-              ))}
-            </Stack>
-          )}
-        </Box>
-      ) : null}
-
-      <Box>
-        <Button
-          variant="contained"
-          onClick={handleApply}
-          disabled={!isDirty || saving}
-          sx={{
-            borderRadius: tokens.radius.md,
-            fontWeight: 600,
-            fontSize: 14,
-            textTransform: 'none',
-            px: 2.5,
-            '&:disabled': { cursor: 'not-allowed', opacity: 0.5 },
+        <Select
+          value={selectedCode}
+          onChange={event => {
+            setSelectedCode(event.target.value);
+            setSaved(false);
           }}
+          displayEmpty
+          size="small"
+          inputProps={{ 'aria-label': labels.title }}
+          sx={{ maxWidth: 360, borderRadius: tokens.radius.md }}
         >
-          {saving ? labels.applying : labels.apply}
-        </Button>
-      </Box>
+          <MenuItem value="">
+            <Typography sx={{ fontSize: 14, color: 'text.secondary' }}>
+              {labels.placeholder}
+            </Typography>
+          </MenuItem>
+          {jurisdictions.map(jurisdiction => (
+            <MenuItem key={jurisdiction.code} value={jurisdiction.code}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <FlagIcon code={jurisdiction.code} />
+                <span>{jurisdiction.name}</span>
+                <Typography component="span" sx={{ fontSize: 13, color: 'text.secondary' }}>
+                  {jurisdiction.taxName}
+                </Typography>
+              </Stack>
+            </MenuItem>
+          ))}
+        </Select>
 
-      {/* Statutory figures are seeded by migration and can fall behind the law,
+        {isSwitch ? <Alert severity="warning">{labels.switchWarning}</Alert> : null}
+
+        {selectedCode ? (
+          <Box>
+            <Typography sx={{ mb: 1, fontSize: 13, fontWeight: 600, color: 'text.primary' }}>
+              {labels.ratesTitle}
+            </Typography>
+            {rates.length === 0 ? (
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                {labels.noRates}
+              </Typography>
+            ) : (
+              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                {rates.map(rate => (
+                  <Chip
+                    key={`${rate.code}-${rate.validFrom}`}
+                    size="small"
+                    label={`${rate.name} · ${formatRate(rate.rate)}`}
+                    variant={rate.isDefault ? 'filled' : 'outlined'}
+                  />
+                ))}
+              </Stack>
+            )}
+          </Box>
+        ) : null}
+
+        <Box>
+          <Button
+            variant="contained"
+            onClick={handleApply}
+            disabled={!isDirty || saving}
+            sx={{
+              borderRadius: tokens.radius.md,
+              fontWeight: 600,
+              fontSize: 14,
+              textTransform: 'none',
+              px: 2.5,
+              '&:disabled': { cursor: 'not-allowed', opacity: 0.5 },
+            }}
+          >
+            {saving ? labels.applying : labels.apply}
+          </Button>
+        </Box>
+
+        {/* Statutory figures are seeded by migration and can fall behind the law,
           so the screen says so where the numbers are shown rather than burying
           it in a help page. */}
-      <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 1.5 }}>
-        <Typography sx={{ fontSize: 12, lineHeight: 1.6, color: 'text.secondary' }}>
-          {labels.disclaimer}
-          {mailto ? (
-            <>
-              {' '}
-              <Typography
-                component="a"
-                href={mailto}
-                sx={{ fontSize: 12, color: 'primary.main', textDecoration: 'underline' }}
-              >
-                {labels.reportError}
-              </Typography>
-            </>
-          ) : null}
-        </Typography>
-      </Box>
-    </Stack>
+        <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 1.5 }}>
+          <Typography sx={{ fontSize: 12, lineHeight: 1.6, color: 'text.secondary' }}>
+            {labels.disclaimer}
+            {mailto ? (
+              <>
+                {' '}
+                <Typography
+                  component="a"
+                  href={mailto}
+                  sx={{ fontSize: 12, color: 'primary.main', textDecoration: 'underline' }}
+                >
+                  {labels.reportError}
+                </Typography>
+              </>
+            ) : null}
+          </Typography>
+        </Box>
+      </Stack>
+    </SettingsSection>
   );
 }

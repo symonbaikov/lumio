@@ -3,7 +3,11 @@
  */
 import apiClient from '@/app/lib/api';
 import { getTopBankSenders } from '@/app/lib/statement-insights';
-import { countStatementStages, getStatementStageMap } from '@/app/lib/statement-workflow';
+import {
+  countStatementStages,
+  migrateLocalStatementStages,
+  type StatementStage,
+} from '@/app/lib/statement-workflow';
 import { buildUnapprovedStatementQueue } from './unapproved-cash-utils';
 
 export interface StageCounts {
@@ -20,6 +24,7 @@ export interface StatementListItem {
   totalDebit?: number | string | null;
   totalCredit?: number | string | null;
   status?: string | null;
+  stage?: StatementStage | null;
   errorMessage?: string | null;
   fileType?: string | null;
   parsingDetails?: { importPreview?: { source?: string | null } | null } | null;
@@ -170,12 +175,9 @@ const loadMerchantsAndUnapproved = async (
 };
 
 export const loadStageCounts = async (): Promise<StageCountsResult> => {
+  await migrateLocalStatementStages();
   const allStatements = (await fetchAllPages('/statements')) as StatementListItem[];
-  const statementIds = allStatements.map(s => s.id).filter((id): id is string => Boolean(id));
-  const counts = countStatementStages(
-    statementIds,
-    getStatementStageMap(),
-  ) as unknown as StageCounts;
+  const counts = countStatementStages(allStatements) as unknown as StageCounts;
   const topBankSenders = getTopBankSenders(allStatements, 5);
   const [{ uniqueMerchantsCount, unapprovedCashCount }, topCategoriesCount] = await Promise.all([
     loadMerchantsAndUnapproved(allStatements),

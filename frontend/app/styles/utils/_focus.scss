@@ -14,7 +14,7 @@
 @use '../abstracts' as *;
 
 :root {
-  --focus-ring-color: #{$color-primary};
+  --focus-ring-color: #{var(--primary)};
 }
 
 .dark {

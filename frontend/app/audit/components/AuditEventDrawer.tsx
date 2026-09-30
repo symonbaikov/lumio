@@ -27,14 +27,15 @@ function EventMetaRows({
   event: AuditEvent;
   formatted: FormattedEvent;
 }): React.JSX.Element {
+  const t = useIntlayer('auditEventDrawer');
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
 
   const rows = [
-    { label: 'Timestamp', value: formatStoredDateTime(event.createdAt) },
-    { label: 'Actor', value: event.actorLabel },
-    { label: 'Action', value: formatted.actionLabel },
-    { label: 'Entity', value: formatted.objectLabel },
+    { label: t.timestamp.value, value: formatStoredDateTime(event.createdAt) },
+    { label: t.actor.value, value: event.actorLabel },
+    { label: t.action.value, value: formatted.actionLabel },
+    { label: t.entity.value, value: formatted.objectLabel },
   ];
   return (
     <Box
@@ -58,18 +59,18 @@ function EventMetaRows({
         </Box>
       ))}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ color: c.ink700, fontSize: 14 }}>Entity ID</span>
+        <span style={{ color: c.ink700, fontSize: 14 }}>{t.entityId}</span>
         <span style={{ fontFamily: 'monospace', fontSize: 12, color: c.ink800 }}>
           {event.entityId}
         </span>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ color: c.ink700, fontSize: 14 }}>Severity</span>
+        <span style={{ color: c.ink700, fontSize: 14 }}>{t.severity}</span>
         <span style={{ fontWeight: 600, color: c.ink900, fontSize: 14 }}>{event.severity}</span>
       </Box>
       {event.batchId && (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ color: c.ink700, fontSize: 14 }}>Batch</span>
+          <span style={{ color: c.ink700, fontSize: 14 }}>{t.batch}</span>
           <span style={{ fontFamily: 'monospace', fontSize: 12, color: c.ink800 }}>
             {event.batchId}
           </span>
@@ -107,7 +108,7 @@ function EventDrawerBody({
       <EventMetaRows event={event} formatted={formatted} />
       <Box>
         <Typography variant="body2" fontWeight={600} style={{ color: c.ink900 }}>
-          Diff
+          {t.diff}
         </Typography>
         <Box sx={{ mt: 1 }}>
           <DiffViewer diff={event.diff} />
@@ -117,11 +118,11 @@ function EventDrawerBody({
         style={{ border: `1px solid ${c.border}`, background: 'var(--card-bg)', padding: 12 }}
       >
         <summary style={{ cursor: 'pointer', fontSize: 14, fontWeight: 600, color: c.ink900 }}>
-          Metadata
+          {t.metadata}
         </summary>
         <Box sx={{ mt: 1, fontSize: 12, color: c.ink800 }}>
           <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
-            {event.meta ? JSON.stringify(event.meta, null, 2) : 'No metadata'}
+            {event.meta ? JSON.stringify(event.meta, null, 2) : t.noMetadata}
           </pre>
         </Box>
       </details>
@@ -135,7 +136,7 @@ function EventDrawerBody({
             color: c.ink800,
           }}
         >
-          Related event (rollback of):
+          {t.rollbackOf}
           <span style={{ marginLeft: 8, fontFamily: 'monospace', fontSize: 12, color: c.ink900 }}>
             {event.meta.rollbackOf}
           </span>
@@ -170,11 +171,12 @@ export function AuditEventDrawer({
   onClose,
   onRollback,
 }: AuditEventDrawerProps): React.JSX.Element | null {
+  const t = useIntlayer('auditEventDrawer');
   if (!event) {
     return null;
   }
   return (
-    <DrawerShell isOpen={open} onClose={onClose} title="Audit Event" position="right" width="lg">
+    <DrawerShell isOpen={open} onClose={onClose} title={t.title.value} position="right" width="lg">
       <Box
         data-testid="audit-event-drawer-scroll"
         sx={{ minHeight: 0, flex: 1, overflowY: 'auto', pr: 0.5 }}

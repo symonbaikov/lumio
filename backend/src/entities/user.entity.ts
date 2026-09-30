@@ -13,7 +13,6 @@ import { AuthSession } from './auth-session.entity';
 import { Branch } from './branch.entity';
 import { Category } from './category.entity';
 import type { DataEntryType } from './data-entry.entity';
-import { GoogleSheet } from './google-sheet.entity';
 import { Statement } from './statement.entity';
 import { TelegramReport } from './telegram-report.entity';
 import { Wallet } from './wallet.entity';
@@ -83,6 +82,10 @@ export class User {
   /** Turns off non-essential transitions and animations across the interface. */
   @Column({ name: 'reduce_motion', type: 'boolean', default: false })
   reduceMotion: boolean;
+
+  /** The daily-quote banner above the pages. The advice itself is unaffected. */
+  @Column({ name: 'show_daily_quote', type: 'boolean', default: true })
+  showDailyQuote: boolean;
 
   @Column({
     name: 'theme_preference',
@@ -233,12 +236,6 @@ export class User {
     statement => statement.user,
   )
   statements: Statement[];
-
-  @OneToMany(
-    () => GoogleSheet,
-    sheet => sheet.user,
-  )
-  googleSheets: GoogleSheet[];
 
   @OneToMany(
     () => TelegramReport,

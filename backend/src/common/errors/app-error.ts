@@ -134,37 +134,6 @@ export const ERR = {
   INVITATION_EXPIRED: 'Invitation has expired',
   INVITATION_WRONG_ACCOUNT: 'Sign in as {{email}}',
 
-  // ── google-sheets ───────────────────────────────────────────────────────
-  SHEETS_NOT_FOUND: 'Google Sheet not found or inaccessible',
-  SHEETS_CONNECTION_NOT_FOUND: 'Google Sheet connection not found',
-  SHEETS_CONNECTION_OR_URL_REQUIRED: 'Specify a Google Sheet connection or link',
-  SHEETS_URL_REQUIRED: 'Specify a Google Sheets link to import',
-  SHEETS_URL_INVALID: 'Specify a valid Google Sheets link',
-  SHEETS_URL_SCHEME_INVALID: 'Only http/https Google Sheets links are supported',
-  SHEETS_URL_HOST_INVALID: 'Only docs.google.com is supported for link imports',
-  SHEETS_SPREADSHEET_ID_NOT_FOUND: 'Could not find the spreadsheet id in the Google Sheets link',
-  SHEETS_WORKSHEET_UNRESOLVED: 'Could not determine the Google Sheets worksheet',
-  SHEETS_WORKSHEET_NOT_FOUND: 'Worksheet "{{worksheet}}" was not found in the Google Sheet',
-  SHEETS_NO_WORKSHEETS: 'No worksheets to import were found in the Google Sheet',
-  SHEETS_WORKSHEET_LIST_FAILED: 'Could not retrieve the list of Google Sheets worksheets.',
-  SHEETS_READ_FAILED: 'Could not read the Google Sheet. Check the access permissions.',
-  SHEETS_EXPORT_READ_FAILED: 'Could not read the Google Sheets export',
-  SHEETS_RANGE_PARSE_FAILED: 'Could not parse the Google Sheets A1 range',
-  SHEETS_FILE_TOO_LARGE: 'The Google Sheets file is too large to import',
-  SHEETS_MATRIX_UNSUPPORTED: 'Matrix worksheets are not yet supported for transaction import',
-  SHEETS_DOWNLOAD_FAILED_SHARE:
-    'Could not download the Google Sheet. Enable link sharing or publish the spreadsheet.',
-  SHEETS_DOWNLOAD_FAILED_LINK_ACCESS:
-    'Could not download the Google Sheet. Check that link sharing is enabled.',
-  SHEETS_REFRESH_TOKEN_MISSING_RECONNECT:
-    'No Google refresh token. Reconnect the spreadsheet via OAuth.',
-  SHEETS_REFRESH_TOKEN_MISSING_CONNECT:
-    'No Google refresh token. Connect the spreadsheet via OAuth.',
-  SHEETS_ENDPOINT_DEPRECATED:
-    'Connecting through this endpoint is no longer supported. Use OAuth: GET /google-sheets/oauth/url \u2192 POST /google-sheets/oauth/callback',
-  SHEETS_REFRESH_TOKEN_MISSING: 'No valid Google refresh token',
-  SHEETS_AUTH_CODE_EXCHANGE_FAILED: 'Could not exchange the Google authorization code',
-
   // ── data-entry ──────────────────────────────────────────────────────────
   ENTRY_NOT_FOUND: 'Record not found',
   ENTRY_CUSTOM_COLUMN_TITLE_REQUIRED: 'Enter a custom column name',

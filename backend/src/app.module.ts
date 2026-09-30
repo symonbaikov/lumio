@@ -38,8 +38,6 @@ import {
   FilePermission,
   GmailSettings,
   GmailWatchSubscription,
-  GoogleSheet,
-  GoogleSheetRow,
   Insight,
   Integration,
   IntegrationToken,
@@ -86,7 +84,6 @@ import { ExchangeRatesModule } from './modules/exchange-rates/exchange-rates.mod
 import { GmailModule } from './modules/gmail/gmail.module';
 import { GoalsModule } from './modules/goals/goals.module';
 import { GoogleDriveModule } from './modules/google-drive/google-drive.module';
-import { GoogleSheetsModule } from './modules/google-sheets/google-sheets.module';
 import { IncomeTaxModule } from './modules/income-tax/income-tax.module';
 import { InsightsModule } from './modules/insights/insights.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
@@ -176,8 +173,6 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
       CategoryLearning,
       Branch,
       Wallet,
-      GoogleSheet,
-      GoogleSheetRow,
       TelegramReport,
       ParsingRule,
       Notification,
@@ -224,7 +219,6 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     NetWorthModule,
     UsersModule,
     StatementsModule,
-    GoogleSheetsModule,
     GoogleDriveModule,
     GmailModule,
     DropboxModule,

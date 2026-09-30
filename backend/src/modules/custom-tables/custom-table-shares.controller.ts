@@ -6,7 +6,6 @@ import {
   Header,
   Param,
   ParseUUIDPipe,
-  Patch,
   Post,
   Query,
   Res,
@@ -23,10 +22,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { CustomTableExportSchedulesService } from './custom-table-export-schedules.service';
 import { CustomTableSharesService } from './custom-table-shares.service';
-import { CustomTableSyncService } from './custom-table-sync.service';
 import { CreateCustomTableShareDto } from './dto/create-custom-table-share.dto';
 import { CreateExportScheduleDto } from './dto/create-export-schedule.dto';
-import { UpdateCustomTableSyncDto } from './dto/update-custom-table-sync.dto';
 
 /** Управление ссылками — обычный приватный API под JWT. */
 @Controller('custom-tables')
@@ -34,7 +31,6 @@ import { UpdateCustomTableSyncDto } from './dto/update-custom-table-sync.dto';
 export class CustomTableSharesController {
   constructor(
     private readonly sharesService: CustomTableSharesService,
-    private readonly syncService: CustomTableSyncService,
     private readonly exportSchedulesService: CustomTableExportSchedulesService,
   ) {}
 
@@ -76,27 +72,6 @@ export class CustomTableSharesController {
         createdAt: share.createdAt,
       })),
     };
-  }
-
-  @Patch(':id/sync')
-  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
-  async updateSync(
-    @CurrentUser() user: User,
-    @WorkspaceId() workspaceId: string,
-    @Param('id', new ParseUUIDPipe()) tableId: string,
-    @Body() dto: UpdateCustomTableSyncDto,
-  ) {
-    return this.syncService.updateSyncSettings(user.id, workspaceId, tableId, dto);
-  }
-
-  @Post(':id/sync/run')
-  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
-  async runSync(
-    @CurrentUser() user: User,
-    @WorkspaceId() workspaceId: string,
-    @Param('id', new ParseUUIDPipe()) tableId: string,
-  ) {
-    return this.syncService.runUserSync(user.id, workspaceId, tableId);
   }
 
   @Post(':id/export-schedules')

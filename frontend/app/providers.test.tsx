@@ -45,6 +45,12 @@ vi.mock('react-intlayer', () => ({
       {children}
     </>
   ),
+  // The always-mounted keyboard shortcuts modal reads its dictionary on render.
+  useIntlayer: () => {
+    const node = (key: string): unknown =>
+      new Proxy({ value: key }, { get: (target, prop: string) => (prop in target ? target.value : node(prop)) });
+    return node('dictionary');
+  },
 }));
 
 vi.mock('@/app/lib/theme-preference', () => ({

@@ -42,7 +42,7 @@ const features = [
   {
     title: 'Integrations and API',
     description:
-      'S3-compatible and WebDAV storage, workbook and Google Sheets import, Telegram reports, webhooks, API keys and an MCP server.',
+      'S3-compatible and WebDAV storage, Telegram reports, webhooks, API keys and an MCP server.',
   },
   {
     title: 'Self-hosted by design',

@@ -46,7 +46,6 @@ body:
         - Database Schema
         - Authentication
         - Statement Processing
-        - Google Sheets Integration
         - Custom Tables
         - Telegram Bot
         - Docker Setup

@@ -1,0 +1,282 @@
+// lumio-grid — shared TanStack Table v9 grid (app/components/data-grid)
+@use '../abstracts' as *;
+
+.lumio-grid {
+  overflow: hidden;
+  border: 1px solid $lumio-color-ink-150;
+  border-radius: $lumio-radius-lg;
+  background-color: $lumio-color-surface;
+
+  @include dark {
+    border-color: $lumio-color-ink-150-dk;
+    background-color: $lumio-color-surface-dk;
+  }
+
+  &__scroll {
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  &__table {
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+    font-size: $lumio-font-size-sm;
+    color: $lumio-color-text-primary;
+
+    @include dark {
+      color: $lumio-color-text-primary-dk;
+    }
+  }
+
+  &__caption {
+    @include visually-hidden;
+  }
+
+  &__thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: $lumio-color-ink-50;
+
+    @include dark {
+      background-color: $lumio-color-ink-50-dk;
+    }
+  }
+
+  &__th {
+    padding: 10px 12px;
+    border-bottom: 1px solid $lumio-color-ink-150;
+    text-align: left;
+    font-size: $lumio-font-size-xs;
+    font-weight: $lumio-font-weight-semibold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $lumio-color-ink-500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @include dark {
+      border-bottom-color: $lumio-color-ink-150-dk;
+      color: $lumio-color-ink-500-dk;
+    }
+  }
+
+  &__sort {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: inherit;
+    cursor: pointer;
+
+    &:hover,
+    &--active {
+      color: $lumio-color-ink-800;
+
+      @include dark {
+        color: $lumio-color-ink-800-dk;
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+      border-radius: $lumio-radius-xs;
+    }
+  }
+
+  &__sort-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__sort-icon {
+    width: 14px;
+    height: 14px;
+    flex: none;
+
+    &--idle {
+      opacity: 0;
+      transition: opacity 120ms ease;
+    }
+  }
+
+  &__sort:hover &__sort-icon--idle {
+    opacity: 0.5;
+  }
+
+  &__td {
+    padding: 0 12px;
+    height: 44px;
+    border-bottom: 1px solid $lumio-color-ink-100;
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @include dark {
+      border-bottom-color: $lumio-color-ink-100-dk;
+    }
+  }
+
+  &__tr {
+    transition: background-color 120ms ease;
+
+    &:hover > .lumio-grid__td {
+      background-color: $lumio-color-ink-50;
+
+      @include dark {
+        background-color: $lumio-color-ink-50-dk;
+      }
+    }
+
+    &--selected > .lumio-grid__td {
+      background-color: var(--primary-50);
+
+      @include dark {
+        background-color: $lumio-color-primary-50-dk;
+      }
+    }
+
+    &--clickable {
+      cursor: pointer;
+    }
+  }
+
+  &__tbody > tr:last-child > .lumio-grid__td {
+    border-bottom: 0;
+  }
+
+  &__cell--end {
+    text-align: right;
+  }
+
+  &__cell--center {
+    text-align: center;
+  }
+
+  &__cell--select {
+    padding: 0;
+  }
+
+  &__cell--numeric {
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__tfoot {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    background-color: $lumio-color-ink-50;
+
+    @include dark {
+      background-color: $lumio-color-ink-50-dk;
+    }
+  }
+
+  &__tf {
+    padding: 6px 12px;
+    border-top: 1px solid $lumio-color-ink-150;
+    font-size: $lumio-font-size-xs;
+    font-weight: $lumio-font-weight-medium;
+    color: $lumio-color-ink-600;
+    white-space: nowrap;
+
+    @include dark {
+      border-top-color: $lumio-color-ink-150-dk;
+      color: $lumio-color-ink-600-dk;
+    }
+  }
+
+  &__empty {
+    padding: 48px 16px;
+    text-align: center;
+    color: $lumio-color-ink-500;
+
+    @include dark {
+      color: $lumio-color-ink-500-dk;
+    }
+  }
+
+  &__loading {
+    padding: 12px;
+    text-align: center;
+  }
+
+  &__skeleton-row:hover > .lumio-grid__td {
+    background-color: transparent;
+  }
+
+  &__skeleton {
+    display: block;
+    width: 60%;
+    max-width: 160px;
+    height: 10px;
+    border-radius: $lumio-radius-full;
+    background-color: $lumio-color-ink-100;
+    animation: lumio-grid-skeleton-pulse 1.4s ease-in-out infinite;
+
+    @include dark {
+      background-color: $lumio-color-ink-150-dk;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
+
+  // Vary the bar widths so the placeholder reads as text, not as stripes.
+  &__skeleton-row:nth-child(3n + 2) &__skeleton {
+    width: 45%;
+  }
+
+  &__skeleton-row:nth-child(3n) &__skeleton {
+    width: 75%;
+  }
+
+  &__menu-count {
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: $lumio-radius-full;
+    background-color: var(--primary-50);
+    color: var(--primary);
+    font-size: $lumio-font-size-xs;
+
+    @include dark {
+      background-color: $lumio-color-primary-50-dk;
+      color: $lumio-color-primary-dk;
+    }
+  }
+}
+
+.lumio-grid__th-inner {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.lumio-grid__cell--end .lumio-grid__th-inner {
+  justify-content: flex-end;
+}
+
+// th-inner is a flex row, so the cell's text-align: center never reaches it;
+// without this the select-all checkbox sat left of the row checkboxes.
+.lumio-grid__cell--center .lumio-grid__th-inner {
+  justify-content: center;
+}
+
+@keyframes lumio-grid-skeleton-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}

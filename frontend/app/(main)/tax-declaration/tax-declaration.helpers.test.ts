@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   completenessTone,
+  deHomeOfficeAllowance,
   exportFileName,
   formatLineRef,
   issueTarget,
@@ -71,5 +72,48 @@ describe('tax declaration helpers', () => {
 
   it('names exported files by country and year', () => {
     expect(exportFileName('DE', 2025, 'pdf')).toBe('income-tax-de-2025.pdf');
+  });
+});
+
+describe('deHomeOfficeAllowance', () => {
+  it('pays 6 € a day up to the 1 260 € cap, reached at 210 days', () => {
+    expect(deHomeOfficeAllowance({ homeOfficeDays: 100 })).toEqual({
+      amount: 600,
+      basis: 'days',
+      units: 100,
+      capped: false,
+      exclusive: false,
+    });
+    expect(deHomeOfficeAllowance({ homeOfficeDays: 210 })).toMatchObject({
+      amount: 1260,
+      capped: true,
+    });
+    expect(deHomeOfficeAllowance({ homeOfficeDays: 300 })).toMatchObject({
+      amount: 1260,
+      capped: true,
+    });
+  });
+
+  it('pays the annual study rate pro rata by month, 105 € for each month short of 12', () => {
+    expect(deHomeOfficeAllowance({ homeStudyMonths: 12 })).toMatchObject({
+      amount: 1260,
+      basis: 'study',
+      capped: true,
+    });
+    expect(deHomeOfficeAllowance({ homeStudyMonths: 8 })).toMatchObject({ amount: 840 });
+  });
+
+  it('counts only the study when both are entered, and says so', () => {
+    expect(deHomeOfficeAllowance({ homeOfficeDays: 50, homeStudyMonths: 3 })).toMatchObject({
+      amount: 315,
+      basis: 'study',
+      exclusive: true,
+    });
+  });
+
+  it('ignores empty, negative and fractional input the way the server does', () => {
+    expect(deHomeOfficeAllowance({})).toMatchObject({ amount: 0, basis: null });
+    expect(deHomeOfficeAllowance({ homeOfficeDays: -5 })).toMatchObject({ amount: 0 });
+    expect(deHomeOfficeAllowance({ homeOfficeDays: 10.9 })).toMatchObject({ amount: 60 });
   });
 });

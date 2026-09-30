@@ -8,8 +8,6 @@ export { TourButton } from './components/TourButton';
 export { TourMenu } from './components/TourMenu';
 export { TourProgress } from './components/TourProgress';
 export * from './custom-tables-tour';
-export * from './google-sheets-import-tour';
-export * from './google-sheets-integration-tour';
 export * from './integrations-tour';
 export * from './reports-tour';
 export * from './settings-tour';

@@ -22,7 +22,6 @@ const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.labels',
   'https://www.googleapis.com/auth/gmail.settings.basic',
   'https://www.googleapis.com/auth/gmail.compose',
-  'https://www.googleapis.com/auth/spreadsheets',
 ];
 
 type GoogleTokenResponse = {
@@ -341,21 +340,6 @@ export class GmailOAuthService extends OAuthIntegrationBaseService {
     // If the integration is already marked as needing re-auth, fail fast
     if (integration.status === IntegrationStatus.NEEDS_REAUTH) {
       throw new BadRequestException('Integration needs re-authentication');
-    }
-
-    // Ensure required scopes (including Sheets) are present. If not, mark integration as NEEDS_REAUTH
-    const requiredScope = 'https://www.googleapis.com/auth/spreadsheets';
-    const currentScopesRaw = integration.scopes || [];
-    const currentScopes = Array.isArray(currentScopesRaw)
-      ? currentScopesRaw
-      : String(currentScopesRaw).split(' ').filter(Boolean);
-
-    if (!currentScopes.includes(requiredScope)) {
-      integration.status = IntegrationStatus.NEEDS_REAUTH;
-      await this.integrationRepository.save(integration);
-      throw new BadRequestException(
-        'Gmail integration requires re-authentication to grant Google Sheets access',
-      );
     }
 
     const tokenRecord = await this.integrationTokenRepository.findOne({

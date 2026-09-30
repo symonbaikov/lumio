@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronDown, ChevronRight } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { Checkbox } from '../ui/checkbox';
 import { CategoryDropdown } from './CategoryDropdown';
 import type { TransactionRowFormatters, TransactionRowHandlers } from './TransactionRow';
@@ -73,6 +74,7 @@ function MobileExpandedDetails({
   columnBinLabel: string;
   columnDateLabel: string;
 }): React.ReactElement {
+  const t = useIntlayer('transactionsTable');
   return (
     <div className="lumio-tx-card__expanded">
       <div>
@@ -99,7 +101,7 @@ function MobileExpandedDetails({
             marginBottom: 4,
           }}
         >
-          Currency
+          {t.columnCurrency}
         </span>
         <span style={{ color: 'var(--foreground)' }}>{tx.currency ?? '—'}</span>
       </div>
@@ -112,7 +114,7 @@ function MobileExpandedDetails({
             marginBottom: 4,
           }}
         >
-          Doc Number
+          {t.columnDocNumber}
         </span>
         <span style={{ color: 'var(--foreground)' }}>{tx.documentNumber ?? '—'}</span>
       </div>
@@ -144,6 +146,7 @@ export function TransactionMobileCard({
   columnBinLabel,
   columnDateLabel,
 }: TransactionMobileCardProps): React.ReactElement {
+  const t = useIntlayer('transactionsTable');
   return (
     <div
       data-testid={`transaction-card-${tx.id}`}
@@ -159,7 +162,7 @@ export function TransactionMobileCard({
             checked={isSelected}
             onCheckedChange={handlers.onSelectRow(tx.id)}
             style={{ height: 20, width: 20 }}
-            aria-label={`Select transaction ${tx.counterpartyName}`}
+            aria-label={t.selectTransaction.value.replace('{name}', tx.counterpartyName)}
           />
         </div>
         <div className="lumio-tx-card__content">
@@ -191,7 +194,7 @@ export function TransactionMobileCard({
               type="button"
               onClick={handlers.onToggleExpansion(tx.id)}
               aria-expanded={isExpanded}
-              aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
+              aria-label={isExpanded ? t.collapseRow.value : t.expandRow.value}
               className="lumio-tx-card__expand-btn"
             >
               {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}

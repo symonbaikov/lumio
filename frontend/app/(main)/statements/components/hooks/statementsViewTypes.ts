@@ -19,6 +19,7 @@ export interface StatementsStatement {
   subject?: string;
   sender?: string;
   status: string;
+  stage?: StatementStage | null;
   totalTransactions: number;
   totalDebit?: number | string | null;
   totalCredit?: number | string | null;
@@ -38,7 +39,6 @@ export interface StatementsStatement {
     icon?: string | null;
   } | null;
   tags?: Array<{ id?: string; name?: string; color?: string | null }>;
-  googleSheet?: { id?: string; sheetName?: string | null; worksheetName?: string | null } | null;
   transactionSummary?: {
     description?: string | null;
     exchangeRate?: string | number | null;
@@ -145,6 +145,7 @@ export interface StatementsViewState {
   handleToggleSelectAll: () => void;
   handleExportSelected: () => Promise<void>;
   handleDeleteSelected: () => Promise<void>;
+  handleMoveSelectedToStage: (target: StatementStage) => Promise<void>;
   handleMarkSelectedAsDuplicate: () => Promise<void>;
   handleDismissSelectedDuplicates: () => Promise<void>;
   handleSelectDetectedDuplicates: () => Promise<void>;

@@ -5,6 +5,7 @@ import { useCallback } from 'react';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { gmailReceiptsApi } from '@/app/lib/api';
 import { queryKeys } from '@/app/lib/query-keys';
+import type { StatementStage } from '@/app/lib/statement-workflow';
 import { type GmailReceipt, hasGmailReceiptAmount } from '../gmail-receipt-mapping';
 
 const POLL_INTERVAL_MS = 6000;
@@ -12,6 +13,8 @@ const POLL_INTERVAL_MS = 6000;
 export interface UseGmailReceiptsQueryParams {
   categoryId?: string | null;
   receiptStatus?: string | null;
+  /** Only receipts in this review stage; the Submit and Approve pages each list their own. */
+  stage?: StatementStage;
   page: number;
   pageSize: number;
   enabled: boolean;
@@ -20,6 +23,7 @@ export interface UseGmailReceiptsQueryParams {
 export function useGmailReceiptsQuery({
   categoryId,
   receiptStatus,
+  stage,
   page,
   pageSize,
   enabled,
@@ -33,6 +37,7 @@ export function useGmailReceiptsQuery({
     includeLinkedScans: true,
     ...(categoryId ? { categoryId } : {}),
     ...(receiptStatus ? { status: receiptStatus } : {}),
+    ...(stage ? { stage } : {}),
   };
 
   // When a specific status is requested (e.g. needs_review), show all matching

@@ -10,14 +10,10 @@ import {
   type PastePreviewData,
   parseClipboardRows,
 } from '../utils/pasteUtils';
-import type {
-  CustomTableCellValue,
-  CustomTableGridRow,
-  CustomTableRowPatch,
-} from '../utils/stylingUtils';
 import { getResponseItems } from '../utils/tableHelpers';
 import type { CustomTablePageColumn } from '../utils/tableTypes';
 import { readTabularFile, TabularFileError } from '../utils/tabularFileReader';
+import type { CustomTableCellValue, CustomTableGridRow, CustomTableRowPatch } from '../utils/types';
 
 function extractBatchInsertResult(
   response: { data?: Record<string, unknown> },
@@ -78,6 +74,7 @@ export interface UsePasteImportReturn {
   resetPastePreview: () => void;
   handlePasteHeadersToggle: (checked: boolean) => void;
   handlePasteCellChange: (rowIndex: number, sourceIndex: number, value: string) => void;
+  handlePasteMappingChange: (sourceIndex: number, selection: PasteMappingSelection) => void;
   handlePasteAdd: () => Promise<void>;
 }
 
@@ -86,7 +83,8 @@ interface UsePasteImportParams {
   orderedColumns: CustomTablePageColumn[];
   pasteDefaults: PasteDefaults;
   loadTable: () => Promise<void>;
-  refreshStats: () => Promise<void>;
+  /** Fired after rows were inserted or rolled back so totals can refresh. */
+  onRowsChanged: () => void;
   setRows: React.Dispatch<React.SetStateAction<CustomTableGridRow[]>>;
   /** Called after successful paste — component renders the undo toast */
   onInsertSuccess: (createdCount: number, onUndo: () => void) => void;
@@ -121,7 +119,7 @@ export function usePasteImport({
   orderedColumns,
   pasteDefaults,
   loadTable,
-  refreshStats,
+  onRowsChanged,
   setRows,
   onInsertSuccess,
   messages,
@@ -274,6 +272,15 @@ export function usePasteImport({
     [pasteRawRows, pasteUseHeaders, buildPreviewAsync],
   );
 
+  const handlePasteMappingChange = useCallback(
+    (sourceIndex: number, selection: PasteMappingSelection) => {
+      const next = { ...pasteMapping, [sourceIndex]: selection };
+      setPasteMapping(next);
+      rebuildPasteWithState(next, pasteEdits);
+    },
+    [pasteMapping, pasteEdits, rebuildPasteWithState],
+  );
+
   const handlePasteCellChange = useCallback(
     (rowIndex: number, sourceIndex: number, value: string) => {
       setPasteEdits(prev => {
@@ -318,13 +325,13 @@ export function usePasteImport({
           rowIds.map(rowId => apiClient.delete(`/custom-tables/${tableId}/rows/${rowId}`)),
         );
         setRows(prev => prev.filter(row => !rowIds.includes(row.id)));
-        await refreshStats();
+        onRowsChanged();
       })().catch(async error => {
         console.error('Failed to rollback rows:', error);
         toast.error(messages.undoFailed);
       });
     },
-    [tableId, refreshStats, setRows, messages.undoFailed],
+    [tableId, onRowsChanged, setRows, messages.undoFailed],
   );
 
   const createNewColumns = async (
@@ -402,7 +409,7 @@ export function usePasteImport({
         appendRows(normalizedRows);
       }
       resetPastePreview();
-      await refreshStats();
+      onRowsChanged();
       onInsertSuccess(createdCount, () =>
         rollbackRows(normalizedRows.map(r => r.id).filter(Boolean)),
       );
@@ -421,7 +428,7 @@ export function usePasteImport({
     appendRows,
     resetPastePreview,
     loadTable,
-    refreshStats,
+    onRowsChanged,
     rollbackRows,
     onInsertSuccess,
     messages.noRows,
@@ -474,6 +481,7 @@ export function usePasteImport({
     resetPastePreview,
     handlePasteHeadersToggle,
     handlePasteCellChange,
+    handlePasteMappingChange,
     handlePasteAdd,
   };
 }

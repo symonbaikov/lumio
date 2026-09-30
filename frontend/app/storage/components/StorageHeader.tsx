@@ -94,7 +94,7 @@ export function StorageHeader({
             sx={{
               p: 1,
               borderRadius: tokens.radius.full,
-              bgcolor: 'rgba(22,129,24,0.1)',
+              bgcolor: 'rgba(var(--primary-rgb),0.1)',
               color: 'primary.main',
             }}
           >
@@ -212,7 +212,7 @@ function StorageTabButtons({
               sx={{
                 ...listToggleSx(isFolderActive),
                 ...(draggingFile
-                  ? { outline: '2px solid rgba(22,129,24,0.3)', outlineOffset: 2 }
+                  ? { outline: '2px solid rgba(var(--primary-rgb),0.3)', outlineOffset: 2 }
                   : {}),
               }}
             >

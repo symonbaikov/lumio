@@ -143,7 +143,7 @@ Lumio is a full-stack financial operations platform built for teams that need to
 - **Balance Sheet** — Account-level balance tracking with historical snapshots and export.
 - **Accounts Payable** — Pay-tab workflow for managing and tracking payable records. Marking a bill paid links the bank transaction that settled it (matching candidates are suggested) or records a cash payment from a wallet, so the payment reaches the ledger.
 - **Invoicing** — Clients, itemized invoices with per-line tax rates, and server-generated PDFs. Sending an invoice assigns it a sequential number, opens a receivable that is chased and paid the same way as a bill, and (when the double-entry ledger is enabled) books the accrual entry straight away — Dr Accounts Receivable, Cr Revenue and VAT payable. Recurring invoices generate their next draft automatically.
-- **Custom Tables** — User-defined data structures with typed columns, batch editing, formula support, and Sheets import.
+- **Custom Tables** — User-defined data structures with typed columns, batch editing, and formula support.
 - **Manual Data Entry** — Record cash expenses, income, and receipts manually with custom fields and file attachments.
 - **Categories** — Hierarchical transaction categories with usage counts and enable/disable toggle.
 - **Reference Data** — Tax rates, branches, and wallets for enriching transactions.
@@ -274,7 +274,6 @@ lumio/
 │   │   │   ├── storage/             # File storage, versioning, shared links
 │   │   │   ├── gmail/               # Legacy receipt sync & parsing
 │   │   │   ├── google-drive/        # Legacy Drive migration compatibility
-│   │   │   ├── google-sheets/       # Legacy Sheets migration compatibility
 │   │   │   ├── dropbox/             # Legacy Dropbox migration compatibility
 │   │   │   ├── exchange-rates/      # Currency exchange rate management
 │   │   │   ├── telegram/            # Telegram bot, scheduled reports

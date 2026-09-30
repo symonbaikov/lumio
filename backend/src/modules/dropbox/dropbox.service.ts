@@ -457,15 +457,7 @@ export class DropboxService extends CloudStorageBaseService<DropboxSettings> {
         };
       },
       importFile: (user, file) =>
-        this.statementsService.create(
-          user,
-          workspaceId,
-          file,
-          undefined,
-          undefined,
-          undefined,
-          false,
-        ),
+        this.statementsService.create(user, workspaceId, file, undefined, undefined, false),
       getErrorMessage: error => this.getDropboxErrorMessage(error),
     });
   }

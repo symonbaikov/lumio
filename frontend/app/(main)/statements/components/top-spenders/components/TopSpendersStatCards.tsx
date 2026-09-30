@@ -97,7 +97,7 @@ export function TopSpendersStatCards({
     <ArrowDown size={16} color="#ef4444" />
   );
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+    <div className="lumio-stat-tiles">
       <StatCard
         label={primaryMetricLabel}
         value={formatMoney(totals.total, currency)}

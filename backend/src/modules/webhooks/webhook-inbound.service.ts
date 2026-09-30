@@ -90,7 +90,6 @@ export class WebhookInboundService {
         user,
         endpoint.workspaceId,
         resolvedFile,
-        undefined,
         walletId,
         branchId,
         true,

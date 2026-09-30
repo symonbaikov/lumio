@@ -59,7 +59,6 @@ body:
         - Database
         - Authentication
         - Statement Processing
-        - Google Sheets Integration
         - Docker Setup
         - Documentation
         - Other

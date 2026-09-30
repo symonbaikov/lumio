@@ -31,9 +31,11 @@ import { BulkApproveDto } from './dto/bulk-approve.dto';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
 import { UpdateReceiptDto } from './dto/update-receipt.dto';
 import { UpdateReceiptLocationDto } from './dto/update-receipt-location.dto';
+import { UpdateReceiptStageDto, UpdateReceiptStageResultDto } from './dto/update-receipt-stage.dto';
 import { UploadReceiptDto } from './dto/upload-receipt.dto';
 import { ReceiptsService } from './receipts.service';
 import { ReceiptLocationService } from './services/receipt-location.service';
+import { ReceiptStageService } from './services/receipt-stage.service';
 
 type MulterFile = Express.Multer.File;
 
@@ -51,6 +53,7 @@ export class ReceiptsController {
   constructor(
     private readonly receiptsService: ReceiptsService,
     private readonly locationService: ReceiptLocationService,
+    private readonly receiptStageService: ReceiptStageService,
   ) {}
 
   @Post('upload')
@@ -138,8 +141,9 @@ export class ReceiptsController {
     @Param('id') id: string,
     @WorkspaceId() workspaceId: string,
     @Body() dto: UpdateReceiptLocationDto,
+    @CurrentUser() user: User,
   ) {
-    const receipt = await this.locationService.setManual(id, workspaceId, dto);
+    const receipt = await this.locationService.setManual(id, workspaceId, dto, user.id);
     if (!receipt) {
       throw new BadRequestException('Receipt not found');
     }
@@ -153,8 +157,12 @@ export class ReceiptsController {
   })
   @ApiResponse({ status: 200, description: 'Receipt with the automatically resolved location' })
   @ApiResponse({ status: 400, description: 'Receipt not found' })
-  async resetLocation(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    const receipt = await this.locationService.resetToAuto(id, workspaceId);
+  async resetLocation(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    const receipt = await this.locationService.resetToAuto(id, workspaceId, user.id);
     if (!receipt) {
       throw new BadRequestException('Receipt not found');
     }
@@ -167,18 +175,36 @@ export class ReceiptsController {
     @Param('id') id: string,
     @WorkspaceId() workspaceId: string,
     @Body() dto: UpdateReceiptDto,
+    @CurrentUser() user: User,
   ) {
-    const receipt = await this.receiptsService.update(id, workspaceId, dto);
+    const receipt = await this.receiptsService.update(id, workspaceId, dto, user.id);
     if (!receipt) {
       throw new BadRequestException('Receipt not found');
     }
     return receipt;
   }
 
+  @Post('stage')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
+  @ApiOperation({ summary: 'Move one or more receipts between Submit and Approve' })
+  @ApiResponse({ status: 200, type: UpdateReceiptStageResultDto })
+  async updateStage(
+    @Body() dto: UpdateReceiptStageDto,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ): Promise<UpdateReceiptStageResultDto> {
+    return this.receiptStageService.updateStage(dto.receiptIds, dto.stage, user.id, workspaceId);
+  }
+
   @Post(':id/approve')
   @WorkspaceAuth(Permission.STATEMENT_EDIT)
-  async approve(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    const result = await this.receiptsService.approve(id, workspaceId);
+  async approve(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    const result = await this.receiptsService.approve(id, workspaceId, user.id);
     if (!result) {
       throw new BadRequestException('Receipt not found');
     }
@@ -187,15 +213,23 @@ export class ReceiptsController {
 
   @Post('bulk-approve')
   @WorkspaceAuth(Permission.STATEMENT_EDIT)
-  async bulkApprove(@Body() dto: BulkApproveDto, @WorkspaceId() workspaceId: string) {
-    return this.receiptsService.bulkApprove(dto.receiptIds, workspaceId, dto.categoryId);
+  async bulkApprove(
+    @Body() dto: BulkApproveDto,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.receiptsService.bulkApprove(dto.receiptIds, workspaceId, user.id, dto.categoryId);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @WorkspaceAuth(Permission.STATEMENT_EDIT)
-  async delete(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    await this.receiptsService.delete(id, workspaceId);
+  async delete(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    await this.receiptsService.delete(id, workspaceId, user.id);
   }
 
   @Get(':id/file')

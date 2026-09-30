@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import type { SpendOverTimeRecord } from '@/app/(main)/statements/components/spend-over-time.utils';
 import { ChevronLeft, ChevronRight } from '@/app/components/icons';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { formatMoney } from '@/app/lib/analytics-common';
 import { tokens } from '@/lib/theme-tokens';
 
@@ -28,7 +29,11 @@ type CalendarDay = {
   currencies: string[];
 };
 
-const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+// 2024-01-01 is a Monday: the grid starts on Monday.
+const getWeekdayLabels = (locale: string): string[] => {
+  const formatter = new Intl.DateTimeFormat(locale, { weekday: 'short' });
+  return Array.from({ length: 7 }, (_, index) => formatter.format(new Date(2024, 0, 1 + index)));
+};
 
 const toDateOnly = (value?: string | null): Date | null => {
   if (!value) {
@@ -64,11 +69,6 @@ const getInitialMonth = (records: SpendOverTimeRecord[]): Date => {
     .sort((a, b) => b.getTime() - a.getTime())[0];
   return startOfMonth(latest ?? new Date());
 };
-
-const monthFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'long',
-  year: 'numeric',
-});
 
 const calendarNavButtonStyle: React.CSSProperties = {
   width: 36,
@@ -119,6 +119,13 @@ export function SpendOverTimeCalendar({
   onDayClick,
   labels,
 }: Props): JSX.Element {
+  const spendT = useIntlayer('statementsSpendOverTime');
+  const { locale } = useLocale();
+  const monthFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }),
+    [locale],
+  );
+  const weekdayLabels = useMemo(() => getWeekdayLabels(locale), [locale]);
   const initialMonth = useMemo(() => getInitialMonth(records), [records]);
   const [visibleMonth, setVisibleMonth] = useState(initialMonth);
 
@@ -191,18 +198,18 @@ export function SpendOverTimeCalendar({
           <button
             type="button"
             onClick={goToPreviousMonth}
-            aria-label="Previous month"
+            aria-label={spendT.previousMonth.value}
             style={calendarNavButtonStyle}
           >
             <ChevronLeft size={18} />
           </button>
           <button type="button" onClick={goToLatestMonth} style={calendarTodayButtonStyle}>
-            Latest
+            {spendT.latest}
           </button>
           <button
             type="button"
             onClick={goToNextMonth}
-            aria-label="Next month"
+            aria-label={spendT.nextMonth.value}
             style={calendarNavButtonStyle}
           >
             <ChevronRight size={18} />
@@ -210,135 +217,140 @@ export function SpendOverTimeCalendar({
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-          gap: 10,
-          marginBottom: 10,
-        }}
-      >
-        {WEEKDAY_LABELS.map(label => (
-          <div
-            key={label}
-            style={{
-              padding: '0 4px',
-              fontSize: 12,
-              fontWeight: 600,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--muted-foreground)',
-            }}
-          >
-            {label}
-          </div>
-        ))}
-      </div>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-          gap: 10,
-        }}
-      >
-        {days.map(day => {
-          const hasItems = day.records.length > 0;
-          const totalLabel =
-            day.currencies.length === 1
-              ? formatMoney(day.total, day.currencies[0] || currency)
-              : `${day.records.length} ${labels.operations}`;
-
-          return (
-            <button
-              key={day.iso}
-              type="button"
-              onClick={() => hasItems && onDayClick(day.iso)}
+      <div className="lumio-spend-calendar__scroll">
+        <div
+          className="lumio-spend-calendar__grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+            gap: 10,
+            marginBottom: 10,
+          }}
+        >
+          {weekdayLabels.map(label => (
+            <div
+              key={label}
               style={{
-                minHeight: 156,
-                padding: 12,
-                borderRadius: tokens.radius.lg,
-                border: day.inCurrentMonth
-                  ? '1px solid var(--border-color)'
-                  : '1px dashed rgba(255,255,255,0.06)',
-                background: hasItems
-                  ? 'rgba(92,196,98,0.1)'
-                  : day.inCurrentMonth
-                    ? 'rgba(255,255,255,0.02)'
-                    : 'rgba(255,255,255,0.01)',
-                color: 'var(--foreground)',
-                textAlign: 'left',
-                cursor: hasItems ? 'pointer' : 'default',
-                opacity: day.inCurrentMonth ? 1 : 0.5,
+                padding: '0 4px',
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: 'var(--muted-foreground)',
               }}
             >
-              <div
+              {label}
+            </div>
+          ))}
+        </div>
+
+        <div
+          className="lumio-spend-calendar__grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+            gap: 10,
+          }}
+        >
+          {days.map(day => {
+            const hasItems = day.records.length > 0;
+            const totalLabel =
+              day.currencies.length === 1
+                ? formatMoney(day.total, day.currencies[0] || currency)
+                : `${day.records.length} ${labels.operations}`;
+
+            return (
+              <button
+                key={day.iso}
+                type="button"
+                onClick={() => hasItems && onDayClick(day.iso)}
                 style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: 8,
-                  marginBottom: 10,
+                  minHeight: 156,
+                  padding: 12,
+                  borderRadius: tokens.radius.lg,
+                  border: day.inCurrentMonth
+                    ? '1px solid var(--border-color)'
+                    : '1px dashed rgba(255,255,255,0.06)',
+                  background: hasItems
+                    ? 'rgba(92,196,98,0.1)'
+                    : day.inCurrentMonth
+                      ? 'rgba(255,255,255,0.02)'
+                      : 'rgba(255,255,255,0.01)',
+                  color: 'var(--foreground)',
+                  textAlign: 'left',
+                  cursor: hasItems ? 'pointer' : 'default',
+                  opacity: day.inCurrentMonth ? 1 : 0.5,
                 }}
               >
-                <span style={{ fontSize: 15, fontWeight: 700 }}>{day.dayNumber}</span>
-                {hasItems ? (
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--primary)',
-                    }}
-                  >
-                    {totalLabel}
-                  </span>
-                ) : null}
-              </div>
-
-              {hasItems ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {day.records.slice(0, 3).map(record => (
-                    <div
-                      key={record.id}
+                <div
+                  className="lumio-spend-calendar__day-head"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    marginBottom: 10,
+                  }}
+                >
+                  <span style={{ fontSize: 15, fontWeight: 700 }}>{day.dayNumber}</span>
+                  {hasItems ? (
+                    <span
                       style={{
-                        borderRadius: tokens.radius.md,
-                        background: 'rgba(255,255,255,0.04)',
-                        padding: '8px 10px',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: 'var(--primary)',
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: 'var(--foreground)',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {record.merchant || record.fileName}
-                      </div>
-                      <div
-                        style={{
-                          marginTop: 3,
-                          fontSize: 12,
-                          color: 'var(--muted-foreground)',
-                        }}
-                      >
-                        {formatMoney(record.amount, record.currencyValue || currency)}
-                      </div>
-                    </div>
-                  ))}
-                  {day.records.length > 3 ? (
-                    <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
-                      +{day.records.length - 3} more
+                      {totalLabel}
                     </span>
                   ) : null}
                 </div>
-              ) : null}
-            </button>
-          );
-        })}
+
+                {hasItems ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {day.records.slice(0, 3).map(record => (
+                      <div
+                        key={record.id}
+                        style={{
+                          borderRadius: tokens.radius.md,
+                          background: 'rgba(255,255,255,0.04)',
+                          padding: '8px 10px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: 'var(--foreground)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {record.merchant || record.fileName}
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 3,
+                            fontSize: 12,
+                            color: 'var(--muted-foreground)',
+                          }}
+                        >
+                          {formatMoney(record.amount, record.currencyValue || currency)}
+                        </div>
+                      </div>
+                    ))}
+                    {day.records.length > 3 ? (
+                      <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
+                        {spendT.moreCount.value.replace('{count}', String(day.records.length - 3))}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {!hasRecordsInMonth ? (

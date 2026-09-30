@@ -117,23 +117,25 @@ describe('StatementsListTable upload skeleton', () => {
 describe('StatementsListTable columns', () => {
   it('renders desktop header and row from visible columns in order', () => {
     const { container } = renderTable([
-      { id: 'date', label: 'Date', visible: true, order: 0 },
-      { id: 'merchant', label: 'Merchant', visible: true, order: 1 },
+      { id: 'merchant', label: 'Merchant', visible: true, order: 0 },
+      { id: 'category', label: 'Category', visible: true, order: 1 },
       { id: 'amount', label: 'Amount', visible: false, order: 2 },
       { id: 'action', label: 'Action', visible: true, order: 3 },
     ]);
 
     const header = container.querySelector('.lumio-stmt-list-view__desktop-header');
-    const table = container.querySelector('.lumio-stmt-list-view__table') as HTMLDivElement | null;
     const scroller = container.querySelector('.lumio-stmt-list-view__table-scroll');
-    expect(header?.textContent).toContain('Date');
     expect(header?.textContent).toContain('Merchant');
+    expect(header?.textContent).toContain('Category');
     expect(header?.textContent).not.toContain('Amount');
     expect(scroller).toBeTruthy();
-    expect(table?.style.minWidth).toMatch(/px$/);
-    expect((header?.textContent || '').indexOf('Date')).toBeLessThan(
-      (header?.textContent || '').indexOf('Merchant'),
+    expect((header?.textContent || '').indexOf('Merchant')).toBeLessThan(
+      (header?.textContent || '').indexOf('Category'),
     );
+    // The date sort rides on the merchant header now that dates sit under names.
+    expect(
+      header?.querySelector('[data-column-id="merchant"] [data-testid="statements-date-sort"]'),
+    ).toBeTruthy();
 
     const desktopRow = screen.getByTestId('statement-item-desktop-statement-1');
     expect(desktopRow.textContent).toContain('Kaspi');

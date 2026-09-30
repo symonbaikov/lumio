@@ -1,0 +1,912 @@
+// lumio-ct — custom tables pages (list + table), built on the shared lumio-grid
+@use '../abstracts' as *;
+
+.lumio-ct {
+  display: flex;
+  flex-direction: column;
+  gap: $lumio-space-4;
+  padding: $lumio-space-4 $lumio-space-4 $lumio-space-6;
+
+  @include respond-to('md') {
+    padding: $lumio-space-3 $lumio-space-3 $lumio-space-5;
+  }
+
+  // ---- header -------------------------------------------------------------
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: $lumio-space-2;
+  }
+
+  &__back {
+    align-self: flex-start;
+    margin-left: -$lumio-space-2;
+  }
+
+  &__title-row {
+    display: flex;
+    flex-direction: column;
+    gap: $lumio-space-1;
+  }
+
+  &__title {
+    display: inline-flex;
+    align-items: center;
+    gap: $lumio-space-2;
+    margin: 0;
+    font-size: $lumio-font-size-xl;
+    font-weight: $lumio-font-weight-semibold;
+    line-height: $lumio-line-height-tight;
+    color: $lumio-color-text-primary;
+
+    @include dark {
+      color: $lumio-color-text-primary-dk;
+    }
+  }
+
+  &__title-edit {
+    display: inline-flex;
+    padding: 4px;
+    border: 0;
+    border-radius: $lumio-radius-xs;
+    background: none;
+    color: $lumio-color-ink-500;
+    cursor: pointer;
+
+    &:hover {
+      background-color: $lumio-color-ink-100;
+      color: $lumio-color-ink-800;
+
+      @include dark {
+        background-color: $lumio-color-ink-100-dk;
+        color: $lumio-color-ink-800-dk;
+      }
+    }
+  }
+
+  &__title-input {
+    width: min(100%, 480px);
+    padding: 6px 10px;
+    border: 1px solid var(--primary);
+    border-radius: $lumio-radius-sm;
+    background-color: $lumio-color-surface;
+    font: inherit;
+    font-size: $lumio-font-size-xl;
+    font-weight: $lumio-font-weight-semibold;
+    color: inherit;
+
+    @include dark {
+      background-color: $lumio-color-surface-dk;
+    }
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $lumio-space-3;
+    margin: 0;
+    font-size: $lumio-font-size-sm;
+    color: $lumio-color-ink-500;
+
+    @include dark {
+      color: $lumio-color-ink-500-dk;
+    }
+  }
+
+  &__badge {
+    padding: 2px 8px;
+    border-radius: $lumio-radius-full;
+    background-color: var(--primary-50);
+    color: var(--primary);
+    font-size: $lumio-font-size-xs;
+    font-weight: $lumio-font-weight-medium;
+
+    @include dark {
+      background-color: $lumio-color-primary-50-dk;
+      color: $lumio-color-primary-dk;
+    }
+
+    // The default source (Manual) repeats on every row; colour is kept for rarer ones.
+    &--neutral {
+      background-color: $lumio-color-ink-100;
+      color: $lumio-color-ink-600;
+
+      @include dark {
+        background-color: $lumio-color-ink-150-dk;
+        color: $lumio-color-ink-700-dk;
+      }
+    }
+  }
+
+  &__description {
+    margin: 0;
+    max-width: 72ch;
+    color: $lumio-color-text-secondary;
+
+    @include dark {
+      color: $lumio-color-text-secondary-dk;
+    }
+  }
+
+  // ---- toolbar ------------------------------------------------------------
+  &__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: $lumio-space-2;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $lumio-space-2;
+  }
+
+  &__search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 240px;
+    max-width: 360px;
+  }
+
+  &__search-icon {
+    position: absolute;
+    left: 12px;
+    color: $lumio-color-ink-400;
+    pointer-events: none;
+  }
+
+  &__search-input,
+  &__input,
+  &__filter-input {
+    width: 100%;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid $lumio-color-ink-200;
+    border-radius: $lumio-radius-sm;
+    background-color: $lumio-color-surface;
+    font: inherit;
+    font-size: $lumio-font-size-sm;
+    color: $lumio-color-text-primary;
+
+    @include dark {
+      border-color: $lumio-color-ink-200-dk;
+      background-color: $lumio-color-surface-dk;
+      color: $lumio-color-text-primary-dk;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: -1px;
+    }
+  }
+
+  &__search-input {
+    padding-left: 36px;
+  }
+
+  &__input--mono {
+    font-family: $lumio-font-family-mono;
+  }
+
+  &__input--compact {
+    height: 32px;
+  }
+
+  textarea.lumio-ct__input {
+    height: auto;
+    padding: 8px 12px;
+    resize: vertical;
+  }
+
+  &__group-select {
+    min-width: 160px;
+  }
+
+  // ---- filters ------------------------------------------------------------
+  &__filters {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $lumio-space-2;
+  }
+
+  // Secondary toolbar actions stay neutral so the one filled green button
+  // (New table / Add row) is the only accent in the row.
+  &__toolbar .MuiButton-outlined {
+    border-color: $lumio-color-ink-200;
+    color: $lumio-color-ink-700;
+
+    &:hover {
+      border-color: $lumio-color-ink-300;
+      background-color: $lumio-color-ink-50;
+    }
+
+    @include dark {
+      border-color: $lumio-color-ink-200-dk;
+      color: $lumio-color-ink-800-dk;
+
+      &:hover {
+        border-color: $lumio-color-ink-300-dk;
+        background-color: $lumio-color-ink-50-dk;
+      }
+    }
+  }
+
+  &__toolbar > &__actions {
+    margin-left: auto;
+  }
+
+  &__filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px 4px 10px;
+    border: 1px solid $lumio-color-ink-200;
+    border-radius: $lumio-radius-full;
+    background-color: $lumio-color-surface;
+    font-size: $lumio-font-size-xs;
+    color: $lumio-color-text-primary;
+
+    @include dark {
+      border-color: $lumio-color-ink-200-dk;
+      background-color: $lumio-color-surface-dk;
+      color: $lumio-color-text-primary-dk;
+    }
+  }
+
+  &__filter-chip-remove {
+    display: inline-flex;
+    padding: 2px;
+    border: 0;
+    border-radius: $lumio-radius-full;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+
+    &:hover {
+      background-color: $lumio-color-ink-100;
+
+      @include dark {
+        background-color: $lumio-color-ink-100-dk;
+      }
+    }
+  }
+
+  &__filter-form {
+    display: grid;
+    gap: $lumio-space-2;
+    width: min(92vw, 320px);
+    padding: $lumio-space-3;
+  }
+
+  // ---- grid cells ---------------------------------------------------------
+  &__grid {
+    .lumio-grid__td {
+      padding: 0;
+    }
+
+    // Placeholder cells have no editor inside to supply the inset.
+    .lumio-grid__skeleton-row > .lumio-grid__td {
+      padding: 0 12px;
+    }
+  }
+
+  &__cell {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    min-width: 0;
+
+    &--numeric {
+      justify-content: flex-end;
+      font-variant-numeric: tabular-nums;
+    }
+
+    &--required {
+      box-shadow: inset 0 0 0 1px $lumio-color-warning;
+    }
+  }
+
+  &__cell-button {
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    cursor: text;
+
+    &:hover {
+      background-color: $lumio-color-ink-50;
+
+      @include dark {
+        background-color: $lumio-color-ink-50-dk;
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
+  }
+
+  &__cell-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &--empty {
+      color: $lumio-color-ink-300;
+
+      @include dark {
+        color: $lumio-color-ink-300-dk;
+      }
+    }
+  }
+
+  &__cell-input {
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    border: 0;
+    box-shadow: inset 0 0 0 2px var(--primary);
+    background-color: $lumio-color-surface;
+    font: inherit;
+    font-size: $lumio-font-size-sm;
+    color: inherit;
+    outline: none;
+
+    @include dark {
+      background-color: $lumio-color-surface-dk;
+    }
+
+    &--numeric {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  &__chips {
+    display: flex;
+    gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 2px 8px;
+    border-radius: $lumio-radius-full;
+    background-color: $lumio-color-ink-100;
+    font-size: $lumio-font-size-xs;
+    font-weight: $lumio-font-weight-medium;
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @include dark {
+      background-color: $lumio-color-ink-100-dk;
+    }
+  }
+
+  &__row-number {
+    font-size: $lumio-font-size-xs;
+    font-variant-numeric: tabular-nums;
+    color: $lumio-color-ink-400;
+  }
+
+  &__col-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__col-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__col-required {
+    margin-left: 2px;
+    color: $lumio-color-danger;
+  }
+
+  &__col-menu {
+    display: inline-flex;
+    flex: none;
+    padding: 2px;
+    border: 0;
+    border-radius: $lumio-radius-xs;
+    background: none;
+    color: inherit;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 120ms ease;
+
+    .lumio-grid__th:hover &,
+    &:focus-visible {
+      opacity: 1;
+    }
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  &__footer-select {
+    font-size: $lumio-font-size-xs;
+    color: $lumio-color-ink-500;
+
+    // A slim totals strip under "+ Add row", not a second toolbar row.
+    .MuiInputBase-input,
+    .MuiSelect-select {
+      min-height: 0;
+      padding-top: 2px;
+      padding-bottom: 2px;
+      font-size: $lumio-font-size-xs;
+      line-height: 1.4;
+    }
+  }
+
+  &__footer-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: $lumio-font-weight-semibold;
+    color: $lumio-color-text-primary;
+
+    @include dark {
+      color: $lumio-color-text-primary-dk;
+    }
+  }
+
+  &__add-row td {
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  &__add-row-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: $lumio-font-size-sm;
+    color: $lumio-color-ink-500;
+    cursor: pointer;
+
+    &:hover {
+      background-color: $lumio-color-ink-50;
+      color: var(--primary);
+
+      @include dark {
+        background-color: $lumio-color-ink-50-dk;
+        color: $lumio-color-primary-dk;
+      }
+    }
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  // ---- groups -------------------------------------------------------------
+  &__groups {
+    padding: $lumio-space-3;
+    border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-lg;
+    background-color: $lumio-color-surface;
+
+    @include dark {
+      border-color: $lumio-color-ink-150-dk;
+      background-color: $lumio-color-surface-dk;
+    }
+  }
+
+  &__groups-title {
+    margin: 0 0 $lumio-space-2;
+    font-size: $lumio-font-size-sm;
+    font-weight: $lumio-font-weight-semibold;
+  }
+
+  &__groups-hint,
+  &__hint {
+    margin: 0;
+    font-size: $lumio-font-size-xs;
+    color: $lumio-color-ink-500;
+
+    @include dark {
+      color: $lumio-color-ink-500-dk;
+    }
+  }
+
+  &__groups-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $lumio-space-2;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__group {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid $lumio-color-ink-200;
+    border-radius: $lumio-radius-sm;
+    background: none;
+    font: inherit;
+    font-size: $lumio-font-size-sm;
+    color: inherit;
+    cursor: pointer;
+
+    @include dark {
+      border-color: $lumio-color-ink-200-dk;
+    }
+
+    &:hover {
+      border-color: var(--primary);
+    }
+  }
+
+  &__group-key {
+    font-weight: $lumio-font-weight-medium;
+  }
+
+  &__group-count,
+  &__group-agg {
+    font-size: $lumio-font-size-xs;
+    color: $lumio-color-ink-500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // ---- dialogs ------------------------------------------------------------
+  &__form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $lumio-space-3;
+
+    @include respond-to('sm') {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+
+    &--wide {
+      grid-column: 1 / -1;
+    }
+  }
+
+  &__checks {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: $lumio-space-4;
+  }
+
+  &__label {
+    font-size: $lumio-font-size-xs;
+    font-weight: $lumio-font-weight-semibold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $lumio-color-ink-500;
+  }
+
+  &__options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__option-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__swatches {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  &__swatch {
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-radius: $lumio-radius-full;
+    cursor: pointer;
+
+    &[aria-pressed='true'] {
+      border-color: $lumio-color-text-primary;
+
+      @include dark {
+        border-color: $lumio-color-text-primary-dk;
+      }
+    }
+  }
+
+  &__link-btn {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: $lumio-font-size-xs;
+    color: $lumio-color-ink-500;
+    cursor: pointer;
+
+    &:hover {
+      color: $lumio-color-danger;
+    }
+  }
+
+  &__import {
+    display: flex;
+    flex-direction: column;
+    gap: $lumio-space-3;
+  }
+
+  &__map-head,
+  &__map-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: $lumio-space-2;
+    align-items: center;
+  }
+
+  &__map-head {
+    font-size: $lumio-font-size-xs;
+    font-weight: $lumio-font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $lumio-color-ink-500;
+  }
+
+  &__map {
+    display: flex;
+    flex-direction: column;
+    gap: $lumio-space-2;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__map-source {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: $lumio-font-size-sm;
+  }
+
+  &__preview-scroll {
+    max-height: 40vh;
+    overflow: auto;
+    border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-sm;
+
+    @include dark {
+      border-color: $lumio-color-ink-150-dk;
+    }
+  }
+
+  &__preview {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: $lumio-font-size-sm;
+
+    th,
+    td {
+      padding: 6px 10px;
+      border-bottom: 1px solid $lumio-color-ink-100;
+      text-align: left;
+      white-space: nowrap;
+
+      @include dark {
+        border-bottom-color: $lumio-color-ink-100-dk;
+      }
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background-color: $lumio-color-ink-50;
+      font-size: $lumio-font-size-xs;
+      font-weight: $lumio-font-weight-semibold;
+      color: $lumio-color-ink-500;
+
+      @include dark {
+        background-color: $lumio-color-ink-50-dk;
+      }
+    }
+  }
+
+  &__preview-input {
+    width: 100%;
+    min-width: 80px;
+    padding: 2px 4px;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+  }
+
+  &__preview-error {
+    background-color: $lumio-color-danger-soft;
+    color: $lumio-color-danger;
+  }
+
+  &__error {
+    margin: 0;
+    font-size: $lumio-font-size-sm;
+    color: $lumio-color-danger;
+  }
+
+  &__center {
+    display: flex;
+    justify-content: center;
+    padding: $lumio-space-6;
+  }
+
+  &__convert p {
+    margin: 0 0 $lumio-space-2;
+  }
+
+  &__warnings {
+    margin: 0;
+    padding-left: $lumio-space-4;
+    font-size: $lumio-font-size-xs;
+    color: $lumio-color-ink-500;
+  }
+
+  // ---- list page ----------------------------------------------------------
+  &__list-name {
+    font-weight: $lumio-font-weight-medium;
+    color: $lumio-color-text-primary;
+
+    @include dark {
+      color: $lumio-color-text-primary-dk;
+    }
+  }
+
+  &__list-sub {
+    display: block;
+    font-size: $lumio-font-size-xs;
+    color: $lumio-color-ink-500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__list-actions {
+    display: inline-flex;
+    gap: 4px;
+
+    // Muted until the row is hovered or focused, so the list reads cleaner.
+    > button {
+      color: $lumio-color-ink-400;
+      transition: color 120ms ease;
+
+      @include dark {
+        color: $lumio-color-ink-600-dk;
+      }
+    }
+
+    .lumio-grid__tr:hover & > button,
+    .lumio-grid__tr:focus-within & > button {
+      color: $lumio-color-ink-700;
+
+      @include dark {
+        color: $lumio-color-ink-900-dk;
+      }
+    }
+  }
+
+  &__templates {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: $lumio-space-2;
+  }
+
+  &__template {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: $lumio-space-3;
+    border: 1px solid $lumio-color-ink-200;
+    border-radius: $lumio-radius-md;
+    background: none;
+    font: inherit;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+
+    @include dark {
+      border-color: $lumio-color-ink-200-dk;
+    }
+
+    &[aria-checked='true'] {
+      border-color: var(--primary);
+      background-color: var(--primary-50);
+
+      @include dark {
+        background-color: $lumio-color-primary-50-dk;
+      }
+    }
+  }
+
+  &__template-name {
+    font-weight: $lumio-font-weight-semibold;
+  }
+
+  &__template-desc,
+  &__template-count {
+    font-size: $lumio-font-size-xs;
+    color: $lumio-color-ink-500;
+  }
+}
+
+.lumio-ct__toast {
+  display: flex;
+  align-items: center;
+  gap: $lumio-space-3;
+  padding: 10px 14px;
+  border: 1px solid $lumio-color-ink-150;
+  border-radius: $lumio-radius-md;
+  background-color: $lumio-color-surface;
+  box-shadow: $lumio-shadow-md;
+  font-size: $lumio-font-size-sm;
+  color: $lumio-color-text-primary;
+  transition: opacity 150ms ease;
+
+  @include dark {
+    border-color: $lumio-color-ink-150-dk;
+    background-color: $lumio-color-surface-dk;
+    color: $lumio-color-text-primary-dk;
+  }
+
+  &--hidden {
+    opacity: 0;
+  }
+}
+
+.lumio-ct__toast-undo {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: $lumio-font-weight-semibold;
+  color: var(--primary);
+  cursor: pointer;
+
+  @include dark {
+    color: $lumio-color-primary-dk;
+  }
+}

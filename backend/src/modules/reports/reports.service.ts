@@ -147,7 +147,7 @@ interface TemplateReportRow {
 
 export interface CustomTablesReportRow {
   counterparty: string;
-  source: 'manual' | 'google_sheets_import';
+  source: 'manual';
   tableId: string;
   tableName: string;
   count: number;
@@ -161,7 +161,6 @@ export interface CustomTablesReportResponse {
   totals: {
     total: number;
     manualTotal: number;
-    googleSheetsTotal: number;
     operations: number;
   };
   comparison: {
@@ -171,20 +170,17 @@ export interface CustomTablesReportResponse {
     manualDelta: number;
     manualPercentage: number;
     manualTrend: 'up' | 'down' | 'flat';
-    googleSheetsDelta: number;
-    googleSheetsPercentage: number;
-    googleSheetsTrend: 'up' | 'down' | 'flat';
     operationsDelta: number;
     operationsPercentage: number;
     operationsTrend: 'up' | 'down' | 'flat';
   };
   timeseries: Array<{ date: string; amount: number }>;
-  sourceSplit: { manual: number; googleSheets: number };
+  sourceSplit: { manual: number };
   aggregatedRows: CustomTablesReportRow[];
   tables: Array<{
     id: string;
     name: string;
-    source: 'manual' | 'google_sheets_import';
+    source: 'manual';
     total: number;
     rows: number;
   }>;
@@ -196,7 +192,7 @@ export interface CustomTablesReportDrillDownResponse {
     rowId: string;
     tableId: string;
     tableName: string;
-    source: 'manual' | 'google_sheets_import';
+    source: 'manual';
     date: string | null;
     amount: number;
     category: string | null;
@@ -220,7 +216,7 @@ export class ReportsService {
 
   private emptyCustomTablesReportResponse(): CustomTablesReportResponse {
     return {
-      totals: { total: 0, manualTotal: 0, googleSheetsTotal: 0, operations: 0 },
+      totals: { total: 0, manualTotal: 0, operations: 0 },
       comparison: {
         totalDelta: 0,
         totalPercentage: 0,
@@ -228,15 +224,12 @@ export class ReportsService {
         manualDelta: 0,
         manualPercentage: 0,
         manualTrend: 'flat',
-        googleSheetsDelta: 0,
-        googleSheetsPercentage: 0,
-        googleSheetsTrend: 'flat',
         operationsDelta: 0,
         operationsPercentage: 0,
         operationsTrend: 'flat',
       },
       timeseries: [],
-      sourceSplit: { manual: 0, googleSheets: 0 },
+      sourceSplit: { manual: 0 },
       aggregatedRows: [],
       tables: [],
     };
@@ -844,7 +837,7 @@ export class ReportsService {
       rowId: string;
       tableId: string;
       tableName: string;
-      source: 'manual' | 'google_sheets_import';
+      source: 'manual';
       counterparty: string;
       amount: number;
       date: string | null;
@@ -922,14 +915,14 @@ export class ReportsService {
     const records = currentRows.map(toRecord).filter(Boolean) as ReportRecord[];
     const previousRecords = previousRows.map(toRecord).filter(Boolean) as ReportRecord[];
 
-    const totals = { total: 0, manualTotal: 0, googleSheetsTotal: 0, operations: 0 };
-    const previousTotals = { total: 0, manualTotal: 0, googleSheetsTotal: 0, operations: 0 };
+    const totals = { total: 0, manualTotal: 0, operations: 0 };
+    const previousTotals = { total: 0, manualTotal: 0, operations: 0 };
     const timeseriesMap = new Map<string, number>();
     const aggregateMap = new Map<
       string,
       {
         counterparty: string;
-        source: 'manual' | 'google_sheets_import';
+        source: 'manual';
         tableId: string;
         tableName: string;
         count: number;
@@ -943,11 +936,7 @@ export class ReportsService {
     for (const record of records) {
       totals.total += record.amount;
       totals.operations += 1;
-      if (record.source === 'google_sheets_import') {
-        totals.googleSheetsTotal += record.amount;
-      } else {
-        totals.manualTotal += record.amount;
-      }
+      totals.manualTotal += record.amount;
 
       if (record.date) {
         timeseriesMap.set(record.date, (timeseriesMap.get(record.date) || 0) + record.amount);
@@ -983,11 +972,7 @@ export class ReportsService {
     for (const record of previousRecords) {
       previousTotals.total += record.amount;
       previousTotals.operations += 1;
-      if (record.source === 'google_sheets_import') {
-        previousTotals.googleSheetsTotal += record.amount;
-      } else {
-        previousTotals.manualTotal += record.amount;
-      }
+      previousTotals.manualTotal += record.amount;
     }
 
     const toComparison = (current: number, previous: number) => {
@@ -1000,7 +985,6 @@ export class ReportsService {
 
     const totalCmp = toComparison(totals.total, previousTotals.total);
     const manualCmp = toComparison(totals.manualTotal, previousTotals.manualTotal);
-    const googleCmp = toComparison(totals.googleSheetsTotal, previousTotals.googleSheetsTotal);
     const operationsCmp = toComparison(totals.operations, previousTotals.operations);
 
     let aggregatedRows: CustomTablesReportRow[] = Array.from(aggregateMap.values()).map(item => ({
@@ -1037,9 +1021,6 @@ export class ReportsService {
         manualDelta: manualCmp.delta,
         manualPercentage: manualCmp.percentage,
         manualTrend: manualCmp.trend,
-        googleSheetsDelta: googleCmp.delta,
-        googleSheetsPercentage: googleCmp.percentage,
-        googleSheetsTrend: googleCmp.trend,
         operationsDelta: operationsCmp.delta,
         operationsPercentage: operationsCmp.percentage,
         operationsTrend: operationsCmp.trend,
@@ -1047,7 +1028,6 @@ export class ReportsService {
       timeseries,
       sourceSplit: {
         manual: totals.manualTotal,
-        googleSheets: totals.googleSheetsTotal,
       },
       aggregatedRows,
       tables: tables
@@ -1215,7 +1195,7 @@ export class ReportsService {
     Array<{
       id: string;
       name: string;
-      source: 'manual' | 'google_sheets_import';
+      source: 'manual';
       rowCount: number;
     }>
   > {
@@ -1227,7 +1207,7 @@ export class ReportsService {
     const results = [] as Array<{
       id: string;
       name: string;
-      source: 'manual' | 'google_sheets_import';
+      source: 'manual';
       rowCount: number;
     }>;
 

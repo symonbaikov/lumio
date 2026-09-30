@@ -6,8 +6,6 @@ import { CustomTable } from '@/entities/custom-table.entity';
 import { DataEntryCustomField } from '@/entities/data-entry-custom-field.entity';
 import { DataEntry } from '@/entities/data-entry.entity';
 import { Folder } from '@/entities/folder.entity';
-import { GoogleSheet } from '@/entities/google-sheet.entity';
-import { GoogleSheetsCredential } from '@/entities/google-sheets-credential.entity';
 import { IdempotencyKey } from '@/entities/idempotency-key.entity';
 import { Insight } from '@/entities/insight.entity';
 import { Integration } from '@/entities/integration.entity';
@@ -106,8 +104,6 @@ describe('Batch 2 workspace entity scoping', () => {
     [CustomTable, 'custom table'],
     [Folder, 'folder'],
     [TaxRate, 'tax rate'],
-    [GoogleSheetsCredential, 'google sheets credential'],
-    [GoogleSheet, 'google sheet'],
     [Integration, 'integration'],
     [CategorizationRule, 'categorization rule'],
     [CategoryLearning, 'category learning'],

@@ -9,6 +9,7 @@ describe('TaxRatesController', () => {
     update: jest.fn(),
     remove: jest.fn(),
   } as any;
+  const user = { id: 'user-1' } as any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,9 +39,9 @@ describe('TaxRatesController', () => {
     const created = { id: 'new-1', ...dto };
     taxRatesService.create.mockResolvedValue(created);
 
-    const result = await controller.create(dto as any, 'ws-1');
+    const result = await controller.create(dto as any, 'ws-1', user);
     expect(result).toEqual(created);
-    expect(taxRatesService.create).toHaveBeenCalledWith('ws-1', dto);
+    expect(taxRatesService.create).toHaveBeenCalledWith('ws-1', dto, 'user-1');
   });
 
   it('update delegates to service', async () => {
@@ -48,16 +49,16 @@ describe('TaxRatesController', () => {
     const updated = { id: 'rate-1', rate: 25 };
     taxRatesService.update.mockResolvedValue(updated);
 
-    const result = await controller.update('rate-1', dto as any, 'ws-1');
+    const result = await controller.update('rate-1', dto as any, 'ws-1', user);
     expect(result).toEqual(updated);
-    expect(taxRatesService.update).toHaveBeenCalledWith('rate-1', 'ws-1', dto);
+    expect(taxRatesService.update).toHaveBeenCalledWith('rate-1', 'ws-1', dto, 'user-1');
   });
 
   it('remove delegates to service and returns success message', async () => {
     taxRatesService.remove.mockResolvedValue(undefined);
 
-    const result = await controller.remove('rate-1', 'ws-1');
+    const result = await controller.remove('rate-1', 'ws-1', user);
     expect(result).toEqual({ message: 'Tax rate deleted successfully' });
-    expect(taxRatesService.remove).toHaveBeenCalledWith('rate-1', 'ws-1');
+    expect(taxRatesService.remove).toHaveBeenCalledWith('rate-1', 'ws-1', 'user-1');
   });
 });

@@ -18,6 +18,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
@@ -35,9 +36,14 @@ import { ConvertDroppedSampleDto } from './dto/convert-dropped-sample.dto';
 import { CreateManualExpenseDto } from './dto/create-manual-expense.dto';
 import { FilterStatementsDto } from './dto/filter-statements.dto';
 import { UpdateStatementDto } from './dto/update-statement.dto';
+import {
+  UpdateStatementStageDto,
+  UpdateStatementStageResultDto,
+} from './dto/update-statement-stage.dto';
 import { UploadReceiptScanDto } from './dto/upload-receipt-scan.dto';
 import { UploadStatementDto } from './dto/upload-statement.dto';
 import { ReceiptStatementService } from './services/receipt-statement.service';
+import { StatementStageService } from './services/statement-stage.service';
 import { StatementsService } from './statements.service';
 
 const SUPPORTED_RECEIPT_MIME_TYPES = new Set([
@@ -63,6 +69,7 @@ export class StatementsController {
     private readonly statementsService: StatementsService,
     private readonly receiptStatementService: ReceiptStatementService,
     private readonly idempotencyService: IdempotencyService,
+    private readonly statementStageService: StatementStageService,
   ) {}
 
   private toObjectRecord(value: unknown): Record<string, unknown> {
@@ -87,7 +94,6 @@ export class StatementsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @WorkspaceAuth(Permission.STATEMENT_UPLOAD)
-  @Audit({ entityType: EntityType.STATEMENT, includeDiff: true, isUndoable: true })
   @UseInterceptors(FilesInterceptor('file', 1, multerConfig))
   async uploadLegacy(
     @UploadedFiles() files: Express.Multer.File[],
@@ -102,7 +108,6 @@ export class StatementsController {
   @Post('upload')
   @HttpCode(HttpStatus.CREATED)
   @WorkspaceAuth(Permission.STATEMENT_UPLOAD)
-  @Audit({ entityType: EntityType.STATEMENT, includeDiff: true, isUndoable: true })
   @UseInterceptors(FilesInterceptor('files', 2, multerConfig))
   async upload(
     @UploadedFiles() files: Express.Multer.File[],
@@ -117,7 +122,6 @@ export class StatementsController {
   @Post('manual-expense')
   @HttpCode(HttpStatus.CREATED)
   @WorkspaceAuth(Permission.STATEMENT_UPLOAD)
-  @Audit({ entityType: EntityType.STATEMENT, includeDiff: true, isUndoable: true })
   @UseInterceptors(FilesInterceptor('files', 5, multerConfig))
   async createManualExpense(
     @UploadedFiles() files: Express.Multer.File[],
@@ -153,7 +157,6 @@ export class StatementsController {
   @Post('upload-receipt')
   @HttpCode(HttpStatus.CREATED)
   @WorkspaceAuth(Permission.STATEMENT_UPLOAD)
-  @Audit({ entityType: EntityType.STATEMENT, includeDiff: true, isUndoable: true })
   @UseInterceptors(FilesInterceptor('files', 5, multerConfig))
   async uploadReceipt(
     @UploadedFiles() files: Express.Multer.File[],
@@ -242,7 +245,6 @@ export class StatementsController {
           user,
           workspaceId,
           file,
-          uploadDto.googleSheetId || undefined,
           uploadDto.walletId || undefined,
           uploadDto.branchId || undefined,
           uploadDto.allowDuplicates ?? false,
@@ -425,6 +427,25 @@ export class StatementsController {
     }
   }
 
+  // Audited per statement inside the service (one batch), since the body can hold many ids.
+  @Post('stage')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
+  @ApiOperation({ summary: 'Move one or more statements to a review-workflow stage' })
+  @ApiResponse({ status: 200, type: UpdateStatementStageResultDto })
+  async updateStage(
+    @Body() dto: UpdateStatementStageDto,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ): Promise<UpdateStatementStageResultDto> {
+    return this.statementStageService.updateStage(
+      dto.statementIds,
+      dto.stage,
+      user.id,
+      workspaceId,
+    );
+  }
+
   @Post(':id/trash')
   @HttpCode(HttpStatus.OK)
   @WorkspaceAuth(Permission.STATEMENT_DELETE)
@@ -487,7 +508,6 @@ export class StatementsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @WorkspaceAuth(Permission.STATEMENT_DELETE)
-  @Audit({ entityType: EntityType.STATEMENT, includeDiff: true, isUndoable: true })
   async remove(
     @Param('id') id: string,
     @CurrentUser() user: User,

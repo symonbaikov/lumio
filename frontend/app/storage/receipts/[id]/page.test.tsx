@@ -11,7 +11,7 @@ import { IntlayerProviderContent } from 'react-intlayer';
 
 function TestProviders({ children }: { children: React.ReactNode }) {
   return (
-    <IntlayerProviderContent locale="ru" setLocale={() => undefined}>
+    <IntlayerProviderContent locale="en" setLocale={() => undefined}>
       <LocalizationProvider dateAdapter={AdapterDateFns}>{children}</LocalizationProvider>
     </IntlayerProviderContent>
   );

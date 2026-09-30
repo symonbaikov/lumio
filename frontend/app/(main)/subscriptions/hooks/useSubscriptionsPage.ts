@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
@@ -102,6 +103,7 @@ const makeEmptyForm = (currency: string): SubscriptionFormData => ({
 });
 
 export function useSubscriptionsPage() {
+  const text = useIntlayer('subscriptionsPage');
   const { currentWorkspace } = useWorkspace();
   const workspaceId = useWorkspaceId();
   const queryClient = useQueryClient();
@@ -230,57 +232,64 @@ export function useSubscriptionsPage() {
           editingId
             ? apiClient.put(`/subscriptions/${editingId}`, payload)
             : apiClient.post('/subscriptions', payload),
-        success: editingId ? 'Subscription updated' : 'Subscription created',
-        failure: 'Failed to save subscription',
+        success: editingId ? text.toastUpdated.value : text.toastCreated.value,
+        failure: text.toastSaveFailed.value,
       })
       // Диалог закрывается только после успеха: при ошибке форма остаётся
       // заполненной, как и до миграции.
       .then(() => closeDialog())
       .catch(() => undefined);
-  }, [formData, editingSubscription, closeDialog, saveMutation.mutateAsync, workspaceCurrency]);
+  }, [
+    formData,
+    editingSubscription,
+    closeDialog,
+    saveMutation.mutateAsync,
+    workspaceCurrency,
+    text,
+  ]);
 
   const handleDelete = useCallback(
     async (id: string) => {
       rowMutation.mutate({
         run: () => apiClient.delete(`/subscriptions/${id}`),
-        success: 'Subscription deleted',
-        failure: 'Failed to delete subscription',
+        success: text.toastDeleted.value,
+        failure: text.toastDeleteFailed.value,
       });
     },
-    [rowMutation.mutate],
+    [rowMutation.mutate, text],
   );
 
   const handleConfirm = useCallback(
     async (id: string) => {
       rowMutation.mutate({
         run: () => apiClient.post(`/subscriptions/${id}/confirm`),
-        success: 'Subscription confirmed',
-        failure: 'Failed to confirm subscription',
+        success: text.toastConfirmed.value,
+        failure: text.toastConfirmFailed.value,
       });
     },
-    [rowMutation.mutate],
+    [rowMutation.mutate, text],
   );
 
   const handleDismiss = useCallback(
     async (id: string) => {
       rowMutation.mutate({
         run: () => apiClient.post(`/subscriptions/${id}/dismiss`),
-        success: 'Subscription dismissed',
-        failure: 'Failed to dismiss subscription',
+        success: text.toastDismissed.value,
+        failure: text.toastDismissFailed.value,
       });
     },
-    [rowMutation.mutate],
+    [rowMutation.mutate, text],
   );
 
   const assignOwner = useCallback(
     async (id: string, ownerId: string) => {
       rowMutation.mutate({
         run: () => apiClient.patch(`/subscriptions/${id}/owner`, { ownerId }),
-        success: 'Owner assigned',
-        failure: 'Failed to assign owner',
+        success: text.toastOwnerAssigned.value,
+        failure: text.toastOwnerAssignFailed.value,
       });
     },
-    [rowMutation.mutate],
+    [rowMutation.mutate, text],
   );
 
   const recordDecision = useCallback(
@@ -291,11 +300,11 @@ export function useSubscriptionsPage() {
     ) => {
       rowMutation.mutate({
         run: () => apiClient.post(`/subscriptions/${id}/decisions`, { decision, ...values }),
-        success: 'Subscription decision saved',
-        failure: 'Failed to save subscription decision',
+        success: text.toastDecisionSaved.value,
+        failure: text.toastDecisionFailed.value,
       });
     },
-    [rowMutation.mutate],
+    [rowMutation.mutate, text],
   );
 
   return {
@@ -306,7 +315,7 @@ export function useSubscriptionsPage() {
     workspaceCurrency,
     isPending: listQuery.isPending,
     isFetching: listQuery.isFetching || rowMutation.isPending,
-    error: listQuery.isError ? 'Failed to load subscriptions' : null,
+    error: listQuery.isError ? text.loadFailed.value : null,
     statusFilter,
     setStatusFilter,
     dialogOpen,

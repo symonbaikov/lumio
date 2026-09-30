@@ -99,4 +99,43 @@ describe('BackupRestoreService', () => {
     process.env.UPLOADS_DIR = previousUploads;
     await fs.rm(uploads, { recursive: true, force: true });
   });
+
+  it('skips custom_table_import_jobs from backups made before the Google Sheets removal', async () => {
+    const categoryInsert = jest.fn().mockResolvedValue(undefined);
+    const workspaceRepository = {
+      create: jest.fn().mockImplementation(value => ({ id: 'new-workspace', ...value })),
+      save: jest.fn().mockResolvedValue({ id: 'new-workspace', name: 'Finance' }),
+      delete: jest.fn(),
+    };
+    const memberRepository = { create: jest.fn().mockImplementation(value => value), save: jest.fn().mockResolvedValue(undefined) };
+    const manager = { getRepository: jest.fn().mockReturnValue({ insert: categoryInsert }) };
+    const archive = {
+      open: jest.fn().mockResolvedValue({
+        manifest: { workspace: { id: 'old-workspace', name: 'Finance' }, collections: {}, files: [] },
+        collections: {
+          workspace: [{ id: 'old-workspace', name: 'Finance' }],
+          categories: [{ id: 'old-category', workspaceId: 'old-workspace', name: 'Travel' }],
+          custom_table_import_jobs: [{ id: 'old-job', workspaceId: 'old-workspace', type: 'google_sheets' }],
+        },
+        files: new Map(),
+      }),
+    };
+    const service = new BackupRestoreService(
+      {
+        entityMetadatas: [
+          { tableName: 'categories', target: 'Category', columns: [{ propertyName: 'id' }, { propertyName: 'workspaceId' }, { propertyName: 'name' }] },
+        ],
+        transaction: jest.fn().mockImplementation(callback => callback(manager)),
+      } as never,
+      workspaceRepository as never,
+      memberRepository as never,
+      archive as never,
+    );
+
+    await expect(
+      service.restore(Buffer.from('archive'), 'backup password', { id: 'user-1', workspaceId: 'workspace-1' } as never),
+    ).resolves.toEqual({ id: 'new-workspace', name: 'Finance' });
+    expect(manager.getRepository).toHaveBeenCalledTimes(1);
+    expect(categoryInsert).toHaveBeenCalledWith([expect.objectContaining({ name: 'Travel' })]);
+  });
 });

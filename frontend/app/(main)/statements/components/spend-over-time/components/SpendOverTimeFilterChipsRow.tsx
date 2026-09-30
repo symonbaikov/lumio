@@ -10,6 +10,7 @@ import type { SpendOverTimeGroupBy } from '@/app/(main)/statements/components/sp
 import { filterLinkClassName } from '@/app/(main)/statements/helpers/analytics-filter-labels';
 import { ChevronDown, SlidersHorizontal } from '@/app/components/icons';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
+import { useIntlayer } from '@/app/i18n';
 
 type Props = { vm: ReturnType<typeof useSpendOverTimeViewModel> };
 
@@ -41,6 +42,7 @@ const getDateTriggerText = ({ date, presets, modes, label }: DateTriggerParams):
 };
 
 export function SpendOverTimeFilterChipsRow({ vm }: Props): React.JSX.Element {
+  const spendT = useIntlayer('statementsSpendOverTime');
   const { labels, filterOptions, groupByOptions, viewOptions, defaultGroupBy, defaultView } = vm;
   const { statusOptions, datePresets, dateModes } = filterOptions;
   const {
@@ -98,7 +100,7 @@ export function SpendOverTimeFilterChipsRow({ vm }: Props): React.JSX.Element {
           }}
           trigger={
             <FilterChipButton active>
-              Group by: {groupByOptions.find(o => o.value === vm.draftGroupBy)?.label}
+              {spendT.groupByPrefix} {groupByOptions.find(o => o.value === vm.draftGroupBy)?.label}
               <ChevronDown size={14} />
             </FilterChipButton>
           }
@@ -125,7 +127,7 @@ export function SpendOverTimeFilterChipsRow({ vm }: Props): React.JSX.Element {
         }}
         trigger={
           <FilterChipButton active>
-            View: {viewOptions.find(o => o.value === vm.draftViewType)?.label}
+            {spendT.viewPrefix} {viewOptions.find(o => o.value === vm.draftViewType)?.label}
             <ChevronDown size={14} />
           </FilterChipButton>
         }

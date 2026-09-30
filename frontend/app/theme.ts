@@ -11,7 +11,7 @@ type AppSurfaceTokens = {
 
 const SURFACE_TOKENS: Record<ThemeMode, AppSurfaceTokens> = {
   light: { primary: '#168118' },
-  dark: { primary: '#5cc462' },
+  dark: { primary: '#34d399' },
 };
 
 /**
@@ -19,8 +19,8 @@ const SURFACE_TOKENS: Record<ThemeMode, AppSurfaceTokens> = {
  * `$lumio-color-primary-fill-dk` in styles/abstracts/_variables-dark.scss —
  * keep the two in step.
  */
-const DARK_PRIMARY_FILL = '#168118';
-const DARK_PRIMARY_FILL_HOVER = '#1c9c22';
+const DARK_PRIMARY_FILL = '#047857';
+const DARK_PRIMARY_FILL_HOVER = '#059669';
 
 // Checkbox glyphs matching the filter option indicator (FilterOptionRow): a filled
 // rounded 24px square, with the 16px Material check drawn in white when selected.
@@ -144,7 +144,7 @@ const getSharedOptions = (
             borderRadius: tokens.radius.xs,
             padding: 0,
             color: mode === 'dark' ? 'rgba(232, 232, 240, 0.18)' : '#f5f5f5',
-            // Dark green fill in both themes: dark mode's primary (#5cc462) is a light green.
+            // Dark green fill in both themes: dark mode's primary (#34d399) is a light green.
             '&.Mui-checked, &.MuiCheckbox-indeterminate': {
               color: c.primaryFill,
             },
@@ -160,6 +160,20 @@ const getSharedOptions = (
               left: -6,
               width: 'calc(100% + 12px)',
               height: 'calc(100% + 12px)',
+            },
+          },
+        },
+      },
+      // MUI spaces a label from its control with the control's own 9px padding
+      // and a -11px margin that cancels it. The checkbox above has no padding,
+      // so that pair glued every checkbox label to its box and pulled the box
+      // out past the column's edge. Radios keep their padding and default.
+      MuiFormControlLabel: {
+        styleOverrides: {
+          root: {
+            '&:has(> .MuiCheckbox-root)': {
+              marginLeft: 0,
+              gap: 10,
             },
           },
         },
@@ -362,15 +376,15 @@ const paletteByMode: Record<ThemeMode, ThemeOptions['palette']> = {
   dark: {
     mode: 'dark',
     primary: {
-      main: '#5cc462',
-      light: '#7dd687',
-      dark: '#168118',
+      main: '#34d399',
+      light: '#6ee7b7',
+      dark: '#047857',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#252b26',
-      light: '#333b34',
-      dark: '#1c211d',
+      main: '#242b3a',
+      light: '#333b4d',
+      dark: '#171c26',
       contrastText: '#e8e8f0',
     },
     error: {
@@ -398,14 +412,14 @@ const paletteByMode: Record<ThemeMode, ThemeOptions['palette']> = {
       contrastText: '#0b0b10',
     },
     background: {
-      default: '#0f1210',
-      paper: '#161b17',
+      default: '#12161f',
+      paper: '#1e2430',
     },
     text: {
       primary: '#e8e8f0',
       secondary: '#a0a0b4',
     },
-    divider: '#252b26',
+    divider: 'rgba(255, 255, 255, 0.07)',
   },
 };
 

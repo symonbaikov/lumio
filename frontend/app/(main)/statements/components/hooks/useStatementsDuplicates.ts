@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from 'react';
 import { useMemo, useState } from 'react';
+import { useIntlayer } from '@/app/i18n';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
 import { getStatementDisplayMerchant, getStatementMerchantLabel } from '@/app/lib/statement-status';
 import {
@@ -37,6 +38,12 @@ interface UseStatementsDuplicatesParams {
   scanningLabel: string;
 }
 
+interface DuplicateTexts {
+  sameReason: string;
+  manualReason: string;
+  manualGroup: string;
+}
+
 interface UseStatementsDuplicatesReturn {
   duplicateOverrides: Record<string, DuplicateOverride>;
   setDuplicateOverrides: Dispatch<SetStateAction<Record<string, DuplicateOverride>>>;
@@ -47,12 +54,12 @@ function buildDuplicateGroupsFromStatements(
   displayStatements: StatementForDuplicates[],
   duplicateOverrides: Record<string, DuplicateOverride>,
   scanningLabel: string,
+  texts: DuplicateTexts,
 ): Map<string, DuplicateMeta> {
   const duplicateGroups = new Map<
     string,
     Array<{ statement: StatementForDuplicates; createdAtTimestamp: number }>
   >();
-  const duplicateReason = 'Same merchant · same date · same amount';
   const isKnownStatement = new Set(displayStatements.map(s => s.id));
 
   for (const statement of displayStatements) {
@@ -86,12 +93,7 @@ function buildDuplicateGroupsFromStatements(
     }
   }
 
-  return buildMetaFromGroups(
-    duplicateGroups,
-    duplicateOverrides,
-    isKnownStatement,
-    duplicateReason,
-  );
+  return buildMetaFromGroups(duplicateGroups, duplicateOverrides, isKnownStatement, texts);
 }
 
 function buildResolvedName(isReceipt: boolean, statement: StatementForDuplicates): string {
@@ -118,7 +120,7 @@ function buildMetaFromGroups(
   >,
   duplicateOverrides: Record<string, DuplicateOverride>,
   isKnownStatement: Set<string>,
-  duplicateReason: string,
+  texts: DuplicateTexts,
 ): Map<string, DuplicateMeta> {
   const metaById = new Map<string, DuplicateMeta>();
   let duplicateGroupOrder = 0;
@@ -146,7 +148,7 @@ function buildMetaFromGroups(
         position: index + 1,
         total: sortedGroup.length,
         role: index === 0 ? 'primary' : 'suspected',
-        reason: duplicateReason,
+        reason: texts.sameReason,
         groupKey: '',
         groupLabel,
         groupTone,
@@ -155,7 +157,7 @@ function buildMetaFromGroups(
     });
   });
 
-  applyManualOverrides(metaById, duplicateOverrides, isKnownStatement);
+  applyManualOverrides(metaById, duplicateOverrides, isKnownStatement, texts);
 
   return metaById;
 }
@@ -164,6 +166,7 @@ function applyManualOverrides(
   metaById: Map<string, DuplicateMeta>,
   duplicateOverrides: Record<string, DuplicateOverride>,
   isKnownStatement: Set<string>,
+  texts: DuplicateTexts,
 ): void {
   Object.entries(duplicateOverrides).forEach(([statementId, override]) => {
     if (override?.state !== 'duplicate') {
@@ -174,7 +177,7 @@ function applyManualOverrides(
     }
 
     const manualGroupKey = override.groupKey ?? `manual:${statementId}`;
-    const manualGroupLabel = override.groupLabel ?? 'Group Manual';
+    const manualGroupLabel = override.groupLabel ?? texts.manualGroup;
     const manualGroupTone = override.groupTone ?? 'stone';
     const manualPrimaryId = override.primaryId ?? statementId;
 
@@ -182,7 +185,7 @@ function applyManualOverrides(
       position: override.position ?? 1,
       total: override.total ?? 1,
       role: override.primaryId === statementId ? 'primary' : 'suspected',
-      reason: 'Marked manually as duplicate',
+      reason: texts.manualReason,
       groupKey: manualGroupKey,
       groupLabel: manualGroupLabel,
       groupTone: manualGroupTone,
@@ -205,9 +208,19 @@ export function useStatementsDuplicates({
     setDuplicateOverridesState(updater);
   };
 
+  const listText = useIntlayer('statementsListUi');
+  const sameReason = listText.duplicateReasonSame.value;
+  const manualReason = listText.duplicateReasonManual.value;
+  const manualGroup = listText.groupManual.value;
+
   const duplicateMetaById = useMemo(
-    () => buildDuplicateGroupsFromStatements(displayStatements, duplicateOverrides, scanningLabel),
-    [displayStatements, duplicateOverrides, scanningLabel],
+    () =>
+      buildDuplicateGroupsFromStatements(displayStatements, duplicateOverrides, scanningLabel, {
+        sameReason,
+        manualReason,
+        manualGroup,
+      }),
+    [displayStatements, duplicateOverrides, scanningLabel, sameReason, manualReason, manualGroup],
   );
 
   return { duplicateOverrides, setDuplicateOverrides, duplicateMetaById };

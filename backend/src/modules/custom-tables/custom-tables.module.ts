@@ -1,4 +1,4 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Category } from '../../entities/category.entity';
 import { CustomTable } from '../../entities/custom-table.entity';
@@ -6,43 +6,34 @@ import { CustomTableCellStyle } from '../../entities/custom-table-cell-style.ent
 import { CustomTableColumn } from '../../entities/custom-table-column.entity';
 import { CustomTableColumnStyle } from '../../entities/custom-table-column-style.entity';
 import { CustomTableExportSchedule } from '../../entities/custom-table-export-schedule.entity';
-import { CustomTableImportJob } from '../../entities/custom-table-import-job.entity';
 import { CustomTableRow } from '../../entities/custom-table-row.entity';
 import { CustomTableRowComment } from '../../entities/custom-table-row-comment.entity';
 import { CustomTableShare } from '../../entities/custom-table-share.entity';
 import { DataEntry } from '../../entities/data-entry.entity';
 import { DataEntryCustomField } from '../../entities/data-entry-custom-field.entity';
-import { GoogleSheet } from '../../entities/google-sheet.entity';
 import { Statement } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { AuditModule } from '../audit/audit.module';
-import { GoogleSheetsModule } from '../google-sheets/google-sheets.module';
-import { ImportModule } from '../import/import.module';
+import { ClassificationModule } from '../classification/classification.module';
 import { CustomTableCommentsController } from './custom-table-comments.controller';
 import { CustomTableCommentsService } from './custom-table-comments.service';
 import { CustomTableExportSchedulesScheduler } from './custom-table-export-schedules.scheduler';
 import { CustomTableExportSchedulesService } from './custom-table-export-schedules.service';
-import { CustomTableImportJobsProcessor } from './custom-table-import-jobs.processor';
-import { CustomTableImportJobsService } from './custom-table-import-jobs.service';
 import {
   CustomTableSharesController,
   PublicCustomTableSharesController,
 } from './custom-table-shares.controller';
 import { CustomTableSharesService } from './custom-table-shares.service';
-import { CustomTableSyncScheduler } from './custom-table-sync.scheduler';
-import { CustomTableSyncService } from './custom-table-sync.service';
 import { CustomTablesController } from './custom-tables.controller';
 import { CustomTablesService } from './custom-tables.service';
 import { CustomTablesCacheService } from './custom-tables-cache.service';
-import { CustomTablesImportService } from './custom-tables-import.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       CustomTable,
-      CustomTableImportJob,
       CustomTableColumnStyle,
       CustomTableColumn,
       CustomTableRow,
@@ -52,7 +43,6 @@ import { CustomTablesImportService } from './custom-tables-import.service';
       CustomTableRowComment,
       DataEntry,
       DataEntryCustomField,
-      GoogleSheet,
       Category,
       Statement,
       Transaction,
@@ -60,8 +50,7 @@ import { CustomTablesImportService } from './custom-tables-import.service';
       WorkspaceMember,
     ]),
     AuditModule,
-    GoogleSheetsModule,
-    forwardRef(() => ImportModule),
+    ClassificationModule,
   ],
   controllers: [
     CustomTablesController,
@@ -72,16 +61,11 @@ import { CustomTablesImportService } from './custom-tables-import.service';
   providers: [
     CustomTablesService,
     CustomTablesCacheService,
-    CustomTablesImportService,
-    CustomTableImportJobsService,
-    CustomTableImportJobsProcessor,
     CustomTableSharesService,
-    CustomTableSyncService,
-    CustomTableSyncScheduler,
     CustomTableExportSchedulesService,
     CustomTableExportSchedulesScheduler,
     CustomTableCommentsService,
   ],
-  exports: [CustomTablesService, CustomTableImportJobsService],
+  exports: [CustomTablesService],
 })
 export class CustomTablesModule {}

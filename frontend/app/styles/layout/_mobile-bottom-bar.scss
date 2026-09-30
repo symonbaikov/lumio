@@ -67,7 +67,7 @@
     }
 
     &--active {
-      color: $lumio-color-primary;
+      color: var(--primary);
 
       @include dark {
         color: $lumio-color-primary-dk;
@@ -82,7 +82,7 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: $lumio-color-primary;
+    background: var(--primary-fill);
     color: #fff;
     flex-shrink: 0;
     margin-top: -12px;
@@ -194,8 +194,8 @@
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: rgba($lumio-color-primary, 0.12);
-      color: $lumio-color-primary;
+      background: color-mix(in srgb, var(--primary) 12%, transparent);
+      color: var(--primary);
       flex-shrink: 0;
 
       @include dark {
