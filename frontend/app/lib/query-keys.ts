@@ -38,6 +38,9 @@ export const queryKeys = {
   goalItems: (o: { workspaceId: string | null; goalId: string }) =>
     ['goals', 'items', o.workspaceId, o.goalId] as const,
   insights: (workspaceId: string | null) => ['insights', workspaceId] as const,
+  // The date is part of the key: a new day is a new quote without waiting for staleness.
+  dailyQuote: (workspaceId: string | null, date: string, locale: string) =>
+    ['daily-quote', workspaceId, date, locale] as const,
   integrationStatus: (o: { workspaceId: string | null; apiPath: string }) =>
     ['integration-status', o.workspaceId, o.apiPath] as const,
   integrationCatalogStatuses: (workspaceId: string | null) =>
@@ -49,6 +52,8 @@ export const queryKeys = {
   customTables: (workspaceId: string | null) => ['custom-tables', workspaceId] as const,
   adminUsers: (workspaceId: string | null) => ['admin-users', workspaceId] as const,
   budgets: (workspaceId: string | null) => ['budgets', workspaceId] as const,
+  // Under the budgets prefix, so saving or deleting a budget refreshes the plan-vs-actual too.
+  stoicBalance: (workspaceId: string | null) => ['budgets', workspaceId, 'stoic-balance'] as const,
   balanceSheet: (o: { workspaceId: string | null; date: string | null; locale: string }) =>
     ['balance-sheet', o.workspaceId, o.date, o.locale] as const,
   tablesReport: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>

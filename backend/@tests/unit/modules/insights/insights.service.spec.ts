@@ -11,6 +11,7 @@ import { InsightsService } from '@/modules/insights/insights.service';
 function createRepoMock<T>() {
   return {
     findOne: jest.fn(),
+    find: jest.fn(async () => []),
     create: jest.fn((data: Partial<T>) => data as T),
     save: jest.fn(async (data: Partial<T>) => data as T),
     createQueryBuilder: jest.fn(),
@@ -29,6 +30,8 @@ function createQueryBuilderMock() {
     addSelect: jest.fn(() => qb),
     groupBy: jest.fn(() => qb),
     update: jest.fn(() => qb),
+    delete: jest.fn(() => qb),
+    from: jest.fn(() => qb),
     set: jest.fn(() => qb),
     execute: jest.fn(async () => ({ affected: 1 })),
     getManyAndCount: jest.fn(async () => [[], 0]),
@@ -46,18 +49,30 @@ describe('InsightsService', () => {
   const financialAnalyzer = {
     analyze: jest.fn(async () => []),
   } as any;
+  const stoicAnalyzer = {
+    analyze: jest.fn(async () => []),
+  } as any;
+  const stoicPhrasingService = {
+    phrase: jest.fn(async () => new Map()),
+  } as any;
 
   let service: InsightsService;
 
   beforeEach(() => {
     jest.clearAllMocks();
     financialAnalyzer.analyze.mockResolvedValue([]);
+    stoicAnalyzer.analyze.mockResolvedValue([]);
+    stoicPhrasingService.phrase.mockResolvedValue(new Map());
+    insightRepository.find.mockResolvedValue([]);
+    insightRepository.createQueryBuilder.mockReturnValue(createQueryBuilderMock());
     userRepository.findOne.mockResolvedValue({ id: 'user-1', locale: 'ru' });
     service = new InsightsService(
       insightRepository,
       userRepository,
       operationalAnalyzer,
       financialAnalyzer,
+      stoicAnalyzer,
+      stoicPhrasingService,
     );
   });
 
@@ -107,12 +122,38 @@ describe('InsightsService', () => {
 
     expect(insightRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Unapproved transactions',
-        message: '64 transactions are waiting for approval',
+        title: 'Transactions await your judgment',
+        message:
+          '64 transactions are waiting for approval. Settle them today rather than carry them.',
         messageKey: 'operational.unapproved',
-        messageParams: { count: 64 },
+        messageParams: { count: 64, locale: 'en' },
       }),
     );
+  });
+
+  it('writes in the interface language when the client names one', async () => {
+    operationalAnalyzer.analyze.mockResolvedValue([
+      {
+        type: InsightType.UNAPPROVED_COUNT,
+        category: InsightCategory.OPERATIONAL,
+        severity: InsightSeverity.WARN,
+        messageKey: 'operational.unapproved',
+        messageParams: { count: 3 },
+        deduplicationKey: 'operational:unapproved:workspace-1',
+      },
+    ]);
+    insightRepository.findOne.mockResolvedValue(null);
+    userRepository.findOne.mockResolvedValue({ id: 'user-1', locale: 'en' });
+
+    await service.refresh('user-1', 'workspace-1', { locale: 'ru' });
+    await service.refresh('user-1', 'workspace-1', { locale: 'xx' });
+
+    expect(insightRepository.create.mock.calls[0][0]).toMatchObject({
+      title: 'Операции ждут вашего решения',
+      messageParams: { count: 3, locale: 'ru' },
+    });
+    // An unknown language falls back to the profile's.
+    expect(insightRepository.create.mock.calls[1][0].messageParams.locale).toBe('en');
   });
 
   it('stores literal text as-is, without a key, for insights written by the model', async () => {
@@ -198,7 +239,7 @@ describe('InsightsService', () => {
     expect(insightRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'insight-1',
-        message: 'Есть 12 транзакций без категории',
+        message: 'Транзакций без категории: 12. То, что не названо, нельзя взвесить.',
       }),
     );
   });
@@ -216,6 +257,151 @@ describe('InsightsService', () => {
     });
     expect(summaryQb.andWhere).toHaveBeenCalledWith('insight.workspaceId = :workspaceId', {
       workspaceId: 'workspace-1',
+    });
+  });
+
+  describe('Stoic phrasing', () => {
+    const stoicCandidate: InsightCandidate = {
+      type: InsightType.STOIC_INTENT_GAP,
+      category: InsightCategory.STOIC,
+      severity: InsightSeverity.INFO,
+      messageKey: 'stoic.leisure_over_plan',
+      messageParams: { planned: 10, actual: 31 },
+      deduplicationKey: 'stoic:leisure_gap:workspace-1:2026-09',
+      data: { planned: 10, actual: 31, stoicClass: 'leisure' },
+      aiPhrasing: true,
+    };
+
+    beforeEach(() => {
+      operationalAnalyzer.analyze.mockResolvedValue([]);
+      stoicAnalyzer.analyze.mockResolvedValue([stoicCandidate]);
+      insightRepository.findOne.mockResolvedValue(null);
+      userRepository.findOne.mockResolvedValue({ id: 'user-1', locale: 'en' });
+    });
+
+    it("stores the model's wording but keeps the key and params", async () => {
+      stoicPhrasingService.phrase.mockResolvedValue(
+        new Map([
+          [stoicCandidate.deduplicationKey, { title: 'Model title', message: 'Model text' }],
+        ]),
+      );
+
+      await service.refresh('user-1', 'workspace-1');
+
+      expect(stoicPhrasingService.phrase).toHaveBeenCalledWith('workspace-1', 'user-1', 'en', [
+        expect.objectContaining({
+          id: stoicCandidate.deduplicationKey,
+          facts: { planned: 10, actual: 31 },
+          draft: expect.objectContaining({
+            title: 'Leisure takes more than you planned',
+          }),
+        }),
+      ]);
+      expect(insightRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Model title',
+          message: 'Model text',
+          messageKey: 'stoic.leisure_over_plan',
+          messageParams: { planned: 10, actual: 31, locale: 'en' },
+        }),
+      );
+    });
+
+    it('falls back to the template when the model gives nothing back', async () => {
+      await service.refresh('user-1', 'workspace-1');
+
+      expect(insightRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Leisure takes more than you planned',
+        }),
+      );
+    });
+
+    it('does not ask the model again while the facts are unchanged', async () => {
+      insightRepository.find.mockResolvedValue([
+        {
+          deduplicationKey: stoicCandidate.deduplicationKey,
+          messageKey: 'stoic.leisure_over_plan',
+          // jsonb hands keys back in its own order.
+          data: { stoicClass: 'leisure', actual: 31, planned: 10 },
+          messageParams: { planned: 10, actual: 31, locale: 'en' },
+          title: 'Earlier model title',
+          message: 'Earlier model text',
+        },
+      ]);
+
+      await service.refresh('user-1', 'workspace-1');
+
+      expect(stoicPhrasingService.phrase).toHaveBeenCalledWith('workspace-1', 'user-1', 'en', []);
+      expect(insightRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Earlier model title',
+          message: 'Earlier model text',
+        }),
+      );
+    });
+
+    it('asks again when the earlier wording is in another language', async () => {
+      insightRepository.find.mockResolvedValue([
+        {
+          deduplicationKey: stoicCandidate.deduplicationKey,
+          messageKey: 'stoic.leisure_over_plan',
+          data: { stoicClass: 'leisure', actual: 31, planned: 10 },
+          messageParams: { planned: 10, actual: 31, locale: 'de' },
+          title: 'Freizeit…',
+          message: 'Freizeit…',
+        },
+      ]);
+
+      await service.refresh('user-1', 'workspace-1');
+
+      expect(stoicPhrasingService.phrase.mock.calls[0][3]).toHaveLength(1);
+    });
+
+    it('asks again when the facts changed', async () => {
+      insightRepository.find.mockResolvedValue([
+        {
+          deduplicationKey: stoicCandidate.deduplicationKey,
+          messageKey: 'stoic.leisure_over_plan',
+          data: { stoicClass: 'leisure', actual: 25, planned: 10 },
+          title: 'Earlier model title',
+          message: 'Earlier model text',
+        },
+      ]);
+
+      await service.refresh('user-1', 'workspace-1');
+
+      expect(stoicPhrasingService.phrase.mock.calls[0][3]).toHaveLength(1);
+    });
+
+    it('removes Stoic rows that no longer hold, keeping the current ones', async () => {
+      const qb = createQueryBuilderMock();
+      insightRepository.createQueryBuilder.mockReturnValue(qb);
+
+      await service.refresh('user-1', 'workspace-1');
+
+      expect(qb.delete).toHaveBeenCalled();
+      expect(qb.where).toHaveBeenCalledWith('user_id = :userId', { userId: 'user-1' });
+      expect(qb.andWhere).toHaveBeenCalledWith('workspace_id = :workspaceId', {
+        workspaceId: 'workspace-1',
+      });
+      expect(qb.andWhere).toHaveBeenCalledWith('category IN (:...categories)', {
+        categories: ['stoic', 'expert'],
+      });
+      expect(qb.andWhere).toHaveBeenCalledWith('deduplication_key NOT IN (:...currentKeys)', {
+        currentKeys: [stoicCandidate.deduplicationKey],
+      });
+    });
+
+    it('never calls the model from the cron', async () => {
+      await service.refresh('user-1', 'workspace-1', { phrase: false });
+
+      expect(stoicPhrasingService.phrase).not.toHaveBeenCalled();
+      expect(insightRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Leisure takes more than you planned',
+        }),
+      );
     });
   });
 });

@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, type Repository } from 'typeorm';
-import { Insight } from '../../entities/insight.entity';
+import { In, LessThan, type Repository } from 'typeorm';
+import { Insight, InsightCategory } from '../../entities/insight.entity';
 import { User } from '../../entities/user.entity';
 import type { InsightCandidate } from './analyzers/analyzer.interface';
 import { FinancialAnalyzer } from './analyzers/financial.analyzer';
 import { OperationalAnalyzer } from './analyzers/operational.analyzer';
-import { renderInsight } from './insight-translations';
+import { StoicAnalyzer } from './analyzers/stoic.analyzer';
+import { formatInsightParams, INSIGHT_TRANSLATIONS, renderInsight } from './insight-translations';
+import { type PhrasedText, StoicPhrasingService } from './stoic-phrasing.service';
 
 type ListInsightsParams = {
   userId: string;
@@ -25,6 +27,8 @@ export class InsightsService {
     private readonly userRepository: Repository<User>,
     private readonly operationalAnalyzer: OperationalAnalyzer,
     private readonly financialAnalyzer: FinancialAnalyzer,
+    private readonly stoicAnalyzer: StoicAnalyzer,
+    private readonly stoicPhrasingService: StoicPhrasingService,
   ) {}
 
   /**
@@ -33,28 +37,48 @@ export class InsightsService {
    * refreshed. Telegram's digest push (see TelegramScheduler) reads this to
    * notify once when a warning first appears rather than every time the
    * cron re-confirms it's still true.
+   *
+   * `phrase: false` skips the cloud model — the cron has nobody waiting on the
+   * page and should not spend the user's tokens.
    */
   async refresh(
     userId: string,
     workspaceId: string,
+    options: { phrase?: boolean; locale?: string } = {},
   ): Promise<{ created: number; updated: number; total: number; newInsights: Insight[] }> {
     const context = { userId, workspaceId };
-    const [operational, financial] = await Promise.all([
+    const [operational, financial, stoic] = await Promise.all([
       this.operationalAnalyzer.analyze(context),
       this.financialAnalyzer.analyze(context),
+      this.stoicAnalyzer.analyze(context),
     ]);
-    const candidates = [...operational, ...financial];
+    const candidates = [...operational, ...financial, ...stoic];
 
     // One refresh writes a handful of insights for the same recipient — read
     // the locale they are phrased in once, not once per insight.
-    const locale = await this.resolveLocale(userId);
+    // The interface language wins over the profile's: the switcher only sets
+    // a cookie, so the two can disagree, and the reader sees the interface.
+    const locale =
+      options.locale && options.locale in INSIGHT_TRANSLATIONS
+        ? options.locale
+        : await this.resolveLocale(userId);
+    const phrased =
+      options.phrase === false
+        ? new Map<string, PhrasedText>()
+        : await this.phraseCandidates(userId, workspaceId, candidates, locale);
 
     let created = 0;
     let updated = 0;
     const newInsights: Insight[] = [];
 
     for (const candidate of candidates) {
-      const result = await this.upsertCandidate(userId, workspaceId, candidate, locale);
+      const result = await this.upsertCandidate(
+        userId,
+        workspaceId,
+        candidate,
+        locale,
+        phrased.get(candidate.deduplicationKey),
+      );
       if (result.created) {
         created += 1;
         newInsights.push(result.insight);
@@ -63,12 +87,46 @@ export class InsightsService {
       }
     }
 
+    await this.retireStaleStoic(
+      userId,
+      workspaceId,
+      stoic.map(candidate => candidate.deduplicationKey),
+    );
+
     return {
       created,
       updated,
       total: candidates.length,
       newInsights,
     };
+  }
+
+  /**
+   * Stoic advice describes the month as it stands, and its kinds exclude each
+   * other — praise appears only when nothing needs correcting. A Stoic row
+   * whose condition no longer holds is removed rather than left to expire, so
+   * yesterday's praise never sits next to today's correction. The analyzer
+   * recomputes everything from transactions, so nothing is lost.
+   */
+  private async retireStaleStoic(
+    userId: string,
+    workspaceId: string,
+    currentKeys: string[],
+  ): Promise<void> {
+    const query = this.insightRepository
+      .createQueryBuilder()
+      .delete()
+      .from(Insight)
+      .where('user_id = :userId', { userId })
+      .andWhere('workspace_id = :workspaceId', { workspaceId })
+      .andWhere('category IN (:...categories)', {
+        categories: [InsightCategory.STOIC, InsightCategory.EXPERT],
+      })
+      .andWhere('is_dismissed = false');
+    if (currentKeys.length > 0) {
+      query.andWhere('deduplication_key NOT IN (:...currentKeys)', { currentKeys });
+    }
+    await query.execute();
   }
 
   async list(params: ListInsightsParams) {
@@ -199,6 +257,74 @@ export class InsightsService {
     return { created: result.created };
   }
 
+  /**
+   * Model-written text for the candidates that ask for it. A row whose facts
+   * have not changed keeps the text the model already wrote, so reopening the
+   * Advice page does not spend tokens rewording the same month; only new or
+   * changed facts, and rows still on their template, go to the model.
+   */
+  private async phraseCandidates(
+    userId: string,
+    workspaceId: string,
+    candidates: InsightCandidate[],
+    locale: string,
+  ): Promise<Map<string, PhrasedText>> {
+    const wanted = candidates.filter(
+      (candidate): candidate is Extract<InsightCandidate, { messageKey: unknown }> =>
+        Boolean(candidate.aiPhrasing) && 'messageKey' in candidate,
+    );
+    if (wanted.length === 0) {
+      return new Map();
+    }
+
+    const existing = await this.insightRepository.find({
+      where: {
+        userId,
+        workspaceId,
+        isDismissed: false,
+        deduplicationKey: In(wanted.map(candidate => candidate.deduplicationKey)),
+      },
+    });
+    const existingByKey = new Map(existing.map(row => [row.deduplicationKey, row]));
+
+    const phrased = new Map<string, PhrasedText>();
+    const toPhrase = wanted.flatMap(candidate => {
+      const draft = renderInsight(locale, candidate.messageKey, candidate.messageParams);
+      const row = existingByKey.get(candidate.deduplicationKey);
+      const alreadyPhrased =
+        row &&
+        row.messageKey === candidate.messageKey &&
+        stableJson(row.data) === stableJson(candidate.data ?? null) &&
+        // Model text in another language is not "already phrased" for this reader.
+        row.messageParams?.locale === locale &&
+        (row.title !== draft.title || row.message !== draft.message);
+      if (alreadyPhrased) {
+        phrased.set(candidate.deduplicationKey, { title: row.title, message: row.message });
+        return [];
+      }
+      return [
+        {
+          id: candidate.deduplicationKey,
+          messageKey: candidate.messageKey,
+          // Formatted the way the template shows them, so "keep every number"
+          // means the same money and dates; the wording variant is not a fact.
+          facts: Object.fromEntries(
+            Object.entries(formatInsightParams(locale, candidate.messageParams)).filter(
+              ([name]) => name !== 'variant',
+            ),
+          ),
+          draft,
+        },
+      ];
+    });
+
+    const fresh = await this.stoicPhrasingService.phrase(workspaceId, userId, locale, toPhrase);
+    for (const [key, text] of fresh) {
+      phrased.set(key, text);
+    }
+    return phrased;
+  }
+
   private async resolveLocale(userId: string): Promise<string> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
@@ -213,7 +339,12 @@ export class InsightsService {
    * it; the key and params are kept alongside so the client can re-render the
    * text if the user switches language later.
    */
-  private async resolveText(userId: string, candidate: InsightCandidate, locale?: string) {
+  private async resolveText(
+    userId: string,
+    candidate: InsightCandidate,
+    locale?: string,
+    phrased?: PhrasedText,
+  ) {
     if (!('messageKey' in candidate)) {
       return {
         title: candidate.title,
@@ -223,17 +354,17 @@ export class InsightsService {
       };
     }
 
-    const { title, message } = renderInsight(
-      locale ?? (await this.resolveLocale(userId)),
-      candidate.messageKey,
-      candidate.messageParams,
-    );
+    const renderLocale = locale ?? (await this.resolveLocale(userId));
+    const { title, message } =
+      phrased ?? renderInsight(renderLocale, candidate.messageKey, candidate.messageParams);
 
     return {
       title,
       message,
       messageKey: candidate.messageKey,
-      messageParams: candidate.messageParams,
+      // The language the stored text is in, so a later refresh in another
+      // language knows the text must be written again.
+      messageParams: { ...candidate.messageParams, locale: renderLocale },
     };
   }
 
@@ -242,8 +373,9 @@ export class InsightsService {
     workspaceId: string | null,
     candidate: InsightCandidate,
     locale?: string,
+    phrased?: PhrasedText,
   ): Promise<{ created: boolean; insight: Insight }> {
-    const text = await this.resolveText(userId, candidate, locale);
+    const text = await this.resolveText(userId, candidate, locale, phrased);
     const existing = await this.insightRepository.findOne({
       where: {
         userId,
@@ -287,4 +419,13 @@ export class InsightsService {
     const saved = await this.insightRepository.save(existing);
     return { created: false, insight: saved };
   }
+}
+
+/** JSON with sorted keys — jsonb does not keep the order the row was written in. */
+function stableJson(value: unknown): string {
+  return JSON.stringify(value, (_, inner: unknown) =>
+    inner && typeof inner === 'object' && !Array.isArray(inner)
+      ? Object.fromEntries(Object.entries(inner).sort(([a], [b]) => a.localeCompare(b)))
+      : inner,
+  );
 }

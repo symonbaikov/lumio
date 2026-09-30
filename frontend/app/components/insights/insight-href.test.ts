@@ -91,4 +91,68 @@ describe('insightHref', () => {
     expect(insightHref(makeInsight({ type: 'workflow.tip' }))).toBeNull();
     expect(insightHref(makeInsight({ type: 'rule.suggestion' }))).toBeNull();
   });
+
+  it('sends Stoic advice about a class to that class in Budgets', () => {
+    expect(
+      insightHref(makeInsight({ type: 'stoic.intent_gap', data: { stoicClass: 'leisure' } })),
+    ).toBe('/budgets?focus=stoic:leisure');
+    expect(
+      insightHref(makeInsight({ type: 'stoic.virtue_neglected', data: { stoicClass: 'virtue' } })),
+    ).toBe('/budgets?focus=stoic:virtue');
+    expect(insightHref(makeInsight({ type: 'stoic.praise', data: {} }))).toBe('/budgets');
+  });
+
+  it('sends a repeated overrun to its budget card, and a leisure habit to leisure', () => {
+    expect(
+      insightHref(makeInsight({ type: 'stoic.repeated', data: { categoryId: 'cat-1' } })),
+    ).toBe('/budgets?focus=budget%3Acat-1');
+    expect(
+      insightHref(makeInsight({ type: 'stoic.repeated', data: { stoicClass: 'leisure' } })),
+    ).toBe('/budgets?focus=stoic:leisure');
+  });
+
+  it('sends unjudged categories to the list where they are judged', () => {
+    expect(insightHref(makeInsight({ type: 'stoic.unclassified' }))).toBe(
+      '/budgets?focus=stoic:unclassified',
+    );
+  });
+
+  it('sends plan advice to the budget it is about, or to its class', () => {
+    expect(insightHref(makeInsight({ type: 'stoic.plan', data: { categoryId: 'c1' } }))).toBe(
+      '/budgets?focus=budget%3Ac1',
+    );
+    expect(insightHref(makeInsight({ type: 'stoic.plan', data: { stoicClass: 'virtue' } }))).toBe(
+      '/budgets?focus=stoic:virtue',
+    );
+  });
+
+  it('sends the generosity hint to the virtue class', () => {
+    expect(
+      insightHref(makeInsight({ type: 'stoic.generosity', data: { stoicClass: 'virtue' } })),
+    ).toBe('/budgets?focus=stoic:virtue');
+  });
+
+  it('sends goal advice and goal praise to the goal', () => {
+    expect(insightHref(makeInsight({ type: 'stoic.goal', data: { goalId: 'g1' } }))).toBe('/goals/g1');
+    expect(insightHref(makeInsight({ type: 'stoic.goal', data: null }))).toBe('/goals');
+    expect(insightHref(makeInsight({ type: 'stoic.praise', data: { goalId: 'g1' } }))).toBe(
+      '/goals/g1',
+    );
+  });
+
+  it('sends habits, fortune, commitments and subscriptions to where they are seen', () => {
+    expect(insightHref(makeInsight({ type: 'stoic.habit' }))).toBe('/statements/top-merchants');
+    expect(insightHref(makeInsight({ type: 'stoic.fortune' }))).toBe('/dashboard?tab=overview');
+    expect(insightHref(makeInsight({ type: 'stoic.commitments' }))).toBe('/dashboard?tab=overview');
+    expect(insightHref(makeInsight({ type: 'stoic.subscriptions' }))).toBe('/subscriptions');
+  });
+
+  it('sends an expert principle to where its numbers live', () => {
+    expect(
+      insightHref(makeInsight({ type: 'expert.principle', data: { target: 'budgets' } })),
+    ).toBe('/budgets');
+    expect(
+      insightHref(makeInsight({ type: 'expert.principle', data: { target: 'merchants' } })),
+    ).toBe('/statements/top-merchants');
+  });
 });

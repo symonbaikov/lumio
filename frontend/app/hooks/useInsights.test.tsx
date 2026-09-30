@@ -91,9 +91,13 @@ describe('useInsights', () => {
     apiMocks.get.mockClear();
 
     const refresh = renderHookWithQuery(() => useRefreshInsights(), { client });
-    refresh.result.current.mutate();
+    refresh.result.current.mutate('de');
 
-    await waitFor(() => expect(apiMocks.post).toHaveBeenCalledWith('/insights/refresh'));
+    await waitFor(() =>
+      expect(apiMocks.post).toHaveBeenCalledWith('/insights/refresh', null, {
+        params: { locale: 'de' },
+      }),
+    );
     await waitFor(() => expect(apiMocks.get).toHaveBeenCalled());
   });
 

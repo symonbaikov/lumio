@@ -8,10 +8,14 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { BudgetsService } from './budgets.service';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
+import { StoicLedgerService } from './stoic/stoic-ledger.service';
 
 @Controller('budgets')
 export class BudgetsController {
-  constructor(private readonly budgetsService: BudgetsService) {}
+  constructor(
+    private readonly budgetsService: BudgetsService,
+    private readonly stoicLedgerService: StoicLedgerService,
+  ) {}
 
   @Post()
   @WorkspaceAuth(Permission.BUDGET_CREATE)
@@ -27,6 +31,13 @@ export class BudgetsController {
   @WorkspaceAuth(Permission.BUDGET_VIEW)
   async findAll(@WorkspaceId() workspaceId: string) {
     return this.budgetsService.findAll(workspaceId);
+  }
+
+  /** Plan versus actual per Stoic class, plus how each expense category is judged. */
+  @Get('stoic-balance')
+  @WorkspaceAuth(Permission.BUDGET_VIEW)
+  async stoicBalance(@WorkspaceId() workspaceId: string) {
+    return this.stoicLedgerService.monthlyBalance(workspaceId);
   }
 
   @Get(':id')

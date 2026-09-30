@@ -14,11 +14,15 @@ import { WorkspaceContextGuard } from '../../common/guards/workspace-context.gua
 import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { InsightsService } from './insights.service';
+import { DailyQuoteService } from './quotes/daily-quote.service';
 
 @Controller('insights')
 @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
 export class InsightsController {
-  constructor(private readonly insightsService: InsightsService) {}
+  constructor(
+    private readonly insightsService: InsightsService,
+    private readonly dailyQuoteService: DailyQuoteService,
+  ) {}
 
   @Get()
   async list(
@@ -42,10 +46,33 @@ export class InsightsController {
     return this.insightsService.getSummary(user.id, workspaceId);
   }
 
+  /**
+   * A source-checked quote chosen for the user's current situation; changes
+   * daily. `date` is the reader's own calendar day (YYYY-MM-DD) — the server's
+   * clock may already be on another day.
+   */
+  @Get('daily-quote')
+  async dailyQuote(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Query('date') date?: string,
+    @Query('locale') locale?: string,
+  ) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date ?? '');
+    const day = match
+      ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12)
+      : new Date();
+    return this.dailyQuoteService.forUser(user.id, workspaceId, day, locale);
+  }
+
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@CurrentUser() user: User, @WorkspaceId() workspaceId: string) {
-    return this.insightsService.refresh(user.id, workspaceId);
+  async refresh(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Query('locale') locale?: string,
+  ) {
+    return this.insightsService.refresh(user.id, workspaceId, { locale });
   }
 
   @Post('dismiss-all')

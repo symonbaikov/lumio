@@ -113,11 +113,17 @@ export function useInsights({ severities }: UseInsightsOptions): UseInsightsStat
  * бы её нечистой и потребовал бы положить флаг в ключ, разделив общий кэш.
  * Дёргается только на странице, которую пользователь открыл намеренно.
  */
-export function useRefreshInsights(): UseMutationResult<unknown, Error, void> {
+/**
+ * Recomputes the advice on the server. The argument is the interface
+ * language, which can differ from the one saved on the profile — the advice
+ * is written in whatever the reader is looking at.
+ */
+export function useRefreshInsights(): UseMutationResult<unknown, Error, string> {
   const workspaceId = useWorkspaceId();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => apiClient.post('/insights/refresh'),
+    mutationFn: (locale: string) =>
+      apiClient.post('/insights/refresh', null, { params: { locale } }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.insights(workspaceId) }),
   });
 }

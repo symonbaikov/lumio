@@ -278,8 +278,14 @@ export class CategoriesService {
     const before = this.snapshotCategory(category);
 
     if (category.isSystem) {
+      // A system category's name and shape are fixed, but whether it is on and
+      // how the user judges its spending are theirs to decide.
       const nonToggleUpdates = Object.entries(updateDto).filter(
-        ([key, value]) => key !== 'isEnabled' && value !== undefined,
+        ([key, value]) =>
+          key !== 'isEnabled' &&
+          key !== 'stoicClass' &&
+          key !== 'helpsOthers' &&
+          value !== undefined,
       );
 
       if (nonToggleUpdates.length > 0) {
