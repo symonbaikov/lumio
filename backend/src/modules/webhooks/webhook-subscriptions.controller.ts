@@ -3,7 +3,9 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
+import { User } from '../../entities/user.entity';
 import { WebhookEvent } from '../../entities/webhook-subscription.entity';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateWebhookSubscriptionDto } from './dto/create-webhook-subscription.dto';
 import { UpdateWebhookSubscriptionDto } from './dto/update-webhook-subscription.dto';
 import { WebhookDeliveryService } from './services/webhook-delivery.service';
@@ -21,8 +23,12 @@ export class WebhookSubscriptionsController {
 
   @Post()
   @WorkspaceAuth(Permission.STATEMENT_UPLOAD)
-  async create(@WorkspaceId() workspaceId: string, @Body() dto: CreateWebhookSubscriptionDto) {
-    return this.service.create(workspaceId, dto); // secret returned only on creation
+  async create(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: CreateWebhookSubscriptionDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.service.create(workspaceId, dto, user.id); // secret returned only on creation
   }
 
   @Get()
@@ -45,15 +51,20 @@ export class WebhookSubscriptionsController {
     @Param('id') id: string,
     @WorkspaceId() workspaceId: string,
     @Body() dto: UpdateWebhookSubscriptionDto,
+    @CurrentUser() user: User,
   ) {
-    const { secret, ...rest } = await this.service.update(id, workspaceId, dto);
+    const { secret, ...rest } = await this.service.update(id, workspaceId, dto, user.id);
     return rest;
   }
 
   @Delete(':id')
   @WorkspaceAuth(Permission.STATEMENT_DELETE)
-  async delete(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    await this.service.delete(id, workspaceId);
+  async delete(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    await this.service.delete(id, workspaceId, user.id);
     return { success: true };
   }
 

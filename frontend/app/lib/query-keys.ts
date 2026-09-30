@@ -37,7 +37,12 @@ export const queryKeys = {
     ['goals', 'plan', o.workspaceId, o.goalId] as const,
   goalItems: (o: { workspaceId: string | null; goalId: string }) =>
     ['goals', 'items', o.workspaceId, o.goalId] as const,
-  insights: (workspaceId: string | null) => ['insights', workspaceId] as const,
+  // Локаль в ключе: сервер отдаёт текст совета на языке интерфейса, поэтому
+  // один и тот же воркспейс на разных языках — разные данные.
+  insights: (workspaceId: string | null, locale: string) =>
+    ['insights', workspaceId, locale] as const,
+  /** Префикс без локали — чтобы инвалидация сметала совет на всех языках. */
+  insightsAll: (workspaceId: string | null) => ['insights', workspaceId] as const,
   // The date is part of the key: a new day is a new quote without waiting for staleness.
   dailyQuote: (workspaceId: string | null, date: string, locale: string) =>
     ['daily-quote', workspaceId, date, locale] as const,
@@ -83,6 +88,9 @@ export const queryKeys = {
     ['net-worth', o.workspaceId, o.range] as const,
   cryptoWallets: (workspaceId: string | null) => ['crypto', 'wallets', workspaceId] as const,
   cryptoSummary: (workspaceId: string | null) => ['crypto', 'summary', workspaceId] as const,
+  cryptoTransactions: (workspaceId: string | null) =>
+    ['crypto', 'transactions', workspaceId] as const,
+  cryptoNetworks: (workspaceId: string | null) => ['crypto', 'networks', workspaceId] as const,
   notifications: (workspaceId: string | null) => ['notifications', workspaceId] as const,
   searchRecent: (workspaceId: string | null) => ['search', workspaceId, 'recent'] as const,
   searchFavorites: (workspaceId: string | null) => ['search', workspaceId, 'favorites'] as const,

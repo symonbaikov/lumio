@@ -3,6 +3,7 @@ import { Box, Button, Card, CardContent, Chip, IconButton, Typography } from '@m
 
 import { Pencil, Trash2 } from '@/app/components/icons';
 import { VendorIcon } from '@/app/components/VendorIcon';
+import { useIntlayer } from '@/app/i18n';
 import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 import type { SubscriptionItem } from '../hooks/useSubscriptionsPage';
 
@@ -21,12 +22,25 @@ const STATUS_COLORS: Record<string, 'warning' | 'success' | 'default' | 'error'>
   cancelled: 'error',
 };
 
-const FREQUENCY_LABELS: Record<string, string> = {
-  weekly: '/week',
-  monthly: '/mo',
-  quarterly: '/quarter',
-  annual: '/year',
-};
+const FREQUENCY_LABELS = {
+  weekly: 'freqWeek',
+  monthly: 'freqMonth',
+  quarterly: 'freqQuarter',
+  annual: 'freqYear',
+} as const;
+
+export const STATUS_LABELS = {
+  detected: 'statusDetected',
+  active: 'statusActive',
+  paused: 'statusPaused',
+  cancelled: 'statusCancelled',
+} as const;
+
+export const RISK_LABELS = {
+  price_changed: 'riskPriceChanged',
+  date_shifted: 'riskDateShifted',
+  missing_charge: 'riskMissingCharge',
+} as const;
 
 export function SubscriptionCard({
   subscription,
@@ -35,6 +49,7 @@ export function SubscriptionCard({
   onConfirm,
   onDismiss,
 }: SubscriptionCardProps) {
+  const t = useIntlayer('subscriptionsPage');
   const formatAmount = (amount: number, currency: string) =>
     `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(amount)} ${currency}`;
 
@@ -63,12 +78,12 @@ export function SubscriptionCard({
             <Typography variant="h6" fontWeight={700} color="primary">
               {formatAmount(subscription.amount, subscription.currency)}
               <Typography component="span" variant="body2" color="text.secondary">
-                {FREQUENCY_LABELS[subscription.frequency]}
+                {t[FREQUENCY_LABELS[subscription.frequency]]}
               </Typography>
             </Typography>
           </Box>
           <Chip
-            label={subscription.status}
+            label={t[STATUS_LABELS[subscription.status]].value}
             size="small"
             color={STATUS_COLORS[subscription.status] ?? 'default'}
             variant="outlined"
@@ -79,7 +94,7 @@ export function SubscriptionCard({
         <Box sx={{ display: 'flex', gap: 2, mb: 1.5 }}>
           {subscription.nextChargeDate && (
             <Typography variant="body2" color="text.secondary">
-              Next: {formatDate(subscription.nextChargeDate)}
+              {t.nextCharge.value.replace('{date}', formatDate(subscription.nextChargeDate))}
             </Typography>
           )}
           {subscription.category && (
@@ -94,10 +109,10 @@ export function SubscriptionCard({
           {subscription.status === 'detected' ? (
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button size="small" variant="contained" onClick={onConfirm}>
-                Confirm
+                {t.confirm}
               </Button>
               <Button size="small" variant="outlined" color="inherit" onClick={onDismiss}>
-                Dismiss
+                {t.dismiss}
               </Button>
             </Box>
           ) : (

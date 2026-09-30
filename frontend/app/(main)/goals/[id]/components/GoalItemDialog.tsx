@@ -8,6 +8,8 @@ import DialogTitle from '@mui/material/DialogTitle';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { format, isValid as isValidDate, parse } from 'date-fns';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useIntlayer } from '@/app/i18n';
@@ -128,7 +130,7 @@ export function GoalItemDialog({
         />
 
         <TextField
-          label="Currency"
+          label={t.itemCurrency.value}
           value={form.currency}
           onChange={e =>
             setForm({
@@ -140,14 +142,16 @@ export function GoalItemDialog({
           size="small"
         />
 
-        <TextField
+        <DatePicker
           label={t.itemDueMonth.value}
-          type="month"
-          value={form.dueMonth}
-          onChange={e => setForm({ ...form, dueMonth: e.target.value })}
-          fullWidth
-          size="small"
-          slotProps={{ inputLabel: { shrink: true } }}
+          views={['year', 'month']}
+          openTo="month"
+          format="MMMM yyyy"
+          value={form.dueMonth ? parse(form.dueMonth, 'yyyy-MM', new Date()) : null}
+          onChange={date =>
+            setForm({ ...form, dueMonth: date && isValidDate(date) ? format(date, 'yyyy-MM') : '' })
+          }
+          slotProps={{ textField: { fullWidth: true, size: 'small' } }}
         />
 
         <FormControlLabel

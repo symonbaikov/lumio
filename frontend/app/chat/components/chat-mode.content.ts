@@ -330,7 +330,7 @@ const content = {
       en: 'Stop',
       kk: 'Тоқтату',
       de: 'Stopp',
-      fr: 'Stop',
+      fr: 'Arrêter',
       es: 'Detener',
       pt: 'Parar',
       tr: 'Durdur',

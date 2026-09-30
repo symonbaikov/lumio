@@ -99,12 +99,25 @@ function LoadingView(): React.JSX.Element {
           gap: 3,
         }}
       >
+        {/* Same two zones as a loaded card: cover, then name and details. */}
         {CARD_SKELETON_KEYS.map(key => (
-          <Skeleton
+          <Box
             key={key}
-            variant="rounded"
-            sx={{ aspectRatio: '16/9', width: '100%', borderRadius: tokens.radius.xl }}
-          />
+            sx={{
+              border: '1px solid var(--border)',
+              borderRadius: tokens.radius.lg,
+              overflow: 'hidden',
+            }}
+          >
+            <Skeleton
+              variant="rectangular"
+              sx={{ aspectRatio: '16/9', width: '100%', height: 'auto' }}
+            />
+            <Box sx={{ px: 2, py: 1.5 }}>
+              <Skeleton variant="text" width="60%" height={20} />
+              <Skeleton variant="text" width="40%" height={16} />
+            </Box>
+          </Box>
         ))}
       </Box>
     </Box>

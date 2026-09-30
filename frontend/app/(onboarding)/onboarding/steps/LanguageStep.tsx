@@ -8,6 +8,7 @@ import { FORM_CONTROL_SX } from '@/app/components/ui/input';
 import { Select } from '@/app/components/ui/select';
 import { useIntlayer } from '@/app/i18n';
 import { SUPPORTED_LOCALES } from '@/app/lib/locale';
+import { formatTimeZoneLabel } from '@/app/lib/timezone';
 import { tokens } from '@/lib/theme-tokens';
 import { getNestedOnboardingValue, resolveOnboardingText } from '../lib/resolveOnboardingText';
 import type { SupportedLocale } from '../useOnboardingWizard';
@@ -74,8 +75,8 @@ function useLanguageStepData(props: LanguageStepProps): LanguageStepData {
 
   const timeZoneOptions = useMemo(() => resolveTimeZoneOptions(), []);
   const timezoneSelectOptions = useMemo<TimeZoneOption[]>(
-    () => timeZoneOptions.map(zone => ({ value: zone, label: zone })),
-    [timeZoneOptions],
+    () => timeZoneOptions.map(zone => ({ value: zone, label: formatTimeZoneLabel(zone, locale) })),
+    [timeZoneOptions, locale],
   );
 
   const selectedTimeZoneOption = useMemo<TimeZoneOption | null>(() => {
@@ -83,8 +84,8 @@ function useLanguageStepData(props: LanguageStepProps): LanguageStepData {
       return null;
     }
     const match = timezoneSelectOptions.find(option => option.value === timeZone);
-    return match ?? { value: timeZone, label: timeZone };
-  }, [timeZone, timezoneSelectOptions]);
+    return match ?? { value: timeZone, label: formatTimeZoneLabel(timeZone, locale) };
+  }, [timeZone, timezoneSelectOptions, locale]);
 
   const languageOptions: Array<{ value: SupportedLocale; label: string }> = SUPPORTED_LOCALES.map(
     code => ({

@@ -21,14 +21,17 @@ describe('ReceiptLocationService', () => {
   let repository: ReturnType<typeof createRepoMock<Receipt>>;
   let geocode: jest.Mock;
   let service: ReceiptLocationService;
+  let auditService: { createEvent: jest.Mock };
 
   beforeEach(() => {
     repository = createRepoMock<Receipt>();
     repository.save.mockImplementation(async (receipt: Receipt) => receipt);
     geocode = jest.fn().mockResolvedValue(null);
+    auditService = { createEvent: jest.fn().mockResolvedValue({}) };
     service = new ReceiptLocationService(
       repository as never,
       { geocode } as unknown as GeocodingService,
+      auditService as never,
     );
   });
 
@@ -162,10 +165,12 @@ describe('ReceiptLocationService', () => {
     it('pins a rounded point inside the caller workspace', async () => {
       repository.findOne.mockResolvedValue(buildReceipt());
 
-      const saved = await service.setManual('receipt-1', 'ws-1', {
-        latitude: 43.238312345,
-        longitude: 76.945398765,
-      });
+      const saved = await service.setManual(
+        'receipt-1',
+        'ws-1',
+        { latitude: 43.238312345, longitude: 76.945398765 },
+        'user-1',
+      );
 
       expect(repository.findOne).toHaveBeenCalledWith({
         where: { id: 'receipt-1', workspaceId: 'ws-1' },
@@ -183,9 +188,10 @@ describe('ReceiptLocationService', () => {
       repository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.setManual('receipt-1', 'ws-other', { latitude: 1, longitude: 2 }),
+        service.setManual('receipt-1', 'ws-other', { latitude: 1, longitude: 2 }, 'user-1'),
       ).resolves.toBeNull();
       expect(repository.save).not.toHaveBeenCalled();
+      expect(auditService.createEvent).not.toHaveBeenCalled();
     });
   });
 
@@ -202,7 +208,7 @@ describe('ReceiptLocationService', () => {
         }),
       );
 
-      const saved = await service.resetToAuto('receipt-1', 'ws-1');
+      const saved = await service.resetToAuto('receipt-1', 'ws-1', 'user-1');
 
       expect(repository.findOne).toHaveBeenCalledWith({
         where: { id: 'receipt-1', workspaceId: 'ws-1' },
@@ -217,7 +223,77 @@ describe('ReceiptLocationService', () => {
     it('returns null when the receipt is not in the workspace', async () => {
       repository.findOne.mockResolvedValue(null);
 
-      await expect(service.resetToAuto('receipt-1', 'ws-other')).resolves.toBeNull();
+      await expect(service.resetToAuto('receipt-1', 'ws-other', 'user-1')).resolves.toBeNull();
+    });
+  });
+
+  describe('audit', () => {
+    it('logs a manual pin as a receipt update with the stored rounded point and the place', async () => {
+      repository.findOne.mockResolvedValue(
+        buildReceipt({ parsedData: { vendor: 'Magnum', merchantAddress: 'ул. Абая 10' } }),
+      );
+
+      await service.setManual(
+        'receipt-1',
+        'ws-1',
+        { latitude: 43.238312345, longitude: 76.945398765 },
+        'user-1',
+      );
+
+      expect(auditService.createEvent).toHaveBeenCalledWith({
+        workspaceId: 'ws-1',
+        actorType: 'user',
+        actorId: 'user-1',
+        entityType: 'receipt',
+        entityId: 'receipt-1',
+        action: 'update',
+        diff: {
+          before: { locationLat: null, locationLng: null, locationSource: null },
+          after: {
+            locationLat: 43.23831,
+            locationLng: 76.9454,
+            locationSource: ReceiptLocationSource.MANUAL,
+          },
+        },
+        meta: { reason: 'location', change: 'manual', place: 'ул. Абая 10' },
+      });
+    });
+
+    it('logs a reset with the previous manual point as before', async () => {
+      repository.findOne.mockResolvedValue(
+        buildReceipt({
+          locationLat: 51.1,
+          locationLng: 71.4,
+          locationSource: ReceiptLocationSource.MANUAL,
+        }),
+      );
+
+      await service.resetToAuto('receipt-1', 'ws-1', 'user-1');
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws-1',
+          action: 'update',
+          diff: {
+            before: {
+              locationLat: 51.1,
+              locationLng: 71.4,
+              locationSource: ReceiptLocationSource.MANUAL,
+            },
+            after: { locationLat: null, locationLng: null, locationSource: null },
+          },
+          meta: expect.objectContaining({ change: 'reset' }),
+        }),
+      );
+    });
+
+    it('still returns the saved receipt when the audit write fails', async () => {
+      repository.findOne.mockResolvedValue(buildReceipt());
+      auditService.createEvent.mockRejectedValue(new Error('audit down'));
+
+      await expect(
+        service.setManual('receipt-1', 'ws-1', { latitude: 1, longitude: 2 }, 'user-1'),
+      ).resolves.toMatchObject({ locationSource: ReceiptLocationSource.MANUAL });
     });
   });
 });

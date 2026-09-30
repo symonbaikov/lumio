@@ -26,10 +26,13 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { isValid } from 'date-fns';
 import React, { useState } from 'react';
 import { Pencil, Trash2, UserPlus } from '@/app/components/icons';
 import { useIntlayer, useLocale } from '@/app/i18n';
-import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
+import { resolvePickerFormat } from '@/app/lib/user-format';
+import { formatStoredDateWithOptions, useUserFormat } from '@/app/lib/user-format-store';
 import api from '../lib/api';
 
 interface Permission {
@@ -209,6 +212,7 @@ function PermFormFields({
   error,
   t,
 }: PermFormProps): React.JSX.Element {
+  const { preferences } = useUserFormat();
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
       {error && <Alert severity="error">{error}</Alert>}
@@ -224,13 +228,14 @@ function PermFormFields({
           <MenuItem value="editor">{t.permission.editorLong}</MenuItem>
         </Select>
       </FormControl>
-      <TextField
-        fullWidth
+      <DateTimePicker
         label={t.dialogs.expiresAt.value}
-        type="datetime-local"
-        value={expiresAt}
-        onChange={e => setExpiresAt(e.target.value)}
-        InputLabelProps={{ shrink: true }}
+        value={expiresAt ? new Date(expiresAt) : null}
+        onChange={date => setExpiresAt(date && isValid(date) ? date.toISOString() : '')}
+        format={`${resolvePickerFormat(preferences)} HH:mm`}
+        ampm={false}
+        disablePast
+        slotProps={{ textField: { fullWidth: true } }}
       />
       <FormControlLabel
         control={<Switch checked={canReshare} onChange={e => setCanReshare(e.target.checked)} />}

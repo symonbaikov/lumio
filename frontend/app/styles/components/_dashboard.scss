@@ -297,6 +297,13 @@
     justify-content: space-between;
     gap: 20px;
     margin-bottom: 16px;
+
+    /* On a phone the title and a wide action (a month strip) cannot share one
+       line without squeezing the title to a few characters. */
+    @include respond-to('sm') {
+      flex-wrap: wrap;
+      gap: 12px;
+    }
   }
 
   &__card-head-actions {
@@ -304,6 +311,14 @@
     align-items: center;
     gap: 14px;
     flex-shrink: 0;
+
+    /* A month strip in this slot is twelve chips wide. Refusing to shrink, it
+       stretched the card — and with it the whole page — well past the screen
+       on the goal page; this one case shrinks and scrolls inside itself. */
+    &:has(.lumio-dashboard__month-strip) {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
   }
 
   &__card-title {

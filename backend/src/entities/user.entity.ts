@@ -83,6 +83,10 @@ export class User {
   @Column({ name: 'reduce_motion', type: 'boolean', default: false })
   reduceMotion: boolean;
 
+  /** The daily-quote banner above the pages. The advice itself is unaffected. */
+  @Column({ name: 'show_daily_quote', type: 'boolean', default: true })
+  showDailyQuote: boolean;
+
   @Column({
     name: 'theme_preference',
     type: 'varchar',

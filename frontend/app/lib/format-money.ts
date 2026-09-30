@@ -25,6 +25,12 @@ export const resolveCurrencyCode = (
 };
 
 /**
+ * Intl's compact notation tops out at "T" (10^12) and just appends more digits
+ * past that (e.g. "1,000,000T"), so past this magnitude it stops being compact.
+ */
+export const COMPACT_NOTATION_CEILING = 1e15;
+
+/**
  * Formats a numeric `value` as a localised currency string.
  *
  * @param value     - Numeric amount to format.
@@ -35,14 +41,20 @@ export const formatMoney = (
   value: number,
   currency: string,
   locale = 'en',
-  options: { fractionDigits?: number } = {},
+  options: { fractionDigits?: number; notation?: 'standard' | 'compact' } = {},
 ): string => {
   if (Number.isNaN(value)) return '—';
-  const fractionDigits = options.fractionDigits ?? 2;
+  const requested = options.notation ?? 'standard';
+  const notation =
+    requested === 'compact' && Math.abs(value) >= COMPACT_NOTATION_CEILING
+      ? 'scientific'
+      : requested;
+  const fractionDigits = options.fractionDigits ?? (notation === 'standard' ? 2 : 1);
   return new Intl.NumberFormat(resolveLocale(locale), {
     style: 'currency',
     currency: resolveCurrencyCode(currency),
-    minimumFractionDigits: fractionDigits,
+    notation,
+    minimumFractionDigits: notation === 'standard' ? fractionDigits : 0,
     maximumFractionDigits: fractionDigits,
   }).format(value);
 };

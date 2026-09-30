@@ -139,7 +139,7 @@ function RegisterPageContent(): React.JSX.Element {
           }}
         >
           <Typography variant="subtitle2" fontWeight="bold">
-            Secure & Safe
+            {t.featureSecure}
           </Typography>
         </Box>
         <Box
@@ -152,7 +152,7 @@ function RegisterPageContent(): React.JSX.Element {
           }}
         >
           <Typography variant="subtitle2" fontWeight="bold">
-            Trusted by Millions
+            {t.featureTrusted}
           </Typography>
         </Box>
       </Box>

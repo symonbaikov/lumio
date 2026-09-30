@@ -76,7 +76,7 @@ export default function DetailsDrawer({
             onClick={() => setActiveTab('details')}
             className={`lumio-tx-drawer__tab${activeTab === 'details' ? ' lumio-tx-drawer__tab--active' : ''}`}
           >
-            Details
+            {t.tabDetails}
           </button>
           <button
             type="button"
@@ -90,7 +90,7 @@ export default function DetailsDrawer({
             onClick={() => setActiveTab('history')}
             className={`lumio-tx-drawer__tab${activeTab === 'history' ? ' lumio-tx-drawer__tab--active' : ''}`}
           >
-            History
+            {t.tabHistory}
           </button>
         </div>
 

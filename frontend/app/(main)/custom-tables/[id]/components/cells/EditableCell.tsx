@@ -1,7 +1,11 @@
 'use client';
 
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { format, isValid, parseISO } from 'date-fns';
 import { useEffect, useRef, useState } from 'react';
 import { Checkbox } from '@/app/components/ui/checkbox';
+import { resolvePickerFormat } from '@/app/lib/user-format';
+import { useUserFormat } from '@/app/lib/user-format-store';
 import { parseLocalizedNumber } from '../../utils/numberFormat';
 import { normalizeSelectOptions } from '../../utils/selectOptions';
 import type {
@@ -103,29 +107,33 @@ function TextEditor({ column, row, onUpdate, done }: EditorProps) {
   );
 }
 
+/** Date cells: the app calendar opens at once; picking a day saves, closing it ends editing. */
 function DateEditor({ column, row, onUpdate, done }: EditorProps) {
   const initial = toDateInput(row.data?.[column.key] ?? null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+  const { preferences } = useUserFormat();
+  const commit = (date: Date | null) => {
+    const next = date && isValid(date) ? format(date, 'yyyy-MM-dd') : null;
+    if (next !== (initial || null)) {
+      void saveQuietly(onUpdate(row.id, column.key, next));
+    }
+  };
   return (
-    <input
-      ref={inputRef}
-      type="date"
-      className="lumio-ct__cell-input"
-      defaultValue={initial}
-      onBlur={event => {
-        const next = event.target.value || null;
-        if (next !== (initial || null)) {
-          void saveQuietly(onUpdate(row.id, column.key, next));
-        }
-        done();
-      }}
-      onKeyDown={event => {
-        if (event.key === 'Escape') {
-          done();
-        }
+    <DatePicker
+      open
+      value={initial ? parseISO(initial) : null}
+      format={resolvePickerFormat(preferences)}
+      onAccept={commit}
+      onClose={done}
+      slotProps={{
+        textField: {
+          autoFocus: true,
+          fullWidth: true,
+          size: 'small',
+          variant: 'standard',
+          className: 'lumio-ct__cell-input',
+          slotProps: { input: { disableUnderline: true } },
+        },
+        actionBar: { actions: ['clear', 'today'] },
       }}
     />
   );

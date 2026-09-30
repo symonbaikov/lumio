@@ -8,7 +8,7 @@ const FOREST = '#0e2a10';
 // The login screen's forest gradient, lit from the corner the screenshots sit in.
 const INTRO_BACKGROUND = [
   'radial-gradient(900px 480px at 88% 12%, rgba(159, 232, 112, 0.18), transparent 60%)',
-  'radial-gradient(760px 520px at 0% 100%, rgba(22, 129, 24, 0.42), transparent 62%)',
+  'radial-gradient(760px 520px at 0% 100%, rgba(var(--primary-rgb), 0.42), transparent 62%)',
   'linear-gradient(180deg, #021a0e 0%, #0a3d20 100%)',
 ].join(', ');
 

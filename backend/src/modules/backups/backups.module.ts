@@ -9,6 +9,7 @@ import {
   Workspace,
   WorkspaceMember,
 } from '../../entities';
+import { AuditModule } from '../audit/audit.module';
 import { BackupArchiveService } from './backup-archive.service';
 import { BackupDataService } from './backup-data.service';
 import { BackupDestinationService } from './backup-destination.service';
@@ -29,6 +30,7 @@ import { BackupsService } from './backups.service';
       Workspace,
       WorkspaceMember,
     ]),
+    AuditModule,
   ],
   controllers: [BackupsController],
   providers: [

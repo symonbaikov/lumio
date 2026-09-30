@@ -13,6 +13,7 @@ import {
   Trash2,
   Unlink2,
 } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { formatStoredDateTime } from '@/app/lib/user-format-store';
 import type { AuditEvent } from '@/lib/api/audit';
 import { tokens } from '@/lib/theme-tokens';
@@ -47,6 +48,7 @@ function TimelineEventItem({
   event: AuditEvent;
   onSelect?: (event: AuditEvent) => void;
 }): React.JSX.Element {
+  const t = useIntlayer('auditUi');
   const Icon = iconForAction(event.action);
   return (
     <button
@@ -103,7 +105,7 @@ function TimelineEventItem({
             variant="caption"
             style={{ color: 'var(--muted-foreground)', display: 'block', marginTop: 4 }}
           >
-            Batch {event.batchId}
+            {t.batchId.value.replace('{id}', event.batchId)}
           </Typography>
         )}
       </Box>
@@ -115,10 +117,11 @@ export function EntityHistoryTimeline({
   events,
   onSelect,
 }: EntityHistoryTimelineProps): React.JSX.Element {
+  const t = useIntlayer('auditUi');
   if (!events.length) {
     return (
       <Typography variant="body2" style={{ color: 'var(--muted-foreground)' }}>
-        No history available.
+        {t.noHistory}
       </Typography>
     );
   }

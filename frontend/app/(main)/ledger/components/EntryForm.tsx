@@ -10,7 +10,8 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
 import { useState } from 'react';
-import { Plus, X } from '@/app/components/icons';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
+import { X } from '@/app/components/icons';
 import { useIntlayer } from '@/app/i18n';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import type { EntryInput } from '../hooks/useLedger';
@@ -119,17 +120,16 @@ export function EntryForm({
   return (
     <Stack spacing={2}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-        <TextField
-          type="date"
-          size="small"
-          label={t.dateLabel.value}
-          value={entryDate}
-          onChange={event => {
-            setEntryDate(event.target.value);
-            setDirty(true);
-          }}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
+        <Box sx={{ flex: { sm: '0 0 200px' } }}>
+          <CustomDatePicker
+            label={t.dateLabel.value}
+            value={entryDate}
+            onChange={next => {
+              setEntryDate(next);
+              setDirty(true);
+            }}
+          />
+        </Box>
         <TextField
           size="small"
           label={t.memoLabel.value}
@@ -162,7 +162,6 @@ export function EntryForm({
       <Box>
         <Button
           size="small"
-          startIcon={<Plus size={16} />}
           onClick={() => {
             setLines(current => [
               ...current,

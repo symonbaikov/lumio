@@ -63,7 +63,7 @@ const content = {
       ar: 'البريد الإلكتروني',
       pl: 'E-mail',
       it: 'Email',
-      sk: 'E-mail',
+      sk: 'Email',
       ja: 'メールアドレス',
       ko: '이메일',
       hi: 'ईमेल',

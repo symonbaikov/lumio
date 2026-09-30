@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, LessThanOrEqual, Repository } from 'typeorm';
+import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import {
   NotificationCategory,
   NotificationSeverity,
@@ -25,6 +26,8 @@ import {
 import { Transaction } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
+import { AuditService } from '../audit/audit.service';
+import type { CreateAuditEventDto } from '../audit/interfaces/audit-event.interface';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { projectMonthlyCharges } from './charge-calendar.util';
@@ -53,6 +56,7 @@ export class SubscriptionsService {
     @InjectRepository(Workspace)
     private readonly workspaceRepository: Repository<Workspace>,
     private readonly exchangeRatesService: ExchangeRatesService,
+    private readonly auditService: AuditService,
   ) {}
 
   async create(
@@ -72,7 +76,18 @@ export class SubscriptionsService {
       vendorDomain: dto.vendorDomain ?? null,
       status: SubscriptionStatus.ACTIVE,
     });
-    return this.subscriptionRepository.save(subscription);
+    const saved = await this.subscriptionRepository.save(subscription);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.SUBSCRIPTION,
+      entityId: saved.id,
+      action: AuditAction.CREATE,
+      diff: { before: null, after: subscriptionSnapshot(saved) },
+      meta: { name: saved.vendorName },
+    });
+    return saved;
   }
 
   async findAll(workspaceId: string, status?: SubscriptionStatus): Promise<Subscription[]> {
@@ -110,8 +125,14 @@ export class SubscriptionsService {
     return { subscription, charges, decisions };
   }
 
-  async update(id: string, workspaceId: string, dto: UpdateSubscriptionDto): Promise<Subscription> {
+  async update(
+    id: string,
+    workspaceId: string,
+    userId: string,
+    dto: UpdateSubscriptionDto,
+  ): Promise<Subscription> {
     const subscription = await this.findOne(id, workspaceId);
+    const before = subscriptionSnapshot(subscription);
     if (dto.vendorName !== undefined) subscription.vendorName = dto.vendorName;
     if (dto.amount !== undefined) subscription.amount = dto.amount;
     if (dto.frequency !== undefined) subscription.frequency = dto.frequency;
@@ -121,25 +142,72 @@ export class SubscriptionsService {
     if (dto.nextChargeDate !== undefined)
       subscription.nextChargeDate = new Date(dto.nextChargeDate);
     if (dto.vendorDomain !== undefined) subscription.vendorDomain = dto.vendorDomain;
-    return this.subscriptionRepository.save(subscription);
-  }
-
-  async remove(id: string, workspaceId: string): Promise<void> {
-    const subscription = await this.findOne(id, workspaceId);
-    await this.subscriptionRepository.remove(subscription);
-  }
-
-  async confirm(id: string, workspaceId: string): Promise<Subscription> {
-    const subscription = await this.findOne(id, workspaceId);
-    subscription.status = SubscriptionStatus.ACTIVE;
     const saved = await this.subscriptionRepository.save(subscription);
-    await this.recordDetectedCharges(saved);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.SUBSCRIPTION,
+      entityId: id,
+      action: AuditAction.UPDATE,
+      diff: { before, after: subscriptionSnapshot(saved) },
+      meta: { name: saved.vendorName },
+    });
     return saved;
   }
 
-  async dismiss(id: string, workspaceId: string): Promise<void> {
+  async remove(id: string, workspaceId: string, userId: string): Promise<void> {
     const subscription = await this.findOne(id, workspaceId);
+    const before = subscriptionSnapshot(subscription);
     await this.subscriptionRepository.remove(subscription);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.SUBSCRIPTION,
+      entityId: id,
+      action: AuditAction.DELETE,
+      diff: { before, after: null },
+      meta: { name: before.vendorName },
+    });
+  }
+
+  async confirm(id: string, workspaceId: string, userId: string): Promise<Subscription> {
+    const subscription = await this.findOne(id, workspaceId);
+    const before = subscriptionSnapshot(subscription);
+    subscription.status = SubscriptionStatus.ACTIVE;
+    const saved = await this.subscriptionRepository.save(subscription);
+    await this.recordDetectedCharges(saved);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.SUBSCRIPTION,
+      entityId: id,
+      action: AuditAction.UPDATE,
+      description: `Confirmed detected subscription "${saved.vendorName}"`,
+      diff: { before, after: subscriptionSnapshot(saved) },
+      meta: { name: saved.vendorName, change: 'confirmed' },
+    });
+    return saved;
+  }
+
+  /** A dismissed detection is deleted outright, so it is logged as a deletion. */
+  async dismiss(id: string, workspaceId: string, userId: string): Promise<void> {
+    const subscription = await this.findOne(id, workspaceId);
+    const before = subscriptionSnapshot(subscription);
+    await this.subscriptionRepository.remove(subscription);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.SUBSCRIPTION,
+      entityId: id,
+      action: AuditAction.DELETE,
+      description: `Dismissed detected subscription "${before.vendorName}"`,
+      diff: { before, after: null },
+      meta: { name: before.vendorName, change: 'dismissed' },
+    });
   }
 
   async assignOwner(
@@ -156,6 +224,7 @@ export class SubscriptionsService {
     }
 
     const subscription = await this.findOne(id, workspaceId);
+    const previousOwnerId = subscription.ownerId ?? null;
     subscription.ownerId = ownerId;
     const saved = await this.subscriptionRepository.save(subscription);
     await this.decisionRepository.save(
@@ -167,6 +236,21 @@ export class SubscriptionsService {
         decision: SubscriptionDecisionType.OWNER_ASSIGNED,
       }),
     );
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId,
+      entityType: EntityType.SUBSCRIPTION,
+      entityId: id,
+      action: AuditAction.UPDATE,
+      description: `Assigned an owner to subscription "${saved.vendorName}"`,
+      diff: { before: { ownerId: previousOwnerId }, after: { ownerId } },
+      meta: {
+        name: saved.vendorName,
+        change: 'owner_assigned',
+        owner: { previousOwnerId, ownerId },
+      },
+    });
     return saved;
   }
 
@@ -177,6 +261,7 @@ export class SubscriptionsService {
     dto: RecordSubscriptionDecisionDto,
   ): Promise<Subscription> {
     const subscription = await this.findOne(id, workspaceId);
+    const before = subscriptionSnapshot(subscription);
     if (dto.decision === SubscriptionDecisionType.KEEP) {
       subscription.reviewStatus = SubscriptionReviewStatus.CURRENT;
       subscription.reviewAt = dto.reviewAt ? new Date(dto.reviewAt) : subscription.reviewAt;
@@ -206,7 +291,40 @@ export class SubscriptionsService {
         savingsAmount: dto.realizedAnnualSavings ?? null,
       }),
     );
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId,
+      entityType: EntityType.SUBSCRIPTION,
+      entityId: id,
+      action: AuditAction.UPDATE,
+      description: `Recorded decision "${dto.decision}" for subscription "${saved.vendorName}"`,
+      diff: { before, after: subscriptionSnapshot(saved) },
+      meta: {
+        name: saved.vendorName,
+        change: 'decision_recorded',
+        decision: {
+          type: dto.decision,
+          note: dto.note ?? null,
+          realizedAnnualSavings: dto.realizedAnnualSavings ?? null,
+          reviewAt: dto.reviewAt ?? null,
+        },
+      },
+    });
     return saved;
+  }
+
+  /** The audit trail is a side record: failing to write it must not fail the subscription change. */
+  private async audit(event: CreateAuditEventDto): Promise<void> {
+    try {
+      await this.auditService.createEvent(event);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to record audit event ${event.action} for subscription ${event.entityId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   async getSummary(workspaceId: string): Promise<{
@@ -518,4 +636,30 @@ export class SubscriptionsService {
       }
     }
   }
+}
+
+/** A `date` column comes back from Postgres as a string but is assigned as a Date; both read as a day here. */
+function toDay(value: Date | string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+}
+
+/** The fields a person edits or decides on, with decimals as numbers so unchanged values stay equal. */
+function subscriptionSnapshot(subscription: Subscription) {
+  return {
+    vendorName: subscription.vendorName,
+    amount: Number(subscription.amount),
+    frequency: subscription.frequency,
+    currency: subscription.currency,
+    status: subscription.status,
+    categoryId: subscription.categoryId ?? null,
+    nextChargeDate: toDay(subscription.nextChargeDate),
+    vendorDomain: subscription.vendorDomain ?? null,
+    reviewStatus: subscription.reviewStatus,
+    reviewAt: toDay(subscription.reviewAt),
+    cancellationReason: subscription.cancellationReason ?? null,
+    realizedAnnualSavings: Number(subscription.realizedAnnualSavings ?? 0),
+  };
 }

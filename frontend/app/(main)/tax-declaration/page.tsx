@@ -4,6 +4,7 @@ import {
   Alert,
   Box,
   CircularProgress,
+  LinearProgress,
   MenuItem,
   Stack,
   Tab,
@@ -11,6 +12,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { Suspense } from 'react';
@@ -25,6 +27,7 @@ import { ProfileStep } from './components/ProfileStep';
 import { TaxDisclaimerGate } from './components/TaxDisclaimerGate';
 import { useTaxDeclaration } from './hooks/useTaxDeclaration';
 import {
+  completenessTone,
   parseStep,
   parseTaxYear,
   STEPS,
@@ -138,8 +141,6 @@ function TaxDeclarationContent(): React.ReactElement {
 
     return (
       <Stack spacing={2.5}>
-        <AccuracyBanner score={draft.data?.completeness.score ?? null} />
-
         {state.actionError ? (
           <Alert severity="error">
             {state.actionError === 'forbidden' ? t.forbidden : t.actionError}
@@ -161,7 +162,12 @@ function TaxDeclarationContent(): React.ReactElement {
           </Tabs>
         </Box>
 
-        <Box>{renderStep()}</Box>
+        {/* The caveat sits under the tabs, in the step's own context; the draft
+            step folds it into one notice with its warnings. */}
+        <Stack spacing={2.5}>
+          {step === 'draft' ? null : <AccuracyBanner />}
+          <Box>{renderStep()}</Box>
+        </Stack>
       </Stack>
     );
   };
@@ -182,25 +188,46 @@ function TaxDeclarationContent(): React.ReactElement {
           <Typography variant="h5" fontWeight={700}>
             {t.title}
           </Typography>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
+          <Typography variant="body2" sx={{ mt: 0.25, color: 'text.secondary' }}>
             {t.subtitle}
           </Typography>
         </Box>
         {accepted ? (
-          <TextField
-            select
-            size="small"
-            label={t.taxYearLabel.value}
-            value={taxYear}
-            onChange={event => updateQuery({ year: event.target.value })}
-            sx={{ minWidth: 140 }}
-          >
-            {taxYearOptions().map(year => (
-              <MenuItem key={year} value={year}>
-                {year}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Stack direction="row" spacing={2} alignItems="center">
+            {draft.data ? (
+              <Box sx={{ minWidth: 120 }}>
+                <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 0.75 }}>
+                  {t.completenessLabel}: {draft.data.completeness.score}/100
+                </Typography>
+                {/* A hairline, not a bar: the score is context for the page, not its focus.
+                    The track is a neutral tint — action.hover is green in this theme. */}
+                <LinearProgress
+                  variant="determinate"
+                  value={draft.data.completeness.score}
+                  color={completenessTone(draft.data.completeness.score)}
+                  sx={{
+                    height: 2,
+                    borderRadius: 999,
+                    bgcolor: theme => alpha(theme.palette.text.primary, 0.08),
+                  }}
+                />
+              </Box>
+            ) : null}
+            <TextField
+              select
+              size="small"
+              label={t.taxYearLabel.value}
+              value={taxYear}
+              onChange={event => updateQuery({ year: event.target.value })}
+              sx={{ minWidth: 140 }}
+            >
+              {taxYearOptions().map(year => (
+                <MenuItem key={year} value={year}>
+                  {year}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Stack>
         ) : null}
       </Box>
 

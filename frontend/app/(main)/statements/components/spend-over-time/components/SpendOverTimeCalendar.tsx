@@ -217,135 +217,140 @@ export function SpendOverTimeCalendar({
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-          gap: 10,
-          marginBottom: 10,
-        }}
-      >
-        {weekdayLabels.map(label => (
-          <div
-            key={label}
-            style={{
-              padding: '0 4px',
-              fontSize: 12,
-              fontWeight: 600,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--muted-foreground)',
-            }}
-          >
-            {label}
-          </div>
-        ))}
-      </div>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-          gap: 10,
-        }}
-      >
-        {days.map(day => {
-          const hasItems = day.records.length > 0;
-          const totalLabel =
-            day.currencies.length === 1
-              ? formatMoney(day.total, day.currencies[0] || currency)
-              : `${day.records.length} ${labels.operations}`;
-
-          return (
-            <button
-              key={day.iso}
-              type="button"
-              onClick={() => hasItems && onDayClick(day.iso)}
+      <div className="lumio-spend-calendar__scroll">
+        <div
+          className="lumio-spend-calendar__grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+            gap: 10,
+            marginBottom: 10,
+          }}
+        >
+          {weekdayLabels.map(label => (
+            <div
+              key={label}
               style={{
-                minHeight: 156,
-                padding: 12,
-                borderRadius: tokens.radius.lg,
-                border: day.inCurrentMonth
-                  ? '1px solid var(--border-color)'
-                  : '1px dashed rgba(255,255,255,0.06)',
-                background: hasItems
-                  ? 'rgba(92,196,98,0.1)'
-                  : day.inCurrentMonth
-                    ? 'rgba(255,255,255,0.02)'
-                    : 'rgba(255,255,255,0.01)',
-                color: 'var(--foreground)',
-                textAlign: 'left',
-                cursor: hasItems ? 'pointer' : 'default',
-                opacity: day.inCurrentMonth ? 1 : 0.5,
+                padding: '0 4px',
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: 'var(--muted-foreground)',
               }}
             >
-              <div
+              {label}
+            </div>
+          ))}
+        </div>
+
+        <div
+          className="lumio-spend-calendar__grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+            gap: 10,
+          }}
+        >
+          {days.map(day => {
+            const hasItems = day.records.length > 0;
+            const totalLabel =
+              day.currencies.length === 1
+                ? formatMoney(day.total, day.currencies[0] || currency)
+                : `${day.records.length} ${labels.operations}`;
+
+            return (
+              <button
+                key={day.iso}
+                type="button"
+                onClick={() => hasItems && onDayClick(day.iso)}
                 style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: 8,
-                  marginBottom: 10,
+                  minHeight: 156,
+                  padding: 12,
+                  borderRadius: tokens.radius.lg,
+                  border: day.inCurrentMonth
+                    ? '1px solid var(--border-color)'
+                    : '1px dashed rgba(255,255,255,0.06)',
+                  background: hasItems
+                    ? 'rgba(92,196,98,0.1)'
+                    : day.inCurrentMonth
+                      ? 'rgba(255,255,255,0.02)'
+                      : 'rgba(255,255,255,0.01)',
+                  color: 'var(--foreground)',
+                  textAlign: 'left',
+                  cursor: hasItems ? 'pointer' : 'default',
+                  opacity: day.inCurrentMonth ? 1 : 0.5,
                 }}
               >
-                <span style={{ fontSize: 15, fontWeight: 700 }}>{day.dayNumber}</span>
-                {hasItems ? (
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--primary)',
-                    }}
-                  >
-                    {totalLabel}
-                  </span>
-                ) : null}
-              </div>
-
-              {hasItems ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {day.records.slice(0, 3).map(record => (
-                    <div
-                      key={record.id}
+                <div
+                  className="lumio-spend-calendar__day-head"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    marginBottom: 10,
+                  }}
+                >
+                  <span style={{ fontSize: 15, fontWeight: 700 }}>{day.dayNumber}</span>
+                  {hasItems ? (
+                    <span
                       style={{
-                        borderRadius: tokens.radius.md,
-                        background: 'rgba(255,255,255,0.04)',
-                        padding: '8px 10px',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: 'var(--primary)',
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: 'var(--foreground)',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {record.merchant || record.fileName}
-                      </div>
-                      <div
-                        style={{
-                          marginTop: 3,
-                          fontSize: 12,
-                          color: 'var(--muted-foreground)',
-                        }}
-                      >
-                        {formatMoney(record.amount, record.currencyValue || currency)}
-                      </div>
-                    </div>
-                  ))}
-                  {day.records.length > 3 ? (
-                    <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
-                      {spendT.moreCount.value.replace('{count}', String(day.records.length - 3))}
+                      {totalLabel}
                     </span>
                   ) : null}
                 </div>
-              ) : null}
-            </button>
-          );
-        })}
+
+                {hasItems ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {day.records.slice(0, 3).map(record => (
+                      <div
+                        key={record.id}
+                        style={{
+                          borderRadius: tokens.radius.md,
+                          background: 'rgba(255,255,255,0.04)',
+                          padding: '8px 10px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: 'var(--foreground)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {record.merchant || record.fileName}
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 3,
+                            fontSize: 12,
+                            color: 'var(--muted-foreground)',
+                          }}
+                        >
+                          {formatMoney(record.amount, record.currencyValue || currency)}
+                        </div>
+                      </div>
+                    ))}
+                    {day.records.length > 3 ? (
+                      <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
+                        {spendT.moreCount.value.replace('{count}', String(day.records.length - 3))}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {!hasRecordsInMonth ? (

@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Quote, X } from '@/app/components/icons';
+import { useAuth } from '@/app/hooks/useAuth';
 import { useDailyQuote } from '@/app/hooks/useDailyQuote';
 import { useInsights } from '@/app/hooks/useInsights';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
@@ -26,18 +27,27 @@ function readDismissed(workspaceId: string | null): string | null {
  * The quote of the day: one verified quote chosen for the user's current
  * situation, with a line saying which advice it answers. Closing it hides it
  * until tomorrow's quote — a per-viewer convenience, so browser storage is enough.
- * Hidden while an urgent insight banner is showing, so the two never stack.
+ * Hidden while an urgent insight banner is showing, so the two never stack, and
+ * for good once the user turns it off in Settings → Appearance.
  */
 export function DailyQuoteBanner(): React.JSX.Element | null {
   const t = useIntlayer('insights');
   const workspaceId = useWorkspaceId();
-  const { quote } = useDailyQuote();
+  const { user } = useAuth();
+  // Off in settings means no banner and no request for a quote nobody will see.
+  const enabled = user?.showDailyQuote !== false;
+  const { quote } = useDailyQuote({ enabled });
   const [dismissedDate, setDismissedDate] = useState(() => readDismissed(workspaceId));
   // One strip above the page at a time: while AlertBanner shows an urgent
   // insight the quote waits (same query, so no extra request).
   const urgent = useInsights({ severities: ['warn', 'critical'] });
 
-  if (!quote || dismissedDate === quote.date || urgent.isPending || urgent.items.length > 0) {
+  if (
+    !(enabled && quote) ||
+    dismissedDate === quote.date ||
+    urgent.isPending ||
+    urgent.items.length > 0
+  ) {
     return null;
   }
 

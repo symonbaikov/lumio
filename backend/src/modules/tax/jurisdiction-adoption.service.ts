@@ -2,8 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { EntityManager } from 'typeorm';
 import { Repository } from 'typeorm';
+import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { TaxRate } from '../../entities/tax-rate.entity';
 import { Workspace } from '../../entities/workspace.entity';
+import { AuditService } from '../audit/audit.service';
 import { JurisdictionsService, toDateOnly } from './jurisdictions.service';
 
 export interface AdoptionResult {
@@ -39,6 +41,7 @@ export class JurisdictionAdoptionService {
     @InjectRepository(Workspace)
     private readonly workspaceRepository: Repository<Workspace>,
     private readonly jurisdictionsService: JurisdictionsService,
+    private readonly auditService: AuditService,
   ) {}
 
   /** The jurisdiction a workspace currently files in, or null if unconfigured. */
@@ -55,11 +58,13 @@ export class JurisdictionAdoptionService {
     workspaceId: string,
     jurisdictionCode: string,
     effectiveFrom: string = toDateOnly(new Date()),
+    userId?: string,
   ): Promise<AdoptionResult> {
     const jurisdiction = await this.jurisdictionsService.findByCode(jurisdictionCode);
     const reference = await this.jurisdictionsService.findAllRates(jurisdiction.id);
+    const previous = await this.getCurrentJurisdiction(workspaceId);
 
-    return this.taxRateRepository.manager.transaction(async manager => {
+    const result = await this.taxRateRepository.manager.transaction(async manager => {
       const retired = await this.retirePreviousJurisdiction(
         manager,
         workspaceId,
@@ -117,6 +122,27 @@ export class JurisdictionAdoptionService {
 
       return { jurisdictionCode: jurisdiction.code, adopted, retired, effectiveFrom };
     });
+
+    try {
+      await this.auditService.createEvent({
+        workspaceId,
+        actorType: ActorType.USER,
+        actorId: userId ?? null,
+        entityType: EntityType.WORKSPACE,
+        entityId: workspaceId,
+        action: AuditAction.UPDATE,
+        diff: {
+          before: { taxJurisdiction: previous?.code ?? null },
+          after: { taxJurisdiction: jurisdiction.code },
+        },
+        meta: { effectiveFrom, adopted: result.adopted, retired: result.retired },
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Audit event failed for workspace ${workspaceId} jurisdiction: ${message}`);
+    }
+
+    return result;
   }
 
   /**

@@ -13,13 +13,14 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  TextField,
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { queryKeys } from '@/app/lib/query-keys';
 import { tokens } from '@/lib/theme-tokens';
@@ -35,16 +36,19 @@ import {
   type ThresholdStatus,
 } from './tax-return.helpers';
 
-const PRESETS: Array<{ key: PeriodPreset; label: string }> = [
-  { key: 'thisQuarter', label: 'This quarter' },
-  { key: 'lastQuarter', label: 'Last quarter' },
-  { key: 'thisYear', label: 'This year' },
-];
+const PRESETS = [
+  { key: 'thisQuarter', label: 'presetThisQuarter' },
+  { key: 'lastQuarter', label: 'presetLastQuarter' },
+  { key: 'thisYear', label: 'presetThisYear' },
+] as const satisfies ReadonlyArray<{ key: PeriodPreset; label: string }>;
 
-const DIRECTION_LABEL: Record<string, string> = {
-  output: 'Output',
-  input: 'Input',
-  reverse_charge: 'Reverse charge',
+const DIRECTION_LABEL: Record<
+  string,
+  'directionOutput' | 'directionInput' | 'directionReverseCharge'
+> = {
+  output: 'directionOutput',
+  input: 'directionInput',
+  reverse_charge: 'directionReverseCharge',
 };
 
 function Figure({
@@ -57,7 +61,7 @@ function Figure({
   emphasis?: boolean;
 }): React.ReactElement {
   return (
-    <Box sx={{ minWidth: 160 }}>
+    <Box sx={{ flex: { xs: '1 1 140px', md: '0 0 auto' }, minWidth: { md: 160 } }}>
       <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{label}</Typography>
       <Typography
         sx={{ fontSize: emphasis ? 22 : 18, fontWeight: 600, color: 'text.primary', mt: 0.25 }}
@@ -76,6 +80,7 @@ function Figure({
  * reopen path is offered explicitly rather than implied.
  */
 export function TaxReturnView(): React.ReactElement {
+  const t = useIntlayer('taxReturnView');
   const workspaceId = useWorkspaceId();
   const queryClient = useQueryClient();
   const [period, setPeriod] = useState(() => periodFor('thisQuarter'));
@@ -115,11 +120,7 @@ export function TaxReturnView(): React.ReactElement {
     mutationFn: (action: 'file' | 'reopen') => apiClient.post(`/tax/returns/${action}`, period),
     onSuccess: () => setError(null),
     onError: (_error, action) =>
-      setError(
-        action === 'file'
-          ? 'Could not file the return. Please try again.'
-          : 'Could not reopen the period. Please try again.',
-      ),
+      setError(action === 'file' ? t.fileFailed.value : t.reopenFailed.value),
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
 
@@ -139,7 +140,7 @@ export function TaxReturnView(): React.ReactElement {
       saveBlob(response.data as Blob, exportFileName(period.periodStart, period.periodEnd, format));
     })()
       .catch(async () => {
-        setError(`Could not export the return as ${format.toUpperCase()}.`);
+        setError(t.exportFailed.value.replace('{format}', format.toUpperCase()));
       })
       .finally(async () => {
         setBusy(false);
@@ -151,7 +152,7 @@ export function TaxReturnView(): React.ReactElement {
 
   return (
     <Stack spacing={2.5}>
-      <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+      <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
         {PRESETS.map(preset => (
           <Button
             key={preset.key}
@@ -160,31 +161,27 @@ export function TaxReturnView(): React.ReactElement {
             onClick={() => setPeriod(periodFor(preset.key))}
             sx={{ borderRadius: tokens.radius.md, textTransform: 'none' }}
           >
-            {preset.label}
+            {t[preset.label]}
           </Button>
         ))}
-        <TextField
-          size="small"
-          type="date"
-          label="From"
-          value={period.periodStart}
-          onChange={event => setPeriod(p => ({ ...p, periodStart: event.target.value }))}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-        <TextField
-          size="small"
-          type="date"
-          label="To"
-          value={period.periodEnd}
-          onChange={event => setPeriod(p => ({ ...p, periodEnd: event.target.value }))}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
+        <Box sx={{ flex: { xs: '1 1 140px', sm: '0 0 180px' } }}>
+          <CustomDatePicker
+            label={t.from.value}
+            value={period.periodStart}
+            onChange={periodStart => setPeriod(p => ({ ...p, periodStart }))}
+          />
+        </Box>
+        <Box sx={{ flex: { xs: '1 1 140px', sm: '0 0 180px' } }}>
+          <CustomDatePicker
+            label={t.to.value}
+            value={period.periodEnd}
+            onChange={periodEnd => setPeriod(p => ({ ...p, periodEnd }))}
+          />
+        </Box>
       </Stack>
 
       {error || returnQuery.isError ? (
-        <Alert severity="error">
-          {error ?? 'Could not build the return. Check that this workspace has a tax jurisdiction.'}
-        </Alert>
+        <Alert severity="error">{error ?? t.buildFailed}</Alert>
       ) : null}
 
       {threshold?.threshold ? (
@@ -197,12 +194,13 @@ export function TaxReturnView(): React.ReactElement {
           }}
         >
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary' }}>
-            Registration threshold
+            {t.registrationThreshold}
           </Typography>
           <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.5 }}>
-            {formatMoney(threshold.turnover, threshold.currency)} of{' '}
-            {formatMoney(threshold.threshold, threshold.currency)} —{' '}
-            {Math.round(threshold.percentUsed)}%
+            {t.thresholdProgress.value
+              .replace('{turnover}', formatMoney(threshold.turnover, threshold.currency))
+              .replace('{threshold}', formatMoney(threshold.threshold, threshold.currency))
+              .replace('{percent}', String(Math.round(threshold.percentUsed)))}
           </Typography>
           <LinearProgress
             variant="determinate"
@@ -236,10 +234,10 @@ export function TaxReturnView(): React.ReactElement {
         >
           <Stack
             direction="row"
-            spacing={3}
             sx={{
               flexWrap: 'wrap',
-              gap: 2,
+              columnGap: 3,
+              rowGap: 2,
               borderRadius: tokens.radius.lg,
               border: '1px solid',
               borderColor: 'divider',
@@ -247,17 +245,33 @@ export function TaxReturnView(): React.ReactElement {
               p: { xs: 2, sm: 3 },
             }}
           >
-            <Figure label="Output tax" value={formatMoney(totals?.outputTax ?? 0, currency)} />
-            <Figure label="Input tax" value={formatMoney(totals?.inputTax ?? 0, currency)} />
             <Figure
-              label={netDirection(totals?.netPayable ?? 0) === 'refund' ? 'Reclaimable' : 'Payable'}
+              label={t.outputTax.value}
+              value={formatMoney(totals?.outputTax ?? 0, currency)}
+            />
+            <Figure label={t.inputTax.value} value={formatMoney(totals?.inputTax ?? 0, currency)} />
+            <Figure
+              label={
+                netDirection(totals?.netPayable ?? 0) === 'refund'
+                  ? t.reclaimable.value
+                  : t.payable.value
+              }
               value={formatMoney(Math.abs(Number(totals?.netPayable ?? 0)), currency)}
               emphasis
             />
-            <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box
+              sx={{
+                ml: { md: 'auto' },
+                width: { xs: '100%', md: 'auto' },
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
               <Chip
                 size="small"
-                label={isFiled ? 'Filed' : 'Draft'}
+                label={isFiled ? t.statusFiled.value : t.statusDraft.value}
                 color={isFiled ? 'success' : 'default'}
               />
               <Button
@@ -280,31 +294,33 @@ export function TaxReturnView(): React.ReactElement {
                 variant={isFiled ? 'outlined' : 'contained'}
                 disabled={busy || actMutation.isPending}
                 onClick={() => act(isFiled ? 'reopen' : 'file')}
-                sx={{ borderRadius: tokens.radius.md, textTransform: 'none', fontWeight: 600 }}
+                sx={{
+                  borderRadius: tokens.radius.md,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  flex: { xs: '1 1 auto', md: '0 0 auto' },
+                }}
               >
-                {isFiled ? 'Reopen period' : 'File and lock'}
+                {isFiled ? t.reopenPeriod : t.fileAndLock}
               </Button>
             </Box>
           </Stack>
 
-          {isFiled ? (
-            <Alert severity="info">
-              This period is filed. The transactions behind it are locked, and the figures shown are
-              the ones that were submitted.
-            </Alert>
-          ) : null}
+          {isFiled ? <Alert severity="info">{t.filedNotice}</Alert> : null}
 
           {totals && totals.lines.length > 0 ? (
             <Box sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Counterparty</TableCell>
-                    <TableCell>Kind</TableCell>
-                    <TableCell align="right">Tax</TableCell>
-                    <TableCell align="right">Rate</TableCell>
-                    <TableCell align="right">In {currency}</TableCell>
+                    <TableCell>{t.colDate}</TableCell>
+                    <TableCell>{t.colCounterparty}</TableCell>
+                    <TableCell>{t.colKind}</TableCell>
+                    <TableCell align="right">{t.colTax}</TableCell>
+                    <TableCell align="right">{t.colRate}</TableCell>
+                    <TableCell align="right">
+                      {t.colInCurrency.value.replace('{currency}', currency)}
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -312,7 +328,11 @@ export function TaxReturnView(): React.ReactElement {
                     <TableRow key={line.transactionId}>
                       <TableCell>{line.date}</TableCell>
                       <TableCell>{line.counterparty}</TableCell>
-                      <TableCell>{DIRECTION_LABEL[line.direction] ?? line.direction}</TableCell>
+                      <TableCell>
+                        {DIRECTION_LABEL[line.direction]
+                          ? t[DIRECTION_LABEL[line.direction]]
+                          : line.direction}
+                      </TableCell>
                       <TableCell align="right">
                         {formatMoney(line.taxAmount, line.currency)}
                       </TableCell>
@@ -328,9 +348,7 @@ export function TaxReturnView(): React.ReactElement {
               </Table>
             </Box>
           ) : (
-            <Typography sx={{ fontSize: 14, color: 'text.secondary' }}>
-              No taxed transactions in this period.
-            </Typography>
+            <Typography sx={{ fontSize: 14, color: 'text.secondary' }}>{t.noLines}</Typography>
           )}
         </Box>
       )}
@@ -345,8 +363,7 @@ export function TaxReturnView(): React.ReactElement {
           pt: 1.5,
         }}
       >
-        These figures are produced from your own data using rates we maintain, and are not a
-        substitute for advice from an accountant. Check them before submitting anything.
+        {t.disclaimer}
       </Typography>
     </Stack>
   );

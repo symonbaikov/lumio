@@ -4,7 +4,7 @@ import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import { ChevronRight, Lock, Plus, Search as SearchIcon, Tag } from '@/app/components/icons';
+import { ChevronRight, Lock, Search as SearchIcon, Tag } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { resolveCategoryIconUrl } from '@/app/lib/category-icon-url';
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
@@ -164,7 +164,6 @@ export function CategoryTree({
               borderRadius: tokens.radius.md,
             }}
           >
-            <Plus size={16} />
             {labels.add}
           </button>
         </Box>

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Check, ChevronLeft, Search } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useIntlayer } from '@/app/i18n';
 
 type LanguageDrawerProps = {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export function LanguageDrawer({
   normalizedLocale,
   handleLanguageSelect,
 }: LanguageDrawerProps): React.JSX.Element {
+  const { shell } = useIntlayer('navigation');
   return (
     <DrawerShell
       isOpen={isOpen}
@@ -36,7 +38,7 @@ export function LanguageDrawer({
             type="button"
             onClick={onClose}
             className="lumio-navigation__lang-back-btn"
-            aria-label="Close language drawer"
+            aria-label={shell.closeLanguageDrawer.value}
           >
             <ChevronLeft style={{ width: 20, height: 20 }} />
           </button>
@@ -44,7 +46,7 @@ export function LanguageDrawer({
         </div>
       }
       position="right"
-      width="lg"
+      width="sm"
       showCloseButton={false}
     >
       <div className="lumio-navigation__lang-body">
@@ -57,7 +59,7 @@ export function LanguageDrawer({
               onChange={e => {
                 setLanguageSearch(e.target.value);
               }}
-              placeholder="Search"
+              placeholder={shell.search.value}
               className="lumio-navigation__lang-search-input"
             />
           </div>
@@ -82,7 +84,7 @@ export function LanguageDrawer({
                 );
               })
             ) : (
-              <p className="lumio-navigation__lang-empty">No languages found</p>
+              <p className="lumio-navigation__lang-empty">{shell.noLanguagesFound}</p>
             )}
           </div>
         </div>
